@@ -1,39 +1,35 @@
 export const CRM_ROLES = [
   'Super Admin',
   'Admin',
-  'HR Manager',
-  'Domestic Recruiter',
-  'International Recruiter',
-  'Senior Recruiter',
-  'Junior Recruiter',
-  'Client Coordinator',
-  'Interview Coordinator',
-  'Documentation Executive',
-  'Visa Processing Executive',
-  'Background Verification Executive',
-  'Accounts',
-  'Business Development',
-  'Marketing',
-  'Read Only Viewer'
+  'Recruiter',
+  'Interviewer',
+  'Client Coordinator'
 ];
 
 export const ROLE_PERMISSIONS = {
   'Super Admin': ['all'],
   'Admin': ['dashboard', 'candidates', 'pipeline', 'domestic', 'international', 'clients', 'workspace', 'interviews', 'documentation', 'visa', 'verification', 'accounts', 'reports', 'ai-suite', 'automation', 'calendar', 'settings'],
-  'HR Manager': ['dashboard', 'candidates', 'pipeline', 'domestic', 'international', 'clients', 'workspace', 'interviews', 'documentation', 'reports', 'calendar'],
+  'Recruiter': ['dashboard', 'candidates', 'pipeline', 'domestic', 'international', 'workspace', 'interviews', 'documentation', 'calendar', 'reports'],
+  'Interviewer': ['dashboard', 'candidates', 'interviews', 'calendar', 'workspace'],
+  'Client Coordinator': ['dashboard', 'clients', 'domestic', 'international', 'pipeline', 'interviews', 'workspace', 'reports'],
+  
+  // Legacy aliases for full backward compatibility
+  'HR & Talent Manager': ['dashboard', 'candidates', 'pipeline', 'domestic', 'international', 'clients', 'workspace', 'interviews', 'documentation', 'reports', 'calendar'],
   'Domestic Recruiter': ['dashboard', 'candidates', 'pipeline', 'domestic', 'workspace', 'interviews', 'calendar'],
   'International Recruiter': ['dashboard', 'candidates', 'pipeline', 'international', 'workspace', 'interviews', 'visa', 'calendar'],
-  'Senior Recruiter': ['dashboard', 'candidates', 'pipeline', 'domestic', 'international', 'workspace', 'interviews', 'calendar', 'ai-suite'],
-  'Junior Recruiter': ['dashboard', 'candidates', 'pipeline', 'workspace', 'calendar'],
-  'Client Coordinator': ['dashboard', 'clients', 'domestic', 'international', 'interviews', 'workspace'],
+  'Placement Coordinator': ['dashboard', 'candidates', 'pipeline', 'clients', 'interviews', 'workspace', 'calendar'],
+  'Client Account Manager': ['dashboard', 'clients', 'domestic', 'international', 'interviews', 'workspace'],
   'Interview Coordinator': ['dashboard', 'candidates', 'interviews', 'calendar', 'workspace'],
-  'Documentation Executive': ['dashboard', 'candidates', 'documentation', 'visa', 'workspace'],
-  'Visa Processing Executive': ['dashboard', 'candidates', 'international', 'visa', 'documentation', 'workspace'],
-  'Background Verification Executive': ['dashboard', 'candidates', 'verification', 'documentation', 'workspace'],
+  'Documentation & Visa Specialist': ['dashboard', 'candidates', 'documentation', 'visa', 'workspace'],
+  'Background Verification Officer': ['dashboard', 'candidates', 'verification', 'documentation', 'workspace'],
+  'Accounts & Billing Executive': ['dashboard', 'accounts', 'clients', 'reports'],
+  'HR Professional': ['dashboard', 'candidates', 'pipeline', 'domestic', 'international', 'clients', 'workspace', 'interviews', 'documentation', 'reports', 'calendar'],
+  'Application Support': ['dashboard', 'candidates', 'documentation', 'visa', 'verification', 'workspace'],
+  'DMS': ['dashboard', 'candidates', 'documentation', 'workspace'],
+  'HR Manager': ['dashboard', 'candidates', 'pipeline', 'domestic', 'international', 'clients', 'workspace', 'interviews', 'documentation', 'reports', 'calendar'],
+  'Accounts & Treasury': ['dashboard', 'accounts', 'clients', 'reports'],
   'Accounts': ['dashboard', 'accounts', 'clients', 'reports'],
-  'Business Development': ['dashboard', 'clients', 'reports'],
-  'Marketing': ['dashboard', 'candidates', 'clients', 'reports'],
-  'Read Only Viewer': ['dashboard', 'reports']
+  'Coordinator': ['dashboard', 'candidates', 'pipeline', 'domestic', 'international', 'clients', 'workspace', 'interviews', 'documentation', 'calendar']
 };
 
 export const PIPELINE_STAGES = [
@@ -53,7 +49,8 @@ export const PIPELINE_STAGES = [
   { id: 'visa_process', title: 'Visa Process', color: 'bg-sky-600' },
   { id: 'travel_process', title: 'Travel Process', color: 'bg-blue-600' },
   { id: 'joined', title: 'Joined', color: 'bg-emerald-600' },
-  { id: 'rejected', title: 'Rejected', color: 'bg-rose-600' }
+  { id: 'rejected', title: 'Rejected', color: 'bg-rose-600' },
+  { id: 'hold', title: 'Hold', color: 'bg-yellow-600' }
 ];
 
 export const CRM_CANDIDATES = [
@@ -66,13 +63,18 @@ export const CRM_CANDIDATES = [
     whatsapp: '+971 50 123 9876',
     gender: 'Male',
     dob: '1988-04-12',
+    address: 'Business Bay, Tower 4, Dubai, UAE',
     nationality: 'United Kingdom',
     passport: 'GB98210452',
     passportExpiry: '2031-10-15',
     visaStatus: 'Residence Visa (UAE)',
+    aadhaar: 'N/A (UK Citizen)',
+    pan: 'N/A (UK Citizen)',
     currentSalary: 'AED 38,000 / month',
     expectedSalary: 'AED 45,000 / month',
     noticePeriod: '30 Days',
+    preferredLocation: 'Dubai / Abu Dhabi / Riyadh',
+    languages: ['English (Native)', 'Arabic (Basic)'],
     experience: '12 Years',
     currentEmployer: 'Al Habtoor Contracting LLC',
     skills: ['Primavera P6', 'FIDIC Contracts', 'MOHRE Compliance', 'High-Rise Construction'],
@@ -83,10 +85,11 @@ export const CRM_CANDIDATES = [
     aiSummary: 'Top-tier civil project manager with 12 years of high-rise building leadership across London & Dubai.',
     assignedRecruiter: 'Fatima Al-Zahra',
     tags: ['Executive', 'Tier-1 Candidate', 'Immediate Joining'],
+    notes: 'Candidate passed technical assessment with distinction. Client VP Hassan Al-Habtoor gave positive preliminary feedback.',
     documents: [
-      { name: 'Alexander_Wright_CV.pdf', type: 'Resume', status: 'Verified' },
-      { name: 'Passport_Copy_UK.pdf', type: 'Passport', status: 'Verified' },
-      { name: 'Degree_Attestation_MOHRE.pdf', type: 'Degree', status: 'Attested' }
+      { id: 'd-1', name: 'Alexander_Wright_CV.pdf', type: 'Resume', status: 'Verified', date: '2026-08-01' },
+      { id: 'd-2', name: 'Passport_Copy_UK.pdf', type: 'Passport', status: 'Verified', date: '2026-08-01' },
+      { id: 'd-3', name: 'Degree_Attestation_MOHRE.pdf', type: 'Degree', status: 'Attested', date: '2026-08-02' }
     ]
   },
   {
@@ -98,13 +101,18 @@ export const CRM_CANDIDATES = [
     whatsapp: '+966 50 987 1234',
     gender: 'Female',
     dob: '1990-08-25',
+    address: 'Olaya District, Riyadh, Saudi Arabia',
     nationality: 'Saudi Arabia',
     passport: 'SA7712091',
     passportExpiry: '2029-06-20',
     visaStatus: 'Saudi Citizen',
+    aadhaar: 'N/A',
+    pan: 'N/A',
     currentSalary: 'SAR 42,000 / month',
     expectedSalary: 'SAR 50,000 / month',
     noticePeriod: '60 Days',
+    preferredLocation: 'Riyadh / Jeddah',
+    languages: ['Arabic (Native)', 'English (Fluent)'],
     experience: '9 Years',
     currentEmployer: 'King Faisal Specialist Hospital',
     skills: ['ICU Critical Care', 'Ventilator Management', 'JCI Accreditation', 'Prometric License'],
@@ -115,9 +123,10 @@ export const CRM_CANDIDATES = [
     aiSummary: 'Senior ICU consultant specializing in tertiary care and critical trauma units in Riyadh.',
     assignedRecruiter: 'Tariq Al-Hashemi',
     tags: ['Doctor', 'Healthcare', 'JCI Verified'],
+    notes: 'Offer letter dispatched on August 3rd for Saudi German Hospital Group.',
     documents: [
-      { name: 'Dr_Sarah_CV_2026.pdf', type: 'Resume', status: 'Verified' },
-      { name: 'Saudi_Prometric_License.pdf', type: 'Medical License', status: 'Verified' }
+      { id: 'd-4', name: 'Dr_Sarah_CV_2026.pdf', type: 'Resume', status: 'Verified', date: '2026-07-28' },
+      { id: 'd-5', name: 'Saudi_Prometric_License.pdf', type: 'Medical License', status: 'Verified', date: '2026-07-29' }
     ]
   },
   {
@@ -129,13 +138,18 @@ export const CRM_CANDIDATES = [
     whatsapp: '+48 22 891 0023',
     gender: 'Female',
     dob: '1993-11-04',
+    address: 'Mokotowska 42, Warsaw, Poland',
     nationality: 'Poland',
     passport: 'PL4491029',
     passportExpiry: '2030-01-18',
     visaStatus: 'Tourist Visa',
+    aadhaar: 'N/A',
+    pan: 'N/A',
     currentSalary: 'EUR 5,500 / month',
     expectedSalary: 'SGD 14,000 / month',
     noticePeriod: 'Immediate',
+    preferredLocation: 'Singapore / Dubai',
+    languages: ['Polish (Native)', 'English (Fluent)'],
     experience: '8 Years',
     currentEmployer: 'Warsaw Fintech Solutions',
     skills: ['AWS Architect', 'Kubernetes', 'Terraform', 'DevOps CI/CD', 'Golang'],
@@ -146,9 +160,46 @@ export const CRM_CANDIDATES = [
     aiSummary: 'Senior DevOps Architect eligible for Singapore Employment Pass & Dubai Green Visa.',
     assignedRecruiter: 'David Sterling',
     tags: ['Cloud Tech', 'Relocating', 'EP Qualified'],
+    notes: 'MOM Singapore IPA approval letter generated.',
     documents: [
-      { name: 'Elena_Rostova_DevOps.pdf', type: 'Resume', status: 'Verified' },
-      { name: 'MOM_Singapore_IPA_Approval.pdf', type: 'Visa Letter', status: 'Approved' }
+      { id: 'd-6', name: 'Elena_Rostova_DevOps.pdf', type: 'Resume', status: 'Verified', date: '2026-07-15' },
+      { id: 'd-7', name: 'MOM_Singapore_IPA_Approval.pdf', type: 'Visa Letter', status: 'Approved', date: '2026-08-02' }
+    ]
+  },
+  {
+    id: 'SIR-CAN-1004',
+    name: 'Rajesh Subramanian',
+    avatar: 'https://images.unsplash.com/photo-1500648767791-00dcc994a43e?w=150&auto=format&fit=crop&q=80',
+    email: 'rajesh.sub@fintech-mumbai.in',
+    phone: '+91 98200 45123',
+    whatsapp: '+91 98200 45123',
+    gender: 'Male',
+    dob: '1991-02-18',
+    address: 'Bandra West, Mumbai, MH, India',
+    nationality: 'India',
+    passport: 'Z8910244',
+    passportExpiry: '2032-05-10',
+    visaStatus: 'Emigration Clearance Required (ECR)',
+    aadhaar: '4512-8910-3321',
+    pan: 'ABCPS8910K',
+    currentSalary: 'INR 28,000,000 / annum',
+    expectedSalary: 'AED 32,000 / month',
+    noticePeriod: '15 Days',
+    preferredLocation: 'Dubai / Abu Dhabi',
+    languages: ['English', 'Hindi', 'Tamil'],
+    experience: '10 Years',
+    currentEmployer: 'HDFC Securities',
+    skills: ['Spring Boot', 'Microservices', 'PostgreSQL', 'Kafka', 'React.js'],
+    education: 'B.Tech IT - IIT Madras',
+    certifications: ['Oracle Certified Java Master'],
+    stage: 'client_interview',
+    score: 91,
+    aiSummary: 'Full-stack financial software architect with high performance banking microservices expertise.',
+    assignedRecruiter: 'Rajesh Kumar',
+    tags: ['Fintech', 'Java Expert', 'Fast Track'],
+    notes: 'Client interview confirmed with Emirates NBD Engineering lead.',
+    documents: [
+      { id: 'd-8', name: 'Rajesh_Subramanian_CV.pdf', type: 'Resume', status: 'Verified', date: '2026-08-01' }
     ]
   }
 ];
@@ -160,6 +211,7 @@ export const CRM_CLIENTS = [
     logo: '🏗️ Al Habtoor',
     industry: 'Construction & Real Estate',
     country: 'UAE (Dubai)',
+    address: 'Al Habtoor Tower, Business Bay, Dubai',
     contactPerson: 'Eng. Hassan Al-Habtoor',
     designation: 'VP of Human Capital',
     email: 'hassan@habtoorcontracting.ae',
@@ -168,7 +220,15 @@ export const CRM_CLIENTS = [
     totalPlacements: 48,
     agreementStatus: 'Active Multi-Year SLA',
     pendingInvoiceUSD: 35000,
-    coordinator: 'Tariq Al-Hashemi'
+    coordinator: 'Tariq Al-Hashemi',
+    requirements: [
+      { id: 'REQ-101', title: 'Senior MEP Engineer', count: 3, status: 'Active', salary: 'AED 28,000' },
+      { id: 'REQ-102', title: 'HSE Safety Manager', count: 2, status: 'Active', salary: 'AED 24,000' }
+    ],
+    communications: [
+      { type: 'Email', date: '2026-08-03', text: 'Confirmed interview slot for candidate Alexander Wright on Teams.' },
+      { type: 'WhatsApp', date: '2026-08-02', text: 'Sent updated CV shortlist of 4 Civil PMs.' }
+    ]
   },
   {
     id: 'CLI-502',
@@ -176,6 +236,7 @@ export const CRM_CLIENTS = [
     logo: '🏥 SGH Group',
     industry: 'Healthcare & Tertiary Medical',
     country: 'Saudi Arabia (Riyadh)',
+    address: 'King Fahd Road, Olaya, Riyadh',
     contactPerson: 'Dr. Nawaf Al-Harbi',
     designation: 'Director of Talent Acquisition',
     email: 'nawaf.harbi@sghgroup.sa',
@@ -184,7 +245,14 @@ export const CRM_CLIENTS = [
     totalPlacements: 94,
     agreementStatus: 'Exclusive Vendor SLA',
     pendingInvoiceUSD: 62000,
-    coordinator: 'Fatima Al-Zahra'
+    coordinator: 'Fatima Al-Zahra',
+    requirements: [
+      { id: 'REQ-201', title: 'ICU Critical Care Consultants', count: 5, status: 'Active', salary: 'SAR 45,000' },
+      { id: 'REQ-202', title: 'Senior Surgical Nurses', count: 12, status: 'Active', salary: 'SAR 14,000' }
+    ],
+    communications: [
+      { type: 'Email', date: '2026-08-01', text: 'Approved candidate Dr. Sarah Al-Mansoori for final placement offer.' }
+    ]
   }
 ];
 
@@ -200,7 +268,10 @@ export const CRM_INTERVIEWS = [
     meetingLink: 'https://teams.microsoft.com/l/meetup-join/sir-recruitment-881',
     panelists: ['Eng. Hassan Al-Habtoor (VP)', 'David Sterling (SIR Director)'],
     status: 'Scheduled',
-    feedback: 'Pending Panel Conduct'
+    feedback: 'Pending Panel Conduct',
+    candidateConfirmed: true,
+    clientConfirmed: true,
+    recordingLink: 'https://stream.microsoft.com/video/rec-881'
   },
   {
     id: 'INT-882',
@@ -213,7 +284,10 @@ export const CRM_INTERVIEWS = [
     meetingLink: 'https://meet.google.com/sir-cloud-882',
     panelists: ['Marcus Chen (CTO)', 'Fatima Al-Zahra (Coordinator)'],
     status: 'Completed',
-    feedback: 'Passed Technical Assessment with 95% Score'
+    feedback: 'Passed Technical Assessment with 95% Score',
+    candidateConfirmed: true,
+    clientConfirmed: true,
+    recordingLink: 'https://drive.google.com/file/d/rec-882/view'
   }
 ];
 

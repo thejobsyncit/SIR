@@ -27,21 +27,26 @@ export function App() {
   const [isCrmRoute, setIsCrmRoute] = useState(false);
 
   useEffect(() => {
-    const checkHash = () => {
+    const checkCrmAccess = () => {
       const hash = window.location.hash.toLowerCase();
-      setIsCrmRoute(hash.startsWith('#crm'));
+      const path = window.location.pathname.toLowerCase();
+      setIsCrmRoute(hash.startsWith('#crm') || path.includes('/crm'));
     };
-    checkHash();
-    window.addEventListener('hashchange', checkHash);
-    return () => window.removeEventListener('hashchange', checkHash);
+    checkCrmAccess();
+    window.addEventListener('hashchange', checkCrmAccess);
+    window.addEventListener('popstate', checkCrmAccess);
+    return () => {
+      window.removeEventListener('hashchange', checkCrmAccess);
+      window.removeEventListener('popstate', checkCrmAccess);
+    };
   }, []);
 
-  // Isolated Enterprise CRM Application Mode
+  // Isolated Enterprise CRM Application Mode (Accessible ONLY via /crm or #crm)
   if (isCrmRoute) {
     return <CrmApp />;
   }
 
-  // Public Consultancy Website Mode
+  // Public Consultancy Website Mode (Zero CRM Links Visible)
   const renderCurrentPage = () => {
     switch (activeTab) {
       case 'about':
