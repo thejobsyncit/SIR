@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import { useApp } from './context/AppContext';
 import { Navbar } from './components/Navbar';
 import { Footer } from './components/Footer';
@@ -20,9 +20,28 @@ import { VisaEligibilityPage } from './pages/VisaEligibilityPage';
 import { BackgroundVerificationPage } from './pages/BackgroundVerificationPage';
 import { ContactUsPage } from './pages/ContactUsPage';
 
+import { CrmApp } from './crm/CrmApp';
+
 export function App() {
   const { activeTab } = useApp();
+  const [isCrmRoute, setIsCrmRoute] = useState(false);
 
+  useEffect(() => {
+    const checkHash = () => {
+      const hash = window.location.hash.toLowerCase();
+      setIsCrmRoute(hash.startsWith('#crm'));
+    };
+    checkHash();
+    window.addEventListener('hashchange', checkHash);
+    return () => window.removeEventListener('hashchange', checkHash);
+  }, []);
+
+  // Isolated Enterprise CRM Application Mode
+  if (isCrmRoute) {
+    return <CrmApp />;
+  }
+
+  // Public Consultancy Website Mode
   const renderCurrentPage = () => {
     switch (activeTab) {
       case 'about':
