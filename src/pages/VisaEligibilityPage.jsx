@@ -25,10 +25,70 @@ export const VisaEligibilityPage = () => {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ country, qualification, experience, age, language })
       });
+<<<<<<< HEAD
+      if (res.ok) {
+        const data = await res.json();
+        setResult(data);
+      } else {
+        throw new Error('API request failed');
+      }
+    } catch (err) {
+      console.warn('Using client evaluation engine fallback:', err);
+      // Client-side fallback calculation matching backend
+      const target = (country || 'uae').toLowerCase();
+      const ageVal = parseInt(age) || 30;
+      const expVal = parseInt(experience) || 2;
+      const qualStr = (qualification || '').toLowerCase();
+      const langStr = (language || '').toLowerCase();
+      
+      let baseScore = 20;
+      const reasons = [];
+
+      let ageScore = 0;
+      if (target === 'australia') {
+        if (ageVal < 18) { ageScore = 0; reasons.push('Below minimum working age (18) for Australia independent visa.'); }
+        else if (ageVal <= 24) { ageScore = 25; reasons.push('Age 18-24 grants 25 points on Australia Skilled Points Grid.'); }
+        else if (ageVal <= 32) { ageScore = 30; reasons.push('Peak Age Bracket (25-32) grants maximum 30 points for Australia Visa.'); }
+        else if (ageVal <= 39) { ageScore = 25; reasons.push('Age 33-39 grants 25 points on Australia Migration Grid.'); }
+        else if (ageVal <= 44) { ageScore = 15; reasons.push('Age 40-44 grants 15 points on Australia Skilled Migration.'); }
+        else { ageScore = -25; reasons.push('Exceeds Australia Skilled Migration age threshold (Maximum 45 years limit). Employer sponsorship pathway required.'); }
+      } else if (target === 'canada') {
+        if (ageVal >= 20 && ageVal <= 29) { ageScore = 30; reasons.push('Peak age bracket (20-29) yields maximum CRS points for Canada Express Entry.'); }
+        else if (ageVal >= 30 && ageVal <= 44) { ageScore = Math.max(5, 30 - (ageVal - 29) * 2); reasons.push(`Age ${ageVal} receives reduced CRS age points (-2 pts/yr after 30).`); }
+        else { ageScore = 0; reasons.push('Age 45+ awards 0 points under Canada Express Entry CRS.'); }
+      } else {
+        if (ageVal >= 21 && ageVal <= 50) { ageScore = 25; reasons.push('Optimal working age demographic for work visa approval.'); }
+        else if (ageVal <= 58) { ageScore = 18; reasons.push('Standard eligible age range.'); }
+        else { ageScore = 5; reasons.push('Above standard prime age; requires ministry exemption or high salary.'); }
+      }
+
+      let qualScore = qualStr.includes('master') ? 30 : qualStr.includes('bachelor') ? 25 : qualStr.includes('diploma') ? 18 : 10;
+      reasons.push(`${qualification} evaluated for destination country standard.`);
+
+      let expScore = expVal >= 10 ? 25 : expVal >= 5 ? 20 : expVal >= 3 ? 14 : 8;
+      reasons.push(`${experience} years experience added to professional profile rating.`);
+
+      let langScore = langStr.includes('english') || langStr.includes('arabic') || langStr.includes('german') ? 20 : 10;
+
+      let score = Math.max(10, Math.min(100, baseScore + ageScore + qualScore + expScore + langScore));
+      let status = score >= 85 ? 'Highly Eligible' : score >= 70 ? 'Eligible (Standard Pathway)' : score >= 50 ? 'Conditional Eligibility' : 'Low Eligibility';
+
+      setResult({
+        score,
+        status,
+        countryData: { country },
+        reasons,
+        processingTime: '7 - 21 Days',
+        estimatedCost: 'Standard Employer Paid',
+        checklist: ['Passport (6+ months validity)', 'Educational Certificate Attestation', 'Medical Clearance', 'Signed Employment Offer Letter'],
+        recommendedJobs: []
+      });
+=======
       const data = await res.json();
       setResult(data);
     } catch (err) {
       console.error(err);
+>>>>>>> 07ac5c3a07e2c57e0ebb677f1885544f5b93c946
     } finally {
       setLoading(false);
     }
@@ -45,7 +105,11 @@ export const VisaEligibilityPage = () => {
         <h1 className="font-serif text-4xl sm:text-5xl font-extrabold text-navy-900 dark:text-white">
           GCC & Global Visa Eligibility Checker
         </h1>
+<<<<<<< HEAD
+        <p className="text-xs sm:text-sm text-slate-800 dark:text-slate-200 leading-relaxed font-medium">
+=======
         <p className="text-xs sm:text-sm text-slate-600 dark:text-slate-300 leading-relaxed">
+>>>>>>> 07ac5c3a07e2c57e0ebb677f1885544f5b93c946
           Evaluate your profile against official MOHRE, Saudi Iqama, Qatar Work Residence, and EU Blue Card rules.
         </p>
       </div>
@@ -159,15 +223,64 @@ export const VisaEligibilityPage = () => {
         {/* Results Column */}
         <div className="lg:col-span-7 space-y-6">
           {!result ? (
+<<<<<<< HEAD
+            <div className="glass-card bg-white dark:bg-navy-950 text-slate-900 dark:text-white rounded-3xl p-8 border border-slate-200 dark:border-gold-500/30 shadow-xl text-center py-16 space-y-3">
+              <Globe className="w-12 h-12 text-gold-500 mx-auto animate-pulse" />
+              <h3 className="font-serif text-2xl font-bold text-navy-950 dark:text-white">Calculate Your Work Visa Readiness</h3>
+              <p className="text-xs text-slate-800 dark:text-slate-200 max-w-md mx-auto font-medium">
+=======
             <div className="glass-card bg-navy-950 text-white rounded-3xl p-8 border border-gold-500/30 shadow-luxury text-center py-16 space-y-3">
               <Globe className="w-12 h-12 text-gold-500 mx-auto animate-pulse" />
               <h3 className="font-serif text-2xl font-bold">Calculate Your Work Visa Readiness</h3>
               <p className="text-xs text-slate-400 max-w-md mx-auto">
+>>>>>>> 07ac5c3a07e2c57e0ebb677f1885544f5b93c946
                 Fill in your destination country, degree qualification, and years of experience to calculate your score and view mandatory document checklists.
               </p>
             </div>
           ) : (
             <div className="space-y-6 animate-in fade-in">
+<<<<<<< HEAD
+              {/* Score Card - White Card in Light Mode with Black Text / Dark Navy in Dark Mode */}
+              <div className="glass-card bg-white dark:bg-navy-950 border border-slate-200 dark:border-gold-500/50 rounded-3xl p-6 sm:p-8 shadow-luxury space-y-4">
+                <div className="flex justify-between items-start border-b border-slate-200 dark:border-navy-800 pb-4">
+                  <div>
+                    <p className="text-xs font-bold uppercase text-gold-600 dark:text-gold-400 tracking-wider">Visa Eligibility Index</p>
+                    <h3 className="font-serif text-2xl sm:text-3xl font-extrabold text-navy-950 dark:text-white mt-1">{result.status}</h3>
+                    <p className="text-xs text-slate-700 dark:text-slate-300 mt-1">Target Country: <strong className="text-gold-600 dark:text-gold-400 font-bold">{result.countryData ? result.countryData.country : country}</strong></p>
+                  </div>
+                  <div className="w-20 h-20 rounded-full border-4 border-gold-500 bg-gold-500/10 dark:bg-navy-900 flex flex-col items-center justify-center font-extrabold text-gold-600 dark:text-gold-400 text-2xl shadow-gold-glow shrink-0">
+                    <span>{result.score}%</span>
+                  </div>
+                </div>
+
+                {/* Criteria Reasons Breakdown */}
+                {result.reasons && result.reasons.length > 0 && (
+                  <div className="space-y-2 pt-1 border-b border-slate-200 dark:border-navy-800 pb-4">
+                    <p className="text-[11px] font-bold text-gold-600 dark:text-gold-400 uppercase tracking-wider">Evaluation Breakdown & Points Criteria:</p>
+                    <ul className="space-y-2 text-xs">
+                      {result.reasons.map((r, idx) => (
+                        <li key={idx} className="flex items-start space-x-2.5 text-slate-800 dark:text-slate-200 font-medium">
+                          <CheckCircle2 className="w-4 h-4 text-gold-600 dark:text-gold-400 shrink-0 mt-0.5" />
+                          <span className="leading-snug">{r}</span>
+                        </li>
+                      ))}
+                    </ul>
+                  </div>
+                )}
+
+                <div className="grid grid-cols-2 sm:grid-cols-3 gap-3 text-xs pt-1">
+                  <div className="p-3 bg-slate-100 dark:bg-navy-900 border border-slate-200 dark:border-navy-800 rounded-xl">
+                    <p className="text-[10px] text-slate-700 dark:text-slate-300 font-bold">Processing Time</p>
+                    <p className="font-bold text-emerald-600 dark:text-emerald-400 text-xs mt-0.5">{result.processingTime || '7 - 21 Days'}</p>
+                  </div>
+                  <div className="p-3 bg-slate-100 dark:bg-navy-900 border border-slate-200 dark:border-navy-800 rounded-xl">
+                    <p className="text-[10px] text-slate-700 dark:text-slate-300 font-bold">Estimated Cost</p>
+                    <p className="font-bold text-gold-600 dark:text-gold-400 text-xs mt-0.5">{result.estimatedCost || 'Employer Sponsored'}</p>
+                  </div>
+                  <div className="p-3 bg-slate-100 dark:bg-navy-900 border border-slate-200 dark:border-navy-800 rounded-xl col-span-2 sm:col-span-1">
+                    <p className="text-[10px] text-slate-700 dark:text-slate-300 font-bold">Employer Sponsorship</p>
+                    <p className="font-bold text-navy-950 dark:text-white text-xs mt-0.5">Mandatory</p>
+=======
               {/* Score Card */}
               <div className="glass-card bg-navy-950 text-white border border-gold-500/40 rounded-3xl p-6 sm:p-8 shadow-luxury space-y-4">
                 <div className="flex justify-between items-start border-b border-navy-800 pb-4">
@@ -193,6 +306,7 @@ export const VisaEligibilityPage = () => {
                   <div className="p-3 bg-navy-900 rounded-xl">
                     <p className="text-[10px] text-slate-400">Employer Sponsorship</p>
                     <p className="font-bold text-white">Mandatory</p>
+>>>>>>> 07ac5c3a07e2c57e0ebb677f1885544f5b93c946
                   </div>
                 </div>
               </div>
@@ -205,7 +319,11 @@ export const VisaEligibilityPage = () => {
                 </h4>
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
                   {result.checklist.map((doc, idx) => (
+<<<<<<< HEAD
+                    <div key={idx} className="p-2.5 bg-slate-50 dark:bg-navy-950 border border-slate-200 dark:border-navy-800 rounded-xl flex items-center gap-2 text-slate-800 dark:text-slate-200 font-semibold">
+=======
                     <div key={idx} className="p-2.5 bg-slate-50 dark:bg-navy-950 border border-slate-200 dark:border-navy-800 rounded-xl flex items-center gap-2 text-slate-700 dark:text-slate-300 font-medium">
+>>>>>>> 07ac5c3a07e2c57e0ebb677f1885544f5b93c946
                       <CheckCircle2 className="w-4 h-4 text-emerald-500 shrink-0" />
                       <span>{doc}</span>
                     </div>
@@ -223,7 +341,11 @@ export const VisaEligibilityPage = () => {
                     <div key={j.id} className="p-3 bg-slate-50 dark:bg-navy-950 rounded-xl border flex justify-between items-center">
                       <div>
                         <p className="font-bold text-navy-900 dark:text-white">{j.title}</p>
+<<<<<<< HEAD
+                        <p className="text-[11px] text-slate-700 dark:text-slate-300 font-semibold">{j.company} • {j.salary}</p>
+=======
                         <p className="text-[11px] text-slate-500">{j.company} • {j.salary}</p>
+>>>>>>> 07ac5c3a07e2c57e0ebb677f1885544f5b93c946
                       </div>
                       <button onClick={() => navigateTo('jobs')} className="px-3 py-1.5 bg-navy-900 text-gold-400 font-bold rounded-lg hover:bg-gold-500 hover:text-navy-950 transition">
                         Apply
@@ -246,7 +368,11 @@ export const VisaEligibilityPage = () => {
           <h3 className="font-serif text-3xl font-extrabold text-navy-900 dark:text-white">
             Country-Wise Visa Eligibility Matrix (18 Countries)
           </h3>
+<<<<<<< HEAD
+          <p className="text-xs text-slate-800 dark:text-slate-200 font-medium">
+=======
           <p className="text-xs text-slate-500 dark:text-slate-400">
+>>>>>>> 07ac5c3a07e2c57e0ebb677f1885544f5b93c946
             Compare work visa requirements, minimum qualifications, age rules, processing times, and average costs.
           </p>
         </div>

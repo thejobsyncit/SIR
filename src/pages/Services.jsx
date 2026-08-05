@@ -25,7 +25,11 @@ export const Services = () => {
         <h1 className="font-serif text-4xl sm:text-5xl font-extrabold text-navy-900 dark:text-white">
           Our Executive Services
         </h1>
+<<<<<<< HEAD
+        <p className="text-xs sm:text-sm text-slate-800 dark:text-slate-200 font-medium">
+=======
         <p className="text-xs sm:text-sm text-slate-600 dark:text-slate-300">
+>>>>>>> 07ac5c3a07e2c57e0ebb677f1885544f5b93c946
           Complete end-to-end talent solutions, visa processing, background checks, and strategic HR consulting tailored to UAE & global standards.
         </p>
       </div>
@@ -59,14 +63,22 @@ export const Services = () => {
                 <span className="bg-gold-500/10 text-gold-600 dark:text-gold-400 text-[10px] font-bold px-2 py-0.5 rounded uppercase">
                   {srv.category}
                 </span>
+<<<<<<< HEAD
+                <span className="text-xs text-slate-600 dark:text-slate-400 font-mono font-bold">#{srv.id}</span>
+=======
                 <span className="text-xs text-slate-400 font-mono">#{srv.id}</span>
+>>>>>>> 07ac5c3a07e2c57e0ebb677f1885544f5b93c946
               </div>
               
               <h3 className="font-serif text-xl font-bold text-navy-900 dark:text-white">
                 {srv.title}
               </h3>
               
+<<<<<<< HEAD
+              <p className="text-xs text-slate-800 dark:text-slate-200 font-medium leading-relaxed">
+=======
               <p className="text-xs text-slate-600 dark:text-slate-400 leading-relaxed">
+>>>>>>> 07ac5c3a07e2c57e0ebb677f1885544f5b93c946
                 {srv.description}
               </p>
             </div>
@@ -96,7 +108,11 @@ export const Services = () => {
           <div className="glass-card bg-white dark:bg-navy-900 border border-gold-500/40 p-6 rounded-2xl max-w-lg w-full space-y-4 shadow-luxury">
             <h3 className="font-serif text-2xl font-bold text-navy-900 dark:text-white">{selectedService.title}</h3>
             <span className="bg-gold-500/20 text-gold-500 text-xs font-bold px-2 py-1 rounded">{selectedService.category}</span>
+<<<<<<< HEAD
+            <p className="text-xs text-slate-800 dark:text-slate-200 font-medium leading-relaxed">{selectedService.description}</p>
+=======
             <p className="text-xs text-slate-600 dark:text-slate-300 leading-relaxed">{selectedService.description}</p>
+>>>>>>> 07ac5c3a07e2c57e0ebb677f1885544f5b93c946
             <div className="p-3 bg-slate-100 dark:bg-navy-800 rounded-xl text-xs space-y-1">
               <p className="font-bold text-navy-900 dark:text-white">Key Deliverables:</p>
               <p>• Full SLA compliance with 90-day retention guarantee.</p>

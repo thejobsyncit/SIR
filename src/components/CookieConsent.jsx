@@ -22,7 +22,11 @@ export const CookieConsent = () => {
         <ShieldCheck className="w-5 h-5 text-gold-500 shrink-0 mt-0.5" />
         <div className="space-y-2">
           <h4 className="font-bold text-white">GDPR & Cookie Preference</h4>
+<<<<<<< HEAD
+          <p className="text-slate-300 leading-relaxed text-[11px] font-medium">
+=======
           <p className="text-slate-400 leading-relaxed text-[11px]">
+>>>>>>> 07ac5c3a07e2c57e0ebb677f1885544f5b93c946
             SIR Recruitment uses cookies & encrypted local storage to personalize job recommendations, preserve your visa evaluation session, and analyze platform traffic.
           </p>
           <div className="flex gap-2 pt-1">

@@ -1,4 +1,8 @@
+<<<<<<< HEAD
+import React from 'react';
+=======
 import React, { useState, useEffect } from 'react';
+>>>>>>> 07ac5c3a07e2c57e0ebb677f1885544f5b93c946
 import { useApp } from './context/AppContext';
 import { Navbar } from './components/Navbar';
 import { Footer } from './components/Footer';
@@ -20,6 +24,11 @@ import { VisaEligibilityPage } from './pages/VisaEligibilityPage';
 import { BackgroundVerificationPage } from './pages/BackgroundVerificationPage';
 import { ContactUsPage } from './pages/ContactUsPage';
 
+<<<<<<< HEAD
+export function App() {
+  const { activeTab } = useApp();
+
+=======
 import { CrmApp } from './crm/CrmApp';
 
 export function App() {
@@ -47,6 +56,7 @@ export function App() {
   }
 
   // Public Consultancy Website Mode (Zero CRM Links Visible)
+>>>>>>> 07ac5c3a07e2c57e0ebb677f1885544f5b93c946
   const renderCurrentPage = () => {
     switch (activeTab) {
       case 'about':

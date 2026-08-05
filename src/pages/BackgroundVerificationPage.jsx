@@ -64,7 +64,11 @@ export const BackgroundVerificationPage = () => {
         <h1 className="font-serif text-4xl sm:text-5xl font-extrabold text-navy-900 dark:text-white">
           Background Verification Module
         </h1>
+<<<<<<< HEAD
+        <p className="text-xs sm:text-sm text-slate-800 dark:text-slate-200 leading-relaxed font-medium">
+=======
         <p className="text-xs sm:text-sm text-slate-600 dark:text-slate-300 leading-relaxed">
+>>>>>>> 07ac5c3a07e2c57e0ebb677f1885544f5b93c946
           Screen corporate candidates with 6-point verification covering education attestation, past employment, police clearances, and identity audits across UAE, GCC, & global institutions.
         </p>
       </div>
@@ -82,7 +86,11 @@ export const BackgroundVerificationPage = () => {
           <div key={idx} className="glass-card bg-white dark:bg-navy-900 border border-slate-200 dark:border-navy-800 p-4 rounded-2xl text-center space-y-2">
             <ShieldCheck className="w-8 h-8 text-gold-500 mx-auto" />
             <h4 className="font-bold text-xs text-navy-900 dark:text-white">{item.title}</h4>
+<<<<<<< HEAD
+            <p className="text-[10px] text-slate-700 dark:text-slate-300 font-medium">{item.desc}</p>
+=======
             <p className="text-[10px] text-slate-500">{item.desc}</p>
+>>>>>>> 07ac5c3a07e2c57e0ebb677f1885544f5b93c946
           </div>
         ))}
       </div>

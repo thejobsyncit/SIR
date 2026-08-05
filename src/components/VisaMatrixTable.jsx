@@ -111,7 +111,11 @@ export const VisaMatrixTable = () => {
                 <td className="p-4 font-semibold text-navy-800 dark:text-slate-200">
                   {item.visaType}
                 </td>
+<<<<<<< HEAD
+                <td className="p-4 text-[11px] leading-relaxed text-slate-800 dark:text-slate-200 font-medium">
+=======
                 <td className="p-4 text-[11px] leading-relaxed text-slate-600 dark:text-slate-400">
+>>>>>>> 07ac5c3a07e2c57e0ebb677f1885544f5b93c946
                   {item.requirements}
                 </td>
                 <td className="p-4 font-mono font-medium text-slate-800 dark:text-slate-200 whitespace-nowrap">
@@ -140,7 +144,11 @@ export const VisaMatrixTable = () => {
         </table>
       </div>
 
+<<<<<<< HEAD
+      <div className="p-4 bg-slate-100 dark:bg-navy-900 rounded-xl text-xs text-slate-800 dark:text-slate-200 font-medium flex items-center justify-between">
+=======
       <div className="p-4 bg-slate-100 dark:bg-navy-900 rounded-xl text-xs text-slate-500 dark:text-slate-400 flex items-center justify-between">
+>>>>>>> 07ac5c3a07e2c57e0ebb677f1885544f5b93c946
         <p className="flex items-center gap-1.5">
           <CheckCircle2 className="w-4 h-4 text-emerald-500" />
           <span>Updated as of August 2026. Includes UAE MOHRE, Saudi Iqama, Qatar Work Visa & EU Blue Card frameworks.</span>
