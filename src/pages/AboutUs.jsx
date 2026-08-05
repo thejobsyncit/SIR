@@ -23,11 +23,7 @@ export const AboutUs = () => {
         <h1 className="font-serif text-4xl sm:text-5xl font-extrabold text-navy-900 dark:text-white tracking-tight">
           Dubai's Premier International HR & Talent Gateway
         </h1>
-<<<<<<< HEAD
         <p className="text-xs sm:text-sm text-slate-800 dark:text-slate-200 leading-relaxed font-medium">
-=======
-        <p className="text-xs sm:text-sm text-slate-600 dark:text-slate-300 leading-relaxed">
->>>>>>> 07ac5c3a07e2c57e0ebb677f1885544f5b93c946
           Founded in Dubai, United Arab Emirates, SIR Recruitment has established itself as the preferred partner for Fortune 500 multinationals, GCC conglomerates, and government bodies seeking world-class human capital.
         </p>
       </div>
@@ -57,11 +53,7 @@ export const AboutUs = () => {
             <Target className="w-6 h-6" />
           </div>
           <h3 className="font-serif text-2xl font-bold text-navy-900 dark:text-white">Our Mission</h3>
-<<<<<<< HEAD
           <p className="text-xs text-slate-800 dark:text-slate-200 leading-relaxed font-medium">
-=======
-          <p className="text-xs text-slate-600 dark:text-slate-300 leading-relaxed">
->>>>>>> 07ac5c3a07e2c57e0ebb677f1885544f5b93c946
             To bridge global talent reserves with high-growth employment markets across the UAE, Saudi Arabia, Qatar, Europe, and Asia through transparent, tech-enabled, and fully compliant recruitment solutions.
           </p>
         </div>
@@ -71,11 +63,7 @@ export const AboutUs = () => {
             <Eye className="w-6 h-6" />
           </div>
           <h3 className="font-serif text-2xl font-bold text-navy-900 dark:text-white">Our Vision</h3>
-<<<<<<< HEAD
           <p className="text-xs text-slate-800 dark:text-slate-200 leading-relaxed font-medium">
-=======
-          <p className="text-xs text-slate-600 dark:text-slate-300 leading-relaxed">
->>>>>>> 07ac5c3a07e2c57e0ebb677f1885544f5b93c946
             To be recognized globally as the most trusted human capital consultancy in the Middle East, setting benchmark standards in background verification, executive search, and ethical manpower deployment.
           </p>
         </div>
@@ -96,11 +84,7 @@ export const AboutUs = () => {
               </div>
               <h4 className="font-bold text-sm text-navy-900 dark:text-white">{member.name}</h4>
               <p className="text-[10px] uppercase font-bold text-gold-500 tracking-wider">{member.role}</p>
-<<<<<<< HEAD
               <p className="text-xs text-slate-800 dark:text-slate-200 leading-relaxed font-medium">{member.bio}</p>
-=======
-              <p className="text-xs text-slate-500 dark:text-slate-400 leading-relaxed">{member.bio}</p>
->>>>>>> 07ac5c3a07e2c57e0ebb677f1885544f5b93c946
             </div>
           ))}
         </div>

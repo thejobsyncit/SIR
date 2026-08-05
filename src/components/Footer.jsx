@@ -17,7 +17,6 @@ export const Footer = () => {
       <div className="max-w-7xl mx-auto px-4 sm:px-8">
         
         {/* Top Newsletter & Banner Callout */}
-<<<<<<< HEAD
         <div className="glass-card bg-white dark:bg-navy-900 border border-slate-200 dark:border-gold-500/40 rounded-2xl p-8 mb-16 shadow-luxury flex flex-col lg:flex-row items-center justify-between gap-6">
           <div className="max-w-xl">
             <div className="inline-flex items-center space-x-2 bg-gold-500/20 text-gold-600 dark:text-gold-400 px-3 py-1 rounded-full text-xs font-bold mb-3">
@@ -28,18 +27,6 @@ export const Footer = () => {
               Stay Ahead of GCC Visa Laws & Executive Vacancies
             </h3>
             <p className="text-xs text-slate-700 dark:text-slate-300 mt-2 font-medium">
-=======
-        <div className="glass-card bg-navy-900/90 border border-gold-500/30 rounded-2xl p-8 mb-16 shadow-luxury flex flex-col lg:flex-row items-center justify-between gap-6">
-          <div className="max-w-xl">
-            <div className="inline-flex items-center space-x-2 bg-gold-500/20 text-gold-400 px-3 py-1 rounded-full text-xs font-bold mb-3">
-              <Award className="w-3.5 h-3.5" />
-              <span>International Recruitment Intelligence</span>
-            </div>
-            <h3 className="font-serif text-2xl font-bold text-white tracking-tight">
-              Stay Ahead of GCC Visa Laws & Executive Vacancies
-            </h3>
-            <p className="text-xs text-slate-400 mt-2">
->>>>>>> 07ac5c3a07e2c57e0ebb677f1885544f5b93c946
               Subscribe to the SIR Executive Briefing. Delivered bi-weekly to 40,000+ HR Directors & C-Suite Executives.
             </p>
           </div>
@@ -48,11 +35,7 @@ export const Footer = () => {
             <input 
               type="email" 
               placeholder="Enter corporate email address..." 
-<<<<<<< HEAD
               className="bg-slate-50 dark:bg-navy-950 border border-slate-300 dark:border-navy-700 text-navy-950 dark:text-white placeholder-slate-500 text-xs rounded-xl px-4 py-3 min-w-[260px] focus:outline-none focus:border-gold-500 font-medium"
-=======
-              className="bg-navy-950 border border-navy-700 text-white placeholder-slate-500 text-xs rounded-xl px-4 py-3 min-w-[260px] focus:outline-none focus:border-gold-500"
->>>>>>> 07ac5c3a07e2c57e0ebb677f1885544f5b93c946
             />
             <button className="bg-gold-shimmer text-navy-950 font-bold text-xs px-6 py-3 rounded-xl hover:opacity-95 transition shadow-gold-glow flex items-center justify-center space-x-2">
               <span>Subscribe Now</span>
@@ -77,11 +60,7 @@ export const Footer = () => {
               </div>
             </div>
 
-<<<<<<< HEAD
             <p className="text-slate-300 leading-relaxed pr-4 font-medium">
-=======
-            <p className="text-slate-400 leading-relaxed pr-4">
->>>>>>> 07ac5c3a07e2c57e0ebb677f1885544f5b93c946
               SIR Recruitment is a Dubai-headquartered premier international recruitment consultancy, executive search firm, and licensed manpower outsourcing vendor operating across the UAE, GCC, Europe, and Asia.
             </p>
 
@@ -122,11 +101,7 @@ export const Footer = () => {
             <h4 className="font-bold text-white uppercase text-xs tracking-wider text-gold-500 border-b border-navy-800 pb-2">
               Quick Links
             </h4>
-<<<<<<< HEAD
             <ul className="space-y-2 text-slate-300 font-medium">
-=======
-            <ul className="space-y-2 text-slate-400">
->>>>>>> 07ac5c3a07e2c57e0ebb677f1885544f5b93c946
               <li><button onClick={() => navigateTo('home')} className="hover:text-gold-400 transition">• Home</button></li>
               <li><button onClick={() => navigateTo('about')} className="hover:text-gold-400 transition">• About Us</button></li>
               <li><button onClick={() => navigateTo('services')} className="hover:text-gold-400 transition">• Core Services</button></li>
@@ -143,11 +118,7 @@ export const Footer = () => {
             <h4 className="font-bold text-white uppercase text-xs tracking-wider text-gold-500 border-b border-navy-800 pb-2">
               Visa & Verification
             </h4>
-<<<<<<< HEAD
             <ul className="space-y-2 text-slate-300 font-medium">
-=======
-            <ul className="space-y-2 text-slate-400">
->>>>>>> 07ac5c3a07e2c57e0ebb677f1885544f5b93c946
               <li><button onClick={() => navigateTo('visa-eligibility')} className="hover:text-gold-400 transition">• Visa Eligibility Checker</button></li>
               <li><button onClick={() => navigateTo('visa-eligibility')} className="hover:text-gold-400 transition">• GCC Country Visa Matrix</button></li>
               <li><button onClick={() => navigateTo('background-verification')} className="hover:text-gold-400 transition">• Background Verification</button></li>
@@ -163,11 +134,7 @@ export const Footer = () => {
             <h4 className="font-bold text-white uppercase text-xs tracking-wider text-gold-500 border-b border-navy-800 pb-2">
               Global Destinations
             </h4>
-<<<<<<< HEAD
             <ul className="space-y-2 text-slate-300 font-medium">
-=======
-            <ul className="space-y-2 text-slate-400">
->>>>>>> 07ac5c3a07e2c57e0ebb677f1885544f5b93c946
               {COUNTRIES_LIST.slice(0, 7).map((c) => (
                 <li key={c.code} className="flex items-center space-x-2">
                   <span>{c.flag}</span>
@@ -182,7 +149,6 @@ export const Footer = () => {
         </div>
 
         {/* Bottom Rights & Certifications */}
-<<<<<<< HEAD
         <div className="pt-8 flex flex-col md:flex-row items-center justify-between gap-4 text-xs text-slate-400">
           <p>© 2026 SIR Recruitment Consultancy FZ-LLC. All Rights Reserved. Managed under Dubai Economic Department & MOHRE Regulations.</p>
 
@@ -192,17 +158,6 @@ export const Footer = () => {
               <span>SSL 256-bit Encrypted</span>
             </span>
             <span className="flex items-center space-x-1 text-slate-300 font-medium">
-=======
-        <div className="pt-8 flex flex-col md:flex-row items-center justify-between gap-4 text-xs text-slate-500">
-          <p>© 2026 SIR Recruitment Consultancy FZ-LLC. All Rights Reserved. Managed under Dubai Economic Department & MOHRE Regulations.</p>
-
-          <div className="flex items-center space-x-6">
-            <span className="flex items-center space-x-1 text-slate-400">
-              <Shield className="w-3.5 h-3.5 text-emerald-400" />
-              <span>SSL 256-bit Encrypted</span>
-            </span>
-            <span className="flex items-center space-x-1 text-slate-400">
->>>>>>> 07ac5c3a07e2c57e0ebb677f1885544f5b93c946
               <CheckCircle2 className="w-3.5 h-3.5 text-gold-500" />
               <span>GDPR Compliant</span>
             </span>

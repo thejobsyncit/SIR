@@ -4,7 +4,7 @@ import { INDUSTRIES_LIST } from '../data/mockData';
 import { Building, Flame, HeartPulse, Utensils, Code, Wrench, Factory, ShoppingBag, Truck, PlaneTakeoff, Landmark, GraduationCap, ArrowRight } from 'lucide-react';
 
 export const Industries = () => {
-  const { navigateTo } = useApp();
+  const { navigateTo, selectedIndustryId } = useApp();
 
   return (
     <div className="max-w-7xl mx-auto px-4 sm:px-8 py-12 space-y-12">
@@ -16,11 +16,7 @@ export const Industries = () => {
         <h1 className="font-serif text-4xl sm:text-5xl font-extrabold text-navy-900 dark:text-white">
           Industries We Serve
         </h1>
-<<<<<<< HEAD
         <p className="text-xs sm:text-sm text-slate-800 dark:text-slate-200 font-medium">
-=======
-        <p className="text-xs sm:text-sm text-slate-600 dark:text-slate-300">
->>>>>>> 07ac5c3a07e2c57e0ebb677f1885544f5b93c946
           Dedicated recruitment desks staffed by former industry veterans across GCC, European, and Asian key growth sectors.
         </p>
       </div>
@@ -29,7 +25,12 @@ export const Industries = () => {
         {INDUSTRIES_LIST.map((ind) => (
           <div 
             key={ind.id}
-            className="glass-card bg-white dark:bg-navy-900 border border-slate-200 dark:border-navy-800 p-6 rounded-2xl space-y-4 hover:border-gold-500 transition duration-300 shadow-glass flex flex-col justify-between"
+            id={`industry-${ind.id}`}
+            className={`glass-card bg-white dark:bg-navy-900 border p-6 rounded-2xl space-y-4 transition duration-500 shadow-glass flex flex-col justify-between ${
+              selectedIndustryId === ind.id 
+                ? 'ring-2 ring-gold-500 border-gold-500 scale-[1.02] shadow-gold-glow' 
+                : 'border-slate-200 dark:border-navy-800 hover:border-gold-500'
+            }`}
           >
             <div className="space-y-3">
               <div className="flex justify-between items-center">
@@ -45,22 +46,14 @@ export const Industries = () => {
                 {ind.name}
               </h3>
 
-<<<<<<< HEAD
               <p className="text-xs text-slate-800 dark:text-slate-200 font-medium leading-relaxed">
-=======
-              <p className="text-xs text-slate-600 dark:text-slate-400 leading-relaxed">
->>>>>>> 07ac5c3a07e2c57e0ebb677f1885544f5b93c946
                 {ind.description}
               </p>
             </div>
 
             <button 
               onClick={() => navigateTo('jobs')}
-<<<<<<< HEAD
               className="w-full py-2.5 bg-slate-200/80 dark:bg-navy-800 text-slate-900 dark:text-slate-100 hover:bg-gold-500 hover:text-navy-950 font-bold text-xs rounded-xl transition flex items-center justify-center space-x-1"
-=======
-              className="w-full py-2.5 bg-slate-100 dark:bg-navy-800 hover:bg-gold-500 hover:text-navy-950 font-bold text-xs rounded-xl transition flex items-center justify-center space-x-1"
->>>>>>> 07ac5c3a07e2c57e0ebb677f1885544f5b93c946
             >
               <span>Explore Roles in {ind.name}</span>
               <ArrowRight className="w-3.5 h-3.5" />

@@ -7,16 +7,11 @@ import {
 import { SERVICES_LIST, INDUSTRIES_LIST } from '../data/mockData';
 
 export const Navbar = () => {
-<<<<<<< HEAD
-  const { darkMode, toggleDarkMode, language, setLanguage, t, activeTab, navigateTo, setActiveModal, user, logout } = useApp();
-=======
-  const { darkMode, toggleDarkMode, language, setLanguage, activeTab, navigateTo, setActiveModal } = useApp();
->>>>>>> 07ac5c3a07e2c57e0ebb677f1885544f5b93c946
+  const { darkMode, toggleDarkMode, language, setLanguage, t, activeTab, navigateTo, navigateToService, navigateToIndustry, setActiveModal, user, logout } = useApp();
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [megaMenuType, setMegaMenuType] = useState(null); // 'services' | 'industries' | null
 
   const navItems = [
-<<<<<<< HEAD
     { id: 'home', label: t('nav.home') },
     { id: 'about', label: t('nav.about') },
     { id: 'services', label: t('nav.services'), hasMega: 'services' },
@@ -27,18 +22,6 @@ export const Navbar = () => {
     { id: 'visa-eligibility', label: t('nav.visa') },
     { id: 'background-verification', label: t('nav.verification') },
     { id: 'contact', label: t('nav.contact') }
-=======
-    { id: 'home', label: 'Home' },
-    { id: 'about', label: 'About Us' },
-    { id: 'services', label: 'Services', hasMega: 'services' },
-    { id: 'industries', label: 'Industries', hasMega: 'industries' },
-    { id: 'jobs', label: 'Jobs' },
-    { id: 'employers', label: 'Employers' },
-    { id: 'candidates', label: 'Candidates' },
-    { id: 'visa-eligibility', label: 'Visa Eligibility' },
-    { id: 'background-verification', label: 'Verification' },
-    { id: 'contact', label: 'Contact Us' }
->>>>>>> 07ac5c3a07e2c57e0ebb677f1885544f5b93c946
   ];
 
   return (
@@ -48,11 +31,7 @@ export const Navbar = () => {
         <div className="flex items-center space-x-6">
           <div className="flex items-center space-x-2">
             <Phone className="w-3.5 h-3.5 text-gold-500" />
-<<<<<<< HEAD
             <span>{t('nav.dubaiHQ')}: <strong className="text-white">+971 4 123 4567</strong></span>
-=======
-            <span>Dubai HQ: <strong className="text-white">+971 4 123 4567</strong></span>
->>>>>>> 07ac5c3a07e2c57e0ebb677f1885544f5b93c946
           </div>
           <div className="hidden md:flex items-center space-x-2">
             <Mail className="w-3.5 h-3.5 text-gold-500" />
@@ -60,11 +39,7 @@ export const Navbar = () => {
           </div>
           <div className="hidden lg:flex items-center space-x-1 text-gold-400">
             <Award className="w-3.5 h-3.5" />
-<<<<<<< HEAD
             <span>{t('nav.mohreBadge')}</span>
-=======
-            <span>MOHRE & ISO 9001:2025 Certified Agency</span>
->>>>>>> 07ac5c3a07e2c57e0ebb677f1885544f5b93c946
           </div>
         </div>
 
@@ -75,22 +50,14 @@ export const Navbar = () => {
             className="hidden sm:flex items-center space-x-1.5 bg-gold-500/20 text-gold-400 hover:bg-gold-500 hover:text-navy-950 px-2.5 py-1 rounded text-xs font-medium transition"
           >
             <Sparkles className="w-3 h-3" />
-<<<<<<< HEAD
             <span>{t('nav.aiResume')}</span>
-=======
-            <span>AI Resume Analyzer</span>
->>>>>>> 07ac5c3a07e2c57e0ebb677f1885544f5b93c946
           </button>
 
           {/* Language Selector */}
           <select 
             value={language} 
             onChange={(e) => setLanguage(e.target.value)}
-<<<<<<< HEAD
             className="bg-navy-900 text-slate-200 border border-navy-700 rounded px-2 py-0.5 text-xs focus:outline-none focus:border-gold-500 font-bold"
-=======
-            className="bg-navy-900 text-slate-200 border border-navy-700 rounded px-2 py-0.5 text-xs focus:outline-none focus:border-gold-500"
->>>>>>> 07ac5c3a07e2c57e0ebb677f1885544f5b93c946
           >
             <option value="EN">🇺🇸 EN</option>
             <option value="AR">🇦🇪 العربية</option>
@@ -126,11 +93,7 @@ export const Navbar = () => {
               <div className="font-serif text-xl font-bold tracking-tight text-navy-900 dark:text-white flex items-center gap-1.5">
                 SIR <span className="text-gold-500 font-sans text-xs uppercase tracking-widest px-1.5 py-0.5 bg-navy-900 text-gold-400 rounded">Recruitment</span>
               </div>
-<<<<<<< HEAD
               <p className="text-[10px] uppercase tracking-widest text-slate-700 dark:text-slate-300 font-bold">Dubai • GCC • Worldwide</p>
-=======
-              <p className="text-[10px] uppercase tracking-widest text-slate-500 dark:text-slate-400 font-semibold">Dubai • GCC • Worldwide</p>
->>>>>>> 07ac5c3a07e2c57e0ebb677f1885544f5b93c946
             </div>
           </div>
 
@@ -168,7 +131,7 @@ export const Navbar = () => {
                             <button
                               key={srv.id}
                               onClick={() => {
-                                navigateTo('services');
+                                navigateToService(srv.id);
                                 setMegaMenuType(null);
                               }}
                               className="text-left p-1.5 rounded hover:bg-gold-500/10 hover:text-gold-600 dark:hover:text-gold-400 font-medium text-slate-700 dark:text-slate-300 truncate"
@@ -196,7 +159,7 @@ export const Navbar = () => {
                             <button
                               key={ind.id}
                               onClick={() => {
-                                navigateTo('industries');
+                                navigateToIndustry(ind.id);
                                 setMegaMenuType(null);
                               }}
                               className="text-left p-1.5 rounded hover:bg-gold-500/10 hover:text-gold-600 dark:hover:text-gold-400 font-medium text-slate-700 dark:text-slate-300 truncate"
@@ -215,7 +178,6 @@ export const Navbar = () => {
 
           {/* Action CTAs */}
           <div className="hidden sm:flex items-center space-x-3">
-<<<<<<< HEAD
             {user ? (
               <div className="flex items-center space-x-2 bg-navy-950/80 border border-gold-500/30 px-3 py-1.5 rounded-xl text-xs">
                 <div className="w-6 h-6 rounded-full bg-gold-500 text-navy-950 font-bold flex items-center justify-center text-[10px]">
@@ -257,22 +219,6 @@ export const Navbar = () => {
                 </button>
               </>
             )}
-=======
-            <button
-              onClick={() => navigateTo('employers')}
-              className="px-3.5 py-2 rounded-lg text-xs font-bold text-navy-900 dark:text-white bg-slate-100 dark:bg-navy-800 border border-slate-200 dark:border-navy-700 hover:border-gold-500 hover:text-gold-500 transition shadow-sm"
-            >
-              Employer Portal
-            </button>
-            
-            <button
-              onClick={() => navigateTo('candidates')}
-              className="px-4 py-2 rounded-lg text-xs font-bold text-navy-950 bg-gold-shimmer hover:opacity-95 transition shadow-gold-glow flex items-center space-x-1.5"
-            >
-              <User className="w-3.5 h-3.5" />
-              <span>Candidate Portal</span>
-            </button>
->>>>>>> 07ac5c3a07e2c57e0ebb677f1885544f5b93c946
           </div>
 
           {/* Mobile Menu Button */}

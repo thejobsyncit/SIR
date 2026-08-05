@@ -1,8 +1,5 @@
 import React, { createContext, useContext, useState, useEffect } from 'react';
-<<<<<<< HEAD
 import { TRANSLATIONS } from '../data/translations';
-=======
->>>>>>> 07ac5c3a07e2c57e0ebb677f1885544f5b93c946
 
 const AppContext = createContext();
 
@@ -10,7 +7,6 @@ export const AppProvider = ({ children }) => {
   const [darkMode, setDarkMode] = useState(false);
   const [language, setLanguage] = useState('EN');
   const [currency, setCurrency] = useState('AED');
-<<<<<<< HEAD
 
   const t = (key) => {
     return TRANSLATIONS[language]?.[key] || TRANSLATIONS['EN']?.[key] || key;
@@ -25,31 +21,65 @@ export const AppProvider = ({ children }) => {
       document.documentElement.setAttribute('lang', language ? language.toLowerCase() : 'en');
     }
   }, [language]);
-=======
->>>>>>> 07ac5c3a07e2c57e0ebb677f1885544f5b93c946
   const [activeTab, setActiveTab] = useState('home');
   const [selectedJob, setSelectedJob] = useState(null);
   const [activeModal, setActiveModal] = useState(null); // 'apply', 'ai-resume', 'payment', 'resume-builder', 'post-job', 'verification-modal'
   const [savedJobs, setSavedJobs] = useState(['job-101']);
-  const [applications, setApplications] = useState([
-    {
-      id: 'APP-9982',
-      jobId: 'job-101',
-      jobTitle: 'Senior Civil Project Manager',
-      company: 'Al Habtoor Contracting LLC',
-      country: 'UAE',
-      appliedDate: '2026-08-01',
-      status: 'Interview Scheduled',
-      step: 3
+  const [applications, setApplications] = useState(() => {
+    try {
+      const saved = localStorage.getItem('sir_job_applications');
+      return saved ? JSON.parse(saved) : [
+        {
+          id: 'APP-9982',
+          jobId: 'job-101',
+          jobTitle: 'Senior Civil Project Manager',
+          company: 'Al Habtoor Contracting LLC',
+          country: 'UAE',
+          appliedDate: '2026-08-01',
+          status: 'Interview Scheduled',
+          step: 3
+        }
+      ];
+    } catch {
+      return [];
     }
-  ]);
+  });
 
-<<<<<<< HEAD
-  // Auth State Management
+  // Auth State Management & Candidate Profile Database Persistence
+  const getCandidateDB = () => {
+    try {
+      const saved = localStorage.getItem('sir_candidates_db');
+      return saved ? JSON.parse(saved) : {};
+    } catch {
+      return {};
+    }
+  };
+
+  const saveCandidateToDB = (candidateObj) => {
+    if (!candidateObj || !candidateObj.email) return;
+    const normalizedEmail = candidateObj.email.toLowerCase().trim();
+    const db = getCandidateDB();
+    db[normalizedEmail] = {
+      ...db[normalizedEmail],
+      ...candidateObj,
+      lastUpdated: new Date().toISOString()
+    };
+    localStorage.setItem('sir_candidates_db', JSON.stringify(db));
+  };
+
   const [user, setUser] = useState(() => {
     try {
       const savedUser = localStorage.getItem('sir_user_session');
-      return savedUser ? JSON.parse(savedUser) : null;
+      if (savedUser) {
+        const parsed = JSON.parse(savedUser);
+        if (parsed && parsed.email && parsed.role === 'candidate') {
+          const db = getCandidateDB();
+          const storedProfile = db[parsed.email.toLowerCase().trim()];
+          return storedProfile ? { ...parsed, ...storedProfile } : parsed;
+        }
+        return parsed;
+      }
+      return null;
     } catch {
       return null;
     }
@@ -59,40 +89,90 @@ export const AppProvider = ({ children }) => {
     setUser(userData);
     if (userData) {
       localStorage.setItem('sir_user_session', JSON.stringify(userData));
+      if (userData.role === 'candidate' && userData.email) {
+        saveCandidateToDB(userData);
+      }
     } else {
       localStorage.removeItem('sir_user_session');
     }
   };
 
   const loginCandidate = (email, password) => {
-    const candidateUser = {
-      name: email.split('@')[0].replace('.', ' ').replace(/\b\w/g, c => c.toUpperCase()) || 'Executive Candidate',
-      email: email,
-      role: 'candidate',
-      candidateId: 'SIR-CAN-' + Math.floor(10000 + Math.random() * 90000),
-      resumeUploaded: true,
-      resumeName: 'Updated_Executive_CV.pdf',
-      loginTime: new Date().toISOString()
-    };
+    const normalizedEmail = (email || '').toLowerCase().trim();
+    const db = getCandidateDB();
+    let candidateUser = db[normalizedEmail];
+
+    if (!candidateUser) {
+      candidateUser = {
+        name: email.split('@')[0].replace('.', ' ').replace(/\b\w/g, c => c.toUpperCase()) || 'Executive Candidate',
+        email: email,
+        phone: '',
+        dob: '',
+        gender: '',
+        title: '',
+        location: '',
+        preferredCountry: '',
+        experience: '',
+        qualification: '',
+        skills: [],
+        expectedSalary: '',
+        avatar: '',
+        role: 'candidate',
+        candidateId: 'SIR-CAN-' + Math.floor(10000 + Math.random() * 90000),
+        resumeUploaded: false,
+        resumeName: '',
+        mohreAttested: false,
+        loginTime: new Date().toISOString()
+      };
+    } else {
+      candidateUser = { ...candidateUser, loginTime: new Date().toISOString() };
+    }
+
+    saveCandidateToDB(candidateUser);
     saveUserSession(candidateUser);
     return candidateUser;
   };
 
   const registerCandidate = (data) => {
+    const normalizedEmail = (data.email || '').toLowerCase().trim();
+    const db = getCandidateDB();
+    const existing = db[normalizedEmail] || {};
+
     const candidateUser = {
-      name: data.fullName || 'Executive Candidate',
-      email: data.email,
-      phone: data.phone || '',
-      preferredCountry: data.preferredCountry || 'UAE',
-      industry: data.industry || 'Construction & Engineering',
+      ...existing,
+      name: data.fullName || existing.name || '',
+      email: data.email || existing.email || '',
+      phone: data.phone || existing.phone || '',
+      dob: existing.dob || '',
+      gender: existing.gender || '',
+      title: data.industry || existing.title || '',
+      location: existing.location || '',
+      preferredCountry: data.preferredCountry || existing.preferredCountry || '',
+      experience: existing.experience || '',
+      qualification: existing.qualification || '',
+      skills: existing.skills || [],
+      expectedSalary: existing.expectedSalary || '',
+      avatar: existing.avatar || '',
       role: 'candidate',
-      candidateId: 'SIR-CAN-' + Math.floor(10000 + Math.random() * 90000),
-      resumeUploaded: !!data.resumeName,
-      resumeName: data.resumeName || 'Uploaded_Resume.pdf',
-      registeredAt: new Date().toISOString()
+      candidateId: existing.candidateId || ('SIR-CAN-' + Math.floor(10000 + Math.random() * 90000)),
+      resumeUploaded: !!data.resumeName || existing.resumeUploaded || false,
+      resumeName: data.resumeName || existing.resumeName || '',
+      mohreAttested: existing.mohreAttested || false,
+      registeredAt: existing.registeredAt || new Date().toISOString()
     };
+
+    saveCandidateToDB(candidateUser);
     saveUserSession(candidateUser);
     return candidateUser;
+  };
+
+  const updateUserProfile = (profileData) => {
+    setUser(prev => {
+      const updated = { ...prev, ...profileData };
+      saveUserSession(updated);
+      saveCandidateToDB(updated);
+      return updated;
+    });
   };
 
   const loginEmployer = (companyEmail, accountId, password) => {
@@ -114,16 +194,6 @@ export const AppProvider = ({ children }) => {
     saveUserSession(null);
   };
 
-=======
-  const [user, setUser] = useState({
-    name: 'Executive Candidate',
-    email: 'candidate@sirrecruitment.com',
-    role: 'candidate', // 'candidate' | 'employer' | 'admin'
-    resumeUploaded: true,
-    resumeName: 'John_Doe_Executive_CV.pdf'
-  });
-
->>>>>>> 07ac5c3a07e2c57e0ebb677f1885544f5b93c946
   const toggleDarkMode = () => {
     setDarkMode(prev => {
       const next = !prev;
@@ -143,6 +213,7 @@ export const AppProvider = ({ children }) => {
   };
 
   const applyForJob = (job) => {
+    if (!job || !job.id) return;
     const newApp = {
       id: 'APP-' + Math.floor(1000 + Math.random() * 9000),
       jobId: job.id,
@@ -153,10 +224,16 @@ export const AppProvider = ({ children }) => {
       status: 'Under AI Resume Screening',
       step: 1
     };
-    setApplications(prev => [newApp, ...prev]);
+    setApplications(prev => {
+      if (prev.some(a => a.jobId === job.id)) return prev;
+      const updated = [newApp, ...prev];
+      try {
+        localStorage.setItem('sir_job_applications', JSON.stringify(updated));
+      } catch {}
+      return updated;
+    });
   };
 
-<<<<<<< HEAD
   const updateApplicationStatus = (appId, newStatus, step, interviewDetails = null) => {
     setApplications(prev => prev.map(app => {
       if (app.id === appId) {
@@ -171,8 +248,6 @@ export const AppProvider = ({ children }) => {
     }));
   };
 
-=======
->>>>>>> 07ac5c3a07e2c57e0ebb677f1885544f5b93c946
   // Sync hash routing
   useEffect(() => {
     const handleHashChange = () => {
@@ -187,7 +262,6 @@ export const AppProvider = ({ children }) => {
     return () => window.removeEventListener('hashchange', handleHashChange);
   }, []);
 
-<<<<<<< HEAD
   // Posted Jobs State Management
   const [postedJobs, setPostedJobs] = useState(() => {
     try {
@@ -257,12 +331,41 @@ export const AppProvider = ({ children }) => {
     });
   };
 
-=======
->>>>>>> 07ac5c3a07e2c57e0ebb677f1885544f5b93c946
+  const [selectedServiceId, setSelectedServiceId] = useState(null);
+  const [selectedIndustryId, setSelectedIndustryId] = useState(null);
+
   const navigateTo = (tab) => {
     setActiveTab(tab);
     window.location.hash = tab;
     window.scrollTo({ top: 0, behavior: 'smooth' });
+  };
+
+  const navigateToService = (serviceId) => {
+    setSelectedServiceId(serviceId);
+    setActiveTab('services');
+    window.location.hash = 'services';
+    setTimeout(() => {
+      const elem = document.getElementById(`service-${serviceId}`);
+      if (elem) {
+        elem.scrollIntoView({ behavior: 'smooth', block: 'center' });
+      } else {
+        window.scrollTo({ top: 0, behavior: 'smooth' });
+      }
+    }, 120);
+  };
+
+  const navigateToIndustry = (industryId) => {
+    setSelectedIndustryId(industryId);
+    setActiveTab('industries');
+    window.location.hash = 'industries';
+    setTimeout(() => {
+      const elem = document.getElementById(`industry-${industryId}`);
+      if (elem) {
+        elem.scrollIntoView({ behavior: 'smooth', block: 'center' });
+      } else {
+        window.scrollTo({ top: 0, behavior: 'smooth' });
+      }
+    }, 120);
   };
 
   return (
@@ -272,14 +375,17 @@ export const AppProvider = ({ children }) => {
         toggleDarkMode,
         language,
         setLanguage,
-<<<<<<< HEAD
         t,
-=======
->>>>>>> 07ac5c3a07e2c57e0ebb677f1885544f5b93c946
         currency,
         setCurrency,
         activeTab,
         navigateTo,
+        selectedServiceId,
+        setSelectedServiceId,
+        selectedIndustryId,
+        setSelectedIndustryId,
+        navigateToService,
+        navigateToIndustry,
         selectedJob,
         setSelectedJob,
         activeModal,
@@ -288,21 +394,17 @@ export const AppProvider = ({ children }) => {
         toggleSaveJob,
         applications,
         applyForJob,
-<<<<<<< HEAD
         updateApplicationStatus,
         postedJobs,
         addJob,
         deleteJob,
         user,
         setUser,
+        updateUserProfile,
         loginCandidate,
         registerCandidate,
         loginEmployer,
         logout
-=======
-        user,
-        setUser
->>>>>>> 07ac5c3a07e2c57e0ebb677f1885544f5b93c946
       }}
     >
       {children}

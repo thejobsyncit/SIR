@@ -40,11 +40,7 @@ export const PaymentGatewayModal = () => {
             </div>
             <div>
               <h3 className="font-serif text-xl font-bold text-navy-900 dark:text-white">Online Payment Gateway</h3>
-<<<<<<< HEAD
               <p className="text-xs text-slate-700 dark:text-slate-300 font-semibold">Secure 256-Bit SSL Encrypted Transaction</p>
-=======
-              <p className="text-xs text-slate-500 dark:text-slate-400">Secure 256-Bit SSL Encrypted Transaction</p>
->>>>>>> 07ac5c3a07e2c57e0ebb677f1885544f5b93c946
             </div>
           </div>
           <button 
@@ -96,11 +92,7 @@ export const PaymentGatewayModal = () => {
                   className={`p-3 rounded-xl border font-bold text-center transition ${
                     gateway === 'stripe'
                       ? 'border-gold-500 bg-gold-500/10 text-gold-500'
-<<<<<<< HEAD
                       : 'border-slate-300 dark:border-navy-700 text-slate-800 dark:text-slate-200 font-semibold'
-=======
-                      : 'border-slate-300 dark:border-navy-700 text-slate-600 dark:text-slate-300'
->>>>>>> 07ac5c3a07e2c57e0ebb677f1885544f5b93c946
                   }`}
                 >
                   💳 Stripe
@@ -111,11 +103,7 @@ export const PaymentGatewayModal = () => {
                   className={`p-3 rounded-xl border font-bold text-center transition ${
                     gateway === 'paypal'
                       ? 'border-gold-500 bg-gold-500/10 text-gold-500'
-<<<<<<< HEAD
                       : 'border-slate-300 dark:border-navy-700 text-slate-800 dark:text-slate-200 font-semibold'
-=======
-                      : 'border-slate-300 dark:border-navy-700 text-slate-600 dark:text-slate-300'
->>>>>>> 07ac5c3a07e2c57e0ebb677f1885544f5b93c946
                   }`}
                 >
                   🅿️ PayPal
@@ -126,11 +114,7 @@ export const PaymentGatewayModal = () => {
                   className={`p-3 rounded-xl border font-bold text-center transition ${
                     gateway === 'razorpay'
                       ? 'border-gold-500 bg-gold-500/10 text-gold-500'
-<<<<<<< HEAD
                       : 'border-slate-300 dark:border-navy-700 text-slate-800 dark:text-slate-200 font-semibold'
-=======
-                      : 'border-slate-300 dark:border-navy-700 text-slate-600 dark:text-slate-300'
->>>>>>> 07ac5c3a07e2c57e0ebb677f1885544f5b93c946
                   }`}
                 >
                   ⚡ Razorpay
@@ -141,28 +125,16 @@ export const PaymentGatewayModal = () => {
             {/* Simulated Card Input */}
             <div className="space-y-2 pt-1">
               <div>
-<<<<<<< HEAD
                 <label className="block text-[11px] font-bold text-slate-700 dark:text-slate-300">Cardholder Name</label>
-=======
-                <label className="block text-[11px] font-bold text-slate-500">Cardholder Name</label>
->>>>>>> 07ac5c3a07e2c57e0ebb677f1885544f5b93c946
                 <input type="text" defaultValue="John Doe" className="w-full bg-slate-50 dark:bg-navy-950 border border-slate-300 dark:border-navy-700 rounded-lg p-2 text-navy-900 dark:text-white" />
               </div>
               <div className="grid grid-cols-3 gap-2">
                 <div className="col-span-2">
-<<<<<<< HEAD
                   <label className="block text-[11px] font-bold text-slate-700 dark:text-slate-300">Card Number</label>
                   <input type="text" defaultValue="4242 •••• •••• 4242" className="w-full bg-slate-50 dark:bg-navy-950 border border-slate-300 dark:border-navy-700 rounded-lg p-2 text-navy-900 dark:text-white" />
                 </div>
                 <div>
                   <label className="block text-[11px] font-bold text-slate-700 dark:text-slate-300">CVC</label>
-=======
-                  <label className="block text-[11px] font-bold text-slate-500">Card Number</label>
-                  <input type="text" defaultValue="4242 •••• •••• 4242" className="w-full bg-slate-50 dark:bg-navy-950 border border-slate-300 dark:border-navy-700 rounded-lg p-2 text-navy-900 dark:text-white" />
-                </div>
-                <div>
-                  <label className="block text-[11px] font-bold text-slate-500">CVC</label>
->>>>>>> 07ac5c3a07e2c57e0ebb677f1885544f5b93c946
                   <input type="text" defaultValue="888" className="w-full bg-slate-50 dark:bg-navy-950 border border-slate-300 dark:border-navy-700 rounded-lg p-2 text-navy-900 dark:text-white" />
                 </div>
               </div>

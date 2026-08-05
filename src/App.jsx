@@ -1,8 +1,4 @@
-<<<<<<< HEAD
 import React from 'react';
-=======
-import React, { useState, useEffect } from 'react';
->>>>>>> 07ac5c3a07e2c57e0ebb677f1885544f5b93c946
 import { useApp } from './context/AppContext';
 import { Navbar } from './components/Navbar';
 import { Footer } from './components/Footer';
@@ -24,39 +20,9 @@ import { VisaEligibilityPage } from './pages/VisaEligibilityPage';
 import { BackgroundVerificationPage } from './pages/BackgroundVerificationPage';
 import { ContactUsPage } from './pages/ContactUsPage';
 
-<<<<<<< HEAD
 export function App() {
   const { activeTab } = useApp();
 
-=======
-import { CrmApp } from './crm/CrmApp';
-
-export function App() {
-  const { activeTab } = useApp();
-  const [isCrmRoute, setIsCrmRoute] = useState(false);
-
-  useEffect(() => {
-    const checkCrmAccess = () => {
-      const hash = window.location.hash.toLowerCase();
-      const path = window.location.pathname.toLowerCase();
-      setIsCrmRoute(hash.startsWith('#crm') || path.includes('/crm'));
-    };
-    checkCrmAccess();
-    window.addEventListener('hashchange', checkCrmAccess);
-    window.addEventListener('popstate', checkCrmAccess);
-    return () => {
-      window.removeEventListener('hashchange', checkCrmAccess);
-      window.removeEventListener('popstate', checkCrmAccess);
-    };
-  }, []);
-
-  // Isolated Enterprise CRM Application Mode (Accessible ONLY via /crm or #crm)
-  if (isCrmRoute) {
-    return <CrmApp />;
-  }
-
-  // Public Consultancy Website Mode (Zero CRM Links Visible)
->>>>>>> 07ac5c3a07e2c57e0ebb677f1885544f5b93c946
   const renderCurrentPage = () => {
     switch (activeTab) {
       case 'about':

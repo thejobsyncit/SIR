@@ -1,5 +1,4 @@
 import React, { useState } from 'react';
-<<<<<<< HEAD
 import { useApp } from '../context/AppContext';
 import { EmployerAuth } from '../components/EmployerAuth';
 import { 
@@ -29,18 +28,10 @@ export const EmployerPortal = () => {
     notes: 'Please bring copies of attested degree certificates and passport.'
   });
   const [interviewSuccess, setInterviewSuccess] = useState(false);
-=======
-import { Building2, Users, PlusCircle, Search, Calendar, BarChart3, CheckCircle2, FileText, Send, Sparkles } from 'lucide-react';
-
-export const EmployerPortal = () => {
-  const [activeTab, setActiveTab] = useState('dashboard'); // 'dashboard' | 'post-job' | 'candidates'
-  const [postedSuccess, setPostedSuccess] = useState(false);
->>>>>>> 07ac5c3a07e2c57e0ebb677f1885544f5b93c946
 
   const [jobForm, setJobForm] = useState({
     title: '',
     country: 'UAE',
-<<<<<<< HEAD
     location: 'Dubai, Business Bay',
     category: 'Construction',
     jobType: 'Full-time',
@@ -246,31 +237,10 @@ export const EmployerPortal = () => {
   const totalCandidatesReceived = candidatePool.length + 138;
   const interviewsCount = candidatePool.filter(c => c.status === 'Interview Scheduled').length + 24;
 
-=======
-    category: 'Construction',
-    salary: '',
-    experience: '',
-    description: '',
-    vacancies: '5'
-  });
-
-  const sampleCandidates = [
-    { name: 'Dr. Rahul Sharma', role: 'Senior ICU Consultant', exp: '8 Yrs', location: 'India (Relocating to KSA)', match: '98%' },
-    { name: 'Elena Rostova', role: 'DevOps & Cloud Lead', exp: '6 Yrs', location: 'Poland (Relocating to UAE)', match: '95%' },
-    { name: 'Mohammed Al-Kindi', role: 'Civil Project Director', exp: '14 Yrs', location: 'Dubai, UAE', match: '92%' }
-  ];
-
-  const handlePostJob = (e) => {
-    e.preventDefault();
-    setPostedSuccess(true);
-  };
-
->>>>>>> 07ac5c3a07e2c57e0ebb677f1885544f5b93c946
   return (
     <div className="max-w-7xl mx-auto px-4 sm:px-8 py-12 space-y-8">
       
       {/* Employer Header Banner */}
-<<<<<<< HEAD
       <div className="bg-white dark:bg-navy-950 text-slate-900 dark:text-white rounded-3xl p-6 sm:p-8 border border-slate-200 dark:border-gold-500/30 shadow-lg flex flex-col sm:flex-row justify-between items-center gap-6">
         <div className="flex items-center space-x-4">
           <div className="w-16 h-16 rounded-2xl bg-gold-500 text-navy-950 flex items-center justify-center font-bold text-2xl border-2 border-white shadow-gold-glow">
@@ -313,39 +283,10 @@ export const EmployerPortal = () => {
         <button 
           onClick={() => setActiveTab('dashboard')} 
           className={`pb-3 px-4 transition whitespace-nowrap ${activeTab === 'dashboard' ? 'border-b-2 border-gold-500 text-gold-500' : 'text-slate-700 dark:text-slate-300'}`}
-=======
-      <div className="glass-card bg-navy-950 text-white rounded-3xl p-6 sm:p-8 border border-gold-500/30 shadow-luxury flex flex-col sm:flex-row justify-between items-center gap-6">
-        <div className="flex items-center space-x-4">
-          <div className="w-16 h-16 rounded-2xl bg-gold-500 text-navy-950 flex items-center justify-center font-bold text-2xl border-2 border-white">
-            <Building2 className="w-8 h-8" />
-          </div>
-          <div>
-            <span className="bg-gold-500/20 text-gold-400 text-[10px] font-bold px-2 py-0.5 rounded uppercase">Enterprise Employer Portal</span>
-            <h1 className="font-serif text-2xl font-bold text-white mt-1">Al Habtoor Contracting LLC</h1>
-            <p className="text-xs text-slate-400">Account ID: SIR-EMP-9902 • Active Mandates: 8 Jobs</p>
-          </div>
-        </div>
-
-        <button 
-          onClick={() => setActiveTab('post-job')}
-          className="px-6 py-3 bg-gold-shimmer text-navy-950 font-bold text-xs rounded-xl shadow-gold-glow flex items-center space-x-2 hover:opacity-95"
-        >
-          <PlusCircle className="w-4 h-4" />
-          <span>Post a New Job Mandate</span>
-        </button>
-      </div>
-
-      {/* Tabs */}
-      <div className="flex space-x-2 border-b border-slate-200 dark:border-navy-800 text-xs font-bold">
-        <button 
-          onClick={() => setActiveTab('dashboard')} 
-          className={`pb-3 px-4 transition ${activeTab === 'dashboard' ? 'border-b-2 border-gold-500 text-gold-500' : 'text-slate-500 dark:text-slate-400'}`}
->>>>>>> 07ac5c3a07e2c57e0ebb677f1885544f5b93c946
         >
           Employer Dashboard & Analytics
         </button>
         <button 
-<<<<<<< HEAD
           onClick={() => setActiveTab('applicants')} 
           className={`pb-3 px-4 transition whitespace-nowrap flex items-center gap-1.5 ${activeTab === 'applicants' ? 'border-b-2 border-gold-500 text-gold-500' : 'text-slate-700 dark:text-slate-300'}`}
         >
@@ -355,16 +296,11 @@ export const EmployerPortal = () => {
         <button 
           onClick={() => setActiveTab('post-job')} 
           className={`pb-3 px-4 transition whitespace-nowrap ${activeTab === 'post-job' ? 'border-b-2 border-gold-500 text-gold-500' : 'text-slate-700 dark:text-slate-300'}`}
-=======
-          onClick={() => setActiveTab('post-job')} 
-          className={`pb-3 px-4 transition ${activeTab === 'post-job' ? 'border-b-2 border-gold-500 text-gold-500' : 'text-slate-500 dark:text-slate-400'}`}
->>>>>>> 07ac5c3a07e2c57e0ebb677f1885544f5b93c946
         >
           Post a Job Wizard
         </button>
         <button 
           onClick={() => setActiveTab('candidates')} 
-<<<<<<< HEAD
           className={`pb-3 px-4 transition whitespace-nowrap ${activeTab === 'candidates' ? 'border-b-2 border-gold-500 text-gold-500' : 'text-slate-700 dark:text-slate-300'}`}
         >
           Search Talent Database
@@ -372,19 +308,10 @@ export const EmployerPortal = () => {
       </div>
 
       {/* DASHBOARD TAB */}
-=======
-          className={`pb-3 px-4 transition ${activeTab === 'candidates' ? 'border-b-2 border-gold-500 text-gold-500' : 'text-slate-500 dark:text-slate-400'}`}
-        >
-          Search Candidate Database
-        </button>
-      </div>
-
->>>>>>> 07ac5c3a07e2c57e0ebb677f1885544f5b93c946
       {activeTab === 'dashboard' && (
         <div className="space-y-6">
           <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 text-center text-xs">
             <div className="glass-card bg-white dark:bg-navy-900 border p-4 rounded-xl space-y-1">
-<<<<<<< HEAD
               <span className="text-slate-700 dark:text-slate-300 font-bold">Active Postings</span>
               <p className="font-serif text-3xl font-extrabold text-navy-900 dark:text-white">{totalActivePostings}</p>
             </div>
@@ -412,17 +339,17 @@ export const EmployerPortal = () => {
           </div>
 
           {/* Shortcut Banner to Applicant Screening */}
-          <div className="glass-card bg-navy-950 border border-gold-500/30 p-6 rounded-2xl flex flex-col sm:flex-row justify-between items-center gap-4 text-xs">
+          <div className="bg-white dark:bg-navy-950 border border-slate-300 dark:border-gold-500/30 p-6 rounded-2xl flex flex-col sm:flex-row justify-between items-center gap-4 text-xs shadow-lg text-slate-900 dark:text-white">
             <div className="space-y-1 text-center sm:text-left">
               <div className="flex items-center justify-center sm:justify-start gap-2">
-                <Sparkles className="w-4 h-4 text-gold-400" />
-                <h3 className="font-serif text-lg font-bold text-white">AI Candidate Screening & Interview Hub</h3>
+                <Sparkles className="w-4 h-4 text-gold-600 dark:text-gold-400" />
+                <h3 className="font-serif text-lg font-extrabold text-slate-900 dark:text-white">AI Candidate Screening & Interview Hub</h3>
               </div>
-              <p className="text-slate-300">Review {candidatePool.length} pre-screened applicants for your open job mandates and schedule video interviews directly.</p>
+              <p className="text-slate-700 dark:text-slate-300 font-semibold">Review {candidatePool.length} pre-screened applicants for your open job mandates and schedule video interviews directly.</p>
             </div>
             <button 
               onClick={() => setActiveTab('applicants')}
-              className="px-6 py-3 bg-gold-shimmer text-navy-950 font-bold text-xs rounded-xl shadow-gold-glow flex items-center gap-2 hover:opacity-95 transition whitespace-nowrap"
+              className="px-6 py-3 bg-gold-shimmer text-navy-950 font-extrabold text-xs rounded-xl shadow-gold-glow flex items-center gap-2 hover:opacity-95 transition whitespace-nowrap"
             >
               <span>Screen & Interview Applicants ({candidatePool.length})</span>
               <ArrowRight className="w-4 h-4" />
@@ -596,27 +523,6 @@ export const EmployerPortal = () => {
       )}
 
       {/* POST A JOB WIZARD TAB */}
-=======
-              <span className="text-slate-500 font-bold">Active Postings</span>
-              <p className="font-serif text-3xl font-extrabold text-navy-900 dark:text-white">8</p>
-            </div>
-            <div className="glass-card bg-white dark:bg-navy-900 border p-4 rounded-xl space-y-1">
-              <span className="text-slate-500 font-bold">Candidates Received</span>
-              <p className="font-serif text-3xl font-extrabold text-gold-500">142</p>
-            </div>
-            <div className="glass-card bg-white dark:bg-navy-900 border p-4 rounded-xl space-y-1">
-              <span className="text-slate-500 font-bold">Interviews Conducted</span>
-              <p className="font-serif text-3xl font-extrabold text-emerald-500">24</p>
-            </div>
-            <div className="glass-card bg-white dark:bg-navy-900 border p-4 rounded-xl space-y-1">
-              <span className="text-slate-500 font-bold">Visas Issued</span>
-              <p className="font-serif text-3xl font-extrabold text-navy-900 dark:text-white">12</p>
-            </div>
-          </div>
-        </div>
-      )}
-
->>>>>>> 07ac5c3a07e2c57e0ebb677f1885544f5b93c946
       {activeTab === 'post-job' && (
         <div className="glass-card bg-white dark:bg-navy-900 border border-slate-200 dark:border-navy-800 p-6 sm:p-8 rounded-2xl max-w-3xl mx-auto space-y-4 text-xs">
           <h3 className="font-serif text-xl font-bold text-navy-900 dark:text-white">Create Job Vacancy Mandate</h3>
@@ -624,7 +530,6 @@ export const EmployerPortal = () => {
           {!postedSuccess ? (
             <form onSubmit={handlePostJob} className="space-y-4">
               <div>
-<<<<<<< HEAD
                 <label className="block font-bold text-slate-700 dark:text-slate-200 mb-1">Job Title *</label>
                 <input 
                   required 
@@ -634,16 +539,11 @@ export const EmployerPortal = () => {
                   placeholder="e.g. Senior Project Manager" 
                   className="w-full bg-slate-50 dark:bg-navy-950 border border-slate-300 dark:border-navy-700 rounded-xl p-2.5 text-navy-900 dark:text-white focus:outline-none focus:border-gold-500" 
                 />
-=======
-                <label className="block font-bold text-slate-700 dark:text-slate-200 mb-1">Job Title</label>
-                <input required type="text" placeholder="e.g. Senior Project Manager" className="w-full bg-slate-50 dark:bg-navy-950 border border-slate-300 dark:border-navy-700 rounded-xl p-2.5 text-navy-900 dark:text-white" />
->>>>>>> 07ac5c3a07e2c57e0ebb677f1885544f5b93c946
               </div>
 
               <div className="grid grid-cols-2 gap-3">
                 <div>
                   <label className="block font-bold text-slate-700 dark:text-slate-200 mb-1">Destination Country</label>
-<<<<<<< HEAD
                   <select 
                     value={jobForm.country}
                     onChange={(e) => setJobForm({ ...jobForm, country: e.target.value })}
@@ -656,17 +556,10 @@ export const EmployerPortal = () => {
                     <option value="Canada">🇨🇦 Canada</option>
                     <option value="Germany">🇩🇪 Germany</option>
                     <option value="United Kingdom">🇬🇧 United Kingdom</option>
-=======
-                  <select className="w-full bg-slate-50 dark:bg-navy-950 border border-slate-300 dark:border-navy-700 rounded-xl p-2.5 text-navy-900 dark:text-white">
-                    <option value="UAE">🇦🇪 UAE (Dubai)</option>
-                    <option value="Saudi Arabia">🇸🇦 Saudi Arabia</option>
-                    <option value="Qatar">🇶🇦 Qatar</option>
->>>>>>> 07ac5c3a07e2c57e0ebb677f1885544f5b93c946
                   </select>
                 </div>
                 <div>
                   <label className="block font-bold text-slate-700 dark:text-slate-200 mb-1">Industry Sector</label>
-<<<<<<< HEAD
                   <select 
                     value={jobForm.category}
                     onChange={(e) => setJobForm({ ...jobForm, category: e.target.value })}
@@ -704,12 +597,6 @@ export const EmployerPortal = () => {
                   >
                     <option value="Full-time">Full-time Permanent</option>
                     <option value="Contract">Project Contract</option>
-=======
-                  <select className="w-full bg-slate-50 dark:bg-navy-950 border border-slate-300 dark:border-navy-700 rounded-xl p-2.5 text-navy-900 dark:text-white">
-                    <option value="Construction">Construction</option>
-                    <option value="Oil & Gas">Oil & Gas</option>
-                    <option value="IT">IT & Software</option>
->>>>>>> 07ac5c3a07e2c57e0ebb677f1885544f5b93c946
                   </select>
                 </div>
               </div>
@@ -717,7 +604,6 @@ export const EmployerPortal = () => {
               <div className="grid grid-cols-2 gap-3">
                 <div>
                   <label className="block font-bold text-slate-700 dark:text-slate-200 mb-1">Offered Monthly Salary (Tax Free)</label>
-<<<<<<< HEAD
                   <input 
                     type="text" 
                     value={jobForm.salary}
@@ -757,19 +643,11 @@ export const EmployerPortal = () => {
                     placeholder="e.g. Project Management, FIDIC, Budgeting" 
                     className="w-full bg-slate-50 dark:bg-navy-950 border border-slate-300 dark:border-navy-700 rounded-xl p-2.5 text-navy-900 dark:text-white focus:outline-none focus:border-gold-500" 
                   />
-=======
-                  <input type="text" placeholder="e.g. AED 30,000 - 40,000" className="w-full bg-slate-50 dark:bg-navy-950 border border-slate-300 dark:border-navy-700 rounded-xl p-2.5 text-navy-900 dark:text-white" />
-                </div>
-                <div>
-                  <label className="block font-bold text-slate-700 dark:text-slate-200 mb-1">Vacancies Count (Bulk Hiring)</label>
-                  <input type="number" defaultValue="5" className="w-full bg-slate-50 dark:bg-navy-950 border border-slate-300 dark:border-navy-700 rounded-xl p-2.5 text-navy-900 dark:text-white" />
->>>>>>> 07ac5c3a07e2c57e0ebb677f1885544f5b93c946
                 </div>
               </div>
 
               <div>
                 <label className="block font-bold text-slate-700 dark:text-slate-200 mb-1">Role Description & Requirements</label>
-<<<<<<< HEAD
                 <textarea 
                   rows={4} 
                   value={jobForm.description}
@@ -780,17 +658,10 @@ export const EmployerPortal = () => {
               </div>
 
               <button type="submit" className="w-full py-3 bg-gold-shimmer text-navy-950 font-bold text-xs rounded-xl shadow-gold-glow hover:opacity-95 transition">
-=======
-                <textarea rows={4} placeholder="Specify skills, qualifications, degree attestation requirements..." className="w-full bg-slate-50 dark:bg-navy-950 border border-slate-300 dark:border-navy-700 rounded-xl p-2.5 text-navy-900 dark:text-white" />
-              </div>
-
-              <button type="submit" className="w-full py-3 bg-gold-shimmer text-navy-950 font-bold text-xs rounded-xl shadow-gold-glow">
->>>>>>> 07ac5c3a07e2c57e0ebb677f1885544f5b93c946
                 Publish Mandate to SIR Talent Portal →
               </button>
             </form>
           ) : (
-<<<<<<< HEAD
             <div className="text-center py-8 space-y-4">
               <CheckCircle2 className="w-14 h-14 text-emerald-500 mx-auto" />
               <h4 className="font-serif text-xl font-bold text-navy-900 dark:text-white">Job Mandate Published Successfully!</h4>
@@ -813,38 +684,23 @@ export const EmployerPortal = () => {
                   Post Another Role
                 </button>
               </div>
-=======
-            <div className="text-center py-8 space-y-3">
-              <CheckCircle2 className="w-12 h-12 text-emerald-500 mx-auto" />
-              <h4 className="font-serif text-lg font-bold text-navy-900 dark:text-white">Job Mandate Published Successfully!</h4>
-              <p className="text-slate-500">SIR AI Matching Engine is scanning 50,000+ candidates for your position.</p>
-              <button onClick={() => setPostedSuccess(false)} className="py-2.5 px-6 bg-navy-900 text-white font-bold rounded-xl">Post Another Role</button>
->>>>>>> 07ac5c3a07e2c57e0ebb677f1885544f5b93c946
             </div>
           )}
         </div>
       )}
 
-<<<<<<< HEAD
       {/* SEARCH TALENT DATABASE TAB */}
-=======
->>>>>>> 07ac5c3a07e2c57e0ebb677f1885544f5b93c946
       {activeTab === 'candidates' && (
         <div className="space-y-4">
           <div className="glass-card bg-white dark:bg-navy-900 border p-6 rounded-2xl space-y-4">
             <h3 className="font-serif text-lg font-bold text-navy-900 dark:text-white">Headhunter Pre-Screened Candidates</h3>
             <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-<<<<<<< HEAD
               {candidatePool.slice(0, 3).map((c, idx) => (
-=======
-              {sampleCandidates.map((c, idx) => (
->>>>>>> 07ac5c3a07e2c57e0ebb677f1885544f5b93c946
                 <div key={idx} className="p-4 bg-slate-50 dark:bg-navy-950 border rounded-xl space-y-2 text-xs">
                   <div className="flex justify-between items-start">
                     <h4 className="font-bold text-navy-900 dark:text-white">{c.name}</h4>
                     <span className="bg-emerald-500/20 text-emerald-500 font-bold px-2 py-0.5 rounded text-[10px]">{c.match} Match</span>
                   </div>
-<<<<<<< HEAD
                   <p className="text-slate-700 dark:text-slate-300 font-medium">{c.role} • {c.exp} Exp</p>
                   <p className="text-slate-600 dark:text-slate-400 font-medium">{c.location}</p>
                   <button 
@@ -853,11 +709,6 @@ export const EmployerPortal = () => {
                   >
                     Schedule Interview
                   </button>
-=======
-                  <p className="text-slate-500">{c.role} • {c.exp} Exp</p>
-                  <p className="text-slate-400">{c.location}</p>
-                  <button className="w-full py-1.5 bg-navy-900 text-gold-400 font-bold rounded-lg text-[11px]">Request Candidate Interview</button>
->>>>>>> 07ac5c3a07e2c57e0ebb677f1885544f5b93c946
                 </div>
               ))}
             </div>
@@ -865,7 +716,6 @@ export const EmployerPortal = () => {
         </div>
       )}
 
-<<<<<<< HEAD
       {/* SCREEN CANDIDATE MODAL */}
       {screenCandidate && (
         <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center p-4 z-50">
@@ -1045,8 +895,6 @@ export const EmployerPortal = () => {
         </div>
       )}
 
-=======
->>>>>>> 07ac5c3a07e2c57e0ebb677f1885544f5b93c946
     </div>
   );
 };

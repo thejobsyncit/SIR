@@ -4,7 +4,7 @@ import { SERVICES_LIST } from '../data/mockData';
 import { Briefcase, ArrowRight, CheckCircle2, Phone, Mail, FileText } from 'lucide-react';
 
 export const Services = () => {
-  const { navigateTo, setActiveModal } = useApp();
+  const { navigateTo, setActiveModal, selectedServiceId } = useApp();
   const [selectedCategory, setSelectedCategory] = useState('All');
   const [selectedService, setSelectedService] = useState(null);
 
@@ -25,11 +25,7 @@ export const Services = () => {
         <h1 className="font-serif text-4xl sm:text-5xl font-extrabold text-navy-900 dark:text-white">
           Our Executive Services
         </h1>
-<<<<<<< HEAD
         <p className="text-xs sm:text-sm text-slate-800 dark:text-slate-200 font-medium">
-=======
-        <p className="text-xs sm:text-sm text-slate-600 dark:text-slate-300">
->>>>>>> 07ac5c3a07e2c57e0ebb677f1885544f5b93c946
           Complete end-to-end talent solutions, visa processing, background checks, and strategic HR consulting tailored to UAE & global standards.
         </p>
       </div>
@@ -56,29 +52,26 @@ export const Services = () => {
         {filteredServices.map((srv) => (
           <div 
             key={srv.id}
-            className="glass-card bg-white dark:bg-navy-900 border border-slate-200 dark:border-navy-800 p-6 rounded-2xl space-y-4 hover:border-gold-500 transition duration-300 shadow-glass flex flex-col justify-between"
+            id={`service-${srv.id}`}
+            className={`glass-card bg-white dark:bg-navy-900 border p-6 rounded-2xl space-y-4 transition duration-500 shadow-glass flex flex-col justify-between ${
+              selectedServiceId === srv.id 
+                ? 'ring-2 ring-gold-500 border-gold-500 scale-[1.02] shadow-gold-glow' 
+                : 'border-slate-200 dark:border-navy-800 hover:border-gold-500'
+            }`}
           >
             <div className="space-y-3">
               <div className="flex justify-between items-center">
                 <span className="bg-gold-500/10 text-gold-600 dark:text-gold-400 text-[10px] font-bold px-2 py-0.5 rounded uppercase">
                   {srv.category}
                 </span>
-<<<<<<< HEAD
                 <span className="text-xs text-slate-600 dark:text-slate-400 font-mono font-bold">#{srv.id}</span>
-=======
-                <span className="text-xs text-slate-400 font-mono">#{srv.id}</span>
->>>>>>> 07ac5c3a07e2c57e0ebb677f1885544f5b93c946
               </div>
               
               <h3 className="font-serif text-xl font-bold text-navy-900 dark:text-white">
                 {srv.title}
               </h3>
               
-<<<<<<< HEAD
               <p className="text-xs text-slate-800 dark:text-slate-200 font-medium leading-relaxed">
-=======
-              <p className="text-xs text-slate-600 dark:text-slate-400 leading-relaxed">
->>>>>>> 07ac5c3a07e2c57e0ebb677f1885544f5b93c946
                 {srv.description}
               </p>
             </div>
@@ -108,11 +101,7 @@ export const Services = () => {
           <div className="glass-card bg-white dark:bg-navy-900 border border-gold-500/40 p-6 rounded-2xl max-w-lg w-full space-y-4 shadow-luxury">
             <h3 className="font-serif text-2xl font-bold text-navy-900 dark:text-white">{selectedService.title}</h3>
             <span className="bg-gold-500/20 text-gold-500 text-xs font-bold px-2 py-1 rounded">{selectedService.category}</span>
-<<<<<<< HEAD
             <p className="text-xs text-slate-800 dark:text-slate-200 font-medium leading-relaxed">{selectedService.description}</p>
-=======
-            <p className="text-xs text-slate-600 dark:text-slate-300 leading-relaxed">{selectedService.description}</p>
->>>>>>> 07ac5c3a07e2c57e0ebb677f1885544f5b93c946
             <div className="p-3 bg-slate-100 dark:bg-navy-800 rounded-xl text-xs space-y-1">
               <p className="font-bold text-navy-900 dark:text-white">Key Deliverables:</p>
               <p>• Full SLA compliance with 90-day retention guarantee.</p>

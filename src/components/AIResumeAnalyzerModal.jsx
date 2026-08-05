@@ -1,19 +1,12 @@
-<<<<<<< HEAD
 import React, { useState, useRef } from 'react';
 import { useApp } from '../context/AppContext';
 import { Sparkles, FileText, CheckCircle2, AlertTriangle, X, Upload, ArrowRight, RefreshCw, Trash2, FileCheck } from 'lucide-react';
-=======
-import React, { useState } from 'react';
-import { useApp } from '../context/AppContext';
-import { Sparkles, FileText, CheckCircle2, AlertTriangle, X, Upload, ArrowRight, RefreshCw } from 'lucide-react';
->>>>>>> 07ac5c3a07e2c57e0ebb677f1885544f5b93c946
 
 export const AIResumeAnalyzerModal = () => {
   const { activeModal, setActiveModal, navigateTo } = useApp();
   const [resumeText, setResumeText] = useState('');
   const [loading, setLoading] = useState(false);
   const [result, setResult] = useState(null);
-<<<<<<< HEAD
   
   // File Upload & Drag-and-Drop state
   const fileInputRef = useRef(null);
@@ -134,23 +127,6 @@ export const AIResumeAnalyzerModal = () => {
       setResult(data);
     } catch (err) {
       console.error('Analysis execution error:', err);
-=======
-
-  if (activeModal !== 'ai-resume') return null;
-
-  const handleAnalyze = async () => {
-    setLoading(true);
-    try {
-      const res = await fetch('/api/ai/analyze-resume', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ resumeText: resumeText || 'Senior Project Manager with 8 years experience in Dubai high rise construction.' })
-      });
-      const data = await res.json();
-      setResult(data);
-    } catch (err) {
-      console.error(err);
->>>>>>> 07ac5c3a07e2c57e0ebb677f1885544f5b93c946
     } finally {
       setLoading(false);
     }
@@ -167,13 +143,8 @@ export const AIResumeAnalyzerModal = () => {
               <Sparkles className="w-5 h-5" />
             </div>
             <div>
-<<<<<<< HEAD
               <h3 className="font-serif text-xl font-bold text-navy-950 dark:text-white">SIR AI Resume Analyzer</h3>
               <p className="text-xs text-slate-700 dark:text-slate-300 font-semibold">GCC ATS Scoring Engine & Headhunter Skill Extractor</p>
-=======
-              <h3 className="font-serif text-xl font-bold text-navy-900 dark:text-white">SIR AI Resume Analyzer</h3>
-              <p className="text-xs text-slate-500 dark:text-slate-400">GCC ATS Scoring Engine & Headhunter Skill Extractor</p>
->>>>>>> 07ac5c3a07e2c57e0ebb677f1885544f5b93c946
             </div>
           </div>
           <button 
@@ -186,7 +157,6 @@ export const AIResumeAnalyzerModal = () => {
 
         {!result ? (
           <div className="space-y-4">
-<<<<<<< HEAD
             <div className="p-4 rounded-xl bg-liteblue-50 dark:bg-navy-800 border border-liteblue-200 dark:border-navy-700 text-xs text-slate-800 dark:text-slate-200 font-medium">
               Paste your CV/Resume text below or click / drag and drop your PDF or DOCX file to evaluate your compatibility with top Dubai, Saudi Arabia & European employers.
             </div>
@@ -260,35 +230,6 @@ export const AIResumeAnalyzerModal = () => {
               onClick={handleAnalyze}
               disabled={loading}
               className="w-full py-3.5 bg-gold-shimmer text-navy-950 font-bold text-xs rounded-xl shadow-gold-glow hover:opacity-95 transition flex items-center justify-center space-x-2"
-=======
-            <div className="p-4 rounded-xl bg-liteblue-50 dark:bg-navy-800 border border-liteblue-200 dark:border-navy-700 text-xs text-slate-600 dark:text-slate-300">
-              Paste your CV/Resume text below or upload a draft to evaluate your compatibility with top Dubai, Saudi Arabia & European employers.
-            </div>
-
-            <div>
-              <label className="block text-xs font-bold text-navy-900 dark:text-slate-200 mb-1">
-                Paste CV / Resume Text:
-              </label>
-              <textarea 
-                rows={6}
-                value={resumeText}
-                onChange={(e) => setResumeText(e.target.value)}
-                placeholder="Paste work experience, skills, qualifications, certifications..."
-                className="w-full bg-slate-50 dark:bg-navy-950 border border-slate-300 dark:border-navy-700 rounded-xl p-3 text-xs text-navy-900 dark:text-white focus:outline-none focus:border-gold-500"
-              />
-            </div>
-
-            <div className="border-2 border-dashed border-slate-300 dark:border-navy-700 rounded-xl p-6 text-center hover:border-gold-500 cursor-pointer transition">
-              <Upload className="w-8 h-8 text-gold-500 mx-auto mb-2" />
-              <p className="text-xs font-bold text-navy-900 dark:text-slate-200">Drag & Drop PDF or DOCX Resume</p>
-              <p className="text-[10px] text-slate-500">Supports files up to 10MB</p>
-            </div>
-
-            <button
-              onClick={handleAnalyze}
-              disabled={loading}
-              className="w-full py-3 bg-gold-shimmer text-navy-950 font-bold text-xs rounded-xl shadow-gold-glow hover:opacity-95 transition flex items-center justify-center space-x-2"
->>>>>>> 07ac5c3a07e2c57e0ebb677f1885544f5b93c946
             >
               {loading ? (
                 <>
