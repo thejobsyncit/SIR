@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { useCrm } from '../context/CrmContext';
 import { CRM_ROLES } from '../data/mockCrmData';
 import { 
-  Users, UserPlus, RefreshCw, Trash2, CheckCircle2, ShieldCheck, Mail, Phone, Lock, Search, Filter, Check, Building, FileText
+  Users, UserPlus, RefreshCw, Trash2, CheckCircle2, ShieldCheck, Mail, Phone, Lock, Search, Filter, Check, Building, FileText, Eye, EyeOff
 } from 'lucide-react';
 
 export const CrmSuperAdmin = () => {
@@ -50,6 +50,7 @@ export const CrmSuperAdmin = () => {
 
   const [statusMsg, setStatusMsg] = useState('');
   const [searchQuery, setSearchQuery] = useState('');
+  const [showPassword, setShowPassword] = useState(false);
 
   // Sync state changes back to localStorage registeredUsers so any created account can immediately log in!
   const syncToLocalStorage = (updatedEmpList) => {
@@ -92,6 +93,7 @@ export const CrmSuperAdmin = () => {
     setStatusMsg(`✓ Employee Account '${createdEmp.name}' (${createdEmp.role}) created successfully!`);
     
     setNewEmployee({ name: '', email: '', password: '', phone: '', role: 'Recruiter' });
+    setShowPassword(false);
     setTimeout(() => setStatusMsg(''), 5000);
   };
 
@@ -274,14 +276,29 @@ export const CrmSuperAdmin = () => {
 
             <div>
               <label className="block font-extrabold text-slate-800 dark:text-slate-200 mb-1">Password *</label>
-              <input 
-                type="password" 
-                required 
-                value={newEmployee.password} 
-                onChange={e=>setNewEmployee({...newEmployee, password: e.target.value})} 
-                placeholder="Set corporate password" 
-                className="w-full bg-slate-100 dark:bg-navy-950 border border-slate-300 dark:border-navy-700 text-slate-900 dark:text-white rounded-xl p-2.5 font-bold focus:outline-none focus:border-gold-500"
-              />
+              <div className="relative">
+                <input 
+                  type={showPassword ? "text" : "password"} 
+                  required 
+                  value={newEmployee.password} 
+                  onChange={e=>setNewEmployee({...newEmployee, password: e.target.value})} 
+                  placeholder="Set corporate password" 
+                  className="w-full bg-slate-100 dark:bg-navy-950 border border-slate-300 dark:border-navy-700 text-slate-900 dark:text-white rounded-xl p-2.5 pr-10 font-bold focus:outline-none focus:border-gold-500"
+                />
+                <button
+                  type="button"
+                  onClick={() => setShowPassword(!showPassword)}
+                  className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-gold-500 dark:hover:text-gold-400 transition-colors p-1 flex items-center justify-center cursor-pointer"
+                  title={showPassword ? "Hide password" : "Show password"}
+                  aria-label={showPassword ? "Hide password" : "Show password"}
+                >
+                  {showPassword ? (
+                    <EyeOff className="w-4 h-4" />
+                  ) : (
+                    <Eye className="w-4 h-4" />
+                  )}
+                </button>
+              </div>
             </div>
 
             <div>
