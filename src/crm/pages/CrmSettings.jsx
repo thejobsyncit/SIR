@@ -3,7 +3,7 @@ import { useCrm } from '../context/CrmContext';
 import { 
   Settings, ShieldCheck, KeyRound, Mail, MessageSquare, Database, Lock, 
   CheckCircle2, Search, Filter, RefreshCw, Smartphone, CreditCard, Building2,
-  Download, Upload, Check, FileSpreadsheet, Server, AlertCircle
+  Download, Upload, Check, FileSpreadsheet, Server, AlertCircle, Eye, EyeOff
 } from 'lucide-react';
 import { CRM_ROLES, ROLE_PERMISSIONS } from '../data/mockCrmData';
 
@@ -12,6 +12,7 @@ export const CrmSettings = () => {
   const [activeTab, setActiveTab] = useState('rbac'); // 'rbac' | 'company' | 'api' | 'security' | 'audit' | 'backup'
   const [auditSearch, setAuditSearch] = useState('');
   const [statusMsg, setStatusMsg] = useState('');
+  const [showUserPassword, setShowUserPassword] = useState(false);
 
   // Company Profile State
   const [companyProfile, setCompanyProfile] = useState({
@@ -284,7 +285,24 @@ CREATE TABLE IF NOT EXISTS public.system_audit_logs (
               <div>
                 <label className="block font-extrabold text-slate-700 dark:text-slate-300 mb-1">Password</label>
                 <div className="flex gap-2">
-                  <input type="password" name="password" required placeholder="Enter password" className="w-full bg-white dark:bg-navy-900 border border-slate-300 dark:border-navy-700 text-slate-900 dark:text-white rounded-xl p-2.5 font-bold focus:outline-none focus:border-gold-500" />
+                  <div className="relative flex-1">
+                    <input 
+                      type={showUserPassword ? "text" : "password"} 
+                      name="password" 
+                      required 
+                      placeholder="Enter password" 
+                      className="w-full bg-white dark:bg-navy-900 border border-slate-300 dark:border-navy-700 text-slate-900 dark:text-white rounded-xl p-2.5 pr-10 font-bold focus:outline-none focus:border-gold-500" 
+                    />
+                    <button
+                      type="button"
+                      onClick={() => setShowUserPassword(!showUserPassword)}
+                      className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-gold-500 dark:hover:text-gold-400 transition-colors p-1 flex items-center justify-center cursor-pointer"
+                      title={showUserPassword ? "Hide password" : "Show password"}
+                      aria-label={showUserPassword ? "Hide password" : "Show password"}
+                    >
+                      {showUserPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                    </button>
+                  </div>
                   <button type="submit" className="py-2.5 px-4 bg-gold-500 hover:bg-gold-400 text-navy-950 font-extrabold rounded-xl shadow-gold-glow cursor-pointer shrink-0 transition">
                     + Create
                   </button>
