@@ -223,6 +223,7 @@ export const FAQS = [
     answer: 'We provide a comprehensive 90-day to 180-day free replacement guarantee. If a placed candidate leaves or does not meet contractual expectations, we replace them at no extra charge.'
   }
 ];
+<<<<<<< HEAD
 
 export const JOBS_LIST = [
   {
@@ -396,3 +397,5 @@ export const JOBS_LIST = [
     featured: false
   }
 ];
+=======
+>>>>>>> 07ac5c3a07e2c57e0ebb677f1885544f5b93c946

@@ -1,5 +1,8 @@
 import React, { createContext, useContext, useState, useEffect } from 'react';
+<<<<<<< HEAD
 import { TRANSLATIONS } from '../data/translations';
+=======
+>>>>>>> 07ac5c3a07e2c57e0ebb677f1885544f5b93c946
 
 const AppContext = createContext();
 
@@ -7,6 +10,7 @@ export const AppProvider = ({ children }) => {
   const [darkMode, setDarkMode] = useState(false);
   const [language, setLanguage] = useState('EN');
   const [currency, setCurrency] = useState('AED');
+<<<<<<< HEAD
 
   const t = (key) => {
     return TRANSLATIONS[language]?.[key] || TRANSLATIONS['EN']?.[key] || key;
@@ -21,6 +25,8 @@ export const AppProvider = ({ children }) => {
       document.documentElement.setAttribute('lang', language ? language.toLowerCase() : 'en');
     }
   }, [language]);
+=======
+>>>>>>> 07ac5c3a07e2c57e0ebb677f1885544f5b93c946
   const [activeTab, setActiveTab] = useState('home');
   const [selectedJob, setSelectedJob] = useState(null);
   const [activeModal, setActiveModal] = useState(null); // 'apply', 'ai-resume', 'payment', 'resume-builder', 'post-job', 'verification-modal'
@@ -38,6 +44,7 @@ export const AppProvider = ({ children }) => {
     }
   ]);
 
+<<<<<<< HEAD
   // Auth State Management
   const [user, setUser] = useState(() => {
     try {
@@ -107,6 +114,16 @@ export const AppProvider = ({ children }) => {
     saveUserSession(null);
   };
 
+=======
+  const [user, setUser] = useState({
+    name: 'Executive Candidate',
+    email: 'candidate@sirrecruitment.com',
+    role: 'candidate', // 'candidate' | 'employer' | 'admin'
+    resumeUploaded: true,
+    resumeName: 'John_Doe_Executive_CV.pdf'
+  });
+
+>>>>>>> 07ac5c3a07e2c57e0ebb677f1885544f5b93c946
   const toggleDarkMode = () => {
     setDarkMode(prev => {
       const next = !prev;
@@ -139,6 +156,7 @@ export const AppProvider = ({ children }) => {
     setApplications(prev => [newApp, ...prev]);
   };
 
+<<<<<<< HEAD
   const updateApplicationStatus = (appId, newStatus, step, interviewDetails = null) => {
     setApplications(prev => prev.map(app => {
       if (app.id === appId) {
@@ -153,6 +171,8 @@ export const AppProvider = ({ children }) => {
     }));
   };
 
+=======
+>>>>>>> 07ac5c3a07e2c57e0ebb677f1885544f5b93c946
   // Sync hash routing
   useEffect(() => {
     const handleHashChange = () => {
@@ -167,6 +187,7 @@ export const AppProvider = ({ children }) => {
     return () => window.removeEventListener('hashchange', handleHashChange);
   }, []);
 
+<<<<<<< HEAD
   // Posted Jobs State Management
   const [postedJobs, setPostedJobs] = useState(() => {
     try {
@@ -236,6 +257,8 @@ export const AppProvider = ({ children }) => {
     });
   };
 
+=======
+>>>>>>> 07ac5c3a07e2c57e0ebb677f1885544f5b93c946
   const navigateTo = (tab) => {
     setActiveTab(tab);
     window.location.hash = tab;
@@ -249,7 +272,10 @@ export const AppProvider = ({ children }) => {
         toggleDarkMode,
         language,
         setLanguage,
+<<<<<<< HEAD
         t,
+=======
+>>>>>>> 07ac5c3a07e2c57e0ebb677f1885544f5b93c946
         currency,
         setCurrency,
         activeTab,
@@ -262,6 +288,7 @@ export const AppProvider = ({ children }) => {
         toggleSaveJob,
         applications,
         applyForJob,
+<<<<<<< HEAD
         updateApplicationStatus,
         postedJobs,
         addJob,
@@ -272,6 +299,10 @@ export const AppProvider = ({ children }) => {
         registerCandidate,
         loginEmployer,
         logout
+=======
+        user,
+        setUser
+>>>>>>> 07ac5c3a07e2c57e0ebb677f1885544f5b93c946
       }}
     >
       {children}

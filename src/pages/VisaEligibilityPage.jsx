@@ -25,6 +25,7 @@ export const VisaEligibilityPage = () => {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ country, qualification, experience, age, language })
       });
+<<<<<<< HEAD
       if (res.ok) {
         const data = await res.json();
         setResult(data);
@@ -82,6 +83,12 @@ export const VisaEligibilityPage = () => {
         checklist: ['Passport (6+ months validity)', 'Educational Certificate Attestation', 'Medical Clearance', 'Signed Employment Offer Letter'],
         recommendedJobs: []
       });
+=======
+      const data = await res.json();
+      setResult(data);
+    } catch (err) {
+      console.error(err);
+>>>>>>> 07ac5c3a07e2c57e0ebb677f1885544f5b93c946
     } finally {
       setLoading(false);
     }
@@ -98,7 +105,11 @@ export const VisaEligibilityPage = () => {
         <h1 className="font-serif text-4xl sm:text-5xl font-extrabold text-navy-900 dark:text-white">
           GCC & Global Visa Eligibility Checker
         </h1>
+<<<<<<< HEAD
         <p className="text-xs sm:text-sm text-slate-800 dark:text-slate-200 leading-relaxed font-medium">
+=======
+        <p className="text-xs sm:text-sm text-slate-600 dark:text-slate-300 leading-relaxed">
+>>>>>>> 07ac5c3a07e2c57e0ebb677f1885544f5b93c946
           Evaluate your profile against official MOHRE, Saudi Iqama, Qatar Work Residence, and EU Blue Card rules.
         </p>
       </div>
@@ -212,15 +223,23 @@ export const VisaEligibilityPage = () => {
         {/* Results Column */}
         <div className="lg:col-span-7 space-y-6">
           {!result ? (
+<<<<<<< HEAD
             <div className="glass-card bg-white dark:bg-navy-950 text-slate-900 dark:text-white rounded-3xl p-8 border border-slate-200 dark:border-gold-500/30 shadow-xl text-center py-16 space-y-3">
               <Globe className="w-12 h-12 text-gold-500 mx-auto animate-pulse" />
               <h3 className="font-serif text-2xl font-bold text-navy-950 dark:text-white">Calculate Your Work Visa Readiness</h3>
               <p className="text-xs text-slate-800 dark:text-slate-200 max-w-md mx-auto font-medium">
+=======
+            <div className="glass-card bg-navy-950 text-white rounded-3xl p-8 border border-gold-500/30 shadow-luxury text-center py-16 space-y-3">
+              <Globe className="w-12 h-12 text-gold-500 mx-auto animate-pulse" />
+              <h3 className="font-serif text-2xl font-bold">Calculate Your Work Visa Readiness</h3>
+              <p className="text-xs text-slate-400 max-w-md mx-auto">
+>>>>>>> 07ac5c3a07e2c57e0ebb677f1885544f5b93c946
                 Fill in your destination country, degree qualification, and years of experience to calculate your score and view mandatory document checklists.
               </p>
             </div>
           ) : (
             <div className="space-y-6 animate-in fade-in">
+<<<<<<< HEAD
               {/* Score Card - White Card in Light Mode with Black Text / Dark Navy in Dark Mode */}
               <div className="glass-card bg-white dark:bg-navy-950 border border-slate-200 dark:border-gold-500/50 rounded-3xl p-6 sm:p-8 shadow-luxury space-y-4">
                 <div className="flex justify-between items-start border-b border-slate-200 dark:border-navy-800 pb-4">
@@ -261,6 +280,33 @@ export const VisaEligibilityPage = () => {
                   <div className="p-3 bg-slate-100 dark:bg-navy-900 border border-slate-200 dark:border-navy-800 rounded-xl col-span-2 sm:col-span-1">
                     <p className="text-[10px] text-slate-700 dark:text-slate-300 font-bold">Employer Sponsorship</p>
                     <p className="font-bold text-navy-950 dark:text-white text-xs mt-0.5">Mandatory</p>
+=======
+              {/* Score Card */}
+              <div className="glass-card bg-navy-950 text-white border border-gold-500/40 rounded-3xl p-6 sm:p-8 shadow-luxury space-y-4">
+                <div className="flex justify-between items-start border-b border-navy-800 pb-4">
+                  <div>
+                    <p className="text-xs font-bold uppercase text-gold-400 tracking-wider">Visa Eligibility Index</p>
+                    <h3 className="font-serif text-3xl font-extrabold text-white mt-1">{result.status}</h3>
+                    <p className="text-xs text-slate-400">Target Country: <strong className="text-white">{result.countryData.country}</strong></p>
+                  </div>
+                  <div className="w-16 h-16 rounded-full border-4 border-gold-500 flex items-center justify-center font-extrabold text-gold-400 text-xl">
+                    {result.score}%
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-2 sm:grid-cols-3 gap-3 text-xs">
+                  <div className="p-3 bg-navy-900 rounded-xl">
+                    <p className="text-[10px] text-slate-400">Processing Time</p>
+                    <p className="font-bold text-emerald-400">{result.processingTime}</p>
+                  </div>
+                  <div className="p-3 bg-navy-900 rounded-xl">
+                    <p className="text-[10px] text-slate-400">Estimated Cost</p>
+                    <p className="font-bold text-gold-400">{result.estimatedCost}</p>
+                  </div>
+                  <div className="p-3 bg-navy-900 rounded-xl">
+                    <p className="text-[10px] text-slate-400">Employer Sponsorship</p>
+                    <p className="font-bold text-white">Mandatory</p>
+>>>>>>> 07ac5c3a07e2c57e0ebb677f1885544f5b93c946
                   </div>
                 </div>
               </div>
@@ -273,7 +319,11 @@ export const VisaEligibilityPage = () => {
                 </h4>
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
                   {result.checklist.map((doc, idx) => (
+<<<<<<< HEAD
                     <div key={idx} className="p-2.5 bg-slate-50 dark:bg-navy-950 border border-slate-200 dark:border-navy-800 rounded-xl flex items-center gap-2 text-slate-800 dark:text-slate-200 font-semibold">
+=======
+                    <div key={idx} className="p-2.5 bg-slate-50 dark:bg-navy-950 border border-slate-200 dark:border-navy-800 rounded-xl flex items-center gap-2 text-slate-700 dark:text-slate-300 font-medium">
+>>>>>>> 07ac5c3a07e2c57e0ebb677f1885544f5b93c946
                       <CheckCircle2 className="w-4 h-4 text-emerald-500 shrink-0" />
                       <span>{doc}</span>
                     </div>
@@ -291,7 +341,11 @@ export const VisaEligibilityPage = () => {
                     <div key={j.id} className="p-3 bg-slate-50 dark:bg-navy-950 rounded-xl border flex justify-between items-center">
                       <div>
                         <p className="font-bold text-navy-900 dark:text-white">{j.title}</p>
+<<<<<<< HEAD
                         <p className="text-[11px] text-slate-700 dark:text-slate-300 font-semibold">{j.company} • {j.salary}</p>
+=======
+                        <p className="text-[11px] text-slate-500">{j.company} • {j.salary}</p>
+>>>>>>> 07ac5c3a07e2c57e0ebb677f1885544f5b93c946
                       </div>
                       <button onClick={() => navigateTo('jobs')} className="px-3 py-1.5 bg-navy-900 text-gold-400 font-bold rounded-lg hover:bg-gold-500 hover:text-navy-950 transition">
                         Apply
@@ -314,7 +368,11 @@ export const VisaEligibilityPage = () => {
           <h3 className="font-serif text-3xl font-extrabold text-navy-900 dark:text-white">
             Country-Wise Visa Eligibility Matrix (18 Countries)
           </h3>
+<<<<<<< HEAD
           <p className="text-xs text-slate-800 dark:text-slate-200 font-medium">
+=======
+          <p className="text-xs text-slate-500 dark:text-slate-400">
+>>>>>>> 07ac5c3a07e2c57e0ebb677f1885544f5b93c946
             Compare work visa requirements, minimum qualifications, age rules, processing times, and average costs.
           </p>
         </div>

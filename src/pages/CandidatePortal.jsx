@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { useApp } from '../context/AppContext';
+<<<<<<< HEAD
 import { CandidateAuth } from '../components/CandidateAuth';
 import { User, FileText, Sparkles, CheckCircle2, Clock, Calendar, Bookmark, Bell, Upload, Shield, ArrowRight, LogOut } from 'lucide-react';
 
@@ -11,10 +12,19 @@ export const CandidatePortal = () => {
     return <CandidateAuth />;
   }
 
+=======
+import { User, FileText, Sparkles, CheckCircle2, Clock, Calendar, Bookmark, Bell, Upload, Shield, ArrowRight } from 'lucide-react';
+
+export const CandidatePortal = () => {
+  const { user, applications, savedJobs, setActiveModal, navigateTo } = useApp();
+  const [activeTab, setActiveTab] = useState('dashboard'); // 'dashboard' | 'applications' | 'saved' | 'interviews'
+
+>>>>>>> 07ac5c3a07e2c57e0ebb677f1885544f5b93c946
   return (
     <div className="max-w-7xl mx-auto px-4 sm:px-8 py-12 space-y-8">
       
       {/* Profile Header */}
+<<<<<<< HEAD
       <div className="bg-white dark:bg-navy-950 text-slate-900 dark:text-white rounded-3xl p-6 sm:p-8 border border-slate-200 dark:border-gold-500/30 shadow-lg flex flex-col sm:flex-row justify-between items-center gap-6">
         <div className="flex items-center space-x-4">
           <div className="w-16 h-16 rounded-2xl bg-gold-500 text-navy-950 font-serif font-extrabold text-2xl flex items-center justify-center border-2 border-white shadow-gold-glow">
@@ -31,6 +41,24 @@ export const CandidatePortal = () => {
           <button 
             onClick={() => setActiveModal('ai-resume')}
             className="flex-1 sm:flex-initial px-4 py-2.5 bg-gold-500/15 text-gold-700 dark:text-gold-400 border border-gold-500/30 hover:bg-gold-500 hover:text-navy-950 font-bold text-xs rounded-xl transition flex items-center justify-center space-x-1.5"
+=======
+      <div className="glass-card bg-navy-950 text-white rounded-3xl p-6 sm:p-8 border border-gold-500/30 shadow-luxury flex flex-col sm:flex-row justify-between items-center gap-6">
+        <div className="flex items-center space-x-4">
+          <div className="w-16 h-16 rounded-2xl bg-gold-500 text-navy-950 font-serif font-extrabold text-2xl flex items-center justify-center border-2 border-white">
+            {user.name.split(' ').map(n=>n[0]).join('')}
+          </div>
+          <div>
+            <span className="bg-gold-500/20 text-gold-400 text-[10px] font-bold px-2 py-0.5 rounded uppercase">Verified Executive Profile</span>
+            <h1 className="font-serif text-2xl font-bold text-white mt-1">{user.name}</h1>
+            <p className="text-xs text-slate-400">{user.email} • Candidate ID: SIR-CAN-88219</p>
+          </div>
+        </div>
+
+        <div className="flex gap-3 w-full sm:w-auto">
+          <button 
+            onClick={() => setActiveModal('ai-resume')}
+            className="flex-1 sm:flex-initial px-4 py-2.5 bg-gold-500/20 text-gold-400 border border-gold-500/40 hover:bg-gold-500 hover:text-navy-950 font-bold text-xs rounded-xl transition flex items-center justify-center space-x-1.5"
+>>>>>>> 07ac5c3a07e2c57e0ebb677f1885544f5b93c946
           >
             <Sparkles className="w-4 h-4" />
             <span>AI ATS Score CV</span>
@@ -38,11 +66,16 @@ export const CandidatePortal = () => {
           
           <button 
             onClick={() => setActiveModal('resume-builder')}
+<<<<<<< HEAD
             className="flex-1 sm:flex-initial px-4 py-2.5 bg-gold-shimmer hover:opacity-95 text-navy-950 font-bold text-xs rounded-xl shadow-gold-glow flex items-center justify-center space-x-1.5"
+=======
+            className="flex-1 sm:flex-initial px-4 py-2.5 bg-gold-shimmer text-navy-950 font-bold text-xs rounded-xl shadow-gold-glow flex items-center justify-center space-x-1.5"
+>>>>>>> 07ac5c3a07e2c57e0ebb677f1885544f5b93c946
           >
             <FileText className="w-4 h-4" />
             <span>PDF Resume Builder</span>
           </button>
+<<<<<<< HEAD
 
           <button 
             onClick={logout}
@@ -52,6 +85,8 @@ export const CandidatePortal = () => {
             <LogOut className="w-4 h-4" />
             <span>Sign Out</span>
           </button>
+=======
+>>>>>>> 07ac5c3a07e2c57e0ebb677f1885544f5b93c946
         </div>
       </div>
 
@@ -59,25 +94,41 @@ export const CandidatePortal = () => {
       <div className="flex space-x-2 border-b border-slate-200 dark:border-navy-800 text-xs font-bold">
         <button 
           onClick={() => setActiveTab('dashboard')} 
+<<<<<<< HEAD
           className={`pb-3 px-4 transition ${activeTab === 'dashboard' ? 'border-b-2 border-gold-500 text-gold-500' : 'text-slate-700 dark:text-slate-300'}`}
+=======
+          className={`pb-3 px-4 transition ${activeTab === 'dashboard' ? 'border-b-2 border-gold-500 text-gold-500' : 'text-slate-500 dark:text-slate-400'}`}
+>>>>>>> 07ac5c3a07e2c57e0ebb677f1885544f5b93c946
         >
           Profile Overview
         </button>
         <button 
           onClick={() => setActiveTab('applications')} 
+<<<<<<< HEAD
           className={`pb-3 px-4 transition ${activeTab === 'applications' ? 'border-b-2 border-gold-500 text-gold-500' : 'text-slate-700 dark:text-slate-300'}`}
+=======
+          className={`pb-3 px-4 transition ${activeTab === 'applications' ? 'border-b-2 border-gold-500 text-gold-500' : 'text-slate-500 dark:text-slate-400'}`}
+>>>>>>> 07ac5c3a07e2c57e0ebb677f1885544f5b93c946
         >
           Applications ({applications.length})
         </button>
         <button 
           onClick={() => setActiveTab('saved')} 
+<<<<<<< HEAD
           className={`pb-3 px-4 transition ${activeTab === 'saved' ? 'border-b-2 border-gold-500 text-gold-500' : 'text-slate-700 dark:text-slate-300'}`}
+=======
+          className={`pb-3 px-4 transition ${activeTab === 'saved' ? 'border-b-2 border-gold-500 text-gold-500' : 'text-slate-500 dark:text-slate-400'}`}
+>>>>>>> 07ac5c3a07e2c57e0ebb677f1885544f5b93c946
         >
           Saved Jobs ({savedJobs.length})
         </button>
         <button 
           onClick={() => setActiveTab('interviews')} 
+<<<<<<< HEAD
           className={`pb-3 px-4 transition ${activeTab === 'interviews' ? 'border-b-2 border-gold-500 text-gold-500' : 'text-slate-700 dark:text-slate-300'}`}
+=======
+          className={`pb-3 px-4 transition ${activeTab === 'interviews' ? 'border-b-2 border-gold-500 text-gold-500' : 'text-slate-500 dark:text-slate-400'}`}
+>>>>>>> 07ac5c3a07e2c57e0ebb677f1885544f5b93c946
         >
           Interview Schedule (1)
         </button>
@@ -95,7 +146,11 @@ export const CandidatePortal = () => {
             </h3>
             <div className="p-4 bg-slate-100 dark:bg-navy-800 rounded-xl space-y-2 text-xs">
               <p className="font-bold text-navy-900 dark:text-white">{user.resumeName}</p>
+<<<<<<< HEAD
               <p className="text-slate-700 dark:text-slate-300 font-medium">Uploaded 2 days ago • PDF Format</p>
+=======
+              <p className="text-slate-500">Uploaded 2 days ago • PDF Format</p>
+>>>>>>> 07ac5c3a07e2c57e0ebb677f1885544f5b93c946
               <div className="flex items-center gap-1 text-emerald-500 font-bold">
                 <CheckCircle2 className="w-4 h-4" />
                 <span>GCC ATS Score: 92% (High Compatibility)</span>
@@ -121,7 +176,11 @@ export const CandidatePortal = () => {
                 <div className="flex justify-between items-start text-xs">
                   <div>
                     <h4 className="font-bold text-navy-900 dark:text-white text-sm">{app.jobTitle}</h4>
+<<<<<<< HEAD
                     <p className="text-slate-700 dark:text-slate-300 font-medium">{app.company} • {app.country}</p>
+=======
+                    <p className="text-slate-500">{app.company} • {app.country}</p>
+>>>>>>> 07ac5c3a07e2c57e0ebb677f1885544f5b93c946
                   </div>
                   <span className="bg-gold-500/20 text-gold-500 font-bold px-2.5 py-1 rounded text-[11px]">
                     {app.status}
@@ -150,7 +209,11 @@ export const CandidatePortal = () => {
             <div key={app.id} className="glass-card bg-white dark:bg-navy-900 border border-slate-200 dark:border-navy-800 p-6 rounded-2xl flex justify-between items-center text-xs">
               <div>
                 <h4 className="font-bold text-base text-navy-900 dark:text-white">{app.jobTitle}</h4>
+<<<<<<< HEAD
                 <p className="text-slate-700 dark:text-slate-300 font-medium">{app.company} • Applied on {app.appliedDate}</p>
+=======
+                <p className="text-slate-500">{app.company} • Applied on {app.appliedDate}</p>
+>>>>>>> 07ac5c3a07e2c57e0ebb677f1885544f5b93c946
               </div>
               <span className="px-3 py-1 bg-gold-500/20 text-gold-500 font-bold rounded-lg">{app.status}</span>
             </div>
@@ -164,8 +227,13 @@ export const CandidatePortal = () => {
             <Calendar className="w-5 h-5" />
             <span className="text-sm">Upcoming Panel Interview with Al Habtoor Contracting LLC</span>
           </div>
+<<<<<<< HEAD
           <p className="text-slate-800 dark:text-slate-200 font-medium">Scheduled Date: <strong>August 8, 2026 at 14:00 GST (Dubai Time)</strong></p>
           <p className="text-slate-700 dark:text-slate-300 font-medium">Format: Executive Microsoft Teams Video Panel with HR Director & VP of Construction.</p>
+=======
+          <p className="text-slate-600 dark:text-slate-300">Scheduled Date: <strong>August 8, 2026 at 14:00 GST (Dubai Time)</strong></p>
+          <p className="text-slate-500">Format: Executive Microsoft Teams Video Panel with HR Director & VP of Construction.</p>
+>>>>>>> 07ac5c3a07e2c57e0ebb677f1885544f5b93c946
           <button className="px-4 py-2 bg-navy-900 text-white font-bold rounded-lg hover:bg-gold-500 hover:text-navy-950 transition">
             Join MS Teams Meeting Link →
           </button>

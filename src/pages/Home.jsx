@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { useApp } from '../context/AppContext';
 import { 
   Building2, Globe, Users, Briefcase, Search, ArrowRight, ShieldCheck, Award, 
+<<<<<<< HEAD
   CheckCircle2, Star, Play, ChevronRight, FileText, Sparkles, MapPin, Clock, Phone, Send, Bookmark
 } from 'lucide-react';
 import { SERVICES_LIST, INDUSTRIES_LIST, TESTIMONIALS, BLOG_POSTS, FAQS, COUNTRIES_LIST, JOBS_LIST } from '../data/mockData';
@@ -9,6 +10,14 @@ import { SERVICES_LIST, INDUSTRIES_LIST, TESTIMONIALS, BLOG_POSTS, FAQS, COUNTRI
 export const Home = () => {
   const { navigateTo, setSelectedJob, setActiveModal, applyForJob, postedJobs, t } = useApp();
   const allJobsList = [...(postedJobs || []), ...JOBS_LIST];
+=======
+  CheckCircle2, Star, Play, ChevronRight, FileText, Sparkles, MapPin, Clock, Phone, Send
+} from 'lucide-react';
+import { SERVICES_LIST, INDUSTRIES_LIST, TESTIMONIALS, BLOG_POSTS, FAQS, COUNTRIES_LIST } from '../data/mockData';
+
+export const Home = () => {
+  const { navigateTo, setSelectedJob, setActiveModal } = useApp();
+>>>>>>> 07ac5c3a07e2c57e0ebb677f1885544f5b93c946
   const [searchKeyword, setSearchKeyword] = useState('');
   const [searchCountry, setSearchCountry] = useState('All');
   const [activeFaqCategory, setActiveFaqCategory] = useState('General');
@@ -61,17 +70,31 @@ export const Home = () => {
           {/* Badge */}
           <div className="inline-flex items-center space-x-2 bg-navy-900/90 text-gold-400 border border-gold-500/30 px-4 py-1.5 rounded-full text-xs font-bold shadow-luxury animate-float">
             <Sparkles className="w-3.5 h-3.5 text-gold-500" />
+<<<<<<< HEAD
             <span>{t('hero.badge')}</span>
           </div>
 
           {/* Headline */}
           <h1 className="font-serif text-3xl sm:text-5xl lg:text-6xl font-extrabold text-navy-900 dark:text-white tracking-tight leading-[1.15] max-w-5xl mx-auto">
             {t('hero.title')}
+=======
+            <span>Dubai's #1 Licensed Executive Recruitment & HR Consultancy</span>
+          </div>
+
+          {/* Headline */}
+          <h1 className="font-serif text-4xl sm:text-6xl lg:text-7xl font-extrabold text-navy-900 dark:text-white tracking-tight leading-[1.15] max-w-5xl mx-auto">
+            Connecting Global Talent with <br />
+            <span className="text-gradient-gold">Leading Employers</span>
+>>>>>>> 07ac5c3a07e2c57e0ebb677f1885544f5b93c946
           </h1>
 
           {/* Subheading */}
           <p className="text-slate-600 dark:text-slate-300 text-sm sm:text-base max-w-3xl mx-auto leading-relaxed font-normal">
+<<<<<<< HEAD
             {t('hero.subtitle')}
+=======
+            SIR Recruitment specializes in domestic and international recruitment, manpower outsourcing, executive hiring, visa processing, and HR consulting for companies across the UAE, GCC, Europe, and Asia.
+>>>>>>> 07ac5c3a07e2c57e0ebb677f1885544f5b93c946
           </p>
 
           {/* Action CTAs */}
@@ -81,7 +104,11 @@ export const Home = () => {
               className="w-full sm:w-auto px-8 py-4 bg-gold-shimmer text-navy-950 font-extrabold text-sm rounded-xl shadow-gold-glow hover:scale-105 transition duration-300 flex items-center justify-center space-x-2"
             >
               <Briefcase className="w-4 h-4" />
+<<<<<<< HEAD
               <span>{t('hero.findJobsBtn')}</span>
+=======
+              <span>Find Jobs in Dubai & GCC</span>
+>>>>>>> 07ac5c3a07e2c57e0ebb677f1885544f5b93c946
             </button>
 
             <button 
@@ -89,7 +116,11 @@ export const Home = () => {
               className="w-full sm:w-auto px-8 py-4 bg-navy-900 text-white font-extrabold text-sm rounded-xl border border-gold-500/40 hover:bg-navy-800 transition shadow-luxury flex items-center justify-center space-x-2"
             >
               <Building2 className="w-4 h-4 text-gold-500" />
+<<<<<<< HEAD
               <span>{t('hero.hireTalentBtn')}</span>
+=======
+              <span>Hire Executive Talent</span>
+>>>>>>> 07ac5c3a07e2c57e0ebb677f1885544f5b93c946
             </button>
           </div>
 
@@ -101,7 +132,11 @@ export const Home = () => {
                 <Search className="w-4 h-4 text-slate-400 absolute left-3 top-3.5" />
                 <input 
                   type="text"
+<<<<<<< HEAD
                   placeholder={t('hero.searchPlaceholder')}
+=======
+                  placeholder="Job title, skill, or keyword..."
+>>>>>>> 07ac5c3a07e2c57e0ebb677f1885544f5b93c946
                   value={searchKeyword}
                   onChange={(e) => setSearchKeyword(e.target.value)}
                   className="w-full bg-slate-50 dark:bg-navy-950 border border-slate-300 dark:border-navy-700 text-navy-900 dark:text-white rounded-xl pl-9 pr-3 py-3 text-xs focus:outline-none focus:border-gold-500"
@@ -115,7 +150,11 @@ export const Home = () => {
                   onChange={(e) => setSearchCountry(e.target.value)}
                   className="w-full bg-slate-50 dark:bg-navy-950 border border-slate-300 dark:border-navy-700 text-navy-900 dark:text-white rounded-xl pl-9 pr-3 py-3 text-xs focus:outline-none focus:border-gold-500"
                 >
+<<<<<<< HEAD
                   <option value="All">{t('hero.allCountries')}</option>
+=======
+                  <option value="All">All Destination Countries</option>
+>>>>>>> 07ac5c3a07e2c57e0ebb677f1885544f5b93c946
                   <option value="UAE">🇦🇪 United Arab Emirates</option>
                   <option value="Saudi Arabia">🇸🇦 Saudi Arabia</option>
                   <option value="Qatar">🇶🇦 Qatar</option>
@@ -128,7 +167,11 @@ export const Home = () => {
                 onClick={() => navigateTo('jobs')}
                 className="w-full py-3 bg-navy-900 hover:bg-gold-500 hover:text-navy-950 text-white font-bold text-xs rounded-xl transition duration-300 flex items-center justify-center space-x-2"
               >
+<<<<<<< HEAD
                 <span>{t('hero.searchBtn')}</span>
+=======
+                <span>Search 500+ Active Roles</span>
+>>>>>>> 07ac5c3a07e2c57e0ebb677f1885544f5b93c946
                 <ArrowRight className="w-4 h-4" />
               </button>
 
@@ -140,7 +183,11 @@ export const Home = () => {
 
       {/* TRUSTED COMPANIES LOGO BANNER */}
       <section className="max-w-7xl mx-auto px-4 sm:px-8">
+<<<<<<< HEAD
         <p className="text-center text-xs font-bold uppercase tracking-widest text-slate-600 dark:text-slate-300 mb-6">
+=======
+        <p className="text-center text-xs font-bold uppercase tracking-widest text-slate-400 mb-6">
+>>>>>>> 07ac5c3a07e2c57e0ebb677f1885544f5b93c946
           Trusted by Premier Enterprises & Government Entities Across GCC & Europe
         </p>
         <div className="grid grid-cols-2 sm:grid-cols-4 lg:grid-cols-8 gap-4 items-center">
@@ -154,7 +201,11 @@ export const Home = () => {
 
       {/* KEY STATISTICS COUNTERS */}
       <section className="max-w-7xl mx-auto px-4 sm:px-8">
+<<<<<<< HEAD
         <div className="bg-navy-950 text-white border border-gold-500/30 rounded-3xl p-8 sm:p-12 shadow-luxury relative overflow-hidden">
+=======
+        <div className="glass-card bg-navy-950 text-white border border-gold-500/30 rounded-3xl p-8 sm:p-12 shadow-luxury relative overflow-hidden">
+>>>>>>> 07ac5c3a07e2c57e0ebb677f1885544f5b93c946
           <div className="grid grid-cols-2 lg:grid-cols-4 gap-8 text-center divide-y lg:divide-y-0 lg:divide-x divide-navy-800">
             {stats.map((s, idx) => {
               const Icon = s.icon;
@@ -174,6 +225,7 @@ export const Home = () => {
         </div>
       </section>
 
+<<<<<<< HEAD
       {/* FEATURED DEMO JOBS LIST */}
       <section className="max-w-7xl mx-auto px-4 sm:px-8 space-y-8">
         <div className="flex flex-col md:flex-row justify-between items-end gap-4 border-b border-slate-200 dark:border-navy-800 pb-6">
@@ -252,6 +304,8 @@ export const Home = () => {
         </div>
       </section>
 
+=======
+>>>>>>> 07ac5c3a07e2c57e0ebb677f1885544f5b93c946
       {/* SERVICES OVERVIEW (18+ Services) */}
       <section className="max-w-7xl mx-auto px-4 sm:px-8 space-y-8">
         <div className="text-center space-y-3 max-w-2xl mx-auto">
@@ -259,7 +313,11 @@ export const Home = () => {
           <h3 className="font-serif text-3xl sm:text-4xl font-extrabold text-navy-900 dark:text-white">
             18+ Premium HR & Recruitment Solutions
           </h3>
+<<<<<<< HEAD
           <p className="text-xs text-slate-800 dark:text-slate-200 font-medium">
+=======
+          <p className="text-xs text-slate-600 dark:text-slate-400">
+>>>>>>> 07ac5c3a07e2c57e0ebb677f1885544f5b93c946
             From executive headhunting to MOHRE visa quotas, we manage every facet of corporate workforce expansion.
           </p>
         </div>
@@ -277,7 +335,11 @@ export const Home = () => {
               <h4 className="font-serif text-lg font-bold text-navy-900 dark:text-white group-hover:text-gold-500 transition">
                 {srv.title}
               </h4>
+<<<<<<< HEAD
               <p className="text-xs text-slate-800 dark:text-slate-200 leading-relaxed font-medium">
+=======
+              <p className="text-xs text-slate-600 dark:text-slate-400 leading-relaxed">
+>>>>>>> 07ac5c3a07e2c57e0ebb677f1885544f5b93c946
                 {srv.description}
               </p>
               <div className="text-xs font-bold text-gold-500 flex items-center gap-1 pt-2">
@@ -329,7 +391,11 @@ export const Home = () => {
                   {ind.openJobs} Open Roles
                 </span>
               </div>
+<<<<<<< HEAD
               <p className="text-[11px] text-slate-700 dark:text-slate-300 font-medium line-clamp-2">
+=======
+              <p className="text-[11px] text-slate-500 dark:text-slate-400 line-clamp-2">
+>>>>>>> 07ac5c3a07e2c57e0ebb677f1885544f5b93c946
                 {ind.description}
               </p>
             </div>
@@ -339,6 +405,7 @@ export const Home = () => {
 
       {/* QUICK VISA ELIGIBILITY CHECKER BANNER */}
       <section className="max-w-7xl mx-auto px-4 sm:px-8">
+<<<<<<< HEAD
         <div className="glass-card bg-white dark:bg-navy-950 text-navy-950 dark:text-white rounded-3xl p-8 sm:p-12 border border-slate-200 dark:border-gold-500/40 shadow-luxury grid grid-cols-1 lg:grid-cols-2 gap-8 items-center">
           <div className="space-y-4">
             <span className="bg-gold-500/20 text-gold-600 dark:text-gold-400 text-xs font-bold px-3 py-1 rounded-full uppercase">
@@ -348,6 +415,17 @@ export const Home = () => {
               Instant GCC & International Work Visa Eligibility Evaluation
             </h3>
             <p className="text-xs text-slate-700 dark:text-slate-300 leading-relaxed font-medium">
+=======
+        <div className="glass-card bg-gradient-to-r from-navy-950 via-navy-900 to-navy-950 text-white rounded-3xl p-8 sm:p-12 border border-gold-500/30 shadow-luxury grid grid-cols-1 lg:grid-cols-2 gap-8 items-center">
+          <div className="space-y-4">
+            <span className="bg-gold-500/20 text-gold-400 text-xs font-bold px-3 py-1 rounded-full uppercase">
+              Interactive Compliance Tool
+            </span>
+            <h3 className="font-serif text-3xl sm:text-4xl font-extrabold text-white">
+              Instant GCC & International Work Visa Eligibility Evaluation
+            </h3>
+            <p className="text-xs text-slate-300 leading-relaxed">
+>>>>>>> 07ac5c3a07e2c57e0ebb677f1885544f5b93c946
               Are you eligible to work in the UAE, Saudi Arabia, Qatar, Singapore, or Germany? Check your qualification tier, age criteria, document checklist, and visa processing timelines.
             </p>
             <div className="flex gap-3 pt-2">
@@ -360,6 +438,7 @@ export const Home = () => {
             </div>
           </div>
 
+<<<<<<< HEAD
           <div className="bg-slate-100 dark:bg-navy-900 border border-slate-200 dark:border-navy-800 p-6 rounded-2xl space-y-4">
             <h4 className="font-serif font-bold text-gold-600 dark:text-gold-400 text-sm border-b border-slate-200 dark:border-navy-800 pb-2">
               Country-Wise Visa Matrix Overview
@@ -380,6 +459,28 @@ export const Home = () => {
               <div className="flex justify-between py-1 border-b border-slate-200 dark:border-navy-800">
                 <span>🇸🇬 Singapore Employment Pass</span>
                 <span className="font-bold text-emerald-600 dark:text-emerald-400">14 - 28 Days</span>
+=======
+          <div className="bg-navy-900/90 border border-gold-500/30 p-6 rounded-2xl space-y-4">
+            <h4 className="font-serif font-bold text-gold-400 text-sm border-b border-navy-800 pb-2">
+              Country-Wise Visa Matrix Overview
+            </h4>
+            <div className="space-y-2 text-xs text-slate-300">
+              <div className="flex justify-between py-1 border-b border-navy-800">
+                <span>🇦🇪 UAE Employer Work Visa</span>
+                <span className="font-bold text-emerald-400">7 - 14 Days</span>
+              </div>
+              <div className="flex justify-between py-1 border-b border-navy-800">
+                <span>🇸🇦 Saudi Iqama Work Permit</span>
+                <span className="font-bold text-emerald-400">14 - 21 Days</span>
+              </div>
+              <div className="flex justify-between py-1 border-b border-navy-800">
+                <span>🇶🇦 Qatar Work Residence Permit</span>
+                <span className="font-bold text-emerald-400">10 - 18 Days</span>
+              </div>
+              <div className="flex justify-between py-1 border-b border-navy-800">
+                <span>🇸🇬 Singapore Employment Pass</span>
+                <span className="font-bold text-emerald-400">14 - 28 Days</span>
+>>>>>>> 07ac5c3a07e2c57e0ebb677f1885544f5b93c946
               </div>
             </div>
           </div>
@@ -395,12 +496,21 @@ export const Home = () => {
 
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-6 gap-4">
           {processSteps.map((step) => (
+<<<<<<< HEAD
             <div key={step.num} className="glass-card bg-white dark:bg-navy-900 border border-slate-200 dark:border-navy-800 p-5 rounded-2xl relative space-y-2.5 shadow-sm hover:border-gold-500 transition">
               <div className="font-serif text-3xl font-black text-gold-600 dark:text-gold-400 tracking-tight">
                 {step.num}
               </div>
               <h4 className="font-bold text-sm text-navy-950 dark:text-white">{step.title}</h4>
               <p className="text-xs text-slate-600 dark:text-slate-300 leading-relaxed font-medium">{step.desc}</p>
+=======
+            <div key={step.num} className="glass-card bg-white dark:bg-navy-900 border border-slate-200 dark:border-navy-800 p-5 rounded-2xl relative space-y-2">
+              <div className="font-serif text-3xl font-extrabold text-gold-500/40">
+                {step.num}
+              </div>
+              <h4 className="font-bold text-sm text-navy-900 dark:text-white">{step.title}</h4>
+              <p className="text-[11px] text-slate-500 dark:text-slate-400 leading-relaxed">{step.desc}</p>
+>>>>>>> 07ac5c3a07e2c57e0ebb677f1885544f5b93c946
             </div>
           ))}
         </div>
@@ -428,7 +538,11 @@ export const Home = () => {
                 <img src={t.image} alt={t.name} className="w-10 h-10 rounded-full object-cover border-2 border-gold-500" />
                 <div>
                   <h4 className="font-bold text-xs text-navy-900 dark:text-white">{t.name}</h4>
+<<<<<<< HEAD
                   <p className="text-[10px] text-slate-700 dark:text-slate-300 font-semibold">{t.role} • {t.company}</p>
+=======
+                  <p className="text-[10px] text-slate-500">{t.role} • {t.company}</p>
+>>>>>>> 07ac5c3a07e2c57e0ebb677f1885544f5b93c946
                 </div>
               </div>
             </div>
@@ -454,10 +568,17 @@ export const Home = () => {
               <h4 className="font-serif text-base font-bold text-navy-900 dark:text-white leading-snug">
                 {post.title}
               </h4>
+<<<<<<< HEAD
               <p className="text-xs text-slate-800 dark:text-slate-200 font-medium line-clamp-3 leading-relaxed">
                 {post.summary}
               </p>
               <div className="text-[11px] text-slate-600 dark:text-slate-400 font-semibold pt-2 border-t border-slate-100 dark:border-navy-800 flex justify-between">
+=======
+              <p className="text-xs text-slate-500 dark:text-slate-400 line-clamp-3 leading-relaxed">
+                {post.summary}
+              </p>
+              <div className="text-[11px] text-slate-400 pt-2 border-t border-slate-100 dark:border-navy-800 flex justify-between">
+>>>>>>> 07ac5c3a07e2c57e0ebb677f1885544f5b93c946
                 <span>{post.date}</span>
                 <span>{post.readTime}</span>
               </div>
@@ -484,7 +605,11 @@ export const Home = () => {
                 <span className="text-gold-500 font-extrabold text-base">{openFaq === idx ? '−' : '+'}</span>
               </button>
               {openFaq === idx && (
+<<<<<<< HEAD
                 <div className="px-4 pb-4 text-slate-800 dark:text-slate-200 leading-relaxed border-t border-slate-100 dark:border-navy-800 pt-3">
+=======
+                <div className="px-4 pb-4 text-slate-600 dark:text-slate-400 leading-relaxed border-t border-slate-100 dark:border-navy-800 pt-3">
+>>>>>>> 07ac5c3a07e2c57e0ebb677f1885544f5b93c946
                   {faq.answer}
                 </div>
               )}

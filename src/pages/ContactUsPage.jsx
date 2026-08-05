@@ -20,7 +20,11 @@ export const ContactUsPage = () => {
         <h1 className="font-serif text-4xl sm:text-5xl font-extrabold text-navy-900 dark:text-white">
           Contact SIR Recruitment
         </h1>
+<<<<<<< HEAD
         <p className="text-xs sm:text-sm text-slate-800 dark:text-slate-200 leading-relaxed font-medium">
+=======
+        <p className="text-xs sm:text-sm text-slate-600 dark:text-slate-300 leading-relaxed">
+>>>>>>> 07ac5c3a07e2c57e0ebb677f1885544f5b93c946
           Speak directly with our senior headhunters, legal visa advisors, or corporate client relationship managers in Dubai.
         </p>
       </div>
@@ -31,6 +35,7 @@ export const ContactUsPage = () => {
         <div className="lg:col-span-5 space-y-6">
           
           {/* Dubai HQ Card */}
+<<<<<<< HEAD
           <div className="glass-card bg-white dark:bg-navy-950 p-6 sm:p-8 rounded-3xl border border-slate-200 dark:border-gold-500/40 shadow-luxury space-y-4">
             <div className="flex items-center space-x-3 text-gold-600 dark:text-gold-400 border-b border-slate-200 dark:border-navy-800 pb-3">
               <Building2 className="w-6 h-6" />
@@ -59,6 +64,36 @@ export const ContactUsPage = () => {
               <div className="flex items-center space-x-3">
                 <Clock className="w-4 h-4 text-gold-600 dark:text-gold-400 shrink-0" />
                 <span className="text-slate-800 dark:text-slate-200 font-semibold">Monday – Friday: 08:30 AM – 06:00 PM GST</span>
+=======
+          <div className="glass-card bg-navy-950 text-white p-6 sm:p-8 rounded-3xl border border-gold-500/40 shadow-luxury space-y-4">
+            <div className="flex items-center space-x-3 text-gold-400 border-b border-navy-800 pb-3">
+              <Building2 className="w-6 h-6" />
+              <div>
+                <h3 className="font-serif text-xl font-bold text-white">Dubai Headquarters</h3>
+                <p className="text-[10px] uppercase text-gold-400 font-bold tracking-widest">Global Executive Hub</p>
+              </div>
+            </div>
+
+            <div className="space-y-3 text-xs text-slate-300">
+              <div className="flex items-start space-x-3">
+                <MapPin className="w-4 h-4 text-gold-500 shrink-0 mt-0.5" />
+                <span>Level 34, Rolex Tower, Financial Center Road, Business Bay, Dubai, UAE</span>
+              </div>
+
+              <div className="flex items-center space-x-3">
+                <Phone className="w-4 h-4 text-gold-500 shrink-0" />
+                <span>+971 4 123 4567 / +971 50 987 6543</span>
+              </div>
+
+              <div className="flex items-center space-x-3">
+                <Mail className="w-4 h-4 text-gold-500 shrink-0" />
+                <span>dubai@sirrecruitment.com</span>
+              </div>
+
+              <div className="flex items-center space-x-3">
+                <Clock className="w-4 h-4 text-gold-500 shrink-0" />
+                <span>Monday – Friday: 08:30 AM – 06:00 PM GST</span>
+>>>>>>> 07ac5c3a07e2c57e0ebb677f1885544f5b93c946
               </div>
             </div>
 
@@ -66,7 +101,11 @@ export const ContactUsPage = () => {
               href="https://wa.me/971509876543"
               target="_blank"
               rel="noopener noreferrer"
+<<<<<<< HEAD
               className="w-full py-3 bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-xs rounded-xl flex items-center justify-center space-x-2 transition shadow-md mt-2"
+=======
+              className="w-full py-3 bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-xs rounded-xl flex items-center justify-center space-x-2 transition"
+>>>>>>> 07ac5c3a07e2c57e0ebb677f1885544f5b93c946
             >
               <MessageSquare className="w-4 h-4" />
               <span>Instant WhatsApp Consultation</span>
@@ -77,12 +116,20 @@ export const ContactUsPage = () => {
           <div className="grid grid-cols-2 gap-4 text-xs">
             <div className="glass-card bg-white dark:bg-navy-900 border p-4 rounded-xl space-y-1">
               <h4 className="font-bold text-navy-900 dark:text-white">🇸🇦 Riyadh Branch</h4>
+<<<<<<< HEAD
               <p className="text-slate-700 dark:text-slate-300 text-[11px] font-medium">King Fahd Road, Olaya District, Riyadh</p>
+=======
+              <p className="text-slate-500 text-[11px]">King Fahd Road, Olaya District, Riyadh</p>
+>>>>>>> 07ac5c3a07e2c57e0ebb677f1885544f5b93c946
               <p className="text-gold-500 font-semibold">+966 11 987 6543</p>
             </div>
             <div className="glass-card bg-white dark:bg-navy-900 border p-4 rounded-xl space-y-1">
               <h4 className="font-bold text-navy-900 dark:text-white">🇬🇧 London Office</h4>
+<<<<<<< HEAD
               <p className="text-slate-700 dark:text-slate-300 text-[11px] font-medium">30 St Mary Axe, City of London</p>
+=======
+              <p className="text-slate-500 text-[11px]">30 St Mary Axe, City of London</p>
+>>>>>>> 07ac5c3a07e2c57e0ebb677f1885544f5b93c946
               <p className="text-gold-500 font-semibold">+44 20 7946 0912</p>
             </div>
           </div>
@@ -136,7 +183,11 @@ export const ContactUsPage = () => {
             <div className="text-center py-12 space-y-3">
               <CheckCircle2 className="w-12 h-12 text-emerald-500 mx-auto" />
               <h4 className="font-serif text-lg font-bold text-navy-900 dark:text-white">Inquiry Received!</h4>
+<<<<<<< HEAD
               <p className="text-slate-800 dark:text-slate-200 font-medium">A SIR Recruitment executive will respond to your email within 2 business hours.</p>
+=======
+              <p className="text-slate-500">A SIR Recruitment executive will respond to your email within 2 business hours.</p>
+>>>>>>> 07ac5c3a07e2c57e0ebb677f1885544f5b93c946
               <button onClick={() => setSubmitted(false)} className="px-6 py-2.5 bg-navy-900 text-white font-bold rounded-xl">Send Another Inquiry</button>
             </div>
           )}
@@ -145,7 +196,11 @@ export const ContactUsPage = () => {
           <div className="pt-4">
             <div className="p-4 bg-slate-100 dark:bg-navy-950 border rounded-2xl text-center space-y-1">
               <p className="font-bold text-navy-900 dark:text-white">📍 Interactive Location Map</p>
+<<<<<<< HEAD
               <p className="text-[11px] text-slate-700 dark:text-slate-300 font-medium">Rolex Tower • Business Bay • Dubai International Financial Centre (DIFC)</p>
+=======
+              <p className="text-[11px] text-slate-500">Rolex Tower • Business Bay • Dubai International Financial Centre (DIFC)</p>
+>>>>>>> 07ac5c3a07e2c57e0ebb677f1885544f5b93c946
             </div>
           </div>
 

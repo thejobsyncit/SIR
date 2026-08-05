@@ -1,14 +1,20 @@
 import React, { useState } from 'react';
 import { useApp } from '../context/AppContext';
 import { FileText, Download, X, Plus, Trash2, Printer } from 'lucide-react';
+<<<<<<< HEAD
 import jsPDF from 'jspdf';
 import html2canvas from 'html2canvas';
+=======
+>>>>>>> 07ac5c3a07e2c57e0ebb677f1885544f5b93c946
 
 export const ResumeBuilderModal = () => {
   const { activeModal, setActiveModal } = useApp();
   const [step, setStep] = useState(1);
+<<<<<<< HEAD
   const [showExportOptions, setShowExportOptions] = useState(false);
   const [downloading, setDownloading] = useState(false);
+=======
+>>>>>>> 07ac5c3a07e2c57e0ebb677f1885544f5b93c946
   const [formData, setFormData] = useState({
     fullName: 'Alexander Wright',
     email: 'a.wright@executive-tech.com',
@@ -22,6 +28,7 @@ export const ResumeBuilderModal = () => {
 
   if (activeModal !== 'resume-builder') return null;
 
+<<<<<<< HEAD
   const handleDownloadPDF = async () => {
     setShowExportOptions(false);
     setDownloading(true);
@@ -45,6 +52,8 @@ export const ResumeBuilderModal = () => {
     }
   };
 
+=======
+>>>>>>> 07ac5c3a07e2c57e0ebb677f1885544f5b93c946
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-navy-950/80 backdrop-blur-sm animate-in fade-in">
       <div className="glass-card bg-white dark:bg-navy-900 border border-gold-500/30 rounded-2xl max-w-3xl w-full p-6 shadow-luxury relative overflow-hidden max-h-[90vh] overflow-y-auto">
@@ -55,8 +64,13 @@ export const ResumeBuilderModal = () => {
               <FileText className="w-5 h-5" />
             </div>
             <div>
+<<<<<<< HEAD
               <h3 className="font-serif text-xl font-bold text-navy-950 dark:text-white">SIR PDF Resume Builder</h3>
               <p className="text-xs text-slate-700 dark:text-slate-300 font-semibold">Generate Executive ATS-Formatted CVs for UAE & GCC Markets</p>
+=======
+              <h3 className="font-serif text-xl font-bold text-navy-900 dark:text-white">SIR PDF Resume Builder</h3>
+              <p className="text-xs text-slate-500 dark:text-slate-400">Generate Executive ATS-Formatted CVs for UAE & GCC Markets</p>
+>>>>>>> 07ac5c3a07e2c57e0ebb677f1885544f5b93c946
             </div>
           </div>
           <button 
@@ -76,7 +90,11 @@ export const ResumeBuilderModal = () => {
                   type="text" 
                   value={formData.fullName}
                   onChange={(e) => setFormData({...formData, fullName: e.target.value})}
+<<<<<<< HEAD
                   className="w-full bg-slate-50 dark:bg-navy-950 border border-slate-300 dark:border-navy-700 rounded-lg p-2.5 text-navy-900 dark:text-white font-medium"
+=======
+                  className="w-full bg-slate-50 dark:bg-navy-950 border border-slate-300 dark:border-navy-700 rounded-lg p-2.5 text-navy-900 dark:text-white"
+>>>>>>> 07ac5c3a07e2c57e0ebb677f1885544f5b93c946
                 />
               </div>
               <div>
@@ -85,7 +103,11 @@ export const ResumeBuilderModal = () => {
                   type="email" 
                   value={formData.email}
                   onChange={(e) => setFormData({...formData, email: e.target.value})}
+<<<<<<< HEAD
                   className="w-full bg-slate-50 dark:bg-navy-950 border border-slate-300 dark:border-navy-700 rounded-lg p-2.5 text-navy-900 dark:text-white font-medium"
+=======
+                  className="w-full bg-slate-50 dark:bg-navy-950 border border-slate-300 dark:border-navy-700 rounded-lg p-2.5 text-navy-900 dark:text-white"
+>>>>>>> 07ac5c3a07e2c57e0ebb677f1885544f5b93c946
                 />
               </div>
             </div>
@@ -97,7 +119,11 @@ export const ResumeBuilderModal = () => {
                   type="text" 
                   value={formData.phone}
                   onChange={(e) => setFormData({...formData, phone: e.target.value})}
+<<<<<<< HEAD
                   className="w-full bg-slate-50 dark:bg-navy-950 border border-slate-300 dark:border-navy-700 rounded-lg p-2.5 text-navy-900 dark:text-white font-medium"
+=======
+                  className="w-full bg-slate-50 dark:bg-navy-950 border border-slate-300 dark:border-navy-700 rounded-lg p-2.5 text-navy-900 dark:text-white"
+>>>>>>> 07ac5c3a07e2c57e0ebb677f1885544f5b93c946
                 />
               </div>
               <div>
@@ -106,7 +132,11 @@ export const ResumeBuilderModal = () => {
                   type="text" 
                   value={formData.location}
                   onChange={(e) => setFormData({...formData, location: e.target.value})}
+<<<<<<< HEAD
                   className="w-full bg-slate-50 dark:bg-navy-950 border border-slate-300 dark:border-navy-700 rounded-lg p-2.5 text-navy-900 dark:text-white font-medium"
+=======
+                  className="w-full bg-slate-50 dark:bg-navy-950 border border-slate-300 dark:border-navy-700 rounded-lg p-2.5 text-navy-900 dark:text-white"
+>>>>>>> 07ac5c3a07e2c57e0ebb677f1885544f5b93c946
                 />
               </div>
             </div>
@@ -117,7 +147,11 @@ export const ResumeBuilderModal = () => {
                 rows={3}
                 value={formData.summary}
                 onChange={(e) => setFormData({...formData, summary: e.target.value})}
+<<<<<<< HEAD
                 className="w-full bg-slate-50 dark:bg-navy-950 border border-slate-300 dark:border-navy-700 rounded-lg p-2.5 text-navy-900 dark:text-white font-medium"
+=======
+                className="w-full bg-slate-50 dark:bg-navy-950 border border-slate-300 dark:border-navy-700 rounded-lg p-2.5 text-navy-900 dark:text-white"
+>>>>>>> 07ac5c3a07e2c57e0ebb677f1885544f5b93c946
               />
             </div>
 
@@ -127,7 +161,11 @@ export const ResumeBuilderModal = () => {
                 type="text" 
                 value={formData.skills}
                 onChange={(e) => setFormData({...formData, skills: e.target.value})}
+<<<<<<< HEAD
                 className="w-full bg-slate-50 dark:bg-navy-950 border border-slate-300 dark:border-navy-700 rounded-lg p-2.5 text-navy-900 dark:text-white font-medium"
+=======
+                className="w-full bg-slate-50 dark:bg-navy-950 border border-slate-300 dark:border-navy-700 rounded-lg p-2.5 text-navy-900 dark:text-white"
+>>>>>>> 07ac5c3a07e2c57e0ebb677f1885544f5b93c946
               />
             </div>
 
@@ -137,7 +175,11 @@ export const ResumeBuilderModal = () => {
                 rows={2}
                 value={formData.experience}
                 onChange={(e) => setFormData({...formData, experience: e.target.value})}
+<<<<<<< HEAD
                 className="w-full bg-slate-50 dark:bg-navy-950 border border-slate-300 dark:border-navy-700 rounded-lg p-2.5 text-navy-900 dark:text-white font-medium"
+=======
+                className="w-full bg-slate-50 dark:bg-navy-950 border border-slate-300 dark:border-navy-700 rounded-lg p-2.5 text-navy-900 dark:text-white"
+>>>>>>> 07ac5c3a07e2c57e0ebb677f1885544f5b93c946
               />
             </div>
 
@@ -183,6 +225,7 @@ export const ResumeBuilderModal = () => {
               </div>
             </div>
 
+<<<<<<< HEAD
             <div className="flex flex-col sm:flex-row gap-3 pt-2">
               <button 
                 onClick={() => setStep(1)}
@@ -248,6 +291,22 @@ export const ResumeBuilderModal = () => {
               <div className="text-center pt-2">
                 <button onClick={() => setShowExportOptions(false)} className="text-xs font-bold text-slate-700 dark:text-slate-300 hover:underline">Cancel</button>
               </div>
+=======
+            <div className="flex gap-3">
+              <button 
+                onClick={() => setStep(1)}
+                className="flex-1 py-2.5 bg-slate-200 text-navy-900 font-bold text-xs rounded-xl"
+              >
+                ← Edit Details
+              </button>
+              <button 
+                onClick={() => window.print()}
+                className="flex-1 py-2.5 bg-gold-shimmer text-navy-950 font-bold text-xs rounded-xl shadow-gold-glow flex items-center justify-center space-x-1"
+              >
+                <Printer className="w-3.5 h-3.5" />
+                <span>Print / Download PDF Resume</span>
+              </button>
+>>>>>>> 07ac5c3a07e2c57e0ebb677f1885544f5b93c946
             </div>
           </div>
         )}
