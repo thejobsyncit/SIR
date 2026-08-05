@@ -140,7 +140,7 @@ export const CrmLogin = () => {
     const newUser = {
       name: regData.name.trim() || 'Super Admin User',
       email: regData.email.trim().toLowerCase(),
-      role: 'Super Admin',
+      role: regData.role,
       password: regData.password
     };
 
@@ -162,7 +162,7 @@ export const CrmLogin = () => {
   };
 
   return (
-    <div className="dark min-h-screen bg-navy-950 text-white flex items-center justify-center p-4 relative overflow-hidden font-sans selection:bg-gold-500 selection:text-navy-950">
+    <div className="min-h-screen bg-navy-950 text-white flex items-center justify-center p-4 relative overflow-hidden font-sans selection:bg-gold-500 selection:text-navy-950">
       
       {/* Ambient Animated Luxury Background Glows */}
       <div className="absolute -top-40 -left-40 w-96 h-96 bg-gold-500/15 rounded-full blur-3xl pointer-events-none animate-pulse"></div>
@@ -409,10 +409,15 @@ export const CrmLogin = () => {
               <div className="grid grid-cols-2 gap-2">
                 <div>
                   <label className="block font-extrabold text-slate-700 dark:text-slate-300 mb-1">Assigned Role</label>
-                  <div className="w-full bg-slate-100 dark:bg-navy-950 border border-gold-500/50 text-gold-600 dark:text-gold-400 rounded-xl p-2.5 font-extrabold flex items-center gap-1.5 text-xs">
-                    <ShieldCheck className="w-4 h-4 text-gold-500 shrink-0" />
-                    <span>Super Admin</span>
-                  </div>
+                  <select 
+                    value={regData.role} 
+                    onChange={e => setRegData({...regData, role: e.target.value})}
+                    className="w-full bg-slate-100 dark:bg-navy-950 border border-slate-300 dark:border-navy-700 text-slate-900 dark:text-white rounded-xl p-2.5 font-bold focus:outline-none focus:border-gold-500"
+                  >
+                    {CRM_ROLES.map(r => (
+                      <option key={r} value={r}>{r}</option>
+                    ))}
+                  </select>
                 </div>
 
                 <div>
@@ -426,10 +431,6 @@ export const CrmLogin = () => {
                     placeholder="Enter password"
                   />
                 </div>
-              </div>
-
-              <div className="p-2.5 bg-amber-500/10 border border-amber-500/30 rounded-xl text-[11px] text-amber-700 dark:text-gold-300 font-semibold leading-relaxed">
-                ℹ️ <strong>Security Access Control:</strong> Only <strong>Super Admin</strong> registration is allowed here. Staff accounts (<em>Admin, Recruiter, Interviewer, Client Coordinator</em>) must be created by Super Admin inside CRM User Management.
               </div>
 
               <div>

@@ -1,6 +1,5 @@
 import React, { useState } from 'react';
 import { useCrm } from '../context/CrmContext';
-import { ASSIGNED_RECRUITERS } from '../data/mockCrmData';
 import { Users, Search, Plus, Sparkles, FileText, CheckCircle2, Shield, Eye, Bookmark, Filter, X, Send, UserCheck } from 'lucide-react';
 import { CrmAddCandidateModal } from '../components/CrmAddCandidateModal';
 
@@ -8,7 +7,6 @@ export const CrmCandidates = () => {
   const { candidates, setAiDrawerOpen, globalAddCandidateOpen, setGlobalAddCandidateOpen } = useCrm();
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedNationality, setSelectedNationality] = useState('All');
-  const [selectedRecruiter, setSelectedRecruiter] = useState('All');
   const [viewCand, setViewCand] = useState(null);
 
   const filtered = candidates.filter(c => {
@@ -16,8 +14,7 @@ export const CrmCandidates = () => {
                           (c.skills && c.skills.some(s => s.toLowerCase().includes(searchTerm.toLowerCase()))) ||
                           c.id.toLowerCase().includes(searchTerm.toLowerCase());
     const matchesNat = selectedNationality === 'All' || c.nationality === selectedNationality;
-    const matchesRecruiter = selectedRecruiter === 'All' || c.assignedRecruiter === selectedRecruiter;
-    return matchesSearch && matchesNat && matchesRecruiter;
+    return matchesSearch && matchesNat;
   });
 
   return (
@@ -63,31 +60,18 @@ export const CrmCandidates = () => {
           />
         </div>
 
-        <div className="flex gap-2">
-          <select 
-            value={selectedRecruiter}
-            onChange={(e) => setSelectedRecruiter(e.target.value)}
-            className="bg-slate-100 dark:bg-navy-950 border border-slate-200 dark:border-navy-700 text-slate-900 dark:text-white rounded-xl px-3 py-2 text-xs font-semibold focus:outline-none cursor-pointer"
-          >
-            <option value="All">All Assigned Recruiters ({ASSIGNED_RECRUITERS.length})</option>
-            {ASSIGNED_RECRUITERS.map(rec => (
-              <option key={rec.id} value={rec.name}>{rec.name}</option>
-            ))}
-          </select>
-
-          <select 
-            value={selectedNationality}
-            onChange={(e) => setSelectedNationality(e.target.value)}
-            className="bg-slate-100 dark:bg-navy-950 border border-slate-200 dark:border-navy-700 text-slate-900 dark:text-white rounded-xl px-3 py-2 text-xs font-semibold focus:outline-none cursor-pointer"
-          >
-            <option value="All">All Nationalities</option>
-            <option value="United Kingdom">United Kingdom</option>
-            <option value="Saudi Arabia">Saudi Arabia</option>
-            <option value="United Arab Emirates">United Arab Emirates</option>
-            <option value="Poland">Poland</option>
-            <option value="India">India</option>
-          </select>
-        </div>
+        <select 
+          value={selectedNationality}
+          onChange={(e) => setSelectedNationality(e.target.value)}
+          className="bg-slate-100 dark:bg-navy-950 border border-slate-200 dark:border-navy-700 text-slate-900 dark:text-white rounded-xl px-3 py-2 text-xs font-semibold focus:outline-none cursor-pointer"
+        >
+          <option value="All">All Nationalities</option>
+          <option value="United Kingdom">United Kingdom</option>
+          <option value="Saudi Arabia">Saudi Arabia</option>
+          <option value="United Arab Emirates">United Arab Emirates</option>
+          <option value="Poland">Poland</option>
+          <option value="India">India</option>
+        </select>
       </div>
 
       {/* Candidates Cards Table */}
