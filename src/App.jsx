@@ -19,12 +19,22 @@ import { CandidatePortal } from './pages/CandidatePortal';
 import { VisaEligibilityPage } from './pages/VisaEligibilityPage';
 import { BackgroundVerificationPage } from './pages/BackgroundVerificationPage';
 import { ContactUsPage } from './pages/ContactUsPage';
+import { CrmApp } from './crm/CrmApp';
 
 export function App() {
   const { activeTab } = useApp();
 
+  const isCrmPath = activeTab === 'crm' || 
+    (typeof window !== 'undefined' && (window.location.pathname.startsWith('/crm') || window.location.hash === '#crm'));
+
+  if (isCrmPath) {
+    return <CrmApp />;
+  }
+
   const renderCurrentPage = () => {
     switch (activeTab) {
+      case 'crm':
+        return <CrmApp />;
       case 'about':
         return <AboutUs />;
       case 'services':

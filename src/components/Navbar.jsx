@@ -44,6 +44,15 @@ export const Navbar = () => {
         </div>
 
         <div className="flex items-center space-x-4">
+          {/* CRM Portal Quick Access */}
+          <button 
+            onClick={() => navigateTo('crm')}
+            className="flex items-center space-x-1.5 bg-gold-500/20 text-gold-400 hover:bg-gold-500 hover:text-navy-950 px-2.5 py-1 rounded text-xs font-bold transition border border-gold-500/30"
+          >
+            <Building2 className="w-3.5 h-3.5 text-gold-400" />
+            <span>Enterprise CRM</span>
+          </button>
+
           {/* Quick AI Tools Button */}
           <button 
             onClick={() => setActiveModal('ai-resume')}
@@ -216,6 +225,14 @@ export const Navbar = () => {
                 >
                   <User className="w-3.5 h-3.5" />
                   <span>Candidate Portal</span>
+                </button>
+
+                <button
+                  onClick={() => navigateTo('crm')}
+                  className="px-3.5 py-2 rounded-lg text-xs font-bold text-gold-400 bg-navy-950 border border-gold-500/40 hover:bg-gold-500 hover:text-navy-950 transition shadow-sm flex items-center space-x-1.5"
+                >
+                  <Building2 className="w-3.5 h-3.5" />
+                  <span>CRM Portal</span>
                 </button>
               </>
             )}

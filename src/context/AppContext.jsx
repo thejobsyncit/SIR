@@ -21,7 +21,17 @@ export const AppProvider = ({ children }) => {
       document.documentElement.setAttribute('lang', language ? language.toLowerCase() : 'en');
     }
   }, [language]);
-  const [activeTab, setActiveTab] = useState('home');
+  const [activeTab, setActiveTab] = useState(() => {
+    if (typeof window !== 'undefined') {
+      const path = window.location.pathname.replace(/^\//, '');
+      const hash = window.location.hash.replace('#', '');
+      if (path === 'crm' || path.startsWith('crm') || hash === 'crm') {
+        return 'crm';
+      }
+      if (hash) return hash;
+    }
+    return 'home';
+  });
   const [selectedJob, setSelectedJob] = useState(null);
   const [activeModal, setActiveModal] = useState(null); // 'apply', 'ai-resume', 'payment', 'resume-builder', 'post-job', 'verification-modal'
   const [savedJobs, setSavedJobs] = useState(['job-101']);
@@ -252,14 +262,20 @@ export const AppProvider = ({ children }) => {
   useEffect(() => {
     const handleHashChange = () => {
       const hash = window.location.hash.replace('#', '');
-      if (hash) {
+      const path = window.location.pathname.replace(/^\//, '');
+      if (path === 'crm' || path.startsWith('crm') || hash === 'crm') {
+        setActiveTab('crm');
+      } else if (hash) {
         setActiveTab(hash);
-        window.scrollTo({ top: 0, behavior: 'smooth' });
       }
     };
     handleHashChange();
     window.addEventListener('hashchange', handleHashChange);
-    return () => window.removeEventListener('hashchange', handleHashChange);
+    window.addEventListener('popstate', handleHashChange);
+    return () => {
+      window.removeEventListener('hashchange', handleHashChange);
+      window.removeEventListener('popstate', handleHashChange);
+    };
   }, []);
 
   // Posted Jobs State Management
