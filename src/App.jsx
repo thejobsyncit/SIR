@@ -19,15 +19,16 @@ import { CandidatePortal } from './pages/CandidatePortal';
 import { VisaEligibilityPage } from './pages/VisaEligibilityPage';
 import { BackgroundVerificationPage } from './pages/BackgroundVerificationPage';
 import { ContactUsPage } from './pages/ContactUsPage';
+import { UnifiedAuthModal } from './components/UnifiedAuthModal';
 import { CrmApp } from './crm/CrmApp';
 
 export function App() {
   const { activeTab } = useApp();
 
-  const isCrmPath = activeTab === 'crm' || 
-    (typeof window !== 'undefined' && (window.location.pathname.startsWith('/crm') || window.location.hash === '#crm'));
+  const isCrmRoute = activeTab === 'crm' || 
+    (typeof window !== 'undefined' && (window.location.pathname.replace(/^\/+|\/+$/g, '').startsWith('crm') || window.location.hash === '#crm'));
 
-  if (isCrmPath) {
+  if (isCrmRoute) {
     return <CrmApp />;
   }
 
@@ -70,6 +71,7 @@ export function App() {
       <Footer />
 
       {/* Global Interactive Modals & Floating Widgets */}
+      <UnifiedAuthModal />
       <AIResumeAnalyzerModal />
       <PaymentGatewayModal />
       <ResumeBuilderModal />

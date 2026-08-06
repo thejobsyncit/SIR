@@ -1,10 +1,11 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { useApp } from '../context/AppContext';
-import { CandidateAuth } from '../components/CandidateAuth';
+import { UnifiedAuth } from '../components/UnifiedAuth';
+import { JOBS_LIST } from '../data/mockData';
 import { 
   User, FileText, Sparkles, CheckCircle2, Clock, Calendar, Bookmark, Bell, 
-  Upload, Shield, ArrowRight, LogOut, Edit3, Camera, AlertCircle, Award, 
-  Briefcase, MapPin, DollarSign, Check, X, Plus, Star, ChevronRight, Zap, Globe, Trash2, Video, Mic, MicOff, VideoOff
+  Upload, Shield, ArrowRight, ArrowLeft, LogOut, Edit3, Camera, AlertCircle, Award, 
+  Briefcase, MapPin, DollarSign, Check, X, Plus, Star, ChevronRight, Zap, Globe, Trash2, Video, Mic, MicOff, VideoOff, Search, Eye
 } from 'lucide-react';
 
 export const COUNTRY_CODES = [
@@ -19,9 +20,20 @@ export const COUNTRY_CODES = [
 ];
 
 export const CandidatePortal = () => {
-  const { user, updateUserProfile, applications, savedJobs, setActiveModal, navigateTo, logout } = useApp();
-  const [activeTab, setActiveTab] = useState('dashboard'); // 'dashboard' | 'edit-profile' | 'applications' | 'saved' | 'interviews'
+  const { user, updateUserProfile, applications, savedJobs, toggleSaveJob, applyForJob, postedJobs, setActiveModal, navigateTo, logout } = useApp();
+  const [activeTab, setActiveTab] = useState('dashboard'); // 'dashboard' | 'browse-jobs' | 'edit-profile' | 'applications' | 'saved' | 'interviews'
   const [editSuccess, setEditSuccess] = useState(false);
+  const [jobSearch, setJobSearch] = useState('');
+  const [jobCountryFilter, setJobCountryFilter] = useState('All');
+  const [applySuccessMsg, setApplySuccessMsg] = useState('');
+
+  // Combine postedJobs and JOBS_LIST for candidate job center
+  const allJobs = [...(postedJobs || [])];
+  JOBS_LIST.forEach(item => {
+    if (!allJobs.some(j => j.id === item.id)) {
+      allJobs.push(item);
+    }
+  });
 
   const videoRef = useRef(null);
   const [mediaStream, setMediaStream] = useState(null);
@@ -154,7 +166,7 @@ export const CandidatePortal = () => {
   }, [user]);
 
   if (!user || user.role !== 'candidate') {
-    return <CandidateAuth />;
+    return <UnifiedAuth defaultRole="candidate" />;
   }
 
   const activeCountryObj = COUNTRY_CODES.find(c => c.code === selectedCountryCode) || COUNTRY_CODES[0];
@@ -290,27 +302,35 @@ export const CandidatePortal = () => {
       {/* Profile Header Banner */}
       <div className="bg-white dark:bg-navy-950 text-slate-900 dark:text-white rounded-3xl p-6 sm:p-8 border border-slate-200 dark:border-gold-500/30 shadow-lg flex flex-col md:flex-row justify-between items-center gap-6">
         
-        <div className="flex items-center space-x-4">
-          <div className="relative group">
-            {user.avatar ? (
-              <img 
-                src={user.avatar} 
-                alt={user.name} 
-                className="w-20 h-20 rounded-2xl object-cover border-2 border-gold-500 shadow-gold-glow"
-              />
-            ) : (
-              <div className="w-20 h-20 rounded-2xl bg-gold-500 text-navy-950 font-serif font-extrabold text-2xl flex items-center justify-center border-2 border-white shadow-gold-glow">
-                {user.name ? user.name.split(' ').map(n=>n[0]).join('') : 'CAN'}
-              </div>
-            )}
-            
-            <button 
-              onClick={() => setActiveTab('edit-profile')}
-              className="absolute -bottom-1 -right-1 bg-navy-900 text-gold-400 p-1.5 rounded-lg border border-gold-500/50 hover:bg-gold-500 hover:text-navy-950 transition shadow"
-              title="Upload Profile Picture"
-            >
-              <Camera className="w-3.5 h-3.5" />
-            </button>
+        <div className="flex items-center space-x-5">
+          {/* Avatar with Profile Score Percentage Badge Below */}
+          <div className="flex flex-col items-center shrink-0">
+            <div className="relative group">
+              {user.avatar ? (
+                <img 
+                  src={user.avatar} 
+                  alt={user.name} 
+                  className="w-20 h-20 rounded-2xl object-cover border-2 border-gold-500 shadow-gold-glow"
+                />
+              ) : (
+                <div className="w-20 h-20 rounded-2xl bg-gold-500 text-navy-950 font-serif font-extrabold text-2xl flex items-center justify-center border-2 border-white shadow-gold-glow">
+                  {user.name ? user.name.split(' ').map(n=>n[0]).join('') : 'CAN'}
+                </div>
+              )}
+              
+              <button 
+                onClick={() => setActiveTab('edit-profile')}
+                className="absolute -bottom-1 -right-1 bg-navy-900 text-gold-400 p-1.5 rounded-lg border border-gold-500/50 hover:bg-gold-500 hover:text-navy-950 transition shadow"
+                title="Upload Profile Picture"
+              >
+                <Camera className="w-3.5 h-3.5" />
+              </button>
+            </div>
+
+            {/* Profile Percentage below photo */}
+            <span className={`mt-2 font-extrabold text-[11px] px-2.5 py-0.5 rounded-full shadow-sm ${profileScore >= 80 ? 'bg-emerald-600 text-white' : profileScore >= 50 ? 'bg-gold-500 text-navy-950' : 'bg-rose-600 text-white'}`}>
+              Score: {profileScore}% Complete
+            </span>
           </div>
 
           <div>
@@ -338,14 +358,6 @@ export const CandidatePortal = () => {
         {/* Action CTAs */}
         <div className="flex flex-wrap gap-2 w-full md:w-auto">
           <button 
-            onClick={() => setActiveTab('edit-profile')}
-            className="flex-1 md:flex-initial px-4 py-2.5 bg-slate-100 dark:bg-navy-800 text-navy-900 dark:text-white font-bold text-xs rounded-xl border border-slate-300 dark:border-navy-700 hover:border-gold-500 transition flex items-center justify-center space-x-1.5"
-          >
-            <Edit3 className="w-4 h-4 text-gold-500" />
-            <span>Edit Profile Info</span>
-          </button>
-
-          <button 
             onClick={() => setActiveModal('ai-resume')}
             className="flex-1 md:flex-initial px-4 py-2.5 bg-gold-500/15 text-gold-700 dark:text-gold-400 border border-gold-500/30 hover:bg-gold-500 hover:text-navy-950 font-bold text-xs rounded-xl transition flex items-center justify-center space-x-1.5"
           >
@@ -364,106 +376,43 @@ export const CandidatePortal = () => {
         </div>
       </div>
 
-      {/* NAUKRI-STYLE PROFILE COMPLETENESS METER */}
-      <div className="bg-white dark:bg-navy-950 border border-slate-300 dark:border-gold-500/30 rounded-3xl p-6 shadow-lg space-y-4 text-slate-900 dark:text-white">
-        <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
-          <div className="space-y-1">
-            <div className="flex items-center gap-2">
-              <Zap className="w-5 h-5 text-gold-600 dark:text-gold-400 animate-pulse" />
-              <h2 className="font-serif text-xl font-extrabold text-slate-900 dark:text-white">Authentic Candidate Profile Completeness</h2>
-              <span className={`font-extrabold text-[11px] px-2.5 py-0.5 rounded-full ${profileScore >= 80 ? 'bg-emerald-600 text-white' : profileScore >= 50 ? 'bg-gold-500 text-navy-950' : 'bg-rose-600 text-white'}`}>
-                {profileScore}% Complete
-              </span>
-            </div>
-            <p className="text-slate-700 dark:text-slate-300 text-xs font-semibold">
-              {profileScore >= 80 
-                ? '🌟 Star Candidate Status! Your profile details are complete and actively scanned by headhunters.'
-                : `Your profile score is currently ${profileScore}%. Complete missing fields below to reach 100%.`
-              }
-            </p>
-          </div>
-
-          <button 
-            onClick={() => setActiveTab('edit-profile')}
-            className="px-5 py-2.5 bg-gold-shimmer text-navy-950 font-extrabold text-xs rounded-xl shadow-gold-glow flex items-center gap-1.5 hover:opacity-95 transition whitespace-nowrap"
-          >
-            <span>Update Profile Details</span>
-            <ChevronRight className="w-4 h-4" />
-          </button>
-        </div>
-
-        {/* Visual Progress Bar */}
-        <div className="w-full bg-slate-200 dark:bg-navy-900 rounded-full h-3.5 p-0.5 border border-slate-300 dark:border-navy-700">
-          <div 
-            className={`h-full rounded-full transition-all duration-700 relative ${profileScore >= 80 ? 'bg-gradient-to-r from-gold-500 to-emerald-500' : profileScore >= 50 ? 'bg-gold-500' : 'bg-rose-500'}`}
-            style={{ width: `${profileScore}%` }}
-          >
-            <div className="absolute right-0 top-0 bottom-0 w-2 bg-white rounded-full opacity-75"></div>
-          </div>
-        </div>
-
-        {/* Actionable Suggestions to Reach 100% */}
-        {suggestionsList.length > 0 ? (
-          <div className="pt-3 border-t border-slate-200 dark:border-navy-800 space-y-2">
-            <span className="text-xs font-extrabold text-navy-900 dark:text-gold-400 uppercase tracking-wider block">
-              Remaining items to reach 100% Profile Completeness ({suggestionsList.length} Pending):
-            </span>
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-2">
-              {suggestionsList.map((s) => (
-                <div 
-                  key={s.id}
-                  onClick={() => setActiveTab(s.targetTab)}
-                  className="p-3 bg-slate-100 dark:bg-navy-900 border border-slate-300 dark:border-navy-700 hover:border-gold-500 rounded-xl flex justify-between items-center cursor-pointer transition group text-xs shadow-sm"
-                >
-                  <div className="flex items-center space-x-2">
-                    <AlertCircle className="w-4 h-4 text-amber-600 dark:text-amber-400 flex-shrink-0" />
-                    <span className="text-slate-900 dark:text-slate-100 font-bold group-hover:text-gold-600 dark:group-hover:text-gold-400 transition">{s.title}</span>
-                  </div>
-                  <span className="bg-emerald-500/20 text-emerald-700 dark:text-emerald-400 text-[10px] font-extrabold px-1.5 py-0.5 rounded ml-2">
-                    +{s.points}%
-                  </span>
-                </div>
-              ))}
-            </div>
-          </div>
-        ) : (
-          <div className="p-3 bg-emerald-500/15 border border-emerald-500/30 rounded-xl text-emerald-700 dark:text-emerald-400 font-extrabold text-xs flex items-center gap-2">
-            <CheckCircle2 className="w-4 h-4" />
-            <span>Congratulations! Your profile details are 100% complete and fully verified.</span>
-          </div>
-        )}
-      </div>
-
       {/* Tabs Navigation */}
       <div className="flex space-x-2 border-b border-slate-200 dark:border-navy-800 text-xs font-bold overflow-x-auto">
         <button 
           onClick={() => setActiveTab('dashboard')} 
-          className={`pb-3 px-4 transition whitespace-nowrap ${activeTab === 'dashboard' ? 'border-b-2 border-gold-500 text-gold-500' : 'text-slate-700 dark:text-slate-300'}`}
+          className={`pb-3 px-4 transition whitespace-nowrap ${activeTab === 'dashboard' ? 'border-b-2 border-gold-500 text-gold-500 font-extrabold' : 'text-slate-700 dark:text-slate-300'}`}
         >
           Profile Overview & Status
         </button>
         <button 
+          onClick={() => setActiveTab('browse-jobs')} 
+          className={`pb-3 px-4 transition whitespace-nowrap flex items-center gap-1.5 ${activeTab === 'browse-jobs' ? 'border-b-2 border-gold-500 text-gold-500 font-extrabold' : 'text-slate-700 dark:text-slate-300'}`}
+        >
+          <Briefcase className="w-3.5 h-3.5 text-gold-500" />
+          <span>Browse & Apply Jobs ({allJobs.length})</span>
+        </button>
+        <button 
           onClick={() => setActiveTab('edit-profile')} 
-          className={`pb-3 px-4 transition whitespace-nowrap flex items-center gap-1.5 ${activeTab === 'edit-profile' ? 'border-b-2 border-gold-500 text-gold-500' : 'text-slate-700 dark:text-slate-300'}`}
+          className={`pb-3 px-4 transition whitespace-nowrap flex items-center gap-1.5 ${activeTab === 'edit-profile' ? 'border-b-2 border-gold-500 text-gold-500 font-extrabold' : 'text-slate-700 dark:text-slate-300'}`}
         >
           <Edit3 className="w-3.5 h-3.5 text-gold-500" />
           <span>Edit Basic Info & Details</span>
         </button>
         <button 
           onClick={() => setActiveTab('applications')} 
-          className={`pb-3 px-4 transition whitespace-nowrap ${activeTab === 'applications' ? 'border-b-2 border-gold-500 text-gold-500' : 'text-slate-700 dark:text-slate-300'}`}
+          className={`pb-3 px-4 transition whitespace-nowrap ${activeTab === 'applications' ? 'border-b-2 border-gold-500 text-gold-500 font-extrabold' : 'text-slate-700 dark:text-slate-300'}`}
         >
           Applications ({applications.length})
         </button>
         <button 
           onClick={() => setActiveTab('saved')} 
-          className={`pb-3 px-4 transition whitespace-nowrap ${activeTab === 'saved' ? 'border-b-2 border-gold-500 text-gold-500' : 'text-slate-700 dark:text-slate-300'}`}
+          className={`pb-3 px-4 transition whitespace-nowrap ${activeTab === 'saved' ? 'border-b-2 border-gold-500 text-gold-500 font-extrabold' : 'text-slate-700 dark:text-slate-300'}`}
         >
           Saved Jobs ({savedJobs.length})
         </button>
         <button 
           onClick={() => setActiveTab('interviews')} 
-          className={`pb-3 px-4 transition whitespace-nowrap ${activeTab === 'interviews' ? 'border-b-2 border-gold-500 text-gold-500' : 'text-slate-700 dark:text-slate-300'}`}
+          className={`pb-3 px-4 transition whitespace-nowrap ${activeTab === 'interviews' ? 'border-b-2 border-gold-500 text-gold-500 font-extrabold' : 'text-slate-700 dark:text-slate-300'}`}
         >
           Interview Schedule (1)
         </button>
@@ -474,22 +423,36 @@ export const CandidatePortal = () => {
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 text-xs">
           
           {/* Candidate Detailed Info Card */}
-          <div className="glass-card bg-white dark:bg-navy-900 border border-slate-200 dark:border-navy-800 p-6 rounded-2xl space-y-4">
+          <div className="glass-card bg-white dark:bg-navy-900 border border-slate-200 dark:border-navy-800 p-6 rounded-2xl space-y-4 shadow-luxury">
             <div className="flex justify-between items-center border-b border-slate-200 dark:border-navy-800 pb-3">
               <h3 className="font-serif text-lg font-bold text-navy-900 dark:text-white flex items-center gap-2">
                 <User className="w-5 h-5 text-gold-500" />
-                Authentic Candidate Details
+                Authentic Executive Profile
               </h3>
-              <button onClick={() => setActiveTab('edit-profile')} className="text-gold-500 font-bold hover:underline">
-                Edit
-              </button>
+            </div>
+
+            <div className="flex items-center space-x-3.5 bg-slate-50 dark:bg-navy-950 p-3 rounded-xl border border-slate-200 dark:border-navy-800">
+              {user.avatar ? (
+                <img src={user.avatar} alt="Candidate Avatar" className="w-14 h-14 rounded-2xl object-cover border-2 border-gold-500 shadow-gold-glow shrink-0" />
+              ) : (
+                <div className="w-14 h-14 rounded-2xl bg-navy-900 text-gold-400 font-serif font-extrabold text-xl flex items-center justify-center border-2 border-gold-500 shadow-gold-glow shrink-0">
+                  {user.name ? user.name.charAt(0).toUpperCase() : 'C'}
+                </div>
+              )}
+              <div className="space-y-0.5 overflow-hidden">
+                <h4 className="font-serif text-base font-bold text-navy-900 dark:text-white truncate">{user.name || 'Executive Candidate'}</h4>
+                <p className="text-xs text-gold-500 font-bold truncate">{user.title || 'Candidate Designation'}</p>
+                <span className="inline-block bg-emerald-500/20 text-emerald-600 dark:text-emerald-400 text-[10px] font-extrabold px-2 py-0.5 rounded">
+                  Score: {profileScore}% Calculated
+                </span>
+              </div>
             </div>
 
             <div className="space-y-2.5 text-slate-700 dark:text-slate-300">
               <p><strong className="text-navy-900 dark:text-white">Full Name:</strong> {user.name || <span className="text-slate-400 italic">Not set</span>}</p>
               <p><strong className="text-navy-900 dark:text-white">Email:</strong> {user.email || <span className="text-slate-400 italic">Not set</span>}</p>
               <p><strong className="text-navy-900 dark:text-white">Phone:</strong> {user.phone ? user.phone : <span className="text-rose-400 italic">Not provided</span>}</p>
-              <p><strong className="text-navy-900 dark:text-white">Date of Birth (DOB):</strong> {user.dob ? user.dob : <span className="text-rose-400 italic">Not provided</span>}</p>
+              <p><strong className="text-navy-900 dark:text-white">Date of Birth:</strong> {user.dob ? user.dob : <span className="text-rose-400 italic">Not provided</span>}</p>
               <p><strong className="text-navy-900 dark:text-white">Gender:</strong> {user.gender ? user.gender : <span className="text-rose-400 italic">Not provided</span>}</p>
               <p><strong className="text-navy-900 dark:text-white">Designation:</strong> {user.title ? user.title : <span className="text-rose-400 italic">Not provided</span>}</p>
               <p><strong className="text-navy-900 dark:text-white">Location:</strong> {user.location ? user.location : <span className="text-rose-400 italic">Not provided</span>}</p>
@@ -580,6 +543,172 @@ export const CandidatePortal = () => {
         </div>
       )}
 
+      {/* BROWSE & APPLY JOBS TAB */}
+      {activeTab === 'browse-jobs' && (
+        <div className="space-y-6 text-xs">
+          
+          {/* Header & Filter Bar */}
+          <div className="glass-card bg-white dark:bg-navy-900 border border-slate-200 dark:border-navy-800 p-6 rounded-3xl space-y-4 shadow-luxury">
+            <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 border-b border-slate-200 dark:border-navy-800 pb-4">
+              <div>
+                <h3 className="font-serif text-xl font-bold text-navy-900 dark:text-white flex items-center gap-2">
+                  <Briefcase className="w-5 h-5 text-gold-500" />
+                  Explore Executive Overseas Opportunities
+                </h3>
+                <p className="text-slate-500 mt-0.5">Apply directly from your candidate portal for instant headhunter review.</p>
+              </div>
+
+              <div className="flex items-center gap-2">
+                <span className="text-xs text-slate-500 font-bold">Available Mandates:</span>
+                <span className="bg-gold-500 text-navy-950 font-extrabold px-3 py-1 rounded-full text-xs">
+                  {allJobs.length} Jobs
+                </span>
+              </div>
+            </div>
+
+            {/* Search & Country Filter Controls */}
+            <div className="grid grid-cols-1 sm:grid-cols-12 gap-3">
+              <div className="sm:col-span-8 relative">
+                <Search className="w-4 h-4 text-slate-400 absolute left-3.5 top-3.5" />
+                <input 
+                  type="text"
+                  value={jobSearch}
+                  onChange={(e) => setJobSearch(e.target.value)}
+                  placeholder="Search jobs by title, company, or key skills..."
+                  className="w-full pl-10 pr-4 py-2.5 bg-slate-50 dark:bg-navy-950 border border-slate-300 dark:border-navy-700 rounded-xl text-navy-900 dark:text-white focus:outline-none focus:border-gold-500 font-medium text-xs"
+                />
+              </div>
+
+              <div className="sm:col-span-4">
+                <select
+                  value={jobCountryFilter}
+                  onChange={(e) => setJobCountryFilter(e.target.value)}
+                  className="w-full p-2.5 bg-slate-50 dark:bg-navy-950 border border-slate-300 dark:border-navy-700 rounded-xl text-navy-900 dark:text-white focus:outline-none focus:border-gold-500 font-bold text-xs"
+                >
+                  <option value="All">🌍 All Destination Countries</option>
+                  <option value="UAE">🇦🇪 UAE (Dubai / Abu Dhabi)</option>
+                  <option value="Saudi Arabia">🇸🇦 Saudi Arabia</option>
+                  <option value="Qatar">🇶🇦 Qatar</option>
+                  <option value="Singapore">🇸🇬 Singapore</option>
+                  <option value="United Kingdom">🇬🇧 United Kingdom</option>
+                  <option value="Germany">🇩🇪 Germany</option>
+                  <option value="Canada">🇨🇦 Canada</option>
+                </select>
+              </div>
+            </div>
+          </div>
+
+          {/* Success Banner when Applied */}
+          {applySuccessMsg && (
+            <div className="p-4 bg-emerald-500/15 border border-emerald-500/30 rounded-2xl text-emerald-600 dark:text-emerald-400 font-bold flex items-center justify-between shadow animate-bounce">
+              <div className="flex items-center gap-2">
+                <CheckCircle2 className="w-5 h-5 text-emerald-500" />
+                <span>{applySuccessMsg}</span>
+              </div>
+              <button 
+                onClick={() => setApplySuccessMsg('')}
+                className="text-xs underline hover:text-emerald-300 ml-4 font-extrabold"
+              >
+                Dismiss
+              </button>
+            </div>
+          )}
+
+          {/* Job Listings Grid */}
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+            {allJobs
+              .filter(j => {
+                const matchesSearch = !jobSearch || 
+                  j.title.toLowerCase().includes(jobSearch.toLowerCase()) || 
+                  j.company.toLowerCase().includes(jobSearch.toLowerCase()) ||
+                  (j.skills && j.skills.some(s => s.toLowerCase().includes(jobSearch.toLowerCase())));
+                const matchesCountry = jobCountryFilter === 'All' || j.country.toLowerCase().includes(jobCountryFilter.toLowerCase());
+                return matchesSearch && matchesCountry;
+              })
+              .map(job => {
+                const hasApplied = applications.some(a => a.jobId === job.id);
+                const isSaved = savedJobs.includes(job.id);
+
+                return (
+                  <div key={job.id} className="glass-card bg-white dark:bg-navy-900 border border-slate-200 dark:border-navy-800 p-6 rounded-3xl space-y-4 hover:border-gold-500 transition shadow-luxury flex flex-col justify-between">
+                    <div className="space-y-3">
+                      <div className="flex justify-between items-start">
+                        <div className="flex items-center space-x-3">
+                          <div className="w-12 h-12 rounded-2xl bg-navy-950 text-gold-400 font-serif font-black text-xl flex items-center justify-center border border-gold-500/30 shadow">
+                            {job.company ? job.company.charAt(0).toUpperCase() : 'S'}
+                          </div>
+                          <div>
+                            <span className="bg-gold-500/15 text-gold-700 dark:text-gold-400 border border-gold-500/30 text-[10px] font-bold px-2 py-0.5 rounded">
+                              {job.category || 'General'}
+                            </span>
+                            <h4 className="font-serif text-base font-bold text-navy-950 dark:text-white mt-1">
+                              {job.title}
+                            </h4>
+                            <p className="text-xs text-slate-500 font-bold">{job.company}</p>
+                          </div>
+                        </div>
+
+                        <button 
+                          onClick={() => toggleSaveJob(job.id)}
+                          className={`p-2 rounded-xl border transition ${isSaved ? 'bg-gold-500 text-navy-950 border-gold-500' : 'bg-slate-100 dark:bg-navy-800 text-slate-400 border-slate-200 dark:border-navy-700 hover:text-gold-500'}`}
+                          title={isSaved ? "Saved Job" : "Bookmark Job"}
+                        >
+                          <Bookmark className="w-4 h-4" />
+                        </button>
+                      </div>
+
+                      <p className="text-slate-600 dark:text-slate-300 text-xs line-clamp-2">
+                        {job.description}
+                      </p>
+
+                      <div className="grid grid-cols-2 gap-2 text-[11px] text-slate-700 dark:text-slate-300 font-semibold bg-slate-50 dark:bg-navy-950 p-3 rounded-2xl border border-slate-200 dark:border-navy-800">
+                        <span className="flex items-center gap-1.5"><MapPin className="w-3.5 h-3.5 text-gold-500 shrink-0" /> {job.location || job.country}</span>
+                        <span className="flex items-center gap-1.5"><DollarSign className="w-3.5 h-3.5 text-gold-500 shrink-0" /> {job.salary || 'Competitive'}</span>
+                        <span className="flex items-center gap-1.5"><Briefcase className="w-3.5 h-3.5 text-gold-500 shrink-0" /> {job.experience || '3+ Years'}</span>
+                        <span className="flex items-center gap-1.5"><Globe className="w-3.5 h-3.5 text-gold-500 shrink-0" /> Visa Sponsored</span>
+                      </div>
+
+                      {job.skills && job.skills.length > 0 && (
+                        <div className="flex flex-wrap gap-1 pt-1">
+                          {job.skills.slice(0, 4).map((sk, i) => (
+                            <span key={i} className="bg-slate-200 dark:bg-navy-800 text-slate-700 dark:text-slate-300 text-[10px] font-bold px-2 py-0.5 rounded">
+                              {sk}
+                            </span>
+                          ))}
+                        </div>
+                      )}
+                    </div>
+
+                    <div className="pt-3 border-t border-slate-200 dark:border-navy-800 flex justify-between items-center">
+                      <span className="text-[10px] text-slate-400 font-bold">
+                        Posted {job.postedDate || 'recently'}
+                      </span>
+
+                      {hasApplied ? (
+                        <span className="px-4 py-2 bg-emerald-500/15 text-emerald-600 dark:text-emerald-400 border border-emerald-500/30 rounded-xl font-extrabold text-xs flex items-center gap-1">
+                          <CheckCircle2 className="w-4 h-4" />
+                          <span>Applied</span>
+                        </span>
+                      ) : (
+                        <button 
+                          onClick={() => {
+                            applyForJob(job);
+                            setApplySuccessMsg(`✓ Application for "${job.title}" submitted successfully! Real-time status updated under Applications tab.`);
+                          }}
+                          className="px-5 py-2 bg-gold-shimmer text-navy-950 font-extrabold text-xs rounded-xl shadow-gold-glow hover:opacity-95 transition flex items-center gap-1.5 cursor-pointer"
+                        >
+                          <Zap className="w-3.5 h-3.5" />
+                          <span>Apply Now →</span>
+                        </button>
+                      )}
+                    </div>
+                  </div>
+                );
+              })}
+          </div>
+        </div>
+      )}
+
       {/* EDIT BASIC INFO & PROFILE DETAILS TAB */}
       {activeTab === 'edit-profile' && (
         <div className="glass-card bg-white dark:bg-navy-900 border border-slate-200 dark:border-navy-800 p-6 sm:p-8 rounded-3xl max-w-4xl mx-auto space-y-6 text-xs shadow-luxury">
@@ -646,7 +775,7 @@ export const CandidatePortal = () => {
                       </button>
                     )}
                   </div>
-                  <p className="text-[11px] text-slate-500">Supported formats: JPG, PNG, WEBP. Select any photo from your local folders.</p>
+                  <p className="text-[11px] text-slate-500">Supported formats: JPG, PNG, WEBP. Select any photo from your local device.</p>
                 </div>
               </div>
             </div>
@@ -658,33 +787,30 @@ export const CandidatePortal = () => {
                 <input 
                   type="text" 
                   value={profileForm.name}
-                  onChange={(e) => setProfileForm({ ...profileForm, name: e.target.value.replace(/[^a-zA-Z\s\.\'-]/g, '') })}
-                  placeholder="Enter your full name (Letters only)..."
+                  onChange={(e) => setProfileForm({ ...profileForm, name: e.target.value })}
                   className="w-full bg-slate-50 dark:bg-navy-950 border border-slate-300 dark:border-navy-700 rounded-xl p-3 text-navy-900 dark:text-white focus:outline-none focus:border-gold-500 font-medium"
                 />
               </div>
-
               <div>
                 <label className="block font-bold text-slate-700 dark:text-slate-200 mb-1">Email Address</label>
                 <input 
                   type="email" 
                   value={profileForm.email}
                   onChange={(e) => setProfileForm({ ...profileForm, email: e.target.value })}
-                  placeholder="Enter your email address..."
                   className="w-full bg-slate-50 dark:bg-navy-950 border border-slate-300 dark:border-navy-700 rounded-xl p-3 text-navy-900 dark:text-white focus:outline-none focus:border-gold-500 font-medium"
                 />
               </div>
+            </div>
 
-              {/* STRICT PHONE NUMBER FIELD WITH COUNTRY CODE SELECTOR */}
-              <div className="space-y-1 sm:col-span-2">
-                <label className="block font-bold text-slate-700 dark:text-slate-200">
-                  Phone Number (Numbers Only) *
-                </label>
-                <div className="flex space-x-2">
+            {/* Country Code & Phone Number Field */}
+            <div>
+              <label className="block font-bold text-slate-700 dark:text-slate-200 mb-1">Phone Number (With International Country Code)</label>
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                <div>
                   <select
                     value={selectedCountryCode}
                     onChange={handleCountryCodeChange}
-                    className="bg-slate-50 dark:bg-navy-950 border border-slate-300 dark:border-navy-700 rounded-xl px-3 py-3 text-navy-900 dark:text-white font-bold text-xs focus:outline-none focus:border-gold-500"
+                    className="w-full bg-slate-50 dark:bg-navy-950 border border-slate-300 dark:border-navy-700 rounded-xl p-3 text-navy-900 dark:text-white focus:outline-none focus:border-gold-500 font-bold"
                   >
                     {COUNTRY_CODES.map((c) => (
                       <option key={c.code} value={c.code}>
@@ -692,29 +818,30 @@ export const CandidatePortal = () => {
                       </option>
                     ))}
                   </select>
-
-                  <div className="relative flex-1">
-                    <input 
-                      type="text" 
-                      inputMode="numeric"
-                      pattern="[0-9]*"
-                      value={phoneDigits}
-                      onChange={handlePhoneDigitsChange}
-                      placeholder={`Enter ${activeCountryObj.maxDigits}-digit number (e.g. ${activeCountryObj.placeholder})`}
-                      className="w-full bg-slate-50 dark:bg-navy-950 border border-slate-300 dark:border-navy-700 rounded-xl p-3 text-navy-900 dark:text-white focus:outline-none focus:border-gold-500 font-medium"
-                    />
-                    <span className="absolute right-3 top-3.5 text-[10px] text-slate-400 font-bold">
-                      {phoneDigits.length}/{activeCountryObj.maxDigits} digits
-                    </span>
-                  </div>
                 </div>
-                {phoneDigits.length > 0 && phoneDigits.length < activeCountryObj.maxDigits && (
-                  <p className="text-[11px] text-amber-600 font-semibold mt-1">
-                    ⚠️ Must be {activeCountryObj.maxDigits} digits for {activeCountryObj.country} ({phoneDigits.length}/{activeCountryObj.maxDigits} entered)
-                  </p>
-                )}
-              </div>
 
+                <div className="sm:col-span-2 relative">
+                  <input 
+                    type="text"
+                    pattern="[0-9]*"
+                    value={phoneDigits}
+                    onChange={handlePhoneDigitsChange}
+                    placeholder={`Enter ${activeCountryObj.maxDigits}-digit number (e.g. ${activeCountryObj.placeholder})`}
+                    className="w-full bg-slate-50 dark:bg-navy-950 border border-slate-300 dark:border-navy-700 rounded-xl p-3 text-navy-900 dark:text-white focus:outline-none focus:border-gold-500 font-medium"
+                  />
+                  <span className="absolute right-3 top-3.5 text-[10px] text-slate-400 font-bold">
+                    {phoneDigits.length}/{activeCountryObj.maxDigits} digits
+                  </span>
+                </div>
+              </div>
+              {phoneDigits.length > 0 && phoneDigits.length < activeCountryObj.maxDigits && (
+                <p className="text-[11px] text-amber-600 font-semibold mt-1">
+                  ⚠️ Must be {activeCountryObj.maxDigits} digits for {activeCountryObj.country} ({phoneDigits.length}/{activeCountryObj.maxDigits} entered)
+                </p>
+              )}
+            </div>
+
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <div>
                 <label className="block font-bold text-slate-700 dark:text-slate-200 mb-1">Date of Birth (DOB)</label>
                 <input 
@@ -738,18 +865,20 @@ export const CandidatePortal = () => {
                   <option value="Other">Other</option>
                 </select>
               </div>
+            </div>
 
-              <div>
-                <label className="block font-bold text-slate-700 dark:text-slate-200 mb-1">Professional Designation / Role</label>
-                <input 
-                  type="text" 
-                  value={profileForm.title}
-                  onChange={(e) => setProfileForm({ ...profileForm, title: e.target.value })}
-                  placeholder="e.g. Senior Civil Engineer / ICU Specialist"
-                  className="w-full bg-slate-50 dark:bg-navy-950 border border-slate-300 dark:border-navy-700 rounded-xl p-3 text-navy-900 dark:text-white focus:outline-none focus:border-gold-500 font-medium"
-                />
-              </div>
+            <div>
+              <label className="block font-bold text-slate-700 dark:text-slate-200 mb-1">Professional Designation / Role</label>
+              <input 
+                type="text" 
+                value={profileForm.title}
+                onChange={(e) => setProfileForm({ ...profileForm, title: e.target.value })}
+                placeholder="e.g. Senior Civil Engineer / ICU Specialist"
+                className="w-full bg-slate-50 dark:bg-navy-950 border border-slate-300 dark:border-navy-700 rounded-xl p-3 text-navy-900 dark:text-white focus:outline-none focus:border-gold-500 font-medium"
+              />
+            </div>
 
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <div>
                 <label className="block font-bold text-slate-700 dark:text-slate-200 mb-1">Current Location (City, Country)</label>
                 <input 
@@ -768,47 +897,48 @@ export const CandidatePortal = () => {
                   onChange={(e) => setProfileForm({ ...profileForm, preferredCountry: e.target.value })}
                   className="w-full bg-slate-50 dark:bg-navy-950 border border-slate-300 dark:border-navy-700 rounded-xl p-3 text-navy-900 dark:text-white focus:outline-none focus:border-gold-500 font-medium"
                 >
-                  <option value="">-- Select Target Destination --</option>
                   <option value="UAE">🇦🇪 UAE (Dubai / Abu Dhabi)</option>
                   <option value="Saudi Arabia">🇸🇦 Saudi Arabia</option>
                   <option value="Qatar">🇶🇦 Qatar</option>
                   <option value="Singapore">🇸🇬 Singapore</option>
+                  <option value="Germany">🇩🇪 Germany</option>
                   <option value="Canada">🇨🇦 Canada</option>
                   <option value="United Kingdom">🇬🇧 United Kingdom</option>
-                  <option value="Germany">🇩🇪 Germany</option>
                 </select>
               </div>
+            </div>
 
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <div>
                 <label className="block font-bold text-slate-700 dark:text-slate-200 mb-1">Total Work Experience</label>
                 <input 
                   type="text" 
                   value={profileForm.experience}
                   onChange={(e) => setProfileForm({ ...profileForm, experience: e.target.value })}
-                  placeholder="e.g. 5 Years"
+                  placeholder="e.g. 7 Years"
                   className="w-full bg-slate-50 dark:bg-navy-950 border border-slate-300 dark:border-navy-700 rounded-xl p-3 text-navy-900 dark:text-white focus:outline-none focus:border-gold-500 font-medium"
                 />
               </div>
 
               <div>
-                <label className="block font-bold text-slate-700 dark:text-slate-200 mb-1">Expected Monthly Salary</label>
+                <label className="block font-bold text-slate-700 dark:text-slate-200 mb-1">Highest Degree / Qualification</label>
                 <input 
                   type="text" 
-                  value={profileForm.expectedSalary}
-                  onChange={(e) => setProfileForm({ ...profileForm, expectedSalary: e.target.value })}
-                  placeholder="e.g. AED 25,000 / month"
+                  value={profileForm.qualification}
+                  onChange={(e) => setProfileForm({ ...profileForm, qualification: e.target.value })}
+                  placeholder="e.g. B.Tech Civil Engineering"
                   className="w-full bg-slate-50 dark:bg-navy-950 border border-slate-300 dark:border-navy-700 rounded-xl p-3 text-navy-900 dark:text-white focus:outline-none focus:border-gold-500 font-medium"
                 />
               </div>
             </div>
 
             <div>
-              <label className="block font-bold text-slate-700 dark:text-slate-200 mb-1">Highest Qualification / Degree</label>
+              <label className="block font-bold text-slate-700 dark:text-slate-200 mb-1">Expected Monthly Salary (Tax Free)</label>
               <input 
                 type="text" 
-                value={profileForm.qualification}
-                onChange={(e) => setProfileForm({ ...profileForm, qualification: e.target.value })}
-                placeholder="e.g. B.Sc. Civil Engineering"
+                value={profileForm.expectedSalary}
+                onChange={(e) => setProfileForm({ ...profileForm, expectedSalary: e.target.value })}
+                placeholder="e.g. AED 25,000 / month"
                 className="w-full bg-slate-50 dark:bg-navy-950 border border-slate-300 dark:border-navy-700 rounded-xl p-3 text-navy-900 dark:text-white focus:outline-none focus:border-gold-500 font-medium"
               />
             </div>
@@ -819,12 +949,11 @@ export const CandidatePortal = () => {
                 type="text" 
                 value={profileForm.skillsInput}
                 onChange={(e) => setProfileForm({ ...profileForm, skillsInput: e.target.value })}
-                placeholder="e.g. Project Leadership, Site Operations, AutoCAD"
+                placeholder="e.g. Project Management, FIDIC, Site Supervision, AutoCAD"
                 className="w-full bg-slate-50 dark:bg-navy-950 border border-slate-300 dark:border-navy-700 rounded-xl p-3 text-navy-900 dark:text-white focus:outline-none focus:border-gold-500 font-medium"
               />
             </div>
 
-            {/* MOHRE Attestation status */}
             <div className="flex items-center space-x-2 pt-2">
               <input 
                 type="checkbox"
@@ -864,46 +993,66 @@ export const CandidatePortal = () => {
           </div>
 
           {applications.map((app) => (
-            <div key={app.id} className="glass-card bg-white dark:bg-navy-900 border border-slate-200 dark:border-navy-800 p-6 rounded-2xl flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 shadow-sm hover:border-gold-500 transition">
-              <div className="space-y-1">
-                <div className="flex items-center gap-2">
-                  <span className="bg-navy-900 text-gold-400 font-mono font-bold text-[10px] px-2 py-0.5 rounded">{app.id}</span>
-                  <h4 className="font-bold text-base text-navy-900 dark:text-white">{app.jobTitle}</h4>
+            <div key={app.id} className="glass-card bg-white dark:bg-navy-900 border border-slate-200 dark:border-navy-800 p-6 rounded-2xl space-y-3 shadow-sm hover:border-gold-500 transition">
+              <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+                <div className="space-y-1">
+                  <div className="flex items-center gap-2">
+                    <span className="bg-navy-900 text-gold-400 font-mono font-bold text-[10px] px-2 py-0.5 rounded">{app.id}</span>
+                    <h4 className="font-bold text-base text-navy-900 dark:text-white">{app.jobTitle}</h4>
+                  </div>
+                  <p className="text-slate-700 dark:text-slate-300 font-semibold">{app.company} • Applied on {app.appliedDate}</p>
+                  <p className="text-[11px] text-emerald-600 dark:text-emerald-400 font-bold flex items-center gap-1 pt-1">
+                    <CheckCircle2 className="w-3.5 h-3.5" />
+                    <span>Delivered to Recruiter Portal • 94% ATS Keywords Match Score</span>
+                  </p>
                 </div>
-                <p className="text-slate-700 dark:text-slate-300 font-semibold">{app.company} • Applied on {app.appliedDate}</p>
-                <p className="text-[11px] text-emerald-600 dark:text-emerald-400 font-bold flex items-center gap-1 pt-1">
-                  <CheckCircle2 className="w-3.5 h-3.5" />
-                  <span>Delivered to Recruiter Portal • 94% ATS Keywords Match Score</span>
-                </p>
-              </div>
 
-              <div className="flex flex-col sm:flex-row items-start sm:items-center gap-2 w-full sm:w-auto">
-                <button
-                  onClick={() => setScreeningModalApp(app)}
-                  className="px-3.5 py-2 bg-navy-950 text-gold-400 hover:bg-gold-500 hover:text-navy-950 border border-gold-500/30 font-bold rounded-xl text-xs transition flex items-center justify-center gap-1.5 shadow"
-                >
-                  <Sparkles className="w-3.5 h-3.5" />
-                  <span>View AI Screening Report</span>
-                </button>
-
-                {app.status === 'Interview Scheduled' ? (
+                <div className="flex flex-col sm:flex-row items-start sm:items-center gap-2 w-full sm:w-auto">
                   <button
-                    onClick={() => { setInterviewModalApp(app); startCameraStream(); }}
-                    className="px-4 py-2 bg-emerald-600 hover:bg-emerald-700 text-white font-extrabold rounded-xl text-xs flex items-center justify-center gap-1.5 shadow-lg shadow-emerald-500/20 transition animate-pulse cursor-pointer"
-                  >
-                    <Video className="w-4 h-4 text-white" />
-                    <span>Join Video Interview / View Schedule</span>
-                  </button>
-                ) : (
-                  <span 
                     onClick={() => setScreeningModalApp(app)}
-                    className="cursor-pointer px-3.5 py-2 bg-amber-500/15 border border-amber-500/30 text-amber-700 dark:text-amber-300 font-extrabold rounded-xl text-xs flex items-center gap-1 hover:bg-amber-500/25 transition"
+                    className="px-3.5 py-2 bg-navy-950 text-gold-400 hover:bg-gold-500 hover:text-navy-950 border border-gold-500/30 font-bold rounded-xl text-xs transition flex items-center justify-center gap-1.5 shadow"
                   >
-                    <Clock className="w-3.5 h-3.5" />
-                    <span>{app.status}</span>
-                  </span>
-                )}
+                    <Sparkles className="w-3.5 h-3.5" />
+                    <span>View AI Screening Report</span>
+                  </button>
+
+                  {app.status === 'Interview Scheduled' ? (
+                    <button
+                      onClick={() => { setInterviewModalApp(app); startCameraStream(); }}
+                      className="px-4 py-2 bg-emerald-600 hover:bg-emerald-700 text-white font-extrabold rounded-xl text-xs flex items-center justify-center gap-1.5 shadow-lg shadow-emerald-500/20 transition animate-pulse cursor-pointer"
+                    >
+                      <Video className="w-4 h-4 text-white" />
+                      <span>Join Video Interview / View Schedule</span>
+                    </button>
+                  ) : app.status === 'Not Shortlisted' ? (
+                    <span className="px-3.5 py-2 bg-rose-500/15 border border-rose-500/30 text-rose-700 dark:text-rose-300 font-extrabold rounded-xl text-xs flex items-center gap-1">
+                      <X className="w-4 h-4 text-rose-500" />
+                      <span>Not Shortlisted</span>
+                    </span>
+                  ) : (
+                    <span 
+                      onClick={() => setScreeningModalApp(app)}
+                      className="cursor-pointer px-3.5 py-2 bg-amber-500/15 border border-amber-500/30 text-amber-700 dark:text-amber-300 font-extrabold rounded-xl text-xs flex items-center gap-1 hover:bg-amber-500/25 transition"
+                    >
+                      <Clock className="w-3.5 h-3.5" />
+                      <span>{app.status}</span>
+                    </span>
+                  )}
+                </div>
               </div>
+
+              {/* Not Shortlisted Employer Notification Box */}
+              {app.status === 'Not Shortlisted' && (
+                <div className="p-4 bg-rose-500/10 border border-rose-500/30 rounded-xl space-y-2 text-xs text-rose-900 dark:text-rose-200 mt-2">
+                  <div className="flex items-center gap-2 font-bold text-rose-700 dark:text-rose-300">
+                    <AlertCircle className="w-4 h-4 text-rose-500 shrink-0" />
+                    <span>Official Recruiter Status Notice: Not Shortlisted for this Mandate</span>
+                  </div>
+                  <p className="text-[11px] leading-relaxed text-slate-700 dark:text-slate-200 whitespace-pre-line font-medium bg-white/50 dark:bg-navy-950/50 p-3 rounded-lg border border-rose-500/20">
+                    {app.notShortlistedDetails?.message || `Dear Candidate,\n\nThank you for applying. After careful review of your qualifications for ${app.jobTitle}, the hiring team has marked this application as Not Shortlisted for this specific mandate.\n\nYour CV remains active in the SIR Executive Talent Database for upcoming GCC & global opportunities.`}
+                  </p>
+                </div>
+              )}
             </div>
           ))}
         </div>

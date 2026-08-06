@@ -32,14 +32,14 @@ export const Home = () => {
   ];
 
   const trustedLogos = [
-    { name: 'Emirates Airline', logo: '✈️ Emirates' },
-    { name: 'Emaar Properties', logo: '🏙️ Emaar' },
-    { name: 'Saudi Aramco', logo: '🛢️ Aramco' },
-    { name: 'DP World', logo: '🚢 DP World' },
-    { name: 'QNB Group', logo: '🏦 QNB' },
-    { name: 'Etihad Airways', logo: '🛫 Etihad' },
-    { name: 'Alshaya Group', logo: '🛍️ Alshaya' },
-    { name: 'Habtoor Group', logo: '🏗️ Al Habtoor' }
+    { name: 'Emirates Airline', symbol: '✈️', tag: 'Aviation & Aerospace', color: 'from-red-500/10 via-white dark:via-navy-900 to-rose-500/5 border-red-500/30' },
+    { name: 'Emaar Properties', symbol: '🏙️', tag: 'Real Estate & Infrastructure', color: 'from-amber-500/10 via-white dark:via-navy-900 to-gold-500/5 border-gold-500/30' },
+    { name: 'Saudi Aramco', symbol: '🛢️', tag: 'Energy & Petrochemicals', color: 'from-emerald-500/10 via-white dark:via-navy-900 to-teal-500/5 border-emerald-500/30' },
+    { name: 'DP World', symbol: '🚢', tag: 'Maritime & Global Logistics', color: 'from-blue-500/10 via-white dark:via-navy-900 to-cyan-500/5 border-blue-500/30' },
+    { name: 'QNB Group', symbol: '🏦', tag: 'Banking & Financial Services', color: 'from-purple-500/10 via-white dark:via-navy-900 to-indigo-500/5 border-purple-500/30' },
+    { name: 'Etihad Airways', symbol: '🛫', tag: 'Commercial Aviation', color: 'from-yellow-500/10 via-white dark:via-navy-900 to-amber-500/5 border-amber-500/30' },
+    { name: 'Alshaya Group', symbol: '🛍️', tag: 'Retail Conglomerate', color: 'from-pink-500/10 via-white dark:via-navy-900 to-rose-500/5 border-pink-500/30' },
+    { name: 'Al Habtoor Group', symbol: '🏗️', tag: 'Construction & Hospitality', color: 'from-gold-500/15 via-white dark:via-navy-900 to-navy-900/10 border-gold-500/40' }
   ];
 
   return (
@@ -139,15 +139,37 @@ export const Home = () => {
         </div>
       </section>
 
-      {/* TRUSTED COMPANIES LOGO BANNER */}
-      <section className="max-w-7xl mx-auto px-4 sm:px-8">
-        <p className="text-center text-xs font-bold uppercase tracking-widest text-slate-600 dark:text-slate-300 mb-6">
-          Trusted by Premier Enterprises & Government Entities Across GCC & Europe
-        </p>
-        <div className="grid grid-cols-2 sm:grid-cols-4 lg:grid-cols-8 gap-4 items-center">
+      {/* TRUSTED COMPANIES LOGO BANNER - PROMINENT LARGE LOGO DISPLAY */}
+      <section className="max-w-7xl mx-auto px-4 sm:px-8 py-6">
+        <div className="text-center space-y-2 mb-8">
+          <span className="bg-gold-500/15 text-gold-700 dark:text-gold-400 font-extrabold text-[11px] px-3.5 py-1 rounded-full uppercase tracking-widest border border-gold-500/30">
+            Enterprise Client Network
+          </span>
+          <h2 className="font-serif text-2xl sm:text-3xl font-extrabold text-navy-900 dark:text-white tracking-tight">
+            Trusted by Premier Enterprises & Government Entities Across GCC & Europe
+          </h2>
+          <p className="text-xs text-slate-600 dark:text-slate-300 font-medium max-w-2xl mx-auto">
+            Over 500+ top-tier contractors, healthcare conglomerates, and Fortune 500 MNCs rely on SIR Recruitment mandates.
+          </p>
+        </div>
+
+        <div className="grid grid-cols-2 sm:grid-cols-4 gap-5">
           {trustedLogos.map((item, idx) => (
-            <div key={idx} className="glass-card bg-white dark:bg-navy-900 border border-slate-200 dark:border-navy-800 p-4 rounded-xl text-center font-bold text-xs text-navy-900 dark:text-slate-300 hover:border-gold-500 transition">
-              {item.logo}
+            <div 
+              key={idx} 
+              className={`glass-card bg-gradient-to-br ${item.color} border p-6 rounded-2xl text-center shadow-md hover:shadow-luxury hover:scale-[1.03] transition-all duration-300 flex flex-col items-center justify-center space-y-3 group cursor-pointer`}
+            >
+              <div className="w-16 h-16 rounded-2xl bg-white dark:bg-navy-950 border border-slate-200 dark:border-navy-800 shadow-md flex items-center justify-center text-4xl group-hover:scale-110 transition-transform">
+                {item.symbol}
+              </div>
+              <div>
+                <h3 className="font-serif text-base sm:text-lg font-black text-navy-950 dark:text-white tracking-tight leading-tight">
+                  {item.name}
+                </h3>
+                <span className="text-[10px] uppercase tracking-wider text-slate-500 dark:text-slate-400 font-bold block mt-1">
+                  {item.tag}
+                </span>
+              </div>
             </div>
           ))}
         </div>

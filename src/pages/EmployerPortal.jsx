@@ -1,10 +1,10 @@
 import React, { useState } from 'react';
 import { useApp } from '../context/AppContext';
-import { EmployerAuth } from '../components/EmployerAuth';
+import { UnifiedAuth } from '../components/UnifiedAuth';
 import { 
   Building2, Users, PlusCircle, Search, Calendar, BarChart3, CheckCircle2, 
   FileText, Send, Sparkles, LogOut, ArrowRight, Trash2, Filter, Eye, Video, 
-  Check, Clock, UserCheck, ChevronRight, X, Phone, Mail, Award, Briefcase, MapPin, Globe
+  Check, Clock, UserCheck, ChevronRight, X, Phone, Mail, Award, Briefcase, MapPin, Globe, UserX, AlertCircle
 } from 'lucide-react';
 
 export const EmployerPortal = () => {
@@ -29,6 +29,15 @@ export const EmployerPortal = () => {
   });
   const [interviewSuccess, setInterviewSuccess] = useState(false);
 
+  // Not Shortlisted Modal & Notification State
+  const [notShortlistedCandidate, setNotShortlistedCandidate] = useState(null);
+  const [notShortlistedSuccess, setNotShortlistedSuccess] = useState(false);
+  const [demoStatusOverrides, setDemoStatusOverrides] = useState({});
+  const [notShortlistedForm, setNotShortlistedForm] = useState({
+    reasonCategory: 'Experience Gap',
+    message: ''
+  });
+
   const [jobForm, setJobForm] = useState({
     title: '',
     country: 'UAE',
@@ -45,11 +54,11 @@ export const EmployerPortal = () => {
   });
 
   if (!user || user.role !== 'employer') {
-    return <EmployerAuth />;
+    return <UnifiedAuth defaultRole="employer" />;
   }
 
   // Combined candidate applicants pool (demo candidate profiles + live user applications)
-  const candidatePool = [
+  const rawCandidatePool = [
     ...applications.map(app => ({
       id: app.id,
       name: app.candidateName || 'Executive Applicant (' + app.id + ')',
@@ -68,6 +77,7 @@ export const EmployerPortal = () => {
       skills: ['Project Management', 'Site Supervision', 'FIDIC Contracts', 'Team Leadership'],
       education: "B.Tech Civil Engineering (Attested by UAE Embassy)",
       interviewDetails: app.interviewDetails || null,
+      notShortlistedDetails: app.notShortlistedDetails || null,
       isLive: true
     })),
     {
@@ -153,6 +163,17 @@ export const EmployerPortal = () => {
     }
   ];
 
+  const candidatePool = rawCandidatePool.map(cand => {
+    if (demoStatusOverrides[cand.id]) {
+      return {
+        ...cand,
+        status: demoStatusOverrides[cand.id].status,
+        notShortlistedDetails: demoStatusOverrides[cand.id].notShortlistedDetails
+      };
+    }
+    return cand;
+  });
+
   const handlePostJob = async (e) => {
     e.preventDefault();
     const created = await addJob({
@@ -183,9 +204,59 @@ export const EmployerPortal = () => {
 
   const handleShortlistCandidate = (cand) => {
     updateApplicationStatus(cand.id, 'Shortlisted', 2);
+    setDemoStatusOverrides(prev => ({
+      ...prev,
+      [cand.id]: { status: 'Shortlisted', notShortlistedDetails: null }
+    }));
     if (screenCandidate?.id === cand.id) {
       setScreenCandidate({ ...screenCandidate, status: 'Shortlisted', step: 2 });
     }
+  };
+
+  const handleOpenNotShortlistedModal = (cand) => {
+    setNotShortlistedCandidate(cand);
+    setNotShortlistedSuccess(false);
+    setNotShortlistedForm({
+      reasonCategory: 'Experience Gap',
+      message: `Dear ${cand.name},\n\nThank you for your interest in the position of ${cand.role} at ${user.companyName || cand.company || 'Al Habtoor Contracting LLC'}.\n\nAfter careful review of your application by our executive recruiting team, we regret to inform you that you have not been shortlisted for this specific mandate at this time.\n\nYour profile will remain active in the SIR Executive Talent Database for upcoming GCC opportunities.\n\nBest regards,\nRecruitment Team - SIR Recruitment`
+    });
+  };
+
+  const handleConfirmNotShortlisted = (e) => {
+    e.preventDefault();
+    if (!notShortlistedCandidate) return;
+
+    const notShortlistedDetailsObj = {
+      reasonCategory: notShortlistedForm.reasonCategory,
+      message: notShortlistedForm.message,
+      dateNotified: new Date().toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })
+    };
+
+    updateApplicationStatus(
+      notShortlistedCandidate.id, 
+      'Not Shortlisted', 
+      0, 
+      null, 
+      notShortlistedDetailsObj
+    );
+
+    setDemoStatusOverrides(prev => ({
+      ...prev,
+      [notShortlistedCandidate.id]: {
+        status: 'Not Shortlisted',
+        notShortlistedDetails: notShortlistedDetailsObj
+      }
+    }));
+
+    if (screenCandidate?.id === notShortlistedCandidate.id) {
+      setScreenCandidate({ ...screenCandidate, status: 'Not Shortlisted', step: 0 });
+    }
+
+    setNotShortlistedSuccess(true);
+    setTimeout(() => {
+      setNotShortlistedCandidate(null);
+      setNotShortlistedSuccess(false);
+    }, 2200);
   };
 
   const handleOpenInterviewModal = (cand) => {
@@ -216,6 +287,11 @@ export const EmployerPortal = () => {
         notes: interviewForm.notes
       }
     );
+
+    setDemoStatusOverrides(prev => ({
+      ...prev,
+      [interviewCandidate.id]: { status: 'Interview Scheduled' }
+    }));
 
     setInterviewSuccess(true);
     setTimeout(() => {
@@ -427,6 +503,7 @@ export const EmployerPortal = () => {
                 <option value="Under AI Resume Screening">Under AI Resume Screening</option>
                 <option value="Shortlisted">Shortlisted</option>
                 <option value="Interview Scheduled">Interview Scheduled</option>
+                <option value="Not Shortlisted">Not Shortlisted</option>
               </select>
             </div>
           </div>
@@ -454,6 +531,8 @@ export const EmployerPortal = () => {
                         ? 'bg-purple-500/15 text-purple-600 dark:text-purple-300 border-purple-500/30'
                         : cand.status === 'Shortlisted'
                         ? 'bg-gold-500/15 text-gold-700 dark:text-gold-400 border-gold-500/30'
+                        : cand.status === 'Not Shortlisted'
+                        ? 'bg-rose-500/15 text-rose-600 dark:text-rose-400 border-rose-500/30'
                         : 'bg-blue-500/15 text-blue-600 dark:text-blue-400 border-blue-500/30'
                     }`}>
                       ● {cand.status}
@@ -486,10 +565,21 @@ export const EmployerPortal = () => {
                       <p className="text-[11px] opacity-90">Format: {cand.interviewDetails.mode} • Panel: {cand.interviewDetails.interviewer}</p>
                     </div>
                   )}
+
+                  {/* Not Shortlisted details box */}
+                  {cand.notShortlistedDetails && (
+                    <div className="p-3 bg-rose-500/10 border border-rose-500/20 rounded-xl space-y-1 text-xs text-rose-900 dark:text-rose-200">
+                      <div className="flex items-center gap-1.5 font-bold">
+                        <UserX className="w-4 h-4 text-rose-500" />
+                        <span>Candidate Marked as Not Shortlisted (Notified on {cand.notShortlistedDetails.dateNotified})</span>
+                      </div>
+                      <p className="text-[11px] opacity-90 leading-relaxed">Category: {cand.notShortlistedDetails.reasonCategory} • Official notification dispatched</p>
+                    </div>
+                  )}
                 </div>
 
                 {/* Screening & Interview Action Buttons */}
-                <div className="flex flex-col sm:flex-row md:flex-col gap-2 w-full md:w-48">
+                <div className="flex flex-col sm:flex-row md:flex-col gap-2 w-full md:w-52">
                   <button 
                     onClick={() => setScreenCandidate(cand)}
                     className="py-2 px-3 bg-slate-100 dark:bg-navy-800 text-navy-900 dark:text-white font-bold text-xs rounded-xl border border-slate-300 dark:border-navy-700 hover:border-gold-500 transition flex items-center justify-center gap-1.5"
@@ -505,6 +595,16 @@ export const EmployerPortal = () => {
                     >
                       <UserCheck className="w-3.5 h-3.5" />
                       <span>Shortlist Candidate</span>
+                    </button>
+                  )}
+
+                  {cand.status !== 'Not Shortlisted' && (
+                    <button 
+                      onClick={() => handleOpenNotShortlistedModal(cand)}
+                      className="py-2 px-3 bg-rose-500/10 text-rose-600 dark:text-rose-400 font-bold text-xs rounded-xl border border-rose-500/30 hover:bg-rose-500 hover:text-white transition flex items-center justify-center gap-1.5"
+                    >
+                      <UserX className="w-3.5 h-3.5" />
+                      <span>Not Shortlisted</span>
                     </button>
                   )}
 
@@ -891,6 +991,104 @@ export const EmployerPortal = () => {
                 </p>
               </div>
             )}
+          </div>
+        </div>
+      )}
+
+      {/* NOT SHORTLISTED NOTIFICATION MODAL */}
+      {notShortlistedCandidate && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-navy-950/80 backdrop-blur-sm animate-in fade-in">
+          <div className="glass-card bg-white dark:bg-navy-900 border border-slate-200 dark:border-navy-700 rounded-3xl max-w-lg w-full p-6 shadow-luxury relative text-xs">
+            
+            <div className="flex justify-between items-start border-b border-slate-200 dark:border-navy-800 pb-4 mb-4">
+              <div className="flex items-center space-x-3">
+                <div className="w-10 h-10 rounded-xl bg-rose-500/15 text-rose-500 flex items-center justify-center font-bold">
+                  <UserX className="w-5 h-5" />
+                </div>
+                <div>
+                  <h3 className="font-serif text-lg font-bold text-navy-950 dark:text-white">Mark Candidate as Not Shortlisted</h3>
+                  <p className="text-[11px] text-slate-500 dark:text-slate-400 font-medium">Inform candidate about application status decision</p>
+                </div>
+              </div>
+              <button onClick={() => setNotShortlistedCandidate(null)} className="p-1 text-slate-400 hover:text-white">
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+
+            {!notShortlistedSuccess ? (
+              <form onSubmit={handleConfirmNotShortlisted} className="space-y-4">
+                <div className="p-3 bg-amber-500/10 border border-amber-500/30 rounded-xl text-amber-800 dark:text-amber-300 font-medium text-[11px] leading-relaxed flex items-start space-x-2">
+                  <AlertCircle className="w-4 h-4 text-amber-500 shrink-0 mt-0.5" />
+                  <p>
+                    Marking <strong>{notShortlistedCandidate.name}</strong> as Not Shortlisted will update their status in the candidate portal and dispatch an automated status update to <strong>{notShortlistedCandidate.email}</strong>.
+                  </p>
+                </div>
+
+                <div>
+                  <label className="block font-bold text-slate-700 dark:text-slate-200 mb-1">Applied Role</label>
+                  <input 
+                    readOnly 
+                    value={`${notShortlistedCandidate.role} (${user.companyName || notShortlistedCandidate.company || 'SIR Partner'})`}
+                    className="w-full bg-slate-100 dark:bg-navy-950 border border-slate-300 dark:border-navy-800 rounded-xl p-2.5 text-slate-700 dark:text-slate-300 font-semibold"
+                  />
+                </div>
+
+                <div>
+                  <label className="block font-bold text-slate-700 dark:text-slate-200 mb-1">Select Rejection / Feedback Category</label>
+                  <select
+                    value={notShortlistedForm.reasonCategory}
+                    onChange={(e) => setNotShortlistedForm({ ...notShortlistedForm, reasonCategory: e.target.value })}
+                    className="w-full bg-slate-50 dark:bg-navy-950 border border-slate-300 dark:border-navy-700 rounded-xl p-2.5 text-navy-950 dark:text-white focus:outline-none focus:border-gold-500 font-medium"
+                  >
+                    <option value="Experience Gap">Experience Level Below Mandate Requirements</option>
+                    <option value="Skill Set Misalignment">Specific Technical / Certification Skill Gap</option>
+                    <option value="Location / Visa Mandate">GCC Relocation / Visa Constraint</option>
+                    <option value="Position Filled">Mandate Quota Filled by Other Candidates</option>
+                    <option value="General Profile Feedback">General Profile Evaluation</option>
+                  </select>
+                </div>
+
+                <div>
+                  <label className="block font-bold text-slate-700 dark:text-slate-200 mb-1">
+                    Automated Email & Portal Notification Message (Preview)
+                  </label>
+                  <textarea
+                    rows={5}
+                    value={notShortlistedForm.message}
+                    onChange={(e) => setNotShortlistedForm({ ...notShortlistedForm, message: e.target.value })}
+                    className="w-full bg-slate-50 dark:bg-navy-950 border border-slate-300 dark:border-navy-700 rounded-xl p-3 text-[11px] text-navy-950 dark:text-slate-200 focus:outline-none focus:border-gold-500 leading-relaxed font-mono"
+                  />
+                </div>
+
+                <div className="flex gap-3 pt-2">
+                  <button
+                    type="button"
+                    onClick={() => setNotShortlistedCandidate(null)}
+                    className="flex-1 py-2.5 bg-slate-200 dark:bg-navy-800 text-slate-700 dark:text-slate-300 font-bold rounded-xl hover:bg-slate-300"
+                  >
+                    Cancel
+                  </button>
+                  <button
+                    type="submit"
+                    className="flex-1 py-2.5 bg-rose-600 hover:bg-rose-700 text-white font-bold rounded-xl shadow-md transition flex items-center justify-center space-x-1.5"
+                  >
+                    <Send className="w-3.5 h-3.5" />
+                    <span>Send Notification & Mark Not Shortlisted</span>
+                  </button>
+                </div>
+              </form>
+            ) : (
+              <div className="py-8 text-center space-y-3">
+                <div className="w-14 h-14 bg-rose-500/20 text-rose-500 rounded-full flex items-center justify-center mx-auto">
+                  <CheckCircle2 className="w-8 h-8" />
+                </div>
+                <h4 className="font-serif text-xl font-bold text-navy-950 dark:text-white">Candidate Notified Successfully</h4>
+                <p className="text-xs text-slate-600 dark:text-slate-300">
+                  {notShortlistedCandidate.name}'s application status has been marked as <strong>Not Shortlisted</strong>. An official notification has been dispatched to {notShortlistedCandidate.email}.
+                </p>
+              </div>
+            )}
+
           </div>
         </div>
       )}

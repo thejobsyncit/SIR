@@ -23,17 +23,22 @@ export const AppProvider = ({ children }) => {
   }, [language]);
   const [activeTab, setActiveTab] = useState(() => {
     if (typeof window !== 'undefined') {
-      const path = window.location.pathname.replace(/^\//, '');
+      const path = window.location.pathname.replace(/^\/+|\/+$/g, '');
       const hash = window.location.hash.replace('#', '');
-      if (path === 'crm' || path.startsWith('crm') || hash === 'crm') {
-        return 'crm';
-      }
+      if (path === 'crm' || path.startsWith('crm/') || hash === 'crm') return 'crm';
       if (hash) return hash;
+      if (path && path !== '') return path;
     }
     return 'home';
   });
   const [selectedJob, setSelectedJob] = useState(null);
-  const [activeModal, setActiveModal] = useState(null); // 'apply', 'ai-resume', 'payment', 'resume-builder', 'post-job', 'verification-modal'
+  const [activeModal, setActiveModal] = useState(null); // 'apply', 'ai-resume', 'payment', 'resume-builder', 'post-job', 'verification-modal', 'auth'
+  const [authModalConfig, setAuthModalConfig] = useState({ mode: 'login', role: null });
+
+  const openAuthModal = (mode = 'login', role = null) => {
+    setAuthModalConfig({ mode, role });
+    setActiveModal('auth');
+  };
   const [savedJobs, setSavedJobs] = useState(['job-101']);
   const [applications, setApplications] = useState(() => {
     try {
@@ -140,6 +145,7 @@ export const AppProvider = ({ children }) => {
 
     saveCandidateToDB(candidateUser);
     saveUserSession(candidateUser);
+    setActiveTab('candidates');
     return candidateUser;
   };
 
@@ -173,6 +179,7 @@ export const AppProvider = ({ children }) => {
 
     saveCandidateToDB(candidateUser);
     saveUserSession(candidateUser);
+    setActiveTab('candidates');
     return candidateUser;
   };
 
@@ -197,6 +204,7 @@ export const AppProvider = ({ children }) => {
       loginTime: new Date().toISOString()
     };
     saveUserSession(employerUser);
+    setActiveTab('employers');
     return employerUser;
   };
 
@@ -244,37 +252,48 @@ export const AppProvider = ({ children }) => {
     });
   };
 
-  const updateApplicationStatus = (appId, newStatus, step, interviewDetails = null) => {
-    setApplications(prev => prev.map(app => {
-      if (app.id === appId) {
-        return {
-          ...app,
-          status: newStatus,
-          step: step || app.step,
-          interviewDetails: interviewDetails || app.interviewDetails
-        };
-      }
-      return app;
-    }));
+  const updateApplicationStatus = (appId, newStatus, step, interviewDetails = null, notShortlistedDetails = null) => {
+    setApplications(prev => {
+      const updated = prev.map(app => {
+        if (app.id === appId) {
+          return {
+            ...app,
+            status: newStatus,
+            step: step !== undefined ? step : app.step,
+            interviewDetails: interviewDetails || app.interviewDetails,
+            notShortlistedDetails: notShortlistedDetails || app.notShortlistedDetails
+          };
+        }
+        return app;
+      });
+      try {
+        localStorage.setItem('sir_job_applications', JSON.stringify(updated));
+      } catch {}
+      return updated;
+    });
   };
 
-  // Sync hash routing
+  // Sync URL pathname & hash routing
   useEffect(() => {
-    const handleHashChange = () => {
+    const handleUrlSync = () => {
+      const path = window.location.pathname.replace(/^\/+|\/+$/g, '');
       const hash = window.location.hash.replace('#', '');
-      const path = window.location.pathname.replace(/^\//, '');
-      if (path === 'crm' || path.startsWith('crm') || hash === 'crm') {
+      if (path === 'crm' || path.startsWith('crm/') || hash === 'crm') {
         setActiveTab('crm');
       } else if (hash) {
         setActiveTab(hash);
+      } else if (path && path !== '') {
+        setActiveTab(path);
+      } else {
+        setActiveTab('home');
       }
     };
-    handleHashChange();
-    window.addEventListener('hashchange', handleHashChange);
-    window.addEventListener('popstate', handleHashChange);
+    handleUrlSync();
+    window.addEventListener('hashchange', handleUrlSync);
+    window.addEventListener('popstate', handleUrlSync);
     return () => {
-      window.removeEventListener('hashchange', handleHashChange);
-      window.removeEventListener('popstate', handleHashChange);
+      window.removeEventListener('hashchange', handleUrlSync);
+      window.removeEventListener('popstate', handleUrlSync);
     };
   }, []);
 
@@ -352,7 +371,15 @@ export const AppProvider = ({ children }) => {
 
   const navigateTo = (tab) => {
     setActiveTab(tab);
-    window.location.hash = tab;
+    if (tab === 'crm') {
+      window.history.pushState({}, '', '/crm');
+    } else {
+      if (window.location.pathname.startsWith('/crm')) {
+        window.history.pushState({}, '', '/' + (tab === 'home' ? '' : `#${tab}`));
+      } else {
+        window.location.hash = tab;
+      }
+    }
     window.scrollTo({ top: 0, behavior: 'smooth' });
   };
 
@@ -406,6 +433,8 @@ export const AppProvider = ({ children }) => {
         setSelectedJob,
         activeModal,
         setActiveModal,
+        authModalConfig,
+        openAuthModal,
         savedJobs,
         toggleSaveJob,
         applications,
