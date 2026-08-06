@@ -20,6 +20,8 @@ import { VisaEligibilityPage } from './pages/VisaEligibilityPage';
 import { BackgroundVerificationPage } from './pages/BackgroundVerificationPage';
 import { ContactUsPage } from './pages/ContactUsPage';
 
+import { UnifiedAuthModal } from './components/UnifiedAuthModal';
+
 export function App() {
   const { activeTab } = useApp();
 
@@ -60,6 +62,7 @@ export function App() {
       <Footer />
 
       {/* Global Interactive Modals & Floating Widgets */}
+      <UnifiedAuthModal />
       <AIResumeAnalyzerModal />
       <PaymentGatewayModal />
       <ResumeBuilderModal />

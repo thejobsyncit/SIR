@@ -23,7 +23,13 @@ export const AppProvider = ({ children }) => {
   }, [language]);
   const [activeTab, setActiveTab] = useState('home');
   const [selectedJob, setSelectedJob] = useState(null);
-  const [activeModal, setActiveModal] = useState(null); // 'apply', 'ai-resume', 'payment', 'resume-builder', 'post-job', 'verification-modal'
+  const [activeModal, setActiveModal] = useState(null); // 'apply', 'ai-resume', 'payment', 'resume-builder', 'post-job', 'verification-modal', 'auth'
+  const [authModalConfig, setAuthModalConfig] = useState({ mode: 'login', role: null });
+
+  const openAuthModal = (mode = 'login', role = null) => {
+    setAuthModalConfig({ mode, role });
+    setActiveModal('auth');
+  };
   const [savedJobs, setSavedJobs] = useState(['job-101']);
   const [applications, setApplications] = useState(() => {
     try {
@@ -130,6 +136,7 @@ export const AppProvider = ({ children }) => {
 
     saveCandidateToDB(candidateUser);
     saveUserSession(candidateUser);
+    setActiveTab('candidates');
     return candidateUser;
   };
 
@@ -163,6 +170,7 @@ export const AppProvider = ({ children }) => {
 
     saveCandidateToDB(candidateUser);
     saveUserSession(candidateUser);
+    setActiveTab('candidates');
     return candidateUser;
   };
 
@@ -187,6 +195,7 @@ export const AppProvider = ({ children }) => {
       loginTime: new Date().toISOString()
     };
     saveUserSession(employerUser);
+    setActiveTab('employers');
     return employerUser;
   };
 
@@ -234,18 +243,25 @@ export const AppProvider = ({ children }) => {
     });
   };
 
-  const updateApplicationStatus = (appId, newStatus, step, interviewDetails = null) => {
-    setApplications(prev => prev.map(app => {
-      if (app.id === appId) {
-        return {
-          ...app,
-          status: newStatus,
-          step: step || app.step,
-          interviewDetails: interviewDetails || app.interviewDetails
-        };
-      }
-      return app;
-    }));
+  const updateApplicationStatus = (appId, newStatus, step, interviewDetails = null, notShortlistedDetails = null) => {
+    setApplications(prev => {
+      const updated = prev.map(app => {
+        if (app.id === appId) {
+          return {
+            ...app,
+            status: newStatus,
+            step: step !== undefined ? step : app.step,
+            interviewDetails: interviewDetails || app.interviewDetails,
+            notShortlistedDetails: notShortlistedDetails || app.notShortlistedDetails
+          };
+        }
+        return app;
+      });
+      try {
+        localStorage.setItem('sir_job_applications', JSON.stringify(updated));
+      } catch {}
+      return updated;
+    });
   };
 
   // Sync hash routing
@@ -390,6 +406,8 @@ export const AppProvider = ({ children }) => {
         setSelectedJob,
         activeModal,
         setActiveModal,
+        authModalConfig,
+        openAuthModal,
         savedJobs,
         toggleSaveJob,
         applications,

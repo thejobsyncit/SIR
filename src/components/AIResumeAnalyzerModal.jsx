@@ -1,12 +1,13 @@
 import React, { useState, useRef } from 'react';
 import { useApp } from '../context/AppContext';
-import { Sparkles, FileText, CheckCircle2, AlertTriangle, X, Upload, ArrowRight, RefreshCw, Trash2, FileCheck } from 'lucide-react';
+import { Sparkles, FileText, CheckCircle2, AlertTriangle, X, Upload, ArrowRight, RefreshCw, Trash2, FileCheck, AlertCircle } from 'lucide-react';
 
 export const AIResumeAnalyzerModal = () => {
   const { activeModal, setActiveModal, navigateTo } = useApp();
   const [resumeText, setResumeText] = useState('');
   const [loading, setLoading] = useState(false);
   const [result, setResult] = useState(null);
+  const [validationError, setValidationError] = useState('');
   
   // File Upload & Drag-and-Drop state
   const fileInputRef = useRef(null);
@@ -15,8 +16,57 @@ export const AIResumeAnalyzerModal = () => {
 
   if (activeModal !== 'ai-resume') return null;
 
+  // Strict Validation: Ensure document is a Candidate Resume/CV, not a bug report or random doc
+  const validateResumeDocument = (fileName = '', text = '') => {
+    const lowerName = fileName.toLowerCase();
+    const lowerText = text.toLowerCase();
+
+    // 1. Explicit non-resume document keywords
+    const nonResumeKeywords = [
+      'bug', 'bug-report', 'bug_report', 'testing-summary', 'test-summary',
+      'test summary', 'testing summary', 'bug report', 'invoice', 'receipt',
+      'purchase order', 'bank statement', 'bill', 'passport', 'license',
+      'driving license', 'release notes', 'meeting minutes', 'user guide',
+      'specification', 'specs', 'transcript', 'contract', 'agreement',
+      'audit log', 'error log', 'system log', 'log file'
+    ];
+
+    for (const kw of nonResumeKeywords) {
+      if (lowerName.includes(kw) || (lowerText.length > 0 && lowerText.includes(kw) && !lowerText.includes('resume') && !lowerText.includes('curriculum vitae'))) {
+        return {
+          isValid: false,
+          message: `The uploaded file "${fileName || 'document'}" is detected as a non-resume document (${kw.replace(/[-_]/g, ' ')}). SIR AI ATS Engine strictly evaluates candidate Resumes & Curriculum Vitae (CVs).`
+        };
+      }
+    }
+
+    // 2. Positive resume indicators check
+    const resumeIndicators = [
+      'resume', 'cv', 'curriculum', 'vitae', 'experience', 'education', 'skills',
+      'qualification', 'profile', 'work history', 'career', 'employment', 'competencies',
+      'certifications', 'degree', 'bachelor', 'master', 'engineer', 'manager', 'developer',
+      'consultant', 'specialist', 'director', 'officer', 'lead', 'executive',
+      'phone', 'email', 'address', 'summary', 'candidate'
+    ];
+
+    const hasResumeIndicatorInName = resumeIndicators.some(k => lowerName.includes(k));
+    const hasResumeIndicatorInText = resumeIndicators.some(k => lowerText.includes(k));
+
+    if (!hasResumeIndicatorInName && !hasResumeIndicatorInText && (fileName.length > 0 || text.length > 0)) {
+      return {
+        isValid: false,
+        message: `The document "${fileName || 'uploaded text'}" does not contain standard candidate Resume/CV structure (e.g. Work Experience, Education, Skills, or Profile Summary).`
+      };
+    }
+
+    return { isValid: true };
+  };
+
   const handleFile = (file) => {
     if (!file) return;
+    setValidationError('');
+    setResult(null);
+
     const formattedSize = (file.size / (1024 * 1024)).toFixed(2) + ' MB';
     setAttachedFile({
       name: file.name,
@@ -27,12 +77,18 @@ export const AIResumeAnalyzerModal = () => {
     const reader = new FileReader();
     reader.onload = (e) => {
       const content = e.target.result || '';
-      // Clean binary PDF markers (%PDF, endobj, etc.) if present
       if (typeof content === 'string' && !content.includes('%PDF') && !content.includes('endobj') && content.trim().length > 0) {
         setResumeText(content.trim());
       } else {
-        const cleanName = file.name.replace(/\.[^/.]+$/, "").replace(/_/g, " ");
-        setResumeText(`Candidate Profile: ${cleanName}\nFile Name: ${file.name}\nFile Size: ${formattedSize}\n\nCore Competencies: Executive Project Management, Strategic Planning, Operations Leadership, Team Coordination, Quality Assurance.`);
+        const lowerName = file.name.toLowerCase();
+        const isLikelyResume = ['resume', 'cv', 'profile', 'curriculum', 'bio', 'candidate', 'experience', 'career', 'engineer', 'manager', 'lead', 'developer', 'executive'].some(k => lowerName.includes(k));
+        
+        if (isLikelyResume) {
+          const cleanName = file.name.replace(/\.[^/.]+$/, "").replace(/_/g, " ");
+          setResumeText(`Candidate Profile: ${cleanName}\nFile Name: ${file.name}\nFile Size: ${formattedSize}\n\nCore Competencies: Executive Project Management, Strategic Planning, Operations Leadership, Team Coordination, Quality Assurance.`);
+        } else {
+          setResumeText(`Document File: ${file.name}`);
+        }
       }
     };
     reader.readAsText(file);
@@ -75,12 +131,29 @@ export const AIResumeAnalyzerModal = () => {
     e.stopPropagation();
     setAttachedFile(null);
     setResumeText('');
+    setValidationError('');
+    setResult(null);
     if (fileInputRef.current) {
       fileInputRef.current.value = '';
     }
   };
 
   const handleAnalyze = async () => {
+    setValidationError('');
+    setResult(null);
+
+    if (!attachedFile && !resumeText.trim()) {
+      setValidationError('Please upload a Resume/CV file or paste your resume text to evaluate ATS compliance.');
+      return;
+    }
+
+    // Run strict Resume / CV validation check
+    const validation = validateResumeDocument(attachedFile?.name || '', resumeText);
+    if (!validation.isValid) {
+      setValidationError(validation.message);
+      return;
+    }
+
     setLoading(true);
     try {
       let data = null;
@@ -120,13 +193,14 @@ export const AIResumeAnalyzerModal = () => {
             'MOHRE Visa Compliance',
             'FIDIC Contract Framework'
           ],
-          summary: `The profile extracted from "${attachedFile ? attachedFile.name : 'Uploaded CV'}" displays strong technical qualifications and high ATS readiness. Incorporating GCC-specific regulatory keywords will boost employer match rates in Dubai and Saudi Arabia by 28%.`
+          summary: `The candidate profile extracted from "${attachedFile ? attachedFile.name : 'Uploaded CV'}" displays strong technical qualifications and high ATS readiness. Incorporating GCC-specific regulatory keywords will boost employer match rates in Dubai and Saudi Arabia by 28%.`
         };
       }
 
       setResult(data);
     } catch (err) {
       console.error('Analysis execution error:', err);
+      setValidationError('An unexpected error occurred while analyzing the resume. Please try again.');
     } finally {
       setLoading(false);
     }
@@ -161,6 +235,20 @@ export const AIResumeAnalyzerModal = () => {
               Paste your CV/Resume text below or click / drag and drop your PDF or DOCX file to evaluate your compatibility with top Dubai, Saudi Arabia & European employers.
             </div>
 
+            {/* Validation Error Alert Banner */}
+            {validationError && (
+              <div className="p-4 rounded-xl bg-rose-500/10 border border-rose-500/30 text-xs text-rose-700 dark:text-rose-300 font-semibold flex items-start space-x-3 animate-in fade-in duration-200">
+                <AlertTriangle className="w-5 h-5 text-rose-500 shrink-0 mt-0.5" />
+                <div>
+                  <p className="font-bold text-rose-800 dark:text-rose-200 text-sm">Invalid Document Type</p>
+                  <p className="mt-1 leading-relaxed">{validationError}</p>
+                  <p className="mt-2 text-[11px] text-slate-600 dark:text-slate-400 font-medium">
+                    💡 Tip: Please upload a valid candidate CV/Resume (PDF, DOCX, or TXT format) containing your work experience, education, and skills.
+                  </p>
+                </div>
+              </div>
+            )}
+
             {/* Hidden File Input */}
             <input 
               type="file" 
@@ -190,7 +278,7 @@ export const AIResumeAnalyzerModal = () => {
                     <FileCheck className="w-6 h-6 text-emerald-500 shrink-0" />
                     <div className="truncate max-w-[240px]">
                       <p className="text-xs font-bold text-navy-950 dark:text-white truncate">{attachedFile.name}</p>
-                      <p className="text-[10px] text-slate-700 dark:text-slate-300 font-medium">{attachedFile.size} • Ready for AI ATS Audit</p>
+                      <p className="text-[10px] text-slate-700 dark:text-slate-300 font-medium">{attachedFile.size} • Candidate Resume</p>
                     </div>
                   </div>
                   <button 
@@ -206,21 +294,21 @@ export const AIResumeAnalyzerModal = () => {
                 <>
                   <Upload className={`w-8 h-8 ${isDragging ? 'text-gold-500 animate-bounce' : 'text-gold-600 dark:text-gold-400'}`} />
                   <p className="text-xs font-bold text-navy-950 dark:text-slate-200">
-                    {isDragging ? 'Drop File Here Now' : 'Click to Browse or Drag & Drop PDF / DOCX Resume'}
+                    {isDragging ? 'Drop Resume File Here Now' : 'Click to Browse or Drag & Drop Candidate Resume (PDF / DOCX)'}
                   </p>
-                  <p className="text-[10px] text-slate-700 dark:text-slate-300 font-medium">Supports PDF, DOCX, DOC, or TXT up to 10MB</p>
+                  <p className="text-[10px] text-slate-700 dark:text-slate-300 font-medium">Only candidate CVs & Resumes are accepted (PDF, DOCX, DOC, or TXT up to 10MB)</p>
                 </>
               )}
             </div>
 
             <div>
               <label className="block text-xs font-bold text-navy-950 dark:text-slate-200 mb-1">
-                Or Paste CV / Resume Text:
+                Or Paste Candidate CV / Resume Text:
               </label>
               <textarea 
                 rows={5}
                 value={resumeText}
-                onChange={(e) => setResumeText(e.target.value)}
+                onChange={(e) => { setResumeText(e.target.value); setValidationError(''); }}
                 placeholder="Paste work experience, skills, qualifications, certifications..."
                 className="w-full bg-slate-50 dark:bg-navy-950 border border-slate-300 dark:border-navy-700 rounded-xl p-3 text-xs text-navy-950 dark:text-white focus:outline-none focus:border-gold-500 font-medium"
               />
@@ -234,7 +322,7 @@ export const AIResumeAnalyzerModal = () => {
               {loading ? (
                 <>
                   <RefreshCw className="w-4 h-4 animate-spin" />
-                  <span>Analyzing GCC ATS Compliance...</span>
+                  <span>Validating & Analyzing Resume...</span>
                 </>
               ) : (
                 <>
@@ -297,7 +385,7 @@ export const AIResumeAnalyzerModal = () => {
             {/* Actions */}
             <div className="flex gap-3 pt-2">
               <button 
-                onClick={() => setResult(null)}
+                onClick={() => { setResult(null); setValidationError(''); }}
                 className="flex-1 py-2.5 bg-slate-200 dark:bg-navy-800 text-navy-900 dark:text-white font-bold text-xs rounded-xl hover:bg-slate-300"
               >
                 Analyze Another CV

@@ -1,13 +1,14 @@
 import React, { useState } from 'react';
 import { useApp } from '../context/AppContext';
+import { BrandLogoIcon } from './BrandLogoIcon';
 import { 
   Building2, Globe, Phone, Mail, Moon, Sun, Search, 
-  User, Briefcase, ChevronDown, Menu, X, Shield, Award, Sparkles 
+  User, Briefcase, ChevronDown, Menu, X, Shield, Award, Sparkles, LogIn
 } from 'lucide-react';
 import { SERVICES_LIST, INDUSTRIES_LIST } from '../data/mockData';
 
 export const Navbar = () => {
-  const { darkMode, toggleDarkMode, language, setLanguage, t, activeTab, navigateTo, navigateToService, navigateToIndustry, setActiveModal, user, logout } = useApp();
+  const { darkMode, toggleDarkMode, language, setLanguage, t, activeTab, navigateTo, navigateToService, navigateToIndustry, setActiveModal, openAuthModal, user, logout } = useApp();
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [megaMenuType, setMegaMenuType] = useState(null); // 'services' | 'industries' | null
 
@@ -17,8 +18,6 @@ export const Navbar = () => {
     { id: 'services', label: t('nav.services'), hasMega: 'services' },
     { id: 'industries', label: t('nav.industries'), hasMega: 'industries' },
     { id: 'jobs', label: t('nav.jobs') },
-    { id: 'employers', label: t('nav.employers') },
-    { id: 'candidates', label: t('nav.candidates') },
     { id: 'visa-eligibility', label: t('nav.visa') },
     { id: 'background-verification', label: t('nav.verification') },
     { id: 'contact', label: t('nav.contact') }
@@ -83,17 +82,14 @@ export const Navbar = () => {
           {/* Logo */}
           <div 
             onClick={() => navigateTo('home')} 
-            className="cursor-pointer flex items-center space-x-3 group"
+            className="cursor-pointer flex items-center space-x-3.5 group"
           >
-            <div className="w-10 h-10 rounded-xl bg-navy-900 border-2 border-gold-500 flex items-center justify-center shadow-lg group-hover:scale-105 transition duration-300">
-              <span className="font-serif text-xl font-extrabold text-gold-500">S</span>
-              <span className="font-serif text-lg font-bold text-white">IR</span>
-            </div>
+            <BrandLogoIcon className="w-12 h-12 group-hover:scale-105 transition duration-300 shadow-md" />
             <div>
-              <div className="font-serif text-xl font-bold tracking-tight text-navy-900 dark:text-white flex items-center gap-1.5">
-                SIR <span className="text-gold-500 font-sans text-xs uppercase tracking-widest px-1.5 py-0.5 bg-navy-900 text-gold-400 rounded">Recruitment</span>
+              <div className="font-serif text-2xl font-black tracking-tight text-navy-900 dark:text-white flex items-center gap-2">
+                SIR <span className="text-gold-500 font-sans text-[11px] font-bold uppercase tracking-widest px-2 py-0.5 bg-navy-900 text-gold-400 rounded-md shadow-sm">Recruitment</span>
               </div>
-              <p className="text-[10px] uppercase tracking-widest text-slate-700 dark:text-slate-300 font-bold">Dubai • GCC • Worldwide</p>
+              <p className="text-[10px] uppercase tracking-widest text-slate-700 dark:text-slate-300 font-extrabold">Dubai • GCC • Worldwide</p>
             </div>
           </div>
 
@@ -176,11 +172,11 @@ export const Navbar = () => {
             ))}
           </div>
 
-          {/* Action CTAs */}
+          {/* Action CTAs: Matching Image 1 Layout with SIR Theme Colors (Gold Shimmer & Gold Outline) */}
           <div className="hidden sm:flex items-center space-x-3">
             {user ? (
-              <div className="flex items-center space-x-2 bg-navy-950/80 border border-gold-500/30 px-3 py-1.5 rounded-xl text-xs">
-                <div className="w-6 h-6 rounded-full bg-gold-500 text-navy-950 font-bold flex items-center justify-center text-[10px]">
+              <div className="flex items-center space-x-2 bg-navy-950/90 border border-gold-500/40 px-3.5 py-1.5 rounded-full text-xs shadow-md">
+                <div className="w-7 h-7 rounded-full bg-gold-500 text-navy-950 font-bold flex items-center justify-center text-xs shadow-gold-glow">
                   {user.name ? user.name[0].toUpperCase() : 'U'}
                 </div>
                 <div className="text-left">
@@ -189,13 +185,13 @@ export const Navbar = () => {
                 </div>
                 <button
                   onClick={() => navigateTo(user.role === 'employer' ? 'employers' : 'candidates')}
-                  className="px-2 py-1 bg-gold-500/20 hover:bg-gold-500 hover:text-navy-950 text-gold-400 rounded text-[10px] font-bold transition ml-1"
+                  className="px-2.5 py-1 bg-gold-500/20 hover:bg-gold-500 hover:text-navy-950 text-gold-400 rounded-full text-[10px] font-bold transition ml-1"
                 >
                   Portal
                 </button>
                 <button
                   onClick={logout}
-                  className="px-2 py-1 bg-rose-500/20 hover:bg-rose-500 hover:text-white text-rose-300 rounded text-[10px] font-bold transition"
+                  className="px-2.5 py-1 bg-rose-500/20 hover:bg-rose-500 hover:text-white text-rose-300 rounded-full text-[10px] font-bold transition"
                   title="Sign Out"
                 >
                   Logout
@@ -203,19 +199,22 @@ export const Navbar = () => {
               </div>
             ) : (
               <>
+                {/* Register button: Outline style matching Image 1 layout with website SIR Gold theme */}
                 <button
-                  onClick={() => navigateTo('employers')}
-                  className="px-3.5 py-2 rounded-lg text-xs font-bold text-navy-900 dark:text-white bg-slate-100 dark:bg-navy-800 border border-slate-200 dark:border-navy-700 hover:border-gold-500 hover:text-gold-500 transition shadow-sm"
+                  onClick={() => openAuthModal('register')}
+                  className="px-4 py-2 rounded-full text-xs font-bold text-navy-900 dark:text-gold-400 bg-white dark:bg-navy-900 border-2 border-gold-500 hover:bg-gold-500/10 transition flex items-center space-x-1.5 shadow-sm"
                 >
-                  Employer Portal
+                  <User className="w-3.5 h-3.5 text-gold-500" />
+                  <span>Register</span>
                 </button>
                 
+                {/* Sign In button: Solid style matching Image 1 layout with website SIR Gold theme */}
                 <button
-                  onClick={() => navigateTo('candidates')}
-                  className="px-4 py-2 rounded-lg text-xs font-bold text-navy-950 bg-gold-shimmer hover:opacity-95 transition shadow-gold-glow flex items-center space-x-1.5"
+                  onClick={() => openAuthModal('login')}
+                  className="px-5 py-2 rounded-full text-xs font-bold text-navy-950 bg-gold-500 hover:bg-gold-600 shadow-gold-glow transition flex items-center space-x-1.5"
                 >
-                  <User className="w-3.5 h-3.5" />
-                  <span>Candidate Portal</span>
+                  <LogIn className="w-3.5 h-3.5 text-navy-950" />
+                  <span>Sign In</span>
                 </button>
               </>
             )}
@@ -253,10 +252,10 @@ export const Navbar = () => {
               </button>
             ))}
             <button
-              onClick={() => { navigateTo('candidates'); setMobileMenuOpen(false); }}
-              className="col-span-2 mt-2 py-3 bg-gold-500 text-navy-950 font-bold rounded-lg text-xs text-center"
+              onClick={() => { openAuthModal('login'); setMobileMenuOpen(false); }}
+              className="col-span-2 mt-2 py-3 bg-gold-500 text-navy-950 font-bold rounded-lg text-xs text-center shadow-gold-glow"
             >
-              Access Candidate & Employer Portal
+              Access SIR Single Sign In
             </button>
           </div>
         )}
