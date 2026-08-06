@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useCrm, CrmProvider } from './context/CrmContext';
 import { CrmLogin } from './components/CrmLogin';
 import { CrmSidebar } from './components/CrmSidebar';
@@ -29,6 +29,12 @@ const CrmAppContent = () => {
   const { isAuthenticated, activeModule, setActiveModule, commandPaletteOpen, setCommandPaletteOpen, aiDrawerOpen, setAiDrawerOpen, hasPermission } = useCrm();
   const [collapsed, setCollapsed] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
+
+  useEffect(() => {
+    if (window.innerWidth < 1024) {
+      setCollapsed(true);
+    }
+  }, []);
 
   // AI Copilot Interactive Chat State
   const [chatMessages, setChatMessages] = useState([

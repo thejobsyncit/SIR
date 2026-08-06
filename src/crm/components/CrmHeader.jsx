@@ -145,7 +145,7 @@ export const CrmHeader = ({ collapsed, setCollapsed }) => {
 
           {/* Notifications Dropdown Drawer */}
           {notificationsOpen && (
-            <div className="absolute right-0 top-full mt-2 w-80 glass-card bg-white dark:bg-navy-950 border border-gold-500/30 rounded-2xl p-4 shadow-luxury text-xs z-50 animate-in fade-in space-y-3">
+            <div className="absolute right-0 top-full mt-2 w-80 max-w-[90vw] sm:max-w-none glass-card bg-white dark:bg-navy-950 border border-gold-500/30 rounded-2xl p-4 shadow-luxury text-xs z-50 animate-in fade-in space-y-3">
               <div className="flex justify-between items-center border-b border-slate-200 dark:border-navy-800 pb-2">
                 <span className="font-bold text-slate-900 dark:text-white uppercase tracking-wider text-[11px]">System Audit Notifications</span>
                 <span className="text-[10px] text-gold-500 font-bold">{notifications.length} New</span>

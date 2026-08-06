@@ -33,7 +33,16 @@ export const CrmSidebar = ({ collapsed, setCollapsed }) => {
   const permittedItems = menuItems.filter(item => hasPermission(item.id));
 
   return (
-    <aside className={`bg-white dark:bg-[#070c1e] border-r border-slate-200 dark:border-slate-800/80 text-slate-700 dark:text-slate-300 flex flex-col justify-between transition-all duration-300 z-30 ${collapsed ? 'w-20' : 'w-64'}`}>
+    <>
+      {/* Mobile Backdrop */}
+      {!collapsed && (
+        <div 
+          className="fixed inset-0 bg-navy-950/50 backdrop-blur-sm z-40 lg:hidden"
+          onClick={() => setCollapsed(true)}
+        />
+      )}
+
+      <aside className={`bg-white dark:bg-[#070c1e] border-r border-slate-200 dark:border-slate-800/80 text-slate-700 dark:text-slate-300 flex flex-col justify-between transition-all duration-300 z-50 fixed inset-y-0 left-0 lg:static transform ${collapsed ? '-translate-x-full lg:translate-x-0 lg:w-20' : 'translate-x-0 w-64'}`}>
       
       {/* Top Brand Logo */}
       <div className="p-4 border-b border-slate-200 dark:border-navy-800 flex items-center justify-between">
@@ -59,7 +68,10 @@ export const CrmSidebar = ({ collapsed, setCollapsed }) => {
           return (
             <button
               key={item.id}
-              onClick={() => setActiveModule(item.id)}
+              onClick={() => {
+                setActiveModule(item.id);
+                if (window.innerWidth < 1024) setCollapsed(true);
+              }}
               className={`w-full flex items-center space-x-3 px-3 py-2.5 rounded-xl transition duration-200 ${
                 isActive
                   ? 'bg-gold-500/20 text-gold-600 dark:text-gold-400 border border-gold-500/40 font-bold shadow-sm'
@@ -96,6 +108,7 @@ export const CrmSidebar = ({ collapsed, setCollapsed }) => {
         )}
       </div>
 
-    </aside>
+      </aside>
+    </>
   );
 };
