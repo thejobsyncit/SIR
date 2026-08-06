@@ -21,9 +21,16 @@ import { BackgroundVerificationPage } from './pages/BackgroundVerificationPage';
 import { ContactUsPage } from './pages/ContactUsPage';
 
 import { UnifiedAuthModal } from './components/UnifiedAuthModal';
+import { CrmApp } from './crm/CrmApp';
 
 export function App() {
   const { activeTab } = useApp();
+
+  const isCrmRoute = activeTab === 'crm' || window.location.pathname.replace(/^\/+|\/+$/g, '').startsWith('crm');
+
+  if (isCrmRoute) {
+    return <CrmApp />;
+  }
 
   const renderCurrentPage = () => {
     switch (activeTab) {

@@ -21,7 +21,14 @@ export const AppProvider = ({ children }) => {
       document.documentElement.setAttribute('lang', language ? language.toLowerCase() : 'en');
     }
   }, [language]);
-  const [activeTab, setActiveTab] = useState('home');
+  const [activeTab, setActiveTab] = useState(() => {
+    const path = window.location.pathname.replace(/^\/+|\/+$/g, '');
+    const hash = window.location.hash.replace('#', '');
+    if (path === 'crm' || path.startsWith('crm/')) return 'crm';
+    if (hash) return hash;
+    if (path && path !== '') return path;
+    return 'home';
+  });
   const [selectedJob, setSelectedJob] = useState(null);
   const [activeModal, setActiveModal] = useState(null); // 'apply', 'ai-resume', 'payment', 'resume-builder', 'post-job', 'verification-modal', 'auth'
   const [authModalConfig, setAuthModalConfig] = useState({ mode: 'login', role: null });
@@ -264,18 +271,28 @@ export const AppProvider = ({ children }) => {
     });
   };
 
-  // Sync hash routing
+  // Sync URL pathname & hash routing
   useEffect(() => {
-    const handleHashChange = () => {
+    const handleUrlSync = () => {
+      const path = window.location.pathname.replace(/^\/+|\/+$/g, '');
       const hash = window.location.hash.replace('#', '');
-      if (hash) {
+      if (path === 'crm' || path.startsWith('crm/')) {
+        setActiveTab('crm');
+      } else if (hash) {
         setActiveTab(hash);
-        window.scrollTo({ top: 0, behavior: 'smooth' });
+      } else if (path && path !== '') {
+        setActiveTab(path);
+      } else {
+        setActiveTab('home');
       }
     };
-    handleHashChange();
-    window.addEventListener('hashchange', handleHashChange);
-    return () => window.removeEventListener('hashchange', handleHashChange);
+    handleUrlSync();
+    window.addEventListener('hashchange', handleUrlSync);
+    window.addEventListener('popstate', handleUrlSync);
+    return () => {
+      window.removeEventListener('hashchange', handleUrlSync);
+      window.removeEventListener('popstate', handleUrlSync);
+    };
   }, []);
 
   // Posted Jobs State Management
@@ -352,7 +369,15 @@ export const AppProvider = ({ children }) => {
 
   const navigateTo = (tab) => {
     setActiveTab(tab);
-    window.location.hash = tab;
+    if (tab === 'crm') {
+      window.history.pushState({}, '', '/crm');
+    } else {
+      if (window.location.pathname.startsWith('/crm')) {
+        window.history.pushState({}, '', '/' + (tab === 'home' ? '' : `#${tab}`));
+      } else {
+        window.location.hash = tab;
+      }
+    }
     window.scrollTo({ top: 0, behavior: 'smooth' });
   };
 

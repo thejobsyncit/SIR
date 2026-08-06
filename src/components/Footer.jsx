@@ -109,6 +109,7 @@ export const Footer = () => {
               <li><button onClick={() => navigateTo('jobs')} className="hover:text-gold-400 transition">• Browse Job Portal</button></li>
               <li><button onClick={() => navigateTo('employers')} className="hover:text-gold-400 transition">• Employer Solutions</button></li>
               <li><button onClick={() => navigateTo('candidates')} className="hover:text-gold-400 transition">• Candidate Hub</button></li>
+              <li><button onClick={() => navigateTo('crm')} className="hover:text-gold-400 transition text-amber-400 font-bold">• Recruiter CRM Portal</button></li>
               <li><button onClick={() => navigateTo('contact')} className="hover:text-gold-400 transition">• Office Locations</button></li>
             </ul>
           </div>

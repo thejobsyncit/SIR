@@ -43,6 +43,15 @@ export const Navbar = () => {
         </div>
 
         <div className="flex items-center space-x-4">
+          {/* Recruiter CRM Portal Link */}
+          <button 
+            onClick={() => navigateTo('crm')}
+            className="hidden sm:flex items-center space-x-1.5 bg-amber-500/20 text-gold-400 hover:bg-gold-500 hover:text-navy-950 px-2.5 py-1 rounded text-xs font-bold transition border border-gold-500/30"
+          >
+            <Shield className="w-3 h-3 text-gold-400" />
+            <span>Recruiter CRM</span>
+          </button>
+
           {/* Quick AI Tools Button */}
           <button 
             onClick={() => setActiveModal('ai-resume')}
