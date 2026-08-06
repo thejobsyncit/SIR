@@ -263,7 +263,5 @@ const CrmAppContent = () => {
 };
 
 export const CrmApp = () => (
-  <CrmProvider>
-    <CrmAppContent />
-  </CrmProvider>
+  <CrmAppContent />
 );

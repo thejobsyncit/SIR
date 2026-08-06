@@ -20,138 +20,18 @@ export const SERVICES_LIST = [
 ];
 
 export const INDUSTRIES_LIST = [
-  { 
-    id: 'const', 
-    name: 'Construction', 
-    category: 'Construction',
-    icon: 'Building', 
-    openJobs: 142, 
-    description: 'Civil, MEP, Structural, High-rise infrastructure & PMO leadership.',
-    keyRoles: ['Civil Project Manager', 'MEP BIM Manager', 'Structural Engineer', 'Site HSE Inspector', 'Quantity Surveyor'],
-    destinations: ['Dubai, UAE', 'Riyadh, Saudi Arabia', 'Doha, Qatar'],
-    avgSalary: 'AED 25,000 - 45,000 / month'
-  },
-  { 
-    id: 'oil-gas', 
-    name: 'Oil & Gas', 
-    category: 'Oil & Gas',
-    icon: 'Flame', 
-    openJobs: 89, 
-    description: 'Upstream, Downstream, Offshore drilling & HSE engineering.',
-    keyRoles: ['Offshore Drilling Engineer', 'Petroleum Reservoir Specialist', 'Pipeline Integrity Lead', 'HSE Audit Manager'],
-    destinations: ['Dhahran, Saudi Arabia', 'Abu Dhabi, UAE', 'Muscat, Oman'],
-    avgSalary: 'SAR 30,000 - 55,000 / month'
-  },
-  { 
-    id: 'health', 
-    name: 'Healthcare', 
-    category: 'Healthcare',
-    icon: 'HeartPulse', 
-    openJobs: 115, 
-    description: 'Doctors, ICU Nurses, Allied Health & Hospital Administration.',
-    keyRoles: ['Senior ICU Registered Nurse', 'Consultant Cardiologist', 'Radiology Technologist', 'Hospital Operations Director'],
-    destinations: ['Riyadh, KSA', 'Dubai, UAE', 'Doha, Qatar'],
-    avgSalary: 'SAR 18,000 - 40,000 / month'
-  },
-  { 
-    id: 'hosp', 
-    name: 'Hospitality', 
-    category: 'Hospitality',
-    icon: 'Utensils', 
-    openJobs: 164, 
-    description: '5-Star Resort Management, Culinary Chiefs, Front of House.',
-    keyRoles: ['Executive Chef', 'Resort General Manager', 'Food & Beverage Director', 'Front Office Manager'],
-    destinations: ['Palm Jumeirah, Dubai', 'Red Sea Project, KSA', 'Doha, Qatar'],
-    avgSalary: 'AED 20,000 - 35,000 / month'
-  },
-  { 
-    id: 'it-sw', 
-    name: 'IT & Software', 
-    category: 'IT & Software',
-    icon: 'Code', 
-    openJobs: 210, 
-    description: 'Cloud Architecture, Cybersecurity, AI Engineering & DevOps.',
-    keyRoles: ['Lead Cloud Architect', 'Cybersecurity Ops Specialist', 'Senior Full Stack Engineer', 'AI Data Scientist'],
-    destinations: ['Singapore', 'Dubai Internet City', 'Riyadh KAFD'],
-    avgSalary: 'SGD 10,000 - 18,000 / month'
-  },
-  { 
-    id: 'eng', 
-    name: 'Engineering', 
-    category: 'Engineering',
-    icon: 'Wrench', 
-    openJobs: 98, 
-    description: 'Mechanical, Electrical, Chemical & Renewable Energy Specialists.',
-    keyRoles: ['Mechanical Maintenance Engineer', 'Electrical Grid Specialist', 'Solar Plant Project Lead', 'Automation Engineer'],
-    destinations: ['Abu Dhabi, UAE', 'Dammam, KSA', 'Jubail, KSA'],
-    avgSalary: 'AED 22,000 - 35,000 / month'
-  },
-  { 
-    id: 'mfg', 
-    name: 'Manufacturing', 
-    category: 'Construction',
-    icon: 'Factory', 
-    openJobs: 76, 
-    description: 'Plant Operations, Supply Chain QA, Robotics & Assembly.',
-    keyRoles: ['Plant Operations Manager', 'Quality Assurance Director', 'Robotics Process Lead', 'EHS Plant Specialist'],
-    destinations: ['KIZAD Abu Dhabi', 'Jebel Ali Dubai', 'Yanbu KSA'],
-    avgSalary: 'AED 18,000 - 30,000 / month'
-  },
-  { 
-    id: 'rtl', 
-    name: 'Retail', 
-    category: 'Hospitality',
-    icon: 'ShoppingBag', 
-    openJobs: 132, 
-    description: 'Luxury Fashion Managers, Store Directors, E-Commerce Ops.',
-    keyRoles: ['Luxury Brand Manager', 'Regional Retail Operations Lead', 'Merchandising Director', 'E-Commerce Logistics Manager'],
-    destinations: ['Dubai Mall, UAE', 'Riyadh Park, KSA', 'Doha, Qatar'],
-    avgSalary: 'AED 15,000 - 28,000 / month'
-  },
-  { 
-    id: 'log', 
-    name: 'Logistics', 
-    category: 'Construction',
-    icon: 'Truck', 
-    openJobs: 94, 
-    description: 'Supply Chain, Port Operations, Customs & Fleet Management.',
-    keyRoles: ['Supply Chain & Logistics Director', 'Port Freight Specialist', 'Warehouse Automation Manager', 'Fleet Customs Manager'],
-    destinations: ['Jebel Ali Port, Dubai', 'Hamad Port, Qatar', 'King Abdullah Port, KSA'],
-    avgSalary: 'QAR 25,000 - 50,000 / month'
-  },
-  { 
-    id: 'avi', 
-    name: 'Aviation', 
-    category: 'Aviation',
-    icon: 'PlaneTakeoff', 
-    openJobs: 58, 
-    description: 'EASA Maintenance Technicians, Cabin Crew & Airport Operations.',
-    keyRoles: ['Commercial Aircraft Technician', 'Flight Operations Manager', 'Avionics Lead Engineer', 'Ground Handling Director'],
-    destinations: ['Doha, Qatar', 'Dubai DXB', 'Riyadh RUH'],
-    avgSalary: 'QAR 20,000 - 38,000 / month'
-  },
-  { 
-    id: 'bnk', 
-    name: 'Banking', 
-    category: 'IT & Software',
-    icon: 'Landmark', 
-    openJobs: 104, 
-    description: 'Investment Banking, Compliance, Fintech & Risk Management.',
-    keyRoles: ['Senior Risk Management Lead', 'Fintech Compliance Officer', 'Investment Banking Associate', 'Treasury Manager'],
-    destinations: ['DIFC Dubai', 'KAFD Riyadh', 'ADGM Abu Dhabi'],
-    avgSalary: 'AED 30,000 - 60,000 / month'
-  },
-  { 
-    id: 'edu', 
-    name: 'Education', 
-    category: 'Healthcare',
-    icon: 'GraduationCap', 
-    openJobs: 67, 
-    description: 'International School Principals, STEM Faculty & Lecturers.',
-    keyRoles: ['International School Principal', 'STEM Department Head', 'University Senior Lecturer', 'Curriculum Director'],
-    destinations: ['Dubai, UAE', 'Riyadh, KSA', 'Abu Dhabi, UAE'],
-    avgSalary: 'AED 16,000 - 32,000 / month'
-  }
+  { id: 'const', name: 'Construction', icon: 'Building', openJobs: 142, description: 'Civil, MEP, Structural, High-rise infrastructure & PMO leadership.' },
+  { id: 'oil-gas', name: 'Oil & Gas', icon: 'Flame', openJobs: 89, description: 'Upstream, Downstream, Offshore drilling & HSE engineering.' },
+  { id: 'health', name: 'Healthcare', icon: 'HeartPulse', openJobs: 115, description: 'Doctors, ICU Nurses, Allied Health & Hospital Administration.' },
+  { id: 'hosp', name: 'Hospitality', icon: 'Utensils', openJobs: 164, description: '5-Star Resort Management, Culinary Chiefs, Front of House.' },
+  { id: 'it-sw', name: 'IT & Software', icon: 'Code', openJobs: 210, description: 'Cloud Architecture, Cybersecurity, AI Engineering & DevOps.' },
+  { id: 'eng', name: 'Engineering', icon: 'Wrench', openJobs: 98, description: 'Mechanical, Electrical, Chemical & Renewable Energy Specialists.' },
+  { id: 'mfg', name: 'Manufacturing', icon: 'Factory', openJobs: 76, description: 'Plant Operations, Supply Chain QA, Robotics & Assembly.' },
+  { id: 'rtl', name: 'Retail', icon: 'ShoppingBag', openJobs: 132, description: 'Luxury Fashion Managers, Store Directors, E-Commerce Ops.' },
+  { id: 'log', name: 'Logistics', icon: 'Truck', openJobs: 94, description: 'Supply Chain, Port Operations, Customs & Fleet Management.' },
+  { id: 'avi', name: 'Aviation', icon: 'PlaneTakeoff', openJobs: 58, description: 'EASA Maintenance Technicians, Cabin Crew & Airport Operations.' },
+  { id: 'bnk', name: 'Banking', icon: 'Landmark', openJobs: 104, description: 'Investment Banking, Compliance, Fintech & Risk Management.' },
+  { id: 'edu', name: 'Education', icon: 'GraduationCap', openJobs: 67, description: 'International School Principals, STEM Faculty & Lecturers.' }
 ];
 
 export const COUNTRIES_LIST = [

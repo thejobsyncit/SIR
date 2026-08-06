@@ -421,15 +421,6 @@ export const UnifiedAuth = ({ defaultMode = 'login', defaultRole = null, onSucce
               <ArrowRight className="w-4 h-4" />
             </button>
 
-            <div className="pt-3 border-t border-slate-100 dark:border-navy-800">
-              <button
-                type="button"
-                onClick={handleDemoEmployerLogin}
-                className="w-full py-2.5 bg-navy-900 text-gold-400 hover:bg-navy-800 font-bold rounded-xl transition text-xs border border-gold-500/30"
-              >
-                🏢 Quick Demo Employer Sign In (Instant Access)
-              </button>
-            </div>
           </form>
         )}
 

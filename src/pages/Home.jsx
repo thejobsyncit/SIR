@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { useApp } from '../context/AppContext';
 import { 
   Building2, Globe, Users, Briefcase, Search, ArrowRight, ShieldCheck, Award, 
-  CheckCircle2, Star, Play, ChevronRight, FileText, Sparkles, MapPin, Clock, Phone, Send, Bookmark
+  CheckCircle2, Star, Play, ChevronRight, FileText, Sparkles, MapPin, Clock, Phone, Send, Bookmark, Calendar, MessageSquare
 } from 'lucide-react';
 import { SERVICES_LIST, INDUSTRIES_LIST, TESTIMONIALS, BLOG_POSTS, FAQS, COUNTRIES_LIST, JOBS_LIST } from '../data/mockData';
 
@@ -60,26 +60,26 @@ export const Home = () => {
         <div className="relative z-10 max-w-7xl mx-auto px-4 sm:px-8 text-center space-y-8 py-12">
           
           {/* Badge */}
-          <div className="inline-flex items-center space-x-2 bg-navy-900/90 text-gold-400 border border-gold-500/30 px-4 py-1.5 rounded-full text-xs font-bold shadow-luxury animate-float">
+          <div className="inline-flex items-center space-x-2 bg-navy-900/90 text-gold-400 border border-gold-500/30 px-4 py-1.5 rounded-full text-xs font-bold shadow-luxury animate-fade-in-up">
             <Sparkles className="w-3.5 h-3.5 text-gold-500" />
             <span>{t('hero.badge')}</span>
           </div>
 
           {/* Headline */}
-          <h1 className="font-serif text-3xl sm:text-5xl lg:text-6xl font-extrabold text-navy-900 dark:text-white tracking-tight leading-[1.15] max-w-5xl mx-auto">
+          <h1 className="font-serif text-3xl sm:text-5xl lg:text-6xl font-extrabold text-navy-900 dark:text-white tracking-tight leading-[1.15] max-w-5xl mx-auto animate-fade-in-up" style={{ animationDelay: '0.1s' }}>
             {t('hero.title')}
           </h1>
 
           {/* Subheading */}
-          <p className="text-slate-600 dark:text-slate-300 text-sm sm:text-base max-w-3xl mx-auto leading-relaxed font-normal">
+          <p className="text-slate-600 dark:text-slate-300 text-sm sm:text-base max-w-3xl mx-auto leading-relaxed font-normal animate-fade-in-up" style={{ animationDelay: '0.2s' }}>
             {t('hero.subtitle')}
           </p>
 
           {/* Action CTAs */}
-          <div className="flex flex-col sm:flex-row justify-center items-center gap-4 pt-2">
+          <div className="flex flex-col sm:flex-row justify-center items-center gap-4 pt-2 animate-fade-in-up" style={{ animationDelay: '0.3s' }}>
             <button 
               onClick={() => navigateTo('jobs')}
-              className="w-full sm:w-auto px-8 py-4 bg-gold-shimmer text-navy-950 font-extrabold text-sm rounded-xl shadow-gold-glow hover:scale-105 transition duration-300 flex items-center justify-center space-x-2"
+              className="w-full sm:w-auto px-8 py-4 bg-gold-shimmer text-navy-950 font-extrabold text-sm rounded-xl shadow-gold-glow hover-lift active-scale flex items-center justify-center space-x-2"
             >
               <Briefcase className="w-4 h-4" />
               <span>{t('hero.findJobsBtn')}</span>
@@ -87,7 +87,7 @@ export const Home = () => {
 
             <button 
               onClick={() => navigateTo('employers')}
-              className="w-full sm:w-auto px-8 py-4 bg-navy-900 text-white font-extrabold text-sm rounded-xl border border-gold-500/40 hover:bg-navy-800 transition shadow-luxury flex items-center justify-center space-x-2"
+              className="w-full sm:w-auto px-8 py-4 bg-navy-900 text-white font-extrabold text-sm rounded-xl border border-gold-500/40 hover:bg-navy-800 hover-lift active-scale shadow-luxury flex items-center justify-center space-x-2"
             >
               <Building2 className="w-4 h-4 text-gold-500" />
               <span>{t('hero.hireTalentBtn')}</span>
@@ -95,7 +95,7 @@ export const Home = () => {
           </div>
 
           {/* Hero Quick Search Box */}
-          <div className="glass-card bg-white/90 dark:bg-navy-900/90 border border-slate-200 dark:border-navy-700 p-4 sm:p-6 rounded-2xl max-w-4xl mx-auto shadow-luxury">
+          <div className="glass-card bg-white/90 dark:bg-navy-900/90 border border-slate-200 dark:border-navy-700 p-4 sm:p-6 rounded-2xl max-w-4xl mx-auto shadow-luxury animate-fade-in-up" style={{ animationDelay: '0.4s' }}>
             <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
               
               <div className="relative">
@@ -127,7 +127,7 @@ export const Home = () => {
 
               <button 
                 onClick={() => navigateTo('jobs')}
-                className="w-full py-3 bg-navy-900 hover:bg-gold-500 hover:text-navy-950 text-white font-bold text-xs rounded-xl transition duration-300 flex items-center justify-center space-x-2"
+                className="w-full py-3 bg-navy-900 hover:bg-gold-500 hover:text-navy-950 text-white font-bold text-xs rounded-xl active-scale transition duration-300 flex items-center justify-center space-x-2"
               >
                 <span>{t('hero.searchBtn')}</span>
                 <ArrowRight className="w-4 h-4" />
@@ -157,7 +157,8 @@ export const Home = () => {
           {trustedLogos.map((item, idx) => (
             <div 
               key={idx} 
-              className={`glass-card bg-gradient-to-br ${item.color} border p-6 rounded-2xl text-center shadow-md hover:shadow-luxury hover:scale-[1.03] transition-all duration-300 flex flex-col items-center justify-center space-y-3 group cursor-pointer`}
+              className={`glass-card bg-gradient-to-br ${item.color} border p-6 rounded-2xl text-center shadow-md hover-lift transition-all duration-300 flex flex-col items-center justify-center space-y-3 group cursor-pointer animate-fade-in-up`}
+              style={{ animationDelay: `${idx * 0.1}s` }}
             >
               <div className="w-16 h-16 rounded-2xl bg-white dark:bg-navy-950 border border-slate-200 dark:border-navy-800 shadow-md flex items-center justify-center text-4xl group-hover:scale-110 transition-transform">
                 {item.symbol}
@@ -178,13 +179,13 @@ export const Home = () => {
       {/* KEY STATISTICS COUNTERS */}
       <section className="max-w-7xl mx-auto px-4 sm:px-8">
         <div className="bg-navy-950 text-white border border-gold-500/30 rounded-3xl p-8 sm:p-12 shadow-luxury relative overflow-hidden">
-          <div className="grid grid-cols-2 lg:grid-cols-4 gap-8 text-center divide-y lg:divide-y-0 lg:divide-x divide-navy-800">
+          <div className="grid grid-cols-2 lg:grid-cols-4 gap-8 text-center divide-y lg:divide-y-0 lg:divide-x divide-navy-800 animate-fade-in-up">
             {stats.map((s, idx) => {
               const Icon = s.icon;
               return (
-                <div key={idx} className="pt-4 lg:pt-0 lg:px-4 space-y-2">
+                <div key={idx} className="pt-4 lg:pt-0 lg:px-4 space-y-2 hover-lift cursor-default transition-all duration-300">
                   <Icon className="w-8 h-8 text-gold-500 mx-auto" />
-                  <div className="font-serif text-4xl sm:text-5xl font-extrabold text-white tracking-tight">
+                  <div className="font-serif text-4xl sm:text-5xl font-extrabold text-white tracking-tight text-gradient-emerald">
                     {s.value}
                   </div>
                   <div className="text-xs font-semibold uppercase tracking-wider text-slate-400">
@@ -215,12 +216,13 @@ export const Home = () => {
           </button>
         </div>
 
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-          {allJobsList.slice(0, 6).map((job) => (
+        <div className="flex overflow-x-auto pb-6 -mx-4 px-4 sm:mx-0 sm:px-0 sm:grid sm:grid-cols-2 lg:grid-cols-3 gap-6 snap-x snap-mandatory sm:snap-none" style={{ scrollbarWidth: 'none' }}>
+          {allJobsList.slice(0, 6).map((job, idx) => (
             <div 
               key={job.id}
               onClick={() => navigateTo('jobs')}
-              className="glass-card bg-white dark:bg-navy-900 border border-slate-200 dark:border-navy-800 p-6 rounded-2xl space-y-4 hover:border-gold-500 transition duration-300 shadow-glass cursor-pointer flex flex-col justify-between group"
+              className="min-w-[85vw] sm:min-w-0 snap-center sm:snap-align-none glass-card bg-white dark:bg-navy-900 border border-slate-200 dark:border-navy-800 p-6 rounded-2xl space-y-4 hover:border-gold-500 transition duration-300 hover-lift shadow-glass cursor-pointer flex flex-col justify-between group animate-fade-in-up"
+              style={{ animationDelay: `${idx * 0.15}s` }}
             >
               <div className="space-y-3">
                 <div className="flex justify-between items-start">
@@ -387,7 +389,7 @@ export const Home = () => {
             <div className="flex gap-3 pt-2">
               <button 
                 onClick={() => navigateTo('visa-eligibility')}
-                className="px-6 py-3 bg-gold-shimmer text-navy-950 font-bold text-xs rounded-xl shadow-gold-glow hover:opacity-95"
+                className="px-6 py-3 bg-gold-shimmer text-navy-950 font-bold text-xs rounded-xl shadow-gold-glow hover:opacity-95 active-scale"
               >
                 Launch Visa Eligibility Checker →
               </button>
@@ -427,14 +429,14 @@ export const Home = () => {
           <h3 className="font-serif text-3xl font-extrabold text-navy-900 dark:text-white">Our 6-Step Recruitment Lifecycle</h3>
         </div>
 
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-6 gap-4">
+        <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-4">
           {processSteps.map((step) => (
-            <div key={step.num} className="glass-card bg-white dark:bg-navy-900 border border-slate-200 dark:border-navy-800 p-5 rounded-2xl relative space-y-2.5 shadow-sm hover:border-gold-500 transition">
-              <div className="font-serif text-3xl font-black text-gold-600 dark:text-gold-400 tracking-tight">
+            <div key={step.num} className="glass-card bg-white dark:bg-navy-900 border border-slate-200 dark:border-navy-800 p-4 sm:p-5 rounded-2xl relative space-y-2 shadow-sm hover:border-gold-500 transition">
+              <div className="font-serif text-2xl sm:text-3xl font-black text-gold-600 dark:text-gold-400 tracking-tight">
                 {step.num}
               </div>
-              <h4 className="font-bold text-sm text-navy-950 dark:text-white">{step.title}</h4>
-              <p className="text-xs text-slate-600 dark:text-slate-300 leading-relaxed font-medium">{step.desc}</p>
+              <h4 className="font-bold text-xs sm:text-sm text-navy-950 dark:text-white leading-tight">{step.title}</h4>
+              <p className="hidden sm:block text-xs text-slate-600 dark:text-slate-300 leading-relaxed font-medium">{step.desc}</p>
             </div>
           ))}
         </div>
@@ -447,9 +449,9 @@ export const Home = () => {
           <h3 className="font-serif text-3xl font-extrabold text-navy-900 dark:text-white">Success Stories across UAE & GCC</h3>
         </div>
 
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+        <div className="flex overflow-x-auto pb-6 -mx-4 px-4 sm:mx-0 sm:px-0 sm:grid sm:grid-cols-2 lg:grid-cols-3 gap-6 snap-x snap-mandatory sm:snap-none" style={{ scrollbarWidth: 'none' }}>
           {TESTIMONIALS.map((t) => (
-            <div key={t.id} className="glass-card bg-white dark:bg-navy-900 border border-slate-200 dark:border-navy-800 p-6 rounded-2xl space-y-4 shadow-glass">
+            <div key={t.id} className="min-w-[85vw] sm:min-w-0 snap-center sm:snap-align-none glass-card bg-white dark:bg-navy-900 border border-slate-200 dark:border-navy-800 p-6 rounded-2xl space-y-4 shadow-glass">
               <div className="flex items-center space-x-1 text-gold-500">
                 {[...Array(t.rating)].map((_, i) => (
                   <Star key={i} className="w-4 h-4 fill-current" />
@@ -479,9 +481,9 @@ export const Home = () => {
           </div>
         </div>
 
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+        <div className="flex overflow-x-auto pb-6 -mx-4 px-4 sm:mx-0 sm:px-0 sm:grid sm:grid-cols-2 lg:grid-cols-3 gap-6 snap-x snap-mandatory sm:snap-none" style={{ scrollbarWidth: 'none' }}>
           {BLOG_POSTS.map((post) => (
-            <div key={post.id} className="glass-card bg-white dark:bg-navy-900 border border-slate-200 dark:border-navy-800 p-6 rounded-2xl space-y-3 shadow-sm">
+            <div key={post.id} className="min-w-[85vw] sm:min-w-0 snap-center sm:snap-align-none glass-card bg-white dark:bg-navy-900 border border-slate-200 dark:border-navy-800 p-6 rounded-2xl space-y-3 shadow-sm hover-lift cursor-pointer">
               <span className="bg-gold-500/10 text-gold-600 dark:text-gold-400 text-[10px] font-bold px-2.5 py-1 rounded-md uppercase">
                 {post.category}
               </span>
@@ -500,8 +502,45 @@ export const Home = () => {
         </div>
       </section>
 
+      {/* PREMIUM CONSULTING CTA */}
+      <section className="max-w-7xl mx-auto px-4 sm:px-8 space-y-8">
+        <div className="bg-navy-950 text-white rounded-3xl p-8 sm:p-12 border border-gold-500/30 shadow-luxury relative overflow-hidden flex flex-col md:flex-row items-center justify-between gap-8 animate-fade-in-up">
+          {/* Decorative background element */}
+          <div className="absolute -top-24 -right-24 w-64 h-64 bg-gold-500/10 rounded-full blur-3xl"></div>
+          
+          <div className="relative z-10 space-y-4 max-w-2xl text-center md:text-left">
+            <span className="bg-gold-500/20 text-gold-400 text-xs font-bold px-3 py-1 rounded-full uppercase tracking-widest border border-gold-500/30">
+              Expert Advisory
+            </span>
+            <h3 className="font-serif text-3xl sm:text-4xl lg:text-5xl font-extrabold tracking-tight text-white">
+              Book a Free <span className="text-gradient-emerald">Strategy Consultation</span>
+            </h3>
+            <p className="text-slate-300 text-sm leading-relaxed max-w-xl mx-auto md:mx-0">
+              Whether you are an enterprise looking to scale your workforce across the GCC, or an executive seeking your next career move, our senior consultants are here to guide you.
+            </p>
+          </div>
+          
+          <div className="relative z-10 flex flex-col w-full md:w-auto gap-4">
+            <button 
+              onClick={() => navigateTo('contact')}
+              className="px-8 py-4 bg-gold-shimmer text-navy-950 font-extrabold text-sm rounded-xl shadow-gold-glow hover-lift active-scale flex items-center justify-center space-x-2 w-full md:w-64"
+            >
+              <Calendar className="w-5 h-5" />
+              <span>Schedule a Call</span>
+            </button>
+            <button 
+              onClick={() => navigateTo('contact')}
+              className="px-8 py-4 bg-navy-900 text-white border border-gold-500/40 font-extrabold text-sm rounded-xl shadow-luxury hover-lift active-scale flex items-center justify-center space-x-2 w-full md:w-64"
+            >
+              <MessageSquare className="w-5 h-5 text-gold-500" />
+              <span>Send us an Inquiry</span>
+            </button>
+          </div>
+        </div>
+      </section>
+
       {/* FREQUENTLY ASKED QUESTIONS */}
-      <section className="max-w-4xl mx-auto px-4 sm:px-8 space-y-8">
+      <section className="max-w-4xl mx-auto px-4 sm:px-8 space-y-8 pt-8">
         <div className="text-center space-y-2">
           <h2 className="text-xs font-bold text-gold-500 uppercase tracking-widest">Have Questions?</h2>
           <h3 className="font-serif text-3xl font-extrabold text-navy-900 dark:text-white">Frequently Asked Questions</h3>

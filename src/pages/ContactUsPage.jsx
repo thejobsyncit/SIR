@@ -1,11 +1,28 @@
 import React, { useState } from 'react';
 import { MapPin, Phone, Mail, Clock, MessageSquare, Send, CheckCircle2, Globe, Building2 } from 'lucide-react';
+import { useCrm } from '../crm/context/CrmContext';
 
 export const ContactUsPage = () => {
   const [submitted, setSubmitted] = useState(false);
 
+  const { addClient } = useCrm();
+
   const handleSubmit = (e) => {
     e.preventDefault();
+    const formData = new FormData(e.target);
+    const data = Object.fromEntries(formData.entries());
+    
+    // Push the website inquiry to the CRM as a Client Lead
+    addClient({
+      company: data.name + ' (Web Inquiry)',
+      email: data.email,
+      phone: data.phone,
+      industry: data.type,
+      country: 'Web Lead',
+      status: 'Prospect',
+      requirements: [{ title: 'Web Message', description: data.message }]
+    });
+
     setSubmitted(true);
   };
 
@@ -98,22 +115,22 @@ export const ContactUsPage = () => {
               <div className="grid grid-cols-2 gap-3">
                 <div>
                   <label className="block font-bold text-slate-700 dark:text-slate-200 mb-1">Your Name</label>
-                  <input required type="text" placeholder="John Doe" className="w-full bg-slate-50 dark:bg-navy-950 border rounded-xl p-2.5 text-navy-900 dark:text-white" />
+                  <input name="name" required type="text" placeholder="John Doe" className="w-full bg-slate-50 dark:bg-navy-950 border rounded-xl p-2.5 text-navy-900 dark:text-white" />
                 </div>
                 <div>
                   <label className="block font-bold text-slate-700 dark:text-slate-200 mb-1">Email Address</label>
-                  <input required type="email" placeholder="john@company.com" className="w-full bg-slate-50 dark:bg-navy-950 border rounded-xl p-2.5 text-navy-900 dark:text-white" />
+                  <input name="email" required type="email" placeholder="john@company.com" className="w-full bg-slate-50 dark:bg-navy-950 border rounded-xl p-2.5 text-navy-900 dark:text-white" />
                 </div>
               </div>
 
               <div className="grid grid-cols-2 gap-3">
                 <div>
                   <label className="block font-bold text-slate-700 dark:text-slate-200 mb-1">Phone / WhatsApp</label>
-                  <input required type="text" placeholder="+971 50 ..." className="w-full bg-slate-50 dark:bg-navy-950 border rounded-xl p-2.5 text-navy-900 dark:text-white" />
+                  <input name="phone" required type="text" placeholder="+971 50 ..." className="w-full bg-slate-50 dark:bg-navy-950 border rounded-xl p-2.5 text-navy-900 dark:text-white" />
                 </div>
                 <div>
                   <label className="block font-bold text-slate-700 dark:text-slate-200 mb-1">I am a...</label>
-                  <select className="w-full bg-slate-50 dark:bg-navy-950 border rounded-xl p-2.5 text-navy-900 dark:text-white">
+                  <select name="type" className="w-full bg-slate-50 dark:bg-navy-950 border rounded-xl p-2.5 text-navy-900 dark:text-white">
                     <option value="employer">Employer looking to hire talent</option>
                     <option value="candidate">Candidate searching for jobs</option>
                     <option value="verification">Requesting Background Verification</option>
@@ -124,7 +141,7 @@ export const ContactUsPage = () => {
 
               <div>
                 <label className="block font-bold text-slate-700 dark:text-slate-200 mb-1">Message Details</label>
-                <textarea rows={4} placeholder="Specify your requirements, hiring volume, or visa target..." className="w-full bg-slate-50 dark:bg-navy-950 border rounded-xl p-2.5 text-navy-900 dark:text-white" />
+                <textarea name="message" rows={4} placeholder="Specify your requirements, hiring volume, or visa target..." className="w-full bg-slate-50 dark:bg-navy-950 border rounded-xl p-2.5 text-navy-900 dark:text-white" />
               </div>
 
               <button type="submit" className="w-full py-3.5 bg-gold-shimmer text-navy-950 font-bold text-xs rounded-xl shadow-gold-glow flex items-center justify-center space-x-2">

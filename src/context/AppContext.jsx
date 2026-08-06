@@ -1,9 +1,11 @@
 import React, { createContext, useContext, useState, useEffect } from 'react';
 import { TRANSLATIONS } from '../data/translations';
+import { useCrm } from '../crm/context/CrmContext';
 
 const AppContext = createContext();
 
 export const AppProvider = ({ children }) => {
+  const crm = useCrm();
   const [darkMode, setDarkMode] = useState(false);
   const [language, setLanguage] = useState('EN');
   const [currency, setCurrency] = useState('AED');
@@ -180,6 +182,20 @@ export const AppProvider = ({ children }) => {
     saveCandidateToDB(candidateUser);
     saveUserSession(candidateUser);
     setActiveTab('candidates');
+    
+    // CRM Integration: Add candidate to internal CRM database
+    if (crm && crm.addCandidate) {
+      crm.addCandidate({
+        name: candidateUser.name,
+        email: candidateUser.email,
+        phone: candidateUser.phone,
+        title: candidateUser.title,
+        status: 'Web Lead',
+        score: 85, // Default for new web registrations
+        stage: 'lead'
+      });
+    }
+
     return candidateUser;
   };
 
@@ -347,6 +363,17 @@ export const AppProvider = ({ children }) => {
       return updated;
     });
 
+    // CRM Integration: Log client requirement
+    if (crm && crm.addClient) {
+      crm.addClient({
+        company: newJob.company,
+        email: user?.email || 'employer@web.com',
+        industry: newJob.category,
+        requirements: [{ title: newJob.title, description: newJob.description }],
+        status: 'Active'
+      });
+    }
+
     return newJob;
   };
 
@@ -427,9 +454,6 @@ export const AppProvider = ({ children }) => {
         setSelectedServiceId,
         selectedIndustryId,
         setSelectedIndustryId,
-        selectedCategory,
-        setSelectedCategory,
-        navigateToCategoryJobs,
         navigateToService,
         navigateToIndustry,
         selectedJob,
