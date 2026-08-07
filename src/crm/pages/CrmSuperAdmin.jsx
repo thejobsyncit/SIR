@@ -381,7 +381,7 @@ export const CrmSuperAdmin = () => {
                         </span>
                       </td>
                       <td className="p-3 font-mono">
-                        <div className="font-bold text-slate-900 dark:text-slate-200">{emp.email}</div>
+                        <div className="font-bold text-slate-900 dark:text-slate-200 truncate max-w-[140px] sm:max-w-[180px]" title={emp.email}>{emp.email}</div>
                         <div className="text-[10px] font-bold text-slate-500 dark:text-slate-400 mt-0.5">{emp.phone}</div>
                       </td>
                       <td className="p-3 font-mono text-[10px] font-bold text-red-600 dark:text-red-400">
