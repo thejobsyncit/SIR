@@ -4,7 +4,7 @@ import { INDUSTRIES_LIST } from '../data/mockData';
 import { Building, Flame, HeartPulse, Utensils, Code, Wrench, Factory, ShoppingBag, Truck, PlaneTakeoff, Landmark, GraduationCap, ArrowRight } from 'lucide-react';
 
 export const Industries = () => {
-  const { navigateTo, selectedIndustryId } = useApp();
+  const { navigateTo, selectedIndustryId, setSelectedJobCategory } = useApp();
 
   return (
     <div className="max-w-7xl mx-auto px-4 sm:px-8 py-12 space-y-12">
@@ -52,7 +52,10 @@ export const Industries = () => {
             </div>
 
             <button 
-              onClick={() => navigateTo('jobs')}
+              onClick={() => {
+                setSelectedJobCategory(ind.name);
+                navigateTo('jobs');
+              }}
               className="w-full py-2.5 bg-slate-200/80 dark:bg-navy-800 text-slate-900 dark:text-slate-100 hover:bg-gold-500 hover:text-navy-950 font-bold text-xs rounded-xl transition flex items-center justify-center space-x-1"
             >
               <span>Explore Roles in {ind.name}</span>

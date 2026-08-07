@@ -6,8 +6,7 @@ import {
 } from 'lucide-react';
 
 export const CrmInterviews = () => {
-  const { interviews } = useCrm();
-  const [interviewList, setInterviewList] = useState(interviews);
+  const { interviews, addInterview, updateInterview } = useCrm();
   const [modalOpen, setModalOpen] = useState(false);
   const [feedbackModalOpen, setFeedbackModalOpen] = useState(null);
 
@@ -44,7 +43,7 @@ export const CrmInterviews = () => {
       clientConfirmed: true,
       recordingLink: `https://${newInterview.platform.toLowerCase().replace(' ', '')}.com/rec-link`
     };
-    setInterviewList([interviewObj, ...interviewList]);
+    addInterview(interviewObj);
     setModalOpen(false);
   };
 
@@ -52,16 +51,14 @@ export const CrmInterviews = () => {
     e.preventDefault();
     if (!feedbackModalOpen) return;
 
-    setInterviewList(prev => prev.map(item => {
-      if (item.id === feedbackModalOpen.id) {
-        return {
-          ...item,
-          status: resultStatus === 'Passed' ? 'Completed' : resultStatus,
-          feedback: feedbackText
-        };
-      }
-      return item;
-    }));
+    const itemToUpdate = interviews.find(item => item.id === feedbackModalOpen.id);
+    if (itemToUpdate) {
+      updateInterview({
+        ...itemToUpdate,
+        status: resultStatus === 'Passed' ? 'Completed' : resultStatus,
+        feedback: feedbackText
+      });
+    }
 
     setFeedbackModalOpen(null);
     setFeedbackText('');
@@ -93,7 +90,7 @@ export const CrmInterviews = () => {
 
       {/* Interview Cards Grid */}
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-        {interviewList.map((item) => (
+        {interviews.map((item) => (
           <div key={item.id} className="glass-card bg-white dark:bg-navy-900 border border-slate-200 dark:border-navy-800 p-6 rounded-2xl space-y-4 hover:border-gold-500/50 transition shadow-sm">
             
             <div className="flex justify-between items-start border-b border-slate-200 dark:border-navy-800 pb-3">

@@ -9,6 +9,7 @@ export const AppProvider = ({ children }) => {
   const [darkMode, setDarkMode] = useState(false);
   const [language, setLanguage] = useState('EN');
   const [currency, setCurrency] = useState('AED');
+  const [selectedJobCategory, setSelectedJobCategory] = useState('All');
 
   const t = (key) => {
     return TRANSLATIONS[language]?.[key] || TRANSLATIONS['EN']?.[key] || key;
@@ -458,6 +459,8 @@ export const AppProvider = ({ children }) => {
         navigateToIndustry,
         selectedJob,
         setSelectedJob,
+        selectedJobCategory,
+        setSelectedJobCategory,
         activeModal,
         setActiveModal,
         authModalConfig,

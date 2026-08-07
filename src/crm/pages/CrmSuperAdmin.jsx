@@ -98,6 +98,16 @@ export const CrmSuperAdmin = () => {
   const [statusMsg, setStatusMsg] = useState('');
   const [searchQuery, setSearchQuery] = useState('');
   const [showPassword, setShowPassword] = useState(false);
+  const [visiblePasswords, setVisiblePasswords] = useState(new Set());
+
+  const toggleRowPassword = (id) => {
+    setVisiblePasswords(prev => {
+      const next = new Set(prev);
+      if (next.has(id)) next.delete(id);
+      else next.add(id);
+      return next;
+    });
+  };
 
   // Sync state changes back to localStorage registeredUsers so any created account can immediately log in!
   const syncToLocalStorage = (updatedEmpList) => {
@@ -352,6 +362,7 @@ export const CrmSuperAdmin = () => {
                     <th className="p-3 font-extrabold">ROLE</th>
                     <th className="p-3 font-extrabold">EMAIL</th>
                     <th className="p-3 font-extrabold">PHONE</th>
+                    <th className="p-3 font-extrabold text-red-600 dark:text-red-400">PASSWORD</th>
                     <th className="p-3 font-extrabold">STATUS</th>
                     <th className="p-3 font-extrabold text-right">ACTION</th>
                   </tr>
@@ -372,6 +383,17 @@ export const CrmSuperAdmin = () => {
                       </td>
                       <td className="p-3 font-mono font-bold text-slate-900 dark:text-slate-200">{emp.email}</td>
                       <td className="p-3 font-mono font-bold text-slate-800 dark:text-slate-300">{emp.phone}</td>
+                      <td className="p-3 font-mono text-[10px] font-bold text-red-600 dark:text-red-400">
+                        <div className="flex items-center gap-2">
+                          {visiblePasswords.has(emp.id) ? emp.password : '••••••••'}
+                          <button 
+                            onClick={() => toggleRowPassword(emp.id)} 
+                            className="text-slate-400 hover:text-slate-600 dark:hover:text-slate-300 transition cursor-pointer"
+                          >
+                            {visiblePasswords.has(emp.id) ? <EyeOff className="w-3 h-3" /> : <Eye className="w-3 h-3" />}
+                          </button>
+                        </div>
+                      </td>
                       <td className="p-3">
                         <span className="bg-emerald-100 dark:bg-emerald-500/20 text-emerald-900 dark:text-emerald-400 font-extrabold px-2.5 py-0.5 rounded text-[10px] border border-emerald-300 dark:border-emerald-500/30">
                           ● {emp.status}

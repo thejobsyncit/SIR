@@ -6,8 +6,7 @@ import {
 } from 'lucide-react';
 
 export const CrmAccounts = () => {
-  const { invoices } = useCrm();
-  const [invoiceList, setInvoiceList] = useState(invoices);
+  const { invoices, addInvoice } = useCrm();
   const [modalOpen, setModalOpen] = useState(false);
   
   // Payment Gateway Multi-Step State
@@ -56,7 +55,7 @@ export const CrmAccounts = () => {
       status: 'Pending Payment',
       candidatePlaced: newInv.candidatePlaced
     };
-    setInvoiceList([invObj, ...invoiceList]);
+    addInvoice(invObj);
     setModalOpen(false);
   };
 
@@ -173,7 +172,7 @@ STATUS: PAID & AUDITED (GRADE A)
 
       {/* Invoices Grid */}
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-        {invoiceList.map((inv) => (
+        {invoices.map((inv) => (
           <div key={inv.id} className="glass-card bg-white dark:bg-navy-900 border border-slate-200 dark:border-navy-800 p-6 rounded-2xl space-y-4 hover:border-gold-500/50 transition shadow-sm">
             
             <div className="flex justify-between items-start border-b border-slate-200 dark:border-navy-800 pb-3">

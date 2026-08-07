@@ -4,7 +4,7 @@ import { Search, MapPin, Briefcase, DollarSign, Globe, CheckCircle2, Bookmark, A
 import { JOBS_LIST } from '../data/mockData';
 
 export const JobsPage = () => {
-  const { setSelectedJob, applyForJob, applications, toggleSaveJob, savedJobs, setActiveModal, postedJobs, t } = useApp();
+  const { setSelectedJob, applyForJob, applications, toggleSaveJob, savedJobs, setActiveModal, postedJobs, t, selectedJobCategory: selectedCategory, setSelectedJobCategory: setSelectedCategory } = useApp();
   const [jobs, setJobs] = useState([]);
   const [loading, setLoading] = useState(true);
 
@@ -13,7 +13,7 @@ export const JobsPage = () => {
   // Filters
   const [keyword, setKeyword] = useState('');
   const [selectedCountry, setSelectedCountry] = useState('All');
-  const [selectedCategory, setSelectedCategory] = useState('All');
+
   const [selectedJobType, setSelectedJobType] = useState('All');
 
   // Job Detail & Apply Modal

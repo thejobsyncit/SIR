@@ -7,7 +7,7 @@ import {
 import { SERVICES_LIST, INDUSTRIES_LIST, TESTIMONIALS, BLOG_POSTS, FAQS, COUNTRIES_LIST, JOBS_LIST } from '../data/mockData';
 
 export const Home = () => {
-  const { navigateTo, setSelectedJob, setActiveModal, applyForJob, applications, postedJobs, t } = useApp();
+  const { navigateTo, setSelectedJob, setActiveModal, applyForJob, applications, postedJobs, t, setSelectedJobCategory } = useApp();
   const allJobsList = [...(postedJobs || []), ...JOBS_LIST];
   const isApplied = (jobId) => applications && applications.some(a => a.jobId === jobId);
   const [searchKeyword, setSearchKeyword] = useState('');
@@ -354,7 +354,10 @@ export const Home = () => {
           {INDUSTRIES_LIST.map((ind) => (
             <div 
               key={ind.id}
-              onClick={() => navigateTo('jobs')}
+              onClick={() => {
+                setSelectedJobCategory(ind.name);
+                navigateTo('jobs');
+              }}
               className="glass-card bg-white dark:bg-navy-900 border border-slate-200 dark:border-navy-800 p-5 rounded-2xl hover:border-gold-500 transition cursor-pointer space-y-2 group shadow-sm"
             >
               <div className="flex justify-between items-center">

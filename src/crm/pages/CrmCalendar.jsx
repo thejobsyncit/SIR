@@ -1,30 +1,26 @@
 import React, { useState } from 'react';
-import { Calendar as CalendarIcon, Clock, Users, Video, Plus, Filter, X, CheckCircle2 } from 'lucide-react';
+import { Calendar as CalendarIcon, Clock, Users, Video, Plus, Filter, X, CheckCircle2, Trash2 } from 'lucide-react';
+import { useCrm } from '../context/CrmContext';
 
 export const CrmCalendar = () => {
+  const { calendarEvents, addCalendarEvent, removeCalendarEvent } = useCrm();
   const [filterType, setFilterType] = useState('All');
   const [modalOpen, setModalOpen] = useState(false);
 
-  const [events, setEvents] = useState([
-    { id: 1, title: 'Alexander Wright MS Teams Panel Interview', time: '02:00 PM GST', type: 'Interview', candidate: 'Alexander Wright', date: '2026-08-08' },
-    { id: 2, title: 'MOHRE Visa Quota Review Meeting', time: '04:00 PM GST', type: 'Meeting', candidate: 'N/A', date: '2026-08-09' },
-    { id: 3, title: 'Elena Rostova Departure to Singapore', time: '09:30 PM GST', type: 'Travel', candidate: 'Elena Rostova', date: '2026-08-21' },
-    { id: 4, title: 'Dr. Sarah Joining at Saudi German Hospital', time: '08:00 AM AST', type: 'Joining', candidate: 'Dr. Sarah Al-Mansoori', date: '2026-08-18' }
-  ]);
 
   const [newEvent, setNewEvent] = useState({
     title: '',
     time: '10:00 AM GST',
     type: 'Interview',
-    candidate: 'Alexander Wright',
+    candidate: '',
     date: '2026-08-12'
   });
 
-  const filteredEvents = events.filter(e => filterType === 'All' || e.type === filterType);
+  const filteredEvents = calendarEvents.filter(e => filterType === 'All' || e.type === filterType);
 
   const handleCreateEvent = (e) => {
     e.preventDefault();
-    setEvents([...events, { ...newEvent, id: Date.now() }]);
+    addCalendarEvent(newEvent);
     setModalOpen(false);
   };
 
@@ -82,9 +78,18 @@ export const CrmCalendar = () => {
                   {e.date} at {e.time} • Candidate: <strong className="text-slate-900 dark:text-white font-bold">{e.candidate}</strong>
                 </p>
               </div>
-              <span className="bg-amber-100 dark:bg-gold-500/20 text-amber-900 dark:text-gold-400 border border-amber-300 dark:border-gold-500/30 font-bold px-3 py-1 rounded-full text-xs uppercase shadow-xs">
-                {e.type}
-              </span>
+              <div className="flex items-center gap-3">
+                <span className="bg-amber-100 dark:bg-gold-500/20 text-amber-900 dark:text-gold-400 border border-amber-300 dark:border-gold-500/30 font-bold px-3 py-1 rounded-full text-xs uppercase shadow-xs">
+                  {e.type}
+                </span>
+                <button
+                  onClick={() => removeCalendarEvent(e.id)}
+                  className="text-slate-400 hover:text-red-500 dark:hover:text-red-400 transition cursor-pointer p-1"
+                  title="Remove Event"
+                >
+                  <Trash2 className="w-4 h-4" />
+                </button>
+              </div>
             </div>
           ))}
         </div>
@@ -100,9 +105,15 @@ export const CrmCalendar = () => {
             </div>
 
             <form onSubmit={handleCreateEvent} className="space-y-3 text-xs">
-              <div>
-                <label className="block text-[11px] font-extrabold text-slate-700 dark:text-slate-300 mb-1">Event Title</label>
-                <input required type="text" value={newEvent.title} onChange={e=>setNewEvent({...newEvent, title: e.target.value})} className="w-full bg-slate-100 dark:bg-navy-950 border border-slate-300 dark:border-navy-700 text-slate-900 dark:text-white rounded-lg p-2.5 font-bold focus:outline-none focus:border-gold-500" />
+              <div className="grid grid-cols-2 gap-2">
+                <div>
+                  <label className="block text-[11px] font-extrabold text-slate-700 dark:text-slate-300 mb-1">Event Title</label>
+                  <input required type="text" value={newEvent.title} onChange={e=>setNewEvent({...newEvent, title: e.target.value})} className="w-full bg-slate-100 dark:bg-navy-950 border border-slate-300 dark:border-navy-700 text-slate-900 dark:text-white rounded-lg p-2.5 font-bold focus:outline-none focus:border-gold-500" />
+                </div>
+                <div>
+                  <label className="block text-[11px] font-extrabold text-slate-700 dark:text-slate-300 mb-1">Candidate (Optional)</label>
+                  <input type="text" value={newEvent.candidate} onChange={e=>setNewEvent({...newEvent, candidate: e.target.value})} placeholder="e.g. Kishore" className="w-full bg-slate-100 dark:bg-navy-950 border border-slate-300 dark:border-navy-700 text-slate-900 dark:text-white rounded-lg p-2.5 font-bold focus:outline-none focus:border-gold-500" />
+                </div>
               </div>
               <div className="grid grid-cols-2 gap-2">
                 <div>

@@ -7,36 +7,19 @@ import {
 import { RECRUITER_LEADERBOARD } from '../data/mockCrmData';
 
 export const CrmRecruiterWorkspace = () => {
-  const { user, candidates, setAiDrawerOpen } = useCrm();
-
-  const [tasks, setTasks] = useState([
-    { id: 1, text: 'Conduct HR Screening Interview for Alexander Wright', priority: 'High', due: '11:00 AM', completed: false },
-    { id: 2, text: 'Submit 3 ICU Nurse Profiles to Saudi German Hospital', priority: 'Medium', due: '02:00 PM', completed: true },
-    { id: 3, text: 'Follow up on Degree Attestation for Dr. Sarah', priority: 'Urgent', due: '04:30 PM', completed: false }
-  ]);
+  const { user, candidates, setAiDrawerOpen, recruiterTasks, addRecruiterTask, removeRecruiterTask, toggleRecruiterTask, recruiterNotes, setRecruiterNotes } = useCrm();
 
   const [newTaskText, setNewTaskText] = useState('');
-  const [personalNotes, setPersonalNotes] = useState(
-    '1. Remind Client VP Hassan Al-Habtoor regarding 90-day replacement clause.\n2. Verify Prometric license for Riyadh candidates.'
-  );
 
   const [attendanceStatus, setAttendanceStatus] = useState('Checked In (Dubai HQ)');
 
-  const toggleTask = (id) => {
-    setTasks(prev => prev.map(t => t.id === id ? { ...t, completed: !t.completed } : t));
-  };
-
-  const removeTask = (id) => {
-    setTasks(prev => prev.filter(t => t.id !== id));
-  };
+  const toggleTask = (id) => toggleRecruiterTask(id);
+  const removeTask = (id) => removeRecruiterTask(id);
 
   const handleAddTask = (e) => {
     e.preventDefault();
     if (!newTaskText) return;
-    setTasks([
-      ...tasks,
-      { id: Date.now(), text: newTaskText, priority: 'Normal', due: '05:00 PM', completed: false }
-    ]);
+    addRecruiterTask({ id: Date.now(), text: newTaskText, priority: 'Normal', due: '05:00 PM', completed: false });
     setNewTaskText('');
   };
 
@@ -104,12 +87,13 @@ export const CrmRecruiterWorkspace = () => {
         
         {/* Daily Tasks Checklist & Add Task */}
         <div className="lg:col-span-7 glass-card bg-white dark:bg-navy-900 border border-slate-200 dark:border-navy-800 p-6 rounded-2xl space-y-4 shadow-sm">
-          <div className="flex justify-between items-center border-b border-slate-200 dark:border-navy-800 pb-3">
-            <h3 className="font-serif text-lg font-bold text-slate-900 dark:text-white flex items-center gap-2">
-              <CheckSquare className="w-5 h-5 text-gold-500" />
-              Daily Follow-up Tasks Checklist
+          <div className="flex justify-between items-center mb-4">
+            <h3 className="font-serif font-bold text-lg text-slate-900 dark:text-white flex items-center gap-2">
+              <CheckSquare className="w-5 h-5 text-gold-500" /> Daily Follow-up Tasks Checklist
             </h3>
-            <span className="text-amber-800 dark:text-gold-400 font-bold text-xs">{tasks.filter(t => t.completed).length} / {tasks.length} Completed</span>
+            <span className="text-xs font-bold text-gold-600 dark:text-gold-400">
+              {recruiterTasks.filter(t => t.completed).length} / {recruiterTasks.length} Completed
+            </span>
           </div>
 
           <form onSubmit={handleAddTask} className="flex gap-2">
@@ -125,44 +109,33 @@ export const CrmRecruiterWorkspace = () => {
             </button>
           </form>
 
-          <div className="space-y-2">
-            {tasks.map(t => (
-              <div key={t.id} className="p-3 bg-slate-50 dark:bg-navy-950 rounded-xl border border-slate-200 dark:border-navy-800 flex justify-between items-center shadow-xs hover:border-gold-500/40 transition">
-                <div className="flex items-center space-x-3 flex-1 min-w-0 mr-2">
-                  <input 
-                    type="checkbox" 
-                    checked={t.completed} 
-                    onChange={() => toggleTask(t.id)} 
-                    className="rounded border-slate-300 dark:border-navy-700 text-gold-500 focus:ring-0 cursor-pointer shrink-0"
-                  />
-                  <span className={`font-bold truncate ${t.completed ? 'line-through text-slate-400 dark:text-slate-500' : 'text-slate-800 dark:text-slate-200'}`}>{t.text}</span>
-                </div>
-                
-                <div className="flex items-center space-x-2 shrink-0">
-                  <span className={`px-2 py-0.5 rounded text-[10px] font-bold border ${
-                    t.priority === 'Urgent' 
-                      ? 'bg-rose-100 dark:bg-rose-500/20 text-rose-800 dark:text-rose-400 border-rose-300 dark:border-rose-500/40' 
-                      : 'bg-amber-100 dark:bg-gold-500/20 text-amber-900 dark:text-gold-400 border-amber-300 dark:border-gold-500/40'
-                  }`}>
-                    {t.priority}
-                  </span>
-
-                  <button 
-                    onClick={() => removeTask(t.id)}
-                    className="p-1.5 text-slate-400 hover:text-rose-600 dark:hover:text-rose-400 transition cursor-pointer rounded-lg hover:bg-rose-100 dark:hover:bg-rose-950/40"
-                    title="Remove Task"
-                  >
-                    <Trash2 className="w-4 h-4" />
-                  </button>
-                </div>
+          <div className="space-y-3 max-h-80 overflow-y-auto pr-2 custom-scrollbar">
+            {recruiterTasks.map(task => (
+              <div key={task.id} className="group flex items-start gap-3 p-3 bg-white dark:bg-navy-950 border border-slate-200 dark:border-navy-800 rounded-xl hover:border-gold-500/30 transition shadow-sm">
+                <input 
+                  type="checkbox" 
+                  checked={task.completed} 
+                  onChange={() => toggleTask(task.id)}
+                  className="mt-1 w-4 h-4 rounded border-slate-300 text-gold-500 focus:ring-gold-500 cursor-pointer"
+                />
+                <span className={`flex-1 ${task.completed ? 'line-through text-slate-400 dark:text-slate-600' : 'text-slate-800 dark:text-slate-200 font-semibold'}`}>
+                  {task.text}
+                </span>
+                <span className={`text-[10px] font-bold px-2 py-0.5 rounded border ${
+                  task.priority === 'Urgent' ? 'bg-red-100 text-red-700 border-red-200 dark:bg-red-900/30 dark:text-red-400 dark:border-red-800/50' :
+                  task.priority === 'High' ? 'bg-amber-100 text-amber-700 border-amber-200 dark:bg-amber-900/30 dark:text-amber-400 dark:border-amber-800/50' :
+                  'bg-slate-100 text-slate-600 border-slate-200 dark:bg-navy-800 dark:text-slate-400 dark:border-navy-700'
+                }`}>
+                  {task.priority}
+                </span>
+                <button 
+                  onClick={() => removeTask(task.id)}
+                  className="opacity-0 group-hover:opacity-100 text-slate-400 hover:text-red-500 transition cursor-pointer"
+                >
+                  <Trash2 className="w-4 h-4" />
+                </button>
               </div>
             ))}
-
-            {tasks.length === 0 && (
-              <div className="p-6 text-center text-slate-500 dark:text-slate-400 font-bold italic border border-dashed border-slate-300 dark:border-navy-800 rounded-xl">
-                No active tasks. Add a new task above!
-              </div>
-            )}
           </div>
         </div>
 
@@ -174,9 +147,9 @@ export const CrmRecruiterWorkspace = () => {
           </h3>
           <textarea 
             rows={8}
-            value={personalNotes}
-            onChange={e => setPersonalNotes(e.target.value)}
-            className="w-full bg-slate-50 dark:bg-navy-950 border border-slate-200 dark:border-navy-800 text-slate-900 dark:text-slate-200 font-medium rounded-xl p-3 text-xs leading-relaxed focus:outline-none focus:border-gold-500 font-mono shadow-xs"
+            className="w-full bg-slate-50 dark:bg-navy-950 border border-slate-200 dark:border-navy-800 text-slate-900 dark:text-slate-200 font-medium rounded-xl p-3 text-xs leading-relaxed focus:outline-none focus:border-gold-500 font-mono shadow-xs resize-none"
+            value={recruiterNotes}
+            onChange={(e) => setRecruiterNotes(e.target.value)}
             placeholder="Jot down quick candidate interview thoughts, client salary notes..."
           />
         </div>

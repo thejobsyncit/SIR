@@ -17,11 +17,45 @@ export const CrmProvider = ({ children }) => {
 
   const [currentRole, setCurrentRole] = useState('Super Admin');
   const [darkMode, setDarkMode] = useState(true);
-  const [candidates, setCandidates] = useState(CRM_CANDIDATES);
-  const [clients, setClients] = useState(CRM_CLIENTS);
-  const [interviews, setInterviews] = useState(CRM_INTERVIEWS);
-  const [invoices, setInvoices] = useState(CRM_INVOICES);
-  const [auditLogs, setAuditLogs] = useState(AUDIT_LOGS);
+  const loadState = (key, defaultData) => {
+    try {
+      const saved = localStorage.getItem(key);
+      return saved ? JSON.parse(saved) : defaultData;
+    } catch {
+      return defaultData;
+    }
+  };
+
+  const [candidates, setCandidates] = useState(() => loadState('crm_candidates', CRM_CANDIDATES));
+  const [clients, setClients] = useState(() => loadState('crm_clients', CRM_CLIENTS));
+  const [interviews, setInterviews] = useState(() => loadState('crm_interviews', CRM_INTERVIEWS));
+  const [invoices, setInvoices] = useState(() => loadState('crm_invoices', CRM_INVOICES));
+  const [auditLogs, setAuditLogs] = useState(() => loadState('crm_auditLogs', AUDIT_LOGS));
+  const [calendarEvents, setCalendarEvents] = useState(() => loadState('crm_calendarEvents', [
+    { id: 1, title: 'Alexander Wright MS Teams Panel Interview', time: '02:00 PM GST', type: 'Interview', candidate: 'Alexander Wright', date: '2026-08-08' },
+    { id: 2, title: 'MOHRE Visa Quota Review Meeting', time: '04:00 PM GST', type: 'Meeting', candidate: 'N/A', date: '2026-08-09' },
+    { id: 3, title: 'Elena Rostova Departure to Singapore', time: '09:30 PM GST', type: 'Travel', candidate: 'Elena Rostova', date: '2026-08-21' },
+    { id: 4, title: 'Dr. Sarah Joining at Saudi German Hospital', time: '08:00 AM AST', type: 'Joining', candidate: 'Dr. Sarah Al-Mansoori', date: '2026-08-18' }
+  ]));
+  const [recruiterTasks, setRecruiterTasks] = useState(() => loadState('crm_recruiterTasks', [
+    { id: 1, text: 'Conduct HR Screening Interview for Alexander Wright', priority: 'High', due: '11:00 AM', completed: false },
+    { id: 2, text: 'Submit 3 ICU Nurse Profiles to Saudi German Hospital', priority: 'Medium', due: '02:00 PM', completed: true },
+    { id: 3, text: 'Follow up on Degree Attestation for Dr. Sarah', priority: 'Urgent', due: '04:30 PM', completed: false }
+  ]));
+  const [recruiterNotes, setRecruiterNotes] = useState(() => loadState('crm_recruiterNotes', 
+    '1. Remind Client VP Hassan Al-Habtoor regarding 90-day replacement clause.\n2. Verify Prometric license for Riyadh candidates.'
+  ));
+
+  useEffect(() => {
+    localStorage.setItem('crm_candidates', JSON.stringify(candidates));
+    localStorage.setItem('crm_clients', JSON.stringify(clients));
+    localStorage.setItem('crm_interviews', JSON.stringify(interviews));
+    localStorage.setItem('crm_invoices', JSON.stringify(invoices));
+    localStorage.setItem('crm_auditLogs', JSON.stringify(auditLogs));
+    localStorage.setItem('crm_calendarEvents', JSON.stringify(calendarEvents));
+    localStorage.setItem('crm_recruiterTasks', JSON.stringify(recruiterTasks));
+    localStorage.setItem('crm_recruiterNotes', JSON.stringify(recruiterNotes));
+  }, [candidates, clients, interviews, invoices, auditLogs, calendarEvents, recruiterTasks, recruiterNotes]);
 
   // Security & Devices
   const [failedLoginAttempts, setFailedLoginAttempts] = useState(0);
@@ -224,6 +258,47 @@ export const CrmProvider = ({ children }) => {
     logAuditAction(`Deleted corporate client account ${clientId}.`);
   };
 
+  const addInterview = (newInterview) => {
+    setInterviews(prev => [newInterview, ...prev]);
+    // Also auto-add to calendar
+    setCalendarEvents(prev => [
+      ...prev,
+      {
+        id: Date.now(),
+        title: `${newInterview.candidateName} ${newInterview.platform} Interview`,
+        time: newInterview.time,
+        type: 'Interview',
+        candidate: newInterview.candidateName,
+        date: newInterview.date
+      }
+    ]);
+    logAuditAction(`Scheduled new interview for ${newInterview.candidateName}.`);
+  };
+
+  const updateInterview = (updatedInterview) => {
+    setInterviews(prev => prev.map(i => i.id === updatedInterview.id ? updatedInterview : i));
+    logAuditAction(`Updated interview record ${updatedInterview.id}.`);
+  };
+
+  const addCalendarEvent = (newEvent) => {
+    setCalendarEvents(prev => [...prev, { ...newEvent, id: Date.now() }]);
+    logAuditAction(`Added new calendar event: ${newEvent.title}.`);
+  };
+
+  const removeCalendarEvent = (eventId) => {
+    setCalendarEvents(prev => prev.filter(e => e.id !== eventId));
+    logAuditAction(`Removed calendar event ${eventId}.`);
+  };
+
+  const addInvoice = (newInvoice) => {
+    setInvoices(prev => [newInvoice, ...prev]);
+    logAuditAction(`Generated new invoice for ${newInvoice.client}.`);
+  };
+
+  const addRecruiterTask = (task) => setRecruiterTasks(prev => [...prev, task]);
+  const removeRecruiterTask = (id) => setRecruiterTasks(prev => prev.filter(t => t.id !== id));
+  const toggleRecruiterTask = (id) => setRecruiterTasks(prev => prev.map(t => t.id === id ? { ...t, completed: !t.completed } : t));
+
   const switchRole = (newRole) => {
     setCurrentRole(newRole);
     setUser(prev => ({ ...prev, role: newRole }));
@@ -278,7 +353,19 @@ export const CrmProvider = ({ children }) => {
         addClient,
         removeClient,
         interviews,
+        addInterview,
+        updateInterview,
+        calendarEvents,
+        addCalendarEvent,
+        removeCalendarEvent,
         invoices,
+        addInvoice,
+        recruiterTasks,
+        addRecruiterTask,
+        removeRecruiterTask,
+        toggleRecruiterTask,
+        recruiterNotes,
+        setRecruiterNotes,
         auditLogs,
         logAuditAction,
         commandPaletteOpen,

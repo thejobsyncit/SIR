@@ -11,7 +11,7 @@ export const ContactUsPage = () => {
     e.preventDefault();
     const formData = new FormData(e.target);
     const data = Object.fromEntries(formData.entries());
-    
+
     // Push the website inquiry to the CRM as a Client Lead
     addClient({
       company: data.name + ' (Web Inquiry)',
@@ -28,7 +28,7 @@ export const ContactUsPage = () => {
 
   return (
     <div className="max-w-7xl mx-auto px-4 sm:px-8 py-12 space-y-16">
-      
+
       {/* Header */}
       <div className="text-center space-y-3 max-w-3xl mx-auto">
         <span className="bg-gold-500/10 text-gold-600 dark:text-gold-400 text-xs font-bold px-3.5 py-1 rounded-full uppercase">
@@ -43,10 +43,10 @@ export const ContactUsPage = () => {
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start">
-        
+
         {/* Office Contact Info */}
         <div className="lg:col-span-5 space-y-6">
-          
+
           {/* Dubai HQ Card */}
           <div className="glass-card bg-white dark:bg-navy-950 p-6 sm:p-8 rounded-3xl border border-slate-200 dark:border-gold-500/40 shadow-luxury space-y-4">
             <div className="flex items-center space-x-3 text-gold-600 dark:text-gold-400 border-b border-slate-200 dark:border-navy-800 pb-3">
