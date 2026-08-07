@@ -360,8 +360,7 @@ export const CrmSuperAdmin = () => {
                   <tr className="bg-slate-100 dark:bg-navy-950 text-slate-900 dark:text-gold-400 font-serif uppercase tracking-wider text-[10px] border-b border-slate-200 dark:border-navy-800">
                     <th className="p-3 font-extrabold">NAME</th>
                     <th className="p-3 font-extrabold">ROLE</th>
-                    <th className="p-3 font-extrabold">EMAIL</th>
-                    <th className="p-3 font-extrabold">PHONE</th>
+                    <th className="p-3 font-extrabold">CONTACT INFO</th>
                     <th className="p-3 font-extrabold text-red-600 dark:text-red-400">PASSWORD</th>
                     <th className="p-3 font-extrabold">STATUS</th>
                     <th className="p-3 font-extrabold text-right">ACTION</th>
@@ -381,8 +380,10 @@ export const CrmSuperAdmin = () => {
                           {emp.role}
                         </span>
                       </td>
-                      <td className="p-3 font-mono font-bold text-slate-900 dark:text-slate-200">{emp.email}</td>
-                      <td className="p-3 font-mono font-bold text-slate-800 dark:text-slate-300">{emp.phone}</td>
+                      <td className="p-3 font-mono">
+                        <div className="font-bold text-slate-900 dark:text-slate-200">{emp.email}</div>
+                        <div className="text-[10px] font-bold text-slate-500 dark:text-slate-400 mt-0.5">{emp.phone}</div>
+                      </td>
                       <td className="p-3 font-mono text-[10px] font-bold text-red-600 dark:text-red-400">
                         <div className="flex items-center gap-2">
                           {visiblePasswords.has(emp.id) ? emp.password : '••••••••'}
