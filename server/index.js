@@ -1,5 +1,10 @@
 import express from 'express';
 import cors from 'cors';
+import { getDb } from './database.js';
+import nodemailer from 'nodemailer';
+import dotenv from 'dotenv';
+
+dotenv.config();
 
 const app = express();
 const PORT = process.env.PORT || 5000;
@@ -168,68 +173,351 @@ const JOBS_DATA = [
   }
 ];
 
-// API Routes
-app.get('/api/jobs', (req, res) => {
-  let filtered = [...JOBS_DATA];
-  const { keyword, country, category, experience, jobType } = req.query;
+// Helper to parse arrays from DB
+const parseArray = (str) => {
+  try { return JSON.parse(str); } catch (e) { return typeof str === 'string' ? str.split(',') : []; }
+};
 
-  if (keyword) {
-    const k = keyword.toString().toLowerCase();
-    filtered = filtered.filter(j => j.title.toLowerCase().includes(k) || j.company.toLowerCase().includes(k) || j.skills.some(s => s.toLowerCase().includes(k)));
+// Seed Jobs on Startup if empty
+const seedJobs = async () => {
+  const db = await getDb();
+  const countRes = await db.get('SELECT COUNT(*) as count FROM jobs');
+  if (countRes.count === 0) {
+    console.log('Seeding initial jobs data...');
+    const stmt = await db.prepare(`INSERT INTO jobs (id, title, company, country, location, salary, experience, jobType, category, description, vacancies, skills, qualification, benefits, postedDate, featured) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`);
+    for (const j of JOBS_DATA) {
+      await stmt.run([
+        j.id, j.title, j.company, j.country, j.location, j.salary, j.experience, j.jobType, j.category, j.description, j.vacancies || '1', JSON.stringify(j.skills), j.qualification, JSON.stringify(j.benefits), j.postedDate, j.featured ? 1 : 0
+      ]);
+    }
+    await stmt.finalize();
   }
-  if (country && country !== 'All') {
-    filtered = filtered.filter(j => j.country.toLowerCase() === country.toString().toLowerCase());
-  }
-  if (category && category !== 'All') {
-    filtered = filtered.filter(j => j.category.toLowerCase() === category.toString().toLowerCase());
-  }
-  if (jobType && jobType !== 'All') {
-    filtered = filtered.filter(j => j.jobType.toLowerCase() === jobType.toString().toLowerCase());
-  }
+};
+seedJobs();
 
-  res.json({ success: true, count: filtered.length, data: filtered });
+// OTP In-Memory Store for Verification
+const activeOtps = new Map();
+
+app.post('/api/auth/send-otp', async (req, res) => {
+  try {
+    const { email } = req.body;
+    if (!email) return res.status(400).json({ success: false, message: 'Email required' });
+
+    const otp = Math.floor(1000 + Math.random() * 9000).toString();
+    activeOtps.set(email, { otp, expires: Date.now() + 5 * 60 * 1000 }); // 5 min expiry
+
+    // Configure Nodemailer
+    const transporter = nodemailer.createTransport({
+      service: 'gmail',
+      auth: {
+        user: process.env.SMTP_EMAIL || 'your-email@gmail.com',
+        pass: process.env.SMTP_APP_PASSWORD || 'your-app-password'
+      }
+    });
+
+    const mailOptions = {
+      from: `SIR Recruitment CRM <${process.env.SMTP_EMAIL}>`,
+      to: email,
+      subject: 'Your CRM 2FA Login Code',
+      text: `Your SIR Recruitment CRM Two-Factor Authentication code is: ${otp}\n\nThis code will expire in 5 minutes.`,
+      html: `<div style="font-family: Arial, sans-serif; text-align: center; padding: 20px;">
+        <h2>SIR Recruitment Enterprise CRM</h2>
+        <p>Your Two-Factor Authentication code is:</p>
+        <h1 style="color: #c9a050; font-size: 32px; letter-spacing: 5px;">${otp}</h1>
+        <p style="color: #666; font-size: 12px;">This code will expire in 5 minutes. Do not share it with anyone.</p>
+      </div>`
+    };
+
+    // Note: If credentials are not set, this will fail. We'll catch and return a specific message.
+    if (process.env.SMTP_EMAIL && process.env.SMTP_EMAIL !== 'your-email@gmail.com') {
+      await transporter.sendMail(mailOptions);
+      res.json({ success: true, message: 'OTP dispatched successfully' });
+    } else {
+      console.log(`[DEV MODE] OTP for ${email} is: ${otp} (Configure .env to send real emails)`);
+      res.json({ success: true, message: 'OTP generated (Dev Mode)', devMode: true, otp: otp });
+    }
+  } catch (error) {
+    console.error('Email send failed:', error);
+    res.status(500).json({ success: false, message: 'Failed to dispatch email. Check SMTP credentials.' });
+  }
 });
 
-app.get('/api/jobs/:id', (req, res) => {
-  const job = JOBS_DATA.find(j => j.id === req.params.id);
-  if (!job) return res.status(404).json({ success: false, message: 'Job not found' });
-  res.json({ success: true, data: job });
-});
+app.post('/api/auth/verify-otp', (req, res) => {
+  const { email, otp } = req.body;
+  const stored = activeOtps.get(email);
 
-app.post('/api/jobs', (req, res) => {
-  const { title, company, country, location, salary, experience, jobType, category, description, vacancies, skills, qualification, benefits } = req.body;
-
-  const newJob = {
-    id: req.body.id || `job-${Date.now()}`,
-    title: title || 'Untitled Job Position',
-    company: company || 'Al Habtoor Contracting LLC',
-    country: country || 'UAE',
-    location: location || `${country || 'UAE'}, Business District`,
-    salary: salary || 'Negotiable',
-    experience: experience || '2 - 5 Years',
-    jobType: jobType || 'Full-time',
-    category: category || 'Construction',
-    description: description || 'No description provided.',
-    vacancies: vacancies || '1',
-    skills: Array.isArray(skills) ? skills : (skills ? skills.split(',').map(s => s.trim()) : ['Management']),
-    qualification: qualification || "Bachelor's Degree",
-    benefits: Array.isArray(benefits) ? benefits : (benefits ? benefits.split(',').map(b => b.trim()) : ['Tax-free salary', 'Visa Sponsorship']),
-    postedDate: 'Just now',
-    featured: true
-  };
-
-  JOBS_DATA.unshift(newJob);
-  res.json({ success: true, message: 'Job posted successfully', data: newJob });
-});
-
-app.delete('/api/jobs/:id', (req, res) => {
-  const index = JOBS_DATA.findIndex(j => j.id === req.params.id);
-  if (index !== -1) {
-    const deleted = JOBS_DATA.splice(index, 1);
-    return res.json({ success: true, message: 'Job deleted successfully', data: deleted[0] });
+  if (!stored) {
+    return res.status(400).json({ success: false, message: 'OTP expired or not requested' });
   }
-  res.status(404).json({ success: false, message: 'Job not found' });
+
+  if (Date.now() > stored.expires) {
+    activeOtps.delete(email);
+    return res.status(400).json({ success: false, message: 'OTP expired' });
+  }
+
+  if (stored.otp === otp) {
+    activeOtps.delete(email);
+    return res.json({ success: true, message: 'Authentication successful' });
+  } else {
+    return res.status(400).json({ success: false, message: 'Invalid OTP code' });
+  }
 });
+
+// API Routes - JOBS
+app.get('/api/jobs', async (req, res) => {
+  try {
+    const db = await getDb();
+    let query = 'SELECT * FROM jobs WHERE 1=1';
+    const params = [];
+
+    if (req.query.country && req.query.country !== 'All') {
+      query += ' AND country = ?';
+      params.push(req.query.country);
+    }
+    if (req.query.category && req.query.category !== 'All') {
+      query += ' AND category = ?';
+      params.push(req.query.category);
+    }
+    if (req.query.jobType && req.query.jobType !== 'All') {
+      query += ' AND jobType = ?';
+      params.push(req.query.jobType);
+    }
+
+    let rows = await db.all(query, params);
+
+    if (req.query.keyword) {
+      const k = req.query.keyword.toLowerCase();
+      rows = rows.filter(j => j.title.toLowerCase().includes(k) || j.company.toLowerCase().includes(k));
+    }
+
+    // Format arrays
+    rows = rows.map(r => ({
+      ...r,
+      skills: parseArray(r.skills),
+      benefits: parseArray(r.benefits),
+      featured: r.featured === 1
+    }));
+
+    res.json({ success: true, count: rows.length, data: rows });
+  } catch (error) {
+    res.status(500).json({ success: false, message: error.message });
+  }
+});
+
+app.get('/api/jobs/:id', async (req, res) => {
+  try {
+    const db = await getDb();
+    const job = await db.get('SELECT * FROM jobs WHERE id = ?', [req.params.id]);
+    if (!job) return res.status(404).json({ success: false, message: 'Job not found' });
+    job.skills = parseArray(job.skills);
+    job.benefits = parseArray(job.benefits);
+    job.featured = job.featured === 1;
+    res.json({ success: true, data: job });
+  } catch (error) {
+    res.status(500).json({ success: false, message: error.message });
+  }
+});
+
+app.post('/api/jobs', async (req, res) => {
+  try {
+    const { id, title, company, country, location, salary, experience, jobType, category, description, vacancies, skills, qualification, benefits } = req.body;
+    const jobId = id || `job-${Date.now()}`;
+    const skillsStr = JSON.stringify(Array.isArray(skills) ? skills : (skills ? skills.split(',').map(s => s.trim()) : ['Management']));
+    const benefitsStr = JSON.stringify(Array.isArray(benefits) ? benefits : (benefits ? benefits.split(',').map(b => b.trim()) : ['Tax-free salary', 'Visa Sponsorship']));
+
+    const db = await getDb();
+    await db.run(
+      `INSERT INTO jobs (id, title, company, country, location, salary, experience, jobType, category, description, vacancies, skills, qualification, benefits, postedDate, featured) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+      [jobId, title || 'Untitled', company || 'SIR Recruitment', country || 'UAE', location || '', salary || 'Negotiable', experience || '2-5 Years', jobType || 'Full-time', category || 'General', description || '', vacancies || '1', skillsStr, qualification || 'Degree', benefitsStr, 'Just now', 0]
+    );
+
+    const newJob = await db.get('SELECT * FROM jobs WHERE id = ?', [jobId]);
+    newJob.skills = parseArray(newJob.skills);
+    newJob.benefits = parseArray(newJob.benefits);
+    newJob.featured = newJob.featured === 1;
+    res.json({ success: true, message: 'Job posted successfully', data: newJob });
+  } catch (error) {
+    res.status(500).json({ success: false, message: error.message });
+  }
+});
+
+app.put('/api/jobs/:id', async (req, res) => {
+  try {
+    const db = await getDb();
+    const { title, company, country, location, salary, experience, jobType, category, description, vacancies, skills, qualification, benefits } = req.body;
+    const skillsStr = JSON.stringify(Array.isArray(skills) ? skills : (skills ? skills.split(',').map(s => s.trim()) : []));
+    const benefitsStr = JSON.stringify(Array.isArray(benefits) ? benefits : (benefits ? benefits.split(',').map(b => b.trim()) : []));
+
+    await db.run(
+      `UPDATE jobs SET title = ?, company = ?, country = ?, location = ?, salary = ?, experience = ?, jobType = ?, category = ?, description = ?, vacancies = ?, skills = ?, qualification = ?, benefits = ? WHERE id = ?`,
+      [title, company, country, location, salary, experience, jobType, category, description, vacancies, skillsStr, qualification, benefitsStr, req.params.id]
+    );
+    res.json({ success: true, message: 'Job updated successfully' });
+  } catch (error) {
+    res.status(500).json({ success: false, message: error.message });
+  }
+});
+
+app.delete('/api/jobs/:id', async (req, res) => {
+  try {
+    const db = await getDb();
+    await db.run('DELETE FROM jobs WHERE id = ?', [req.params.id]);
+    res.json({ success: true, message: 'Job deleted successfully' });
+  } catch (error) {
+    res.status(500).json({ success: false, message: error.message });
+  }
+});
+
+// API Routes - CANDIDATES
+app.get('/api/candidates', async (req, res) => {
+  try {
+    const db = await getDb();
+    const rows = await db.all('SELECT * FROM candidates ORDER BY createdAt DESC');
+    res.json({ success: true, data: rows.map(r => ({ ...r, skills: parseArray(r.skills) })) });
+  } catch (error) {
+    res.status(500).json({ success: false, message: error.message });
+  }
+});
+
+app.post('/api/candidates', async (req, res) => {
+  try {
+    const { id, name, email, phone, nationality, currentEmployer, currentRole, currentSalary, expectedSalary, score, stage, skills, source, passport, aiSummary, experience } = req.body;
+    const candId = id || `SIR-CAN-${Math.floor(1000 + Math.random() * 9000)}`;
+    const skillsStr = JSON.stringify(Array.isArray(skills) ? skills : []);
+    const db = await getDb();
+    await db.run(
+      `INSERT INTO candidates (id, name, email, phone, nationality, currentEmployer, currentRole, currentSalary, expectedSalary, score, stage, skills, source, passport, aiSummary, experience) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+      [candId, name, email, phone, nationality, currentEmployer, currentRole, currentSalary, expectedSalary, score || 85, stage || 'new', skillsStr, source || 'Website', passport, aiSummary, experience]
+    );
+    const cand = await db.get('SELECT * FROM candidates WHERE id = ?', [candId]);
+    res.json({ success: true, data: { ...cand, skills: parseArray(cand.skills) } });
+  } catch (error) {
+    res.status(500).json({ success: false, message: error.message });
+  }
+});
+
+app.put('/api/candidates/:id', async (req, res) => {
+  try {
+    const { name, email, phone, stage, score } = req.body;
+    const db = await getDb();
+    await db.run('UPDATE candidates SET name = ?, email = ?, phone = ?, stage = ?, score = ? WHERE id = ?', [name, email, phone, stage, score, req.params.id]);
+    res.json({ success: true });
+  } catch (error) {
+    res.status(500).json({ success: false, message: error.message });
+  }
+});
+
+app.delete('/api/candidates/:id', async (req, res) => {
+  try {
+    const db = await getDb();
+    await db.run('DELETE FROM candidates WHERE id = ?', [req.params.id]);
+    res.json({ success: true });
+  } catch (error) {
+    res.status(500).json({ success: false, message: error.message });
+  }
+});
+
+// API Routes - CLIENTS
+app.get('/api/clients', async (req, res) => {
+  try {
+    const db = await getDb();
+    const rows = await db.all('SELECT * FROM clients ORDER BY createdAt DESC');
+    res.json({ success: true, data: rows });
+  } catch (error) {
+    res.status(500).json({ success: false, message: error.message });
+  }
+});
+
+app.post('/api/clients', async (req, res) => {
+  try {
+    const { id, company, industry, location, contactPerson, email, phone, requirements } = req.body;
+    const clientId = id || `CLIENT-${Math.floor(1000 + Math.random() * 9000)}`;
+    const db = await getDb();
+    await db.run(
+      `INSERT INTO clients (id, company, industry, location, contactPerson, email, phone, requirements) VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
+      [clientId, company, industry, location, contactPerson, email, phone, requirements]
+    );
+    const client = await db.get('SELECT * FROM clients WHERE id = ?', [clientId]);
+    res.json({ success: true, data: client });
+  } catch (error) {
+    res.status(500).json({ success: false, message: error.message });
+  }
+});
+
+app.delete('/api/clients/:id', async (req, res) => {
+  try {
+    const db = await getDb();
+    await db.run('DELETE FROM clients WHERE id = ?', [req.params.id]);
+    res.json({ success: true });
+  } catch (error) {
+    res.status(500).json({ success: false, message: error.message });
+  }
+});
+
+// API Routes - INTERVIEWS
+app.get('/api/interviews', async (req, res) => {
+  try {
+    const db = await getDb();
+    const rows = await db.all('SELECT * FROM interviews ORDER BY date ASC, time ASC');
+    res.json({ success: true, data: rows });
+  } catch (error) {
+    res.status(500).json({ success: false, message: error.message });
+  }
+});
+
+app.post('/api/interviews', async (req, res) => {
+  try {
+    const { id, candidateId, candidateName, jobId, jobTitle, company, date, time, platform } = req.body;
+    const intId = id || `INT-${Math.floor(1000 + Math.random() * 9000)}`;
+    const db = await getDb();
+    await db.run(
+      `INSERT INTO interviews (id, candidateId, candidateName, jobId, jobTitle, company, date, time, platform) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+      [intId, candidateId, candidateName, jobId, jobTitle, company, date, time, platform]
+    );
+    const interview = await db.get('SELECT * FROM interviews WHERE id = ?', [intId]);
+    res.json({ success: true, data: interview });
+  } catch (error) {
+    res.status(500).json({ success: false, message: error.message });
+  }
+});
+
+app.delete('/api/interviews/:id', async (req, res) => {
+  try {
+    const db = await getDb();
+    await db.run('DELETE FROM interviews WHERE id = ?', [req.params.id]);
+    res.json({ success: true });
+  } catch (error) {
+    res.status(500).json({ success: false, message: error.message });
+  }
+});
+
+// API Routes - LEADS (Contact Form)
+app.get('/api/leads', async (req, res) => {
+  try {
+    const db = await getDb();
+    const rows = await db.all('SELECT * FROM leads ORDER BY createdAt DESC');
+    res.json({ success: true, data: rows });
+  } catch (error) {
+    res.status(500).json({ success: false, message: error.message });
+  }
+});
+
+app.post('/api/leads', async (req, res) => {
+  try {
+    const { id, name, email, company, phone, message } = req.body;
+    const leadId = id || `LEAD-${Math.floor(1000 + Math.random() * 9000)}`;
+    const db = await getDb();
+    await db.run(
+      `INSERT INTO leads (id, name, email, company, phone, message) VALUES (?, ?, ?, ?, ?, ?)`,
+      [leadId, name, email, company, phone, message]
+    );
+    res.json({ success: true, data: { id: leadId, name, email, company, phone, message, status: 'New' } });
+  } catch (error) {
+    res.status(500).json({ success: false, message: error.message });
+  }
+});
+
+// Original app routes below (visa, analysis, etc.)
 
 app.get('/api/visa/countries-matrix', (req, res) => {
   res.json({ success: true, data: VISA_MATRIX_DATA });

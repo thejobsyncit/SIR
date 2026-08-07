@@ -20,7 +20,7 @@ export const CrmLogin = () => {
   const [showPassword, setShowPassword] = useState(false);
   const [rememberMe, setRememberMe] = useState(true);
   const [step, setStep] = useState(1); // 1: Password -> 2: Email 2FA OTP
-  const [otp, setOtp] = useState(['8', '4', '2', '9']);
+  const [otp, setOtp] = useState(['', '', '', '']);
   const [isAuthenticating, setIsAuthenticating] = useState(false);
   const [authErrorMsg, setAuthErrorMsg] = useState('');
   
@@ -79,7 +79,7 @@ export const CrmLogin = () => {
 
   const strength = calculatePasswordStrength(password);
 
-  const handlePasswordSubmit = (e) => {
+  const handlePasswordSubmit = async (e) => {
     e.preventDefault();
     setAuthErrorMsg('');
 
@@ -112,18 +112,65 @@ export const CrmLogin = () => {
       return;
     }
 
-    // Account verified! Move to 2FA OTP step
-    switchRole(userAccount.role || 'Super Admin');
-    setStep(2);
+    // Account verified! Send OTP to the user's email
+    setIsAuthenticating(true);
+    try {
+      const res = await fetch('/api/auth/send-otp', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email: cleanEmail })
+      });
+      const data = await res.json();
+      
+      setIsAuthenticating(false);
+      
+      if (data.success) {
+        if (data.devMode && data.otp) {
+          // Auto-fill OTP in Dev Mode for easier testing
+          setOtp(data.otp.split(''));
+          setAuthErrorMsg(`[DEV MODE] OTP Generated: ${data.otp}`);
+        }
+        switchRole(userAccount.role || 'Super Admin');
+        setStep(2);
+      } else {
+        setAuthErrorMsg(data.message || 'Failed to dispatch OTP to email.');
+      }
+    } catch (err) {
+      setIsAuthenticating(false);
+      setAuthErrorMsg('Server error. Could not dispatch OTP.');
+    }
   };
 
-  const handleOtpSubmit = (e) => {
+  const handleOtpSubmit = async (e) => {
     e.preventDefault();
+    setAuthErrorMsg('');
+    const enteredOtp = otp.join('');
+    
+    if (enteredOtp.length !== 4) {
+      setAuthErrorMsg('Please enter the full 4-digit OTP.');
+      return;
+    }
+
     setIsAuthenticating(true);
-    setTimeout(() => {
-      login(email, password, currentRole);
+    
+    try {
+      const res = await fetch('/api/auth/verify-otp', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email: email.trim().toLowerCase(), otp: enteredOtp })
+      });
+      const data = await res.json();
+      
+      if (data.success) {
+        login(email, password, currentRole);
+      } else {
+        setIsAuthenticating(false);
+        setAuthErrorMsg(data.message || 'Invalid OTP code.');
+      }
+    } catch (err) {
       setIsAuthenticating(false);
-    }, 500);
+      setAuthErrorMsg('Server error during OTP verification.');
+    }
   };
 
   const handleRegisterSuperAdmin = (e) => {

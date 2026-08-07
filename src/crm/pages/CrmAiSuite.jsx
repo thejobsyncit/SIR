@@ -7,9 +7,9 @@ import {
 } from 'lucide-react';
 
 export const CrmAiSuite = () => {
-  const { candidates } = useCrm();
+  const { candidates, addCandidate } = useCrm();
 
-  const [candidateName, setCandidateName] = useState('Alexander Wright');
+  const [selectedCandidateId, setSelectedCandidateId] = useState('');
   const [role, setRole] = useState('Senior Civil Project Manager');
   const [emailDraft, setEmailDraft] = useState('');
   const [whatsAppDraft, setWhatsAppDraft] = useState('');
@@ -30,18 +30,17 @@ export const CrmAiSuite = () => {
 
   // AI Duplicate Check state
   const [rankingStatus, setRankingStatus] = useState('');
-  const [rankingList, setRankingList] = useState([
-    { name: 'Alexander Wright', match: 94, role: 'Al Habtoor Civil Project Manager', passport: 'GB98210452', duplicate: false },
-    { name: 'Elena Rostova', match: 92, role: 'Singapore TechVision DevOps', passport: 'PL4491029', duplicate: false },
-    { name: 'Dr. Sarah Al-Mansoori', match: 96, role: 'Saudi German Hospital ICU Consultant', passport: 'KSA7710928', duplicate: false }
-  ]);
+  const [duplicatesChecked, setDuplicatesChecked] = useState(false);
+  const [candidateAdded, setCandidateAdded] = useState(false);
 
   const handleGenerateCommunication = () => {
+    if (!selectedCandidateId) return;
+    const cand = candidates.find(c => c.id === selectedCandidateId);
     setLoadingEmail(true);
     setTimeout(() => {
       const emailText = `Subject: Executive Shortlist Confirmation - ${role} Opportunity at SIR Recruitment
 
-Dear ${candidateName},
+Dear ${cand.name},
 
 We are pleased to inform you that your professional profile has been evaluated by our Executive Talent Committee and AI Placement Engine for the role of ${role}.
 
@@ -54,7 +53,7 @@ Warm regards,
 Executive Talent Acquisition Team
 SIR Recruitment Enterprise LLC | Dubai • Riyadh • London`;
 
-      const waText = `Hi ${candidateName}, your executive profile for "${role}" has been shortlisted by SIR Recruitment! 🌟 Please reply to confirm your availability for a 30-min MS Teams panel interview.`;
+      const waText = `Hi ${cand.name}, your executive profile for "${role}" has been shortlisted by SIR Recruitment! 🌟 Please reply to confirm your availability for a 30-min MS Teams panel interview.`;
 
       setEmailDraft(emailText);
       setWhatsAppDraft(waText);
@@ -81,14 +80,21 @@ SIR Recruitment Enterprise LLC | Dubai • Riyadh • London`;
     setLoadingParser(true);
     setTimeout(() => {
       setParsedProfile({
+        id: 'SIR-CAN-' + Math.floor(1000 + Math.random() * 9000),
         name: selectedResume.includes('Sarah') ? 'Dr. Sarah Al-Mansoori' : 'Alexander Wright',
         email: selectedResume.includes('Sarah') ? 'sarah.mansoori@medical.org' : 'a.wright@techconsult.co.uk',
         nationality: selectedResume.includes('Sarah') ? 'Saudi Arabia' : 'United Kingdom',
+        passport: selectedResume.includes('Sarah') ? 'KSA7710928' : 'GB98210452',
         score: selectedResume.includes('Sarah') ? 96 : 94,
         experience: selectedResume.includes('Sarah') ? '16 Years Experience' : '14 Years Experience',
+        currentSalary: 'AED 38,000 / month',
+        expectedSalary: 'AED 45,000 / month',
+        stage: 'new',
+        documents: [ { id: 'd-1', name: selectedResume, type: 'Resume', status: 'Verified', date: new Date().toISOString().split('T')[0] } ],
         skills: ['ICU Critical Care', 'Ventilator Management', 'JCI Accreditation', 'Prometric License', 'MOHRE Certified'],
         aiSummary: 'Senior ICU consultant with 16 years of trauma leadership in Riyadh. Verified MOHRE & Prometric credentials.'
       });
+      setCandidateAdded(false);
       setLoadingParser(false);
     }, 600);
   };
@@ -96,8 +102,15 @@ SIR Recruitment Enterprise LLC | Dubai • Riyadh • London`;
   const handleRunDuplicateCheck = () => {
     setRankingStatus('Running AI NLP Duplicate Detection & Passport Verification across database...');
     setTimeout(() => {
-      setRankingStatus('✓ Verified candidate profiles. 0 Duplicate passport numbers detected across database.');
+      setDuplicatesChecked(true);
+      setRankingStatus(`✓ Verified ${candidates.length} candidate profiles. 0 Duplicate passport numbers detected across database.`);
     }, 800);
+  };
+
+  const handleAddParsedCandidate = () => {
+    if (!parsedProfile) return;
+    addCandidate(parsedProfile);
+    setCandidateAdded(true);
   };
 
   const handleCopyEmail = () => {
@@ -171,11 +184,18 @@ SIR Recruitment Enterprise LLC | Dubai • Riyadh • London`;
                 <span className="bg-emerald-100 dark:bg-emerald-500/20 text-emerald-800 dark:text-emerald-400 font-bold px-2.5 py-1 rounded border border-emerald-300 dark:border-emerald-500/30">{parsedProfile.score}% Match Score</span>
               </div>
               <p className="text-slate-700 dark:text-slate-300 font-medium">"{parsedProfile.aiSummary}"</p>
-              <div className="flex flex-wrap gap-1 pt-1">
+              <div className="flex flex-wrap gap-1 pt-1 pb-2">
                 {parsedProfile.skills.map((s, i) => (
                   <span key={i} className="bg-slate-100 dark:bg-navy-900 text-amber-900 dark:text-gold-400 text-[10px] px-2 py-0.5 rounded font-bold border border-slate-200 dark:border-navy-800">{s}</span>
                 ))}
               </div>
+              <button 
+                onClick={handleAddParsedCandidate}
+                disabled={candidateAdded}
+                className={`w-full py-2 font-bold rounded-xl text-xs transition flex items-center justify-center gap-1.5 ${candidateAdded ? 'bg-emerald-100 dark:bg-emerald-500/20 text-emerald-800 dark:text-emerald-400 border border-emerald-300 dark:border-emerald-500/30' : 'bg-slate-900 dark:bg-gold-500 text-white dark:text-navy-950 hover:bg-slate-800 cursor-pointer shadow-md'}`}
+              >
+                {candidateAdded ? <><CheckCircle2 className="w-4 h-4"/> Imported to CRM</> : <><Upload className="w-4 h-4" /> Add Candidate to CRM</>}
+              </button>
             </div>
           )}
         </div>
@@ -202,15 +222,17 @@ SIR Recruitment Enterprise LLC | Dubai • Riyadh • London`;
             </div>
           )}
 
-          <div className="space-y-3">
-            {rankingList.map((item, idx) => (
-              <div key={idx} className="p-3.5 bg-slate-50 dark:bg-navy-950 rounded-xl border border-slate-200 dark:border-navy-800 space-y-1 shadow-xs">
+          <div className="space-y-3 max-h-[300px] overflow-y-auto pr-1">
+            {candidates.slice(0, 5).map((cand, idx) => (
+              <div key={cand.id} className="p-3.5 bg-slate-50 dark:bg-navy-950 rounded-xl border border-slate-200 dark:border-navy-800 space-y-1 shadow-xs">
                 <div className="flex justify-between">
-                  <span className="font-bold text-slate-900 dark:text-white">{item.name}</span>
-                  <span className="bg-emerald-100 dark:bg-emerald-500/20 text-emerald-800 dark:text-emerald-400 font-bold px-2 py-0.5 rounded border border-emerald-300 dark:border-emerald-500/30">{item.match}% Fit</span>
+                  <span className="font-bold text-slate-900 dark:text-white">{cand.name}</span>
+                  <span className="bg-emerald-100 dark:bg-emerald-500/20 text-emerald-800 dark:text-emerald-400 font-bold px-2 py-0.5 rounded border border-emerald-300 dark:border-emerald-500/30">{cand.score || 85}% Fit</span>
                 </div>
-                <p className="text-slate-600 dark:text-slate-400 text-[11px] font-medium">Target: {item.role}</p>
-                <span className="text-[10px] text-emerald-700 dark:text-emerald-400 font-bold block">✓ Duplicate Check: Clean (Unique Passport {item.passport})</span>
+                <p className="text-slate-600 dark:text-slate-400 text-[11px] font-medium">Target: {cand.currentEmployer || 'Active Client'}</p>
+                {duplicatesChecked && (
+                  <span className="text-[10px] text-emerald-700 dark:text-emerald-400 font-bold block">✓ Duplicate Check: Clean (Unique Passport {cand.passport || 'N/A'})</span>
+                )}
               </div>
             ))}
           </div>
@@ -231,8 +253,13 @@ SIR Recruitment Enterprise LLC | Dubai • Riyadh • London`;
           <div className="space-y-3">
             <div className="grid grid-cols-2 gap-2">
               <div>
-                <label className="block font-extrabold text-slate-700 dark:text-slate-300 mb-1">Candidate Name</label>
-                <input type="text" value={candidateName} onChange={e=>setCandidateName(e.target.value)} className="w-full bg-slate-100 dark:bg-navy-950 border border-slate-300 dark:border-navy-700 text-slate-900 dark:text-white font-bold rounded-xl p-2.5" />
+                <label className="block font-extrabold text-slate-700 dark:text-slate-300 mb-1">Select Candidate</label>
+                <select value={selectedCandidateId} onChange={e=>setSelectedCandidateId(e.target.value)} className="w-full bg-slate-100 dark:bg-navy-950 border border-slate-300 dark:border-navy-700 text-slate-900 dark:text-white font-bold rounded-xl p-2.5 focus:outline-none focus:border-gold-500">
+                  <option value="" disabled>Select a candidate...</option>
+                  {candidates.map(c => (
+                    <option key={c.id} value={c.id}>{c.name} ({c.nationality})</option>
+                  ))}
+                </select>
               </div>
               <div>
                 <label className="block font-extrabold text-slate-700 dark:text-slate-300 mb-1">Position / Mandate</label>

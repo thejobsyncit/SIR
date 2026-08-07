@@ -26,9 +26,9 @@ export const CrmProvider = ({ children }) => {
     }
   };
 
-  const [candidates, setCandidates] = useState(() => loadState('crm_candidates', CRM_CANDIDATES));
-  const [clients, setClients] = useState(() => loadState('crm_clients', CRM_CLIENTS));
-  const [interviews, setInterviews] = useState(() => loadState('crm_interviews', CRM_INTERVIEWS));
+  const [candidates, setCandidates] = useState([]);
+  const [clients, setClients] = useState([]);
+  const [interviews, setInterviews] = useState([]);
   const [invoices, setInvoices] = useState(() => loadState('crm_invoices', CRM_INVOICES));
   const [auditLogs, setAuditLogs] = useState(() => loadState('crm_auditLogs', AUDIT_LOGS));
   const [calendarEvents, setCalendarEvents] = useState(() => loadState('crm_calendarEvents', [
@@ -47,15 +47,31 @@ export const CrmProvider = ({ children }) => {
   ));
 
   useEffect(() => {
-    localStorage.setItem('crm_candidates', JSON.stringify(candidates));
-    localStorage.setItem('crm_clients', JSON.stringify(clients));
-    localStorage.setItem('crm_interviews', JSON.stringify(interviews));
+    // Fetch initial data from SQLite backend
+    const fetchInitialData = async () => {
+      try {
+        const [candRes, clientRes, intRes] = await Promise.all([
+          fetch('http://localhost:5000/api/candidates').then(r => r.json()),
+          fetch('http://localhost:5000/api/clients').then(r => r.json()),
+          fetch('http://localhost:5000/api/interviews').then(r => r.json())
+        ]);
+        if (candRes.success) setCandidates(candRes.data);
+        if (clientRes.success) setClients(clientRes.data);
+        if (intRes.success) setInterviews(intRes.data);
+      } catch (err) {
+        console.error('Failed to load CRM data from backend API:', err);
+      }
+    };
+    fetchInitialData();
+  }, []);
+
+  useEffect(() => {
     localStorage.setItem('crm_invoices', JSON.stringify(invoices));
     localStorage.setItem('crm_auditLogs', JSON.stringify(auditLogs));
     localStorage.setItem('crm_calendarEvents', JSON.stringify(calendarEvents));
     localStorage.setItem('crm_recruiterTasks', JSON.stringify(recruiterTasks));
     localStorage.setItem('crm_recruiterNotes', JSON.stringify(recruiterNotes));
-  }, [candidates, clients, interviews, invoices, auditLogs, calendarEvents, recruiterTasks, recruiterNotes]);
+  }, [invoices, auditLogs, calendarEvents, recruiterTasks, recruiterNotes]);
 
   // Security & Devices
   const [failedLoginAttempts, setFailedLoginAttempts] = useState(0);
@@ -209,73 +225,90 @@ export const CrmProvider = ({ children }) => {
     logAuditAction(`Revoked all active remote session refresh tokens.`);
   };
 
-  const updateCandidateStage = (candidateId, newStage) => {
-    setCandidates(prev =>
-      prev.map(c => (c.id === candidateId ? { ...c, stage: newStage } : c))
-    );
-    logAuditAction(`Updated candidate ${candidateId} stage to '${newStage}'.`);
-  };
-
-  const addCandidate = (newCand) => {
-    const candidateObj = {
-      ...newCand,
-      id: 'SIR-CAN-' + Math.floor(2000 + Math.random() * 8000),
-      score: newCand.score || 92,
-      stage: newCand.stage || 'lead',
-      documents: newCand.documents || [{ id: 'd-new', name: 'Resume_Attached.pdf', type: 'Resume', status: 'Verified', date: new Date().toISOString().split('T')[0] }],
-      skills: newCand.skills || ['Executive Leadership', 'GCC Compliance'],
-      aiSummary: newCand.aiSummary || 'Verified executive candidate added to SIR database.',
-      assignedRecruiter: newCand.assignedRecruiter || user.name,
-      tags: ['New Entry', 'Verified']
-    };
-    setCandidates(prev => [candidateObj, ...prev]);
-    logAuditAction(`Added new candidate ${candidateObj.name} (${candidateObj.id}).`);
-  };
-
-  const updateCandidate = (updatedCand) => {
-    setCandidates(prev => prev.map(c => c.id === updatedCand.id ? updatedCand : c));
-    logAuditAction(`Updated candidate profile ${updatedCand.id}.`);
-  };
-
-  const addClient = (newClient) => {
-    const clientObj = {
-      ...newClient,
-      id: 'CLI-' + Math.floor(600 + Math.random() * 300),
-      activeMandates: newClient.activeMandates || 1,
-      totalPlacements: newClient.totalPlacements || 0,
-      agreementStatus: 'Active Multi-Year SLA',
-      pendingInvoiceUSD: 0,
-      coordinator: user.name,
-      requirements: [],
-      communications: []
-    };
-    setClients(prev => [clientObj, ...prev]);
-    logAuditAction(`Registered new client account ${clientObj.company} (${clientObj.id}).`);
-  };
-
-  const removeClient = (clientId) => {
-    setClients(prev => prev.filter(c => c.id !== clientId));
-    logAuditAction(`Deleted corporate client account ${clientId}.`);
-  };
-
-  const addInterview = (newInterview) => {
-    setInterviews(prev => [newInterview, ...prev]);
-    // Also auto-add to calendar
-    setCalendarEvents(prev => [
-      ...prev,
-      {
-        id: Date.now(),
-        title: `${newInterview.candidateName} ${newInterview.platform} Interview`,
-        time: newInterview.time,
-        type: 'Interview',
-        candidate: newInterview.candidateName,
-        date: newInterview.date
+  const updateCandidateStage = async (candidateId, newStage) => {
+    try {
+      const res = await fetch(`http://localhost:5000/api/candidates/${candidateId}`, {
+        method: 'PUT', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ stage: newStage })
+      });
+      if (res.ok) {
+        setCandidates(prev => prev.map(c => (c.id === candidateId ? { ...c, stage: newStage } : c)));
+        logAuditAction(`Updated candidate ${candidateId} stage to '${newStage}'.`);
       }
-    ]);
-    logAuditAction(`Scheduled new interview for ${newInterview.candidateName}.`);
+    } catch (err) { console.error(err); }
+  };
+
+  const addCandidate = async (newCand) => {
+    try {
+      const res = await fetch('http://localhost:5000/api/candidates', {
+        method: 'POST', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(newCand)
+      });
+      const data = await res.json();
+      if (data.success) {
+        setCandidates(prev => [data.data, ...prev]);
+        logAuditAction(`Added new candidate ${data.data.name} (${data.data.id}).`);
+      }
+    } catch (err) { console.error(err); }
+  };
+
+  const updateCandidate = async (updatedCand) => {
+    try {
+      const res = await fetch(`http://localhost:5000/api/candidates/${updatedCand.id}`, {
+        method: 'PUT', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(updatedCand)
+      });
+      if (res.ok) {
+        setCandidates(prev => prev.map(c => c.id === updatedCand.id ? updatedCand : c));
+        logAuditAction(`Updated candidate profile ${updatedCand.id}.`);
+      }
+    } catch (err) { console.error(err); }
+  };
+
+  const addClient = async (newClient) => {
+    try {
+      const res = await fetch('http://localhost:5000/api/clients', {
+        method: 'POST', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(newClient)
+      });
+      const data = await res.json();
+      if (data.success) {
+        setClients(prev => [data.data, ...prev]);
+        logAuditAction(`Registered new client account ${data.data.company} (${data.data.id}).`);
+      }
+    } catch (err) { console.error(err); }
+  };
+
+  const removeClient = async (clientId) => {
+    try {
+      const res = await fetch(`http://localhost:5000/api/clients/${clientId}`, { method: 'DELETE' });
+      if (res.ok) {
+        setClients(prev => prev.filter(c => c.id !== clientId));
+        logAuditAction(`Deleted corporate client account ${clientId}.`);
+      }
+    } catch (err) { console.error(err); }
+  };
+
+  const addInterview = async (newInterview) => {
+    try {
+      const res = await fetch('http://localhost:5000/api/interviews', {
+        method: 'POST', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(newInterview)
+      });
+      const data = await res.json();
+      if (data.success) {
+        setInterviews(prev => [data.data, ...prev]);
+        setCalendarEvents(prev => [
+          ...prev,
+          { id: Date.now(), title: `${data.data.candidateName} ${data.data.platform} Interview`, time: data.data.time, type: 'Interview', candidate: data.data.candidateName, date: data.data.date }
+        ]);
+        logAuditAction(`Scheduled new interview for ${data.data.candidateName}.`);
+      }
+    } catch (err) { console.error(err); }
   };
 
   const updateInterview = (updatedInterview) => {
+    // Only local state for now unless backend updated
     setInterviews(prev => prev.map(i => i.id === updatedInterview.id ? updatedInterview : i));
     logAuditAction(`Updated interview record ${updatedInterview.id}.`);
   };
@@ -293,6 +326,11 @@ export const CrmProvider = ({ children }) => {
   const addInvoice = (newInvoice) => {
     setInvoices(prev => [newInvoice, ...prev]);
     logAuditAction(`Generated new invoice for ${newInvoice.client}.`);
+  };
+
+  const updateInvoice = (updatedInvoice) => {
+    setInvoices(prev => prev.map(i => i.id === updatedInvoice.id ? updatedInvoice : i));
+    logAuditAction(`Updated invoice ${updatedInvoice.id}.`);
   };
 
   const addRecruiterTask = (task) => setRecruiterTasks(prev => [...prev, task]);
@@ -360,6 +398,7 @@ export const CrmProvider = ({ children }) => {
         removeCalendarEvent,
         invoices,
         addInvoice,
+        updateInvoice,
         recruiterTasks,
         addRecruiterTask,
         removeRecruiterTask,

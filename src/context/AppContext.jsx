@@ -247,7 +247,7 @@ export const AppProvider = ({ children }) => {
     );
   };
 
-  const applyForJob = (job) => {
+  const applyForJob = async (job) => {
     if (!job || !job.id) return;
     const newApp = {
       id: 'APP-' + Math.floor(1000 + Math.random() * 9000),
@@ -259,6 +259,25 @@ export const AppProvider = ({ children }) => {
       status: 'Under AI Resume Screening',
       step: 1
     };
+    
+    // Post to backend Candidates API as a new lead
+    try {
+      await fetch('/api/candidates', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          name: user ? user.name : 'Unknown Candidate',
+          email: user ? user.email : '',
+          phone: user ? user.phone : '',
+          source: `Applied for: ${job.title}`,
+          stage: 'lead',
+          score: 88
+        })
+      });
+    } catch (err) {
+      console.error('Failed to sync application to CRM:', err);
+    }
+
     setApplications(prev => {
       if (prev.some(a => a.jobId === job.id)) return prev;
       const updated = [newApp, ...prev];

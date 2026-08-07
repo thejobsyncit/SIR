@@ -3,7 +3,7 @@ import { useCrm } from '../context/CrmContext';
 import { CRM_ROLES } from '../data/mockCrmData';
 import { 
   Users, UserPlus, RefreshCw, Trash2, CheckCircle2, ShieldCheck, Mail, Phone, Lock, Search, Filter, Check, Building, FileText, Eye, EyeOff,
-  Activity, Clock, Calendar, AlertCircle, XCircle, Database, Award, Globe, Server, Settings, Key, Plus, ChevronRight, TrendingUp, UserCheck
+  Activity, Clock, Calendar, AlertCircle, XCircle, Database, Award, Globe, Server, Settings, Key, Plus, ChevronRight, TrendingUp, UserCheck, Edit
 } from 'lucide-react';
 
 export const CrmSuperAdmin = () => {
@@ -99,6 +99,25 @@ export const CrmSuperAdmin = () => {
   const [searchQuery, setSearchQuery] = useState('');
   const [showPassword, setShowPassword] = useState(false);
   const [visiblePasswords, setVisiblePasswords] = useState(new Set());
+  const [editingEmployeeId, setEditingEmployeeId] = useState(null);
+
+  const handleEditClick = (emp) => {
+    setEditingEmployeeId(emp.id);
+    setNewEmployee({
+      name: emp.name,
+      email: emp.email,
+      password: emp.password,
+      phone: emp.phone,
+      role: emp.role
+    });
+    // Scroll to top where the form is usually visible on mobile, or just let them see it
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  };
+
+  const handleCancelEdit = () => {
+    setEditingEmployeeId(null);
+    setNewEmployee({ name: '', email: '', password: '', phone: '', role: 'Recruiter' });
+  };
 
   const toggleRowPassword = (id) => {
     setVisiblePasswords(prev => {
@@ -126,31 +145,51 @@ export const CrmSuperAdmin = () => {
     syncToLocalStorage(employees);
   }, []);
 
-  const handleCreateEmployee = (e) => {
+  const handleSaveEmployee = (e) => {
     e.preventDefault();
     if (!newEmployee.email || !newEmployee.password) {
-      alert('Please provide Email ID and Password for the new employee.');
+      alert('Please provide Email ID and Password for the employee.');
       return;
     }
 
-    const createdEmp = {
-      id: `emp-${Date.now()}`,
-      name: newEmployee.name.trim() || newEmployee.email.split('@')[0],
-      email: newEmployee.email.trim().toLowerCase(),
-      password: newEmployee.password,
-      phone: newEmployee.phone.trim() || '+91 9800000000',
-      role: newEmployee.role,
-      status: 'Active'
-    };
+    if (editingEmployeeId) {
+      const updated = employees.map(emp => {
+        if (emp.id === editingEmployeeId) {
+          return {
+            ...emp,
+            name: newEmployee.name.trim() || newEmployee.email.split('@')[0],
+            email: newEmployee.email.trim().toLowerCase(),
+            password: newEmployee.password,
+            phone: newEmployee.phone.trim() || '+91 9800000000',
+            role: newEmployee.role
+          };
+        }
+        return emp;
+      });
+      setEmployees(updated);
+      syncToLocalStorage(updated);
+      logAuditAction(`Super Admin updated employee account '${newEmployee.email}'.`);
+      setStatusMsg(`✓ Employee Account '${newEmployee.name || newEmployee.email}' updated successfully!`);
+    } else {
+      const createdEmp = {
+        id: `emp-${Date.now()}`,
+        name: newEmployee.name.trim() || newEmployee.email.split('@')[0],
+        email: newEmployee.email.trim().toLowerCase(),
+        password: newEmployee.password,
+        phone: newEmployee.phone.trim() || '+91 9800000000',
+        role: newEmployee.role,
+        status: 'Active'
+      };
 
-    const updated = [createdEmp, ...employees];
-    setEmployees(updated);
-    syncToLocalStorage(updated);
-
-    logAuditAction(`Super Admin created employee account '${createdEmp.email}' under role '${createdEmp.role}'.`);
-    setStatusMsg(`✓ Employee Account '${createdEmp.name}' (${createdEmp.role}) created successfully!`);
+      const updated = [createdEmp, ...employees];
+      setEmployees(updated);
+      syncToLocalStorage(updated);
+      logAuditAction(`Super Admin created employee account '${createdEmp.email}'.`);
+      setStatusMsg(`✓ Employee Account '${createdEmp.name}' created successfully!`);
+    }
     
     setNewEmployee({ name: '', email: '', password: '', phone: '', role: 'Recruiter' });
+    setEditingEmployeeId(null);
     setShowPassword(false);
     setTimeout(() => setStatusMsg(''), 5000);
   };
@@ -190,6 +229,22 @@ export const CrmSuperAdmin = () => {
     setStatusMsg(`✓ Added '${newVisaInput.trim()}' to Master Visa Protocols!`);
     setNewVisaInput('');
     setTimeout(() => setStatusMsg(''), 4000);
+  };
+
+  const handleRemoveMasterSector = (sector) => {
+    if (window.confirm(`Are you sure you want to remove '${sector}'?`)) {
+      setMasterSectors(prev => prev.filter(s => s !== sector));
+      setStatusMsg(`✓ Removed '${sector}' from Master Industry Sectors.`);
+      setTimeout(() => setStatusMsg(''), 4000);
+    }
+  };
+
+  const handleRemoveMasterVisa = (visa) => {
+    if (window.confirm(`Are you sure you want to remove '${visa}'?`)) {
+      setMasterVisas(prev => prev.filter(v => v !== visa));
+      setStatusMsg(`✓ Removed '${visa}' from Master Visa Protocols.`);
+      setTimeout(() => setStatusMsg(''), 4000);
+    }
   };
 
   const filteredEmployees = employees.filter(e => 
@@ -401,13 +456,22 @@ export const CrmSuperAdmin = () => {
                         </span>
                       </td>
                       <td className="p-3 text-right">
-                        <button 
-                          onClick={() => handleDeleteEmployee(emp.id, emp.name)} 
-                          className="p-1.5 text-rose-600 dark:text-rose-400 hover:text-rose-700 dark:hover:text-rose-300 hover:bg-rose-100 dark:hover:bg-rose-500/20 rounded-lg transition cursor-pointer"
-                          title="Delete Employee Account"
-                        >
-                          <Trash2 className="w-4 h-4" />
-                        </button>
+                        <div className="flex items-center justify-end gap-1">
+                          <button 
+                            onClick={() => handleEditClick(emp)} 
+                            className="p-1.5 text-blue-600 dark:text-blue-400 hover:text-blue-700 dark:hover:text-blue-300 hover:bg-blue-100 dark:hover:bg-blue-500/20 rounded-lg transition cursor-pointer"
+                            title="Edit Employee Account"
+                          >
+                            <Edit className="w-4 h-4" />
+                          </button>
+                          <button 
+                            onClick={() => handleDeleteEmployee(emp.id, emp.name)} 
+                            className="p-1.5 text-rose-600 dark:text-rose-400 hover:text-rose-700 dark:hover:text-rose-300 hover:bg-rose-100 dark:hover:bg-rose-500/20 rounded-lg transition cursor-pointer"
+                            title="Delete Employee Account"
+                          >
+                            <Trash2 className="w-4 h-4" />
+                          </button>
+                        </div>
                       </td>
                     </tr>
                   ))}
@@ -418,12 +482,17 @@ export const CrmSuperAdmin = () => {
 
           {/* Right 4 Cols: + Add New Employee Form */}
           <div className="lg:col-span-4 glass-card bg-white dark:bg-navy-900 border border-slate-200 dark:border-navy-800 p-6 rounded-3xl space-y-4 shadow-sm h-fit">
-            <h3 className="font-serif text-lg font-bold text-slate-900 dark:text-white flex items-center gap-2 border-b border-slate-200 dark:border-navy-800 pb-3">
-              <UserPlus className="w-5 h-5 text-gold-500" />
-              + Add New Employee
+            <h3 className="font-serif text-lg font-bold text-slate-900 dark:text-white flex items-center justify-between border-b border-slate-200 dark:border-navy-800 pb-3">
+              <span className="flex items-center gap-2">
+                <UserPlus className="w-5 h-5 text-gold-500" />
+                {editingEmployeeId ? 'Edit Employee Account' : '+ Add New Employee'}
+              </span>
+              {editingEmployeeId && (
+                <button onClick={handleCancelEdit} type="button" className="text-xs font-bold text-slate-500 hover:text-rose-500 transition cursor-pointer">Cancel Edit</button>
+              )}
             </h3>
 
-            <form onSubmit={handleCreateEmployee} className="space-y-3.5 text-xs">
+            <form onSubmit={handleSaveEmployee} className="space-y-3.5 text-xs">
               <div>
                 <label className="block font-extrabold text-slate-800 dark:text-slate-200 mb-1">Full Name</label>
                 <input 
@@ -496,10 +565,10 @@ export const CrmSuperAdmin = () => {
 
               <button 
                 type="submit" 
-                className="w-full py-3.5 bg-gradient-to-r from-blue-600 to-cyan-600 hover:from-blue-700 hover:to-cyan-700 text-white font-extrabold rounded-xl shadow-lg transition cursor-pointer flex items-center justify-center space-x-2 mt-2"
+                className={`w-full py-3.5 text-white font-extrabold rounded-xl shadow-lg transition cursor-pointer flex items-center justify-center space-x-2 mt-2 ${editingEmployeeId ? 'bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-700 hover:to-teal-700' : 'bg-gradient-to-r from-blue-600 to-cyan-600 hover:from-blue-700 hover:to-cyan-700'}`}
               >
-                <UserPlus className="w-4 h-4" />
-                <span>Create Employee Account</span>
+                {editingEmployeeId ? <Check className="w-4 h-4" /> : <UserPlus className="w-4 h-4" />}
+                <span>{editingEmployeeId ? 'Update Employee Account' : 'Create Employee Account'}</span>
               </button>
             </form>
           </div>
@@ -716,9 +785,14 @@ export const CrmSuperAdmin = () => {
 
             <div className="space-y-2">
               {masterSectors.map((sector, idx) => (
-                <div key={idx} className="p-3 bg-slate-50 dark:bg-navy-950 rounded-xl border border-slate-200 dark:border-navy-800 flex justify-between items-center font-bold text-slate-900 dark:text-white">
+                <div key={idx} className="p-3 bg-slate-50 dark:bg-navy-950 rounded-xl border border-slate-200 dark:border-navy-800 flex justify-between items-center font-bold text-slate-900 dark:text-white group transition-all hover:border-slate-300 dark:hover:border-navy-700">
                   <span>{sector}</span>
-                  <span className="bg-emerald-100 dark:bg-emerald-500/20 text-emerald-800 dark:text-emerald-400 text-[10px] px-2 py-0.5 rounded font-extrabold">Active</span>
+                  <div className="flex items-center gap-3">
+                    <span className="bg-emerald-100 dark:bg-emerald-500/20 text-emerald-800 dark:text-emerald-400 text-[10px] px-2 py-0.5 rounded font-extrabold">Active</span>
+                    <button onClick={() => handleRemoveMasterSector(sector)} className="text-slate-400 dark:text-slate-500 hover:text-rose-500 dark:hover:text-rose-400 transition cursor-pointer" title="Remove Sector">
+                      <Trash2 className="w-4 h-4" />
+                    </button>
+                  </div>
                 </div>
               ))}
             </div>
@@ -746,9 +820,14 @@ export const CrmSuperAdmin = () => {
 
             <div className="space-y-2">
               {masterVisas.map((visa, idx) => (
-                <div key={idx} className="p-3 bg-slate-50 dark:bg-navy-950 rounded-xl border border-slate-200 dark:border-navy-800 flex justify-between items-center font-bold text-slate-900 dark:text-white">
+                <div key={idx} className="p-3 bg-slate-50 dark:bg-navy-950 rounded-xl border border-slate-200 dark:border-navy-800 flex justify-between items-center font-bold text-slate-900 dark:text-white group transition-all hover:border-slate-300 dark:hover:border-navy-700">
                   <span>{visa}</span>
-                  <span className="bg-blue-100 dark:bg-blue-500/20 text-blue-800 dark:text-blue-400 text-[10px] px-2 py-0.5 rounded font-extrabold">Configured</span>
+                  <div className="flex items-center gap-3">
+                    <span className="bg-blue-100 dark:bg-blue-500/20 text-blue-800 dark:text-blue-400 text-[10px] px-2 py-0.5 rounded font-extrabold">Configured</span>
+                    <button onClick={() => handleRemoveMasterVisa(visa)} className="text-slate-400 dark:text-slate-500 hover:text-rose-500 dark:hover:text-rose-400 transition cursor-pointer" title="Remove Visa Protocol">
+                      <Trash2 className="w-4 h-4" />
+                    </button>
+                  </div>
                 </div>
               ))}
             </div>

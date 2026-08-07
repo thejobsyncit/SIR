@@ -107,9 +107,11 @@ export const CrmCandidates = () => {
                     <p className="text-[10px] text-slate-500 dark:text-slate-400">{cand.id} • {cand.nationality}</p>
                   </div>
                 </div>
-                <span className="w-9 h-9 rounded-full border-2 border-gold-500 text-gold-600 dark:text-gold-400 font-extrabold text-xs flex items-center justify-center bg-gold-500/10">
-                  {cand.score || 90}
-                </span>
+                {cand.documents?.some(d => d.type === 'Resume') && (
+                  <span className="w-9 h-9 shrink-0 rounded-full border-2 border-gold-500 text-gold-600 dark:text-gold-400 font-extrabold text-xs flex items-center justify-center bg-gold-500/10" title="AI Resume Match Score">
+                    {cand.score || 90}
+                  </span>
+                )}
               </div>
 
               <div className="p-3 bg-slate-100 dark:bg-navy-950 rounded-xl space-y-1 text-[11px]">

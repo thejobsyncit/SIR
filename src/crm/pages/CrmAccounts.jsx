@@ -6,7 +6,7 @@ import {
 } from 'lucide-react';
 
 export const CrmAccounts = () => {
-  const { invoices, addInvoice } = useCrm();
+  const { invoices, addInvoice, updateInvoice } = useCrm();
   const [modalOpen, setModalOpen] = useState(false);
   
   // Payment Gateway Multi-Step State
@@ -80,7 +80,7 @@ export const CrmAccounts = () => {
       const transactionId = 'TXN-STRIPE-' + Math.floor(100000 + Math.random() * 900000);
       const updatedInv = { ...paymentGatewayOpen, status: 'Paid', transactionId, paidDate: new Date().toLocaleString() };
       
-      setInvoiceList(prev => prev.map(i => i.id === paymentGatewayOpen.id ? updatedInv : i));
+      updateInvoice(updatedInv);
       setSettledReceipt({ ...updatedInv, method: methodName, transactionId });
       setPaymentStep('receipt');
     }, 2200);
@@ -150,10 +150,10 @@ STATUS: PAID & AUDITED (GRADE A)
         <div className="glass-card bg-white dark:bg-navy-900 border border-slate-200 dark:border-navy-800 p-5 rounded-2xl space-y-1 shadow-sm">
           <span className="text-[10px] font-bold text-slate-500 dark:text-slate-400 uppercase">Pending Accounts Receivable</span>
           <p className="font-serif text-2xl font-extrabold text-amber-600 dark:text-gold-400">
-            ${invoiceList.filter(i => i.status !== 'Paid').reduce((sum, i) => sum + i.totalUSD, 0).toLocaleString()} USD
+            ${invoices.filter(i => i.status !== 'Paid').reduce((sum, i) => sum + i.totalUSD, 0).toLocaleString()} USD
           </p>
           <p className="text-[10px] text-slate-500 dark:text-slate-400 font-semibold">
-            {invoiceList.filter(i => i.status !== 'Paid').length} Invoices Pending
+            {invoices.filter(i => i.status !== 'Paid').length} Invoices Pending
           </p>
         </div>
 

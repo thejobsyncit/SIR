@@ -7,23 +7,28 @@ export const ContactUsPage = () => {
 
   const { addClient } = useCrm();
 
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
     const formData = new FormData(e.target);
     const data = Object.fromEntries(formData.entries());
 
-    // Push the website inquiry to the CRM as a Client Lead
-    addClient({
-      company: data.name + ' (Web Inquiry)',
-      email: data.email,
-      phone: data.phone,
-      industry: data.type,
-      country: 'Web Lead',
-      status: 'Prospect',
-      requirements: [{ title: 'Web Message', description: data.message }]
-    });
-
-    setSubmitted(true);
+    // Push the website inquiry to the CRM as a Lead
+    try {
+      await fetch('/api/leads', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          name: data.name,
+          email: data.email,
+          phone: data.phone,
+          company: data.type === 'employer' ? 'Corporate Inquiry' : 'Individual',
+          message: data.message
+        })
+      });
+      setSubmitted(true);
+    } catch (err) {
+      console.error('Failed to submit inquiry:', err);
+    }
   };
 
   return (
