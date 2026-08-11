@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import ScrollReveal from '../../components/ScrollReveal';
 import { useCrm } from '../context/CrmContext';
 import { 
   Sparkles, FileText, Send, CheckCircle2, RefreshCw, MessageSquare, Bot, 
@@ -132,10 +133,11 @@ SIR Recruitment Enterprise LLC | Dubai • Riyadh • London`;
   };
 
   return (
+    <ScrollReveal>
     <div className="space-y-6 text-xs font-sans">
       
       {/* Header Banner */}
-      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 bg-white dark:bg-navy-950 p-6 rounded-3xl border border-slate-200 dark:border-navy-800 shadow-sm">
+      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 bg-white dark:bg-gradient-to-r dark:from-[#091124] dark:to-[#050a17] p-6 rounded-3xl border border-slate-200 dark:border-gold-500/40 shadow-luxury">
         <div>
           <span className="bg-gold-500/20 text-gold-700 dark:text-gold-400 text-[10px] font-bold px-2.5 py-1 rounded uppercase">Cognitive Intelligence Suite</span>
           <h1 className="font-serif text-2xl font-bold text-slate-900 dark:text-white mt-1">AI Features & Talent Copilot Hub</h1>
@@ -147,7 +149,8 @@ SIR Recruitment Enterprise LLC | Dubai • Riyadh • London`;
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         
         {/* Module 1: AI Resume Parser & Summary */}
-        <div className="glass-card bg-white dark:bg-navy-900 border border-slate-200 dark:border-navy-800 p-6 rounded-2xl space-y-4 shadow-sm">
+        <ScrollReveal delay={0.1}>
+        <div className="glass-card bg-white dark:bg-gradient-to-b dark:from-[#0d162d] dark:to-[#050a17] border border-slate-200 dark:border-gold-500/30 hover:border-gold-500/60 p-6 rounded-3xl space-y-4 shadow-luxury transition-all duration-300 transform hover:-translate-y-1">
           <h3 className="font-serif text-lg font-bold text-slate-900 dark:text-white flex items-center gap-2">
             <FileText className="w-5 h-5 text-gold-500" />
             AI Resume Parsing & Candidate Scoring Engine
@@ -199,9 +202,11 @@ SIR Recruitment Enterprise LLC | Dubai • Riyadh • London`;
             </div>
           )}
         </div>
+        </ScrollReveal>
 
         {/* Module 2: AI Candidate Ranking Engine */}
-        <div className="glass-card bg-white dark:bg-navy-900 border border-slate-200 dark:border-navy-800 p-6 rounded-2xl space-y-4 shadow-sm">
+        <ScrollReveal delay={0.2}>
+        <div className="glass-card bg-white dark:bg-gradient-to-b dark:from-[#0d162d] dark:to-[#050a17] border border-slate-200 dark:border-gold-500/30 hover:border-gold-500/60 p-6 rounded-3xl space-y-4 shadow-luxury transition-all duration-300 transform hover:-translate-y-1">
           <div className="flex justify-between items-center border-b border-slate-200 dark:border-navy-800 pb-3">
             <h3 className="font-serif text-lg font-bold text-slate-900 dark:text-white flex items-center gap-2">
               <Bot className="w-5 h-5 text-gold-500" />
@@ -237,6 +242,7 @@ SIR Recruitment Enterprise LLC | Dubai • Riyadh • London`;
             ))}
           </div>
         </div>
+        </ScrollReveal>
 
       </div>
 
@@ -244,7 +250,8 @@ SIR Recruitment Enterprise LLC | Dubai • Riyadh • London`;
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         
         {/* Module 3: AI Email & WhatsApp Writer */}
-        <div className="glass-card bg-white dark:bg-navy-900 border border-slate-200 dark:border-navy-800 p-6 rounded-2xl space-y-4 shadow-sm">
+        <ScrollReveal delay={0.3}>
+        <div className="glass-card bg-white dark:bg-gradient-to-b dark:from-[#0d162d] dark:to-[#050a17] border border-slate-200 dark:border-gold-500/30 hover:border-gold-500/60 p-6 rounded-3xl space-y-4 shadow-luxury transition-all duration-300 transform hover:-translate-y-1">
           <h3 className="font-serif text-lg font-bold text-slate-900 dark:text-white flex items-center gap-2">
             <MessageSquare className="w-5 h-5 text-gold-500" />
             AI Email & WhatsApp Writer
@@ -301,9 +308,11 @@ SIR Recruitment Enterprise LLC | Dubai • Riyadh • London`;
             )}
           </div>
         </div>
+        </ScrollReveal>
 
         {/* Module 4: AI Interview Question Generator */}
-        <div className="glass-card bg-white dark:bg-navy-900 border border-slate-200 dark:border-navy-800 p-6 rounded-2xl space-y-4 shadow-sm">
+        <ScrollReveal delay={0.4}>
+        <div className="glass-card bg-white dark:bg-gradient-to-b dark:from-[#0d162d] dark:to-[#050a17] border border-slate-200 dark:border-gold-500/30 hover:border-gold-500/60 p-6 rounded-3xl space-y-4 shadow-luxury transition-all duration-300 transform hover:-translate-y-1">
           <h3 className="font-serif text-lg font-bold text-slate-900 dark:text-white flex items-center gap-2">
             <Lightbulb className="w-5 h-5 text-gold-500" />
             AI Interview Question Generator
@@ -340,9 +349,11 @@ SIR Recruitment Enterprise LLC | Dubai • Riyadh • London`;
             )}
           </div>
         </div>
+        </ScrollReveal>
 
       </div>
 
     </div>
+    </ScrollReveal>
   );
 };

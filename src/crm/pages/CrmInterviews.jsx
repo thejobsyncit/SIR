@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import ScrollReveal from '../../components/ScrollReveal';
 import { useCrm } from '../context/CrmContext';
 import { 
   Calendar, Video, Clock, UserCheck, Link, Plus, CheckCircle2, 
@@ -69,6 +70,7 @@ export const CrmInterviews = () => {
   };
 
   return (
+    <ScrollReveal>
     <div className="space-y-6 text-xs font-sans">
       
       {/* Header */}
@@ -247,5 +249,6 @@ export const CrmInterviews = () => {
       )}
 
     </div>
+    </ScrollReveal>
   );
 };

@@ -17,12 +17,12 @@ export const CookieConsent = () => {
   if (accepted) return null;
 
   return (
-    <div className="fixed bottom-4 left-4 right-4 sm:left-auto sm:right-4 z-50 max-w-md glass-card bg-navy-950 text-white border border-gold-500/40 rounded-2xl p-4 shadow-luxury animate-in slide-in-from-bottom-5 text-xs">
+    <div className="fixed bottom-4 left-4 right-4 sm:left-auto sm:right-4 z-50 max-w-md glass-card bg-white dark:bg-navy-950 text-slate-900 dark:text-white border border-slate-200 dark:border-gold-500/40 rounded-2xl p-4 shadow-luxury animate-in slide-in-from-bottom-5 text-xs">
       <div className="flex items-start space-x-3">
         <ShieldCheck className="w-5 h-5 text-gold-500 shrink-0 mt-0.5" />
         <div className="space-y-2">
-          <h4 className="font-bold text-white">GDPR & Cookie Preference</h4>
-          <p className="text-slate-300 leading-relaxed text-[11px] font-medium">
+          <h4 className="font-bold text-slate-900 dark:text-white">GDPR & Cookie Preference</h4>
+          <p className="text-slate-600 dark:text-slate-300 leading-relaxed text-[11px] font-medium">
             SIR Recruitment uses cookies & encrypted local storage to personalize job recommendations, preserve your visa evaluation session, and analyze platform traffic.
           </p>
           <div className="flex gap-2 pt-1">
@@ -34,7 +34,7 @@ export const CookieConsent = () => {
             </button>
             <button
               onClick={handleAccept}
-              className="bg-navy-800 text-slate-300 font-semibold px-3 py-1.5 rounded-lg text-xs hover:bg-navy-700"
+              className="bg-navy-800 text-slate-600 dark:text-slate-300 font-semibold px-3 py-1.5 rounded-lg text-xs hover:bg-navy-700"
             >
               Essential Only
             </button>

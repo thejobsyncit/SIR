@@ -13,23 +13,23 @@ export const CrmAddCandidateModal = ({ isOpen, onClose }) => {
     phone: '',
     whatsapp: '',
     gender: 'Male',
-    dob: '1992-05-15',
-    nationality: 'United Kingdom',
-    passport: 'GB' + Math.floor(10000000 + Math.random() * 90000000),
-    passportExpiry: '2030-12-31',
-    currentLocation: 'Dubai, UAE',
-    preferredLocation: 'Riyadh, KSA',
+    dob: '',
+    nationality: 'United Arab Emirates',
+    passport: '',
+    passportExpiry: '',
+    currentLocation: '',
+    preferredLocation: '',
     visaStatus: 'Employment Visa (Transferable)',
-    currentEmployer: 'Emaar Properties PJSC',
-    designation: 'Senior Project Engineer',
-    experience: '8 Years',
-    currentSalary: 'AED 28,000 / month',
-    expectedSalary: 'AED 35,000 / month',
+    currentEmployer: '',
+    designation: '',
+    experience: '',
+    currentSalary: '',
+    expectedSalary: '',
     noticePeriod: '30 Days',
-    skills: 'Primavera P6, FIDIC Contracts, High-Rise Construction, MOHRE Compliance',
+    skills: '',
     stage: 'lead',
     assignedRecruiter: 'Fatima Al-Zahra',
-    aiSummary: 'Verified candidate profile added into SIR Recruitment Enterprise CRM.'
+    aiSummary: ''
   });
 
   const [isSuccess, setIsSuccess] = useState(false);
@@ -231,12 +231,18 @@ export const CrmAddCandidateModal = ({ isOpen, onClose }) => {
                 <div className="grid grid-cols-3 gap-3">
                   <div>
                     <label className="block font-bold text-slate-700 dark:text-slate-300 mb-1">Total Experience</label>
-                    <input 
-                      type="text"
+                    <select 
                       value={formData.experience}
                       onChange={e=>setFormData({...formData, experience: e.target.value})}
-                      className="w-full bg-slate-100 dark:bg-[#060a17] border border-slate-300 dark:border-slate-700 text-slate-900 dark:text-white rounded-xl p-2.5 text-xs font-semibold focus:border-gold-500"
-                    />
+                      className="w-full bg-slate-100 dark:bg-[#060a17] border border-slate-300 dark:border-slate-700 text-slate-900 dark:text-white rounded-xl p-2.5 text-xs font-semibold focus:border-gold-500 cursor-pointer"
+                    >
+                      <option value="" disabled>Select Experience</option>
+                      <option value="0-2 Years">0-2 Years</option>
+                      <option value="3-5 Years">3-5 Years</option>
+                      <option value="6-10 Years">6-10 Years</option>
+                      <option value="11-15 Years">11-15 Years</option>
+                      <option value="15+ Years">15+ Years</option>
+                    </select>
                   </div>
 
                   <div>

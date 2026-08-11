@@ -5,6 +5,7 @@ import {
   CheckCircle2, UserCheck, AlertTriangle, RefreshCw, Laptop, Smartphone, Monitor, ShieldAlert, X, UserPlus, Check 
 } from 'lucide-react';
 import { CRM_ROLES } from '../data/mockCrmData';
+import ScrollReveal from '../../components/ScrollReveal';
 
 export const CrmLogin = () => {
   const { 
@@ -114,31 +115,16 @@ export const CrmLogin = () => {
 
     // Account verified! Send OTP to the user's email
     setIsAuthenticating(true);
-    try {
-      const res = await fetch('/api/auth/send-otp', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ email: cleanEmail })
-      });
-      const data = await res.json();
-      
+    
+    // MOCK OTP DISPATCH FOR FRONTEND DEMO
+    setTimeout(() => {
       setIsAuthenticating(false);
-      
-      if (data.success) {
-        if (data.devMode && data.otp) {
-          // Auto-fill OTP in Dev Mode for easier testing
-          setOtp(data.otp.split(''));
-          setAuthErrorMsg(`[DEV MODE] OTP Generated: ${data.otp}`);
-        }
-        switchRole(userAccount.role || 'Super Admin');
-        setStep(2);
-      } else {
-        setAuthErrorMsg(data.message || 'Failed to dispatch OTP to email.');
-      }
-    } catch (err) {
-      setIsAuthenticating(false);
-      setAuthErrorMsg('Server error. Could not dispatch OTP.');
-    }
+      const mockOtp = "1234";
+      setOtp(mockOtp.split(''));
+      setAuthErrorMsg(`[DEV MODE] OTP Generated: ${mockOtp}`);
+      switchRole(userAccount.role || 'Super Admin');
+      setStep(2);
+    }, 1500);
   };
 
   const handleOtpSubmit = async (e) => {
@@ -153,24 +139,15 @@ export const CrmLogin = () => {
 
     setIsAuthenticating(true);
     
-    try {
-      const res = await fetch('/api/auth/verify-otp', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ email: email.trim().toLowerCase(), otp: enteredOtp })
-      });
-      const data = await res.json();
-      
-      if (data.success) {
+    // MOCK OTP VERIFICATION FOR FRONTEND DEMO
+    setTimeout(() => {
+      if (enteredOtp === '1234') {
         login(email, password, currentRole);
       } else {
         setIsAuthenticating(false);
-        setAuthErrorMsg(data.message || 'Invalid OTP code.');
+        setAuthErrorMsg('Invalid OTP code. For demo, use 1234.');
       }
-    } catch (err) {
-      setIsAuthenticating(false);
-      setAuthErrorMsg('Server error during OTP verification.');
-    }
+    }, 1500);
   };
 
   const handleRegisterSuperAdmin = (e) => {
@@ -215,6 +192,7 @@ export const CrmLogin = () => {
       <div className="absolute -top-40 -left-40 w-96 h-96 bg-gold-500/15 rounded-full blur-3xl pointer-events-none animate-pulse"></div>
       <div className="absolute -bottom-40 -right-40 w-96 h-96 bg-blue-500/15 rounded-full blur-3xl pointer-events-none animate-pulse"></div>
 
+      <ScrollReveal>
       <div className="max-w-md w-full glass-card bg-navy-900/90 border border-gold-500/30 rounded-3xl p-8 shadow-luxury relative z-10 space-y-6 animate-in fade-in zoom-in-95">
         
         {/* Company Logo Header */}
@@ -408,6 +386,7 @@ export const CrmLogin = () => {
         </div>
 
       </div>
+      </ScrollReveal>
 
       {/* Register New Super Admin Modal */}
       {registerModalOpen && (

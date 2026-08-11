@@ -128,7 +128,7 @@ export const CandidateAuth = () => {
               className={`flex-1 py-2.5 rounded-lg transition flex items-center justify-center space-x-2 ${
                 authMode === 'login' 
                   ? 'bg-gold-500 text-navy-950 shadow-md font-extrabold' 
-                  : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white'
+                  : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-900 dark:text-white'
               }`}
             >
               <KeyRound className="w-3.5 h-3.5" />
@@ -139,7 +139,7 @@ export const CandidateAuth = () => {
               className={`flex-1 py-2.5 rounded-lg transition flex items-center justify-center space-x-2 ${
                 authMode === 'register' 
                   ? 'bg-gold-500 text-navy-950 shadow-md font-extrabold' 
-                  : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white'
+                  : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-900 dark:text-white'
               }`}
             >
               <UserPlus className="w-3.5 h-3.5" />
@@ -210,7 +210,7 @@ export const CandidateAuth = () => {
                 <button
                   type="button"
                   onClick={handleDemoLogin}
-                  className="w-full py-2.5 bg-slate-100 hover:bg-slate-200 dark:bg-navy-800 dark:hover:bg-navy-700 text-slate-800 dark:text-gold-400 font-semibold rounded-xl border border-gold-500/30 transition flex items-center justify-center space-x-2"
+                  className="w-full py-2.5 bg-slate-100 hover:bg-slate-200 dark:bg-navy-800 dark:hover:bg-navy-700 text-slate-800 dark:text-gold-400 font-semibold rounded-xl border border-slate-200 dark:border-gold-500/30 transition flex items-center justify-center space-x-2"
                 >
                   <Sparkles className="w-4 h-4 text-gold-500" />
                   <span>Instant Candidate Demo Login</span>

@@ -5,6 +5,8 @@ import {
   CheckCircle2, Star, Play, ChevronRight, FileText, Sparkles, MapPin, Clock, Phone, Send, Bookmark, Calendar, MessageSquare
 } from 'lucide-react';
 import { SERVICES_LIST, INDUSTRIES_LIST, TESTIMONIALS, BLOG_POSTS, FAQS, COUNTRIES_LIST, JOBS_LIST } from '../data/mockData';
+import AnimatedCounter from '../components/AnimatedCounter';
+import ScrollReveal from '../components/ScrollReveal';
 
 export const Home = () => {
   const { navigateTo, setSelectedJob, setActiveModal, applyForJob, applications, postedJobs, t, setSelectedJobCategory } = useApp();
@@ -33,13 +35,13 @@ export const Home = () => {
 
   const trustedLogos = [
     { name: 'Emirates Airline', symbol: '✈️', tag: 'Aviation & Aerospace', color: 'from-red-500/10 via-white dark:via-navy-900 to-rose-500/5 border-red-500/30' },
-    { name: 'Emaar Properties', symbol: '🏙️', tag: 'Real Estate & Infrastructure', color: 'from-amber-500/10 via-white dark:via-navy-900 to-gold-500/5 border-gold-500/30' },
+    { name: 'Emaar Properties', symbol: '🏙️', tag: 'Real Estate & Infrastructure', color: 'from-amber-500/10 via-white dark:via-navy-900 to-gold-500/5 border-slate-200 dark:border-gold-500/30' },
     { name: 'Saudi Aramco', symbol: '🛢️', tag: 'Energy & Petrochemicals', color: 'from-emerald-500/10 via-white dark:via-navy-900 to-teal-500/5 border-emerald-500/30' },
     { name: 'DP World', symbol: '🚢', tag: 'Maritime & Global Logistics', color: 'from-blue-500/10 via-white dark:via-navy-900 to-cyan-500/5 border-blue-500/30' },
     { name: 'QNB Group', symbol: '🏦', tag: 'Banking & Financial Services', color: 'from-purple-500/10 via-white dark:via-navy-900 to-indigo-500/5 border-purple-500/30' },
     { name: 'Etihad Airways', symbol: '🛫', tag: 'Commercial Aviation', color: 'from-yellow-500/10 via-white dark:via-navy-900 to-amber-500/5 border-amber-500/30' },
     { name: 'Alshaya Group', symbol: '🛍️', tag: 'Retail Conglomerate', color: 'from-pink-500/10 via-white dark:via-navy-900 to-rose-500/5 border-pink-500/30' },
-    { name: 'Al Habtoor Group', symbol: '🏗️', tag: 'Construction & Hospitality', color: 'from-gold-500/15 via-white dark:via-navy-900 to-navy-900/10 border-gold-500/40' }
+    { name: 'Al Habtoor Group', symbol: '🏗️', tag: 'Construction & Hospitality', color: 'from-gold-500/15 via-white dark:via-navy-900 to-navy-900/10 border-slate-200 dark:border-gold-500/40' }
   ];
 
   return (
@@ -60,7 +62,7 @@ export const Home = () => {
         <div className="relative z-10 max-w-7xl mx-auto px-4 sm:px-8 text-center space-y-8 py-12">
           
           {/* Badge */}
-          <div className="inline-flex items-center space-x-2 bg-navy-900/90 text-gold-400 border border-gold-500/30 px-4 py-1.5 rounded-full text-xs font-bold shadow-luxury animate-fade-in-up">
+          <div className="inline-flex items-center space-x-2 bg-slate-800/90 dark:bg-navy-900/90 text-gold-400 border border-slate-200 dark:border-gold-500/30 px-4 py-1.5 rounded-full text-xs font-bold shadow-luxury animate-fade-in-up">
             <Sparkles className="w-3.5 h-3.5 text-gold-500" />
             <span>{t('hero.badge')}</span>
           </div>
@@ -87,7 +89,7 @@ export const Home = () => {
 
             <button 
               onClick={() => navigateTo('employers')}
-              className="w-full sm:w-auto px-8 py-4 bg-navy-900 text-white font-extrabold text-sm rounded-xl border border-gold-500/40 hover:bg-navy-800 hover-lift active-scale shadow-luxury flex items-center justify-center space-x-2"
+              className="w-full sm:w-auto px-8 py-4 bg-slate-50 dark:bg-navy-900 text-slate-900 dark:text-white font-extrabold text-sm rounded-xl border border-slate-200 dark:border-gold-500/40 hover:bg-navy-800 hover-lift active-scale shadow-luxury flex items-center justify-center space-x-2"
             >
               <Building2 className="w-4 h-4 text-gold-500" />
               <span>{t('hero.hireTalentBtn')}</span>
@@ -99,7 +101,7 @@ export const Home = () => {
             <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
               
               <div className="relative">
-                <Search className="w-4 h-4 text-slate-400 absolute left-3 top-3.5" />
+                <Search className="w-4 h-4 text-slate-500 dark:text-slate-400 absolute left-3 top-3.5" />
                 <input 
                   type="text"
                   placeholder={t('hero.searchPlaceholder')}
@@ -110,7 +112,7 @@ export const Home = () => {
               </div>
 
               <div className="relative">
-                <Globe className="w-4 h-4 text-slate-400 absolute left-3 top-3.5" />
+                <Globe className="w-4 h-4 text-slate-500 dark:text-slate-400 absolute left-3 top-3.5" />
                 <select 
                   value={searchCountry}
                   onChange={(e) => setSearchCountry(e.target.value)}
@@ -127,7 +129,7 @@ export const Home = () => {
 
               <button 
                 onClick={() => navigateTo('jobs')}
-                className="w-full py-3 bg-navy-900 hover:bg-gold-500 hover:text-navy-950 text-white font-bold text-xs rounded-xl active-scale transition duration-300 flex items-center justify-center space-x-2"
+                className="w-full py-3 bg-slate-50 dark:bg-navy-900 hover:bg-gold-500 hover:text-slate-900 dark:text-white text-slate-900 dark:text-white font-bold text-xs rounded-xl active-scale transition duration-300 flex items-center justify-center space-x-2"
               >
                 <span>{t('hero.searchBtn')}</span>
                 <ArrowRight className="w-4 h-4" />
@@ -140,9 +142,10 @@ export const Home = () => {
       </section>
 
       {/* TRUSTED COMPANIES LOGO BANNER - PROMINENT LARGE LOGO DISPLAY */}
+      <ScrollReveal>
       <section className="max-w-7xl mx-auto px-4 sm:px-8 py-6">
         <div className="text-center space-y-2 mb-8">
-          <span className="bg-gold-500/15 text-gold-700 dark:text-gold-400 font-extrabold text-[11px] px-3.5 py-1 rounded-full uppercase tracking-widest border border-gold-500/30">
+          <span className="bg-gold-500/15 text-gold-700 dark:text-gold-400 font-extrabold text-[11px] px-3.5 py-1 rounded-full uppercase tracking-widest border border-slate-200 dark:border-gold-500/30">
             Enterprise Client Network
           </span>
           <h2 className="font-serif text-2xl sm:text-3xl font-extrabold text-navy-900 dark:text-white tracking-tight">
@@ -164,7 +167,7 @@ export const Home = () => {
                 {item.symbol}
               </div>
               <div>
-                <h3 className="font-serif text-base sm:text-lg font-black text-navy-950 dark:text-white tracking-tight leading-tight">
+                <h3 className="font-serif text-base sm:text-lg font-black text-slate-900 dark:text-white tracking-tight leading-tight">
                   {item.name}
                 </h3>
                 <span className="text-[10px] uppercase tracking-wider text-slate-500 dark:text-slate-400 font-bold block mt-1">
@@ -175,20 +178,22 @@ export const Home = () => {
           ))}
         </div>
       </section>
+      </ScrollReveal>
 
       {/* KEY STATISTICS COUNTERS */}
+      <ScrollReveal>
       <section className="max-w-7xl mx-auto px-4 sm:px-8">
-        <div className="bg-navy-950 text-white border border-gold-500/30 rounded-3xl p-8 sm:p-12 shadow-luxury relative overflow-hidden">
+        <div className="bg-white dark:bg-navy-950 text-slate-900 dark:text-white border border-slate-200 dark:border-gold-500/30 rounded-3xl p-8 sm:p-12 shadow-luxury relative overflow-hidden">
           <div className="grid grid-cols-2 lg:grid-cols-4 gap-8 text-center divide-y lg:divide-y-0 lg:divide-x divide-navy-800 animate-fade-in-up">
             {stats.map((s, idx) => {
               const Icon = s.icon;
               return (
                 <div key={idx} className="pt-4 lg:pt-0 lg:px-4 space-y-2 hover-lift cursor-default transition-all duration-300">
                   <Icon className="w-8 h-8 text-gold-500 mx-auto" />
-                  <div className="font-serif text-4xl sm:text-5xl font-extrabold text-white tracking-tight text-gradient-emerald">
-                    {s.value}
+                  <div className="font-serif text-4xl sm:text-5xl font-extrabold text-slate-900 dark:text-white tracking-tight text-gradient-emerald">
+                    <AnimatedCounter value={s.value} />
                   </div>
-                  <div className="text-xs font-semibold uppercase tracking-wider text-slate-400">
+                  <div className="text-xs font-semibold uppercase tracking-wider text-slate-500 dark:text-slate-400">
                     {s.label}
                   </div>
                 </div>
@@ -197,8 +202,10 @@ export const Home = () => {
           </div>
         </div>
       </section>
+      </ScrollReveal>
 
       {/* FEATURED DEMO JOBS LIST */}
+      <ScrollReveal>
       <section className="max-w-7xl mx-auto px-4 sm:px-8 space-y-8">
         <div className="flex flex-col md:flex-row justify-between items-end gap-4 border-b border-slate-200 dark:border-navy-800 pb-6">
           <div>
@@ -226,7 +233,7 @@ export const Home = () => {
             >
               <div className="space-y-3">
                 <div className="flex justify-between items-start">
-                  <span className="bg-gold-500/15 text-gold-700 dark:text-gold-400 border border-gold-500/30 text-[10px] font-bold px-2.5 py-0.5 rounded uppercase">
+                  <span className="bg-gold-500/15 text-gold-700 dark:text-gold-400 border border-slate-200 dark:border-gold-500/30 text-[10px] font-bold px-2.5 py-0.5 rounded uppercase">
                     {job.category}
                   </span>
                   <span className="text-[10px] text-slate-700 dark:text-slate-300 font-bold">{job.postedDate}</span>
@@ -276,7 +283,7 @@ export const Home = () => {
                 ) : (
                   <button 
                     onClick={(e) => { e.stopPropagation(); navigateTo('jobs'); }}
-                    className="px-3.5 py-2 bg-navy-900 hover:bg-gold-500 hover:text-navy-950 text-white font-bold text-xs rounded-xl transition flex items-center gap-1"
+                    className="px-3.5 py-2 bg-slate-50 dark:bg-navy-900 hover:bg-gold-500 hover:text-slate-900 dark:text-white text-slate-900 dark:text-white font-bold text-xs rounded-xl transition flex items-center gap-1"
                   >
                     <span>Apply Now</span>
                     <ChevronRight className="w-3.5 h-3.5" />
@@ -287,8 +294,10 @@ export const Home = () => {
           ))}
         </div>
       </section>
+      </ScrollReveal>
 
       {/* SERVICES OVERVIEW (18+ Services) */}
+      <ScrollReveal>
       <section className="max-w-7xl mx-auto px-4 sm:px-8 space-y-8">
         <div className="text-center space-y-3 max-w-2xl mx-auto">
           <h2 className="text-xs font-bold text-gold-500 uppercase tracking-widest">Our Core Expertise</h2>
@@ -307,7 +316,7 @@ export const Home = () => {
               onClick={() => navigateTo('services')}
               className="glass-card bg-white dark:bg-navy-900 border border-slate-200 dark:border-navy-800 p-6 rounded-2xl hover:border-gold-500 hover:-translate-y-1 transition duration-300 cursor-pointer space-y-3 group shadow-glass"
             >
-              <div className="w-12 h-12 rounded-xl bg-navy-950 text-gold-500 border border-gold-500/30 flex items-center justify-center font-bold group-hover:bg-gold-500 group-hover:text-navy-950 transition">
+              <div className="w-12 h-12 rounded-xl bg-white dark:bg-navy-950 text-gold-500 border border-slate-200 dark:border-gold-500/30 flex items-center justify-center font-bold group-hover:bg-gold-500 group-hover:text-slate-900 dark:text-white transition">
                 <Briefcase className="w-6 h-6" />
               </div>
               <h4 className="font-serif text-lg font-bold text-navy-900 dark:text-white group-hover:text-gold-500 transition">
@@ -327,14 +336,16 @@ export const Home = () => {
         <div className="text-center pt-4">
           <button 
             onClick={() => navigateTo('services')}
-            className="px-8 py-3.5 bg-navy-900 hover:bg-gold-500 hover:text-navy-950 text-white font-bold text-xs rounded-xl shadow-luxury transition"
+            className="px-8 py-3.5 bg-slate-50 dark:bg-navy-900 hover:bg-gold-500 hover:text-slate-900 dark:text-white text-slate-900 dark:text-white font-bold text-xs rounded-xl shadow-luxury transition"
           >
             View All 18 Executive Services →
           </button>
         </div>
       </section>
+      </ScrollReveal>
 
       {/* INDUSTRIES WE SERVE GRID */}
+      <ScrollReveal>
       <section className="max-w-7xl mx-auto px-4 sm:px-8 space-y-8">
         <div className="flex flex-col md:flex-row justify-between items-end gap-4 border-b border-slate-200 dark:border-navy-800 pb-6">
           <div>
@@ -375,15 +386,17 @@ export const Home = () => {
           ))}
         </div>
       </section>
+      </ScrollReveal>
 
       {/* QUICK VISA ELIGIBILITY CHECKER BANNER */}
+      <ScrollReveal>
       <section className="max-w-7xl mx-auto px-4 sm:px-8">
-        <div className="glass-card bg-white dark:bg-navy-950 text-navy-950 dark:text-white rounded-3xl p-8 sm:p-12 border border-slate-200 dark:border-gold-500/40 shadow-luxury grid grid-cols-1 lg:grid-cols-2 gap-8 items-center">
+        <div className="glass-card bg-white dark:bg-navy-950 text-slate-900 dark:text-white rounded-3xl p-8 sm:p-12 border border-slate-200 dark:border-gold-500/40 shadow-luxury grid grid-cols-1 lg:grid-cols-2 gap-8 items-center">
           <div className="space-y-4">
             <span className="bg-gold-500/20 text-gold-600 dark:text-gold-400 text-xs font-bold px-3 py-1 rounded-full uppercase">
               Interactive Compliance Tool
             </span>
-            <h3 className="font-serif text-3xl sm:text-4xl font-extrabold text-navy-950 dark:text-white">
+            <h3 className="font-serif text-3xl sm:text-4xl font-extrabold text-slate-900 dark:text-white">
               Instant GCC & International Work Visa Eligibility Evaluation
             </h3>
             <p className="text-xs text-slate-700 dark:text-slate-300 leading-relaxed font-medium">
@@ -424,8 +437,10 @@ export const Home = () => {
           </div>
         </div>
       </section>
+      </ScrollReveal>
 
       {/* OUR 6-STEP PROCESS */}
+      <ScrollReveal>
       <section className="max-w-7xl mx-auto px-4 sm:px-8 space-y-8">
         <div className="text-center space-y-2">
           <h2 className="text-xs font-bold text-gold-500 uppercase tracking-widest">Simple & Transparent</h2>
@@ -438,14 +453,16 @@ export const Home = () => {
               <div className="font-serif text-2xl sm:text-3xl font-black text-gold-600 dark:text-gold-400 tracking-tight">
                 {step.num}
               </div>
-              <h4 className="font-bold text-xs sm:text-sm text-navy-950 dark:text-white leading-tight">{step.title}</h4>
+              <h4 className="font-bold text-xs sm:text-sm text-slate-900 dark:text-white leading-tight">{step.title}</h4>
               <p className="hidden sm:block text-xs text-slate-600 dark:text-slate-300 leading-relaxed font-medium">{step.desc}</p>
             </div>
           ))}
         </div>
       </section>
+      </ScrollReveal>
 
       {/* TESTIMONIALS & SUCCESS STORIES */}
+      <ScrollReveal>
       <section className="max-w-7xl mx-auto px-4 sm:px-8 space-y-8">
         <div className="text-center space-y-2">
           <h2 className="text-xs font-bold text-gold-500 uppercase tracking-widest">Client & Candidate Praise</h2>
@@ -474,8 +491,10 @@ export const Home = () => {
           ))}
         </div>
       </section>
+      </ScrollReveal>
 
       {/* LATEST BLOG & NEWS */}
+      <ScrollReveal>
       <section className="max-w-7xl mx-auto px-4 sm:px-8 space-y-8">
         <div className="flex justify-between items-end">
           <div>
@@ -504,21 +523,23 @@ export const Home = () => {
           ))}
         </div>
       </section>
+      </ScrollReveal>
 
       {/* PREMIUM CONSULTING CTA */}
+      <ScrollReveal>
       <section className="max-w-7xl mx-auto px-4 sm:px-8 space-y-8">
-        <div className="bg-navy-950 text-white rounded-3xl p-8 sm:p-12 border border-gold-500/30 shadow-luxury relative overflow-hidden flex flex-col md:flex-row items-center justify-between gap-8 animate-fade-in-up">
+        <div className="bg-white dark:bg-navy-950 text-slate-900 dark:text-white rounded-3xl p-8 sm:p-12 border border-slate-200 dark:border-gold-500/30 shadow-luxury relative overflow-hidden flex flex-col md:flex-row items-center justify-between gap-8 animate-fade-in-up">
           {/* Decorative background element */}
           <div className="absolute -top-24 -right-24 w-64 h-64 bg-gold-500/10 rounded-full blur-3xl"></div>
           
           <div className="relative z-10 space-y-4 max-w-2xl text-center md:text-left">
-            <span className="bg-gold-500/20 text-gold-400 text-xs font-bold px-3 py-1 rounded-full uppercase tracking-widest border border-gold-500/30">
+            <span className="bg-gold-500/20 text-gold-400 text-xs font-bold px-3 py-1 rounded-full uppercase tracking-widest border border-slate-200 dark:border-gold-500/30">
               Expert Advisory
             </span>
-            <h3 className="font-serif text-3xl sm:text-4xl lg:text-5xl font-extrabold tracking-tight text-white">
+            <h3 className="font-serif text-3xl sm:text-4xl lg:text-5xl font-extrabold tracking-tight text-slate-900 dark:text-white">
               Book a Free <span className="text-gradient-emerald">Strategy Consultation</span>
             </h3>
-            <p className="text-slate-300 text-sm leading-relaxed max-w-xl mx-auto md:mx-0">
+            <p className="text-slate-600 dark:text-slate-300 text-sm leading-relaxed max-w-xl mx-auto md:mx-0">
               Whether you are an enterprise looking to scale your workforce across the GCC, or an executive seeking your next career move, our senior consultants are here to guide you.
             </p>
           </div>
@@ -533,7 +554,7 @@ export const Home = () => {
             </button>
             <button 
               onClick={() => navigateTo('contact')}
-              className="px-8 py-4 bg-navy-900 text-white border border-gold-500/40 font-extrabold text-sm rounded-xl shadow-luxury hover-lift active-scale flex items-center justify-center space-x-2 w-full md:w-64"
+              className="px-8 py-4 bg-slate-50 dark:bg-navy-900 text-slate-900 dark:text-white border border-slate-200 dark:border-gold-500/40 font-extrabold text-sm rounded-xl shadow-luxury hover-lift active-scale flex items-center justify-center space-x-2 w-full md:w-64"
             >
               <MessageSquare className="w-5 h-5 text-gold-500" />
               <span>Send us an Inquiry</span>
@@ -541,8 +562,10 @@ export const Home = () => {
           </div>
         </div>
       </section>
+      </ScrollReveal>
 
       {/* FREQUENTLY ASKED QUESTIONS */}
+      <ScrollReveal>
       <section className="max-w-4xl mx-auto px-4 sm:px-8 space-y-8 pt-8">
         <div className="text-center space-y-2">
           <h2 className="text-xs font-bold text-gold-500 uppercase tracking-widest">Have Questions?</h2>
@@ -568,6 +591,7 @@ export const Home = () => {
           ))}
         </div>
       </section>
+      </ScrollReveal>
 
     </div>
   );

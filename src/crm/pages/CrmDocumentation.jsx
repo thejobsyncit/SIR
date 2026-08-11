@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import ScrollReveal from '../../components/ScrollReveal';
 import { 
   FileText, ShieldAlert, Download, Eye, AlertTriangle, Upload, 
   CheckCircle2, Clock, X, Cloud, Lock, Check 
@@ -100,6 +101,7 @@ DISTRIBUTED UNDER SIR RECRUITMENT ENTERPRISE COMPLIANCE GOVERNANCE.
   };
 
   return (
+    <ScrollReveal>
     <div className="space-y-6 text-xs font-sans">
       
       {/* Header */}
@@ -290,5 +292,6 @@ DISTRIBUTED UNDER SIR RECRUITMENT ENTERPRISE COMPLIANCE GOVERNANCE.
       )}
 
     </div>
+    </ScrollReveal>
   );
 };

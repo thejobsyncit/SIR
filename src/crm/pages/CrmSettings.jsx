@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import ScrollReveal from '../../components/ScrollReveal';
 import { useCrm } from '../context/CrmContext';
 import { 
   Settings, ShieldCheck, KeyRound, Mail, MessageSquare, Database, Lock, 
@@ -32,10 +33,11 @@ export const CrmSettings = () => {
 
   // Security Toggles
   const [securitySettings, setSecuritySettings] = useState({
-    twoFactor: true,
+    twoFactor: false,
     ipWhitelisting: true,
     sessionTimeoutMins: 15,
-    maxFailedAttempts: 5
+    maxFailedAttempts: 5,
+    ipRange: '194.170.21.0/24 (Dubai HQ)'
   });
 
   const [restoreFileName, setRestoreFileName] = useState('');
@@ -177,6 +179,7 @@ CREATE TABLE IF NOT EXISTS public.system_audit_logs (
   };
 
   return (
+    <ScrollReveal key={activeTab}>
     <div className="space-y-6 text-xs font-sans">
       
       {/* Header */}
@@ -423,42 +426,75 @@ CREATE TABLE IF NOT EXISTS public.system_audit_logs (
 
       {/* Tab 4: Security & IP Policies */}
       {activeTab === 'security' && (
-        <div className="glass-card bg-white dark:bg-navy-900 border border-slate-200 dark:border-navy-800 p-6 rounded-2xl space-y-4 max-w-xl shadow-sm">
+        <form onSubmit={(e) => {
+            e.preventDefault();
+            logAuditAction('Updated Enterprise Security Policies (2FA, IP, Session limits).');
+            showStatus('✓ Enterprise Security Policies updated successfully!');
+        }} className="glass-card bg-white dark:bg-navy-900 border border-slate-200 dark:border-navy-800 p-6 rounded-2xl space-y-4 max-w-xl shadow-sm">
           <h3 className="font-serif text-lg font-bold text-slate-900 dark:text-white flex items-center gap-2">
             <Lock className="w-5 h-5 text-gold-500" />
             Enterprise Security Policy Enforcements
           </h3>
           
-          <div className="p-4 bg-slate-50 dark:bg-navy-950 rounded-xl space-y-3 text-xs border border-slate-200 dark:border-navy-800">
+          <div className="p-4 bg-slate-50 dark:bg-navy-950 rounded-xl space-y-4 text-xs border border-slate-200 dark:border-navy-800">
             <div className="flex justify-between items-center">
               <span className="text-slate-700 dark:text-slate-300 font-bold">Two-Factor Authentication (2FA):</span>
               <button 
+                type="button"
                 onClick={() => {
                   setSecuritySettings(s => ({ ...s, twoFactor: !s.twoFactor }));
                   showStatus(`2FA enforcement turned ${!securitySettings.twoFactor ? 'ON' : 'OFF'}`);
                 }}
-                className={`px-3 py-1 rounded-lg font-bold cursor-pointer transition ${securitySettings.twoFactor ? 'bg-emerald-600 text-white' : 'bg-slate-300 text-slate-700'}`}
+                className={`px-3 py-1.5 rounded-lg font-bold cursor-pointer transition shadow-xs ${securitySettings.twoFactor ? 'bg-emerald-100 text-emerald-800 border border-emerald-300 dark:bg-emerald-500/20 dark:text-emerald-400 dark:border-emerald-500/40' : 'bg-slate-200 text-slate-700 border border-slate-300 dark:bg-navy-800 dark:text-slate-300 dark:border-navy-600'}`}
               >
                 {securitySettings.twoFactor ? 'Mandatory (Enabled)' : 'Disabled'}
               </button>
             </div>
 
-            <div className="flex justify-between items-center border-t border-slate-200 dark:border-navy-800 pt-2">
-              <span className="text-slate-700 dark:text-slate-300 font-bold">IP Whitelisting Range:</span>
-              <span className="text-emerald-700 dark:text-emerald-400 font-mono font-bold">194.170.21.0/24 (Dubai HQ)</span>
+            <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center border-t border-slate-200 dark:border-navy-800 pt-3 gap-2">
+              <span className="text-slate-700 dark:text-slate-300 font-bold whitespace-nowrap">IP Whitelisting Range:</span>
+              <input 
+                type="text" 
+                value={securitySettings.ipRange}
+                onChange={e => setSecuritySettings(s => ({ ...s, ipRange: e.target.value }))}
+                className="w-full sm:w-64 bg-white dark:bg-navy-900 border border-slate-300 dark:border-navy-700 text-emerald-700 dark:text-emerald-400 font-mono font-bold rounded-lg p-2 focus:outline-none focus:border-gold-500 text-right shadow-xs"
+              />
             </div>
 
-            <div className="flex justify-between items-center border-t border-slate-200 dark:border-navy-800 pt-2">
-              <span className="text-slate-700 dark:text-slate-300 font-bold">Session Idle Timeout:</span>
-              <span className="text-amber-800 dark:text-gold-400 font-mono font-bold">15 Mins Inactivity</span>
+            <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center border-t border-slate-200 dark:border-navy-800 pt-3 gap-2">
+              <span className="text-slate-700 dark:text-slate-300 font-bold whitespace-nowrap">Session Idle Timeout:</span>
+              <select 
+                value={securitySettings.sessionTimeoutMins}
+                onChange={e => setSecuritySettings(s => ({ ...s, sessionTimeoutMins: parseInt(e.target.value) }))}
+                className="w-full sm:w-64 bg-white dark:bg-navy-900 border border-slate-300 dark:border-navy-700 text-amber-800 dark:text-gold-400 font-mono font-bold rounded-lg p-2 focus:outline-none focus:border-gold-500 shadow-xs appearance-none cursor-pointer"
+                style={{ textAlignLast: 'right' }}
+              >
+                <option value={5}>5 Mins Inactivity</option>
+                <option value={15}>15 Mins Inactivity</option>
+                <option value={30}>30 Mins Inactivity</option>
+                <option value={60}>60 Mins Inactivity</option>
+              </select>
             </div>
 
-            <div className="flex justify-between items-center border-t border-slate-200 dark:border-navy-800 pt-2">
-              <span className="text-slate-700 dark:text-slate-300 font-bold">Max Failed Password Attempts:</span>
-              <span className="text-rose-600 dark:text-rose-400 font-mono font-bold">5 Attempts (15m Lockout)</span>
+            <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center border-t border-slate-200 dark:border-navy-800 pt-3 gap-2">
+              <span className="text-slate-700 dark:text-slate-300 font-bold whitespace-nowrap">Max Failed Password Attempts:</span>
+              <select 
+                value={securitySettings.maxFailedAttempts}
+                onChange={e => setSecuritySettings(s => ({ ...s, maxFailedAttempts: parseInt(e.target.value) }))}
+                className="w-full sm:w-64 bg-white dark:bg-navy-900 border border-slate-300 dark:border-navy-700 text-rose-600 dark:text-rose-400 font-mono font-bold rounded-lg p-2 focus:outline-none focus:border-gold-500 shadow-xs appearance-none cursor-pointer"
+                style={{ textAlignLast: 'right' }}
+              >
+                <option value={3}>3 Attempts (15m Lockout)</option>
+                <option value={5}>5 Attempts (15m Lockout)</option>
+                <option value={10}>10 Attempts (30m Lockout)</option>
+              </select>
             </div>
           </div>
-        </div>
+          
+          <button type="submit" className="w-full py-3 bg-gold-500 text-navy-950 font-bold rounded-xl shadow-gold-glow cursor-pointer hover:opacity-95 transition">
+            Save Security Policies
+          </button>
+        </form>
       )}
 
       {/* Tab 5: Audit Logs */}
@@ -563,5 +599,6 @@ CREATE TABLE IF NOT EXISTS public.system_audit_logs (
       )}
 
     </div>
+    </ScrollReveal>
   );
 };

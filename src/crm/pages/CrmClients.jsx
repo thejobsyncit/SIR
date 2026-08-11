@@ -4,6 +4,7 @@ import {
   Building2, Phone, Mail, MessageSquare, Plus, FileText, CheckCircle2, 
   Search, Eye, Filter, X, Send, DollarSign, Calendar, Clock, UserCheck, ShieldAlert, Trash2 
 } from 'lucide-react';
+import ScrollReveal from '../../components/ScrollReveal';
 
 export const CrmClients = () => {
   const { clients, addClient, removeClient } = useCrm();
@@ -59,6 +60,7 @@ export const CrmClients = () => {
     <div className="space-y-6 text-xs font-sans">
       
       {/* Header */}
+      <ScrollReveal>
       <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 bg-white dark:bg-navy-950 p-6 rounded-3xl border border-slate-200 dark:border-navy-800 shadow-sm">
         <div>
           <span className="bg-gold-500/20 text-gold-600 dark:text-gold-400 text-[10px] font-bold px-2.5 py-1 rounded uppercase">Corporate Accounts Management</span>
@@ -74,8 +76,10 @@ export const CrmClients = () => {
           <span>Register New Client Account</span>
         </button>
       </div>
+      </ScrollReveal>
 
       {/* Search & Filter Bar */}
+      <ScrollReveal>
       <div className="glass-card bg-white dark:bg-navy-900 p-4 rounded-2xl border border-slate-200 dark:border-navy-800 flex flex-col sm:flex-row justify-between gap-3 shadow-sm">
         <div className="relative flex-1">
           <Search className="w-4 h-4 text-slate-400 absolute left-3 top-2.5" />
@@ -88,8 +92,10 @@ export const CrmClients = () => {
           />
         </div>
       </div>
+      </ScrollReveal>
 
       {/* Client Accounts Grid */}
+      <ScrollReveal>
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
         {filteredClients.map((cli) => (
           <div 
@@ -143,8 +149,9 @@ export const CrmClients = () => {
           </div>
         )}
       </div>
+      </ScrollReveal>
 
-      {/* Selected Client Workspace Modal */}
+      {/* View/Edit Selected Client Workspace Modal */}
       {selectedClient && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-navy-950/80 backdrop-blur-sm animate-in fade-in">
           <div className="glass-card bg-white dark:bg-navy-900 border border-gold-500/40 rounded-2xl max-w-3xl w-full p-6 shadow-luxury space-y-4 max-h-[90vh] overflow-y-auto text-slate-900 dark:text-white">

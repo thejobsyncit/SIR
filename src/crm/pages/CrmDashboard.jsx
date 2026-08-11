@@ -2,6 +2,7 @@ import React from 'react';
 import { useCrm } from '../context/CrmContext';
 import { Users, Building2, Globe, Briefcase, Award, TrendingUp, Calendar, Clock, DollarSign, ShieldCheck, CheckCircle2, ArrowUpRight } from 'lucide-react';
 import { RECRUITER_LEADERBOARD, AUDIT_LOGS } from '../data/mockCrmData';
+import ScrollReveal from '../../components/ScrollReveal';
 
 export const CrmDashboard = () => {
   const { currentRole } = useCrm();
@@ -93,6 +94,7 @@ export const CrmDashboard = () => {
     <div className="space-y-8 font-sans">
       
       {/* Header Banner */}
+      <ScrollReveal>
       <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 bg-white dark:bg-gradient-to-r dark:from-[#101b38] dark:via-[#0b1328] dark:to-[#060a17] p-6 rounded-3xl border border-slate-200 dark:border-gold-500/40 shadow-sm">
         <div>
           <span className="bg-gold-500/20 text-gold-700 dark:text-gold-400 text-[10px] font-bold px-2.5 py-1 rounded uppercase tracking-wider">Enterprise Command Center</span>
@@ -107,8 +109,10 @@ export const CrmDashboard = () => {
           </span>
         </div>
       </div>
+      </ScrollReveal>
 
       {/* KPI Widgets Grid */}
+      <ScrollReveal>
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
         {widgets.map((w, idx) => {
           const Icon = w.icon;
@@ -129,8 +133,10 @@ export const CrmDashboard = () => {
           );
         })}
       </div>
+      </ScrollReveal>
 
       {/* Analytics & Leaderboard Grid */}
+      <ScrollReveal>
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-8">
         
         {/* Recruiter Leaderboard */}
@@ -196,6 +202,7 @@ export const CrmDashboard = () => {
         </div>
 
       </div>
+      </ScrollReveal>
 
     </div>
   );

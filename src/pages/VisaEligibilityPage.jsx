@@ -1,7 +1,10 @@
 import React, { useState } from 'react';
 import { useApp } from '../context/AppContext';
-import { Globe, Award, CheckCircle2, AlertTriangle, FileText, Clock, RefreshCw, ArrowRight, ShieldCheck } from 'lucide-react';
+import { Globe, Award, CheckCircle2, AlertTriangle, FileText, Clock, RefreshCw, ArrowRight, ShieldCheck, Calendar } from 'lucide-react';
 import { VisaMatrixTable } from '../components/VisaMatrixTable';
+import ScrollReveal from '../components/ScrollReveal';
+import DatePicker from "react-datepicker";
+import "react-datepicker/dist/react-datepicker.css";
 
 export const VisaEligibilityPage = () => {
   const { navigateTo } = useApp();
@@ -10,7 +13,7 @@ export const VisaEligibilityPage = () => {
   const [country, setCountry] = useState('UAE');
   const [qualification, setQualification] = useState("Bachelor's Degree");
   const [experience, setExperience] = useState('5');
-  const [age, setAge] = useState('29');
+  const [dob, setDob] = useState(null);
   const [language, setLanguage] = useState('English');
   
   const [loading, setLoading] = useState(false);
@@ -19,11 +22,56 @@ export const VisaEligibilityPage = () => {
   const handleEvaluate = async (e) => {
     e.preventDefault();
     setLoading(true);
+
+    let calculatedAge = 0;
+    if (dob) {
+      const today = new Date();
+      calculatedAge = today.getFullYear() - dob.getFullYear();
+      const monthDiff = today.getMonth() - dob.getMonth();
+      if (monthDiff < 0 || (monthDiff === 0 && today.getDate() < dob.getDate())) {
+          calculatedAge--;
+      }
+    } else {
+      setLoading(false);
+      alert('Please select your Date of Birth.');
+      return;
+    }
+
+    if (calculatedAge < 18) {
+      setResult({
+        score: 0,
+        status: 'Not Eligible',
+        countryData: { country },
+        reasons: ['Age is below 18 years. You are not eligible for a work visa.'],
+        processingTime: 'N/A',
+        estimatedCost: 'N/A',
+        checklist: [],
+        recommendedJobs: []
+      });
+      setLoading(false);
+      return;
+    }
+
+    if (calculatedAge > 35) {
+      setResult({
+        score: 0,
+        status: 'Not Eligible',
+        countryData: { country },
+        reasons: ['Age exceeds 35 years. You are not eligible.'],
+        processingTime: 'N/A',
+        estimatedCost: 'N/A',
+        checklist: [],
+        recommendedJobs: []
+      });
+      setLoading(false);
+      return;
+    }
+
     try {
       const res = await fetch('/api/visa/check', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ country, qualification, experience, age, language })
+        body: JSON.stringify({ country, qualification, experience, age: calculatedAge, language })
       });
       if (res.ok) {
         const data = await res.json();
@@ -35,7 +83,7 @@ export const VisaEligibilityPage = () => {
       console.warn('Using client evaluation engine fallback:', err);
       // Client-side fallback calculation matching backend
       const target = (country || 'uae').toLowerCase();
-      const ageVal = parseInt(age) || 30;
+      const ageVal = calculatedAge;
       const expVal = parseInt(experience) || 2;
       const qualStr = (qualification || '').toLowerCase();
       const langStr = (language || '').toLowerCase();
@@ -91,6 +139,7 @@ export const VisaEligibilityPage = () => {
     <div className="max-w-7xl mx-auto px-4 sm:px-8 py-12 space-y-16">
       
       {/* Header */}
+      <ScrollReveal>
       <div className="text-center space-y-3 max-w-3xl mx-auto">
         <span className="bg-gold-500/10 text-gold-600 dark:text-gold-400 text-xs font-bold px-3.5 py-1 rounded-full uppercase">
           International Work Visa Intelligence
@@ -102,8 +151,10 @@ export const VisaEligibilityPage = () => {
           Evaluate your profile against official MOHRE, Saudi Iqama, Qatar Work Residence, and EU Blue Card rules.
         </p>
       </div>
+      </ScrollReveal>
 
       {/* Interactive Form & Result */}
+      <ScrollReveal>
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start">
         
         {/* Form Column */}
@@ -166,13 +217,23 @@ export const VisaEligibilityPage = () => {
               </div>
 
               <div>
-                <label className="block font-bold text-slate-700 dark:text-slate-200 mb-1">Candidate Age</label>
-                <input 
-                  type="number" 
-                  value={age}
-                  onChange={(e) => setAge(e.target.value)}
-                  className="w-full bg-slate-50 dark:bg-navy-950 border border-slate-300 dark:border-navy-700 rounded-xl p-2.5 text-navy-900 dark:text-white"
-                />
+                <label className="block font-bold text-slate-700 dark:text-slate-200 mb-1">Date of Birth</label>
+                <div className="relative z-50">
+                  <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none z-10">
+                    <Calendar className="h-5 w-5 text-gold-500" />
+                  </div>
+                  <DatePicker 
+                    selected={dob}
+                    onChange={(date) => setDob(date)}
+                    dateFormat="dd/MM/yyyy"
+                    showYearDropdown
+                    showMonthDropdown
+                    dropdownMode="select"
+                    placeholderText="DD/MM/YYYY"
+                    maxDate={new Date()}
+                    className="w-full bg-slate-50 dark:bg-navy-950 border border-slate-300 dark:border-navy-700 rounded-xl pl-10 pr-3 py-2.5 text-navy-900 dark:text-white font-medium focus:ring-2 focus:ring-gold-500 focus:border-transparent transition-all"
+                  />
+                </div>
               </div>
             </div>
 
@@ -214,7 +275,7 @@ export const VisaEligibilityPage = () => {
           {!result ? (
             <div className="glass-card bg-white dark:bg-navy-950 text-slate-900 dark:text-white rounded-3xl p-8 border border-slate-200 dark:border-gold-500/30 shadow-xl text-center py-16 space-y-3">
               <Globe className="w-12 h-12 text-gold-500 mx-auto animate-pulse" />
-              <h3 className="font-serif text-2xl font-bold text-navy-950 dark:text-white">Calculate Your Work Visa Readiness</h3>
+              <h3 className="font-serif text-2xl font-bold text-slate-900 dark:text-white">Calculate Your Work Visa Readiness</h3>
               <p className="text-xs text-slate-800 dark:text-slate-200 max-w-md mx-auto font-medium">
                 Fill in your destination country, degree qualification, and years of experience to calculate your score and view mandatory document checklists.
               </p>
@@ -226,7 +287,7 @@ export const VisaEligibilityPage = () => {
                 <div className="flex justify-between items-start border-b border-slate-200 dark:border-navy-800 pb-4">
                   <div>
                     <p className="text-xs font-bold uppercase text-gold-600 dark:text-gold-400 tracking-wider">Visa Eligibility Index</p>
-                    <h3 className="font-serif text-2xl sm:text-3xl font-extrabold text-navy-950 dark:text-white mt-1">{result.status}</h3>
+                    <h3 className="font-serif text-2xl sm:text-3xl font-extrabold text-slate-900 dark:text-white mt-1">{result.status}</h3>
                     <p className="text-xs text-slate-700 dark:text-slate-300 mt-1">Target Country: <strong className="text-gold-600 dark:text-gold-400 font-bold">{result.countryData ? result.countryData.country : country}</strong></p>
                   </div>
                   <div className="w-20 h-20 rounded-full border-4 border-gold-500 bg-gold-500/10 dark:bg-navy-900 flex flex-col items-center justify-center font-extrabold text-gold-600 dark:text-gold-400 text-2xl shadow-gold-glow shrink-0">
@@ -260,7 +321,7 @@ export const VisaEligibilityPage = () => {
                   </div>
                   <div className="p-3 bg-slate-100 dark:bg-navy-900 border border-slate-200 dark:border-navy-800 rounded-xl col-span-2 sm:col-span-1">
                     <p className="text-[10px] text-slate-700 dark:text-slate-300 font-bold">Employer Sponsorship</p>
-                    <p className="font-bold text-navy-950 dark:text-white text-xs mt-0.5">Mandatory</p>
+                    <p className="font-bold text-slate-900 dark:text-white text-xs mt-0.5">Mandatory</p>
                   </div>
                 </div>
               </div>
@@ -293,7 +354,7 @@ export const VisaEligibilityPage = () => {
                         <p className="font-bold text-navy-900 dark:text-white">{j.title}</p>
                         <p className="text-[11px] text-slate-700 dark:text-slate-300 font-semibold">{j.company} • {j.salary}</p>
                       </div>
-                      <button onClick={() => navigateTo('jobs')} className="px-3 py-1.5 bg-navy-900 text-gold-400 font-bold rounded-lg hover:bg-gold-500 hover:text-navy-950 transition">
+                      <button onClick={() => navigateTo('jobs')} className="px-3 py-1.5 bg-slate-50 dark:bg-navy-900 text-gold-400 font-bold rounded-lg hover:bg-gold-500 hover:text-slate-900 dark:text-white transition">
                         Apply
                       </button>
                     </div>
@@ -306,8 +367,10 @@ export const VisaEligibilityPage = () => {
         </div>
 
       </div>
+      </ScrollReveal>
 
       {/* FULL COUNTRY VISA MATRIX TABLE */}
+      <ScrollReveal>
       <div className="space-y-6 pt-8">
         <div className="text-center space-y-2">
           <h2 className="text-xs font-bold text-gold-500 uppercase tracking-widest">Master Database</h2>
@@ -321,6 +384,7 @@ export const VisaEligibilityPage = () => {
 
         <VisaMatrixTable />
       </div>
+      </ScrollReveal>
 
     </div>
   );

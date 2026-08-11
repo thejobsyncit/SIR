@@ -26,9 +26,9 @@ export const CrmProvider = ({ children }) => {
     }
   };
 
-  const [candidates, setCandidates] = useState([]);
-  const [clients, setClients] = useState([]);
-  const [interviews, setInterviews] = useState([]);
+  const [candidates, setCandidates] = useState(() => loadState('crm_candidates', CRM_CANDIDATES));
+  const [clients, setClients] = useState(() => loadState('crm_clients', CRM_CLIENTS));
+  const [interviews, setInterviews] = useState(() => loadState('crm_interviews', CRM_INTERVIEWS));
   const [invoices, setInvoices] = useState(() => loadState('crm_invoices', CRM_INVOICES));
   const [auditLogs, setAuditLogs] = useState(() => loadState('crm_auditLogs', AUDIT_LOGS));
   const [calendarEvents, setCalendarEvents] = useState(() => loadState('crm_calendarEvents', [
@@ -47,31 +47,15 @@ export const CrmProvider = ({ children }) => {
   ));
 
   useEffect(() => {
-    // Fetch initial data from SQLite backend
-    const fetchInitialData = async () => {
-      try {
-        const [candRes, clientRes, intRes] = await Promise.all([
-          fetch('http://localhost:5000/api/candidates').then(r => r.json()),
-          fetch('http://localhost:5000/api/clients').then(r => r.json()),
-          fetch('http://localhost:5000/api/interviews').then(r => r.json())
-        ]);
-        if (candRes.success) setCandidates(candRes.data);
-        if (clientRes.success) setClients(clientRes.data);
-        if (intRes.success) setInterviews(intRes.data);
-      } catch (err) {
-        console.error('Failed to load CRM data from backend API:', err);
-      }
-    };
-    fetchInitialData();
-  }, []);
-
-  useEffect(() => {
+    localStorage.setItem('crm_candidates', JSON.stringify(candidates));
+    localStorage.setItem('crm_clients', JSON.stringify(clients));
+    localStorage.setItem('crm_interviews', JSON.stringify(interviews));
     localStorage.setItem('crm_invoices', JSON.stringify(invoices));
     localStorage.setItem('crm_auditLogs', JSON.stringify(auditLogs));
     localStorage.setItem('crm_calendarEvents', JSON.stringify(calendarEvents));
     localStorage.setItem('crm_recruiterTasks', JSON.stringify(recruiterTasks));
     localStorage.setItem('crm_recruiterNotes', JSON.stringify(recruiterNotes));
-  }, [invoices, auditLogs, calendarEvents, recruiterTasks, recruiterNotes]);
+  }, [candidates, clients, interviews, invoices, auditLogs, calendarEvents, recruiterTasks, recruiterNotes]);
 
   // Security & Devices
   const [failedLoginAttempts, setFailedLoginAttempts] = useState(0);
@@ -105,14 +89,7 @@ export const CrmProvider = ({ children }) => {
     { id: 3, text: 'Invoice INV-2026-091 Payment Reminder Triggered', time: '3 hours ago', type: 'warning' }
   ]);
 
-  // Sync Dark Mode Class to HTML Element
-  useEffect(() => {
-    if (darkMode) {
-      document.documentElement.classList.add('dark');
-    } else {
-      document.documentElement.classList.remove('dark');
-    }
-  }, [darkMode]);
+  // Remove duplicate global dark mode sync as AppContext handles it
 
   // Handle Account Lockout Countdown
   useEffect(() => {
@@ -225,90 +202,44 @@ export const CrmProvider = ({ children }) => {
     logAuditAction(`Revoked all active remote session refresh tokens.`);
   };
 
-  const updateCandidateStage = async (candidateId, newStage) => {
-    try {
-      const res = await fetch(`http://localhost:5000/api/candidates/${candidateId}`, {
-        method: 'PUT', headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ stage: newStage })
-      });
-      if (res.ok) {
-        setCandidates(prev => prev.map(c => (c.id === candidateId ? { ...c, stage: newStage } : c)));
-        logAuditAction(`Updated candidate ${candidateId} stage to '${newStage}'.`);
-      }
-    } catch (err) { console.error(err); }
+  const updateCandidateStage = (candidateId, newStage) => {
+    setCandidates(prev => prev.map(c => (c.id === candidateId ? { ...c, stage: newStage } : c)));
+    logAuditAction(`Updated candidate ${candidateId} stage to '${newStage}'.`);
   };
 
-  const addCandidate = async (newCand) => {
-    try {
-      const res = await fetch('http://localhost:5000/api/candidates', {
-        method: 'POST', headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(newCand)
-      });
-      const data = await res.json();
-      if (data.success) {
-        setCandidates(prev => [data.data, ...prev]);
-        logAuditAction(`Added new candidate ${data.data.name} (${data.data.id}).`);
-      }
-    } catch (err) { console.error(err); }
+  const addCandidate = (newCand) => {
+    const candidateToAdd = { ...newCand, id: `CAND-${Math.floor(Math.random() * 9000) + 1000}` };
+    setCandidates(prev => [candidateToAdd, ...prev]);
+    logAuditAction(`Added new candidate ${candidateToAdd.name} (${candidateToAdd.id}).`);
   };
 
-  const updateCandidate = async (updatedCand) => {
-    try {
-      const res = await fetch(`http://localhost:5000/api/candidates/${updatedCand.id}`, {
-        method: 'PUT', headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(updatedCand)
-      });
-      if (res.ok) {
-        setCandidates(prev => prev.map(c => c.id === updatedCand.id ? updatedCand : c));
-        logAuditAction(`Updated candidate profile ${updatedCand.id}.`);
-      }
-    } catch (err) { console.error(err); }
+  const updateCandidate = (updatedCand) => {
+    setCandidates(prev => prev.map(c => c.id === updatedCand.id ? updatedCand : c));
+    logAuditAction(`Updated candidate profile ${updatedCand.id}.`);
   };
 
-  const addClient = async (newClient) => {
-    try {
-      const res = await fetch('http://localhost:5000/api/clients', {
-        method: 'POST', headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(newClient)
-      });
-      const data = await res.json();
-      if (data.success) {
-        setClients(prev => [data.data, ...prev]);
-        logAuditAction(`Registered new client account ${data.data.company} (${data.data.id}).`);
-      }
-    } catch (err) { console.error(err); }
+  const addClient = (newClient) => {
+    const clientToAdd = { ...newClient, id: `CLI-${Math.floor(Math.random() * 9000) + 1000}`, agreementStatus: 'Active', logo: newClient.company.charAt(0).toUpperCase() };
+    setClients(prev => [clientToAdd, ...prev]);
+    logAuditAction(`Registered new client account ${clientToAdd.company} (${clientToAdd.id}).`);
   };
 
-  const removeClient = async (clientId) => {
-    try {
-      const res = await fetch(`http://localhost:5000/api/clients/${clientId}`, { method: 'DELETE' });
-      if (res.ok) {
-        setClients(prev => prev.filter(c => c.id !== clientId));
-        logAuditAction(`Deleted corporate client account ${clientId}.`);
-      }
-    } catch (err) { console.error(err); }
+  const removeClient = (clientId) => {
+    setClients(prev => prev.filter(c => c.id !== clientId));
+    logAuditAction(`Deleted corporate client account ${clientId}.`);
   };
 
-  const addInterview = async (newInterview) => {
-    try {
-      const res = await fetch('http://localhost:5000/api/interviews', {
-        method: 'POST', headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(newInterview)
-      });
-      const data = await res.json();
-      if (data.success) {
-        setInterviews(prev => [data.data, ...prev]);
-        setCalendarEvents(prev => [
-          ...prev,
-          { id: Date.now(), title: `${data.data.candidateName} ${data.data.platform} Interview`, time: data.data.time, type: 'Interview', candidate: data.data.candidateName, date: data.data.date }
-        ]);
-        logAuditAction(`Scheduled new interview for ${data.data.candidateName}.`);
-      }
-    } catch (err) { console.error(err); }
+  const addInterview = (newInterview) => {
+    const interviewToAdd = { ...newInterview, id: `INT-${Math.floor(Math.random() * 9000) + 1000}` };
+    setInterviews(prev => [interviewToAdd, ...prev]);
+    setCalendarEvents(prev => [
+      ...prev,
+      { id: Date.now(), title: `${interviewToAdd.candidateName} ${interviewToAdd.platform} Interview`, time: interviewToAdd.time, type: 'Interview', candidate: interviewToAdd.candidateName, date: interviewToAdd.date }
+    ]);
+    logAuditAction(`Scheduled new interview for ${interviewToAdd.candidateName}.`);
   };
 
   const updateInterview = (updatedInterview) => {
-    // Only local state for now unless backend updated
     setInterviews(prev => prev.map(i => i.id === updatedInterview.id ? updatedInterview : i));
     logAuditAction(`Updated interview record ${updatedInterview.id}.`);
   };

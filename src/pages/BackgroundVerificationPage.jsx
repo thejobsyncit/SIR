@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { useApp } from '../context/AppContext';
 import { ShieldCheck, Search, CheckCircle2, Clock, AlertCircle, FileSpreadsheet, Lock, RefreshCw, Send } from 'lucide-react';
+import ScrollReveal from '../components/ScrollReveal';
 
 export const BackgroundVerificationPage = () => {
   const { setActiveModal } = useApp();
@@ -57,6 +58,7 @@ export const BackgroundVerificationPage = () => {
     <div className="max-w-7xl mx-auto px-4 sm:px-8 py-12 space-y-16">
       
       {/* Header */}
+      <ScrollReveal>
       <div className="text-center space-y-3 max-w-3xl mx-auto">
         <span className="bg-gold-500/10 text-gold-600 dark:text-gold-400 text-xs font-bold px-3.5 py-1 rounded-full uppercase">
           Enterprise Security & Audit
@@ -68,8 +70,10 @@ export const BackgroundVerificationPage = () => {
           Screen corporate candidates with 6-point verification covering education attestation, past employment, police clearances, and identity audits across UAE, GCC, & global institutions.
         </p>
       </div>
+      </ScrollReveal>
 
       {/* 6 Verification Pillars */}
+      <ScrollReveal>
       <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-4">
         {[
           { title: 'Employee Verification', desc: 'Pre-employment screening & reference audit.' },
@@ -86,8 +90,10 @@ export const BackgroundVerificationPage = () => {
           </div>
         ))}
       </div>
+      </ScrollReveal>
 
       {/* Main Grid: Request Verification & Live Tracker */}
+      <ScrollReveal>
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
         
         {/* Form: Initiate Verification */}
@@ -155,13 +161,13 @@ export const BackgroundVerificationPage = () => {
               </button>
             </form>
           ) : (
-            <div className="p-4 bg-navy-950 text-white rounded-2xl space-y-3">
+            <div className="p-4 bg-white dark:bg-navy-950 text-slate-900 dark:text-white rounded-2xl space-y-3">
               <div className="flex justify-between items-center">
                 <span className="text-gold-400 font-bold">Case Opened!</span>
-                <span className="font-mono text-xs bg-navy-900 px-2 py-1 rounded">{submittedCase.caseId}</span>
+                <span className="font-mono text-xs bg-slate-50 dark:bg-navy-900 px-2 py-1 rounded">{submittedCase.caseId}</span>
               </div>
-              <p className="text-xs text-slate-300">Candidate: {submittedCase.candidateName}</p>
-              <p className="text-xs text-slate-300">Type: {submittedCase.verificationType}</p>
+              <p className="text-xs text-slate-600 dark:text-slate-300">Candidate: {submittedCase.candidateName}</p>
+              <p className="text-xs text-slate-600 dark:text-slate-300">Type: {submittedCase.verificationType}</p>
               <p className="text-xs text-emerald-400 font-bold">Estimated Turnaround: {submittedCase.estimatedCompletionDays} Business Days</p>
 
               <button 
@@ -191,7 +197,7 @@ export const BackgroundVerificationPage = () => {
             />
             <button 
               onClick={handleTrack}
-              className="px-5 py-2.5 bg-navy-900 text-white font-bold rounded-xl hover:bg-gold-500 hover:text-navy-950 transition"
+              className="px-5 py-2.5 bg-slate-50 dark:bg-navy-900 text-slate-900 dark:text-white font-bold rounded-xl hover:bg-gold-500 hover:text-slate-900 dark:text-white transition"
             >
               Track Status
             </button>
@@ -199,10 +205,10 @@ export const BackgroundVerificationPage = () => {
 
           {trackedStatus && (
             <div className="space-y-4 pt-2 animate-in fade-in">
-              <div className="p-3 bg-navy-950 text-white rounded-xl flex justify-between items-center">
+              <div className="p-3 bg-white dark:bg-navy-950 text-slate-900 dark:text-white rounded-xl flex justify-between items-center">
                 <div>
                   <p className="font-bold text-gold-400">{trackedStatus.caseId}</p>
-                  <p className="text-[10px] text-slate-400">{trackedStatus.candidate} • {trackedStatus.type}</p>
+                  <p className="text-[10px] text-slate-500 dark:text-slate-400">{trackedStatus.candidate} • {trackedStatus.type}</p>
                 </div>
                 <span className="font-bold text-emerald-400 text-xs">{trackedStatus.progress}% Complete</span>
               </div>
@@ -223,6 +229,7 @@ export const BackgroundVerificationPage = () => {
         </div>
 
       </div>
+      </ScrollReveal>
 
     </div>
   );

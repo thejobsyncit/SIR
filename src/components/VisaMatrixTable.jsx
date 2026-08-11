@@ -41,23 +41,23 @@ export const VisaMatrixTable = () => {
     <div className="space-y-6">
       
       {/* Matrix Controls & Search */}
-      <div className="flex flex-col md:flex-row justify-between items-center gap-4 bg-navy-950 p-4 rounded-2xl border border-navy-800 text-xs">
+      <div className="flex flex-col md:flex-row justify-between items-center gap-4 bg-white dark:bg-navy-950 p-4 rounded-2xl border border-slate-200 dark:border-navy-800 text-xs">
         <div className="flex flex-1 items-center space-x-3 w-full md:w-auto">
           <div className="relative flex-1">
-            <Search className="w-4 h-4 text-slate-400 absolute left-3 top-3" />
+            <Search className="w-4 h-4 text-slate-500 dark:text-slate-400 absolute left-3 top-3" />
             <input 
               type="text"
               placeholder="Search visa rules by country, requirement, or qualification..."
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
-              className="w-full bg-navy-900 border border-navy-700 text-white rounded-xl pl-9 pr-4 py-2.5 text-xs focus:outline-none focus:border-gold-500"
+              className="w-full bg-slate-50 dark:bg-navy-900 border border-slate-300 dark:border-navy-700 text-slate-900 dark:text-white rounded-xl pl-9 pr-4 py-2.5 text-xs focus:outline-none focus:border-gold-500"
             />
           </div>
 
           <select 
             value={selectedCountry}
             onChange={(e) => setSelectedCountry(e.target.value)}
-            className="bg-navy-900 border border-navy-700 text-white rounded-xl px-3 py-2.5 text-xs focus:outline-none focus:border-gold-500"
+            className="bg-slate-50 dark:bg-navy-900 border border-slate-300 dark:border-navy-700 text-slate-900 dark:text-white rounded-xl px-3 py-2.5 text-xs focus:outline-none focus:border-gold-500"
           >
             <option value="All">All 18 Countries</option>
             {VISA_MATRIX_FULL.map(c => (
@@ -70,7 +70,7 @@ export const VisaMatrixTable = () => {
         <div className="flex items-center space-x-2 w-full md:w-auto justify-end">
           <button 
             onClick={handleExportCSV}
-            className="px-4 py-2.5 bg-emerald-600 hover:bg-emerald-500 text-white font-bold rounded-xl flex items-center space-x-1.5 shadow-sm transition"
+            className="px-4 py-2.5 bg-emerald-600 hover:bg-emerald-500 text-slate-900 dark:text-white font-bold rounded-xl flex items-center space-x-1.5 shadow-sm transition"
           >
             <FileSpreadsheet className="w-4 h-4" />
             <span>Export Excel / CSV</span>
@@ -89,7 +89,7 @@ export const VisaMatrixTable = () => {
       <div className="overflow-x-auto rounded-2xl border border-slate-200 dark:border-navy-800 shadow-luxury">
         <table className="w-full text-left text-xs border-collapse">
           <thead>
-            <tr className="bg-navy-900 text-gold-400 font-serif border-b border-navy-800 uppercase tracking-wider text-[11px]">
+            <tr className="bg-slate-50 dark:bg-navy-900 text-gold-400 font-serif border-b border-slate-200 dark:border-navy-800 uppercase tracking-wider text-[11px]">
               <th className="p-4 font-bold">Country</th>
               <th className="p-4 font-bold min-w-[160px]">Common Work Visa</th>
               <th className="p-4 font-bold min-w-[220px]">Key Requirements</th>
@@ -103,7 +103,7 @@ export const VisaMatrixTable = () => {
           </thead>
           <tbody className="divide-y divide-slate-200 dark:divide-navy-800 bg-white dark:bg-navy-950 text-slate-700 dark:text-slate-300">
             {filtered.map((item, idx) => (
-              <tr key={idx} className="hover:bg-liteblue-50/50 dark:hover:bg-navy-900/60 transition">
+              <tr key={idx} className="hover:bg-liteblue-50/50 dark:hover:bg-slate-800/60 dark:bg-navy-900/60 transition">
                 <td className="p-4 font-bold text-navy-900 dark:text-white flex items-center gap-1.5">
                   <Globe className="w-3.5 h-3.5 text-gold-500" />
                   <span>{item.country}</span>

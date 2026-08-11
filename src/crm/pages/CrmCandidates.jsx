@@ -3,6 +3,7 @@ import { useCrm } from '../context/CrmContext';
 import { ASSIGNED_RECRUITERS } from '../data/mockCrmData';
 import { Users, Search, Plus, Sparkles, FileText, CheckCircle2, Shield, Eye, Bookmark, Filter, X, Send, UserCheck } from 'lucide-react';
 import { CrmAddCandidateModal } from '../components/CrmAddCandidateModal';
+import ScrollReveal from '../../components/ScrollReveal';
 
 export const CrmCandidates = () => {
   const { candidates, setAiDrawerOpen, globalAddCandidateOpen, setGlobalAddCandidateOpen } = useCrm();
@@ -24,6 +25,7 @@ export const CrmCandidates = () => {
     <div className="space-y-6 text-xs font-sans">
       
       {/* Header */}
+      <ScrollReveal>
       <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 bg-white dark:bg-navy-950 p-6 rounded-3xl border border-slate-200 dark:border-navy-800 shadow-sm">
         <div>
           <span className="bg-gold-500/20 text-gold-600 dark:text-gold-400 text-[10px] font-bold px-2.5 py-1 rounded uppercase">Human Capital Index</span>
@@ -49,8 +51,10 @@ export const CrmCandidates = () => {
           </button>
         </div>
       </div>
+      </ScrollReveal>
 
       {/* Filter Bar */}
+      <ScrollReveal>
       <div className="glass-card bg-white dark:bg-navy-900 p-4 rounded-2xl border border-slate-200 dark:border-navy-800 flex flex-col sm:flex-row justify-between gap-3 shadow-sm">
         <div className="relative flex-1">
           <Search className="w-4 h-4 text-slate-400 absolute left-3 top-2.5" />
@@ -89,8 +93,10 @@ export const CrmCandidates = () => {
           </select>
         </div>
       </div>
+      </ScrollReveal>
 
       {/* Candidates Cards Table */}
+      <ScrollReveal>
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
         {filtered.map((cand) => (
           <div 
@@ -140,6 +146,7 @@ export const CrmCandidates = () => {
           </div>
         ))}
       </div>
+      </ScrollReveal>
 
       {/* View Candidate Modal */}
       {viewCand && (

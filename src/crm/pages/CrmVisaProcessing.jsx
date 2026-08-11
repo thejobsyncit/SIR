@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { ShieldCheck, Clock, CheckCircle2, FileText, AlertTriangle, Plane, X } from 'lucide-react';
+import ScrollReveal from '../../components/ScrollReveal';
 
 export const CrmVisaProcessing = () => {
   const [visaMilestones, setVisaMilestones] = useState([
@@ -52,6 +53,7 @@ export const CrmVisaProcessing = () => {
     <div className="space-y-6 text-xs font-sans">
       
       {/* Header */}
+      <ScrollReveal>
       <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 bg-white dark:bg-navy-950 p-6 rounded-3xl border border-slate-200 dark:border-navy-800 shadow-sm">
         <div>
           <span className="bg-gold-500/20 text-gold-700 dark:text-gold-400 text-[10px] font-bold px-2.5 py-1 rounded uppercase">Immigration & Work Permits</span>
@@ -59,8 +61,10 @@ export const CrmVisaProcessing = () => {
           <p className="text-slate-600 dark:text-slate-400">Track entry permits, medical fitness, embassy appointments, flight bookings & Emirates ID issuing.</p>
         </div>
       </div>
+      </ScrollReveal>
 
       {/* Visa Cases Grid */}
+      <ScrollReveal>
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
         {visaMilestones.map((item) => (
           <div 
@@ -99,6 +103,7 @@ export const CrmVisaProcessing = () => {
           </div>
         ))}
       </div>
+      </ScrollReveal>
 
       {/* Selected Visa Details Modal */}
       {selectedVisa && (

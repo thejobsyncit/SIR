@@ -30,8 +30,8 @@ export const PaymentGatewayModal = () => {
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-navy-950/80 backdrop-blur-sm animate-in fade-in">
-      <div className="glass-card bg-white dark:bg-navy-900 border border-gold-500/30 rounded-2xl max-w-lg w-full p-6 shadow-luxury relative overflow-hidden">
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/80 dark:bg-navy-950/80 backdrop-blur-sm animate-in fade-in">
+      <div className="glass-card bg-white dark:bg-navy-900 border border-slate-200 dark:border-gold-500/30 rounded-2xl max-w-lg w-full p-6 shadow-luxury relative overflow-hidden">
         
         <div className="flex justify-between items-start border-b border-slate-200 dark:border-navy-800 pb-4 mb-4">
           <div className="flex items-center space-x-3">
@@ -45,7 +45,7 @@ export const PaymentGatewayModal = () => {
           </div>
           <button 
             onClick={() => { setActiveModal(null); setStatus('idle'); }}
-            className="p-1 rounded-lg text-slate-400 hover:text-white hover:bg-navy-800"
+            className="p-1 rounded-lg text-slate-500 dark:text-slate-400 hover:text-slate-900 dark:text-white hover:bg-navy-800"
           >
             <X className="w-5 h-5" />
           </button>
@@ -77,8 +77,8 @@ export const PaymentGatewayModal = () => {
             </div>
 
             {/* Amount Banner */}
-            <div className="flex justify-between items-center p-3 rounded-xl bg-navy-950 text-white border border-gold-500/30">
-              <span className="font-semibold text-slate-300">Total Payable Amount:</span>
+            <div className="flex justify-between items-center p-3 rounded-xl bg-white dark:bg-navy-950 text-slate-900 dark:text-white border border-slate-200 dark:border-gold-500/30">
+              <span className="font-semibold text-slate-600 dark:text-slate-300">Total Payable Amount:</span>
               <span className="text-xl font-extrabold text-gold-400">${amount} USD</span>
             </div>
 

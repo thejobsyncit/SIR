@@ -6,6 +6,7 @@ import {
   FileText, Send, Sparkles, LogOut, ArrowRight, Trash2, Filter, Eye, Video, 
   Check, Clock, UserCheck, ChevronRight, X, Phone, Mail, Award, Briefcase, MapPin, Globe, UserX, AlertCircle
 } from 'lucide-react';
+import ScrollReveal from '../components/ScrollReveal';
 
 export const EmployerPortal = () => {
   const { user, logout, addJob, deleteJob, navigateTo, postedJobs, applications, updateApplicationStatus } = useApp();
@@ -314,6 +315,7 @@ export const EmployerPortal = () => {
   const interviewsCount = candidatePool.filter(c => c.status === 'Interview Scheduled').length + 24;
 
   return (
+    <ScrollReveal>
     <div className="max-w-7xl mx-auto px-4 sm:px-8 py-12 space-y-8">
       
       {/* Employer Header Banner */}
@@ -324,7 +326,7 @@ export const EmployerPortal = () => {
           </div>
           <div>
             <div className="flex items-center gap-2">
-              <span className="bg-gold-500/15 text-gold-700 dark:text-gold-400 border border-gold-500/30 text-[10px] font-bold px-2 py-0.5 rounded uppercase">Enterprise Employer Portal</span>
+              <span className="bg-gold-500/15 text-gold-700 dark:text-gold-400 border border-slate-200 dark:border-gold-500/30 text-[10px] font-bold px-2 py-0.5 rounded uppercase">Enterprise Employer Portal</span>
               <span className="bg-emerald-500/10 text-emerald-500 border border-emerald-500/20 text-[10px] font-bold px-2 py-0.5 rounded">MOHRE Verified</span>
             </div>
             <h1 className="font-serif text-2xl font-bold text-slate-900 dark:text-white mt-1">{user.companyName || 'Al Habtoor Contracting LLC'}</h1>
@@ -345,7 +347,7 @@ export const EmployerPortal = () => {
 
           <button 
             onClick={logout}
-            className="px-3 py-3 bg-rose-500/10 text-rose-600 dark:bg-rose-500/20 dark:text-rose-300 hover:bg-rose-500 hover:text-white border border-rose-500/30 font-bold text-xs rounded-xl transition flex items-center justify-center space-x-1.5"
+            className="px-3 py-3 bg-rose-500/10 text-rose-600 dark:bg-rose-500/20 dark:text-rose-300 hover:bg-rose-500 hover:text-slate-900 dark:text-white border border-rose-500/30 font-bold text-xs rounded-xl transition flex items-center justify-center space-x-1.5"
             title="Sign Out of Employer Portal"
           >
             <LogOut className="w-4 h-4" />
@@ -456,7 +458,7 @@ export const EmployerPortal = () => {
                     <div className="flex items-center gap-2 w-full sm:w-auto">
                       <button 
                         onClick={() => setActiveTab('applicants')} 
-                        className="flex-1 sm:flex-initial px-3 py-1.5 bg-navy-900 text-gold-400 font-bold rounded-lg border border-navy-700 hover:bg-navy-800 transition text-[11px] flex items-center justify-center gap-1"
+                        className="flex-1 sm:flex-initial px-3 py-1.5 bg-slate-50 dark:bg-navy-900 text-gold-400 font-bold rounded-lg border border-slate-300 dark:border-navy-700 hover:bg-navy-800 transition text-[11px] flex items-center justify-center gap-1"
                       >
                         <Users className="w-3.5 h-3.5" />
                         <span>View Applicants</span>
@@ -513,7 +515,7 @@ export const EmployerPortal = () => {
             {filteredApplicants.map((cand) => (
               <div 
                 key={cand.id}
-                className="glass-card bg-white dark:bg-navy-900 border border-slate-200 dark:border-navy-800 p-6 rounded-2xl flex flex-col md:flex-row justify-between items-start md:items-center gap-6 hover:border-gold-500/50 transition"
+                className="glass-card bg-white dark:bg-navy-900 border border-slate-200 dark:border-navy-800 p-6 rounded-2xl flex flex-col md:flex-row justify-between items-start md:items-center gap-6 hover:border-slate-200 dark:border-gold-500/50 transition"
               >
                 <div className="space-y-3 flex-1">
                   <div className="flex flex-wrap items-center gap-3">
@@ -530,7 +532,7 @@ export const EmployerPortal = () => {
                       cand.status === 'Interview Scheduled' 
                         ? 'bg-purple-500/15 text-purple-600 dark:text-purple-300 border-purple-500/30'
                         : cand.status === 'Shortlisted'
-                        ? 'bg-gold-500/15 text-gold-700 dark:text-gold-400 border-gold-500/30'
+                        ? 'bg-gold-500/15 text-gold-700 dark:text-gold-400 border-slate-200 dark:border-gold-500/30'
                         : cand.status === 'Not Shortlisted'
                         ? 'bg-rose-500/15 text-rose-600 dark:text-rose-400 border-rose-500/30'
                         : 'bg-blue-500/15 text-blue-600 dark:text-blue-400 border-blue-500/30'
@@ -591,7 +593,7 @@ export const EmployerPortal = () => {
                   {cand.status !== 'Shortlisted' && cand.status !== 'Interview Scheduled' && (
                     <button 
                       onClick={() => handleShortlistCandidate(cand)}
-                      className="py-2 px-3 bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 font-bold text-xs rounded-xl border border-emerald-500/30 hover:bg-emerald-500 hover:text-white transition flex items-center justify-center gap-1.5"
+                      className="py-2 px-3 bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 font-bold text-xs rounded-xl border border-emerald-500/30 hover:bg-emerald-500 hover:text-slate-900 dark:text-white transition flex items-center justify-center gap-1.5"
                     >
                       <UserCheck className="w-3.5 h-3.5" />
                       <span>Shortlist Candidate</span>
@@ -601,7 +603,7 @@ export const EmployerPortal = () => {
                   {cand.status !== 'Not Shortlisted' && (
                     <button 
                       onClick={() => handleOpenNotShortlistedModal(cand)}
-                      className="py-2 px-3 bg-rose-500/10 text-rose-600 dark:text-rose-400 font-bold text-xs rounded-xl border border-rose-500/30 hover:bg-rose-500 hover:text-white transition flex items-center justify-center gap-1.5"
+                      className="py-2 px-3 bg-rose-500/10 text-rose-600 dark:text-rose-400 font-bold text-xs rounded-xl border border-rose-500/30 hover:bg-rose-500 hover:text-slate-900 dark:text-white transition flex items-center justify-center gap-1.5"
                     >
                       <UserX className="w-3.5 h-3.5" />
                       <span>Not Shortlisted</span>
@@ -805,7 +807,7 @@ export const EmployerPortal = () => {
                   <p className="text-slate-600 dark:text-slate-400 font-medium">{c.location}</p>
                   <button 
                     onClick={() => handleOpenInterviewModal(c)}
-                    className="w-full py-1.5 bg-navy-900 text-gold-400 font-bold rounded-lg text-[11px]"
+                    className="w-full py-1.5 bg-slate-50 dark:bg-navy-900 text-gold-400 font-bold rounded-lg text-[11px]"
                   >
                     Schedule Interview
                   </button>
@@ -822,7 +824,7 @@ export const EmployerPortal = () => {
           <div className="glass-card bg-white dark:bg-navy-900 border border-slate-200 dark:border-navy-700 w-full max-w-2xl rounded-3xl p-6 space-y-6 shadow-2xl relative text-xs">
             <button 
               onClick={() => setScreenCandidate(null)}
-              className="absolute right-4 top-4 text-slate-400 hover:text-white p-1 rounded-full bg-slate-100 dark:bg-navy-800"
+              className="absolute right-4 top-4 text-slate-500 dark:text-slate-400 hover:text-slate-900 dark:text-white p-1 rounded-full bg-slate-100 dark:bg-navy-800"
             >
               <X className="w-4 h-4" />
             </button>
@@ -832,7 +834,7 @@ export const EmployerPortal = () => {
                 {screenCandidate.name.split(' ').map(n=>n[0]).join('')}
               </div>
               <div>
-                <span className="bg-gold-500/15 text-gold-700 dark:text-gold-400 border border-gold-500/30 text-[10px] font-bold px-2 py-0.5 rounded uppercase">Candidate Screening Report</span>
+                <span className="bg-gold-500/15 text-gold-700 dark:text-gold-400 border border-slate-200 dark:border-gold-500/30 text-[10px] font-bold px-2 py-0.5 rounded uppercase">Candidate Screening Report</span>
                 <h3 className="font-serif text-xl font-bold text-navy-900 dark:text-white mt-1">{screenCandidate.name}</h3>
                 <p className="text-slate-500 font-medium">{screenCandidate.role} • Applied for {screenCandidate.country}</p>
               </div>
@@ -863,7 +865,7 @@ export const EmployerPortal = () => {
               <h4 className="font-bold text-navy-900 dark:text-white">Verified Skills Matrix:</h4>
               <div className="flex flex-wrap gap-1.5">
                 {screenCandidate.skills.map((sk, idx) => (
-                  <span key={idx} className="bg-gold-500/15 text-gold-700 dark:text-gold-400 font-bold px-2.5 py-1 rounded-lg text-[11px] border border-gold-500/30">
+                  <span key={idx} className="bg-gold-500/15 text-gold-700 dark:text-gold-400 font-bold px-2.5 py-1 rounded-lg text-[11px] border border-slate-200 dark:border-gold-500/30">
                     ✓ {sk}
                   </span>
                 ))}
@@ -874,7 +876,7 @@ export const EmployerPortal = () => {
               {screenCandidate.status !== 'Shortlisted' && screenCandidate.status !== 'Interview Scheduled' && (
                 <button 
                   onClick={() => handleShortlistCandidate(screenCandidate)}
-                  className="flex-1 py-3 bg-emerald-500 text-white font-bold rounded-xl flex items-center justify-center gap-2 hover:bg-emerald-600 transition"
+                  className="flex-1 py-3 bg-emerald-500 text-slate-900 dark:text-white font-bold rounded-xl flex items-center justify-center gap-2 hover:bg-emerald-600 transition"
                 >
                   <UserCheck className="w-4 h-4" />
                   <span>Shortlist Candidate</span>
@@ -903,7 +905,7 @@ export const EmployerPortal = () => {
           <div className="glass-card bg-white dark:bg-navy-900 border border-slate-200 dark:border-navy-700 w-full max-w-lg rounded-3xl p-6 space-y-6 shadow-2xl relative text-xs">
             <button 
               onClick={() => setInterviewCandidate(null)}
-              className="absolute right-4 top-4 text-slate-400 hover:text-white p-1 rounded-full bg-slate-100 dark:bg-navy-800"
+              className="absolute right-4 top-4 text-slate-500 dark:text-slate-400 hover:text-slate-900 dark:text-white p-1 rounded-full bg-slate-100 dark:bg-navy-800"
             >
               <X className="w-4 h-4" />
             </button>
@@ -997,7 +999,7 @@ export const EmployerPortal = () => {
 
       {/* NOT SHORTLISTED NOTIFICATION MODAL */}
       {notShortlistedCandidate && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-navy-950/80 backdrop-blur-sm animate-in fade-in">
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/80 dark:bg-navy-950/80 backdrop-blur-sm animate-in fade-in">
           <div className="glass-card bg-white dark:bg-navy-900 border border-slate-200 dark:border-navy-700 rounded-3xl max-w-lg w-full p-6 shadow-luxury relative text-xs">
             
             <div className="flex justify-between items-start border-b border-slate-200 dark:border-navy-800 pb-4 mb-4">
@@ -1006,11 +1008,11 @@ export const EmployerPortal = () => {
                   <UserX className="w-5 h-5" />
                 </div>
                 <div>
-                  <h3 className="font-serif text-lg font-bold text-navy-950 dark:text-white">Mark Candidate as Not Shortlisted</h3>
+                  <h3 className="font-serif text-lg font-bold text-slate-900 dark:text-white">Mark Candidate as Not Shortlisted</h3>
                   <p className="text-[11px] text-slate-500 dark:text-slate-400 font-medium">Inform candidate about application status decision</p>
                 </div>
               </div>
-              <button onClick={() => setNotShortlistedCandidate(null)} className="p-1 text-slate-400 hover:text-white">
+              <button onClick={() => setNotShortlistedCandidate(null)} className="p-1 text-slate-500 dark:text-slate-400 hover:text-slate-900 dark:text-white">
                 <X className="w-5 h-5" />
               </button>
             </div>
@@ -1038,7 +1040,7 @@ export const EmployerPortal = () => {
                   <select
                     value={notShortlistedForm.reasonCategory}
                     onChange={(e) => setNotShortlistedForm({ ...notShortlistedForm, reasonCategory: e.target.value })}
-                    className="w-full bg-slate-50 dark:bg-navy-950 border border-slate-300 dark:border-navy-700 rounded-xl p-2.5 text-navy-950 dark:text-white focus:outline-none focus:border-gold-500 font-medium"
+                    className="w-full bg-slate-50 dark:bg-navy-950 border border-slate-300 dark:border-navy-700 rounded-xl p-2.5 text-slate-900 dark:text-white focus:outline-none focus:border-gold-500 font-medium"
                   >
                     <option value="Experience Gap">Experience Level Below Mandate Requirements</option>
                     <option value="Skill Set Misalignment">Specific Technical / Certification Skill Gap</option>
@@ -1056,7 +1058,7 @@ export const EmployerPortal = () => {
                     rows={5}
                     value={notShortlistedForm.message}
                     onChange={(e) => setNotShortlistedForm({ ...notShortlistedForm, message: e.target.value })}
-                    className="w-full bg-slate-50 dark:bg-navy-950 border border-slate-300 dark:border-navy-700 rounded-xl p-3 text-[11px] text-navy-950 dark:text-slate-200 focus:outline-none focus:border-gold-500 leading-relaxed font-mono"
+                    className="w-full bg-slate-50 dark:bg-navy-950 border border-slate-300 dark:border-navy-700 rounded-xl p-3 text-[11px] text-slate-900 dark:text-white dark:text-slate-200 focus:outline-none focus:border-gold-500 leading-relaxed font-mono"
                   />
                 </div>
 
@@ -1070,7 +1072,7 @@ export const EmployerPortal = () => {
                   </button>
                   <button
                     type="submit"
-                    className="flex-1 py-2.5 bg-rose-600 hover:bg-rose-700 text-white font-bold rounded-xl shadow-md transition flex items-center justify-center space-x-1.5"
+                    className="flex-1 py-2.5 bg-rose-600 hover:bg-rose-700 text-slate-900 dark:text-white font-bold rounded-xl shadow-md transition flex items-center justify-center space-x-1.5"
                   >
                     <Send className="w-3.5 h-3.5" />
                     <span>Send Notification & Mark Not Shortlisted</span>
@@ -1082,7 +1084,7 @@ export const EmployerPortal = () => {
                 <div className="w-14 h-14 bg-rose-500/20 text-rose-500 rounded-full flex items-center justify-center mx-auto">
                   <CheckCircle2 className="w-8 h-8" />
                 </div>
-                <h4 className="font-serif text-xl font-bold text-navy-950 dark:text-white">Candidate Notified Successfully</h4>
+                <h4 className="font-serif text-xl font-bold text-slate-900 dark:text-white">Candidate Notified Successfully</h4>
                 <p className="text-xs text-slate-600 dark:text-slate-300">
                   {notShortlistedCandidate.name}'s application status has been marked as <strong>Not Shortlisted</strong>. An official notification has been dispatched to {notShortlistedCandidate.email}.
                 </p>
@@ -1094,5 +1096,6 @@ export const EmployerPortal = () => {
       )}
 
     </div>
+    </ScrollReveal>
   );
 };

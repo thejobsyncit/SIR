@@ -35,7 +35,7 @@ export const EmployerAuth = () => {
                 <Building2 className="w-6 h-6" />
               </div>
               <div>
-                <span className="bg-gold-500/15 text-gold-700 dark:text-gold-400 border border-gold-500/30 text-[10px] font-bold px-2.5 py-0.5 rounded uppercase tracking-wider">
+                <span className="bg-gold-500/15 text-gold-700 dark:text-gold-400 border border-slate-200 dark:border-gold-500/30 text-[10px] font-bold px-2.5 py-0.5 rounded uppercase tracking-wider">
                   Restricted Enterprise Access
                 </span>
                 <h2 className="font-serif text-lg font-bold text-slate-900 dark:text-white mt-0.5">Employer Client Portal</h2>
@@ -43,7 +43,7 @@ export const EmployerAuth = () => {
             </div>
 
             <div className="space-y-3 pt-2">
-              <div className="p-3.5 bg-gold-500/10 border border-gold-500/30 rounded-xl text-yellow-950 dark:text-gold-300 text-xs flex items-start space-x-2.5">
+              <div className="p-3.5 bg-gold-500/10 border border-slate-200 dark:border-gold-500/30 rounded-xl text-yellow-950 dark:text-gold-300 text-xs flex items-start space-x-2.5">
                 <ShieldAlert className="w-5 h-5 text-gold-600 dark:text-gold-400 shrink-0 mt-0.5" />
                 <p className="leading-relaxed font-medium">
                   Access to candidate CV databases, job postings, and visa processing mandates is restricted to verified enterprise partners.
@@ -151,7 +151,7 @@ export const EmployerAuth = () => {
               <button
                 type="button"
                 onClick={handleDemoLogin}
-                className="w-full py-2.5 bg-slate-100 hover:bg-slate-200 dark:bg-navy-800 dark:hover:bg-navy-700 text-slate-800 dark:text-gold-400 font-semibold rounded-xl border border-gold-500/30 transition flex items-center justify-center space-x-2"
+                className="w-full py-2.5 bg-slate-100 hover:bg-slate-200 dark:bg-navy-800 dark:hover:bg-navy-700 text-slate-800 dark:text-gold-400 font-semibold rounded-xl border border-slate-200 dark:border-gold-500/30 transition flex items-center justify-center space-x-2"
               >
                 <Sparkles className="w-4 h-4 text-gold-500" />
                 <span>Instant Enterprise Demo Login (Al Habtoor)</span>

@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import ScrollReveal from '../../components/ScrollReveal';
 import { Calendar as CalendarIcon, Clock, Users, Video, Plus, Filter, X, CheckCircle2, Trash2 } from 'lucide-react';
 import { useCrm } from '../context/CrmContext';
 
@@ -25,6 +26,7 @@ export const CrmCalendar = () => {
   };
 
   return (
+    <ScrollReveal>
     <div className="space-y-6 text-xs font-sans">
       
       {/* Header */}
@@ -139,5 +141,6 @@ export const CrmCalendar = () => {
       )}
 
     </div>
+    </ScrollReveal>
   );
 };

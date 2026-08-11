@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import ScrollReveal from '../../components/ScrollReveal';
 import { useCrm } from '../context/CrmContext';
 import { CRM_ROLES } from '../data/mockCrmData';
 import { 
@@ -96,6 +97,7 @@ export const CrmSuperAdmin = () => {
   });
 
   const [statusMsg, setStatusMsg] = useState('');
+  const [emailError, setEmailError] = useState('');
   const [searchQuery, setSearchQuery] = useState('');
   const [showPassword, setShowPassword] = useState(false);
   const [visiblePasswords, setVisiblePasswords] = useState(new Set());
@@ -117,6 +119,7 @@ export const CrmSuperAdmin = () => {
   const handleCancelEdit = () => {
     setEditingEmployeeId(null);
     setNewEmployee({ name: '', email: '', password: '', phone: '', role: 'Recruiter' });
+    setEmailError('');
   };
 
   const toggleRowPassword = (id) => {
@@ -147,12 +150,18 @@ export const CrmSuperAdmin = () => {
 
   const handleSaveEmployee = (e) => {
     e.preventDefault();
+    setEmailError('');
     if (!newEmployee.email || !newEmployee.password) {
       alert('Please provide Email ID and Password for the employee.');
       return;
     }
 
     if (editingEmployeeId) {
+      const emailExists = employees.some(emp => emp.id !== editingEmployeeId && emp.email.toLowerCase() === newEmployee.email.trim().toLowerCase());
+      if (emailExists) {
+        setEmailError('An employee with this email already exists.');
+        return;
+      }
       const updated = employees.map(emp => {
         if (emp.id === editingEmployeeId) {
           return {
@@ -171,6 +180,11 @@ export const CrmSuperAdmin = () => {
       logAuditAction(`Super Admin updated employee account '${newEmployee.email}'.`);
       setStatusMsg(`✓ Employee Account '${newEmployee.name || newEmployee.email}' updated successfully!`);
     } else {
+      const emailExists = employees.some(emp => emp.email.toLowerCase() === newEmployee.email.trim().toLowerCase());
+      if (emailExists) {
+        setEmailError('An employee with this email already exists.');
+        return;
+      }
       const createdEmp = {
         id: `emp-${Date.now()}`,
         name: newEmployee.name.trim() || newEmployee.email.split('@')[0],
@@ -254,6 +268,7 @@ export const CrmSuperAdmin = () => {
   );
 
   return (
+    <ScrollReveal key={activeTab}>
     <div className="space-y-6 text-xs font-sans">
       
       {/* Super Admin Top Header Navigation Bar - Styled matching Documentation Vault */}
@@ -511,10 +526,14 @@ export const CrmSuperAdmin = () => {
                   type="email" 
                   required 
                   value={newEmployee.email} 
-                  onChange={e=>setNewEmployee({...newEmployee, email: e.target.value})} 
+                  onChange={e=>{
+                    setNewEmployee({...newEmployee, email: e.target.value});
+                    if (emailError) setEmailError('');
+                  }} 
                   placeholder="dhana.jasync@gmail.com" 
-                  className="w-full bg-slate-100 dark:bg-navy-950 border border-slate-300 dark:border-navy-700 text-slate-900 dark:text-white rounded-xl p-2.5 font-bold focus:outline-none focus:border-gold-500"
+                  className={`w-full bg-slate-100 dark:bg-navy-950 border ${emailError ? 'border-red-500 focus:border-red-500' : 'border-slate-300 dark:border-navy-700 focus:border-gold-500'} text-slate-900 dark:text-white rounded-xl p-2.5 font-bold focus:outline-none`}
                 />
+                {emailError && <p className="text-red-500 text-[10px] font-bold mt-1">{emailError}</p>}
               </div>
 
               <div>
@@ -850,5 +869,6 @@ export const CrmSuperAdmin = () => {
       )}
 
     </div>
+    </ScrollReveal>
   );
 };

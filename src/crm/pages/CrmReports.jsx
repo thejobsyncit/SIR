@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import ScrollReveal from '../../components/ScrollReveal';
 import { BarChart3, Download, FileSpreadsheet, FileText, Filter, Calendar, CheckCircle2, X, Printer, Check } from 'lucide-react';
 
 export const CrmReports = () => {
@@ -152,6 +153,7 @@ export const CrmReports = () => {
   };
 
   return (
+    <ScrollReveal>
     <div className="space-y-6 text-xs font-sans">
       
       {/* Header */}
@@ -324,5 +326,6 @@ export const CrmReports = () => {
       )}
 
     </div>
+    </ScrollReveal>
   );
 };

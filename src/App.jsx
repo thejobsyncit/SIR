@@ -21,6 +21,7 @@ import { BackgroundVerificationPage } from './pages/BackgroundVerificationPage';
 import { ContactUsPage } from './pages/ContactUsPage';
 import { UnifiedAuthModal } from './components/UnifiedAuthModal';
 import { CrmApp } from './crm/CrmApp';
+import { ErpApp } from './erp/ErpApp';
 
 export function App() {
   const { activeTab } = useApp();
@@ -28,12 +29,26 @@ export function App() {
   const isCrmRoute = activeTab === 'crm' || 
     (typeof window !== 'undefined' && (window.location.pathname.replace(/^\/+|\/+$/g, '').startsWith('crm') || window.location.hash === '#crm'));
 
+  const isErpRoute = activeTab === 'superadmin-erp' || activeTab === 'erp' || 
+    (typeof window !== 'undefined' && (
+      window.location.pathname.replace(/^\/+|\/+$/g, '').startsWith('superadmin-erp') || 
+      window.location.pathname.replace(/^\/+|\/+$/g, '').startsWith('erp') || 
+      window.location.hash === '#erp' ||
+      window.location.hash === '#superadmin-erp'
+    ));
+
+  if (isErpRoute) {
+    return <ErpApp />;
+  }
+
   if (isCrmRoute) {
     return <CrmApp />;
   }
 
   const renderCurrentPage = () => {
     switch (activeTab) {
+      case 'erp':
+        return <ErpApp />;
       case 'crm':
         return <CrmApp />;
       case 'about':

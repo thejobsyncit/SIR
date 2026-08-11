@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import ScrollReveal from '../../components/ScrollReveal';
 import { ShieldCheck, CheckCircle2, AlertTriangle, Clock, Eye, X, Check, FileCheck } from 'lucide-react';
 
 export const CrmBackgroundVerification = () => {
@@ -61,6 +62,7 @@ export const CrmBackgroundVerification = () => {
   };
 
   return (
+    <ScrollReveal>
     <div className="space-y-6 text-xs font-sans">
       
       {/* Header */}
@@ -153,5 +155,6 @@ export const CrmBackgroundVerification = () => {
       )}
 
     </div>
+    </ScrollReveal>
   );
 };

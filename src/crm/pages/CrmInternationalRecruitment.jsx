@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import ScrollReveal from '../../components/ScrollReveal';
 import { Globe, ShieldCheck, Plane, CheckCircle2, AlertTriangle, FileText, Plus, X } from 'lucide-react';
 
 export const CrmInternationalRecruitment = () => {
@@ -50,6 +51,7 @@ export const CrmInternationalRecruitment = () => {
   const [selectedItem, setSelectedItem] = useState(null);
 
   return (
+    <ScrollReveal>
     <div className="space-y-6 text-xs font-sans">
       
       {/* Header */}
@@ -131,5 +133,6 @@ export const CrmInternationalRecruitment = () => {
       )}
 
     </div>
+    </ScrollReveal>
   );
 };

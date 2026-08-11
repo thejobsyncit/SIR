@@ -26,11 +26,11 @@ export const Navbar = () => {
   return (
     <header className="sticky top-0 z-50 transition-all duration-300">
       {/* Top Corporate Bar */}
-      <div className="bg-navy-950 text-slate-300 text-xs py-2 px-4 sm:px-8 border-b border-navy-800 flex justify-between items-center">
+      <div className="bg-white dark:bg-navy-950 text-slate-600 dark:text-slate-300 text-xs py-2 px-4 sm:px-8 border-b border-slate-200 dark:border-navy-800 flex justify-between items-center">
         <div className="flex items-center space-x-6">
           <div className="flex items-center space-x-2">
             <Phone className="w-3.5 h-3.5 text-gold-500" />
-            <span>{t('nav.dubaiHQ')}: <strong className="text-white">+971 4 123 4567</strong></span>
+            <span>{t('nav.dubaiHQ')}: <strong className="text-slate-900 dark:text-white">+971 4 123 4567</strong></span>
           </div>
           <div className="hidden md:flex items-center space-x-2">
             <Mail className="w-3.5 h-3.5 text-gold-500" />
@@ -48,7 +48,7 @@ export const Navbar = () => {
           {/* Quick AI Tools Button */}
           <button 
             onClick={() => setActiveModal('ai-resume')}
-            className="hidden sm:flex items-center space-x-1.5 bg-gold-500/20 text-gold-400 hover:bg-gold-500 hover:text-navy-950 px-2.5 py-1 rounded text-xs font-medium transition"
+            className="hidden sm:flex items-center space-x-1.5 bg-gold-500/20 text-gold-400 hover:bg-gold-500 hover:text-slate-900 dark:text-white px-2.5 py-1 rounded text-xs font-medium transition"
           >
             <Sparkles className="w-3 h-3" />
             <span>{t('nav.aiResume')}</span>
@@ -58,7 +58,7 @@ export const Navbar = () => {
           <select 
             value={language} 
             onChange={(e) => setLanguage(e.target.value)}
-            className="bg-navy-900 text-slate-200 border border-navy-700 rounded px-2 py-0.5 text-xs focus:outline-none focus:border-gold-500 font-bold"
+            className="bg-slate-50 dark:bg-navy-900 text-slate-700 dark:text-slate-200 border border-slate-300 dark:border-navy-700 rounded px-2 py-0.5 text-xs focus:outline-none focus:border-gold-500 font-bold"
           >
             <option value="EN">🇺🇸 EN</option>
             <option value="AR">🇦🇪 العربية</option>
@@ -89,7 +89,7 @@ export const Navbar = () => {
             <BrandLogoIcon className="w-12 h-12 group-hover:scale-105 transition duration-300 shadow-md" />
             <div>
               <div className="font-serif text-2xl font-black tracking-tight text-navy-900 dark:text-white flex items-center gap-2">
-                SIR <span className="text-gold-500 font-sans text-[11px] font-bold uppercase tracking-widest px-2 py-0.5 bg-navy-900 text-gold-400 rounded-md shadow-sm">Recruitment</span>
+                SIR <span className="text-gold-500 font-sans text-[11px] font-bold uppercase tracking-widest px-2 py-0.5 bg-slate-50 dark:bg-navy-900 text-gold-400 rounded-md shadow-sm">Recruitment</span>
               </div>
               <p className="text-[10px] uppercase tracking-widest text-slate-700 dark:text-slate-300 font-extrabold">Dubai • GCC • Worldwide</p>
             </div>
@@ -113,12 +113,12 @@ export const Navbar = () => {
                   }`}
                 >
                   <span>{item.label}</span>
-                  {item.hasMega && <ChevronDown className="w-3 h-3 text-slate-400" />}
+                  {item.hasMega && <ChevronDown className="w-3 h-3 text-slate-500 dark:text-slate-400" />}
                 </button>
 
                 {/* Mega Menu Dropdown */}
                 {megaMenuType === item.hasMega && (
-                  <div className="absolute top-full left-0 w-96 glass-card bg-white dark:bg-navy-900 shadow-luxury rounded-xl p-4 border border-gold-500/20 animate-in fade-in slide-in-from-top-2 duration-200 z-50">
+                  <div className="absolute top-full left-0 w-96 glass-card bg-white dark:bg-navy-900 shadow-luxury rounded-xl p-4 border border-slate-200 dark:border-gold-500/20 animate-in fade-in slide-in-from-top-2 duration-200 z-50">
                     {item.hasMega === 'services' && (
                       <div>
                         <div className="text-xs font-bold text-gold-500 uppercase tracking-wider mb-2 border-b pb-1 border-slate-200 dark:border-navy-700">
@@ -140,7 +140,7 @@ export const Navbar = () => {
                         </div>
                         <button 
                           onClick={() => { navigateTo('services'); setMegaMenuType(null); }}
-                          className="w-full mt-3 text-center text-xs font-bold text-navy-900 dark:text-gold-400 bg-slate-100 dark:bg-navy-800 hover:bg-gold-500 hover:text-white py-1.5 rounded transition"
+                          className="w-full mt-3 text-center text-xs font-bold text-navy-900 dark:text-gold-400 bg-slate-100 dark:bg-navy-800 hover:bg-gold-500 hover:text-slate-900 dark:text-white py-1.5 rounded transition"
                         >
                           View All 18 Services →
                         </button>
@@ -177,23 +177,23 @@ export const Navbar = () => {
           {/* Action CTAs: Matching Image 1 Layout with SIR Theme Colors (Gold Shimmer & Gold Outline) */}
           <div className="hidden sm:flex items-center space-x-3">
             {user ? (
-              <div className="flex items-center space-x-2 bg-navy-950/90 border border-gold-500/40 px-3.5 py-1.5 rounded-full text-xs shadow-md">
+              <div className="flex items-center space-x-2 bg-slate-900/90 dark:bg-navy-950/90 border border-slate-200 dark:border-gold-500/40 px-3.5 py-1.5 rounded-full text-xs shadow-md">
                 <div className="w-7 h-7 rounded-full bg-gold-500 text-navy-950 font-bold flex items-center justify-center text-xs shadow-gold-glow">
                   {user.name ? user.name[0].toUpperCase() : 'U'}
                 </div>
                 <div className="text-left">
-                  <p className="font-bold text-white leading-tight text-[11px] truncate max-w-[120px]">{user.name}</p>
+                  <p className="font-bold text-slate-900 dark:text-white leading-tight text-[11px] truncate max-w-[120px]">{user.name}</p>
                   <span className="text-[9px] text-gold-400 font-semibold uppercase">{user.role}</span>
                 </div>
                 <button
                   onClick={() => navigateTo(user.role === 'employer' ? 'employers' : 'candidates')}
-                  className="px-2.5 py-1 bg-gold-500/20 hover:bg-gold-500 hover:text-navy-950 text-gold-400 rounded-full text-[10px] font-bold transition ml-1"
+                  className="px-2.5 py-1 bg-gold-500/20 hover:bg-gold-500 hover:text-slate-900 dark:text-white text-gold-400 rounded-full text-[10px] font-bold transition ml-1"
                 >
                   Portal
                 </button>
                 <button
                   onClick={logout}
-                  className="px-2.5 py-1 bg-rose-500/20 hover:bg-rose-500 hover:text-white text-rose-300 rounded-full text-[10px] font-bold transition"
+                  className="px-2.5 py-1 bg-rose-500/20 hover:bg-rose-500 hover:text-slate-900 dark:text-white text-rose-300 rounded-full text-[10px] font-bold transition"
                   title="Sign Out"
                 >
                   Logout
@@ -213,9 +213,9 @@ export const Navbar = () => {
                 {/* Sign In button: Solid style matching Image 1 layout with website SIR Gold theme */}
                 <button
                   onClick={() => openAuthModal('login')}
-                  className="px-5 py-2 rounded-full text-xs font-bold text-navy-950 bg-gold-500 hover:bg-gold-600 shadow-gold-glow transition flex items-center space-x-1.5"
+                  className="px-5 py-2 rounded-full text-xs font-bold text-slate-900 dark:text-white bg-gold-500 hover:bg-gold-600 shadow-gold-glow transition flex items-center space-x-1.5"
                 >
-                  <LogIn className="w-3.5 h-3.5 text-navy-950" />
+                  <LogIn className="w-3.5 h-3.5 text-slate-900 dark:text-white" />
                   <span>Sign In</span>
                 </button>
 
@@ -228,7 +228,7 @@ export const Navbar = () => {
           <div className="xl:hidden flex items-center">
             <button
               onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
-              className="p-2 rounded-lg bg-navy-800 text-white"
+              className="p-2 rounded-lg bg-navy-800 text-slate-900 dark:text-white"
             >
               {mobileMenuOpen ? <X className="w-6 h-6" /> : <Menu className="w-6 h-6" />}
             </button>
@@ -249,8 +249,8 @@ export const Navbar = () => {
                   }}
                   className={`p-3.5 rounded-xl text-xs sm:text-sm font-semibold text-center transition-all duration-300 active:scale-95 shadow-sm ${
                     activeTab === item.id
-                      ? 'bg-gradient-to-r from-gold-500 to-gold-400 text-navy-950 font-bold shadow-gold-glow'
-                      : 'bg-slate-50 dark:bg-navy-800/80 text-navy-900 dark:text-slate-200 border border-slate-200 dark:border-navy-700 hover:border-gold-500/50'
+                      ? 'bg-gradient-to-r from-gold-500 to-gold-400 text-slate-900 dark:text-white font-bold shadow-gold-glow'
+                      : 'bg-slate-50 dark:bg-navy-800/80 text-navy-900 dark:text-slate-200 border border-slate-200 dark:border-navy-700 hover:border-slate-200 dark:border-gold-500/50'
                   }`}
                   style={{ animationDelay: `${idx * 0.05}s` }}
                 >

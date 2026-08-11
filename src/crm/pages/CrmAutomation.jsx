@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import ScrollReveal from '../../components/ScrollReveal';
 import { Zap, Bell, Mail, MessageSquare, CheckCircle2, Plus, X, Clock, Play } from 'lucide-react';
 
 export const CrmAutomation = () => {
@@ -35,6 +36,7 @@ export const CrmAutomation = () => {
   };
 
   return (
+    <ScrollReveal>
     <div className="space-y-6 text-xs font-sans">
       
       {/* Header */}
@@ -113,5 +115,6 @@ export const CrmAutomation = () => {
       )}
 
     </div>
+    </ScrollReveal>
   );
 };

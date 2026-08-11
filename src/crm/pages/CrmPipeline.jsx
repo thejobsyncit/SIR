@@ -6,6 +6,7 @@ import {
   Sparkles, Inbox, UserCheck, Mail, Phone, MapPin, Award, TrendingUp, X, 
   ChevronDown, ChevronUp, Briefcase, Star, ExternalLink, ShieldCheck
 } from 'lucide-react';
+import ScrollReveal from '../../components/ScrollReveal';
 
 export const CrmPipeline = () => {
   const { candidates, updateCandidateStage } = useCrm();
@@ -32,6 +33,7 @@ export const CrmPipeline = () => {
     <div className="space-y-6 text-xs font-sans">
       
       {/* Header Banner */}
+      <ScrollReveal>
       <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 bg-white dark:bg-gradient-to-r dark:from-[#0f1c3f] dark:via-[#0a132b] dark:to-[#060a17] p-6 rounded-3xl border border-slate-200 dark:border-gold-500/40 shadow-sm border-l-4 border-l-gold-500">
         <div>
           <span className="bg-gold-500/20 text-gold-700 dark:text-gold-400 text-[10px] font-bold px-2.5 py-1 rounded uppercase tracking-wider">Kanban Recruitment Workflow</span>
@@ -45,8 +47,10 @@ export const CrmPipeline = () => {
           </span>
         </div>
       </div>
+      </ScrollReveal>
 
       {/* Filter Bar */}
+      <ScrollReveal>
       <div className="glass-card bg-white dark:bg-gradient-to-r dark:from-[#101b36] dark:to-[#0a1124] p-4 rounded-2xl border border-slate-200 dark:border-gold-500/30 flex flex-col sm:flex-row justify-between gap-3 shadow-md items-center">
         <div className="relative flex-1 w-full">
           <Search className="w-4 h-4 text-gold-500 absolute left-3 top-2.5" />
@@ -87,9 +91,11 @@ export const CrmPipeline = () => {
           </button>
         </div>
       </div>
+      </ScrollReveal>
 
       {/* Recruiter Showcase & Detailed Info Section */}
       {showRecruiterDetails && (
+        <ScrollReveal>
         <div className="bg-white dark:bg-gradient-to-r dark:from-[#0d162d] dark:via-[#091124] dark:to-[#050a17] p-5 rounded-2xl border border-slate-200 dark:border-gold-500/30 shadow-md space-y-4 animate-in fade-in">
           
           {/* Header row */}
@@ -310,9 +316,11 @@ export const CrmPipeline = () => {
           )}
 
         </div>
+        </ScrollReveal>
       )}
 
       {/* 18-Stage Horizontal Kanban Board */}
+      <ScrollReveal>
       <div className="overflow-x-auto pb-4">
         <div className="flex gap-4 min-w-[3600px]">
           {PIPELINE_STAGES.map((stage, idx) => {
@@ -405,9 +413,11 @@ export const CrmPipeline = () => {
           })}
         </div>
       </div>
+      </ScrollReveal>
 
       {/* Recruiter Full Profile Modal */}
       {viewRecruiterModal && (
+        <ScrollReveal>
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-navy-950/80 backdrop-blur-sm animate-in fade-in">
           <div className="glass-card bg-white dark:bg-[#0c152a] border border-gold-500/50 rounded-2xl max-w-xl w-full p-6 shadow-2xl space-y-4 max-h-[90vh] overflow-y-auto text-slate-900 dark:text-white">
             
@@ -505,6 +515,7 @@ export const CrmPipeline = () => {
 
           </div>
         </div>
+        </ScrollReveal>
       )}
 
     </div>

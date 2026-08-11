@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import ScrollReveal from '../../components/ScrollReveal';
 import { useCrm } from '../context/CrmContext';
 import { 
   CreditCard, DollarSign, FileSpreadsheet, Plus, CheckCircle2, Clock, 
@@ -118,6 +119,7 @@ STATUS: PAID & AUDITED (GRADE A)
   };
 
   return (
+    <ScrollReveal>
     <div className="space-y-6 text-xs font-sans">
       
       {/* Header */}
@@ -433,5 +435,6 @@ STATUS: PAID & AUDITED (GRADE A)
       )}
 
     </div>
+    </ScrollReveal>
   );
 };

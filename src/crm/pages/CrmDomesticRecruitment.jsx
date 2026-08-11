@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import ScrollReveal from '../../components/ScrollReveal';
 import { Home, MapPin, Building2, Calendar, CheckCircle2, Plus, Search, Filter, X } from 'lucide-react';
 
 export const CrmDomesticRecruitment = () => {
@@ -32,6 +33,7 @@ export const CrmDomesticRecruitment = () => {
   };
 
   return (
+    <ScrollReveal>
     <div className="space-y-6 text-xs font-sans">
       
       {/* Header */}
@@ -118,5 +120,6 @@ export const CrmDomesticRecruitment = () => {
       )}
 
     </div>
+    </ScrollReveal>
   );
 };

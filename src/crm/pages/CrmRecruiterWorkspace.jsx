@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import ScrollReveal from '../../components/ScrollReveal';
 import { useCrm } from '../context/CrmContext';
 import { 
   UserCheck, Calendar, CheckSquare, Target, Award, Sparkles, Clock, 
@@ -26,6 +27,7 @@ export const CrmRecruiterWorkspace = () => {
   const recruiterCandidates = candidates.filter(c => c.assignedRecruiter === user.name || c.assignedRecruiter === 'Fatima Al-Zahra');
 
   return (
+    <ScrollReveal>
     <div className="space-y-6 text-xs font-sans">
       
       {/* Header Banner */}
@@ -39,7 +41,11 @@ export const CrmRecruiterWorkspace = () => {
         <div className="flex items-center space-x-3">
           <button 
             onClick={() => setAttendanceStatus(attendanceStatus.includes('Checked In') ? 'Checked Out' : 'Checked In (Dubai HQ)')}
-            className="px-3 py-1.5 bg-emerald-100 dark:bg-emerald-500/20 text-emerald-800 dark:text-emerald-400 border border-emerald-300 dark:border-emerald-500/40 rounded-xl font-bold flex items-center gap-1.5 shadow-xs"
+            className={`px-3 py-1.5 border rounded-xl font-bold flex items-center gap-1.5 shadow-xs transition-colors duration-200 ${
+              attendanceStatus.includes('Checked In') 
+                ? 'bg-emerald-100 dark:bg-emerald-500/20 text-emerald-800 dark:text-emerald-400 border-emerald-300 dark:border-emerald-500/40'
+                : 'bg-slate-100 dark:bg-navy-800 text-slate-600 dark:text-slate-400 border-slate-300 dark:border-navy-600'
+            }`}
           >
             <Clock className="w-3.5 h-3.5" />
             <span>{attendanceStatus}</span>
@@ -157,5 +163,6 @@ export const CrmRecruiterWorkspace = () => {
       </div>
 
     </div>
+    </ScrollReveal>
   );
 };

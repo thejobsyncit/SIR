@@ -12,11 +12,11 @@ export const UnifiedAuthModal = () => {
   const role = authModalConfig?.role || null;
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-navy-950/70 backdrop-blur-md overflow-y-auto animate-in fade-in duration-200">
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/70 dark:bg-navy-950/70 backdrop-blur-md overflow-y-auto animate-in fade-in duration-200">
       <div className="relative w-full max-w-4xl max-h-[90vh] overflow-y-auto rounded-3xl">
         <button
           onClick={() => setActiveModal(null)}
-          className="absolute top-6 right-6 z-10 p-2.5 rounded-full bg-slate-100 dark:bg-navy-800 text-slate-500 hover:text-slate-900 dark:hover:text-white transition shadow-md"
+          className="absolute top-6 right-6 z-10 p-2.5 rounded-full bg-slate-100 dark:bg-navy-800 text-slate-500 hover:text-slate-900 dark:hover:text-slate-900 dark:text-white transition shadow-md"
           title="Close Modal"
         >
           <X className="w-5 h-5" />

@@ -1,6 +1,7 @@
 import React from 'react';
 import { useApp } from '../context/AppContext';
 import { Building2, Globe, Shield, Award, Users, CheckCircle2, MapPin, Target, Eye } from 'lucide-react';
+import ScrollReveal from '../components/ScrollReveal';
 
 export const AboutUs = () => {
   const { navigateTo } = useApp();
@@ -16,6 +17,7 @@ export const AboutUs = () => {
     <div className="max-w-7xl mx-auto px-4 sm:px-8 py-12 space-y-16">
       
       {/* Header */}
+      <ScrollReveal>
       <div className="text-center space-y-4 max-w-3xl mx-auto">
         <span className="bg-gold-500/10 text-gold-600 dark:text-gold-400 text-xs font-bold px-3.5 py-1 rounded-full uppercase">
           About SIR Recruitment
@@ -27,16 +29,18 @@ export const AboutUs = () => {
           Founded in Dubai, United Arab Emirates, SIR Recruitment has established itself as the preferred partner for Fortune 500 multinationals, GCC conglomerates, and government bodies seeking world-class human capital.
         </p>
       </div>
+      </ScrollReveal>
 
       {/* Office Visual Banner */}
-      <div className="relative rounded-3xl overflow-hidden shadow-luxury border border-gold-500/30 max-h-[420px]">
+      <ScrollReveal>
+      <div className="relative rounded-3xl overflow-hidden shadow-luxury border border-slate-200 dark:border-gold-500/30 max-h-[420px]">
         <img 
           src="/images/dubai_office.png" 
           alt="SIR Recruitment Dubai HQ" 
           className="w-full h-full object-cover"
         />
         <div className="absolute inset-0 bg-gradient-to-t from-navy-950 via-navy-950/40 to-transparent flex items-end p-8">
-          <div className="text-white space-y-2">
+          <div className="text-slate-900 dark:text-white space-y-2">
             <div className="flex items-center space-x-2 text-gold-400 text-xs font-bold">
               <MapPin className="w-4 h-4" />
               <span>Headquarters: Rolex Tower, Financial Center Road, Business Bay, Dubai</span>
@@ -45,8 +49,10 @@ export const AboutUs = () => {
           </div>
         </div>
       </div>
+      </ScrollReveal>
 
       {/* Mission & Vision Grid */}
+      <ScrollReveal>
       <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
         <div className="glass-card bg-white dark:bg-navy-900 border border-slate-200 dark:border-navy-800 p-8 rounded-3xl space-y-4 shadow-glass">
           <div className="w-12 h-12 rounded-2xl bg-gold-500/20 text-gold-500 flex items-center justify-center font-bold">
@@ -68,8 +74,10 @@ export const AboutUs = () => {
           </p>
         </div>
       </div>
+      </ScrollReveal>
 
       {/* Leadership Team */}
+      <ScrollReveal>
       <div className="space-y-8">
         <div className="text-center space-y-2">
           <h2 className="text-xs font-bold text-gold-500 uppercase tracking-widest">Leadership</h2>
@@ -79,7 +87,7 @@ export const AboutUs = () => {
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
           {leadership.map((member, idx) => (
             <div key={idx} className="glass-card bg-white dark:bg-navy-900 border border-slate-200 dark:border-navy-800 p-6 rounded-2xl space-y-3 shadow-sm text-center">
-              <div className="w-20 h-20 rounded-full bg-navy-950 text-gold-500 border-2 border-gold-500 flex items-center justify-center font-serif text-2xl font-bold mx-auto">
+              <div className="w-20 h-20 rounded-full bg-white dark:bg-navy-950 text-gold-500 border-2 border-gold-500 flex items-center justify-center font-serif text-2xl font-bold mx-auto">
                 {member.name.split(' ').map(n => n[0]).join('')}
               </div>
               <h4 className="font-bold text-sm text-navy-900 dark:text-white">{member.name}</h4>
@@ -89,6 +97,7 @@ export const AboutUs = () => {
           ))}
         </div>
       </div>
+      </ScrollReveal>
 
     </div>
   );

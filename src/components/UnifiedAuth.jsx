@@ -134,7 +134,7 @@ export const UnifiedAuth = ({ defaultMode = 'login', defaultRole = null, onSucce
               onClick={() => handleRoleSelect('candidate')}
               className="bg-white dark:bg-navy-900 border border-slate-200 dark:border-navy-800 hover:border-gold-500 dark:hover:border-gold-500 rounded-3xl p-8 flex flex-col items-center text-center shadow-sm hover:shadow-luxury transition-all duration-300 group cursor-pointer"
             >
-              <div className="w-16 h-16 rounded-full bg-gold-500/10 dark:bg-gold-500/20 border border-gold-500/30 flex items-center justify-center mb-5 group-hover:scale-110 transition-transform">
+              <div className="w-16 h-16 rounded-full bg-gold-500/10 dark:bg-gold-500/20 border border-slate-200 dark:border-gold-500/30 flex items-center justify-center mb-5 group-hover:scale-110 transition-transform">
                 <Briefcase className="w-8 h-8 text-gold-500" />
               </div>
 
@@ -157,7 +157,7 @@ export const UnifiedAuth = ({ defaultMode = 'login', defaultRole = null, onSucce
               onClick={() => handleRoleSelect('employer')}
               className="bg-white dark:bg-navy-900 border border-slate-200 dark:border-navy-800 hover:border-gold-500 dark:hover:border-gold-500 rounded-3xl p-8 flex flex-col items-center text-center shadow-sm hover:shadow-luxury transition-all duration-300 group cursor-pointer"
             >
-              <div className="w-16 h-16 rounded-full bg-navy-900/10 dark:bg-gold-500/20 border border-gold-500/30 flex items-center justify-center mb-5 group-hover:scale-110 transition-transform">
+              <div className="w-16 h-16 rounded-full bg-slate-800/10 dark:bg-navy-900/10 dark:bg-gold-500/20 border border-slate-200 dark:border-gold-500/30 flex items-center justify-center mb-5 group-hover:scale-110 transition-transform">
                 <Building2 className="w-8 h-8 text-gold-500" />
               </div>
 
@@ -222,7 +222,7 @@ export const UnifiedAuth = ({ defaultMode = 'login', defaultRole = null, onSucce
         </button>
 
         <div className="flex items-center space-x-3 mb-6">
-          <div className="w-12 h-12 rounded-2xl bg-navy-900 text-gold-500 flex items-center justify-center border border-gold-500/30">
+          <div className="w-12 h-12 rounded-2xl bg-slate-50 dark:bg-navy-900 text-gold-500 flex items-center justify-center border border-slate-200 dark:border-gold-500/30">
             {selectedRole === 'candidate' ? <Briefcase className="w-6 h-6" /> : <Building2 className="w-6 h-6" />}
           </div>
           <div>
@@ -250,7 +250,7 @@ export const UnifiedAuth = ({ defaultMode = 'login', defaultRole = null, onSucce
               <div>
                 <label className="block text-slate-700 dark:text-slate-300 font-semibold mb-1">Email Address *</label>
                 <div className="relative">
-                  <Mail className="w-4 h-4 text-slate-400 absolute left-3 top-3" />
+                  <Mail className="w-4 h-4 text-slate-500 dark:text-slate-400 absolute left-3 top-3" />
                   <input
                     type="email"
                     required
@@ -265,7 +265,7 @@ export const UnifiedAuth = ({ defaultMode = 'login', defaultRole = null, onSucce
               <div>
                 <label className="block text-slate-700 dark:text-slate-300 font-semibold mb-1">Password *</label>
                 <div className="relative">
-                  <Lock className="w-4 h-4 text-slate-400 absolute left-3 top-3" />
+                  <Lock className="w-4 h-4 text-slate-500 dark:text-slate-400 absolute left-3 top-3" />
                   <input
                     type="password"
                     required
@@ -279,7 +279,7 @@ export const UnifiedAuth = ({ defaultMode = 'login', defaultRole = null, onSucce
 
               <button
                 type="submit"
-                className="w-full py-3 bg-gold-500 hover:bg-gold-600 text-navy-950 font-bold rounded-xl shadow-gold-glow transition flex items-center justify-center space-x-2 text-sm mt-4"
+                className="w-full py-3 bg-gold-500 hover:bg-gold-600 text-slate-900 dark:text-white font-bold rounded-xl shadow-gold-glow transition flex items-center justify-center space-x-2 text-sm mt-4"
               >
                 <span>Sign In to Candidate Portal</span>
                 <ArrowRight className="w-4 h-4" />
@@ -289,7 +289,7 @@ export const UnifiedAuth = ({ defaultMode = 'login', defaultRole = null, onSucce
                 <button
                   type="button"
                   onClick={handleDemoCandidateLogin}
-                  className="w-full py-2.5 bg-navy-900 text-gold-400 hover:bg-navy-800 font-bold rounded-xl transition text-xs border border-gold-500/30"
+                  className="w-full py-2.5 bg-slate-50 dark:bg-navy-900 text-gold-400 hover:bg-navy-800 font-bold rounded-xl transition text-xs border border-slate-200 dark:border-gold-500/30"
                 >
                   ⚡ Quick Demo Candidate Sign In (Instant Access)
                 </button>
@@ -360,7 +360,7 @@ export const UnifiedAuth = ({ defaultMode = 'login', defaultRole = null, onSucce
 
               <button
                 type="submit"
-                className="w-full py-3 bg-gold-500 hover:bg-gold-600 text-navy-950 font-bold rounded-xl shadow-gold-glow transition flex items-center justify-center space-x-2 text-sm mt-4"
+                className="w-full py-3 bg-gold-500 hover:bg-gold-600 text-slate-900 dark:text-white font-bold rounded-xl shadow-gold-glow transition flex items-center justify-center space-x-2 text-sm mt-4"
               >
                 <span>Complete SIR Candidate Registration</span>
                 <ArrowRight className="w-4 h-4" />
@@ -375,7 +375,7 @@ export const UnifiedAuth = ({ defaultMode = 'login', defaultRole = null, onSucce
             <div>
               <label className="block text-slate-700 dark:text-slate-300 font-semibold mb-1">Corporate Email Address *</label>
               <div className="relative">
-                <Mail className="w-4 h-4 text-slate-400 absolute left-3 top-3" />
+                <Mail className="w-4 h-4 text-slate-500 dark:text-slate-400 absolute left-3 top-3" />
                 <input
                   type="email"
                   required
@@ -401,7 +401,7 @@ export const UnifiedAuth = ({ defaultMode = 'login', defaultRole = null, onSucce
             <div>
               <label className="block text-slate-700 dark:text-slate-300 font-semibold mb-1">Password *</label>
               <div className="relative">
-                <Lock className="w-4 h-4 text-slate-400 absolute left-3 top-3" />
+                <Lock className="w-4 h-4 text-slate-500 dark:text-slate-400 absolute left-3 top-3" />
                 <input
                   type="password"
                   required
@@ -415,7 +415,7 @@ export const UnifiedAuth = ({ defaultMode = 'login', defaultRole = null, onSucce
 
             <button
               type="submit"
-              className="w-full py-3 bg-gold-500 hover:bg-gold-600 text-navy-950 font-bold rounded-xl shadow-gold-glow transition flex items-center justify-center space-x-2 text-sm mt-4"
+              className="w-full py-3 bg-gold-500 hover:bg-gold-600 text-slate-900 dark:text-white font-bold rounded-xl shadow-gold-glow transition flex items-center justify-center space-x-2 text-sm mt-4"
             >
               <span>Sign In to SIR Enterprise Portal</span>
               <ArrowRight className="w-4 h-4" />

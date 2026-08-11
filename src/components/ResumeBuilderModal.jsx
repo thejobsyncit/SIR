@@ -46,8 +46,8 @@ export const ResumeBuilderModal = () => {
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-navy-950/80 backdrop-blur-sm animate-in fade-in">
-      <div className="glass-card bg-white dark:bg-navy-900 border border-gold-500/30 rounded-2xl max-w-3xl w-full p-6 shadow-luxury relative overflow-hidden max-h-[90vh] overflow-y-auto">
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/80 dark:bg-navy-950/80 backdrop-blur-sm animate-in fade-in">
+      <div className="glass-card bg-white dark:bg-navy-900 border border-slate-200 dark:border-gold-500/30 rounded-2xl max-w-3xl w-full p-6 shadow-luxury relative overflow-hidden max-h-[90vh] overflow-y-auto">
         
         <div className="flex justify-between items-start border-b border-slate-200 dark:border-navy-800 pb-4 mb-4">
           <div className="flex items-center space-x-3">
@@ -55,13 +55,13 @@ export const ResumeBuilderModal = () => {
               <FileText className="w-5 h-5" />
             </div>
             <div>
-              <h3 className="font-serif text-xl font-bold text-navy-950 dark:text-white">SIR PDF Resume Builder</h3>
+              <h3 className="font-serif text-xl font-bold text-slate-900 dark:text-white">SIR PDF Resume Builder</h3>
               <p className="text-xs text-slate-700 dark:text-slate-300 font-semibold">Generate Executive ATS-Formatted CVs for UAE & GCC Markets</p>
             </div>
           </div>
           <button 
             onClick={() => setActiveModal(null)}
-            className="p-1 rounded-lg text-slate-400 hover:text-white hover:bg-navy-800"
+            className="p-1 rounded-lg text-slate-500 dark:text-slate-400 hover:text-slate-900 dark:text-white hover:bg-navy-800"
           >
             <X className="w-5 h-5" />
           </button>
@@ -152,13 +152,13 @@ export const ResumeBuilderModal = () => {
         ) : (
           <div className="space-y-4">
             {/* Live ATS Printable CV Template */}
-            <div id="printable-cv" className="bg-white text-navy-950 p-8 rounded-xl border shadow-md font-sans text-xs space-y-4">
+            <div id="printable-cv" className="bg-white text-slate-900 dark:text-white p-8 rounded-xl border shadow-md font-sans text-xs space-y-4">
               <div className="border-b-2 border-navy-900 pb-3 flex justify-between items-end">
                 <div>
                   <h2 className="font-serif text-2xl font-bold text-navy-900 tracking-tight">{formData.fullName}</h2>
                   <p className="text-slate-600 font-semibold">{formData.location} • {formData.phone} • {formData.email}</p>
                 </div>
-                <div className="text-right text-[10px] text-slate-400 font-bold uppercase">
+                <div className="text-right text-[10px] text-slate-500 dark:text-slate-400 font-bold uppercase">
                   Verified Executive CV Format
                 </div>
               </div>
@@ -195,7 +195,7 @@ export const ResumeBuilderModal = () => {
               <button 
                 onClick={handleDownloadPDF}
                 disabled={downloading}
-                className="flex-1 py-3 bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-xs rounded-xl shadow-md flex items-center justify-center space-x-2 transition disabled:opacity-50"
+                className="flex-1 py-3 bg-emerald-600 hover:bg-emerald-500 text-slate-900 dark:text-white font-bold text-xs rounded-xl shadow-md flex items-center justify-center space-x-2 transition disabled:opacity-50"
               >
                 <Download className="w-4 h-4" />
                 <span>{downloading ? 'Generating PDF...' : 'Download PDF Resume (.pdf)'}</span>
@@ -214,11 +214,11 @@ export const ResumeBuilderModal = () => {
 
         {/* Export Permission Choice Dialog */}
         {showExportOptions && (
-          <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-navy-950/80 backdrop-blur-sm animate-in fade-in">
-            <div className="bg-white dark:bg-navy-900 border border-gold-500/40 rounded-2xl max-w-md w-full p-6 shadow-luxury space-y-4 relative">
+          <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/80 dark:bg-navy-950/80 backdrop-blur-sm animate-in fade-in">
+            <div className="bg-white dark:bg-navy-900 border border-slate-200 dark:border-gold-500/40 rounded-2xl max-w-md w-full p-6 shadow-luxury space-y-4 relative">
               <div className="flex justify-between items-center border-b border-slate-200 dark:border-navy-800 pb-3">
-                <h4 className="font-serif font-bold text-navy-950 dark:text-white text-base">Select Resume Output Action</h4>
-                <button onClick={() => setShowExportOptions(false)} className="text-slate-400 hover:text-white"><X className="w-5 h-5" /></button>
+                <h4 className="font-serif font-bold text-slate-900 dark:text-white text-base">Select Resume Output Action</h4>
+                <button onClick={() => setShowExportOptions(false)} className="text-slate-500 dark:text-slate-400 hover:text-slate-900 dark:text-white"><X className="w-5 h-5" /></button>
               </div>
               <p className="text-xs text-slate-600 dark:text-slate-300 font-medium">How would you like to export candidate <strong className="text-gold-600 dark:text-gold-400">{formData.fullName}</strong>'s executive CV?</p>
               
@@ -236,7 +236,7 @@ export const ResumeBuilderModal = () => {
 
                 <button
                   onClick={() => { setShowExportOptions(false); window.print(); }}
-                  className="w-full p-4 rounded-xl border border-gold-500/40 bg-gold-500/10 hover:bg-gold-500/20 text-navy-950 dark:text-gold-400 font-bold text-xs flex items-center space-x-3 transition text-left group"
+                  className="w-full p-4 rounded-xl border border-slate-200 dark:border-gold-500/40 bg-gold-500/10 hover:bg-gold-500/20 text-slate-900 dark:text-white dark:text-gold-400 font-bold text-xs flex items-center space-x-3 transition text-left group"
                 >
                   <Printer className="w-6 h-6 shrink-0 text-gold-500 group-hover:scale-110 transition" />
                   <div>

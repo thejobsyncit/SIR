@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { useApp } from '../context/AppContext';
 import { SERVICES_LIST } from '../data/mockData';
 import { Briefcase, ArrowRight, CheckCircle2, Phone, Mail, FileText } from 'lucide-react';
+import ScrollReveal from '../components/ScrollReveal';
 
 export const Services = () => {
   const { navigateTo, setActiveModal, selectedServiceId } = useApp();
@@ -18,6 +19,7 @@ export const Services = () => {
     <div className="max-w-7xl mx-auto px-4 sm:px-8 py-12 space-y-12">
       
       {/* Header */}
+      <ScrollReveal>
       <div className="text-center space-y-3 max-w-3xl mx-auto">
         <span className="bg-gold-500/10 text-gold-600 dark:text-gold-400 text-xs font-bold px-3.5 py-1 rounded-full uppercase">
           Full-Service HR Portfolio
@@ -29,8 +31,10 @@ export const Services = () => {
           Complete end-to-end talent solutions, visa processing, background checks, and strategic HR consulting tailored to UAE & global standards.
         </p>
       </div>
+      </ScrollReveal>
 
       {/* Category Pills */}
+      <ScrollReveal>
       <div className="flex flex-wrap justify-center gap-2">
         {categories.map((cat) => (
           <button
@@ -46,8 +50,10 @@ export const Services = () => {
           </button>
         ))}
       </div>
+      </ScrollReveal>
 
       {/* Services Grid (18 Services) */}
+      <ScrollReveal>
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
         {filteredServices.map((srv) => (
           <div 
@@ -86,7 +92,7 @@ export const Services = () => {
               </button>
               <button 
                 onClick={() => navigateTo('contact')}
-                className="px-3 py-1.5 bg-navy-900 text-gold-400 hover:bg-gold-500 hover:text-navy-950 font-bold text-[11px] rounded-lg transition"
+                className="px-3 py-1.5 bg-slate-50 dark:bg-navy-900 text-gold-400 hover:bg-gold-500 hover:text-slate-900 dark:text-white font-bold text-[11px] rounded-lg transition"
               >
                 Inquire
               </button>
@@ -94,11 +100,12 @@ export const Services = () => {
           </div>
         ))}
       </div>
+      </ScrollReveal>
 
       {/* Service Detail Modal */}
       {selectedService && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-navy-950/80 backdrop-blur-sm">
-          <div className="glass-card bg-white dark:bg-navy-900 border border-gold-500/40 p-6 rounded-2xl max-w-lg w-full space-y-4 shadow-luxury">
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/80 dark:bg-navy-950/80 backdrop-blur-sm">
+          <div className="glass-card bg-white dark:bg-navy-900 border border-slate-200 dark:border-gold-500/40 p-6 rounded-2xl max-w-lg w-full space-y-4 shadow-luxury">
             <h3 className="font-serif text-2xl font-bold text-navy-900 dark:text-white">{selectedService.title}</h3>
             <span className="bg-gold-500/20 text-gold-500 text-xs font-bold px-2 py-1 rounded">{selectedService.category}</span>
             <p className="text-xs text-slate-800 dark:text-slate-200 font-medium leading-relaxed">{selectedService.description}</p>

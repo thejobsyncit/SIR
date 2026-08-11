@@ -42,27 +42,27 @@ export const AIChatbotDrawer = () => {
       {!isOpen && (
         <button
           onClick={() => setIsOpen(true)}
-          className="fixed bottom-6 left-6 z-40 bg-navy-900 text-gold-400 p-3.5 rounded-full shadow-luxury border-2 border-gold-500 hover:scale-110 transition duration-300 flex items-center space-x-2 group"
+          className="fixed bottom-6 left-6 z-40 bg-slate-50 dark:bg-navy-900 text-gold-400 p-3.5 rounded-full shadow-luxury border-2 border-gold-500 hover:scale-110 transition duration-300 flex items-center space-x-2 group"
         >
           <div className="relative">
             <Bot className="w-6 h-6 text-gold-500" />
             <span className="absolute -top-1 -right-1 w-2.5 h-2.5 bg-emerald-400 rounded-full animate-ping"></span>
           </div>
-          <span className="hidden sm:inline font-bold text-xs pr-1 group-hover:text-white">AI Career Assistant</span>
+          <span className="hidden sm:inline font-bold text-xs pr-1 group-hover:text-slate-900 dark:text-white">AI Career Assistant</span>
         </button>
       )}
 
       {/* Chat Drawer Modal */}
       {isOpen && (
-        <div className="fixed bottom-6 left-6 z-50 w-80 sm:w-96 glass-card bg-white dark:bg-navy-900 border border-gold-500/40 rounded-2xl shadow-luxury flex flex-col h-[480px] overflow-hidden animate-in slide-in-from-bottom-5">
+        <div className="fixed bottom-6 left-6 z-50 w-80 sm:w-96 glass-card bg-white dark:bg-navy-900 border border-slate-200 dark:border-gold-500/40 rounded-2xl shadow-luxury flex flex-col h-[480px] overflow-hidden animate-in slide-in-from-bottom-5">
           {/* Header */}
-          <div className="bg-navy-950 text-white p-3.5 flex justify-between items-center border-b border-gold-500/30">
+          <div className="bg-white dark:bg-navy-950 text-slate-900 dark:text-white p-3.5 flex justify-between items-center border-b border-slate-200 dark:border-gold-500/30">
             <div className="flex items-center space-x-2.5">
               <div className="w-8 h-8 rounded-lg bg-gold-500/20 text-gold-400 flex items-center justify-center font-bold">
                 <Bot className="w-5 h-5" />
               </div>
               <div>
-                <h4 className="font-serif text-sm font-bold text-white flex items-center gap-1">
+                <h4 className="font-serif text-sm font-bold text-slate-900 dark:text-white flex items-center gap-1">
                   SIR AI Advisor <Sparkles className="w-3 h-3 text-gold-400" />
                 </h4>
                 <p className="text-[10px] text-emerald-400 font-semibold flex items-center gap-1">
@@ -72,7 +72,7 @@ export const AIChatbotDrawer = () => {
             </div>
             <button 
               onClick={() => setIsOpen(false)}
-              className="text-slate-400 hover:text-white"
+              className="text-slate-500 dark:text-slate-400 hover:text-slate-900 dark:text-white"
             >
               <X className="w-5 h-5" />
             </button>
@@ -93,7 +93,7 @@ export const AIChatbotDrawer = () => {
                 <div 
                   className={`p-3 rounded-2xl max-w-[80%] leading-relaxed ${
                     m.sender === 'user'
-                      ? 'bg-navy-900 text-white rounded-br-none border border-navy-700'
+                      ? 'bg-slate-50 dark:bg-navy-900 text-slate-900 dark:text-white rounded-br-none border border-slate-300 dark:border-navy-700'
                       : 'bg-slate-100 dark:bg-navy-800 text-slate-800 dark:text-slate-200 rounded-bl-none border border-slate-200 dark:border-navy-700'
                   }`}
                 >
@@ -106,7 +106,7 @@ export const AIChatbotDrawer = () => {
                 <div className="w-6 h-6 rounded-full bg-navy-800 text-gold-400 flex items-center justify-center shrink-0">
                   <Bot className="w-3.5 h-3.5 animate-spin" />
                 </div>
-                <div className="p-3 bg-slate-100 dark:bg-navy-800 text-slate-400 rounded-2xl text-[11px]">
+                <div className="p-3 bg-slate-100 dark:bg-navy-800 text-slate-500 dark:text-slate-400 rounded-2xl text-[11px]">
                   Analyzing query...
                 </div>
               </div>
@@ -117,13 +117,13 @@ export const AIChatbotDrawer = () => {
           <div className="px-3 py-1.5 bg-slate-50 dark:bg-navy-950 border-t border-slate-200 dark:border-navy-800 flex gap-1.5 overflow-x-auto text-[10px]">
             <button 
               onClick={() => { setInput('What are UAE work visa requirements?'); }}
-              className="bg-navy-800/20 text-navy-900 dark:text-gold-400 hover:bg-gold-500 hover:text-navy-950 px-2 py-1 rounded whitespace-nowrap transition"
+              className="bg-navy-800/20 text-navy-900 dark:text-gold-400 hover:bg-gold-500 hover:text-slate-900 dark:text-white px-2 py-1 rounded whitespace-nowrap transition"
             >
               🇦🇪 UAE Visa Rules
             </button>
             <button 
               onClick={() => { setInput('How much are typical Dubai salaries?'); }}
-              className="bg-navy-800/20 text-navy-900 dark:text-gold-400 hover:bg-gold-500 hover:text-navy-950 px-2 py-1 rounded whitespace-nowrap transition"
+              className="bg-navy-800/20 text-navy-900 dark:text-gold-400 hover:bg-gold-500 hover:text-slate-900 dark:text-white px-2 py-1 rounded whitespace-nowrap transition"
             >
               💰 Salary Guides
             </button>

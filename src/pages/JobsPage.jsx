@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { useApp } from '../context/AppContext';
 import { Search, MapPin, Briefcase, DollarSign, Globe, CheckCircle2, Bookmark, ArrowRight, Filter, X, Sparkles, Send } from 'lucide-react';
 import { JOBS_LIST } from '../data/mockData';
+import ScrollReveal from '../components/ScrollReveal';
 
 export const JobsPage = () => {
   const { setSelectedJob, applyForJob, applications, toggleSaveJob, savedJobs, setActiveModal, postedJobs, t, selectedJobCategory: selectedCategory, setSelectedJobCategory: setSelectedCategory } = useApp();
@@ -93,6 +94,7 @@ export const JobsPage = () => {
     <div className="max-w-7xl mx-auto px-4 sm:px-8 py-12 space-y-8">
       
       {/* Header */}
+      <ScrollReveal>
       <div className="text-center space-y-3 max-w-3xl mx-auto">
         <span className="bg-gold-500/10 text-gold-600 dark:text-gold-400 text-xs font-bold px-3.5 py-1 rounded-full uppercase">
           {t('jobs.badge')}
@@ -104,19 +106,21 @@ export const JobsPage = () => {
           {t('jobs.subtitle')}
         </p>
       </div>
+      </ScrollReveal>
 
       {/* Advanced Filter Bar */}
-      <div className="glass-card bg-navy-950 p-6 rounded-2xl border border-gold-500/30 shadow-luxury space-y-4">
+      <ScrollReveal>
+      <div className="glass-card bg-white dark:bg-navy-950 p-6 rounded-2xl border border-slate-200 dark:border-gold-500/30 shadow-luxury space-y-4">
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 text-xs">
           
           <div className="relative">
-            <Search className="w-4 h-4 text-slate-400 absolute left-3 top-3" />
+            <Search className="w-4 h-4 text-slate-500 dark:text-slate-400 absolute left-3 top-3" />
             <input 
               type="text"
               placeholder={t('jobs.searchPlaceholder')}
               value={keyword}
               onChange={(e) => setKeyword(e.target.value)}
-              className="w-full bg-navy-900 border border-navy-700 text-white rounded-xl pl-9 pr-3 py-2.5 focus:outline-none focus:border-gold-500"
+              className="w-full bg-slate-50 dark:bg-navy-900 border border-slate-300 dark:border-navy-700 text-slate-900 dark:text-white rounded-xl pl-9 pr-3 py-2.5 focus:outline-none focus:border-gold-500"
             />
           </div>
 
@@ -124,7 +128,7 @@ export const JobsPage = () => {
             <select 
               value={selectedCountry}
               onChange={(e) => setSelectedCountry(e.target.value)}
-              className="w-full bg-navy-900 border border-navy-700 text-white rounded-xl px-3 py-2.5 focus:outline-none focus:border-gold-500"
+              className="w-full bg-slate-50 dark:bg-navy-900 border border-slate-300 dark:border-navy-700 text-slate-900 dark:text-white rounded-xl px-3 py-2.5 focus:outline-none focus:border-gold-500"
             >
               <option value="All">{t('jobs.allCountries')}</option>
               <option value="UAE">🇦🇪 UAE (Dubai / Abu Dhabi)</option>
@@ -138,7 +142,7 @@ export const JobsPage = () => {
             <select 
               value={selectedCategory}
               onChange={(e) => setSelectedCategory(e.target.value)}
-              className="w-full bg-navy-900 border border-navy-700 text-white rounded-xl px-3 py-2.5 focus:outline-none focus:border-gold-500"
+              className="w-full bg-slate-50 dark:bg-navy-900 border border-slate-300 dark:border-navy-700 text-slate-900 dark:text-white rounded-xl px-3 py-2.5 focus:outline-none focus:border-gold-500"
             >
               <option value="All">{t('jobs.allCategories')}</option>
               <option value="Construction">Construction & MEP</option>
@@ -154,7 +158,7 @@ export const JobsPage = () => {
             <select 
               value={selectedJobType}
               onChange={(e) => setSelectedJobType(e.target.value)}
-              className="w-full bg-navy-900 border border-navy-700 text-white rounded-xl px-3 py-2.5 focus:outline-none focus:border-gold-500"
+              className="w-full bg-slate-50 dark:bg-navy-900 border border-slate-300 dark:border-navy-700 text-slate-900 dark:text-white rounded-xl px-3 py-2.5 focus:outline-none focus:border-gold-500"
             >
               <option value="All">{t('jobs.allTypes')}</option>
               <option value="Full-time">Full-time Permanent</option>
@@ -164,7 +168,7 @@ export const JobsPage = () => {
 
         </div>
 
-        <div className="flex justify-between items-center text-xs text-slate-400 pt-2 border-t border-navy-800">
+        <div className="flex justify-between items-center text-xs text-slate-500 dark:text-slate-400 pt-2 border-t border-slate-200 dark:border-navy-800">
           <span>Found <strong>{jobs.length}</strong> {t('jobs.foundVacancies')}</span>
           <button 
             onClick={() => setActiveModal('ai-resume')}
@@ -175,8 +179,10 @@ export const JobsPage = () => {
           </button>
         </div>
       </div>
+      </ScrollReveal>
 
       {/* Jobs Grid */}
+      <ScrollReveal>
       {loading ? (
         <div className="py-16 text-center text-xs font-bold text-slate-500">Loading jobs...</div>
       ) : jobs.length === 0 ? (
@@ -205,7 +211,7 @@ export const JobsPage = () => {
                   
                   <button 
                     onClick={(e) => { e.stopPropagation(); toggleSaveJob(j.id); }}
-                    className="p-2 rounded-lg bg-slate-100 dark:bg-navy-800 text-slate-400 hover:text-gold-500"
+                    className="p-2 rounded-lg bg-slate-100 dark:bg-navy-800 text-slate-500 dark:text-slate-400 hover:text-gold-500"
                   >
                     <Bookmark className={`w-4 h-4 ${savedJobs.includes(j.id) ? 'fill-gold-500 text-gold-500' : ''}`} />
                   </button>
@@ -262,24 +268,25 @@ export const JobsPage = () => {
           ))}
         </div>
       )}
+      </ScrollReveal>
 
       {/* View Job Detail Modal */}
       {viewJob && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-navy-950/80 backdrop-blur-sm animate-in fade-in">
-          <div className="glass-card bg-white dark:bg-navy-900 border border-gold-500/30 rounded-2xl max-w-2xl w-full p-6 shadow-luxury space-y-4 max-h-[90vh] overflow-y-auto">
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/80 dark:bg-navy-950/80 backdrop-blur-sm animate-in fade-in">
+          <div className="glass-card bg-white dark:bg-navy-900 border border-slate-200 dark:border-gold-500/30 rounded-2xl max-w-2xl w-full p-6 shadow-luxury space-y-4 max-h-[90vh] overflow-y-auto">
             <div className="flex justify-between items-start border-b border-slate-200 dark:border-navy-800 pb-3">
               <div>
                 <span className="bg-gold-500/20 text-gold-500 text-xs font-bold px-2.5 py-0.5 rounded uppercase">{viewJob.category}</span>
                 <h2 className="font-serif text-2xl font-bold text-navy-900 dark:text-white mt-1">{viewJob.title}</h2>
                 <p className="text-xs text-slate-700 dark:text-slate-300 font-semibold">{viewJob.company} • {viewJob.location}</p>
               </div>
-              <button onClick={() => setViewJob(null)} className="text-slate-400 hover:text-white"><X className="w-5 h-5" /></button>
+              <button onClick={() => setViewJob(null)} className="text-slate-500 dark:text-slate-400 hover:text-slate-900 dark:text-white"><X className="w-5 h-5" /></button>
             </div>
 
-            <div className="p-3 bg-navy-950 text-white rounded-xl text-xs flex justify-between">
-              <div><p className="text-[10px] text-slate-300 font-medium">Monthly Salary</p><p className="font-bold text-gold-400 text-sm">{viewJob.salary}</p></div>
-              <div><p className="text-[10px] text-slate-300 font-medium">Experience Required</p><p className="font-bold text-white text-xs">{viewJob.experience}</p></div>
-              <div><p className="text-[10px] text-slate-300 font-medium">Job Type</p><p className="font-bold text-white text-xs">{viewJob.jobType}</p></div>
+            <div className="p-3 bg-white dark:bg-navy-950 text-slate-900 dark:text-white rounded-xl text-xs flex justify-between">
+              <div><p className="text-[10px] text-slate-600 dark:text-slate-300 font-medium">Monthly Salary</p><p className="font-bold text-gold-400 text-sm">{viewJob.salary}</p></div>
+              <div><p className="text-[10px] text-slate-600 dark:text-slate-300 font-medium">Experience Required</p><p className="font-bold text-slate-900 dark:text-white text-xs">{viewJob.experience}</p></div>
+              <div><p className="text-[10px] text-slate-600 dark:text-slate-300 font-medium">Job Type</p><p className="font-bold text-slate-900 dark:text-white text-xs">{viewJob.jobType}</p></div>
             </div>
 
             <div className="space-y-3 text-xs text-slate-800 dark:text-slate-200 font-medium">
@@ -316,14 +323,14 @@ export const JobsPage = () => {
 
       {/* Apply Form Modal */}
       {applyJob && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-navy-950/80 backdrop-blur-sm animate-in fade-in">
-          <div className="glass-card bg-white dark:bg-navy-900 border border-gold-500/30 rounded-2xl max-w-lg w-full p-6 shadow-luxury space-y-4">
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/80 dark:bg-navy-950/80 backdrop-blur-sm animate-in fade-in">
+          <div className="glass-card bg-white dark:bg-navy-900 border border-slate-200 dark:border-gold-500/30 rounded-2xl max-w-lg w-full p-6 shadow-luxury space-y-4">
             <div className="flex justify-between items-start border-b border-slate-200 dark:border-navy-800 pb-3">
               <div>
                 <h3 className="font-serif text-xl font-bold text-navy-900 dark:text-white">Apply for {applyJob.title}</h3>
                 <p className="text-xs text-slate-700 dark:text-slate-300 font-semibold">{applyJob.company} • {applyJob.country}</p>
               </div>
-              <button onClick={() => setApplyJob(null)} className="text-slate-400 hover:text-white"><X className="w-5 h-5" /></button>
+              <button onClick={() => setApplyJob(null)} className="text-slate-500 dark:text-slate-400 hover:text-slate-900 dark:text-white"><X className="w-5 h-5" /></button>
             </div>
 
             {!appliedSuccess ? (
@@ -355,7 +362,7 @@ export const JobsPage = () => {
                 </div>
                 <h4 className="font-serif text-lg font-bold text-navy-900 dark:text-white">Application Received!</h4>
                 <p className="text-xs text-slate-800 dark:text-slate-200 font-medium">Your candidate profile has been submitted directly to {applyJob.company}. Track application status in your Candidate Portal.</p>
-                <button onClick={() => setApplyJob(null)} className="w-full py-2.5 bg-navy-900 text-white font-bold text-xs rounded-xl">Close</button>
+                <button onClick={() => setApplyJob(null)} className="w-full py-2.5 bg-slate-50 dark:bg-navy-900 text-slate-900 dark:text-white font-bold text-xs rounded-xl">Close</button>
               </div>
             )}
           </div>
