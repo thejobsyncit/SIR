@@ -38,7 +38,7 @@ export const CrmLogin = () => {
     email: '',
     role: 'Super Admin',
     password: '',
-    adminKey: 'SIR-SUPER-2026'
+    adminKey: 'REV-SUPER-2026'
   });
   const [registerSuccessMsg, setRegisterSuccessMsg] = useState('');
 
@@ -53,7 +53,7 @@ export const CrmLogin = () => {
     }
     // Default Seeded Super Admin & Employee Directory Accounts
     const defaultAccounts = [
-      { name: 'Super Admin', email: 'tariq.admin@sirrecruitment.com', password: 'Super@Secret2026!', role: 'Super Admin' },
+      { name: 'Super Admin', email: 'tariq.admin@revivalinternational.com', password: 'Super@Secret2026!', role: 'Super Admin' },
       { name: 'Dhanalakshimi', email: 'dhana.jasync@gmail.com', password: 'Password123!', role: 'Placement Coordinator', phone: '+91 9876543210' },
       { name: 'Sreeja', email: 'sreeja.jasync@gmail.com', password: 'Password123!', role: 'Placement Coordinator', phone: '+91 9876543211' },
       { name: 'chentamilselvi', email: 'chentamilselvip7@gmail.com', password: 'Password123!', role: 'DMS', phone: '+91 9876543212' },
@@ -202,7 +202,7 @@ export const CrmLogin = () => {
             <span className="font-serif text-2xl font-bold text-white">IR</span>
           </div>
           <h2 className="font-serif text-2xl font-extrabold text-white tracking-tight">
-            SIR Recruitment Enterprise CRM
+            Revival International Enterprise CRM
           </h2>
           <p className="text-xs text-gold-400 font-bold uppercase tracking-wider">
             Private Corporate Portal • Restricted Gateway
@@ -428,7 +428,7 @@ export const CrmLogin = () => {
                   value={regData.email} 
                   onChange={e => setRegData({...regData, email: e.target.value})} 
                   className="w-full bg-slate-100 dark:bg-navy-950 border border-slate-300 dark:border-navy-700 text-slate-900 dark:text-white rounded-xl p-2.5 font-bold focus:outline-none focus:border-gold-500"
-                  placeholder="admin.name@sirrecruitment.com"
+                  placeholder="admin.name@revivalinternational.com"
                 />
               </div>
 
@@ -502,7 +502,7 @@ export const CrmLogin = () => {
                     value={forgotEmail}
                     onChange={(e) => setForgotEmail(e.target.value)}
                     className="w-full bg-slate-100 dark:bg-navy-950 border border-slate-300 dark:border-navy-700 text-slate-900 dark:text-white rounded-xl p-2.5 font-bold focus:outline-none focus:border-gold-500"
-                    placeholder="email@sirrecruitment.com"
+                    placeholder="email@revivalinternational.com"
                   />
                 </div>
                 <button type="submit" className="w-full py-3 bg-gold-shimmer text-navy-950 font-extrabold rounded-xl shadow-gold-glow cursor-pointer">

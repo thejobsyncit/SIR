@@ -6,7 +6,7 @@ export const AIChatbotDrawer = () => {
   const [messages, setMessages] = useState([
     {
       sender: 'bot',
-      text: 'Marhaba! I am the SIR AI Career & Visa Assistant. How can I help you regarding Dubai work visas, salary packages, or headhunter placements?'
+      text: 'Marhaba! I am the Revival AI Career & Visa Assistant. How can I help you regarding Dubai work visas, salary packages, or headhunter placements?'
     }
   ]);
   const [input, setInput] = useState('');
@@ -30,7 +30,7 @@ export const AIChatbotDrawer = () => {
       const data = await res.json();
       setMessages(prev => [...prev, { sender: 'bot', text: data.reply }]);
     } catch (err) {
-      setMessages(prev => [...prev, { sender: 'bot', text: 'Thank you for reaching out. A SIR Recruitment consultant can also be reached on WhatsApp at +971 50 987 6543!' }]);
+      setMessages(prev => [...prev, { sender: 'bot', text: 'Thank you for reaching out. A Revival International consultant can also be reached on WhatsApp at +971 50 987 6543!' }]);
     } finally {
       setLoading(false);
     }
@@ -54,7 +54,7 @@ export const AIChatbotDrawer = () => {
 
       {/* Chat Drawer Modal */}
       {isOpen && (
-        <div className="fixed bottom-6 left-6 z-50 w-80 sm:w-96 glass-card bg-white dark:bg-navy-900 border border-slate-200 dark:border-gold-500/40 rounded-2xl shadow-luxury flex flex-col h-[480px] overflow-hidden animate-in slide-in-from-bottom-5">
+        <div className="fixed bottom-6 left-1/2 -translate-x-1/2 sm:translate-x-0 sm:left-6 z-50 w-[90vw] sm:w-96 glass-card bg-white dark:bg-navy-900 border border-slate-200 dark:border-gold-500/40 rounded-2xl shadow-luxury flex flex-col h-[480px] overflow-hidden animate-in slide-in-from-bottom-5">
           {/* Header */}
           <div className="bg-white dark:bg-navy-950 text-slate-900 dark:text-white p-3.5 flex justify-between items-center border-b border-slate-200 dark:border-gold-500/30">
             <div className="flex items-center space-x-2.5">
@@ -63,7 +63,7 @@ export const AIChatbotDrawer = () => {
               </div>
               <div>
                 <h4 className="font-serif text-sm font-bold text-slate-900 dark:text-white flex items-center gap-1">
-                  SIR AI Advisor <Sparkles className="w-3 h-3 text-gold-400" />
+                  Revival AI Advisor <Sparkles className="w-3 h-3 text-gold-400" />
                 </h4>
                 <p className="text-[10px] text-emerald-400 font-semibold flex items-center gap-1">
                   <span className="w-1.5 h-1.5 bg-emerald-400 rounded-full"></span> Online • 24/7 Dubai Support

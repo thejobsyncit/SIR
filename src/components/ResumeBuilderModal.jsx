@@ -55,7 +55,7 @@ export const ResumeBuilderModal = () => {
               <FileText className="w-5 h-5" />
             </div>
             <div>
-              <h3 className="font-serif text-xl font-bold text-slate-900 dark:text-white">SIR PDF Resume Builder</h3>
+              <h3 className="font-serif text-xl font-bold text-slate-900 dark:text-white">Revival PDF Resume Builder</h3>
               <p className="text-xs text-slate-700 dark:text-slate-300 font-semibold">Generate Executive ATS-Formatted CVs for UAE & GCC Markets</p>
             </div>
           </div>

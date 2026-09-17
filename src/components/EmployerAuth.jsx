@@ -16,11 +16,11 @@ export const EmployerAuth = () => {
       setError('Please provide corporate email and password.');
       return;
     }
-    loginEmployer(email, accountId || 'SIR-EMP-9902', password);
+    loginEmployer(email, accountId || 'REV-EMP-9902', password);
   };
 
   const handleDemoLogin = () => {
-    loginEmployer('hr@alhabtoorcontracting.com', 'SIR-EMP-9902', 'enterprise123');
+    loginEmployer('hr@alhabtoorcontracting.com', 'REV-EMP-9902', 'enterprise123');
   };
 
   return (
@@ -112,7 +112,7 @@ export const EmployerAuth = () => {
               </label>
               <input
                 type="text"
-                placeholder="e.g. SIR-EMP-9902 or DED-98214"
+                placeholder="e.g. REV-EMP-9902 or DED-98214"
                 value={accountId}
                 onChange={(e) => setAccountId(e.target.value)}
                 className="w-full bg-white dark:bg-navy-950 border border-slate-300 dark:border-navy-700 rounded-xl px-3.5 py-2.5 text-slate-900 dark:text-white placeholder-slate-400 dark:placeholder-slate-500 focus:outline-none focus:border-gold-500 focus:ring-1 focus:ring-gold-500/30"

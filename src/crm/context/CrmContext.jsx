@@ -9,7 +9,7 @@ export const CrmProvider = ({ children }) => {
   const [user, setUser] = useState({
     id: 'usr-901',
     name: 'Tariq Al-Mansoori',
-    email: 'tariq.admin@sirrecruitment.com',
+    email: 'tariq.admin@revivalinternational.com',
     role: 'Super Admin',
     department: 'Executive Board',
     avatar: 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=150&auto=format&fit=crop&q=80'
@@ -291,6 +291,14 @@ export const CrmProvider = ({ children }) => {
   const toggleDarkMode = () => {
     setDarkMode(prev => !prev);
   };
+
+  useEffect(() => {
+    if (darkMode) {
+      document.documentElement.classList.add('dark');
+    } else {
+      document.documentElement.classList.remove('dark');
+    }
+  }, [darkMode]);
 
   return (
     <CrmContext.Provider

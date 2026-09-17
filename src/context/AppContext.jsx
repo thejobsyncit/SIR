@@ -136,7 +136,7 @@ export const AppProvider = ({ children }) => {
         expectedSalary: '',
         avatar: '',
         role: 'candidate',
-        candidateId: 'SIR-CAN-' + Math.floor(10000 + Math.random() * 90000),
+        candidateId: 'REV-CAN-' + Math.floor(10000 + Math.random() * 90000),
         resumeUploaded: false,
         resumeName: '',
         mohreAttested: false,
@@ -173,7 +173,7 @@ export const AppProvider = ({ children }) => {
       expectedSalary: existing.expectedSalary || '',
       avatar: existing.avatar || '',
       role: 'candidate',
-      candidateId: existing.candidateId || ('SIR-CAN-' + Math.floor(10000 + Math.random() * 90000)),
+      candidateId: existing.candidateId || ('REV-CAN-' + Math.floor(10000 + Math.random() * 90000)),
       resumeUploaded: !!data.resumeName || existing.resumeUploaded || false,
       resumeName: data.resumeName || existing.resumeName || '',
       mohreAttested: existing.mohreAttested || false,
@@ -215,7 +215,7 @@ export const AppProvider = ({ children }) => {
       companyName: 'Al Habtoor Contracting LLC',
       email: companyEmail,
       role: 'employer',
-      accountId: accountId || 'SIR-EMP-9902',
+      accountId: accountId || 'REV-EMP-9902',
       mohreVerified: true,
       activeMandates: 8,
       loginTime: new Date().toISOString()
@@ -354,7 +354,7 @@ export const AppProvider = ({ children }) => {
       experience: jobData.experience || '2 - 5 Years',
       jobType: jobData.jobType || 'Full-time',
       category: jobData.category || 'Construction',
-      description: jobData.description || 'Job mandate posted via SIR Employer Portal.',
+      description: jobData.description || 'Job mandate posted via Revival Employer Portal.',
       vacancies: jobData.vacancies || '5',
       skills: Array.isArray(jobData.skills)
         ? jobData.skills

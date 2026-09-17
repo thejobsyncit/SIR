@@ -190,7 +190,7 @@ export const BackgroundVerificationPage = () => {
           <div className="flex gap-2">
             <input 
               type="text"
-              placeholder="Enter Case ID e.g. SIR-BGV-881290"
+              placeholder="Enter Case ID e.g. REV-BGV-881290"
               value={trackId}
               onChange={(e) => setTrackId(e.target.value)}
               className="flex-1 bg-slate-50 dark:bg-navy-950 border border-slate-300 dark:border-navy-700 rounded-xl p-2.5 text-navy-900 dark:text-white font-mono"

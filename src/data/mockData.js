@@ -140,7 +140,7 @@ export const TESTIMONIALS = [
     role: 'Vice President of Engineering',
     company: 'Emaar Properties, Dubai',
     image: 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=150&auto=format&fit=crop&q=80',
-    quote: 'SIR Recruitment placed 14 senior MEP engineers for our Downtown Dubai mega-project in under 21 days. Their GCC visa processing speed and background checks are unmatched.',
+    quote: 'Revival International placed 14 senior MEP engineers for our Downtown Dubai mega-project in under 21 days. Their GCC visa processing speed and background checks are unmatched.',
     rating: 5,
     videoThumbnail: 'https://images.unsplash.com/photo-1512453979798-5ea266f8880c?w=600&auto=format&fit=crop&q=80'
   },
@@ -150,7 +150,7 @@ export const TESTIMONIALS = [
     role: 'Director of Human Resources',
     company: 'Saudi German Hospital Group',
     image: 'https://images.unsplash.com/photo-1573496359142-b8d87734a5a2?w=150&auto=format&fit=crop&q=80',
-    quote: 'Finding specialized ICU consultants for our expansion in Riyadh was seamless. SIR Recruitment handled credential verification, Prometric licensing, and Iqama visas expertly.',
+    quote: 'Finding specialized ICU consultants for our expansion in Riyadh was seamless. Revival International handled credential verification, Prometric licensing, and Iqama visas expertly.',
     rating: 5,
     videoThumbnail: 'https://images.unsplash.com/photo-1582750433449-648ed127bb54?w=600&auto=format&fit=crop&q=80'
   },
@@ -160,7 +160,7 @@ export const TESTIMONIALS = [
     role: 'Senior Offshore Operations Lead',
     company: 'Placed at Gulf Petroleum, KSA',
     image: 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=150&auto=format&fit=crop&q=80',
-    quote: 'From my initial application on SIR Recruitment portal to stepping foot in Dhahran took just 18 days. The candidate dashboard kept me informed at every visa milestone.',
+    quote: 'From my initial application on Revival International portal to stepping foot in Dhahran took just 18 days. The candidate dashboard kept me informed at every visa milestone.',
     rating: 5,
     videoThumbnail: 'https://images.unsplash.com/photo-1541888946425-d0fbb186a5b7?w=600&auto=format&fit=crop&q=80'
   }
@@ -199,8 +199,8 @@ export const BLOG_POSTS = [
 export const FAQS = [
   {
     category: 'General',
-    question: 'How does SIR Recruitment differ from standard recruitment agencies?',
-    answer: 'SIR Recruitment is a full-service international HR consultancy based in Dubai. Beyond talent placement, we manage end-to-end visa processing, 6-point background verifications, WPS payroll, and relocation support across UAE, GCC, Europe, and Asia.'
+    question: 'How does Revival International differ from standard recruitment agencies?',
+    answer: 'Revival International is a full-service international HR consultancy based in Dubai. Beyond talent placement, we manage end-to-end visa processing, 6-point background verifications, WPS payroll, and relocation support across UAE, GCC, Europe, and Asia.'
   },
   {
     category: 'Candidate',
@@ -209,17 +209,17 @@ export const FAQS = [
   },
   {
     category: 'Visa',
-    question: 'Who sponsors the work visa when I get hired through SIR Recruitment?',
-    answer: 'Your employment visa and work permit are sponsored directly by the hiring employer or through SIR Manpower Outsourcing licenses in accordance with UAE MOHRE / Saudi MHRSD regulations.'
+    question: 'Who sponsors the work visa when I get hired through Revival International?',
+    answer: 'Your employment visa and work permit are sponsored directly by the hiring employer or through Revival Manpower Outsourcing licenses in accordance with UAE MOHRE / Saudi MHRSD regulations.'
   },
   {
     category: 'Verification',
-    question: 'What is included in the SIR Background Verification module?',
+    question: 'What is included in the Revival Background Verification module?',
     answer: 'Our 6-point audit verifies educational degrees with granting universities, audits 5-year employment records with past HR departments, conducts criminal record checks, performs address verification, checks ID authenticity, and obtains peer references.'
   },
   {
     category: 'Employers',
-    question: 'What retention guarantee does SIR Recruitment provide for executive placements?',
+    question: 'What retention guarantee does Revival International provide for executive placements?',
     answer: 'We provide a comprehensive 90-day to 180-day free replacement guarantee. If a placed candidate leaves or does not meet contractual expectations, we replace them at no extra charge.'
   }
 ];
@@ -269,7 +269,7 @@ export const JOBS_LIST = [
     experience: '4 - 7 Years',
     jobType: 'Full-time',
     category: 'Healthcare',
-    description: 'JCI-accredited tertiary care hospital hiring ICU nurses for critical care units. Full visa assistance provided by SIR Recruitment.',
+    description: 'JCI-accredited tertiary care hospital hiring ICU nurses for critical care units. Full visa assistance provided by Revival International.',
     skills: ['Critical Care', 'Ventilator Management', 'BLS / ACLS Certified', 'Patient Assessment'],
     qualification: "B.Sc. Nursing + Active Nursing License (Saudi Prometric preferred)",
     benefits: ['Tax-free package', 'Free Furnished Apartment', '30 Days Annual Leave', 'Flight Allowance'],

@@ -31,7 +31,7 @@ export const VisaMatrixTable = () => {
     const encodedUri = encodeURI(csvContent);
     const link = document.createElement('a');
     link.setAttribute('href', encodedUri);
-    link.setAttribute('download', 'SIR_Recruitment_Country_Visa_Matrix_2026.csv');
+    link.setAttribute('download', 'Revival_International_Country_Visa_Matrix_2026.csv');
     document.body.appendChild(link);
     link.click();
     document.body.removeChild(link);

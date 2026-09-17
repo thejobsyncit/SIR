@@ -23,7 +23,7 @@ export const CookieConsent = () => {
         <div className="space-y-2">
           <h4 className="font-bold text-slate-900 dark:text-white">GDPR & Cookie Preference</h4>
           <p className="text-slate-600 dark:text-slate-300 leading-relaxed text-[11px] font-medium">
-            SIR Recruitment uses cookies & encrypted local storage to personalize job recommendations, preserve your visa evaluation session, and analyze platform traffic.
+            Revival International uses cookies & encrypted local storage to personalize job recommendations, preserve your visa evaluation session, and analyze platform traffic.
           </p>
           <div className="flex gap-2 pt-1">
             <button

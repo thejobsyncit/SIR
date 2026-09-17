@@ -60,13 +60,13 @@ export const CrmSuperAdmin = () => {
 
   // Company Profile Settings State
   const [companyDetails, setCompanyDetails] = useState({
-    name: 'SIR Recruitment Enterprise Ltd',
-    domain: 'sirrecruitment.com',
+    name: 'Revival International Enterprise Ltd',
+    domain: 'revivalinternational.com',
     registrationNo: 'REG-2026-DXB-99412',
     headquarters: 'Dubai Silicon Oasis, UAE / Chennai, India',
     s3Region: 'ap-south-1 (Mumbai / AWS Compliant Vault)',
-    supportEmail: 'support@sirrecruitment.com',
-    adminKey: 'SIR-SUPER-2026'
+    supportEmail: 'support@revivalinternational.com',
+    adminKey: 'REV-SUPER-2026'
   });
 
   // Master Data State

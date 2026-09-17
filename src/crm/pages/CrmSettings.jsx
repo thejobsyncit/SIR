@@ -17,16 +17,16 @@ export const CrmSettings = () => {
 
   // Company Profile State
   const [companyProfile, setCompanyProfile] = useState({
-    name: 'SIR Recruitment Enterprise LLC',
+    name: 'Revival International Enterprise LLC',
     crNumber: 'CR-908129-DUBAI',
     address: 'Al Habtoor Business Tower, Level 24, Dubai, UAE',
-    supportEmail: 'support@sirrecruitment.com',
+    supportEmail: 'support@revivalinternational.com',
     phone: '+971 4 390 1111'
   });
 
   // Gateway Settings State
   const [gateways, setGateways] = useState({
-    smtpHost: 'smtp.sirrecruitment.com',
+    smtpHost: 'smtp.revivalinternational.com',
     waToken: 'wa_biz_token_live_9812903810293',
     stripeKey: 'sk_live_sir_98129038102'
   });
@@ -57,10 +57,10 @@ export const CrmSettings = () => {
     logAuditAction('Downloaded full PostgreSQL database backup snapshot (.SQL).');
 
     const sqlContent = `-- =====================================================
--- SIR RECRUITMENT ENTERPRISE CRM DATABASE SNAPSHOT (.SQL)
+-- Revival International ENTERPRISE CRM DATABASE SNAPSHOT (.SQL)
 -- Generated At: ${new Date().toISOString()}
 -- Database Engine: PostgreSQL 16.2 / Supabase Engine
--- Server: db.sirrecruitment.internal (Dubai HQ Primary Node)
+-- Server: db.revivalinternational.internal (Dubai HQ Primary Node)
 -- =====================================================
 
 SET statement_timeout = 0;
@@ -273,7 +273,7 @@ CREATE TABLE IF NOT EXISTS public.system_audit_logs (
 
               <div>
                 <label className="block font-extrabold text-slate-700 dark:text-slate-300 mb-1">Corporate Email ID</label>
-                <input type="email" name="email" required placeholder="sarah.coord@sirrecruitment.com" className="w-full bg-white dark:bg-navy-900 border border-slate-300 dark:border-navy-700 text-slate-900 dark:text-white rounded-xl p-2.5 font-bold focus:outline-none focus:border-gold-500" />
+                <input type="email" name="email" required placeholder="sarah.coord@revivalinternational.com" className="w-full bg-white dark:bg-navy-900 border border-slate-300 dark:border-navy-700 text-slate-900 dark:text-white rounded-xl p-2.5 font-bold focus:outline-none focus:border-gold-500" />
               </div>
 
               <div>

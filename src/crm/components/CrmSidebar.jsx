@@ -48,12 +48,12 @@ export const CrmSidebar = ({ collapsed, setCollapsed }) => {
       <div className="p-4 border-b border-slate-200 dark:border-navy-800 flex items-center justify-between">
         <div className="flex items-center space-x-3 cursor-pointer" onClick={() => setActiveModule('dashboard')}>
           <div className="w-9 h-9 rounded-xl bg-navy-950 border-2 border-gold-500 flex items-center justify-center shadow-lg shrink-0">
-            <span className="font-serif text-lg font-extrabold text-gold-500">S</span>
-            <span className="font-serif text-sm font-bold text-white">IR</span>
+            <span className="font-serif text-lg font-extrabold text-gold-500">R</span>
+            <span className="font-serif text-sm font-bold text-white">I</span>
           </div>
           {!collapsed && (
             <div>
-              <h2 className="font-serif text-base font-bold text-slate-900 dark:text-white tracking-tight leading-none">SIR CRM</h2>
+              <h2 className="font-serif text-base font-bold text-slate-900 dark:text-white tracking-tight leading-none">Revival CRM</h2>
               <span className="text-[9px] uppercase tracking-widest text-gold-600 dark:text-gold-400 font-bold">Enterprise Edition</span>
             </div>
           )}

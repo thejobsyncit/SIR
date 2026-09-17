@@ -39,7 +39,7 @@ export const CrmAiSuite = () => {
     const cand = candidates.find(c => c.id === selectedCandidateId);
     setLoadingEmail(true);
     setTimeout(() => {
-      const emailText = `Subject: Executive Shortlist Confirmation - ${role} Opportunity at SIR Recruitment
+      const emailText = `Subject: Executive Shortlist Confirmation - ${role} Opportunity at Revival International
 
 Dear ${cand.name},
 
@@ -52,9 +52,9 @@ Please let us know your preferred time slots over the next two business days.
 Warm regards,
 
 Executive Talent Acquisition Team
-SIR Recruitment Enterprise LLC | Dubai • Riyadh • London`;
+Revival International Enterprise LLC | Dubai • Riyadh • London`;
 
-      const waText = `Hi ${cand.name}, your executive profile for "${role}" has been shortlisted by SIR Recruitment! 🌟 Please reply to confirm your availability for a 30-min MS Teams panel interview.`;
+      const waText = `Hi ${cand.name}, your executive profile for "${role}" has been shortlisted by Revival International! 🌟 Please reply to confirm your availability for a 30-min MS Teams panel interview.`;
 
       setEmailDraft(emailText);
       setWhatsAppDraft(waText);
@@ -81,7 +81,7 @@ SIR Recruitment Enterprise LLC | Dubai • Riyadh • London`;
     setLoadingParser(true);
     setTimeout(() => {
       setParsedProfile({
-        id: 'SIR-CAN-' + Math.floor(1000 + Math.random() * 9000),
+        id: 'REV-CAN-' + Math.floor(1000 + Math.random() * 9000),
         name: selectedResume.includes('Sarah') ? 'Dr. Sarah Al-Mansoori' : 'Alexander Wright',
         email: selectedResume.includes('Sarah') ? 'sarah.mansoori@medical.org' : 'a.wright@techconsult.co.uk',
         nationality: selectedResume.includes('Sarah') ? 'Saudi Arabia' : 'United Kingdom',

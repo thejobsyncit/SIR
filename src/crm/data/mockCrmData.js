@@ -55,7 +55,7 @@ export const PIPELINE_STAGES = [
 
 export const CRM_CANDIDATES = [
   {
-    id: 'SIR-CAN-1001',
+    id: 'REV-CAN-1001',
     name: 'Alexander Wright',
     avatar: 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=150&auto=format&fit=crop&q=80',
     email: 'a.wright@executive-tech.com',
@@ -93,7 +93,7 @@ export const CRM_CANDIDATES = [
     ]
   },
   {
-    id: 'SIR-CAN-1002',
+    id: 'REV-CAN-1002',
     name: 'Dr. Sarah Al-Mansoori',
     avatar: 'https://images.unsplash.com/photo-1573496359142-b8d87734a5a2?w=150&auto=format&fit=crop&q=80',
     email: 'sarah.mansoori@medical.org',
@@ -130,7 +130,7 @@ export const CRM_CANDIDATES = [
     ]
   },
   {
-    id: 'SIR-CAN-1003',
+    id: 'REV-CAN-1003',
     name: 'Elena Rostova',
     avatar: 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=150&auto=format&fit=crop&q=80',
     email: 'elena.rostova@cloudtech.io',
@@ -167,7 +167,7 @@ export const CRM_CANDIDATES = [
     ]
   },
   {
-    id: 'SIR-CAN-1004',
+    id: 'REV-CAN-1004',
     name: 'Rajesh Subramanian',
     avatar: 'https://images.unsplash.com/photo-1500648767791-00dcc994a43e?w=150&auto=format&fit=crop&q=80',
     email: 'rajesh.sub@fintech-mumbai.in',
@@ -203,7 +203,7 @@ export const CRM_CANDIDATES = [
     ]
   },
   {
-    id: 'SIR-CAN-1005',
+    id: 'REV-CAN-1005',
     name: 'Dr. Sophia Al-Hassan',
     avatar: 'https://images.unsplash.com/photo-1594824813566-88855ce78c0c?w=150&auto=format&fit=crop&q=80',
     email: 'sophia.hassan@oncology-care.ae',
@@ -239,7 +239,7 @@ export const CRM_CANDIDATES = [
     ]
   },
   {
-    id: 'SIR-CAN-1006',
+    id: 'REV-CAN-1006',
     name: 'Marcus Vance',
     avatar: 'https://images.unsplash.com/photo-1506794778202-cad84cf45f1d?w=150&auto=format&fit=crop&q=80',
     email: 'm.vance@cloudsec-london.uk',
@@ -269,13 +269,13 @@ export const CRM_CANDIDATES = [
     aiSummary: 'Cloud Security Architect with banking DevOps background seeking GCC relocation.',
     assignedRecruiter: 'David Sterling',
     tags: ['Cloud Tech', 'Relocating', 'Fintech Security'],
-    notes: 'Applied via SIR Career Portal for TechVision Mandate.',
+    notes: 'Applied via Revival Career Portal for TechVision Mandate.',
     documents: [
       { id: 'd-10', name: 'Marcus_Vance_Cloud_CV.pdf', type: 'Resume', status: 'Verified', date: '2026-08-04' }
     ]
   },
   {
-    id: 'SIR-CAN-1007',
+    id: 'REV-CAN-1007',
     name: 'Priya Sharma',
     avatar: 'https://images.unsplash.com/photo-1544005313-94ddf0286df2?w=150&auto=format&fit=crop&q=80',
     email: 'priya.s@tech-innovations.in',
@@ -311,7 +311,7 @@ export const CRM_CANDIDATES = [
     ]
   },
   {
-    id: 'SIR-CAN-1008',
+    id: 'REV-CAN-1008',
     name: 'Faisal Al-Otaibi',
     avatar: 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=150&auto=format&fit=crop&q=80',
     email: 'faisal.otaibi@petro-sa.sa',
@@ -410,7 +410,7 @@ export const CRM_INTERVIEWS = [
     time: '14:00 GST',
     platform: 'Microsoft Teams',
     meetingLink: 'https://teams.microsoft.com/l/meetup-join/sir-recruitment-881',
-    panelists: ['Eng. Hassan Al-Habtoor (VP)', 'David Sterling (SIR Director)'],
+    panelists: ['Eng. Hassan Al-Habtoor (VP)', 'David Sterling (Revival Director)'],
     status: 'Scheduled',
     feedback: 'Pending Panel Conduct',
     candidateConfirmed: true,
@@ -535,7 +535,7 @@ export const RECRUITER_LEADERBOARD = [
 ];
 
 export const AUDIT_LOGS = [
-  { timestamp: '2026-08-04 10:14:02', user: 'Tariq Al-Mansoori', role: 'Super Admin', action: 'Approved Executive Visa Sponsorship for Candidate SIR-CAN-1002', ip: '194.170.21.90' },
-  { timestamp: '2026-08-04 09:45:11', user: 'Fatima Al-Zahra', role: 'International Recruiter', action: 'Moved Candidate SIR-CAN-1003 to Visa Process Stage', ip: '194.170.21.95' },
+  { timestamp: '2026-08-04 10:14:02', user: 'Tariq Al-Mansoori', role: 'Super Admin', action: 'Approved Executive Visa Sponsorship for Candidate REV-CAN-1002', ip: '194.170.21.90' },
+  { timestamp: '2026-08-04 09:45:11', user: 'Fatima Al-Zahra', role: 'International Recruiter', action: 'Moved Candidate REV-CAN-1003 to Visa Process Stage', ip: '194.170.21.95' },
   { timestamp: '2026-08-04 08:30:00', user: 'System Automated Bot', role: 'System', action: 'Dispatched 14 Passport Expiry Warnings to Executive Candidates', ip: 'localhost' }
 ];

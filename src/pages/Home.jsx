@@ -53,7 +53,7 @@ export const Home = () => {
         <div className="absolute inset-0 z-0">
           <img 
             src="/images/hero_dubai.png" 
-            alt="Dubai Skyline SIR Recruitment" 
+            alt="Dubai Skyline Revival International" 
             className="w-full h-full object-cover opacity-25 dark:opacity-20 transform scale-105 transition duration-1000"
           />
           <div className="absolute inset-0 bg-gradient-to-b from-liteblue-50/80 via-liteblue-50/60 to-liteblue-50 dark:from-navy-950/90 dark:via-navy-950/80 dark:to-navy-950"></div>
@@ -152,7 +152,7 @@ export const Home = () => {
             Trusted by Premier Enterprises & Government Entities Across GCC & Europe
           </h2>
           <p className="text-xs text-slate-600 dark:text-slate-300 font-medium max-w-2xl mx-auto">
-            Over 500+ top-tier contractors, healthcare conglomerates, and Fortune 500 MNCs rely on SIR Recruitment mandates.
+            Over 500+ top-tier contractors, healthcare conglomerates, and Fortune 500 MNCs rely on Revival International mandates.
           </p>
         </div>
 
@@ -223,12 +223,12 @@ export const Home = () => {
           </button>
         </div>
 
-        <div className="flex overflow-x-auto pb-6 -mx-4 px-4 sm:mx-0 sm:px-0 sm:grid sm:grid-cols-2 lg:grid-cols-3 gap-6 snap-x snap-mandatory sm:snap-none" style={{ scrollbarWidth: 'none' }}>
+        <div className="flex flex-col sm:grid sm:grid-cols-2 lg:grid-cols-3 gap-6">
           {allJobsList.slice(0, 6).map((job, idx) => (
             <div 
               key={job.id}
               onClick={() => navigateTo('jobs')}
-              className="min-w-[85vw] sm:min-w-0 snap-center sm:snap-align-none glass-card bg-white dark:bg-navy-900 border border-slate-200 dark:border-navy-800 p-6 rounded-2xl space-y-4 hover:border-gold-500 transition duration-300 hover-lift shadow-glass cursor-pointer flex flex-col justify-between group animate-fade-in-up"
+              className="w-full sm:min-w-0 glass-card bg-white dark:bg-navy-900 border border-slate-200 dark:border-navy-800 p-6 rounded-2xl space-y-4 hover:border-gold-500 transition duration-300 hover-lift shadow-glass cursor-pointer flex flex-col justify-between group animate-fade-in-up"
               style={{ animationDelay: `${idx * 0.15}s` }}
             >
               <div className="space-y-3">
@@ -469,9 +469,9 @@ export const Home = () => {
           <h3 className="font-serif text-3xl font-extrabold text-navy-900 dark:text-white">Success Stories across UAE & GCC</h3>
         </div>
 
-        <div className="flex overflow-x-auto pb-6 -mx-4 px-4 sm:mx-0 sm:px-0 sm:grid sm:grid-cols-2 lg:grid-cols-3 gap-6 snap-x snap-mandatory sm:snap-none" style={{ scrollbarWidth: 'none' }}>
+        <div className="flex flex-col sm:grid sm:grid-cols-2 lg:grid-cols-3 gap-6">
           {TESTIMONIALS.map((t) => (
-            <div key={t.id} className="min-w-[85vw] sm:min-w-0 snap-center sm:snap-align-none glass-card bg-white dark:bg-navy-900 border border-slate-200 dark:border-navy-800 p-6 rounded-2xl space-y-4 shadow-glass">
+            <div key={t.id} className="w-full sm:min-w-0 glass-card bg-white dark:bg-navy-900 border border-slate-200 dark:border-navy-800 p-6 rounded-2xl space-y-4 shadow-glass">
               <div className="flex items-center space-x-1 text-gold-500">
                 {[...Array(t.rating)].map((_, i) => (
                   <Star key={i} className="w-4 h-4 fill-current" />
@@ -503,9 +503,9 @@ export const Home = () => {
           </div>
         </div>
 
-        <div className="flex overflow-x-auto pb-6 -mx-4 px-4 sm:mx-0 sm:px-0 sm:grid sm:grid-cols-2 lg:grid-cols-3 gap-6 snap-x snap-mandatory sm:snap-none" style={{ scrollbarWidth: 'none' }}>
+        <div className="flex flex-col sm:grid sm:grid-cols-2 lg:grid-cols-3 gap-6">
           {BLOG_POSTS.map((post) => (
-            <div key={post.id} className="min-w-[85vw] sm:min-w-0 snap-center sm:snap-align-none glass-card bg-white dark:bg-navy-900 border border-slate-200 dark:border-navy-800 p-6 rounded-2xl space-y-3 shadow-sm hover-lift cursor-pointer">
+            <div key={post.id} className="w-full sm:min-w-0 glass-card bg-white dark:bg-navy-900 border border-slate-200 dark:border-navy-800 p-6 rounded-2xl space-y-3 shadow-sm hover-lift cursor-pointer">
               <span className="bg-gold-500/10 text-gold-600 dark:text-gold-400 text-[10px] font-bold px-2.5 py-1 rounded-md uppercase">
                 {post.category}
               </span>

@@ -59,7 +59,7 @@ export const TRANSLATIONS = {
     // Common
     'common.location': 'Dubai • GCC • Worldwide',
     'common.footerTag': 'Premier Global Manpower & Executive Search Recruitment Agency.',
-    'common.copyright': 'SIR Recruitment & Consulting LLC. All Rights Reserved.'
+    'common.copyright': 'Revival International & Consulting LLC. All Rights Reserved.'
   },
 
   AR: {
@@ -122,7 +122,7 @@ export const TRANSLATIONS = {
     // Common
     'common.location': 'دبي • دول الخليج • العالم',
     'common.footerTag': 'الوكالة الرائدة عالمياً في التوظيف والبحث عن الكفاءات التنفيذية.',
-    'common.copyright': 'شركة SIR للتوظيف والاستشارات ذ.م.م. جميع الحقوق محفوظة.'
+    'common.copyright': 'شركة Revival للتوظيف والاستشارات ذ.م.م. جميع الحقوق محفوظة.'
   },
 
   FR: {
@@ -185,7 +185,7 @@ export const TRANSLATIONS = {
     // Common
     'common.location': 'Dubaï • CCG • International',
     'common.footerTag': 'Agence leader de recrutement international et de recherche de cadres.',
-    'common.copyright': 'SIR Recruitment & Consulting LLC. Tous droits réservés.'
+    'common.copyright': 'Revival International & Consulting LLC. Tous droits réservés.'
   },
 
   DE: {
@@ -248,6 +248,6 @@ export const TRANSLATIONS = {
     // Common
     'common.location': 'Dubai • GCC • Weltweit',
     'common.footerTag': 'Führende globale Personalvermittlung und Headhunting-Agentur.',
-    'common.copyright': 'SIR Recruitment & Consulting LLC. Alle Rechte vorbehalten.'
+    'common.copyright': 'Revival International & Consulting LLC. Alle Rechte vorbehalten.'
   }
 };

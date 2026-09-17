@@ -354,7 +354,7 @@ export const CandidatePortal = () => {
               {user.title ? user.title : <span className="text-rose-400 italic">No Designation Added</span>} • {user.location ? user.location : <span className="text-slate-500 dark:text-slate-400 italic">No Location Set</span>}
             </p>
             <p className="text-[11px] text-slate-500 font-medium">
-              Candidate ID: {user.candidateId || 'SIR-CAN-88219'} • Preferred Destination: {user.preferredCountry ? user.preferredCountry : 'Not specified'}
+              Candidate ID: {user.candidateId || 'REV-CAN-88219'} • Preferred Destination: {user.preferredCountry ? user.preferredCountry : 'Not specified'}
             </p>
           </div>
         </div>
@@ -1095,7 +1095,7 @@ export const CandidatePortal = () => {
                 Where & How Screening Takes Place:
               </h4>
               <p className="text-slate-700 dark:text-slate-300 leading-relaxed font-medium">
-                1. <strong>AI Parsing at SIR HQ (Dubai)</strong>: Your uploaded CV and Candidate details were processed by our MOHRE-certified AI parser.
+                1. <strong>AI Parsing at Revival HQ (Dubai)</strong>: Your uploaded CV and Candidate details were processed by our MOHRE-certified AI parser.
               </p>
               <p className="text-slate-700 dark:text-slate-300 leading-relaxed font-medium">
                 2. <strong>Recruiter Portal Synchronization</strong>: Your profile and ATS Score (94%) have been transmitted directly to the <strong>{screeningModalApp.company}</strong> Employer Portal dashboard.
@@ -1332,7 +1332,7 @@ export const CandidatePortal = () => {
               <span className="text-xs font-bold text-navy-900 dark:text-white block">Official Interview Meeting Link:</span>
 
               <a 
-                href="https://teams.microsoft.com/l/meetup-join/19%3ameeting_SIR_Recruitment_Executive_Panel"
+                href="https://teams.microsoft.com/l/meetup-join/19%3ameeting_Revival_International_Executive_Panel"
                 target="_blank"
                 rel="noopener noreferrer"
                 className="w-full py-4 bg-emerald-600 hover:bg-emerald-700 text-slate-900 dark:text-white font-extrabold text-sm rounded-xl shadow-lg shadow-emerald-500/20 flex items-center justify-center space-x-2 transition cursor-pointer text-center"

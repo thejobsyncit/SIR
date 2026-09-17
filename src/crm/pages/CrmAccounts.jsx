@@ -89,7 +89,7 @@ export const CrmAccounts = () => {
 
   const downloadReceiptFile = (receipt) => {
     const text = `=====================================================
-SIR RECRUITMENT ENTERPRISE - OFFICIAL TAX RECEIPT
+Revival International ENTERPRISE - OFFICIAL TAX RECEIPT
 =====================================================
 Invoice ID: ${receipt.id}
 Transaction Ref: ${receipt.transactionId}

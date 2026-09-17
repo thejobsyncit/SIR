@@ -71,10 +71,10 @@ export const CrmReports = () => {
         filename: `BGV_Credential_Audit_Log_${timeframe}_${today}`,
         headers: ['Candidate ID', 'Candidate Name', 'Target Mandate', 'Degree Attestation', 'Police Clearance', 'Ref Check', 'BGV Case Status'],
         rows: [
-          ['SIR-CAN-1001', 'Alexander Wright', 'Civil Project Manager', 'Verified (Manchester)', 'Clear (ACRO UK)', 'Pass (2 VPs)', 'Approved (Pass)'],
-          ['SIR-CAN-1002', 'Dr. Sarah Al-Mansoori', 'ICU Consultant', 'Verified (King Saud)', 'Clear (KSA Police)', 'Pass (CMO)', 'Approved (Pass)'],
-          ['SIR-CAN-1003', 'Elena Rostova', 'DevOps Architect', 'Verified (Warsaw)', 'In Progress', 'Pass (CTO)', 'In Audit Stage'],
-          ['SIR-CAN-1004', 'Rahul Sharma', 'MEP Site Engineer', 'Verified (IIT Delhi)', 'Clear (Indian PCC)', 'Pass (2 Mgrs)', 'Approved (Pass)']
+          ['REV-CAN-1001', 'Alexander Wright', 'Civil Project Manager', 'Verified (Manchester)', 'Clear (ACRO UK)', 'Pass (2 VPs)', 'Approved (Pass)'],
+          ['REV-CAN-1002', 'Dr. Sarah Al-Mansoori', 'ICU Consultant', 'Verified (King Saud)', 'Clear (KSA Police)', 'Pass (CMO)', 'Approved (Pass)'],
+          ['REV-CAN-1003', 'Elena Rostova', 'DevOps Architect', 'Verified (Warsaw)', 'In Progress', 'Pass (CTO)', 'In Audit Stage'],
+          ['REV-CAN-1004', 'Rahul Sharma', 'MEP Site Engineer', 'Verified (IIT Delhi)', 'Clear (Indian PCC)', 'Pass (2 Mgrs)', 'Approved (Pass)']
         ],
         summary: 'Total Credential Cases Audited: 4 Candidates | Pass Rate: 92.5% | Security Clearance: Verified'
       };
@@ -84,7 +84,7 @@ export const CrmReports = () => {
   const handleExportCsv = (title) => {
     const data = generateReportData(title, period);
     const csvLines = [
-      `"SIR RECRUITMENT ENTERPRISE REPORT - ${data.title}"`,
+      `"Revival International ENTERPRISE REPORT - ${data.title}"`,
       `"Timeframe Period: ${data.timeframe}"`,
       `"Generated Timestamp: ${data.timestamp}"`,
       `"Summary: ${data.summary}"`,
@@ -117,7 +117,7 @@ export const CrmReports = () => {
  xmlns:ss="urn:schemas-microsoft-com:office:spreadsheet">
  <Worksheet ss:Name="Executive Report">
   <Table>
-   <Row><Cell><Data ss:Type="String">SIR RECRUITMENT ENTERPRISE EDITION</Data></Cell></Row>
+   <Row><Cell><Data ss:Type="String">Revival International ENTERPRISE EDITION</Data></Cell></Row>
    <Row><Cell><Data ss:Type="String">Report: ${data.title}</Data></Cell></Row>
    <Row><Cell><Data ss:Type="String">Timeframe: ${data.timeframe} | Generated: ${data.timestamp}</Data></Cell></Row>
    <Row><Cell><Data ss:Type="String">${data.summary}</Data></Cell></Row>
@@ -266,7 +266,7 @@ export const CrmReports = () => {
               {/* Document Header & Logo */}
               <div className="flex justify-between items-start border-b border-slate-300 dark:border-slate-800 pb-4">
                 <div>
-                  <h2 className="font-serif text-2xl font-extrabold text-slate-900 dark:text-white tracking-wide">SIR RECRUITMENT</h2>
+                  <h2 className="font-serif text-2xl font-extrabold text-slate-900 dark:text-white tracking-wide">Revival International</h2>
                   <p className="text-[10px] text-amber-700 dark:text-gold-400 font-bold uppercase tracking-widest">Enterprise Edition • Executive Intelligence</p>
                 </div>
                 <div className="text-right text-[10px] text-slate-600 dark:text-slate-400">
@@ -310,7 +310,7 @@ export const CrmReports = () => {
               <div className="pt-6 border-t border-slate-200 dark:border-slate-800 flex justify-between items-end text-[10px] text-slate-500 dark:text-slate-400">
                 <div>
                   <p className="font-bold text-slate-800 dark:text-slate-200">Authorized Executive Signoff</p>
-                  <p className="font-mono">Verification Code: #SIR-AUD-{Date.now().toString().slice(-6)}</p>
+                  <p className="font-mono">Verification Code: #REV-AUD-{Date.now().toString().slice(-6)}</p>
                 </div>
                 <div className="text-right">
                   <span className="bg-emerald-100 dark:bg-emerald-500/20 text-emerald-800 dark:text-emerald-400 border border-emerald-300 dark:border-emerald-500/40 px-3 py-1 rounded font-bold">

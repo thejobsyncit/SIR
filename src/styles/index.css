@@ -5,12 +5,14 @@
 @layer base {
   html {
     scroll-behavior: smooth;
+    overflow-x: hidden;
+    width: 100%;
   }
   body {
-    @apply bg-liteblue-50 text-navy-900 font-sans transition-colors duration-300 antialiased;
+    @apply bg-liteblue-50 text-navy-900 font-sans transition-colors duration-300 antialiased overflow-x-hidden w-full;
   }
   .dark body {
-    @apply bg-navy-950 text-slate-100;
+    @apply bg-navy-950 text-slate-100 overflow-x-hidden w-full;
   }
 }
 

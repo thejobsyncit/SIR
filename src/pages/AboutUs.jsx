@@ -20,13 +20,13 @@ export const AboutUs = () => {
       <ScrollReveal>
       <div className="text-center space-y-4 max-w-3xl mx-auto">
         <span className="bg-gold-500/10 text-gold-600 dark:text-gold-400 text-xs font-bold px-3.5 py-1 rounded-full uppercase">
-          About SIR Recruitment
+          About Revival International
         </span>
         <h1 className="font-serif text-4xl sm:text-5xl font-extrabold text-navy-900 dark:text-white tracking-tight">
           Dubai's Premier International HR & Talent Gateway
         </h1>
         <p className="text-xs sm:text-sm text-slate-800 dark:text-slate-200 leading-relaxed font-medium">
-          Founded in Dubai, United Arab Emirates, SIR Recruitment has established itself as the preferred partner for Fortune 500 multinationals, GCC conglomerates, and government bodies seeking world-class human capital.
+          Founded in Dubai, United Arab Emirates, Revival International has established itself as the preferred partner for Fortune 500 multinationals, GCC conglomerates, and government bodies seeking world-class human capital.
         </p>
       </div>
       </ScrollReveal>
@@ -36,7 +36,7 @@ export const AboutUs = () => {
       <div className="relative rounded-3xl overflow-hidden shadow-luxury border border-slate-200 dark:border-gold-500/30 max-h-[420px]">
         <img 
           src="/images/dubai_office.png" 
-          alt="SIR Recruitment Dubai HQ" 
+          alt="Revival International Dubai HQ" 
           className="w-full h-full object-cover"
         />
         <div className="absolute inset-0 bg-gradient-to-t from-navy-950 via-navy-950/40 to-transparent flex items-end p-8">

@@ -52,7 +52,7 @@ export const CrmAddCandidateModal = ({ isOpen, onClose }) => {
     };
 
     addCandidate(candObj);
-    setAddedCandId('SIR-CAN-' + Math.floor(2000 + Math.random() * 8000));
+    setAddedCandId('REV-CAN-' + Math.floor(2000 + Math.random() * 8000));
     setIsSuccess(true);
 
     setTimeout(() => {
@@ -70,7 +70,7 @@ export const CrmAddCandidateModal = ({ isOpen, onClose }) => {
           <div>
             <span className="bg-gold-500/20 text-gold-600 dark:text-gold-400 font-bold text-[10px] uppercase px-2.5 py-0.5 rounded">Corporate Talent Gateway</span>
             <h3 className="font-serif text-2xl font-bold text-slate-900 dark:text-white mt-1">Register Executive Candidate</h3>
-            <p className="text-xs text-slate-500 dark:text-slate-400">Add complete profile details to the SIR Candidate Database.</p>
+            <p className="text-xs text-slate-500 dark:text-slate-400">Add complete profile details to the Revival Candidate Database.</p>
           </div>
           <button onClick={onClose} className="text-slate-400 hover:text-gold-500"><X className="w-5 h-5" /></button>
         </div>
@@ -365,7 +365,7 @@ export const CrmAddCandidateModal = ({ isOpen, onClose }) => {
                   type="submit"
                   className="px-6 py-2.5 bg-gold-500 text-navy-950 font-extrabold text-xs rounded-xl shadow-gold-glow hover:opacity-95 transition"
                 >
-                  ✓ Save Candidate to SIR CRM
+                  ✓ Save Candidate to Revival CRM
                 </button>
               )}
             </div>

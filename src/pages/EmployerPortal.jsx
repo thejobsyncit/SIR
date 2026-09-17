@@ -219,7 +219,7 @@ export const EmployerPortal = () => {
     setNotShortlistedSuccess(false);
     setNotShortlistedForm({
       reasonCategory: 'Experience Gap',
-      message: `Dear ${cand.name},\n\nThank you for your interest in the position of ${cand.role} at ${user.companyName || cand.company || 'Al Habtoor Contracting LLC'}.\n\nAfter careful review of your application by our executive recruiting team, we regret to inform you that you have not been shortlisted for this specific mandate at this time.\n\nYour profile will remain active in the SIR Executive Talent Database for upcoming GCC opportunities.\n\nBest regards,\nRecruitment Team - SIR Recruitment`
+      message: `Dear ${cand.name},\n\nThank you for your interest in the position of ${cand.role} at ${user.companyName || cand.company || 'Al Habtoor Contracting LLC'}.\n\nAfter careful review of your application by our executive recruiting team, we regret to inform you that you have not been shortlisted for this specific mandate at this time.\n\nYour profile will remain active in the Revival Executive Talent Database for upcoming GCC opportunities.\n\nBest regards,\nRecruitment Team - Revival International`
     });
   };
 
@@ -331,7 +331,7 @@ export const EmployerPortal = () => {
             </div>
             <h1 className="font-serif text-2xl font-bold text-slate-900 dark:text-white mt-1">{user.companyName || 'Al Habtoor Contracting LLC'}</h1>
             <p className="text-xs text-slate-700 dark:text-slate-300 font-semibold">
-              Account ID: {user.accountId || 'SIR-EMP-9902'} • Active Mandates: <strong>{totalActivePostings} Jobs</strong> • Total Applicants: <strong>{totalCandidatesReceived}</strong>
+              Account ID: {user.accountId || 'REV-EMP-9902'} • Active Mandates: <strong>{totalActivePostings} Jobs</strong> • Total Applicants: <strong>{totalCandidatesReceived}</strong>
             </p>
           </div>
         </div>
@@ -760,7 +760,7 @@ export const EmployerPortal = () => {
               </div>
 
               <button type="submit" className="w-full py-3 bg-gold-shimmer text-navy-950 font-bold text-xs rounded-xl shadow-gold-glow hover:opacity-95 transition">
-                Publish Mandate to SIR Talent Portal →
+                Publish Mandate to Revival Talent Portal →
               </button>
             </form>
           ) : (
@@ -768,7 +768,7 @@ export const EmployerPortal = () => {
               <CheckCircle2 className="w-14 h-14 text-emerald-500 mx-auto" />
               <h4 className="font-serif text-xl font-bold text-navy-900 dark:text-white">Job Mandate Published Successfully!</h4>
               <p className="text-slate-500 text-xs max-w-md mx-auto">
-                <strong>"{lastPostedTitle}"</strong> is now live on the public Jobs section and SIR AI Matching Engine is scanning 50,000+ candidates for your position.
+                <strong>"{lastPostedTitle}"</strong> is now live on the public Jobs section and Revival AI Matching Engine is scanning 50,000+ candidates for your position.
               </p>
               
               <div className="flex flex-col sm:flex-row justify-center gap-3 pt-2">
@@ -1030,7 +1030,7 @@ export const EmployerPortal = () => {
                   <label className="block font-bold text-slate-700 dark:text-slate-200 mb-1">Applied Role</label>
                   <input 
                     readOnly 
-                    value={`${notShortlistedCandidate.role} (${user.companyName || notShortlistedCandidate.company || 'SIR Partner'})`}
+                    value={`${notShortlistedCandidate.role} (${user.companyName || notShortlistedCandidate.company || 'Revival Partner'})`}
                     className="w-full bg-slate-100 dark:bg-navy-950 border border-slate-300 dark:border-navy-800 rounded-xl p-2.5 text-slate-700 dark:text-slate-300 font-semibold"
                   />
                 </div>

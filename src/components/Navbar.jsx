@@ -34,7 +34,7 @@ export const Navbar = () => {
           </div>
           <div className="hidden md:flex items-center space-x-2">
             <Mail className="w-3.5 h-3.5 text-gold-500" />
-            <span>info@sirrecruitment.com</span>
+            <span>info@revivalinternational.com</span>
           </div>
           <div className="hidden lg:flex items-center space-x-1 text-gold-400">
             <Award className="w-3.5 h-3.5" />
@@ -84,14 +84,14 @@ export const Navbar = () => {
           {/* Logo */}
           <div 
             onClick={() => navigateTo('home')} 
-            className="cursor-pointer flex items-center space-x-3.5 group"
+            className="cursor-pointer flex items-center space-x-2 sm:space-x-3.5 group"
           >
-            <BrandLogoIcon className="w-12 h-12 group-hover:scale-105 transition duration-300 shadow-md" />
+            <BrandLogoIcon className="w-10 h-10 sm:w-12 sm:h-12 group-hover:scale-105 transition duration-300 shadow-md" />
             <div>
-              <div className="font-serif text-2xl font-black tracking-tight text-navy-900 dark:text-white flex items-center gap-2">
-                SIR <span className="text-gold-500 font-sans text-[11px] font-bold uppercase tracking-widest px-2 py-0.5 bg-slate-50 dark:bg-navy-900 text-gold-400 rounded-md shadow-sm">Recruitment</span>
+              <div className="font-serif text-xl sm:text-2xl font-black tracking-tight text-navy-900 dark:text-white flex items-center gap-1.5 sm:gap-2">
+                Revival <span className="inline-block text-gold-500 font-sans text-[8px] sm:text-[11px] font-bold uppercase tracking-widest px-1.5 sm:px-2 py-0.5 bg-slate-50 dark:bg-navy-900 text-gold-400 rounded-md shadow-sm">International</span>
               </div>
-              <p className="text-[10px] uppercase tracking-widest text-slate-700 dark:text-slate-300 font-extrabold">Dubai • GCC • Worldwide</p>
+              <p className="text-[9px] sm:text-[10px] uppercase tracking-widest text-slate-700 dark:text-slate-300 font-extrabold">Dubai • GCC • Worldwide</p>
             </div>
           </div>
 
@@ -118,7 +118,7 @@ export const Navbar = () => {
 
                 {/* Mega Menu Dropdown */}
                 {megaMenuType === item.hasMega && (
-                  <div className="absolute top-full left-0 w-96 glass-card bg-white dark:bg-navy-900 shadow-luxury rounded-xl p-4 border border-slate-200 dark:border-gold-500/20 animate-in fade-in slide-in-from-top-2 duration-200 z-50">
+                  <div className="absolute top-full left-1/2 -translate-x-1/2 sm:translate-x-0 sm:left-0 w-[95vw] sm:w-96 glass-card bg-white dark:bg-navy-900 shadow-luxury rounded-xl p-4 border border-slate-200 dark:border-gold-500/20 animate-in fade-in slide-in-from-top-2 duration-200 z-50">
                     {item.hasMega === 'services' && (
                       <div>
                         <div className="text-xs font-bold text-gold-500 uppercase tracking-wider mb-2 border-b pb-1 border-slate-200 dark:border-navy-700">
@@ -174,7 +174,7 @@ export const Navbar = () => {
             ))}
           </div>
 
-          {/* Action CTAs: Matching Image 1 Layout with SIR Theme Colors (Gold Shimmer & Gold Outline) */}
+          {/* Action CTAs: Matching Image 1 Layout with Revival Theme Colors (Gold Shimmer & Gold Outline) */}
           <div className="hidden sm:flex items-center space-x-3">
             {user ? (
               <div className="flex items-center space-x-2 bg-slate-900/90 dark:bg-navy-950/90 border border-slate-200 dark:border-gold-500/40 px-3.5 py-1.5 rounded-full text-xs shadow-md">
@@ -201,7 +201,7 @@ export const Navbar = () => {
               </div>
             ) : (
               <>
-                {/* Register button: Outline style matching Image 1 layout with website SIR Gold theme */}
+                {/* Register button: Outline style matching Image 1 layout with website Revival Gold theme */}
                 <button
                   onClick={() => openAuthModal('register')}
                   className="px-4 py-2 rounded-full text-xs font-bold text-navy-900 dark:text-gold-400 bg-white dark:bg-navy-900 border-2 border-gold-500 hover:bg-gold-500/10 transition flex items-center space-x-1.5 shadow-sm"
@@ -210,7 +210,7 @@ export const Navbar = () => {
                   <span>Register</span>
                 </button>
                 
-                {/* Sign In button: Solid style matching Image 1 layout with website SIR Gold theme */}
+                {/* Sign In button: Solid style matching Image 1 layout with website Revival Gold theme */}
                 <button
                   onClick={() => openAuthModal('login')}
                   className="px-5 py-2 rounded-full text-xs font-bold text-slate-900 dark:text-white bg-gold-500 hover:bg-gold-600 shadow-gold-glow transition flex items-center space-x-1.5"
@@ -228,7 +228,7 @@ export const Navbar = () => {
           <div className="xl:hidden flex items-center">
             <button
               onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
-              className="p-2 rounded-lg bg-navy-800 text-slate-900 dark:text-white"
+              className="p-2 rounded-lg bg-slate-100 dark:bg-navy-800 border border-slate-300 dark:border-navy-700 text-slate-900 dark:text-white shadow-sm active:scale-95 transition"
             >
               {mobileMenuOpen ? <X className="w-6 h-6" /> : <Menu className="w-6 h-6" />}
             </button>

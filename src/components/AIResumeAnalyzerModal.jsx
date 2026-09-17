@@ -35,7 +35,7 @@ export const AIResumeAnalyzerModal = () => {
       if (lowerName.includes(kw) || (lowerText.length > 0 && lowerText.includes(kw) && !lowerText.includes('resume') && !lowerText.includes('curriculum vitae'))) {
         return {
           isValid: false,
-          message: `The uploaded file "${fileName || 'document'}" is detected as a non-resume document (${kw.replace(/[-_]/g, ' ')}). SIR AI ATS Engine strictly evaluates candidate Resumes & Curriculum Vitae (CVs).`
+          message: `The uploaded file "${fileName || 'document'}" is detected as a non-resume document (${kw.replace(/[-_]/g, ' ')}). Revival AI ATS Engine strictly evaluates candidate Resumes & Curriculum Vitae (CVs).`
         };
       }
     }
@@ -217,7 +217,7 @@ export const AIResumeAnalyzerModal = () => {
               <Sparkles className="w-5 h-5" />
             </div>
             <div>
-              <h3 className="font-serif text-xl font-bold text-slate-900 dark:text-white">SIR AI Resume Analyzer</h3>
+              <h3 className="font-serif text-xl font-bold text-slate-900 dark:text-white">Revival AI Resume Analyzer</h3>
               <p className="text-xs text-slate-700 dark:text-slate-300 font-semibold">GCC ATS Scoring Engine & Headhunter Skill Extractor</p>
             </div>
           </div>

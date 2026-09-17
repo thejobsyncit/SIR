@@ -341,7 +341,7 @@ export const JobsPage = () => {
                 </div>
                 <div>
                   <label className="block font-bold text-slate-700 dark:text-slate-200 mb-1">Email Address</label>
-                  <input type="email" defaultValue="candidate@sirrecruitment.com" className="w-full bg-slate-50 dark:bg-navy-950 border rounded-lg p-2 text-navy-900 dark:text-white" />
+                  <input type="email" defaultValue="candidate@revivalinternational.com" className="w-full bg-slate-50 dark:bg-navy-950 border rounded-lg p-2 text-navy-900 dark:text-white" />
                 </div>
                 <div>
                   <label className="block font-bold text-slate-700 dark:text-slate-200 mb-1">Attached Resume</label>

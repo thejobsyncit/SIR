@@ -79,7 +79,7 @@ const JOBS_DATA = [
     experience: '4 - 7 Years',
     jobType: 'Full-time',
     category: 'Healthcare',
-    description: 'JCI-accredited tertiary care hospital hiring ICU nurses for critical care units. Full visa assistance provided by SIR Recruitment.',
+    description: 'JCI-accredited tertiary care hospital hiring ICU nurses for critical care units. Full visa assistance provided by Revival International.',
     skills: ['Critical Care', 'Ventilator Management', 'BLS / ACLS Certified', 'Patient Assessment'],
     qualification: "B.Sc. Nursing + Active Nursing License (Saudi Prometric preferred)",
     benefits: ['Tax-free package', 'Free Furnished Apartment', '30 Days Annual Leave', 'Flight Allowance'],
@@ -216,12 +216,12 @@ app.post('/api/auth/send-otp', async (req, res) => {
     });
 
     const mailOptions = {
-      from: `SIR Recruitment CRM <${process.env.SMTP_EMAIL}>`,
+      from: `Revival International CRM <${process.env.SMTP_EMAIL}>`,
       to: email,
       subject: 'Your CRM 2FA Login Code',
-      text: `Your SIR Recruitment CRM Two-Factor Authentication code is: ${otp}\n\nThis code will expire in 5 minutes.`,
+      text: `Your Revival International CRM Two-Factor Authentication code is: ${otp}\n\nThis code will expire in 5 minutes.`,
       html: `<div style="font-family: Arial, sans-serif; text-align: center; padding: 20px;">
-        <h2>SIR Recruitment Enterprise CRM</h2>
+        <h2>Revival International Enterprise CRM</h2>
         <p>Your Two-Factor Authentication code is:</p>
         <h1 style="color: #c9a050; font-size: 32px; letter-spacing: 5px;">${otp}</h1>
         <p style="color: #666; font-size: 12px;">This code will expire in 5 minutes. Do not share it with anyone.</p>
@@ -266,24 +266,21 @@ app.post('/api/auth/verify-otp', (req, res) => {
 // API Routes - JOBS
 app.get('/api/jobs', async (req, res) => {
   try {
-    const db = await getDb();
-    let query = 'SELECT * FROM jobs WHERE 1=1';
-    const params = [];
+    const supabase = await getDb();
+    let query = supabase.from('jobs').select('*');
 
     if (req.query.country && req.query.country !== 'All') {
-      query += ' AND country = ?';
-      params.push(req.query.country);
+      query = query.eq('country', req.query.country);
     }
     if (req.query.category && req.query.category !== 'All') {
-      query += ' AND category = ?';
-      params.push(req.query.category);
+      query = query.eq('category', req.query.category);
     }
     if (req.query.jobType && req.query.jobType !== 'All') {
-      query += ' AND jobType = ?';
-      params.push(req.query.jobType);
+      query = query.eq('jobType', req.query.jobType);
     }
 
-    let rows = await db.all(query, params);
+    let { data: rows, error } = await query;
+    if (error) throw error;
 
     if (req.query.keyword) {
       const k = req.query.keyword.toLowerCase();
@@ -295,7 +292,7 @@ app.get('/api/jobs', async (req, res) => {
       ...r,
       skills: parseArray(r.skills),
       benefits: parseArray(r.benefits),
-      featured: r.featured === 1
+      featured: r.featured === 1 || r.featured === true
     }));
 
     res.json({ success: true, count: rows.length, data: rows });
@@ -306,12 +303,13 @@ app.get('/api/jobs', async (req, res) => {
 
 app.get('/api/jobs/:id', async (req, res) => {
   try {
-    const db = await getDb();
-    const job = await db.get('SELECT * FROM jobs WHERE id = ?', [req.params.id]);
-    if (!job) return res.status(404).json({ success: false, message: 'Job not found' });
+    const supabase = await getDb();
+    const { data: job, error } = await supabase.from('jobs').select('*').eq('id', req.params.id).single();
+    if (error || !job) return res.status(404).json({ success: false, message: 'Job not found' });
+    
     job.skills = parseArray(job.skills);
     job.benefits = parseArray(job.benefits);
-    job.featured = job.featured === 1;
+    job.featured = job.featured === 1 || job.featured === true;
     res.json({ success: true, data: job });
   } catch (error) {
     res.status(500).json({ success: false, message: error.message });
@@ -325,16 +323,31 @@ app.post('/api/jobs', async (req, res) => {
     const skillsStr = JSON.stringify(Array.isArray(skills) ? skills : (skills ? skills.split(',').map(s => s.trim()) : ['Management']));
     const benefitsStr = JSON.stringify(Array.isArray(benefits) ? benefits : (benefits ? benefits.split(',').map(b => b.trim()) : ['Tax-free salary', 'Visa Sponsorship']));
 
-    const db = await getDb();
-    await db.run(
-      `INSERT INTO jobs (id, title, company, country, location, salary, experience, jobType, category, description, vacancies, skills, qualification, benefits, postedDate, featured) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
-      [jobId, title || 'Untitled', company || 'SIR Recruitment', country || 'UAE', location || '', salary || 'Negotiable', experience || '2-5 Years', jobType || 'Full-time', category || 'General', description || '', vacancies || '1', skillsStr, qualification || 'Degree', benefitsStr, 'Just now', 0]
-    );
+    const supabase = await getDb();
+    const { data: newJob, error } = await supabase.from('jobs').insert([{
+      id: jobId,
+      title: title || 'Untitled',
+      company: company || 'Revival International',
+      country: country || 'UAE',
+      location: location || '',
+      salary: salary || 'Negotiable',
+      experience: experience || '2-5 Years',
+      jobType: jobType || 'Full-time',
+      category: category || 'General',
+      description: description || '',
+      vacancies: vacancies || '1',
+      skills: skillsStr,
+      qualification: qualification || 'Degree',
+      benefits: benefitsStr,
+      postedDate: 'Just now',
+      featured: 0
+    }]).select().single();
 
-    const newJob = await db.get('SELECT * FROM jobs WHERE id = ?', [jobId]);
+    if (error) throw error;
+
     newJob.skills = parseArray(newJob.skills);
     newJob.benefits = parseArray(newJob.benefits);
-    newJob.featured = newJob.featured === 1;
+    newJob.featured = newJob.featured === 1 || newJob.featured === true;
     res.json({ success: true, message: 'Job posted successfully', data: newJob });
   } catch (error) {
     res.status(500).json({ success: false, message: error.message });
@@ -343,15 +356,16 @@ app.post('/api/jobs', async (req, res) => {
 
 app.put('/api/jobs/:id', async (req, res) => {
   try {
-    const db = await getDb();
+    const supabase = await getDb();
     const { title, company, country, location, salary, experience, jobType, category, description, vacancies, skills, qualification, benefits } = req.body;
     const skillsStr = JSON.stringify(Array.isArray(skills) ? skills : (skills ? skills.split(',').map(s => s.trim()) : []));
     const benefitsStr = JSON.stringify(Array.isArray(benefits) ? benefits : (benefits ? benefits.split(',').map(b => b.trim()) : []));
 
-    await db.run(
-      `UPDATE jobs SET title = ?, company = ?, country = ?, location = ?, salary = ?, experience = ?, jobType = ?, category = ?, description = ?, vacancies = ?, skills = ?, qualification = ?, benefits = ? WHERE id = ?`,
-      [title, company, country, location, salary, experience, jobType, category, description, vacancies, skillsStr, qualification, benefitsStr, req.params.id]
-    );
+    const { error } = await supabase.from('jobs').update({
+      title, company, country, location, salary, experience, jobType, category, description, vacancies, skills: skillsStr, qualification, benefits: benefitsStr
+    }).eq('id', req.params.id);
+
+    if (error) throw error;
     res.json({ success: true, message: 'Job updated successfully' });
   } catch (error) {
     res.status(500).json({ success: false, message: error.message });
@@ -360,8 +374,9 @@ app.put('/api/jobs/:id', async (req, res) => {
 
 app.delete('/api/jobs/:id', async (req, res) => {
   try {
-    const db = await getDb();
-    await db.run('DELETE FROM jobs WHERE id = ?', [req.params.id]);
+    const supabase = await getDb();
+    const { error } = await supabase.from('jobs').delete().eq('id', req.params.id);
+    if (error) throw error;
     res.json({ success: true, message: 'Job deleted successfully' });
   } catch (error) {
     res.status(500).json({ success: false, message: error.message });
@@ -371,8 +386,9 @@ app.delete('/api/jobs/:id', async (req, res) => {
 // API Routes - CANDIDATES
 app.get('/api/candidates', async (req, res) => {
   try {
-    const db = await getDb();
-    const rows = await db.all('SELECT * FROM candidates ORDER BY createdAt DESC');
+    const supabase = await getDb();
+    const { data: rows, error } = await supabase.from('candidates').select('*').order('createdAt', { ascending: false });
+    if (error) throw error;
     res.json({ success: true, data: rows.map(r => ({ ...r, skills: parseArray(r.skills) })) });
   } catch (error) {
     res.status(500).json({ success: false, message: error.message });
@@ -382,14 +398,16 @@ app.get('/api/candidates', async (req, res) => {
 app.post('/api/candidates', async (req, res) => {
   try {
     const { id, name, email, phone, nationality, currentEmployer, currentRole, currentSalary, expectedSalary, score, stage, skills, source, passport, aiSummary, experience } = req.body;
-    const candId = id || `SIR-CAN-${Math.floor(1000 + Math.random() * 9000)}`;
+    const candId = id || `REV-CAN-${Math.floor(1000 + Math.random() * 9000)}`;
     const skillsStr = JSON.stringify(Array.isArray(skills) ? skills : []);
-    const db = await getDb();
-    await db.run(
-      `INSERT INTO candidates (id, name, email, phone, nationality, currentEmployer, currentRole, currentSalary, expectedSalary, score, stage, skills, source, passport, aiSummary, experience) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
-      [candId, name, email, phone, nationality, currentEmployer, currentRole, currentSalary, expectedSalary, score || 85, stage || 'new', skillsStr, source || 'Website', passport, aiSummary, experience]
-    );
-    const cand = await db.get('SELECT * FROM candidates WHERE id = ?', [candId]);
+    const supabase = await getDb();
+    
+    const { data: cand, error } = await supabase.from('candidates').insert([{
+      id: candId, name, email, phone, nationality, currentEmployer, currentRole, currentSalary, expectedSalary, 
+      score: score || 85, stage: stage || 'new', skills: skillsStr, source: source || 'Website', passport, aiSummary, experience
+    }]).select().single();
+    
+    if (error) throw error;
     res.json({ success: true, data: { ...cand, skills: parseArray(cand.skills) } });
   } catch (error) {
     res.status(500).json({ success: false, message: error.message });
@@ -399,8 +417,12 @@ app.post('/api/candidates', async (req, res) => {
 app.put('/api/candidates/:id', async (req, res) => {
   try {
     const { name, email, phone, stage, score } = req.body;
-    const db = await getDb();
-    await db.run('UPDATE candidates SET name = ?, email = ?, phone = ?, stage = ?, score = ? WHERE id = ?', [name, email, phone, stage, score, req.params.id]);
+    const supabase = await getDb();
+    const { error } = await supabase.from('candidates').update({
+      name, email, phone, stage, score
+    }).eq('id', req.params.id);
+    
+    if (error) throw error;
     res.json({ success: true });
   } catch (error) {
     res.status(500).json({ success: false, message: error.message });
@@ -409,8 +431,9 @@ app.put('/api/candidates/:id', async (req, res) => {
 
 app.delete('/api/candidates/:id', async (req, res) => {
   try {
-    const db = await getDb();
-    await db.run('DELETE FROM candidates WHERE id = ?', [req.params.id]);
+    const supabase = await getDb();
+    const { error } = await supabase.from('candidates').delete().eq('id', req.params.id);
+    if (error) throw error;
     res.json({ success: true });
   } catch (error) {
     res.status(500).json({ success: false, message: error.message });
@@ -420,8 +443,9 @@ app.delete('/api/candidates/:id', async (req, res) => {
 // API Routes - CLIENTS
 app.get('/api/clients', async (req, res) => {
   try {
-    const db = await getDb();
-    const rows = await db.all('SELECT * FROM clients ORDER BY createdAt DESC');
+    const supabase = await getDb();
+    const { data: rows, error } = await supabase.from('clients').select('*').order('createdAt', { ascending: false });
+    if (error) throw error;
     res.json({ success: true, data: rows });
   } catch (error) {
     res.status(500).json({ success: false, message: error.message });
@@ -432,12 +456,13 @@ app.post('/api/clients', async (req, res) => {
   try {
     const { id, company, industry, location, contactPerson, email, phone, requirements } = req.body;
     const clientId = id || `CLIENT-${Math.floor(1000 + Math.random() * 9000)}`;
-    const db = await getDb();
-    await db.run(
-      `INSERT INTO clients (id, company, industry, location, contactPerson, email, phone, requirements) VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
-      [clientId, company, industry, location, contactPerson, email, phone, requirements]
-    );
-    const client = await db.get('SELECT * FROM clients WHERE id = ?', [clientId]);
+    const supabase = await getDb();
+    
+    const { data: client, error } = await supabase.from('clients').insert([{
+      id: clientId, company, industry, location, contactPerson, email, phone, requirements
+    }]).select().single();
+    
+    if (error) throw error;
     res.json({ success: true, data: client });
   } catch (error) {
     res.status(500).json({ success: false, message: error.message });
@@ -446,8 +471,9 @@ app.post('/api/clients', async (req, res) => {
 
 app.delete('/api/clients/:id', async (req, res) => {
   try {
-    const db = await getDb();
-    await db.run('DELETE FROM clients WHERE id = ?', [req.params.id]);
+    const supabase = await getDb();
+    const { error } = await supabase.from('clients').delete().eq('id', req.params.id);
+    if (error) throw error;
     res.json({ success: true });
   } catch (error) {
     res.status(500).json({ success: false, message: error.message });
@@ -457,8 +483,9 @@ app.delete('/api/clients/:id', async (req, res) => {
 // API Routes - INTERVIEWS
 app.get('/api/interviews', async (req, res) => {
   try {
-    const db = await getDb();
-    const rows = await db.all('SELECT * FROM interviews ORDER BY date ASC, time ASC');
+    const supabase = await getDb();
+    const { data: rows, error } = await supabase.from('interviews').select('*').order('date', { ascending: true }).order('time', { ascending: true });
+    if (error) throw error;
     res.json({ success: true, data: rows });
   } catch (error) {
     res.status(500).json({ success: false, message: error.message });
@@ -469,12 +496,13 @@ app.post('/api/interviews', async (req, res) => {
   try {
     const { id, candidateId, candidateName, jobId, jobTitle, company, date, time, platform } = req.body;
     const intId = id || `INT-${Math.floor(1000 + Math.random() * 9000)}`;
-    const db = await getDb();
-    await db.run(
-      `INSERT INTO interviews (id, candidateId, candidateName, jobId, jobTitle, company, date, time, platform) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`,
-      [intId, candidateId, candidateName, jobId, jobTitle, company, date, time, platform]
-    );
-    const interview = await db.get('SELECT * FROM interviews WHERE id = ?', [intId]);
+    const supabase = await getDb();
+    
+    const { data: interview, error } = await supabase.from('interviews').insert([{
+      id: intId, candidateId, candidateName, jobId, jobTitle, company, date, time, platform
+    }]).select().single();
+    
+    if (error) throw error;
     res.json({ success: true, data: interview });
   } catch (error) {
     res.status(500).json({ success: false, message: error.message });
@@ -483,8 +511,9 @@ app.post('/api/interviews', async (req, res) => {
 
 app.delete('/api/interviews/:id', async (req, res) => {
   try {
-    const db = await getDb();
-    await db.run('DELETE FROM interviews WHERE id = ?', [req.params.id]);
+    const supabase = await getDb();
+    const { error } = await supabase.from('interviews').delete().eq('id', req.params.id);
+    if (error) throw error;
     res.json({ success: true });
   } catch (error) {
     res.status(500).json({ success: false, message: error.message });
@@ -494,8 +523,9 @@ app.delete('/api/interviews/:id', async (req, res) => {
 // API Routes - LEADS (Contact Form)
 app.get('/api/leads', async (req, res) => {
   try {
-    const db = await getDb();
-    const rows = await db.all('SELECT * FROM leads ORDER BY createdAt DESC');
+    const supabase = await getDb();
+    const { data: rows, error } = await supabase.from('leads').select('*').order('createdAt', { ascending: false });
+    if (error) throw error;
     res.json({ success: true, data: rows });
   } catch (error) {
     res.status(500).json({ success: false, message: error.message });
@@ -506,12 +536,14 @@ app.post('/api/leads', async (req, res) => {
   try {
     const { id, name, email, company, phone, message } = req.body;
     const leadId = id || `LEAD-${Math.floor(1000 + Math.random() * 9000)}`;
-    const db = await getDb();
-    await db.run(
-      `INSERT INTO leads (id, name, email, company, phone, message) VALUES (?, ?, ?, ?, ?, ?)`,
-      [leadId, name, email, company, phone, message]
-    );
-    res.json({ success: true, data: { id: leadId, name, email, company, phone, message, status: 'New' } });
+    const supabase = await getDb();
+    
+    const { data: lead, error } = await supabase.from('leads').insert([{
+      id: leadId, name, email, company, phone, message
+    }]).select().single();
+    
+    if (error) throw error;
+    res.json({ success: true, data: { ...lead, status: 'New' } });
   } catch (error) {
     res.status(500).json({ success: false, message: error.message });
   }
@@ -711,7 +743,7 @@ app.post('/api/visa/check', (req, res) => {
 
 app.post('/api/verification/verify', (req, res) => {
   const { candidateName, passportNumber, verificationType } = req.body;
-  const caseId = 'SIR-BGV-' + Math.floor(100000 + Math.random() * 900000);
+  const caseId = 'REV-BGV-' + Math.floor(100000 + Math.random() * 900000);
   
   res.json({
     success: true,
@@ -752,7 +784,7 @@ app.post('/api/ai/chat', (req, res) => {
   const { message } = req.body;
   const query = (message || '').toLowerCase();
 
-  let reply = "Welcome to SIR Recruitment! I am your AI Career & Visa Assistant. How can I assist you with job applications, GCC work visas, or executive recruitment in Dubai?";
+  let reply = "Welcome to Revival International! I am your AI Career & Visa Assistant. How can I assist you with job applications, GCC work visas, or executive recruitment in Dubai?";
 
   if (query.includes('visa') || query.includes('work permit')) {
     reply = "In the UAE and Saudi Arabia, work visas are sponsored directly by the hiring employer. Essential requirements include an attested degree certificate, medical fitness clearance, and a valid employment contract. You can test your profile in our interactive Visa Eligibility Checker on this site!";
@@ -761,7 +793,7 @@ app.post('/api/ai/chat', (req, res) => {
   } else if (query.includes('salary') || query.includes('pay')) {
     reply = "Salaries in the UAE and Saudi Arabia are generally 100% tax-free! Packages usually include housing allowance, medical insurance, annual flight tickets, and end-of-service gratuity.";
   } else if (query.includes('verification') || query.includes('background')) {
-    reply = "SIR Recruitment provides 6-Point Background Verification including Education Attestation, Employment History Audit, Police Clearance, and Reference Verification. You can initiate a check in our Verification section.";
+    reply = "Revival International provides 6-Point Background Verification including Education Attestation, Employment History Audit, Police Clearance, and Reference Verification. You can initiate a check in our Verification section.";
   }
 
   res.json({ success: true, reply });
@@ -784,6 +816,10 @@ app.post('/api/payments/checkout', (req, res) => {
   });
 });
 
-app.listen(PORT, () => {
-  console.log(`SIR Recruitment Express API Server running on port ${PORT}`);
-});
+if (process.env.NODE_ENV !== 'production') {
+  app.listen(PORT, () => {
+    console.log(`Revival International Express API Server running on port ${PORT}`);
+  });
+}
+
+export default app;

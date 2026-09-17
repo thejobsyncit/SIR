@@ -42,7 +42,7 @@ export const Footer = () => {
               Stay Ahead of GCC Visa Laws & Executive Vacancies
             </h3>
             <p className="text-xs text-slate-700 dark:text-slate-300 mt-2 font-medium">
-              Subscribe to the SIR Executive Briefing. Delivered bi-weekly to 40,000+ HR Directors & C-Suite Executives.
+              Subscribe to the Revival Executive Briefing. Delivered bi-weekly to 40,000+ HR Directors & C-Suite Executives.
             </p>
           </div>
 
@@ -50,9 +50,9 @@ export const Footer = () => {
             <input 
               type="email" 
               placeholder="Enter corporate email address..." 
-              className="bg-slate-50 dark:bg-navy-950 border border-slate-300 dark:border-navy-700 text-slate-900 dark:text-white placeholder-slate-500 text-xs rounded-xl px-4 py-3 min-w-[260px] focus:outline-none focus:border-gold-500 font-medium"
+              className="bg-slate-50 dark:bg-navy-950 border border-slate-300 dark:border-navy-700 text-slate-900 dark:text-white placeholder-slate-500 text-xs rounded-xl px-4 py-3 w-full sm:min-w-[260px] focus:outline-none focus:border-gold-500 font-medium"
             />
-            <button className="bg-gold-shimmer text-navy-950 font-bold text-xs px-6 py-3 rounded-xl hover:opacity-95 transition shadow-gold-glow flex items-center justify-center space-x-2">
+            <button className="bg-gold-shimmer text-navy-950 font-bold text-xs px-6 py-3 rounded-xl hover:opacity-95 transition shadow-gold-glow flex items-center justify-center space-x-2 w-full sm:w-auto">
               <span>Subscribe Now</span>
               <Send className="w-3.5 h-3.5" />
             </button>
@@ -66,17 +66,16 @@ export const Footer = () => {
           <div className="lg:col-span-2 space-y-4">
             <div className="flex items-center space-x-3 cursor-pointer" onClick={() => navigateTo('home')}>
               <div className="w-10 h-10 rounded-xl bg-slate-50 dark:bg-navy-900 border-2 border-gold-500 flex items-center justify-center shadow-lg">
-                <span className="font-serif text-xl font-extrabold text-gold-500">S</span>
-                <span className="font-serif text-lg font-bold text-slate-900 dark:text-white">IR</span>
+                <span className="font-serif text-xl font-extrabold text-gold-500">R</span>
+                <span className="font-serif text-lg font-bold text-slate-900 dark:text-white">I</span>
               </div>
-              <div>
-                <span className="font-serif text-xl font-bold text-slate-900 dark:text-white tracking-tight">SIR Recruitment</span>
-                <p className="text-[10px] uppercase text-gold-400 font-semibold tracking-widest">Global HR & Manpower Consultancy</p>
+              <div className="font-serif text-xl font-black text-navy-900 dark:text-white tracking-tight flex items-center gap-1.5">
+                Revival <span className="text-gold-500 font-sans text-[9px] font-bold uppercase tracking-widest px-1.5 py-0.5 bg-slate-50 dark:bg-navy-900 text-gold-400 rounded shadow-sm">Intl</span>
               </div>
             </div>
 
             <p className="text-slate-600 dark:text-slate-300 leading-relaxed pr-4 font-medium">
-              SIR Recruitment is a Dubai-headquartered premier international recruitment consultancy, executive search firm, and licensed manpower outsourcing vendor operating across the UAE, GCC, Europe, and Asia.
+              Revival International is a Dubai-headquartered premier international recruitment consultancy, executive search firm, and licensed manpower outsourcing vendor operating across the UAE, GCC, Europe, and Asia.
             </p>
 
             <div className="space-y-2 pt-2 text-slate-600 dark:text-slate-300">
@@ -90,7 +89,7 @@ export const Footer = () => {
               </div>
               <div className="flex items-center space-x-3">
                 <Mail className="w-4 h-4 text-gold-500 shrink-0" />
-                <span>contact@sirrecruitment.com</span>
+                <span>contact@revivalinternational.com</span>
               </div>
             </div>
 
@@ -166,7 +165,7 @@ export const Footer = () => {
 
         {/* Bottom Rights & Certifications */}
         <div className="pt-8 flex flex-col md:flex-row items-center justify-between gap-4 text-xs text-slate-500 dark:text-slate-400">
-          <p>© 2026 SIR Recruitment Consultancy FZ-LLC. All Rights Reserved. Managed under Dubai Economic Department & MOHRE Regulations.</p>
+          <p>© 2026 Revival International Consultancy FZ-LLC. All Rights Reserved. Managed under Dubai Economic Department & MOHRE Regulations.</p>
 
           <div className="flex items-center space-x-6">
             <span className="flex items-center space-x-1 text-slate-600 dark:text-slate-300 font-medium">

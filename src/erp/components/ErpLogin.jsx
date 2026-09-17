@@ -22,7 +22,7 @@ export const ErpLogin = ({ onLogin }) => {
       } else {
         // Fallback default
         users = [
-          { name: 'Super Admin', email: 'tariq.admin@sirrecruitment.com', password: 'Super@Secret2026!', role: 'Super Admin' }
+          { name: 'Super Admin', email: 'tariq.admin@revivalinternational.com', password: 'Super@Secret2026!', role: 'Super Admin' }
         ];
       }
 
@@ -86,7 +86,7 @@ export const ErpLogin = ({ onLogin }) => {
                   value={email}
                   onChange={e => setEmail(e.target.value)}
                   required
-                  placeholder="admin@sirrecruitment.com"
+                  placeholder="admin@revivalinternational.com"
                   className="w-full bg-slate-50 dark:bg-navy-950 border border-slate-200 dark:border-navy-700 rounded-xl pl-12 pr-4 py-3.5 text-slate-900 dark:text-white text-sm font-medium focus:border-gold-500 dark:focus:border-gold-400 focus:ring-1 focus:ring-gold-500 dark:focus:ring-gold-400 transition-all placeholder-slate-400 dark:placeholder-slate-500 outline-none hover:border-slate-300 dark:hover:border-navy-600 shadow-inner"
                 />
               </div>

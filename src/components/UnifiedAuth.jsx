@@ -84,7 +84,7 @@ export const UnifiedAuth = ({ defaultMode = 'login', defaultRole = null, onSucce
       setError('Please provide corporate email and password.');
       return;
     }
-    loginEmployer(employerLogin.email, employerLogin.accountId || 'SIR-EMP-9902', employerLogin.password);
+    loginEmployer(employerLogin.email, employerLogin.accountId || 'REV-EMP-9902', employerLogin.password);
     navigateTo('employers');
     if (onSuccess) onSuccess();
     setActiveModal(null);
@@ -92,33 +92,33 @@ export const UnifiedAuth = ({ defaultMode = 'login', defaultRole = null, onSucce
 
   // Quick Demo Logins
   const handleDemoCandidateLogin = () => {
-    loginCandidate('candidate@sirrecruitment.com', 'demo123');
+    loginCandidate('candidate@revivalinternational.com', 'demo123');
     navigateTo('candidates');
     if (onSuccess) onSuccess();
     setActiveModal(null);
   };
 
   const handleDemoEmployerLogin = () => {
-    loginEmployer('hr@alhabtoorcontracting.com', 'SIR-EMP-9902', 'enterprise123');
+    loginEmployer('hr@alhabtoorcontracting.com', 'REV-EMP-9902', 'enterprise123');
     navigateTo('employers');
     if (onSuccess) onSuccess();
     setActiveModal(null);
   };
 
-  // VIEW 1: Account Type Selection View (Matching Image 2 layout with SIR branding & website theme)
+  // VIEW 1: Account Type Selection View (Matching Image 2 layout with Revival branding & website theme)
   if (!selectedRole) {
     return (
       <div className="w-full max-w-3xl mx-auto px-4 py-8 sm:py-12">
         <div className="bg-white dark:bg-navy-950 rounded-3xl p-6 sm:p-10 shadow-2xl border border-slate-200 dark:border-gold-500/30 text-center">
           
-          {/* SIR Logo Avatar at top */}
+          {/* Revival Logo Avatar at top */}
           <div className="flex justify-center mb-5">
             <BrandLogoIcon className="w-24 h-24 shadow-luxury" />
           </div>
 
           {/* Heading & Subheading */}
           <h2 className="font-serif text-2xl sm:text-3xl font-extrabold text-navy-900 dark:text-white tracking-tight">
-            {authMode === 'login' ? 'Sign In to SIR' : 'Create Your SIR Account'}
+            {authMode === 'login' ? 'Sign In to SIR' : 'Create Your Revival Account'}
           </h2>
           <p className="text-slate-600 dark:text-slate-400 text-sm font-medium mt-2">
             {authMode === 'login'
@@ -207,7 +207,7 @@ export const UnifiedAuth = ({ defaultMode = 'login', defaultRole = null, onSucce
     );
   }
 
-  // VIEW 2: Role-Specific Auth Form (Candidate or Employer) with SIR Theme
+  // VIEW 2: Role-Specific Auth Form (Candidate or Employer) with Revival Theme
   return (
     <div className="w-full max-w-2xl mx-auto px-4 py-8">
       <div className="bg-white dark:bg-navy-950 rounded-3xl p-6 sm:p-8 shadow-2xl border border-slate-200 dark:border-gold-500/30">
@@ -232,7 +232,7 @@ export const UnifiedAuth = ({ defaultMode = 'login', defaultRole = null, onSucce
                 : (authMode === 'login' ? 'Company / Employer Sign In' : 'Company / Employer Registration')}
             </h3>
             <p className="text-xs text-slate-500 dark:text-slate-400 font-medium">
-              Enter your SIR credentials to access your {selectedRole === 'candidate' ? 'Candidate' : 'Employer'} Portal.
+              Enter your Revival credentials to access your {selectedRole === 'candidate' ? 'Candidate' : 'Employer'} Portal.
             </p>
           </div>
         </div>
@@ -256,7 +256,7 @@ export const UnifiedAuth = ({ defaultMode = 'login', defaultRole = null, onSucce
                     required
                     value={candidateLogin.email}
                     onChange={(e) => setCandidateLogin({ ...candidateLogin, email: e.target.value })}
-                    placeholder="e.g. candidate@sirrecruitment.com"
+                    placeholder="e.g. candidate@revivalinternational.com"
                     className="w-full pl-9 pr-3 py-2.5 bg-slate-50 dark:bg-navy-900 border border-slate-200 dark:border-navy-700 rounded-xl focus:outline-none focus:border-gold-500 text-slate-900 dark:text-white"
                   />
                 </div>
@@ -362,7 +362,7 @@ export const UnifiedAuth = ({ defaultMode = 'login', defaultRole = null, onSucce
                 type="submit"
                 className="w-full py-3 bg-gold-500 hover:bg-gold-600 text-slate-900 dark:text-white font-bold rounded-xl shadow-gold-glow transition flex items-center justify-center space-x-2 text-sm mt-4"
               >
-                <span>Complete SIR Candidate Registration</span>
+                <span>Complete Revival Candidate Registration</span>
                 <ArrowRight className="w-4 h-4" />
               </button>
             </form>
@@ -393,7 +393,7 @@ export const UnifiedAuth = ({ defaultMode = 'login', defaultRole = null, onSucce
                 type="text"
                 value={employerLogin.accountId}
                 onChange={(e) => setEmployerLogin({ ...employerLogin, accountId: e.target.value })}
-                placeholder="e.g. SIR-EMP-9902"
+                placeholder="e.g. REV-EMP-9902"
                 className="w-full px-3 py-2.5 bg-slate-50 dark:bg-navy-900 border border-slate-200 dark:border-navy-700 rounded-xl focus:outline-none focus:border-gold-500 text-slate-900 dark:text-white"
               />
             </div>
@@ -417,7 +417,7 @@ export const UnifiedAuth = ({ defaultMode = 'login', defaultRole = null, onSucce
               type="submit"
               className="w-full py-3 bg-gold-500 hover:bg-gold-600 text-slate-900 dark:text-white font-bold rounded-xl shadow-gold-glow transition flex items-center justify-center space-x-2 text-sm mt-4"
             >
-              <span>Sign In to SIR Enterprise Portal</span>
+              <span>Sign In to Revival Enterprise Portal</span>
               <ArrowRight className="w-4 h-4" />
             </button>
 

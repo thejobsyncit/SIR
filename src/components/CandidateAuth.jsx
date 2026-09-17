@@ -59,7 +59,7 @@ export const CandidateAuth = () => {
   };
 
   const handleDemoLogin = () => {
-    loginCandidate('candidate@sirrecruitment.com', 'demo123');
+    loginCandidate('candidate@revivalinternational.com', 'demo123');
   };
 
   const handleFileChange = (e) => {
@@ -80,7 +80,7 @@ export const CandidateAuth = () => {
                 S
               </div>
               <div>
-                <h2 className="font-serif text-lg font-bold text-slate-900 dark:text-white tracking-tight">SIR Candidate Hub</h2>
+                <h2 className="font-serif text-lg font-bold text-slate-900 dark:text-white tracking-tight">Revival Candidate Hub</h2>
                 <p className="text-[10px] text-gold-700 dark:text-gold-400 uppercase tracking-widest font-semibold">Global Executive Network</p>
               </div>
             </div>

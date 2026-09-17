@@ -42,7 +42,7 @@ export const ContactUsPage = () => {
             Global Office Locations
           </span>
           <h1 className="font-serif text-4xl sm:text-5xl font-extrabold text-navy-900 dark:text-white">
-            Contact SIR Recruitment
+            Contact Revival International
           </h1>
           <p className="text-xs sm:text-sm text-slate-800 dark:text-slate-200 leading-relaxed font-medium">
             Speak directly with our senior headhunters, legal visa advisors, or corporate client relationship managers in Dubai.
@@ -78,7 +78,7 @@ export const ContactUsPage = () => {
 
                 <div className="flex items-center space-x-3">
                   <Mail className="w-4 h-4 text-gold-600 dark:text-gold-400 shrink-0" />
-                  <span className="text-slate-800 dark:text-slate-200 font-semibold">dubai@sirrecruitment.com</span>
+                  <span className="text-slate-800 dark:text-slate-200 font-semibold">dubai@revivalinternational.com</span>
                 </div>
 
                 <div className="flex items-center space-x-3">
@@ -164,7 +164,7 @@ export const ContactUsPage = () => {
             <div className="text-center py-12 space-y-3">
               <CheckCircle2 className="w-12 h-12 text-emerald-500 mx-auto" />
               <h4 className="font-serif text-lg font-bold text-navy-900 dark:text-white">Inquiry Received!</h4>
-              <p className="text-slate-800 dark:text-slate-200 font-medium">A SIR Recruitment executive will respond to your email within 2 business hours.</p>
+              <p className="text-slate-800 dark:text-slate-200 font-medium">A Revival International executive will respond to your email within 2 business hours.</p>
               <button onClick={() => setSubmitted(false)} className="px-6 py-2.5 bg-slate-50 dark:bg-navy-900 text-slate-900 dark:text-white font-bold rounded-xl">Send Another Inquiry</button>
             </div>
           )}

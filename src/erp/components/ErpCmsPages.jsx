@@ -71,7 +71,7 @@ export const ErpCmsPages = () => {
               <div key={editing} className="space-y-4">
                 <div className="space-y-2">
                   <label className="text-xs font-bold text-slate-700 dark:text-slate-300 uppercase tracking-wider ml-1">Meta Title (SEO)</label>
-                  <input type="text" defaultValue={`${pages.find(p => p.id === editing)?.title} | SIR Recruitment`} className="w-full bg-slate-50 dark:bg-navy-950 border border-slate-200 dark:border-navy-700 rounded-xl px-4 py-3 text-slate-900 dark:text-white text-sm focus:border-gold-500 focus:outline-none" />
+                  <input type="text" defaultValue={`${pages.find(p => p.id === editing)?.title} | Revival International`} className="w-full bg-slate-50 dark:bg-navy-950 border border-slate-200 dark:border-navy-700 rounded-xl px-4 py-3 text-slate-900 dark:text-white text-sm focus:border-gold-500 focus:outline-none" />
                 </div>
                 <div className="space-y-2">
                   <label className="text-xs font-bold text-slate-700 dark:text-slate-300 uppercase tracking-wider ml-1">Main Heading (H1)</label>
