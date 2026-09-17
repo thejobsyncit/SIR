@@ -54,9 +54,9 @@ export const Home = () => {
           <img 
             src="/images/hero_dubai.png" 
             alt="Dubai Skyline Revival International" 
-            className="w-full h-full object-cover opacity-25 dark:opacity-20 transform scale-105 transition duration-1000"
+            className="w-full h-full object-cover opacity-50 dark:opacity-40 transform scale-105 transition duration-1000"
           />
-          <div className="absolute inset-0 bg-gradient-to-b from-liteblue-50/80 via-liteblue-50/60 to-liteblue-50 dark:from-navy-950/90 dark:via-navy-950/80 dark:to-navy-950"></div>
+          <div className="absolute inset-0 bg-gradient-to-b from-liteblue-50/60 via-liteblue-50/40 to-liteblue-50 dark:from-navy-950/70 dark:via-navy-950/60 dark:to-navy-950"></div>
         </div>
 
         <div className="relative z-10 max-w-7xl mx-auto px-4 sm:px-8 text-center space-y-8 py-12">
@@ -347,7 +347,7 @@ export const Home = () => {
       {/* INDUSTRIES WE SERVE GRID */}
       <ScrollReveal>
       <section className="max-w-7xl mx-auto px-4 sm:px-8 space-y-8">
-        <div className="flex flex-col md:flex-row justify-between items-end gap-4 border-b border-slate-200 dark:border-navy-800 pb-6">
+        <div className="flex flex-col md:flex-row justify-between items-start md:items-end gap-4 border-b border-slate-200 dark:border-navy-800 pb-6">
           <div>
             <h2 className="text-xs font-bold text-gold-500 uppercase tracking-widest mb-1">Industry Verticals</h2>
             <h3 className="font-serif text-3xl font-extrabold text-navy-900 dark:text-white">Industries We Serve</h3>
@@ -361,7 +361,7 @@ export const Home = () => {
           </button>
         </div>
 
-        <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-4">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
           {INDUSTRIES_LIST.map((ind) => (
             <div 
               key={ind.id}
@@ -369,7 +369,7 @@ export const Home = () => {
                 setSelectedJobCategory(ind.name);
                 navigateTo('jobs');
               }}
-              className="glass-card bg-white dark:bg-navy-900 border border-slate-200 dark:border-navy-800 p-5 rounded-2xl hover:border-gold-500 transition cursor-pointer space-y-2 group shadow-sm"
+              className="glass-card bg-white dark:bg-navy-900 border border-slate-200 dark:border-navy-800 p-5 rounded-2xl hover:border-gold-500 transition cursor-pointer space-y-2 group shadow-sm flex flex-col justify-between"
             >
               <div className="flex justify-between items-center">
                 <span className="font-bold text-navy-900 dark:text-white text-sm group-hover:text-gold-500 transition">

@@ -69,8 +69,8 @@ export const Footer = () => {
                 <span className="font-serif text-xl font-extrabold text-gold-500">R</span>
                 <span className="font-serif text-lg font-bold text-slate-900 dark:text-white">I</span>
               </div>
-              <div className="font-serif text-xl font-black text-navy-900 dark:text-white tracking-tight flex items-center gap-1.5">
-                Revival <span className="text-gold-500 font-sans text-[9px] font-bold uppercase tracking-widest px-1.5 py-0.5 bg-slate-50 dark:bg-navy-900 text-gold-400 rounded shadow-sm">Intl</span>
+              <div className="font-serif text-xl font-black text-navy-900 dark:text-white tracking-tight flex items-center gap-1.5 flex-wrap">
+                Revival <span className="text-gold-500 font-sans text-[10px] sm:text-xs font-bold uppercase tracking-widest px-1.5 py-0.5 bg-slate-50/50 dark:bg-navy-900/50 rounded">International</span>
               </div>
             </div>
 
