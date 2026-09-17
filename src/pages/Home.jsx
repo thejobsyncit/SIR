@@ -50,13 +50,13 @@ export const Home = () => {
       {/* HERO SECTION */}
       <section className="relative min-h-[85vh] flex items-center justify-center pt-8 overflow-hidden">
         {/* Background Dubai Skyline Overlay */}
-        <div className="absolute inset-0 z-0">
+        <div className="absolute inset-0 z-0 bg-navy-950">
           <img 
             src="/images/hero_dubai.png" 
             alt="Dubai Skyline Revival International" 
-            className="w-full h-full object-cover opacity-50 dark:opacity-40 transform scale-105 transition duration-1000"
+            className="w-full h-full object-cover opacity-60 dark:opacity-90 dark:invert dark:grayscale dark:brightness-200 transform scale-105 transition duration-1000"
           />
-          <div className="absolute inset-0 bg-gradient-to-b from-liteblue-50/60 via-liteblue-50/40 to-liteblue-50 dark:from-navy-950/70 dark:via-navy-950/60 dark:to-navy-950"></div>
+          <div className="absolute inset-0 bg-gradient-to-b from-liteblue-50/60 via-liteblue-50/40 to-liteblue-50 dark:from-navy-950/30 dark:via-navy-950/60 dark:to-navy-950/95 pointer-events-none"></div>
         </div>
 
         <div className="relative z-10 max-w-7xl mx-auto px-4 sm:px-8 text-center space-y-8 py-12">
