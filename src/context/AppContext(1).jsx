@@ -6,7 +6,34 @@ const AppContext = createContext();
 
 export const AppProvider = ({ children }) => {
   const crm = useCrm();
-  const [darkMode, setDarkMode] = useState(false);
+  const [localDarkMode, setLocalDarkMode] = useState(() => {
+    try {
+      const saved = localStorage.getItem('sir_theme_mode');
+      return saved === 'dark';
+    } catch {
+      return false;
+    }
+  });
+
+  const darkMode = crm ? crm.darkMode : localDarkMode;
+  const toggleDarkMode = () => {
+    if (crm && crm.toggleDarkMode) {
+      crm.toggleDarkMode();
+    } else {
+      setLocalDarkMode(prev => {
+        const next = !prev;
+        if (next) {
+          document.documentElement.classList.add('dark');
+        } else {
+          document.documentElement.classList.remove('dark');
+        }
+        try {
+          localStorage.setItem('sir_theme_mode', next ? 'dark' : 'light');
+        } catch (e) {}
+        return next;
+      });
+    }
+  };
   const [language, setLanguage] = useState('EN');
   const [currency, setCurrency] = useState('AED');
   const [selectedJobCategory, setSelectedJobCategory] = useState('All');
@@ -227,18 +254,6 @@ export const AppProvider = ({ children }) => {
 
   const logout = () => {
     saveUserSession(null);
-  };
-
-  const toggleDarkMode = () => {
-    setDarkMode(prev => {
-      const next = !prev;
-      if (next) {
-        document.documentElement.classList.add('dark');
-      } else {
-        document.documentElement.classList.remove('dark');
-      }
-      return next;
-    });
   };
 
   const toggleSaveJob = (jobId) => {

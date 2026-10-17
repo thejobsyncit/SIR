@@ -3,6 +3,7 @@ import { useApp } from '../context/AppContext';
 import { Search, MapPin, Briefcase, DollarSign, Globe, CheckCircle2, Bookmark, ArrowRight, Filter, X, Sparkles, Send } from 'lucide-react';
 import { JOBS_LIST } from '../data/mockData';
 import ScrollReveal from '../components/ScrollReveal';
+import { SEO } from '../components/SEO';
 
 export const JobsPage = () => {
   const { setSelectedJob, applyForJob, applications, toggleSaveJob, savedJobs, setActiveModal, postedJobs, t, selectedJobCategory: selectedCategory, setSelectedJobCategory: setSelectedCategory } = useApp();
@@ -92,6 +93,23 @@ export const JobsPage = () => {
 
   return (
     <div className="max-w-7xl mx-auto px-4 sm:px-8 py-12 space-y-8">
+      <SEO
+        title="Global Job Openings & Executive Vacancies | Revival International"
+        description="Search verified international vacancies across Dubai, GCC, Europe, and Asia in Oil & Gas, Healthcare, Construction, Finance, and IT with full visa sponsorship support."
+        canonicalPath="jobs"
+        keywords="international jobs Dubai, GCC executive vacancies, overseas recruitment Dubai, Dubai engineering jobs, healthcare jobs Middle East"
+        breadcrumbs={[
+          { name: 'Home', item: '' },
+          { name: 'Job Opportunities', item: 'jobs' }
+        ]}
+        structuredData={{
+          '@context': 'https://schema.org',
+          '@type': 'CollectionPage',
+          name: 'Global Job Openings & Executive Vacancies',
+          description: 'Verified international employment listings across the UAE, GCC, UK, Europe, and Asia.',
+          url: 'https://www.revivalinternational.com/jobs'
+        }}
+      />
       
       {/* Header */}
       <ScrollReveal>

@@ -11,15 +11,35 @@ export const Footer = () => {
 
   const NavLink = ({ tab, label, onClick, isModal }) => {
     const isActive = !isModal && activeTab === tab;
+    if (isModal) {
+      return (
+        <li>
+          <button 
+            type="button"
+            onClick={onClick} 
+            className={`hover:text-gold-400 transition flex items-center gap-2 ${isActive ? 'text-amber-400 font-bold' : ''}`}
+          >
+            <span className={`w-1.5 h-1.5 rounded-full shrink-0 ${isActive ? 'bg-gold-500 shadow-[0_0_8px_rgba(234,179,8,0.8)]' : 'bg-slate-600'}`}></span>
+            <span className="text-left">{label}</span>
+          </button>
+        </li>
+      );
+    }
+
     return (
       <li>
-        <button 
-          onClick={onClick || (() => navigateTo(tab))} 
+        <a 
+          href={tab === 'home' ? '/' : `#${tab}`}
+          onClick={(e) => {
+            e.preventDefault();
+            if (onClick) onClick();
+            else navigateTo(tab);
+          }} 
           className={`hover:text-gold-400 transition flex items-center gap-2 ${isActive ? 'text-amber-400 font-bold' : ''}`}
         >
           <span className={`w-1.5 h-1.5 rounded-full shrink-0 ${isActive ? 'bg-gold-500 shadow-[0_0_8px_rgba(234,179,8,0.8)]' : 'bg-slate-600'}`}></span>
           <span className="text-left">{label}</span>
-        </button>
+        </a>
       </li>
     );
   };
@@ -119,6 +139,7 @@ export const Footer = () => {
               <NavLink tab="home" label="Home" />
               <NavLink tab="about" label="About Us" />
               <NavLink tab="services" label="Core Services" />
+              <NavLink tab="education" label="Academic Advisory" />
               <NavLink tab="industries" label="Industries We Serve" />
               <NavLink tab="jobs" label="Browse Job Portal" />
               <NavLink tab="employers" label="Employer Solutions" />

@@ -6,70 +6,92 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     
     <!-- SEO Primary Meta Tags -->
-    <title>Revival International | Premier International Recruitment & HR Consulting Dubai</title>
-    <meta name="title" content="Revival International | Premier International Recruitment & HR Consulting Dubai" />
-    <meta name="description" content="Revival International is Dubai's leading HR consulting and recruitment agency connecting global talent with employers across UAE, GCC, Europe, and Asia. Specialized in executive search, visa processing, and background verification." />
-    <meta name="keywords" content="Revival International, Dubai recruitment agency, UAE jobs, manpower outsourcing, executive search Dubai, GCC visa eligibility, background verification UAE, work permit consulting" />
-    <meta name="author" content="Revival International Dubai" />
+    <title>Revival International | Premier International Recruitment & Academic Advisory Dubai</title>
+    <meta name="title" content="Revival International | Premier International Recruitment & Academic Advisory Dubai" />
+    <meta name="description" content="Revival International is Dubai's leading international recruitment agency, HR consultancy, and academic advisory firm connecting global talent and students with premier institutions across UAE, GCC, Europe, and Asia." />
+    <meta name="keywords" content="Revival International, Dubai recruitment agency, UAE jobs, manpower outsourcing, executive search Dubai, GCC visa eligibility, background verification UAE, international consulting, college admissions, study abroad Dubai, IELTS preparation" />
+    <meta name="author" content="Revival International Consultancy FZ-LLC" />
+    <meta name="robots" content="index, follow" />
+    <link rel="canonical" href="https://www.revivalinternational.com/" />
 
     <!-- Open Graph / Facebook -->
     <meta property="og:type" content="website" />
+    <meta property="og:site_name" content="Revival International" />
     <meta property="og:url" content="https://www.revivalinternational.com/" />
-    <meta property="og:title" content="Revival International | Connecting Global Talent with Leading Employers" />
-    <meta property="og:description" content="Domestic & International Recruitment, Executive Search, Visa Processing & Background Verification in Dubai, UAE." />
-    <meta property="og:image" content="/images/hero_dubai.png" />
+    <meta property="og:title" content="Revival International | Global Talent & Academic Advisory" />
+    <meta property="og:description" content="Domestic & International Recruitment, Executive Search, MOHRE Visa Processing & Academic Advisory in Dubai, UAE." />
+    <meta property="og:image" content="https://www.revivalinternational.com/images/hero_dubai.png" />
+    <meta property="og:locale" content="en_AE" />
 
     <!-- Twitter -->
     <meta property="twitter:card" content="summary_large_image" />
-    <meta property="twitter:title" content="Revival International | International HR & Executive Search" />
-    <meta property="twitter:description" content="Connecting top tier global talent with premier corporations across UAE, GCC, Europe, and Asia." />
-    <meta property="twitter:image" content="/images/hero_dubai.png" />
+    <meta property="twitter:title" content="Revival International | International HR & Academic Advisory" />
+    <meta property="twitter:description" content="Connecting top-tier global talent and students with premier corporations and universities across UAE, GCC, Europe, and worldwide." />
+    <meta property="twitter:image" content="https://www.revivalinternational.com/images/hero_dubai.png" />
 
-    <!-- Fonts -->
+    <!-- Performance: Preconnect & Preload Fonts -->
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,500;0,600;0,700;1,400&family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+    <link rel="preload" as="image" href="/images/hero_dubai_dark.jpg" fetchpriority="high" />
 
-    <!-- Schema.org JSON-LD for Organization & Recruitment Agency -->
+    <!-- Schema.org JSON-LD Composite Graph: WebSite, Organization & Dual Divisions -->
     <script type="application/ld+json">
     {
       "@context": "https://schema.org",
-      "@type": "EmploymentAgency",
-      "name": "Revival International",
-      "image": "/images/hero_dubai.png",
-      "@id": "https://www.revivalinternational.com",
-      "url": "https://www.revivalinternational.com",
-      "telephone": "+971 4 123 4567",
-      "priceRange": "$$$",
-      "address": {
-        "@type": "PostalAddress",
-        "streetAddress": "Level 34, Rolex Tower, Financial Center Road, Business Bay",
-        "addressLocality": "Dubai",
-        "addressRegion": "Dubai",
-        "postalCode": "00000",
-        "addressCountry": "AE"
-      },
-      "geo": {
-        "@type": "GeoCoordinates",
-        "latitude": 25.1972,
-        "longitude": 55.2744
-      },
-      "openingHoursSpecification": {
-        "@type": "OpeningHoursSpecification",
-        "dayOfWeek": [
-          "Monday",
-          "Tuesday",
-          "Wednesday",
-          "Thursday",
-          "Friday"
-        ],
-        "opens": "08:30",
-        "closes": "18:00"
-      },
-      "sameAs": [
-        "https://www.linkedin.com/company/sir-recruitment",
-        "https://twitter.com/revivalinternational",
-        "https://facebook.com/revivalinternational"
+      "@graph": [
+        {
+          "@type": "WebSite",
+          "@id": "https://www.revivalinternational.com/#website",
+          "url": "https://www.revivalinternational.com/",
+          "name": "Revival International",
+          "description": "Premier International Recruitment, HR Consulting & Academic Advisory in Dubai and Globally",
+          "publisher": {
+            "@id": "https://www.revivalinternational.com/#organization"
+          }
+        },
+        {
+          "@type": "EmploymentAgency",
+          "@id": "https://www.revivalinternational.com/#organization",
+          "name": "Revival International",
+          "legalName": "Revival International Consultancy FZ-LLC",
+          "image": "https://www.revivalinternational.com/images/hero_dubai.png",
+          "logo": "https://www.revivalinternational.com/favicon.svg",
+          "url": "https://www.revivalinternational.com",
+          "telephone": "+971 4 123 4567",
+          "email": "contact@revivalinternational.com",
+          "priceRange": "$$$",
+          "address": {
+            "@type": "PostalAddress",
+            "streetAddress": "Level 34, Rolex Tower, Financial Center Road, Business Bay",
+            "addressLocality": "Dubai",
+            "addressRegion": "Dubai",
+            "postalCode": "00000",
+            "addressCountry": "AE"
+          },
+          "geo": {
+            "@type": "GeoCoordinates",
+            "latitude": 25.1972,
+            "longitude": 55.2744
+          },
+          "openingHoursSpecification": {
+            "@type": "OpeningHoursSpecification",
+            "dayOfWeek": [
+              "Monday",
+              "Tuesday",
+              "Wednesday",
+              "Thursday",
+              "Friday"
+            ],
+            "opens": "08:30",
+            "closes": "18:00"
+          },
+          "sameAs": [
+            "https://www.linkedin.com/company/sir-recruitment",
+            "https://twitter.com/revivalinternational",
+            "https://facebook.com/revivalinternational"
+          ]
+        }
       ]
     }
     </script>

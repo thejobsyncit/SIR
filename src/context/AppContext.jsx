@@ -6,7 +6,34 @@ const AppContext = createContext();
 
 export const AppProvider = ({ children }) => {
   const crm = useCrm();
-  const [darkMode, setDarkMode] = useState(false);
+  const [localDarkMode, setLocalDarkMode] = useState(() => {
+    try {
+      const saved = localStorage.getItem('sir_theme_mode');
+      return saved === 'dark';
+    } catch {
+      return false;
+    }
+  });
+
+  const darkMode = crm ? crm.darkMode : localDarkMode;
+  const toggleDarkMode = () => {
+    if (crm && crm.toggleDarkMode) {
+      crm.toggleDarkMode();
+    } else {
+      setLocalDarkMode(prev => {
+        const next = !prev;
+        if (next) {
+          document.documentElement.classList.add('dark');
+        } else {
+          document.documentElement.classList.remove('dark');
+        }
+        try {
+          localStorage.setItem('sir_theme_mode', next ? 'dark' : 'light');
+        } catch (e) {}
+        return next;
+      });
+    }
+  };
   const [language, setLanguage] = useState('EN');
   const [currency, setCurrency] = useState('AED');
   const [selectedJobCategory, setSelectedJobCategory] = useState('All');
@@ -34,6 +61,19 @@ export const AppProvider = ({ children }) => {
     }
     return 'home';
   });
+
+  useEffect(() => {
+    const handleHashChange = () => {
+      if (typeof window !== 'undefined') {
+        const hash = window.location.hash.replace('#', '');
+        if (hash) {
+          setActiveTab(hash);
+        }
+      }
+    };
+    window.addEventListener('hashchange', handleHashChange);
+    return () => window.removeEventListener('hashchange', handleHashChange);
+  }, []);
   const [selectedJob, setSelectedJob] = useState(null);
   const [activeModal, setActiveModal] = useState(null); // 'apply', 'ai-resume', 'payment', 'resume-builder', 'post-job', 'verification-modal', 'auth'
   const [authModalConfig, setAuthModalConfig] = useState({ mode: 'login', role: null });
@@ -229,18 +269,6 @@ export const AppProvider = ({ children }) => {
     saveUserSession(null);
   };
 
-  const toggleDarkMode = () => {
-    setDarkMode(prev => {
-      const next = !prev;
-      if (next) {
-        document.documentElement.classList.add('dark');
-      } else {
-        document.documentElement.classList.remove('dark');
-      }
-      return next;
-    });
-  };
-
   const toggleSaveJob = (jobId) => {
     setSavedJobs(prev => 
       prev.includes(jobId) ? prev.filter(id => id !== jobId) : [...prev, jobId]
@@ -413,7 +441,32 @@ export const AppProvider = ({ children }) => {
     });
   };
 
-  const [selectedServiceId, setSelectedServiceId] = useState(null);
+  const [selectedServiceId, setSelectedServiceIdState] = useState(() => {
+    if (typeof window !== 'undefined') {
+      try {
+        const urlParams = new URLSearchParams(window.location.search);
+        const urlService = urlParams.get('service');
+        if (urlService) return urlService;
+        const saved = sessionStorage.getItem('sir_selected_service_id');
+        return saved || null;
+      } catch {
+        return null;
+      }
+    }
+    return null;
+  });
+
+  const setSelectedServiceId = (serviceId) => {
+    setSelectedServiceIdState(serviceId);
+    try {
+      if (serviceId) {
+        sessionStorage.setItem('sir_selected_service_id', serviceId);
+      } else {
+        sessionStorage.removeItem('sir_selected_service_id');
+      }
+    } catch {}
+  };
+
   const [selectedIndustryId, setSelectedIndustryId] = useState(null);
 
   const navigateTo = (tab) => {
@@ -432,6 +485,11 @@ export const AppProvider = ({ children }) => {
 
   const navigateToService = (serviceId) => {
     setSelectedServiceId(serviceId);
+    const eduIds = ['intl-consult', 'college-adm', 'school-career', 'intl-adm', 'school-academy', 'exec-seminars-lang'];
+    if (eduIds.includes(serviceId)) {
+      navigateTo(`education-${serviceId}`);
+      return;
+    }
     setActiveTab('services');
     window.location.hash = 'services';
     setTimeout(() => {

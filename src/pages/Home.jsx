@@ -2,14 +2,16 @@ import React, { useState } from 'react';
 import { useApp } from '../context/AppContext';
 import { 
   Building2, Globe, Users, Briefcase, Search, ArrowRight, ShieldCheck, Award, 
-  CheckCircle2, Star, Play, ChevronRight, FileText, Sparkles, MapPin, Clock, Phone, Send, Bookmark, Calendar, MessageSquare
+  CheckCircle2, Star, Play, ChevronRight, FileText, Sparkles, MapPin, Clock, Phone, Send, Bookmark, Calendar, MessageSquare,
+  GraduationCap, School, Compass, Languages, Plane
 } from 'lucide-react';
 import { SERVICES_LIST, INDUSTRIES_LIST, TESTIMONIALS, BLOG_POSTS, FAQS, COUNTRIES_LIST, JOBS_LIST } from '../data/mockData';
 import AnimatedCounter from '../components/AnimatedCounter';
 import ScrollReveal from '../components/ScrollReveal';
+import { SEO } from '../components/SEO';
 
 export const Home = () => {
-  const { navigateTo, setSelectedJob, setActiveModal, applyForJob, applications, postedJobs, t, setSelectedJobCategory } = useApp();
+  const { navigateTo, setSelectedJob, setActiveModal, applyForJob, applications, postedJobs, t, setSelectedJobCategory, setSelectedServiceId } = useApp();
   const allJobsList = [...(postedJobs || []), ...JOBS_LIST];
   const isApplied = (jobId) => applications && applications.some(a => a.jobId === jobId);
   const [searchKeyword, setSearchKeyword] = useState('');
@@ -46,17 +48,35 @@ export const Home = () => {
 
   return (
     <div className="space-y-24 pb-16">
+      <SEO
+        title="Revival International | Premier International Recruitment & Academic Advisory Dubai"
+        description="Revival International connects global talent and students with premier employers and universities across UAE, GCC, Europe, and Asia. Specializing in executive search, visa processing, background checks, and academic advisory."
+        canonicalPath=""
+        keywords="Dubai recruitment agency, international consulting, executive search, GCC visa, background verification, study abroad Dubai, IELTS prep, college admissions"
+        breadcrumbs={[{ name: 'Home', item: '/' }]}
+      />
       
       {/* HERO SECTION */}
       <section className="relative min-h-[85vh] flex items-center justify-center pt-8 overflow-hidden">
         {/* Background Dubai Skyline Overlay */}
         <div className="absolute inset-0 z-0 bg-navy-950">
+          {/* Light Mode: Original Daytime Dubai Skyline */}
           <img 
             src="/images/hero_dubai.png" 
             alt="Dubai Skyline Revival International" 
-            className="w-full h-full object-cover opacity-60 dark:opacity-90 dark:invert dark:grayscale dark:brightness-200 transform scale-105 transition duration-1000"
+            loading="eager"
+            fetchPriority="high"
+            className="w-full h-full object-cover opacity-60 dark:opacity-0 transform scale-105 transition-opacity duration-700 absolute inset-0"
           />
-          <div className="absolute inset-0 bg-gradient-to-b from-liteblue-50/60 via-liteblue-50/40 to-liteblue-50 dark:from-navy-950/30 dark:via-navy-950/60 dark:to-navy-950/95 pointer-events-none"></div>
+          {/* Dark Mode: Realistic Nighttime Dubai Skyline with Illuminated Architectural Lighting */}
+          <img 
+            src="/images/hero_dubai_dark.jpg" 
+            alt="Dubai Skyline Revival International Night" 
+            loading="eager"
+            fetchPriority="high"
+            className="w-full h-full object-cover opacity-0 dark:opacity-85 transform scale-105 transition-opacity duration-700 absolute inset-0"
+          />
+          <div className="absolute inset-0 bg-gradient-to-b from-liteblue-50/60 via-liteblue-50/40 to-liteblue-50 dark:from-navy-950/25 dark:via-navy-950/35 dark:to-navy-950/90 pointer-events-none"></div>
         </div>
 
         <div className="relative z-10 max-w-7xl mx-auto px-4 sm:px-8 text-center space-y-8 py-12">
@@ -302,23 +322,71 @@ export const Home = () => {
         <div className="text-center space-y-3 max-w-2xl mx-auto">
           <h2 className="text-xs font-bold text-gold-500 uppercase tracking-widest">Our Core Expertise</h2>
           <h3 className="font-serif text-3xl sm:text-4xl font-extrabold text-navy-900 dark:text-white">
-            18+ Premium HR & Recruitment Solutions
+            {SERVICES_LIST.length}+ Executive HR, Visa & Academic Advisory Services
           </h3>
           <p className="text-xs text-slate-800 dark:text-slate-200 font-medium">
-            From executive headhunting to MOHRE visa quotas, we manage every facet of corporate workforce expansion.
+            From executive headhunting and MOHRE visa quotas to international university admissions, language test prep, and career counseling.
           </p>
         </div>
 
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-          {SERVICES_LIST.slice(0, 9).map((srv) => (
-            <div 
-              key={srv.id}
-              onClick={() => navigateTo('services')}
-              className="glass-card bg-white dark:bg-navy-900 border border-slate-200 dark:border-navy-800 p-6 rounded-2xl hover:border-gold-500 hover:-translate-y-1 transition duration-300 cursor-pointer space-y-3 group shadow-glass"
-            >
-              <div className="w-12 h-12 rounded-xl bg-white dark:bg-navy-950 text-gold-500 border border-slate-200 dark:border-gold-500/30 flex items-center justify-center font-bold group-hover:bg-gold-500 group-hover:text-slate-900 dark:text-white transition">
-                <Briefcase className="w-6 h-6" />
-              </div>
+          {/* Curated list featuring top recruitment and newly added education services */}
+          {[
+            ...SERVICES_LIST.filter(s => s.category === 'Education' || s.subCategory === 'Education'),
+            ...SERVICES_LIST.filter(s => s.category !== 'Education' && s.subCategory !== 'Education').slice(0, 6)
+          ].map((srv) => {
+            const homeIconMap = {
+              'Building2': Building2,
+              'Globe': Globe,
+              'UserCheck': Users,
+              'Briefcase': Briefcase,
+              'Clock': Clock,
+              'Users': Users,
+              'Plane': Plane,
+              'FileText': FileText,
+              'Award': Award,
+              'ShieldCheck': ShieldCheck,
+              'PieChart': Award,
+              'CreditCard': Award,
+              'Layers': Building2,
+              'Calendar': Calendar,
+              'CheckCircle2': CheckCircle2,
+              'FileCode': FileText,
+              'Compass': Compass,
+              'Sparkles': Sparkles,
+              'GraduationCap': GraduationCap,
+              'School': School,
+              'Languages': Languages
+            };
+            const ServiceIcon = homeIconMap[srv.icon] || Briefcase;
+
+            return (
+              <div 
+                key={srv.id}
+                onClick={() => {
+                  if (srv.category === 'Education' || srv.subCategory === 'Education') {
+                    if (srv.id === 'intl-consult') {
+                      navigateTo('international-consulting');
+                    } else {
+                      navigateTo(`education-${srv.id}`);
+                    }
+                  } else {
+                    if (setSelectedServiceId) setSelectedServiceId(srv.id);
+                    navigateTo('services');
+                  }
+                }}
+                className="glass-card bg-white dark:bg-navy-900 border border-slate-200 dark:border-navy-800 p-6 rounded-2xl hover:border-gold-500 hover:-translate-y-1 transition duration-300 cursor-pointer space-y-3 group shadow-glass"
+              >
+                <div className="flex justify-between items-center">
+                  <div className="w-12 h-12 rounded-xl bg-white dark:bg-navy-950 text-gold-500 border border-slate-200 dark:border-gold-500/30 flex items-center justify-center font-bold group-hover:bg-gold-500 group-hover:text-slate-900 dark:text-white transition">
+                    <ServiceIcon className="w-6 h-6" />
+                  </div>
+                  {(srv.category === 'Education' || srv.subCategory === 'Education') && (
+                    <span className="bg-emerald-500/15 text-emerald-600 dark:text-emerald-400 font-extrabold text-[9px] px-2 py-0.5 rounded-full uppercase">
+                      New Advisory
+                    </span>
+                  )}
+                </div>
               <h4 className="font-serif text-lg font-bold text-navy-900 dark:text-white group-hover:text-gold-500 transition">
                 {srv.title}
               </h4>
@@ -330,7 +398,8 @@ export const Home = () => {
                 <ChevronRight className="w-3.5 h-3.5 group-hover:translate-x-1 transition" />
               </div>
             </div>
-          ))}
+          );
+        })}
         </div>
 
         <div className="text-center pt-4">
@@ -338,7 +407,7 @@ export const Home = () => {
             onClick={() => navigateTo('services')}
             className="px-8 py-3.5 bg-slate-50 dark:bg-navy-900 hover:bg-gold-500 hover:text-slate-900 dark:text-white text-slate-900 dark:text-white font-bold text-xs rounded-xl shadow-luxury transition"
           >
-            View All 18 Executive Services →
+            View All {SERVICES_LIST.length} Executive & Advisory Services →
           </button>
         </div>
       </section>

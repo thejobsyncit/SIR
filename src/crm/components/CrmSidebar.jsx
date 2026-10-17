@@ -7,7 +7,7 @@ import {
 } from 'lucide-react';
 
 export const CrmSidebar = ({ collapsed, setCollapsed }) => {
-  const { activeModule, setActiveModule, hasPermission, logout, currentRole, user } = useCrm();
+  const { activeModule, setActiveModule, hasPermission, logout, currentRole, user, leads = [] } = useCrm();
 
   const menuItems = [
     { id: 'dashboard', label: 'Dashboard', icon: LayoutDashboard },
@@ -80,7 +80,12 @@ export const CrmSidebar = ({ collapsed, setCollapsed }) => {
               title={item.label}
             >
               <Icon className={`w-4 h-4 shrink-0 ${isActive ? 'text-gold-500' : 'text-slate-600 dark:text-slate-200'}`} />
-              {!collapsed && <span className="truncate">{item.label}</span>}
+              {!collapsed && <span className="truncate flex-1 text-left">{item.label}</span>}
+              {!collapsed && item.id === 'super-admin' && leads.filter(l => l.status === 'New').length > 0 && (
+                <span className="px-1.5 py-0.5 text-[9px] font-extrabold rounded-full bg-emerald-500 text-white animate-pulse">
+                  {leads.filter(l => l.status === 'New').length}
+                </span>
+              )}
             </button>
           );
         })}

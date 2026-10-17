@@ -19,6 +19,10 @@ import { CandidatePortal } from './pages/CandidatePortal';
 import { VisaEligibilityPage } from './pages/VisaEligibilityPage';
 import { BackgroundVerificationPage } from './pages/BackgroundVerificationPage';
 import { ContactUsPage } from './pages/ContactUsPage';
+import { EducationDirectory } from './pages/EducationDirectory';
+import { EducationServiceDetail } from './pages/EducationServiceDetail';
+import { InternationalConsultingPage } from './pages/InternationalConsultingPage';
+import { NotFound } from './pages/NotFound';
 import { UnifiedAuthModal } from './components/UnifiedAuthModal';
 import { CrmApp } from './crm/CrmApp';
 import { ErpApp } from './erp/ErpApp';
@@ -46,6 +50,21 @@ export function App() {
   }
 
   const renderCurrentPage = () => {
+    // Dedicated Academic & Education Advisory Routes
+    if (activeTab === 'education') {
+      return <EducationDirectory />;
+    }
+    if (activeTab === 'education-intl-consult' || activeTab === 'international-consulting') {
+      return <InternationalConsultingPage />;
+    }
+    if (activeTab && activeTab.startsWith('education-')) {
+      const serviceId = activeTab.replace('education-', '');
+      if (serviceId === 'intl-consult') {
+        return <InternationalConsultingPage />;
+      }
+      return <EducationServiceDetail serviceId={serviceId} />;
+    }
+
     switch (activeTab) {
       case 'erp':
         return <ErpApp />;
@@ -70,8 +89,12 @@ export function App() {
       case 'contact':
         return <ContactUsPage />;
       case 'home':
-      default:
+      case '':
+      case undefined:
+      case null:
         return <Home />;
+      default:
+        return <NotFound />;
     }
   };
 

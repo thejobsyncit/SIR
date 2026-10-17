@@ -3,6 +3,7 @@ import { useApp } from '../context/AppContext';
 import { Globe, Award, CheckCircle2, AlertTriangle, FileText, Clock, RefreshCw, ArrowRight, ShieldCheck, Calendar } from 'lucide-react';
 import { VisaMatrixTable } from '../components/VisaMatrixTable';
 import ScrollReveal from '../components/ScrollReveal';
+import { SEO } from '../components/SEO';
 import DatePicker from "react-datepicker";
 import "react-datepicker/dist/react-datepicker.css";
 
@@ -137,6 +138,25 @@ export const VisaEligibilityPage = () => {
 
   return (
     <div className="max-w-7xl mx-auto px-4 sm:px-8 py-12 space-y-16">
+      <SEO
+        title="Global Work Visa Eligibility Calculator & GCC Matrix | Revival International"
+        description="Assess your international employment visa eligibility for UAE, Saudi Arabia, Qatar, Germany, and the UK with Revival International's points calculator and compliance matrix."
+        canonicalPath="visa-eligibility"
+        keywords="UAE work visa eligibility, GCC visa points calculator, Dubai employment visa requirements, Saudi Iqama eligibility, UK skilled worker visa checker"
+        breadcrumbs={[
+          { name: 'Home', item: '' },
+          { name: 'Visa Eligibility Calculator', item: 'visa-eligibility' }
+        ]}
+        structuredData={{
+          '@context': 'https://schema.org',
+          '@type': 'WebApplication',
+          name: 'Global Work Visa Eligibility Calculator',
+          applicationCategory: 'BusinessApplication',
+          operatingSystem: 'All',
+          description: 'Interactive work permit and immigration eligibility assessment matrix for GCC and European jurisdictions.',
+          url: 'https://www.revivalinternational.com/visa-eligibility'
+        }}
+      />
       
       {/* Header */}
       <ScrollReveal>

@@ -3,12 +3,30 @@ import { useApp } from '../context/AppContext';
 import { INDUSTRIES_LIST } from '../data/mockData';
 import { Building, Flame, HeartPulse, Utensils, Code, Wrench, Factory, ShoppingBag, Truck, PlaneTakeoff, Landmark, GraduationCap, ArrowRight } from 'lucide-react';
 import ScrollReveal from '../components/ScrollReveal';
+import { SEO } from '../components/SEO';
 
 export const Industries = () => {
   const { navigateTo, selectedIndustryId, setSelectedJobCategory } = useApp();
 
   return (
     <div className="max-w-7xl mx-auto px-4 sm:px-8 py-12 space-y-12">
+      <SEO
+        title="Specialized Industry Recruitment Desks | Revival International Dubai"
+        description="Explore Revival International's specialized recruitment verticals including Healthcare, Engineering, Oil & Gas, IT, Hospitality, and Financial Services across Dubai and GCC."
+        canonicalPath="industries"
+        keywords="recruitment industries Dubai, oil gas staffing GCC, healthcare recruitment UAE, IT headhunters Dubai, construction executive recruitment"
+        breadcrumbs={[
+          { name: 'Home', item: '' },
+          { name: 'Industries We Serve', item: 'industries' }
+        ]}
+        structuredData={{
+          '@context': 'https://schema.org',
+          '@type': 'CollectionPage',
+          name: 'Specialized Industry Recruitment Desks',
+          description: 'Specialized executive recruitment desks across core UAE and global industries.',
+          url: 'https://www.revivalinternational.com/industries'
+        }}
+      />
       
       <ScrollReveal>
       <div className="text-center space-y-3 max-w-3xl mx-auto">

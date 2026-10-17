@@ -16,7 +16,14 @@ export const CrmProvider = ({ children }) => {
   });
 
   const [currentRole, setCurrentRole] = useState('Super Admin');
-  const [darkMode, setDarkMode] = useState(true);
+  const [darkMode, setDarkMode] = useState(() => {
+    try {
+      const saved = localStorage.getItem('sir_theme_mode');
+      return saved === 'dark';
+    } catch {
+      return false;
+    }
+  });
   const loadState = (key, defaultData) => {
     try {
       const saved = localStorage.getItem(key);
@@ -289,7 +296,13 @@ export const CrmProvider = ({ children }) => {
   };
 
   const toggleDarkMode = () => {
-    setDarkMode(prev => !prev);
+    setDarkMode(prev => {
+      const next = !prev;
+      try {
+        localStorage.setItem('sir_theme_mode', next ? 'dark' : 'light');
+      } catch (e) {}
+      return next;
+    });
   };
 
   return (

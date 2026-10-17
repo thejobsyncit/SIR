@@ -8,6 +8,7 @@ import {
   Briefcase, MapPin, DollarSign, Check, X, Plus, Star, ChevronRight, Zap, Globe, Trash2, Video, Mic, MicOff, VideoOff, Search, Eye
 } from 'lucide-react';
 import ScrollReveal from '../components/ScrollReveal';
+import { SEO } from '../components/SEO';
 import DatePicker from "react-datepicker";
 import "react-datepicker/dist/react-datepicker.css";
 
@@ -302,6 +303,16 @@ export const CandidatePortal = () => {
   return (
     <ScrollReveal>
     <div className="max-w-7xl mx-auto px-4 sm:px-8 py-12 space-y-8">
+      <SEO
+        title="Candidate Portal & Job Tracker | Revival International"
+        description="Access your Revival International candidate dashboard to track job applications, manage interviews, update CV credentials, and monitor international visa progress."
+        canonicalPath="candidates"
+        keywords="candidate portal, international job applications, track job application Dubai, CV submission GCC"
+        breadcrumbs={[
+          { name: 'Home', item: '' },
+          { name: 'Candidate Portal', item: 'candidates' }
+        ]}
+      />
       
       {/* Profile Header Banner */}
       <div className="bg-white dark:bg-navy-950 text-slate-900 dark:text-white rounded-3xl p-6 sm:p-8 border border-slate-200 dark:border-gold-500/30 shadow-lg flex flex-col md:flex-row justify-between items-center gap-6">

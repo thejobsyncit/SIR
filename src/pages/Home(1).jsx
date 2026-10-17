@@ -50,13 +50,20 @@ export const Home = () => {
       {/* HERO SECTION */}
       <section className="relative min-h-[85vh] flex items-center justify-center pt-8 overflow-hidden">
         {/* Background Dubai Skyline Overlay */}
-        <div className="absolute inset-0 z-0">
+        <div className="absolute inset-0 z-0 bg-navy-950">
+          {/* Light Mode: Original Daytime Dubai Skyline */}
           <img 
             src="/images/hero_dubai.png" 
             alt="Dubai Skyline Revival International" 
-            className="w-full h-full object-cover opacity-25 dark:opacity-20 transform scale-105 transition duration-1000"
+            className="w-full h-full object-cover opacity-60 dark:opacity-0 transform scale-105 transition-opacity duration-700 absolute inset-0"
           />
-          <div className="absolute inset-0 bg-gradient-to-b from-liteblue-50/80 via-liteblue-50/60 to-liteblue-50 dark:from-navy-950/90 dark:via-navy-950/80 dark:to-navy-950"></div>
+          {/* Dark Mode: Realistic Nighttime Dubai Skyline with Illuminated Architectural Lighting */}
+          <img 
+            src="/images/hero_dubai_dark.jpg" 
+            alt="Dubai Skyline Revival International Night" 
+            className="w-full h-full object-cover opacity-0 dark:opacity-85 transform scale-105 transition-opacity duration-700 absolute inset-0"
+          />
+          <div className="absolute inset-0 bg-gradient-to-b from-liteblue-50/60 via-liteblue-50/40 to-liteblue-50 dark:from-navy-950/25 dark:via-navy-950/35 dark:to-navy-950/90 pointer-events-none"></div>
         </div>
 
         <div className="relative z-10 max-w-7xl mx-auto px-4 sm:px-8 text-center space-y-8 py-12">

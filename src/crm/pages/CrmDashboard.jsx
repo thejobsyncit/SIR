@@ -1,11 +1,17 @@
-import React from 'react';
+import React, { useEffect } from 'react';
 import { useCrm } from '../context/CrmContext';
-import { Users, Building2, Globe, Briefcase, Award, TrendingUp, Calendar, Clock, DollarSign, ShieldCheck, CheckCircle2, ArrowUpRight } from 'lucide-react';
+import { Users, Building2, Globe, Briefcase, Award, TrendingUp, Calendar, Clock, DollarSign, ShieldCheck, CheckCircle2, ArrowUpRight, GraduationCap, Compass, BookOpen, AlertCircle } from 'lucide-react';
 import { RECRUITER_LEADERBOARD, AUDIT_LOGS } from '../data/mockCrmData';
 import ScrollReveal from '../../components/ScrollReveal';
 
 export const CrmDashboard = () => {
-  const { currentRole } = useCrm();
+  const { currentRole, consultingMetrics, fetchConsultingMetrics } = useCrm();
+
+  useEffect(() => {
+    if (fetchConsultingMetrics) {
+      fetchConsultingMetrics();
+    }
+  }, []);
 
   const widgets = [
     { 
@@ -132,6 +138,91 @@ export const CrmDashboard = () => {
             </div>
           );
         })}
+      </div>
+      </ScrollReveal>
+
+      {/* INTERNATIONAL CONSULTING & ACADEMIC ADVISORY PERFORMANCE (LIVE DATABASE DERIVED) */}
+      <ScrollReveal>
+      <div className="glass-card bg-white dark:bg-gradient-to-r dark:from-[#061126] dark:via-[#0a1936] dark:to-[#071329] border border-slate-200 dark:border-gold-500/35 p-6 rounded-3xl shadow-sm space-y-5">
+        <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3 border-b border-slate-200 dark:border-navy-800 pb-4">
+          <div>
+            <div className="flex items-center gap-2">
+              <span className="bg-gold-500/20 text-gold-700 dark:text-gold-400 text-[10px] font-bold px-2.5 py-0.5 rounded uppercase">
+                Service Division 3 • Live SQLite Metrics
+              </span>
+              <span className="text-[11px] font-extrabold text-emerald-600 dark:text-emerald-400 flex items-center gap-1">
+                <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></span>
+                Connected
+              </span>
+            </div>
+            <h2 className="font-serif text-xl font-bold text-slate-900 dark:text-white mt-1 flex items-center gap-2">
+              <GraduationCap className="w-5 h-5 text-gold-500" />
+              International Consulting & Advisory Pipeline
+            </h2>
+            <p className="text-xs text-slate-600 dark:text-slate-300">
+              Database-verified student advisories, university shortlist engagements, visa compliance, and partner institutions.
+            </p>
+          </div>
+
+          <div className="flex items-center gap-2">
+            {consultingMetrics?.overdueFollowUps > 0 && (
+              <span className="bg-rose-500/10 text-rose-600 dark:text-rose-400 border border-rose-500/30 px-3 py-1.5 rounded-xl text-xs font-bold flex items-center gap-1.5">
+                <AlertCircle className="w-3.5 h-3.5" />
+                <span>{consultingMetrics.overdueFollowUps} Overdue Follow-up{consultingMetrics.overdueFollowUps > 1 ? 's' : ''}</span>
+              </span>
+            )}
+          </div>
+        </div>
+
+        <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3">
+          <div className="p-4 bg-slate-50 dark:bg-navy-950/80 rounded-2xl border border-slate-200 dark:border-navy-800 space-y-1">
+            <span className="text-[10px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider block">Total Enquiries</span>
+            <p className="font-serif text-2xl font-extrabold text-slate-900 dark:text-white">
+              {consultingMetrics?.totalEnquiries || 0}
+            </p>
+            <p className="text-[10px] text-blue-600 dark:text-blue-400 font-bold">Consulting Leads</p>
+          </div>
+
+          <div className="p-4 bg-slate-50 dark:bg-navy-950/80 rounded-2xl border border-slate-200 dark:border-navy-800 space-y-1">
+            <span className="text-[10px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider block">New Inbound</span>
+            <p className="font-serif text-2xl font-extrabold text-emerald-600 dark:text-emerald-400">
+              {consultingMetrics?.newEnquiries || 0}
+            </p>
+            <p className="text-[10px] text-emerald-600 dark:text-emerald-400 font-bold">Awaiting Outreach</p>
+          </div>
+
+          <div className="p-4 bg-slate-50 dark:bg-navy-950/80 rounded-2xl border border-slate-200 dark:border-navy-800 space-y-1">
+            <span className="text-[10px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider block">Consultations</span>
+            <p className="font-serif text-2xl font-extrabold text-amber-600 dark:text-gold-400">
+              {consultingMetrics?.consultationsScheduled || 0}
+            </p>
+            <p className="text-[10px] text-amber-600 dark:text-gold-400 font-bold">Scheduled & Active</p>
+          </div>
+
+          <div className="p-4 bg-slate-50 dark:bg-navy-950/80 rounded-2xl border border-slate-200 dark:border-navy-800 space-y-1">
+            <span className="text-[10px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider block">In Progress</span>
+            <p className="font-serif text-2xl font-extrabold text-purple-600 dark:text-purple-400">
+              {consultingMetrics?.activeEngagements || 0}
+            </p>
+            <p className="text-[10px] text-purple-600 dark:text-purple-400 font-bold">Active Advisories</p>
+          </div>
+
+          <div className="p-4 bg-slate-50 dark:bg-navy-950/80 rounded-2xl border border-slate-200 dark:border-navy-800 space-y-1">
+            <span className="text-[10px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider block">Follow-ups Due</span>
+            <p className="font-serif text-2xl font-extrabold text-rose-600 dark:text-rose-400">
+              {consultingMetrics?.followUpsDue || 0}
+            </p>
+            <p className="text-[10px] text-rose-600 dark:text-rose-400 font-bold">Scheduled Action</p>
+          </div>
+
+          <div className="p-4 bg-slate-50 dark:bg-navy-950/80 rounded-2xl border border-slate-200 dark:border-navy-800 space-y-1">
+            <span className="text-[10px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider block">Completed</span>
+            <p className="font-serif text-2xl font-extrabold text-teal-600 dark:text-teal-400">
+              {consultingMetrics?.completedEngagements || 0}
+            </p>
+            <p className="text-[10px] text-teal-600 dark:text-teal-400 font-bold">Advisories Concluded</p>
+          </div>
+        </div>
       </div>
       </ScrollReveal>
 

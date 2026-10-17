@@ -1,22 +1,364 @@
 export const SERVICES_LIST = [
-  { id: 'dom-rec', title: 'Domestic Recruitment', icon: 'Building2', category: 'Recruitment', description: 'Talent acquisition tailored to UAE domestic business demands across all sectors.' },
-  { id: 'intl-rec', title: 'International Recruitment', icon: 'Globe', category: 'Recruitment', description: 'Cross-border recruitment connecting global professionals from Europe, Asia, & Africa with GCC opportunities.' },
-  { id: 'exec-search', title: 'Executive Search', icon: 'UserCheck', category: 'Executive', description: 'Headhunting C-suite leaders, Vice Presidents, and specialized Senior Directors for enterprise clients.' },
-  { id: 'perm-staff', title: 'Permanent Staffing', icon: 'Briefcase', category: 'Staffing', description: 'Long-term talent placement with comprehensive 90-day retention guarantees and onboarding support.' },
-  { id: 'contract-staff', title: 'Contract Staffing', icon: 'Clock', category: 'Staffing', description: 'Flexible short-term and project-based staffing solutions to meet seasonal workforce spikes.' },
-  { id: 'bulk-hiring', title: 'Bulk Hiring', icon: 'Users', category: 'Recruitment', description: 'Mass deployment of technical workers, hospitality teams, and construction crews with rapid turnaround.' },
-  { id: 'overseas-place', title: 'Overseas Placement', icon: 'Plane', category: 'Placement', description: 'End-to-end relocation services, airport transfer coordination, and initial settlement assistance.' },
-  { id: 'visa-assist', title: 'Visa Assistance', icon: 'FileText', category: 'Visa & Legal', description: 'Complete work permit processing, entry visa quotas, medical scheduling, and Emirates ID setup.' },
-  { id: 'work-permit', title: 'Work Permit Guidance', icon: 'Award', category: 'Visa & Legal', description: 'Regulatory counsel on MOHRE rules, LMRA guidelines, and EU Blue Card compliance.' },
-  { id: 'bg-verify', title: 'Background Verification', icon: 'ShieldCheck', category: 'Verification', description: 'Comprehensive 6-point verification covering education, past employment, police record, & identity.' },
-  { id: 'hr-consulting', title: 'HR Consulting', icon: 'PieChart', category: 'Consulting', description: 'Strategic organizational design, salary benchmarking, policy formulation, and MOHRE compliance.' },
-  { id: 'payroll-mgmt', title: 'Payroll Management', icon: 'CreditCard', category: 'Operations', description: 'WPS-compliant salary processing, end-of-service gratuity calculations, and benefit administration.' },
-  { id: 'manpower-outsrc', title: 'Manpower Outsourcing', icon: 'Layers', category: 'Operations', description: 'Offload operational payroll & visa liability while deploying dedicated personnel to your sites.' },
-  { id: 'interview-coord', title: 'Interview Coordination', icon: 'Calendar', category: 'Recruitment', description: 'Automated video interviewing, global timezone scheduling, and panel interview moderation.' },
-  { id: 'cand-screening', title: 'Candidate Screening', icon: 'CheckCircle2', category: 'Recruitment', description: 'AI-assisted resume filtering, competency assessments, and behavioral psychometric testing.' },
-  { id: 'resume-build', title: 'Resume Building', icon: 'FileCode', category: 'Career', description: 'Professional ATS-optimized CV re-writing tailored for GCC and European job markets.' },
-  { id: 'career-guide', title: 'Career Guidance', icon: 'Compass', category: 'Career', description: 'One-on-one executive career coaching, interview preparation, and compensation negotiation.' },
-  { id: 'emp-branding', title: 'Employer Branding', icon: 'Sparkles', category: 'Consulting', description: 'Elevate your talent brand to attract top-tier global candidates across LinkedIn and media.' }
+  { 
+    id: 'dom-rec', 
+    title: 'Domestic Recruitment', 
+    icon: 'Building2', 
+    category: 'Recruitment', 
+    description: 'Talent acquisition tailored to UAE domestic business demands across all sectors.',
+    targetAudience: 'UAE businesses, regional entities, and domestic employers seeking qualified talent.',
+    deliverables: [
+      'Sector-specific candidate sourcing',
+      'Skill and competency screening',
+      'Local employment contract alignment'
+    ]
+  },
+  { 
+    id: 'intl-rec', 
+    title: 'International Recruitment', 
+    icon: 'Globe', 
+    category: 'Recruitment', 
+    description: 'Cross-border recruitment connecting global professionals from Europe, Asia, & Africa with GCC opportunities.',
+    targetAudience: 'GCC enterprises and international professionals seeking cross-border careers.',
+    deliverables: [
+      'Global talent search & headhunting',
+      'Cross-border credential verification',
+      'Relocation and onboarding facilitation'
+    ]
+  },
+  { 
+    id: 'exec-search', 
+    title: 'Executive Search', 
+    icon: 'UserCheck', 
+    category: 'Executive', 
+    description: 'Headhunting C-suite leaders, Vice Presidents, and specialized Senior Directors for enterprise clients.',
+    targetAudience: 'Corporate boards, C-suite executives, and enterprise leadership teams.',
+    deliverables: [
+      'Discreet executive headhunting',
+      'Board & VP level competency evaluation',
+      'Executive compensation benchmarking'
+    ]
+  },
+  { 
+    id: 'perm-staff', 
+    title: 'Permanent Staffing', 
+    icon: 'Briefcase', 
+    category: 'Staffing', 
+    description: 'Long-term talent placement with comprehensive 90-day retention guarantees and onboarding support.',
+    targetAudience: 'Organizations seeking long-term, high-retention core team members.',
+    deliverables: [
+      'Rigorous candidate pre-qualification',
+      '90-day retention replacement guarantee',
+      'Structured onboarding facilitation'
+    ]
+  },
+  { 
+    id: 'contract-staff', 
+    title: 'Contract Staffing', 
+    icon: 'Clock', 
+    category: 'Staffing', 
+    description: 'Flexible short-term and project-based staffing solutions to meet seasonal workforce spikes.',
+    targetAudience: 'Enterprises managing seasonal workloads or fixed-duration projects.',
+    deliverables: [
+      'Rapid project-based workforce deployment',
+      'Compliant short-term contract administration',
+      'Flexible workforce scalability'
+    ]
+  },
+  { 
+    id: 'bulk-hiring', 
+    title: 'Bulk Hiring', 
+    icon: 'Users', 
+    category: 'Recruitment', 
+    description: 'Mass deployment of technical workers, hospitality teams, and construction crews with rapid turnaround.',
+    targetAudience: 'Hospitality, construction, retail, and logistics mega-projects.',
+    deliverables: [
+      'High-volume candidate recruitment drives',
+      'Trade and technical skill assessments',
+      'Mobilization and logistics coordination'
+    ]
+  },
+  { 
+    id: 'overseas-place', 
+    title: 'Overseas Placement', 
+    icon: 'Plane', 
+    category: 'Placement', 
+    description: 'End-to-end relocation services, airport transfer coordination, and initial settlement assistance.',
+    targetAudience: 'Professionals and technicians relocating to GCC destinations.',
+    deliverables: [
+      'Pre-departure briefing & flight coordination',
+      'Airport reception & transit assistance',
+      'Settlement and community orientation'
+    ]
+  },
+  { 
+    id: 'visa-assist', 
+    title: 'Visa Assistance', 
+    icon: 'FileText', 
+    category: 'Visa & Legal', 
+    description: 'Complete work permit processing, entry visa quotas, medical scheduling, and Emirates ID setup.',
+    targetAudience: 'Employers and international workers navigating UAE immigration.',
+    deliverables: [
+      'MOHRE work permit application handling',
+      'Medical fitness test scheduling',
+      'Emirates ID & residency stamping'
+    ]
+  },
+  { 
+    id: 'work-permit', 
+    title: 'Work Permit Guidance', 
+    icon: 'Award', 
+    category: 'Visa & Legal', 
+    description: 'Regulatory counsel on MOHRE rules, LMRA guidelines, and EU Blue Card compliance.',
+    targetAudience: 'Companies requiring regulatory compliance across GCC and EU labor markets.',
+    deliverables: [
+      'MOHRE quota advisory & compliance',
+      'LMRA and GCC labor regulation counsel',
+      'EU Blue Card documentation support'
+    ]
+  },
+  { 
+    id: 'bg-verify', 
+    title: 'Background Verification', 
+    icon: 'ShieldCheck', 
+    category: 'Verification', 
+    description: 'Comprehensive 6-point verification covering education, past employment, police record, & identity.',
+    targetAudience: 'Corporates and government contractors requiring verified hiring.',
+    deliverables: [
+      '6-point credential verification',
+      'Criminal record & police clearance check',
+      'Previous employment & reference checks'
+    ]
+  },
+  { 
+    id: 'hr-consulting', 
+    title: 'HR Consulting', 
+    icon: 'PieChart', 
+    category: 'Consulting', 
+    description: 'Strategic organizational design, salary benchmarking, policy formulation, and MOHRE compliance.',
+    targetAudience: 'Growing enterprises and established firms restructuring operations.',
+    deliverables: [
+      'Organizational design & job grading',
+      'UAE salary benchmarking analysis',
+      'HR policy & employee handbook formulation'
+    ]
+  },
+  { 
+    id: 'payroll-mgmt', 
+    title: 'Payroll Management', 
+    icon: 'CreditCard', 
+    category: 'Operations', 
+    description: 'WPS-compliant salary processing, end-of-service gratuity calculations, and benefit administration.',
+    targetAudience: 'UAE businesses seeking compliant and automated payroll processing.',
+    deliverables: [
+      'WPS (Wages Protection System) compliance',
+      'End-of-service gratuity calculation',
+      'Automated pay slips & statutory reporting'
+    ]
+  },
+  { 
+    id: 'manpower-outsrc', 
+    title: 'Manpower Outsourcing', 
+    icon: 'Layers', 
+    category: 'Operations', 
+    description: 'Offload operational payroll & visa liability while deploying dedicated personnel to your sites.',
+    targetAudience: 'Companies seeking operational efficiency without direct visa liability.',
+    deliverables: [
+      'On-site dedicated personnel deployment',
+      'Full visa & health insurance liability',
+      'Comprehensive payroll & HR administration'
+    ]
+  },
+  { 
+    id: 'interview-coord', 
+    title: 'Interview Coordination', 
+    icon: 'Calendar', 
+    category: 'Recruitment', 
+    description: 'Automated video interviewing, global timezone scheduling, and panel interview moderation.',
+    targetAudience: 'Hiring managers managing high-volume or cross-border interviews.',
+    deliverables: [
+      'Global timezone scheduling coordination',
+      'Automated video interviewing platform',
+      'Structured interview feedback synthesis'
+    ]
+  },
+  { 
+    id: 'cand-screening', 
+    title: 'Candidate Screening', 
+    icon: 'CheckCircle2', 
+    category: 'Recruitment', 
+    description: 'AI-assisted resume filtering, competency assessments, and behavioral psychometric testing.',
+    targetAudience: 'Recruitment teams needing rapid, accurate applicant shortlisting.',
+    deliverables: [
+      'AI-powered resume parsing & matching',
+      'Behavioral & psychometric assessments',
+      'Role-specific technical competency testing'
+    ]
+  },
+  { 
+    id: 'resume-build', 
+    title: 'Resume Building', 
+    icon: 'FileCode', 
+    category: 'Career', 
+    description: 'Professional ATS-optimized CV re-writing tailored for GCC and European job markets.',
+    targetAudience: 'Job seekers and executives targeting GCC and international markets.',
+    deliverables: [
+      'ATS-optimized keyword enhancement',
+      'Executive CV formatting & restructuring',
+      'LinkedIn profile alignment & coaching'
+    ]
+  },
+  { 
+    id: 'career-guide', 
+    title: 'Career Guidance', 
+    icon: 'Compass', 
+    category: 'Career', 
+    description: 'One-on-one executive career coaching, interview preparation, and compensation negotiation.',
+    targetAudience: 'Mid-career professionals seeking advancement or industry transition.',
+    deliverables: [
+      '1-on-1 executive career strategy sessions',
+      'Interview roleplay & feedback coaching',
+      'Offer negotiation & compensation strategy'
+    ]
+  },
+  { 
+    id: 'emp-branding', 
+    title: 'Employer Branding', 
+    icon: 'Sparkles', 
+    category: 'Consulting', 
+    description: 'Elevate your talent brand to attract top-tier global candidates across LinkedIn and media.',
+    targetAudience: 'Companies aiming to attract elite talent and reduce hiring cycles.',
+    deliverables: [
+      'Employer value proposition (EVP) design',
+      'Recruitment media & brand enhancement',
+      'Talent community engagement strategy'
+    ]
+  },
+  {
+    id: 'intl-consult',
+    title: 'International Consulting',
+    icon: 'Globe',
+    category: 'Consulting',
+    subCategory: 'Education',
+    description: 'Professional guidance and strategic counseling for students planning international education pathways.',
+    targetAudience: 'Students, graduates, and working professionals planning overseas education.',
+    deliverables: [
+      'Study destination guidance',
+      'Course and university selection support',
+      'Academic eligibility assessment',
+      'Application planning',
+      'Documentation checklist',
+      'Consultation request'
+    ]
+  },
+  {
+    id: 'college-adm',
+    title: 'College Admission Assistance',
+    icon: 'GraduationCap',
+    category: 'Education',
+    subCategory: 'Admissions',
+    description: 'End-to-end guidance for undergraduate and postgraduate college admissions across leading institutions.',
+    targetAudience: 'High school seniors, diploma holders, and college transfer applicants.',
+    deliverables: [
+      'College and course selection',
+      'Eligibility assessment',
+      'Application form guidance',
+      'Document preparation checklist',
+      'Admission application support',
+      'Application status follow-up'
+    ]
+  },
+  {
+    id: 'school-career',
+    title: 'School Student Career Guidance',
+    icon: 'Compass',
+    category: 'Education',
+    subCategory: 'Career',
+    description: 'Specialized aptitude evaluation and personalized career counseling for middle and high school students.',
+    targetAudience: 'Grade 8 to 12 school students and their parents.',
+    deliverables: [
+      'Career interest assessment',
+      'Stream selection guidance',
+      'Higher education planning',
+      'Career pathway exploration',
+      'Skills and aptitude guidance',
+      'Parent-student counselling appointments'
+    ]
+  },
+  {
+    id: 'intl-adm',
+    title: 'International Admissions',
+    icon: 'Plane',
+    category: 'Education',
+    subCategory: 'Admissions',
+    description: 'Direct support and structured execution for university applications, admissions, and compliance across global destinations.',
+    targetAudience: 'Candidates ready to apply to international universities across the UK, USA, Canada, Europe, Australia, and GCC.',
+    deliverables: [
+      'International university selection',
+      'Admission requirement assessment',
+      'Application preparation',
+      'Academic document checklist',
+      'Application progress tracking',
+      'Guidance on country-specific requirements'
+    ]
+  },
+  {
+    id: 'school-academy',
+    title: 'Academy for School Students',
+    icon: 'School',
+    category: 'Education',
+    subCategory: 'Academy',
+    description: 'Holistic student development programs designed to build study skills, communication abilities, and foundational career readiness.',
+    targetAudience: 'School pupils seeking academic enrichment, study habit refinement, and leadership growth.',
+    deliverables: [
+      'Academic support programmes',
+      'Communication and presentation skills',
+      'Study skills and time management',
+      'Personal development workshops',
+      'Career-readiness programmes',
+      'Course enquiry and enrolment requests'
+    ]
+  },
+  {
+    id: 'exec-seminars-lang',
+    title: 'Executive Seminars & Language Test Preparation',
+    icon: 'Languages',
+    category: 'Education',
+    subCategory: 'Executive',
+    description: 'Focused executive development seminars and structured preparation modules for international language proficiency tests.',
+    targetAudience: 'Corporate executives, working professionals, healthcare staff, and candidates seeking language proficiency benchmarks.',
+    deliverables: [
+      'Executive and professional development seminars',
+      'Duolingo English Test (DET) preparation',
+      'Occupational English Test (OET) preparation',
+      'IELTS preparation'
+    ],
+    subProgrammes: [
+      {
+        id: 'exec-seminars',
+        title: 'Executive & Professional Development Seminars',
+        description: 'Interactive leadership, cross-cultural communication, and professional governance seminars for managers and executives.',
+        audience: 'Corporate managers, team leads, and mid-to-senior professionals.'
+      },
+      {
+        id: 'det-prep',
+        title: 'Duolingo English Test (DET) Preparation',
+        description: 'Targeted preparation modules covering adaptive computerized testing patterns, literacy, comprehension, conversation, and production subscores.',
+        audience: 'University candidates and professionals applying to institutions accepting DET.'
+      },
+      {
+        id: 'oet-prep',
+        title: 'Occupational English Test (OET) Preparation',
+        description: 'Healthcare-specific language preparation focusing on patient consultations, referral letter writing, and clinical role-play scenarios.',
+        audience: 'Doctors, registered nurses, and allied health professionals seeking GCC, UK, or global licensing.'
+      },
+      {
+        id: 'ielts-prep',
+        title: 'IELTS Preparation (Academic & General)',
+        description: 'Comprehensive training covering Listening, Reading, Writing, and Speaking for both Academic and General Training modules.',
+        audience: 'Study abroad applicants, skilled migration candidates, and professionals.'
+      }
+    ]
+  }
 ];
 
 export const INDUSTRIES_LIST = [

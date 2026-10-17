@@ -237,7 +237,19 @@ export const CrmLogin = () => {
             )}
 
             <div>
-              <label className="block font-extrabold text-white text-xs mb-1.5">Corporate Email Address</label>
+              <div className="flex justify-between items-center mb-1.5">
+                <label className="block font-extrabold text-white text-xs">Corporate Email Address</label>
+                <button
+                  type="button"
+                  onClick={() => {
+                    setEmail('tariq.admin@revivalinternational.com');
+                    setPassword('Super@Secret2026!');
+                  }}
+                  className="text-[10px] text-gold-400 hover:text-gold-300 font-extrabold underline cursor-pointer"
+                >
+                  ⚡ Fill Super Admin Demo
+                </button>
+              </div>
               <div className="relative">
                 <Mail className="w-4 h-4 text-gold-400 absolute left-3.5 top-3.5" />
                 <input 

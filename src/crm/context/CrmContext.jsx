@@ -16,7 +16,14 @@ export const CrmProvider = ({ children }) => {
   });
 
   const [currentRole, setCurrentRole] = useState('Super Admin');
-  const [darkMode, setDarkMode] = useState(true);
+  const [darkMode, setDarkMode] = useState(() => {
+    try {
+      const saved = localStorage.getItem('sir_theme_mode');
+      return saved === 'dark';
+    } catch {
+      return false;
+    }
+  });
   const loadState = (key, defaultData) => {
     try {
       const saved = localStorage.getItem(key);
@@ -45,6 +52,90 @@ export const CrmProvider = ({ children }) => {
   const [recruiterNotes, setRecruiterNotes] = useState(() => loadState('crm_recruiterNotes', 
     '1. Remind Client VP Hassan Al-Habtoor regarding 90-day replacement clause.\n2. Verify Prometric license for Riyadh candidates.'
   ));
+
+  // Live Website Leads & Inquiries Synchronization
+  const [leads, setLeads] = useState([]);
+  const [loadingLeads, setLoadingLeads] = useState(false);
+  const [followUps, setFollowUps] = useState([]);
+  const [loadingFollowUps, setLoadingFollowUps] = useState(false);
+  const [consultingMetrics, setConsultingMetrics] = useState({
+    totalEnquiries: 0,
+    newEnquiries: 0,
+    consultationsScheduled: 0,
+    activeEngagements: 0,
+    completedEngagements: 0,
+    followUpsDue: 0,
+    overdueFollowUps: 0,
+    educationalOrganizations: 0
+  });
+
+  const fetchLeads = async () => {
+    try {
+      setLoadingLeads(true);
+      const res = await fetch('/api/leads');
+      const data = await res.json();
+      if (data && data.success && Array.isArray(data.data)) {
+        setLeads(data.data);
+      }
+    } catch (err) {
+      console.error('Failed to load leads from backend:', err);
+    } finally {
+      setLoadingLeads(false);
+    }
+  };
+
+  const fetchClients = async () => {
+    try {
+      const res = await fetch('/api/clients');
+      const data = await res.json();
+      if (data && data.success && Array.isArray(data.data) && data.data.length > 0) {
+        setClients(data.data);
+      }
+    } catch (err) {
+      console.error('Failed to fetch clients from backend:', err);
+    }
+  };
+
+  const fetchFollowUps = async () => {
+    try {
+      setLoadingFollowUps(true);
+      const res = await fetch('/api/follow-ups');
+      const data = await res.json();
+      if (data && data.success && Array.isArray(data.data)) {
+        setFollowUps(data.data);
+      }
+    } catch (err) {
+      console.error('Failed to fetch follow-ups from backend:', err);
+    } finally {
+      setLoadingFollowUps(false);
+    }
+  };
+
+  const fetchConsultingMetrics = async () => {
+    try {
+      const res = await fetch('/api/crm/consulting/metrics');
+      const data = await res.json();
+      if (data && data.success && data.data) {
+        setConsultingMetrics(data.data);
+      }
+    } catch (err) {
+      console.error('Failed to fetch consulting metrics:', err);
+    }
+  };
+
+  useEffect(() => {
+    fetchLeads();
+    fetchClients();
+    fetchFollowUps();
+    fetchConsultingMetrics();
+    // Periodically sync new inquiries, follow-ups, and metrics every 15 seconds
+    const interval = setInterval(() => {
+      fetchLeads();
+      fetchFollowUps();
+      fetchConsultingMetrics();
+    }, 15000);
+    return () => clearInterval(interval);
+  }, []);
 
   useEffect(() => {
     localStorage.setItem('crm_candidates', JSON.stringify(candidates));
@@ -289,7 +380,13 @@ export const CrmProvider = ({ children }) => {
   };
 
   const toggleDarkMode = () => {
-    setDarkMode(prev => !prev);
+    setDarkMode(prev => {
+      const next = !prev;
+      try {
+        localStorage.setItem('sir_theme_mode', next ? 'dark' : 'light');
+      } catch (e) {}
+      return next;
+    });
   };
 
   useEffect(() => {
@@ -299,6 +396,149 @@ export const CrmProvider = ({ children }) => {
       document.documentElement.classList.remove('dark');
     }
   }, [darkMode]);
+
+  const createOrganization = async (orgData) => {
+    try {
+      const res = await fetch('/api/clients', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(orgData)
+      });
+      const data = await res.json();
+      if (!res.ok || !data.success) {
+        throw new Error(data.message || 'Failed to create organization');
+      }
+      logAuditAction(`Registered organization account '${orgData.company}' (${data.data?.id || 'ID'}).`);
+      await fetchClients();
+      await fetchConsultingMetrics();
+      return data.data;
+    } catch (err) {
+      console.error('Error in createOrganization:', err);
+      throw err;
+    }
+  };
+
+  const updateOrganization = async (orgId, updates) => {
+    try {
+      const res = await fetch(`/api/clients/${orgId}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(updates)
+      });
+      const data = await res.json();
+      if (!res.ok || !data.success) {
+        throw new Error(data.message || 'Failed to update organization');
+      }
+      logAuditAction(`Updated organization profile '${orgId}'.`);
+      await fetchClients();
+      return data.data;
+    } catch (err) {
+      console.error('Error in updateOrganization:', err);
+      throw err;
+    }
+  };
+
+  const addContactToOrganization = async (orgId, contactData) => {
+    try {
+      const res = await fetch(`/api/clients/${orgId}/contacts`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(contactData)
+      });
+      const data = await res.json();
+      if (!res.ok || !data.success) {
+        throw new Error(data.message || 'Failed to add contact');
+      }
+      logAuditAction(`Added contact '${contactData.name}' to organization '${orgId}'.`);
+      return data.data;
+    } catch (err) {
+      console.error('Error in addContactToOrganization:', err);
+      throw err;
+    }
+  };
+
+  const updateLead = async (leadId, updates) => {
+    try {
+      const res = await fetch(`/api/leads/${leadId}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ ...updates, updatedBy: user?.name || 'Staff' })
+      });
+      const data = await res.json();
+      if (!res.ok || !data.success) {
+        throw new Error(data.message || 'Failed to update lead');
+      }
+      setLeads(prev => prev.map(l => l.id === leadId ? { ...l, ...data.data } : l));
+      logAuditAction(`Updated enquiry '${leadId}' status to '${updates.status || 'Updated'}'.`);
+      await fetchConsultingMetrics();
+      return data.data;
+    } catch (err) {
+      console.error('Error in updateLead:', err);
+      throw err;
+    }
+  };
+
+  const addLeadActivity = async (leadId, activityData) => {
+    try {
+      const res = await fetch(`/api/leads/${leadId}/activities`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ ...activityData, createdBy: user?.name || 'Staff' })
+      });
+      const data = await res.json();
+      if (!res.ok || !data.success) {
+        throw new Error(data.message || 'Failed to log activity');
+      }
+      logAuditAction(`Logged '${activityData.type}' activity for enquiry '${leadId}'.`);
+      return data.data;
+    } catch (err) {
+      console.error('Error in addLeadActivity:', err);
+      throw err;
+    }
+  };
+
+  const scheduleLeadFollowUp = async (leadId, followUpData) => {
+    try {
+      const res = await fetch(`/api/leads/${leadId}/follow-ups`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ ...followUpData, createdBy: user?.name || 'Staff' })
+      });
+      const data = await res.json();
+      if (!res.ok || !data.success) {
+        throw new Error(data.message || 'Failed to schedule follow-up');
+      }
+      logAuditAction(`Scheduled follow-up '${followUpData.title}' for enquiry '${leadId}'.`);
+      await fetchFollowUps();
+      await fetchConsultingMetrics();
+      await fetchLeads();
+      return data.data;
+    } catch (err) {
+      console.error('Error in scheduleLeadFollowUp:', err);
+      throw err;
+    }
+  };
+
+  const updateFollowUpStatus = async (followUpId, status, completionNotes) => {
+    try {
+      const res = await fetch(`/api/follow-ups/${followUpId}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ status, completionNotes, updatedBy: user?.name || 'Staff' })
+      });
+      const data = await res.json();
+      if (!res.ok || !data.success) {
+        throw new Error(data.message || 'Failed to update follow-up');
+      }
+      logAuditAction(`Marked follow-up '${followUpId}' as '${status}'.`);
+      await fetchFollowUps();
+      await fetchConsultingMetrics();
+      return data.data;
+    } catch (err) {
+      console.error('Error in updateFollowUpStatus:', err);
+      throw err;
+    }
+  };
 
   return (
     <CrmContext.Provider
@@ -327,8 +567,12 @@ export const CrmProvider = ({ children }) => {
         selectedCandidate,
         setSelectedCandidate,
         clients,
+        fetchClients,
         addClient,
         removeClient,
+        createOrganization,
+        updateOrganization,
+        addContactToOrganization,
         interviews,
         addInterview,
         updateInterview,
@@ -363,7 +607,20 @@ export const CrmProvider = ({ children }) => {
         globalAddInterviewOpen,
         setGlobalAddInterviewOpen,
         globalAddInvoiceOpen,
-        setGlobalAddInvoiceOpen
+        setGlobalAddInvoiceOpen,
+        leads,
+        setLeads,
+        loadingLeads,
+        fetchLeads,
+        updateLead,
+        addLeadActivity,
+        scheduleLeadFollowUp,
+        updateFollowUpStatus,
+        followUps,
+        loadingFollowUps,
+        fetchFollowUps,
+        consultingMetrics,
+        fetchConsultingMetrics
       }}
     >
       {children}

@@ -7,6 +7,7 @@ import {
   Check, Clock, UserCheck, ChevronRight, X, Phone, Mail, Award, Briefcase, MapPin, Globe, UserX, AlertCircle
 } from 'lucide-react';
 import ScrollReveal from '../components/ScrollReveal';
+import { SEO } from '../components/SEO';
 
 export const EmployerPortal = () => {
   const { user, logout, addJob, deleteJob, navigateTo, postedJobs, applications, updateApplicationStatus } = useApp();
@@ -317,6 +318,16 @@ export const EmployerPortal = () => {
   return (
     <ScrollReveal>
     <div className="max-w-7xl mx-auto px-4 sm:px-8 py-12 space-y-8">
+      <SEO
+        title="Enterprise Employer Portal & Talent Acquisition | Revival International"
+        description="Post global job vacancies, manage vetted applicant shortlists, schedule technical interviews, and oversee international workforce deployment from Dubai."
+        canonicalPath="employers"
+        keywords="employer portal Dubai, hire international talent UAE, executive search client portal, post jobs GCC"
+        breadcrumbs={[
+          { name: 'Home', item: '' },
+          { name: 'Employer Portal', item: 'employers' }
+        ]}
+      />
       
       {/* Employer Header Banner */}
       <div className="bg-white dark:bg-navy-950 text-slate-900 dark:text-white rounded-3xl p-6 sm:p-8 border border-slate-200 dark:border-gold-500/30 shadow-lg flex flex-col sm:flex-row justify-between items-center gap-6">

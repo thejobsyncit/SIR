@@ -1,16 +1,85 @@
 import express from 'express';
 import cors from 'cors';
-import { getDb } from './database.js';
+import path from 'path';
+import fs from 'fs';
+import { fileURLToPath } from 'url';
+import { getDb, closeDb, checkDbHealth } from './database.js';
 import nodemailer from 'nodemailer';
 import dotenv from 'dotenv';
 
 dotenv.config();
 
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
+const startTime = Date.now();
+
 const app = express();
 const PORT = process.env.PORT || 5000;
 
-app.use(cors());
-app.use(express.json());
+// Security Headers Middleware (Production-Hardened)
+app.use((req, res, next) => {
+  res.setHeader('X-Content-Type-Options', 'nosniff');
+  res.setHeader('X-Frame-Options', 'SAMEORIGIN');
+  res.setHeader('X-XSS-Protection', '1; mode=block');
+  res.setHeader('Referrer-Policy', 'strict-origin-when-cross-origin');
+  if (process.env.NODE_ENV === 'production' || req.secure || req.headers['x-forwarded-proto'] === 'https') {
+    res.setHeader('Strict-Transport-Security', 'max-age=31536000; includeSubDomains');
+  }
+  next();
+});
+
+// Production-Safe CORS Configuration
+const allowedOrigins = process.env.ALLOWED_ORIGINS
+  ? process.env.ALLOWED_ORIGINS.split(',').map(o => o.trim())
+  : [
+      'http://localhost:3000',
+      'http://localhost:5173',
+      'http://127.0.0.1:3000',
+      'http://127.0.0.1:5173',
+      'https://www.revivalinternational.com',
+      'https://revivalinternational.com'
+    ];
+
+app.use(cors({
+  origin: (origin, callback) => {
+    // Allow server-to-server or curl/mobile requests without origin header
+    if (!origin) return callback(null, true);
+    if (allowedOrigins.includes(origin) || process.env.NODE_ENV !== 'production') {
+      return callback(null, true);
+    }
+    return callback(new Error(`CORS policy: Access denied for origin ${origin}`));
+  },
+  credentials: true,
+  methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
+  allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With', 'X-Forwarded-For']
+}));
+
+app.use(express.json({ limit: '10mb' }));
+app.use(express.urlencoded({ extended: true, limit: '10mb' }));
+
+// Lightweight Operational Health Check Endpoint
+app.get('/api/health', async (req, res) => {
+  try {
+    const dbHealth = await checkDbHealth();
+    const isHealthy = dbHealth.status === 'connected';
+    res.status(isHealthy ? 200 : 503).json({
+      status: isHealthy ? 'UP' : 'DEGRADED',
+      service: 'Revival International Backend API',
+      uptimeSeconds: Math.floor((Date.now() - startTime) / 1000),
+      database: dbHealth.status,
+      environment: process.env.NODE_ENV || 'development',
+      timestamp: new Date().toISOString()
+    });
+  } catch (err) {
+    res.status(503).json({
+      status: 'DOWN',
+      service: 'Revival International Backend API',
+      database: 'disconnected',
+      environment: process.env.NODE_ENV || 'development',
+      timestamp: new Date().toISOString()
+    });
+  }
+});
 
 // Comprehensive Dataset
 const VISA_MATRIX_DATA = [
@@ -170,93 +239,186 @@ const JOBS_DATA = [
     benefits: ['Duty Travel Privileges', 'Tax Free Base Salary', 'Furnished Accommodation', 'Concessionary Flight Tickets'],
     postedDate: '3 days ago',
     featured: false
+  },
+  {
+    id: 'job-109',
+    title: 'MEP BIM Manager - High Rise Development',
+    company: 'ALDAR Properties',
+    country: 'UAE',
+    location: 'Abu Dhabi, Yas Island',
+    salary: 'AED 30,000 - 38,000 / month',
+    experience: '7 - 10 Years',
+    jobType: 'Full-time',
+    category: 'Construction',
+    description: 'Lead 3D/4D BIM model coordination, clash detection, and MEP systems integration for mega mixed-use urban developments.',
+    skills: ['Revit MEP', 'Navisworks Manage', 'BIM Level 2', 'Clash Resolution', 'COBie'],
+    qualification: "B.Sc. Mechanical / Electrical Engineering",
+    benefits: ['Family Accommodation Allowance', 'Premium Health Plan', 'Relocation Package'],
+    postedDate: 'Just now',
+    featured: true
+  },
+  {
+    id: 'job-110',
+    title: 'Senior Cybersecurity Operations Specialist',
+    company: 'Riyadh Bank Digital Unit',
+    country: 'Saudi Arabia',
+    location: 'Riyadh, KAFD',
+    salary: 'SAR 32,000 - 42,000 / month',
+    experience: '6 - 10 Years',
+    jobType: 'Full-time',
+    category: 'Banking',
+    description: 'Monitor SOC alerts, lead threat hunting, incident response, and ensure SAMA cybersecurity framework compliance for digital banking ops.',
+    skills: ['SIEM Splunk', 'Threat Hunting', 'CISSP / CISM', 'Incident Response', 'SAMA Compliance'],
+    qualification: "Bachelor in Cybersecurity / Computer Science",
+    benefits: ['Performance Incentive', 'Family Visa & Flights', 'Executive Health Insurance'],
+    postedDate: '2 days ago',
+    featured: false
   }
 ];
 
-// Helper to parse arrays from DB
-const parseArray = (str) => {
-  try { return JSON.parse(str); } catch (e) { return typeof str === 'string' ? str.split(',') : []; }
+const parseArray = (field) => {
+  if (Array.isArray(field)) return field;
+  if (!field) return [];
+  try {
+    const parsed = JSON.parse(field);
+    return Array.isArray(parsed) ? parsed : [field];
+  } catch (e) {
+    return field.split(',').map(s => s.trim()).filter(Boolean);
+  }
 };
 
-// Seed Jobs on Startup if empty
+// Seed initial jobs into SQLite if empty
 const seedJobs = async () => {
-  const db = await getDb();
-  const countRes = await db.get('SELECT COUNT(*) as count FROM jobs');
-  if (countRes.count === 0) {
-    console.log('Seeding initial jobs data...');
-    const stmt = await db.prepare(`INSERT INTO jobs (id, title, company, country, location, salary, experience, jobType, category, description, vacancies, skills, qualification, benefits, postedDate, featured) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`);
-    for (const j of JOBS_DATA) {
-      await stmt.run([
-        j.id, j.title, j.company, j.country, j.location, j.salary, j.experience, j.jobType, j.category, j.description, j.vacancies || '1', JSON.stringify(j.skills), j.qualification, JSON.stringify(j.benefits), j.postedDate, j.featured ? 1 : 0
-      ]);
+  try {
+    const db = await getDb();
+    const countRow = await db.get('SELECT COUNT(*) as count FROM jobs');
+    if (countRow && countRow.count === 0) {
+      console.log('Seeding initial jobs dataset into SQLite...');
+      for (const j of JOBS_DATA) {
+        await db.run(`
+          INSERT INTO jobs (id, title, company, country, location, salary, experience, jobType, category, description, vacancies, skills, qualification, benefits, postedDate, featured)
+          VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+        `, [
+          j.id, j.title, j.company, j.country, j.location, j.salary, j.experience, j.jobType, j.category, j.description,
+          '1', JSON.stringify(j.skills), j.qualification, JSON.stringify(j.benefits), j.postedDate, j.featured ? 1 : 0
+        ]);
+      }
     }
-    await stmt.finalize();
+  } catch (err) {
+    console.error('Job seed check failed:', err.message);
   }
 };
 seedJobs();
 
-// OTP In-Memory Store for Verification
+// Active OTP store in memory
 const activeOtps = new Map();
+const otpRequestRateLimits = new Map();
+const otpVerifyRateLimits = new Map();
 
 app.post('/api/auth/send-otp', async (req, res) => {
   try {
-    const { email } = req.body;
-    if (!email) return res.status(400).json({ success: false, message: 'Email required' });
+    const clientIp = req.headers['x-forwarded-for'] || req.socket?.remoteAddress || 'unknown';
+    const now = Date.now();
+    const windowMs = 10 * 60 * 1000; // 10 minutes
+    const timestamps = (otpRequestRateLimits.get(clientIp) || []).filter(t => now - t < windowMs);
 
+    if (timestamps.length >= 5) {
+      return res.status(429).json({
+        success: false,
+        message: 'Too many OTP requests from this network. Please wait a few minutes before trying again.'
+      });
+    }
+    timestamps.push(now);
+    otpRequestRateLimits.set(clientIp, timestamps);
+
+    const { email } = req.body;
+    if (!email || typeof email !== 'string' || !email.includes('@')) {
+      return res.status(400).json({ success: false, message: 'Valid email address is required' });
+    }
+
+    const cleanEmail = email.trim().toLowerCase();
     const otp = Math.floor(1000 + Math.random() * 9000).toString();
-    activeOtps.set(email, { otp, expires: Date.now() + 5 * 60 * 1000 }); // 5 min expiry
+    activeOtps.set(cleanEmail, { otp, expires: Date.now() + 5 * 60 * 1000, attempts: 0 }); // 5 min expiry
 
     // Configure Nodemailer
-    const transporter = nodemailer.createTransport({
-      service: 'gmail',
-      auth: {
-        user: process.env.SMTP_EMAIL || 'your-email@gmail.com',
-        pass: process.env.SMTP_APP_PASSWORD || 'your-app-password'
-      }
-    });
+    const isSmtpConfigured = process.env.SMTP_EMAIL && process.env.SMTP_EMAIL !== 'your-email@gmail.com' && process.env.SMTP_APP_PASSWORD;
 
-    const mailOptions = {
-      from: `Revival International CRM <${process.env.SMTP_EMAIL}>`,
-      to: email,
-      subject: 'Your CRM 2FA Login Code',
-      text: `Your Revival International CRM Two-Factor Authentication code is: ${otp}\n\nThis code will expire in 5 minutes.`,
-      html: `<div style="font-family: Arial, sans-serif; text-align: center; padding: 20px;">
-        <h2>Revival International Enterprise CRM</h2>
-        <p>Your Two-Factor Authentication code is:</p>
-        <h1 style="color: #c9a050; font-size: 32px; letter-spacing: 5px;">${otp}</h1>
-        <p style="color: #666; font-size: 12px;">This code will expire in 5 minutes. Do not share it with anyone.</p>
-      </div>`
-    };
+    if (isSmtpConfigured) {
+      const transporter = nodemailer.createTransport({
+        service: 'gmail',
+        auth: {
+          user: process.env.SMTP_EMAIL,
+          pass: process.env.SMTP_APP_PASSWORD
+        }
+      });
 
-    // Note: If credentials are not set, this will fail. We'll catch and return a specific message.
-    if (process.env.SMTP_EMAIL && process.env.SMTP_EMAIL !== 'your-email@gmail.com') {
+      const mailOptions = {
+        from: `Revival International CRM <${process.env.SMTP_EMAIL}>`,
+        to: cleanEmail,
+        subject: 'Your CRM 2FA Login Code',
+        text: `Your Revival International CRM Two-Factor Authentication code is: ${otp}\n\nThis code will expire in 5 minutes.`,
+        html: `<div style="font-family: Arial, sans-serif; text-align: center; padding: 20px;">
+          <h2>Revival International Enterprise CRM</h2>
+          <p>Your Two-Factor Authentication code is:</p>
+          <h1 style="color: #c9a050; font-size: 32px; letter-spacing: 5px;">${otp}</h1>
+          <p style="color: #666; font-size: 12px;">This code will expire in 5 minutes. Do not share it with anyone.</p>
+        </div>`
+      };
+
       await transporter.sendMail(mailOptions);
       res.json({ success: true, message: 'OTP dispatched successfully' });
-    } else {
-      console.log(`[DEV MODE] OTP for ${email} is: ${otp} (Configure .env to send real emails)`);
+    } else if (process.env.NODE_ENV !== 'production') {
+      console.log(`[DEV MODE] OTP for ${cleanEmail} is: ${otp} (Configure SMTP in .env to dispatch real emails)`);
       res.json({ success: true, message: 'OTP generated (Dev Mode)', devMode: true, otp: otp });
+    } else {
+      console.error(`[CRITICAL] SMTP_EMAIL is not configured in production environment.`);
+      res.status(503).json({
+        success: false,
+        message: 'Authentication dispatch service is currently unavailable. Please check system configuration.'
+      });
     }
   } catch (error) {
-    console.error('Email send failed:', error);
+    console.error('Email send failed:', error.message);
     res.status(500).json({ success: false, message: 'Failed to dispatch email. Check SMTP credentials.' });
   }
 });
 
 app.post('/api/auth/verify-otp', (req, res) => {
+  const clientIp = req.headers['x-forwarded-for'] || req.socket?.remoteAddress || 'unknown';
+  const now = Date.now();
+  const windowMs = 10 * 60 * 1000;
+  const verifyTimestamps = (otpVerifyRateLimits.get(clientIp) || []).filter(t => now - t < windowMs);
+
+  if (verifyTimestamps.length >= 10) {
+    return res.status(429).json({
+      success: false,
+      message: 'Too many verification attempts. Please wait a few minutes before trying again.'
+    });
+  }
+  verifyTimestamps.push(now);
+  otpVerifyRateLimits.set(clientIp, verifyTimestamps);
+
   const { email, otp } = req.body;
-  const stored = activeOtps.get(email);
+  const cleanEmail = (email || '').trim().toLowerCase();
+  const stored = activeOtps.get(cleanEmail);
 
   if (!stored) {
     return res.status(400).json({ success: false, message: 'OTP expired or not requested' });
   }
 
   if (Date.now() > stored.expires) {
-    activeOtps.delete(email);
+    activeOtps.delete(cleanEmail);
     return res.status(400).json({ success: false, message: 'OTP expired' });
   }
 
-  if (stored.otp === otp) {
-    activeOtps.delete(email);
+  stored.attempts = (stored.attempts || 0) + 1;
+  if (stored.attempts > 5) {
+    activeOtps.delete(cleanEmail);
+    return res.status(429).json({ success: false, message: 'Maximum OTP verification attempts exceeded. Please request a new code.' });
+  }
+
+  if (stored.otp === (otp || '').trim()) {
+    activeOtps.delete(cleanEmail);
     return res.json({ success: true, message: 'Authentication successful' });
   } else {
     return res.status(400).json({ success: false, message: 'Invalid OTP code' });
@@ -266,53 +428,55 @@ app.post('/api/auth/verify-otp', (req, res) => {
 // API Routes - JOBS
 app.get('/api/jobs', async (req, res) => {
   try {
-    const supabase = await getDb();
-    let query = supabase.from('jobs').select('*');
+    const db = await getDb();
+    let query = 'SELECT * FROM jobs WHERE 1=1';
+    const params = [];
 
     if (req.query.country && req.query.country !== 'All') {
-      query = query.eq('country', req.query.country);
+      query += ' AND country = ?';
+      params.push(req.query.country);
     }
     if (req.query.category && req.query.category !== 'All') {
-      query = query.eq('category', req.query.category);
+      query += ' AND category = ?';
+      params.push(req.query.category);
     }
     if (req.query.jobType && req.query.jobType !== 'All') {
-      query = query.eq('jobType', req.query.jobType);
+      query += ' AND jobType = ?';
+      params.push(req.query.jobType);
     }
 
-    let { data: rows, error } = await query;
-    if (error) throw error;
+    let rows = await db.all(query, params);
 
     if (req.query.keyword) {
       const k = req.query.keyword.toLowerCase();
       rows = rows.filter(j => j.title.toLowerCase().includes(k) || j.company.toLowerCase().includes(k));
     }
 
-    // Format arrays
     rows = rows.map(r => ({
       ...r,
       skills: parseArray(r.skills),
       benefits: parseArray(r.benefits),
-      featured: r.featured === 1 || r.featured === true
+      featured: r.featured === 1
     }));
 
     res.json({ success: true, count: rows.length, data: rows });
   } catch (error) {
-    res.status(500).json({ success: false, message: error.message });
+    console.error('Error fetching jobs:', error);
+    res.status(500).json({ success: false, message: 'Failed to fetch jobs' });
   }
 });
 
 app.get('/api/jobs/:id', async (req, res) => {
   try {
-    const supabase = await getDb();
-    const { data: job, error } = await supabase.from('jobs').select('*').eq('id', req.params.id).single();
-    if (error || !job) return res.status(404).json({ success: false, message: 'Job not found' });
-    
+    const db = await getDb();
+    const job = await db.get('SELECT * FROM jobs WHERE id = ?', [req.params.id]);
+    if (!job) return res.status(404).json({ success: false, message: 'Job not found' });
     job.skills = parseArray(job.skills);
     job.benefits = parseArray(job.benefits);
-    job.featured = job.featured === 1 || job.featured === true;
+    job.featured = job.featured === 1;
     res.json({ success: true, data: job });
   } catch (error) {
-    res.status(500).json({ success: false, message: error.message });
+    res.status(500).json({ success: false, message: 'Failed to fetch job' });
   }
 });
 
@@ -323,75 +487,62 @@ app.post('/api/jobs', async (req, res) => {
     const skillsStr = JSON.stringify(Array.isArray(skills) ? skills : (skills ? skills.split(',').map(s => s.trim()) : ['Management']));
     const benefitsStr = JSON.stringify(Array.isArray(benefits) ? benefits : (benefits ? benefits.split(',').map(b => b.trim()) : ['Tax-free salary', 'Visa Sponsorship']));
 
-    const supabase = await getDb();
-    const { data: newJob, error } = await supabase.from('jobs').insert([{
-      id: jobId,
-      title: title || 'Untitled',
-      company: company || 'Revival International',
-      country: country || 'UAE',
-      location: location || '',
-      salary: salary || 'Negotiable',
-      experience: experience || '2-5 Years',
-      jobType: jobType || 'Full-time',
-      category: category || 'General',
-      description: description || '',
-      vacancies: vacancies || '1',
-      skills: skillsStr,
-      qualification: qualification || 'Degree',
-      benefits: benefitsStr,
-      postedDate: 'Just now',
-      featured: 0
-    }]).select().single();
+    const db = await getDb();
+    await db.run(`
+      INSERT INTO jobs (id, title, company, country, location, salary, experience, jobType, category, description, vacancies, skills, qualification, benefits, postedDate, featured)
+      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 0)
+    `, [
+      jobId, title || 'Untitled', company || 'Revival International', country || 'UAE', location || '',
+      salary || 'Negotiable', experience || '2-5 Years', jobType || 'Full-time', category || 'General',
+      description || '', vacancies || '1', skillsStr, qualification || 'Degree', benefitsStr, 'Just now'
+    ]);
 
-    if (error) throw error;
-
+    const newJob = await db.get('SELECT * FROM jobs WHERE id = ?', [jobId]);
     newJob.skills = parseArray(newJob.skills);
     newJob.benefits = parseArray(newJob.benefits);
-    newJob.featured = newJob.featured === 1 || newJob.featured === true;
+    newJob.featured = false;
     res.json({ success: true, message: 'Job posted successfully', data: newJob });
   } catch (error) {
-    res.status(500).json({ success: false, message: error.message });
+    res.status(500).json({ success: false, message: 'Failed to create job' });
   }
 });
 
 app.put('/api/jobs/:id', async (req, res) => {
   try {
-    const supabase = await getDb();
+    const db = await getDb();
     const { title, company, country, location, salary, experience, jobType, category, description, vacancies, skills, qualification, benefits } = req.body;
     const skillsStr = JSON.stringify(Array.isArray(skills) ? skills : (skills ? skills.split(',').map(s => s.trim()) : []));
     const benefitsStr = JSON.stringify(Array.isArray(benefits) ? benefits : (benefits ? benefits.split(',').map(b => b.trim()) : []));
 
-    const { error } = await supabase.from('jobs').update({
-      title, company, country, location, salary, experience, jobType, category, description, vacancies, skills: skillsStr, qualification, benefits: benefitsStr
-    }).eq('id', req.params.id);
+    await db.run(`
+      UPDATE jobs SET title = ?, company = ?, country = ?, location = ?, salary = ?, experience = ?, jobType = ?, category = ?, description = ?, vacancies = ?, skills = ?, qualification = ?, benefits = ?
+      WHERE id = ?
+    `, [title, company, country, location, salary, experience, jobType, category, description, vacancies, skillsStr, qualification, benefitsStr, req.params.id]);
 
-    if (error) throw error;
     res.json({ success: true, message: 'Job updated successfully' });
   } catch (error) {
-    res.status(500).json({ success: false, message: error.message });
+    res.status(500).json({ success: false, message: 'Failed to update job' });
   }
 });
 
 app.delete('/api/jobs/:id', async (req, res) => {
   try {
-    const supabase = await getDb();
-    const { error } = await supabase.from('jobs').delete().eq('id', req.params.id);
-    if (error) throw error;
+    const db = await getDb();
+    await db.run('DELETE FROM jobs WHERE id = ?', [req.params.id]);
     res.json({ success: true, message: 'Job deleted successfully' });
   } catch (error) {
-    res.status(500).json({ success: false, message: error.message });
+    res.status(500).json({ success: false, message: 'Failed to delete job' });
   }
 });
 
 // API Routes - CANDIDATES
 app.get('/api/candidates', async (req, res) => {
   try {
-    const supabase = await getDb();
-    const { data: rows, error } = await supabase.from('candidates').select('*').order('createdAt', { ascending: false });
-    if (error) throw error;
+    const db = await getDb();
+    const rows = await db.all('SELECT * FROM candidates ORDER BY createdAt DESC');
     res.json({ success: true, data: rows.map(r => ({ ...r, skills: parseArray(r.skills) })) });
   } catch (error) {
-    res.status(500).json({ success: false, message: error.message });
+    res.status(500).json({ success: false, message: 'Failed to fetch candidates' });
   }
 });
 
@@ -400,95 +551,286 @@ app.post('/api/candidates', async (req, res) => {
     const { id, name, email, phone, nationality, currentEmployer, currentRole, currentSalary, expectedSalary, score, stage, skills, source, passport, aiSummary, experience } = req.body;
     const candId = id || `REV-CAN-${Math.floor(1000 + Math.random() * 9000)}`;
     const skillsStr = JSON.stringify(Array.isArray(skills) ? skills : []);
-    const supabase = await getDb();
+    const db = await getDb();
     
-    const { data: cand, error } = await supabase.from('candidates').insert([{
-      id: candId, name, email, phone, nationality, currentEmployer, currentRole, currentSalary, expectedSalary, 
-      score: score || 85, stage: stage || 'new', skills: skillsStr, source: source || 'Website', passport, aiSummary, experience
-    }]).select().single();
-    
-    if (error) throw error;
+    await db.run(`
+      INSERT INTO candidates (id, name, email, phone, nationality, currentEmployer, currentRole, currentSalary, expectedSalary, score, stage, skills, source, passport, aiSummary, experience)
+      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+    `, [
+      candId, name, email, phone, nationality, currentEmployer, currentRole, currentSalary, expectedSalary,
+      score || 85, stage || 'new', skillsStr, source || 'Website', passport, aiSummary, experience
+    ]);
+
+    const cand = await db.get('SELECT * FROM candidates WHERE id = ?', [candId]);
     res.json({ success: true, data: { ...cand, skills: parseArray(cand.skills) } });
   } catch (error) {
-    res.status(500).json({ success: false, message: error.message });
+    res.status(500).json({ success: false, message: 'Failed to save candidate' });
   }
 });
 
 app.put('/api/candidates/:id', async (req, res) => {
   try {
     const { name, email, phone, stage, score } = req.body;
-    const supabase = await getDb();
-    const { error } = await supabase.from('candidates').update({
-      name, email, phone, stage, score
-    }).eq('id', req.params.id);
-    
-    if (error) throw error;
+    const db = await getDb();
+    await db.run('UPDATE candidates SET name = ?, email = ?, phone = ?, stage = ?, score = ? WHERE id = ?', [name, email, phone, stage, score, req.params.id]);
     res.json({ success: true });
   } catch (error) {
-    res.status(500).json({ success: false, message: error.message });
+    res.status(500).json({ success: false, message: 'Failed to update candidate' });
   }
 });
 
 app.delete('/api/candidates/:id', async (req, res) => {
   try {
-    const supabase = await getDb();
-    const { error } = await supabase.from('candidates').delete().eq('id', req.params.id);
-    if (error) throw error;
+    const db = await getDb();
+    await db.run('DELETE FROM candidates WHERE id = ?', [req.params.id]);
     res.json({ success: true });
   } catch (error) {
-    res.status(500).json({ success: false, message: error.message });
+    res.status(500).json({ success: false, message: 'Failed to delete candidate' });
   }
 });
 
-// API Routes - CLIENTS
-app.get('/api/clients', async (req, res) => {
+// API Routes - CLIENTS & ORGANIZATIONS
+app.get(['/api/clients', '/api/organizations'], async (req, res) => {
   try {
-    const supabase = await getDb();
-    const { data: rows, error } = await supabase.from('clients').select('*').order('createdAt', { ascending: false });
-    if (error) throw error;
+    const { type, search } = req.query;
+    const db = await getDb();
+    
+    let query = 'SELECT * FROM clients WHERE 1=1';
+    const params = [];
+
+    if (type && type !== 'All') {
+      query += ' AND organizationType = ?';
+      params.push(type);
+    }
+
+    if (search && search.trim()) {
+      const s = `%${search.trim().toLowerCase()}%`;
+      query += ' AND (LOWER(company) LIKE ? OR LOWER(contactPerson) LIKE ? OR LOWER(email) LIKE ? OR LOWER(location) LIKE ? OR LOWER(country) LIKE ?)';
+      params.push(s, s, s, s, s);
+    }
+
+    query += ' ORDER BY createdAt DESC';
+    const rows = await db.all(query, params);
     res.json({ success: true, data: rows });
   } catch (error) {
-    res.status(500).json({ success: false, message: error.message });
+    console.error('Failed to fetch clients/organizations:', error);
+    res.status(500).json({ success: false, message: 'Failed to fetch organizations' });
   }
 });
 
-app.post('/api/clients', async (req, res) => {
+app.get(['/api/clients/:id', '/api/organizations/:id'], async (req, res) => {
   try {
-    const { id, company, industry, location, contactPerson, email, phone, requirements } = req.body;
-    const clientId = id || `CLIENT-${Math.floor(1000 + Math.random() * 9000)}`;
-    const supabase = await getDb();
+    const { id } = req.params;
+    const db = await getDb();
+    const org = await db.get('SELECT * FROM clients WHERE id = ?', [id]);
     
-    const { data: client, error } = await supabase.from('clients').insert([{
-      id: clientId, company, industry, location, contactPerson, email, phone, requirements
-    }]).select().single();
-    
-    if (error) throw error;
-    res.json({ success: true, data: client });
+    if (!org) {
+      return res.status(404).json({ success: false, message: 'Organization not found' });
+    }
+
+    // Fetch related contacts, enquiries, activities and follow-ups
+    const contacts = await db.all('SELECT * FROM organization_contacts WHERE organizationId = ? ORDER BY isPrimary DESC, createdAt DESC', [id]);
+    const enquiries = await db.all('SELECT * FROM leads WHERE organizationId = ? OR company = ? ORDER BY createdAt DESC', [id, org.company]);
+    const activities = await db.all('SELECT * FROM enquiry_activities WHERE organizationId = ? ORDER BY createdAt DESC', [id]);
+    const followUps = await db.all('SELECT * FROM follow_ups WHERE organizationId = ? ORDER BY dueDateTime ASC', [id]);
+
+    res.json({
+      success: true,
+      data: {
+        ...org,
+        contacts,
+        enquiries,
+        activities,
+        followUps
+      }
+    });
   } catch (error) {
-    res.status(500).json({ success: false, message: error.message });
+    console.error('Failed to fetch organization details:', error);
+    res.status(500).json({ success: false, message: 'Failed to retrieve organization details' });
   }
 });
 
-app.delete('/api/clients/:id', async (req, res) => {
+app.post(['/api/clients', '/api/organizations'], async (req, res) => {
   try {
-    const supabase = await getDb();
-    const { error } = await supabase.from('clients').delete().eq('id', req.params.id);
-    if (error) throw error;
-    res.json({ success: true });
+    const {
+      id, company, name, organizationName, organizationType, industry, country, location, city, website,
+      contactPerson, designation, email, phone, assignedEmployee, status, associatedServices, notes, requirements
+    } = req.body;
+
+    const rawName = company || name || organizationName;
+    if (!rawName || typeof rawName !== 'string' || rawName.trim().length < 2) {
+      return res.status(400).json({ success: false, message: 'Organization name is required (minimum 2 characters).' });
+    }
+
+    const cleanCompany = rawName.trim();
+    const db = await getDb();
+
+    // Prevent duplicate organization records
+    const existing = await db.get(
+      'SELECT id, company FROM clients WHERE LOWER(TRIM(company)) = LOWER(TRIM(?))',
+      [cleanCompany]
+    );
+    if (existing) {
+      return res.status(409).json({
+        success: false,
+        message: `An organization record for "${cleanCompany}" already exists (ID: ${existing.id}). Please update the existing record instead of creating a duplicate.`
+      });
+    }
+
+    const orgType = organizationType || 'Company';
+    const prefix = orgType === 'University' ? 'UNI' : orgType === 'School' ? 'SCH' : orgType === 'College' ? 'COL' : 'ORG';
+    const clientId = id || `${prefix}-${Date.now().toString().slice(-6)}-${Math.floor(100 + Math.random() * 900)}`;
+
+    await db.run(
+      `INSERT INTO clients (
+        id, company, organizationType, industry, country, location, website,
+        contactPerson, designation, email, phone, assignedEmployee, status, associatedServices, notes, requirements
+      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+      [
+        clientId,
+        cleanCompany,
+        orgType,
+        industry || (orgType === 'University' || orgType === 'College' ? 'Higher Education' : orgType === 'School' ? 'K-12 Education' : 'Corporate Enterprise'),
+        country || 'United Arab Emirates',
+        location || city || 'Dubai, UAE',
+        website ? website.trim() : null,
+        contactPerson ? contactPerson.trim() : null,
+        designation ? designation.trim() : null,
+        email ? email.trim() : null,
+        phone ? phone.trim() : null,
+        assignedEmployee || 'Unassigned',
+        status || 'Active',
+        associatedServices || 'International Consulting',
+        notes || null,
+        requirements ? JSON.stringify(requirements) : null
+      ]
+    );
+
+    const createdOrg = await db.get('SELECT * FROM clients WHERE id = ?', [clientId]);
+    res.status(201).json({
+      success: true,
+      message: 'Organization created successfully',
+      data: createdOrg,
+      client: createdOrg,
+      organization: createdOrg
+    });
   } catch (error) {
-    res.status(500).json({ success: false, message: error.message });
+    console.error('Failed to create organization:', error);
+    res.status(500).json({ success: false, message: 'Failed to create organization record' });
+  }
+});
+
+app.patch(['/api/clients/:id', '/api/organizations/:id'], async (req, res) => {
+  try {
+    const { id } = req.params;
+    const {
+      company, organizationType, industry, country, location, website,
+      contactPerson, designation, email, phone, assignedEmployee, status, associatedServices,
+      lastContactDate, nextFollowUpDate, notes
+    } = req.body;
+
+    const db = await getDb();
+    const existing = await db.get('SELECT * FROM clients WHERE id = ?', [id]);
+    if (!existing) {
+      return res.status(404).json({ success: false, message: 'Organization not found' });
+    }
+
+    await db.run(
+      `UPDATE clients SET
+        company = COALESCE(?, company),
+        organizationType = COALESCE(?, organizationType),
+        industry = COALESCE(?, industry),
+        country = COALESCE(?, country),
+        location = COALESCE(?, location),
+        website = COALESCE(?, website),
+        contactPerson = COALESCE(?, contactPerson),
+        designation = COALESCE(?, designation),
+        email = COALESCE(?, email),
+        phone = COALESCE(?, phone),
+        assignedEmployee = COALESCE(?, assignedEmployee),
+        status = COALESCE(?, status),
+        associatedServices = COALESCE(?, associatedServices),
+        lastContactDate = COALESCE(?, lastContactDate),
+        nextFollowUpDate = COALESCE(?, nextFollowUpDate),
+        notes = COALESCE(?, notes),
+        updatedAt = CURRENT_TIMESTAMP
+       WHERE id = ?`,
+      [
+        company ? company.trim() : null,
+        organizationType || null,
+        industry || null,
+        country || null,
+        location || null,
+        website ? website.trim() : null,
+        contactPerson ? contactPerson.trim() : null,
+        designation ? designation.trim() : null,
+        email ? email.trim() : null,
+        phone ? phone.trim() : null,
+        assignedEmployee || null,
+        status || null,
+        associatedServices || null,
+        lastContactDate || null,
+        nextFollowUpDate || null,
+        notes !== undefined ? notes : null,
+        id
+      ]
+    );
+
+    const updated = await db.get('SELECT * FROM clients WHERE id = ?', [id]);
+    res.json({ success: true, message: 'Organization updated successfully', data: updated });
+  } catch (error) {
+    console.error('Failed to update organization:', error);
+    res.status(500).json({ success: false, message: 'Failed to update organization' });
+  }
+});
+
+app.post(['/api/clients/:id/contacts', '/api/organizations/:id/contacts'], async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { name, designation, email, phone, isPrimary } = req.body;
+
+    if (!name || typeof name !== 'string' || name.trim().length < 2) {
+      return res.status(400).json({ success: false, message: 'Contact name is required.' });
+    }
+
+    const contactId = `CNT-${Date.now().toString().slice(-6)}-${Math.floor(100 + Math.random() * 900)}`;
+    const db = await getDb();
+
+    await db.run(
+      `INSERT INTO organization_contacts (id, organizationId, name, designation, email, phone, isPrimary)
+       VALUES (?, ?, ?, ?, ?, ?, ?)`,
+      [contactId, id, name.trim(), designation ? designation.trim() : null, email ? email.trim() : null, phone ? phone.trim() : null, isPrimary ? 1 : 0]
+    );
+
+    const createdContact = await db.get('SELECT * FROM organization_contacts WHERE id = ?', [contactId]);
+    res.status(201).json({ success: true, message: 'Authorized contact added', data: createdContact });
+  } catch (error) {
+    console.error('Failed to add contact:', error);
+    res.status(500).json({ success: false, message: 'Failed to add contact' });
+  }
+});
+
+app.delete(['/api/clients/:id', '/api/organizations/:id'], async (req, res) => {
+  try {
+    const { id } = req.params;
+    const db = await getDb();
+    await db.run('DELETE FROM clients WHERE id = ?', [id]);
+    await db.run('DELETE FROM organization_contacts WHERE organizationId = ?', [id]);
+    res.json({ success: true, message: 'Organization record deleted successfully' });
+  } catch (error) {
+    console.error('Failed to delete client:', error);
+    res.status(500).json({ success: false, message: 'Failed to delete client' });
   }
 });
 
 // API Routes - INTERVIEWS
 app.get('/api/interviews', async (req, res) => {
   try {
-    const supabase = await getDb();
-    const { data: rows, error } = await supabase.from('interviews').select('*').order('date', { ascending: true }).order('time', { ascending: true });
-    if (error) throw error;
+    const db = await getDb();
+    const rows = await db.all('SELECT * FROM interviews ORDER BY date ASC, time ASC');
     res.json({ success: true, data: rows });
   } catch (error) {
-    res.status(500).json({ success: false, message: error.message });
+    res.status(500).json({ success: false, message: 'Failed to fetch interviews' });
   }
 });
 
@@ -496,68 +838,602 @@ app.post('/api/interviews', async (req, res) => {
   try {
     const { id, candidateId, candidateName, jobId, jobTitle, company, date, time, platform } = req.body;
     const intId = id || `INT-${Math.floor(1000 + Math.random() * 9000)}`;
-    const supabase = await getDb();
-    
-    const { data: interview, error } = await supabase.from('interviews').insert([{
-      id: intId, candidateId, candidateName, jobId, jobTitle, company, date, time, platform
-    }]).select().single();
-    
-    if (error) throw error;
+    const db = await getDb();
+    await db.run(
+      `INSERT INTO interviews (id, candidateId, candidateName, jobId, jobTitle, company, date, time, platform) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+      [intId, candidateId, candidateName, jobId, jobTitle, company, date, time, platform]
+    );
+    const interview = await db.get('SELECT * FROM interviews WHERE id = ?', [intId]);
     res.json({ success: true, data: interview });
   } catch (error) {
-    res.status(500).json({ success: false, message: error.message });
+    res.status(500).json({ success: false, message: 'Failed to create interview' });
   }
 });
 
 app.delete('/api/interviews/:id', async (req, res) => {
   try {
-    const supabase = await getDb();
-    const { error } = await supabase.from('interviews').delete().eq('id', req.params.id);
-    if (error) throw error;
+    const db = await getDb();
+    await db.run('DELETE FROM interviews WHERE id = ?', [req.params.id]);
     res.json({ success: true });
   } catch (error) {
-    res.status(500).json({ success: false, message: error.message });
+    res.status(500).json({ success: false, message: 'Failed to delete interview' });
   }
 });
 
-// API Routes - LEADS (Contact Form)
-app.get('/api/leads', async (req, res) => {
+// In-memory sliding-window rate limiter & duplicate submit cache for inquiries
+const inquiryRateLimits = new Map();
+const recentInquirySubmissions = new Map();
+
+// API Routes - LEADS & CONSULTING ENQUIRIES
+app.get(['/api/leads', '/api/consulting/enquiries'], async (req, res) => {
   try {
-    const supabase = await getDb();
-    const { data: rows, error } = await supabase.from('leads').select('*').order('createdAt', { ascending: false });
-    if (error) throw error;
+    const { serviceId, status, priority, assignedEmployee, search } = req.query;
+    const db = await getDb();
+    
+    let query = 'SELECT * FROM leads WHERE 1=1';
+    const params = [];
+
+    if (serviceId) {
+      query += ' AND serviceId = ?';
+      params.push(serviceId);
+    }
+
+    if (status && status !== 'all' && status !== 'All') {
+      query += ' AND status = ?';
+      params.push(status);
+    }
+
+    if (priority && priority !== 'all') {
+      query += ' AND priority = ?';
+      params.push(priority);
+    }
+
+    if (assignedEmployee && assignedEmployee !== 'all') {
+      query += ' AND assignedEmployee = ?';
+      params.push(assignedEmployee);
+    }
+
+    if (search && search.trim()) {
+      const s = `%${search.trim().toLowerCase()}%`;
+      query += ' AND (LOWER(name) LIKE ? OR LOWER(email) LIKE ? OR LOWER(phone) LIKE ? OR LOWER(message) LIKE ? OR LOWER(company) LIKE ? OR LOWER(COALESCE(referenceNumber, "")) LIKE ?)';
+      params.push(s, s, s, s, s, s);
+    }
+
+    query += ' ORDER BY createdAt DESC';
+    const rows = await db.all(query, params);
     res.json({ success: true, data: rows });
   } catch (error) {
-    res.status(500).json({ success: false, message: error.message });
+    console.error('Failed to fetch leads:', error);
+    res.status(500).json({ success: false, message: 'Failed to retrieve inquiries' });
   }
 });
 
-app.post('/api/leads', async (req, res) => {
+// Individual Enquiry Details with Activities, Organization & Follow-ups
+app.get(['/api/leads/:id', '/api/consulting/enquiries/:id'], async (req, res) => {
   try {
-    const { id, name, email, company, phone, message } = req.body;
-    const leadId = id || `LEAD-${Math.floor(1000 + Math.random() * 9000)}`;
-    const supabase = await getDb();
+    const { id } = req.params;
+    const db = await getDb();
+    const lead = await db.get('SELECT * FROM leads WHERE id = ?', [id]);
+
+    if (!lead) {
+      return res.status(404).json({ success: false, message: 'Enquiry not found' });
+    }
+
+    const activities = await db.all('SELECT * FROM enquiry_activities WHERE enquiryId = ? ORDER BY createdAt DESC', [id]);
+    const followUps = await db.all('SELECT * FROM follow_ups WHERE enquiryId = ? ORDER BY dueDateTime ASC', [id]);
     
-    const { data: lead, error } = await supabase.from('leads').insert([{
-      id: leadId, name, email, company, phone, message
-    }]).select().single();
-    
-    if (error) throw error;
-    res.json({ success: true, data: { ...lead, status: 'New' } });
+    let organization = null;
+    if (lead.organizationId) {
+      organization = await db.get('SELECT * FROM clients WHERE id = ?', [lead.organizationId]);
+    } else if (lead.company && lead.company !== 'Individual') {
+      organization = await db.get('SELECT * FROM clients WHERE LOWER(TRIM(company)) = LOWER(TRIM(?))', [lead.company]);
+    }
+
+    res.json({
+      success: true,
+      data: {
+        ...lead,
+        activities,
+        followUps,
+        organization
+      }
+    });
   } catch (error) {
-    res.status(500).json({ success: false, message: error.message });
+    console.error('Failed to retrieve enquiry:', error);
+    res.status(500).json({ success: false, message: 'Failed to retrieve enquiry details' });
   }
 });
 
-// Original app routes below (visa, analysis, etc.)
+// Create Lead / International Consulting Enquiry
+app.post(['/api/leads', '/api/consulting/enquiries'], async (req, res) => {
+  try {
+    // 1. Sliding window rate limiting: 60/min for localhost, 30/min for external IPs
+    const clientIp = req.headers['x-forwarded-for'] || req.socket?.remoteAddress || 'unknown';
+    const isLocalhost = clientIp === '127.0.0.1' || clientIp === '::1' || clientIp === '::ffff:127.0.0.1' || clientIp === 'localhost';
+    const now = Date.now();
+    const windowMs = 60 * 1000;
+    const timestamps = (inquiryRateLimits.get(clientIp) || []).filter(t => now - t < windowMs);
+    const maxRequests = isLocalhost ? 60 : 30;
 
+    if (timestamps.length >= maxRequests) {
+      return res.status(429).json({
+        success: false,
+        message: 'Too many inquiries submitted from this network. Please wait a minute before submitting again.'
+      });
+    }
+    timestamps.push(now);
+    inquiryRateLimits.set(clientIp, timestamps);
+
+    const {
+      id, name, email, company, phone, message, serviceId, serviceTitle,
+      countryInterest, assistanceType, intakeTerm, degreeLevel, preferredContactMethod,
+      organizationId, organizationName, priority
+    } = req.body;
+
+    // 2. Strict Input Validation & Length Limits
+    if (!name || typeof name !== 'string' || name.trim().length < 2 || name.trim().length > 100) {
+      return res.status(400).json({ success: false, message: 'Full name is required (between 2 and 100 characters).' });
+    }
+
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!email || typeof email !== 'string' || !emailRegex.test(email.trim()) || email.trim().length > 100) {
+      return res.status(400).json({ success: false, message: 'A valid business or personal email address is required (maximum 100 characters).' });
+    }
+
+    const cleanPhone = (phone || '').replace(/[\s\-\(\)\+]/g, '');
+    if (!phone || typeof phone !== 'string' || cleanPhone.length < 7 || phone.trim().length > 30) {
+      return res.status(400).json({ success: false, message: 'A valid phone number with country code is required (between 7 and 30 characters).' });
+    }
+
+    if (!message || typeof message !== 'string' || message.trim().length < 10 || message.trim().length > 3000) {
+      return res.status(400).json({ success: false, message: 'Enquiry details are required (between 10 and 3000 characters).' });
+    }
+
+    // 3. Duplicate Submission Prevention (Same email + serviceId within 30 seconds)
+    const duplicateKey = `${email.trim().toLowerCase()}_${serviceId || 'gen'}`;
+    const lastSubmitTime = recentInquirySubmissions.get(duplicateKey);
+    if (lastSubmitTime && (now - lastSubmitTime) < 30000) {
+      return res.status(409).json({
+        success: false,
+        message: 'A duplicate enquiry was recently received. Please allow a brief moment before resubmitting.'
+      });
+    }
+    recentInquirySubmissions.set(duplicateKey, now);
+
+    const isConsultingEndpoint = (req.originalUrl && req.originalUrl.includes('/consulting')) || (req.path && req.path.includes('/consulting')) || serviceId === 'intl-consult';
+    const safeServiceId = (serviceId && typeof serviceId === 'string' && serviceId.trim()) 
+      ? serviceId.trim().slice(0, 50) 
+      : (isConsultingEndpoint ? 'intl-consult' : null);
+    const safeServiceTitle = (serviceTitle && typeof serviceTitle === 'string' && serviceTitle.trim()) 
+      ? serviceTitle.trim().slice(0, 150) 
+      : (safeServiceId === 'intl-consult' ? 'International Consulting' : (safeServiceId || null));
+    const safeCompany = (company && typeof company === 'string' && company.trim()) ? company.trim().slice(0, 150) : (organizationName || 'Individual');
+
+    // Generate unique official reference code
+    const isConsulting = safeServiceId === 'intl-consult' || (safeServiceTitle && safeServiceTitle.toLowerCase().includes('consulting'));
+    const refCode = isConsulting 
+      ? `REV-IC-2026-${Math.floor(10000 + Math.random() * 90000)}`
+      : `REV-EDU-${Date.now().toString().slice(-6)}-${Math.floor(100 + Math.random() * 900)}`;
+
+    const leadId = id || `LEAD-${Date.now()}-${Math.floor(1000 + Math.random() * 9000)}`;
+    const db = await getDb();
+
+    // 4. Resolve or associate organization if specified
+    let resolvedOrgId = organizationId || null;
+    let resolvedOrgName = organizationName || safeCompany;
+
+    if (!resolvedOrgId && safeCompany && safeCompany !== 'Individual' && safeCompany.length > 2) {
+      const matchOrg = await db.get(
+        'SELECT id, company FROM clients WHERE LOWER(TRIM(company)) = LOWER(TRIM(?))',
+        [safeCompany]
+      );
+      if (matchOrg) {
+        resolvedOrgId = matchOrg.id;
+        resolvedOrgName = matchOrg.company;
+      }
+    }
+
+    // 5. Parameterized SQL insert into leads
+    await db.run(
+      `INSERT INTO leads (
+        id, name, email, company, phone, message, serviceId, serviceTitle,
+        referenceNumber, countryInterest, assistanceType, intakeTerm, degreeLevel,
+        preferredContactMethod, organizationId, organizationName, priority, status
+      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+      [
+        leadId,
+        name.trim(),
+        email.trim(),
+        safeCompany,
+        phone.trim(),
+        message.trim(),
+        safeServiceId,
+        safeServiceTitle,
+        refCode,
+        countryInterest ? countryInterest.trim() : 'All',
+        assistanceType ? assistanceType.trim() : 'Destination & Profile Assessment',
+        intakeTerm ? intakeTerm.trim() : 'Fall 2026',
+        degreeLevel ? degreeLevel.trim() : 'Undergraduate',
+        preferredContactMethod ? preferredContactMethod.trim() : 'WhatsApp',
+        resolvedOrgId,
+        resolvedOrgName,
+        priority || 'Medium',
+        'New Enquiry'
+      ]
+    );
+
+    // 6. Record Initial Inbound Activity Log
+    const activityId = `ACT-${Date.now()}-${Math.floor(100 + Math.random() * 900)}`;
+    await db.run(
+      `INSERT INTO enquiry_activities (id, enquiryId, organizationId, type, title, notes, createdBy)
+       VALUES (?, ?, ?, ?, ?, ?, ?)`,
+      [
+        activityId,
+        leadId,
+        resolvedOrgId,
+        'Inquiry Received',
+        `New Consultation Enquiry (${refCode})`,
+        `Client submitted enquiry for ${safeServiceTitle}. Country interest: ${countryInterest || 'Global'}. Preferred contact: ${preferredContactMethod || 'WhatsApp'}.`,
+        'System Inbound'
+      ]
+    );
+
+    const leadRecord = {
+      id: leadId,
+      referenceNumber: refCode,
+      name: name.trim(),
+      email: email.trim(),
+      company: safeCompany,
+      phone: phone.trim(),
+      serviceId: safeServiceId,
+      serviceTitle: safeServiceTitle,
+      countryInterest,
+      assistanceType,
+      intakeTerm,
+      degreeLevel,
+      preferredContactMethod,
+      organizationId: resolvedOrgId,
+      organizationName: resolvedOrgName,
+      status: 'New Enquiry',
+      createdAt: new Date().toISOString()
+    };
+
+    res.status(201).json({
+      success: true,
+      message: 'Consultation enquiry received and securely recorded in database.',
+      data: leadRecord,
+      lead: leadRecord
+    });
+  } catch (error) {
+    console.error('Failed to save inquiry to SQLite:', error);
+    res.status(500).json({ success: false, message: 'Database error saving your inquiry. Please try again shortly.' });
+  }
+});
+
+// Update Lead Status, Assignment, Organization Link, & Workflow
+app.patch(['/api/leads/:id', '/api/consulting/enquiries/:id'], async (req, res) => {
+  try {
+    const { id } = req.params;
+    const {
+      status, assignedEmployee, priority, organizationId, organizationName,
+      nextAction, nextActionDate, internalNotes, updatedBy
+    } = req.body;
+
+    const allowedStatuses = [
+      'New', 'New Enquiry', 'Contacted', 'Contact Attempted', 'Consultation Scheduled',
+      'Consultation Completed', 'Proposal Pending', 'Proposal or Next Steps Pending',
+      'In Progress', 'Converted', 'Completed', 'Closed', 'Archived'
+    ];
+
+    if (status && !allowedStatuses.includes(status)) {
+      return res.status(400).json({ success: false, message: `Invalid status: '${status}'.` });
+    }
+
+    const db = await getDb();
+    const currentLead = await db.get('SELECT * FROM leads WHERE id = ?', [id]);
+    if (!currentLead) {
+      return res.status(404).json({ success: false, message: 'Enquiry not found' });
+    }
+
+    // Update lead record
+    await db.run(
+      `UPDATE leads SET
+        status = COALESCE(?, status),
+        assignedEmployee = COALESCE(?, assignedEmployee),
+        priority = COALESCE(?, priority),
+        organizationId = COALESCE(?, organizationId),
+        organizationName = COALESCE(?, organizationName),
+        nextAction = COALESCE(?, nextAction),
+        nextActionDate = COALESCE(?, nextActionDate),
+        internalNotes = COALESCE(?, internalNotes),
+        updatedAt = CURRENT_TIMESTAMP
+       WHERE id = ?`,
+      [
+        status || null,
+        assignedEmployee || null,
+        priority || null,
+        organizationId || null,
+        organizationName || null,
+        nextAction || null,
+        nextActionDate || null,
+        internalNotes !== undefined ? internalNotes : null,
+        id
+      ]
+    );
+
+    // Audit activity if status changed
+    if (status && status !== currentLead.status) {
+      await db.run(
+        `INSERT INTO enquiry_activities (id, enquiryId, organizationId, type, title, notes, createdBy)
+         VALUES (?, ?, ?, ?, ?, ?, ?)`,
+        [
+          `ACT-${Date.now()}-${Math.floor(100 + Math.random() * 900)}`,
+          id,
+          organizationId || currentLead.organizationId,
+          'Status Change',
+          `Pipeline Stage: ${status}`,
+          `Status updated from '${currentLead.status || 'New'}' to '${status}'.`,
+          updatedBy || 'Staff User'
+        ]
+      );
+    }
+
+    // Audit activity if consultant assigned
+    if (assignedEmployee && assignedEmployee !== currentLead.assignedEmployee) {
+      await db.run(
+        `INSERT INTO enquiry_activities (id, enquiryId, organizationId, type, title, notes, createdBy)
+         VALUES (?, ?, ?, ?, ?, ?, ?)`,
+        [
+          `ACT-${Date.now()}-${Math.floor(100 + Math.random() * 900)}`,
+          id,
+          organizationId || currentLead.organizationId,
+          'Assignment',
+          `Assigned to ${assignedEmployee}`,
+          `Lead consultant assigned to ${assignedEmployee}.`,
+          updatedBy || 'Staff User'
+        ]
+      );
+    }
+
+    const updated = await db.get('SELECT * FROM leads WHERE id = ?', [id]);
+    res.json({ success: true, message: 'Enquiry updated successfully', data: updated });
+  } catch (error) {
+    console.error('Failed to update lead:', error);
+    res.status(500).json({ success: false, message: 'Failed to update lead' });
+  }
+});
+
+// Record Discussion Note, Call Log or Meeting in Activity Timeline
+app.post(['/api/leads/:id/activities', '/api/consulting/enquiries/:id/activities'], async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { type, title, notes, createdBy, organizationId } = req.body;
+
+    if (!title || !title.trim()) {
+      return res.status(400).json({ success: false, message: 'Activity title is required.' });
+    }
+
+    const actId = `ACT-${Date.now()}-${Math.floor(100 + Math.random() * 900)}`;
+    const db = await getDb();
+
+    await db.run(
+      `INSERT INTO enquiry_activities (id, enquiryId, organizationId, type, title, notes, createdBy)
+       VALUES (?, ?, ?, ?, ?, ?, ?)`,
+      [actId, id, organizationId || null, type || 'Note', title.trim(), notes ? notes.trim() : '', createdBy || 'Staff']
+    );
+
+    await db.run('UPDATE leads SET updatedAt = CURRENT_TIMESTAMP WHERE id = ?', [id]);
+    const createdActivity = await db.get('SELECT * FROM enquiry_activities WHERE id = ?', [actId]);
+    res.status(201).json({ success: true, message: 'Activity logged successfully', data: createdActivity });
+  } catch (error) {
+    console.error('Failed to log activity:', error);
+    res.status(500).json({ success: false, message: 'Failed to log activity' });
+  }
+});
+
+// Schedule Follow-Up for Enquiry
+app.post(['/api/leads/:id/follow-ups', '/api/consulting/enquiries/:id/follow-ups'], async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { title, purpose, dueDateTime, assignedTo, createdBy, organizationId } = req.body;
+
+    if (!dueDateTime || !purpose) {
+      return res.status(400).json({ success: false, message: 'Follow-up date/time and purpose are required.' });
+    }
+
+    const followUpId = `FLW-${Date.now()}-${Math.floor(100 + Math.random() * 900)}`;
+    const db = await getDb();
+
+    await db.run(
+      `INSERT INTO follow_ups (id, enquiryId, organizationId, title, purpose, dueDateTime, assignedTo, status, createdBy)
+       VALUES (?, ?, ?, ?, ?, ?, ?, 'Pending', ?)`,
+      [followUpId, id, organizationId || null, title || 'Scheduled Follow-Up', purpose.trim(), dueDateTime, assignedTo || 'Assigned Consultant', createdBy || 'Staff']
+    );
+
+    // Update lead's nextAction & nextActionDate
+    await db.run(
+      `UPDATE leads SET nextAction = ?, nextActionDate = ?, updatedAt = CURRENT_TIMESTAMP WHERE id = ?`,
+      [title || purpose.slice(0, 50), dueDateTime, id]
+    );
+
+    // Log in activities
+    await db.run(
+      `INSERT INTO enquiry_activities (id, enquiryId, organizationId, type, title, notes, createdBy)
+       VALUES (?, ?, ?, ?, ?, ?, ?)`,
+      [
+        `ACT-${Date.now()}-${Math.floor(100 + Math.random() * 900)}`,
+        id,
+        organizationId || null,
+        'Follow-up Scheduled',
+        `Follow-up set for ${dueDateTime}`,
+        `Purpose: ${purpose.trim()} (Assigned to: ${assignedTo || 'Staff'})`,
+        createdBy || 'Staff'
+      ]
+    );
+
+    const createdFollowUp = await db.get('SELECT * FROM follow_ups WHERE id = ?', [followUpId]);
+    res.status(201).json({ success: true, message: 'Follow-up scheduled successfully', data: createdFollowUp });
+  } catch (error) {
+    console.error('Failed to schedule follow-up:', error);
+    res.status(500).json({ success: false, message: 'Failed to schedule follow-up' });
+  }
+});
+
+// Follow-ups List & Status Updates
+app.get('/api/follow-ups', async (req, res) => {
+  try {
+    const { status, assignedTo, enquiryId } = req.query;
+    const db = await getDb();
+
+    let query = 'SELECT f.*, l.name as clientName, l.phone as clientPhone, l.email as clientEmail FROM follow_ups f LEFT JOIN leads l ON f.enquiryId = l.id WHERE 1=1';
+    const params = [];
+
+    if (status && status !== 'all') {
+      query += ' AND f.status = ?';
+      params.push(status);
+    }
+    if (assignedTo && assignedTo !== 'all') {
+      query += ' AND f.assignedTo = ?';
+      params.push(assignedTo);
+    }
+    if (enquiryId) {
+      query += ' AND f.enquiryId = ?';
+      params.push(enquiryId);
+    }
+
+    query += ' ORDER BY f.dueDateTime ASC';
+    const rows = await db.all(query, params);
+    res.json({ success: true, data: rows });
+  } catch (error) {
+    console.error('Failed to fetch follow-ups:', error);
+    res.status(500).json({ success: false, message: 'Failed to fetch follow-ups' });
+  }
+});
+
+app.patch('/api/follow-ups/:id', async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { status, completionNotes, updatedBy } = req.body;
+
+    const allowed = ['Pending', 'Completed', 'Cancelled'];
+    if (!status || !allowed.includes(status)) {
+      return res.status(400).json({ success: false, message: 'Invalid follow-up status' });
+    }
+
+    const db = await getDb();
+    const existing = await db.get('SELECT * FROM follow_ups WHERE id = ?', [id]);
+    if (!existing) {
+      return res.status(404).json({ success: false, message: 'Follow-up not found' });
+    }
+
+    const completedAt = status === 'Completed' ? new Date().toISOString() : null;
+
+    await db.run(
+      `UPDATE follow_ups SET status = ?, completionNotes = ?, completedAt = ? WHERE id = ?`,
+      [status, completionNotes ? completionNotes.trim() : null, completedAt, id]
+    );
+
+    // If completed or cancelled, log to enquiry activity
+    if (existing.enquiryId) {
+      await db.run(
+        `INSERT INTO enquiry_activities (id, enquiryId, organizationId, type, title, notes, createdBy)
+         VALUES (?, ?, ?, ?, ?, ?, ?)`,
+        [
+          `ACT-${Date.now()}-${Math.floor(100 + Math.random() * 900)}`,
+          existing.enquiryId,
+          existing.organizationId,
+          'Follow-up Update',
+          `Follow-up marked ${status}`,
+          completionNotes ? `Notes: ${completionNotes.trim()}` : `Marked ${status} by staff.`,
+          updatedBy || 'Staff'
+        ]
+      );
+    }
+
+    const updated = await db.get('SELECT * FROM follow_ups WHERE id = ?', [id]);
+    res.json({ success: true, message: `Follow-up marked as ${status}`, data: updated });
+  } catch (error) {
+    console.error('Failed to update follow-up:', error);
+    res.status(500).json({ success: false, message: 'Failed to update follow-up' });
+  }
+});
+
+// Delete Lead / Enquiry (Super Admin CRM)
+app.delete(['/api/leads/:id', '/api/consulting/enquiries/:id'], async (req, res) => {
+  try {
+    const { id } = req.params;
+    const db = await getDb();
+    await db.run('DELETE FROM leads WHERE id = ?', [id]);
+    await db.run('DELETE FROM enquiry_activities WHERE enquiryId = ?', [id]);
+    await db.run('DELETE FROM follow_ups WHERE enquiryId = ?', [id]);
+    res.json({ success: true, message: 'Lead deleted successfully', id });
+  } catch (error) {
+    console.error('Failed to delete lead:', error);
+    res.status(500).json({ success: false, message: 'Failed to delete lead' });
+  }
+});
+
+// Real-Time Database Metrics for International Consulting
+app.get('/api/crm/consulting/metrics', async (req, res) => {
+  try {
+    const db = await getDb();
+    
+    // Database-derived metrics exclusively
+    const totalRow = await db.get(
+      "SELECT COUNT(*) as count FROM leads WHERE serviceId = 'intl-consult' OR LOWER(serviceTitle) LIKE '%international consulting%'"
+    );
+    const newRow = await db.get(
+      "SELECT COUNT(*) as count FROM leads WHERE (serviceId = 'intl-consult' OR LOWER(serviceTitle) LIKE '%international consulting%') AND status IN ('New', 'New Enquiry')"
+    );
+    const scheduledRow = await db.get(
+      "SELECT COUNT(*) as count FROM leads WHERE (serviceId = 'intl-consult' OR LOWER(serviceTitle) LIKE '%international consulting%') AND status = 'Consultation Scheduled'"
+    );
+    const activeRow = await db.get(
+      "SELECT COUNT(*) as count FROM leads WHERE (serviceId = 'intl-consult' OR LOWER(serviceTitle) LIKE '%international consulting%') AND status IN ('In Progress', 'Proposal Pending', 'Proposal or Next Steps Pending')"
+    );
+    const completedRow = await db.get(
+      "SELECT COUNT(*) as count FROM leads WHERE (serviceId = 'intl-consult' OR LOWER(serviceTitle) LIKE '%international consulting%') AND status IN ('Converted', 'Completed')"
+    );
+    const followUpsDueRow = await db.get(
+      "SELECT COUNT(*) as count FROM follow_ups WHERE status = 'Pending'"
+    );
+    const overdueRow = await db.get(
+      "SELECT COUNT(*) as count FROM follow_ups WHERE status = 'Pending' AND dueDateTime < datetime('now')"
+    );
+    const orgCountRow = await db.get(
+      "SELECT COUNT(*) as count FROM clients WHERE organizationType IN ('University', 'College', 'School', 'Partner Institute')"
+    );
+
+    const metricsPayload = {
+      totalEnquiries: totalRow ? totalRow.count : 0,
+      newEnquiries: newRow ? newRow.count : 0,
+      consultationsScheduled: scheduledRow ? scheduledRow.count : 0,
+      activeEngagements: activeRow ? activeRow.count : 0,
+      completedEngagements: completedRow ? completedRow.count : 0,
+      followUpsDue: followUpsDueRow ? followUpsDueRow.count : 0,
+      overdueFollowUps: overdueRow ? overdueRow.count : 0,
+      educationalOrganizations: orgCountRow ? orgCountRow.count : 0,
+      timestamp: new Date().toISOString()
+    };
+
+    res.json({
+      success: true,
+      data: metricsPayload,
+      metrics: metricsPayload
+    });
+  } catch (error) {
+    console.error('Failed to get consulting metrics:', error);
+    res.status(500).json({ success: false, message: 'Failed to calculate consulting metrics' });
+  }
+});
+
+// Visa check and assessment
 app.get('/api/visa/countries-matrix', (req, res) => {
   res.json({ success: true, data: VISA_MATRIX_DATA });
 });
 
 app.post('/api/visa/check', (req, res) => {
   const { country, qualification, experience, age, language } = req.body;
-  
   const targetCountryData = VISA_MATRIX_DATA.find(c => c.country.toLowerCase() === (country || 'uae').toLowerCase()) || VISA_MATRIX_DATA[0];
 
   const target = (country || 'uae').toLowerCase();
@@ -569,9 +1445,7 @@ app.post('/api/visa/check', (req, res) => {
   let baseScore = 20;
   const reasons = [];
 
-  // --- 1. AGE EVALUATION (Country-Specific Cutoffs & Point Grids) ---
   let ageScore = 0;
-
   if (target === 'australia') {
     if (ageVal < 18) {
       ageScore = 0;
@@ -598,185 +1472,105 @@ app.post('/api/visa/check', (req, res) => {
       reasons.push('Peak age bracket (20-29) yields maximum CRS points for Canada Express Entry.');
     } else if (ageVal >= 30 && ageVal <= 44) {
       const reduction = (ageVal - 29) * 2;
-      ageScore = Math.max(5, 30 - reduction);
-      reasons.push(`Age ${ageVal} receives reduced CRS age points (-2 pts/yr after 30).`);
-    } else {
-      ageScore = 0;
-      reasons.push('Age 45+ awards 0 points under Canada Express Entry CRS.');
-    }
-  } else if (target === 'germany' || target === 'united kingdom' || target === 'singapore') {
-    if (ageVal >= 21 && ageVal <= 42) {
-      ageScore = 25;
-      reasons.push('Optimal prime executive working age bracket (21-42).');
-    } else if (ageVal <= 50) {
-      ageScore = 18;
-      reasons.push('Standard eligible age range.');
-    } else {
-      ageScore = 8;
-      reasons.push('Above standard prime age; requires high salary threshold.');
-    }
-  } else if (['saudi arabia', 'qatar', 'kuwait', 'oman', 'bahrain'].includes(target)) {
-    if (ageVal >= 21 && ageVal <= 50) {
-      ageScore = 25;
-      reasons.push('Optimal demographic for GCC Iqama & Work Permits.');
-    } else if (ageVal <= 58) {
-      ageScore = 18;
-      reasons.push('Eligible for GCC Work Residence Visa (under 58 cutoff).');
-    } else {
-      ageScore = -10;
-      reasons.push('Above standard GCC Iqama issuance age ceiling (58+ requires ministry exemption).');
-    }
-  } else {
-    // UAE & General
-    if (ageVal >= 21 && ageVal <= 55) {
-      ageScore = 25;
-      reasons.push('Meets standard UAE MOHRE work visa age criteria (18-60).');
-    } else if (ageVal <= 65) {
-      ageScore = 15;
-      reasons.push('Senior visa approval required for ages 60-65.');
+      ageScore = Math.max(10, 30 - reduction);
+      reasons.push(`Age ${ageVal} receives moderate CRS score points for Canadian immigration.`);
     } else {
       ageScore = 5;
-      reasons.push('Over 65 requires special MOHRE high-tier authorization.');
-    }
-  }
-
-  // --- 2. QUALIFICATION EVALUATION ---
-  let qualScore = 0;
-  if (qualStr.includes('master') || qualStr.includes('doctorate')) {
-    qualScore = 30;
-    reasons.push("Master's / Doctorate degree meets highest tier qualification standards.");
-  } else if (qualStr.includes('bachelor')) {
-    qualScore = 25;
-    reasons.push("Bachelor's Degree recognized for professional & engineering visa streams.");
-  } else if (qualStr.includes('diploma')) {
-    if (target === 'australia' || target === 'germany') {
-      qualScore = 12;
-      reasons.push('Diploma qualifies for VETASSESS / technical skilled trades.');
-    } else {
-      qualScore = 18;
-      reasons.push('Technical Diploma qualifies for Skilled Worker Visa.');
+      reasons.push('Age over 45 receives reduced CRS points; provincial nomination or LMIA job offer strongly recommended.');
     }
   } else {
-    if (target === 'australia' || target === 'canada' || target === 'germany' || target === 'singapore') {
-      qualScore = 0;
-      reasons.push('Secondary education alone does NOT meet points criteria for direct skilled visas in this country.');
+    if (ageVal >= 21 && ageVal <= 50) {
+      ageScore = 25;
+      reasons.push(`Optimal working age (${ageVal} years) meets GCC labor permit standards.`);
     } else {
-      qualScore = 12;
-      reasons.push('Secondary qualification eligible for general labor, hospitality, & service visas in GCC.');
+      ageScore = 10;
+      reasons.push(`Age ${ageVal} subject to additional labor approval protocols.`);
     }
   }
 
-  // --- 3. WORK EXPERIENCE EVALUATION ---
   let expScore = 0;
-  if (expVal >= 10) {
+  if (expVal >= 5) {
     expScore = 25;
-    reasons.push('10+ years executive experience unlocks Golden Visa / Senior Specialist pathways.');
-  } else if (expVal >= 5) {
-    expScore = 20;
-    reasons.push('5+ years experience qualifies for mid-senior supervisory visas.');
-  } else if (expVal >= 3) {
-    expScore = 14;
-    reasons.push('3-5 years experience satisfies standard work permit rules.');
+    reasons.push(`Extensive career experience (${expVal}+ years) qualifies for senior specialist quotas.`);
+  } else if (expVal >= 2) {
+    expScore = 18;
+    reasons.push(`Mid-level experience (${expVal} years) fulfills standard skilled visa criteria.`);
   } else {
-    expScore = 8;
-    reasons.push('Entry level (0-2 yrs) requires entry job sponsorship.');
+    expScore = 10;
+    reasons.push('Entry-level experience: employer-sponsored training visa pathway recommended.');
   }
 
-  // --- 4. LANGUAGE PROFICIENCY ---
+  let qualScore = 0;
+  if (qualStr.includes('master') || qualStr.includes('phd') || qualStr.includes('doctorate')) {
+    qualScore = 25;
+    reasons.push('Postgraduate credentials provide maximum qualification rating and fast-track processing eligibility.');
+  } else if (qualStr.includes('bachelor') || qualStr.includes('degree') || qualStr.includes('engineer')) {
+    qualScore = 20;
+    reasons.push("Attested Bachelor's Degree fulfills Tier-1 skilled work permit criteria across all GCC jurisdictions.");
+  } else if (qualStr.includes('diploma')) {
+    qualScore = 15;
+    reasons.push('Technical / Vocational Diploma eligible for specialized trade and technician visa categories.');
+  } else {
+    qualScore = 10;
+    reasons.push('Secondary qualification eligible for general labor, hospitality, & service visas in GCC.');
+  }
+
   let langScore = 0;
-  if (target === 'germany') {
-    if (langStr.includes('german')) {
-      langScore = 20;
-      reasons.push('German B1/B2 fluency provides major boost for EU Blue Card approval.');
-    } else if (langStr.includes('english')) {
-      langScore = 12;
-      reasons.push('English accepted for International Tech & Corporate roles in Germany.');
-    } else {
-      langScore = 5;
-    }
-  } else if (['saudi arabia', 'qatar', 'oman', 'kuwait', 'bahrain', 'uae'].includes(target)) {
-    if (langStr.includes('arabic')) {
-      langScore = 20;
-      reasons.push('Arabic & English bilingual proficiency is highly prioritized in GCC government & corporate sectors.');
-    } else {
-      langScore = 15;
-      reasons.push('English proficiency accepted across all GCC private sector mandates.');
-    }
+  if (langStr.includes('ielts') || langStr.includes('fluent') || langStr.includes('native') || langStr.includes('b2') || langStr.includes('c1') || langStr.includes('oet') || langStr.includes('det')) {
+    langScore = 15;
+    reasons.push('Verified language proficiency satisfies visa criteria and employer communication standards.');
   } else {
-    if (langStr.includes('english')) {
-      langScore = 20;
-      reasons.push('Fluent English satisfies mandatory IELTS / PTE visa requirements.');
-    } else {
-      langScore = 2;
-      reasons.push('English language proficiency is mandatory for work visas in this jurisdiction.');
-    }
+    langScore = 8;
+    reasons.push('Basic language proficiency acceptable for regional employer sponsorship.');
   }
 
-  let totalScore = baseScore + ageScore + qualScore + expScore + langScore;
-  totalScore = Math.max(10, Math.min(100, totalScore));
-
-  let status = 'Eligible';
-  if (totalScore >= 85) {
-    status = 'Highly Eligible';
-  } else if (totalScore >= 70) {
-    status = 'Eligible (Standard Pathway)';
-  } else if (totalScore >= 50) {
-    status = 'Conditional Eligibility (Sponsorship Required)';
-  } else {
-    status = 'Low Eligibility (Criteria Not Fully Met)';
-  }
-
-  const matchingJobs = JOBS_DATA.filter(j => j.country.toLowerCase() === targetCountryData.country.toLowerCase());
+  const finalScore = Math.min(100, Math.max(15, baseScore + ageScore + expScore + qualScore + langScore));
+  let eligibilityStatus = 'Low';
+  if (finalScore >= 75) eligibilityStatus = 'High';
+  else if (finalScore >= 50) eligibilityStatus = 'Moderate';
 
   res.json({
     success: true,
-    score: totalScore,
-    status,
-    countryData: targetCountryData,
-    reasons,
+    score: finalScore,
+    status: eligibilityStatus,
+    targetCountry: targetCountryData.country,
+    visaName: targetCountryData.commonVisa,
     processingTime: targetCountryData.processingTime,
     estimatedCost: targetCountryData.avgCost,
-    checklist: targetCountryData.documentChecklist,
-    recommendedJobs: matchingJobs.length ? matchingJobs : JOBS_DATA.slice(0, 3)
+    sponsorship: targetCountryData.sponsorship,
+    reasons,
+    documentChecklist: targetCountryData.documentChecklist
   });
 });
 
-app.post('/api/verification/verify', (req, res) => {
-  const { candidateName, passportNumber, verificationType } = req.body;
-  const caseId = 'REV-BGV-' + Math.floor(100000 + Math.random() * 900000);
-  
-  res.json({
-    success: true,
-    caseId,
-    status: 'In Progress - Document Dispatch',
-    estimatedCompletionDays: 3,
-    candidateName: candidateName || 'Submitted Candidate',
-    verificationType: verificationType || 'Comprehensive 6-Point Check',
-    steps: [
-      { step: 'Identity Check', status: 'Verified', date: 'Today' },
-      { step: 'Education Document Verification', status: 'In Progress', date: 'Pending Embassy' },
-      { step: 'Employment History Audit', status: 'Pending', date: 'Queued' },
-      { step: 'Criminal & Police Clearance', status: 'In Progress', date: 'In Review' },
-      { step: 'Address Physical Check', status: 'Queued', date: 'Pending' }
-    ]
-  });
-});
+app.post('/api/resume/analyze', (req, res) => {
+  const { resumeText, targetRole, industry } = req.body;
+  const wordCount = (resumeText || '').split(/\s+/).filter(Boolean).length;
+  const role = targetRole || 'Senior Executive';
 
-app.post('/api/ai/analyze-resume', (req, res) => {
-  const { resumeText } = req.body;
-  
-  const score = Math.floor(78 + Math.random() * 18);
-  const detectedSkills = ['Project Leadership', 'Client Relations', 'Process Optimization', 'Strategic Planning', 'Cross-functional Collaboration', 'Budget Management'];
-  const missingKeywords = ['GCC Work Permit Standards', 'ISO Compliance', 'FIDIC Contracts', 'Executive Stakeholder Management'];
+  const baseScore = Math.min(94, Math.max(58, 65 + Math.floor(wordCount / 20)));
+  const keywordsFound = ['Leadership', 'Budget Management', 'Process Optimization', 'MOHRE Compliance', 'Stakeholder Management', 'Team Leadership'].slice(0, 4);
+  const keywordsMissing = ['P&L Management', 'Cross-cultural Communication', 'Digital Transformation', 'Bilingual English/Arabic'];
 
   res.json({
     success: true,
-    atsScore: score,
-    grade: score >= 90 ? 'A+ (Executive Level)' : 'A (Strong Professional)',
-    extractedSkills: detectedSkills,
-    missingKeywords,
-    summary: 'Your CV exhibits strong technical leadership and corporate experience. Adding GCC-specific certification keywords will boost your profile match for Dubai and Saudi Arabia employers by 28%.',
-    recommendedJobs: JOBS_DATA.slice(0, 3)
+    data: {
+      atsScore: baseScore,
+      targetRole: role,
+      industry: industry || 'Executive Management',
+      matchLevel: baseScore >= 80 ? 'Excellent Match' : 'Strong Candidate',
+      strengths: [
+        'Clear chronological progression across executive mandates.',
+        'Strong quantified achievements in workforce leadership.',
+        'Document structure is easily parsable by Taleo, Workday, and GCC ATS platforms.'
+      ],
+      improvements: [
+        'Incorporate industry-specific GCC labor law keywords to maximize recruiter filtering.',
+        'Expand on revenue figures and cost-savings percentages in previous appointments.'
+      ],
+      keywordsFound,
+      keywordsMissing
+    }
   });
 });
 
@@ -784,9 +1578,11 @@ app.post('/api/ai/chat', (req, res) => {
   const { message } = req.body;
   const query = (message || '').toLowerCase();
 
-  let reply = "Welcome to Revival International! I am your AI Career & Visa Assistant. How can I assist you with job applications, GCC work visas, or executive recruitment in Dubai?";
+  let reply = "Welcome to Revival International! I am your AI Career & Visa Assistant. How can I assist you with job applications, GCC work visas, international education, or executive recruitment in Dubai?";
 
-  if (query.includes('visa') || query.includes('work permit')) {
+  if (query.includes('education') || query.includes('admission') || query.includes('college') || query.includes('ielts') || query.includes('det') || query.includes('oet')) {
+    reply = "Revival International provides comprehensive International Consulting and Admission Assistance for universities worldwide, school student career guidance, and test preparation for DET, OET, and IELTS. You can explore our new Education services or submit an inquiry through our Contact page!";
+  } else if (query.includes('visa') || query.includes('work permit')) {
     reply = "In the UAE and Saudi Arabia, work visas are sponsored directly by the hiring employer. Essential requirements include an attested degree certificate, medical fitness clearance, and a valid employment contract. You can test your profile in our interactive Visa Eligibility Checker on this site!";
   } else if (query.includes('job') || query.includes('apply') || query.includes('vacancy')) {
     reply = "We currently have active vacancies across Dubai, Abu Dhabi, Saudi Arabia, Qatar, Singapore, and Europe in Construction, Oil & Gas, Healthcare, Hospitality, IT, and Aviation. Visit our Jobs section to apply directly with your CV!";
@@ -801,12 +1597,12 @@ app.post('/api/ai/chat', (req, res) => {
 
 app.post('/api/payments/checkout', (req, res) => {
   const { gateway, serviceName, amount, currency } = req.body;
-  const transactionId = 'TXN-' + gateway.toUpperCase() + '-' + Date.now();
+  const transactionId = 'TXN-' + (gateway || 'STRIPE').toUpperCase() + '-' + Date.now();
   
   res.json({
     success: true,
     transactionId,
-    gateway,
+    gateway: gateway || 'stripe',
     serviceName: serviceName || 'VIP Recruitment Package',
     amount: amount || 299,
     currency: currency || 'USD',
@@ -816,10 +1612,58 @@ app.post('/api/payments/checkout', (req, res) => {
   });
 });
 
-if (process.env.NODE_ENV !== 'production') {
-  app.listen(PORT, () => {
-    console.log(`Revival International Express API Server running on port ${PORT}`);
+// Serve Vite frontend production bundle if dist directory exists
+const distPath = path.join(__dirname, '..', 'dist');
+if (fs.existsSync(distPath)) {
+  app.use(express.static(distPath));
+  // SPA fallback: Route all non-API GET requests to index.html
+  app.get('*', (req, res, next) => {
+    if (req.path.startsWith('/api')) return next();
+    res.sendFile(path.join(distPath, 'index.html'));
   });
+}
+
+// Global safe error handling middleware (No stack traces in production)
+app.use((err, req, res, next) => {
+  console.error('Unhandled Server Error:', err.message);
+  res.status(err.status || 500).json({
+    success: false,
+    message: process.env.NODE_ENV === 'production'
+      ? 'An internal server error occurred. Please contact support.'
+      : (err.message || 'Server Error')
+  });
+});
+
+// Production-ready server startup & graceful shutdown
+const isVercelServerless = process.env.VERCEL === '1' || Boolean(process.env.NOW_REGION);
+let server = null;
+
+if (!isVercelServerless) {
+  server = app.listen(PORT, () => {
+    console.log(`[Revival International] Express Server running on port ${PORT} [env=${process.env.NODE_ENV || 'development'}]`);
+  });
+
+  const handleGracefulShutdown = async (signal) => {
+    console.log(`[Shutdown] Received ${signal}. Gracefully stopping server...`);
+    if (server) {
+      server.close(async () => {
+        console.log('[Shutdown] HTTP server closed.');
+        await closeDb();
+        process.exit(0);
+      });
+    } else {
+      await closeDb();
+      process.exit(0);
+    }
+
+    setTimeout(() => {
+      console.error('[Shutdown] Forced termination after timeout.');
+      process.exit(1);
+    }, 10000);
+  };
+
+  process.on('SIGTERM', () => handleGracefulShutdown('SIGTERM'));
+  process.on('SIGINT', () => handleGracefulShutdown('SIGINT'));
 }
 
 export default app;

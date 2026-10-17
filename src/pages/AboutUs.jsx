@@ -2,6 +2,7 @@ import React from 'react';
 import { useApp } from '../context/AppContext';
 import { Building2, Globe, Shield, Award, Users, CheckCircle2, MapPin, Target, Eye } from 'lucide-react';
 import ScrollReveal from '../components/ScrollReveal';
+import { SEO } from '../components/SEO';
 
 export const AboutUs = () => {
   const { navigateTo } = useApp();
@@ -15,6 +16,34 @@ export const AboutUs = () => {
 
   return (
     <div className="max-w-7xl mx-auto px-4 sm:px-8 py-12 space-y-16">
+      <SEO
+        title="About Revival International | Global Recruitment & Academic Advisory Dubai"
+        description="Learn about Revival International's heritage in Dubai, our leadership team, and our dual-wing expertise bridging global executive recruitment and international academic advisory."
+        canonicalPath="about"
+        keywords="about Revival International, Dubai recruitment agency, executive headhunting Dubai, UAE MOHRE visa compliance, international education consulting"
+        breadcrumbs={[
+          { name: 'Home', item: '' },
+          { name: 'About Us', item: 'about' }
+        ]}
+        structuredData={{
+          '@context': 'https://schema.org',
+          '@type': 'AboutPage',
+          name: 'About Revival International',
+          description: 'Overview of Revival International leadership, GCC presence, and human capital and education advisory services.',
+          url: 'https://www.revivalinternational.com/about',
+          mainEntity: {
+            '@type': 'Organization',
+            name: 'Revival International',
+            url: 'https://www.revivalinternational.com',
+            address: {
+              '@type': 'PostalAddress',
+              streetAddress: 'Level 34, Rolex Tower, Financial Center Road, Business Bay',
+              addressLocality: 'Dubai',
+              addressCountry: 'AE'
+            }
+          }
+        }}
+      />
       
       {/* Header */}
       <ScrollReveal>

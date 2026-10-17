@@ -1,3 +1,15 @@
 User-agent: *
 Allow: /
-Sitemap: https://www.sirrecruitment.com/sitemap.xml
+Allow: /images/
+Allow: /assets/
+
+# Disallow Private CRM, ERP, and Server API Routes
+Disallow: /crm
+Disallow: /crm/
+Disallow: /erp
+Disallow: /erp/
+Disallow: /superadmin-erp
+Disallow: /api/
+Disallow: /admin
+
+Sitemap: https://www.revivalinternational.com/sitemap.xml

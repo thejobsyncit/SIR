@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { useApp } from '../context/AppContext';
 import { ShieldCheck, Search, CheckCircle2, Clock, AlertCircle, FileSpreadsheet, Lock, RefreshCw, Send } from 'lucide-react';
 import ScrollReveal from '../components/ScrollReveal';
+import { SEO } from '../components/SEO';
 
 export const BackgroundVerificationPage = () => {
   const { setActiveModal } = useApp();
@@ -56,6 +57,28 @@ export const BackgroundVerificationPage = () => {
 
   return (
     <div className="max-w-7xl mx-auto px-4 sm:px-8 py-12 space-y-16">
+      <SEO
+        title="Background Screening & Degree Attestation Services | Revival International"
+        description="Enterprise candidate background screening, embassy degree attestation, police clearance verification, and credential auditing for UAE and international employers."
+        canonicalPath="background-verification"
+        keywords="candidate background check Dubai, UAE degree attestation verification, embassy credential check, GCC employee screening, police clearance UAE"
+        breadcrumbs={[
+          { name: 'Home', item: '' },
+          { name: 'Background Verification', item: 'background-verification' }
+        ]}
+        structuredData={{
+          '@context': 'https://schema.org',
+          '@type': 'Service',
+          name: 'Executive Background Screening & Attestation',
+          serviceType: 'Employment Verification & Document Attestation',
+          provider: {
+            '@type': 'Organization',
+            name: 'Revival International'
+          },
+          areaServed: 'Worldwide',
+          description: '6-point international pre-employment audit including criminal checks, embassy degree attestation, and past employer verification.'
+        }}
+      />
       
       {/* Header */}
       <ScrollReveal>
