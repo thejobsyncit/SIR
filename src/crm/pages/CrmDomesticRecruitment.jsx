@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import ScrollReveal from '../../components/ScrollReveal';
 import { Home, MapPin, Building2, Calendar, CheckCircle2, Plus, Search, Filter, X } from 'lucide-react';
 
@@ -19,17 +19,72 @@ export const CrmDomesticRecruitment = () => {
     joining: '2026-08-30'
   });
 
-  const handleCreateOrder = (e) => {
+  useEffect(() => {
+    fetch('/api/leads?service=dom-rec')
+      .then(res => res.json())
+      .then(data => {
+        if (data && data.leads && data.leads.length > 0) {
+          const liveOrders = data.leads.map(l => ({
+            id: l.prefixCode || `DOM-${l.id}`,
+            client: l.name + (l.jobCategory ? ` (${l.jobCategory})` : ''),
+            position: l.jobTitle || 'General Domestic Hire',
+            city: l.workLocation || 'Dubai',
+            state: 'UAE',
+            salary: l.salaryRange || 'AED Negotiable',
+            followup: l.nextFollowUp || (l.created_at ? l.created_at.split('T')[0] : new Date().toISOString().split('T')[0]),
+            interviewStatus: l.status || 'Screening',
+            offerStatus: l.status === 'Offer Released' ? 'Offer Released' : l.status === 'Selected' ? 'Selected' : 'Under Review',
+            joining: l.joiningDate || '2026-09-01'
+          }));
+          setDomesticOrders(prev => {
+            const existingIds = new Set(prev.map(p => p.id));
+            const fresh = liveOrders.filter(lo => !existingIds.has(lo.id));
+            return [...fresh, ...prev];
+          });
+        }
+      })
+      .catch(err => console.error('Error fetching live domestic leads:', err));
+  }, []);
+
+  const handleCreateOrder = async (e) => {
     e.preventDefault();
-    const orderObj = {
-      ...newOrder,
-      id: 'DOM-' + Math.floor(100 + Math.random() * 900),
-      followup: new Date().toISOString().split('T')[0],
-      interviewStatus: 'Screening',
-      offerStatus: 'Draft'
-    };
-    setDomesticOrders([orderObj, ...domesticOrders]);
-    setModalOpen(false);
+    try {
+      const res = await fetch('/api/leads', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          name: newOrder.client,
+          email: 'recruiter@revival.internal',
+          phone: '+971 4 000 0000',
+          service: 'dom-rec',
+          jobTitle: newOrder.position,
+          workLocation: `${newOrder.city}, ${newOrder.state}`,
+          salaryRange: newOrder.salary,
+          joiningDate: newOrder.joining,
+          message: `Domestic hiring mandate for ${newOrder.position}`
+        })
+      });
+      const data = await res.json();
+      const orderObj = {
+        ...newOrder,
+        id: data.lead?.prefixCode || ('DOM-' + Math.floor(100 + Math.random() * 900)),
+        followup: new Date().toISOString().split('T')[0],
+        interviewStatus: 'Screening',
+        offerStatus: 'Draft'
+      };
+      setDomesticOrders([orderObj, ...domesticOrders]);
+      setModalOpen(false);
+    } catch {
+      const fallbackObj = {
+        ...newOrder,
+        id: 'DOM-' + Math.floor(100 + Math.random() * 900),
+        followup: new Date().toISOString().split('T')[0],
+        interviewStatus: 'Screening',
+        offerStatus: 'Draft'
+      };
+      setDomesticOrders([fallbackObj, ...domesticOrders]);
+      setModalOpen(false);
+    }
   };
 
   return (

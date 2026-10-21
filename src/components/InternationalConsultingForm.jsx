@@ -3,6 +3,8 @@ import {
   Send, CheckCircle2, AlertCircle, Loader2, Sparkles, ShieldCheck, 
   Building2, Globe, Calendar, Phone, Mail, User, Clock, ArrowRight 
 } from 'lucide-react';
+import { trackEnquiryStart, trackEnquiryValidationFailure, trackEnquiryConversion } from '../services/analytics';
+import { getAttributionData } from '../utils/attribution';
 
 export const InternationalConsultingForm = ({ 
   onSuccessCallback = null,
@@ -153,12 +155,14 @@ export const InternationalConsultingForm = ({
 
     if (Object.keys(errors).length > 0) {
       setFormErrors(errors);
+      trackEnquiryValidationFailure('consulting_page', 'intl-consult', Object.keys(errors));
       return;
     }
 
     setFormErrors({});
     setIsSubmitting(true);
 
+    const attribution = getAttributionData();
     const fullPhoneNumber = `${formData.countryCode} ${formData.phone}`.trim();
     const orgValue = formData.organizationName && formData.organizationName.trim()
       ? formData.organizationName.trim()
@@ -179,7 +183,11 @@ export const InternationalConsultingForm = ({
       intakeTerm: formData.intakeTerm,
       preferredContactMethod: formData.preferredContactMethod,
       priority: 'Medium',
-      message: `[International Consulting Consultation Request]\n\nTarget Destination: ${formData.countryInterest}\nDegree Level: ${formData.degreeLevel}\nTarget Intake: ${formData.intakeTerm}\nAssistance Required: ${formData.assistanceType}\nPreferred Contact: ${formData.preferredContactMethod}\nOrganization/School: ${orgValue} (${formData.organizationType})\n\nCandidate Inquiry & Academic Context:\n${formData.message.trim()}`
+      message: `[International Consulting Consultation Request]\n\nTarget Destination: ${formData.countryInterest}\nDegree Level: ${formData.degreeLevel}\nTarget Intake: ${formData.intakeTerm}\nAssistance Required: ${formData.assistanceType}\nPreferred Contact: ${formData.preferredContactMethod}\nOrganization/School: ${orgValue} (${formData.organizationType})\n\nCandidate Inquiry & Academic Context:\n${formData.message.trim()}`,
+      utmSource: attribution.utmSource,
+      utmMedium: attribution.utmMedium,
+      utmCampaign: attribution.utmCampaign,
+      referrer: attribution.referrer
     };
 
     try {
@@ -195,8 +203,9 @@ export const InternationalConsultingForm = ({
         throw new Error(result.message || 'The server was unable to save your consultation enquiry. Please try again.');
       }
 
+      const confirmedRef = result.data?.referenceNumber || `REV-IC-2026-${Math.floor(10000 + Math.random() * 90000)}`;
       const successData = {
-        referenceNumber: result.data?.referenceNumber || `REV-IC-2026-${Math.floor(10000 + Math.random() * 90000)}`,
+        referenceNumber: confirmedRef,
         id: result.data?.id,
         name: formData.name.trim(),
         email: formData.email.trim(),
@@ -207,6 +216,15 @@ export const InternationalConsultingForm = ({
       };
 
       setSubmissionSuccess(successData);
+
+      // Fire confirmed conversion event (deduplicated by referenceNumber)
+      trackEnquiryConversion(
+        confirmedRef,
+        'intl-consult',
+        'International Consulting',
+        'Consulting',
+        'consulting_page'
+      );
 
       if (onSuccessCallback) {
         onSuccessCallback(successData);
@@ -348,6 +366,7 @@ export const InternationalConsultingForm = ({
               name="name"
               value={formData.name}
               onChange={handleChange}
+              onFocus={() => trackEnquiryStart('consulting_page', 'intl-consult', 'International Consulting')}
               placeholder="e.g. Tariq Al-Mansoori / Sarah Jenkins"
               disabled={isSubmitting}
               className={`w-full pl-9 pr-3 py-2 bg-slate-50 dark:bg-navy-950 border rounded-xl font-semibold text-slate-900 dark:text-white placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-gold-500 transition ${

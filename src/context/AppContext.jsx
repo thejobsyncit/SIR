@@ -1,6 +1,8 @@
 import React, { createContext, useContext, useState, useEffect } from 'react';
 import { TRANSLATIONS } from '../data/translations';
 import { useCrm } from '../crm/context/CrmContext';
+import { trackPageView, trackFunnelStep } from '../services/analytics';
+import { getAttributionData } from '../utils/attribution';
 
 const AppContext = createContext();
 
@@ -360,6 +362,24 @@ export const AppProvider = ({ children }) => {
       window.removeEventListener('popstate', handleUrlSync);
     };
   }, []);
+
+  // Track Page Views & Landing Page Funnel Step on Active Tab Change
+  useEffect(() => {
+    try {
+      const attribution = getAttributionData();
+      const pageTitle = `${activeTab.charAt(0).toUpperCase() + activeTab.slice(1)} | Revival International`;
+      trackPageView(activeTab === 'home' ? '/' : `/${activeTab}`, pageTitle, {
+        utm_source: attribution.utmSource,
+        utm_medium: attribution.utmMedium,
+        utm_campaign: attribution.utmCampaign
+      });
+      if (activeTab === 'home' || activeTab === '') {
+        trackFunnelStep(1, 'landing_page_visit', 'home');
+      }
+    } catch (e) {
+      console.debug('Analytics page view tracking error:', e);
+    }
+  }, [activeTab]);
 
   // Posted Jobs State Management
   const [postedJobs, setPostedJobs] = useState(() => {

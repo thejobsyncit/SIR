@@ -58,6 +58,29 @@ export const CrmProvider = ({ children }) => {
   const [loadingLeads, setLoadingLeads] = useState(false);
   const [followUps, setFollowUps] = useState([]);
   const [loadingFollowUps, setLoadingFollowUps] = useState(false);
+  const [followUpsSummary, setFollowUpsSummary] = useState({
+    counts: { totalPending: 0, overdue: 0, dueToday: 0, upcoming: 0 },
+    data: { overdue: [], dueToday: [], upcoming: [] }
+  });
+
+  const [leadMetrics, setLeadMetrics] = useState({
+    totalEnquiries: 0,
+    newEnquiries: 0,
+    contactPending: 0,
+    contacted: 0,
+    awaitingFollowUp: 0,
+    inProgress: 0,
+    qualified: 0,
+    converted: 0,
+    closedLost: 0,
+    conversionRate: 0,
+    overdueFollowUps: 0,
+    dueTodayFollowUps: 0,
+    upcomingFollowUps: 0
+  });
+  const [serviceBreakdown, setServiceBreakdown] = useState([]);
+  const [selectedMetricsRange, setSelectedMetricsRange] = useState('all');
+
   const [consultingMetrics, setConsultingMetrics] = useState({
     totalEnquiries: 0,
     newEnquiries: 0,
@@ -69,10 +92,22 @@ export const CrmProvider = ({ children }) => {
     educationalOrganizations: 0
   });
 
-  const fetchLeads = async () => {
+  const fetchLeads = async (filters = {}) => {
     try {
       setLoadingLeads(true);
-      const res = await fetch('/api/leads');
+      const params = new URLSearchParams();
+      if (filters.serviceId) params.append('serviceId', filters.serviceId);
+      if (filters.status) params.append('status', filters.status);
+      if (filters.priority) params.append('priority', filters.priority);
+      if (filters.assignedEmployee) params.append('assignedEmployee', filters.assignedEmployee);
+      if (filters.search) params.append('search', filters.search);
+      if (filters.range) params.append('range', filters.range);
+      if (filters.startDate) params.append('startDate', filters.startDate);
+      if (filters.endDate) params.append('endDate', filters.endDate);
+      if (filters.includeArchived) params.append('includeArchived', 'true');
+
+      const url = `/api/leads${params.toString() ? `?${params.toString()}` : ''}`;
+      const res = await fetch(url);
       const data = await res.json();
       if (data && data.success && Array.isArray(data.data)) {
         setLeads(data.data);
@@ -81,6 +116,38 @@ export const CrmProvider = ({ children }) => {
       console.error('Failed to load leads from backend:', err);
     } finally {
       setLoadingLeads(false);
+    }
+  };
+
+  const fetchLeadMetrics = async (range = selectedMetricsRange, startDate, endDate, serviceId) => {
+    try {
+      const params = new URLSearchParams({ range });
+      if (startDate) params.append('startDate', startDate);
+      if (endDate) params.append('endDate', endDate);
+      if (serviceId && serviceId !== 'all') params.append('serviceId', serviceId);
+
+      const res = await fetch(`/api/admin/leads/metrics?${params.toString()}`);
+      const data = await res.json();
+      if (data && data.success && data.metrics) {
+        setLeadMetrics(data.metrics);
+        if (Array.isArray(data.serviceBreakdown)) {
+          setServiceBreakdown(data.serviceBreakdown);
+        }
+      }
+    } catch (err) {
+      console.error('Failed to fetch lead metrics:', err);
+    }
+  };
+
+  const fetchFollowUpsSummary = async () => {
+    try {
+      const res = await fetch('/api/admin/follow-ups/summary');
+      const data = await res.json();
+      if (data && data.success && data.data) {
+        setFollowUpsSummary({ counts: data.counts, data: data.data });
+      }
+    } catch (err) {
+      console.error('Failed to fetch follow-ups summary:', err);
     }
   };
 
@@ -128,11 +195,15 @@ export const CrmProvider = ({ children }) => {
     fetchClients();
     fetchFollowUps();
     fetchConsultingMetrics();
+    fetchLeadMetrics();
+    fetchFollowUpsSummary();
     // Periodically sync new inquiries, follow-ups, and metrics every 15 seconds
     const interval = setInterval(() => {
       fetchLeads();
       fetchFollowUps();
       fetchConsultingMetrics();
+      fetchLeadMetrics();
+      fetchFollowUpsSummary();
     }, 15000);
     return () => clearInterval(interval);
   }, []);
@@ -540,6 +611,28 @@ export const CrmProvider = ({ children }) => {
     }
   };
 
+  const archiveLead = async (leadId, isArchived = true) => {
+    try {
+      const res = await fetch(`/api/leads/${leadId}/archive`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ isArchived: isArchived ? 1 : 0, updatedBy: user?.name || 'Staff' })
+      });
+      const data = await res.json();
+      if (!res.ok || !data.success) {
+        throw new Error(data.message || 'Failed to archive lead');
+      }
+      logAuditAction(`${isArchived ? 'Archived' : 'Restored'} lead '${leadId}'.`);
+      await fetchLeads();
+      await fetchLeadMetrics();
+      await fetchConsultingMetrics();
+      return data;
+    } catch (err) {
+      console.error('Error in archiveLead:', err);
+      throw err;
+    }
+  };
+
   return (
     <CrmContext.Provider
       value={{
@@ -613,6 +706,7 @@ export const CrmProvider = ({ children }) => {
         loadingLeads,
         fetchLeads,
         updateLead,
+        archiveLead,
         addLeadActivity,
         scheduleLeadFollowUp,
         updateFollowUpStatus,
@@ -620,7 +714,14 @@ export const CrmProvider = ({ children }) => {
         loadingFollowUps,
         fetchFollowUps,
         consultingMetrics,
-        fetchConsultingMetrics
+        fetchConsultingMetrics,
+        leadMetrics,
+        fetchLeadMetrics,
+        serviceBreakdown,
+        followUpsSummary,
+        fetchFollowUpsSummary,
+        selectedMetricsRange,
+        setSelectedMetricsRange
       }}
     >
       {children}

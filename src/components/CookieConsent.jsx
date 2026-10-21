@@ -1,16 +1,27 @@
 import React, { useState, useEffect } from 'react';
 import { ShieldCheck, X } from 'lucide-react';
+import { initAnalytics } from '../services/analytics';
 
 export const CookieConsent = () => {
   const [accepted, setAccepted] = useState(true);
 
   useEffect(() => {
     const consent = localStorage.getItem('sir_cookie_consent');
-    if (!consent) setAccepted(false);
+    if (!consent) {
+      setAccepted(false);
+    } else if (consent === 'all' || consent === 'true') {
+      initAnalytics();
+    }
   }, []);
 
-  const handleAccept = () => {
-    localStorage.setItem('sir_cookie_consent', 'true');
+  const handleAcceptAll = () => {
+    localStorage.setItem('sir_cookie_consent', 'all');
+    setAccepted(true);
+    initAnalytics();
+  };
+
+  const handleEssentialOnly = () => {
+    localStorage.setItem('sir_cookie_consent', 'essential');
     setAccepted(true);
   };
 
@@ -27,13 +38,13 @@ export const CookieConsent = () => {
           </p>
           <div className="flex gap-2 pt-1">
             <button
-              onClick={handleAccept}
+              onClick={handleAcceptAll}
               className="bg-gold-shimmer text-navy-950 font-bold px-4 py-1.5 rounded-lg text-xs hover:opacity-95"
             >
               Accept All Cookies
             </button>
             <button
-              onClick={handleAccept}
+              onClick={handleEssentialOnly}
               className="bg-navy-800 text-slate-600 dark:text-slate-300 font-semibold px-3 py-1.5 rounded-lg text-xs hover:bg-navy-700"
             >
               Essential Only

@@ -57,16 +57,43 @@ app.use(cors({
 app.use(express.json({ limit: '10mb' }));
 app.use(express.urlencoded({ extended: true, limit: '10mb' }));
 
-// Lightweight Operational Health Check Endpoint
+// Operational Health & Performance Check Endpoint
 app.get('/api/health', async (req, res) => {
   try {
     const dbHealth = await checkDbHealth();
     const isHealthy = dbHealth.status === 'connected';
+
+    // Verify backup status
+    let latestBackupTime = null;
+    let backupCount = 0;
+    const backupDir = path.join(__dirname, '..', 'backups');
+    if (fs.existsSync(backupDir)) {
+      const manifests = fs.readdirSync(backupDir).filter(f => f.endsWith('.manifest.json')).sort().reverse();
+      backupCount = manifests.length;
+      if (manifests.length > 0) {
+        try {
+          const m = JSON.parse(fs.readFileSync(path.join(backupDir, manifests[0]), 'utf8'));
+          latestBackupTime = m.timestamp;
+        } catch (_) {}
+      }
+    }
+
+    const memoryUsage = process.memoryUsage();
+
     res.status(isHealthy ? 200 : 503).json({
       status: isHealthy ? 'UP' : 'DEGRADED',
       service: 'Revival International Backend API',
       uptimeSeconds: Math.floor((Date.now() - startTime) / 1000),
       database: dbHealth.status,
+      storage: {
+        databaseSizeBytes: dbHealth.sizeBytes || 0,
+        backupsCount: backupCount,
+        latestBackupAt: latestBackupTime
+      },
+      memory: {
+        rssMb: Math.round(memoryUsage.rss / 1024 / 1024),
+        heapUsedMb: Math.round(memoryUsage.heapUsed / 1024 / 1024)
+      },
       environment: process.env.NODE_ENV || 'development',
       timestamp: new Date().toISOString()
     });
@@ -78,6 +105,113 @@ app.get('/api/health', async (req, res) => {
       environment: process.env.NODE_ENV || 'development',
       timestamp: new Date().toISOString()
     });
+  }
+});
+
+// Client-Side Error Telemetry & Monitoring Endpoint
+const clientErrorThrottler = new Map();
+app.post('/api/monitoring/client-errors', (req, res) => {
+  try {
+    const ip = req.ip || req.headers['x-forwarded-for'] || 'client';
+    const now = Date.now();
+    const lastReport = clientErrorThrottler.get(ip) || 0;
+
+    if (now - lastReport < 5000) {
+      return res.status(429).json({ success: false, message: 'Throttled' });
+    }
+    clientErrorThrottler.set(ip, now);
+
+    const { message, url } = req.body || {};
+    const sanitizedMsg = typeof message === 'string'
+      ? message.replace(/(bearer\s+[\w\.\-]+)|(password\s*[:=]\s*\S+)/gi, '[REDACTED]').slice(0, 300)
+      : 'Unknown error';
+
+    console.warn('[Client Monitoring Alert]', {
+      message: sanitizedMsg,
+      url: typeof url === 'string' ? url.slice(0, 200) : 'unknown',
+      timestamp: new Date().toISOString()
+    });
+
+    res.json({ success: true, recorded: true });
+  } catch (err) {
+    res.status(500).json({ success: false });
+  }
+});
+
+// Secure Document Upload Endpoint (CVs, Resumes, Credentials)
+const uploadsDir = path.join(__dirname, 'uploads');
+if (!fs.existsSync(uploadsDir)) {
+  fs.mkdirSync(uploadsDir, { recursive: true });
+}
+
+app.post('/api/upload', (req, res) => {
+  try {
+    const { filename, fileData, fileType } = req.body;
+    if (!filename || !fileData) {
+      return res.status(400).json({ success: false, message: 'Filename and file data are required for upload.' });
+    }
+
+    const ext = path.extname(filename || '').toLowerCase();
+    const allowedExts = ['.pdf', '.doc', '.docx', '.png', '.jpg', '.jpeg'];
+    if (!allowedExts.includes(ext)) {
+      return res.status(400).json({
+        success: false,
+        message: 'Invalid file format. Permitted document formats: PDF, DOC, DOCX, PNG, JPG.'
+      });
+    }
+
+    // Clean data URI prefix if present
+    const cleanBase64 = fileData.replace(/^data:[^;]+;base64,/, '');
+    const buffer = Buffer.from(cleanBase64, 'base64');
+
+    // 10MB limit enforcement
+    if (buffer.length > 10 * 1024 * 1024) {
+      return res.status(400).json({ success: false, message: 'File size exceeds maximum permitted limit of 10MB.' });
+    }
+
+    // Sanitize filename preventing path traversal
+    const safeBase = path.basename(filename).replace(/[^a-zA-Z0-9._-]/g, '_');
+    const safeFilename = `doc_${Date.now()}_${Math.floor(1000 + Math.random() * 9000)}_${safeBase}`;
+    const destinationPath = path.join(uploadsDir, safeFilename);
+
+    fs.writeFileSync(destinationPath, buffer);
+
+    res.status(201).json({
+      success: true,
+      message: 'Document uploaded securely.',
+      data: {
+        filePath: `/api/documents/${safeFilename}`,
+        fileName: safeFilename,
+        originalName: filename,
+        sizeBytes: buffer.length
+      }
+    });
+  } catch (error) {
+    console.error('Upload handling error:', error);
+    res.status(500).json({ success: false, message: 'Failed to process document upload.' });
+  }
+});
+
+// Secure Document Download & Retrieval Endpoint
+app.get('/api/documents/:filename', (req, res) => {
+  try {
+    const { filename } = req.params;
+    if (!filename || filename.includes('..') || filename.includes('/') || filename.includes('\\')) {
+      return res.status(400).json({ success: false, message: 'Invalid document identifier' });
+    }
+    const safeFilename = path.basename(filename);
+    const filePath = path.join(uploadsDir, safeFilename);
+
+    if (!filePath.startsWith(uploadsDir) || !fs.existsSync(filePath)) {
+      return res.status(404).json({ success: false, message: 'Requested document not found.' });
+    }
+
+    res.setHeader('Content-Disposition', `attachment; filename="${safeFilename}"`);
+    res.setHeader('X-Content-Type-Options', 'nosniff');
+    return res.sendFile(filePath);
+  } catch (error) {
+    console.error('File serving error:', error);
+    res.status(500).json({ success: false, message: 'Error retrieving document.' });
   }
 });
 
@@ -867,20 +1001,48 @@ const recentInquirySubmissions = new Map();
 // API Routes - LEADS & CONSULTING ENQUIRIES
 app.get(['/api/leads', '/api/consulting/enquiries'], async (req, res) => {
   try {
-    const { serviceId, status, priority, assignedEmployee, search } = req.query;
+    const { 
+      serviceId, status, priority, assignedEmployee, search,
+      range = 'all', startDate, endDate, includeArchived,
+      page, limit
+    } = req.query;
     const db = await getDb();
     
     let query = 'SELECT * FROM leads WHERE 1=1';
     const params = [];
 
-    if (serviceId) {
-      query += ' AND serviceId = ?';
-      params.push(serviceId);
+    // Filter archived unless explicitly requested
+    if (includeArchived !== 'true' && includeArchived !== true) {
+      query += ' AND (isArchived IS NULL OR isArchived = 0)';
+    }
+
+    if (serviceId && serviceId !== 'all') {
+      if (serviceId === 'intl-consult') {
+        query += ' AND (serviceId = ? OR LOWER(serviceTitle) LIKE ?)';
+        params.push(serviceId, '%international consulting%');
+      } else {
+        query += ' AND (serviceId = ? OR LOWER(serviceTitle) LIKE ?)';
+        params.push(serviceId, `%${serviceId.toLowerCase()}%`);
+      }
     }
 
     if (status && status !== 'all' && status !== 'All') {
-      query += ' AND status = ?';
-      params.push(status);
+      if (status === 'New' || status === 'New Enquiry') {
+        query += " AND status IN ('New', 'New Enquiry')";
+      } else if (status === 'Contact Pending' || status === 'Contact Attempted') {
+        query += " AND status IN ('Contact Pending', 'Contact Attempted')";
+      } else if (status === 'Qualified') {
+        query += " AND status IN ('Qualified', 'Consultation Completed')";
+      } else if (status === 'Converted' || status === 'Completed') {
+        query += " AND status IN ('Converted', 'Completed')";
+      } else if (status === 'In Progress') {
+        query += " AND status IN ('In Progress', 'Proposal Pending', 'Proposal or Next Steps Pending')";
+      } else if (status === 'Closed / Lost' || status === 'Closed') {
+        query += " AND status IN ('Closed / Lost', 'Closed', 'Archived')";
+      } else {
+        query += ' AND status = ?';
+        params.push(status);
+      }
     }
 
     if (priority && priority !== 'all') {
@@ -889,22 +1051,314 @@ app.get(['/api/leads', '/api/consulting/enquiries'], async (req, res) => {
     }
 
     if (assignedEmployee && assignedEmployee !== 'all') {
-      query += ' AND assignedEmployee = ?';
-      params.push(assignedEmployee);
+      if (assignedEmployee === 'unassigned' || assignedEmployee === 'Unassigned') {
+        query += ' AND (assignedEmployee IS NULL OR assignedEmployee = "")';
+      } else {
+        query += ' AND assignedEmployee = ?';
+        params.push(assignedEmployee);
+      }
+    }
+
+    // Date range filter
+    if (range === 'today') {
+      query += " AND (date(createdAt) = date('now') OR date(createdAt) = date('now', 'localtime'))";
+    } else if (range === '7days') {
+      query += " AND createdAt >= datetime('now', '-7 days')";
+    } else if (range === '30days') {
+      query += " AND createdAt >= datetime('now', '-30 days')";
+    } else if (startDate && endDate) {
+      query += " AND createdAt >= ? AND createdAt <= ?";
+      params.push(startDate, endDate);
     }
 
     if (search && search.trim()) {
       const s = `%${search.trim().toLowerCase()}%`;
-      query += ' AND (LOWER(name) LIKE ? OR LOWER(email) LIKE ? OR LOWER(phone) LIKE ? OR LOWER(message) LIKE ? OR LOWER(company) LIKE ? OR LOWER(COALESCE(referenceNumber, "")) LIKE ?)';
-      params.push(s, s, s, s, s, s);
+      query += ' AND (LOWER(name) LIKE ? OR LOWER(email) LIKE ? OR LOWER(phone) LIKE ? OR LOWER(message) LIKE ? OR LOWER(company) LIKE ? OR LOWER(COALESCE(referenceNumber, "")) LIKE ? OR LOWER(COALESCE(countryInterest, "")) LIKE ? OR LOWER(COALESCE(serviceTitle, "")) LIKE ? OR LOWER(COALESCE(jobTitle, "")) LIKE ? OR LOWER(COALESCE(skills, "")) LIKE ?)';
+      params.push(s, s, s, s, s, s, s, s, s, s);
+    }
+
+    // Check count for pagination
+    let totalCount = 0;
+    if (limit) {
+      const countQuery = query.replace('SELECT *', 'SELECT COUNT(*) as total');
+      const countRow = await db.get(countQuery, params);
+      totalCount = countRow ? countRow.total : 0;
     }
 
     query += ' ORDER BY createdAt DESC';
+
+    if (limit) {
+      const parsedLimit = Math.max(1, parseInt(limit, 10));
+      const parsedPage = Math.max(1, parseInt(page || '1', 10));
+      const offset = (parsedPage - 1) * parsedLimit;
+      query += ' LIMIT ? OFFSET ?';
+      params.push(parsedLimit, offset);
+    }
+
     const rows = await db.all(query, params);
-    res.json({ success: true, data: rows });
+
+    if (limit) {
+      const parsedLimit = Math.max(1, parseInt(limit, 10));
+      const parsedPage = Math.max(1, parseInt(page || '1', 10));
+      return res.json({
+        success: true,
+        data: rows,
+        pagination: {
+          total: totalCount,
+          page: parsedPage,
+          limit: parsedLimit,
+          totalPages: Math.ceil(totalCount / parsedLimit)
+        }
+      });
+    }
+
+    res.json({ success: true, data: rows, total: rows.length });
   } catch (error) {
     console.error('Failed to fetch leads:', error);
     res.status(500).json({ success: false, message: 'Failed to retrieve inquiries' });
+  }
+});
+
+// Phase 12: Admin Dashboard, Lead Management & Customer Tracking System - Real SQLite Metrics
+app.get(['/api/admin/leads/metrics', '/api/crm/leads/dashboard-metrics'], async (req, res) => {
+  try {
+    const { range = 'all', startDate, endDate, serviceId } = req.query;
+    const db = await getDb();
+
+    // 1. Build date range filter
+    let dateCondition = '';
+    const dateParams = [];
+
+    if (range === 'today') {
+      dateCondition = " AND (date(createdAt) = date('now') OR date(createdAt) = date('now', 'localtime'))";
+    } else if (range === '7days') {
+      dateCondition = " AND createdAt >= datetime('now', '-7 days')";
+    } else if (range === '30days') {
+      dateCondition = " AND createdAt >= datetime('now', '-30 days')";
+    } else if (startDate && endDate) {
+      dateCondition = " AND createdAt >= ? AND createdAt <= ?";
+      dateParams.push(startDate, endDate);
+    }
+
+    let serviceCondition = '';
+    const serviceParams = [];
+    if (serviceId && serviceId !== 'all') {
+      serviceCondition = " AND (serviceId = ? OR LOWER(serviceTitle) LIKE ?)";
+      serviceParams.push(serviceId, `%${serviceId.toLowerCase()}%`);
+    }
+
+    const baseWhere = `WHERE (isArchived IS NULL OR isArchived = 0) ${dateCondition} ${serviceCondition}`;
+    const allParams = [...dateParams, ...serviceParams];
+
+    // Total enquiries
+    const totalRow = await db.get(`SELECT COUNT(*) as count FROM leads ${baseWhere}`, allParams);
+    const total = totalRow ? totalRow.count : 0;
+
+    // Status-specific counts
+    const newRow = await db.get(
+      `SELECT COUNT(*) as count FROM leads ${baseWhere} AND status IN ('New', 'New Enquiry')`,
+      allParams
+    );
+    const contactPendingRow = await db.get(
+      `SELECT COUNT(*) as count FROM leads ${baseWhere} AND status IN ('Contact Pending', 'Contact Attempted')`,
+      allParams
+    );
+    const contactedRow = await db.get(
+      `SELECT COUNT(*) as count FROM leads ${baseWhere} AND status = 'Contacted'`,
+      allParams
+    );
+    const awaitingFollowUpRow = await db.get(
+      `SELECT COUNT(*) as count FROM leads ${baseWhere} AND (status IN ('Follow-up Required', 'Consultation Scheduled', 'Contact Pending', 'Contact Attempted') OR id IN (SELECT enquiryId FROM follow_ups WHERE status = 'Pending'))`,
+      allParams
+    );
+    const inProgressRow = await db.get(
+      `SELECT COUNT(*) as count FROM leads ${baseWhere} AND status IN ('In Progress', 'Proposal Pending', 'Proposal or Next Steps Pending')`,
+      allParams
+    );
+    const qualifiedRow = await db.get(
+      `SELECT COUNT(*) as count FROM leads ${baseWhere} AND status IN ('Qualified', 'Consultation Completed')`,
+      allParams
+    );
+    const convertedRow = await db.get(
+      `SELECT COUNT(*) as count FROM leads ${baseWhere} AND status IN ('Converted', 'Completed')`,
+      allParams
+    );
+    const closedLostRow = await db.get(
+      `SELECT COUNT(*) as count FROM leads ${baseWhere} AND status IN ('Closed / Lost', 'Closed', 'Archived')`,
+      allParams
+    );
+
+    // Follow-ups queue stats (global pending tasks in SQLite)
+    const overdueRow = await db.get(
+      "SELECT COUNT(*) as count FROM follow_ups WHERE status = 'Pending' AND dueDateTime < datetime('now')"
+    );
+    const dueTodayRow = await db.get(
+      "SELECT COUNT(*) as count FROM follow_ups WHERE status = 'Pending' AND date(dueDateTime) = date('now')"
+    );
+    const upcomingRow = await db.get(
+      "SELECT COUNT(*) as count FROM follow_ups WHERE status = 'Pending' AND dueDateTime > datetime('now') AND date(dueDateTime) != date('now')"
+    );
+
+    // 2. Service-Wise Breakdown across Master Services
+    const MASTER_SERVICES = [
+      { id: 'dom-rec', title: 'Domestic Recruitment', category: 'Recruitment' },
+      { id: 'intl-rec', title: 'International Recruitment', category: 'Recruitment' },
+      { id: 'exec-search', title: 'Executive Search', category: 'Executive' },
+      { id: 'perm-staff', title: 'Permanent Staffing', category: 'Staffing' },
+      { id: 'contract-staff', title: 'Contract Staffing', category: 'Staffing' },
+      { id: 'bulk-hiring', title: 'Bulk Hiring', category: 'Recruitment' },
+      { id: 'overseas-place', title: 'Overseas Placement', category: 'Placement' },
+      { id: 'visa-assist', title: 'Visa Assistance', category: 'Visa & Legal' },
+      { id: 'work-permit', title: 'Work Permit Guidance', category: 'Visa & Legal' },
+      { id: 'intl-consult', title: 'International Consulting', category: 'Consulting' },
+      { id: 'college-adm', title: 'College Admission Assistance', category: 'Higher Education' },
+      { id: 'school-career', title: 'School Student Career Guidance', category: 'K-12 & High School' },
+      { id: 'intl-adm', title: 'International Admissions', category: 'Admissions' },
+      { id: 'school-academy', title: 'Academy for School Students', category: 'Academic Enrichment' },
+      { id: 'exec-seminars-lang', title: 'Executive Seminars & Language Test Preparation', category: 'Test Prep & Executive' }
+    ];
+
+    const allLeadsInScope = await db.all(
+      `SELECT id, serviceId, serviceTitle, status, priority, assignedEmployee, nextActionDate, createdAt FROM leads ${baseWhere}`,
+      allParams
+    );
+
+    const serviceBreakdown = MASTER_SERVICES.map(srv => {
+      const matching = allLeadsInScope.filter(l => {
+        const sid = (l.serviceId || '').toLowerCase();
+        const stitle = (l.serviceTitle || '').toLowerCase();
+        return sid === srv.id || stitle.includes(srv.title.toLowerCase()) || (srv.id === 'intl-consult' && stitle.includes('consulting'));
+      });
+      const srvTotal = matching.length;
+      const srvNew = matching.filter(l => ['New', 'New Enquiry'].includes(l.status)).length;
+      const srvAwaiting = matching.filter(l => ['Follow-up Required', 'Consultation Scheduled', 'Contact Pending', 'Contact Attempted'].includes(l.status)).length;
+      const srvQualified = matching.filter(l => ['Qualified', 'Consultation Completed'].includes(l.status)).length;
+      const srvInProgress = matching.filter(l => ['In Progress', 'Proposal Pending', 'Proposal or Next Steps Pending'].includes(l.status)).length;
+      const srvConverted = matching.filter(l => ['Converted', 'Completed'].includes(l.status)).length;
+      const srvRate = srvTotal > 0 ? Number(((srvConverted / srvTotal) * 100).toFixed(1)) : 0;
+
+      return {
+        serviceId: srv.id,
+        serviceTitle: srv.title,
+        category: srv.category,
+        total: srvTotal,
+        newCount: srvNew,
+        awaitingFollowUp: srvAwaiting,
+        inProgress: srvInProgress,
+        qualified: srvQualified,
+        converted: srvConverted,
+        conversionRate: srvRate
+      };
+    });
+
+    // General / Corporate Inquiries
+    const generalMatching = allLeadsInScope.filter(l => {
+      const sid = (l.serviceId || '').toLowerCase();
+      const stitle = (l.serviceTitle || '').toLowerCase();
+      return !MASTER_SERVICES.some(s => s.id === sid || stitle.includes(s.title.toLowerCase()) || (s.id === 'intl-consult' && stitle.includes('consulting')));
+    });
+
+    const generalTotal = generalMatching.length;
+    const generalConverted = generalMatching.filter(l => ['Converted', 'Completed'].includes(l.status)).length;
+
+    serviceBreakdown.push({
+      serviceId: 'general-inquiry',
+      serviceTitle: 'General & Corporate Inquiries',
+      category: 'General',
+      total: generalTotal,
+      newCount: generalMatching.filter(l => ['New', 'New Enquiry'].includes(l.status)).length,
+      awaitingFollowUp: generalMatching.filter(l => ['Follow-up Required', 'Consultation Scheduled', 'Contact Pending', 'Contact Attempted'].includes(l.status)).length,
+      inProgress: generalMatching.filter(l => ['In Progress', 'Proposal Pending', 'Proposal or Next Steps Pending'].includes(l.status)).length,
+      qualified: generalMatching.filter(l => ['Qualified', 'Consultation Completed'].includes(l.status)).length,
+      converted: generalConverted,
+      conversionRate: generalTotal > 0 ? Number(((generalConverted / generalTotal) * 100).toFixed(1)) : 0
+    });
+
+    const conversionRate = total > 0 ? Number(((convertedRow.count / total) * 100).toFixed(1)) : 0;
+
+    res.json({
+      success: true,
+      meta: {
+        range,
+        startDate: startDate || null,
+        endDate: endDate || null,
+        isDerivedFromLiveDatabase: true,
+        timestamp: new Date().toISOString()
+      },
+      metrics: {
+        totalEnquiries: total,
+        newEnquiries: newRow ? newRow.count : 0,
+        contactPending: contactPendingRow ? contactPendingRow.count : 0,
+        contacted: contactedRow ? contactedRow.count : 0,
+        awaitingFollowUp: awaitingFollowUpRow ? awaitingFollowUpRow.count : 0,
+        inProgress: inProgressRow ? inProgressRow.count : 0,
+        qualified: qualifiedRow ? qualifiedRow.count : 0,
+        converted: convertedRow ? convertedRow.count : 0,
+        closedLost: closedLostRow ? closedLostRow.count : 0,
+        conversionRate,
+        overdueFollowUps: overdueRow ? overdueRow.count : 0,
+        dueTodayFollowUps: dueTodayRow ? dueTodayRow.count : 0,
+        upcomingFollowUps: upcomingRow ? upcomingRow.count : 0
+      },
+      serviceBreakdown
+    });
+  } catch (error) {
+    console.error('Failed to generate lead metrics:', error);
+    res.status(500).json({ success: false, message: 'Failed to calculate lead metrics' });
+  }
+});
+
+// Follow-ups Summary: Overdue, Due Today, and Upcoming with Lead Data
+app.get('/api/admin/follow-ups/summary', async (req, res) => {
+  try {
+    const db = await getDb();
+    const query = `
+      SELECT f.*, l.name as leadName, l.email as leadEmail, l.phone as leadPhone, 
+             l.serviceTitle as leadServiceTitle, l.status as leadStatus, l.company as leadCompany
+      FROM follow_ups f
+      LEFT JOIN leads l ON f.enquiryId = l.id
+      WHERE f.status = 'Pending'
+      ORDER BY f.dueDateTime ASC
+    `;
+    const rows = await db.all(query);
+
+    const now = new Date();
+    const todayStr = now.toISOString().slice(0, 10);
+
+    const overdue = [];
+    const dueToday = [];
+    const upcoming = [];
+
+    rows.forEach(item => {
+      const itemDate = new Date(item.dueDateTime);
+      const itemDateStr = isNaN(itemDate.getTime()) ? '' : itemDate.toISOString().slice(0, 10);
+
+      if (itemDate < now && itemDateStr !== todayStr) {
+        overdue.push(item);
+      } else if (itemDateStr === todayStr) {
+        dueToday.push(item);
+      } else {
+        upcoming.push(item);
+      }
+    });
+
+    res.json({
+      success: true,
+      counts: {
+        totalPending: rows.length,
+        overdue: overdue.length,
+        dueToday: dueToday.length,
+        upcoming: upcoming.length
+      },
+      data: {
+        overdue,
+        dueToday,
+        upcoming
+      }
+    });
+  } catch (error) {
+    console.error('Failed to fetch follow-ups summary:', error);
+    res.status(500).json({ success: false, message: 'Failed to retrieve follow-ups summary' });
   }
 });
 
@@ -967,7 +1421,13 @@ app.post(['/api/leads', '/api/consulting/enquiries'], async (req, res) => {
     const {
       id, name, email, company, phone, message, serviceId, serviceTitle,
       countryInterest, assistanceType, intakeTerm, degreeLevel, preferredContactMethod,
-      organizationId, organizationName, priority
+      organizationId, organizationName, priority,
+      utmSource, utmMedium, utmCampaign, utmTerm, utmContent, referrer,
+      // Phase 2: Nine Core Services fields
+      jobTitle, skills, experience, workLocation, salaryRange, vacancies,
+      seniority, industry, hiringTimeline, joiningDate, contractDuration,
+      startDate, endDate, shiftRequirements, jobCategory, visaCategory,
+      currentStage, cvPath, documentUrls, customFields
     } = req.body;
 
     // 2. Strict Input Validation & Length Limits
@@ -987,6 +1447,18 @@ app.post(['/api/leads', '/api/consulting/enquiries'], async (req, res) => {
 
     if (!message || typeof message !== 'string' || message.trim().length < 10 || message.trim().length > 3000) {
       return res.status(400).json({ success: false, message: 'Enquiry details are required (between 10 and 3000 characters).' });
+    }
+
+    // Contract Staffing: Validate date ranges
+    if (serviceId === 'contract-staff' && startDate && endDate) {
+      const startD = new Date(startDate);
+      const endD = new Date(endDate);
+      if (!isNaN(startD.getTime()) && !isNaN(endD.getTime()) && endD < startD) {
+        return res.status(400).json({
+          success: false,
+          message: 'Invalid contract period: Contract end date cannot be earlier than start date.'
+        });
+      }
     }
 
     // 3. Duplicate Submission Prevention (Same email + serviceId within 30 seconds)
@@ -1009,11 +1481,30 @@ app.post(['/api/leads', '/api/consulting/enquiries'], async (req, res) => {
       : (safeServiceId === 'intl-consult' ? 'International Consulting' : (safeServiceId || null));
     const safeCompany = (company && typeof company === 'string' && company.trim()) ? company.trim().slice(0, 150) : (organizationName || 'Individual');
 
-    // Generate unique official reference code
+    // Attribution parameters sanitization
+    const safeUtmSource = (utmSource && typeof utmSource === 'string') ? utmSource.trim().slice(0, 100) : null;
+    const safeUtmMedium = (utmMedium && typeof utmMedium === 'string') ? utmMedium.trim().slice(0, 100) : null;
+    const safeUtmCampaign = (utmCampaign && typeof utmCampaign === 'string') ? utmCampaign.trim().slice(0, 100) : null;
+    const safeUtmTerm = (utmTerm && typeof utmTerm === 'string') ? utmTerm.trim().slice(0, 100) : null;
+    const safeUtmContent = (utmContent && typeof utmContent === 'string') ? utmContent.trim().slice(0, 100) : null;
+    const safeReferrer = (referrer && typeof referrer === 'string') ? referrer.trim().slice(0, 255) : null;
+
+    // Generate unique official reference code with service-specific prefixes
+    const servicePrefixes = {
+      'dom-rec': 'REV-DOM',
+      'intl-rec': 'REV-INTL',
+      'exec-search': 'REV-EXEC',
+      'perm-staff': 'REV-PERM',
+      'contract-staff': 'REV-CONT',
+      'bulk-hiring': 'REV-BULK',
+      'overseas-place': 'REV-OVS',
+      'visa-assist': 'REV-VISA',
+      'work-permit': 'REV-WPR',
+      'intl-consult': 'REV-IC'
+    };
     const isConsulting = safeServiceId === 'intl-consult' || (safeServiceTitle && safeServiceTitle.toLowerCase().includes('consulting'));
-    const refCode = isConsulting 
-      ? `REV-IC-2026-${Math.floor(10000 + Math.random() * 90000)}`
-      : `REV-EDU-${Date.now().toString().slice(-6)}-${Math.floor(100 + Math.random() * 900)}`;
+    const codePrefix = servicePrefixes[safeServiceId] || (isConsulting ? 'REV-IC' : 'REV-EDU');
+    const refCode = `${codePrefix}-2026-${Math.floor(10000 + Math.random() * 90000)}`;
 
     const leadId = id || `LEAD-${Date.now()}-${Math.floor(1000 + Math.random() * 9000)}`;
     const db = await getDb();
@@ -1033,13 +1524,18 @@ app.post(['/api/leads', '/api/consulting/enquiries'], async (req, res) => {
       }
     }
 
-    // 5. Parameterized SQL insert into leads
+    // 5. Parameterized SQL insert into leads with all service fields
     await db.run(
       `INSERT INTO leads (
         id, name, email, company, phone, message, serviceId, serviceTitle,
         referenceNumber, countryInterest, assistanceType, intakeTerm, degreeLevel,
-        preferredContactMethod, organizationId, organizationName, priority, status
-      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+        preferredContactMethod, organizationId, organizationName, priority, status,
+        utmSource, utmMedium, utmCampaign, utmTerm, utmContent, referrer,
+        jobTitle, skills, experience, workLocation, salaryRange, vacancies,
+        seniority, industry, hiringTimeline, joiningDate, contractDuration,
+        startDate, endDate, shiftRequirements, jobCategory, visaCategory,
+        currentStage, cvPath, documentUrls, customFields
+      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
       [
         leadId,
         name.trim(),
@@ -1058,7 +1554,34 @@ app.post(['/api/leads', '/api/consulting/enquiries'], async (req, res) => {
         resolvedOrgId,
         resolvedOrgName,
         priority || 'Medium',
-        'New Enquiry'
+        'New Enquiry',
+        safeUtmSource,
+        safeUtmMedium,
+        safeUtmCampaign,
+        safeUtmTerm,
+        safeUtmContent,
+        safeReferrer,
+        // Nine services parameters
+        jobTitle ? String(jobTitle).trim() : null,
+        skills ? (Array.isArray(skills) ? skills.join(', ') : String(skills).trim()) : null,
+        experience ? String(experience).trim() : null,
+        workLocation ? String(workLocation).trim() : null,
+        salaryRange ? String(salaryRange).trim() : null,
+        vacancies ? String(vacancies).trim() : null,
+        seniority ? String(seniority).trim() : null,
+        industry ? String(industry).trim() : null,
+        hiringTimeline ? String(hiringTimeline).trim() : null,
+        joiningDate ? String(joiningDate).trim() : null,
+        contractDuration ? String(contractDuration).trim() : null,
+        startDate ? String(startDate).trim() : null,
+        endDate ? String(endDate).trim() : null,
+        shiftRequirements ? String(shiftRequirements).trim() : null,
+        jobCategory ? String(jobCategory).trim() : null,
+        visaCategory ? String(visaCategory).trim() : null,
+        currentStage ? String(currentStage).trim() : null,
+        cvPath ? String(cvPath).trim() : null,
+        documentUrls ? (typeof documentUrls === 'object' ? JSON.stringify(documentUrls) : String(documentUrls)) : null,
+        customFields ? (typeof customFields === 'object' ? JSON.stringify(customFields) : String(customFields)) : null
       ]
     );
 
@@ -1072,8 +1595,8 @@ app.post(['/api/leads', '/api/consulting/enquiries'], async (req, res) => {
         leadId,
         resolvedOrgId,
         'Inquiry Received',
-        `New Consultation Enquiry (${refCode})`,
-        `Client submitted enquiry for ${safeServiceTitle}. Country interest: ${countryInterest || 'Global'}. Preferred contact: ${preferredContactMethod || 'WhatsApp'}.`,
+        `New ${safeServiceTitle || 'Service'} Request (${refCode})`,
+        `Client submitted enquiry for ${safeServiceTitle || 'Service'}. Details: ${jobTitle ? `Job: ${jobTitle}. ` : ''}${countryInterest ? `Country: ${countryInterest}. ` : ''}Contact: ${preferredContactMethod || 'WhatsApp'}. Attribution: ${safeUtmSource ? `${safeUtmSource} / ${safeUtmMedium || 'cpc'}` : 'Direct/Organic'}.`,
         'System Inbound'
       ]
     );
@@ -1095,6 +1618,30 @@ app.post(['/api/leads', '/api/consulting/enquiries'], async (req, res) => {
       organizationId: resolvedOrgId,
       organizationName: resolvedOrgName,
       status: 'New Enquiry',
+      utmSource: safeUtmSource,
+      utmMedium: safeUtmMedium,
+      utmCampaign: safeUtmCampaign,
+      referrer: safeReferrer,
+      jobTitle: jobTitle || null,
+      skills: skills || null,
+      experience: experience || null,
+      workLocation: workLocation || null,
+      salaryRange: salaryRange || null,
+      vacancies: vacancies || null,
+      seniority: seniority || null,
+      industry: industry || null,
+      hiringTimeline: hiringTimeline || null,
+      joiningDate: joiningDate || null,
+      contractDuration: contractDuration || null,
+      startDate: startDate || null,
+      endDate: endDate || null,
+      shiftRequirements: shiftRequirements || null,
+      jobCategory: jobCategory || null,
+      visaCategory: visaCategory || null,
+      currentStage: currentStage || null,
+      cvPath: cvPath || null,
+      documentUrls: documentUrls || null,
+      customFields: customFields || null,
       createdAt: new Date().toISOString()
     };
 
@@ -1116,13 +1663,23 @@ app.patch(['/api/leads/:id', '/api/consulting/enquiries/:id'], async (req, res) 
     const { id } = req.params;
     const {
       status, assignedEmployee, priority, organizationId, organizationName,
-      nextAction, nextActionDate, internalNotes, updatedBy
+      nextAction, nextActionDate, lastFollowUpDate, lastContactedDate,
+      leadScore, internalNotes, isArchived, updatedBy,
+      jobTitle, skills, experience, workLocation, salaryRange, vacancies,
+      seniority, industry, hiringTimeline, joiningDate, contractDuration,
+      startDate, endDate, shiftRequirements, jobCategory, visaCategory,
+      currentStage, cvPath
     } = req.body;
 
     const allowedStatuses = [
-      'New', 'New Enquiry', 'Contacted', 'Contact Attempted', 'Consultation Scheduled',
-      'Consultation Completed', 'Proposal Pending', 'Proposal or Next Steps Pending',
-      'In Progress', 'Converted', 'Completed', 'Closed', 'Archived'
+      'New', 'New Enquiry', 'Contact Pending', 'Contact Attempted', 'Contacted',
+      'Follow-up Required', 'Consultation Scheduled', 'Consultation Completed',
+      'Qualified', 'Proposal Pending', 'Proposal or Next Steps Pending',
+      'In Progress', 'Converted', 'Completed', 'Closed / Lost', 'Closed', 'Archived',
+      // Recruitment & Staffing Workflow Stages
+      'Screening', 'Shortlisted', 'Interview Scheduled', 'Interview Completed',
+      'Selected', 'Offer Released', 'Under Review', 'Visa Processing',
+      'Mobilization', 'Contract Active', 'Contract Ended', 'Renewed', 'Rejected', 'On Hold'
     ];
 
     if (status && !allowedStatuses.includes(status)) {
@@ -1135,7 +1692,7 @@ app.patch(['/api/leads/:id', '/api/consulting/enquiries/:id'], async (req, res) 
       return res.status(404).json({ success: false, message: 'Enquiry not found' });
     }
 
-    // Update lead record
+    // Update lead record with all tracked workflow attributes
     await db.run(
       `UPDATE leads SET
         status = COALESCE(?, status),
@@ -1145,18 +1702,62 @@ app.patch(['/api/leads/:id', '/api/consulting/enquiries/:id'], async (req, res) 
         organizationName = COALESCE(?, organizationName),
         nextAction = COALESCE(?, nextAction),
         nextActionDate = COALESCE(?, nextActionDate),
+        lastFollowUpDate = COALESCE(?, lastFollowUpDate),
+        lastContactedDate = COALESCE(?, lastContactedDate),
+        leadScore = COALESCE(?, leadScore),
         internalNotes = COALESCE(?, internalNotes),
+        isArchived = COALESCE(?, isArchived),
+        jobTitle = COALESCE(?, jobTitle),
+        skills = COALESCE(?, skills),
+        experience = COALESCE(?, experience),
+        workLocation = COALESCE(?, workLocation),
+        salaryRange = COALESCE(?, salaryRange),
+        vacancies = COALESCE(?, vacancies),
+        seniority = COALESCE(?, seniority),
+        industry = COALESCE(?, industry),
+        hiringTimeline = COALESCE(?, hiringTimeline),
+        joiningDate = COALESCE(?, joiningDate),
+        contractDuration = COALESCE(?, contractDuration),
+        startDate = COALESCE(?, startDate),
+        endDate = COALESCE(?, endDate),
+        shiftRequirements = COALESCE(?, shiftRequirements),
+        jobCategory = COALESCE(?, jobCategory),
+        visaCategory = COALESCE(?, visaCategory),
+        currentStage = COALESCE(?, currentStage),
+        cvPath = COALESCE(?, cvPath),
         updatedAt = CURRENT_TIMESTAMP
        WHERE id = ?`,
       [
         status || null,
-        assignedEmployee || null,
+        assignedEmployee !== undefined ? assignedEmployee : null,
         priority || null,
         organizationId || null,
         organizationName || null,
         nextAction || null,
         nextActionDate || null,
+        lastFollowUpDate || null,
+        lastContactedDate || null,
+        leadScore !== undefined ? leadScore : null,
         internalNotes !== undefined ? internalNotes : null,
+        isArchived !== undefined ? isArchived : null,
+        jobTitle !== undefined ? jobTitle : null,
+        skills !== undefined ? (Array.isArray(skills) ? skills.join(', ') : skills) : null,
+        experience !== undefined ? experience : null,
+        workLocation !== undefined ? workLocation : null,
+        salaryRange !== undefined ? salaryRange : null,
+        vacancies !== undefined ? vacancies : null,
+        seniority !== undefined ? seniority : null,
+        industry !== undefined ? industry : null,
+        hiringTimeline !== undefined ? hiringTimeline : null,
+        joiningDate !== undefined ? joiningDate : null,
+        contractDuration !== undefined ? contractDuration : null,
+        startDate !== undefined ? startDate : null,
+        endDate !== undefined ? endDate : null,
+        shiftRequirements !== undefined ? shiftRequirements : null,
+        jobCategory !== undefined ? jobCategory : null,
+        visaCategory !== undefined ? visaCategory : null,
+        currentStage !== undefined ? currentStage : null,
+        cvPath !== undefined ? cvPath : null,
         id
       ]
     );
@@ -1172,14 +1773,14 @@ app.patch(['/api/leads/:id', '/api/consulting/enquiries/:id'], async (req, res) 
           organizationId || currentLead.organizationId,
           'Status Change',
           `Pipeline Stage: ${status}`,
-          `Status updated from '${currentLead.status || 'New'}' to '${status}'.`,
+          `Status transitioned from '${currentLead.status || 'New'}' to '${status}'.`,
           updatedBy || 'Staff User'
         ]
       );
     }
 
     // Audit activity if consultant assigned
-    if (assignedEmployee && assignedEmployee !== currentLead.assignedEmployee) {
+    if (assignedEmployee !== undefined && assignedEmployee !== currentLead.assignedEmployee) {
       await db.run(
         `INSERT INTO enquiry_activities (id, enquiryId, organizationId, type, title, notes, createdBy)
          VALUES (?, ?, ?, ?, ?, ?, ?)`,
@@ -1188,8 +1789,25 @@ app.patch(['/api/leads/:id', '/api/consulting/enquiries/:id'], async (req, res) 
           id,
           organizationId || currentLead.organizationId,
           'Assignment',
-          `Assigned to ${assignedEmployee}`,
-          `Lead consultant assigned to ${assignedEmployee}.`,
+          assignedEmployee ? `Assigned to ${assignedEmployee}` : 'Unassigned',
+          `Lead consultant ${assignedEmployee ? `assigned to ${assignedEmployee}` : 'cleared'}.`,
+          updatedBy || 'Staff User'
+        ]
+      );
+    }
+
+    // Audit activity if internal notes were added or updated
+    if (internalNotes !== undefined && internalNotes !== currentLead.internalNotes && internalNotes) {
+      await db.run(
+        `INSERT INTO enquiry_activities (id, enquiryId, organizationId, type, title, notes, createdBy)
+         VALUES (?, ?, ?, ?, ?, ?, ?)`,
+        [
+          `ACT-${Date.now()}-${Math.floor(100 + Math.random() * 900)}`,
+          id,
+          organizationId || currentLead.organizationId,
+          'Internal Note',
+          'Internal Notes Updated',
+          internalNotes.slice(0, 150) + (internalNotes.length > 150 ? '...' : ''),
           updatedBy || 'Staff User'
         ]
       );
@@ -1222,7 +1840,7 @@ app.post(['/api/leads/:id/activities', '/api/consulting/enquiries/:id/activities
       [actId, id, organizationId || null, type || 'Note', title.trim(), notes ? notes.trim() : '', createdBy || 'Staff']
     );
 
-    await db.run('UPDATE leads SET updatedAt = CURRENT_TIMESTAMP WHERE id = ?', [id]);
+    await db.run('UPDATE leads SET lastContactedDate = CURRENT_TIMESTAMP, updatedAt = CURRENT_TIMESTAMP WHERE id = ?', [id]);
     const createdActivity = await db.get('SELECT * FROM enquiry_activities WHERE id = ?', [actId]);
     res.status(201).json({ success: true, message: 'Activity logged successfully', data: createdActivity });
   } catch (error) {
@@ -1235,9 +1853,10 @@ app.post(['/api/leads/:id/activities', '/api/consulting/enquiries/:id/activities
 app.post(['/api/leads/:id/follow-ups', '/api/consulting/enquiries/:id/follow-ups'], async (req, res) => {
   try {
     const { id } = req.params;
-    const { title, purpose, dueDateTime, assignedTo, createdBy, organizationId } = req.body;
+    const { title, purpose, dueDateTime, followUpDate, assignedTo, createdBy, organizationId } = req.body;
+    const targetDue = dueDateTime || followUpDate;
 
-    if (!dueDateTime || !purpose) {
+    if (!targetDue || !purpose) {
       return res.status(400).json({ success: false, message: 'Follow-up date/time and purpose are required.' });
     }
 
@@ -1247,13 +1866,13 @@ app.post(['/api/leads/:id/follow-ups', '/api/consulting/enquiries/:id/follow-ups
     await db.run(
       `INSERT INTO follow_ups (id, enquiryId, organizationId, title, purpose, dueDateTime, assignedTo, status, createdBy)
        VALUES (?, ?, ?, ?, ?, ?, ?, 'Pending', ?)`,
-      [followUpId, id, organizationId || null, title || 'Scheduled Follow-Up', purpose.trim(), dueDateTime, assignedTo || 'Assigned Consultant', createdBy || 'Staff']
+      [followUpId, id, organizationId || null, title || 'Scheduled Follow-Up', purpose.trim(), targetDue, assignedTo || 'Assigned Consultant', createdBy || 'Staff']
     );
 
-    // Update lead's nextAction & nextActionDate
+    // Update lead's nextAction & nextActionDate & lastFollowUpDate
     await db.run(
-      `UPDATE leads SET nextAction = ?, nextActionDate = ?, updatedAt = CURRENT_TIMESTAMP WHERE id = ?`,
-      [title || purpose.slice(0, 50), dueDateTime, id]
+      `UPDATE leads SET nextAction = ?, nextActionDate = ?, lastFollowUpDate = CURRENT_TIMESTAMP, updatedAt = CURRENT_TIMESTAMP WHERE id = ?`,
+      [title || purpose.slice(0, 50), targetDue, id]
     );
 
     // Log in activities
@@ -1358,6 +1977,32 @@ app.patch('/api/follow-ups/:id', async (req, res) => {
   }
 });
 
+// Archive / Restore Lead (Soft Delete)
+app.post(['/api/leads/:id/archive', '/api/consulting/enquiries/:id/archive'], async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { isArchived = 1, updatedBy } = req.body;
+    const db = await getDb();
+    await db.run('UPDATE leads SET isArchived = ?, updatedAt = CURRENT_TIMESTAMP WHERE id = ?', [isArchived ? 1 : 0, id]);
+    await db.run(
+      `INSERT INTO enquiry_activities (id, enquiryId, type, title, notes, createdBy)
+       VALUES (?, ?, ?, ?, ?, ?)`,
+      [
+        `ACT-${Date.now()}-${Math.floor(100 + Math.random() * 900)}`,
+        id,
+        'Archival',
+        isArchived ? 'Lead Archived' : 'Lead Restored',
+        isArchived ? 'Lead moved to archive.' : 'Lead restored from archive.',
+        updatedBy || 'Staff User'
+      ]
+    );
+    res.json({ success: true, message: `Lead ${isArchived ? 'archived' : 'restored'} successfully`, id, isArchived: isArchived ? 1 : 0 });
+  } catch (error) {
+    console.error('Failed to archive lead:', error);
+    res.status(500).json({ success: false, message: 'Failed to archive lead' });
+  }
+});
+
 // Delete Lead / Enquiry (Super Admin CRM)
 app.delete(['/api/leads/:id', '/api/consulting/enquiries/:id'], async (req, res) => {
   try {
@@ -1424,6 +2069,146 @@ app.get('/api/crm/consulting/metrics', async (req, res) => {
   } catch (error) {
     console.error('Failed to get consulting metrics:', error);
     res.status(500).json({ success: false, message: 'Failed to calculate consulting metrics' });
+  }
+});
+
+// Phase 9: Real Service-Level Performance & Lead Attribution Reporting
+app.get('/api/analytics/service-performance', async (req, res) => {
+  try {
+    const db = await getDb();
+
+    // 1. Defined master services catalog
+    const MASTER_SERVICES = [
+      { id: 'dom-rec', title: 'Domestic Recruitment', category: 'Recruitment' },
+      { id: 'intl-rec', title: 'International Recruitment', category: 'Recruitment' },
+      { id: 'exec-search', title: 'Executive Search', category: 'Executive' },
+      { id: 'perm-staff', title: 'Permanent Staffing', category: 'Staffing' },
+      { id: 'contract-staff', title: 'Contract Staffing', category: 'Staffing' },
+      { id: 'bulk-hiring', title: 'Bulk Hiring', category: 'Recruitment' },
+      { id: 'overseas-place', title: 'Overseas Placement', category: 'Placement' },
+      { id: 'visa-assist', title: 'Visa Assistance', category: 'Visa & Legal' },
+      { id: 'work-permit', title: 'Work Permit Guidance', category: 'Visa & Legal' },
+      { id: 'intl-consult', title: 'International Consulting', category: 'Consulting' },
+      { id: 'college-adm', title: 'College Admission Assistance', category: 'Higher Education' },
+      { id: 'school-career', title: 'School Student Career Guidance', category: 'K-12 & High School' },
+      { id: 'intl-adm', title: 'International Admissions', category: 'Admissions' },
+      { id: 'school-academy', title: 'Academy for School Students', category: 'Academic Enrichment' },
+      { id: 'exec-seminars-lang', title: 'Executive Seminars & Language Test Preparation', category: 'Test Prep & Executive' }
+    ];
+
+    // 2. Fetch all real inbound leads from database
+    const allLeads = await db.all('SELECT * FROM leads ORDER BY createdAt DESC');
+
+    // 3. Aggregate performance by service
+    const serviceMetrics = MASTER_SERVICES.map(srv => {
+      const matchingLeads = allLeads.filter(l => {
+        const sid = (l.serviceId || '').toLowerCase();
+        const stitle = (l.serviceTitle || '').toLowerCase();
+        return sid === srv.id || stitle.includes(srv.title.toLowerCase()) || (srv.id === 'intl-consult' && stitle.includes('consulting'));
+      });
+
+      const total = matchingLeads.length;
+      const newCount = matchingLeads.filter(l => ['New', 'New Enquiry'].includes(l.status)).length;
+      const scheduledCount = matchingLeads.filter(l => l.status === 'Consultation Scheduled').length;
+      const inProgressCount = matchingLeads.filter(l => ['In Progress', 'Proposal Pending', 'Proposal or Next Steps Pending'].includes(l.status)).length;
+      const convertedCount = matchingLeads.filter(l => ['Converted', 'Completed'].includes(l.status)).length;
+
+      // Attribution breakdown for this service
+      let organicCount = 0;
+      let paidCampaignCount = 0;
+      let directCount = 0;
+      let referralSocialCount = 0;
+
+      matchingLeads.forEach(l => {
+        const src = (l.utmSource || '').toLowerCase();
+        const med = (l.utmMedium || '').toLowerCase();
+        const ref = (l.referrer || '').toLowerCase();
+
+        if (src.includes('google') || src.includes('bing') || med.includes('organic') || med.includes('seo') || ref.includes('google.') || ref.includes('bing.')) {
+          organicCount++;
+        } else if (med.includes('cpc') || med.includes('paid') || med.includes('ppc') || l.utmCampaign) {
+          paidCampaignCount++;
+        } else if (src.includes('linkedin') || src.includes('facebook') || src.includes('instagram') || src.includes('twitter') || ref.includes('t.co') || ref.includes('linkedin.')) {
+          referralSocialCount++;
+        } else {
+          directCount++;
+        }
+      });
+
+      return {
+        serviceId: srv.id,
+        serviceTitle: srv.title,
+        category: srv.category,
+        totalEnquiries: total,
+        newEnquiries: newCount,
+        consultationsScheduled: scheduledCount,
+        inProgressEnquiries: inProgressCount,
+        convertedEnquiries: convertedCount,
+        leadConversionRate: total > 0 ? Number(((convertedCount / total) * 100).toFixed(1)) : 0,
+        attribution: {
+          organicSearch: organicCount,
+          paidCampaigns: paidCampaignCount,
+          referralSocial: referralSocialCount,
+          directOrUnspecified: directCount
+        }
+      };
+    });
+
+    // 4. Calculate overall totals and pipeline funnel
+    const totalLeadsCount = allLeads.length;
+    const totalNew = allLeads.filter(l => ['New', 'New Enquiry'].includes(l.status)).length;
+    const totalContactedOrScheduled = allLeads.filter(l => ['Contacted', 'Consultation Scheduled'].includes(l.status)).length;
+    const totalInProgress = allLeads.filter(l => ['In Progress', 'Proposal Pending', 'Proposal or Next Steps Pending'].includes(l.status)).length;
+    const totalConverted = allLeads.filter(l => ['Converted', 'Completed'].includes(l.status)).length;
+
+    // Attribution overall summary
+    const overallAttribution = {
+      organicSearch: allLeads.filter(l => {
+        const src = (l.utmSource || '').toLowerCase();
+        const med = (l.utmMedium || '').toLowerCase();
+        const ref = (l.referrer || '').toLowerCase();
+        return src.includes('google') || src.includes('bing') || med.includes('organic') || med.includes('seo') || ref.includes('google.') || ref.includes('bing.');
+      }).length,
+      paidCampaigns: allLeads.filter(l => {
+        const med = (l.utmMedium || '').toLowerCase();
+        return med.includes('cpc') || med.includes('paid') || med.includes('ppc') || Boolean(l.utmCampaign);
+      }).length,
+      socialOrReferral: allLeads.filter(l => {
+        const src = (l.utmSource || '').toLowerCase();
+        const ref = (l.referrer || '').toLowerCase();
+        return src.includes('linkedin') || src.includes('facebook') || src.includes('instagram') || ref.includes('linkedin.') || ref.includes('t.co');
+      }).length,
+      directOrUnspecified: allLeads.filter(l => !l.utmSource && !l.referrer && !l.utmCampaign).length
+    };
+
+    // Conversion funnel definition & verified progression
+    const conversionFunnel = [
+      { step: 1, name: 'Inbound Enquiries Received', count: totalLeadsCount, rate: 100 },
+      { step: 2, name: 'Initial Contact & Qualification', count: totalLeadsCount - totalNew, rate: totalLeadsCount > 0 ? Number((((totalLeadsCount - totalNew) / totalLeadsCount) * 100).toFixed(1)) : 0 },
+      { step: 3, name: 'Consultation & Active Proposal', count: totalContactedOrScheduled + totalInProgress + totalConverted, rate: totalLeadsCount > 0 ? Number((((totalContactedOrScheduled + totalInProgress + totalConverted) / totalLeadsCount) * 100).toFixed(1)) : 0 },
+      { step: 4, name: 'Confirmed Conversion / Enrollment', count: totalConverted, rate: totalLeadsCount > 0 ? Number(((totalConverted / totalLeadsCount) * 100).toFixed(1)) : 0 }
+    ];
+
+    res.json({
+      success: true,
+      meta: {
+        isDerivedFromLiveDatabase: true,
+        dataAuthenticityNotice: 'Metrics represent actual verified entries in SQLite database. Web traffic sessions and Search Console impressions require external GA4/GSC property linking.',
+        timestamp: new Date().toISOString()
+      },
+      summary: {
+        totalLeadsRecorded: totalLeadsCount,
+        activePipelineLeads: totalInProgress + totalContactedOrScheduled,
+        convertedLeads: totalConverted,
+        newUnassignedLeads: totalNew
+      },
+      services: serviceMetrics,
+      attribution: overallAttribution,
+      funnel: conversionFunnel
+    });
+  } catch (error) {
+    console.error('Failed to generate service performance analytics:', error);
+    res.status(500).json({ success: false, message: 'Failed to retrieve analytics metrics' });
   }
 });
 
@@ -1622,6 +2407,14 @@ if (fs.existsSync(distPath)) {
     res.sendFile(path.join(distPath, 'index.html'));
   });
 }
+
+// API 404 Catch-All Handler (Ensures clean JSON error for invalid endpoints)
+app.all('/api/*', (req, res) => {
+  res.status(404).json({
+    success: false,
+    message: `API route '${req.method} ${req.path}' not found`
+  });
+});
 
 // Global safe error handling middleware (No stack traces in production)
 app.use((err, req, res, next) => {

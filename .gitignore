@@ -25,7 +25,12 @@ Thumbs.db
 .cache
 E:\npm-cache
 
-# SQLite temporary journal files
+# SQLite temporary journal files & backups
 *.db-shm
 *.db-wal
 server/*.backup.db
+backups/
+
+# User uploads
+server/uploads/*
+!server/uploads/.gitkeep

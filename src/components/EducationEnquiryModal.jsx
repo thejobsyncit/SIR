@@ -1,6 +1,8 @@
 import React, { useState, useEffect } from 'react';
 import { X, Send, CheckCircle2, AlertCircle, Loader2, Sparkles, GraduationCap, ShieldCheck } from 'lucide-react';
 import { EDUCATION_SERVICES_DETAILED } from '../data/educationServicesData';
+import { trackEnquiryStart, trackEnquiryValidationFailure, trackEnquiryConversion } from '../services/analytics';
+import { getAttributionData } from '../utils/attribution';
 
 export const EducationEnquiryModal = ({ isOpen, onClose, preselectedServiceId = null, preselectedSubProgram = null }) => {
   const [serviceId, setServiceId] = useState(preselectedServiceId || 'intl-consult');
@@ -45,27 +47,13 @@ export const EducationEnquiryModal = ({ isOpen, onClose, preselectedServiceId = 
   const activeService = EDUCATION_SERVICES_DETAILED.find(s => s.id === serviceId) || EDUCATION_SERVICES_DETAILED[0];
 
   const handlePhoneChange = (e) => {
-    const digitsOnly = e.target.value.replace(/\D/g, '').slice(0, 10);
-    setPhone(digitsOnly);
-    if (formErrors.phone) {
-      setFormErrors(prev => ({ ...prev, phone: null }));
-    }
-  };
-
-  const handlePhoneKeyDown = (e) => {
-    if (
-      ['Backspace', 'Delete', 'Tab', 'ArrowLeft', 'ArrowRight', 'ArrowUp', 'ArrowDown', 'Enter'].includes(e.key) ||
-      e.ctrlKey || e.metaKey
-    ) {
-      return;
-    }
-    if (!/^\d$/.test(e.key)) {
-      e.preventDefault();
-      return;
-    }
-    const selection = window.getSelection()?.toString() || '';
-    if (phone.length >= 10 && selection.length === 0) {
-      e.preventDefault();
+    const val = e.target.value;
+    // Allow digits, +, spaces, -, (, )
+    if (/^[0-9+\s\-()]*$/.test(val) && val.length <= 25) {
+      setPhone(val);
+      if (formErrors.phone) {
+        setFormErrors(prev => ({ ...prev, phone: null }));
+      }
     }
   };
 
@@ -78,11 +66,11 @@ export const EducationEnquiryModal = ({ isOpen, onClose, preselectedServiceId = 
     if (!data.email || !emailRegex.test(data.email.trim())) {
       errors.email = 'Please provide a valid email address.';
     }
-    const cleanPhone = (phone || data.phone || '').replace(/\D/g, '');
+    const cleanPhone = (phone || data.phone || '').replace(/[\s\-\(\)\+]/g, '');
     if (!cleanPhone) {
-      errors.phone = 'Please provide your 10-digit phone or WhatsApp number.';
-    } else if (cleanPhone.length !== 10) {
-      errors.phone = `Phone number must be exactly 10 digits (currently ${cleanPhone.length}/10).`;
+      errors.phone = 'Please provide your phone or WhatsApp number.';
+    } else if (cleanPhone.length < 7 || cleanPhone.length > 15) {
+      errors.phone = `Phone number must be between 7 and 15 digits (currently ${cleanPhone.length} digits).`;
     }
     if (!data.message || data.message.trim().length < 10) {
       errors.message = 'Please provide inquiry details or background (minimum 10 characters).';
@@ -104,12 +92,14 @@ export const EducationEnquiryModal = ({ isOpen, onClose, preselectedServiceId = 
     const errors = validate(data);
     if (Object.keys(errors).length > 0) {
       setFormErrors(errors);
+      trackEnquiryValidationFailure('education_modal', activeService.id, Object.keys(errors));
       return;
     }
 
     setFormErrors({});
     setIsSubmitting(true);
 
+    const attribution = getAttributionData();
     const subDetail = subProgram ? ` | Sub-Track: ${subProgram}` : '';
     const levelDetail = programLevel ? ` | Level: ${programLevel}` : '';
     const destDetail = countryInterest !== 'All' ? ` | Target Country: ${countryInterest}` : '';
@@ -122,7 +112,11 @@ export const EducationEnquiryModal = ({ isOpen, onClose, preselectedServiceId = 
       serviceId: activeService.id,
       serviceTitle: `${activeService.title}${subDetail}`,
       company: `Academic Advisory (${activeService.category})`,
-      message: `[Academic Advisory Inquiry: ${activeService.title}${subDetail}${levelDetail}${destDetail}${institutionDetail}]\n\nStudent/Applicant Message:\n${data.message.trim()}`
+      message: `[Academic Advisory Inquiry: ${activeService.title}${subDetail}${levelDetail}${destDetail}${institutionDetail}]\n\nStudent/Applicant Message:\n${data.message.trim()}`,
+      utmSource: attribution.utmSource,
+      utmMedium: attribution.utmMedium,
+      utmCampaign: attribution.utmCampaign,
+      referrer: attribution.referrer
     };
 
     try {
@@ -138,11 +132,23 @@ export const EducationEnquiryModal = ({ isOpen, onClose, preselectedServiceId = 
         throw new Error(result.message || 'Server was unable to record your inquiry. Please try again.');
       }
 
+      const generatedRef = result.data?.referenceNumber || result.referenceNumber || result.data?.id || `REV-EDU-${Date.now().toString().slice(-6)}`;
+
       setSubmittedLead({
-        id: result.data?.id || `REV-EDU-${Date.now().toString().slice(-6)}`,
+        id: generatedRef,
         name: data.name.trim(),
         serviceTitle: activeService.title
       });
+
+      // Fire confirmed conversion event (deduplicated by referenceNumber)
+      trackEnquiryConversion(
+        generatedRef,
+        activeService.id,
+        activeService.title,
+        activeService.category,
+        'education_modal'
+      );
+
       setPhone('');
     } catch (err) {
       console.error('Failed to submit education inquiry:', err);
@@ -300,6 +306,7 @@ export const EducationEnquiryModal = ({ isOpen, onClose, preselectedServiceId = 
                     name="name"
                     required
                     placeholder="e.g. Tariq Al-Hashimi"
+                    onFocus={() => trackEnquiryStart('education_modal', activeService.id, activeService.title)}
                     onChange={() => {
                       if (formErrors.name) setFormErrors(prev => ({ ...prev, name: null }));
                     }}
@@ -337,20 +344,20 @@ export const EducationEnquiryModal = ({ isOpen, onClose, preselectedServiceId = 
                 <div>
                   <div className="flex justify-between items-center mb-1">
                     <label className="block text-xs font-bold text-slate-800 dark:text-slate-200">
-                      Phone / WhatsApp (10 Digits) <span className="text-rose-500">*</span>
+                      Phone / WhatsApp <span className="text-rose-500">*</span>
                     </label>
-                    <span className="text-[10px] font-mono text-slate-500 font-bold">
-                      {phone.length}/10
-                    </span>
+                    {phone.replace(/[\s\-\(\)\+]/g, '').length >= 7 && (
+                      <span className="text-[10px] text-emerald-500 font-bold flex items-center gap-1">
+                        <CheckCircle2 className="w-3 h-3" /> Valid
+                      </span>
+                    )}
                   </div>
                   <input
                     type="tel"
                     name="phone"
                     value={phone}
                     onChange={handlePhoneChange}
-                    onKeyDown={handlePhoneKeyDown}
-                    placeholder="e.g. 5012345678"
-                    maxLength={10}
+                    placeholder="e.g. +971 50 123 4567 or 5012345678"
                     required
                     className={`w-full bg-slate-50 dark:bg-navy-950 border text-slate-800 dark:text-slate-200 text-xs rounded-xl px-3.5 py-2.5 font-mono tracking-wider focus:outline-none focus:ring-2 focus:ring-gold-500 ${formErrors.phone ? 'border-rose-500' : 'border-slate-200 dark:border-navy-700'
                       }`}

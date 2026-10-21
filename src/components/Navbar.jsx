@@ -159,19 +159,19 @@ export const Navbar = () => {
                                 <span>Academic Advisory</span>
                               </div>
                               {[
-                                { id: 'intl-consult', title: 'International Consulting' },
-                                { id: 'college-adm', title: 'College Admissions' },
-                                { id: 'school-career', title: 'Career Guidance' },
-                                { id: 'intl-adm', title: 'Intl Admissions' },
-                                { id: 'school-academy', title: 'Student Academy' },
-                                { id: 'exec-seminars-lang', title: 'Language & Test Prep' }
+                                { id: 'intl-consult', title: 'International Consulting', href: '/international-consulting', tab: 'international-consulting' },
+                                { id: 'college-adm', title: 'College Admissions', href: '/education/college-admission-assistance', tab: 'education-college-adm' },
+                                { id: 'school-career', title: 'Career Guidance', href: '/education/school-student-career-guidance', tab: 'education-school-career' },
+                                { id: 'intl-adm', title: 'Intl Admissions', href: '/education/international-admissions', tab: 'education-intl-adm' },
+                                { id: 'school-academy', title: 'Student Academy', href: '/education/academy-for-school-students', tab: 'education-school-academy' },
+                                { id: 'exec-seminars-lang', title: 'Language & Test Prep', href: '/education/executive-seminars-and-language-test-preparation', tab: 'education-exec-seminars-lang' }
                               ].map((srv) => (
                                 <a
                                   key={srv.id}
-                                  href={`#education-${srv.id}`}
+                                  href={srv.href}
                                   onClick={(e) => {
                                     e.preventDefault();
-                                    navigateTo(`education-${srv.id}`);
+                                    navigateTo(srv.tab);
                                     setMegaMenuType(null);
                                   }}
                                   className="w-full text-left px-2 py-1.5 rounded-md hover:bg-gold-50 dark:hover:bg-navy-800/80 text-slate-700 dark:text-slate-200 hover:text-gold-600 dark:hover:text-gold-400 font-medium transition flex items-center justify-between group"
@@ -377,19 +377,19 @@ export const Navbar = () => {
               </div>
               <div className="grid grid-cols-2 gap-1.5 text-[11px]">
                 {[
-                  { id: 'intl-consult', label: 'Intl Consulting' },
-                  { id: 'college-adm', label: 'College Admissions' },
-                  { id: 'school-career', label: 'Career Guidance' },
-                  { id: 'intl-adm', label: 'Intl Admissions' },
-                  { id: 'school-academy', label: 'Student Academy' },
-                  { id: 'exec-seminars-lang', label: 'Language Tests' }
+                  { id: 'intl-consult', label: 'Intl Consulting', href: '/international-consulting', tab: 'international-consulting' },
+                  { id: 'college-adm', label: 'College Admissions', href: '/education/college-admission-assistance', tab: 'education-college-adm' },
+                  { id: 'school-career', label: 'Career Guidance', href: '/education/school-student-career-guidance', tab: 'education-school-career' },
+                  { id: 'intl-adm', label: 'Intl Admissions', href: '/education/international-admissions', tab: 'education-intl-adm' },
+                  { id: 'school-academy', label: 'Student Academy', href: '/education/academy-for-school-students', tab: 'education-school-academy' },
+                  { id: 'exec-seminars-lang', label: 'Language Tests', href: '/education/executive-seminars-and-language-test-preparation', tab: 'education-exec-seminars-lang' }
                 ].map((s) => (
                   <a
                     key={s.id}
-                    href={`#education-${s.id}`}
+                    href={s.href}
                     onClick={(e) => {
                       e.preventDefault();
-                      navigateTo(`education-${s.id}`);
+                      navigateTo(s.tab);
                       setMobileMenuOpen(false);
                     }}
                     className="text-left p-1.5 rounded-lg bg-white/70 dark:bg-navy-900/80 text-navy-900 dark:text-slate-200 font-semibold truncate hover:text-gold-500 block"

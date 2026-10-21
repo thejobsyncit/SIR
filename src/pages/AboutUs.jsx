@@ -65,7 +65,7 @@ export const AboutUs = () => {
       <div className="relative rounded-3xl overflow-hidden shadow-luxury border border-slate-200 dark:border-gold-500/30 max-h-[420px]">
         <img 
           src="/images/dubai_office.png" 
-          alt="Revival International Dubai HQ" 
+          alt="Revival International Corporate Headquarters at Rolex Tower Business Bay Dubai" 
           className="w-full h-full object-cover"
         />
         <div className="absolute inset-0 bg-gradient-to-t from-navy-950 via-navy-950/40 to-transparent flex items-end p-8">

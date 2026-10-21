@@ -139,12 +139,12 @@ export const Footer = () => {
               <NavLink tab="home" label="Home" />
               <NavLink tab="about" label="About Us" />
               <NavLink tab="services" label="Core Services" />
+              <NavLink tab="international-consulting" label="International Consulting" />
               <NavLink tab="education" label="Academic Advisory" />
               <NavLink tab="industries" label="Industries We Serve" />
               <NavLink tab="jobs" label="Browse Job Portal" />
               <NavLink tab="employers" label="Employer Solutions" />
               <NavLink tab="candidates" label="Candidate Hub" />
-              <NavLink tab="crm" label="Recruiter CRM Portal" />
               <NavLink tab="contact" label="Office Locations" />
             </ul>
           </div>
@@ -189,6 +189,12 @@ export const Footer = () => {
           <p>© 2026 Revival International Consultancy FZ-LLC. All Rights Reserved. Managed under Dubai Economic Department & MOHRE Regulations.</p>
 
           <div className="flex items-center space-x-6">
+            <button 
+              onClick={() => navigateTo('crm')} 
+              className="text-slate-400 dark:text-slate-500 hover:text-gold-500 transition text-[11px] underline"
+            >
+              Recruiter Staff Login
+            </button>
             <span className="flex items-center space-x-1 text-slate-600 dark:text-slate-300 font-medium">
               <Shield className="w-3.5 h-3.5 text-emerald-400" />
               <span>SSL 256-bit Encrypted</span>

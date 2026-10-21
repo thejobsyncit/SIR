@@ -57,7 +57,9 @@ export const checkDbHealth = async () => {
   try {
     const db = await getDb();
     const result = await db.get('SELECT 1 as alive');
-    return { status: 'connected', alive: result && result.alive === 1 };
+    const dbPath = getDbPath();
+    const dbSize = fs.existsSync(dbPath) ? fs.statSync(dbPath).size : 0;
+    return { status: 'connected', alive: result && result.alive === 1, sizeBytes: dbSize };
   } catch (err) {
     return { status: 'error', message: err.message };
   }
@@ -198,7 +200,7 @@ const initDb = async (db) => {
     }
   };
 
-  // Safe migration: Ensure leads table has consulting and workflow columns
+  // Safe migration: Ensure leads table has consulting, recruitment and workflow columns
   await ensureColumns('leads', [
     { name: 'serviceId', type: 'TEXT' },
     { name: 'serviceTitle', type: 'TEXT' },
@@ -214,8 +216,39 @@ const initDb = async (db) => {
     { name: 'priority', type: "TEXT DEFAULT 'Medium'" },
     { name: 'nextAction', type: 'TEXT' },
     { name: 'nextActionDate', type: 'TEXT' },
+    { name: 'lastFollowUpDate', type: 'TEXT' },
+    { name: 'lastContactedDate', type: 'TEXT' },
+    { name: 'leadScore', type: "INTEGER DEFAULT 0" },
     { name: 'internalNotes', type: 'TEXT' },
-    { name: 'updatedAt', type: 'DATETIME' }
+    { name: 'utmSource', type: 'TEXT' },
+    { name: 'utmMedium', type: 'TEXT' },
+    { name: 'utmCampaign', type: 'TEXT' },
+    { name: 'utmTerm', type: 'TEXT' },
+    { name: 'utmContent', type: 'TEXT' },
+    { name: 'referrer', type: 'TEXT' },
+    { name: 'isArchived', type: 'INTEGER DEFAULT 0' },
+    { name: 'updatedAt', type: 'DATETIME' },
+    // Phase 2: Nine Core Services columns (recruitment, staffing, executive search, visa, work permit)
+    { name: 'jobTitle', type: 'TEXT' },
+    { name: 'skills', type: 'TEXT' },
+    { name: 'experience', type: 'TEXT' },
+    { name: 'workLocation', type: 'TEXT' },
+    { name: 'salaryRange', type: 'TEXT' },
+    { name: 'vacancies', type: 'TEXT' },
+    { name: 'seniority', type: 'TEXT' },
+    { name: 'industry', type: 'TEXT' },
+    { name: 'hiringTimeline', type: 'TEXT' },
+    { name: 'joiningDate', type: 'TEXT' },
+    { name: 'contractDuration', type: 'TEXT' },
+    { name: 'startDate', type: 'TEXT' },
+    { name: 'endDate', type: 'TEXT' },
+    { name: 'shiftRequirements', type: 'TEXT' },
+    { name: 'jobCategory', type: 'TEXT' },
+    { name: 'visaCategory', type: 'TEXT' },
+    { name: 'currentStage', type: 'TEXT' },
+    { name: 'cvPath', type: 'TEXT' },
+    { name: 'documentUrls', type: 'TEXT' },
+    { name: 'customFields', type: 'TEXT' }
   ]);
 
   // Safe migration: Ensure clients/organizations table has enterprise fields

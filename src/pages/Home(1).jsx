@@ -49,19 +49,23 @@ export const Home = () => {
       
       {/* HERO SECTION */}
       <section className="relative min-h-[85vh] flex items-center justify-center pt-8 overflow-hidden">
-        {/* Background Dubai Skyline Overlay */}
+        {/* Background Global Skyline Overlay */}
         <div className="absolute inset-0 z-0 bg-navy-950">
-          {/* Light Mode: Original Daytime Dubai Skyline */}
+          {/* Light Mode: Global Skyline & Bridge */}
           <img 
-            src="/images/hero_dubai.png" 
-            alt="Dubai Skyline Revival International" 
-            className="w-full h-full object-cover opacity-60 dark:opacity-0 transform scale-105 transition-opacity duration-700 absolute inset-0"
+            src="/images/hero_skyline.jpg" 
+            alt="Global Skyline and Brooklyn Bridge - Revival International Recruitment and Academic Advisory" 
+            loading="eager"
+            fetchPriority="high"
+            className="w-full h-full object-cover opacity-70 dark:opacity-0 transform scale-105 transition-opacity duration-700 absolute inset-0"
           />
-          {/* Dark Mode: Realistic Nighttime Dubai Skyline with Illuminated Architectural Lighting */}
+          {/* Dark Mode: Realistic Nighttime New York Skyline & Illuminated Brooklyn Bridge */}
           <img 
-            src="/images/hero_dubai_dark.jpg" 
-            alt="Dubai Skyline Revival International Night" 
-            className="w-full h-full object-cover opacity-0 dark:opacity-85 transform scale-105 transition-opacity duration-700 absolute inset-0"
+            src="/images/hero_skyline_dark.jpg" 
+            alt="Global Skyline and Bridge at Night - Revival International Headquarters" 
+            loading="eager"
+            fetchPriority="high"
+            className="w-full h-full object-cover opacity-0 dark:opacity-80 transform scale-105 transition-opacity duration-700 absolute inset-0"
           />
           <div className="absolute inset-0 bg-gradient-to-b from-liteblue-50/60 via-liteblue-50/40 to-liteblue-50 dark:from-navy-950/25 dark:via-navy-950/35 dark:to-navy-950/90 pointer-events-none"></div>
         </div>

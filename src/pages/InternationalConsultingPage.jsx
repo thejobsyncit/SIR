@@ -1,9 +1,10 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useApp } from '../context/AppContext';
 import { EducationSEO } from '../components/EducationSEO';
 import { InternationalConsultingForm } from '../components/InternationalConsultingForm';
 import { EducationEnquiryModal } from '../components/EducationEnquiryModal';
 import ScrollReveal from '../components/ScrollReveal';
+import { trackServiceView, trackCtaClick } from '../services/analytics';
 import { 
   Globe, Compass, CheckCircle2, ChevronDown, ChevronUp, ArrowRight, ArrowLeft,
   Calendar, ShieldCheck, Award, FileText, Users, DollarSign, Clock, HelpCircle,
@@ -17,6 +18,10 @@ export const InternationalConsultingPage = () => {
   const [calculatorIntake, setCalculatorIntake] = useState('Fall 2026');
   const [calculatorLevel, setCalculatorLevel] = useState('Postgraduate');
   const [openFaqIndex, setOpenFaqIndex] = useState(0);
+
+  useEffect(() => {
+    trackServiceView('intl-consult', 'International Consulting', 'Consulting');
+  }, []);
 
   // Verified Study Destinations Dataset
   const studyDestinations = [
@@ -286,25 +291,39 @@ export const InternationalConsultingPage = () => {
     }
   ];
 
-  const structuredData = {
-    '@context': 'https://schema.org',
-    '@type': 'Service',
-    'name': 'International Consulting & Global Education Advisory',
-    'serviceType': 'Educational Consulting & Study Abroad Advisory',
-    'provider': {
-      '@type': 'EducationalOrganization',
-      'name': 'Revival International Academic Advisory',
-      'url': 'https://www.revivalinternational.com/#education-intl-consult',
-      'address': {
-        '@type': 'PostalAddress',
-        'addressLocality': 'Dubai',
-        'addressRegion': 'Dubai',
-        'addressCountry': 'AE'
-      }
+  const structuredData = [
+    {
+      '@context': 'https://schema.org',
+      '@type': 'Service',
+      'name': 'International Consulting & Global Education Advisory',
+      'serviceType': 'Educational Consulting & Study Abroad Advisory',
+      'provider': {
+        '@type': 'EducationalOrganization',
+        'name': 'Revival International Academic Advisory',
+        'url': 'https://www.revivalinternational.com/international-consulting',
+        'address': {
+          '@type': 'PostalAddress',
+          'addressLocality': 'Dubai',
+          'addressRegion': 'Dubai',
+          'addressCountry': 'AE'
+        }
+      },
+      'description': 'Premier strategic international education consulting: destination comparison, academic profile assessment, scholarship planning, and student visa compliance.',
+      'areaServed': ['United Arab Emirates', 'Saudi Arabia', 'Qatar', 'Oman', 'Kuwait', 'Bahrain', 'Global']
     },
-    'description': 'Premier strategic international education consulting: destination comparison, academic profile assessment, scholarship planning, and student visa compliance.',
-    'areaServed': ['United Arab Emirates', 'Saudi Arabia', 'Qatar', 'Oman', 'Kuwait', 'Bahrain', 'Global']
-  };
+    {
+      '@context': 'https://schema.org',
+      '@type': 'FAQPage',
+      'mainEntity': faqs.map(faq => ({
+        '@type': 'Question',
+        'name': faq.q,
+        'acceptedAnswer': {
+          '@type': 'Answer',
+          'text': faq.a
+        }
+      }))
+    }
+  ];
 
   const scrollToEnquiryForm = () => {
     const el = document.getElementById('consulting-enquiry-section');
@@ -395,7 +414,10 @@ export const InternationalConsultingPage = () => {
               {/* CTAs */}
               <div className="pt-3 flex flex-wrap gap-3.5 items-center">
                 <button
-                  onClick={scrollToEnquiryForm}
+                  onClick={() => {
+                    trackCtaClick('Book Free Consultation', 'hero_consulting', 'intl-consult');
+                    scrollToEnquiryForm();
+                  }}
                   className="px-6 py-3 bg-gold-shimmer text-navy-950 font-extrabold text-xs sm:text-sm rounded-xl shadow-gold-glow hover:opacity-95 transition flex items-center gap-2 cursor-pointer focus:outline-none focus:ring-2 focus:ring-gold-500"
                 >
                   <Calendar className="w-4 h-4" />
@@ -404,6 +426,7 @@ export const InternationalConsultingPage = () => {
 
                 <button
                   onClick={() => {
+                    trackCtaClick('Explore Destinations Matrix', 'hero_consulting', 'intl-consult');
                     const el = document.getElementById('destinations-matrix');
                     if (el) el.scrollIntoView({ behavior: 'smooth' });
                   }}
@@ -414,6 +437,7 @@ export const InternationalConsultingPage = () => {
 
                 <button
                   onClick={() => {
+                    trackCtaClick('Intake Planner', 'hero_consulting', 'intl-consult');
                     const el = document.getElementById('timeline-calculator');
                     if (el) el.scrollIntoView({ behavior: 'smooth' });
                   }}

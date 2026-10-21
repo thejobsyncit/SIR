@@ -22,6 +22,7 @@ import { ContactUsPage } from './pages/ContactUsPage';
 import { EducationDirectory } from './pages/EducationDirectory';
 import { EducationServiceDetail } from './pages/EducationServiceDetail';
 import { InternationalConsultingPage } from './pages/InternationalConsultingPage';
+import { getEducationServiceById, getEducationServiceBySlug } from './data/educationServicesData';
 import { NotFound } from './pages/NotFound';
 import { UnifiedAuthModal } from './components/UnifiedAuthModal';
 import { CrmApp } from './crm/CrmApp';
@@ -54,15 +55,24 @@ export function App() {
     if (activeTab === 'education') {
       return <EducationDirectory />;
     }
-    if (activeTab === 'education-intl-consult' || activeTab === 'international-consulting') {
+    if (
+      activeTab === 'education-intl-consult' ||
+      activeTab === 'international-consulting' ||
+      activeTab === 'education/international-consulting' ||
+      activeTab === 'education/intl-consult'
+    ) {
       return <InternationalConsultingPage />;
     }
-    if (activeTab && activeTab.startsWith('education-')) {
-      const serviceId = activeTab.replace('education-', '');
-      if (serviceId === 'intl-consult') {
+    if (activeTab && (activeTab.startsWith('education-') || activeTab.startsWith('education/'))) {
+      const raw = activeTab.replace(/^education[-/]/, '');
+      if (raw === 'intl-consult' || raw === 'international-consulting') {
         return <InternationalConsultingPage />;
       }
-      return <EducationServiceDetail serviceId={serviceId} />;
+      const srv = getEducationServiceBySlug(raw) || getEducationServiceById(raw);
+      if (srv) {
+        return <EducationServiceDetail serviceId={srv.id} />;
+      }
+      return <EducationServiceDetail serviceId={raw} />;
     }
 
     switch (activeTab) {

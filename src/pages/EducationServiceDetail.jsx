@@ -1,9 +1,10 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useApp } from '../context/AppContext';
-import { EDUCATION_SERVICES_DETAILED, getEducationServiceById } from '../data/educationServicesData';
+import { EDUCATION_SERVICES_DETAILED, getEducationServiceById, getEducationServiceBySlug } from '../data/educationServicesData';
 import { EducationSEO } from '../components/EducationSEO';
 import { EducationEnquiryModal } from '../components/EducationEnquiryModal';
 import ScrollReveal from '../components/ScrollReveal';
+import { trackServiceView, trackCtaClick } from '../services/analytics';
 import { 
   ArrowLeft, ArrowRight, CheckCircle2, ChevronDown, ChevronUp, 
   HelpCircle, FileText, Users, Compass, Globe, Sparkles, Building2, 
@@ -25,16 +26,25 @@ import { InternationalConsultingPage } from './InternationalConsultingPage';
 export const EducationServiceDetail = ({ serviceId }) => {
   const { navigateTo } = useApp();
 
-  if (serviceId === 'intl-consult') {
+  const service = getEducationServiceById(serviceId) || getEducationServiceBySlug(serviceId) || EDUCATION_SERVICES_DETAILED[0];
+
+  if (service.id === 'intl-consult') {
     return <InternationalConsultingPage />;
   }
 
   const [modalOpen, setModalOpen] = useState(false);
+  const [modalServiceId, setModalServiceId] = useState(service.id);
   const [selectedSubProgram, setSelectedSubProgram] = useState(null);
   const [openFaqIndex, setOpenFaqIndex] = useState(0);
 
-  const service = getEducationServiceById(serviceId) || EDUCATION_SERVICES_DETAILED[0];
   const IconComponent = iconMap[service.icon] || GraduationCap;
+
+  useEffect(() => {
+    if (service && service.id) {
+      setModalServiceId(service.id);
+      trackServiceView(service.id, service.title, service.category || 'Education');
+    }
+  }, [service?.id]);
 
   const toggleFaq = (index) => {
     setOpenFaqIndex(openFaqIndex === index ? -1 : index);
@@ -44,30 +54,47 @@ export const EducationServiceDetail = ({ serviceId }) => {
     .map(id => getEducationServiceById(id))
     .filter(Boolean);
 
-  const structuredData = {
-    '@context': 'https://schema.org',
-    '@type': 'Service',
-    'name': service.title,
-    'serviceType': 'Academic and Education Advisory',
-    'provider': {
-      '@type': 'EducationalOrganization',
-      'name': 'Revival International Academic Advisory',
-      'url': 'https://www.revivalinternational.com',
-      'address': {
-        '@type': 'PostalAddress',
-        'addressLocality': 'Dubai',
-        'addressCountry': 'AE'
-      }
-    },
-    'description': service.shortDescription,
-    'areaServed': ['United Arab Emirates', 'GCC', 'Worldwide']
-  };
+  const structuredData = [
+    {
+      '@context': 'https://schema.org',
+      '@type': 'Service',
+      'name': service.title,
+      'serviceType': 'Academic and Education Advisory',
+      'provider': {
+        '@type': 'EducationalOrganization',
+        'name': 'Revival International Academic Advisory',
+        'url': `https://www.revivalinternational.com/education/${service.slug || service.id}`,
+        'address': {
+          '@type': 'PostalAddress',
+          'addressLocality': 'Dubai',
+          'addressCountry': 'AE'
+        }
+      },
+      'description': service.shortDescription,
+      'areaServed': ['United Arab Emirates', 'GCC', 'Worldwide']
+    }
+  ];
+
+  if (service.faqs && service.faqs.length > 0) {
+    structuredData.push({
+      '@context': 'https://schema.org',
+      '@type': 'FAQPage',
+      'mainEntity': service.faqs.map(faq => ({
+        '@type': 'Question',
+        'name': faq.q,
+        'acceptedAnswer': {
+          '@type': 'Answer',
+          'text': faq.a
+        }
+      }))
+    });
+  }
 
   return (
     <div className="space-y-16 pb-20">
       <EducationSEO
-        title={service.title}
-        description={service.shortDescription}
+        title={`${service.title} | Academic & University Advisory Dubai`}
+        description={`${service.shortDescription} Comprehensive admissions roadmap, credential auditing, and certified mentorship in Dubai.`}
         canonicalPath={`education/${service.slug || service.id}`}
         breadcrumbs={[
           { name: 'Home', item: '/' },
@@ -143,6 +170,7 @@ export const EducationServiceDetail = ({ serviceId }) => {
               <div className="pt-3 flex flex-wrap gap-3.5 items-center">
                 <button
                   onClick={() => {
+                    trackCtaClick('Book Free Consultation', 'service_detail_hero', service.id);
                     setSelectedSubProgram(null);
                     setModalOpen(true);
                   }}
@@ -487,6 +515,7 @@ export const EducationServiceDetail = ({ serviceId }) => {
                       </button>
                       <button
                         onClick={() => {
+                          setModalServiceId(rel.id);
                           setSelectedSubProgram(null);
                           setModalOpen(true);
                         }}
@@ -521,6 +550,7 @@ export const EducationServiceDetail = ({ serviceId }) => {
               <div className="flex flex-wrap gap-3 shrink-0">
                 <button
                   onClick={() => {
+                    trackCtaClick('Schedule Appointment', 'service_detail_bottom_banner', service.id);
                     setSelectedSubProgram(null);
                     setModalOpen(true);
                   }}
@@ -560,7 +590,7 @@ export const EducationServiceDetail = ({ serviceId }) => {
       <EducationEnquiryModal
         isOpen={modalOpen}
         onClose={() => setModalOpen(false)}
-        preselectedServiceId={service.id}
+        preselectedServiceId={modalServiceId}
         preselectedSubProgram={selectedSubProgram}
       />
     </div>

@@ -4,6 +4,7 @@ import { EDUCATION_SERVICES_DETAILED } from '../data/educationServicesData';
 import { EducationSEO } from '../components/EducationSEO';
 import { EducationEnquiryModal } from '../components/EducationEnquiryModal';
 import ScrollReveal from '../components/ScrollReveal';
+import { trackServiceDetailClick, trackCtaClick } from '../services/analytics';
 import { 
   Search, X, ArrowRight, CheckCircle2, Sparkles, Filter, 
   GraduationCap, Globe, Compass, Plane, School, Languages, 
@@ -79,8 +80,8 @@ export const EducationDirectory = () => {
   return (
     <div className="max-w-7xl mx-auto px-4 sm:px-8 py-12 space-y-12">
       <EducationSEO
-        title="Academic & Education Advisory Directory"
-        description="Explore Revival International's verified academic advisory offerings: International Consulting, College Admissions, Career Guidance, Academy Workshops, and Language Test Preparation."
+        title="Academic & Education Advisory Directory Dubai | Study Abroad & Admissions"
+        description="Explore Revival International's verified academic advisory offerings in Dubai: International Consulting, College Admissions, Career Guidance, Academy Workshops, and Language Test Preparation."
         canonicalPath="education"
         breadcrumbs={[
           { name: 'Home', item: '/' },
@@ -102,7 +103,7 @@ export const EducationDirectory = () => {
           </div>
 
           <h1 className="font-serif text-4xl sm:text-5xl font-extrabold text-navy-900 dark:text-white">
-            Academic & Education Advisory
+            Academic & Education Advisory Services Dubai
           </h1>
           
           <p className="text-xs sm:text-sm text-slate-700 dark:text-slate-300 font-medium leading-relaxed">
@@ -226,9 +227,9 @@ export const EducationDirectory = () => {
                         <ServiceIcon className="w-5 h-5" />
                       </div>
                       <div>
-                        <h3 className="font-serif text-xl font-bold text-navy-900 dark:text-white leading-snug">
+                        <h2 className="font-serif text-xl font-bold text-navy-900 dark:text-white leading-snug">
                           {srv.title}
-                        </h3>
+                        </h2>
                         <p className="text-[11px] text-gold-600 dark:text-gold-400 font-serif italic">
                           {srv.badge}
                         </p>
@@ -261,7 +262,10 @@ export const EducationDirectory = () => {
                   {/* Actions */}
                   <div className="pt-4 border-t border-slate-100 dark:border-navy-800 flex justify-between items-center gap-2">
                     <button
-                      onClick={() => navigateTo(`education-${srv.id}`)}
+                      onClick={() => {
+                        trackServiceDetailClick(srv.id, srv.title);
+                        navigateTo(`education-${srv.id}`);
+                      }}
                       className="text-xs font-bold text-navy-900 dark:text-gold-400 hover:underline flex items-center gap-1 focus:outline-none focus:ring-1 focus:ring-gold-500 rounded"
                       aria-label={`View full details for ${srv.title}`}
                     >
@@ -270,7 +274,10 @@ export const EducationDirectory = () => {
                     </button>
 
                     <button
-                      onClick={() => setActiveModalServiceId(srv.id)}
+                      onClick={() => {
+                        trackCtaClick('Enquire Now', 'education_directory', srv.id);
+                        setActiveModalServiceId(srv.id);
+                      }}
                       className="px-3.5 py-1.5 bg-gold-shimmer text-navy-950 font-bold text-[11px] rounded-lg shadow-gold-glow hover:opacity-95 transition focus:outline-none focus:ring-2 focus:ring-gold-500"
                       aria-label={`Book consultation for ${srv.title}`}
                     >

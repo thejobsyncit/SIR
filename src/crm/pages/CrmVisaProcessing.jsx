@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { ShieldCheck, Clock, CheckCircle2, FileText, AlertTriangle, Plane, X } from 'lucide-react';
 import ScrollReveal from '../../components/ScrollReveal';
 
@@ -43,6 +43,40 @@ export const CrmVisaProcessing = () => {
   ]);
 
   const [selectedVisa, setSelectedVisa] = useState(null);
+
+  useEffect(() => {
+    Promise.all([
+      fetch('/api/leads?service=visa-assist').then(r => r.json()),
+      fetch('/api/leads?service=work-permit').then(r => r.json())
+    ]).then(([visaData, wpData]) => {
+      const combined = [...(visaData?.leads || []), ...(wpData?.leads || [])];
+      if (combined.length > 0) {
+        const liveVisa = combined.map(l => ({
+          id: l.prefixCode || `VISA-${l.id}`,
+          candidate: l.name,
+          country: l.workLocation || 'Target Destination',
+          type: l.visaCategory || (l.service === 'work-permit' ? 'Work Permit Compliance' : 'Work & Residence Visa Advisory'),
+          stage: l.currentStage || l.status || 'Documentation Review',
+          medical: 'GAMCA Medical Scheduled',
+          pcc: 'Police Clearance Submitted',
+          embassy: 'Consular Attestation',
+          visaSubmitted: l.created_at ? l.created_at.split('T')[0] : new Date().toISOString().split('T')[0],
+          visaApproved: l.status === 'Selected' || l.status === 'Visa Processing' ? 'Approved' : 'In Progress',
+          ticketBooking: 'TBD',
+          departure: l.joiningDate || 'Scheduled',
+          arrival: 'Primary Airport of Entry',
+          workPermit: l.service === 'work-permit' ? 'Verified Work Permit Dossier' : 'MOHRE Submission',
+          residencePermit: 'In Progress',
+          expiryAlert: 'Valid (2 Years)'
+        }));
+        setVisaMilestones(prev => {
+          const existingIds = new Set(prev.map(p => p.id));
+          const fresh = liveVisa.filter(lv => !existingIds.has(lv.id));
+          return [...fresh, ...prev];
+        });
+      }
+    }).catch(err => console.error('Error fetching visa leads:', err));
+  }, []);
 
   const visaSteps = [
     'Medical Fitness', 'PCC Clearance', 'Embassy Submission', 

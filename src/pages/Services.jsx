@@ -6,10 +6,18 @@ import {
   Plane, FileText, Award, ShieldCheck, PieChart, CreditCard,
   Layers, Calendar, CheckCircle2, FileCode, Compass, Sparkles,
   GraduationCap, School, Languages, ArrowRight, X, ChevronRight,
-  Send, ExternalLink
+  Send, ExternalLink, Search
 } from 'lucide-react';
 import { SEO } from '../components/SEO';
 import ScrollReveal from '../components/ScrollReveal';
+import { ServiceEnquiryModal } from '../components/ServiceEnquiryModal';
+import { trackServiceView, trackServiceDetailClick, trackCtaClick, trackEvent } from '../services/analytics';
+
+// All nine core recruitment, staffing, and visa services
+const NINE_SERVICES_IDS = [
+  'dom-rec', 'intl-rec', 'exec-search', 'perm-staff',
+  'contract-staff', 'bulk-hiring', 'overseas-place', 'visa-assist', 'work-permit'
+];
 
 // Accessible icon mapping for all 24 services
 const serviceIconMap = {
@@ -39,7 +47,9 @@ const serviceIconMap = {
 export const Services = () => {
   const { navigateTo, selectedServiceId, setSelectedServiceId } = useApp();
   const [selectedCategory, setSelectedCategory] = useState('All');
+  const [searchQuery, setSearchQuery] = useState('');
   const [selectedService, setSelectedService] = useState(null);
+  const [enquiryModalService, setEnquiryModalService] = useState(null);
 
   const categories = [
     'All', 
@@ -65,22 +75,41 @@ export const Services = () => {
     return counts;
   }, []);
 
-  // Prioritize the 6 new Education & Advisory services at the top when viewing 'All'
+  // Filtered services based on category and live search query
   const filteredServices = useMemo(() => {
+    let list = SERVICES_LIST;
     if (selectedCategory === 'All') {
-      return [
+      list = [
         ...SERVICES_LIST.filter(s => s.category === 'Education' || s.subCategory === 'Education'),
         ...SERVICES_LIST.filter(s => s.category !== 'Education' && s.subCategory !== 'Education')
       ];
+    } else {
+      list = SERVICES_LIST.filter(s => s.category === selectedCategory || s.subCategory === selectedCategory);
     }
-    return SERVICES_LIST.filter(s => s.category === selectedCategory || s.subCategory === selectedCategory);
-  }, [selectedCategory]);
 
-  // Handle direct inquiry routing to Contact page with pre-selection
+    if (searchQuery.trim()) {
+      const q = searchQuery.toLowerCase().trim();
+      list = list.filter(s => 
+        s.title.toLowerCase().includes(q) ||
+        s.description.toLowerCase().includes(q) ||
+        (s.targetAudience && s.targetAudience.toLowerCase().includes(q)) ||
+        (s.deliverables && s.deliverables.some(d => d.toLowerCase().includes(q)))
+      );
+    }
+    return list;
+  }, [selectedCategory, searchQuery]);
+
+  // Handle direct inquiry routing: nine core recruitment/visa services open dedicated modal; others go to contact page
   const handleInquire = (service) => {
-    if (setSelectedServiceId) setSelectedServiceId(service.id);
-    if (selectedService) setSelectedService(null);
-    navigateTo('contact');
+    trackCtaClick('Inquire Now', 'services_page', service.id);
+    if (NINE_SERVICES_IDS.includes(service.id)) {
+      setEnquiryModalService(service);
+      if (selectedService) setSelectedService(null);
+    } else {
+      if (setSelectedServiceId) setSelectedServiceId(service.id);
+      if (selectedService) setSelectedService(null);
+      navigateTo('contact');
+    }
   };
 
   // Keyboard accessibility: close modal on Escape key and body lock
@@ -146,12 +175,12 @@ export const Services = () => {
         </div>
 
         <h1 className="font-serif text-3xl sm:text-5xl font-extrabold text-navy-900 dark:text-white tracking-tight">
-          Our Executive Services
+          Executive Recruitment, HR Consulting & Academic Advisory Services
         </h1>
 
-        <h2 className="text-xs sm:text-sm font-bold text-gold-600 dark:text-gold-400 max-w-xl mx-auto uppercase tracking-wide">
+        <p className="text-xs sm:text-sm font-bold text-gold-600 dark:text-gold-400 max-w-xl mx-auto uppercase tracking-wide">
           Strategic International Consulting, Workforce Recruitment & Academic Advisory
-        </h2>
+        </p>
 
         <p className="text-xs sm:text-sm text-slate-700 dark:text-slate-300 font-medium max-w-2xl mx-auto leading-relaxed">
           From cross-border executive headhunting and MOHRE work permits to international university consulting, college admission guidance, student academy workshops, and specialized language test preparation (IELTS, OET, DET), Revival International delivers end-to-end global advisory.
@@ -178,145 +207,226 @@ export const Services = () => {
         </div>
       </div>
 
-      {/* Category Navigation Pills */}
+      {/* Search & Category Filter Controls */}
       <ScrollReveal>
-        <div 
-          className="flex flex-wrap justify-center gap-2" 
-          role="tablist" 
-          aria-label="Service category filters"
-        >
-          {categories.map((cat) => {
-            const count = categoryCounts[cat] || 0;
-            const isSelected = selectedCategory === cat;
-            return (
-              <button
-                key={cat}
-                role="tab"
-                aria-selected={isSelected}
-                aria-controls="services-grid"
-                id={`tab-${cat.toLowerCase().replace(/[^a-z0-9]/g, '-')}`}
-                onClick={() => setSelectedCategory(cat)}
-                className={`px-3.5 py-1.5 rounded-xl text-xs font-bold transition flex items-center gap-1.5 focus:outline-none focus-visible:ring-2 focus-visible:ring-gold-500 ${
-                  isSelected
-                    ? 'bg-gold-shimmer text-navy-950 shadow-gold-glow'
-                    : 'bg-white dark:bg-navy-900 border border-slate-200 dark:border-navy-800 text-slate-700 dark:text-slate-300 hover:border-gold-500/60'
-                }`}
-              >
-                <span>{cat}</span>
-                <span 
-                  className={`text-[10px] px-1.5 py-0.2 rounded-full font-mono ${
-                    isSelected 
-                      ? 'bg-navy-950/15 text-navy-950 font-bold' 
-                      : 'bg-slate-100 dark:bg-navy-800 text-slate-500 dark:text-slate-400'
+        <div className="glass-card bg-white dark:bg-navy-900 border border-slate-200 dark:border-navy-800 p-4 sm:p-5 rounded-2xl shadow-glass space-y-4">
+          <div className="flex flex-col md:flex-row gap-3 items-center justify-between">
+            {/* Search Input */}
+            <div className="relative w-full md:max-w-md">
+              <Search className="w-4 h-4 text-slate-400 absolute left-3.5 top-1/2 -translate-y-1/2 pointer-events-none" />
+              <input
+                type="text"
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                placeholder="Search services (e.g. Executive, IELTS, Visa, Admissions)..."
+                className="w-full pl-10 pr-9 py-2.5 bg-slate-50 dark:bg-navy-950 border border-slate-200 dark:border-navy-700 text-slate-800 dark:text-slate-200 text-xs rounded-xl focus:outline-none focus:ring-2 focus:ring-gold-500 transition"
+                aria-label="Search services"
+              />
+              {searchQuery && (
+                <button
+                  onClick={() => setSearchQuery('')}
+                  className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-700 dark:hover:text-white transition"
+                  aria-label="Clear search text"
+                >
+                  <X className="w-4 h-4" />
+                </button>
+              )}
+            </div>
+
+            {/* Results Count & Reset */}
+            <div className="flex items-center gap-3 w-full md:w-auto justify-between md:justify-end text-xs">
+              <span className="text-slate-500 font-medium">
+                Showing <strong className="text-navy-900 dark:text-white font-mono">{filteredServices.length}</strong> of {SERVICES_LIST.length} services
+              </span>
+              {(searchQuery || selectedCategory !== 'All') && (
+                <button
+                  onClick={() => {
+                    setSearchQuery('');
+                    setSelectedCategory('All');
+                  }}
+                  className="text-gold-600 dark:text-gold-400 hover:underline font-bold text-xs"
+                >
+                  Reset All Filters
+                </button>
+              )}
+            </div>
+          </div>
+
+          {/* Category Navigation Pills */}
+          <div 
+            className="flex flex-wrap justify-center sm:justify-start gap-2 pt-2 border-t border-slate-100 dark:border-navy-800" 
+            role="tablist" 
+            aria-label="Service category filters"
+          >
+            {categories.map((cat) => {
+              const count = categoryCounts[cat] || 0;
+              const isSelected = selectedCategory === cat;
+              return (
+                <button
+                  key={cat}
+                  role="tab"
+                  aria-selected={isSelected}
+                  aria-controls="services-grid"
+                  id={`tab-${cat.toLowerCase().replace(/[^a-z0-9]/g, '-')}`}
+                  onClick={() => setSelectedCategory(cat)}
+                  className={`px-3 py-1.5 rounded-xl text-xs font-bold transition flex items-center gap-1.5 focus:outline-none focus-visible:ring-2 focus-visible:ring-gold-500 ${
+                    isSelected
+                      ? 'bg-gold-shimmer text-navy-950 shadow-gold-glow'
+                      : 'bg-slate-50 dark:bg-navy-950 border border-slate-200 dark:border-navy-800 text-slate-700 dark:text-slate-300 hover:border-gold-500/60'
                   }`}
                 >
-                  {count}
-                </span>
-              </button>
-            );
-          })}
+                  <span>{cat}</span>
+                  <span 
+                    className={`text-[10px] px-1.5 py-0.2 rounded-full font-mono ${
+                      isSelected 
+                        ? 'bg-navy-950/15 text-navy-950 font-bold' 
+                        : 'bg-slate-200 dark:bg-navy-800 text-slate-600 dark:text-slate-400'
+                    }`}
+                  >
+                    {count}
+                  </span>
+                </button>
+              );
+            })}
+          </div>
         </div>
       </ScrollReveal>
 
-      {/* Services Grid */}
+      {/* Services Grid or Empty State */}
       <ScrollReveal>
-        <div 
-          id="services-grid"
-          role="tabpanel"
-          aria-labelledby={`tab-${selectedCategory.toLowerCase().replace(/[^a-z0-9]/g, '-')}`}
-          className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6"
-        >
-          {filteredServices.map((srv) => {
-            const ServiceIcon = serviceIconMap[srv.icon] || Briefcase;
-            const isEducation = srv.category === 'Education' || srv.subCategory === 'Education';
-            const isSelected = selectedServiceId === srv.id;
+        {filteredServices.length === 0 ? (
+          <div className="text-center py-16 px-4 glass-card bg-white dark:bg-navy-900 border border-slate-200 dark:border-navy-800 rounded-3xl space-y-4 max-w-lg mx-auto">
+            <div className="w-12 h-12 rounded-full bg-gold-500/10 text-gold-500 mx-auto flex items-center justify-center">
+              <Search className="w-6 h-6" />
+            </div>
+            <div className="space-y-1">
+              <h3 className="font-serif text-xl font-bold text-navy-900 dark:text-white">
+                No Services Match Your Search
+              </h3>
+              <p className="text-xs text-slate-500">
+                No offerings matched <span className="font-mono text-gold-500 font-bold">"{searchQuery}"</span> under category <span className="font-bold">{selectedCategory}</span>.
+              </p>
+            </div>
+            <button
+              onClick={() => {
+                setSearchQuery('');
+                setSelectedCategory('All');
+              }}
+              className="px-5 py-2.5 bg-gold-shimmer text-navy-950 font-bold text-xs rounded-xl shadow-gold-glow hover:opacity-95 transition"
+            >
+              Reset Filters & Show All {SERVICES_LIST.length} Services
+            </button>
+          </div>
+        ) : (
+          <div 
+            id="services-grid"
+            role="tabpanel"
+            aria-labelledby={`tab-${selectedCategory.toLowerCase().replace(/[^a-z0-9]/g, '-')}`}
+            className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6"
+          >
+            {filteredServices.map((srv) => {
+              const ServiceIcon = serviceIconMap[srv.icon] || Briefcase;
+              const isEducation = srv.category === 'Education' || srv.subCategory === 'Education';
+              const isSelected = selectedServiceId === srv.id;
 
-            return (
-              <div 
-                key={srv.id}
-                id={`service-${srv.id}`}
-                className={`glass-card bg-white dark:bg-navy-900 border p-6 rounded-2xl flex flex-col justify-between transition-all duration-300 hover:border-gold-500/60 hover:shadow-luxury hover:-translate-y-1 relative group ${
-                  isSelected 
-                    ? 'ring-2 ring-gold-500 border-gold-500 shadow-gold-glow' 
-                    : 'border-slate-200/90 dark:border-navy-800/90'
-                }`}
-              >
-                {/* Card Top Information */}
-                <div className="space-y-4">
-                  {/* Icon & Category Header */}
-                  <div className="flex items-center justify-between gap-3">
-                    <div className="w-12 h-12 rounded-xl bg-gold-500/10 dark:bg-gold-500/15 border border-gold-500/25 flex items-center justify-center text-gold-600 dark:text-gold-400 group-hover:bg-gold-500 group-hover:text-slate-900 dark:group-hover:text-navy-950 transition-colors duration-300 shadow-sm shrink-0">
-                      <ServiceIcon className="w-6 h-6" />
-                    </div>
-
-                    <div className="flex flex-col items-end gap-1">
-                      <div className="flex items-center gap-1.5">
-                        <span className="bg-slate-100 dark:bg-navy-800 text-slate-700 dark:text-slate-300 text-[10px] font-bold px-2 py-0.5 rounded uppercase tracking-wider">
-                          {srv.category}
-                        </span>
-                        {isEducation && (
-                          <span className="bg-emerald-500/15 text-emerald-600 dark:text-emerald-400 text-[9px] font-extrabold px-2 py-0.5 rounded-full uppercase border border-emerald-500/30">
-                            ✨ Advisory
-                          </span>
-                        )}
+              return (
+                <div 
+                  key={srv.id}
+                  id={`service-${srv.id}`}
+                  className={`glass-card bg-white dark:bg-navy-900 border p-6 rounded-2xl flex flex-col justify-between transition-all duration-300 hover:border-gold-500/60 hover:shadow-luxury hover:-translate-y-1 relative group ${
+                    isSelected 
+                      ? 'ring-2 ring-gold-500 border-gold-500 shadow-gold-glow' 
+                      : 'border-slate-200/90 dark:border-navy-800/90'
+                  }`}
+                >
+                  {/* Card Top Information */}
+                  <div className="space-y-4">
+                    {/* Icon & Category Header */}
+                    <div className="flex items-center justify-between gap-3">
+                      <div className="w-12 h-12 rounded-xl bg-gold-500/10 dark:bg-gold-500/15 border border-gold-500/25 flex items-center justify-center text-gold-600 dark:text-gold-400 group-hover:bg-gold-500 group-hover:text-slate-900 dark:group-hover:text-navy-950 transition-colors duration-300 shadow-sm shrink-0">
+                        <ServiceIcon className="w-6 h-6" />
                       </div>
-                      <span className="text-[10px] text-slate-400 dark:text-slate-500 font-mono font-medium">#{srv.id}</span>
+
+                      <div className="flex flex-col items-end gap-1">
+                        <div className="flex items-center gap-1.5">
+                          <span className="bg-slate-100 dark:bg-navy-800 text-slate-700 dark:text-slate-300 text-[10px] font-bold px-2 py-0.5 rounded uppercase tracking-wider">
+                            {srv.category}
+                          </span>
+                          {isEducation && (
+                            <span className="bg-emerald-500/15 text-emerald-600 dark:text-emerald-400 text-[9px] font-extrabold px-2 py-0.5 rounded-full uppercase border border-emerald-500/30">
+                              ✨ Advisory
+                            </span>
+                          )}
+                        </div>
+                        <span className="text-[10px] text-slate-400 dark:text-slate-500 font-mono font-medium">#{srv.id}</span>
+                      </div>
                     </div>
-                  </div>
-                  
-                  {/* Title & Description */}
-                  <div>
-                    <h3 className="font-serif text-lg sm:text-xl font-bold text-navy-900 dark:text-white leading-snug group-hover:text-gold-600 dark:group-hover:text-gold-400 transition min-h-[3rem] flex items-center">
-                      {srv.title}
-                    </h3>
                     
-                    <p className="text-xs text-slate-600 dark:text-slate-300 leading-relaxed font-normal min-h-[2.75rem] line-clamp-2 mt-1">
-                      {srv.description}
-                    </p>
+                    {/* Title & Description */}
+                    <div>
+                      <h2 className="font-serif text-lg sm:text-xl font-bold text-navy-900 dark:text-white leading-snug group-hover:text-gold-600 dark:group-hover:text-gold-400 transition min-h-[3rem] flex items-center">
+                        {srv.title}
+                      </h2>
+                      
+                      <p className="text-xs text-slate-600 dark:text-slate-300 leading-relaxed font-normal min-h-[2.75rem] line-clamp-2 mt-1">
+                        {srv.description}
+                      </p>
+
+                      {/* Intended Audience Tag */}
+                      {srv.targetAudience && (
+                        <div className="flex items-start gap-1.5 text-[11px] text-slate-600 dark:text-slate-400 font-medium pt-2">
+                          <Users className="w-3.5 h-3.5 text-gold-500 shrink-0 mt-0.5" />
+                          <span className="line-clamp-1"><strong className="text-slate-800 dark:text-slate-200">Intended For:</strong> {srv.targetAudience}</span>
+                        </div>
+                      )}
+                    </div>
+
+                    {/* Highlights / Deliverables */}
+                    {srv.deliverables && srv.deliverables.length > 0 && (
+                      <div className="pt-3 border-t border-slate-100 dark:border-navy-800/80 space-y-1.5">
+                        <p className="text-[10px] font-bold uppercase tracking-wider text-slate-400 dark:text-slate-500">
+                          Key Deliverables
+                        </p>
+                        <ul className="space-y-1.5 text-[11px]" aria-label={`Highlights for ${srv.title}`}>
+                          {srv.deliverables.slice(0, 3).map((item, idx) => (
+                            <li key={idx} className="flex items-start gap-2 text-slate-700 dark:text-slate-300 font-medium leading-tight">
+                              <CheckCircle2 className="w-3.5 h-3.5 text-gold-500 shrink-0 mt-0.5" />
+                              <span className="line-clamp-1">{item}</span>
+                            </li>
+                          ))}
+                        </ul>
+                      </div>
+                    )}
                   </div>
 
-                  {/* Highlights / Deliverables (3 bullet points for balanced consistency) */}
-                  {srv.deliverables && srv.deliverables.length > 0 && (
-                    <div className="pt-3 border-t border-slate-100 dark:border-navy-800/80 space-y-1.5">
-                      <p className="text-[10px] font-bold uppercase tracking-wider text-slate-400 dark:text-slate-500">
-                        Key Deliverables
-                      </p>
-                      <ul className="space-y-1.5 text-[11px]" aria-label={`Highlights for ${srv.title}`}>
-                        {srv.deliverables.slice(0, 3).map((item, idx) => (
-                          <li key={idx} className="flex items-start gap-2 text-slate-700 dark:text-slate-300 font-medium leading-tight">
-                            <CheckCircle2 className="w-3.5 h-3.5 text-gold-500 shrink-0 mt-0.5" />
-                            <span className="line-clamp-1">{item}</span>
-                          </li>
-                        ))}
-                      </ul>
-                    </div>
-                  )}
-                </div>
+                  {/* Card Actions Bottom Bar */}
+                  <div className="mt-5 pt-4 border-t border-slate-100 dark:border-navy-800 flex items-center justify-between gap-3">
+                    <button 
+                      onClick={() => {
+                        trackServiceDetailClick(srv.id, srv.title);
+                        setSelectedService(srv);
+                      }}
+                      className="text-xs font-bold text-navy-900 dark:text-gold-400 hover:text-gold-600 dark:hover:text-gold-300 flex items-center gap-1 focus:outline-none focus-visible:ring-2 focus-visible:ring-gold-500 rounded py-1 transition group/btn"
+                      aria-label={`View full details for ${srv.title}`}
+                    >
+                      <span>Service Details</span>
+                      <ChevronRight className="w-3.5 h-3.5 group-hover/btn:translate-x-0.5 transition" />
+                    </button>
 
-                {/* Card Actions Bottom Bar */}
-                <div className="mt-5 pt-4 border-t border-slate-100 dark:border-navy-800 flex items-center justify-between gap-3">
-                  <button 
-                    onClick={() => setSelectedService(srv)}
-                    className="text-xs font-bold text-navy-900 dark:text-gold-400 hover:text-gold-600 dark:hover:text-gold-300 flex items-center gap-1 focus:outline-none focus-visible:ring-2 focus-visible:ring-gold-500 rounded py-1 transition group/btn"
-                    aria-label={`View full details for ${srv.title}`}
-                  >
-                    <span>Service Details</span>
-                    <ChevronRight className="w-3.5 h-3.5 group-hover/btn:translate-x-0.5 transition" />
-                  </button>
-
-                  <button 
-                    onClick={() => handleInquire(srv)}
-                    className="px-3.5 py-1.5 bg-gold-shimmer text-navy-950 hover:opacity-95 font-extrabold text-xs rounded-xl shadow-sm hover:shadow-gold-glow active:scale-[0.98] transition flex items-center gap-1.5 focus:outline-none focus-visible:ring-2 focus-visible:ring-gold-500"
-                    aria-label={`Inquire now about ${srv.title}`}
-                  >
-                    <span>Inquire Now</span>
-                    <ArrowRight className="w-3 h-3" />
-                  </button>
+                    <button 
+                      onClick={() => handleInquire(srv)}
+                      className="px-3.5 py-1.5 bg-gold-shimmer text-navy-950 hover:opacity-95 font-extrabold text-xs rounded-xl shadow-sm hover:shadow-gold-glow active:scale-[0.98] transition flex items-center gap-1.5 focus:outline-none focus-visible:ring-2 focus-visible:ring-gold-500"
+                      aria-label={`Inquire now about ${srv.title}`}
+                    >
+                      <span>{(srv.id === 'intl-rec' || srv.id === 'overseas-place') ? 'Apply Now' : 'Inquire Now'}</span>
+                      <ArrowRight className="w-3 h-3" />
+                    </button>
+                  </div>
                 </div>
-              </div>
-            );
-          })}
-        </div>
+              );
+            })}
+          </div>
+        )}
       </ScrollReveal>
 
       {/* Professional Service Detail Modal */}
@@ -453,6 +563,22 @@ export const Services = () => {
               </div>
             )}
 
+            {/* Dedicated Vacancies Route CTA (for Domestic & International Recruitment) */}
+            {(selectedService.id === 'dom-rec' || selectedService.id === 'intl-rec') && (
+              <div className="pt-1">
+                <button
+                  onClick={() => {
+                    setSelectedService(null);
+                    navigateTo('jobs');
+                  }}
+                  className="w-full py-2.5 px-3 bg-slate-100 dark:bg-navy-800 hover:bg-slate-200 dark:hover:bg-navy-700 text-slate-800 dark:text-slate-200 text-xs font-bold rounded-xl transition flex items-center justify-center gap-1.5 focus:outline-none focus-visible:ring-2 focus-visible:ring-gold-500"
+                >
+                  <span>💼 Browse Current Open Vacancies & Mandates</span>
+                  <ExternalLink className="w-3.5 h-3.5" />
+                </button>
+              </div>
+            )}
+
             {/* Modal Bottom Actions */}
             <div className="flex gap-2.5 pt-3 border-t border-slate-100 dark:border-navy-800">
               <button 
@@ -465,13 +591,21 @@ export const Services = () => {
                 onClick={() => handleInquire(selectedService)} 
                 className="flex-1 py-2.5 bg-gold-shimmer text-navy-950 text-xs font-bold rounded-xl shadow-gold-glow hover:opacity-95 transition flex items-center justify-center gap-1.5 focus:outline-none focus-visible:ring-2 focus-visible:ring-gold-500"
               >
-                <span>Inquire Now</span>
+                <span>{(selectedService.id === 'intl-rec' || selectedService.id === 'overseas-place') ? 'Apply Now' : 'Inquire Now'}</span>
                 <ArrowRight className="w-3.5 h-3.5" />
               </button>
             </div>
           </div>
         </div>
       )}
+
+      {/* Reusable Core Recruitment, Staffing & Visa Enquiry Modal */}
+      <ServiceEnquiryModal
+        isOpen={Boolean(enquiryModalService)}
+        service={enquiryModalService}
+        onClose={() => setEnquiryModalService(null)}
+        onNavigateToJobs={() => navigateTo('jobs')}
+      />
 
     </div>
   );

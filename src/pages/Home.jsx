@@ -58,23 +58,23 @@ export const Home = () => {
       
       {/* HERO SECTION */}
       <section className="relative min-h-[85vh] flex items-center justify-center pt-8 overflow-hidden">
-        {/* Background Dubai Skyline Overlay */}
+        {/* Background Global Skyline Overlay */}
         <div className="absolute inset-0 z-0 bg-navy-950">
-          {/* Light Mode: Original Daytime Dubai Skyline */}
+          {/* Light Mode: Global Skyline & Bridge */}
           <img 
-            src="/images/hero_dubai.png" 
-            alt="Dubai Skyline Revival International" 
+            src="/images/hero_skyline.jpg" 
+            alt="Global Skyline and Brooklyn Bridge - Revival International Recruitment and Academic Advisory" 
             loading="eager"
             fetchPriority="high"
-            className="w-full h-full object-cover opacity-60 dark:opacity-0 transform scale-105 transition-opacity duration-700 absolute inset-0"
+            className="w-full h-full object-cover opacity-70 dark:opacity-0 transform scale-105 transition-opacity duration-700 absolute inset-0"
           />
-          {/* Dark Mode: Realistic Nighttime Dubai Skyline with Illuminated Architectural Lighting */}
+          {/* Dark Mode: Realistic Nighttime New York Skyline & Illuminated Brooklyn Bridge */}
           <img 
-            src="/images/hero_dubai_dark.jpg" 
-            alt="Dubai Skyline Revival International Night" 
+            src="/images/hero_skyline_dark.jpg" 
+            alt="Global Skyline and Bridge at Night - Revival International Headquarters" 
             loading="eager"
             fetchPriority="high"
-            className="w-full h-full object-cover opacity-0 dark:opacity-85 transform scale-105 transition-opacity duration-700 absolute inset-0"
+            className="w-full h-full object-cover opacity-0 dark:opacity-80 transform scale-105 transition-opacity duration-700 absolute inset-0"
           />
           <div className="absolute inset-0 bg-gradient-to-b from-liteblue-50/60 via-liteblue-50/40 to-liteblue-50 dark:from-navy-950/25 dark:via-navy-950/35 dark:to-navy-950/90 pointer-events-none"></div>
         </div>
@@ -98,10 +98,10 @@ export const Home = () => {
           </p>
 
           {/* Action CTAs */}
-          <div className="flex flex-col sm:flex-row justify-center items-center gap-4 pt-2 animate-fade-in-up" style={{ animationDelay: '0.3s' }}>
+          <div className="flex flex-col sm:flex-row justify-center items-center gap-3 pt-2 animate-fade-in-up" style={{ animationDelay: '0.3s' }}>
             <button 
               onClick={() => navigateTo('jobs')}
-              className="w-full sm:w-auto px-8 py-4 bg-gold-shimmer text-navy-950 font-extrabold text-sm rounded-xl shadow-gold-glow hover-lift active-scale flex items-center justify-center space-x-2"
+              className="w-full sm:w-auto px-7 py-3.5 bg-gold-shimmer text-navy-950 font-extrabold text-sm rounded-xl shadow-gold-glow hover-lift active-scale flex items-center justify-center space-x-2"
             >
               <Briefcase className="w-4 h-4" />
               <span>{t('hero.findJobsBtn')}</span>
@@ -109,10 +109,18 @@ export const Home = () => {
 
             <button 
               onClick={() => navigateTo('employers')}
-              className="w-full sm:w-auto px-8 py-4 bg-slate-50 dark:bg-navy-900 text-slate-900 dark:text-white font-extrabold text-sm rounded-xl border border-slate-200 dark:border-gold-500/40 hover:bg-navy-800 hover-lift active-scale shadow-luxury flex items-center justify-center space-x-2"
+              className="w-full sm:w-auto px-7 py-3.5 bg-slate-50 dark:bg-navy-900 text-slate-900 dark:text-white font-extrabold text-sm rounded-xl border border-slate-200 dark:border-gold-500/40 hover:bg-navy-800 hover-lift active-scale shadow-luxury flex items-center justify-center space-x-2"
             >
               <Building2 className="w-4 h-4 text-gold-500" />
               <span>{t('hero.hireTalentBtn')}</span>
+            </button>
+
+            <button 
+              onClick={() => navigateTo('education')}
+              className="w-full sm:w-auto px-7 py-3.5 bg-emerald-600/10 dark:bg-emerald-500/15 hover:bg-emerald-600/20 text-emerald-700 dark:text-emerald-400 font-extrabold text-sm rounded-xl border border-emerald-500/30 hover-lift active-scale shadow-sm flex items-center justify-center space-x-2"
+            >
+              <GraduationCap className="w-4 h-4 text-emerald-600 dark:text-emerald-400" />
+              <span>Academic & Admissions Advisory</span>
             </button>
           </div>
 
@@ -155,6 +163,41 @@ export const Home = () => {
                 <ArrowRight className="w-4 h-4" />
               </button>
 
+            </div>
+
+            {/* Quick-Intent Exploration Chips */}
+            <div className="flex flex-wrap justify-center items-center gap-2 pt-4 mt-3 border-t border-slate-100 dark:border-navy-800">
+              <span className="text-[10px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider">Quick Navigation:</span>
+              <button
+                onClick={() => navigateTo('education')}
+                className="px-2.5 py-1 bg-slate-50 dark:bg-navy-950 hover:bg-gold-500/10 border border-slate-200 dark:border-navy-800 hover:border-gold-500/50 rounded-lg text-[11px] font-semibold text-slate-700 dark:text-slate-300 transition"
+              >
+                🎓 Study Abroad
+              </button>
+              <button
+                onClick={() => navigateTo('international-consulting')}
+                className="px-2.5 py-1 bg-slate-50 dark:bg-navy-950 hover:bg-gold-500/10 border border-slate-200 dark:border-navy-800 hover:border-gold-500/50 rounded-lg text-[11px] font-semibold text-slate-700 dark:text-slate-300 transition"
+              >
+                🌐 International Admissions
+              </button>
+              <button
+                onClick={() => navigateTo('services')}
+                className="px-2.5 py-1 bg-slate-50 dark:bg-navy-950 hover:bg-gold-500/10 border border-slate-200 dark:border-navy-800 hover:border-gold-500/50 rounded-lg text-[11px] font-semibold text-slate-700 dark:text-slate-300 transition"
+              >
+                💼 Executive Search
+              </button>
+              <button
+                onClick={() => navigateTo('education-exec-seminars-lang')}
+                className="px-2.5 py-1 bg-slate-50 dark:bg-navy-950 hover:bg-gold-500/10 border border-slate-200 dark:border-navy-800 hover:border-gold-500/50 rounded-lg text-[11px] font-semibold text-slate-700 dark:text-slate-300 transition"
+              >
+                📝 IELTS & OET Prep
+              </button>
+              <button
+                onClick={() => navigateTo('contact')}
+                className="px-2.5 py-1 bg-gold-500/15 border border-gold-500/30 hover:bg-gold-500/25 rounded-lg text-[11px] font-bold text-gold-700 dark:text-gold-400 transition"
+              >
+                💬 Free Consultation
+              </button>
             </div>
           </div>
 
@@ -320,10 +363,10 @@ export const Home = () => {
       <ScrollReveal>
       <section className="max-w-7xl mx-auto px-4 sm:px-8 space-y-8">
         <div className="text-center space-y-3 max-w-2xl mx-auto">
-          <h2 className="text-xs font-bold text-gold-500 uppercase tracking-widest">Our Core Expertise</h2>
-          <h3 className="font-serif text-3xl sm:text-4xl font-extrabold text-navy-900 dark:text-white">
+          <span className="text-xs font-bold text-gold-500 uppercase tracking-widest block">Our Core Expertise</span>
+          <h2 className="font-serif text-3xl sm:text-4xl font-extrabold text-navy-900 dark:text-white">
             {SERVICES_LIST.length}+ Executive HR, Visa & Academic Advisory Services
-          </h3>
+          </h2>
           <p className="text-xs text-slate-800 dark:text-slate-200 font-medium">
             From executive headhunting and MOHRE visa quotas to international university admissions, language test prep, and career counseling.
           </p>
@@ -375,31 +418,53 @@ export const Home = () => {
                     navigateTo('services');
                   }
                 }}
-                className="glass-card bg-white dark:bg-navy-900 border border-slate-200 dark:border-navy-800 p-6 rounded-2xl hover:border-gold-500 hover:-translate-y-1 transition duration-300 cursor-pointer space-y-3 group shadow-glass"
+                className="glass-card bg-white dark:bg-navy-900 border border-slate-200 dark:border-navy-800 p-6 rounded-2xl hover:border-gold-500 hover:-translate-y-1 transition duration-300 cursor-pointer flex flex-col justify-between group shadow-glass"
               >
-                <div className="flex justify-between items-center">
-                  <div className="w-12 h-12 rounded-xl bg-white dark:bg-navy-950 text-gold-500 border border-slate-200 dark:border-gold-500/30 flex items-center justify-center font-bold group-hover:bg-gold-500 group-hover:text-slate-900 dark:text-white transition">
-                    <ServiceIcon className="w-6 h-6" />
+                <div className="space-y-3">
+                  <div className="flex justify-between items-center">
+                    <div className="w-12 h-12 rounded-xl bg-white dark:bg-navy-950 text-gold-500 border border-slate-200 dark:border-gold-500/30 flex items-center justify-center font-bold group-hover:bg-gold-500 group-hover:text-slate-900 dark:text-white transition">
+                      <ServiceIcon className="w-6 h-6" />
+                    </div>
+                    {(srv.category === 'Education' || srv.subCategory === 'Education') && (
+                      <span className="bg-emerald-500/15 text-emerald-600 dark:text-emerald-400 font-extrabold text-[9px] px-2 py-0.5 rounded-full uppercase">
+                        New Advisory
+                      </span>
+                    )}
                   </div>
-                  {(srv.category === 'Education' || srv.subCategory === 'Education') && (
-                    <span className="bg-emerald-500/15 text-emerald-600 dark:text-emerald-400 font-extrabold text-[9px] px-2 py-0.5 rounded-full uppercase">
-                      New Advisory
-                    </span>
+                  <h4 className="font-serif text-lg font-bold text-navy-900 dark:text-white group-hover:text-gold-500 transition">
+                    {srv.title}
+                  </h4>
+                  <p className="text-xs text-slate-800 dark:text-slate-200 leading-relaxed font-medium line-clamp-2">
+                    {srv.description}
+                  </p>
+                  {srv.targetAudience && (
+                    <div className="flex items-start gap-1.5 text-[11px] text-slate-600 dark:text-slate-400 font-medium">
+                      <Users className="w-3.5 h-3.5 text-gold-500 shrink-0 mt-0.5" />
+                      <span className="line-clamp-1"><strong className="text-slate-800 dark:text-slate-200">For:</strong> {srv.targetAudience}</span>
+                    </div>
                   )}
                 </div>
-              <h4 className="font-serif text-lg font-bold text-navy-900 dark:text-white group-hover:text-gold-500 transition">
-                {srv.title}
-              </h4>
-              <p className="text-xs text-slate-800 dark:text-slate-200 leading-relaxed font-medium">
-                {srv.description}
-              </p>
-              <div className="text-xs font-bold text-gold-500 flex items-center gap-1 pt-2">
-                <span>Explore Service Details</span>
-                <ChevronRight className="w-3.5 h-3.5 group-hover:translate-x-1 transition" />
+
+                <div className="flex items-center justify-between pt-4 mt-3 border-t border-slate-100 dark:border-navy-800">
+                  <div className="text-xs font-bold text-gold-600 dark:text-gold-400 flex items-center gap-1 group-hover:translate-x-0.5 transition">
+                    <span>Details</span>
+                    <ChevronRight className="w-3.5 h-3.5" />
+                  </div>
+                  <button
+                    type="button"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      if (setSelectedServiceId) setSelectedServiceId(srv.id);
+                      navigateTo('contact');
+                    }}
+                    className="px-3 py-1.5 bg-gold-shimmer text-navy-950 font-bold text-[11px] rounded-lg shadow-sm hover:opacity-95 transition"
+                  >
+                    Inquire Now
+                  </button>
+                </div>
               </div>
-            </div>
-          );
-        })}
+            );
+          })}
         </div>
 
         <div className="text-center pt-4">
@@ -418,8 +483,8 @@ export const Home = () => {
       <section className="max-w-7xl mx-auto px-4 sm:px-8 space-y-8">
         <div className="flex flex-col md:flex-row justify-between items-start md:items-end gap-4 border-b border-slate-200 dark:border-navy-800 pb-6">
           <div>
-            <h2 className="text-xs font-bold text-gold-500 uppercase tracking-widest mb-1">Industry Verticals</h2>
-            <h3 className="font-serif text-3xl font-extrabold text-navy-900 dark:text-white">Industries We Serve</h3>
+            <span className="text-xs font-bold text-gold-500 uppercase tracking-widest mb-1 block">Industry Verticals</span>
+            <h2 className="font-serif text-3xl font-extrabold text-navy-900 dark:text-white">Industries We Serve</h2>
           </div>
           <button 
             onClick={() => navigateTo('industries')}
@@ -465,9 +530,9 @@ export const Home = () => {
             <span className="bg-gold-500/20 text-gold-600 dark:text-gold-400 text-xs font-bold px-3 py-1 rounded-full uppercase">
               Interactive Compliance Tool
             </span>
-            <h3 className="font-serif text-3xl sm:text-4xl font-extrabold text-slate-900 dark:text-white">
+            <h2 className="font-serif text-3xl sm:text-4xl font-extrabold text-slate-900 dark:text-white">
               Instant GCC & International Work Visa Eligibility Evaluation
-            </h3>
+            </h2>
             <p className="text-xs text-slate-700 dark:text-slate-300 leading-relaxed font-medium">
               Are you eligible to work in the UAE, Saudi Arabia, Qatar, Singapore, or Germany? Check your qualification tier, age criteria, document checklist, and visa processing timelines.
             </p>
@@ -512,8 +577,8 @@ export const Home = () => {
       <ScrollReveal>
       <section className="max-w-7xl mx-auto px-4 sm:px-8 space-y-8">
         <div className="text-center space-y-2">
-          <h2 className="text-xs font-bold text-gold-500 uppercase tracking-widest">Simple & Transparent</h2>
-          <h3 className="font-serif text-3xl font-extrabold text-navy-900 dark:text-white">Our 6-Step Recruitment Lifecycle</h3>
+          <span className="text-xs font-bold text-gold-500 uppercase tracking-widest block">Simple & Transparent</span>
+          <h2 className="font-serif text-3xl font-extrabold text-navy-900 dark:text-white">Our 6-Step Recruitment Lifecycle</h2>
         </div>
 
         <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-4">
@@ -530,34 +595,77 @@ export const Home = () => {
       </section>
       </ScrollReveal>
 
-      {/* TESTIMONIALS & SUCCESS STORIES */}
+      {/* VERIFIED CORPORATE STANDARDS & CLIENT COMMITMENTS */}
       <ScrollReveal>
       <section className="max-w-7xl mx-auto px-4 sm:px-8 space-y-8">
         <div className="text-center space-y-2">
-          <h2 className="text-xs font-bold text-gold-500 uppercase tracking-widest">Client & Candidate Praise</h2>
-          <h3 className="font-serif text-3xl font-extrabold text-navy-900 dark:text-white">Success Stories across UAE & GCC</h3>
+          <span className="text-xs font-bold text-gold-500 uppercase tracking-widest block">Operational Integrity & Quality</span>
+          <h2 className="font-serif text-3xl font-extrabold text-navy-900 dark:text-white">Why Leading Enterprises & Families Choose Revival International</h2>
+          <p className="text-xs text-slate-600 dark:text-slate-300 max-w-2xl mx-auto">
+            Grounded in registered corporate infrastructure, full MOHRE regulatory compliance, and transparent advisory standards.
+          </p>
         </div>
 
-        <div className="flex flex-col sm:grid sm:grid-cols-2 lg:grid-cols-3 gap-6">
-          {TESTIMONIALS.map((t) => (
-            <div key={t.id} className="w-full sm:min-w-0 glass-card bg-white dark:bg-navy-900 border border-slate-200 dark:border-navy-800 p-6 rounded-2xl space-y-4 shadow-glass">
-              <div className="flex items-center space-x-1 text-gold-500">
-                {[...Array(t.rating)].map((_, i) => (
-                  <Star key={i} className="w-4 h-4 fill-current" />
-                ))}
-              </div>
-              <p className="text-xs text-slate-700 dark:text-slate-300 italic leading-relaxed">
-                "{t.quote}"
-              </p>
-              <div className="flex items-center space-x-3 pt-2 border-t border-slate-100 dark:border-navy-800">
-                <img src={t.image} alt={t.name} className="w-10 h-10 rounded-full object-cover border-2 border-gold-500" />
-                <div>
-                  <h4 className="font-bold text-xs text-navy-900 dark:text-white">{t.name}</h4>
-                  <p className="text-[10px] text-slate-700 dark:text-slate-300 font-semibold">{t.role} • {t.company}</p>
-                </div>
-              </div>
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
+          <div className="glass-card bg-white dark:bg-navy-900 border border-slate-200 dark:border-navy-800 p-6 rounded-2xl space-y-3 shadow-glass">
+            <div className="w-10 h-10 rounded-xl bg-gold-500/10 text-gold-500 flex items-center justify-center">
+              <Building2 className="w-5 h-5" />
             </div>
-          ))}
+            <h3 className="font-serif text-lg font-bold text-navy-900 dark:text-white">Registered Dubai Headquarters</h3>
+            <p className="text-xs text-slate-700 dark:text-slate-300 leading-relaxed font-medium">
+              Physical corporate presence at Level 34, Rolex Tower, Financial Center Road, Business Bay, Dubai, providing dedicated meeting spaces for enterprise mandate planning and student counseling.
+            </p>
+          </div>
+
+          <div className="glass-card bg-white dark:bg-navy-900 border border-slate-200 dark:border-navy-800 p-6 rounded-2xl space-y-3 shadow-glass">
+            <div className="w-10 h-10 rounded-xl bg-emerald-500/10 text-emerald-500 flex items-center justify-center">
+              <ShieldCheck className="w-5 h-5" />
+            </div>
+            <h3 className="font-serif text-lg font-bold text-navy-900 dark:text-white">Full Regulatory & MOHRE Compliance</h3>
+            <p className="text-xs text-slate-700 dark:text-slate-300 leading-relaxed font-medium">
+              Strict compliance with UAE Ministry of Human Resources and Emiratisation regulations, document attestation procedures, and international cross-border recruitment protocols.
+            </p>
+          </div>
+
+          <div className="glass-card bg-white dark:bg-navy-900 border border-slate-200 dark:border-navy-800 p-6 rounded-2xl space-y-3 shadow-glass">
+            <div className="w-10 h-10 rounded-xl bg-blue-500/10 text-blue-500 flex items-center justify-center">
+              <Clock className="w-5 h-5" />
+            </div>
+            <h3 className="font-serif text-lg font-bold text-navy-900 dark:text-white">Structured CRM & 2–4h Response SLA</h3>
+            <p className="text-xs text-slate-700 dark:text-slate-300 leading-relaxed font-medium">
+              Every website enquiry receives a verified tracking reference ID logged into our CRM system, with specialized lead routing to sector specialists within 2 to 4 business hours.
+            </p>
+          </div>
+
+          <div className="glass-card bg-white dark:bg-navy-900 border border-slate-200 dark:border-navy-800 p-6 rounded-2xl space-y-3 shadow-glass">
+            <div className="w-10 h-10 rounded-xl bg-purple-500/10 text-purple-500 flex items-center justify-center">
+              <Globe className="w-5 h-5" />
+            </div>
+            <h3 className="font-serif text-lg font-bold text-navy-900 dark:text-white">Global University & Employer Reach</h3>
+            <p className="text-xs text-slate-700 dark:text-slate-300 leading-relaxed font-medium">
+              Active advisory network across the UK, USA, Canada, Germany, Australia, and GCC, connecting ambitious talent and students with world-class institutions and employers.
+            </p>
+          </div>
+
+          <div className="glass-card bg-white dark:bg-navy-900 border border-slate-200 dark:border-navy-800 p-6 rounded-2xl space-y-3 shadow-glass">
+            <div className="w-10 h-10 rounded-xl bg-amber-500/10 text-amber-500 flex items-center justify-center">
+              <Users className="w-5 h-5" />
+            </div>
+            <h3 className="font-serif text-lg font-bold text-navy-900 dark:text-white">Direct 1-on-1 Consultation</h3>
+            <p className="text-xs text-slate-700 dark:text-slate-300 leading-relaxed font-medium">
+              Personalized sessions with senior recruitment partners and educational counselors, available in-person in Dubai or via secure video conferences worldwide.
+            </p>
+          </div>
+
+          <div className="glass-card bg-white dark:bg-navy-900 border border-slate-200 dark:border-navy-800 p-6 rounded-2xl space-y-3 shadow-glass">
+            <div className="w-10 h-10 rounded-xl bg-rose-500/10 text-rose-500 flex items-center justify-center">
+              <Award className="w-5 h-5" />
+            </div>
+            <h3 className="font-serif text-lg font-bold text-navy-900 dark:text-white">Enterprise Data Confidentiality</h3>
+            <p className="text-xs text-slate-700 dark:text-slate-300 leading-relaxed font-medium">
+              Strict non-disclosure standards for executive search mandates, candidate resumes, student academic records, and corporate client hiring strategies.
+            </p>
+          </div>
         </div>
       </section>
       </ScrollReveal>

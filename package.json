@@ -16,7 +16,12 @@
     "test:acceptance": "node test-acceptance-regression.js",
     "test:journeys": "node test-e2e-user-journeys.js",
     "test:regression": "node test-regression-comprehensive.js",
-    "test:all": "node test-acceptance-regression.js && node test-e2e-user-journeys.js && node test-regression-comprehensive.js"
+    "test:analytics": "node test-analytics-tracking.cjs",
+    "test:seo": "node test-advanced-seo.cjs",
+    "test:cro": "node test-cro-ux.cjs",
+    "test:all": "node test-acceptance-regression.js && node test-e2e-user-journeys.js && node test-regression-comprehensive.js && node test-analytics-tracking.cjs && node test-advanced-seo.cjs && node test-cro-ux.cjs",
+    "db:backup": "node server/backup-db.js",
+    "db:restore": "node server/restore-db.js"
   },
   "dependencies": {
     "@supabase/supabase-js": "^2.116.0",

@@ -436,7 +436,7 @@ export const EDUCATION_SERVICES_DETAILED = [
   },
   {
     id: 'exec-seminars-lang',
-    slug: 'executive-seminars-language-training',
+    slug: 'executive-seminars-and-language-test-preparation',
     title: 'Executive Seminars & Language Test Preparation',
     category: 'Executive & Language',
     badge: 'Mastery & Certification',
@@ -578,5 +578,11 @@ export const getEducationServiceById = (id) => {
 };
 
 export const getEducationServiceBySlug = (slug) => {
-  return EDUCATION_SERVICES_DETAILED.find(s => s.slug === slug) || null;
+  if (!slug) return null;
+  const clean = slug.toLowerCase().trim().replace(/^\/+|\/+$/g, '');
+  return EDUCATION_SERVICES_DETAILED.find(s => 
+    s.slug.toLowerCase() === clean || 
+    s.id.toLowerCase() === clean ||
+    (s.id === 'exec-seminars-lang' && (clean === 'executive-seminars-and-language-test-preparation' || clean === 'executive-seminars-language-training'))
+  ) || null;
 };

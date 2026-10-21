@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import ScrollReveal from '../../components/ScrollReveal';
 import { Globe, ShieldCheck, Plane, CheckCircle2, AlertTriangle, FileText, Plus, X } from 'lucide-react';
 
@@ -49,6 +49,43 @@ export const CrmInternationalRecruitment = () => {
   ]);
 
   const [selectedItem, setSelectedItem] = useState(null);
+
+  useEffect(() => {
+    Promise.all([
+      fetch('/api/leads?service=intl-rec').then(r => r.json()),
+      fetch('/api/leads?service=overseas-place').then(r => r.json())
+    ]).then(([intlData, ovsData]) => {
+      const combined = [...(intlData?.leads || []), ...(ovsData?.leads || [])];
+      if (combined.length > 0) {
+        const liveIntl = combined.map(l => ({
+          id: l.prefixCode || `INT-${l.id}`,
+          country: l.workLocation || 'International Destination',
+          client: l.name,
+          employer: l.name + (l.jobCategory ? ` • ${l.jobCategory}` : ' (Overseas Deployment)'),
+          position: l.jobTitle || 'International Candidate',
+          visaType: l.visaCategory || 'Employment / Work Visa',
+          passportStatus: 'Candidate Docs Under Verification',
+          medicalStatus: l.status === 'Selected' || l.status === 'Visa Processing' ? 'Passed' : 'Pending Verification',
+          pccStatus: 'Clearance Initiated',
+          embassyAppointment: 'Pending Schedule',
+          offerLetter: l.status === 'Offer Released' ? 'Signed' : 'In Review',
+          contract: 'Standard Attested Contract',
+          ticketBooking: 'Pending Issuance',
+          departureDate: l.joiningDate || 'TBD',
+          arrivalConfirmation: 'Pending',
+          accommodation: 'Employer Sponsored',
+          insurance: 'Expatriate Medical Coverage',
+          workPermit: l.status === 'Contract Active' ? 'Approved' : 'In Processing',
+          visaExpiry: '2 Years'
+        }));
+        setIntlOrders(prev => {
+          const existingIds = new Set(prev.map(p => p.id));
+          const fresh = liveIntl.filter(li => !existingIds.has(li.id));
+          return [...fresh, ...prev];
+        });
+      }
+    }).catch(err => console.error('Error fetching international leads:', err));
+  }, []);
 
   return (
     <ScrollReveal>

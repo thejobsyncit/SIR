@@ -1,17 +1,45 @@
-import React, { useEffect } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useCrm } from '../context/CrmContext';
-import { Users, Building2, Globe, Briefcase, Award, TrendingUp, Calendar, Clock, DollarSign, ShieldCheck, CheckCircle2, ArrowUpRight, GraduationCap, Compass, BookOpen, AlertCircle } from 'lucide-react';
+import { 
+  Users, Building2, Globe, Briefcase, Award, TrendingUp, Calendar, Clock, 
+  DollarSign, ShieldCheck, CheckCircle2, ArrowUpRight, GraduationCap, 
+  Compass, BookOpen, AlertCircle, ChevronRight, Phone, MessageSquare, 
+  Filter, RefreshCw, CheckSquare, Layers, UserCheck, XCircle 
+} from 'lucide-react';
 import { RECRUITER_LEADERBOARD, AUDIT_LOGS } from '../data/mockCrmData';
 import ScrollReveal from '../../components/ScrollReveal';
 
 export const CrmDashboard = () => {
-  const { currentRole, consultingMetrics, fetchConsultingMetrics } = useCrm();
+  const { 
+    currentRole, 
+    consultingMetrics, 
+    fetchConsultingMetrics,
+    leadMetrics,
+    fetchLeadMetrics,
+    serviceBreakdown,
+    followUpsSummary,
+    fetchFollowUpsSummary,
+    setActiveModule,
+    updateFollowUpStatus,
+    leads,
+    fetchLeads
+  } = useCrm();
+
+  const [dateRange, setDateRange] = useState('all');
+  const [loadingMetrics, setLoadingMetrics] = useState(false);
 
   useEffect(() => {
-    if (fetchConsultingMetrics) {
-      fetchConsultingMetrics();
-    }
-  }, []);
+    if (fetchConsultingMetrics) fetchConsultingMetrics();
+    if (fetchLeadMetrics) fetchLeadMetrics(dateRange);
+    if (fetchFollowUpsSummary) fetchFollowUpsSummary();
+  }, [dateRange]);
+
+  const handleRangeChange = async (range) => {
+    setDateRange(range);
+    setLoadingMetrics(true);
+    if (fetchLeadMetrics) await fetchLeadMetrics(range);
+    setLoadingMetrics(false);
+  };
 
   const widgets = [
     { 
@@ -141,88 +169,259 @@ export const CrmDashboard = () => {
       </div>
       </ScrollReveal>
 
-      {/* INTERNATIONAL CONSULTING & ACADEMIC ADVISORY PERFORMANCE (LIVE DATABASE DERIVED) */}
+      {/* PHASE 12: ADMIN DASHBOARD, LEAD MANAGEMENT & CUSTOMER TRACKING SYSTEM */}
       <ScrollReveal>
-      <div className="glass-card bg-white dark:bg-gradient-to-r dark:from-[#061126] dark:via-[#0a1936] dark:to-[#071329] border border-slate-200 dark:border-gold-500/35 p-6 rounded-3xl shadow-sm space-y-5">
-        <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3 border-b border-slate-200 dark:border-navy-800 pb-4">
+      <div className="glass-card bg-white dark:bg-gradient-to-r dark:from-[#061126] dark:via-[#0a1936] dark:to-[#071329] border border-slate-200 dark:border-gold-500/35 p-6 rounded-3xl shadow-sm space-y-6">
+        
+        {/* Header & Date Range Filter Bar */}
+        <div className="flex flex-col lg:flex-row justify-between items-start lg:items-center gap-4 border-b border-slate-200 dark:border-navy-800 pb-5">
           <div>
             <div className="flex items-center gap-2">
-              <span className="bg-gold-500/20 text-gold-700 dark:text-gold-400 text-[10px] font-bold px-2.5 py-0.5 rounded uppercase">
-                Service Division 3 • Live SQLite Metrics
+              <span className="bg-gold-500/20 text-gold-700 dark:text-gold-400 text-[10px] font-bold px-2.5 py-0.5 rounded uppercase tracking-wider">
+                Phase 12 • Enterprise Lead Tracking & Metrics
               </span>
               <span className="text-[11px] font-extrabold text-emerald-600 dark:text-emerald-400 flex items-center gap-1">
                 <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></span>
-                Connected
+                SQLite Live Sync
               </span>
             </div>
-            <h2 className="font-serif text-xl font-bold text-slate-900 dark:text-white mt-1 flex items-center gap-2">
-              <GraduationCap className="w-5 h-5 text-gold-500" />
-              International Consulting & Advisory Pipeline
+            <h2 className="font-serif text-2xl font-bold text-slate-900 dark:text-white mt-1 flex items-center gap-2">
+              <Layers className="w-6 h-6 text-gold-500" />
+              Customer Enquiries & Lead Lifecycle Intelligence
             </h2>
             <p className="text-xs text-slate-600 dark:text-slate-300">
-              Database-verified student advisories, university shortlist engagements, visa compliance, and partner institutions.
+              Real-time audit across all 6 verified service catalogs, student advising funnels, follow-up queues, and conversion tracking.
             </p>
           </div>
 
-          <div className="flex items-center gap-2">
-            {consultingMetrics?.overdueFollowUps > 0 && (
-              <span className="bg-rose-500/10 text-rose-600 dark:text-rose-400 border border-rose-500/30 px-3 py-1.5 rounded-xl text-xs font-bold flex items-center gap-1.5">
-                <AlertCircle className="w-3.5 h-3.5" />
-                <span>{consultingMetrics.overdueFollowUps} Overdue Follow-up{consultingMetrics.overdueFollowUps > 1 ? 's' : ''}</span>
-              </span>
-            )}
+          {/* Date Range Selector */}
+          <div className="flex items-center gap-2 bg-slate-100 dark:bg-navy-950 p-1.5 rounded-2xl border border-slate-200 dark:border-navy-800 shrink-0">
+            <span className="text-[11px] font-bold text-slate-500 dark:text-slate-400 px-2 flex items-center gap-1">
+              <Clock className="w-3.5 h-3.5" />
+              Period:
+            </span>
+            {[
+              { id: 'all', label: 'All Time' },
+              { id: 'today', label: 'Today' },
+              { id: '7days', label: 'Last 7 Days' },
+              { id: '30days', label: 'Last 30 Days' }
+            ].map(r => (
+              <button
+                key={r.id}
+                onClick={() => handleRangeChange(r.id)}
+                disabled={loadingMetrics}
+                className={`px-3 py-1.5 rounded-xl text-xs font-bold transition cursor-pointer ${
+                  dateRange === r.id
+                    ? 'bg-navy-900 dark:bg-gold-500 text-white dark:text-navy-950 shadow-sm'
+                    : 'text-slate-600 dark:text-slate-300 hover:text-slate-900 dark:hover:text-white hover:bg-white/60 dark:hover:bg-navy-900'
+                }`}
+              >
+                {r.label}
+              </button>
+            ))}
+            <button
+              onClick={() => handleRangeChange(dateRange)}
+              className="p-1.5 text-slate-500 hover:text-gold-500 transition cursor-pointer"
+              title="Refresh Live Metrics"
+            >
+              <RefreshCw className={`w-3.5 h-3.5 ${loadingMetrics ? 'animate-spin text-gold-500' : ''}`} />
+            </button>
           </div>
         </div>
 
-        <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3">
-          <div className="p-4 bg-slate-50 dark:bg-navy-950/80 rounded-2xl border border-slate-200 dark:border-navy-800 space-y-1">
-            <span className="text-[10px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider block">Total Enquiries</span>
+        {/* Action Alert Banner for Overdue / Today Follow-ups */}
+        {(leadMetrics?.overdueFollowUps > 0 || leadMetrics?.dueTodayFollowUps > 0) && (
+          <div className="p-4 bg-gradient-to-r from-rose-500/10 via-amber-500/10 to-rose-500/10 border border-rose-500/30 rounded-2xl flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3 animate-in fade-in">
+            <div className="flex items-center gap-3">
+              <div className="p-2 bg-rose-500/20 text-rose-600 dark:text-rose-400 rounded-xl">
+                <AlertCircle className="w-5 h-5 animate-pulse" />
+              </div>
+              <div>
+                <p className="font-bold text-xs text-rose-700 dark:text-rose-300">
+                  Customer Follow-Up Action Required
+                </p>
+                <p className="text-[11px] text-slate-600 dark:text-slate-300 font-medium">
+                  {leadMetrics.overdueFollowUps > 0 && <span className="font-extrabold text-rose-600 dark:text-rose-400">{leadMetrics.overdueFollowUps} Overdue Follow-up{leadMetrics.overdueFollowUps > 1 ? 's' : ''} </span>}
+                  {leadMetrics.overdueFollowUps > 0 && leadMetrics.dueTodayFollowUps > 0 && '• '}
+                  {leadMetrics.dueTodayFollowUps > 0 && <span className="font-extrabold text-amber-600 dark:text-amber-400">{leadMetrics.dueTodayFollowUps} Due Today</span>}
+                </p>
+              </div>
+            </div>
+            <button
+              onClick={() => setActiveModule('super-admin')}
+              className="px-3.5 py-1.5 bg-rose-600 hover:bg-rose-700 text-white rounded-xl text-xs font-bold transition flex items-center gap-1 shadow-sm shrink-0 cursor-pointer"
+            >
+              <span>Manage Due Follow-ups</span>
+              <ChevronRight className="w-3.5 h-3.5" />
+            </button>
+          </div>
+        )}
+
+        {/* Real SQLite 8-Metric Lifecycle Grid */}
+        <div className="grid grid-cols-2 sm:grid-cols-4 lg:grid-cols-8 gap-3">
+          <div className="p-3.5 bg-slate-50 dark:bg-navy-950/80 rounded-2xl border border-slate-200 dark:border-navy-800 space-y-1">
+            <span className="text-[10px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider block">Total Inquiries</span>
             <p className="font-serif text-2xl font-extrabold text-slate-900 dark:text-white">
-              {consultingMetrics?.totalEnquiries || 0}
+              {leadMetrics?.totalEnquiries || 0}
             </p>
-            <p className="text-[10px] text-blue-600 dark:text-blue-400 font-bold">Consulting Leads</p>
+            <p className="text-[10px] text-blue-600 dark:text-blue-400 font-bold">Inbound Received</p>
           </div>
 
-          <div className="p-4 bg-slate-50 dark:bg-navy-950/80 rounded-2xl border border-slate-200 dark:border-navy-800 space-y-1">
-            <span className="text-[10px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider block">New Inbound</span>
+          <div className="p-3.5 bg-slate-50 dark:bg-navy-950/80 rounded-2xl border border-slate-200 dark:border-navy-800 space-y-1">
+            <span className="text-[10px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider block">New Enquiries</span>
             <p className="font-serif text-2xl font-extrabold text-emerald-600 dark:text-emerald-400">
-              {consultingMetrics?.newEnquiries || 0}
+              {leadMetrics?.newEnquiries || 0}
             </p>
-            <p className="text-[10px] text-emerald-600 dark:text-emerald-400 font-bold">Awaiting Outreach</p>
+            <p className="text-[10px] text-emerald-600 dark:text-emerald-400 font-bold">Uncontacted</p>
           </div>
 
-          <div className="p-4 bg-slate-50 dark:bg-navy-950/80 rounded-2xl border border-slate-200 dark:border-navy-800 space-y-1">
-            <span className="text-[10px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider block">Consultations</span>
+          <div className="p-3.5 bg-slate-50 dark:bg-navy-950/80 rounded-2xl border border-slate-200 dark:border-navy-800 space-y-1">
+            <span className="text-[10px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider block">Contact Pending</span>
+            <p className="font-serif text-2xl font-extrabold text-cyan-600 dark:text-cyan-400">
+              {leadMetrics?.contactPending || 0}
+            </p>
+            <p className="text-[10px] text-cyan-600 dark:text-cyan-400 font-bold">Outreach Attempted</p>
+          </div>
+
+          <div className="p-3.5 bg-slate-50 dark:bg-navy-950/80 rounded-2xl border border-slate-200 dark:border-navy-800 space-y-1">
+            <span className="text-[10px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider block">Awaiting Action</span>
             <p className="font-serif text-2xl font-extrabold text-amber-600 dark:text-gold-400">
-              {consultingMetrics?.consultationsScheduled || 0}
+              {leadMetrics?.awaitingFollowUp || 0}
             </p>
-            <p className="text-[10px] text-amber-600 dark:text-gold-400 font-bold">Scheduled & Active</p>
+            <p className="text-[10px] text-amber-600 dark:text-gold-400 font-bold">Follow-up Due</p>
           </div>
 
-          <div className="p-4 bg-slate-50 dark:bg-navy-950/80 rounded-2xl border border-slate-200 dark:border-navy-800 space-y-1">
+          <div className="p-3.5 bg-slate-50 dark:bg-navy-950/80 rounded-2xl border border-slate-200 dark:border-navy-800 space-y-1">
             <span className="text-[10px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider block">In Progress</span>
             <p className="font-serif text-2xl font-extrabold text-purple-600 dark:text-purple-400">
-              {consultingMetrics?.activeEngagements || 0}
+              {leadMetrics?.inProgress || 0}
             </p>
-            <p className="text-[10px] text-purple-600 dark:text-purple-400 font-bold">Active Advisories</p>
+            <p className="text-[10px] text-purple-600 dark:text-purple-400 font-bold">Active Advising</p>
           </div>
 
-          <div className="p-4 bg-slate-50 dark:bg-navy-950/80 rounded-2xl border border-slate-200 dark:border-navy-800 space-y-1">
-            <span className="text-[10px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider block">Follow-ups Due</span>
-            <p className="font-serif text-2xl font-extrabold text-rose-600 dark:text-rose-400">
-              {consultingMetrics?.followUpsDue || 0}
+          <div className="p-3.5 bg-slate-50 dark:bg-navy-950/80 rounded-2xl border border-slate-200 dark:border-navy-800 space-y-1">
+            <span className="text-[10px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider block">Qualified</span>
+            <p className="font-serif text-2xl font-extrabold text-indigo-600 dark:text-indigo-400">
+              {leadMetrics?.qualified || 0}
             </p>
-            <p className="text-[10px] text-rose-600 dark:text-rose-400 font-bold">Scheduled Action</p>
+            <p className="text-[10px] text-indigo-600 dark:text-indigo-400 font-bold">Eligible & Ready</p>
           </div>
 
-          <div className="p-4 bg-slate-50 dark:bg-navy-950/80 rounded-2xl border border-slate-200 dark:border-navy-800 space-y-1">
-            <span className="text-[10px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider block">Completed</span>
-            <p className="font-serif text-2xl font-extrabold text-teal-600 dark:text-teal-400">
-              {consultingMetrics?.completedEngagements || 0}
+          <div className="p-3.5 bg-slate-50 dark:bg-navy-950/80 rounded-2xl border border-slate-200 dark:border-navy-800 space-y-1">
+            <span className="text-[10px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider block">Converted</span>
+            <div className="flex items-baseline gap-1">
+              <p className="font-serif text-2xl font-extrabold text-teal-600 dark:text-teal-400">
+                {leadMetrics?.converted || 0}
+              </p>
+              {leadMetrics?.conversionRate > 0 && (
+                <span className="text-[9px] font-extrabold text-teal-600 dark:text-teal-400">
+                  ({leadMetrics.conversionRate}%)
+                </span>
+              )}
+            </div>
+            <p className="text-[10px] text-teal-600 dark:text-teal-400 font-bold">Enrolled / Placed</p>
+          </div>
+
+          <div className="p-3.5 bg-slate-50 dark:bg-navy-950/80 rounded-2xl border border-slate-200 dark:border-navy-800 space-y-1">
+            <span className="text-[10px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider block">Closed / Lost</span>
+            <p className="font-serif text-2xl font-extrabold text-slate-500 dark:text-slate-400">
+              {leadMetrics?.closedLost || 0}
             </p>
-            <p className="text-[10px] text-teal-600 dark:text-teal-400 font-bold">Advisories Concluded</p>
+            <p className="text-[10px] text-slate-500 dark:text-slate-400 font-bold">Archived</p>
           </div>
         </div>
+
+        {/* Master Service Performance Breakdown Table */}
+        <div className="space-y-3 pt-2">
+          <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-2">
+            <h3 className="font-serif text-base font-bold text-slate-900 dark:text-white flex items-center gap-2">
+              <GraduationCap className="w-5 h-5 text-gold-500" />
+              Service-Wise Enquiry Breakdown & Conversion Rates
+            </h3>
+            <span className="text-[11px] text-slate-500 dark:text-slate-400 font-medium">
+              Data synchronized from SQLite leads table across 6 Academic Catalogs
+            </span>
+          </div>
+
+          <div className="overflow-x-auto rounded-2xl border border-slate-200 dark:border-navy-800">
+            <table className="w-full text-left text-xs border-collapse">
+              <thead>
+                <tr className="bg-slate-100 dark:bg-navy-950 text-slate-700 dark:text-gold-400 font-serif uppercase tracking-wider text-[10px] border-b border-slate-200 dark:border-navy-800">
+                  <th className="p-3 font-extrabold">ACADEMIC / RECRUITMENT SERVICE</th>
+                  <th className="p-3 font-extrabold">CATEGORY</th>
+                  <th className="p-3 font-extrabold text-center">TOTAL LEADS</th>
+                  <th className="p-3 font-extrabold text-center">NEW</th>
+                  <th className="p-3 font-extrabold text-center">AWAITING FOLLOW-UP</th>
+                  <th className="p-3 font-extrabold text-center">IN PROGRESS</th>
+                  <th className="p-3 font-extrabold text-center">CONVERTED</th>
+                  <th className="p-3 font-extrabold text-center">CONVERSION RATE</th>
+                  <th className="p-3 font-extrabold text-right">ACTION</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-slate-100 dark:divide-navy-800 text-slate-800 dark:text-slate-300">
+                {(serviceBreakdown.length > 0 ? serviceBreakdown : [
+                  { serviceId: 'intl-consult', serviceTitle: 'International Consulting', category: 'Consulting', total: 0, newCount: 0, awaitingFollowUp: 0, inProgress: 0, converted: 0, conversionRate: 0 },
+                  { serviceId: 'college-adm', serviceTitle: 'College Admission Assistance', category: 'Higher Education', total: 0, newCount: 0, awaitingFollowUp: 0, inProgress: 0, converted: 0, conversionRate: 0 },
+                  { serviceId: 'school-career', serviceTitle: 'School Student Career Guidance', category: 'K-12 & High School', total: 0, newCount: 0, awaitingFollowUp: 0, inProgress: 0, converted: 0, conversionRate: 0 },
+                  { serviceId: 'intl-adm', serviceTitle: 'International Admissions', category: 'Admissions', total: 0, newCount: 0, awaitingFollowUp: 0, inProgress: 0, converted: 0, conversionRate: 0 },
+                  { serviceId: 'school-academy', serviceTitle: 'Academy for School Students', category: 'Academic Enrichment', total: 0, newCount: 0, awaitingFollowUp: 0, inProgress: 0, converted: 0, conversionRate: 0 },
+                  { serviceId: 'exec-seminars-lang', serviceTitle: 'Executive Seminars & Language Test Preparation', category: 'Test Prep & Executive', total: 0, newCount: 0, awaitingFollowUp: 0, inProgress: 0, converted: 0, conversionRate: 0 }
+                ]).map(srv => (
+                  <tr key={srv.serviceId} className="hover:bg-slate-50 dark:hover:bg-navy-950/60 transition">
+                    <td className="p-3 font-bold text-slate-900 dark:text-white flex items-center gap-2">
+                      <div className="w-6 h-6 rounded-lg bg-gold-500/10 text-gold-600 dark:text-gold-400 flex items-center justify-center font-bold text-[10px] shrink-0 border border-gold-500/20">
+                        🎓
+                      </div>
+                      <span className="truncate">{srv.serviceTitle}</span>
+                    </td>
+                    <td className="p-3">
+                      <span className="bg-slate-100 dark:bg-navy-900 text-slate-700 dark:text-slate-300 px-2 py-0.5 rounded text-[10px] font-semibold border border-slate-200 dark:border-navy-700">
+                        {srv.category}
+                      </span>
+                    </td>
+                    <td className="p-3 text-center font-bold text-slate-900 dark:text-white font-mono">
+                      {srv.total}
+                    </td>
+                    <td className="p-3 text-center font-bold text-emerald-600 dark:text-emerald-400 font-mono">
+                      {srv.newCount}
+                    </td>
+                    <td className="p-3 text-center font-bold text-amber-600 dark:text-amber-400 font-mono">
+                      {srv.awaitingFollowUp}
+                    </td>
+                    <td className="p-3 text-center font-bold text-purple-600 dark:text-purple-400 font-mono">
+                      {srv.inProgress}
+                    </td>
+                    <td className="p-3 text-center font-bold text-teal-600 dark:text-teal-400 font-mono">
+                      {srv.converted}
+                    </td>
+                    <td className="p-3 text-center">
+                      <span className={`px-2 py-0.5 rounded-full text-[10px] font-extrabold font-mono ${
+                        srv.conversionRate > 0
+                          ? 'bg-emerald-100 text-emerald-800 dark:bg-emerald-500/20 dark:text-emerald-300'
+                          : 'bg-slate-100 text-slate-600 dark:bg-navy-900 dark:text-slate-400'
+                      }`}>
+                        {srv.conversionRate}%
+                      </span>
+                    </td>
+                    <td className="p-3 text-right">
+                      <button
+                        onClick={() => {
+                          setActiveModule('super-admin');
+                        }}
+                        className="px-2.5 py-1 bg-navy-900 dark:bg-gold-500 text-white dark:text-navy-950 rounded-lg font-bold text-[10px] hover:opacity-90 transition cursor-pointer flex items-center gap-1 ml-auto"
+                        title={`Open leads for ${srv.serviceTitle}`}
+                      >
+                        <span>View Leads</span>
+                        <ChevronRight className="w-3 h-3" />
+                      </button>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        </div>
+
       </div>
       </ScrollReveal>
 

@@ -5,7 +5,8 @@ import { CRM_ROLES } from '../data/mockCrmData';
 import { 
   Users, UserPlus, RefreshCw, Trash2, CheckCircle2, ShieldCheck, Mail, Phone, Lock, Search, Filter, Check, Building, FileText, Eye, EyeOff,
   Activity, Clock, Calendar, AlertCircle, XCircle, Database, Award, Globe, Server, Settings, Key, Plus, ChevronRight, TrendingUp, UserCheck, Edit,
-  MessageSquare, ExternalLink, Inbox, Briefcase, Sparkles, Copy, Send, GraduationCap, Building2, CheckSquare, Tag, Compass
+  MessageSquare, ExternalLink, Inbox, Briefcase, Sparkles, Copy, Send, GraduationCap, Building2, CheckSquare, Tag, Compass,
+  Download, Archive, RotateCcw, ChevronLeft, Layers
 } from 'lucide-react';
 
 export const CrmSuperAdmin = () => {
@@ -15,12 +16,18 @@ export const CrmSuperAdmin = () => {
     loadingLeads, 
     fetchLeads,
     updateLead,
+    archiveLead,
     addLeadActivity,
     scheduleLeadFollowUp,
     updateFollowUpStatus,
     clients = [],
     consultingMetrics,
     fetchConsultingMetrics,
+    leadMetrics,
+    fetchLeadMetrics,
+    serviceBreakdown,
+    followUpsSummary,
+    fetchFollowUpsSummary,
     followUps = [],
     fetchFollowUps
   } = useCrm();
@@ -122,10 +129,16 @@ export const CrmSuperAdmin = () => {
   const [leadSearchQuery, setLeadSearchQuery] = useState('');
   const [leadServiceFilter, setLeadServiceFilter] = useState('all');
   const [leadStatusFilter, setLeadStatusFilter] = useState('all');
+  const [leadDateRangeFilter, setLeadDateRangeFilter] = useState('all');
+  const [leadAssignedFilter, setLeadAssignedFilter] = useState('all');
+  const [leadPage, setLeadPage] = useState(1);
+  const [leadPageSize, setLeadPageSize] = useState('25');
+  const [inquiriesSubView, setInquiriesSubView] = useState('leads');
   const [selectedLead, setSelectedLead] = useState(null);
   const [leadActionLoading, setLeadActionLoading] = useState(false);
   const [copiedLeadId, setCopiedLeadId] = useState(null);
-  const [leadModalTab, setLeadModalTab] = useState('details'); // 'details' | 'activities' | 'followups'
+  const [leadModalTab, setLeadModalTab] = useState('details');
+  const [leadInternalNotesInput, setLeadInternalNotesInput] = useState('');
   const [newActivity, setNewActivity] = useState({ type: 'Note', title: '', details: '' });
   const [newFollowUp, setNewFollowUp] = useState({ followUpDate: '', purpose: '', assignedTo: '' });
   const [isAddingActivity, setIsAddingActivity] = useState(false);
@@ -155,15 +168,38 @@ export const CrmSuperAdmin = () => {
 
   const handleOpenLead = async (lead) => {
     setSelectedLead(lead);
+    setLeadInternalNotesInput(lead.internalNotes || '');
     setLeadModalTab('details');
     try {
       const res = await fetch(`/api/leads/${lead.id}`);
       const data = await res.json();
-      if (data && data.success && data.lead) {
-        setSelectedLead(data.lead);
+      const detail = data?.data || data?.lead;
+      if (detail) {
+        setSelectedLead(detail);
+        setLeadInternalNotesInput(detail.internalNotes || '');
       }
     } catch (e) {
       console.error('Error fetching lead details:', e);
+    }
+  };
+
+  const handleSaveInternalNotes = async () => {
+    if (!selectedLead) return;
+    try {
+      setLeadActionLoading(true);
+      await updateLead(selectedLead.id, { internalNotes: leadInternalNotesInput });
+      setSelectedLead(prev => ({ ...prev, internalNotes: leadInternalNotesInput }));
+      setStatusMsg('✓ Internal notes saved successfully');
+      if (logAuditAction) {
+        logAuditAction('Internal Note Saved', `Saved notes for lead ${selectedLead.id}`);
+      }
+      if (fetchLeads) await fetchLeads();
+    } catch (err) {
+      console.error(err);
+      setStatusMsg('⚠️ Error saving internal notes');
+    } finally {
+      setLeadActionLoading(false);
+      setTimeout(() => setStatusMsg(''), 3000);
     }
   };
 
@@ -332,6 +368,76 @@ export const CrmSuperAdmin = () => {
     setTimeout(() => setCopiedLeadId(null), 2500);
   };
 
+  const handleArchiveToggle = async (lead, isArchiving) => {
+    try {
+      setLeadActionLoading(true);
+      if (archiveLead) {
+        await archiveLead(lead.id, isArchiving);
+      } else {
+        await fetch(`/api/leads/${lead.id}/archive`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ isArchived: isArchiving ? 1 : 0 })
+        });
+      }
+      setStatusMsg(`✓ Lead #${lead.referenceNumber || lead.id.slice(-6)} ${isArchiving ? 'archived' : 'restored'}`);
+      if (selectedLead && selectedLead.id === lead.id) {
+        setSelectedLead(prev => ({ ...prev, isArchived: isArchiving ? 1 : 0 }));
+      }
+      if (fetchLeads) await fetchLeads();
+      if (fetchConsultingMetrics) await fetchConsultingMetrics();
+      if (fetchLeadMetrics) await fetchLeadMetrics();
+    } catch (err) {
+      console.error(err);
+      setStatusMsg('⚠️ Error updating archive state');
+    } finally {
+      setLeadActionLoading(false);
+      setTimeout(() => setStatusMsg(''), 3000);
+    }
+  };
+
+  const handleExportCsv = () => {
+    if (!filteredLeads || filteredLeads.length === 0) {
+      alert('No leads to export matching current filters.');
+      return;
+    }
+    const headers = [
+      'Reference Number', 'Applicant Name', 'Email', 'Phone', 'Service Title',
+      'Country Interest', 'Intake Term', 'Status', 'Priority', 'Assigned Consultant',
+      'Next Follow-up Date', 'Created At'
+    ];
+    const escapeCsv = (val) => {
+      if (val === null || val === undefined) return '""';
+      const str = String(val).replace(/"/g, '""');
+      return `"${str}"`;
+    };
+    const rows = filteredLeads.map(l => [
+      escapeCsv(l.referenceNumber || l.id),
+      escapeCsv(l.name),
+      escapeCsv(l.email),
+      escapeCsv(l.phone),
+      escapeCsv(l.serviceTitle || l.serviceId || 'International Consulting'),
+      escapeCsv(l.countryInterest || 'Global'),
+      escapeCsv(l.intakeTerm || 'N/A'),
+      escapeCsv(l.status || 'New'),
+      escapeCsv(l.priority || 'Medium'),
+      escapeCsv(l.assignedEmployee || 'Unassigned'),
+      escapeCsv(l.nextActionDate || 'N/A'),
+      escapeCsv(l.createdAt || 'N/A')
+    ].join(','));
+
+    const csvContent = 'data:text/csv;charset=utf-8,' + [headers.join(','), ...rows].join('\n');
+    const encodedUri = encodeURI(csvContent);
+    const link = document.createElement('a');
+    link.setAttribute('href', encodedUri);
+    link.setAttribute('download', `revival_leads_export_${new Date().toISOString().slice(0, 10)}.csv`);
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    setStatusMsg(`✓ Exported ${filteredLeads.length} leads to CSV successfully`);
+    setTimeout(() => setStatusMsg(''), 3000);
+  };
+
   const filteredLeads = leads.filter(lead => {
     const query = leadSearchQuery.toLowerCase();
     const matchesSearch = 
@@ -353,12 +459,48 @@ export const CrmSuperAdmin = () => {
       lead.serviceId === leadServiceFilter ||
       (lead.serviceTitle || '').toLowerCase().includes(leadServiceFilter.toLowerCase());
 
-    const matchesStatus = 
-      leadStatusFilter === 'all' || 
-      lead.status === leadStatusFilter;
+    const matchesStatus = (() => {
+      if (leadStatusFilter === 'all') return true;
+      const s = lead.status || 'New';
+      if (leadStatusFilter === 'New' || leadStatusFilter === 'New Enquiry') return s === 'New' || s === 'New Enquiry';
+      if (leadStatusFilter === 'Contact Pending' || leadStatusFilter === 'Contact Attempted') return s === 'Contact Pending' || s === 'Contact Attempted';
+      if (leadStatusFilter === 'Qualified') return s === 'Qualified' || s === 'Consultation Completed';
+      if (leadStatusFilter === 'Converted' || leadStatusFilter === 'Completed') return s === 'Converted' || s === 'Completed';
+      if (leadStatusFilter === 'In Progress') return s === 'In Progress' || s === 'Proposal Pending' || s === 'Proposal or Next Steps Pending';
+      if (leadStatusFilter === 'Closed / Lost' || leadStatusFilter === 'Closed') return s === 'Closed / Lost' || s === 'Closed' || s === 'Archived';
+      return s === leadStatusFilter;
+    })();
 
-    return matchesSearch && matchesService && matchesStatus;
+    const matchesDateRange = (() => {
+      if (leadDateRangeFilter === 'all') return true;
+      if (!lead.createdAt) return false;
+      const leadDate = new Date(lead.createdAt);
+      if (isNaN(leadDate.getTime())) return true;
+      const now = new Date();
+      if (leadDateRangeFilter === 'today') {
+        return leadDate.toISOString().slice(0, 10) === now.toISOString().slice(0, 10);
+      }
+      if (leadDateRangeFilter === '7days') {
+        return (now - leadDate) <= 7 * 24 * 60 * 60 * 1000;
+      }
+      if (leadDateRangeFilter === '30days') {
+        return (now - leadDate) <= 30 * 24 * 60 * 60 * 1000;
+      }
+      return true;
+    })();
+
+    const matchesAssigned = 
+      leadAssignedFilter === 'all' ||
+      (leadAssignedFilter === 'unassigned' && (!lead.assignedEmployee || lead.assignedEmployee.trim() === '')) ||
+      lead.assignedEmployee === leadAssignedFilter;
+
+    return matchesSearch && matchesService && matchesStatus && matchesDateRange && matchesAssigned;
   });
+
+  const paginatedLeads = leadPageSize === 'all' 
+    ? filteredLeads 
+    : filteredLeads.slice((leadPage - 1) * Number(leadPageSize), leadPage * Number(leadPageSize));
+  const totalPages = leadPageSize === 'all' ? 1 : Math.max(1, Math.ceil(filteredLeads.length / Number(leadPageSize)));
 
   const handleEditClick = (emp) => {
     setEditingEmployeeId(emp.id);
@@ -785,15 +927,19 @@ export const CrmSuperAdmin = () => {
             <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 border-b border-slate-200 dark:border-navy-800 pb-4">
               <div>
                 <div className="flex items-center gap-2">
-                  <span className="bg-gold-500/20 text-gold-700 dark:text-gold-400 text-[10px] font-bold px-2.5 py-0.5 rounded uppercase">Live Inbound Stream</span>
+                  <span className="bg-gold-500/20 text-gold-700 dark:text-gold-400 text-[10px] font-bold px-2.5 py-0.5 rounded uppercase tracking-wider">
+                    Phase 12 • Enterprise Lead Tracking & CRM
+                  </span>
                   <span className="flex items-center gap-1.5 text-[11px] font-bold text-emerald-600 dark:text-emerald-400">
                     <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></span>
                     Real-time SQLite Connected
                   </span>
                 </div>
-                <h2 className="font-serif text-xl font-bold text-slate-900 dark:text-white mt-1">Website Inquiries & Consultation Leads</h2>
+                <h2 className="font-serif text-xl font-bold text-slate-900 dark:text-white mt-1">
+                  Website Inquiries, Leads & Customer Tracking System
+                </h2>
                 <p className="text-slate-600 dark:text-slate-400 text-xs">
-                  Review and manage all incoming service consultations, admissions requests, and enterprise contact forms submitted through the website.
+                  Review and manage all incoming service consultations, admissions requests, follow-ups, and customer lifecycles across all 6 verified service catalogs.
                 </p>
               </div>
 
@@ -802,6 +948,8 @@ export const CrmSuperAdmin = () => {
                   onClick={() => {
                     if (fetchLeads) fetchLeads();
                     if (fetchConsultingMetrics) fetchConsultingMetrics();
+                    if (fetchLeadMetrics) fetchLeadMetrics(leadDateRangeFilter);
+                    if (fetchFollowUpsSummary) fetchFollowUpsSummary();
                   }}
                   disabled={loadingLeads}
                   className="px-3.5 py-2 bg-slate-100 hover:bg-slate-200 dark:bg-navy-950 dark:hover:bg-navy-800 text-slate-700 dark:text-slate-200 rounded-xl border border-slate-300 dark:border-navy-700 font-bold text-xs flex items-center gap-1.5 transition cursor-pointer"
@@ -813,337 +961,784 @@ export const CrmSuperAdmin = () => {
               </div>
             </div>
 
-            {/* Quick Stream Selector */}
-            <div className="flex flex-wrap items-center gap-2 pt-1 border-t border-slate-200 dark:border-navy-800">
-              <span className="text-[11px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider">Stream:</span>
+            {/* Sub-View Switcher: All Leads Directory vs Follow-Up Queue vs Service Breakdown */}
+            <div className="flex flex-wrap items-center gap-2 pt-1 border-b border-slate-200 dark:border-navy-800 pb-3">
               <button
                 type="button"
-                onClick={() => setLeadServiceFilter('all')}
-                className={`px-3 py-1.5 rounded-xl text-xs font-bold transition cursor-pointer ${
-                  leadServiceFilter === 'all'
-                    ? 'bg-navy-900 dark:bg-gold-500 text-white dark:text-navy-950 shadow-sm'
+                onClick={() => setInquiriesSubView('leads')}
+                className={`px-3.5 py-1.5 rounded-xl text-xs font-bold transition cursor-pointer flex items-center gap-1.5 ${
+                  inquiriesSubView === 'leads'
+                    ? 'bg-navy-900 dark:bg-gold-500 text-white dark:text-navy-950 shadow-sm font-extrabold'
                     : 'bg-slate-100 dark:bg-navy-950 text-slate-700 dark:text-slate-300 hover:bg-slate-200 dark:hover:bg-navy-800'
                 }`}
               >
-                All Inquiries ({leads.length})
+                <Inbox className="w-3.5 h-3.5" />
+                <span>All Leads Directory ({filteredLeads.length})</span>
               </button>
+
               <button
                 type="button"
-                onClick={() => setLeadServiceFilter('intl-consult')}
-                className={`px-3 py-1.5 rounded-xl text-xs font-bold transition cursor-pointer flex items-center gap-1.5 ${
-                  leadServiceFilter === 'intl-consult' || leadServiceFilter === 'International Consulting'
-                    ? 'bg-gold-500 text-navy-950 shadow-sm ring-2 ring-gold-400 font-extrabold'
-                    : 'bg-gold-500/10 text-gold-700 dark:text-gold-400 border border-gold-500/30 hover:bg-gold-500/20'
+                onClick={() => {
+                  setInquiriesSubView('followups');
+                  if (fetchFollowUpsSummary) fetchFollowUpsSummary();
+                }}
+                className={`px-3.5 py-1.5 rounded-xl text-xs font-bold transition cursor-pointer flex items-center gap-1.5 ${
+                  inquiriesSubView === 'followups'
+                    ? 'bg-navy-900 dark:bg-gold-500 text-white dark:text-navy-950 shadow-sm font-extrabold'
+                    : 'bg-slate-100 dark:bg-navy-950 text-slate-700 dark:text-slate-300 hover:bg-slate-200 dark:hover:bg-navy-800'
+                }`}
+              >
+                <Calendar className="w-3.5 h-3.5" />
+                <span>Follow-Up Schedule Queue</span>
+                {(followUpsSummary?.counts?.overdue > 0 || followUpsSummary?.counts?.dueToday > 0) && (
+                  <span className="bg-rose-500 text-white text-[9px] font-extrabold px-1.5 py-0.2 rounded-full">
+                    {(followUpsSummary?.counts?.overdue || 0) + (followUpsSummary?.counts?.dueToday || 0)} Urgent
+                  </span>
+                )}
+              </button>
+
+              <button
+                type="button"
+                onClick={() => {
+                  setInquiriesSubView('services');
+                  if (fetchLeadMetrics) fetchLeadMetrics(leadDateRangeFilter);
+                }}
+                className={`px-3.5 py-1.5 rounded-xl text-xs font-bold transition cursor-pointer flex items-center gap-1.5 ${
+                  inquiriesSubView === 'services'
+                    ? 'bg-navy-900 dark:bg-gold-500 text-white dark:text-navy-950 shadow-sm font-extrabold'
+                    : 'bg-slate-100 dark:bg-navy-950 text-slate-700 dark:text-slate-300 hover:bg-slate-200 dark:hover:bg-navy-800'
                 }`}
               >
                 <GraduationCap className="w-3.5 h-3.5" />
-                <span>🎓 International Consulting ({consultingMetrics?.totalEnquiries || leads.filter(l => l.serviceId === 'intl-consult' || (l.serviceTitle || '').includes('Consulting')).length})</span>
+                <span>Service Performance Breakdown (6 Catalogs)</span>
               </button>
             </div>
 
             {/* Live Database-Derived KPI Metrics Strip */}
-            {consultingMetrics && (
-              <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-2.5 pt-2">
-                <div className="p-3 bg-slate-50 dark:bg-navy-950 rounded-2xl border border-slate-200 dark:border-navy-800 space-y-0.5">
-                  <span className="text-[10px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider block">Total Enquiries</span>
-                  <p className="font-serif text-xl font-extrabold text-slate-900 dark:text-white">{consultingMetrics.totalEnquiries || 0}</p>
-                  <span className="text-[10px] text-blue-600 dark:text-blue-400 font-bold">Consulting Stream</span>
+            <div className="grid grid-cols-2 sm:grid-cols-4 lg:grid-cols-8 gap-2.5 pt-1">
+              <div className="p-3 bg-slate-50 dark:bg-navy-950 rounded-2xl border border-slate-200 dark:border-navy-800 space-y-0.5">
+                <span className="text-[10px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider block">Total Leads</span>
+                <p className="font-serif text-xl font-extrabold text-slate-900 dark:text-white">{leadMetrics?.totalEnquiries || leads.length}</p>
+                <span className="text-[10px] text-blue-600 dark:text-blue-400 font-bold">Inbound Received</span>
+              </div>
+              <div className="p-3 bg-slate-50 dark:bg-navy-950 rounded-2xl border border-slate-200 dark:border-navy-800 space-y-0.5">
+                <span className="text-[10px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider block">New Inbound</span>
+                <p className="font-serif text-xl font-extrabold text-emerald-600 dark:text-emerald-400">{leadMetrics?.newEnquiries || 0}</p>
+                <span className="text-[10px] text-emerald-600 dark:text-emerald-400 font-bold">Uncontacted</span>
+              </div>
+              <div className="p-3 bg-slate-50 dark:bg-navy-950 rounded-2xl border border-slate-200 dark:border-navy-800 space-y-0.5">
+                <span className="text-[10px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider block">Contact Pending</span>
+                <p className="font-serif text-xl font-extrabold text-cyan-600 dark:text-cyan-400">{leadMetrics?.contactPending || 0}</p>
+                <span className="text-[10px] text-cyan-600 dark:text-cyan-400 font-bold">Attempted</span>
+              </div>
+              <div className="p-3 bg-slate-50 dark:bg-navy-950 rounded-2xl border border-slate-200 dark:border-navy-800 space-y-0.5">
+                <span className="text-[10px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider block">Follow-up Due</span>
+                <div className="flex items-center gap-1">
+                  <p className="font-serif text-xl font-extrabold text-amber-600 dark:text-amber-400">{leadMetrics?.awaitingFollowUp || 0}</p>
+                  {leadMetrics?.overdueFollowUps > 0 && (
+                    <span className="text-[9px] bg-rose-500 text-white font-extrabold px-1 py-0.2 rounded-full">
+                      {leadMetrics.overdueFollowUps} Overdue
+                    </span>
+                  )}
                 </div>
-                <div className="p-3 bg-slate-50 dark:bg-navy-950 rounded-2xl border border-slate-200 dark:border-navy-800 space-y-0.5">
-                  <span className="text-[10px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider block">New Inbound</span>
-                  <p className="font-serif text-xl font-extrabold text-emerald-600 dark:text-emerald-400">{consultingMetrics.newEnquiries || 0}</p>
-                  <span className="text-[10px] text-emerald-600 dark:text-emerald-400 font-bold">Awaiting Contact</span>
+                <span className="text-[10px] text-amber-600 dark:text-gold-400 font-bold">Action Needed</span>
+              </div>
+              <div className="p-3 bg-slate-50 dark:bg-navy-950 rounded-2xl border border-slate-200 dark:border-navy-800 space-y-0.5">
+                <span className="text-[10px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider block">In Progress</span>
+                <p className="font-serif text-xl font-extrabold text-purple-600 dark:text-purple-400">{leadMetrics?.inProgress || 0}</p>
+                <span className="text-[10px] text-purple-600 dark:text-purple-400 font-bold">Active Advising</span>
+              </div>
+              <div className="p-3 bg-slate-50 dark:bg-navy-950 rounded-2xl border border-slate-200 dark:border-navy-800 space-y-0.5">
+                <span className="text-[10px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider block">Qualified</span>
+                <p className="font-serif text-xl font-extrabold text-indigo-600 dark:text-indigo-400">{leadMetrics?.qualified || 0}</p>
+                <span className="text-[10px] text-indigo-600 dark:text-indigo-400 font-bold">Ready</span>
+              </div>
+              <div className="p-3 bg-slate-50 dark:bg-navy-950 rounded-2xl border border-slate-200 dark:border-navy-800 space-y-0.5">
+                <span className="text-[10px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider block">Converted</span>
+                <div className="flex items-baseline gap-1">
+                  <p className="font-serif text-xl font-extrabold text-teal-600 dark:text-teal-400">{leadMetrics?.converted || 0}</p>
+                  {leadMetrics?.conversionRate > 0 && (
+                    <span className="text-[9px] font-bold text-teal-600 dark:text-teal-400">({leadMetrics.conversionRate}%)</span>
+                  )}
                 </div>
-                <div className="p-3 bg-slate-50 dark:bg-navy-950 rounded-2xl border border-slate-200 dark:border-navy-800 space-y-0.5">
-                  <span className="text-[10px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider block">Consultations</span>
-                  <p className="font-serif text-xl font-extrabold text-amber-600 dark:text-gold-400">{consultingMetrics.consultationsScheduled || 0}</p>
-                  <span className="text-[10px] text-amber-600 dark:text-gold-400 font-bold">Scheduled / Active</span>
+                <span className="text-[10px] text-teal-600 dark:text-teal-400 font-bold">Admitted / Placed</span>
+              </div>
+              <div className="p-3 bg-slate-50 dark:bg-navy-950 rounded-2xl border border-slate-200 dark:border-navy-800 space-y-0.5">
+                <span className="text-[10px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider block">Closed / Lost</span>
+                <p className="font-serif text-xl font-extrabold text-slate-500 dark:text-slate-400">{leadMetrics?.closedLost || 0}</p>
+                <span className="text-[10px] text-slate-500 dark:text-slate-400 font-bold">Archived</span>
+              </div>
+            </div>
+
+            {/* Filters & Search Row (Visible in Leads Subview) */}
+            {inquiriesSubView === 'leads' && (
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-7 gap-2.5 pt-2 border-t border-slate-200 dark:border-navy-800">
+                <div className="relative lg:col-span-2">
+                  <Search className="w-3.5 h-3.5 text-slate-400 absolute left-3 top-2.5" />
+                  <input
+                    type="text"
+                    value={leadSearchQuery}
+                    onChange={e => { setLeadSearchQuery(e.target.value); setLeadPage(1); }}
+                    placeholder="Search name, ref #, email, phone..."
+                    className="w-full bg-slate-100 dark:bg-navy-950 border border-slate-300 dark:border-navy-700 text-slate-900 dark:text-white pl-8 pr-3 py-1.5 rounded-xl text-xs focus:outline-none focus:border-gold-500 font-semibold"
+                  />
                 </div>
-                <div className="p-3 bg-slate-50 dark:bg-navy-950 rounded-2xl border border-slate-200 dark:border-navy-800 space-y-0.5">
-                  <span className="text-[10px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider block">Engagements</span>
-                  <p className="font-serif text-xl font-extrabold text-purple-600 dark:text-purple-400">{consultingMetrics.activeEngagements || 0}</p>
-                  <span className="text-[10px] text-purple-600 dark:text-purple-400 font-bold">In Progress</span>
+
+                <div>
+                  <select
+                    value={leadServiceFilter}
+                    onChange={e => { setLeadServiceFilter(e.target.value); setLeadPage(1); }}
+                    className="w-full bg-slate-100 dark:bg-navy-950 border border-slate-300 dark:border-navy-700 text-slate-900 dark:text-white px-2.5 py-1.5 rounded-xl text-xs focus:outline-none focus:border-gold-500 font-semibold cursor-pointer"
+                  >
+                    <option value="all">All Services ({leads.length})</option>
+                    <optgroup label="Workforce & Recruitment Services">
+                      <option value="dom-rec">🏢 Domestic Recruitment</option>
+                      <option value="intl-rec">🌐 International Recruitment</option>
+                      <option value="exec-search">👔 Executive Search</option>
+                      <option value="perm-staff">💼 Permanent Staffing</option>
+                      <option value="contract-staff">⏱️ Contract Staffing</option>
+                      <option value="bulk-hiring">👥 Bulk Hiring</option>
+                      <option value="overseas-place">✈️ Overseas Placement</option>
+                      <option value="visa-assist">📄 Visa Assistance</option>
+                      <option value="work-permit">🏅 Work Permit Guidance</option>
+                    </optgroup>
+                    <optgroup label="Academic & Strategic Advisory">
+                      <option value="intl-consult">🎓 International Consulting</option>
+                      <option value="college-adm">College Admission Assistance</option>
+                      <option value="school-career">School Student Career Guidance</option>
+                      <option value="intl-adm">Study Abroad Visa & Admissions</option>
+                      <option value="school-academy">School Academy & Skills</option>
+                      <option value="exec-seminars-lang">Executive Seminars & Language</option>
+                    </optgroup>
+                  </select>
                 </div>
-                <div className="p-3 bg-slate-50 dark:bg-navy-950 rounded-2xl border border-slate-200 dark:border-navy-800 space-y-0.5">
-                  <span className="text-[10px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider block">Follow-ups Due</span>
-                  <div className="flex items-center gap-1.5">
-                    <p className="font-serif text-xl font-extrabold text-rose-600 dark:text-rose-400">{consultingMetrics.followUpsDue || 0}</p>
-                    {consultingMetrics.overdueFollowUps > 0 && (
-                      <span className="text-[9px] bg-rose-500 text-white font-extrabold px-1.5 py-0.2 rounded-full">
-                        {consultingMetrics.overdueFollowUps} Overdue
-                      </span>
-                    )}
-                  </div>
-                  <span className="text-[10px] text-rose-600 dark:text-rose-400 font-bold">Action Required</span>
+
+                <div>
+                  <select
+                    value={leadStatusFilter}
+                    onChange={e => { setLeadStatusFilter(e.target.value); setLeadPage(1); }}
+                    className="w-full bg-slate-100 dark:bg-navy-950 border border-slate-300 dark:border-navy-700 text-slate-900 dark:text-white px-2.5 py-1.5 rounded-xl text-xs focus:outline-none focus:border-gold-500 font-semibold cursor-pointer"
+                  >
+                    <option value="all">All Pipeline Stages</option>
+                    <option value="New Enquiry">New Enquiry</option>
+                    <option value="Contact Pending">Contact Pending</option>
+                    <option value="Contacted">Contacted</option>
+                    <option value="Follow-up Required">Follow-up Required</option>
+                    <option value="Qualified">Qualified</option>
+                    <option value="In Progress">In Progress</option>
+                    <option value="Converted">Converted</option>
+                    <option value="Closed / Lost">Closed / Lost</option>
+                  </select>
                 </div>
-                <div className="p-3 bg-slate-50 dark:bg-navy-950 rounded-2xl border border-slate-200 dark:border-navy-800 space-y-0.5">
-                  <span className="text-[10px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider block">Completed</span>
-                  <p className="font-serif text-xl font-extrabold text-teal-600 dark:text-teal-400">{consultingMetrics.completedEngagements || 0}</p>
-                  <span className="text-[10px] text-teal-600 dark:text-teal-400 font-bold">Advisories Concluded</span>
+
+                <div>
+                  <select
+                    value={leadDateRangeFilter}
+                    onChange={e => { 
+                      setLeadDateRangeFilter(e.target.value); 
+                      setLeadPage(1);
+                      if (fetchLeadMetrics) fetchLeadMetrics(e.target.value);
+                    }}
+                    className="w-full bg-slate-100 dark:bg-navy-950 border border-slate-300 dark:border-navy-700 text-slate-900 dark:text-white px-2.5 py-1.5 rounded-xl text-xs focus:outline-none focus:border-gold-500 font-semibold cursor-pointer"
+                  >
+                    <option value="all">All Time</option>
+                    <option value="today">Today</option>
+                    <option value="7days">Last 7 Days</option>
+                    <option value="30days">Last 30 Days</option>
+                  </select>
+                </div>
+
+                <div>
+                  <select
+                    value={leadAssignedFilter}
+                    onChange={e => { setLeadAssignedFilter(e.target.value); setLeadPage(1); }}
+                    className="w-full bg-slate-100 dark:bg-navy-950 border border-slate-300 dark:border-navy-700 text-slate-900 dark:text-white px-2.5 py-1.5 rounded-xl text-xs focus:outline-none focus:border-gold-500 font-semibold cursor-pointer"
+                  >
+                    <option value="all">All Consultants</option>
+                    <option value="unassigned">Unassigned</option>
+                    {employees.map(emp => (
+                      <option key={emp.id} value={emp.name}>{emp.name}</option>
+                    ))}
+                  </select>
+                </div>
+
+                <div className="flex items-center gap-1.5">
+                  <select
+                    value={leadPageSize}
+                    onChange={e => { setLeadPageSize(e.target.value); setLeadPage(1); }}
+                    className="w-20 bg-slate-100 dark:bg-navy-950 border border-slate-300 dark:border-navy-700 text-slate-900 dark:text-white px-2 py-1.5 rounded-xl text-xs focus:outline-none font-semibold cursor-pointer"
+                    title="Items per page"
+                  >
+                    <option value="25">25 / pg</option>
+                    <option value="50">50 / pg</option>
+                    <option value="100">100 / pg</option>
+                    <option value="all">All</option>
+                  </select>
+
+                  <button
+                    type="button"
+                    onClick={handleExportCsv}
+                    className="flex-1 px-2.5 py-1.5 bg-gold-500 hover:bg-gold-600 text-navy-950 font-bold text-xs rounded-xl transition flex items-center justify-center gap-1 shadow-xs cursor-pointer"
+                    title="Export filtered leads to CSV"
+                  >
+                    <Download className="w-3.5 h-3.5" />
+                    <span>CSV</span>
+                  </button>
                 </div>
               </div>
             )}
-
-            {/* Filters & Search Row */}
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 pt-2">
-              <div className="relative sm:col-span-2">
-                <Search className="w-3.5 h-3.5 text-slate-400 absolute left-3 top-2.5" />
-                <input
-                  type="text"
-                  value={leadSearchQuery}
-                  onChange={e => setLeadSearchQuery(e.target.value)}
-                  placeholder="Search by name, ref #, email, phone, country, or track..."
-                  className="w-full bg-slate-100 dark:bg-navy-950 border border-slate-300 dark:border-navy-700 text-slate-900 dark:text-white pl-8 pr-3 py-1.5 rounded-xl text-xs focus:outline-none focus:border-gold-500 font-semibold"
-                />
-              </div>
-
-              <div>
-                <select
-                  value={leadServiceFilter}
-                  onChange={e => setLeadServiceFilter(e.target.value)}
-                  className="w-full bg-slate-100 dark:bg-navy-950 border border-slate-300 dark:border-navy-700 text-slate-900 dark:text-white px-3 py-1.5 rounded-xl text-xs focus:outline-none focus:border-gold-500 font-semibold cursor-pointer"
-                >
-                  <option value="all">All Services ({leads.length})</option>
-                  <option value="intl-consult">🎓 International Consulting</option>
-                  <option value="College Admission Assistance">College Admission Assistance</option>
-                  <option value="School Student Career Guidance">School Student Career Guidance</option>
-                  <option value="Executive Development Seminars">Executive Development Seminars</option>
-                  <option value="Study Abroad Visa Guidance">Study Abroad Visa Guidance</option>
-                  <option value="Corporate Talent & Leadership Advisory">Corporate Talent & Leadership</option>
-                </select>
-              </div>
-
-              <div>
-                <select
-                  value={leadStatusFilter}
-                  onChange={e => setLeadStatusFilter(e.target.value)}
-                  className="w-full bg-slate-100 dark:bg-navy-950 border border-slate-300 dark:border-navy-700 text-slate-900 dark:text-white px-3 py-1.5 rounded-xl text-xs focus:outline-none focus:border-gold-500 font-semibold cursor-pointer"
-                >
-                  <option value="all">All Pipeline Stages</option>
-                  <option value="New Enquiry">New Enquiry</option>
-                  <option value="Contact Attempted">Contact Attempted</option>
-                  <option value="Consultation Scheduled">Consultation Scheduled</option>
-                  <option value="Consultation Completed">Consultation Completed</option>
-                  <option value="Proposal or Next Steps Pending">Proposal Pending</option>
-                  <option value="In Progress">In Progress</option>
-                  <option value="Completed">Completed</option>
-                  <option value="Closed">Closed</option>
-                </select>
-              </div>
-            </div>
           </div>
 
-          {/* Inquiries Table */}
-          <div className="glass-card bg-white dark:bg-navy-900 border border-slate-200 dark:border-navy-800 p-6 rounded-3xl space-y-4 shadow-sm">
-            <div className="flex justify-between items-center text-xs font-bold text-slate-600 dark:text-slate-400">
-              <span>Showing {filteredLeads.length} of {leads.length} Enquiries & Leads</span>
-              {(leadSearchQuery || leadServiceFilter !== 'all' || leadStatusFilter !== 'all') && (
-                <button
-                  onClick={() => { setLeadSearchQuery(''); setLeadServiceFilter('all'); setLeadStatusFilter('all'); }}
-                  className="text-gold-600 dark:text-gold-400 hover:underline cursor-pointer font-bold"
-                >
-                  Clear Filters
-                </button>
+          {/* SUB-VIEW 1: LEADS DIRECTORY TABLE */}
+          {inquiriesSubView === 'leads' && (
+            <div className="glass-card bg-white dark:bg-navy-900 border border-slate-200 dark:border-navy-800 p-6 rounded-3xl space-y-4 shadow-sm">
+              <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-2 text-xs font-bold text-slate-600 dark:text-slate-400">
+                <span>Showing {paginatedLeads.length} of {filteredLeads.length} filtered inquiries ({leads.length} total)</span>
+                {(leadSearchQuery || leadServiceFilter !== 'all' || leadStatusFilter !== 'all' || leadDateRangeFilter !== 'all' || leadAssignedFilter !== 'all') && (
+                  <button
+                    onClick={() => { 
+                      setLeadSearchQuery(''); 
+                      setLeadServiceFilter('all'); 
+                      setLeadStatusFilter('all'); 
+                      setLeadDateRangeFilter('all');
+                      setLeadAssignedFilter('all');
+                      setLeadPage(1);
+                    }}
+                    className="text-gold-600 dark:text-gold-400 hover:underline cursor-pointer font-bold"
+                  >
+                    Clear All Filters
+                  </button>
+                )}
+              </div>
+
+              {filteredLeads.length === 0 ? (
+                <div className="text-center py-12 space-y-3 bg-slate-50 dark:bg-navy-950/50 rounded-2xl border border-dashed border-slate-300 dark:border-navy-800">
+                  <Inbox className="w-10 h-10 text-slate-400 mx-auto" />
+                  <p className="font-serif text-base font-bold text-slate-700 dark:text-slate-300">No Enquiries Found</p>
+                  <p className="text-slate-500 dark:text-slate-400 text-xs max-w-md mx-auto">
+                    {leads.length === 0 
+                      ? "Inquiries submitted through the website Contact and Consulting forms will automatically populate here in real time."
+                      : "No inquiries matched your filter criteria. Try adjusting your search term or filters."}
+                  </p>
+                </div>
+              ) : (
+                <>
+                  <div className="overflow-x-auto">
+                    <table className="w-full text-left text-xs border-collapse">
+                      <thead>
+                        <tr className="bg-slate-100 dark:bg-navy-950 text-slate-900 dark:text-gold-400 font-serif uppercase tracking-wider text-[10px] border-b border-slate-200 dark:border-navy-800">
+                          <th className="p-3 font-extrabold">APPLICANT & REF #</th>
+                          <th className="p-3 font-extrabold">SERVICE & TRACK</th>
+                          <th className="p-3 font-extrabold">DESTINATION / INTAKE</th>
+                          <th className="p-3 font-extrabold">CONTACT INFO</th>
+                          <th className="p-3 font-extrabold">ASSIGNED CONSULTANT</th>
+                          <th className="p-3 font-extrabold">STATUS & PRIORITY</th>
+                          <th className="p-3 font-extrabold text-right">ACTIONS</th>
+                        </tr>
+                      </thead>
+                      <tbody className="divide-y divide-slate-200 dark:divide-navy-800 text-slate-800 dark:text-slate-300">
+                        {paginatedLeads.map(lead => (
+                          <tr key={lead.id} className={`hover:bg-slate-50 dark:hover:bg-navy-950/60 transition group ${lead.isArchived ? 'opacity-60 bg-slate-50/50 dark:bg-navy-950/30' : ''}`}>
+                            <td className="p-3">
+                              <div className="flex items-center space-x-2.5">
+                                <div className="w-8 h-8 rounded-full bg-gold-500/20 text-gold-700 dark:text-gold-400 font-bold flex items-center justify-center border border-gold-500/30 text-xs shrink-0">
+                                  {(lead.name || 'U').charAt(0).toUpperCase()}
+                                </div>
+                                <div className="min-w-0">
+                                  <div className="flex items-center gap-1.5">
+                                    <p className="font-bold text-slate-900 dark:text-white truncate">{lead.name}</p>
+                                    {lead.isArchived ? (
+                                      <span className="text-[9px] bg-slate-200 dark:bg-navy-800 text-slate-600 dark:text-slate-400 px-1.5 py-0.2 rounded font-extrabold">Archived</span>
+                                    ) : null}
+                                  </div>
+                                  {lead.referenceNumber && (
+                                    <span className="font-mono text-[9px] text-gold-600 dark:text-gold-400 font-bold block truncate">
+                                      {lead.referenceNumber}
+                                    </span>
+                                  )}
+                                  <p className="text-[10px] text-slate-500 dark:text-slate-400 truncate max-w-[140px]">
+                                    {lead.organizationName || lead.company || 'Individual / Student'}
+                                  </p>
+                                </div>
+                              </div>
+                            </td>
+
+                            <td className="p-3">
+                              <div>
+                                <span className="inline-block bg-blue-100 dark:bg-blue-500/20 text-blue-900 dark:text-blue-300 font-extrabold px-2.5 py-0.5 rounded-full text-[10px] border border-blue-300 dark:border-blue-500/30">
+                                  {lead.serviceTitle || lead.serviceId || 'General Inquiry'}
+                                </span>
+                                {lead.assistanceType && (
+                                  <p className="text-[10px] font-semibold text-slate-600 dark:text-slate-400 mt-0.5 truncate max-w-[150px]">
+                                    {lead.assistanceType}
+                                  </p>
+                                )}
+                                {lead.utmSource && (
+                                  <div className="mt-1 flex items-center gap-1">
+                                    <span className="inline-flex items-center text-[9px] font-mono font-medium text-amber-700 dark:text-amber-400 bg-amber-50 dark:bg-amber-950/40 px-1.5 py-0.5 rounded border border-amber-200 dark:border-amber-800/50 truncate max-w-[150px]" title={`Attribution: ${lead.utmSource} / ${lead.utmMedium || 'cpc'}`}>
+                                      📍 {lead.utmSource}{lead.utmMedium ? ` / ${lead.utmMedium}` : ''}
+                                    </span>
+                                  </div>
+                                )}
+                              </div>
+                            </td>
+
+                            <td className="p-3">
+                              <div>
+                                <p className="font-bold text-slate-900 dark:text-white text-[11px]">
+                                  {lead.countryInterest || 'Global'}
+                                </p>
+                                <p className="text-[10px] text-slate-500 dark:text-slate-400 font-medium truncate max-w-[130px]">
+                                  {[lead.intakeTerm, lead.degreeLevel].filter(Boolean).join(' • ') || 'Immediate'}
+                                </p>
+                              </div>
+                            </td>
+
+                            <td className="p-3 font-mono">
+                              <a 
+                                href={`mailto:${lead.email}`} 
+                                className="font-bold text-slate-900 dark:text-slate-200 hover:text-gold-600 dark:hover:text-gold-400 flex items-center gap-1 truncate max-w-[160px]"
+                                title={`Email ${lead.email}`}
+                              >
+                                <Mail className="w-3 h-3 text-slate-400 shrink-0" />
+                                <span className="truncate">{lead.email}</span>
+                              </a>
+                              <a 
+                                href={`https://wa.me/${cleanPhoneForWa(lead.phone)}`} 
+                                target="_blank" 
+                                rel="noopener noreferrer"
+                                className="text-[10px] font-bold text-emerald-600 dark:text-emerald-400 hover:underline flex items-center gap-1 mt-0.5"
+                                title={`WhatsApp ${lead.phone}`}
+                              >
+                                <Phone className="w-3 h-3 shrink-0" />
+                                <span>{lead.phone}</span>
+                              </a>
+                            </td>
+
+                            <td className="p-3">
+                              <select
+                                value={lead.assignedEmployee || ''}
+                                onChange={async (e) => {
+                                  const emp = e.target.value;
+                                  await updateLead(lead.id, { assignedEmployee: emp });
+                                  if (fetchLeads) fetchLeads();
+                                  setStatusMsg(`✓ Assigned consultant updated to "${emp || 'Unassigned'}"`);
+                                  setTimeout(() => setStatusMsg(''), 3000);
+                                }}
+                                className="text-[10px] font-bold bg-slate-100 dark:bg-navy-950 border border-slate-300 dark:border-navy-700 text-slate-900 dark:text-white px-2 py-1 rounded-xl focus:outline-none cursor-pointer max-w-[130px]"
+                              >
+                                <option value="">Unassigned</option>
+                                {employees.map(emp => (
+                                  <option key={emp.id} value={emp.name}>{emp.name}</option>
+                                ))}
+                              </select>
+                            </td>
+
+                            <td className="p-3">
+                              <div className="space-y-1">
+                                <select
+                                  value={lead.status || 'New Enquiry'}
+                                  onChange={e => handleUpdateLeadStatus(lead.id, e.target.value)}
+                                  disabled={leadActionLoading}
+                                  className={`text-[10px] font-extrabold px-2 py-0.5 rounded-full border cursor-pointer focus:outline-none ${
+                                    lead.status === 'New' || lead.status === 'New Enquiry'
+                                      ? 'bg-emerald-100 dark:bg-emerald-500/20 text-emerald-800 dark:text-emerald-300 border-emerald-300 dark:border-emerald-500/30'
+                                      : lead.status === 'Contact Attempted' || lead.status === 'Contact Pending'
+                                      ? 'bg-cyan-100 dark:bg-cyan-500/20 text-cyan-800 dark:text-cyan-300 border-cyan-300 dark:border-cyan-500/30'
+                                      : lead.status === 'Contacted' || lead.status === 'Consultation Scheduled'
+                                      ? 'bg-blue-100 dark:bg-blue-500/20 text-blue-800 dark:text-blue-300 border-blue-300 dark:border-blue-500/30'
+                                      : lead.status === 'Follow-up Required'
+                                      ? 'bg-amber-100 dark:bg-amber-500/20 text-amber-800 dark:text-amber-300 border-amber-300 dark:border-amber-500/30'
+                                      : lead.status === 'Qualified' || lead.status === 'Consultation Completed'
+                                      ? 'bg-indigo-100 dark:bg-indigo-500/20 text-indigo-800 dark:text-indigo-300 border-indigo-300 dark:border-indigo-500/30'
+                                      : lead.status === 'In Progress' || lead.status === 'Proposal Pending'
+                                      ? 'bg-purple-100 dark:bg-purple-500/20 text-purple-800 dark:text-purple-300 border-purple-300 dark:border-purple-500/30'
+                                      : lead.status === 'Converted' || lead.status === 'Completed'
+                                      ? 'bg-teal-100 dark:bg-teal-500/20 text-teal-800 dark:text-teal-300 border-teal-300 dark:border-teal-500/30'
+                                      : 'bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400 border-slate-300 dark:border-slate-700'
+                                  }`}
+                                >
+                                  <option value="New Enquiry">New Enquiry</option>
+                                  <option value="Contact Pending">Contact Pending</option>
+                                  <option value="Contacted">Contacted</option>
+                                  <option value="Follow-up Required">Follow-up Required</option>
+                                  <option value="Qualified">Qualified</option>
+                                  <option value="In Progress">In Progress</option>
+                                  <option value="Converted">Converted</option>
+                                  <option value="Closed / Lost">Closed / Lost</option>
+                                </select>
+
+                                {lead.priority && (
+                                  <span className={`text-[9px] font-extrabold px-1.5 py-0.2 rounded block text-center uppercase tracking-wider ${
+                                    lead.priority === 'Urgent' ? 'bg-rose-100 dark:bg-rose-500/20 text-rose-700 dark:text-rose-400' :
+                                    lead.priority === 'High' ? 'bg-amber-100 dark:bg-amber-500/20 text-amber-700 dark:text-amber-400' :
+                                    'bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400'
+                                  }`}>
+                                    {lead.priority}
+                                  </span>
+                                )}
+                              </div>
+                            </td>
+
+                            <td className="p-3 text-right">
+                              <div className="flex items-center justify-end gap-1">
+                                <button
+                                  onClick={() => handleOpenLead(lead)}
+                                  className="p-1.5 bg-slate-100 dark:bg-navy-950 text-slate-700 dark:text-slate-300 hover:text-gold-500 rounded-lg border border-slate-200 dark:border-navy-800 transition cursor-pointer"
+                                  title="Open Full Workspace Dossier"
+                                >
+                                  <Eye className="w-3.5 h-3.5" />
+                                </button>
+                                <a
+                                  href={`https://wa.me/${cleanPhoneForWa(lead.phone)}`}
+                                  target="_blank"
+                                  rel="noopener noreferrer"
+                                  className="p-1.5 bg-emerald-50 dark:bg-emerald-950/40 text-emerald-700 dark:text-emerald-400 hover:bg-emerald-100 rounded-lg border border-emerald-200 dark:border-emerald-800/40 transition cursor-pointer"
+                                  title="Chat on WhatsApp"
+                                >
+                                  <MessageSquare className="w-3.5 h-3.5" />
+                                </a>
+                                <a
+                                  href={`mailto:${lead.email}?subject=Regarding Your Consultation - Revival International&body=Dear ${encodeURIComponent(lead.name)},%0D%0A%0D%0AThank you for reaching out to Revival International regarding ${encodeURIComponent(lead.serviceTitle || 'our consulting services')}.%0D%0A%0D%0A`}
+                                  className="p-1.5 bg-blue-50 dark:bg-blue-950/40 text-blue-700 dark:text-blue-400 hover:bg-blue-100 rounded-lg border border-blue-200 dark:border-blue-800/40 transition cursor-pointer"
+                                  title="Send Email"
+                                >
+                                  <Mail className="w-3.5 h-3.5" />
+                                </a>
+                                <button
+                                  onClick={() => handleArchiveToggle(lead, !lead.isArchived)}
+                                  disabled={leadActionLoading}
+                                  className="p-1.5 bg-slate-100 dark:bg-navy-950 text-slate-500 hover:text-amber-500 rounded-lg border border-slate-200 dark:border-navy-800 transition cursor-pointer"
+                                  title={lead.isArchived ? "Restore Lead" : "Archive Lead"}
+                                >
+                                  {lead.isArchived ? <RotateCcw className="w-3.5 h-3.5" /> : <Archive className="w-3.5 h-3.5" />}
+                                </button>
+                                <button
+                                  onClick={() => handleDeleteLead(lead.id, lead.name)}
+                                  className="p-1.5 bg-slate-100 dark:bg-navy-950 text-slate-400 hover:text-rose-500 rounded-lg border border-slate-200 dark:border-navy-800 transition cursor-pointer"
+                                  title="Delete Lead"
+                                >
+                                  <Trash2 className="w-3.5 h-3.5" />
+                                </button>
+                              </div>
+                            </td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
+
+                  {/* Pagination Footer */}
+                  <div className="flex flex-col sm:flex-row justify-between items-center gap-3 pt-3 border-t border-slate-200 dark:border-navy-800 text-xs">
+                    <span className="text-slate-500 dark:text-slate-400 font-medium">
+                      Page <strong>{leadPage}</strong> of <strong>{totalPages}</strong> ({filteredLeads.length} leads matching filters)
+                    </span>
+                    <div className="flex items-center gap-2">
+                      <button
+                        type="button"
+                        onClick={() => setLeadPage(prev => Math.max(1, prev - 1))}
+                        disabled={leadPage <= 1}
+                        className="px-3 py-1.5 rounded-xl border border-slate-300 dark:border-navy-700 bg-slate-100 dark:bg-navy-950 text-slate-700 dark:text-slate-300 disabled:opacity-40 disabled:cursor-not-allowed hover:bg-slate-200 dark:hover:bg-navy-800 font-bold transition cursor-pointer flex items-center gap-1"
+                      >
+                        <ChevronLeft className="w-3.5 h-3.5" />
+                        <span>Previous</span>
+                      </button>
+                      <span className="px-2 font-bold font-mono text-slate-700 dark:text-slate-300">{leadPage} / {totalPages}</span>
+                      <button
+                        type="button"
+                        onClick={() => setLeadPage(prev => Math.min(totalPages, prev + 1))}
+                        disabled={leadPage >= totalPages}
+                        className="px-3 py-1.5 rounded-xl border border-slate-300 dark:border-navy-700 bg-slate-100 dark:bg-navy-950 text-slate-700 dark:text-slate-300 disabled:opacity-40 disabled:cursor-not-allowed hover:bg-slate-200 dark:hover:bg-navy-800 font-bold transition cursor-pointer flex items-center gap-1"
+                      >
+                        <span>Next</span>
+                        <ChevronRight className="w-3.5 h-3.5" />
+                      </button>
+                    </div>
+                  </div>
+                </>
               )}
             </div>
+          )}
 
-            {filteredLeads.length === 0 ? (
-              <div className="text-center py-12 space-y-3 bg-slate-50 dark:bg-navy-950/50 rounded-2xl border border-dashed border-slate-300 dark:border-navy-800">
-                <Inbox className="w-10 h-10 text-slate-400 mx-auto" />
-                <p className="font-serif text-base font-bold text-slate-700 dark:text-slate-300">No Enquiries Found</p>
-                <p className="text-slate-500 dark:text-slate-400 text-xs max-w-md mx-auto">
-                  {leads.length === 0 
-                    ? "Inquiries submitted through the website Contact and Consulting forms will automatically populate here in real time."
-                    : "No inquiries matched your search or filter criteria. Try adjusting your search term."}
-                </p>
-              </div>
-            ) : (
-              <div className="overflow-x-auto">
-                <table className="w-full text-left text-xs border-collapse">
-                  <thead>
-                    <tr className="bg-slate-100 dark:bg-navy-950 text-slate-900 dark:text-gold-400 font-serif uppercase tracking-wider text-[10px] border-b border-slate-200 dark:border-navy-800">
-                      <th className="p-3 font-extrabold">APPLICANT & REF #</th>
-                      <th className="p-3 font-extrabold">SERVICE & TRACK</th>
-                      <th className="p-3 font-extrabold">DESTINATION / INTAKE</th>
-                      <th className="p-3 font-extrabold">CONTACT INFO</th>
-                      <th className="p-3 font-extrabold">ASSIGNED CONSULTANT</th>
-                      <th className="p-3 font-extrabold">STATUS & PRIORITY</th>
-                      <th className="p-3 font-extrabold text-right">ACTIONS</th>
-                    </tr>
-                  </thead>
-                  <tbody className="divide-y divide-slate-200 dark:divide-navy-800 text-slate-800 dark:text-slate-300">
-                    {filteredLeads.map(lead => (
-                      <tr key={lead.id} className="hover:bg-slate-50 dark:hover:bg-navy-950/60 transition group">
-                        <td className="p-3">
-                          <div className="flex items-center space-x-2.5">
-                            <div className="w-8 h-8 rounded-full bg-gold-500/20 text-gold-700 dark:text-gold-400 font-bold flex items-center justify-center border border-gold-500/30 text-xs shrink-0">
-                              {(lead.name || 'U').charAt(0).toUpperCase()}
-                            </div>
-                            <div className="min-w-0">
-                              <p className="font-bold text-slate-900 dark:text-white truncate">{lead.name}</p>
-                              {lead.referenceNumber && (
-                                <span className="font-mono text-[9px] text-gold-600 dark:text-gold-400 font-bold block truncate">
-                                  {lead.referenceNumber}
-                                </span>
-                              )}
-                              <p className="text-[10px] text-slate-500 dark:text-slate-400 truncate max-w-[140px]">
-                                {lead.organizationName || lead.company || 'Individual / Student'}
-                              </p>
-                            </div>
-                          </div>
-                        </td>
+          {/* SUB-VIEW 2: FOLLOW-UP SCHEDULE QUEUE */}
+          {inquiriesSubView === 'followups' && (
+            <div className="space-y-6">
+              {/* Overdue Queue */}
+              <div className="glass-card bg-white dark:bg-navy-900 border border-rose-500/30 p-6 rounded-3xl space-y-4 shadow-sm">
+                <div className="flex items-center justify-between border-b border-rose-500/20 pb-3">
+                  <div className="flex items-center gap-2">
+                    <AlertCircle className="w-5 h-5 text-rose-500" />
+                    <h3 className="font-serif text-lg font-bold text-slate-900 dark:text-white">
+                      Overdue Follow-ups ({followUpsSummary?.counts?.overdue || 0})
+                    </h3>
+                  </div>
+                  <span className="text-[10px] font-extrabold uppercase px-2 py-0.5 rounded bg-rose-500/20 text-rose-600 dark:text-rose-400">
+                    High Priority Action Required
+                  </span>
+                </div>
 
-                        <td className="p-3">
+                {(!followUpsSummary?.data?.overdue || followUpsSummary.data.overdue.length === 0) ? (
+                  <div className="text-center py-6 text-slate-500 text-xs">
+                    ✓ No overdue client follow-ups in queue!
+                  </div>
+                ) : (
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                    {followUpsSummary.data.overdue.map(fu => (
+                      <div key={fu.id} className="p-4 bg-rose-500/5 dark:bg-navy-950 rounded-2xl border border-rose-500/20 space-y-2 text-xs">
+                        <div className="flex justify-between items-start">
                           <div>
-                            <span className="inline-block bg-blue-100 dark:bg-blue-500/20 text-blue-900 dark:text-blue-300 font-extrabold px-2.5 py-0.5 rounded-full text-[10px] border border-blue-300 dark:border-blue-500/30">
-                              {lead.serviceTitle || lead.serviceId || 'General Inquiry'}
-                            </span>
-                            {lead.assistanceType && (
-                              <p className="text-[10px] font-semibold text-slate-600 dark:text-slate-400 mt-0.5 truncate max-w-[150px]">
-                                {lead.assistanceType}
-                              </p>
-                            )}
+                            <p className="font-bold text-slate-900 dark:text-white text-sm">{fu.leadName || 'Client'}</p>
+                            <span className="text-[10px] text-gold-600 dark:text-gold-400 font-semibold">{fu.leadServiceTitle || 'Academic Consultation'}</span>
                           </div>
-                        </td>
-
-                        <td className="p-3">
-                          <div>
-                            <p className="font-bold text-slate-900 dark:text-white text-[11px]">
-                              {lead.countryInterest || 'Global'}
-                            </p>
-                            <p className="text-[10px] text-slate-500 dark:text-slate-400 font-medium truncate max-w-[130px]">
-                              {[lead.intakeTerm, lead.degreeLevel].filter(Boolean).join(' • ') || 'Immediate'}
-                            </p>
-                          </div>
-                        </td>
-
-                        <td className="p-3 font-mono">
-                          <a 
-                            href={`mailto:${lead.email}`} 
-                            className="font-bold text-slate-900 dark:text-slate-200 hover:text-gold-600 dark:hover:text-gold-400 flex items-center gap-1 truncate max-w-[160px]"
-                            title={`Email ${lead.email}`}
-                          >
-                            <Mail className="w-3 h-3 text-slate-400 shrink-0" />
-                            <span className="truncate">{lead.email}</span>
-                          </a>
-                          <a 
-                            href={`https://wa.me/${cleanPhoneForWa(lead.phone)}`} 
-                            target="_blank" 
-                            rel="noopener noreferrer"
-                            className="text-[10px] font-bold text-emerald-600 dark:text-emerald-400 hover:underline flex items-center gap-1 mt-0.5"
-                            title={`WhatsApp ${lead.phone}`}
-                          >
-                            <Phone className="w-3 h-3 shrink-0" />
-                            <span>{lead.phone}</span>
-                          </a>
-                        </td>
-
-                        <td className="p-3">
-                          <select
-                            value={lead.assignedEmployee || ''}
-                            onChange={async (e) => {
-                              const emp = e.target.value;
-                              await updateLead(lead.id, { assignedEmployee: emp });
-                              if (fetchLeads) fetchLeads();
-                              setStatusMsg(`✓ Assigned consultant updated to "${emp || 'Unassigned'}"`);
-                              setTimeout(() => setStatusMsg(''), 3000);
-                            }}
-                            className="text-[10px] font-bold bg-slate-100 dark:bg-navy-950 border border-slate-300 dark:border-navy-700 text-slate-900 dark:text-white px-2 py-1 rounded-xl focus:outline-none cursor-pointer max-w-[130px]"
-                          >
-                            <option value="">Unassigned</option>
-                            {employees.map(emp => (
-                              <option key={emp.id} value={emp.name}>{emp.name}</option>
-                            ))}
-                          </select>
-                        </td>
-
-                        <td className="p-3">
-                          <div className="space-y-1">
-                            <select
-                              value={lead.status || 'New'}
-                              onChange={e => handleUpdateLeadStatus(lead.id, e.target.value)}
-                              disabled={leadActionLoading}
-                              className={`text-[10px] font-extrabold px-2 py-0.5 rounded-full border cursor-pointer focus:outline-none ${
-                                lead.status === 'New' || lead.status === 'New Enquiry'
-                                  ? 'bg-emerald-100 dark:bg-emerald-500/20 text-emerald-800 dark:text-emerald-300 border-emerald-300 dark:border-emerald-500/30'
-                                  : lead.status === 'Contact Attempted' || lead.status === 'Contacted'
-                                  ? 'bg-blue-100 dark:bg-blue-500/20 text-blue-800 dark:text-blue-300 border-blue-300 dark:border-blue-500/30'
-                                  : lead.status === 'Consultation Scheduled'
-                                  ? 'bg-amber-100 dark:bg-amber-500/20 text-amber-800 dark:text-amber-300 border-amber-300 dark:border-amber-500/30'
-                                  : lead.status === 'Consultation Completed'
-                                  ? 'bg-indigo-100 dark:bg-indigo-500/20 text-indigo-800 dark:text-indigo-300 border-indigo-300 dark:border-indigo-500/30'
-                                  : lead.status === 'Proposal or Next Steps Pending'
-                                  ? 'bg-orange-100 dark:bg-orange-500/20 text-orange-800 dark:text-orange-300 border-orange-300 dark:border-orange-500/30'
-                                  : lead.status === 'In Progress'
-                                  ? 'bg-purple-100 dark:bg-purple-500/20 text-purple-800 dark:text-purple-300 border-purple-300 dark:border-purple-500/30'
-                                  : lead.status === 'Completed' || lead.status === 'Converted'
-                                  ? 'bg-teal-100 dark:bg-teal-500/20 text-teal-800 dark:text-teal-300 border-teal-300 dark:border-teal-500/30'
-                                  : 'bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400 border-slate-300 dark:border-slate-700'
-                              }`}
-                            >
-                              <option value="New Enquiry">New Enquiry</option>
-                              <option value="Contact Attempted">Contact Attempted</option>
-                              <option value="Consultation Scheduled">Consultation Scheduled</option>
-                              <option value="Consultation Completed">Consultation Completed</option>
-                              <option value="Proposal or Next Steps Pending">Proposal Pending</option>
-                              <option value="In Progress">In Progress</option>
-                              <option value="Completed">Completed</option>
-                              <option value="Closed">Closed</option>
-                            </select>
-
-                            {lead.priority && (
-                              <span className={`text-[9px] font-extrabold px-1.5 py-0.2 rounded block text-center uppercase tracking-wider ${
-                                lead.priority === 'Urgent' ? 'bg-rose-100 dark:bg-rose-500/20 text-rose-700 dark:text-rose-400' :
-                                lead.priority === 'High' ? 'bg-amber-100 dark:bg-amber-500/20 text-amber-700 dark:text-amber-400' :
-                                'bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400'
-                              }`}>
-                                {lead.priority} Priority
-                              </span>
-                            )}
-                          </div>
-                        </td>
-
-                        <td className="p-3 text-right">
-                          <div className="flex items-center justify-end gap-1">
-                            <button
-                              onClick={() => handleOpenLead(lead)}
-                              className="p-1.5 bg-slate-100 dark:bg-navy-950 text-slate-700 dark:text-slate-300 hover:text-gold-500 rounded-lg border border-slate-200 dark:border-navy-800 transition cursor-pointer"
-                              title="Open Full Workspace Dossier"
-                            >
-                              <Eye className="w-3.5 h-3.5" />
-                            </button>
+                          <span className="text-[10px] font-extrabold px-2 py-0.5 rounded-full bg-rose-500 text-white">
+                            OVERDUE
+                          </span>
+                        </div>
+                        <p className="text-slate-600 dark:text-slate-300 font-medium">{fu.notes || fu.type || 'Consultation follow-up'}</p>
+                        <div className="text-[11px] text-slate-500 flex items-center justify-between pt-1 border-t border-slate-200 dark:border-navy-800">
+                          <span>Scheduled: <strong className="text-rose-600 font-mono">{formatLeadDate(fu.dueDateTime)}</strong></span>
+                          <span>Assigned: <strong>{fu.assignedTo || 'Staff'}</strong></span>
+                        </div>
+                        <div className="flex items-center justify-end gap-2 pt-1">
+                          {fu.leadPhone && (
                             <a
-                              href={`https://wa.me/${cleanPhoneForWa(lead.phone)}`}
+                              href={`https://wa.me/${cleanPhoneForWa(fu.leadPhone)}`}
                               target="_blank"
                               rel="noopener noreferrer"
-                              className="p-1.5 bg-emerald-50 dark:bg-emerald-950/40 text-emerald-700 dark:text-emerald-400 hover:bg-emerald-100 rounded-lg border border-emerald-200 dark:border-emerald-800/40 transition cursor-pointer"
-                              title="Chat on WhatsApp"
+                              className="px-2.5 py-1 bg-emerald-600 text-white rounded-lg font-bold text-[10px] hover:bg-emerald-700 transition flex items-center gap-1"
                             >
-                              <MessageSquare className="w-3.5 h-3.5" />
+                              <MessageSquare className="w-3 h-3" />
+                              <span>WhatsApp</span>
                             </a>
-                            <a
-                              href={`mailto:${lead.email}?subject=Regarding Your Consultation - Revival International&body=Dear ${encodeURIComponent(lead.name)},%0D%0A%0D%0AThank you for reaching out to Revival International regarding ${encodeURIComponent(lead.serviceTitle || 'our consulting services')}.%0D%0A%0D%0A`}
-                              className="p-1.5 bg-blue-50 dark:bg-blue-950/40 text-blue-700 dark:text-blue-400 hover:bg-blue-100 rounded-lg border border-blue-200 dark:border-blue-800/40 transition cursor-pointer"
-                              title="Send Email"
-                            >
-                              <Mail className="w-3.5 h-3.5" />
-                            </a>
-                            <button
-                              onClick={() => handleDeleteLead(lead.id, lead.name)}
-                              className="p-1.5 bg-slate-100 dark:bg-navy-950 text-slate-400 hover:text-rose-500 rounded-lg border border-slate-200 dark:border-navy-800 transition cursor-pointer"
-                              title="Delete Lead"
-                            >
-                              <Trash2 className="w-3.5 h-3.5" />
-                            </button>
+                          )}
+                          <button
+                            onClick={() => handleCompleteFollowUp(fu.id)}
+                            className="px-2.5 py-1 bg-navy-900 dark:bg-gold-500 text-white dark:text-navy-950 rounded-lg font-bold text-[10px] hover:opacity-90 transition flex items-center gap-1 cursor-pointer"
+                          >
+                            <Check className="w-3 h-3" />
+                            <span>Mark Done</span>
+                          </button>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
+
+              {/* Due Today Queue */}
+              <div className="glass-card bg-white dark:bg-navy-900 border border-amber-500/30 p-6 rounded-3xl space-y-4 shadow-sm">
+                <div className="flex items-center justify-between border-b border-amber-500/20 pb-3">
+                  <div className="flex items-center gap-2">
+                    <Clock className="w-5 h-5 text-amber-500" />
+                    <h3 className="font-serif text-lg font-bold text-slate-900 dark:text-white">
+                      Due Today ({followUpsSummary?.counts?.dueToday || 0})
+                    </h3>
+                  </div>
+                  <span className="text-[10px] font-extrabold uppercase px-2 py-0.5 rounded bg-amber-500/20 text-amber-600 dark:text-amber-400">
+                    Scheduled for Today
+                  </span>
+                </div>
+
+                {(!followUpsSummary?.data?.dueToday || followUpsSummary.data.dueToday.length === 0) ? (
+                  <div className="text-center py-6 text-slate-500 text-xs">
+                    No follow-ups due today.
+                  </div>
+                ) : (
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                    {followUpsSummary.data.dueToday.map(fu => (
+                      <div key={fu.id} className="p-4 bg-amber-500/5 dark:bg-navy-950 rounded-2xl border border-amber-500/20 space-y-2 text-xs">
+                        <div className="flex justify-between items-start">
+                          <div>
+                            <p className="font-bold text-slate-900 dark:text-white text-sm">{fu.leadName || 'Client'}</p>
+                            <span className="text-[10px] text-gold-600 dark:text-gold-400 font-semibold">{fu.leadServiceTitle || 'Academic Consultation'}</span>
                           </div>
+                          <span className="text-[10px] font-extrabold px-2 py-0.5 rounded-full bg-amber-500 text-navy-950">
+                            DUE TODAY
+                          </span>
+                        </div>
+                        <p className="text-slate-600 dark:text-slate-300 font-medium">{fu.notes || fu.type || 'Consultation follow-up'}</p>
+                        <div className="text-[11px] text-slate-500 flex items-center justify-between pt-1 border-t border-slate-200 dark:border-navy-800">
+                          <span>Time: <strong className="text-amber-600 font-mono">{formatLeadDate(fu.dueDateTime)}</strong></span>
+                          <span>Assigned: <strong>{fu.assignedTo || 'Staff'}</strong></span>
+                        </div>
+                        <div className="flex items-center justify-end gap-2 pt-1">
+                          {fu.leadPhone && (
+                            <a
+                              href={`https://wa.me/${cleanPhoneForWa(fu.leadPhone)}`}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              className="px-2.5 py-1 bg-emerald-600 text-white rounded-lg font-bold text-[10px] hover:bg-emerald-700 transition flex items-center gap-1"
+                            >
+                              <MessageSquare className="w-3 h-3" />
+                              <span>WhatsApp</span>
+                            </a>
+                          )}
+                          <button
+                            onClick={() => handleCompleteFollowUp(fu.id)}
+                            className="px-2.5 py-1 bg-navy-900 dark:bg-gold-500 text-white dark:text-navy-950 rounded-lg font-bold text-[10px] hover:opacity-90 transition flex items-center gap-1 cursor-pointer"
+                          >
+                            <Check className="w-3 h-3" />
+                            <span>Mark Done</span>
+                          </button>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
+
+              {/* Upcoming Queue */}
+              <div className="glass-card bg-white dark:bg-navy-900 border border-slate-200 dark:border-navy-800 p-6 rounded-3xl space-y-4 shadow-sm">
+                <div className="flex items-center justify-between border-b border-slate-200 dark:border-navy-800 pb-3">
+                  <div className="flex items-center gap-2">
+                    <Calendar className="w-5 h-5 text-blue-500" />
+                    <h3 className="font-serif text-lg font-bold text-slate-900 dark:text-white">
+                      Upcoming Follow-ups ({followUpsSummary?.counts?.upcoming || 0})
+                    </h3>
+                  </div>
+                  <span className="text-[10px] font-extrabold uppercase px-2 py-0.5 rounded bg-blue-500/20 text-blue-600 dark:text-blue-400">
+                    Next 7 - 30 Days
+                  </span>
+                </div>
+
+                {(!followUpsSummary?.data?.upcoming || followUpsSummary.data.upcoming.length === 0) ? (
+                  <div className="text-center py-6 text-slate-500 text-xs">
+                    No upcoming follow-ups scheduled.
+                  </div>
+                ) : (
+                  <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+                    {followUpsSummary.data.upcoming.map(fu => (
+                      <div key={fu.id} className="p-3.5 bg-slate-50 dark:bg-navy-950 rounded-2xl border border-slate-200 dark:border-navy-800 space-y-2 text-xs">
+                        <div>
+                          <p className="font-bold text-slate-900 dark:text-white">{fu.leadName || 'Client'}</p>
+                          <span className="text-[10px] text-gold-600 dark:text-gold-400 font-semibold">{fu.leadServiceTitle || 'Academic Consultation'}</span>
+                        </div>
+                        <p className="text-slate-600 dark:text-slate-300 font-medium truncate">{fu.notes || fu.type}</p>
+                        <div className="text-[10px] text-slate-500 flex justify-between pt-1 border-t border-slate-200 dark:border-navy-800">
+                          <span>Due: <strong className="font-mono">{formatLeadDate(fu.dueDateTime)}</strong></span>
+                          <span>{fu.assignedTo || 'Staff'}</span>
+                        </div>
+                        <div className="flex items-center justify-end gap-1.5 pt-1">
+                          <button
+                            onClick={() => handleCompleteFollowUp(fu.id)}
+                            className="px-2 py-0.5 bg-slate-200 dark:bg-navy-800 hover:bg-emerald-600 hover:text-white rounded-lg font-bold text-[10px] transition cursor-pointer"
+                          >
+                            Mark Done
+                          </button>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
+            </div>
+          )}
+
+          {/* SUB-VIEW 3: SERVICE PERFORMANCE BREAKDOWN */}
+          {inquiriesSubView === 'services' && (
+            <div className="glass-card bg-white dark:bg-navy-900 border border-slate-200 dark:border-navy-800 p-6 rounded-3xl space-y-6 shadow-sm">
+              <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-2 border-b border-slate-200 dark:border-navy-800 pb-3">
+                <div>
+                  <h3 className="font-serif text-lg font-bold text-slate-900 dark:text-white flex items-center gap-2">
+                    <GraduationCap className="w-5 h-5 text-gold-500" />
+                    Service-Wise Conversion & Pipeline Breakdown
+                  </h3>
+                  <p className="text-xs text-slate-500 dark:text-slate-400">
+                    Live analytics across the 6 verified academic & recruitment service catalogs.
+                  </p>
+                </div>
+                <button
+                  onClick={() => {
+                    if (fetchLeadMetrics) fetchLeadMetrics(leadDateRangeFilter);
+                  }}
+                  className="px-3 py-1 bg-slate-100 hover:bg-slate-200 dark:bg-navy-950 dark:hover:bg-navy-800 text-slate-700 dark:text-slate-200 rounded-xl text-xs font-bold border border-slate-300 dark:border-navy-700 cursor-pointer flex items-center gap-1"
+                >
+                  <RefreshCw className="w-3 h-3" />
+                  <span>Refresh Metrics</span>
+                </button>
+              </div>
+
+              <div className="overflow-x-auto rounded-2xl border border-slate-200 dark:border-navy-800">
+                <table className="w-full text-left text-xs border-collapse">
+                  <thead>
+                    <tr className="bg-slate-100 dark:bg-navy-950 text-slate-700 dark:text-gold-400 font-serif uppercase tracking-wider text-[10px] border-b border-slate-200 dark:border-navy-800">
+                      <th className="p-3 font-extrabold">ACADEMIC / RECRUITMENT SERVICE</th>
+                      <th className="p-3 font-extrabold">CATEGORY</th>
+                      <th className="p-3 font-extrabold text-center">TOTAL LEADS</th>
+                      <th className="p-3 font-extrabold text-center">NEW</th>
+                      <th className="p-3 font-extrabold text-center">AWAITING FOLLOW-UP</th>
+                      <th className="p-3 font-extrabold text-center">IN PROGRESS</th>
+                      <th className="p-3 font-extrabold text-center">CONVERTED</th>
+                      <th className="p-3 font-extrabold text-center">CONVERSION RATE</th>
+                      <th className="p-3 font-extrabold text-right">ACTION</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-slate-100 dark:divide-navy-800 text-slate-800 dark:text-slate-300">
+                    {(serviceBreakdown.length > 0 ? serviceBreakdown : [
+                      { serviceId: 'intl-consult', serviceTitle: 'International Consulting', category: 'Consulting', total: 0, newCount: 0, awaitingFollowUp: 0, inProgress: 0, converted: 0, conversionRate: 0 },
+                      { serviceId: 'college-adm', serviceTitle: 'College Admission Assistance', category: 'Higher Education', total: 0, newCount: 0, awaitingFollowUp: 0, inProgress: 0, converted: 0, conversionRate: 0 },
+                      { serviceId: 'school-career', serviceTitle: 'School Student Career Guidance', category: 'K-12 & High School', total: 0, newCount: 0, awaitingFollowUp: 0, inProgress: 0, converted: 0, conversionRate: 0 },
+                      { serviceId: 'intl-adm', serviceTitle: 'International Admissions', category: 'Admissions', total: 0, newCount: 0, awaitingFollowUp: 0, inProgress: 0, converted: 0, conversionRate: 0 },
+                      { serviceId: 'school-academy', serviceTitle: 'Academy for School Students', category: 'Academic Enrichment', total: 0, newCount: 0, awaitingFollowUp: 0, inProgress: 0, converted: 0, conversionRate: 0 },
+                      { serviceId: 'exec-seminars-lang', serviceTitle: 'Executive Seminars & Language Test Preparation', category: 'Test Prep & Executive', total: 0, newCount: 0, awaitingFollowUp: 0, inProgress: 0, converted: 0, conversionRate: 0 }
+                    ]).map(srv => (
+                      <tr key={srv.serviceId} className="hover:bg-slate-50 dark:hover:bg-navy-950/60 transition">
+                        <td className="p-3 font-bold text-slate-900 dark:text-white flex items-center gap-2">
+                          <div className="w-6 h-6 rounded-lg bg-gold-500/10 text-gold-600 dark:text-gold-400 flex items-center justify-center font-bold text-[10px] shrink-0 border border-gold-500/20">
+                            🎓
+                          </div>
+                          <span className="truncate">{srv.serviceTitle}</span>
+                        </td>
+                        <td className="p-3">
+                          <span className="bg-slate-100 dark:bg-navy-900 text-slate-700 dark:text-slate-300 px-2 py-0.5 rounded text-[10px] font-semibold border border-slate-200 dark:border-navy-700">
+                            {srv.category}
+                          </span>
+                        </td>
+                        <td className="p-3 text-center font-bold text-slate-900 dark:text-white font-mono">
+                          {srv.total}
+                        </td>
+                        <td className="p-3 text-center font-bold text-emerald-600 dark:text-emerald-400 font-mono">
+                          {srv.newCount}
+                        </td>
+                        <td className="p-3 text-center font-bold text-amber-600 dark:text-amber-400 font-mono">
+                          {srv.awaitingFollowUp}
+                        </td>
+                        <td className="p-3 text-center font-bold text-purple-600 dark:text-purple-400 font-mono">
+                          {srv.inProgress}
+                        </td>
+                        <td className="p-3 text-center font-bold text-teal-600 dark:text-teal-400 font-mono">
+                          {srv.converted}
+                        </td>
+                        <td className="p-3 text-center">
+                          <span className={`px-2 py-0.5 rounded-full text-[10px] font-extrabold font-mono ${
+                            srv.conversionRate > 0
+                              ? 'bg-emerald-100 text-emerald-800 dark:bg-emerald-500/20 dark:text-emerald-300'
+                              : 'bg-slate-100 text-slate-600 dark:bg-navy-900 dark:text-slate-400'
+                          }`}>
+                            {srv.conversionRate}%
+                          </span>
+                        </td>
+                        <td className="p-3 text-right">
+                          <button
+                            onClick={() => {
+                              setLeadServiceFilter(srv.serviceId);
+                              setInquiriesSubView('leads');
+                              setLeadPage(1);
+                            }}
+                            className="px-2.5 py-1 bg-navy-900 dark:bg-gold-500 text-white dark:text-navy-950 rounded-lg font-bold text-[10px] hover:opacity-90 transition cursor-pointer flex items-center gap-1 ml-auto"
+                            title={`View all leads for ${srv.serviceTitle}`}
+                          >
+                            <span>Filter Leads</span>
+                            <ChevronRight className="w-3 h-3" />
+                          </button>
                         </td>
                       </tr>
                     ))}
                   </tbody>
                 </table>
               </div>
-            )}
-          </div>
+            </div>
+          )}
         </div>
       )}
 
@@ -1660,6 +2255,18 @@ export const CrmSuperAdmin = () => {
                 >
                   <Copy className="w-4 h-4" />
                 </button>
+                <button
+                  onClick={() => handleArchiveToggle(selectedLead, !selectedLead.isArchived)}
+                  disabled={leadActionLoading}
+                  className={`p-2 rounded-xl text-xs font-bold transition cursor-pointer flex items-center gap-1 ${
+                    selectedLead.isArchived 
+                      ? 'bg-amber-500/20 text-amber-600 dark:text-amber-400 border border-amber-500/40' 
+                      : 'bg-slate-100 dark:bg-navy-800 text-slate-700 dark:text-slate-300 hover:text-amber-600'
+                  }`}
+                  title={selectedLead.isArchived ? "Restore Lead from Archive" : "Archive Lead (Soft-delete)"}
+                >
+                  {selectedLead.isArchived ? <RotateCcw className="w-4 h-4" /> : <Archive className="w-4 h-4" />}
+                </button>
                 <a
                   href={`https://wa.me/${cleanPhoneForWa(selectedLead.phone)}`}
                   target="_blank"
@@ -1696,13 +2303,25 @@ export const CrmSuperAdmin = () => {
                   className="w-full bg-white dark:bg-navy-900 border border-slate-300 dark:border-navy-700 rounded-xl px-2.5 py-1.5 font-bold focus:outline-none focus:border-gold-500 cursor-pointer"
                 >
                   <option value="New Enquiry">New Enquiry</option>
-                  <option value="Contact Attempted">Contact Attempted</option>
-                  <option value="Consultation Scheduled">Consultation Scheduled</option>
-                  <option value="Consultation Completed">Consultation Completed</option>
-                  <option value="Proposal or Next Steps Pending">Proposal Pending</option>
+                  <option value="Contact Pending">Contact Pending</option>
+                  <option value="Contacted">Contacted</option>
+                  <option value="Follow-up Required">Follow-up Required</option>
+                  <option value="Screening">Screening</option>
+                  <option value="Shortlisted">Shortlisted</option>
+                  <option value="Interview Scheduled">Interview Scheduled</option>
+                  <option value="Interview Completed">Interview Completed</option>
+                  <option value="Qualified">Qualified</option>
+                  <option value="Selected">Selected</option>
+                  <option value="Offer Released">Offer Released</option>
+                  <option value="Under Review">Under Review</option>
+                  <option value="Visa Processing">Visa Processing</option>
+                  <option value="Mobilization">Mobilization</option>
+                  <option value="Contract Active">Contract Active</option>
+                  <option value="Contract Ended">Contract Ended</option>
+                  <option value="Renewed">Renewed</option>
                   <option value="In Progress">In Progress</option>
-                  <option value="Completed">Completed</option>
-                  <option value="Closed">Closed</option>
+                  <option value="Converted">Converted</option>
+                  <option value="Closed / Lost">Closed / Lost</option>
                 </select>
               </div>
 
@@ -1749,6 +2368,42 @@ export const CrmSuperAdmin = () => {
                     <option key={org.id} value={org.id}>{org.name} ({org.organizationType || 'Partner'})</option>
                   ))}
                 </select>
+              </div>
+            </div>
+
+            {/* Staff Confidential Internal Notes (Protected Admin Dossier) */}
+            <div className="bg-amber-500/5 dark:bg-navy-950 p-4 rounded-2xl border border-amber-500/25 dark:border-navy-800 space-y-2 shrink-0">
+              <div className="flex justify-between items-center">
+                <div className="flex items-center gap-1.5">
+                  <Lock className="w-3.5 h-3.5 text-amber-600 dark:text-gold-400" />
+                  <span className="text-[11px] font-bold text-slate-900 dark:text-white uppercase tracking-wider">
+                    Staff Internal Notes & Evaluation (Private / Not Public)
+                  </span>
+                </div>
+                <span className="text-[10px] text-slate-500 dark:text-slate-400 font-medium">
+                  Stored securely in SQLite • Never shared with applicant
+                </span>
+              </div>
+              <textarea
+                rows={2}
+                value={leadInternalNotesInput}
+                onChange={e => setLeadInternalNotesInput(e.target.value)}
+                placeholder="Enter private internal evaluation, consultant impressions, verification checks, or VIP handling instructions..."
+                className="w-full bg-white dark:bg-navy-900 border border-slate-300 dark:border-navy-700 rounded-xl p-2.5 text-xs text-slate-900 dark:text-white font-sans focus:outline-none focus:border-gold-500"
+              />
+              <div className="flex justify-between items-center pt-0.5">
+                <span className="text-[10px] text-slate-500">
+                  Only visible to authenticated administrators and consultants.
+                </span>
+                <button
+                  type="button"
+                  onClick={handleSaveInternalNotes}
+                  disabled={leadActionLoading}
+                  className="px-3 py-1 bg-gold-500 hover:bg-gold-600 text-navy-950 font-bold text-xs rounded-lg transition cursor-pointer flex items-center gap-1 shadow-xs"
+                >
+                  <Check className="w-3 h-3" />
+                  <span>{leadActionLoading ? 'Saving...' : 'Save Notes'}</span>
+                </button>
               </div>
             </div>
 
@@ -1834,10 +2489,126 @@ export const CrmSuperAdmin = () => {
                   </div>
                 </div>
 
+                {/* Service Specifications & Job Requirements Card */}
+                {(selectedLead.jobTitle || selectedLead.skills || selectedLead.vacancies || selectedLead.salaryRange || selectedLead.contractDuration || selectedLead.startDate || selectedLead.visaCategory || selectedLead.seniority || selectedLead.industry || selectedLead.cvPath || selectedLead.workLocation) && (
+                  <div className="p-4 bg-gold-500/5 dark:bg-navy-950 rounded-2xl border border-gold-500/30 space-y-3">
+                    <div className="flex items-center justify-between">
+                      <span className="text-[10px] text-gold-600 dark:text-gold-400 font-extrabold uppercase tracking-wider flex items-center gap-1.5">
+                        <Briefcase className="w-3.5 h-3.5" />
+                        <span>Workforce & Service Specifications</span>
+                      </span>
+                      {selectedLead.cvPath && (
+                        <a
+                          href={selectedLead.cvPath}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="px-2.5 py-1 bg-gold-500 text-navy-950 rounded-lg font-bold text-[10px] hover:bg-gold-400 transition flex items-center gap-1 shadow-xs"
+                        >
+                          <FileText className="w-3 h-3" />
+                          <span>View Attached CV / Brief</span>
+                        </a>
+                      )}
+                    </div>
+
+                    <div className="grid grid-cols-2 sm:grid-cols-4 gap-2.5 text-xs">
+                      {selectedLead.jobTitle && (
+                        <div className="p-2.5 bg-white dark:bg-navy-900 rounded-xl border border-slate-200 dark:border-navy-800">
+                          <span className="text-[9px] text-slate-400 font-bold uppercase block">Job Title / Role</span>
+                          <span className="font-bold text-slate-900 dark:text-white truncate block">{selectedLead.jobTitle}</span>
+                        </div>
+                      )}
+                      {selectedLead.vacancies && (
+                        <div className="p-2.5 bg-white dark:bg-navy-900 rounded-xl border border-slate-200 dark:border-navy-800">
+                          <span className="text-[9px] text-slate-400 font-bold uppercase block">Vacancies / Headcount</span>
+                          <span className="font-bold text-emerald-600 dark:text-emerald-400">{selectedLead.vacancies}</span>
+                        </div>
+                      )}
+                      {selectedLead.salaryRange && (
+                        <div className="p-2.5 bg-white dark:bg-navy-900 rounded-xl border border-slate-200 dark:border-navy-800">
+                          <span className="text-[9px] text-slate-400 font-bold uppercase block">Salary Range</span>
+                          <span className="font-bold text-slate-900 dark:text-white">{selectedLead.salaryRange}</span>
+                        </div>
+                      )}
+                      {selectedLead.workLocation && (
+                        <div className="p-2.5 bg-white dark:bg-navy-900 rounded-xl border border-slate-200 dark:border-navy-800">
+                          <span className="text-[9px] text-slate-400 font-bold uppercase block">Location</span>
+                          <span className="font-bold text-slate-900 dark:text-white truncate block">{selectedLead.workLocation}</span>
+                        </div>
+                      )}
+                      {selectedLead.experience && (
+                        <div className="p-2.5 bg-white dark:bg-navy-900 rounded-xl border border-slate-200 dark:border-navy-800">
+                          <span className="text-[9px] text-slate-400 font-bold uppercase block">Experience</span>
+                          <span className="font-bold text-slate-900 dark:text-white">{selectedLead.experience}</span>
+                        </div>
+                      )}
+                      {selectedLead.seniority && (
+                        <div className="p-2.5 bg-white dark:bg-navy-900 rounded-xl border border-slate-200 dark:border-navy-800">
+                          <span className="text-[9px] text-slate-400 font-bold uppercase block">Seniority</span>
+                          <span className="font-bold text-gold-600 dark:text-gold-400">{selectedLead.seniority}</span>
+                        </div>
+                      )}
+                      {selectedLead.industry && (
+                        <div className="p-2.5 bg-white dark:bg-navy-900 rounded-xl border border-slate-200 dark:border-navy-800">
+                          <span className="text-[9px] text-slate-400 font-bold uppercase block">Industry Sector</span>
+                          <span className="font-bold text-slate-900 dark:text-white">{selectedLead.industry}</span>
+                        </div>
+                      )}
+                      {selectedLead.contractDuration && (
+                        <div className="p-2.5 bg-white dark:bg-navy-900 rounded-xl border border-slate-200 dark:border-navy-800">
+                          <span className="text-[9px] text-slate-400 font-bold uppercase block">Contract Duration</span>
+                          <span className="font-bold text-amber-600 dark:text-amber-400">{selectedLead.contractDuration}</span>
+                        </div>
+                      )}
+                      {selectedLead.startDate && (
+                        <div className="p-2.5 bg-white dark:bg-navy-900 rounded-xl border border-slate-200 dark:border-navy-800">
+                          <span className="text-[9px] text-slate-400 font-bold uppercase block">Start Date</span>
+                          <span className="font-bold font-mono">{selectedLead.startDate}</span>
+                        </div>
+                      )}
+                      {selectedLead.endDate && (
+                        <div className="p-2.5 bg-white dark:bg-navy-900 rounded-xl border border-slate-200 dark:border-navy-800">
+                          <span className="text-[9px] text-slate-400 font-bold uppercase block">End Date</span>
+                          <span className="font-bold font-mono">{selectedLead.endDate}</span>
+                        </div>
+                      )}
+                      {selectedLead.shiftRequirements && (
+                        <div className="p-2.5 bg-white dark:bg-navy-900 rounded-xl border border-slate-200 dark:border-navy-800">
+                          <span className="text-[9px] text-slate-400 font-bold uppercase block">Shift Schedule</span>
+                          <span className="font-bold text-slate-900 dark:text-white">{selectedLead.shiftRequirements}</span>
+                        </div>
+                      )}
+                      {selectedLead.visaCategory && (
+                        <div className="p-2.5 bg-white dark:bg-navy-900 rounded-xl border border-slate-200 dark:border-navy-800">
+                          <span className="text-[9px] text-slate-400 font-bold uppercase block">Visa / Permit Track</span>
+                          <span className="font-bold text-slate-900 dark:text-white">{selectedLead.visaCategory}</span>
+                        </div>
+                      )}
+                      {selectedLead.skills && (
+                        <div className="p-2.5 bg-white dark:bg-navy-900 rounded-xl border border-slate-200 dark:border-navy-800 sm:col-span-2">
+                          <span className="text-[9px] text-slate-400 font-bold uppercase block">Skills / Qualifications</span>
+                          <span className="font-medium text-slate-800 dark:text-slate-200">{selectedLead.skills}</span>
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                )}
+
                 <div className="p-4 bg-slate-50 dark:bg-navy-950 rounded-2xl border border-slate-200 dark:border-navy-800 space-y-1.5">
                   <span className="text-[10px] text-slate-500 font-bold uppercase tracking-wider block">Submitted Inquiry Details & Goals</span>
                   <p className="text-xs text-slate-700 dark:text-slate-300 whitespace-pre-wrap leading-relaxed font-sans">{selectedLead.message}</p>
                 </div>
+
+                {(selectedLead.utmSource || selectedLead.utmMedium || selectedLead.utmCampaign || selectedLead.referrer) && (
+                  <div className="p-3 bg-slate-100 dark:bg-navy-950 rounded-xl border border-slate-200 dark:border-navy-800 space-y-1">
+                    <span className="text-[10px] text-slate-500 font-bold uppercase tracking-wider block">Marketing & Acquisition Attribution</span>
+                    <div className="flex flex-wrap gap-2 text-xs">
+                      {selectedLead.utmSource && <span className="px-2 py-0.5 bg-white dark:bg-navy-900 rounded border border-slate-200 dark:border-navy-700 text-slate-700 dark:text-slate-300 font-mono text-[10px]">Source: <strong>{selectedLead.utmSource}</strong></span>}
+                      {selectedLead.utmMedium && <span className="px-2 py-0.5 bg-white dark:bg-navy-900 rounded border border-slate-200 dark:border-navy-700 text-slate-700 dark:text-slate-300 font-mono text-[10px]">Medium: <strong>{selectedLead.utmMedium}</strong></span>}
+                      {selectedLead.utmCampaign && <span className="px-2 py-0.5 bg-white dark:bg-navy-900 rounded border border-slate-200 dark:border-navy-700 text-slate-700 dark:text-slate-300 font-mono text-[10px]">Campaign: <strong>{selectedLead.utmCampaign}</strong></span>}
+                      {selectedLead.referrer && <span className="px-2 py-0.5 bg-white dark:bg-navy-900 rounded border border-slate-200 dark:border-navy-700 text-slate-700 dark:text-slate-300 font-mono text-[10px] truncate max-w-xs">Referrer: {selectedLead.referrer}</span>}
+                    </div>
+                  </div>
+                )}
               </div>
             )}
 
