@@ -32,25 +32,9 @@ export default {
           700: '#8f6f19',
         }
       },
-      // Typography system — Inter for body copy, Manrope for headings / nav / buttons.
-      // `serif` is retained as a legacy alias that now resolves to Manrope, so every
-      // existing `font-serif` heading adopts the new heading face automatically.
       fontFamily: {
-        sans: ['Inter', 'ui-sans-serif', 'system-ui', '-apple-system', 'BlinkMacSystemFont', 'Segoe UI', 'Roboto', 'Helvetica Neue', 'Arial', 'sans-serif'],
-        body: ['Inter', 'ui-sans-serif', 'system-ui', '-apple-system', 'BlinkMacSystemFont', 'Segoe UI', 'Roboto', 'Helvetica Neue', 'Arial', 'sans-serif'],
-        heading: ['Manrope', 'ui-sans-serif', 'system-ui', '-apple-system', 'BlinkMacSystemFont', 'Segoe UI', 'Roboto', 'Helvetica Neue', 'Arial', 'sans-serif'],
-        serif: ['Manrope', 'ui-sans-serif', 'system-ui', '-apple-system', 'BlinkMacSystemFont', 'Segoe UI', 'Roboto', 'Helvetica Neue', 'Arial', 'sans-serif'],
-      },
-      letterSpacing: {
-        heading: '-0.02em',
-        display: '-0.035em',
-      },
-      // Comfortable line-heights for large display sizes (Tailwind defaults these to 1).
-      fontSize: {
-        '4xl': ['2.25rem', { lineHeight: '1.15' }],
-        '5xl': ['3rem', { lineHeight: '1.1' }],
-        '6xl': ['3.75rem', { lineHeight: '1.08' }],
-        '7xl': ['4.5rem', { lineHeight: '1.05' }],
+        sans: ['Plus Jakarta Sans', 'Inter', 'sans-serif'],
+        serif: ['Playfair Display', 'Merriweather', 'serif'],
       },
       boxShadow: {
         'glass': '0 8px 32px 0 rgba(15, 23, 42, 0.08)',
