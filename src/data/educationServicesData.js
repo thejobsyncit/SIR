@@ -583,6 +583,7 @@ export const getEducationServiceBySlug = (slug) => {
   return EDUCATION_SERVICES_DETAILED.find(s => 
     s.slug.toLowerCase() === clean || 
     s.id.toLowerCase() === clean ||
-    (s.id === 'exec-seminars-lang' && (clean === 'executive-seminars-and-language-test-preparation' || clean === 'executive-seminars-language-training'))
+    (s.id === 'exec-seminars-lang' && (clean === 'executive-seminars-and-language-test-preparation' || clean === 'executive-seminars-language-training')) ||
+    (s.id === 'school-career' && (clean === 'career-guidance' || clean === 'career-course-guidance' || clean === 'course-guidance' || clean === 'ug-pg-course-guidance'))
   ) || null;
 };

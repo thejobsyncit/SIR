@@ -22,6 +22,7 @@ const iconMap = {
 };
 
 import { InternationalConsultingPage } from './InternationalConsultingPage';
+import { CourseGuidanceCatalogue } from '../components/CourseGuidanceCatalogue';
 
 export const EducationServiceDetail = ({ serviceId }) => {
   const { navigateTo } = useApp();
@@ -280,41 +281,50 @@ export const EducationServiceDetail = ({ serviceId }) => {
           </ScrollReveal>
         )}
 
-        {/* Key Benefits Grid */}
-        <ScrollReveal>
-          <div className="space-y-8">
-            <div className="text-center space-y-2 max-w-2xl mx-auto">
-              <span className="bg-gold-500/10 text-gold-600 dark:text-gold-400 text-xs font-bold px-3 py-1 rounded-full uppercase tracking-wider">
-                Strategic Advantages
-              </span>
-              <h2 className="font-serif text-2xl sm:text-3xl font-extrabold text-navy-900 dark:text-white">
-                Key Benefits & Service Highlights
-              </h2>
-              <p className="text-xs text-slate-700 dark:text-slate-300">
-                How our certified educational advisors deliver measurable outcomes and admissions clarity.
-              </p>
-            </div>
+        {/* Key Benefits Grid or Course Guidance Catalogue */}
+        {service.id === 'school-career' ? (
+          <CourseGuidanceCatalogue 
+            onInquire={(course) => {
+              setSelectedSubProgram(`${course.abbreviation} (${course.name})`);
+              setModalOpen(true);
+            }}
+          />
+        ) : (
+          <ScrollReveal>
+            <div className="space-y-8">
+              <div className="text-center space-y-2 max-w-2xl mx-auto">
+                <span className="bg-gold-500/10 text-gold-600 dark:text-gold-400 text-xs font-bold px-3 py-1 rounded-full uppercase tracking-wider">
+                  Strategic Advantages
+                </span>
+                <h2 className="font-serif text-2xl sm:text-3xl font-extrabold text-navy-900 dark:text-white">
+                  Key Benefits & Service Highlights
+                </h2>
+                <p className="text-xs text-slate-700 dark:text-slate-300">
+                  How our certified educational advisors deliver measurable outcomes and admissions clarity.
+                </p>
+              </div>
 
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
-              {service.keyBenefits.map((benefit, idx) => (
-                <div 
-                  key={idx}
-                  className="glass-card bg-white dark:bg-navy-900 border border-slate-200 dark:border-navy-800 rounded-2xl p-6 space-y-3 hover:border-gold-500 transition duration-300"
-                >
-                  <div className="w-10 h-10 rounded-xl bg-gold-500/10 text-gold-500 flex items-center justify-center font-bold font-serif text-lg">
-                    0{idx + 1}
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
+                {(service.keyBenefits || []).map((benefit, idx) => (
+                  <div 
+                    key={idx}
+                    className="glass-card bg-white dark:bg-navy-900 border border-slate-200 dark:border-navy-800 rounded-2xl p-6 space-y-3 hover:border-gold-500 transition duration-300"
+                  >
+                    <div className="w-10 h-10 rounded-xl bg-gold-500/10 text-gold-500 flex items-center justify-center font-bold font-serif text-lg">
+                      0{idx + 1}
+                    </div>
+                    <h3 className="font-serif text-lg font-bold text-navy-900 dark:text-white">
+                      {benefit.title}
+                    </h3>
+                    <p className="text-xs text-slate-700 dark:text-slate-300 leading-relaxed font-medium">
+                      {benefit.desc}
+                    </p>
                   </div>
-                  <h3 className="font-serif text-lg font-bold text-navy-900 dark:text-white">
-                    {benefit.title}
-                  </h3>
-                  <p className="text-xs text-slate-700 dark:text-slate-300 leading-relaxed font-medium">
-                    {benefit.desc}
-                  </p>
-                </div>
-              ))}
+                ))}
+              </div>
             </div>
-          </div>
-        </ScrollReveal>
+          </ScrollReveal>
+        )}
 
         {/* Who Is It For */}
         <ScrollReveal>
