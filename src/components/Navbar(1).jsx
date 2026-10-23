@@ -30,15 +30,15 @@ export const Navbar = () => {
         <div className="flex items-center space-x-6">
           <div className="flex items-center space-x-2">
             <Phone className="w-3.5 h-3.5 text-gold-500" />
-            <span>{t('nav.dubaiHQ')}: <strong className="text-slate-900 dark:text-white">+971 4 123 4567</strong></span>
+            <span>{t('nav.indiaHQ') || 'India HQ'}: <a href="tel:+919003475405" className="text-slate-900 dark:text-white font-bold hover:text-gold-500 transition">+91 9003475405</a></span>
           </div>
           <div className="hidden md:flex items-center space-x-2">
             <Mail className="w-3.5 h-3.5 text-gold-500" />
-            <span>info@revivalinternational.com</span>
+            <a href="mailto:enquiry@therevivalinternational.com" className="hover:text-gold-500 transition">enquiry@therevivalinternational.com</a>
           </div>
           <div className="hidden lg:flex items-center space-x-1 text-gold-400">
             <Award className="w-3.5 h-3.5" />
-            <span>{t('nav.mohreBadge')}</span>
+            <span>{t('nav.indiaBadge') || 'Govt. Recognized & ISO 9001:2025 Certified Agency'}</span>
           </div>
         </div>
 
@@ -70,9 +70,10 @@ export const Navbar = () => {
           <button 
             onClick={toggleDarkMode}
             aria-label="Toggle dark mode"
-            className="p-1 rounded bg-navy-800 hover:bg-navy-700 text-gold-400 transition"
+            className="p-1.5 rounded-lg bg-slate-100 hover:bg-slate-200 dark:bg-navy-800 dark:hover:bg-navy-700 text-slate-700 dark:text-gold-400 border border-slate-300 dark:border-navy-700 transition shadow-sm flex items-center justify-center"
+            title={darkMode ? "Switch to light mode" : "Switch to dark mode"}
           >
-            {darkMode ? <Sun className="w-3.5 h-3.5" /> : <Moon className="w-3.5 h-3.5" />}
+            {darkMode ? <Sun className="w-3.5 h-3.5 text-gold-400" /> : <Moon className="w-3.5 h-3.5 text-slate-700" />}
           </button>
         </div>
       </div>
@@ -89,9 +90,9 @@ export const Navbar = () => {
             <BrandLogoIcon className="w-12 h-12 group-hover:scale-105 transition duration-300 shadow-md" />
             <div>
               <div className="font-serif text-2xl font-black tracking-tight text-navy-900 dark:text-white flex items-center gap-2">
-                Revival <span className="text-gold-500 font-sans text-[11px] font-bold uppercase tracking-widest px-2 py-0.5 bg-slate-50 dark:bg-navy-900 text-gold-400 rounded-md shadow-sm">Recruitment</span>
+                The Revival <span className="text-gold-500 font-sans text-[11px] font-bold uppercase tracking-widest px-2 py-0.5 bg-slate-50 dark:bg-navy-900 text-gold-400 rounded-md shadow-sm">International</span>
               </div>
-              <p className="text-[10px] uppercase tracking-widest text-slate-700 dark:text-slate-300 font-extrabold">Dubai • GCC • Worldwide</p>
+              <p className="text-[10px] uppercase tracking-widest text-slate-700 dark:text-slate-300 font-extrabold">India • GCC • Worldwide</p>
             </div>
           </div>
 
@@ -186,7 +187,7 @@ export const Navbar = () => {
                   <span className="text-[9px] text-gold-400 font-semibold uppercase">{user.role}</span>
                 </div>
                 <button
-                  onClick={() => navigateTo(user.role === 'employer' ? 'employers' : 'candidates')}
+                  onClick={() => navigateTo('candidates')}
                   className="px-2.5 py-1 bg-gold-500/20 hover:bg-gold-500 hover:text-slate-900 dark:text-white text-gold-400 rounded-full text-[10px] font-bold transition ml-1"
                 >
                   Portal

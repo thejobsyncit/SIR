@@ -89,7 +89,7 @@ export const CrmAccounts = () => {
 
   const downloadReceiptFile = (receipt) => {
     const text = `=====================================================
-Revival International ENTERPRISE - OFFICIAL TAX RECEIPT
+The Revival International ENTERPRISE - OFFICIAL TAX RECEIPT
 =====================================================
 Invoice ID: ${receipt.id}
 Transaction Ref: ${receipt.transactionId}

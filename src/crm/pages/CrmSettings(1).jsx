@@ -17,11 +17,11 @@ export const CrmSettings = () => {
 
   // Company Profile State
   const [companyProfile, setCompanyProfile] = useState({
-    name: 'Revival International Enterprise LLC',
-    crNumber: 'CR-908129-DUBAI',
-    address: 'Al Habtoor Business Tower, Level 24, Dubai, UAE',
-    supportEmail: 'support@revivalinternational.com',
-    phone: '+971 4 390 1111'
+    name: 'The Revival International Enterprise LLC',
+    crNumber: 'CR-908129-IND-DUBAI',
+    address: 'The Revival International Corporate Tower, Chennai, India / Dubai, UAE',
+    supportEmail: 'enquiry@therevivalinternational.com',
+    phone: '+91 9003475405'
   });
 
   // Gateway Settings State

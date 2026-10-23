@@ -266,7 +266,7 @@ export const CrmReports = () => {
               {/* Document Header & Logo */}
               <div className="flex justify-between items-start border-b border-slate-300 dark:border-slate-800 pb-4">
                 <div>
-                  <h2 className="font-serif text-2xl font-extrabold text-slate-900 dark:text-white tracking-wide">Revival International</h2>
+                  <h2 className="font-serif text-2xl font-extrabold text-slate-900 dark:text-white tracking-wide">The Revival International</h2>
                   <p className="text-[10px] text-amber-700 dark:text-gold-400 font-bold uppercase tracking-widest">Enterprise Edition • Executive Intelligence</p>
                 </div>
                 <div className="text-right text-[10px] text-slate-600 dark:text-slate-400">

@@ -196,8 +196,8 @@ export const ContactUsPage = () => {
             mainEntity: {
               '@type': 'Organization',
               name: 'Revival International',
-              telephone: '+971-4-123-4567',
-              email: 'dubai@revivalinternational.com',
+              telephone: '+91 9003475405',
+              email: 'enquiry@therevivalinternational.com',
               address: {
                 '@type': 'PostalAddress',
                 streetAddress: 'Level 34, Rolex Tower, Financial Center Road, Business Bay',
@@ -231,7 +231,7 @@ export const ContactUsPage = () => {
             Contact Revival International
           </h1>
           <p className="text-xs sm:text-sm text-slate-800 dark:text-slate-200 leading-relaxed font-medium">
-            Connect directly with our senior talent acquisition leads, international education counselors, and corporate client managers in Dubai.
+            Connect directly with our senior talent acquisition leads, international education counselors, and corporate client managers.
           </p>
         </div>
       </ScrollReveal>
@@ -241,46 +241,46 @@ export const ContactUsPage = () => {
         {/* Office Contact Info */}
         <div className="lg:col-span-5 space-y-6">
           <ScrollReveal delay={0.2}>
-            {/* Dubai HQ Card */}
+            {/* India Head Office Card */}
             <div className="glass-card bg-white dark:bg-navy-950 p-6 sm:p-8 rounded-3xl border border-slate-200 dark:border-gold-500/40 shadow-luxury space-y-4">
               <div className="flex items-center space-x-3 text-gold-600 dark:text-gold-400 border-b border-slate-200 dark:border-navy-800 pb-3">
                 <Building2 className="w-6 h-6" />
                 <div>
-                  <h3 className="font-serif text-xl font-bold text-slate-900 dark:text-white">Dubai Headquarters</h3>
-                  <p className="text-[10px] uppercase text-gold-600 dark:text-gold-400 font-bold tracking-widest">Global Executive Hub</p>
+                  <h3 className="font-serif text-xl font-bold text-slate-900 dark:text-white">India Head Office</h3>
+                  <p className="text-[10px] uppercase text-gold-600 dark:text-gold-400 font-bold tracking-widest">Global Operations & Recruitment Hub</p>
                 </div>
               </div>
 
               <div className="space-y-3.5 text-xs text-slate-800 dark:text-slate-200 font-medium">
                 <div className="flex items-start space-x-3">
                   <MapPin className="w-4 h-4 text-gold-600 dark:text-gold-400 shrink-0 mt-0.5" />
-                  <span className="text-slate-800 dark:text-slate-200 font-semibold">Level 34, Rolex Tower, Financial Center Road, Business Bay, Dubai, UAE</span>
+                  <span className="text-slate-800 dark:text-slate-200 font-semibold">The Revival International Corporate Tower, India & Global Network</span>
                 </div>
 
                 <div className="flex items-center space-x-3">
                   <Phone className="w-4 h-4 text-gold-600 dark:text-gold-400 shrink-0" />
-                  <span className="text-slate-800 dark:text-slate-200 font-semibold">+971 4 123 4567 / +971 50 987 6543</span>
+                  <a href="tel:+919003475405" className="text-slate-800 dark:text-slate-200 font-bold text-sm hover:text-gold-500 transition">+91 9003475405</a>
                 </div>
 
                 <div className="flex items-center space-x-3">
                   <Mail className="w-4 h-4 text-gold-600 dark:text-gold-400 shrink-0" />
-                  <span className="text-slate-800 dark:text-slate-200 font-semibold">dubai@revivalinternational.com</span>
+                  <a href="mailto:enquiry@therevivalinternational.com" className="text-slate-800 dark:text-slate-200 font-semibold hover:text-gold-500 transition">enquiry@therevivalinternational.com</a>
                 </div>
 
                 <div className="flex items-center space-x-3">
                   <Clock className="w-4 h-4 text-gold-600 dark:text-gold-400 shrink-0" />
-                  <span className="text-slate-800 dark:text-slate-200 font-semibold">Monday – Friday: 08:30 AM – 06:00 PM GST</span>
+                  <span className="text-slate-800 dark:text-slate-200 font-semibold">Monday – Saturday: 09:00 AM – 06:30 PM IST</span>
                 </div>
               </div>
 
               <a
-                href="https://wa.me/971509876543"
+                href="https://wa.me/919003475405"
                 target="_blank"
                 rel="noopener noreferrer"
                 className="w-full py-3 bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-xs rounded-xl flex items-center justify-center space-x-2 transition shadow-md mt-2"
               >
                 <MessageSquare className="w-4 h-4" />
-                <span>Instant WhatsApp Consultation</span>
+                <span>Instant WhatsApp Consultation (+91 9003475405)</span>
               </a>
             </div>
           </ScrollReveal>
@@ -289,14 +289,12 @@ export const ContactUsPage = () => {
           <ScrollReveal delay={0.3}>
             <div className="grid grid-cols-2 gap-4 text-xs">
               <div className="glass-card bg-white dark:bg-navy-900 border p-4 rounded-xl space-y-1">
-                <h4 className="font-bold text-navy-900 dark:text-white">🇸🇦 Riyadh Branch</h4>
-                <p className="text-slate-700 dark:text-slate-300 text-[11px] font-medium">King Fahd Road, Olaya District, Riyadh</p>
-                <p className="text-gold-500 font-semibold">+966 11 987 6543</p>
+                <h4 className="font-bold text-navy-900 dark:text-white">🇦🇪 Dubai Regional Hub</h4>
+                <p className="text-slate-700 dark:text-slate-300 text-[11px] font-medium">Level 34, Rolex Tower, Financial Center Road, Business Bay, Dubai</p>
               </div>
               <div className="glass-card bg-white dark:bg-navy-900 border p-4 rounded-xl space-y-1">
-                <h4 className="font-bold text-navy-900 dark:text-white">🇬🇧 London Office</h4>
-                <p className="text-slate-700 dark:text-slate-300 text-[11px] font-medium">30 St Mary Axe, City of London</p>
-                <p className="text-gold-500 font-semibold">+44 20 7946 0912</p>
+                <h4 className="font-bold text-navy-900 dark:text-white">🇸🇦 Riyadh & GCC Hub</h4>
+                <p className="text-slate-700 dark:text-slate-300 text-[11px] font-medium">King Fahd Road, Olaya District, Riyadh, Saudi Arabia</p>
               </div>
             </div>
           </ScrollReveal>
@@ -310,7 +308,7 @@ export const ContactUsPage = () => {
               Send Direct Inquiry or Consultation Request
             </h3>
             <p className="text-slate-600 dark:text-slate-400 text-xs mt-0.5">
-              Please provide your details below. Our advisory and recruitment team in Dubai will review your requirements and get in touch promptly.
+              Please provide your details below. Our advisory and recruitment team will review your requirements and get in touch promptly.
             </p>
           </div>
 
@@ -481,7 +479,7 @@ export const ContactUsPage = () => {
                     className="w-full bg-slate-50 dark:bg-navy-950 border border-slate-300 dark:border-navy-700 rounded-xl p-2.5 text-navy-900 dark:text-white text-xs focus:outline-none focus:ring-2 focus:ring-gold-500"
                   >
                     <option value="individual">Individual Candidate or Career Seeker</option>
-                    <option value="employer">Corporate Employer looking to hire talent</option>
+                    <option value="corporate">Institutional or Corporate Advisory Inquiry</option>
                     <option value="student_parent">Student or Parent seeking Academic Guidance</option>
                     <option value="verification">Requesting Background & Credential Verification</option>
                     <option value="visa">Inquiring about GCC Visa Processing & Attestation</option>
@@ -569,12 +567,12 @@ export const ContactUsPage = () => {
                 {isSubmitting ? (
                   <>
                     <Loader2 className="w-4 h-4 animate-spin" />
-                    <span>Submitting Inquiry to Dubai Team...</span>
+                    <span>Submitting Inquiry...</span>
                   </>
                 ) : (
                   <>
                     <Send className="w-4 h-4" />
-                    <span>Submit Direct Inquiry to Dubai Team</span>
+                    <span>Submit Direct Inquiry</span>
                   </>
                 )}
               </button>
@@ -622,7 +620,7 @@ export const ContactUsPage = () => {
                   onClick={() => navigateTo('services')} 
                   className="px-5 py-2.5 bg-gold-shimmer text-navy-950 font-bold text-xs rounded-xl shadow-gold-glow hover:opacity-95 transition"
                 >
-                  Explore Services Portfolio →
+                  Explore All Services →
                 </button>
               </div>
             </div>

@@ -39,22 +39,22 @@ export const CrmAiSuite = () => {
     const cand = candidates.find(c => c.id === selectedCandidateId);
     setLoadingEmail(true);
     setTimeout(() => {
-      const emailText = `Subject: Executive Shortlist Confirmation - ${role} Opportunity at Revival International
+      const emailText = `Subject: Executive Shortlist Confirmation - ${role} Opportunity at The Revival International
 
 Dear ${cand.name},
 
 We are pleased to inform you that your professional profile has been evaluated by our Executive Talent Committee and AI Placement Engine for the role of ${role}.
 
-Your background aligns exceptionally well with our client's strategic mandates in the GCC region. We would like to schedule a 30-minute preliminary panel interview via MS Teams to discuss your availability, compensation expectations, and project leadership experience.
+Your background aligns exceptionally well with our client's strategic mandates in India & the GCC region. We would like to schedule a 30-minute preliminary panel interview via MS Teams to discuss your availability, compensation expectations, and project leadership experience.
 
 Please let us know your preferred time slots over the next two business days.
 
 Warm regards,
 
 Executive Talent Acquisition Team
-Revival International Enterprise LLC | Dubai • Riyadh • London`;
+The Revival International Enterprise LLC | India • Dubai • Worldwide`;
 
-      const waText = `Hi ${cand.name}, your executive profile for "${role}" has been shortlisted by Revival International! 🌟 Please reply to confirm your availability for a 30-min MS Teams panel interview.`;
+      const waText = `Hi ${cand.name}, your executive profile for "${role}" has been shortlisted by The Revival International! 🌟 Please reply to confirm your availability for a 30-min MS Teams panel interview.`;
 
       setEmailDraft(emailText);
       setWhatsAppDraft(waText);

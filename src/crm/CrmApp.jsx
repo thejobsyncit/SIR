@@ -184,7 +184,7 @@ const CrmAppContent = () => {
             <div className="flex justify-between items-center border-b border-slate-200 dark:border-navy-800 pb-3 shrink-0">
               <div className="flex items-center space-x-2">
                 <Sparkles className="w-5 h-5 text-gold-500" />
-                <h3 className="font-serif text-lg font-bold text-slate-900 dark:text-white">Revival Executive AI Copilot</h3>
+                <h3 className="font-serif text-lg font-bold text-slate-900 dark:text-white">The Revival AI Copilot</h3>
               </div>
               <button onClick={() => setAiDrawerOpen(false)} className="text-slate-500 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white font-bold p-1">
                 <X className="w-5 h-5" />

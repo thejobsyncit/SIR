@@ -171,7 +171,7 @@ export const Services = () => {
       <div className="text-center space-y-3 max-w-3xl mx-auto">
         <div className="inline-flex items-center gap-2 bg-gold-500/10 text-gold-600 dark:text-gold-400 text-xs font-bold px-3.5 py-1 rounded-full uppercase tracking-wider border border-gold-500/20">
           <Sparkles className="w-3.5 h-3.5" />
-          <span>Executive Portfolio & Academic Advisory</span>
+          <span>Executive Services & Academic Advisory</span>
         </div>
 
         <h1 className="font-serif text-3xl sm:text-5xl font-extrabold text-navy-900 dark:text-white tracking-tight">

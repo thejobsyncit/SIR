@@ -70,7 +70,7 @@ export const Footer = () => {
                 <span className="font-serif text-lg font-bold text-slate-900 dark:text-white">IR</span>
               </div>
               <div>
-                <span className="font-serif text-xl font-bold text-slate-900 dark:text-white tracking-tight">Revival International</span>
+                <span className="font-serif text-xl font-bold text-slate-900 dark:text-white tracking-tight">The Revival International</span>
                 <p className="text-[10px] uppercase text-gold-400 font-semibold tracking-widest">Global HR & Manpower Consultancy</p>
               </div>
             </div>
@@ -86,11 +86,11 @@ export const Footer = () => {
               </div>
               <div className="flex items-center space-x-3">
                 <Phone className="w-4 h-4 text-gold-500 shrink-0" />
-                <span>+971 4 123 4567 / +971 50 987 6543</span>
+                <a href="tel:+919003475405" className="hover:text-gold-500 transition">+91 9003475405</a>
               </div>
               <div className="flex items-center space-x-3">
                 <Mail className="w-4 h-4 text-gold-500 shrink-0" />
-                <span>contact@revivalinternational.com</span>
+                <a href="mailto:enquiry@therevivalinternational.com" className="hover:text-gold-500 transition">enquiry@therevivalinternational.com</a>
               </div>
             </div>
 
@@ -122,7 +122,6 @@ export const Footer = () => {
               <NavLink tab="services" label="Core Services" />
               <NavLink tab="industries" label="Industries We Serve" />
               <NavLink tab="jobs" label="Browse Job Portal" />
-              <NavLink tab="employers" label="Employer Solutions" />
               <NavLink tab="candidates" label="Candidate Hub" />
               <NavLink tab="crm" label="Recruiter CRM Portal" />
               <NavLink tab="contact" label="Office Locations" />

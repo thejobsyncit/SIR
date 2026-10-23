@@ -1,14 +1,14 @@
 import React, { useEffect } from 'react';
 
 export const SITE_METADATA = {
-  siteName: 'Revival International',
-  legalName: 'Revival International Consultancy FZ-LLC',
+  siteName: 'The Revival International',
+  legalName: 'The Revival International Consultancy FZ-LLC',
   canonicalDomain: 'https://www.revivalinternational.com',
-  defaultTitle: 'Revival International | Premier International Recruitment, HR Consulting & Academic Advisory Dubai',
-  defaultDescription: "Revival International is Dubai's leading international recruitment agency and academic advisory firm connecting global talent and students with premier institutions across UAE, GCC, Europe, and worldwide.",
+  defaultTitle: 'The Revival International | Premier International Recruitment, HR Consulting & Academic Advisory Dubai',
+  defaultDescription: "The Revival International is Dubai's leading international recruitment agency and academic advisory firm connecting global talent and students with premier institutions across UAE, GCC, Europe, and worldwide.",
   defaultImage: 'https://www.revivalinternational.com/images/hero_dubai.png',
-  phone: '+971 4 123 4567',
-  email: 'contact@revivalinternational.com',
+  phone: '+91 9003475405',
+  email: 'enquiry@therevivalinternational.com',
   address: {
     street: 'Level 34, Rolex Tower, Financial Center Road, Business Bay',
     city: 'Dubai',

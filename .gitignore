@@ -24,6 +24,7 @@ Thumbs.db
 .idea/
 .cache
 E:\npm-cache
+vite.config.js.timestamp-*
 
 # SQLite temporary journal files & backups
 *.db-shm

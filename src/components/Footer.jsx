@@ -90,26 +90,26 @@ export const Footer = () => {
                 <span className="font-serif text-lg font-bold text-slate-900 dark:text-white">I</span>
               </div>
               <div className="font-serif text-xl font-black text-navy-900 dark:text-white tracking-tight flex items-center gap-1.5 flex-wrap">
-                Revival <span className="text-gold-500 font-sans text-[10px] sm:text-xs font-bold uppercase tracking-widest px-1.5 py-0.5 bg-slate-50/50 dark:bg-navy-900/50 rounded">International</span>
+                The Revival <span className="text-gold-500 font-sans text-[10px] sm:text-xs font-bold uppercase tracking-widest px-1.5 py-0.5 bg-slate-50/50 dark:bg-navy-900/50 rounded">International</span>
               </div>
             </div>
 
             <p className="text-slate-600 dark:text-slate-300 leading-relaxed pr-4 font-medium">
-              Revival International is a Dubai-headquartered premier international recruitment consultancy, executive search firm, and licensed manpower outsourcing vendor operating across the UAE, GCC, Europe, and Asia.
+              The Revival International is a premier international recruitment consultancy, executive search firm, and licensed manpower outsourcing vendor operating across India, UAE, GCC, Europe, and Asia.
             </p>
 
             <div className="space-y-2 pt-2 text-slate-600 dark:text-slate-300">
               <div className="flex items-start space-x-3">
                 <MapPin className="w-4 h-4 text-gold-500 shrink-0 mt-0.5" />
-                <span>Level 34, Rolex Tower, Financial Center Road, Business Bay, Dubai, United Arab Emirates</span>
+                <span>The Revival International Corporate Tower, India & Global Network</span>
               </div>
               <div className="flex items-center space-x-3">
                 <Phone className="w-4 h-4 text-gold-500 shrink-0" />
-                <span>+971 4 123 4567 / +971 50 987 6543</span>
+                <a href="tel:+919003475405" className="hover:text-gold-500 transition">+91 9003475405</a>
               </div>
               <div className="flex items-center space-x-3">
                 <Mail className="w-4 h-4 text-gold-500 shrink-0" />
-                <span>contact@revivalinternational.com</span>
+                <a href="mailto:enquiry@therevivalinternational.com" className="hover:text-gold-500 transition">enquiry@therevivalinternational.com</a>
               </div>
             </div>
 
@@ -143,7 +143,6 @@ export const Footer = () => {
               <NavLink tab="education" label="Academic Advisory" />
               <NavLink tab="industries" label="Industries We Serve" />
               <NavLink tab="jobs" label="Browse Job Portal" />
-              <NavLink tab="employers" label="Employer Solutions" />
               <NavLink tab="candidates" label="Candidate Hub" />
               <NavLink tab="contact" label="Office Locations" />
             </ul>

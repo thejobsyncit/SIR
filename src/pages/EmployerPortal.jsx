@@ -469,7 +469,7 @@ export const EmployerPortal = () => {
                     <div className="flex items-center gap-2 w-full sm:w-auto">
                       <button 
                         onClick={() => setActiveTab('applicants')} 
-                        className="flex-1 sm:flex-initial px-3 py-1.5 bg-slate-50 dark:bg-navy-900 text-gold-400 font-bold rounded-lg border border-slate-300 dark:border-navy-700 hover:bg-navy-800 transition text-[11px] flex items-center justify-center gap-1"
+                        className="flex-1 sm:flex-initial px-3 py-1.5 bg-slate-50 dark:bg-navy-900 text-gold-400 font-bold rounded-lg border border-slate-300 dark:border-navy-700 hover:bg-slate-100 dark:hover:bg-navy-800 transition text-[11px] flex items-center justify-center gap-1"
                       >
                         <Users className="w-3.5 h-3.5" />
                         <span>View Applicants</span>

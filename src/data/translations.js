@@ -11,12 +11,14 @@ export const TRANSLATIONS = {
     'nav.visa': 'Visa Eligibility',
     'nav.verification': 'Verification',
     'nav.contact': 'Contact Us',
-    'nav.dubaiHQ': 'Dubai HQ',
+    'nav.indiaHQ': 'India HQ',
+    'nav.dubaiHQ': 'India HQ',
     'nav.aiResume': 'AI Resume Analyzer',
     'nav.employerPortal': 'Employer Portal',
     'nav.candidatePortal': 'Candidate Portal',
     'nav.signOut': 'Sign Out',
-    'nav.mohreBadge': 'MOHRE & ISO 9001:2025 Certified Agency',
+    'nav.indiaBadge': 'Govt. Recognized & ISO 9001:2025 Certified Agency',
+    'nav.mohreBadge': 'Govt. Recognized & ISO 9001:2025 Certified Agency',
 
     // Hero / Home
     'hero.badge': 'Tier-1 International Manpower & Recruitment Firm',
@@ -74,12 +76,14 @@ export const TRANSLATIONS = {
     'nav.visa': 'أهلية التأشيرة',
     'nav.verification': 'التحقق من الوثائق',
     'nav.contact': 'اتصل بنا',
-    'nav.dubaiHQ': 'المقر الرئيسي بدبي',
+    'nav.indiaHQ': 'المقر الرئيسي بالهند',
+    'nav.dubaiHQ': 'المقر الرئيسي بالهند',
     'nav.aiResume': 'محلل السيرة الذاتية بالذكاء الاصطناعي',
     'nav.employerPortal': 'بوابة أصحاب الأعمال',
     'nav.candidatePortal': 'بوابة المرشحين',
     'nav.signOut': 'تسجيل الخروج',
-    'nav.mohreBadge': 'وكالة معتمدة من وزارة الموارد البشرية و ISO 9001:2025',
+    'nav.indiaBadge': 'وكالة معتمدة و ISO 9001:2025',
+    'nav.mohreBadge': 'وكالة معتمدة و ISO 9001:2025',
 
     // Hero / Home
     'hero.badge': 'شركة توظيف واستقدام عمالة دولية من المستوى الأول',
@@ -137,12 +141,14 @@ export const TRANSLATIONS = {
     'nav.visa': 'Éligibilité Visa',
     'nav.verification': 'Vérification',
     'nav.contact': 'Contactez-nous',
-    'nav.dubaiHQ': 'Siège à Dubaï',
+    'nav.indiaHQ': 'Siège en Inde',
+    'nav.dubaiHQ': 'Siège en Inde',
     'nav.aiResume': 'Analyseur de CV IA',
     'nav.employerPortal': 'Portail Employeur',
     'nav.candidatePortal': 'Portail Candidat',
     'nav.signOut': 'Déconnexion',
-    'nav.mohreBadge': 'Agence Certifiée MOHRE & ISO 9001:2025',
+    'nav.indiaBadge': 'Agence Certifiée & ISO 9001:2025',
+    'nav.mohreBadge': 'Agence Certifiée & ISO 9001:2025',
 
     // Hero / Home
     'hero.badge': 'Cabinet International de Recrutement de Premier Plan',
@@ -183,7 +189,7 @@ export const TRANSLATIONS = {
     'emp.visasIssued': 'Visas Délivrés',
 
     // Common
-    'common.location': 'Dubaï • CCG • International',
+    'common.location': 'Inde • CCG • International',
     'common.footerTag': 'Agence leader de recrutement international et de recherche de cadres.',
     'common.copyright': 'Revival International & Consulting LLC. Tous droits réservés.'
   },
@@ -200,12 +206,14 @@ export const TRANSLATIONS = {
     'nav.visa': 'Visum-Prüfung',
     'nav.verification': 'Überprüfung',
     'nav.contact': 'Kontakt',
-    'nav.dubaiHQ': 'Zentrale Dubai',
+    'nav.indiaHQ': 'Zentrale Indien',
+    'nav.dubaiHQ': 'Zentrale Indien',
     'nav.aiResume': 'KI-Lebenslauf-Analyse',
     'nav.employerPortal': 'Arbeitgeber-Portal',
     'nav.candidatePortal': 'Bewerber-Portal',
     'nav.signOut': 'Abmelden',
-    'nav.mohreBadge': 'MOHRE & ISO 9001:2025 Zertifizierte Agentur',
+    'nav.indiaBadge': 'Staatlich anerkannte & ISO 9001:2025 Zertifizierte Agentur',
+    'nav.mohreBadge': 'Staatlich anerkannte & ISO 9001:2025 Zertifizierte Agentur',
 
     // Hero / Home
     'hero.badge': 'Führende internationale Personal- & Rekrutierungsagentur',

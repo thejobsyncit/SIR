@@ -4,7 +4,7 @@ import { MessageSquare } from 'lucide-react';
 export const FloatingWhatsApp = () => {
   return (
     <a
-      href="https://wa.me/971509876543?text=Hello%20SIR%20Recruitment,%20I%20would%20like%20to%20inquire%20about%20your%20services."
+      href="https://wa.me/919003475405?text=Hello%20The%20Revival%20International,%20I%20would%20like%20to%20inquire%20about%20your%20services."
       target="_blank"
       rel="noopener noreferrer"
       aria-label="Contact Revival International on WhatsApp"

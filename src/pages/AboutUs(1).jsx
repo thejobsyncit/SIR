@@ -6,13 +6,6 @@ import ScrollReveal from '../components/ScrollReveal';
 export const AboutUs = () => {
   const { navigateTo } = useApp();
 
-  const leadership = [
-    { name: 'Sheikh Rashid Al-Maktoum', role: 'Chairman & Strategic Advisor', bio: 'Former senior advisor on GCC human capital development and cross-border trade affairs.' },
-    { name: 'David Sterling, MBA', role: 'Global Managing Director', bio: '20+ years leading executive headhunting firms across London, Singapore, and Dubai.' },
-    { name: 'Fatima Al-Zahra', role: 'Head of GCC Legal & Visa Compliance', bio: 'Leading authority on UAE MOHRE employment laws, Iqama quotas, and embassy attestations.' },
-    { name: 'Rajesh Kumar', role: 'Director of Manpower Operations', bio: 'Overseen placement of over 35,000 skilled engineers and technicians across oil & gas and construction.' }
-  ];
-
   return (
     <div className="max-w-7xl mx-auto px-4 sm:px-8 py-12 space-y-16">
       
@@ -72,29 +65,6 @@ export const AboutUs = () => {
           <p className="text-xs text-slate-800 dark:text-slate-200 leading-relaxed font-medium">
             To be recognized globally as the most trusted human capital consultancy in the Middle East, setting benchmark standards in background verification, executive search, and ethical manpower deployment.
           </p>
-        </div>
-      </div>
-      </ScrollReveal>
-
-      {/* Leadership Team */}
-      <ScrollReveal>
-      <div className="space-y-8">
-        <div className="text-center space-y-2">
-          <h2 className="text-xs font-bold text-gold-500 uppercase tracking-widest">Leadership</h2>
-          <h3 className="font-serif text-3xl font-extrabold text-navy-900 dark:text-white">Executive Management Team</h3>
-        </div>
-
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
-          {leadership.map((member, idx) => (
-            <div key={idx} className="glass-card bg-white dark:bg-navy-900 border border-slate-200 dark:border-navy-800 p-6 rounded-2xl space-y-3 shadow-sm text-center">
-              <div className="w-20 h-20 rounded-full bg-white dark:bg-navy-950 text-gold-500 border-2 border-gold-500 flex items-center justify-center font-serif text-2xl font-bold mx-auto">
-                {member.name.split(' ').map(n => n[0]).join('')}
-              </div>
-              <h4 className="font-bold text-sm text-navy-900 dark:text-white">{member.name}</h4>
-              <p className="text-[10px] uppercase font-bold text-gold-500 tracking-wider">{member.role}</p>
-              <p className="text-xs text-slate-800 dark:text-slate-200 leading-relaxed font-medium">{member.bio}</p>
-            </div>
-          ))}
         </div>
       </div>
       </ScrollReveal>

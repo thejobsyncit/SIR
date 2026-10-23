@@ -198,11 +198,11 @@ export const CrmLogin = () => {
         {/* Company Logo Header */}
         <div className="text-center space-y-2">
           <div className="w-16 h-16 rounded-2xl bg-navy-950 border-2 border-gold-500 flex items-center justify-center shadow-gold-glow mx-auto mb-2">
-            <span className="font-serif text-3xl font-extrabold text-gold-500">S</span>
-            <span className="font-serif text-2xl font-bold text-white">IR</span>
+            <span className="font-serif text-3xl font-extrabold text-gold-500">R</span>
+            <span className="font-serif text-2xl font-bold text-white">I</span>
           </div>
           <h2 className="font-serif text-2xl font-extrabold text-white tracking-tight">
-            Revival International Enterprise CRM
+            The Revival International Enterprise CRM
           </h2>
           <p className="text-xs text-gold-400 font-bold uppercase tracking-wider">
             Private Corporate Portal • Restricted Gateway

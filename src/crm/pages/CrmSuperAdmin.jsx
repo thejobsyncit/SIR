@@ -82,12 +82,12 @@ export const CrmSuperAdmin = () => {
 
   // Company Profile Settings State
   const [companyDetails, setCompanyDetails] = useState({
-    name: 'Revival International Enterprise Ltd',
-    domain: 'revivalinternational.com',
-    registrationNo: 'REG-2026-DXB-99412',
-    headquarters: 'Dubai Silicon Oasis, UAE / Chennai, India',
+    name: 'The Revival International Enterprise Ltd',
+    domain: 'therevivalinternational.com',
+    registrationNo: 'REG-2026-IND-DXB-99412',
+    headquarters: 'India Corporate Tower, Chennai / Dubai Silicon Oasis, UAE',
     s3Region: 'ap-south-1 (Mumbai / AWS Compliant Vault)',
-    supportEmail: 'support@revivalinternational.com',
+    supportEmail: 'enquiry@therevivalinternational.com',
     adminKey: 'REV-SUPER-2026'
   });
 
@@ -1399,7 +1399,7 @@ export const CrmSuperAdmin = () => {
                                   <MessageSquare className="w-3.5 h-3.5" />
                                 </a>
                                 <a
-                                  href={`mailto:${lead.email}?subject=Regarding Your Consultation - Revival International&body=Dear ${encodeURIComponent(lead.name)},%0D%0A%0D%0AThank you for reaching out to Revival International regarding ${encodeURIComponent(lead.serviceTitle || 'our consulting services')}.%0D%0A%0D%0A`}
+                                  href={`mailto:${lead.email}?subject=Regarding Your Consultation - The Revival International&body=Dear ${encodeURIComponent(lead.name)},%0D%0A%0D%0AThank you for reaching out to The Revival International regarding ${encodeURIComponent(lead.serviceTitle || 'our consulting services')}.%0D%0A%0D%0A`}
                                   className="p-1.5 bg-blue-50 dark:bg-blue-950/40 text-blue-700 dark:text-blue-400 hover:bg-blue-100 rounded-lg border border-blue-200 dark:border-blue-800/40 transition cursor-pointer"
                                   title="Send Email"
                                 >
@@ -2277,7 +2277,7 @@ export const CrmSuperAdmin = () => {
                   <MessageSquare className="w-4 h-4" />
                 </a>
                 <a
-                  href={`mailto:${selectedLead.email}?subject=Regarding Your Consultation - Revival International&body=Dear ${encodeURIComponent(selectedLead.name)},%0D%0A%0D%0A`}
+                  href={`mailto:${selectedLead.email}?subject=Regarding Your Consultation - The Revival International&body=Dear ${encodeURIComponent(selectedLead.name)},%0D%0A%0D%0A`}
                   className="p-2 bg-blue-600 hover:bg-blue-700 text-white rounded-xl transition cursor-pointer"
                   title="Email Client"
                 >

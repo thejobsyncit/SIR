@@ -98,26 +98,18 @@ export const Home = () => {
           </p>
 
           {/* Action CTAs */}
-          <div className="flex flex-col sm:flex-row justify-center items-center gap-3 pt-2 animate-fade-in-up" style={{ animationDelay: '0.3s' }}>
+          <div className="flex flex-col sm:flex-row justify-center items-center gap-4 pt-2 animate-fade-in-up" style={{ animationDelay: '0.3s' }}>
             <button 
               onClick={() => navigateTo('jobs')}
-              className="w-full sm:w-auto px-7 py-3.5 bg-gold-shimmer text-navy-950 font-extrabold text-sm rounded-xl shadow-gold-glow hover-lift active-scale flex items-center justify-center space-x-2"
+              className="w-full sm:w-auto px-8 py-3.5 bg-gold-shimmer text-navy-950 font-extrabold text-sm rounded-xl shadow-gold-glow hover-lift active-scale flex items-center justify-center space-x-2"
             >
               <Briefcase className="w-4 h-4" />
               <span>{t('hero.findJobsBtn')}</span>
             </button>
 
             <button 
-              onClick={() => navigateTo('employers')}
-              className="w-full sm:w-auto px-7 py-3.5 bg-slate-50 dark:bg-navy-900 text-slate-900 dark:text-white font-extrabold text-sm rounded-xl border border-slate-200 dark:border-gold-500/40 hover:bg-navy-800 hover-lift active-scale shadow-luxury flex items-center justify-center space-x-2"
-            >
-              <Building2 className="w-4 h-4 text-gold-500" />
-              <span>{t('hero.hireTalentBtn')}</span>
-            </button>
-
-            <button 
               onClick={() => navigateTo('education')}
-              className="w-full sm:w-auto px-7 py-3.5 bg-emerald-600/10 dark:bg-emerald-500/15 hover:bg-emerald-600/20 text-emerald-700 dark:text-emerald-400 font-extrabold text-sm rounded-xl border border-emerald-500/30 hover-lift active-scale shadow-sm flex items-center justify-center space-x-2"
+              className="w-full sm:w-auto px-8 py-3.5 bg-white dark:bg-navy-900 text-emerald-700 dark:text-emerald-400 font-extrabold text-sm rounded-xl border border-emerald-500/30 hover:bg-emerald-500/10 hover-lift active-scale shadow-sm flex items-center justify-center space-x-2"
             >
               <GraduationCap className="w-4 h-4 text-emerald-600 dark:text-emerald-400" />
               <span>Academic & Admissions Advisory</span>

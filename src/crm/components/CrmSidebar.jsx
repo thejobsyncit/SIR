@@ -53,7 +53,7 @@ export const CrmSidebar = ({ collapsed, setCollapsed }) => {
           </div>
           {!collapsed && (
             <div>
-              <h2 className="font-serif text-base font-bold text-slate-900 dark:text-white tracking-tight leading-none">Revival CRM</h2>
+              <h2 className="font-serif text-base font-bold text-slate-900 dark:text-white tracking-tight leading-none">The Revival CRM</h2>
               <span className="text-[9px] uppercase tracking-widest text-gold-600 dark:text-gold-400 font-bold">Enterprise Edition</span>
             </div>
           )}

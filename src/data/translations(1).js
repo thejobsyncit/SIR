@@ -11,12 +11,14 @@ export const TRANSLATIONS = {
     'nav.visa': 'Visa Eligibility',
     'nav.verification': 'Verification',
     'nav.contact': 'Contact Us',
-    'nav.dubaiHQ': 'Dubai HQ',
+    'nav.indiaHQ': 'India HQ',
+    'nav.dubaiHQ': 'India HQ',
     'nav.aiResume': 'AI Resume Analyzer',
     'nav.employerPortal': 'Employer Portal',
     'nav.candidatePortal': 'Candidate Portal',
     'nav.signOut': 'Sign Out',
-    'nav.mohreBadge': 'MOHRE & ISO 9001:2025 Certified Agency',
+    'nav.indiaBadge': 'Govt. Recognized & ISO 9001:2025 Certified Agency',
+    'nav.mohreBadge': 'Govt. Recognized & ISO 9001:2025 Certified Agency',
 
     // Hero / Home
     'hero.badge': 'Tier-1 International Manpower & Recruitment Firm',

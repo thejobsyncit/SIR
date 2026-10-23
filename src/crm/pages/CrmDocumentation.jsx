@@ -62,8 +62,8 @@ export const CrmDocumentation = () => {
     const expiry = doc.expiry || '2031-10-15';
     const size = doc.size || '2.4 MB';
 
-    const text = `=====================================================
-Revival International COMPLIANCE VAULT - VERIFIED DOCUMENT
+const text = `=====================================================
+The Revival International COMPLIANCE VAULT - VERIFIED DOCUMENT
 =====================================================
 Document Name: ${docName}
 Document ID: ${id}
@@ -77,7 +77,7 @@ Encryption: 256-Bit SSL AWS S3 (Bucket: sir-recruitment-compliance-vault)
 Security Checksum: #SHA256-${Math.random().toString(36).substring(2, 12).toUpperCase()}
 =====================================================
 THIS IS AN OFFICIAL VERIFIED DIGITAL COMPLIANCE CERTIFICATE.
-DISTRIBUTED UNDER Revival International ENTERPRISE COMPLIANCE GOVERNANCE.
+DISTRIBUTED UNDER The Revival International ENTERPRISE COMPLIANCE GOVERNANCE.
 =====================================================`;
 
     const blob = new Blob([text], { type: 'text/plain;charset=utf-8;' });

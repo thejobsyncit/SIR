@@ -97,14 +97,6 @@ export const Home = () => {
               <Briefcase className="w-4 h-4" />
               <span>{t('hero.findJobsBtn')}</span>
             </button>
-
-            <button 
-              onClick={() => navigateTo('employers')}
-              className="w-full sm:w-auto px-8 py-4 bg-slate-50 dark:bg-navy-900 text-slate-900 dark:text-white font-extrabold text-sm rounded-xl border border-slate-200 dark:border-gold-500/40 hover:bg-navy-800 hover-lift active-scale shadow-luxury flex items-center justify-center space-x-2"
-            >
-              <Building2 className="w-4 h-4 text-gold-500" />
-              <span>{t('hero.hireTalentBtn')}</span>
-            </button>
           </div>
 
           {/* Hero Quick Search Box */}
