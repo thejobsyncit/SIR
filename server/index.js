@@ -32,13 +32,13 @@ app.use((req, res, next) => {
 const allowedOrigins = process.env.ALLOWED_ORIGINS
   ? process.env.ALLOWED_ORIGINS.split(',').map(o => o.trim())
   : [
-      'http://localhost:3000',
-      'http://localhost:5173',
-      'http://127.0.0.1:3000',
-      'http://127.0.0.1:5173',
-      'https://www.revivalinternational.com',
-      'https://revivalinternational.com'
-    ];
+    'http://localhost:3000',
+    'http://localhost:5173',
+    'http://127.0.0.1:3000',
+    'http://127.0.0.1:5173',
+    'https://www.revivalinternational.com',
+    'https://revivalinternational.com'
+  ];
 
 app.use(cors({
   origin: (origin, callback) => {
@@ -74,7 +74,7 @@ app.get('/api/health', async (req, res) => {
         try {
           const m = JSON.parse(fs.readFileSync(path.join(backupDir, manifests[0]), 'utf8'));
           latestBackupTime = m.timestamp;
-        } catch (_) {}
+        } catch (_) { }
       }
     }
 
@@ -686,7 +686,7 @@ app.post('/api/candidates', async (req, res) => {
     const candId = id || `REV-CAN-${Math.floor(1000 + Math.random() * 9000)}`;
     const skillsStr = JSON.stringify(Array.isArray(skills) ? skills : []);
     const db = await getDb();
-    
+
     await db.run(`
       INSERT INTO candidates (id, name, email, phone, nationality, currentEmployer, currentRole, currentSalary, expectedSalary, score, stage, skills, source, passport, aiSummary, experience)
       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
@@ -728,7 +728,7 @@ app.get(['/api/clients', '/api/organizations'], async (req, res) => {
   try {
     const { type, search } = req.query;
     const db = await getDb();
-    
+
     let query = 'SELECT * FROM clients WHERE 1=1';
     const params = [];
 
@@ -757,7 +757,7 @@ app.get(['/api/clients/:id', '/api/organizations/:id'], async (req, res) => {
     const { id } = req.params;
     const db = await getDb();
     const org = await db.get('SELECT * FROM clients WHERE id = ?', [id]);
-    
+
     if (!org) {
       return res.status(404).json({ success: false, message: 'Organization not found' });
     }
@@ -1001,13 +1001,13 @@ const recentInquirySubmissions = new Map();
 // API Routes - LEADS & CONSULTING ENQUIRIES
 app.get(['/api/leads', '/api/consulting/enquiries'], async (req, res) => {
   try {
-    const { 
+    const {
       serviceId, status, priority, assignedEmployee, search,
       range = 'all', startDate, endDate, includeArchived,
       page, limit
     } = req.query;
     const db = await getDb();
-    
+
     let query = 'SELECT * FROM leads WHERE 1=1';
     const params = [];
 
@@ -1375,7 +1375,7 @@ app.get(['/api/leads/:id', '/api/consulting/enquiries/:id'], async (req, res) =>
 
     const activities = await db.all('SELECT * FROM enquiry_activities WHERE enquiryId = ? ORDER BY createdAt DESC', [id]);
     const followUps = await db.all('SELECT * FROM follow_ups WHERE enquiryId = ? ORDER BY dueDateTime ASC', [id]);
-    
+
     let organization = null;
     if (lead.organizationId) {
       organization = await db.get('SELECT * FROM clients WHERE id = ?', [lead.organizationId]);
@@ -1473,11 +1473,11 @@ app.post(['/api/leads', '/api/consulting/enquiries'], async (req, res) => {
     recentInquirySubmissions.set(duplicateKey, now);
 
     const isConsultingEndpoint = (req.originalUrl && req.originalUrl.includes('/consulting')) || (req.path && req.path.includes('/consulting')) || serviceId === 'intl-consult';
-    const safeServiceId = (serviceId && typeof serviceId === 'string' && serviceId.trim()) 
-      ? serviceId.trim().slice(0, 50) 
+    const safeServiceId = (serviceId && typeof serviceId === 'string' && serviceId.trim())
+      ? serviceId.trim().slice(0, 50)
       : (isConsultingEndpoint ? 'intl-consult' : null);
-    const safeServiceTitle = (serviceTitle && typeof serviceTitle === 'string' && serviceTitle.trim()) 
-      ? serviceTitle.trim().slice(0, 150) 
+    const safeServiceTitle = (serviceTitle && typeof serviceTitle === 'string' && serviceTitle.trim())
+      ? serviceTitle.trim().slice(0, 150)
       : (safeServiceId === 'intl-consult' ? 'International Consulting' : (safeServiceId || null));
     const safeCompany = (company && typeof company === 'string' && company.trim()) ? company.trim().slice(0, 150) : (organizationName || 'Individual');
 
@@ -2022,7 +2022,7 @@ app.delete(['/api/leads/:id', '/api/consulting/enquiries/:id'], async (req, res)
 app.get('/api/crm/consulting/metrics', async (req, res) => {
   try {
     const db = await getDb();
-    
+
     // Database-derived metrics exclusively
     const totalRow = await db.get(
       "SELECT COUNT(*) as count FROM leads WHERE serviceId = 'intl-consult' OR LOWER(serviceTitle) LIKE '%international consulting%'"
@@ -2383,7 +2383,7 @@ app.post('/api/ai/chat', (req, res) => {
 app.post('/api/payments/checkout', (req, res) => {
   const { gateway, serviceName, amount, currency } = req.body;
   const transactionId = 'TXN-' + (gateway || 'STRIPE').toUpperCase() + '-' + Date.now();
-  
+
   res.json({
     success: true,
     transactionId,
@@ -2395,6 +2395,143 @@ app.post('/api/payments/checkout', (req, res) => {
     receiptUrl: '#',
     timestamp: new Date().toISOString()
   });
+});
+
+// ========================================================
+// STUDENT ACADEMY API ENDPOINTS
+// ========================================================
+
+app.post('/api/student-academy/enquiries', async (req, res) => {
+  try {
+    const {
+      referenceNumber,
+      studentName,
+      email,
+      phone,
+      preferredLearningMode,
+      batchPreference,
+      questions,
+      academyId,
+      academyName,
+      examId,
+      examName,
+      courseId,
+      courseName
+    } = req.body;
+
+    if (!studentName || !email || !phone) {
+      return res.status(400).json({
+        success: false,
+        message: 'Student name, email, and mobile number are required.'
+      });
+    }
+
+    const refNum = referenceNumber || `REV-ACA-2026-${Math.floor(10000 + Math.random() * 90000)}`;
+    const enquiryId = `SA-ENQ-${Date.now()}-${Math.floor(100 + Math.random() * 900)}`;
+    const db = await getDb();
+
+    // 1. Insert into student_academy_enquiries table
+    await db.run(
+      `INSERT INTO student_academy_enquiries 
+       (id, referenceNumber, studentName, studentEmail, studentPhone, preferredLearningMode, batchPreference, questions, academyId, academyName, examId, examName, courseId, courseName, status)
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+      [
+        enquiryId,
+        refNum,
+        studentName.trim(),
+        email.trim().toLowerCase(),
+        phone.trim(),
+        preferredLearningMode || 'Classroom',
+        batchPreference || 'Any Batch',
+        questions ? questions.trim() : '',
+        academyId || 'unknown',
+        academyName || 'Verified Academy',
+        examId || 'unknown',
+        examName || 'Competitive Exam',
+        courseId || 'unknown',
+        courseName || 'Academy Course',
+        'New Enquiry'
+      ]
+    );
+
+    // 2. Mirror into unified leads table for CRM visibility
+    const leadId = `LEAD-${Date.now()}-${Math.floor(100 + Math.random() * 900)}`;
+    await db.run(
+      `INSERT INTO leads 
+       (id, name, email, phone, message, serviceId, serviceTitle, referenceNumber, status, assistanceType, degreeLevel)
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+      [
+        leadId,
+        studentName.trim(),
+        email.trim().toLowerCase(),
+        phone.trim(),
+        `Student Academy Enquiry for ${courseName} at ${academyName}. Target Exam: ${examName}. Preferred Mode: ${preferredLearningMode}. Batch: ${batchPreference}. Note: ${questions || 'None'}`,
+        'school-academy',
+        'Student Academy',
+        refNum,
+        'New Enquiry',
+        examName || 'Competitive Exam',
+        courseName || 'Academy Course'
+      ]
+    );
+
+    res.json({
+      success: true,
+      referenceNumber: refNum,
+      message: 'Student Academy enquiry registered successfully.'
+    });
+  } catch (err) {
+    console.error('Error in student academy enquiry submission:', err);
+    res.status(500).json({
+      success: false,
+      message: 'Failed to record academy enquiry.',
+      error: err.message
+    });
+  }
+});
+
+app.get('/api/student-academy/enquiries', async (req, res) => {
+  try {
+    const db = await getDb();
+    const enquiries = await db.all(
+      'SELECT * FROM student_academy_enquiries ORDER BY createdAt DESC LIMIT 100'
+    );
+    res.json({
+      success: true,
+      count: enquiries.length,
+      data: enquiries
+    });
+  } catch (err) {
+    res.status(500).json({
+      success: false,
+      message: 'Error fetching academy enquiries.',
+      error: err.message
+    });
+  }
+});
+
+app.get('/api/student-academy/stats', async (req, res) => {
+  try {
+    const db = await getDb();
+    const countRow = await db.get('SELECT COUNT(*) as total FROM student_academy_enquiries');
+    const acadRow = await db.get('SELECT COUNT(DISTINCT academyId) as totalAcademies FROM student_academy_enquiries');
+    const examRow = await db.get('SELECT COUNT(DISTINCT examId) as totalExams FROM student_academy_enquiries');
+
+    res.json({
+      success: true,
+      stats: {
+        totalEnquiries: countRow?.total || 0,
+        uniqueAcademies: acadRow?.totalAcademies || 0,
+        uniqueExams: examRow?.totalExams || 0
+      }
+    });
+  } catch (err) {
+    res.status(500).json({
+      success: false,
+      message: 'Error fetching academy stats.',
+      error: err.message
+    });
+  }
 });
 
 // Serve Vite frontend production bundle if dist directory exists

@@ -118,10 +118,10 @@ export const ContactUsPage = () => {
       phone: phone.trim(),
       serviceId: activeService ? activeService.id : null,
       serviceTitle: activeService ? activeService.title : null,
-      company: activeService 
-        ? `Service Inquiry: ${activeService.title}` 
+      company: activeService
+        ? `Service Inquiry: ${activeService.title}`
         : (formData.type === 'employer' ? 'Corporate Inquiry' : 'Individual'),
-      message: activeService 
+      message: activeService
         ? `[Inquiring about: ${activeService.title} (${activeService.category})]\n\n${formData.message.trim()}`
         : formData.message.trim(),
       utmSource: attribution.utmSource,
@@ -324,7 +324,7 @@ export const ContactUsPage = () => {
                   <p className="font-serif font-bold text-sm text-navy-900 dark:text-white">{activeService.title}</p>
                 </div>
               </div>
-              <button 
+              <button
                 type="button"
                 onClick={() => {
                   setActiveServiceId('');
@@ -369,22 +369,21 @@ export const ContactUsPage = () => {
                       </span>
                     )}
                   </div>
-                  <input 
+                  <input
                     id="contact-name"
-                    name="name" 
-                    required 
-                    type="text" 
+                    name="name"
+                    required
+                    type="text"
                     autoComplete="name"
-                    placeholder="e.g. Sarah Jenkins" 
+                    placeholder="e.g. Sarah Jenkins"
                     value={formData.name}
                     aria-required="true"
                     aria-invalid={!!formErrors.name}
                     aria-describedby={formErrors.name ? "contact-name-error" : undefined}
                     onFocus={() => trackEnquiryStart('contact_page', activeService?.id || 'general', activeService?.title || 'General Contact')}
                     onChange={(e) => handleInputChange('name', e.target.value)}
-                    className={`w-full bg-slate-50 dark:bg-navy-950 border rounded-xl p-2.5 text-navy-900 dark:text-white text-xs focus:outline-none focus:ring-2 focus:ring-gold-500 transition ${
-                      formErrors.name ? 'border-rose-500 ring-1 ring-rose-500' : 'border-slate-300 dark:border-navy-700'
-                    }`} 
+                    className={`w-full bg-slate-50 dark:bg-navy-950 border rounded-xl p-2.5 text-navy-900 dark:text-white text-xs focus:outline-none focus:ring-2 focus:ring-gold-500 transition ${formErrors.name ? 'border-rose-500 ring-1 ring-rose-500' : 'border-slate-300 dark:border-navy-700'
+                      }`}
                   />
                   {formErrors.name && (
                     <p id="contact-name-error" className="text-[10px] text-rose-500 mt-1 font-semibold flex items-center gap-1">
@@ -404,21 +403,20 @@ export const ContactUsPage = () => {
                       </span>
                     )}
                   </div>
-                  <input 
+                  <input
                     id="contact-email"
-                    name="email" 
-                    required 
-                    type="email" 
+                    name="email"
+                    required
+                    type="email"
                     autoComplete="email"
-                    placeholder="e.g. s.jenkins@company.com" 
+                    placeholder="e.g. s.jenkins@company.com"
                     value={formData.email}
                     aria-required="true"
                     aria-invalid={!!formErrors.email}
                     aria-describedby={formErrors.email ? "contact-email-error" : undefined}
                     onChange={(e) => handleInputChange('email', e.target.value)}
-                    className={`w-full bg-slate-50 dark:bg-navy-950 border rounded-xl p-2.5 text-navy-900 dark:text-white text-xs focus:outline-none focus:ring-2 focus:ring-gold-500 transition ${
-                      formErrors.email ? 'border-rose-500 ring-1 ring-rose-500' : 'border-slate-300 dark:border-navy-700'
-                    }`} 
+                    className={`w-full bg-slate-50 dark:bg-navy-950 border rounded-xl p-2.5 text-navy-900 dark:text-white text-xs focus:outline-none focus:ring-2 focus:ring-gold-500 transition ${formErrors.email ? 'border-rose-500 ring-1 ring-rose-500' : 'border-slate-300 dark:border-navy-700'
+                      }`}
                   />
                   {formErrors.email && (
                     <p id="contact-email-error" className="text-[10px] text-rose-500 mt-1 font-semibold flex items-center gap-1">
@@ -440,21 +438,20 @@ export const ContactUsPage = () => {
                       </span>
                     )}
                   </div>
-                  <input 
+                  <input
                     id="contact-phone"
-                    name="phone" 
-                    required 
-                    type="tel" 
+                    name="phone"
+                    required
+                    type="tel"
                     autoComplete="tel"
                     value={phone}
                     aria-required="true"
                     aria-invalid={!!formErrors.phone}
                     aria-describedby={formErrors.phone ? "contact-phone-error" : "contact-phone-hint"}
                     onChange={handlePhoneChange}
-                    placeholder="e.g. +971 50 123 4567 or 5098765432" 
-                    className={`w-full bg-slate-50 dark:bg-navy-950 border rounded-xl p-2.5 text-navy-900 dark:text-white text-xs focus:outline-none focus:ring-2 focus:ring-gold-500 font-mono tracking-wider transition ${
-                      formErrors.phone ? 'border-rose-500 ring-1 ring-rose-500' : 'border-slate-300 dark:border-navy-700'
-                    }`} 
+                    placeholder="e.g. +971 50 123 4567 or 5098765432"
+                    className={`w-full bg-slate-50 dark:bg-navy-950 border rounded-xl p-2.5 text-navy-900 dark:text-white text-xs focus:outline-none focus:ring-2 focus:ring-gold-500 font-mono tracking-wider transition ${formErrors.phone ? 'border-rose-500 ring-1 ring-rose-500' : 'border-slate-300 dark:border-navy-700'
+                      }`}
                   />
                   {formErrors.phone ? (
                     <p id="contact-phone-error" className="text-[10px] text-rose-500 mt-1 font-semibold flex items-center gap-1">
@@ -471,9 +468,9 @@ export const ContactUsPage = () => {
                   <label htmlFor="contact-type" className="block font-bold text-slate-700 dark:text-slate-200 mb-1">
                     Inquiry Profile Category
                   </label>
-                  <select 
+                  <select
                     id="contact-type"
-                    name="type" 
+                    name="type"
                     value={formData.type}
                     onChange={(e) => handleInputChange('type', e.target.value)}
                     className="w-full bg-slate-50 dark:bg-navy-950 border border-slate-300 dark:border-navy-700 rounded-xl p-2.5 text-navy-900 dark:text-white text-xs focus:outline-none focus:ring-2 focus:ring-gold-500"
@@ -492,7 +489,7 @@ export const ContactUsPage = () => {
                 <label htmlFor="contact-service" className="block font-bold text-slate-700 dark:text-slate-200 mb-1">
                   Specific Service Requirement
                 </label>
-                <select 
+                <select
                   id="contact-service"
                   value={activeServiceId}
                   onChange={(e) => {
@@ -531,24 +528,23 @@ export const ContactUsPage = () => {
                     </span>
                   )}
                 </div>
-                <textarea 
+                <textarea
                   id="contact-message"
-                  name="message" 
-                  rows={4} 
+                  name="message"
+                  rows={4}
                   required
                   value={formData.message}
                   aria-required="true"
                   aria-invalid={!!formErrors.message}
                   aria-describedby={formErrors.message ? "contact-message-error" : undefined}
                   placeholder={
-                    activeService 
+                    activeService
                       ? `Please specify your target country, course, timeline, or requirements for ${activeService.title}...`
                       : 'Specify your requirements, hiring volume, visa target, or educational goals...'
-                  } 
+                  }
                   onChange={(e) => handleInputChange('message', e.target.value)}
-                  className={`w-full bg-slate-50 dark:bg-navy-950 border rounded-xl p-2.5 text-navy-900 dark:text-white text-xs focus:outline-none focus:ring-2 focus:ring-gold-500 transition ${
-                    formErrors.message ? 'border-rose-500 ring-1 ring-rose-500' : 'border-slate-300 dark:border-navy-700'
-                  }`} 
+                  className={`w-full bg-slate-50 dark:bg-navy-950 border rounded-xl p-2.5 text-navy-900 dark:text-white text-xs focus:outline-none focus:ring-2 focus:ring-gold-500 transition ${formErrors.message ? 'border-rose-500 ring-1 ring-rose-500' : 'border-slate-300 dark:border-navy-700'
+                    }`}
                 />
                 {formErrors.message && (
                   <p id="contact-message-error" className="text-[10px] text-rose-500 mt-1 font-semibold flex items-center gap-1">
@@ -557,17 +553,16 @@ export const ContactUsPage = () => {
                 )}
               </div>
 
-              <button 
-                type="submit" 
+              <button
+                type="submit"
                 disabled={isSubmitting}
-                className={`w-full py-3.5 bg-gold-shimmer text-navy-950 font-bold text-xs rounded-xl shadow-gold-glow flex items-center justify-center space-x-2 transition focus:outline-none focus-visible:ring-2 focus-visible:ring-gold-500 ${
-                  isSubmitting ? 'opacity-70 cursor-not-allowed' : 'hover:opacity-95'
-                }`}
+                className={`w-full py-3.5 bg-gold-shimmer text-navy-950 font-bold text-xs rounded-xl shadow-gold-glow flex items-center justify-center space-x-2 transition focus:outline-none focus-visible:ring-2 focus-visible:ring-gold-500 ${isSubmitting ? 'opacity-70 cursor-not-allowed' : 'hover:opacity-95'
+                  }`}
               >
                 {isSubmitting ? (
                   <>
                     <Loader2 className="w-4 h-4 animate-spin" />
-                    <span>Submitting Inquiry...</span>
+                    <span>Submitting Inquiry to Dubai Team...</span>
                   </>
                 ) : (
                   <>
@@ -583,7 +578,7 @@ export const ContactUsPage = () => {
                 <CheckCircle2 className="w-8 h-8" />
               </div>
               <h4 className="font-serif text-2xl font-bold text-navy-900 dark:text-white">Inquiry Registered Successfully!</h4>
-              
+
               {submittedRef && (
                 <div className="inline-block px-4 py-2 rounded-xl bg-emerald-500/10 border border-emerald-500/30 text-emerald-600 dark:text-emerald-400 font-mono text-xs font-extrabold">
                   CRM Tracking Reference: {submittedRef}
@@ -604,20 +599,20 @@ export const ContactUsPage = () => {
                   <span className="font-semibold text-gold-600 dark:text-gold-400">+971 4 123 4567</span>
                 </div>
               </div>
-              
+
               <div className="pt-2 flex flex-wrap justify-center gap-3">
-                <button 
+                <button
                   onClick={() => {
                     setSubmitted(false);
                     setSubmittedRef(null);
-                  }} 
+                  }}
                   className="px-5 py-2.5 bg-slate-100 hover:bg-slate-200 dark:bg-navy-800 dark:hover:bg-navy-700 text-slate-900 dark:text-white font-bold text-xs rounded-xl transition shadow-sm"
                 >
                   Submit Another Inquiry
                 </button>
 
-                <button 
-                  onClick={() => navigateTo('services')} 
+                <button
+                  onClick={() => navigateTo('services')}
                   className="px-5 py-2.5 bg-gold-shimmer text-navy-950 font-bold text-xs rounded-xl shadow-gold-glow hover:opacity-95 transition"
                 >
                   Explore All Services →
@@ -653,7 +648,7 @@ export const ContactUsPage = () => {
 
           <div className="max-w-3xl mx-auto space-y-3">
             {contactFaqs.map((faq, idx) => (
-              <div 
+              <div
                 key={idx}
                 className="glass-card bg-white dark:bg-navy-900 border border-slate-200 dark:border-navy-800 rounded-2xl overflow-hidden transition"
               >

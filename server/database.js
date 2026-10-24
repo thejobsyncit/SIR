@@ -183,6 +183,25 @@ const initDb = async (db) => {
       createdAt DATETIME DEFAULT CURRENT_TIMESTAMP,
       completedAt DATETIME
     );
+
+    CREATE TABLE IF NOT EXISTS student_academy_enquiries (
+      id TEXT PRIMARY KEY,
+      referenceNumber TEXT NOT NULL,
+      studentName TEXT NOT NULL,
+      email TEXT NOT NULL,
+      phone TEXT NOT NULL,
+      preferredLearningMode TEXT,
+      batchPreference TEXT,
+      questions TEXT,
+      academyId TEXT NOT NULL,
+      academyName TEXT NOT NULL,
+      examId TEXT NOT NULL,
+      examName TEXT NOT NULL,
+      courseId TEXT NOT NULL,
+      courseName TEXT NOT NULL,
+      status TEXT DEFAULT 'New Enquiry',
+      createdAt DATETIME DEFAULT CURRENT_TIMESTAMP
+    );
   `);
 
   // Safe migration helper
