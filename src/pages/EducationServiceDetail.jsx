@@ -5,10 +5,10 @@ import { EducationSEO } from '../components/EducationSEO';
 import { EducationEnquiryModal } from '../components/EducationEnquiryModal';
 import ScrollReveal from '../components/ScrollReveal';
 import { trackServiceView, trackCtaClick } from '../services/analytics';
-import { 
-  ArrowLeft, ArrowRight, CheckCircle2, ChevronDown, ChevronUp, 
-  HelpCircle, FileText, Users, Compass, Globe, Sparkles, Building2, 
-  Phone, Mail, Calendar, ShieldCheck, Award, GraduationCap, School, 
+import {
+  ArrowLeft, ArrowRight, CheckCircle2, ChevronDown, ChevronUp,
+  HelpCircle, FileText, Users, Compass, Globe, Sparkles, Building2,
+  Phone, Mail, Calendar, ShieldCheck, Award, GraduationCap, School,
   Plane, Languages
 } from 'lucide-react';
 
@@ -22,6 +22,7 @@ const iconMap = {
 };
 
 import { InternationalConsultingPage } from './InternationalConsultingPage';
+import { StudentAcademyPage } from './StudentAcademyPage';
 import { CourseGuidanceCatalogue } from '../components/CourseGuidanceCatalogue';
 
 export const EducationServiceDetail = ({ serviceId }) => {
@@ -31,6 +32,10 @@ export const EducationServiceDetail = ({ serviceId }) => {
 
   if (service.id === 'intl-consult') {
     return <InternationalConsultingPage />;
+  }
+
+  if (service.id === 'school-academy') {
+    return <StudentAcademyPage />;
   }
 
   const [modalOpen, setModalOpen] = useState(false);
@@ -109,14 +114,14 @@ export const EducationServiceDetail = ({ serviceId }) => {
       <div className="bg-white/80 dark:bg-navy-950/80 border-b border-slate-200 dark:border-navy-800 backdrop-blur-sm sticky top-[73px] z-30">
         <div className="max-w-7xl mx-auto px-4 sm:px-8 py-3 flex items-center justify-between text-xs">
           <nav aria-label="Breadcrumb" className="flex items-center space-x-2 text-slate-500 dark:text-slate-400 font-medium overflow-x-auto whitespace-nowrap">
-            <button 
+            <button
               onClick={() => navigateTo('home')}
               className="hover:text-gold-500 transition focus:outline-none focus:text-gold-500"
             >
               Home
             </button>
             <span>/</span>
-            <button 
+            <button
               onClick={() => navigateTo('education')}
               className="hover:text-gold-500 transition focus:outline-none focus:text-gold-500"
             >
@@ -144,7 +149,7 @@ export const EducationServiceDetail = ({ serviceId }) => {
         <ScrollReveal>
           <div className="glass-card bg-white dark:bg-navy-900 border border-slate-200 dark:border-gold-500/30 rounded-3xl p-6 sm:p-10 md:p-12 shadow-luxury relative overflow-hidden">
             <div className="absolute top-0 right-0 w-96 h-96 bg-gold-500/5 rounded-full blur-3xl -z-10 pointer-events-none" />
-            
+
             <div className="max-w-3xl space-y-5">
               <div className="flex flex-wrap items-center gap-2">
                 <span className="bg-gold-500/15 text-gold-600 dark:text-gold-400 text-xs font-black px-3 py-1 rounded-full uppercase tracking-wider border border-gold-500/30">
@@ -283,7 +288,7 @@ export const EducationServiceDetail = ({ serviceId }) => {
 
         {/* Key Benefits Grid or Course Guidance Catalogue */}
         {service.id === 'school-career' ? (
-          <CourseGuidanceCatalogue 
+          <CourseGuidanceCatalogue
             onInquire={(course) => {
               setSelectedSubProgram(`${course.abbreviation} (${course.name})`);
               setModalOpen(true);
@@ -306,7 +311,7 @@ export const EducationServiceDetail = ({ serviceId }) => {
 
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
                 {(service.keyBenefits || []).map((benefit, idx) => (
-                  <div 
+                  <div
                     key={idx}
                     className="glass-card bg-white dark:bg-navy-900 border border-slate-200 dark:border-navy-800 rounded-2xl p-6 space-y-3 hover:border-gold-500 transition duration-300"
                   >
@@ -371,7 +376,7 @@ export const EducationServiceDetail = ({ serviceId }) => {
 
             <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
               {service.howItWorks.map((step) => (
-                <div 
+                <div
                   key={step.step}
                   className="glass-card bg-white dark:bg-navy-900 border border-slate-200 dark:border-navy-800 rounded-2xl p-5 space-y-3 relative hover:border-gold-500 transition duration-300 flex flex-col justify-between"
                 >
@@ -416,7 +421,7 @@ export const EducationServiceDetail = ({ serviceId }) => {
 
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-3.5">
               {service.requiredDocuments.map((doc, idx) => (
-                <div 
+                <div
                   key={idx}
                   className="p-3.5 rounded-xl bg-slate-50 dark:bg-navy-950 border border-slate-200 dark:border-navy-800 text-xs flex items-start gap-2.5"
                 >
@@ -442,7 +447,7 @@ export const EducationServiceDetail = ({ serviceId }) => {
 
             <div className="space-y-3">
               {service.faqs.map((faq, idx) => (
-                <div 
+                <div
                   key={idx}
                   className="glass-card bg-white dark:bg-navy-900 border border-slate-200 dark:border-navy-800 rounded-2xl overflow-hidden transition"
                 >

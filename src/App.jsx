@@ -31,13 +31,13 @@ import { ErpApp } from './erp/ErpApp';
 export function App() {
   const { activeTab } = useApp();
 
-  const isCrmRoute = activeTab === 'crm' || 
+  const isCrmRoute = activeTab === 'crm' ||
     (typeof window !== 'undefined' && (window.location.pathname.replace(/^\/+|\/+$/g, '').startsWith('crm') || window.location.hash === '#crm'));
 
-  const isErpRoute = activeTab === 'superadmin-erp' || activeTab === 'erp' || 
+  const isErpRoute = activeTab === 'superadmin-erp' || activeTab === 'erp' ||
     (typeof window !== 'undefined' && (
-      window.location.pathname.replace(/^\/+|\/+$/g, '').startsWith('superadmin-erp') || 
-      window.location.pathname.replace(/^\/+|\/+$/g, '').startsWith('erp') || 
+      window.location.pathname.replace(/^\/+|\/+$/g, '').startsWith('superadmin-erp') ||
+      window.location.pathname.replace(/^\/+|\/+$/g, '').startsWith('erp') ||
       window.location.hash === '#erp' ||
       window.location.hash === '#superadmin-erp'
     ));
@@ -68,6 +68,9 @@ export function App() {
       if (raw === 'intl-consult' || raw === 'international-consulting') {
         return <InternationalConsultingPage />;
       }
+      if (raw === 'school-academy' || raw === 'academy-for-school-students' || raw === 'student-academy') {
+        return <EducationServiceDetail serviceId="school-academy" />;
+      }
       const srv = getEducationServiceBySlug(raw) || getEducationServiceById(raw);
       if (srv) {
         return <EducationServiceDetail serviceId={srv.id} />;
@@ -76,6 +79,9 @@ export function App() {
     }
 
     switch (activeTab) {
+      case 'school-academy':
+      case 'student-academy':
+        return <EducationServiceDetail serviceId="school-academy" />;
       case 'erp':
         return <ErpApp />;
       case 'crm':
@@ -111,7 +117,7 @@ export function App() {
   return (
     <div className="min-h-screen flex flex-col justify-between selection:bg-gold-500 selection:text-white">
       <Navbar />
-      
+
       <main className="flex-grow">
         {renderCurrentPage()}
       </main>
