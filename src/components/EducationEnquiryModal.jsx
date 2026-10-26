@@ -10,6 +10,11 @@ export const EducationEnquiryModal = ({ isOpen, onClose, preselectedServiceId = 
   const [phone, setPhone] = useState('');
   const [countryInterest, setCountryInterest] = useState('All');
   const [programLevel, setProgramLevel] = useState('Undergraduate');
+  const [consultationDate, setConsultationDate] = useState(() => {
+    return new Date(Date.now() + 86400000).toISOString().split('T')[0];
+  });
+  const [consultationTime, setConsultationTime] = useState('11:00 AM - 12:00 PM IST');
+  const [consultationMode, setConsultationMode] = useState('Virtual Video Call (Google Meet / Zoom)');
   const [consent, setConsent] = useState(true);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [submitError, setSubmitError] = useState(null);
@@ -112,7 +117,11 @@ export const EducationEnquiryModal = ({ isOpen, onClose, preselectedServiceId = 
       serviceId: activeService.id,
       serviceTitle: `${activeService.title}${subDetail}`,
       company: `Academic Advisory (${activeService.category})`,
-      message: `[Academic Advisory Inquiry: ${activeService.title}${subDetail}${levelDetail}${destDetail}${institutionDetail}]\n\nStudent/Applicant Message:\n${data.message.trim()}`,
+      consultationDate,
+      consultationTime,
+      consultationMode,
+      status: 'Consultation Scheduled',
+      message: `[Academic Advisory Consultation Booking: ${activeService.title}${subDetail}${levelDetail}${destDetail}${institutionDetail}]\nAppointment Date: ${consultationDate} at ${consultationTime}\nConsultation Mode: ${consultationMode}\n\nStudent/Applicant Message:\n${data.message.trim()}`,
       utmSource: attribution.utmSource,
       utmMedium: attribution.utmMedium,
       utmCampaign: attribution.utmCampaign,
@@ -137,7 +146,10 @@ export const EducationEnquiryModal = ({ isOpen, onClose, preselectedServiceId = 
       setSubmittedLead({
         id: generatedRef,
         name: data.name.trim(),
-        serviceTitle: activeService.title
+        serviceTitle: activeService.title,
+        consultationDate,
+        consultationTime,
+        consultationMode
       });
 
       // Fire confirmed conversion event (deduplicated by referenceNumber)
@@ -205,12 +217,20 @@ export const EducationEnquiryModal = ({ isOpen, onClose, preselectedServiceId = 
                 <span className="font-mono font-bold text-gold-500">#{submittedLead.id}</span>
               </div>
               <div className="flex justify-between items-center text-slate-500">
+                <span>Appointment Date & Time:</span>
+                <span className="font-bold text-slate-800 dark:text-slate-200">{submittedLead.consultationDate} ({submittedLead.consultationTime})</span>
+              </div>
+              <div className="flex justify-between items-center text-slate-500">
+                <span>Consultation Mode:</span>
+                <span className="font-semibold text-emerald-600 dark:text-emerald-400">{submittedLead.consultationMode}</span>
+              </div>
+              <div className="flex justify-between items-center text-slate-500">
                 <span>Advisory Hub:</span>
                 <span className="font-semibold text-slate-800 dark:text-slate-200">Dubai HQ & Global Network</span>
               </div>
               <div className="flex justify-between items-center text-slate-500">
-                <span>Follow-Up Window:</span>
-                <span className="font-semibold text-emerald-600 dark:text-emerald-400">Within 24 Business Hours</span>
+                <span>Status in CRM:</span>
+                <span className="font-semibold text-amber-600 dark:text-gold-400">Consultation Scheduled</span>
               </div>
             </div>
 
@@ -416,6 +436,60 @@ export const EducationEnquiryModal = ({ isOpen, onClose, preselectedServiceId = 
                     <option value="Europe">Europe (Germany, Ireland, France)</option>
                     <option value="UAE & GCC">UAE & GCC Branch Campuses</option>
                   </select>
+                </div>
+              </div>
+
+              {/* Consultation Scheduling Row: Date, Time & Mode */}
+              <div className="p-3.5 bg-gold-500/5 dark:bg-gold-500/10 border border-gold-500/20 rounded-2xl space-y-2">
+                <span className="text-[10px] font-extrabold text-gold-600 dark:text-gold-400 uppercase tracking-wider block">
+                  Select Consultation Appointment
+                </span>
+                
+                <div className="grid grid-cols-1 sm:grid-cols-3 gap-2.5">
+                  <div>
+                    <label className="block text-[10px] font-bold text-slate-600 dark:text-slate-400 mb-1">
+                      Preferred Date
+                    </label>
+                    <input
+                      type="date"
+                      value={consultationDate}
+                      onChange={(e) => setConsultationDate(e.target.value)}
+                      className="w-full bg-white dark:bg-navy-950 border border-slate-200 dark:border-navy-700 text-slate-800 dark:text-slate-200 text-xs rounded-xl px-2.5 py-2 font-bold focus:outline-none focus:ring-2 focus:ring-gold-500"
+                    />
+                  </div>
+
+                  <div>
+                    <label className="block text-[10px] font-bold text-slate-600 dark:text-slate-400 mb-1">
+                      Time Slot
+                    </label>
+                    <select
+                      value={consultationTime}
+                      onChange={(e) => setConsultationTime(e.target.value)}
+                      className="w-full bg-white dark:bg-navy-950 border border-slate-200 dark:border-navy-700 text-slate-800 dark:text-slate-200 text-xs rounded-xl px-2.5 py-2 font-bold focus:outline-none focus:ring-2 focus:ring-gold-500 cursor-pointer"
+                    >
+                      <option value="09:30 AM - 10:30 AM IST">09:30 AM - 10:30 AM IST</option>
+                      <option value="11:00 AM - 12:00 PM IST">11:00 AM - 12:00 PM IST</option>
+                      <option value="02:00 PM - 03:00 PM IST">02:00 PM - 03:00 PM IST</option>
+                      <option value="04:00 PM - 05:00 PM IST">04:00 PM - 05:00 PM IST</option>
+                      <option value="06:00 PM - 07:00 PM IST">06:00 PM - 07:00 PM IST</option>
+                    </select>
+                  </div>
+
+                  <div>
+                    <label className="block text-[10px] font-bold text-slate-600 dark:text-slate-400 mb-1">
+                      Format / Mode
+                    </label>
+                    <select
+                      value={consultationMode}
+                      onChange={(e) => setConsultationMode(e.target.value)}
+                      className="w-full bg-white dark:bg-navy-950 border border-slate-200 dark:border-navy-700 text-slate-800 dark:text-slate-200 text-xs rounded-xl px-2.5 py-2 font-bold focus:outline-none focus:ring-2 focus:ring-gold-500 cursor-pointer"
+                    >
+                      <option value="Virtual Video Call (Google Meet / Zoom)">Virtual Video Call</option>
+                      <option value="India HQ In-Person (Chennai)">India HQ In-Person (Chennai)</option>
+                      <option value="WhatsApp Consultation Call">WhatsApp Consultation</option>
+                      <option value="Direct Phone Call">Direct Phone Call</option>
+                    </select>
+                  </div>
                 </div>
               </div>
 

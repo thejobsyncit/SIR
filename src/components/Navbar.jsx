@@ -201,7 +201,7 @@ export const Navbar = () => {
                                 { id: 'school-career', title: 'Career Guidance', href: '/education/school-student-career-guidance', tab: 'education-school-career' },
                                 { id: 'intl-adm', title: 'Intl Admissions', href: '/education/international-admissions', tab: 'education-intl-adm' },
                                 { id: 'school-academy', title: 'Student Academy', href: '/education/academy-for-school-students', tab: 'education-school-academy' },
-                                { id: 'exec-seminars-lang', title: 'Language Tests', href: '/education/executive-seminars-and-language-test-preparation', tab: 'education-exec-seminars-lang' }
+                                { id: 'exec-seminars-lang', title: 'Seminars & Language', href: '/education/executive-seminars-and-language-test-preparation', tab: 'education-exec-seminars-lang' }
                               ].map((srv) => (
                                 <a
                                   key={srv.id}
@@ -415,7 +415,7 @@ export const Navbar = () => {
                   { id: 'school-career', label: 'Career Guidance', href: '/education/school-student-career-guidance', tab: 'education-school-career' },
                   { id: 'intl-adm', label: 'Intl Admissions', href: '/education/international-admissions', tab: 'education-intl-adm' },
                   { id: 'school-academy', label: 'Student Academy', href: '/education/academy-for-school-students', tab: 'education-school-academy' },
-                  { id: 'exec-seminars-lang', label: 'Language Tests', href: '/education/executive-seminars-and-language-test-preparation', tab: 'education-exec-seminars-lang' }
+                  { id: 'exec-seminars-lang', label: 'Seminars & Language', href: '/education/executive-seminars-and-language-test-preparation', tab: 'education-exec-seminars-lang' }
                 ].map((s) => (
                   <a
                     key={s.id}

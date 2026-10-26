@@ -437,18 +437,18 @@ export const EDUCATION_SERVICES_DETAILED = [
   {
     id: 'exec-seminars-lang',
     slug: 'executive-seminars-and-language-test-preparation',
-    title: 'Executive Seminars & Language Test Preparation',
+    title: 'Seminars & Language',
     category: 'Executive & Language',
     badge: 'Mastery & Certification',
-    tagline: 'Professional Executive Development & Certified Test Preparation (DET, OET, IELTS)',
-    shortDescription: 'Focused executive development seminars and structured preparation modules for international language proficiency tests.',
-    heroDescription: 'Whether preparing healthcare professionals for GCC or UK medical licensure with OET, empowering university candidates to ace IELTS and the Duolingo English Test (DET), or elevating corporate managers through executive leadership seminars, our certified trainers deliver benchmark results.',
-    targetAudience: 'Working professionals, corporate executives, registered nurses, doctors, healthcare practitioners, and students requiring certified English language scores.',
+    tagline: 'Executive Development, Professional Seminars & Certified Language Test Preparation',
+    shortDescription: 'Executive development seminars and certified language test preparation for IELTS, OET, DET, and TOEFL.',
+    heroDescription: 'Enhance professional communication, leadership capabilities, and language proficiency through structured training programs tailored to individual and organizational needs. The Revival International offers executive development seminars and preparation support for IELTS, OET, DET, and TOEFL, helping students, healthcare professionals, working professionals, and corporate teams prepare for their academic and career goals.',
+    targetAudience: 'Students, healthcare professionals, university applicants, working professionals, managers, executives, and corporate teams.',
     keyStats: [
-      { label: 'Test Modules', value: 'DET, OET, IELTS' },
-      { label: 'Executive Track', value: 'Leadership & Seminars' },
-      { label: 'Trainer Level', value: 'Certified Specialists' },
-      { label: 'Mock Testing', value: 'Full Diagnostic Simulations' }
+      { label: 'Language Tests', value: 'IELTS, OET, DET, TOEFL' },
+      { label: 'Executive Programs', value: 'Leadership & Seminars' },
+      { label: 'Training Formats', value: 'Individual & Corporate' },
+      { label: 'Learning Approach', value: 'Structured Preparation' }
     ],
     keyBenefits: [
       {

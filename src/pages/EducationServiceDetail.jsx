@@ -22,6 +22,8 @@ const iconMap = {
 };
 
 import { InternationalConsultingPage } from './InternationalConsultingPage';
+import { InternationalAdmissionsPage } from './InternationalAdmissionsPage';
+import { SeminarsAndLanguagePage } from './SeminarsAndLanguagePage';
 import { CourseGuidanceCatalogue } from '../components/CourseGuidanceCatalogue';
 
 export const EducationServiceDetail = ({ serviceId }) => {
@@ -31,6 +33,19 @@ export const EducationServiceDetail = ({ serviceId }) => {
 
   if (service.id === 'intl-consult') {
     return <InternationalConsultingPage />;
+  }
+
+  if (service.id === 'intl-adm' || service.id === 'international-admissions') {
+    return <InternationalAdmissionsPage />;
+  }
+
+  if (
+    service.id === 'exec-seminars-lang' ||
+    service.slug === 'executive-seminars-and-language-test-preparation' ||
+    service.id === 'seminars-and-language' ||
+    service.slug === 'seminars-and-language'
+  ) {
+    return <SeminarsAndLanguagePage />;
   }
 
   const [modalOpen, setModalOpen] = useState(false);

@@ -248,7 +248,10 @@ const initDb = async (db) => {
     { name: 'currentStage', type: 'TEXT' },
     { name: 'cvPath', type: 'TEXT' },
     { name: 'documentUrls', type: 'TEXT' },
-    { name: 'customFields', type: 'TEXT' }
+    { name: 'customFields', type: 'TEXT' },
+    { name: 'consultationDate', type: 'TEXT' },
+    { name: 'consultationTime', type: 'TEXT' },
+    { name: 'consultationMode', type: 'TEXT' }
   ]);
 
   // Safe migration: Ensure clients/organizations table has enterprise fields
@@ -265,76 +268,6 @@ const initDb = async (db) => {
     { name: 'updatedAt', type: 'DATETIME' }
   ]);
 
-  // Seed default verified organizations if none exist
-  try {
-    const orgCount = await db.get("SELECT COUNT(*) as count FROM clients");
-    if (!orgCount || orgCount.count === 0) {
-      const seedOrgs = [
-        {
-          id: 'CLI-501',
-          company: 'Al Habtoor Contracting LLC',
-          organizationType: 'Company',
-          industry: 'Construction & Real Estate',
-          country: 'United Arab Emirates',
-          location: 'Al Habtoor Tower, Business Bay, Dubai',
-          website: 'https://www.habtoorcontracting.ae',
-          contactPerson: 'Eng. Hassan Al-Habtoor',
-          designation: 'VP of Human Capital',
-          email: 'hassan@habtoorcontracting.ae',
-          phone: '+971 4 390 1111',
-          assignedEmployee: 'Tariq Al-Hashemi',
-          status: 'Active',
-          associatedServices: 'Corporate Recruitment, Executive Search',
-          notes: 'Master SLA Active across UAE & KSA jurisdictions.'
-        },
-        {
-          id: 'ORG-EDU-101',
-          company: 'Heriot-Watt University Dubai',
-          organizationType: 'University',
-          industry: 'Higher Education & Research',
-          country: 'United Arab Emirates',
-          location: 'Dubai Knowledge Park, Dubai',
-          website: 'https://www.hw.ac.uk/dubai',
-          contactPerson: 'Dr. Fiona Campbell',
-          designation: 'Director of International Admissions',
-          email: 'dubai.admissions@hw.ac.uk',
-          phone: '+971 4 571 7000',
-          assignedEmployee: 'Dhanalakshimi',
-          status: 'Active',
-          associatedServices: 'International Consulting, College Admission Assistance',
-          notes: 'Premier UK branch campus in Dubai. Direct progression partner for undergraduate and postgraduate STEM programs.'
-        },
-        {
-          id: 'ORG-EDU-102',
-          company: 'Dubai International Academy (DIA)',
-          organizationType: 'School',
-          industry: 'K-12 International Education',
-          country: 'United Arab Emirates',
-          location: 'Emirates Hills, Dubai',
-          website: 'https://www.diadubai.com',
-          contactPerson: 'Robert Sterling',
-          designation: 'Head of Senior School College Counselling',
-          email: 'counseling@diadubai.com',
-          phone: '+971 4 368 4111',
-          assignedEmployee: 'Sreeja',
-          status: 'Active',
-          associatedServices: 'International Consulting, School Student Career Guidance',
-          notes: 'Top IB World School in Dubai. Annual higher education career guidance workshop partner.'
-        }
-      ];
-
-      for (const org of seedOrgs) {
-        await db.run(
-          `INSERT INTO clients (id, company, organizationType, industry, country, location, website, contactPerson, designation, email, phone, assignedEmployee, status, associatedServices, notes)
-           VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
-          [org.id, org.company, org.organizationType, org.industry, org.country, org.location, org.website, org.contactPerson, org.designation, org.email, org.phone, org.assignedEmployee, org.status, org.associatedServices, org.notes]
-        );
-      }
-      console.log('Seeded verified organizations into SQLite database.');
-    }
-  } catch (seedErr) {
-    console.warn('Organization seed check warning:', seedErr.message);
-  }
-
+  // No automatic fake/seed organizations - database starts clean for real entries only
   console.log('Database initialized successfully with SQLite.');
 };

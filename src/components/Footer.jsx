@@ -1,5 +1,6 @@
 import React from 'react';
 import { useApp } from '../context/AppContext';
+import { BrandLogoIcon } from './BrandLogoIcon';
 import { 
   Building2, Phone, Mail, MapPin, Globe, Shield, Award, 
   Send, MessageSquare, Linkedin, Twitter, Facebook, Instagram, Youtube, CheckCircle2 
@@ -85,10 +86,7 @@ export const Footer = () => {
           {/* Col 1: Brand Info */}
           <div className="lg:col-span-2 space-y-4">
             <div className="flex items-center space-x-3 cursor-pointer" onClick={() => navigateTo('home')}>
-              <div className="w-10 h-10 rounded-xl bg-slate-50 dark:bg-navy-900 border-2 border-gold-500 flex items-center justify-center shadow-lg">
-                <span className="font-serif text-xl font-extrabold text-gold-500">R</span>
-                <span className="font-serif text-lg font-bold text-slate-900 dark:text-white">I</span>
-              </div>
+              <BrandLogoIcon className="w-10 h-10 shadow-md" />
               <div className="font-serif text-xl font-black text-navy-900 dark:text-white tracking-tight flex items-center gap-1.5 flex-wrap">
                 The Revival <span className="text-gold-500 font-sans text-[10px] sm:text-xs font-bold uppercase tracking-widest px-1.5 py-0.5 bg-slate-50/50 dark:bg-navy-900/50 rounded">International</span>
               </div>

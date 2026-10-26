@@ -22,7 +22,11 @@ export const CrmDashboard = () => {
     setActiveModule,
     updateFollowUpStatus,
     leads,
-    fetchLeads
+    fetchLeads,
+    candidates = [],
+    clients = [],
+    invoices = [],
+    interviews = []
   } = useCrm();
 
   const [dateRange, setDateRange] = useState('all');
@@ -41,11 +45,25 @@ export const CrmDashboard = () => {
     setLoadingMetrics(false);
   };
 
+  const paidRevenue = invoices
+    .filter(i => (i.status || '').toLowerCase() === 'paid')
+    .reduce((sum, i) => sum + (Number(i.totalUSD || i.amountUSD || 0)), 0);
+
+  const convertedLeadsCount = (leads || []).filter(l => 
+    (l.status || '').toLowerCase().includes('convert') || 
+    (l.status || '').toLowerCase().includes('complet')
+  ).length;
+
+  const scheduledConsultationsCount = (leads || []).filter(l => 
+    (l.status || '').toLowerCase().includes('sched') || 
+    l.consultationDate
+  ).length;
+
   const widgets = [
     { 
-      label: 'Total Database Candidates', 
-      val: '54,210', 
-      change: '+12% this month', 
+      label: 'Live Active Bookings', 
+      val: String((leads || []).length), 
+      change: 'Synchronized Real-Time', 
       icon: Users, 
       color: 'text-blue-600 dark:text-blue-400',
       badgeBg: 'bg-blue-100 dark:bg-blue-500/20 border-blue-300 dark:border-blue-500/30',
@@ -53,9 +71,9 @@ export const CrmDashboard = () => {
       valColor: 'text-slate-900 dark:text-blue-300'
     },
     { 
-      label: 'Active Open Mandates', 
-      val: '340', 
-      change: '142 Domestic / 198 Overseas', 
+      label: 'Scheduled Consultations', 
+      val: String(scheduledConsultationsCount), 
+      change: 'Upcoming Advisory Roadmaps', 
       icon: Briefcase, 
       color: 'text-amber-600 dark:text-gold-400',
       badgeBg: 'bg-amber-100 dark:bg-gold-500/20 border-amber-300 dark:border-gold-500/30',
@@ -64,8 +82,8 @@ export const CrmDashboard = () => {
     },
     { 
       label: 'Corporate Client Accounts', 
-      val: '520', 
-      change: 'UAE, KSA, Qatar, EU', 
+      val: String(clients.length), 
+      change: 'Verified Institutional Partners', 
       icon: Building2, 
       color: 'text-purple-600 dark:text-purple-400',
       badgeBg: 'bg-purple-100 dark:bg-purple-500/20 border-purple-300 dark:border-purple-500/30',
@@ -73,9 +91,9 @@ export const CrmDashboard = () => {
       valColor: 'text-purple-800 dark:text-purple-300'
     },
     { 
-      label: 'Monthly Revenue (USD)', 
-      val: '$485,000', 
-      change: '+18.4% YoY', 
+      label: 'Billed Revenue (USD)', 
+      val: `$${paidRevenue.toLocaleString()}`, 
+      change: 'Active Invoicing Ledger', 
       icon: DollarSign, 
       color: 'text-emerald-600 dark:text-emerald-400',
       badgeBg: 'bg-emerald-100 dark:bg-emerald-500/20 border-emerald-300 dark:border-emerald-500/30',
@@ -83,9 +101,9 @@ export const CrmDashboard = () => {
       valColor: 'text-emerald-700 dark:text-emerald-400'
     },
     { 
-      label: "Today's Panel Interviews", 
-      val: '28', 
-      change: '8 Teams / 12 Zoom / 8 In-Person', 
+      label: "Scheduled Interviews", 
+      val: String(interviews.length), 
+      change: 'Panels & Candidate Meets', 
       icon: Calendar, 
       color: 'text-cyan-600 dark:text-cyan-400',
       badgeBg: 'bg-cyan-100 dark:bg-cyan-500/20 border-cyan-300 dark:border-cyan-500/30',
@@ -93,9 +111,9 @@ export const CrmDashboard = () => {
       valColor: 'text-cyan-800 dark:text-cyan-300'
     },
     { 
-      label: 'Visa Applications in Progress', 
-      val: '84', 
-      change: '34 UAE / 28 KSA / 22 Qatar', 
+      label: 'Talent Pool Candidates', 
+      val: String(candidates.length), 
+      change: 'Registered Profiles', 
       icon: ShieldCheck, 
       color: 'text-amber-600 dark:text-amber-400',
       badgeBg: 'bg-amber-100 dark:bg-amber-500/20 border-amber-300 dark:border-amber-500/30',
@@ -103,9 +121,9 @@ export const CrmDashboard = () => {
       valColor: 'text-amber-800 dark:text-amber-300'
     },
     { 
-      label: 'Background Checks Pending', 
-      val: '19', 
-      change: '6-Point Verification', 
+      label: 'Follow-Ups Pending', 
+      val: String(followUpsSummary?.counts?.totalPending || 0), 
+      change: 'Action Required', 
       icon: Clock, 
       color: 'text-rose-600 dark:text-rose-400',
       badgeBg: 'bg-rose-100 dark:bg-rose-500/20 border-rose-300 dark:border-rose-500/30',
@@ -113,9 +131,9 @@ export const CrmDashboard = () => {
       valColor: 'text-rose-800 dark:text-rose-300'
     },
     { 
-      label: 'Placements Joined This Month', 
-      val: '32', 
-      change: '78.4% Acceptance Rate', 
+      label: 'Completed / Converted', 
+      val: String(convertedLeadsCount), 
+      change: 'Successfully Finalized', 
       icon: CheckCircle2, 
       color: 'text-emerald-600 dark:text-emerald-400',
       badgeBg: 'bg-emerald-100 dark:bg-emerald-500/20 border-emerald-300 dark:border-emerald-500/30',
@@ -365,7 +383,7 @@ export const CrmDashboard = () => {
                   { serviceId: 'school-career', serviceTitle: 'School Student Career Guidance', category: 'K-12 & High School', total: 0, newCount: 0, awaitingFollowUp: 0, inProgress: 0, converted: 0, conversionRate: 0 },
                   { serviceId: 'intl-adm', serviceTitle: 'International Admissions', category: 'Admissions', total: 0, newCount: 0, awaitingFollowUp: 0, inProgress: 0, converted: 0, conversionRate: 0 },
                   { serviceId: 'school-academy', serviceTitle: 'Academy for School Students', category: 'Academic Enrichment', total: 0, newCount: 0, awaitingFollowUp: 0, inProgress: 0, converted: 0, conversionRate: 0 },
-                  { serviceId: 'exec-seminars-lang', serviceTitle: 'Executive Seminars & Language Test Preparation', category: 'Test Prep & Executive', total: 0, newCount: 0, awaitingFollowUp: 0, inProgress: 0, converted: 0, conversionRate: 0 }
+                  { serviceId: 'exec-seminars-lang', serviceTitle: 'Seminars & Language', category: 'Test Prep & Executive', total: 0, newCount: 0, awaitingFollowUp: 0, inProgress: 0, converted: 0, conversionRate: 0 }
                 ]).map(srv => (
                   <tr key={srv.serviceId} className="hover:bg-slate-50 dark:hover:bg-navy-950/60 transition">
                     <td className="p-3 font-bold text-slate-900 dark:text-white flex items-center gap-2">
@@ -406,12 +424,12 @@ export const CrmDashboard = () => {
                     <td className="p-3 text-right">
                       <button
                         onClick={() => {
-                          setActiveModule('super-admin');
+                          setActiveModule('consulting');
                         }}
                         className="px-2.5 py-1 bg-navy-900 dark:bg-gold-500 text-white dark:text-navy-950 rounded-lg font-bold text-[10px] hover:opacity-90 transition cursor-pointer flex items-center gap-1 ml-auto"
-                        title={`Open leads for ${srv.serviceTitle}`}
+                        title={`Open bookings for ${srv.serviceTitle}`}
                       >
-                        <span>View Leads</span>
+                        <span>View Bookings</span>
                         <ChevronRight className="w-3 h-3" />
                       </button>
                     </td>
@@ -420,6 +438,55 @@ export const CrmDashboard = () => {
               </tbody>
             </table>
           </div>
+
+          {/* Recent Live Consultation Bookings Feed */}
+          {leads && leads.length > 0 && (
+            <div className="pt-4 border-t border-slate-200 dark:border-navy-800 space-y-3">
+              <div className="flex justify-between items-center">
+                <h4 className="font-serif text-sm font-bold text-slate-900 dark:text-white flex items-center gap-2">
+                  <span className="w-2 h-2 rounded-full bg-emerald-500 animate-ping"></span>
+                  Recent Consultation & Advisory Bookings
+                </h4>
+                <button
+                  onClick={() => setActiveModule('consulting')}
+                  className="text-[11px] font-bold text-gold-600 dark:text-gold-400 hover:underline flex items-center gap-1"
+                >
+                  <span>Open Full Consulting CRM</span>
+                  <ChevronRight className="w-3.5 h-3.5" />
+                </button>
+              </div>
+
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
+                {leads.slice(0, 3).map((lead) => (
+                  <div
+                    key={lead.id}
+                    onClick={() => setActiveModule('consulting')}
+                    className="p-3.5 bg-slate-50 dark:bg-navy-950 rounded-2xl border border-slate-200 dark:border-navy-800 hover:border-gold-500/50 transition cursor-pointer space-y-1.5 shadow-xs"
+                  >
+                    <div className="flex justify-between items-start gap-2">
+                      <span className="font-bold text-slate-900 dark:text-white truncate">
+                        {lead.name}
+                      </span>
+                      <span className="px-2 py-0.5 rounded text-[9px] font-extrabold bg-gold-500/20 text-gold-700 dark:text-gold-400 shrink-0">
+                        {lead.status || 'Scheduled'}
+                      </span>
+                    </div>
+
+                    <p className="text-[11px] text-slate-500 dark:text-slate-400 truncate">
+                      {lead.serviceTitle || lead.serviceId || 'International Consulting'}
+                    </p>
+
+                    <div className="flex items-center justify-between text-[10px] text-slate-600 dark:text-slate-400 pt-1 border-t border-slate-200/60 dark:border-navy-800/60 font-mono">
+                      <span>{lead.referenceNumber || lead.id.slice(0, 10)}</span>
+                      <span className="text-gold-600 dark:text-gold-400 font-bold">
+                        {lead.consultationDate || 'Scheduled'}
+                      </span>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
         </div>
 
       </div>

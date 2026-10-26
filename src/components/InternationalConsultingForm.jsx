@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { 
   Send, CheckCircle2, AlertCircle, Loader2, Sparkles, ShieldCheck, 
-  Building2, Globe, Calendar, Phone, Mail, User, Clock, ArrowRight 
+  Globe, Calendar, Phone, Mail, User, Clock, Users, BookOpen, Check
 } from 'lucide-react';
 import { trackEnquiryStart, trackEnquiryValidationFailure, trackEnquiryConversion } from '../services/analytics';
 import { getAttributionData } from '../utils/attribution';
@@ -9,29 +9,40 @@ import { getAttributionData } from '../utils/attribution';
 export const InternationalConsultingForm = ({ 
   onSuccessCallback = null,
   embedded = false,
-  preselectedCountry = 'All',
-  preselectedAssistance = 'Destination Selection & Comparison'
+  preselectedDestination = 'United Kingdom',
+  onDestinationChange = null
 }) => {
+  // Initialize tomorrow's date for appointment picker
+  const tomorrow = new Date(Date.now() + 86400000).toISOString().split('T')[0];
+
   const [formData, setFormData] = useState({
     name: '',
-    email: '',
     phone: '',
     countryCode: '+971',
-    organizationName: '',
-    organizationType: 'Individual',
-    countryInterest: preselectedCountry || 'All',
-    assistanceType: preselectedAssistance || 'Destination Selection & Comparison',
-    degreeLevel: 'Undergraduate',
-    intakeTerm: 'Fall 2026',
-    preferredContactMethod: 'WhatsApp',
-    message: '',
-    consent: true
+    email: '',
+    role: 'Student', // 'Student' or 'Parent'
+    currentCountry: 'United Arab Emirates',
+    preferredDestination: preselectedDestination || 'United Kingdom',
+    academicLevel: 'Postgraduate',
+    intendedIntake: 'Fall Intake',
+    consultationMethod: 'Online Meeting', // WhatsApp, Phone Call, Email, Online Meeting
+    appointmentDate: tomorrow,
+    timeSlot: 'Morning (09:00 AM - 12:00 PM)',
+    academicBackground: '',
+    consent: false
   });
 
   const [formErrors, setFormErrors] = useState({});
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [submitError, setSubmitError] = useState(null);
   const [submissionSuccess, setSubmissionSuccess] = useState(null);
+
+  // Sync with prop when preselectedDestination changes from destination explorer
+  useEffect(() => {
+    if (preselectedDestination && preselectedDestination !== formData.preferredDestination) {
+      setFormData(prev => ({ ...prev, preferredDestination: preselectedDestination }));
+    }
+  }, [preselectedDestination]);
 
   const countryCodes = [
     { code: '+971', label: 'UAE (+971)' },
@@ -40,58 +51,65 @@ export const InternationalConsultingForm = ({
     { code: '+968', label: 'Oman (+968)' },
     { code: '+965', label: 'Kuwait (+965)' },
     { code: '+973', label: 'Bahrain (+973)' },
-    { code: '+44', label: 'United Kingdom (+44)' },
+    { code: '+44', label: 'UK (+44)' },
     { code: '+1', label: 'USA / Canada (+1)' },
     { code: '+91', label: 'India (+91)' },
-    { code: '+65', label: 'Singapore (+65)' },
-    { code: '+60', label: 'Malaysia (+60)' },
     { code: '+61', label: 'Australia (+61)' },
     { code: '+49', label: 'Germany (+49)' },
-    { code: '+353', label: 'Ireland (+353)' }
+    { code: '+65', label: 'Singapore (+65)' },
+    { code: '+60', label: 'Malaysia (+60)' }
   ];
 
-  const destinationOptions = [
-    'All Global Destinations',
+  const currentCountryOptions = [
+    'United Arab Emirates',
+    'Saudi Arabia',
+    'Qatar',
+    'Oman',
+    'Kuwait',
+    'Bahrain',
+    'India',
     'United Kingdom',
     'United States',
     'Canada',
     'Australia',
-    'Germany & Europe',
-    'Ireland',
-    'United Arab Emirates & GCC',
-    'Singapore & Malaysia',
-    'Other / Undecided'
+    'Germany',
+    'Other / International'
   ];
 
-  const assistanceTypes = [
-    'Destination Selection & Comparison',
-    'Academic Profile & Credential Evaluation',
-    'University Shortlisting & Entry Brackets',
-    'Tuition, Budget & Scholarship Planning',
-    'Student Visa & Immigration Policy Guidance',
-    'Comprehensive End-to-End Advisory'
+  const destinationOptions = [
+    'United Kingdom',
+    'United States',
+    'Canada',
+    'Australia',
+    'Germany and Europe',
+    'United Arab Emirates',
+    'Undecided / Open to Advisory'
   ];
 
-  const degreeLevels = [
-    'Undergraduate / Bachelor Degree',
-    'Postgraduate / Master Degree',
-    'Doctorate / PhD Track',
-    'Executive MBA & Professional Diploma',
-    'High School / Foundation Pathway'
+  const academicLevelOptions = [
+    'Undergraduate',
+    'Postgraduate',
+    'Executive MBA'
   ];
 
-  const intakeTerms = [
-    'Fall 2026 (Sept / Oct 2026)',
-    'Spring 2027 (Jan / Feb 2027)',
-    'Fall 2027 (Sept / Oct 2027)',
-    'Summer / Immediate Intake'
+  const intakeOptions = [
+    'Fall Intake',
+    'Spring Intake',
+    'Summer Intake'
   ];
 
-  const contactMethods = [
-    { id: 'WhatsApp', label: 'WhatsApp Message' },
-    { id: 'Phone', label: 'Direct Phone Call' },
-    { id: 'Email', label: 'Email Consultation' },
-    { id: 'In-Person', label: 'In-Person (Dubai HQ Office)' }
+  const consultationMethodOptions = [
+    { id: 'Online Meeting', label: 'Online Meeting (Google Meet / Zoom)' },
+    { id: 'WhatsApp', label: 'WhatsApp Call / Message' },
+    { id: 'Phone Call', label: 'Phone Call' },
+    { id: 'Email', label: 'Email Advisory' }
+  ];
+
+  const timeSlotOptions = [
+    'Morning (09:00 AM - 12:00 PM)',
+    'Afternoon (12:00 PM - 03:00 PM)',
+    'Evening (03:00 PM - 06:00 PM)',
+    'Night (06:00 PM - 08:00 PM)'
   ];
 
   const handleChange = (e) => {
@@ -102,6 +120,10 @@ export const InternationalConsultingForm = ({
     
     if (formErrors[name]) {
       setFormErrors(prev => ({ ...prev, [name]: null }));
+    }
+
+    if (name === 'preferredDestination' && onDestinationChange) {
+      onDestinationChange(val);
     }
   };
 
@@ -116,31 +138,83 @@ export const InternationalConsultingForm = ({
   const validate = () => {
     const errors = {};
 
+    // 1. Full Name
     if (!formData.name || formData.name.trim().length < 2) {
       errors.name = 'Full name is required (minimum 2 characters).';
     } else if (formData.name.trim().length > 100) {
       errors.name = 'Full name must not exceed 100 characters.';
     }
 
+    // 2. Email Address
     const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
     if (!formData.email || !emailRegex.test(formData.email.trim())) {
       errors.email = 'Please provide a valid email address for consultation correspondence.';
     }
 
+    // 3. Phone Number
     if (!formData.phone || formData.phone.length < 7) {
       errors.phone = 'Valid phone number is required (at least 7 digits).';
     } else if (formData.phone.length > 15) {
       errors.phone = 'Phone number exceeds maximum length.';
     }
 
-    if (!formData.message || formData.message.trim().length < 10) {
-      errors.message = 'Please provide brief details about your background, questions, or goals (minimum 10 characters).';
-    } else if (formData.message.trim().length > 3000) {
-      errors.message = 'Details must not exceed 3000 characters.';
+    // 4. Role (Student or Parent)
+    if (!formData.role) {
+      errors.role = 'Please specify whether you are a Student or Parent.';
     }
 
+    // 5. Current Country
+    if (!formData.currentCountry) {
+      errors.currentCountry = 'Current country is required.';
+    }
+
+    // 6. Preferred Study Destination
+    if (!formData.preferredDestination) {
+      errors.preferredDestination = 'Please select a preferred study destination.';
+    }
+
+    // 7. Target Academic Level
+    if (!formData.academicLevel) {
+      errors.academicLevel = 'Please select your target academic level.';
+    }
+
+    // 8. Intended Intake
+    if (!formData.intendedIntake) {
+      errors.intendedIntake = 'Please select your intended intake.';
+    }
+
+    // 9. Preferred Consultation Method
+    if (!formData.consultationMethod) {
+      errors.consultationMethod = 'Please choose a consultation method.';
+    }
+
+    // 10. Preferred Appointment Date
+    if (!formData.appointmentDate) {
+      errors.appointmentDate = 'Appointment date is required.';
+    } else {
+      const selected = new Date(formData.appointmentDate);
+      const today = new Date();
+      today.setHours(0, 0, 0, 0);
+      if (selected < today) {
+        errors.appointmentDate = 'Appointment date cannot be in the past.';
+      }
+    }
+
+    // 11. Preferred Time Slot
+    if (!formData.timeSlot) {
+      errors.timeSlot = 'Please select a preferred time slot.';
+    }
+
+    // 12. Academic Background and Specific Requirements
+    if (!formData.academicBackground || formData.academicBackground.trim().length < 10) {
+      errors.academicBackground = 'Please provide details on your academic background and requirements (minimum 10 characters).';
+    } else if (formData.academicBackground.trim().length > 3000) {
+      errors.academicBackground = 'Academic background details must not exceed 3000 characters.';
+    }
+
+    // 13. Privacy Consent Checkbox
     if (!formData.consent) {
-      errors.consent = 'Consent to contact is required to schedule consultation.';
+      errors.consent = 'Privacy consent is required to process your consultation request.';
     }
 
     return errors;
@@ -164,26 +238,28 @@ export const InternationalConsultingForm = ({
 
     const attribution = getAttributionData();
     const fullPhoneNumber = `${formData.countryCode} ${formData.phone}`.trim();
-    const orgValue = formData.organizationName && formData.organizationName.trim()
-      ? formData.organizationName.trim()
-      : 'Individual';
 
+    // Map all fields according to backend lead/consulting schema
     const payload = {
       name: formData.name.trim(),
       email: formData.email.trim(),
       phone: fullPhoneNumber,
-      company: orgValue,
-      organizationName: orgValue,
-      organizationType: formData.organizationType,
+      company: `${formData.role} - ${formData.currentCountry}`,
+      organizationName: formData.currentCountry,
+      organizationType: formData.role,
       serviceId: 'intl-consult',
       serviceTitle: 'International Consulting',
-      countryInterest: formData.countryInterest,
-      assistanceType: formData.assistanceType,
-      degreeLevel: formData.degreeLevel,
-      intakeTerm: formData.intakeTerm,
-      preferredContactMethod: formData.preferredContactMethod,
-      priority: 'Medium',
-      message: `[International Consulting Consultation Request]\n\nTarget Destination: ${formData.countryInterest}\nDegree Level: ${formData.degreeLevel}\nTarget Intake: ${formData.intakeTerm}\nAssistance Required: ${formData.assistanceType}\nPreferred Contact: ${formData.preferredContactMethod}\nOrganization/School: ${orgValue} (${formData.organizationType})\n\nCandidate Inquiry & Academic Context:\n${formData.message.trim()}`,
+      countryInterest: formData.preferredDestination,
+      assistanceType: `${formData.academicLevel} Planning & Advisory`,
+      degreeLevel: formData.academicLevel,
+      intakeTerm: formData.intendedIntake,
+      preferredContactMethod: formData.consultationMethod,
+      consultationDate: formData.appointmentDate,
+      consultationTime: formData.timeSlot,
+      consultationMode: formData.consultationMethod,
+      status: 'Consultation Scheduled',
+      priority: 'High',
+      message: `[Strategic Consultation Booking - International Consulting]\n\n• Applicant Category: ${formData.role}\n• Current Country of Residence: ${formData.currentCountry}\n• Preferred Study Destination: ${formData.preferredDestination}\n• Target Academic Level: ${formData.academicLevel}\n• Intended Intake: ${formData.intendedIntake}\n• Preferred Consultation Method: ${formData.consultationMethod}\n• Scheduled Appointment Date: ${formData.appointmentDate}\n• Preferred Time Slot: ${formData.timeSlot}\n\nAcademic Background & Specific Requirements:\n${formData.academicBackground.trim()}`,
       utmSource: attribution.utmSource,
       utmMedium: attribution.utmMedium,
       utmCampaign: attribution.utmCampaign,
@@ -191,7 +267,7 @@ export const InternationalConsultingForm = ({
     };
 
     try {
-      const response = await fetch('/api/consulting/enquiries', {
+      const response = await fetch('/api/leads', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(payload)
@@ -200,7 +276,7 @@ export const InternationalConsultingForm = ({
       const result = await response.json().catch(() => ({}));
 
       if (!response.ok || !result.success) {
-        throw new Error(result.message || 'The server was unable to save your consultation enquiry. Please try again.');
+        throw new Error(result.message || 'Unable to schedule consultation with the backend server. Please try again.');
       }
 
       const confirmedRef = result.data?.referenceNumber || `REV-IC-2026-${Math.floor(10000 + Math.random() * 90000)}`;
@@ -209,15 +285,20 @@ export const InternationalConsultingForm = ({
         id: result.data?.id,
         name: formData.name.trim(),
         email: formData.email.trim(),
-        destination: formData.countryInterest,
-        assistanceType: formData.assistanceType,
-        intakeTerm: formData.intakeTerm,
-        preferredContactMethod: formData.preferredContactMethod
+        phone: fullPhoneNumber,
+        role: formData.role,
+        currentCountry: formData.currentCountry,
+        destination: formData.preferredDestination,
+        academicLevel: formData.academicLevel,
+        intake: formData.intendedIntake,
+        consultationMethod: formData.consultationMethod,
+        appointmentDate: formData.appointmentDate,
+        timeSlot: formData.timeSlot
       };
 
       setSubmissionSuccess(successData);
 
-      // Fire confirmed conversion event (deduplicated by referenceNumber)
+      // Track conversion
       trackEnquiryConversion(
         confirmedRef,
         'intl-consult',
@@ -230,7 +311,7 @@ export const InternationalConsultingForm = ({
         onSuccessCallback(successData);
       }
     } catch (err) {
-      console.error('Enquiry submission error:', err);
+      console.error('Consultation booking submission error:', err);
       setSubmitError(err.message || 'A network error occurred while connecting to the database server. Please try again.');
     } finally {
       setIsSubmitting(false);
@@ -240,105 +321,111 @@ export const InternationalConsultingForm = ({
   const resetForm = () => {
     setFormData({
       name: '',
-      email: '',
       phone: '',
       countryCode: '+971',
-      organizationName: '',
-      organizationType: 'Individual',
-      countryInterest: preselectedCountry || 'All',
-      assistanceType: preselectedAssistance || 'Destination Selection & Comparison',
-      degreeLevel: 'Undergraduate',
-      intakeTerm: 'Fall 2026',
-      preferredContactMethod: 'WhatsApp',
-      message: '',
-      consent: true
+      email: '',
+      role: 'Student',
+      currentCountry: 'United Arab Emirates',
+      preferredDestination: preselectedDestination || 'United Kingdom',
+      academicLevel: 'Postgraduate',
+      intendedIntake: 'Fall Intake',
+      consultationMethod: 'Online Meeting',
+      appointmentDate: tomorrow,
+      timeSlot: 'Morning (09:00 AM - 12:00 PM)',
+      academicBackground: '',
+      consent: false
     });
     setFormErrors({});
     setSubmitError(null);
     setSubmissionSuccess(null);
   };
 
+  // SUCCESS STATE (Displayed only upon genuine successful HTTP response from backend)
   if (submissionSuccess) {
     return (
-      <div className={`glass-card bg-white dark:bg-navy-900 border border-emerald-500/40 rounded-3xl p-6 sm:p-8 space-y-6 text-center ${embedded ? '' : 'shadow-luxury'}`}>
+      <div className={`glass-card bg-white dark:bg-navy-900 border border-emerald-500/40 rounded-3xl p-6 sm:p-10 space-y-6 text-center ${embedded ? '' : 'shadow-luxury'}`}>
         <div className="w-16 h-16 rounded-full bg-emerald-500/10 text-emerald-500 mx-auto flex items-center justify-center border border-emerald-500/30">
           <CheckCircle2 className="w-8 h-8" />
         </div>
 
         <div className="space-y-2">
           <span className="bg-emerald-500/15 text-emerald-600 dark:text-emerald-400 text-[11px] font-extrabold px-3 py-1 rounded-full uppercase tracking-wider border border-emerald-500/30">
-            Consultation Enquiry Recorded
+            Consultation Appointment Confirmed
           </span>
           <h3 className="font-serif text-2xl sm:text-3xl font-bold text-navy-900 dark:text-white">
             Thank You, {submissionSuccess.name}!
           </h3>
           <p className="text-xs sm:text-sm text-slate-700 dark:text-slate-300 max-w-lg mx-auto font-medium">
-            Your International Consulting request has been registered in the Revival International database. A senior educational consultant has been notified.
+            Your strategic consultation booking has been verified and registered in the Revival International database. An educational advisory counselor will connect with you via your preferred consultation channel.
           </p>
         </div>
 
-        {/* Reference Code Card */}
-        <div className="bg-slate-50 dark:bg-navy-950 p-4 sm:p-5 rounded-2xl border border-slate-200 dark:border-navy-800 max-w-md mx-auto text-left space-y-2.5">
-          <div className="flex justify-between items-center text-xs pb-2 border-b border-slate-200 dark:border-navy-800">
-            <span className="text-slate-500 font-bold uppercase tracking-wider text-[10px]">Official Reference Code</span>
-            <span className="font-mono font-black text-gold-600 dark:text-gold-400 text-sm tracking-wide bg-gold-500/10 px-2.5 py-0.5 rounded border border-gold-500/30">
+        {/* Confirmed Reference Card */}
+        <div className="bg-slate-50 dark:bg-navy-950 p-5 rounded-2xl border border-slate-200 dark:border-navy-800 max-w-lg mx-auto text-left space-y-3">
+          <div className="flex justify-between items-center text-xs pb-3 border-b border-slate-200 dark:border-navy-800">
+            <span className="text-slate-500 font-bold uppercase tracking-wider text-[10px]">Official Booking Reference</span>
+            <span className="font-mono font-black text-gold-600 dark:text-gold-400 text-sm tracking-wide bg-gold-500/10 px-3 py-0.5 rounded border border-gold-500/30">
               {submissionSuccess.referenceNumber}
             </span>
           </div>
 
-          <div className="grid grid-cols-2 gap-2 text-xs">
+          <div className="grid grid-cols-2 gap-3 text-xs">
             <div>
               <p className="text-[10px] text-slate-400 font-bold uppercase">Target Destination</p>
               <p className="font-bold text-slate-800 dark:text-slate-200 truncate">{submissionSuccess.destination}</p>
             </div>
             <div>
-              <p className="text-[10px] text-slate-400 font-bold uppercase">Target Intake</p>
-              <p className="font-bold text-slate-800 dark:text-slate-200 truncate">{submissionSuccess.intakeTerm}</p>
+              <p className="text-[10px] text-slate-400 font-bold uppercase">Academic Level & Intake</p>
+              <p className="font-bold text-slate-800 dark:text-slate-200 truncate">{submissionSuccess.academicLevel} • {submissionSuccess.intake}</p>
             </div>
             <div>
-              <p className="text-[10px] text-slate-400 font-bold uppercase">Assistance Track</p>
-              <p className="font-bold text-slate-800 dark:text-slate-200 truncate">{submissionSuccess.assistanceType}</p>
+              <p className="text-[10px] text-slate-400 font-bold uppercase">Appointment Date & Time</p>
+              <p className="font-bold text-gold-600 dark:text-gold-400">
+                {submissionSuccess.appointmentDate}
+              </p>
+              <p className="text-[11px] text-slate-600 dark:text-slate-400">{submissionSuccess.timeSlot}</p>
             </div>
             <div>
-              <p className="text-[10px] text-slate-400 font-bold uppercase">Preferred Channel</p>
-              <p className="font-bold text-emerald-600 dark:text-emerald-400 truncate">{submissionSuccess.preferredContactMethod}</p>
+              <p className="text-[10px] text-slate-400 font-bold uppercase">Consultation Method</p>
+              <p className="font-bold text-emerald-600 dark:text-emerald-400 truncate">{submissionSuccess.consultationMethod}</p>
             </div>
           </div>
         </div>
 
         <div className="text-xs text-slate-500 dark:text-slate-400 space-y-1">
-          <p>Confirmation email scheduled to: <strong className="text-slate-800 dark:text-slate-200">{submissionSuccess.email}</strong></p>
-          <p className="text-[11px]">Our Dubai academic advisory desk operates Monday through Saturday, 09:00 AM - 06:00 PM GST.</p>
+          <p>Confirmation email dispatched to: <strong className="text-slate-800 dark:text-slate-200">{submissionSuccess.email}</strong></p>
+          <p className="text-[11px]">Academic advisory desk active Monday to Saturday, 09:30 AM – 06:30 PM Gulf Standard Time.</p>
         </div>
 
         <div className="pt-2 flex justify-center gap-3">
           <button
             onClick={resetForm}
-            className="px-5 py-2.5 bg-slate-100 hover:bg-slate-200 dark:bg-navy-800 dark:hover:bg-navy-700 text-slate-800 dark:text-slate-200 text-xs font-bold rounded-xl transition"
+            className="px-5 py-2.5 bg-slate-100 hover:bg-slate-200 dark:bg-navy-800 dark:hover:bg-navy-700 text-slate-800 dark:text-slate-200 text-xs font-bold rounded-xl transition cursor-pointer"
           >
-            Submit Another Enquiry
+            Book Another Consultation
           </button>
         </div>
       </div>
     );
   }
 
+  // ACTIVE BOOKING FORM
   return (
     <form onSubmit={handleSubmit} className="space-y-5 text-xs text-slate-800 dark:text-slate-200" noValidate>
       
       {/* Header Info Banner */}
       <div className="flex items-center justify-between pb-3 border-b border-slate-200 dark:border-navy-800">
         <div>
-          <h3 className="font-serif text-lg font-bold text-navy-900 dark:text-white flex items-center gap-2">
+          <h3 className="font-serif text-lg sm:text-xl font-bold text-navy-900 dark:text-white flex items-center gap-2">
             <Sparkles className="w-4 h-4 text-gold-500" />
             <span>Strategic Consultation Booking</span>
           </h3>
           <p className="text-[11px] text-slate-500 dark:text-slate-400">
-            Confidential 1-on-1 profile evaluation with licensed international academic advisors.
+            Personalized one-to-one global education advisory with certified international destination planners.
           </p>
         </div>
         <span className="hidden sm:inline-flex bg-gold-500/10 text-gold-600 dark:text-gold-400 text-[10px] font-black px-2.5 py-1 rounded-full uppercase border border-gold-500/20">
-          No Obligation • Direct Advisory
+          Direct Advisory • No Obligation
         </span>
       </div>
 
@@ -352,22 +439,23 @@ export const InternationalConsultingForm = ({
         </div>
       )}
 
-      {/* Row 1: Full Name & Business/Personal Email */}
+      {/* Row 1: Full Name & Email Address */}
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+        {/* Field 1: Full Name */}
         <div className="space-y-1">
-          <label htmlFor="ic-name" className="block text-slate-700 dark:text-slate-300 font-bold">
+          <label htmlFor="scb-name" className="block text-slate-700 dark:text-slate-300 font-bold">
             Full Name <span className="text-rose-500">*</span>
           </label>
           <div className="relative">
             <User className="w-3.5 h-3.5 text-slate-400 absolute left-3 top-3 pointer-events-none" />
             <input
-              id="ic-name"
+              id="scb-name"
               type="text"
               name="name"
               value={formData.name}
               onChange={handleChange}
               onFocus={() => trackEnquiryStart('consulting_page', 'intl-consult', 'International Consulting')}
-              placeholder="e.g. Tariq Al-Mansoori / Sarah Jenkins"
+              placeholder="e.g. John Doe / Sarah Al Mansoori"
               disabled={isSubmitting}
               className={`w-full pl-9 pr-3 py-2 bg-slate-50 dark:bg-navy-950 border rounded-xl font-semibold text-slate-900 dark:text-white placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-gold-500 transition ${
                 formErrors.name ? 'border-rose-500 ring-1 ring-rose-500' : 'border-slate-300 dark:border-navy-700'
@@ -379,19 +467,20 @@ export const InternationalConsultingForm = ({
           )}
         </div>
 
+        {/* Field 3: Email Address */}
         <div className="space-y-1">
-          <label htmlFor="ic-email" className="block text-slate-700 dark:text-slate-300 font-bold">
-            Contact / Business Email <span className="text-rose-500">*</span>
+          <label htmlFor="scb-email" className="block text-slate-700 dark:text-slate-300 font-bold">
+            Email Address <span className="text-rose-500">*</span>
           </label>
           <div className="relative">
             <Mail className="w-3.5 h-3.5 text-slate-400 absolute left-3 top-3 pointer-events-none" />
             <input
-              id="ic-email"
+              id="scb-email"
               type="email"
               name="email"
               value={formData.email}
               onChange={handleChange}
-              placeholder="e.g. candidate@domain.com"
+              placeholder="e.g. applicant@example.com"
               disabled={isSubmitting}
               className={`w-full pl-9 pr-3 py-2 bg-slate-50 dark:bg-navy-950 border rounded-xl font-semibold text-slate-900 dark:text-white placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-gold-500 transition ${
                 formErrors.email ? 'border-rose-500 ring-1 ring-rose-500' : 'border-slate-300 dark:border-navy-700'
@@ -404,11 +493,12 @@ export const InternationalConsultingForm = ({
         </div>
       </div>
 
-      {/* Row 2: Phone with Country Code Selector & Organization (if applicable) */}
+      {/* Row 2: Phone Number with Country Code & Student or Parent Selection */}
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+        {/* Field 2: Phone Number with country code */}
         <div className="space-y-1">
-          <label htmlFor="ic-phone" className="block text-slate-700 dark:text-slate-300 font-bold">
-            Phone / WhatsApp Number <span className="text-rose-500">*</span>
+          <label htmlFor="scb-phone" className="block text-slate-700 dark:text-slate-300 font-bold">
+            Phone Number with Country Code <span className="text-rose-500">*</span>
           </label>
           <div className="flex gap-2">
             <select
@@ -416,6 +506,7 @@ export const InternationalConsultingForm = ({
               value={formData.countryCode}
               onChange={handleChange}
               disabled={isSubmitting}
+              aria-label="Country Code"
               className="w-32 bg-slate-50 dark:bg-navy-950 border border-slate-300 dark:border-navy-700 rounded-xl px-2.5 py-2 font-bold text-slate-800 dark:text-slate-200 focus:outline-none focus:ring-2 focus:ring-gold-500 text-xs shrink-0 cursor-pointer"
             >
               {countryCodes.map(c => (
@@ -425,7 +516,7 @@ export const InternationalConsultingForm = ({
             <div className="relative flex-1">
               <Phone className="w-3.5 h-3.5 text-slate-400 absolute left-3 top-3 pointer-events-none" />
               <input
-                id="ic-phone"
+                id="scb-phone"
                 type="tel"
                 name="phone"
                 value={formData.phone}
@@ -443,53 +534,94 @@ export const InternationalConsultingForm = ({
           )}
         </div>
 
+        {/* Field 4: Student or Parent */}
         <div className="space-y-1">
-          <div className="flex justify-between items-center">
-            <label htmlFor="ic-org" className="block text-slate-700 dark:text-slate-300 font-bold">
-              Organization / School / University <span className="text-slate-400 font-normal">(Optional)</span>
-            </label>
-            <select
-              name="organizationType"
-              value={formData.organizationType}
-              onChange={handleChange}
-              disabled={isSubmitting}
-              className="text-[10px] bg-transparent text-slate-500 dark:text-slate-400 font-semibold cursor-pointer border-none focus:outline-none"
+          <label className="block text-slate-700 dark:text-slate-300 font-bold">
+            I am a <span className="text-rose-500">*</span>
+          </label>
+          <div className="grid grid-cols-2 gap-2 pt-0.5">
+            <label
+              className={`p-2 rounded-xl border flex items-center justify-center gap-2 cursor-pointer transition text-xs font-semibold ${
+                formData.role === 'Student'
+                  ? 'bg-gold-500/15 border-gold-500 text-gold-700 dark:text-gold-300 shadow-sm'
+                  : 'bg-slate-50 dark:bg-navy-950 border-slate-200 dark:border-navy-800 text-slate-700 dark:text-slate-300 hover:border-slate-300'
+              }`}
             >
-              <option value="Individual">Individual Applicant</option>
-              <option value="School">School / K-12</option>
-              <option value="University">University</option>
-              <option value="College">College</option>
-              <option value="Company">Corporate Employer</option>
-            </select>
+              <input
+                type="radio"
+                name="role"
+                value="Student"
+                checked={formData.role === 'Student'}
+                onChange={handleChange}
+                disabled={isSubmitting}
+                className="text-gold-500 focus:ring-gold-500"
+              />
+              <span>Student</span>
+            </label>
+
+            <label
+              className={`p-2 rounded-xl border flex items-center justify-center gap-2 cursor-pointer transition text-xs font-semibold ${
+                formData.role === 'Parent'
+                  ? 'bg-gold-500/15 border-gold-500 text-gold-700 dark:text-gold-300 shadow-sm'
+                  : 'bg-slate-50 dark:bg-navy-950 border-slate-200 dark:border-navy-800 text-slate-700 dark:text-slate-300 hover:border-slate-300'
+              }`}
+            >
+              <input
+                type="radio"
+                name="role"
+                value="Parent"
+                checked={formData.role === 'Parent'}
+                onChange={handleChange}
+                disabled={isSubmitting}
+                className="text-gold-500 focus:ring-gold-500"
+              />
+              <span>Parent / Guardian</span>
+            </label>
           </div>
-          <div className="relative">
-            <Building2 className="w-3.5 h-3.5 text-slate-400 absolute left-3 top-3 pointer-events-none" />
-            <input
-              id="ic-org"
-              type="text"
-              name="organizationName"
-              value={formData.organizationName}
-              onChange={handleChange}
-              placeholder="e.g. Dubai International Academy, Heriot-Watt, or Individual"
-              disabled={isSubmitting}
-              className="w-full pl-9 pr-3 py-2 bg-slate-50 dark:bg-navy-950 border border-slate-300 dark:border-navy-700 rounded-xl font-semibold text-slate-900 dark:text-white placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-gold-500 transition"
-            />
-          </div>
+          {formErrors.role && (
+            <p className="text-[10px] text-rose-500 font-bold">{formErrors.role}</p>
+          )}
         </div>
       </div>
 
-      {/* Row 3: Destination of Interest & Assistance Track */}
+      {/* Row 3: Current Country & Preferred Study Destination */}
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+        {/* Field 5: Current Country */}
         <div className="space-y-1">
-          <label htmlFor="ic-dest" className="block text-slate-700 dark:text-slate-300 font-bold">
-            Target Destination / Country of Interest
+          <label htmlFor="scb-current-country" className="block text-slate-700 dark:text-slate-300 font-bold">
+            Current Country of Residence <span className="text-rose-500">*</span>
           </label>
           <div className="relative">
             <Globe className="w-3.5 h-3.5 text-slate-400 absolute left-3 top-3 pointer-events-none" />
             <select
-              id="ic-dest"
-              name="countryInterest"
-              value={formData.countryInterest}
+              id="scb-current-country"
+              name="currentCountry"
+              value={formData.currentCountry}
+              onChange={handleChange}
+              disabled={isSubmitting}
+              className="w-full pl-9 pr-3 py-2 bg-slate-50 dark:bg-navy-950 border border-slate-300 dark:border-navy-700 rounded-xl font-semibold text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-gold-500 cursor-pointer"
+            >
+              {currentCountryOptions.map(opt => (
+                <option key={opt} value={opt}>{opt}</option>
+              ))}
+            </select>
+          </div>
+          {formErrors.currentCountry && (
+            <p className="text-[10px] text-rose-500 font-bold">{formErrors.currentCountry}</p>
+          )}
+        </div>
+
+        {/* Field 6: Preferred Study Destination */}
+        <div className="space-y-1">
+          <label htmlFor="scb-destination" className="block text-slate-700 dark:text-slate-300 font-bold">
+            Preferred Study Destination <span className="text-rose-500">*</span>
+          </label>
+          <div className="relative">
+            <Globe className="w-3.5 h-3.5 text-gold-500 absolute left-3 top-3 pointer-events-none" />
+            <select
+              id="scb-destination"
+              name="preferredDestination"
+              value={formData.preferredDestination}
               onChange={handleChange}
               disabled={isSubmitting}
               className="w-full pl-9 pr-3 py-2 bg-slate-50 dark:bg-navy-950 border border-slate-300 dark:border-navy-700 rounded-xl font-semibold text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-gold-500 cursor-pointer"
@@ -499,89 +631,85 @@ export const InternationalConsultingForm = ({
               ))}
             </select>
           </div>
-        </div>
-
-        <div className="space-y-1">
-          <label htmlFor="ic-assistance" className="block text-slate-700 dark:text-slate-300 font-bold">
-            Type of Consulting Assistance Required
-          </label>
-          <select
-            id="ic-assistance"
-            name="assistanceType"
-            value={formData.assistanceType}
-            onChange={handleChange}
-            disabled={isSubmitting}
-            className="w-full px-3 py-2 bg-slate-50 dark:bg-navy-950 border border-slate-300 dark:border-navy-700 rounded-xl font-semibold text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-gold-500 cursor-pointer"
-          >
-            {assistanceTypes.map(opt => (
-              <option key={opt} value={opt}>{opt}</option>
-            ))}
-          </select>
+          {formErrors.preferredDestination && (
+            <p className="text-[10px] text-rose-500 font-bold">{formErrors.preferredDestination}</p>
+          )}
         </div>
       </div>
 
-      {/* Row 4: Degree Level & Target Intake Term */}
+      {/* Row 4: Target Academic Level & Intended Intake */}
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+        {/* Field 7: Target Academic Level */}
         <div className="space-y-1">
-          <label htmlFor="ic-degree" className="block text-slate-700 dark:text-slate-300 font-bold">
-            Target Academic Level
-          </label>
-          <select
-            id="ic-degree"
-            name="degreeLevel"
-            value={formData.degreeLevel}
-            onChange={handleChange}
-            disabled={isSubmitting}
-            className="w-full px-3 py-2 bg-slate-50 dark:bg-navy-950 border border-slate-300 dark:border-navy-700 rounded-xl font-semibold text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-gold-500 cursor-pointer"
-          >
-            {degreeLevels.map(opt => (
-              <option key={opt} value={opt}>{opt}</option>
-            ))}
-          </select>
-        </div>
-
-        <div className="space-y-1">
-          <label htmlFor="ic-intake" className="block text-slate-700 dark:text-slate-300 font-bold">
-            Target Intake Window
+          <label htmlFor="scb-academic-level" className="block text-slate-700 dark:text-slate-300 font-bold">
+            Target Academic Level <span className="text-rose-500">*</span>
           </label>
           <div className="relative">
-            <Calendar className="w-3.5 h-3.5 text-slate-400 absolute left-3 top-3 pointer-events-none" />
+            <BookOpen className="w-3.5 h-3.5 text-slate-400 absolute left-3 top-3 pointer-events-none" />
             <select
-              id="ic-intake"
-              name="intakeTerm"
-              value={formData.intakeTerm}
+              id="scb-academic-level"
+              name="academicLevel"
+              value={formData.academicLevel}
               onChange={handleChange}
               disabled={isSubmitting}
               className="w-full pl-9 pr-3 py-2 bg-slate-50 dark:bg-navy-950 border border-slate-300 dark:border-navy-700 rounded-xl font-semibold text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-gold-500 cursor-pointer"
             >
-              {intakeTerms.map(opt => (
+              {academicLevelOptions.map(opt => (
                 <option key={opt} value={opt}>{opt}</option>
               ))}
             </select>
           </div>
+          {formErrors.academicLevel && (
+            <p className="text-[10px] text-rose-500 font-bold">{formErrors.academicLevel}</p>
+          )}
+        </div>
+
+        {/* Field 8: Intended Intake */}
+        <div className="space-y-1">
+          <label htmlFor="scb-intake" className="block text-slate-700 dark:text-slate-300 font-bold">
+            Intended Intake <span className="text-rose-500">*</span>
+          </label>
+          <div className="relative">
+            <Calendar className="w-3.5 h-3.5 text-slate-400 absolute left-3 top-3 pointer-events-none" />
+            <select
+              id="scb-intake"
+              name="intendedIntake"
+              value={formData.intendedIntake}
+              onChange={handleChange}
+              disabled={isSubmitting}
+              className="w-full pl-9 pr-3 py-2 bg-slate-50 dark:bg-navy-950 border border-slate-300 dark:border-navy-700 rounded-xl font-semibold text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-gold-500 cursor-pointer"
+            >
+              {intakeOptions.map(opt => (
+                <option key={opt} value={opt}>{opt}</option>
+              ))}
+            </select>
+          </div>
+          {formErrors.intendedIntake && (
+            <p className="text-[10px] text-rose-500 font-bold">{formErrors.intendedIntake}</p>
+          )}
         </div>
       </div>
 
-      {/* Row 5: Preferred Contact Method Radio Selector */}
+      {/* Row 5: Field 9: Preferred Consultation Method */}
       <div className="space-y-1.5">
         <label className="block text-slate-700 dark:text-slate-300 font-bold">
-          Preferred Consultation Method
+          Preferred Consultation Method <span className="text-rose-500">*</span>
         </label>
         <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
-          {contactMethods.map(method => (
+          {consultationMethodOptions.map(method => (
             <label
               key={method.id}
               className={`p-2.5 rounded-xl border flex items-center gap-2 cursor-pointer transition text-xs font-semibold ${
-                formData.preferredContactMethod === method.id
-                  ? 'bg-gold-500/15 border-gold-500 text-gold-700 dark:text-gold-300'
-                  : 'bg-slate-50 dark:bg-navy-950 border-slate-200 dark:border-navy-800 text-slate-700 dark:text-slate-300 hover:border-slate-300 dark:hover:border-navy-700'
+                formData.consultationMethod === method.id
+                  ? 'bg-gold-500/15 border-gold-500 text-gold-700 dark:text-gold-300 shadow-sm'
+                  : 'bg-slate-50 dark:bg-navy-950 border-slate-200 dark:border-navy-800 text-slate-700 dark:text-slate-300 hover:border-slate-300'
               }`}
             >
               <input
                 type="radio"
-                name="preferredContactMethod"
+                name="consultationMethod"
                 value={method.id}
-                checked={formData.preferredContactMethod === method.id}
+                checked={formData.consultationMethod === method.id}
                 onChange={handleChange}
                 disabled={isSubmitting}
                 className="text-gold-500 focus:ring-gold-500"
@@ -590,36 +718,103 @@ export const InternationalConsultingForm = ({
             </label>
           ))}
         </div>
-      </div>
-
-      {/* Row 6: Enquiry Details / Academic Background Message */}
-      <div className="space-y-1">
-        <div className="flex justify-between items-center">
-          <label htmlFor="ic-message" className="block text-slate-700 dark:text-slate-300 font-bold">
-            Academic Background, Questions or Specific Requirements <span className="text-rose-500">*</span>
-          </label>
-          <span className="text-[10px] text-slate-400 font-mono">
-            {formData.message.length}/3000 chars
-          </span>
-        </div>
-        <textarea
-          id="ic-message"
-          name="message"
-          rows={4}
-          value={formData.message}
-          onChange={handleChange}
-          placeholder="Please describe your current qualification (e.g. 12th Grade CBSE, B.Sc Computer Science), target institutions or majors, budget preferences, or specific visa/scholarship questions..."
-          disabled={isSubmitting}
-          className={`w-full p-3 bg-slate-50 dark:bg-navy-950 border rounded-xl font-medium text-slate-900 dark:text-white placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-gold-500 transition leading-relaxed ${
-            formErrors.message ? 'border-rose-500 ring-1 ring-rose-500' : 'border-slate-300 dark:border-navy-700'
-          }`}
-        />
-        {formErrors.message && (
-          <p className="text-[10px] text-rose-500 font-bold">{formErrors.message}</p>
+        {formErrors.consultationMethod && (
+          <p className="text-[10px] text-rose-500 font-bold">{formErrors.consultationMethod}</p>
         )}
       </div>
 
-      {/* Row 7: Consent Checkbox */}
+      {/* Row 6: Field 10 & 11: Appointment Date & Time Slot */}
+      <div className="p-4 rounded-2xl bg-gold-500/5 dark:bg-navy-950 border border-gold-500/25 space-y-3">
+        <div className="flex items-center justify-between">
+          <div className="flex items-center gap-2">
+            <Calendar className="w-4 h-4 text-gold-500" />
+            <h4 className="font-bold text-navy-900 dark:text-white text-xs uppercase tracking-wider">
+              Consultation Appointment Details
+            </h4>
+          </div>
+          <span className="text-[10px] text-emerald-600 dark:text-emerald-400 font-bold bg-emerald-500/10 px-2.5 py-0.5 rounded-full border border-emerald-500/20">
+            Live Booking Sync
+          </span>
+        </div>
+
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+          {/* Field 10: Preferred Appointment Date */}
+          <div className="space-y-1">
+            <label htmlFor="scb-date" className="block text-slate-700 dark:text-slate-300 font-bold text-[11px]">
+              Preferred Appointment Date <span className="text-rose-500">*</span>
+            </label>
+            <input
+              id="scb-date"
+              type="date"
+              name="appointmentDate"
+              min={new Date().toISOString().split('T')[0]}
+              value={formData.appointmentDate}
+              onChange={handleChange}
+              disabled={isSubmitting}
+              className={`w-full px-3 py-2 bg-white dark:bg-navy-900 border rounded-xl font-semibold text-slate-900 dark:text-white text-xs focus:ring-2 focus:ring-gold-500 transition ${
+                formErrors.appointmentDate ? 'border-rose-500 ring-1 ring-rose-500' : 'border-slate-300 dark:border-navy-700'
+              }`}
+            />
+            {formErrors.appointmentDate && (
+              <p className="text-[10px] text-rose-500 font-bold">{formErrors.appointmentDate}</p>
+            )}
+          </div>
+
+          {/* Field 11: Preferred Time Slot */}
+          <div className="space-y-1">
+            <label htmlFor="scb-time-slot" className="block text-slate-700 dark:text-slate-300 font-bold text-[11px]">
+              Preferred Time Slot <span className="text-rose-500">*</span>
+            </label>
+            <div className="relative">
+              <Clock className="w-3.5 h-3.5 text-slate-400 absolute left-3 top-3 pointer-events-none" />
+              <select
+                id="scb-time-slot"
+                name="timeSlot"
+                value={formData.timeSlot}
+                onChange={handleChange}
+                disabled={isSubmitting}
+                className="w-full pl-9 pr-3 py-2 bg-white dark:bg-navy-900 border border-slate-300 dark:border-navy-700 rounded-xl font-semibold text-slate-900 dark:text-white text-xs focus:ring-2 focus:ring-gold-500 cursor-pointer"
+              >
+                {timeSlotOptions.map(slot => (
+                  <option key={slot} value={slot}>{slot}</option>
+                ))}
+              </select>
+            </div>
+            {formErrors.timeSlot && (
+              <p className="text-[10px] text-rose-500 font-bold">{formErrors.timeSlot}</p>
+            )}
+          </div>
+        </div>
+      </div>
+
+      {/* Field 12: Academic Background and Specific Requirements */}
+      <div className="space-y-1">
+        <div className="flex justify-between items-center">
+          <label htmlFor="scb-background" className="block text-slate-700 dark:text-slate-300 font-bold">
+            Academic Background and Specific Requirements <span className="text-rose-500">*</span>
+          </label>
+          <span className="text-[10px] text-slate-400 font-mono">
+            {formData.academicBackground.length}/3000 chars
+          </span>
+        </div>
+        <textarea
+          id="scb-background"
+          name="academicBackground"
+          rows={4}
+          value={formData.academicBackground}
+          onChange={handleChange}
+          placeholder="Please describe your current qualification (e.g., 12th Grade CBSE, Bachelor in Computer Science), GPA or marks, target courses/majors, budget parameters, and any specific questions on universities or visas..."
+          disabled={isSubmitting}
+          className={`w-full p-3 bg-slate-50 dark:bg-navy-950 border rounded-xl font-medium text-slate-900 dark:text-white placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-gold-500 transition leading-relaxed ${
+            formErrors.academicBackground ? 'border-rose-500 ring-1 ring-rose-500' : 'border-slate-300 dark:border-navy-700'
+          }`}
+        />
+        {formErrors.academicBackground && (
+          <p className="text-[10px] text-rose-500 font-bold">{formErrors.academicBackground}</p>
+        )}
+      </div>
+
+      {/* Field 13: Privacy Consent Checkbox */}
       <div className="space-y-1 pt-1">
         <label className="flex items-start gap-2.5 cursor-pointer">
           <input
@@ -628,10 +823,10 @@ export const InternationalConsultingForm = ({
             checked={formData.consent}
             onChange={handleChange}
             disabled={isSubmitting}
-            className="mt-0.5 rounded border-slate-300 text-gold-500 focus:ring-gold-500"
+            className="mt-0.5 rounded border-slate-300 text-gold-500 focus:ring-gold-500 cursor-pointer"
           />
           <span className="text-[11px] text-slate-600 dark:text-slate-400 leading-snug">
-            I consent to Revival International contacting me via phone, WhatsApp, or email to schedule this consultation and provide educational advisory updates. We never share your information with third-party advertisers.
+            I agree to the privacy policy and consent to receiving consultation correspondence from The Revival International academic advisors regarding my educational inquiry. We do not sell or distribute personal information to external commercial entities.
           </span>
         </label>
         {formErrors.consent && (
@@ -639,7 +834,7 @@ export const InternationalConsultingForm = ({
         )}
       </div>
 
-      {/* Submit Button */}
+      {/* Prominent CTA Button: Book My Consultation */}
       <div className="pt-2">
         <button
           type="submit"
@@ -649,12 +844,12 @@ export const InternationalConsultingForm = ({
           {isSubmitting ? (
             <>
               <Loader2 className="w-4 h-4 animate-spin text-navy-950" />
-              <span>Verifying & Recording Consultation in Database...</span>
+              <span>Registering Consultation with Advisory Desk...</span>
             </>
           ) : (
             <>
               <Send className="w-4 h-4" />
-              <span>Submit International Consulting Enquiry</span>
+              <span>Book My Consultation</span>
             </>
           )}
         </button>
@@ -662,7 +857,7 @@ export const InternationalConsultingForm = ({
 
       <div className="flex items-center justify-center gap-2 text-[10px] text-slate-400 pt-1">
         <ShieldCheck className="w-3.5 h-3.5 text-emerald-500" />
-        <span>SSL Encrypted Transmission • SQLite Database Backed • Real Reference Generated</span>
+        <span>SSL Encrypted Transmission • Connected to Official CRM • Authentic Booking Confirmation</span>
       </div>
     </form>
   );

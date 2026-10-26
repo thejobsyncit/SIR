@@ -197,9 +197,8 @@ export const CrmLogin = () => {
         
         {/* Company Logo Header */}
         <div className="text-center space-y-2">
-          <div className="w-16 h-16 rounded-2xl bg-navy-950 border-2 border-gold-500 flex items-center justify-center shadow-gold-glow mx-auto mb-2">
-            <span className="font-serif text-3xl font-extrabold text-gold-500">R</span>
-            <span className="font-serif text-2xl font-bold text-white">I</span>
+          <div className="w-16 h-16 flex items-center justify-center mx-auto mb-2 select-none">
+            <img src="/images/logo.png" alt="The Revival International" className="w-full h-full object-contain drop-shadow-md" />
           </div>
           <h2 className="font-serif text-2xl font-extrabold text-white tracking-tight">
             The Revival International Enterprise CRM

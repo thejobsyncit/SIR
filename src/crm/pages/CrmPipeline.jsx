@@ -16,9 +16,9 @@ export const CrmPipeline = () => {
   const [viewRecruiterModal, setViewRecruiterModal] = useState(null);
 
   const filteredCandidates = candidates.filter(c => {
-    const matchesSearch = c.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                          c.id.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                          c.skills.some(s => s.toLowerCase().includes(searchTerm.toLowerCase()));
+    const matchesSearch = (c.name || '').toLowerCase().includes(searchTerm.toLowerCase()) ||
+                          (c.id || '').toLowerCase().includes(searchTerm.toLowerCase()) ||
+                          (Array.isArray(c.skills) && c.skills.some(s => s.toLowerCase().includes(searchTerm.toLowerCase())));
     const matchesRecruiter = selectedRecruiter === 'All' || c.assignedRecruiter === selectedRecruiter;
     return matchesSearch && matchesRecruiter;
   });

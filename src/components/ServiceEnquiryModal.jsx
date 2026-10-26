@@ -52,6 +52,9 @@ export const ServiceEnquiryModal = ({ isOpen, onClose, service, onNavigateToJobs
     visaCategory: 'MOHRE Employment Residence Permit',
     currentStage: 'Initial Planning / Not Applied',
     consultationCall: true,
+    consultationDate: new Date(Date.now() + 86400000).toISOString().split('T')[0],
+    consultationTime: '11:00 AM - 12:00 PM IST',
+    consultationMode: 'Virtual Video Call (Google Meet / Zoom)',
     consent: true
   });
 
@@ -243,7 +246,11 @@ export const ServiceEnquiryModal = ({ isOpen, onClose, service, onNavigateToJobs
         visaCategory: formData.visaCategory || '',
         currentStage: formData.currentStage || '',
         targetCountry: formData.targetCountry || 'UAE',
-        cvPath: uploadedCv ? uploadedCv.filePath : null
+        cvPath: uploadedCv ? uploadedCv.filePath : null,
+        consultationDate: formData.consultationCall ? formData.consultationDate : null,
+        consultationTime: formData.consultationCall ? formData.consultationTime : null,
+        consultationMode: formData.consultationCall ? formData.consultationMode : null,
+        status: (formData.consultationCall && formData.consultationDate) ? 'Consultation Scheduled' : 'New'
       };
 
       const res = await fetch('/api/leads', {
@@ -329,14 +336,30 @@ export const ServiceEnquiryModal = ({ isOpen, onClose, service, onNavigateToJobs
               </p>
             </div>
 
-            <div className="p-4 bg-gold-500/10 border border-gold-500/30 rounded-2xl max-w-sm mx-auto text-center space-y-1 font-mono text-xs">
+            <div className="p-4 bg-gold-500/10 border border-gold-500/30 rounded-2xl max-w-sm mx-auto text-center space-y-2 font-mono text-xs">
               <span className="text-slate-500 dark:text-slate-400 text-[10px] uppercase font-bold block">
                 Official Reference Number
               </span>
               <span className="font-extrabold text-gold-600 dark:text-gold-400 text-base tracking-wider block">
                 {submittedLead.referenceNumber || submittedLead.id}
               </span>
-              <span className="text-[10px] text-slate-500 block">
+
+              {submittedLead.consultationDate && (
+                <div className="pt-2 border-t border-gold-500/20 text-left font-sans space-y-1">
+                  <div className="flex items-center gap-1.5 text-emerald-600 dark:text-emerald-400 font-bold text-[11px]">
+                    <CheckCircle2 className="w-3.5 h-3.5" />
+                    <span>Consultation Slot Confirmed:</span>
+                  </div>
+                  <p className="text-slate-800 dark:text-slate-200 text-xs font-semibold">
+                    {submittedLead.consultationDate} at {submittedLead.consultationTime}
+                  </p>
+                  <p className="text-[10px] text-slate-500">
+                    Mode: {submittedLead.consultationMode || 'Virtual Video Call'}
+                  </p>
+                </div>
+              )}
+
+              <span className="text-[10px] text-slate-500 block pt-1">
                 Save this reference for priority follow-up with our Dubai advisory office.
               </span>
             </div>
@@ -911,6 +934,77 @@ export const ServiceEnquiryModal = ({ isOpen, onClose, service, onNavigateToJobs
                 }`}
               />
               {formErrors.message && <p className="text-[10px] text-rose-500">{formErrors.message}</p>}
+            </div>
+
+            {/* Optional 1-on-1 Consultation Appointment Booking */}
+            <div className="p-3.5 rounded-2xl bg-gold-500/5 dark:bg-navy-950 border border-gold-500/25 space-y-2.5">
+              <label className="flex items-center gap-2 cursor-pointer">
+                <input
+                  type="checkbox"
+                  name="consultationCall"
+                  checked={formData.consultationCall}
+                  onChange={handleInputChange}
+                  className="rounded border-slate-300 text-gold-500 focus:ring-gold-500"
+                />
+                <span className="font-bold text-navy-900 dark:text-white text-xs flex items-center gap-1.5">
+                  <Calendar className="w-3.5 h-3.5 text-gold-500" />
+                  <span>Book Free 1-on-1 Strategy & Advisory Consultation</span>
+                </span>
+              </label>
+
+              {formData.consultationCall && (
+                <div className="grid grid-cols-1 sm:grid-cols-3 gap-2.5 pt-1">
+                  <div className="space-y-1">
+                    <label className="text-[10px] font-bold text-slate-700 dark:text-slate-300 block">
+                      Appointment Date
+                    </label>
+                    <input
+                      type="date"
+                      name="consultationDate"
+                      min={new Date().toISOString().split('T')[0]}
+                      value={formData.consultationDate}
+                      onChange={handleInputChange}
+                      className="w-full bg-white dark:bg-navy-900 border border-slate-200 dark:border-navy-700 px-2.5 py-1.5 rounded-xl font-semibold text-slate-900 dark:text-white text-xs focus:ring-2 focus:ring-gold-500"
+                    />
+                  </div>
+
+                  <div className="space-y-1">
+                    <label className="text-[10px] font-bold text-slate-700 dark:text-slate-300 block">
+                      Time Slot (IST)
+                    </label>
+                    <select
+                      name="consultationTime"
+                      value={formData.consultationTime}
+                      onChange={handleInputChange}
+                      className="w-full bg-white dark:bg-navy-900 border border-slate-200 dark:border-navy-700 px-2.5 py-1.5 rounded-xl font-semibold text-slate-900 dark:text-white text-xs focus:ring-2 focus:ring-gold-500 cursor-pointer"
+                    >
+                      <option value="10:00 AM - 11:00 AM IST">10:00 AM - 11:00 AM IST</option>
+                      <option value="11:30 AM - 12:30 PM IST">11:30 AM - 12:30 PM IST</option>
+                      <option value="02:00 PM - 03:00 PM IST">02:00 PM - 03:00 PM IST</option>
+                      <option value="03:30 PM - 04:30 PM IST">03:30 PM - 04:30 PM IST</option>
+                      <option value="05:00 PM - 06:00 PM IST">05:00 PM - 06:00 PM IST</option>
+                      <option value="06:30 PM - 07:30 PM IST">06:30 PM - 07:30 PM IST</option>
+                    </select>
+                  </div>
+
+                  <div className="space-y-1">
+                    <label className="text-[10px] font-bold text-slate-700 dark:text-slate-300 block">
+                      Session Mode
+                    </label>
+                    <select
+                      name="consultationMode"
+                      value={formData.consultationMode}
+                      onChange={handleInputChange}
+                      className="w-full bg-white dark:bg-navy-900 border border-slate-200 dark:border-navy-700 px-2.5 py-1.5 rounded-xl font-semibold text-slate-900 dark:text-white text-xs focus:ring-2 focus:ring-gold-500 cursor-pointer"
+                    >
+                      <option value="Virtual Video Call (Google Meet / Zoom)">Virtual Video Call (Google Meet / Zoom)</option>
+                      <option value="Direct Phone Call">Direct Phone Call</option>
+                      <option value="WhatsApp Video Call">WhatsApp Video Call</option>
+                      <option value="In-Person (India HQ Office, Chennai)">In-Person (India HQ Office, Chennai)</option>
+                    </select>
+                  </div>
+                </div>
+              )}
             </div>
 
             {/* Compliance & Consent */}

@@ -22,6 +22,8 @@ import { ContactUsPage } from './pages/ContactUsPage';
 import { EducationDirectory } from './pages/EducationDirectory';
 import { EducationServiceDetail } from './pages/EducationServiceDetail';
 import { InternationalConsultingPage } from './pages/InternationalConsultingPage';
+import { InternationalAdmissionsPage } from './pages/InternationalAdmissionsPage';
+import { SeminarsAndLanguagePage } from './pages/SeminarsAndLanguagePage';
 import { getEducationServiceById, getEducationServiceBySlug } from './data/educationServicesData';
 import { NotFound } from './pages/NotFound';
 import { UnifiedAuthModal } from './components/UnifiedAuthModal';
@@ -63,10 +65,37 @@ export function App() {
     ) {
       return <InternationalConsultingPage />;
     }
+    if (
+      activeTab === 'education-intl-adm' ||
+      activeTab === 'international-admissions' ||
+      activeTab === 'education/international-admissions' ||
+      activeTab === 'education/intl-adm'
+    ) {
+      return <InternationalAdmissionsPage />;
+    }
+    if (
+      activeTab === 'education-exec-seminars-lang' ||
+      activeTab === 'seminars-and-language' ||
+      activeTab === 'education/seminars-and-language' ||
+      activeTab === 'education/executive-seminars-and-language-test-preparation' ||
+      activeTab === 'executive-seminars-and-language-test-preparation'
+    ) {
+      return <SeminarsAndLanguagePage />;
+    }
     if (activeTab && (activeTab.startsWith('education-') || activeTab.startsWith('education/'))) {
       const raw = activeTab.replace(/^education[-/]/, '');
       if (raw === 'intl-consult' || raw === 'international-consulting') {
         return <InternationalConsultingPage />;
+      }
+      if (raw === 'intl-adm' || raw === 'international-admissions') {
+        return <InternationalAdmissionsPage />;
+      }
+      if (
+        raw === 'exec-seminars-lang' ||
+        raw === 'seminars-and-language' ||
+        raw === 'executive-seminars-and-language-test-preparation'
+      ) {
+        return <SeminarsAndLanguagePage />;
       }
       const srv = getEducationServiceBySlug(raw) || getEducationServiceById(raw);
       if (srv) {
