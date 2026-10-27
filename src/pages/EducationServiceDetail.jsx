@@ -24,6 +24,7 @@ const iconMap = {
 import { InternationalConsultingPage } from './InternationalConsultingPage';
 import { InternationalAdmissionsPage } from './InternationalAdmissionsPage';
 import { SeminarsAndLanguagePage } from './SeminarsAndLanguagePage';
+import { StudentAcademyPage } from './StudentAcademyPage';
 import { CourseGuidanceCatalogue } from '../components/CourseGuidanceCatalogue';
 
 export const EducationServiceDetail = ({ serviceId }) => {
@@ -37,6 +38,10 @@ export const EducationServiceDetail = ({ serviceId }) => {
 
   if (service.id === 'intl-adm' || service.id === 'international-admissions') {
     return <InternationalAdmissionsPage />;
+  }
+
+  if (service.id === 'school-academy') {
+    return <StudentAcademyPage />;
   }
 
   if (
@@ -166,7 +171,7 @@ export const EducationServiceDetail = ({ serviceId }) => {
                   {service.badge}
                 </span>
                 <span className="bg-emerald-500/15 text-emerald-600 dark:text-emerald-400 text-xs font-extrabold px-3 py-1 rounded-full uppercase border border-emerald-500/30">
-                  Verified Service • {service.category}
+                  Verified Service â€¢ {service.category}
                 </span>
               </div>
 
@@ -203,7 +208,7 @@ export const EducationServiceDetail = ({ serviceId }) => {
                   }}
                   className="px-5 py-3 bg-slate-100 dark:bg-navy-800 text-slate-800 dark:text-slate-200 hover:text-navy-900 dark:hover:text-white font-bold text-xs rounded-xl transition border border-slate-200 dark:border-navy-700 focus:outline-none focus:ring-2 focus:ring-gold-500"
                 >
-                  <span>Explore Methodology ↓</span>
+                  <span>Explore Methodology â†“</span>
                 </button>
               </div>
 

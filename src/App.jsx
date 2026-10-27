@@ -90,6 +90,9 @@ export function App() {
       if (raw === 'intl-adm' || raw === 'international-admissions') {
         return <InternationalAdmissionsPage />;
       }
+      if (raw === 'school-academy' || raw === 'academy-for-school-students' || raw === 'student-academy') {
+        return <EducationServiceDetail serviceId="school-academy" />;
+      }
       if (
         raw === 'exec-seminars-lang' ||
         raw === 'seminars-and-language' ||
@@ -105,6 +108,9 @@ export function App() {
     }
 
     switch (activeTab) {
+      case 'school-academy':
+      case 'student-academy':
+        return <EducationServiceDetail serviceId="school-academy" />;
       case 'erp':
         return <ErpApp />;
       case 'crm':
