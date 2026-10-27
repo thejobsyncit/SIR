@@ -26,7 +26,11 @@ export const CrmConsultingBookings = () => {
   const [serviceFilter, setServiceFilter] = useState('all');
   const [statusFilter, setStatusFilter] = useState('all');
   const [modeFilter, setModeFilter] = useState('all');
+  const [destinationFilter, setDestinationFilter] = useState('all');
+  const [intakeFilter, setIntakeFilter] = useState('all');
   const [dateRangeFilter, setDateRangeFilter] = useState('all');
+  const [savingTracking, setSavingTracking] = useState(false);
+  const [trackingSavedMsg, setTrackingSavedMsg] = useState('');
 
   // Modals state
   const [selectedBooking, setSelectedBooking] = useState(null);
@@ -154,19 +158,33 @@ export const CrmConsultingBookings = () => {
       }
     }
 
-    // Status Filter
+    // Status Filter (supports both legacy groups and exact 10-stage workflow statuses)
     if (statusFilter !== 'all') {
       if (statusFilter === 'Scheduled') {
         if (b.status !== 'Consultation Scheduled') return false;
       } else if (statusFilter === 'New') {
         if (b.status !== 'New' && b.status !== 'New Enquiry') return false;
       } else if (statusFilter === 'InProgress') {
-        if (b.status !== 'In Progress' && b.status !== 'Contacted' && b.status !== 'Contact Pending') return false;
+        if (!['In Progress', 'Contacted', 'Contact Pending', 'Course Selection', 'Documents Pending', 'Application in Preparation', 'Application Submitted', 'Awaiting Institution Decision'].includes(b.status)) return false;
       } else if (statusFilter === 'Completed') {
-        if (b.status !== 'Consultation Completed' && b.status !== 'Qualified') return false;
+        if (!['Consultation Completed', 'Qualified', 'Offer Received'].includes(b.status)) return false;
       } else if (statusFilter === 'Converted') {
-        if (b.status !== 'Converted' && b.status !== 'Completed') return false;
+        if (!['Converted', 'Completed', 'Enrollment in Progress'].includes(b.status)) return false;
+      } else if (b.status !== statusFilter) {
+        return false;
       }
+    }
+
+    // Destination Filter
+    if (destinationFilter !== 'all') {
+      const dest = (b.countryInterest || '').toLowerCase();
+      if (!dest.includes(destinationFilter.toLowerCase())) return false;
+    }
+
+    // Intake Filter
+    if (intakeFilter !== 'all') {
+      const intake = (b.intakeTerm || '').toLowerCase();
+      if (!intake.includes(intakeFilter.toLowerCase())) return false;
     }
 
     // Mode Filter
@@ -190,10 +208,31 @@ export const CrmConsultingBookings = () => {
   const virtualCount = consultingBookings.filter(b => (b.consultationMode || '').toLowerCase().includes('virtual') || (b.consultationMode || '').toLowerCase().includes('video')).length;
   const indiaHqCount = consultingBookings.filter(b => (b.consultationMode || '').toLowerCase().includes('india') || (b.consultationMode || '').toLowerCase().includes('in-person') || (b.consultationMode || '').toLowerCase().includes('chennai') || (b.consultationMode || '').toLowerCase().includes('dubai')).length;
 
-  // Handle Status Update
-  const handleStatusChange = async (leadId, newStatus) => {
+  // Parse customFields JSON helper for College Admission Tracking
+  const parseCustomFields = (booking) => {
+    if (!booking || !booking.customFields) return {};
+    if (typeof booking.customFields === 'object') return booking.customFields;
     try {
-      await updateLead(leadId, { status: newStatus });
+      return JSON.parse(booking.customFields);
+    } catch (_) {
+      return {};
+    }
+  };
+
+  // Handle Status Update (with confirmation guard for Application Submitted / Offer Received)
+  const handleStatusChange = async (leadId, newStatus) => {
+    if (
+      (newStatus === 'Application Submitted' || newStatus === 'Offer Received') &&
+      typeof window !== 'undefined' &&
+      typeof window.confirm === 'function'
+    ) {
+      const confirmed = window.confirm(
+        `Please confirm: Has "${newStatus}" been officially verified with the student/institution dossier before updating this status?`
+      );
+      if (!confirmed) return;
+    }
+    try {
+      await updateLead(leadId, { status: newStatus, currentStage: newStatus });
       if (fetchLeads) await fetchLeads();
       if (fetchConsultingMetrics) await fetchConsultingMetrics();
     } catch (err) {
@@ -508,18 +547,52 @@ export const CrmConsultingBookings = () => {
                 <option value="corporate">💼 Corporate & Recruitment Consulting</option>
               </select>
 
-              {/* Status Filter */}
+              {/* Status Filter (10-Stage Workflow + General) */}
               <select
                 value={statusFilter}
                 onChange={(e) => setStatusFilter(e.target.value)}
                 className="px-3 py-2 bg-slate-50 dark:bg-navy-950 border border-slate-300 dark:border-navy-700 rounded-xl text-xs text-slate-900 dark:text-white font-bold focus:outline-none focus:border-gold-500 cursor-pointer"
               >
-                <option value="all">All Statuses</option>
-                <option value="Scheduled">📅 Consultation Scheduled</option>
-                <option value="New">🟢 New Enquiry</option>
-                <option value="InProgress">⏳ In Progress / Contacted</option>
-                <option value="Completed">✅ Qualified / Completed</option>
-                <option value="Converted">🏆 Converted / Enrolled</option>
+                <option value="all">All Workflow Statuses</option>
+                <option value="New Enquiry">1. New Enquiry</option>
+                <option value="Consultation Scheduled">2. Consultation Scheduled</option>
+                <option value="Course Selection">3. Course Selection</option>
+                <option value="Documents Pending">4. Documents Pending</option>
+                <option value="Application in Preparation">5. Application in Preparation</option>
+                <option value="Application Submitted">6. Application Submitted</option>
+                <option value="Awaiting Institution Decision">7. Awaiting Institution Decision</option>
+                <option value="Offer Received">8. Offer Received</option>
+                <option value="Enrollment in Progress">9. Enrollment in Progress</option>
+                <option value="Closed">10. Closed</option>
+              </select>
+
+              {/* Destination Filter */}
+              <select
+                value={destinationFilter}
+                onChange={(e) => setDestinationFilter(e.target.value)}
+                className="px-3 py-2 bg-slate-50 dark:bg-navy-950 border border-slate-300 dark:border-navy-700 rounded-xl text-xs text-slate-900 dark:text-white font-bold focus:outline-none focus:border-gold-500 cursor-pointer"
+              >
+                <option value="all">All Destinations</option>
+                <option value="india">India</option>
+                <option value="united arab emirates">UAE</option>
+                <option value="united kingdom">United Kingdom</option>
+                <option value="united states">United States</option>
+                <option value="canada">Canada</option>
+                <option value="australia">Australia</option>
+                <option value="germany">Germany / Europe</option>
+              </select>
+
+              {/* Intake Filter */}
+              <select
+                value={intakeFilter}
+                onChange={(e) => setIntakeFilter(e.target.value)}
+                className="px-3 py-2 bg-slate-50 dark:bg-navy-950 border border-slate-300 dark:border-navy-700 rounded-xl text-xs text-slate-900 dark:text-white font-bold focus:outline-none focus:border-gold-500 cursor-pointer"
+              >
+                <option value="all">All Intakes</option>
+                <option value="fall">Fall / Autumn Intake</option>
+                <option value="spring">Spring / January Intake</option>
+                <option value="summer">Summer Intake</option>
+                <option value="2026">2026–2027 Academic Intake</option>
               </select>
 
               {/* Mode Filter */}
@@ -535,12 +608,14 @@ export const CrmConsultingBookings = () => {
                 <option value="phone">📞 Direct Phone Call</option>
               </select>
 
-              {(searchQuery || serviceFilter !== 'all' || statusFilter !== 'all' || modeFilter !== 'all') && (
+              {(searchQuery || serviceFilter !== 'all' || statusFilter !== 'all' || destinationFilter !== 'all' || intakeFilter !== 'all' || modeFilter !== 'all') && (
                 <button
                   onClick={() => {
                     setSearchQuery('');
                     setServiceFilter('all');
                     setStatusFilter('all');
+                    setDestinationFilter('all');
+                    setIntakeFilter('all');
                     setModeFilter('all');
                   }}
                   className="px-2.5 py-2 text-rose-600 dark:text-rose-400 hover:underline font-bold text-xs"
@@ -727,8 +802,16 @@ export const CrmConsultingBookings = () => {
                                 : 'bg-slate-100 text-slate-800 border-slate-300 dark:bg-navy-950 dark:text-slate-300 dark:border-navy-700'
                             }`}
                           >
-                            <option value="Consultation Scheduled">📅 Scheduled</option>
-                            <option value="New Enquiry">🟢 New Enquiry</option>
+                            <option value="New Enquiry">1. New Enquiry</option>
+                            <option value="Consultation Scheduled">2. Consultation Scheduled</option>
+                            <option value="Course Selection">3. Course Selection</option>
+                            <option value="Documents Pending">4. Documents Pending</option>
+                            <option value="Application in Preparation">5. Application in Preparation</option>
+                            <option value="Application Submitted">6. Application Submitted</option>
+                            <option value="Awaiting Institution Decision">7. Awaiting Institution Decision</option>
+                            <option value="Offer Received">8. Offer Received</option>
+                            <option value="Enrollment in Progress">9. Enrollment in Progress</option>
+                            <option value="Closed">10. Closed</option>
                             <option value="Contacted">📞 Contacted</option>
                             <option value="In Progress">⏳ In Progress</option>
                             <option value="Consultation Completed">✅ Completed</option>
@@ -844,6 +927,166 @@ export const CrmConsultingBookings = () => {
                 </div>
               </div>
 
+              {/* Phase 7: College & University Application Tracking Panel */}
+              {(() => {
+                const cf = parseCustomFields(selectedBooking);
+                const docChecklist = cf.documentChecklistStatus || {
+                  marksheets10and12: 'Pending Review',
+                  diplomaOrDegreeCertificate: 'If Required',
+                  academicTranscripts: 'Pending Review',
+                  governmentIdOrPassport: 'Pending Review',
+                  statementOfPurpose: 'If Required',
+                  recommendationLetters: 'If Required',
+                  englishProficiency: 'If Required',
+                  institutionSpecificDocs: 'If Required'
+                };
+
+                const updateCustomField = (key, val) => {
+                  const nextCf = { ...cf, [key]: val };
+                  setSelectedBooking({ ...selectedBooking, customFields: nextCf });
+                };
+
+                const updateDocStatus = (docKey, statusVal) => {
+                  const nextDocs = { ...docChecklist, [docKey]: statusVal };
+                  updateCustomField('documentChecklistStatus', nextDocs);
+                };
+
+                const saveApplicationTracking = async () => {
+                  setSavingTracking(true);
+                  setTrackingSavedMsg('');
+                  try {
+                    await updateLead(selectedBooking.id, {
+                      customFields: parseCustomFields(selectedBooking),
+                      nextActionDate: selectedBooking.nextActionDate || null,
+                      internalNotes: selectedBooking.internalNotes || null
+                    });
+                    if (fetchLeads) await fetchLeads();
+                    setTrackingSavedMsg('Application tracking & document checklist saved.');
+                  } catch (e) {
+                    console.error('Error saving tracking:', e);
+                  } finally {
+                    setSavingTracking(false);
+                  }
+                };
+
+                return (
+                  <div className="p-4 rounded-2xl bg-slate-50 dark:bg-navy-950 border border-slate-200 dark:border-navy-800 space-y-4 text-xs">
+                    <div className="flex items-center justify-between border-b border-slate-200 dark:border-navy-800 pb-2.5">
+                      <div>
+                        <span className="text-[10px] font-black uppercase tracking-wider text-gold-600 dark:text-gold-400">
+                          Admission &amp; Application Tracking
+                        </span>
+                        <h4 className="font-serif text-sm font-bold text-slate-900 dark:text-white">
+                          Document Checklist, Deadlines &amp; Offer Status
+                        </h4>
+                      </div>
+                      <button
+                        type="button"
+                        onClick={saveApplicationTracking}
+                        disabled={savingTracking}
+                        className="px-3 py-1.5 bg-gold-500 hover:bg-gold-400 text-navy-950 font-extrabold text-[11px] rounded-lg transition cursor-pointer"
+                      >
+                        {savingTracking ? 'Saving...' : 'Save Tracking'}
+                      </button>
+                    </div>
+
+                    {trackingSavedMsg && (
+                      <div className="p-2 rounded-lg bg-emerald-500/10 border border-emerald-500/30 text-emerald-600 dark:text-emerald-400 text-[11px] font-bold">
+                        {trackingSavedMsg}
+                      </div>
+                    )}
+
+                    {/* Dates, Offer Status & Conditions */}
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                      <div>
+                        <label className="block text-[10px] font-bold uppercase text-slate-400 mb-1">Application Submission Date</label>
+                        <input
+                          type="date"
+                          value={cf.applicationSubmissionDate || ''}
+                          onChange={(e) => updateCustomField('applicationSubmissionDate', e.target.value)}
+                          className="w-full px-2.5 py-1.5 rounded-lg bg-white dark:bg-navy-900 border border-slate-200 dark:border-navy-700 text-xs text-slate-900 dark:text-white"
+                        />
+                      </div>
+                      <div>
+                        <label className="block text-[10px] font-bold uppercase text-slate-400 mb-1">Institution Application Deadline</label>
+                        <input
+                          type="date"
+                          value={cf.applicationDeadline || ''}
+                          onChange={(e) => updateCustomField('applicationDeadline', e.target.value)}
+                          className="w-full px-2.5 py-1.5 rounded-lg bg-white dark:bg-navy-900 border border-slate-200 dark:border-navy-700 text-xs text-slate-900 dark:text-white"
+                        />
+                      </div>
+                      <div>
+                        <label className="block text-[10px] font-bold uppercase text-slate-400 mb-1">Offer Status</label>
+                        <select
+                          value={cf.offerStatus || 'Not Applied Yet'}
+                          onChange={(e) => updateCustomField('offerStatus', e.target.value)}
+                          className="w-full px-2.5 py-1.5 rounded-lg bg-white dark:bg-navy-900 border border-slate-200 dark:border-navy-700 text-xs text-slate-900 dark:text-white font-bold"
+                        >
+                          <option value="Not Applied Yet">Not Applied Yet</option>
+                          <option value="Application Under Review">Application Under Review</option>
+                          <option value="Conditional Offer Received">Conditional Offer Received</option>
+                          <option value="Unconditional Offer Received">Unconditional Offer Received</option>
+                          <option value="Offer Accepted / Enrolled">Offer Accepted / Enrolled</option>
+                        </select>
+                      </div>
+                      <div>
+                        <label className="block text-[10px] font-bold uppercase text-slate-400 mb-1">Next Follow-Up Date</label>
+                        <input
+                          type="date"
+                          value={selectedBooking.nextActionDate ? selectedBooking.nextActionDate.slice(0, 10) : ''}
+                          onChange={(e) => setSelectedBooking({ ...selectedBooking, nextActionDate: e.target.value })}
+                          className="w-full px-2.5 py-1.5 rounded-lg bg-white dark:bg-navy-900 border border-slate-200 dark:border-navy-700 text-xs text-slate-900 dark:text-white"
+                        />
+                      </div>
+                    </div>
+
+                    <div>
+                      <label className="block text-[10px] font-bold uppercase text-slate-400 mb-1">Outstanding Offer Conditions / Advisor Notes</label>
+                      <input
+                        type="text"
+                        value={cf.outstandingConditions || ''}
+                        onChange={(e) => updateCustomField('outstandingConditions', e.target.value)}
+                        placeholder="e.g. Awaiting final semester marksheet or tuition deposit deadline..."
+                        className="w-full px-2.5 py-1.5 rounded-lg bg-white dark:bg-navy-900 border border-slate-200 dark:border-navy-700 text-xs text-slate-900 dark:text-white"
+                      />
+                    </div>
+
+                    {/* Configurable Document Checklist Status */}
+                    <div className="space-y-2 pt-1">
+                      <span className="block text-[10px] font-bold uppercase text-slate-400">Configurable Document Checklist Status</span>
+                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                        {[
+                          { key: 'marksheets10and12', label: 'Class 10 & 12 Marksheets' },
+                          { key: 'diplomaOrDegreeCertificate', label: 'Diploma / Degree Certificate' },
+                          { key: 'academicTranscripts', label: 'Academic Transcripts' },
+                          { key: 'governmentIdOrPassport', label: 'Govt ID / Passport' },
+                          { key: 'statementOfPurpose', label: 'Statement of Purpose (SOP)' },
+                          { key: 'recommendationLetters', label: 'Recommendation Letters' },
+                          { key: 'englishProficiency', label: 'English Proficiency Results' },
+                          { key: 'institutionSpecificDocs', label: 'Institution-Specific Docs' }
+                        ].map((item) => (
+                          <div key={item.key} className="flex items-center justify-between gap-2 p-2 rounded-lg bg-white dark:bg-navy-900 border border-slate-200 dark:border-navy-800">
+                            <span className="text-[11px] font-medium text-slate-700 dark:text-slate-300 truncate">{item.label}</span>
+                            <select
+                              value={docChecklist[item.key] || 'Pending Review'}
+                              onChange={(e) => updateDocStatus(item.key, e.target.value)}
+                              className="text-[10px] font-bold px-1.5 py-1 rounded bg-slate-50 dark:bg-navy-950 border border-slate-200 dark:border-navy-700 text-slate-800 dark:text-slate-200"
+                            >
+                              <option value="Pending Review">Pending Review</option>
+                              <option value="Verified">Verified</option>
+                              <option value="Missing">Missing</option>
+                              <option value="If Required">If Required</option>
+                              <option value="Not Applicable">Not Applicable</option>
+                            </select>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  </div>
+                );
+              })()}
+
               {/* Quick Actions in Dossier */}
               <div className="flex flex-wrap items-center justify-between gap-3 pt-3 border-t border-slate-200 dark:border-navy-800">
                 <div className="flex items-center gap-2">
@@ -855,7 +1098,16 @@ export const CrmConsultingBookings = () => {
                     }}
                     className="bg-slate-100 dark:bg-navy-950 border border-slate-300 dark:border-navy-700 rounded-xl p-2 font-bold text-xs text-slate-900 dark:text-white"
                   >
-                    <option value="Consultation Scheduled">📅 Consultation Scheduled</option>
+                    <option value="New Enquiry">1. New Enquiry</option>
+                    <option value="Consultation Scheduled">2. Consultation Scheduled</option>
+                    <option value="Course Selection">3. Course Selection</option>
+                    <option value="Documents Pending">4. Documents Pending</option>
+                    <option value="Application in Preparation">5. Application in Preparation</option>
+                    <option value="Application Submitted">6. Application Submitted</option>
+                    <option value="Awaiting Institution Decision">7. Awaiting Institution Decision</option>
+                    <option value="Offer Received">8. Offer Received</option>
+                    <option value="Enrollment in Progress">9. Enrollment in Progress</option>
+                    <option value="Closed">10. Closed</option>
                     <option value="Contacted">📞 Contacted</option>
                     <option value="In Progress">⏳ In Progress</option>
                     <option value="Consultation Completed">✅ Completed</option>

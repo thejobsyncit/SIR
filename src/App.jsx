@@ -23,6 +23,7 @@ import { EducationDirectory } from './pages/EducationDirectory';
 import { EducationServiceDetail } from './pages/EducationServiceDetail';
 import { InternationalConsultingPage } from './pages/InternationalConsultingPage';
 import { InternationalAdmissionsPage } from './pages/InternationalAdmissionsPage';
+import { CollegeAdmissionsPage } from './pages/CollegeAdmissionsPage';
 import { SeminarsAndLanguagePage } from './pages/SeminarsAndLanguagePage';
 import { getEducationServiceById, getEducationServiceBySlug } from './data/educationServicesData';
 import { NotFound } from './pages/NotFound';
@@ -74,6 +75,17 @@ export function App() {
       return <InternationalAdmissionsPage />;
     }
     if (
+      activeTab === 'education-college-adm' ||
+      activeTab === 'education-college-admission' ||
+      activeTab === 'college-adm' ||
+      activeTab === 'college-admission' ||
+      activeTab === 'college-admission-assistance' ||
+      activeTab === 'education/college-admission-assistance' ||
+      activeTab === 'education/college-adm'
+    ) {
+      return <CollegeAdmissionsPage />;
+    }
+    if (
       activeTab === 'education-exec-seminars-lang' ||
       activeTab === 'seminars-and-language' ||
       activeTab === 'education/seminars-and-language' ||
@@ -89,6 +101,9 @@ export function App() {
       }
       if (raw === 'intl-adm' || raw === 'international-admissions') {
         return <InternationalAdmissionsPage />;
+      }
+      if (raw === 'college-adm' || raw === 'college-admission' || raw === 'college-admission-assistance') {
+        return <CollegeAdmissionsPage />;
       }
       if (raw === 'school-academy' || raw === 'academy-for-school-students' || raw === 'student-academy') {
         return <EducationServiceDetail serviceId="school-academy" />;

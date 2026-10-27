@@ -1,62 +1,297 @@
 /**
  * Revival International - Student Academy Data Store
- * Competitive Examinations, Verified Partner Academies, and Audited Courses
+ * School Student Enrichment Programs, Configurable Learning Tracks,
+ * and Separate Competitive Examination Preparation Directory
  */
+
+export const SCHOOL_STUDENT_PROGRAMS = [
+  {
+    id: 'prog-academic-foundation',
+    code: 'A',
+    title: 'Academic Foundation Support',
+    badge: 'Core Foundations',
+    icon: 'BookOpen',
+    summary: 'Structured subject support and foundational learning routines tailored to individual student needs.',
+    points: [
+      'Strengthen understanding of school subjects.',
+      'Develop effective study and revision habits.',
+      'Improve note-taking and time management.',
+      'Provide structured practice based on student needs.'
+    ]
+  },
+  {
+    id: 'prog-study-skills',
+    code: 'B',
+    title: 'Study Skills & Exam Readiness',
+    badge: 'Study & Revision',
+    icon: 'Target',
+    summary: 'Practical study planning, revision methods, and focused preparation habits for school assessments.',
+    points: [
+      'Build practical study schedules.',
+      'Learn revision and exam-planning techniques.',
+      'Improve concentration and organization.',
+      'Review progress and identify learning gaps.'
+    ]
+  },
+  {
+    id: 'prog-communication',
+    code: 'C',
+    title: 'Communication & Public Speaking',
+    badge: 'Essential Skills',
+    icon: 'Presentation',
+    summary: 'Guided speaking, presentation practice, and collaborative communication activities to build student poise.',
+    points: [
+      'Develop speaking confidence.',
+      'Practice presentations and group discussions.',
+      'Improve vocabulary and communication.',
+      'Encourage participation and self-expression.'
+    ]
+  },
+  {
+    id: 'prog-critical-thinking',
+    code: 'D',
+    title: 'Critical Thinking & Problem-Solving',
+    badge: 'Analytical Reasoning',
+    icon: 'Cpu',
+    summary: 'Age-appropriate logical reasoning, analytical thinking, and collaborative decision-making exercises.',
+    points: [
+      'Encourage logical reasoning.',
+      'Develop analytical and creative thinking.',
+      'Participate in age-appropriate activities.',
+      'Build collaboration and decision-making skills.'
+    ]
+  },
+  {
+    id: 'prog-career-awareness',
+    code: 'E',
+    title: 'Career Awareness & Academic Planning',
+    badge: 'Future Readiness',
+    icon: 'Compass',
+    summary: 'Early exploration of academic streams, subject choices, and future higher education pathways.',
+    points: [
+      'Explore different academic pathways.',
+      'Understand subject-selection considerations.',
+      'Identify interests and strengths.',
+      'Introduce future education and career options.'
+    ]
+  }
+];
+
+export const STUDENT_LEARNING_TRACKS = [
+  {
+    id: 'track-primary',
+    stage: 'Primary School',
+    gradeRange: 'Grades 1 – 5',
+    ageRange: 'Ages 6 – 10',
+    available: true,
+    availabilityLabel: 'Available on Enquiry',
+    icon: 'Sparkles',
+    focusSummary: 'Nurturing curiosity, positive study routines, and expressive confidence in early learners.',
+    highlights: [
+      'Foundational learning habits',
+      'Creativity and communication',
+      'Confidence-building activities'
+    ],
+    relevantPrograms: [
+      'Academic Foundation Support',
+      'Communication & Public Speaking'
+    ]
+  },
+  {
+    id: 'track-middle',
+    stage: 'Middle School',
+    gradeRange: 'Grades 6 – 8',
+    ageRange: 'Ages 11 – 13',
+    available: true,
+    availabilityLabel: 'Active Enrolment',
+    icon: 'BookOpen',
+    focusSummary: 'Strengthening core subject comprehension, structured note-taking, and analytical teamwork.',
+    highlights: [
+      'Study skills and subject foundations',
+      'Critical thinking and teamwork',
+      'Early academic interest exploration'
+    ],
+    relevantPrograms: [
+      'Academic Foundation Support',
+      'Study Skills & Exam Readiness',
+      'Critical Thinking & Problem-Solving'
+    ]
+  },
+  {
+    id: 'track-secondary',
+    stage: 'Secondary School',
+    gradeRange: 'Grades 9 – 10',
+    ageRange: 'Ages 14 – 15',
+    available: true,
+    availabilityLabel: 'Active Enrolment',
+    icon: 'Compass',
+    focusSummary: 'Building board exam readiness, disciplined time management, and informed stream selection.',
+    highlights: [
+      'Exam preparation and time management',
+      'Communication and presentation skills',
+      'Career awareness and subject planning'
+    ],
+    relevantPrograms: [
+      'Study Skills & Exam Readiness',
+      'Communication & Public Speaking',
+      'Career Awareness & Academic Planning'
+    ]
+  },
+  {
+    id: 'track-higher-secondary',
+    stage: 'Higher Secondary School',
+    gradeRange: 'Grades 11 – 12',
+    ageRange: 'Ages 16 – 18',
+    available: true,
+    availabilityLabel: 'Active Enrolment',
+    icon: 'GraduationCap',
+    focusSummary: 'Intensive revision frameworks, entrance examination awareness, and university pathway planning.',
+    highlights: [
+      'Structured revision and examination readiness',
+      'Higher education and course awareness',
+      'Career exploration and future planning'
+    ],
+    relevantPrograms: [
+      'Study Skills & Exam Readiness',
+      'Career Awareness & Academic Planning',
+      'Competitive Exam Preparation'
+    ]
+  }
+];
+
+export const ACADEMY_PROCESS_STEPS = [
+  {
+    step: '01',
+    title: 'Understand Student Needs',
+    description: 'Identify the student’s grade, interests, and learning goals.'
+  },
+  {
+    step: '02',
+    title: 'Recommend a Program',
+    description: 'Suggest a suitable learning or exam-preparation pathway.'
+  },
+  {
+    step: '03',
+    title: 'Learning & Practice',
+    description: 'Provide structured learning activities and practice based on the selected program.'
+  },
+  {
+    step: '04',
+    title: 'Progress Review',
+    description: 'Review progress and discuss suitable next steps.'
+  }
+];
+
+export const EXAM_CATEGORY_GROUPS = [
+  {
+    id: 'all',
+    title: 'All Categories',
+    departmentIds: ['gov', 'banking', 'engineering', 'medical', 'teaching', 'defence', 'management', 'law', 'science-arts', 'railway-design', 'intl-tests']
+  },
+  {
+    id: 'gov',
+    title: 'Government and Civil Services Exams',
+    departmentIds: ['gov']
+  },
+  {
+    id: 'banking',
+    title: 'Banking and Finance Exams',
+    departmentIds: ['banking']
+  },
+  {
+    id: 'engineering',
+    title: 'Engineering and Technical Entrance Exams',
+    departmentIds: ['engineering']
+  },
+  {
+    id: 'medical',
+    title: 'Medical and Healthcare Entrance Exams',
+    departmentIds: ['medical']
+  },
+  {
+    id: 'teaching',
+    title: 'Teaching and Education Exams',
+    departmentIds: ['teaching']
+  },
+  {
+    id: 'defence',
+    title: 'Defence and Police Exams',
+    departmentIds: ['defence']
+  },
+  {
+    id: 'intl-tests',
+    title: 'International Admissions and Language Tests',
+    departmentIds: ['intl-tests']
+  },
+  {
+    id: 'other-entrance',
+    title: 'Other Academic and Professional Entrance Exams',
+    departmentIds: ['management', 'law', 'science-arts', 'railway-design']
+  }
+];
+
+export const QUALIFICATION_LEVELS = [
+  { id: 'all', label: 'All Education Levels' },
+  { id: 'Class 12 / High School', label: 'Class 12 / High School (10+2)' },
+  { id: 'Undergraduate / Bachelor Degree', label: "Undergraduate / Bachelor's Degree" },
+  { id: 'Postgraduate / Master Degree', label: "Postgraduate / Master's Degree" },
+  { id: 'Open / All Qualifications', label: 'Open / Language & General Proficiency' }
+];
 
 export const ACADEMY_DEPARTMENTS = [
   {
     id: 'gov',
-    title: 'Government Exams',
+    title: 'Government and Civil Services Exams',
     subtitle: 'SSC, UPSC, TNPSC & State Civil Services',
     icon: 'Building2',
     color: 'emerald',
-    badge: 'High Demand',
-    description: 'Premier coaching for Union and State administrative services, revenue, police, and central commission examinations.'
+    badge: 'Civil Services',
+    description: 'Union and State administrative services, revenue, police, and central commission examinations.'
   },
   {
     id: 'banking',
-    title: 'Banking and Finance',
+    title: 'Banking and Finance Exams',
     subtitle: 'SBI, IBPS, RBI & Regulatory Bodies',
     icon: 'Landmark',
     color: 'blue',
-    badge: 'Annual Cycles',
-    description: 'Specialized preparation for Probationary Officers, Clerical Cadres, and Central Banking Regulatory posts.'
+    badge: 'Banking Sector',
+    description: 'Preparation pathways for Probationary Officers, Clerical Cadres, and Central Banking Regulatory posts.'
   },
   {
     id: 'engineering',
-    title: 'Engineering and Technology',
+    title: 'Engineering and Technical Entrance Exams',
     subtitle: 'GATE, SSC JE, RRB JE & PSU Recruitments',
     icon: 'Cpu',
     color: 'purple',
     badge: 'Technical',
-    description: 'Advanced technical coaching for graduate aptitude, junior engineering, and public sector engineering appointments.'
+    description: 'Graduate engineering aptitude, junior engineering, and public sector technical examinations.'
   },
   {
     id: 'medical',
-    title: 'Medical and Healthcare',
+    title: 'Medical and Healthcare Entrance Exams',
     subtitle: 'NEET UG, NEET PG & Allied Healthcare',
     icon: 'HeartPulse',
     color: 'rose',
-    badge: 'Prestigious',
-    description: 'Rigorous medical entrance guidance for undergraduate MBBS/BDS and postgraduate residency entrance.'
+    badge: 'Healthcare',
+    description: 'Medical entrance pathways for undergraduate MBBS/BDS and postgraduate residency examinations.'
   },
   {
     id: 'teaching',
-    title: 'Teaching and Education',
+    title: 'Teaching and Education Exams',
     subtitle: 'CTET, TNTET, UGC NET & State Eligibility',
     icon: 'GraduationCap',
     color: 'amber',
     badge: 'Eligibility',
-    description: 'Comprehensive pedagogy and subject-matter coaching for national teacher certification and university lectureship.'
+    description: 'Pedagogy and subject-matter examinations for national teacher certification and university lectureship.'
   },
   {
     id: 'defence',
-    title: 'Defence and Police',
+    title: 'Defence and Police Exams',
     subtitle: 'NDA, CDS, AFCAT & Police Sub-Inspectors',
     icon: 'Shield',
     color: 'cyan',
     badge: 'Armed Forces',
-    description: 'Officer training academy prep, physical efficiency advice, and SSB interview psychological screening.'
+    description: 'Officer training academy entrance examinations and SSB interview preparation pathways.'
   },
   {
     id: 'management',
@@ -64,8 +299,8 @@ export const ACADEMY_DEPARTMENTS = [
     subtitle: 'CAT, MAT, CMAT & Executive MBA',
     icon: 'Briefcase',
     color: 'indigo',
-    badge: 'IIMs & Top B-Schools',
-    description: 'Quantitative aptitude, data interpretation, verbal ability, and GD-PI coaching for premier business institutes.'
+    badge: 'Management Entrance',
+    description: 'Quantitative aptitude, data interpretation, and verbal ability entrance tests for business institutes.'
   },
   {
     id: 'law',
@@ -73,8 +308,8 @@ export const ACADEMY_DEPARTMENTS = [
     subtitle: 'CLAT UG/PG, AILET & Judiciary',
     icon: 'Scale',
     color: 'slate',
-    badge: 'NLUs',
-    description: 'Legal reasoning, constitutional law, and analytical jurisprudence prep for National Law Universities.'
+    badge: 'Law Entrance',
+    description: 'Legal reasoning, constitutional law, and analytical entrance examinations for National Law Universities.'
   },
   {
     id: 'science-arts',
@@ -82,8 +317,8 @@ export const ACADEMY_DEPARTMENTS = [
     subtitle: 'CSIR NET, IIT JAM & CUET (UG/PG)',
     icon: 'BookOpen',
     color: 'teal',
-    badge: 'Central Universities',
-    description: 'Pure sciences, economics, humanities, and commerce entrance coaching for central university postgraduate research.'
+    badge: 'University Entrance',
+    description: 'Pure sciences, economics, humanities, and commerce entrance examinations for central universities.'
   },
   {
     id: 'railway-design',
@@ -91,18 +326,18 @@ export const ACADEMY_DEPARTMENTS = [
     subtitle: 'RRB NTPC, ICAR AIEEA, NATA, NID DAT',
     icon: 'Compass',
     color: 'orange',
-    badge: 'Specialized',
-    description: 'Non-technical railway posts, agricultural sciences, architecture drawing aptitude, and national design entrance.'
+    badge: 'Specialized Entrance',
+    description: 'Non-technical railway posts, agricultural sciences, architecture drawing aptitude, and design entrance.'
   },
   {
     id: 'intl-tests',
-    title: 'International Entrance & Language Tests',
+    title: 'International Admissions and Language Tests',
     subtitle: 'IELTS, TOEFL, GRE, GMAT, SAT',
     icon: 'Globe2',
     color: 'gold',
     badge: 'Global Pathways',
     isInternational: true,
-    description: 'Official test prep for international university admissions, language proficiency, and global academic migration.'
+    description: 'Standardized tests for international university admissions, language proficiency, and global education.'
   }
 ];
 
@@ -111,406 +346,534 @@ export const ACADEMY_EXAMINATIONS = [
   {
     id: 'exam-upsc-cse',
     departmentId: 'gov',
+    categoryGroup: 'Government and Civil Services Exams',
     code: 'UPSC CSE',
     name: 'Civil Services Examination (IAS, IPS, IFS)',
-    conductingBody: 'Union Public Service Commission',
-    eligibility: "Bachelor's Degree in any discipline",
-    pattern: 'Prelims (GS + CSAT) → Mains (9 Papers) → Personality Test',
+    conductingBody: 'Union Public Service Commission (UPSC)',
+    eligibility: "Bachelor's Degree in any discipline from a recognized university",
+    educationLevel: 'Undergraduate / Bachelor Degree',
+    pattern: 'Preliminary Examination (GS + CSAT) → Main Examination (9 Papers) → Personality Test (Interview)',
     popularSubjects: ['General Studies', 'Public Administration', 'Geography', 'Sociology'],
-    nextCycle: 'May 2027 Prelims',
-    shortDesc: 'The premier competitive examination in India for recruitment to higher civil services including IAS, IPS, and IFS.'
+    nextCycle: 'Annual cycle per official UPSC examination calendar',
+    applicationDetails: 'Official notifications and online applications are published on upsc.gov.in and upsconline.nic.in.',
+    officialUrl: 'https://upsc.gov.in',
+    shortDesc: 'National competitive examination conducted by UPSC for recruitment to All India Services and Central Civil Services including IAS, IPS, and IFS.'
   },
   {
     id: 'exam-ssc-cgl',
     departmentId: 'gov',
+    categoryGroup: 'Government and Civil Services Exams',
     code: 'SSC CGL',
     name: 'Combined Graduate Level Examination',
-    conductingBody: 'Staff Selection Commission',
-    eligibility: 'Graduate from a recognized university',
-    pattern: 'Tier 1 (Computer Based) → Tier 2 (Advanced Aptitude & Language)',
+    conductingBody: 'Staff Selection Commission (SSC)',
+    eligibility: "Bachelor's Degree from a recognized university",
+    educationLevel: 'Undergraduate / Bachelor Degree',
+    pattern: 'Tier I (Computer Based Examination) → Tier II (Paper I & Paper II as applicable)',
     popularSubjects: ['Quantitative Aptitude', 'General Awareness', 'English Comprehension', 'Reasoning'],
-    nextCycle: 'September 2026',
-    shortDesc: 'Recruitment to Group B and C gazetted and non-gazetted posts across central government ministries.'
+    nextCycle: 'Annual notification per official SSC calendar',
+    applicationDetails: 'Official registration and syllabus notifications are published on ssc.gov.in.',
+    officialUrl: 'https://ssc.gov.in',
+    shortDesc: 'Recruitment examination for Group B and Group C posts across central government ministries, departments, and organizations.'
   },
   {
     id: 'exam-tnpsc-grp1',
     departmentId: 'gov',
+    categoryGroup: 'Government and Civil Services Exams',
     code: 'TNPSC Group 1 & 2',
     name: 'Tamil Nadu Public Service Commission Combined Civil Services',
-    conductingBody: 'TNPSC',
-    eligibility: 'Any Degree with Tamil language competency',
-    pattern: 'Prelims (GS + Aptitude) → Mains (Descriptive) → Oral Test',
-    popularSubjects: ['Tamil Society & Heritage', 'General Studies', 'Development Admin in TN'],
-    nextCycle: 'July 2026',
-    shortDesc: 'State administrative recruitment for Deputy Collector, DSP, Commercial Tax Officer, and Municipal Commissioner posts.'
+    conductingBody: 'Tamil Nadu Public Service Commission (TNPSC)',
+    eligibility: "Bachelor's Degree from a recognized university with required Tamil language proficiency",
+    educationLevel: 'Undergraduate / Bachelor Degree',
+    pattern: 'Preliminary Examination → Main Written Examination → Oral Test / Counselling',
+    popularSubjects: ['General Studies', 'Aptitude & Mental Ability', 'Tamil Nadu Administration'],
+    nextCycle: 'Published via TNPSC Annual Planner',
+    applicationDetails: 'One-Time Registration (OTR) and exam applications are submitted via tnpsc.gov.in.',
+    officialUrl: 'https://www.tnpsc.gov.in',
+    shortDesc: 'State civil services examination for administrative appointments in Tamil Nadu state government departments.'
   },
 
   // 2. Banking and Finance
   {
     id: 'exam-sbi-po',
     departmentId: 'banking',
+    categoryGroup: 'Banking and Finance Exams',
     code: 'SBI PO',
-    name: 'State Bank of India Probationary Officer',
-    conductingBody: 'State Bank of India',
-    eligibility: 'Graduation in any discipline',
-    pattern: 'Prelims (100 Marks) → Mains (250 Marks) → GE & Interview',
-    popularSubjects: ['Banking Awareness', 'Data Analysis', 'Reasoning', 'English'],
-    nextCycle: 'November 2026',
-    shortDesc: 'Flagship probationary officer entrance test for India’s largest public sector banking institution.'
+    name: 'State Bank of India Probationary Officers Examination',
+    conductingBody: 'State Bank of India (Central Recruitment & Promotion Department)',
+    eligibility: 'Graduation in any discipline from a recognized university',
+    educationLevel: 'Undergraduate / Bachelor Degree',
+    pattern: 'Phase I (Preliminary CBT) → Phase II (Main Examination) → Phase III (Psychometric Test, Group Exercise & Interview)',
+    popularSubjects: ['Data Analysis & Interpretation', 'Reasoning & Computer Aptitude', 'General / Economy / Banking Awareness', 'English Language'],
+    nextCycle: 'Announced via SBI Careers official notification',
+    applicationDetails: 'Official recruitment notices and online registration links are published at sbi.co.in/web/careers.',
+    officialUrl: 'https://sbi.co.in/web/careers',
+    shortDesc: 'Probationary Officer recruitment examination conducted by the State Bank of India.'
   },
   {
     id: 'exam-ibps-po',
     departmentId: 'banking',
+    categoryGroup: 'Banking and Finance Exams',
     code: 'IBPS PO / Clerk',
-    name: 'Institute of Banking Personnel Selection CWE',
-    conductingBody: 'IBPS',
-    eligibility: 'Graduation from any recognized university',
-    pattern: 'Preliminary Exam → Mains Examination → Interview (PO)',
-    popularSubjects: ['Financial Awareness', 'Computer Aptitude', 'Reasoning', 'Quantitative Ability'],
-    nextCycle: 'October 2026',
-    shortDesc: 'Unified recruitment gateway for 11 participating public sector banks across India.'
+    name: 'IBPS Common Recruitment Process (CRP PO/MT & Clerks)',
+    conductingBody: 'Institute of Banking Personnel Selection (IBPS)',
+    eligibility: 'Degree (Graduation) in any discipline from a recognized university',
+    educationLevel: 'Undergraduate / Bachelor Degree',
+    pattern: 'Preliminary Online Examination → Main Online Examination → Common Interview (for PO/MT)',
+    popularSubjects: ['Financial Awareness', 'Computer Aptitude', 'Reasoning Ability', 'Quantitative Aptitude'],
+    nextCycle: 'Annual CRP cycle per official IBPS calendar',
+    applicationDetails: 'Official notifications and registration portals are hosted at ibps.in.',
+    officialUrl: 'https://www.ibps.in',
+    shortDesc: 'Common recruitment examination for Probationary Officers, Management Trainees, and Clerical cadre posts in participating public sector banks.'
   },
   {
     id: 'exam-rbi-grade-b',
     departmentId: 'banking',
+    categoryGroup: 'Banking and Finance Exams',
     code: 'RBI Grade B',
-    name: 'Reserve Bank of India Officers in Grade B (General)',
-    conductingBody: 'Reserve Bank of India Services Board',
-    eligibility: 'Graduation with min 60% marks',
-    pattern: 'Phase 1 (Online Objective) → Phase 2 (Descriptive ESI, FM & English) → Interview',
-    popularSubjects: ['Economic & Social Issues', 'Finance & Management', 'General Awareness'],
-    nextCycle: 'September 2026',
-    shortDesc: 'Elite central banking leadership position managing monetary policy, financial stability, and currency operations.'
+    name: 'Reserve Bank of India Officers in Grade B (DR)',
+    conductingBody: 'Reserve Bank of India Services Board (RBISB)',
+    eligibility: "Bachelor's Degree with minimum 60% marks (50% for SC/ST/PwBD) or equivalent qualification per RBI notification",
+    educationLevel: 'Undergraduate / Bachelor Degree',
+    pattern: 'Phase I Online Objective Exam → Phase II Online Examination (Paper I, II, III) → Interview',
+    popularSubjects: ['Economic & Social Issues', 'Finance & Management', 'General Awareness', 'English Writing Skills'],
+    nextCycle: 'Announced by RBI Services Board on rbi.org.in',
+    applicationDetails: 'Official recruitment notifications and eligibility rules are available on opportunities.rbi.org.in.',
+    officialUrl: 'https://www.rbi.org.in',
+    shortDesc: 'Competitive examination for direct recruitment of Officers in Grade B (General, DEPR, DSIM) at the Reserve Bank of India.'
   },
 
   // 3. Engineering and Technology
   {
     id: 'exam-gate',
     departmentId: 'engineering',
+    categoryGroup: 'Engineering and Technical Entrance Exams',
     code: 'GATE',
     name: 'Graduate Aptitude Test in Engineering',
-    conductingBody: 'IITs & IISc on rotation',
-    eligibility: 'Graduating or completed B.E./B.Tech/B.Arch/M.Sc',
-    pattern: '3-Hour Computer Based Test (65 Questions, 100 Marks)',
-    popularSubjects: ['Computer Science', 'Mechanical', 'Civil', 'Electrical', 'ECE'],
-    nextCycle: 'February 2027',
-    shortDesc: 'Gateway for M.Tech admissions at IITs/NITs and direct recruitment to premier PSUs like ONGC, IOCL, and NTPC.'
+    conductingBody: 'IISc Bengaluru and IITs (on rotational basis under NCB-GATE)',
+    eligibility: 'Candidates in 3rd/higher years of an undergraduate degree or completed a government-approved degree in Engineering, Technology, Architecture, Science, Commerce, or Arts',
+    educationLevel: 'Undergraduate / Bachelor Degree',
+    pattern: '3-Hour Computer Based Test (General Aptitude + Selected Engineering/Science Subject Paper)',
+    popularSubjects: ['Computer Science & IT', 'Mechanical Engineering', 'Civil Engineering', 'Electrical Engineering', 'Electronics & Communication'],
+    nextCycle: 'Held annually (typically February) per organizing IIT schedule',
+    applicationDetails: 'Official information brochure, paper combinations, and GOAPS registration are published on the official GATE portal.',
+    officialUrl: 'https://gate2025.iitr.ac.in',
+    shortDesc: 'National examination evaluating comprehensive understanding of undergraduate subjects in engineering, technology, architecture, and science for postgraduate admission and PSU recruitment.'
   },
   {
     id: 'exam-ssc-je',
     departmentId: 'engineering',
+    categoryGroup: 'Engineering and Technical Entrance Exams',
     code: 'SSC JE',
-    name: 'Staff Selection Commission Junior Engineer',
-    conductingBody: 'Staff Selection Commission',
-    eligibility: 'Diploma or Degree in Civil / Electrical / Mechanical Engineering',
-    pattern: 'Paper 1 (CBT Objective) → Paper 2 (CBT Core Engineering)',
-    popularSubjects: ['Civil Engineering', 'Electrical Engineering', 'General Intelligence'],
-    nextCycle: 'June 2026',
-    shortDesc: 'Junior Engineer appointments in CPWD, MES, Border Roads Organisation, and Central Water Commission.'
+    name: 'Staff Selection Commission Junior Engineer Examination',
+    conductingBody: 'Staff Selection Commission (SSC)',
+    eligibility: 'Diploma or Degree in Civil, Electrical, or Mechanical Engineering from a recognized institute/university (post-specific)',
+    educationLevel: 'Undergraduate / Bachelor Degree',
+    pattern: 'Paper I (Computer Based Examination) → Paper II (Computer Based Core Engineering Paper)',
+    popularSubjects: ['Civil & Structural Engineering', 'Electrical Engineering', 'Mechanical Engineering', 'General Intelligence & Reasoning'],
+    nextCycle: 'Annual cycle per official SSC examination calendar',
+    applicationDetails: 'Detailed post-wise educational qualifications and age limits are published in the official SSC JE notice on ssc.gov.in.',
+    officialUrl: 'https://ssc.gov.in',
+    shortDesc: 'Examination for recruitment of Junior Engineers (Civil, Mechanical, Electrical) across central government departments such as CPWD, MES, BRO, and CWC.'
   },
   {
     id: 'exam-rrb-je',
     departmentId: 'engineering',
+    categoryGroup: 'Engineering and Technical Entrance Exams',
     code: 'RRB JE',
-    name: 'Railway Recruitment Board Junior Engineer',
-    conductingBody: 'Ministry of Railways (RRB)',
-    eligibility: 'Diploma or B.E./B.Tech in relevant engineering stream',
-    pattern: 'CBT 1 (Screening) → CBT 2 (Technical & Environmental Studies)',
-    popularSubjects: ['Technical Abilities', 'Basic Computers & Applications', 'Physics & Chemistry'],
-    nextCycle: 'August 2026',
-    shortDesc: 'Technical engineering supervisor posts in Indian Railways maintenance, rolling stock, and track divisions.'
+    name: 'Railway Recruitment Board Junior Engineer (CEN)',
+    conductingBody: 'Railway Recruitment Boards (Ministry of Railways)',
+    eligibility: 'Three-year Diploma or B.E./B.Tech in relevant Engineering discipline per Centralized Employment Notice (CEN)',
+    educationLevel: 'Undergraduate / Bachelor Degree',
+    pattern: '1st Stage CBT → 2nd Stage CBT (Technical Abilities, General Awareness, Physics & Chemistry, Basics of Computers & Environment)',
+    popularSubjects: ['Technical Engineering Discipline', 'General Science', 'Basics of Environment & Computers', 'Mathematics'],
+    nextCycle: 'Published via Centralized Employment Notices (CEN) by RRBs',
+    applicationDetails: 'Applications are accepted through regional RRB websites listed on indianrailways.gov.in.',
+    officialUrl: 'https://indianrailways.gov.in',
+    shortDesc: 'Centralized recruitment examination for Junior Engineer, Depot Material Superintendent, and Chemical & Metallurgical Assistant posts in Indian Railways.'
   },
 
   // 4. Medical and Healthcare
   {
     id: 'exam-neet-ug',
     departmentId: 'medical',
-    code: 'NEET UG',
+    categoryGroup: 'Medical and Healthcare Entrance Exams',
+    code: 'NEET (UG)',
     name: 'National Eligibility cum Entrance Test (Undergraduate)',
     conductingBody: 'National Testing Agency (NTA)',
-    eligibility: '10+2 with Physics, Chemistry, Biology/Biotech (Min 50%)',
-    pattern: 'Pen & Paper Test: 200 Questions (Physics 50, Chemistry 50, Biology 100)',
-    popularSubjects: ['Human Physiology', 'Genetics', 'Organic Chemistry', 'Electrodynamics'],
-    nextCycle: 'May 2027',
-    shortDesc: 'The single nationwide entrance test for admission to MBBS, BDS, AYUSH, and veterinary medical colleges.'
+    eligibility: 'Passed or appearing in 10+2 (Higher Secondary) with Physics, Chemistry, Biology/Biotechnology, and English from a recognized board',
+    educationLevel: 'Class 12 / High School',
+    pattern: 'Pen & Paper (OMR) Examination covering Physics, Chemistry, and Biology (Botany & Zoology)',
+    popularSubjects: ['Physics', 'Chemistry', 'Botany', 'Zoology'],
+    nextCycle: 'Conducted annually (typically May) per NTA notification',
+    applicationDetails: 'Official Information Bulletin, syllabus, and application forms are published on neet.nta.nic.in.',
+    officialUrl: 'https://neet.nta.nic.in',
+    shortDesc: 'National qualifying and entrance examination for admission to undergraduate medical (MBBS), dental (BDS), AYUSH, and nursing courses in India.'
   },
   {
     id: 'exam-neet-pg',
     departmentId: 'medical',
+    categoryGroup: 'Medical and Healthcare Entrance Exams',
     code: 'NEET PG / INI-CET',
-    name: 'Postgraduate Medical Entrance & Institutes of National Importance',
-    conductingBody: 'NBEMS / AIIMS New Delhi',
-    eligibility: 'MBBS Degree with completed 1-year rotating internship',
-    pattern: 'Computer Based Test covering Pre-clinical, Para-clinical & Clinical subjects',
-    popularSubjects: ['General Medicine', 'Surgery', 'Obstetrics & Gynaecology', 'Pathology'],
-    nextCycle: 'March 2027',
-    shortDesc: 'Qualifying examination for MD, MS, PG Diploma, and DNB medical specialist training.'
+    name: 'National Eligibility cum Entrance Test (Postgraduate) & INI-CET',
+    conductingBody: 'National Board of Examinations in Medical Sciences (NBEMS) / AIIMS',
+    eligibility: 'MBBS Degree or Provisional MBBS Pass Certificate recognized under the NMC Act, registration certificate, and completed 1-year internship',
+    educationLevel: 'Postgraduate / Master Degree',
+    pattern: 'Computer Based Test covering Pre-clinical, Para-clinical, and Clinical MBBS curriculum subjects',
+    popularSubjects: ['General Medicine', 'General Surgery', 'Obstetrics & Gynaecology', 'Pathology', 'Pharmacology'],
+    nextCycle: 'Per official NBEMS (natboard.edu.in) and AIIMS examination schedules',
+    applicationDetails: 'Official information bulletins and eligibility cutoff dates for internship completion are published at natboard.edu.in.',
+    officialUrl: 'https://natboard.edu.in',
+    shortDesc: 'Qualifying and ranking examinations for admission to MD, MS, PG Diploma, and DNB postgraduate medical courses.'
   },
 
   // 5. Teaching and Education
   {
     id: 'exam-ctet',
     departmentId: 'teaching',
+    categoryGroup: 'Teaching and Education Exams',
     code: 'CTET',
     name: 'Central Teacher Eligibility Test',
     conductingBody: 'Central Board of Secondary Education (CBSE)',
-    eligibility: "Senior Secondary / Graduation with D.El.Ed / B.Ed",
-    pattern: 'Paper 1 (Class I to V) & Paper 2 (Class VI to VIII)',
-    popularSubjects: ['Child Development & Pedagogy', 'Mathematics', 'Language 1 & 2', 'EVS'],
-    nextCycle: 'July 2026',
-    shortDesc: 'Mandatory certification for teaching appointments in central schools like KVS, NVS, and Central Tibetan Schools.'
+    eligibility: 'Senior Secondary / Graduation with D.El.Ed / B.Ed per NCTE teacher eligibility norms',
+    educationLevel: 'Undergraduate / Bachelor Degree',
+    pattern: 'Paper I (Classes I to V — Primary Stage) & Paper II (Classes VI to VIII — Elementary Stage)',
+    popularSubjects: ['Child Development & Pedagogy', 'Mathematics & Science', 'Social Studies', 'Languages I & II'],
+    nextCycle: 'Conducted bi-annually per CBSE CTET notification',
+    applicationDetails: 'Official information bulletin and online registration are hosted at ctet.nic.in.',
+    officialUrl: 'https://ctet.nic.in',
+    shortDesc: 'National teacher eligibility certification conducted by CBSE for teaching appointments in Central Government schools (KVS, NVS, etc.).'
   },
   {
     id: 'exam-tntet',
     departmentId: 'teaching',
+    categoryGroup: 'Teaching and Education Exams',
     code: 'TNTET',
     name: 'Tamil Nadu Teacher Eligibility Test',
-    conductingBody: 'Teachers Recruitment Board (TRB Tamil Nadu)',
-    eligibility: 'D.T.Ed / B.Ed with specified educational credentials',
-    pattern: 'Paper I (Primary) & Paper II (Upper Primary / Graduate Teacher)',
-    popularSubjects: ['Educational Psychology', 'Tamil Pedagogy', 'Social Science / Maths-Science'],
-    nextCycle: 'August 2026',
-    shortDesc: 'State eligibility certificate required for appointment as primary and graduate teachers in Tamil Nadu schools.'
+    conductingBody: 'Teachers Recruitment Board (TRB), Tamil Nadu',
+    eligibility: 'Higher Secondary with D.El.Ed (Paper I) or Graduation with B.Ed (Paper II) per TRB Tamil Nadu norms',
+    educationLevel: 'Undergraduate / Bachelor Degree',
+    pattern: 'Paper I (Classes I to V) & Paper II (Classes VI to VIII)',
+    popularSubjects: ['Child Development & Pedagogy', 'Tamil / English', 'Mathematics & Science', 'Social Science'],
+    nextCycle: 'Published via TRB Tamil Nadu official notifications',
+    applicationDetails: 'Official syllabus and notifications are released by the Teachers Recruitment Board at trb.tn.gov.in.',
+    officialUrl: 'https://trb.tn.gov.in',
+    shortDesc: 'State teacher eligibility examination required for primary and upper primary teaching posts in Tamil Nadu schools.'
   },
   {
     id: 'exam-ugc-net',
     departmentId: 'teaching',
+    categoryGroup: 'Teaching and Education Exams',
     code: 'UGC NET',
-    name: 'University Grants Commission National Eligibility Test',
-    conductingBody: 'National Testing Agency (NTA)',
-    eligibility: "Master's Degree with minimum 55% marks",
-    pattern: 'Paper 1 (Teaching & Research Aptitude) + Paper 2 (Specialized Subject)',
-    popularSubjects: ['Teaching Aptitude', 'Research Methodology', 'Higher Education System'],
-    nextCycle: 'June 2026 & Dec 2026',
-    shortDesc: 'Eligibility for Assistant Professorship and award of Junior Research Fellowship (JRF) in Indian universities.'
+    name: 'UGC National Eligibility Test',
+    conductingBody: 'National Testing Agency (NTA) on behalf of University Grants Commission',
+    eligibility: "Master's Degree or equivalent from a UGC-recognized university with minimum 55% marks (50% for reserved categories)",
+    educationLevel: 'Postgraduate / Master Degree',
+    pattern: 'Single 3-Hour Session: Paper I (Teaching & Research Aptitude) + Paper II (Selected Subject)',
+    popularSubjects: ['Teaching & Research Aptitude', 'Higher Education System', 'Subject-Specific Paper (83+ Subjects)'],
+    nextCycle: 'Conducted twice a year (typically June and December cycles)',
+    applicationDetails: 'Subject codes, syllabus PDFs, and online forms are available on ugcnet.nta.ac.in.',
+    officialUrl: 'https://ugcnet.nta.ac.in',
+    shortDesc: 'National test to determine eligibility for Junior Research Fellowship (JRF), appointment as Assistant Professor, and admission to Ph.D. programs in Indian universities.'
   },
 
   // 6. Defence and Police
   {
     id: 'exam-nda',
     departmentId: 'defence',
+    categoryGroup: 'Defence and Police Exams',
     code: 'NDA & NA',
     name: 'National Defence Academy & Naval Academy Examination',
-    conductingBody: 'Union Public Service Commission',
-    eligibility: '12th Class pass (Physics & Maths for Air Force/Navy)',
-    pattern: 'Written (Maths 300 + GAT 600) → 5-Day SSB Interview',
-    popularSubjects: ['Mathematics', 'English', 'General Knowledge & Current Affairs'],
-    nextCycle: 'September 2026',
-    shortDesc: 'Direct entry for young cadets into the Army, Navy, and Air Force wings of the National Defence Academy, Khadakwasla.'
+    conductingBody: 'Union Public Service Commission (UPSC)',
+    eligibility: '12th Class pass of the 10+2 pattern (with Physics, Chemistry & Mathematics for Air Force and Naval Wings)',
+    educationLevel: 'Class 12 / High School',
+    pattern: 'Written Examination (Mathematics + General Ability Test) → SSB Intelligence & Personality Test',
+    popularSubjects: ['Mathematics', 'English', 'General Knowledge', 'Physics & History'],
+    nextCycle: 'Conducted twice a year (NDA I & NDA II) per UPSC calendar',
+    applicationDetails: 'Age limits, marital status, and physical standards are specified in the official UPSC NDA notification on upsc.gov.in.',
+    officialUrl: 'https://upsc.gov.in',
+    shortDesc: 'National entrance examination for admission to the Army, Navy, and Air Force wings of the National Defence Academy and Indian Naval Academy.'
   },
   {
     id: 'exam-cds',
     departmentId: 'defence',
+    categoryGroup: 'Defence and Police Exams',
     code: 'CDS',
     name: 'Combined Defence Services Examination',
-    conductingBody: 'UPSC',
-    eligibility: 'Degree for IMA/OTA, Engineering for Naval/Air Force Academy',
-    pattern: 'Written (English + GK + Elementary Maths) → SSB Interview',
-    popularSubjects: ['English Comprehension', 'General Knowledge', 'Elementary Mathematics'],
-    nextCycle: 'September 2026',
-    shortDesc: 'Graduate officer entry for Indian Military Academy, Officers Training Academy, Indian Naval Academy, and Air Force Academy.'
+    conductingBody: 'Union Public Service Commission (UPSC)',
+    eligibility: 'Degree of a recognized university for IMA/OTA; Degree in Engineering for INA; Degree (with Physics & Maths at 10+2) or B.E. for AFA',
+    educationLevel: 'Undergraduate / Bachelor Degree',
+    pattern: 'Written Examination (English, General Knowledge, Elementary Mathematics) → SSB Interview for Intelligence and Personality',
+    popularSubjects: ['English', 'General Knowledge', 'Elementary Mathematics'],
+    nextCycle: 'Conducted twice a year (CDS I & CDS II) per UPSC calendar',
+    applicationDetails: 'Official notifications and academy-wise eligibility criteria are published on upsc.gov.in.',
+    officialUrl: 'https://upsc.gov.in',
+    shortDesc: 'Graduate-level defence entrance examination for recruitment into the Indian Military Academy, Indian Naval Academy, Air Force Academy, and Officers Training Academy.'
   },
   {
     id: 'exam-afcat',
     departmentId: 'defence',
+    categoryGroup: 'Defence and Police Exams',
     code: 'AFCAT',
     name: 'Air Force Common Admission Test',
-    conductingBody: 'Indian Air Force',
-    eligibility: 'Graduate (min 60%) with Maths & Physics at 10+2 level',
-    pattern: 'Online Exam (100 Questions, 300 Marks) + EKT (For Technical) → AFSB',
-    popularSubjects: ['Verbal Ability', 'Numerical Ability', 'Military Reasoning', 'General Awareness'],
-    nextCycle: 'August 2026',
-    shortDesc: 'Commissioned officer recruitment for Flying, Ground Duty Technical, and Ground Duty Non-Technical branches of the IAF.'
+    conductingBody: 'Indian Air Force (IAF)',
+    eligibility: 'Graduation (minimum 60% marks) and minimum 50% each in Maths & Physics at 10+2 level (branch-specific criteria apply)',
+    educationLevel: 'Undergraduate / Bachelor Degree',
+    pattern: 'Online AFCAT Written Test → Air Force Selection Board (AFSB) Testing',
+    popularSubjects: ['General Awareness', 'Verbal Ability in English', 'Numerical Ability', 'Reasoning & Military Aptitude'],
+    nextCycle: 'Conducted twice a year (AFCAT 1 & AFCAT 2)',
+    applicationDetails: 'Official notifications and registration details are available on afcat.cdac.in.',
+    officialUrl: 'https://afcat.cdac.in',
+    shortDesc: 'Officer recruitment test conducted by the Indian Air Force for Flying and Ground Duty (Technical and Non-Technical) branches.'
   },
 
   // 7. Management and Business
   {
     id: 'exam-cat',
     departmentId: 'management',
+    categoryGroup: 'Other Academic and Professional Entrance Exams',
     code: 'CAT',
     name: 'Common Admission Test (IIMs)',
-    conductingBody: 'Indian Institutes of Management (IIMs)',
-    eligibility: "Bachelor's Degree with minimum 50% aggregate",
-    pattern: 'CBT: VARC (24 Qs), DILR (20 Qs), Quantitative Aptitude (22 Qs)',
+    conductingBody: 'Indian Institutes of Management (IIMs on rotational basis)',
+    eligibility: "Bachelor's Degree with at least 50% marks or equivalent CGPA (45% for SC, ST, and PwD categories)",
+    educationLevel: 'Undergraduate / Bachelor Degree',
+    pattern: 'Computer Based Test: Verbal Ability & Reading Comprehension (VARC), Data Interpretation & Logical Reasoning (DILR), Quantitative Ability (QA)',
     popularSubjects: ['Data Interpretation', 'Logical Reasoning', 'Quantitative Ability', 'Reading Comprehension'],
-    nextCycle: 'November 2026',
-    shortDesc: 'The gold standard entrance examination for admission into 21 Indian Institutes of Management and top tier business schools.'
+    nextCycle: 'Held annually (typically November) per official IIM CAT notification',
+    applicationDetails: 'Official registration, test city selection, and information bulletins are published on iimcat.ac.in.',
+    officialUrl: 'https://iimcat.ac.in',
+    shortDesc: 'National management entrance examination for admission to postgraduate and fellow management programs at Indian Institutes of Management (IIMs) and participating B-Schools.'
   },
   {
     id: 'exam-mat-cmat',
     departmentId: 'management',
+    categoryGroup: 'Other Academic and Professional Entrance Exams',
     code: 'MAT / CMAT',
     name: 'Management Aptitude Test & Common Management Admission Test',
-    conductingBody: 'AIMA & NTA',
-    eligibility: 'Graduates in any discipline',
-    pattern: 'Language Comprehension, Math Skills, Data Analysis, Intelligence & Critical Reasoning',
-    popularSubjects: ['General Awareness', 'Innovation & Entrepreneurship', 'Logical Reasoning'],
-    nextCycle: 'May 2026 / Dec 2026',
-    shortDesc: 'National level management entrance tests accepted by over 1,000 AICTE-approved business schools across India.'
+    conductingBody: 'All India Management Association (AIMA) & National Testing Agency (NTA)',
+    eligibility: 'Graduates in any discipline from a recognized university (final year undergraduate students may also apply)',
+    educationLevel: 'Undergraduate / Bachelor Degree',
+    pattern: 'Language Comprehension, Mathematical Skills, Data Analysis & Sufficiency, Intelligence & Critical Reasoning, General Awareness',
+    popularSubjects: ['Quantitative Techniques', 'Logical Reasoning', 'Language Comprehension', 'Innovation & Entrepreneurship'],
+    nextCycle: 'MAT held multiple sessions annually; CMAT held annually per NTA notification',
+    applicationDetails: 'Official registration is hosted at mat.aima.in (MAT) and exams.nta.ac.in/CMAT (CMAT).',
+    officialUrl: 'https://mat.aima.in',
+    shortDesc: 'Standardized national management entrance tests accepted by AICTE-approved institutions and university MBA/PGDM departments.'
   },
 
   // 8. Law
   {
     id: 'exam-clat',
     departmentId: 'law',
+    categoryGroup: 'Other Academic and Professional Entrance Exams',
     code: 'CLAT (UG/PG)',
     name: 'Common Law Admission Test',
     conductingBody: 'Consortium of National Law Universities',
-    eligibility: '10+2 with 45% (UG) / LL.B. with 50% (PG)',
-    pattern: 'Reading-based passage questions (120 Questions in 2 Hours)',
-    popularSubjects: ['Legal Reasoning', 'Current Affairs including GK', 'Logical Reasoning', 'English Language'],
-    nextCycle: 'December 2026',
-    shortDesc: 'Centralized entrance exam for admission into 24 premier National Law Universities in India.'
+    eligibility: '10+2 or equivalent with minimum 45% marks for UG (40% for SC/ST/PwD); LL.B. degree with minimum 50% marks for PG',
+    educationLevel: 'Class 12 / High School',
+    pattern: '2-Hour Comprehension-Based Test: English Language, Current Affairs including GK, Legal Reasoning, Logical Reasoning, Quantitative Techniques',
+    popularSubjects: ['Legal Reasoning', 'Current Affairs & GK', 'Logical Reasoning', 'English Language', 'Quantitative Techniques'],
+    nextCycle: 'Conducted annually (typically December) per Consortium notification',
+    applicationDetails: 'Official syllabus, participating NLUs, and online applications are published at consortiumofnlus.ac.in.',
+    officialUrl: 'https://consortiumofnlus.ac.in',
+    shortDesc: 'Centralized national entrance examination for admission to 5-year integrated LL.B. and LL.M. programs at participating National Law Universities.'
   },
   {
     id: 'exam-ailet',
     departmentId: 'law',
+    categoryGroup: 'Other Academic and Professional Entrance Exams',
     code: 'AILET',
     name: 'All India Law Entrance Test',
-    conductingBody: 'National Law University, Delhi',
-    eligibility: '10+2 with 45% marks',
-    pattern: '150 Questions: English Language, Current Affairs & GK, Logical Reasoning',
-    popularSubjects: ['Critical Reasoning', 'Analytical Ability', 'Contemporary Legal Current Affairs'],
-    nextCycle: 'December 2026',
-    shortDesc: 'Exclusive competitive entrance test for BA LL.B. (Hons.) and LL.M. admissions at NLU Delhi.'
+    conductingBody: 'National Law University, Delhi (NLU Delhi)',
+    eligibility: 'Senior Secondary School Examination (10+2 system) or equivalent with minimum 45% aggregate marks for B.A.LL.B. (Hons.)',
+    educationLevel: 'Class 12 / High School',
+    pattern: 'Offline Pen-and-Paper Test covering English Language, Current Affairs & General Knowledge, and Logical Reasoning',
+    popularSubjects: ['Logical & Legal Principles', 'English Comprehension', 'Current Affairs & General Knowledge'],
+    nextCycle: 'Conducted annually (typically December) per NLU Delhi notification',
+    applicationDetails: 'Official admission notifications and registration forms are hosted on nationallawuniversitydelhi.in.',
+    officialUrl: 'https://nationallawuniversitydelhi.in',
+    shortDesc: 'National law entrance examination conducted by National Law University, Delhi for admission to B.A.LL.B. (Hons.), LL.M., and Ph.D. programs.'
   },
 
   // 9. Science, Arts, Commerce and Humanities
   {
     id: 'exam-csir-net',
     departmentId: 'science-arts',
-    code: 'CSIR NET',
-    name: 'Council of Scientific & Industrial Research NET',
-    conductingBody: 'NTA',
-    eligibility: 'M.Sc. or equivalent degree with 55% marks',
-    pattern: 'Part A (General Aptitude) + Part B (Subject MCQs) + Part C (Higher Order Scientific Concept)',
-    popularSubjects: ['Chemical Sciences', 'Life Sciences', 'Mathematical Sciences', 'Physical Sciences'],
-    nextCycle: 'June 2026 & Dec 2026',
-    shortDesc: 'Determines eligibility for JRF and Lectureship in basic and applied sciences across national laboratories and universities.'
+    categoryGroup: 'Other Academic and Professional Entrance Exams',
+    code: 'CSIR UGC NET',
+    name: 'Joint CSIR-UGC National Eligibility Test',
+    conductingBody: 'National Testing Agency (NTA) on behalf of CSIR',
+    eligibility: 'M.Sc. or equivalent degree / Integrated BS-MS / BS-4 Years / B.E. / B.Tech / B.Pharma / MBBS with minimum 55% marks (50% for reserved categories)',
+    educationLevel: 'Postgraduate / Master Degree',
+    pattern: 'Computer Based Test: Part A (General Science & Research Aptitude) + Part B (Subject-Related MCQs) + Part C (Analytical Scientific Questions)',
+    popularSubjects: ['Chemical Sciences', 'Earth, Atmospheric, Ocean & Planetary Sciences', 'Life Sciences', 'Mathematical Sciences', 'Physical Sciences'],
+    nextCycle: 'Conducted twice a year (typically June and December) per NTA schedule',
+    applicationDetails: 'Official information bulletin and subject syllabi are available on csirnet.nta.ac.in.',
+    officialUrl: 'https://csirnet.nta.ac.in',
+    shortDesc: 'National test determining eligibility for Junior Research Fellowship (JRF) and Lectureship/Assistant Professor in science and technology disciplines.'
   },
   {
     id: 'exam-iit-jam',
     departmentId: 'science-arts',
+    categoryGroup: 'Other Academic and Professional Entrance Exams',
     code: 'IIT JAM',
     name: 'Joint Admission Test for Masters',
-    conductingBody: 'IITs on rotation',
-    eligibility: "Undergraduate degree in science or mathematics",
-    pattern: 'Computer-Based Test with MCQs, MSQs, and Numerical Answer Type (NAT) questions',
-    popularSubjects: ['Biotechnology', 'Chemistry', 'Geology', 'Mathematics', 'Mathematical Statistics', 'Physics'],
-    nextCycle: 'February 2027',
-    shortDesc: 'Entrance test for M.Sc. (2-year), Joint M.Sc.-Ph.D., and Dual Degree programmes at IITs and IISc.'
+    conductingBody: 'Indian Institutes of Technology (IITs on rotational basis)',
+    eligibility: 'Candidates who have completed or are appearing in the final year of an undergraduate degree in relevant science/mathematics disciplines',
+    educationLevel: 'Undergraduate / Bachelor Degree',
+    pattern: 'Computer Based Test in 7 test papers featuring MCQs, MSQs (Multiple Select), and NAT (Numerical Answer Type) questions',
+    popularSubjects: ['Biotechnology', 'Chemistry', 'Economics', 'Geology', 'Mathematics', 'Mathematical Statistics', 'Physics'],
+    nextCycle: 'Held annually (typically February) per organizing IIT schedule',
+    applicationDetails: 'Official JAM information brochure and JOAPS registration portal are hosted by the organizing IIT (e.g., jam2025.iitd.ac.in).',
+    officialUrl: 'https://jam2025.iitd.ac.in',
+    shortDesc: 'All-India entrance examination for admission to M.Sc., M.Sc. (Tech.), MS (Research), and Joint M.Sc.-Ph.D. postgraduate programs at IITs and IISc.'
   },
   {
     id: 'exam-cuet-pg',
     departmentId: 'science-arts',
+    categoryGroup: 'Other Academic and Professional Entrance Exams',
     code: 'CUET (UG & PG)',
     name: 'Common University Entrance Test',
-    conductingBody: 'National Testing Agency',
-    eligibility: 'Class 12th for UG / Bachelor’s Degree for PG',
-    pattern: 'Domain-Specific Subject Tests + General Aptitude + Language Test',
-    popularSubjects: ['Economics', 'English Literature', 'Commerce & Accountancy', 'Political Science'],
-    nextCycle: 'May - June 2026',
-    shortDesc: 'Single window admission test for central universities including DU, JNU, BHU, and Jamia Millia Islamia.'
+    conductingBody: 'National Testing Agency (NTA)',
+    eligibility: "Class 12 / equivalent for CUET (UG); Bachelor's Degree from a recognized university for CUET (PG), subject to participating university criteria",
+    educationLevel: 'Class 12 / High School',
+    pattern: 'Language Papers + Domain-Specific Subject Papers + General Test (as required by target university program)',
+    popularSubjects: ['Domain Sciences', 'Commerce & Economics', 'Humanities & Social Sciences', 'General Aptitude'],
+    nextCycle: 'Conducted annually (typically March – May) per NTA notification',
+    applicationDetails: 'Participating universities, course mappings, and online forms are available on exams.nta.ac.in/CUET-UG/ and exams.nta.ac.in/CUET-PG/.',
+    officialUrl: 'https://exams.nta.ac.in/CUET-UG/',
+    shortDesc: 'Common entrance test conducted by NTA for admissions into undergraduate and postgraduate programs across Central, State, Deemed, and Private universities.'
   },
 
   // 10. Railway, Agriculture, Architecture and Design
   {
     id: 'exam-rrb-ntpc',
     departmentId: 'railway-design',
+    categoryGroup: 'Other Academic and Professional Entrance Exams',
     code: 'RRB NTPC',
-    name: 'Non-Technical Popular Categories (Railways)',
-    conductingBody: 'Railway Recruitment Control Board',
-    eligibility: '12th Pass or Graduate depending on post level',
-    pattern: '1st Stage CBT (Screening) → 2nd Stage CBT → Typing Skill Test / CBAT',
+    name: 'Non-Technical Popular Categories (Indian Railways)',
+    conductingBody: 'Railway Recruitment Boards (Ministry of Railways)',
+    eligibility: '12th (+2 Stage) for Undergraduate Level posts; University Degree for Graduate Level posts per official CEN notification',
+    educationLevel: 'Undergraduate / Bachelor Degree',
+    pattern: '1st Stage CBT → 2nd Stage CBT → Computer Based Aptitude Test (CBAT) / Typing Skill Test (as applicable)',
     popularSubjects: ['General Awareness', 'Mathematics', 'General Intelligence & Reasoning'],
-    nextCycle: 'October 2026',
-    shortDesc: 'Recruitment for Station Master, Goods Guard, Commercial Apprentice, and Traffic Assistant in Indian Railways.'
+    nextCycle: 'Published via Centralized Employment Notices (CEN) by RRBs',
+    applicationDetails: 'Official CEN notifications and regional RRB application links are published on indianrailways.gov.in.',
+    officialUrl: 'https://indianrailways.gov.in',
+    shortDesc: 'Recruitment examination for non-technical graduate and undergraduate posts across zonal railways and production units of Indian Railways.'
   },
   {
     id: 'exam-icar-aieea',
     departmentId: 'railway-design',
-    code: 'ICAR AIEEA',
-    name: 'All India Entrance Examination for Admission in Agriculture',
-    conductingBody: 'NTA & ICAR',
-    eligibility: '10+2 with PCB/PCM/Agriculture for UG; B.Sc. Agri for PG',
-    pattern: 'Computer Based Test covering Core Agricultural Sciences & Plant Biotechnology',
-    popularSubjects: ['Agronomy', 'Horticulture', 'Soil Science', 'Agricultural Economics'],
-    nextCycle: 'June 2026',
-    shortDesc: 'Gateway for undergraduate and postgraduate admissions into State Agricultural Universities and ICAR Deemed Universities.'
+    categoryGroup: 'Other Academic and Professional Entrance Exams',
+    code: 'ICAR AIEEA (PG)',
+    name: 'All India Entrance Examination for Admission (Agriculture)',
+    conductingBody: 'National Testing Agency (NTA) for Indian Council of Agricultural Research (ICAR)',
+    eligibility: "10+2 (via CUET-ICAR for UG) or Four-year Bachelor's degree in Agriculture and allied sciences (for AIEEA PG)",
+    educationLevel: 'Undergraduate / Bachelor Degree',
+    pattern: 'Computer Based Test covering specialized agricultural, veterinary, horticultural, and allied science subject groups',
+    popularSubjects: ['Plant Sciences', 'Agronomy', 'Soil Science', 'Agricultural Engineering', 'Horticulture'],
+    nextCycle: 'Conducted annually per NTA-ICAR admission schedule',
+    applicationDetails: 'Official information bulletins and counselling details are published on exams.nta.ac.in/ICAR/ and icar.org.in.',
+    officialUrl: 'https://exams.nta.ac.in/ICAR/',
+    shortDesc: 'National entrance examination for admission to undergraduate and postgraduate degree programs in accredited Agricultural Universities.'
   },
   {
     id: 'exam-nata-nid',
     departmentId: 'railway-design',
+    categoryGroup: 'Other Academic and Professional Entrance Exams',
     code: 'NATA & NID DAT',
-    name: 'National Aptitude Test in Architecture & NID Design Aptitude',
-    conductingBody: 'Council of Architecture & National Institute of Design',
-    eligibility: '10+2 with Physics, Chemistry & Mathematics for NATA; 10+2 any stream for NID',
-    pattern: 'Drawing Aptitude, Visual Spatial Perception, Design Sensitivity & Mathematics',
-    popularSubjects: ['Perspective Drawing', 'Color Theory', 'Architectural Awareness', 'Lateral Thinking'],
-    nextCycle: 'April - June 2026',
-    shortDesc: 'Premier entrance tests for B.Arch programmes nationwide and Bachelor of Design (B.Des) at National Institute of Design.'
+    name: 'National Aptitude Test in Architecture & NID Design Aptitude Test',
+    conductingBody: 'Council of Architecture (CoA) & National Institute of Design (NID)',
+    eligibility: '10+2 or 10+3 Diploma with Mathematics for NATA (per CoA norms); 10+2 in any stream for NID B.Des',
+    educationLevel: 'Class 12 / High School',
+    pattern: 'Drawing & Composition Test + Computer-Based Aptitude Test (Visual Perception, Logical Reasoning, Design Sensitivity)',
+    popularSubjects: ['Drawing & Visual Composition', 'Spatial Ability', 'Architectural & Design Awareness', 'Quantitative Reasoning'],
+    nextCycle: 'NATA conducted in multiple test windows (April – July); NID DAT Prelims typically in December/January',
+    applicationDetails: 'Official brochures and registration are hosted at nata.in (Council of Architecture) and admissions.nid.edu (NID).',
+    officialUrl: 'https://www.nata.in',
+    shortDesc: 'National aptitude tests for admission to 5-year Bachelor of Architecture (B.Arch) and Bachelor/Master of Design (B.Des/M.Des) programs.'
   },
 
   // 11. International Entrance & Language Tests (Displayed Separately)
   {
     id: 'exam-ielts',
     departmentId: 'intl-tests',
+    categoryGroup: 'International Admissions and Language Tests',
     code: 'IELTS Academic / General',
     name: 'International English Language Testing System',
-    conductingBody: 'IDP / British Council / Cambridge English',
-    eligibility: 'No formal restriction; recommended for age 16+',
-    pattern: 'Listening (30m), Reading (60m), Writing (60m), Speaking (11-14m) — 9-Band scale',
-    popularSubjects: ['Academic Writing Task 1 & 2', 'Critical Reading', 'Fluency & Pronunciation'],
-    nextCycle: 'Weekly test dates available year-round',
-    shortDesc: 'The globally accepted English language assessment for study, work, and migration to UK, Canada, Australia, and New Zealand.'
+    conductingBody: 'British Council, IDP: IELTS Australia & Cambridge English',
+    eligibility: 'Open to candidates applying for international higher education, professional registration, or global migration (valid passport required)',
+    educationLevel: 'Open / All Qualifications',
+    pattern: 'Listening (30 mins), Reading (60 mins), Writing (60 mins), Speaking (11–14 mins) — Scored on a 9-Band scale',
+    popularSubjects: ['Academic Writing Task 1 & 2', 'Reading Comprehension', 'Listening Accuracy', 'Speaking Fluency & Coherence'],
+    nextCycle: 'Multiple official test dates available weekly at authorized centers worldwide',
+    applicationDetails: 'Official test dates, format details, and test center registration are available at ielts.org.',
+    officialUrl: 'https://www.ielts.org',
+    shortDesc: 'Internationally recognized English language proficiency test accepted by universities, professional bodies, and immigration authorities globally.'
   },
   {
     id: 'exam-toefl',
     departmentId: 'intl-tests',
+    categoryGroup: 'International Admissions and Language Tests',
     code: 'TOEFL iBT',
-    name: 'Test of English as a Foreign Language',
+    name: 'Test of English as a Foreign Language (iBT)',
     conductingBody: 'Educational Testing Service (ETS)',
-    eligibility: 'Open to all students and professionals',
-    pattern: 'Reading, Listening, Speaking, and Writing sections (Score range 0-120)',
-    popularSubjects: ['Integrated Writing', 'Campus Audio Comprehension', 'Academic Vocabulary'],
-    nextCycle: 'Continuous bi-weekly test windows',
-    shortDesc: 'Standardized English proficiency test widely preferred by universities in the United States and global institutions.'
+    eligibility: 'Open to students and applicants preparing for university admissions and academic fellowships worldwide',
+    educationLevel: 'Open / All Qualifications',
+    pattern: 'Reading (35 mins), Listening (36 mins), Speaking (16 mins), Writing (29 mins) — Scored on a 0–120 scale',
+    popularSubjects: ['Academic Reading Passages', 'Campus & Lecture Listening', 'Integrated & Academic Discussion Writing', 'Structured Speaking'],
+    nextCycle: 'Available year-round at authorized ETS test centers and Home Edition sessions',
+    applicationDetails: 'Official registration, score reporting, and preparation resources are hosted at ets.org/toefl.',
+    officialUrl: 'https://www.ets.org/toefl.html',
+    shortDesc: 'Standardized academic English proficiency examination administered by ETS and accepted by over 12,500 institutions across 160+ countries.'
   },
   {
     id: 'exam-gre',
     departmentId: 'intl-tests',
-    code: 'GRE General',
-    name: 'Graduate Record Examination (Shorter Version)',
+    categoryGroup: 'International Admissions and Language Tests',
+    code: 'GRE General Test',
+    name: 'Graduate Record Examinations (General Test)',
     conductingBody: 'Educational Testing Service (ETS)',
-    eligibility: 'Undergraduate students and degree holders',
-    pattern: 'Analytical Writing (1 task), Verbal Reasoning (27 Qs), Quantitative Reasoning (27 Qs) in under 2 hours',
-    popularSubjects: ['Vocabulary in Context', 'Algebra & Data Analysis', 'Argumentative Writing'],
-    nextCycle: 'On-demand appointments at testing centers',
-    shortDesc: 'Standardized assessment required for admission into Master’s, Ph.D., and business school graduate programs worldwide.'
+    eligibility: "Open to prospective graduate, master's, doctoral, and business school applicants worldwide",
+    educationLevel: 'Undergraduate / Bachelor Degree',
+    pattern: 'Analytical Writing (1 task, 30 mins), Verbal Reasoning (2 sections, 27 Qs), Quantitative Reasoning (2 sections, 27 Qs) — Approx. 1 hr 58 mins',
+    popularSubjects: ['Analytical Writing', 'Text Completion & Sentence Equivalence', 'Reading Comprehension', 'Quantitative Comparison & Data Analysis'],
+    nextCycle: 'Available year-round on a continuous basis at authorized Prometric/ETS centers',
+    applicationDetails: 'Official test registration and ETS account creation are completed at ets.org/gre.',
+    officialUrl: 'https://www.ets.org/gre.html',
+    shortDesc: 'Standardized admissions assessment for graduate schools, MS, Ph.D., and global MBA programs.'
   },
   {
     id: 'exam-gmat',
     departmentId: 'intl-tests',
+    categoryGroup: 'International Admissions and Language Tests',
     code: 'GMAT Focus Edition',
-    name: 'Graduate Management Admission Test Focus',
+    name: 'Graduate Management Admission Test (Focus Edition)',
     conductingBody: 'Graduate Management Admission Council (GMAC)',
-    eligibility: 'Prospective MBA and business master’s candidates',
-    pattern: 'Quantitative Reasoning (21 Qs), Verbal Reasoning (23 Qs), Data Insights (20 Qs) — Total 2h 15m',
-    popularSubjects: ['Data Sufficiency', 'Multi-Source Reasoning', 'Critical Reasoning'],
-    nextCycle: 'Flexible year-round appointments',
-    shortDesc: 'The premier exam tailored specifically for international MBA, Master in Finance, and Business Analytics programs.'
+    eligibility: 'Open to candidates applying for MBA, Master in Management, Master in Finance, and graduate business programs',
+    educationLevel: 'Undergraduate / Bachelor Degree',
+    pattern: 'Quantitative Reasoning (21 Qs, 45m), Verbal Reasoning (23 Qs, 45m), Data Insights (20 Qs, 45m) — Total 2 hrs 15 mins (Score 205–805)',
+    popularSubjects: ['Data Insights & Sufficiency', 'Multi-Source Reasoning', 'Critical Reasoning', 'Quantitative Problem Solving'],
+    nextCycle: 'Year-round rolling appointments at Pearson VUE test centers and online',
+    applicationDetails: 'Official test booking and score sending are administered by GMAC on mba.com.',
+    officialUrl: 'https://www.mba.com/exams/gmat-exam',
+    shortDesc: 'Computer-adaptive business school entrance assessment designed specifically for graduate management programs worldwide.'
   },
   {
     id: 'exam-sat',
     departmentId: 'intl-tests',
+    categoryGroup: 'International Admissions and Language Tests',
     code: 'Digital SAT',
-    name: 'Scholastic Assessment Test (Digital)',
+    name: 'Scholastic Assessment Test (Digital SAT)',
     conductingBody: 'College Board',
-    eligibility: 'High school students preparing for undergraduate study',
-    pattern: 'Reading and Writing (2 modules, 54 Qs) + Math (2 modules, 44 Qs) in 2h 14m',
-    popularSubjects: ['Passport to Advanced Math', 'Craft and Structure', 'Information and Ideas'],
-    nextCycle: 'March, May, June, August, October, December',
-    shortDesc: 'Standardized assessment for undergraduate college admissions in the United States and international partner universities.'
+    eligibility: 'High school students (typically Grades 10–12) preparing for international undergraduate university admissions',
+    educationLevel: 'Class 12 / High School',
+    pattern: 'Reading and Writing (2 adaptive modules, 64 mins) + Math (2 adaptive modules, 70 mins) — Total 2 hrs 14 mins (Score 400–1600)',
+    popularSubjects: ['Craft & Structure', 'Information & Ideas', 'Algebra & Advanced Math', 'Problem-Solving & Data Analysis'],
+    nextCycle: 'International test dates in March, May, June, August, October, November, and December',
+    applicationDetails: 'Official test dates, Bluebook app details, and registration are hosted by College Board at satsuite.collegeboard.org.',
+    officialUrl: 'https://satsuite.collegeboard.org/sat',
+    shortDesc: 'Standardized digital assessment widely used for undergraduate admissions and merit scholarship evaluation at universities in the US, Canada, and globally.'
   }
 ];
 
@@ -2163,53 +2526,77 @@ export const ACADEMY_COURSES = [
 ];
 
 // Helper Functions
+export const getSchoolStudentPrograms = () => SCHOOL_STUDENT_PROGRAMS;
+
+export const getStudentLearningTracks = (onlyAvailable = true) => {
+  if (!onlyAvailable) return STUDENT_LEARNING_TRACKS;
+  return STUDENT_LEARNING_TRACKS.filter(t => t.available !== false);
+};
+
+export const getAcademyProcessSteps = () => ACADEMY_PROCESS_STEPS;
+
+export const getExamCategoryGroups = () => EXAM_CATEGORY_GROUPS;
+
+export const getQualificationLevels = () => QUALIFICATION_LEVELS;
+
 export const getDepartments = () => ACADEMY_DEPARTMENTS;
 
-export const getExaminations = (deptId = null, searchTerm = '') => {
-  let list = ACADEMY_EXAMINATIONS;
+export const getExaminations = (deptId = null, searchTerm = '', educationLevel = 'all', sourceExams = null) => {
+  let list = Array.isArray(sourceExams) && sourceExams.length > 0 ? sourceExams : ACADEMY_EXAMINATIONS;
+
   if (deptId && deptId !== 'all') {
-    list = list.filter(e => e.departmentId === deptId);
+    if (deptId === 'other-entrance') {
+      const otherDepts = ['management', 'law', 'science-arts', 'railway-design'];
+      list = list.filter(e => otherDepts.includes(e.departmentId));
+    } else {
+      list = list.filter(e => e.departmentId === deptId);
+    }
   }
+
+  if (educationLevel && educationLevel !== 'all') {
+    list = list.filter(e => e.educationLevel === educationLevel);
+  }
+
   if (searchTerm && searchTerm.trim()) {
     const q = searchTerm.toLowerCase().trim();
-    list = list.filter(e => 
+    list = list.filter(e =>
       e.name.toLowerCase().includes(q) ||
       e.code.toLowerCase().includes(q) ||
       e.conductingBody.toLowerCase().includes(q) ||
-      e.shortDesc.toLowerCase().includes(q)
+      e.shortDesc.toLowerCase().includes(q) ||
+      (Array.isArray(e.popularSubjects) && e.popularSubjects.some(s => s.toLowerCase().includes(q)))
     );
   }
   return list;
 };
 
-export const getExamById = (examId) => {
-  return ACADEMY_EXAMINATIONS.find(e => e.id === examId) || null;
+export const getExamById = (examId, sourceExams = null) => {
+  const list = Array.isArray(sourceExams) && sourceExams.length > 0 ? sourceExams : ACADEMY_EXAMINATIONS;
+  return list.find(e => e.id === examId) || null;
 };
 
 export const getAcademiesForExam = (examId, filters = {}) => {
   if (!examId) return [];
-  // Find academies that have this exam in primaryExams or offer courses for this exam
   const courseAcademyIds = ACADEMY_COURSES
     .filter(c => c.examId === examId)
     .map(c => c.academyId);
-  
-  let matching = VERIFIED_ACADEMIES.filter(a => 
+
+  let matching = VERIFIED_ACADEMIES.filter(a =>
     (a.primaryExams && a.primaryExams.includes(examId)) || courseAcademyIds.includes(a.id)
   );
 
   if (filters.learningMode && filters.learningMode !== 'all') {
-    matching = matching.filter(a => 
+    matching = matching.filter(a =>
       a.learningModes && a.learningModes.some(m => m.toLowerCase().includes(filters.learningMode.toLowerCase()))
     );
   }
 
   if (filters.city && filters.city !== 'all') {
-    matching = matching.filter(a => 
+    matching = matching.filter(a =>
       a.city && a.city.toLowerCase().includes(filters.city.toLowerCase())
     );
   }
 
-  // Maximum 10 verified academies strictly matching the selected exam
   return matching.slice(0, 10);
 };
 

@@ -103,13 +103,13 @@ export const EDUCATION_SERVICES_DETAILED = [
     badge: 'Undergraduate & Diploma',
     tagline: 'End-to-End Higher Education & College Admissions Support',
     shortDescription: 'End-to-end guidance for undergraduate and postgraduate college admissions across leading institutions in the GCC and worldwide.',
-    heroDescription: 'Securing admission to your target college requires meticulous planning, competitive application positioning, and strict adherence to institutional deadlines. Our dedicated admissions specialists manage the end-to-end process from application drafting to offer confirmation.',
-    targetAudience: 'High school seniors, diploma holders, and transfer applicants seeking direct admission into accredited bachelor degree or diploma programs.',
+    heroDescription: 'Navigate your higher education journey with structured college and university admission support. From course selection and eligibility checks to application preparation, document verification, application follow-ups, and offer-letter guidance, The Revival International helps students understand and manage their admission process with greater clarity and confidence.',
+    targetAudience: 'Students completing Class 12, diploma holders, postgraduate aspirants, and transfer candidates seeking structured admission guidance.',
     keyStats: [
-      { label: 'Degrees', value: 'UG, B.Sc, B.A, B.E' },
-      { label: 'Support Scope', value: 'End-to-End Submission' },
-      { label: 'Application Form', value: 'Direct Portal Review' },
-      { label: 'Offer Tracking', value: 'Conditional to Firm' }
+      { label: 'Degrees', value: 'UG, PG, B.Sc., B.A., B.E., and other applicable programs' },
+      { label: 'Support Scope', value: 'End-to-End Application Assistance' },
+      { label: 'Application Support', value: 'Direct Portal Guidance' },
+      { label: 'Offer Tracking', value: 'Conditional Offer Follow-up' }
     ],
     keyBenefits: [
       {
