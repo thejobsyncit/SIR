@@ -18,7 +18,7 @@ export const CourseEnquiryView = ({
   onBackToExams
 }) => {
   const course = useMemo(() => getCourseById(courseId), [courseId]);
-  
+
   // Auto-preserve IDs from course object or props
   const resolvedAcademyId = course ? course.academyId : propAcademyId;
   const resolvedExamId = course ? course.examId : propExamId;

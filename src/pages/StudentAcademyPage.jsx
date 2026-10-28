@@ -6,6 +6,9 @@ import {
   ExamDirectoryView
 } from '../components/student-academy/ExamDirectoryView';
 import {
+  ExamEnquiryView
+} from '../components/student-academy/ExamEnquiryView';
+import {
   ExamAcademiesView
 } from '../components/student-academy/ExamAcademiesView';
 import {
@@ -27,7 +30,7 @@ export const StudentAcademyPage = () => {
   const { navigateTo } = useApp();
 
   // Navigation flow state:
-  // 'exams' -> 'academies' -> 'academy-detail' -> 'course-enquiry'
+  // 'exams' -> 'academies' (Exam Enquiry Page) -> 'academy-detail' -> 'course-enquiry'
   const [currentView, setCurrentView] = useState('exams');
   const [selectedExamId, setSelectedExamId] = useState(null);
   const [selectedAcademyId, setSelectedAcademyId] = useState(null);
@@ -42,7 +45,7 @@ export const StudentAcademyPage = () => {
         const params = new URLSearchParams(queryStr);
         const course = params.get('course');
         const academy = params.get('academy');
-        const exam = params.get('exam');
+        const exam = params.get('exam') || params.get('exam-enquiry') || params.get('enquiry');
 
         if (course) {
           const c = getCourseById(course);
@@ -169,9 +172,8 @@ export const StudentAcademyPage = () => {
             <span>/</span>
             <button
               onClick={handleBackToExams}
-              className={`hover:text-gold-500 transition focus:outline-none ${
-                currentView === 'exams' ? 'text-gold-500 font-bold' : ''
-              }`}
+              className={`hover:text-gold-500 transition focus:outline-none ${currentView === 'exams' ? 'text-gold-500 font-bold' : ''
+                }`}
             >
               Student Academy
             </button>
@@ -181,11 +183,10 @@ export const StudentAcademyPage = () => {
                 <span>/</span>
                 <button
                   onClick={handleBackToAcademies}
-                  className={`hover:text-gold-500 transition focus:outline-none ${
-                    currentView === 'academies' ? 'text-gold-500 font-bold' : ''
-                  }`}
+                  className={`hover:text-gold-500 transition focus:outline-none ${currentView === 'academies' ? 'text-gold-500 font-bold' : ''
+                    }`}
                 >
-                  {selectedExam.code}
+                  {selectedExam.code} (Exam Enquiry)
                 </button>
               </>
             )}
@@ -195,9 +196,8 @@ export const StudentAcademyPage = () => {
                 <span>/</span>
                 <button
                   onClick={handleBackToAcademyDetail}
-                  className={`hover:text-gold-500 transition focus:outline-none ${
-                    currentView === 'academy-detail' ? 'text-gold-500 font-bold' : ''
-                  }`}
+                  className={`hover:text-gold-500 transition focus:outline-none ${currentView === 'academy-detail' ? 'text-gold-500 font-bold' : ''
+                    }`}
                 >
                   {selectedAcademy.shortName}
                 </button>
@@ -225,7 +225,7 @@ export const StudentAcademyPage = () => {
         )}
 
         {currentView === 'academies' && selectedExamId && (
-          <ExamAcademiesView
+          <ExamEnquiryView
             examId={selectedExamId}
             onSelectAcademy={handleSelectAcademy}
             onBackToExams={handleBackToExams}

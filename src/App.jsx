@@ -64,7 +64,8 @@ export function App() {
       return <InternationalConsultingPage />;
     }
     if (activeTab && (activeTab.startsWith('education-') || activeTab.startsWith('education/'))) {
-      const raw = activeTab.replace(/^education[-/]/, '');
+      const baseTab = activeTab.split('?')[0];
+      const raw = baseTab.replace(/^education[-/]/, '');
       if (raw === 'intl-consult' || raw === 'international-consulting') {
         return <InternationalConsultingPage />;
       }

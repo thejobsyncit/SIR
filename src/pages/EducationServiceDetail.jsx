@@ -28,13 +28,14 @@ import { CourseGuidanceCatalogue } from '../components/CourseGuidanceCatalogue';
 export const EducationServiceDetail = ({ serviceId }) => {
   const { navigateTo } = useApp();
 
-  const service = getEducationServiceById(serviceId) || getEducationServiceBySlug(serviceId) || EDUCATION_SERVICES_DETAILED[0];
+  const cleanId = (serviceId || '').split('?')[0];
+  const service = getEducationServiceById(cleanId) || getEducationServiceBySlug(cleanId) || EDUCATION_SERVICES_DETAILED[0];
 
-  if (service.id === 'intl-consult') {
+  if (service.id === 'intl-consult' || cleanId === 'intl-consult' || cleanId === 'international-consulting') {
     return <InternationalConsultingPage />;
   }
 
-  if (service.id === 'school-academy') {
+  if (service.id === 'school-academy' || cleanId === 'school-academy' || cleanId === 'student-academy' || cleanId === 'academy-for-school-students') {
     return <StudentAcademyPage />;
   }
 

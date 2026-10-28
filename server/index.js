@@ -2416,7 +2416,12 @@ app.post('/api/student-academy/enquiries', async (req, res) => {
       examId,
       examName,
       courseId,
-      courseName
+      courseName,
+      qualification,
+      preferredLocation,
+      location,
+      coachingMode,
+      enquiryType
     } = req.body;
 
     if (!studentName || !email || !phone) {
@@ -2429,27 +2434,37 @@ app.post('/api/student-academy/enquiries', async (req, res) => {
     const refNum = referenceNumber || `REV-ACA-2026-${Math.floor(10000 + Math.random() * 90000)}`;
     const enquiryId = `SA-ENQ-${Date.now()}-${Math.floor(100 + Math.random() * 900)}`;
     const db = await getDb();
+    const learningMode = preferredLearningMode || coachingMode || 'Online';
+    const studyLoc = preferredLocation || location || 'Online / Remote';
+    const qual = qualification || 'Graduate';
+    const targetExam = examName || 'Competitive Examination';
+    const targetCourse = courseName || `${targetExam} Coaching & Advisory`;
+    const targetAcademy = academyName || 'Revival International Student Advisory';
 
     // 1. Insert into student_academy_enquiries table
     await db.run(
       `INSERT INTO student_academy_enquiries 
-       (id, referenceNumber, studentName, studentEmail, studentPhone, preferredLearningMode, batchPreference, questions, academyId, academyName, examId, examName, courseId, courseName, status)
-       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+       (id, referenceNumber, studentName, studentEmail, studentPhone, preferredLearningMode, batchPreference, questions, academyId, academyName, examId, examName, courseId, courseName, qualification, preferredLocation, coachingMode, enquiryType, status)
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
       [
         enquiryId,
         refNum,
         studentName.trim(),
         email.trim().toLowerCase(),
         phone.trim(),
-        preferredLearningMode || 'Classroom',
-        batchPreference || 'Any Batch',
+        learningMode,
+        batchPreference || 'Standard Cohort',
         questions ? questions.trim() : '',
-        academyId || 'unknown',
-        academyName || 'Verified Academy',
-        examId || 'unknown',
-        examName || 'Competitive Exam',
-        courseId || 'unknown',
-        courseName || 'Academy Course',
+        academyId || 'revival-advisory',
+        targetAcademy,
+        examId || 'general-exam',
+        targetExam,
+        courseId || 'exam-coaching-advisory',
+        targetCourse,
+        qual,
+        studyLoc,
+        learningMode,
+        enquiryType || 'Exam Enquiry',
         'New Enquiry'
       ]
     );
@@ -2458,20 +2473,21 @@ app.post('/api/student-academy/enquiries', async (req, res) => {
     const leadId = `LEAD-${Date.now()}-${Math.floor(100 + Math.random() * 900)}`;
     await db.run(
       `INSERT INTO leads 
-       (id, name, email, phone, message, serviceId, serviceTitle, referenceNumber, status, assistanceType, degreeLevel)
-       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+       (id, name, email, phone, message, serviceId, serviceTitle, referenceNumber, status, assistanceType, degreeLevel, workLocation)
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
       [
         leadId,
         studentName.trim(),
         email.trim().toLowerCase(),
         phone.trim(),
-        `Student Academy Enquiry for ${courseName} at ${academyName}. Target Exam: ${examName}. Preferred Mode: ${preferredLearningMode}. Batch: ${batchPreference}. Note: ${questions || 'None'}`,
+        `Exam Enquiry: ${targetExam}. Qualification: ${qual}. Preferred Coaching Mode: ${learningMode}. Preferred Study Location: ${studyLoc}. Message: ${questions ? questions.trim() : 'None'}`,
         'school-academy',
         'Student Academy',
         refNum,
         'New Enquiry',
-        examName || 'Competitive Exam',
-        courseName || 'Academy Course'
+        targetExam,
+        qual,
+        studyLoc
       ]
     );
 

@@ -1,22 +1,57 @@
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import { useApp } from '../context/AppContext';
-import { 
-  Building2, Phone, Mail, MapPin, Globe, Shield, Award, 
-  Send, MessageSquare, Linkedin, Twitter, Facebook, Instagram, Youtube, CheckCircle2 
+import {
+  Building2, Phone, Mail, MapPin, Globe, Shield, Award,
+  Send, MessageSquare, Linkedin, Twitter, Facebook, Instagram, Youtube, CheckCircle2
 } from 'lucide-react';
 import { COUNTRIES_LIST } from '../data/mockData';
 
-export const Footer = () => {
-  const { navigateTo, setActiveModal, activeTab } = useApp();
+export const Footer = ({ hideNewsletter = false }) => {
+  const { navigateTo, setActiveModal, activeTab, isExamDetailsPage } = useApp();
+
+  const [isExamViewActive, setIsExamViewActive] = useState(() => {
+    if (typeof window === 'undefined') return false;
+    const hash = window.location.hash || '';
+    return hash.includes('exam=') || hash.includes('exam-enquiry') || hash.includes('view=exam-enquiry');
+  });
+
+  useEffect(() => {
+    const checkExamPage = () => {
+      const hash = typeof window !== 'undefined' ? (window.location.hash || '') : '';
+      const hasExamHash = hash.includes('exam=') || hash.includes('exam-enquiry') || hash.includes('view=exam-enquiry');
+      const hasDomEl = Boolean(typeof document !== 'undefined' && document.getElementById('exam-enquiry-page'));
+      setIsExamViewActive(hasExamHash || hasDomEl || Boolean(isExamDetailsPage));
+    };
+
+    checkExamPage();
+    window.addEventListener('hashchange', checkExamPage);
+    window.addEventListener('popstate', checkExamPage);
+
+    const observer = typeof MutationObserver !== 'undefined' && typeof document !== 'undefined' && document.body
+      ? new MutationObserver(checkExamPage)
+      : null;
+
+    if (observer) {
+      observer.observe(document.body, { childList: true, subtree: true });
+    }
+
+    return () => {
+      window.removeEventListener('hashchange', checkExamPage);
+      window.removeEventListener('popstate', checkExamPage);
+      if (observer) observer.disconnect();
+    };
+  }, [isExamDetailsPage]);
+
+  const shouldHideNewsletter = hideNewsletter || Boolean(isExamDetailsPage) || isExamViewActive;
 
   const NavLink = ({ tab, label, onClick, isModal }) => {
     const isActive = !isModal && activeTab === tab;
     if (isModal) {
       return (
         <li>
-          <button 
+          <button
             type="button"
-            onClick={onClick} 
+            onClick={onClick}
             className={`hover:text-gold-400 transition flex items-center gap-2 ${isActive ? 'text-amber-400 font-bold' : ''}`}
           >
             <span className={`w-1.5 h-1.5 rounded-full shrink-0 ${isActive ? 'bg-gold-500 shadow-[0_0_8px_rgba(234,179,8,0.8)]' : 'bg-slate-600'}`}></span>
@@ -28,13 +63,13 @@ export const Footer = () => {
 
     return (
       <li>
-        <a 
+        <a
           href={tab === 'home' ? '/' : `#${tab}`}
           onClick={(e) => {
             e.preventDefault();
             if (onClick) onClick();
             else navigateTo(tab);
-          }} 
+          }}
           className={`hover:text-gold-400 transition flex items-center gap-2 ${isActive ? 'text-amber-400 font-bold' : ''}`}
         >
           <span className={`w-1.5 h-1.5 rounded-full shrink-0 ${isActive ? 'bg-gold-500 shadow-[0_0_8px_rgba(234,179,8,0.8)]' : 'bg-slate-600'}`}></span>
@@ -45,43 +80,45 @@ export const Footer = () => {
   };
 
   return (
-    <footer className="bg-white dark:bg-navy-950 text-slate-600 dark:text-slate-300 pt-16 pb-8 border-t border-slate-200 dark:border-navy-800 relative overflow-hidden">
+    <footer className={`bg-white dark:bg-navy-950 text-slate-600 dark:text-slate-300 ${shouldHideNewsletter ? 'pt-12 sm:pt-14' : 'pt-16'} pb-8 border-t border-slate-200 dark:border-navy-800 relative overflow-hidden`}>
       {/* Glow Effect */}
       <div className="absolute top-0 left-1/4 w-96 h-96 bg-gold-500/5 rounded-full blur-3xl pointer-events-none"></div>
 
       <div className="max-w-7xl mx-auto px-4 sm:px-8">
-        
-        {/* Top Newsletter & Banner Callout */}
-        <div className="glass-card bg-white dark:bg-navy-900 border border-slate-200 dark:border-gold-500/40 rounded-2xl p-8 mb-16 shadow-luxury flex flex-col lg:flex-row items-center justify-between gap-6">
-          <div className="max-w-xl">
-            <div className="inline-flex items-center space-x-2 bg-gold-500/20 text-gold-600 dark:text-gold-400 px-3 py-1 rounded-full text-xs font-bold mb-3">
-              <Award className="w-3.5 h-3.5" />
-              <span>International Recruitment Intelligence</span>
-            </div>
-            <h3 className="font-serif text-2xl font-bold text-slate-900 dark:text-white tracking-tight">
-              Stay Ahead of GCC Visa Laws & Executive Vacancies
-            </h3>
-            <p className="text-xs text-slate-700 dark:text-slate-300 mt-2 font-medium">
-              Subscribe to the Revival Executive Briefing. Delivered bi-weekly to 40,000+ HR Directors & C-Suite Executives.
-            </p>
-          </div>
 
-          <div className="w-full lg:w-auto flex flex-col sm:flex-row gap-3">
-            <input 
-              type="email" 
-              placeholder="Enter corporate email address..." 
-              className="bg-slate-50 dark:bg-navy-950 border border-slate-300 dark:border-navy-700 text-slate-900 dark:text-white placeholder-slate-500 text-xs rounded-xl px-4 py-3 w-full sm:min-w-[260px] focus:outline-none focus:border-gold-500 font-medium"
-            />
-            <button className="bg-gold-shimmer text-navy-950 font-bold text-xs px-6 py-3 rounded-xl hover:opacity-95 transition shadow-gold-glow flex items-center justify-center space-x-2 w-full sm:w-auto">
-              <span>Subscribe Now</span>
-              <Send className="w-3.5 h-3.5" />
-            </button>
+        {/* Top Newsletter & Banner Callout (Omitted on Examination Details Pages) */}
+        {!shouldHideNewsletter && (
+          <div className="glass-card bg-white dark:bg-navy-900 border border-slate-200 dark:border-gold-500/40 rounded-2xl p-8 mb-16 shadow-luxury flex flex-col lg:flex-row items-center justify-between gap-6">
+            <div className="max-w-xl">
+              <div className="inline-flex items-center space-x-2 bg-gold-500/20 text-gold-600 dark:text-gold-400 px-3 py-1 rounded-full text-xs font-bold mb-3">
+                <Award className="w-3.5 h-3.5" />
+                <span>International Recruitment Intelligence</span>
+              </div>
+              <h3 className="font-serif text-2xl font-bold text-slate-900 dark:text-white tracking-tight">
+                Stay Ahead of GCC Visa Laws & Executive Vacancies
+              </h3>
+              <p className="text-xs text-slate-700 dark:text-slate-300 mt-2 font-medium">
+                Subscribe to the Revival Executive Briefing. Delivered bi-weekly to 40,000+ HR Directors & C-Suite Executives.
+              </p>
+            </div>
+
+            <div className="w-full lg:w-auto flex flex-col sm:flex-row gap-3">
+              <input
+                type="email"
+                placeholder="Enter corporate email address..."
+                className="bg-slate-50 dark:bg-navy-950 border border-slate-300 dark:border-navy-700 text-slate-900 dark:text-white placeholder-slate-500 text-xs rounded-xl px-4 py-3 w-full sm:min-w-[260px] focus:outline-none focus:border-gold-500 font-medium"
+              />
+              <button className="bg-gold-shimmer text-navy-950 font-bold text-xs px-6 py-3 rounded-xl hover:opacity-95 transition shadow-gold-glow flex items-center justify-center space-x-2 w-full sm:w-auto">
+                <span>Subscribe Now</span>
+                <Send className="w-3.5 h-3.5" />
+              </button>
+            </div>
           </div>
-        </div>
+        )}
 
         {/* Main Footer Links */}
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-10 pb-12 border-b border-slate-200 dark:border-navy-800 text-xs">
-          
+
           {/* Col 1: Brand Info */}
           <div className="lg:col-span-2 space-y-4">
             <div className="flex items-center space-x-3 cursor-pointer" onClick={() => navigateTo('home')}>
@@ -188,8 +225,8 @@ export const Footer = () => {
           <p>© 2026 Revival International Consultancy FZ-LLC. All Rights Reserved. Managed under Dubai Economic Department & MOHRE Regulations.</p>
 
           <div className="flex items-center space-x-6">
-            <button 
-              onClick={() => navigateTo('crm')} 
+            <button
+              onClick={() => navigateTo('crm')}
               className="text-slate-400 dark:text-slate-500 hover:text-gold-500 transition text-[11px] underline"
             >
               Recruiter Staff Login

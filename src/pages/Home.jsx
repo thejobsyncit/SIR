@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { useApp } from '../context/AppContext';
-import { 
-  Building2, Globe, Users, Briefcase, Search, ArrowRight, ShieldCheck, Award, 
+import {
+  Building2, Globe, Users, Briefcase, Search, ArrowRight, ShieldCheck, Award,
   CheckCircle2, Star, Play, ChevronRight, FileText, Sparkles, MapPin, Clock, Phone, Send, Bookmark, Calendar, MessageSquare,
   GraduationCap, School, Compass, Languages, Plane
 } from 'lucide-react';
@@ -55,23 +55,23 @@ export const Home = () => {
         keywords="Dubai recruitment agency, international consulting, executive search, GCC visa, background verification, study abroad Dubai, IELTS prep, college admissions"
         breadcrumbs={[{ name: 'Home', item: '/' }]}
       />
-      
+
       {/* HERO SECTION */}
       <section className="relative min-h-[85vh] flex items-center justify-center pt-8 overflow-hidden">
         {/* Background Global Skyline Overlay */}
         <div className="absolute inset-0 z-0 bg-navy-950">
           {/* Light Mode: Global Skyline & Bridge */}
-          <img 
-            src="/images/hero_skyline.jpg" 
-            alt="Global Skyline and Brooklyn Bridge - Revival International Recruitment and Academic Advisory" 
+          <img
+            src="/images/hero_skyline.jpg"
+            alt="Global Skyline and Brooklyn Bridge - Revival International Recruitment and Academic Advisory"
             loading="eager"
             fetchPriority="high"
             className="w-full h-full object-cover opacity-70 dark:opacity-0 transform scale-105 transition-opacity duration-700 absolute inset-0"
           />
           {/* Dark Mode: Realistic Nighttime New York Skyline & Illuminated Brooklyn Bridge */}
-          <img 
-            src="/images/hero_skyline_dark.jpg" 
-            alt="Global Skyline and Bridge at Night - Revival International Headquarters" 
+          <img
+            src="/images/hero_skyline_dark.jpg"
+            alt="Global Skyline and Bridge at Night - Revival International Headquarters"
             loading="eager"
             fetchPriority="high"
             className="w-full h-full object-cover opacity-0 dark:opacity-80 transform scale-105 transition-opacity duration-700 absolute inset-0"
@@ -80,7 +80,7 @@ export const Home = () => {
         </div>
 
         <div className="relative z-10 max-w-7xl mx-auto px-4 sm:px-8 text-center space-y-8 py-12">
-          
+
           {/* Badge */}
           <div className="inline-flex items-center space-x-2 bg-slate-800/90 dark:bg-navy-900/90 text-gold-400 border border-slate-200 dark:border-gold-500/30 px-4 py-1.5 rounded-full text-xs font-bold shadow-luxury animate-fade-in-up">
             <Sparkles className="w-3.5 h-3.5 text-gold-500" />
@@ -99,7 +99,7 @@ export const Home = () => {
 
           {/* Action CTAs */}
           <div className="flex flex-col sm:flex-row justify-center items-center gap-4 pt-2 animate-fade-in-up" style={{ animationDelay: '0.3s' }}>
-            <button 
+            <button
               onClick={() => navigateTo('jobs')}
               className="w-full sm:w-auto px-8 py-3.5 bg-gold-shimmer text-navy-950 font-extrabold text-sm rounded-xl shadow-gold-glow hover-lift active-scale flex items-center justify-center space-x-2"
             >
@@ -107,7 +107,7 @@ export const Home = () => {
               <span>{t('hero.findJobsBtn')}</span>
             </button>
 
-            <button 
+            <button
               onClick={() => navigateTo('education')}
               className="w-full sm:w-auto px-8 py-3.5 bg-white dark:bg-navy-900 text-emerald-700 dark:text-emerald-400 font-extrabold text-sm rounded-xl border border-emerald-500/30 hover:bg-emerald-500/10 hover-lift active-scale shadow-sm flex items-center justify-center space-x-2"
             >
@@ -119,10 +119,10 @@ export const Home = () => {
           {/* Hero Quick Search Box */}
           <div className="glass-card bg-white/90 dark:bg-navy-900/90 border border-slate-200 dark:border-navy-700 p-4 sm:p-6 rounded-2xl max-w-4xl mx-auto shadow-luxury animate-fade-in-up" style={{ animationDelay: '0.4s' }}>
             <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
-              
+
               <div className="relative">
                 <Search className="w-4 h-4 text-slate-500 dark:text-slate-400 absolute left-3 top-3.5" />
-                <input 
+                <input
                   type="text"
                   placeholder={t('hero.searchPlaceholder')}
                   value={searchKeyword}
@@ -133,7 +133,7 @@ export const Home = () => {
 
               <div className="relative">
                 <Globe className="w-4 h-4 text-slate-500 dark:text-slate-400 absolute left-3 top-3.5" />
-                <select 
+                <select
                   value={searchCountry}
                   onChange={(e) => setSearchCountry(e.target.value)}
                   className="w-full bg-slate-50 dark:bg-navy-950 border border-slate-300 dark:border-navy-700 text-navy-900 dark:text-white rounded-xl pl-9 pr-3 py-3 text-xs focus:outline-none focus:border-gold-500"
@@ -147,7 +147,7 @@ export const Home = () => {
                 </select>
               </div>
 
-              <button 
+              <button
                 onClick={() => navigateTo('jobs')}
                 className="w-full py-3 bg-slate-50 dark:bg-navy-900 hover:bg-gold-500 hover:text-slate-900 dark:text-white text-slate-900 dark:text-white font-bold text-xs rounded-xl active-scale transition duration-300 flex items-center justify-center space-x-2"
               >
@@ -198,568 +198,568 @@ export const Home = () => {
 
       {/* TRUSTED COMPANIES LOGO BANNER - PROMINENT LARGE LOGO DISPLAY */}
       <ScrollReveal>
-      <section className="max-w-7xl mx-auto px-4 sm:px-8 py-6">
-        <div className="text-center space-y-2 mb-8">
-          <span className="bg-gold-500/15 text-gold-700 dark:text-gold-400 font-extrabold text-[11px] px-3.5 py-1 rounded-full uppercase tracking-widest border border-slate-200 dark:border-gold-500/30">
-            Enterprise Client Network
-          </span>
-          <h2 className="font-serif text-2xl sm:text-3xl font-extrabold text-navy-900 dark:text-white tracking-tight">
-            Trusted by Premier Enterprises & Government Entities Across GCC & Europe
-          </h2>
-          <p className="text-xs text-slate-600 dark:text-slate-300 font-medium max-w-2xl mx-auto">
-            Over 500+ top-tier contractors, healthcare conglomerates, and Fortune 500 MNCs rely on Revival International mandates.
-          </p>
-        </div>
+        <section className="max-w-7xl mx-auto px-4 sm:px-8 py-6">
+          <div className="text-center space-y-2 mb-8">
+            <span className="bg-gold-500/15 text-gold-700 dark:text-gold-400 font-extrabold text-[11px] px-3.5 py-1 rounded-full uppercase tracking-widest border border-slate-200 dark:border-gold-500/30">
+              Enterprise Client Network
+            </span>
+            <h2 className="font-serif text-2xl sm:text-3xl font-extrabold text-navy-900 dark:text-white tracking-tight">
+              Trusted by Premier Enterprises & Government Entities Across GCC & Europe
+            </h2>
+            <p className="text-xs text-slate-600 dark:text-slate-300 font-medium max-w-2xl mx-auto">
+              Over 500+ top-tier contractors, healthcare conglomerates, and Fortune 500 MNCs rely on Revival International mandates.
+            </p>
+          </div>
 
-        <div className="grid grid-cols-2 sm:grid-cols-4 gap-5">
-          {trustedLogos.map((item, idx) => (
-            <div 
-              key={idx} 
-              className={`glass-card bg-gradient-to-br ${item.color} border p-6 rounded-2xl text-center shadow-md hover-lift transition-all duration-300 flex flex-col items-center justify-center space-y-3 group cursor-pointer animate-fade-in-up`}
-              style={{ animationDelay: `${idx * 0.1}s` }}
-            >
-              <div className="w-16 h-16 rounded-2xl bg-white dark:bg-navy-950 border border-slate-200 dark:border-navy-800 shadow-md flex items-center justify-center text-4xl group-hover:scale-110 transition-transform">
-                {item.symbol}
+          <div className="grid grid-cols-2 sm:grid-cols-4 gap-5">
+            {trustedLogos.map((item, idx) => (
+              <div
+                key={idx}
+                className={`glass-card bg-gradient-to-br ${item.color} border p-6 rounded-2xl text-center shadow-md hover-lift transition-all duration-300 flex flex-col items-center justify-center space-y-3 group cursor-pointer animate-fade-in-up`}
+                style={{ animationDelay: `${idx * 0.1}s` }}
+              >
+                <div className="w-16 h-16 rounded-2xl bg-white dark:bg-navy-950 border border-slate-200 dark:border-navy-800 shadow-md flex items-center justify-center text-4xl group-hover:scale-110 transition-transform">
+                  {item.symbol}
+                </div>
+                <div>
+                  <h3 className="font-serif text-base sm:text-lg font-black text-slate-900 dark:text-white tracking-tight leading-tight">
+                    {item.name}
+                  </h3>
+                  <span className="text-[10px] uppercase tracking-wider text-slate-500 dark:text-slate-400 font-bold block mt-1">
+                    {item.tag}
+                  </span>
+                </div>
               </div>
-              <div>
-                <h3 className="font-serif text-base sm:text-lg font-black text-slate-900 dark:text-white tracking-tight leading-tight">
-                  {item.name}
-                </h3>
-                <span className="text-[10px] uppercase tracking-wider text-slate-500 dark:text-slate-400 font-bold block mt-1">
-                  {item.tag}
-                </span>
-              </div>
-            </div>
-          ))}
-        </div>
-      </section>
+            ))}
+          </div>
+        </section>
       </ScrollReveal>
 
       {/* KEY STATISTICS COUNTERS */}
       <ScrollReveal>
-      <section className="max-w-7xl mx-auto px-4 sm:px-8">
-        <div className="bg-white dark:bg-navy-950 text-slate-900 dark:text-white border border-slate-200 dark:border-gold-500/30 rounded-3xl p-8 sm:p-12 shadow-luxury relative overflow-hidden">
-          <div className="grid grid-cols-2 lg:grid-cols-4 gap-8 text-center divide-y lg:divide-y-0 lg:divide-x divide-navy-800 animate-fade-in-up">
-            {stats.map((s, idx) => {
-              const Icon = s.icon;
-              return (
-                <div key={idx} className="pt-4 lg:pt-0 lg:px-4 space-y-2 hover-lift cursor-default transition-all duration-300">
-                  <Icon className="w-8 h-8 text-gold-500 mx-auto" />
-                  <div className="font-serif text-4xl sm:text-5xl font-extrabold text-slate-900 dark:text-white tracking-tight text-gradient-emerald">
-                    <AnimatedCounter value={s.value} />
+        <section className="max-w-7xl mx-auto px-4 sm:px-8">
+          <div className="bg-white dark:bg-navy-950 text-slate-900 dark:text-white border border-slate-200 dark:border-gold-500/30 rounded-3xl p-8 sm:p-12 shadow-luxury relative overflow-hidden">
+            <div className="grid grid-cols-2 lg:grid-cols-4 gap-8 text-center divide-y lg:divide-y-0 lg:divide-x divide-navy-800 animate-fade-in-up">
+              {stats.map((s, idx) => {
+                const Icon = s.icon;
+                return (
+                  <div key={idx} className="pt-4 lg:pt-0 lg:px-4 space-y-2 hover-lift cursor-default transition-all duration-300">
+                    <Icon className="w-8 h-8 text-gold-500 mx-auto" />
+                    <div className="font-serif text-4xl sm:text-5xl font-extrabold text-slate-900 dark:text-white tracking-tight text-gradient-emerald">
+                      <AnimatedCounter value={s.value} />
+                    </div>
+                    <div className="text-xs font-semibold uppercase tracking-wider text-slate-500 dark:text-slate-400">
+                      {s.label}
+                    </div>
                   </div>
-                  <div className="text-xs font-semibold uppercase tracking-wider text-slate-500 dark:text-slate-400">
-                    {s.label}
+                );
+              })}
+            </div>
+          </div>
+        </section>
+      </ScrollReveal>
+
+      {/* FEATURED DEMO JOBS LIST */}
+      <ScrollReveal>
+        <section className="max-w-7xl mx-auto px-4 sm:px-8 space-y-8">
+          <div className="flex flex-col md:flex-row justify-between items-end gap-4 border-b border-slate-200 dark:border-navy-800 pb-6">
+            <div>
+              <span className="text-xs font-bold text-gold-500 uppercase tracking-widest block mb-1">{t('hero.hotJobsSubtitle')}</span>
+              <h2 className="font-serif text-3xl sm:text-4xl font-extrabold text-navy-900 dark:text-white">
+                {t('hero.hotJobsTitle')}
+              </h2>
+            </div>
+            <button
+              onClick={() => navigateTo('jobs')}
+              className="px-5 py-2.5 bg-gold-shimmer text-navy-950 font-bold text-xs rounded-xl shadow-gold-glow flex items-center gap-1.5 hover:opacity-95 transition"
+            >
+              <span>{t('hero.exploreAll')} ({allJobsList.length}+)</span>
+              <ArrowRight className="w-4 h-4" />
+            </button>
+          </div>
+
+          <div className="flex flex-col sm:grid sm:grid-cols-2 lg:grid-cols-3 gap-6">
+            {allJobsList.slice(0, 6).map((job, idx) => (
+              <div
+                key={job.id}
+                onClick={() => navigateTo('jobs')}
+                className="w-full sm:min-w-0 glass-card bg-white dark:bg-navy-900 border border-slate-200 dark:border-navy-800 p-6 rounded-2xl space-y-4 hover:border-gold-500 transition duration-300 hover-lift shadow-glass cursor-pointer flex flex-col justify-between group animate-fade-in-up"
+                style={{ animationDelay: `${idx * 0.15}s` }}
+              >
+                <div className="space-y-3">
+                  <div className="flex justify-between items-start">
+                    <span className="bg-gold-500/15 text-gold-700 dark:text-gold-400 border border-slate-200 dark:border-gold-500/30 text-[10px] font-bold px-2.5 py-0.5 rounded uppercase">
+                      {job.category}
+                    </span>
+                    <span className="text-[10px] text-slate-700 dark:text-slate-300 font-bold">{job.postedDate}</span>
+                  </div>
+
+                  <div>
+                    <h3 className="font-serif text-lg font-bold text-navy-900 dark:text-white group-hover:text-gold-500 transition">
+                      {job.title}
+                    </h3>
+                    <p className="text-xs font-bold text-slate-800 dark:text-slate-200 mt-0.5">{job.company}</p>
+                  </div>
+
+                  <div className="flex flex-wrap gap-2 text-xs font-medium">
+                    <span className="flex items-center gap-1 text-slate-900 dark:text-slate-100 font-semibold">
+                      <MapPin className="w-3.5 h-3.5 text-gold-500" />
+                      {job.location} ({job.country})
+                    </span>
+                    <span className="font-bold text-emerald-600 dark:text-emerald-400">
+                      💰 {job.salary}
+                    </span>
+                  </div>
+
+                  <p className="text-xs text-slate-800 dark:text-slate-200 font-medium line-clamp-2 leading-relaxed">
+                    {job.description}
+                  </p>
+
+                  <div className="flex flex-wrap gap-1 pt-1">
+                    {job.skills.slice(0, 3).map((s, idx) => (
+                      <span key={idx} className="bg-slate-200/90 dark:bg-navy-800 text-slate-900 dark:text-slate-100 font-bold border border-slate-300/80 dark:border-navy-700 text-[10px] px-2 py-0.5 rounded">
+                        {s}
+                      </span>
+                    ))}
+                  </div>
+                </div>
+
+                <div className="pt-4 border-t border-slate-100 dark:border-navy-800 flex justify-between items-center">
+                  <span className="text-[11px] font-bold text-gold-600 dark:text-gold-400">{job.jobType}</span>
+                  {isApplied(job.id) ? (
+                    <button
+                      disabled
+                      onClick={(e) => e.stopPropagation()}
+                      className="px-3.5 py-1.5 bg-emerald-500/15 border border-emerald-500/30 text-emerald-700 dark:text-emerald-400 font-bold text-xs rounded-xl flex items-center gap-1 cursor-default"
+                    >
+                      <CheckCircle2 className="w-3.5 h-3.5" />
+                      <span>Applied</span>
+                    </button>
+                  ) : (
+                    <button
+                      onClick={(e) => { e.stopPropagation(); navigateTo('jobs'); }}
+                      className="px-3.5 py-2 bg-slate-50 dark:bg-navy-900 hover:bg-gold-500 hover:text-slate-900 dark:text-white text-slate-900 dark:text-white font-bold text-xs rounded-xl transition flex items-center gap-1"
+                    >
+                      <span>Apply Now</span>
+                      <ChevronRight className="w-3.5 h-3.5" />
+                    </button>
+                  )}
+                </div>
+              </div>
+            ))}
+          </div>
+        </section>
+      </ScrollReveal>
+
+      {/* SERVICES OVERVIEW (18+ Services) */}
+      <ScrollReveal>
+        <section className="max-w-7xl mx-auto px-4 sm:px-8 space-y-8">
+          <div className="text-center space-y-3 max-w-2xl mx-auto">
+            <span className="text-xs font-bold text-gold-500 uppercase tracking-widest block">Our Core Expertise</span>
+            <h2 className="font-serif text-3xl sm:text-4xl font-extrabold text-navy-900 dark:text-white">
+              {SERVICES_LIST.length}+ Executive HR, Visa & Academic Advisory Services
+            </h2>
+            <p className="text-xs text-slate-800 dark:text-slate-200 font-medium">
+              From executive headhunting and MOHRE visa quotas to international university admissions, language test prep, and career counseling.
+            </p>
+          </div>
+
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+            {/* Curated list featuring top recruitment and newly added education services */}
+            {[
+              ...SERVICES_LIST.filter(s => s.category === 'Education' || s.subCategory === 'Education'),
+              ...SERVICES_LIST.filter(s => s.category !== 'Education' && s.subCategory !== 'Education').slice(0, 6)
+            ].map((srv) => {
+              const homeIconMap = {
+                'Building2': Building2,
+                'Globe': Globe,
+                'UserCheck': Users,
+                'Briefcase': Briefcase,
+                'Clock': Clock,
+                'Users': Users,
+                'Plane': Plane,
+                'FileText': FileText,
+                'Award': Award,
+                'ShieldCheck': ShieldCheck,
+                'PieChart': Award,
+                'CreditCard': Award,
+                'Layers': Building2,
+                'Calendar': Calendar,
+                'CheckCircle2': CheckCircle2,
+                'FileCode': FileText,
+                'Compass': Compass,
+                'Sparkles': Sparkles,
+                'GraduationCap': GraduationCap,
+                'School': School,
+                'Languages': Languages
+              };
+              const ServiceIcon = homeIconMap[srv.icon] || Briefcase;
+
+              return (
+                <div
+                  key={srv.id}
+                  onClick={() => {
+                    if (srv.category === 'Education' || srv.subCategory === 'Education') {
+                      if (srv.id === 'intl-consult') {
+                        navigateTo('international-consulting');
+                      } else {
+                        navigateTo(`education-${srv.id}`);
+                      }
+                    } else {
+                      if (setSelectedServiceId) setSelectedServiceId(srv.id);
+                      navigateTo('services');
+                    }
+                  }}
+                  className="glass-card bg-white dark:bg-navy-900 border border-slate-200 dark:border-navy-800 p-6 rounded-2xl hover:border-gold-500 hover:-translate-y-1 transition duration-300 cursor-pointer flex flex-col justify-between group shadow-glass"
+                >
+                  <div className="space-y-3">
+                    <div className="flex justify-between items-center">
+                      <div className="w-12 h-12 rounded-xl bg-white dark:bg-navy-950 text-gold-500 border border-slate-200 dark:border-gold-500/30 flex items-center justify-center font-bold group-hover:bg-gold-500 group-hover:text-slate-900 dark:text-white transition">
+                        <ServiceIcon className="w-6 h-6" />
+                      </div>
+                      {(srv.category === 'Education' || srv.subCategory === 'Education') && (
+                        <span className="bg-emerald-500/15 text-emerald-600 dark:text-emerald-400 font-extrabold text-[9px] px-2 py-0.5 rounded-full uppercase">
+                          New Advisory
+                        </span>
+                      )}
+                    </div>
+                    <h4 className="font-serif text-lg font-bold text-navy-900 dark:text-white group-hover:text-gold-500 transition">
+                      {srv.title}
+                    </h4>
+                    <p className="text-xs text-slate-800 dark:text-slate-200 leading-relaxed font-medium line-clamp-2">
+                      {srv.description}
+                    </p>
+                    {srv.targetAudience && (
+                      <div className="flex items-start gap-1.5 text-[11px] text-slate-600 dark:text-slate-400 font-medium">
+                        <Users className="w-3.5 h-3.5 text-gold-500 shrink-0 mt-0.5" />
+                        <span className="line-clamp-1"><strong className="text-slate-800 dark:text-slate-200">For:</strong> {srv.targetAudience}</span>
+                      </div>
+                    )}
+                  </div>
+
+                  <div className="flex items-center justify-between pt-4 mt-3 border-t border-slate-100 dark:border-navy-800">
+                    <div className="text-xs font-bold text-gold-600 dark:text-gold-400 flex items-center gap-1 group-hover:translate-x-0.5 transition">
+                      <span>Details</span>
+                      <ChevronRight className="w-3.5 h-3.5" />
+                    </div>
+                    <button
+                      type="button"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        if (setSelectedServiceId) setSelectedServiceId(srv.id);
+                        navigateTo('contact');
+                      }}
+                      className="px-3 py-1.5 bg-gold-shimmer text-navy-950 font-bold text-[11px] rounded-lg shadow-sm hover:opacity-95 transition"
+                    >
+                      Inquire Now
+                    </button>
                   </div>
                 </div>
               );
             })}
           </div>
-        </div>
-      </section>
-      </ScrollReveal>
 
-      {/* FEATURED DEMO JOBS LIST */}
-      <ScrollReveal>
-      <section className="max-w-7xl mx-auto px-4 sm:px-8 space-y-8">
-        <div className="flex flex-col md:flex-row justify-between items-end gap-4 border-b border-slate-200 dark:border-navy-800 pb-6">
-          <div>
-            <span className="text-xs font-bold text-gold-500 uppercase tracking-widest block mb-1">{t('hero.hotJobsSubtitle')}</span>
-            <h2 className="font-serif text-3xl sm:text-4xl font-extrabold text-navy-900 dark:text-white">
-              {t('hero.hotJobsTitle')}
-            </h2>
-          </div>
-          <button 
-            onClick={() => navigateTo('jobs')}
-            className="px-5 py-2.5 bg-gold-shimmer text-navy-950 font-bold text-xs rounded-xl shadow-gold-glow flex items-center gap-1.5 hover:opacity-95 transition"
-          >
-            <span>{t('hero.exploreAll')} ({allJobsList.length}+)</span>
-            <ArrowRight className="w-4 h-4" />
-          </button>
-        </div>
-
-        <div className="flex flex-col sm:grid sm:grid-cols-2 lg:grid-cols-3 gap-6">
-          {allJobsList.slice(0, 6).map((job, idx) => (
-            <div 
-              key={job.id}
-              onClick={() => navigateTo('jobs')}
-              className="w-full sm:min-w-0 glass-card bg-white dark:bg-navy-900 border border-slate-200 dark:border-navy-800 p-6 rounded-2xl space-y-4 hover:border-gold-500 transition duration-300 hover-lift shadow-glass cursor-pointer flex flex-col justify-between group animate-fade-in-up"
-              style={{ animationDelay: `${idx * 0.15}s` }}
+          <div className="text-center pt-4">
+            <button
+              onClick={() => navigateTo('services')}
+              className="px-8 py-3.5 bg-slate-50 dark:bg-navy-900 hover:bg-gold-500 hover:text-slate-900 dark:text-white text-slate-900 dark:text-white font-bold text-xs rounded-xl shadow-luxury transition"
             >
-              <div className="space-y-3">
-                <div className="flex justify-between items-start">
-                  <span className="bg-gold-500/15 text-gold-700 dark:text-gold-400 border border-slate-200 dark:border-gold-500/30 text-[10px] font-bold px-2.5 py-0.5 rounded uppercase">
-                    {job.category}
-                  </span>
-                  <span className="text-[10px] text-slate-700 dark:text-slate-300 font-bold">{job.postedDate}</span>
-                </div>
-
-                <div>
-                  <h3 className="font-serif text-lg font-bold text-navy-900 dark:text-white group-hover:text-gold-500 transition">
-                    {job.title}
-                  </h3>
-                  <p className="text-xs font-bold text-slate-800 dark:text-slate-200 mt-0.5">{job.company}</p>
-                </div>
-
-                <div className="flex flex-wrap gap-2 text-xs font-medium">
-                  <span className="flex items-center gap-1 text-slate-900 dark:text-slate-100 font-semibold">
-                    <MapPin className="w-3.5 h-3.5 text-gold-500" />
-                    {job.location} ({job.country})
-                  </span>
-                  <span className="font-bold text-emerald-600 dark:text-emerald-400">
-                    💰 {job.salary}
-                  </span>
-                </div>
-
-                <p className="text-xs text-slate-800 dark:text-slate-200 font-medium line-clamp-2 leading-relaxed">
-                  {job.description}
-                </p>
-
-                <div className="flex flex-wrap gap-1 pt-1">
-                  {job.skills.slice(0, 3).map((s, idx) => (
-                    <span key={idx} className="bg-slate-200/90 dark:bg-navy-800 text-slate-900 dark:text-slate-100 font-bold border border-slate-300/80 dark:border-navy-700 text-[10px] px-2 py-0.5 rounded">
-                      {s}
-                    </span>
-                  ))}
-                </div>
-              </div>
-
-              <div className="pt-4 border-t border-slate-100 dark:border-navy-800 flex justify-between items-center">
-                <span className="text-[11px] font-bold text-gold-600 dark:text-gold-400">{job.jobType}</span>
-                {isApplied(job.id) ? (
-                  <button 
-                    disabled
-                    onClick={(e) => e.stopPropagation()}
-                    className="px-3.5 py-1.5 bg-emerald-500/15 border border-emerald-500/30 text-emerald-700 dark:text-emerald-400 font-bold text-xs rounded-xl flex items-center gap-1 cursor-default"
-                  >
-                    <CheckCircle2 className="w-3.5 h-3.5" />
-                    <span>Applied</span>
-                  </button>
-                ) : (
-                  <button 
-                    onClick={(e) => { e.stopPropagation(); navigateTo('jobs'); }}
-                    className="px-3.5 py-2 bg-slate-50 dark:bg-navy-900 hover:bg-gold-500 hover:text-slate-900 dark:text-white text-slate-900 dark:text-white font-bold text-xs rounded-xl transition flex items-center gap-1"
-                  >
-                    <span>Apply Now</span>
-                    <ChevronRight className="w-3.5 h-3.5" />
-                  </button>
-                )}
-              </div>
-            </div>
-          ))}
-        </div>
-      </section>
-      </ScrollReveal>
-
-      {/* SERVICES OVERVIEW (18+ Services) */}
-      <ScrollReveal>
-      <section className="max-w-7xl mx-auto px-4 sm:px-8 space-y-8">
-        <div className="text-center space-y-3 max-w-2xl mx-auto">
-          <span className="text-xs font-bold text-gold-500 uppercase tracking-widest block">Our Core Expertise</span>
-          <h2 className="font-serif text-3xl sm:text-4xl font-extrabold text-navy-900 dark:text-white">
-            {SERVICES_LIST.length}+ Executive HR, Visa & Academic Advisory Services
-          </h2>
-          <p className="text-xs text-slate-800 dark:text-slate-200 font-medium">
-            From executive headhunting and MOHRE visa quotas to international university admissions, language test prep, and career counseling.
-          </p>
-        </div>
-
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-          {/* Curated list featuring top recruitment and newly added education services */}
-          {[
-            ...SERVICES_LIST.filter(s => s.category === 'Education' || s.subCategory === 'Education'),
-            ...SERVICES_LIST.filter(s => s.category !== 'Education' && s.subCategory !== 'Education').slice(0, 6)
-          ].map((srv) => {
-            const homeIconMap = {
-              'Building2': Building2,
-              'Globe': Globe,
-              'UserCheck': Users,
-              'Briefcase': Briefcase,
-              'Clock': Clock,
-              'Users': Users,
-              'Plane': Plane,
-              'FileText': FileText,
-              'Award': Award,
-              'ShieldCheck': ShieldCheck,
-              'PieChart': Award,
-              'CreditCard': Award,
-              'Layers': Building2,
-              'Calendar': Calendar,
-              'CheckCircle2': CheckCircle2,
-              'FileCode': FileText,
-              'Compass': Compass,
-              'Sparkles': Sparkles,
-              'GraduationCap': GraduationCap,
-              'School': School,
-              'Languages': Languages
-            };
-            const ServiceIcon = homeIconMap[srv.icon] || Briefcase;
-
-            return (
-              <div 
-                key={srv.id}
-                onClick={() => {
-                  if (srv.category === 'Education' || srv.subCategory === 'Education') {
-                    if (srv.id === 'intl-consult') {
-                      navigateTo('international-consulting');
-                    } else {
-                      navigateTo(`education-${srv.id}`);
-                    }
-                  } else {
-                    if (setSelectedServiceId) setSelectedServiceId(srv.id);
-                    navigateTo('services');
-                  }
-                }}
-                className="glass-card bg-white dark:bg-navy-900 border border-slate-200 dark:border-navy-800 p-6 rounded-2xl hover:border-gold-500 hover:-translate-y-1 transition duration-300 cursor-pointer flex flex-col justify-between group shadow-glass"
-              >
-                <div className="space-y-3">
-                  <div className="flex justify-between items-center">
-                    <div className="w-12 h-12 rounded-xl bg-white dark:bg-navy-950 text-gold-500 border border-slate-200 dark:border-gold-500/30 flex items-center justify-center font-bold group-hover:bg-gold-500 group-hover:text-slate-900 dark:text-white transition">
-                      <ServiceIcon className="w-6 h-6" />
-                    </div>
-                    {(srv.category === 'Education' || srv.subCategory === 'Education') && (
-                      <span className="bg-emerald-500/15 text-emerald-600 dark:text-emerald-400 font-extrabold text-[9px] px-2 py-0.5 rounded-full uppercase">
-                        New Advisory
-                      </span>
-                    )}
-                  </div>
-                  <h4 className="font-serif text-lg font-bold text-navy-900 dark:text-white group-hover:text-gold-500 transition">
-                    {srv.title}
-                  </h4>
-                  <p className="text-xs text-slate-800 dark:text-slate-200 leading-relaxed font-medium line-clamp-2">
-                    {srv.description}
-                  </p>
-                  {srv.targetAudience && (
-                    <div className="flex items-start gap-1.5 text-[11px] text-slate-600 dark:text-slate-400 font-medium">
-                      <Users className="w-3.5 h-3.5 text-gold-500 shrink-0 mt-0.5" />
-                      <span className="line-clamp-1"><strong className="text-slate-800 dark:text-slate-200">For:</strong> {srv.targetAudience}</span>
-                    </div>
-                  )}
-                </div>
-
-                <div className="flex items-center justify-between pt-4 mt-3 border-t border-slate-100 dark:border-navy-800">
-                  <div className="text-xs font-bold text-gold-600 dark:text-gold-400 flex items-center gap-1 group-hover:translate-x-0.5 transition">
-                    <span>Details</span>
-                    <ChevronRight className="w-3.5 h-3.5" />
-                  </div>
-                  <button
-                    type="button"
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      if (setSelectedServiceId) setSelectedServiceId(srv.id);
-                      navigateTo('contact');
-                    }}
-                    className="px-3 py-1.5 bg-gold-shimmer text-navy-950 font-bold text-[11px] rounded-lg shadow-sm hover:opacity-95 transition"
-                  >
-                    Inquire Now
-                  </button>
-                </div>
-              </div>
-            );
-          })}
-        </div>
-
-        <div className="text-center pt-4">
-          <button 
-            onClick={() => navigateTo('services')}
-            className="px-8 py-3.5 bg-slate-50 dark:bg-navy-900 hover:bg-gold-500 hover:text-slate-900 dark:text-white text-slate-900 dark:text-white font-bold text-xs rounded-xl shadow-luxury transition"
-          >
-            View All {SERVICES_LIST.length} Executive & Advisory Services →
-          </button>
-        </div>
-      </section>
+              View All {SERVICES_LIST.length} Executive & Advisory Services →
+            </button>
+          </div>
+        </section>
       </ScrollReveal>
 
       {/* INDUSTRIES WE SERVE GRID */}
       <ScrollReveal>
-      <section className="max-w-7xl mx-auto px-4 sm:px-8 space-y-8">
-        <div className="flex flex-col md:flex-row justify-between items-start md:items-end gap-4 border-b border-slate-200 dark:border-navy-800 pb-6">
-          <div>
-            <span className="text-xs font-bold text-gold-500 uppercase tracking-widest mb-1 block">Industry Verticals</span>
-            <h2 className="font-serif text-3xl font-extrabold text-navy-900 dark:text-white">Industries We Serve</h2>
-          </div>
-          <button 
-            onClick={() => navigateTo('industries')}
-            className="text-xs font-bold text-gold-500 hover:underline flex items-center gap-1"
-          >
-            <span>Explore All 12 Sectors</span>
-            <ChevronRight className="w-4 h-4" />
-          </button>
-        </div>
-
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-          {INDUSTRIES_LIST.map((ind) => (
-            <div 
-              key={ind.id}
-              onClick={() => {
-                setSelectedJobCategory(ind.name);
-                navigateTo('jobs');
-              }}
-              className="glass-card bg-white dark:bg-navy-900 border border-slate-200 dark:border-navy-800 p-5 rounded-2xl hover:border-gold-500 transition cursor-pointer space-y-2 group shadow-sm flex flex-col justify-between"
-            >
-              <div className="flex justify-between items-center">
-                <span className="font-bold text-navy-900 dark:text-white text-sm group-hover:text-gold-500 transition">
-                  {ind.name}
-                </span>
-                <span className="bg-gold-500/10 text-gold-600 dark:text-gold-400 text-[10px] font-bold px-2 py-0.5 rounded-full">
-                  {ind.openJobs} Open Roles
-                </span>
-              </div>
-              <p className="text-[11px] text-slate-700 dark:text-slate-300 font-medium line-clamp-2">
-                {ind.description}
-              </p>
+        <section className="max-w-7xl mx-auto px-4 sm:px-8 space-y-8">
+          <div className="flex flex-col md:flex-row justify-between items-start md:items-end gap-4 border-b border-slate-200 dark:border-navy-800 pb-6">
+            <div>
+              <span className="text-xs font-bold text-gold-500 uppercase tracking-widest mb-1 block">Industry Verticals</span>
+              <h2 className="font-serif text-3xl font-extrabold text-navy-900 dark:text-white">Industries We Serve</h2>
             </div>
-          ))}
-        </div>
-      </section>
+            <button
+              onClick={() => navigateTo('industries')}
+              className="text-xs font-bold text-gold-500 hover:underline flex items-center gap-1"
+            >
+              <span>Explore All 12 Sectors</span>
+              <ChevronRight className="w-4 h-4" />
+            </button>
+          </div>
+
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+            {INDUSTRIES_LIST.map((ind) => (
+              <div
+                key={ind.id}
+                onClick={() => {
+                  setSelectedJobCategory(ind.name);
+                  navigateTo('jobs');
+                }}
+                className="glass-card bg-white dark:bg-navy-900 border border-slate-200 dark:border-navy-800 p-5 rounded-2xl hover:border-gold-500 transition cursor-pointer space-y-2 group shadow-sm flex flex-col justify-between"
+              >
+                <div className="flex justify-between items-center">
+                  <span className="font-bold text-navy-900 dark:text-white text-sm group-hover:text-gold-500 transition">
+                    {ind.name}
+                  </span>
+                  <span className="bg-gold-500/10 text-gold-600 dark:text-gold-400 text-[10px] font-bold px-2 py-0.5 rounded-full">
+                    {ind.openJobs} Open Roles
+                  </span>
+                </div>
+                <p className="text-[11px] text-slate-700 dark:text-slate-300 font-medium line-clamp-2">
+                  {ind.description}
+                </p>
+              </div>
+            ))}
+          </div>
+        </section>
       </ScrollReveal>
 
       {/* QUICK VISA ELIGIBILITY CHECKER BANNER */}
       <ScrollReveal>
-      <section className="max-w-7xl mx-auto px-4 sm:px-8">
-        <div className="glass-card bg-white dark:bg-navy-950 text-slate-900 dark:text-white rounded-3xl p-8 sm:p-12 border border-slate-200 dark:border-gold-500/40 shadow-luxury grid grid-cols-1 lg:grid-cols-2 gap-8 items-center">
-          <div className="space-y-4">
-            <span className="bg-gold-500/20 text-gold-600 dark:text-gold-400 text-xs font-bold px-3 py-1 rounded-full uppercase">
-              Interactive Compliance Tool
-            </span>
-            <h2 className="font-serif text-3xl sm:text-4xl font-extrabold text-slate-900 dark:text-white">
-              Instant GCC & International Work Visa Eligibility Evaluation
-            </h2>
-            <p className="text-xs text-slate-700 dark:text-slate-300 leading-relaxed font-medium">
-              Are you eligible to work in the UAE, Saudi Arabia, Qatar, Singapore, or Germany? Check your qualification tier, age criteria, document checklist, and visa processing timelines.
-            </p>
-            <div className="flex gap-3 pt-2">
-              <button 
-                onClick={() => navigateTo('visa-eligibility')}
-                className="px-6 py-3 bg-gold-shimmer text-navy-950 font-bold text-xs rounded-xl shadow-gold-glow hover:opacity-95 active-scale"
-              >
-                Launch Visa Eligibility Checker →
-              </button>
+        <section className="max-w-7xl mx-auto px-4 sm:px-8">
+          <div className="glass-card bg-white dark:bg-navy-950 text-slate-900 dark:text-white rounded-3xl p-8 sm:p-12 border border-slate-200 dark:border-gold-500/40 shadow-luxury grid grid-cols-1 lg:grid-cols-2 gap-8 items-center">
+            <div className="space-y-4">
+              <span className="bg-gold-500/20 text-gold-600 dark:text-gold-400 text-xs font-bold px-3 py-1 rounded-full uppercase">
+                Interactive Compliance Tool
+              </span>
+              <h2 className="font-serif text-3xl sm:text-4xl font-extrabold text-slate-900 dark:text-white">
+                Instant GCC & International Work Visa Eligibility Evaluation
+              </h2>
+              <p className="text-xs text-slate-700 dark:text-slate-300 leading-relaxed font-medium">
+                Are you eligible to work in the UAE, Saudi Arabia, Qatar, Singapore, or Germany? Check your qualification tier, age criteria, document checklist, and visa processing timelines.
+              </p>
+              <div className="flex gap-3 pt-2">
+                <button
+                  onClick={() => navigateTo('visa-eligibility')}
+                  className="px-6 py-3 bg-gold-shimmer text-navy-950 font-bold text-xs rounded-xl shadow-gold-glow hover:opacity-95 active-scale"
+                >
+                  Launch Visa Eligibility Checker →
+                </button>
+              </div>
             </div>
-          </div>
 
-          <div className="bg-slate-100 dark:bg-navy-900 border border-slate-200 dark:border-navy-800 p-6 rounded-2xl space-y-4">
-            <h4 className="font-serif font-bold text-gold-600 dark:text-gold-400 text-sm border-b border-slate-200 dark:border-navy-800 pb-2">
-              Country-Wise Visa Matrix Overview
-            </h4>
-            <div className="space-y-2 text-xs text-slate-800 dark:text-slate-300 font-semibold">
-              <div className="flex justify-between py-1 border-b border-slate-200 dark:border-navy-800">
-                <span>🇦🇪 UAE Employer Work Visa</span>
-                <span className="font-bold text-emerald-600 dark:text-emerald-400">7 - 14 Days</span>
-              </div>
-              <div className="flex justify-between py-1 border-b border-slate-200 dark:border-navy-800">
-                <span>🇸🇦 Saudi Iqama Work Permit</span>
-                <span className="font-bold text-emerald-600 dark:text-emerald-400">14 - 21 Days</span>
-              </div>
-              <div className="flex justify-between py-1 border-b border-slate-200 dark:border-navy-800">
-                <span>🇶🇦 Qatar Work Residence Permit</span>
-                <span className="font-bold text-emerald-600 dark:text-emerald-400">10 - 18 Days</span>
-              </div>
-              <div className="flex justify-between py-1 border-b border-slate-200 dark:border-navy-800">
-                <span>🇸🇬 Singapore Employment Pass</span>
-                <span className="font-bold text-emerald-600 dark:text-emerald-400">14 - 28 Days</span>
+            <div className="bg-slate-100 dark:bg-navy-900 border border-slate-200 dark:border-navy-800 p-6 rounded-2xl space-y-4">
+              <h4 className="font-serif font-bold text-gold-600 dark:text-gold-400 text-sm border-b border-slate-200 dark:border-navy-800 pb-2">
+                Country-Wise Visa Matrix Overview
+              </h4>
+              <div className="space-y-2 text-xs text-slate-800 dark:text-slate-300 font-semibold">
+                <div className="flex justify-between py-1 border-b border-slate-200 dark:border-navy-800">
+                  <span>🇦🇪 UAE Employer Work Visa</span>
+                  <span className="font-bold text-emerald-600 dark:text-emerald-400">7 - 14 Days</span>
+                </div>
+                <div className="flex justify-between py-1 border-b border-slate-200 dark:border-navy-800">
+                  <span>🇸🇦 Saudi Iqama Work Permit</span>
+                  <span className="font-bold text-emerald-600 dark:text-emerald-400">14 - 21 Days</span>
+                </div>
+                <div className="flex justify-between py-1 border-b border-slate-200 dark:border-navy-800">
+                  <span>🇶🇦 Qatar Work Residence Permit</span>
+                  <span className="font-bold text-emerald-600 dark:text-emerald-400">10 - 18 Days</span>
+                </div>
+                <div className="flex justify-between py-1 border-b border-slate-200 dark:border-navy-800">
+                  <span>🇸🇬 Singapore Employment Pass</span>
+                  <span className="font-bold text-emerald-600 dark:text-emerald-400">14 - 28 Days</span>
+                </div>
               </div>
             </div>
           </div>
-        </div>
-      </section>
+        </section>
       </ScrollReveal>
 
       {/* OUR 6-STEP PROCESS */}
       <ScrollReveal>
-      <section className="max-w-7xl mx-auto px-4 sm:px-8 space-y-8">
-        <div className="text-center space-y-2">
-          <span className="text-xs font-bold text-gold-500 uppercase tracking-widest block">Simple & Transparent</span>
-          <h2 className="font-serif text-3xl font-extrabold text-navy-900 dark:text-white">Our 6-Step Recruitment Lifecycle</h2>
-        </div>
+        <section className="max-w-7xl mx-auto px-4 sm:px-8 space-y-8">
+          <div className="text-center space-y-2">
+            <span className="text-xs font-bold text-gold-500 uppercase tracking-widest block">Simple & Transparent</span>
+            <h2 className="font-serif text-3xl font-extrabold text-navy-900 dark:text-white">Our 6-Step Recruitment Lifecycle</h2>
+          </div>
 
-        <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-4">
-          {processSteps.map((step) => (
-            <div key={step.num} className="glass-card bg-white dark:bg-navy-900 border border-slate-200 dark:border-navy-800 p-4 sm:p-5 rounded-2xl relative space-y-2 shadow-sm hover:border-gold-500 transition">
-              <div className="font-serif text-2xl sm:text-3xl font-black text-gold-600 dark:text-gold-400 tracking-tight">
-                {step.num}
+          <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-4">
+            {processSteps.map((step) => (
+              <div key={step.num} className="glass-card bg-white dark:bg-navy-900 border border-slate-200 dark:border-navy-800 p-4 sm:p-5 rounded-2xl relative space-y-2 shadow-sm hover:border-gold-500 transition">
+                <div className="font-serif text-2xl sm:text-3xl font-black text-gold-600 dark:text-gold-400 tracking-tight">
+                  {step.num}
+                </div>
+                <h4 className="font-bold text-xs sm:text-sm text-slate-900 dark:text-white leading-tight">{step.title}</h4>
+                <p className="hidden sm:block text-xs text-slate-600 dark:text-slate-300 leading-relaxed font-medium">{step.desc}</p>
               </div>
-              <h4 className="font-bold text-xs sm:text-sm text-slate-900 dark:text-white leading-tight">{step.title}</h4>
-              <p className="hidden sm:block text-xs text-slate-600 dark:text-slate-300 leading-relaxed font-medium">{step.desc}</p>
-            </div>
-          ))}
-        </div>
-      </section>
+            ))}
+          </div>
+        </section>
       </ScrollReveal>
 
       {/* VERIFIED CORPORATE STANDARDS & CLIENT COMMITMENTS */}
       <ScrollReveal>
-      <section className="max-w-7xl mx-auto px-4 sm:px-8 space-y-8">
-        <div className="text-center space-y-2">
-          <span className="text-xs font-bold text-gold-500 uppercase tracking-widest block">Operational Integrity & Quality</span>
-          <h2 className="font-serif text-3xl font-extrabold text-navy-900 dark:text-white">Why Leading Enterprises & Families Choose Revival International</h2>
-          <p className="text-xs text-slate-600 dark:text-slate-300 max-w-2xl mx-auto">
-            Grounded in registered corporate infrastructure, full MOHRE regulatory compliance, and transparent advisory standards.
-          </p>
-        </div>
-
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
-          <div className="glass-card bg-white dark:bg-navy-900 border border-slate-200 dark:border-navy-800 p-6 rounded-2xl space-y-3 shadow-glass">
-            <div className="w-10 h-10 rounded-xl bg-gold-500/10 text-gold-500 flex items-center justify-center">
-              <Building2 className="w-5 h-5" />
-            </div>
-            <h3 className="font-serif text-lg font-bold text-navy-900 dark:text-white">Registered Dubai Headquarters</h3>
-            <p className="text-xs text-slate-700 dark:text-slate-300 leading-relaxed font-medium">
-              Physical corporate presence at Level 34, Rolex Tower, Financial Center Road, Business Bay, Dubai, providing dedicated meeting spaces for enterprise mandate planning and student counseling.
+        <section className="max-w-7xl mx-auto px-4 sm:px-8 space-y-8">
+          <div className="text-center space-y-2">
+            <span className="text-xs font-bold text-gold-500 uppercase tracking-widest block">Operational Integrity & Quality</span>
+            <h2 className="font-serif text-3xl font-extrabold text-navy-900 dark:text-white">Why Leading Enterprises & Families Choose Revival International</h2>
+            <p className="text-xs text-slate-600 dark:text-slate-300 max-w-2xl mx-auto">
+              Grounded in registered corporate infrastructure, full MOHRE regulatory compliance, and transparent advisory standards.
             </p>
           </div>
 
-          <div className="glass-card bg-white dark:bg-navy-900 border border-slate-200 dark:border-navy-800 p-6 rounded-2xl space-y-3 shadow-glass">
-            <div className="w-10 h-10 rounded-xl bg-emerald-500/10 text-emerald-500 flex items-center justify-center">
-              <ShieldCheck className="w-5 h-5" />
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
+            <div className="glass-card bg-white dark:bg-navy-900 border border-slate-200 dark:border-navy-800 p-6 rounded-2xl space-y-3 shadow-glass">
+              <div className="w-10 h-10 rounded-xl bg-gold-500/10 text-gold-500 flex items-center justify-center">
+                <Building2 className="w-5 h-5" />
+              </div>
+              <h3 className="font-serif text-lg font-bold text-navy-900 dark:text-white">Registered Dubai Headquarters</h3>
+              <p className="text-xs text-slate-700 dark:text-slate-300 leading-relaxed font-medium">
+                Physical corporate presence at Level 34, Rolex Tower, Financial Center Road, Business Bay, Dubai, providing dedicated meeting spaces for enterprise mandate planning and student counseling.
+              </p>
             </div>
-            <h3 className="font-serif text-lg font-bold text-navy-900 dark:text-white">Full Regulatory & MOHRE Compliance</h3>
-            <p className="text-xs text-slate-700 dark:text-slate-300 leading-relaxed font-medium">
-              Strict compliance with UAE Ministry of Human Resources and Emiratisation regulations, document attestation procedures, and international cross-border recruitment protocols.
-            </p>
-          </div>
 
-          <div className="glass-card bg-white dark:bg-navy-900 border border-slate-200 dark:border-navy-800 p-6 rounded-2xl space-y-3 shadow-glass">
-            <div className="w-10 h-10 rounded-xl bg-blue-500/10 text-blue-500 flex items-center justify-center">
-              <Clock className="w-5 h-5" />
+            <div className="glass-card bg-white dark:bg-navy-900 border border-slate-200 dark:border-navy-800 p-6 rounded-2xl space-y-3 shadow-glass">
+              <div className="w-10 h-10 rounded-xl bg-emerald-500/10 text-emerald-500 flex items-center justify-center">
+                <ShieldCheck className="w-5 h-5" />
+              </div>
+              <h3 className="font-serif text-lg font-bold text-navy-900 dark:text-white">Full Regulatory & MOHRE Compliance</h3>
+              <p className="text-xs text-slate-700 dark:text-slate-300 leading-relaxed font-medium">
+                Strict compliance with UAE Ministry of Human Resources and Emiratisation regulations, document attestation procedures, and international cross-border recruitment protocols.
+              </p>
             </div>
-            <h3 className="font-serif text-lg font-bold text-navy-900 dark:text-white">Structured CRM & 2–4h Response SLA</h3>
-            <p className="text-xs text-slate-700 dark:text-slate-300 leading-relaxed font-medium">
-              Every website enquiry receives a verified tracking reference ID logged into our CRM system, with specialized lead routing to sector specialists within 2 to 4 business hours.
-            </p>
-          </div>
 
-          <div className="glass-card bg-white dark:bg-navy-900 border border-slate-200 dark:border-navy-800 p-6 rounded-2xl space-y-3 shadow-glass">
-            <div className="w-10 h-10 rounded-xl bg-purple-500/10 text-purple-500 flex items-center justify-center">
-              <Globe className="w-5 h-5" />
+            <div className="glass-card bg-white dark:bg-navy-900 border border-slate-200 dark:border-navy-800 p-6 rounded-2xl space-y-3 shadow-glass">
+              <div className="w-10 h-10 rounded-xl bg-blue-500/10 text-blue-500 flex items-center justify-center">
+                <Clock className="w-5 h-5" />
+              </div>
+              <h3 className="font-serif text-lg font-bold text-navy-900 dark:text-white">Structured CRM & 2–4h Response SLA</h3>
+              <p className="text-xs text-slate-700 dark:text-slate-300 leading-relaxed font-medium">
+                Every website enquiry receives a verified tracking reference ID logged into our CRM system, with specialized lead routing to sector specialists within 2 to 4 business hours.
+              </p>
             </div>
-            <h3 className="font-serif text-lg font-bold text-navy-900 dark:text-white">Global University & Employer Reach</h3>
-            <p className="text-xs text-slate-700 dark:text-slate-300 leading-relaxed font-medium">
-              Active advisory network across the UK, USA, Canada, Germany, Australia, and GCC, connecting ambitious talent and students with world-class institutions and employers.
-            </p>
-          </div>
 
-          <div className="glass-card bg-white dark:bg-navy-900 border border-slate-200 dark:border-navy-800 p-6 rounded-2xl space-y-3 shadow-glass">
-            <div className="w-10 h-10 rounded-xl bg-amber-500/10 text-amber-500 flex items-center justify-center">
-              <Users className="w-5 h-5" />
+            <div className="glass-card bg-white dark:bg-navy-900 border border-slate-200 dark:border-navy-800 p-6 rounded-2xl space-y-3 shadow-glass">
+              <div className="w-10 h-10 rounded-xl bg-purple-500/10 text-purple-500 flex items-center justify-center">
+                <Globe className="w-5 h-5" />
+              </div>
+              <h3 className="font-serif text-lg font-bold text-navy-900 dark:text-white">Global University & Employer Reach</h3>
+              <p className="text-xs text-slate-700 dark:text-slate-300 leading-relaxed font-medium">
+                Active advisory network across the UK, USA, Canada, Germany, Australia, and GCC, connecting ambitious talent and students with world-class institutions and employers.
+              </p>
             </div>
-            <h3 className="font-serif text-lg font-bold text-navy-900 dark:text-white">Direct 1-on-1 Consultation</h3>
-            <p className="text-xs text-slate-700 dark:text-slate-300 leading-relaxed font-medium">
-              Personalized sessions with senior recruitment partners and educational counselors, available in-person in Dubai or via secure video conferences worldwide.
-            </p>
-          </div>
 
-          <div className="glass-card bg-white dark:bg-navy-900 border border-slate-200 dark:border-navy-800 p-6 rounded-2xl space-y-3 shadow-glass">
-            <div className="w-10 h-10 rounded-xl bg-rose-500/10 text-rose-500 flex items-center justify-center">
-              <Award className="w-5 h-5" />
+            <div className="glass-card bg-white dark:bg-navy-900 border border-slate-200 dark:border-navy-800 p-6 rounded-2xl space-y-3 shadow-glass">
+              <div className="w-10 h-10 rounded-xl bg-amber-500/10 text-amber-500 flex items-center justify-center">
+                <Users className="w-5 h-5" />
+              </div>
+              <h3 className="font-serif text-lg font-bold text-navy-900 dark:text-white">Direct 1-on-1 Consultation</h3>
+              <p className="text-xs text-slate-700 dark:text-slate-300 leading-relaxed font-medium">
+                Personalized sessions with senior recruitment partners and educational counselors, available in-person in Dubai or via secure video conferences worldwide.
+              </p>
             </div>
-            <h3 className="font-serif text-lg font-bold text-navy-900 dark:text-white">Enterprise Data Confidentiality</h3>
-            <p className="text-xs text-slate-700 dark:text-slate-300 leading-relaxed font-medium">
-              Strict non-disclosure standards for executive search mandates, candidate resumes, student academic records, and corporate client hiring strategies.
-            </p>
+
+            <div className="glass-card bg-white dark:bg-navy-900 border border-slate-200 dark:border-navy-800 p-6 rounded-2xl space-y-3 shadow-glass">
+              <div className="w-10 h-10 rounded-xl bg-rose-500/10 text-rose-500 flex items-center justify-center">
+                <Award className="w-5 h-5" />
+              </div>
+              <h3 className="font-serif text-lg font-bold text-navy-900 dark:text-white">Enterprise Data Confidentiality</h3>
+              <p className="text-xs text-slate-700 dark:text-slate-300 leading-relaxed font-medium">
+                Strict non-disclosure standards for executive search mandates, candidate resumes, student academic records, and corporate client hiring strategies.
+              </p>
+            </div>
           </div>
-        </div>
-      </section>
+        </section>
       </ScrollReveal>
 
       {/* LATEST BLOG & NEWS */}
       <ScrollReveal>
-      <section className="max-w-7xl mx-auto px-4 sm:px-8 space-y-8">
-        <div className="flex justify-between items-end">
-          <div>
-            <h2 className="text-xs font-bold text-gold-500 uppercase tracking-widest mb-1">Knowledge Hub</h2>
-            <h3 className="font-serif text-3xl font-extrabold text-navy-900 dark:text-white">Latest Industry Insights</h3>
-          </div>
-        </div>
-
-        <div className="flex flex-col sm:grid sm:grid-cols-2 lg:grid-cols-3 gap-6">
-          {BLOG_POSTS.map((post) => (
-            <div key={post.id} className="w-full sm:min-w-0 glass-card bg-white dark:bg-navy-900 border border-slate-200 dark:border-navy-800 p-6 rounded-2xl space-y-3 shadow-sm hover-lift cursor-pointer">
-              <span className="bg-gold-500/10 text-gold-600 dark:text-gold-400 text-[10px] font-bold px-2.5 py-1 rounded-md uppercase">
-                {post.category}
-              </span>
-              <h4 className="font-serif text-base font-bold text-navy-900 dark:text-white leading-snug">
-                {post.title}
-              </h4>
-              <p className="text-xs text-slate-800 dark:text-slate-200 font-medium line-clamp-3 leading-relaxed">
-                {post.summary}
-              </p>
-              <div className="text-[11px] text-slate-600 dark:text-slate-400 font-semibold pt-2 border-t border-slate-100 dark:border-navy-800 flex justify-between">
-                <span>{post.date}</span>
-                <span>{post.readTime}</span>
-              </div>
+        <section className="max-w-7xl mx-auto px-4 sm:px-8 space-y-8">
+          <div className="flex justify-between items-end">
+            <div>
+              <h2 className="text-xs font-bold text-gold-500 uppercase tracking-widest mb-1">Knowledge Hub</h2>
+              <h3 className="font-serif text-3xl font-extrabold text-navy-900 dark:text-white">Latest Industry Insights</h3>
             </div>
-          ))}
-        </div>
-      </section>
+          </div>
+
+          <div className="flex flex-col sm:grid sm:grid-cols-2 lg:grid-cols-3 gap-6">
+            {BLOG_POSTS.map((post) => (
+              <div key={post.id} className="w-full sm:min-w-0 glass-card bg-white dark:bg-navy-900 border border-slate-200 dark:border-navy-800 p-6 rounded-2xl space-y-3 shadow-sm hover-lift cursor-pointer">
+                <span className="bg-gold-500/10 text-gold-600 dark:text-gold-400 text-[10px] font-bold px-2.5 py-1 rounded-md uppercase">
+                  {post.category}
+                </span>
+                <h4 className="font-serif text-base font-bold text-navy-900 dark:text-white leading-snug">
+                  {post.title}
+                </h4>
+                <p className="text-xs text-slate-800 dark:text-slate-200 font-medium line-clamp-3 leading-relaxed">
+                  {post.summary}
+                </p>
+                <div className="text-[11px] text-slate-600 dark:text-slate-400 font-semibold pt-2 border-t border-slate-100 dark:border-navy-800 flex justify-between">
+                  <span>{post.date}</span>
+                  <span>{post.readTime}</span>
+                </div>
+              </div>
+            ))}
+          </div>
+        </section>
       </ScrollReveal>
 
       {/* PREMIUM CONSULTING CTA */}
       <ScrollReveal>
-      <section className="max-w-7xl mx-auto px-4 sm:px-8 space-y-8">
-        <div className="bg-white dark:bg-navy-950 text-slate-900 dark:text-white rounded-3xl p-8 sm:p-12 border border-slate-200 dark:border-gold-500/30 shadow-luxury relative overflow-hidden flex flex-col md:flex-row items-center justify-between gap-8 animate-fade-in-up">
-          {/* Decorative background element */}
-          <div className="absolute -top-24 -right-24 w-64 h-64 bg-gold-500/10 rounded-full blur-3xl"></div>
-          
-          <div className="relative z-10 space-y-4 max-w-2xl text-center md:text-left">
-            <span className="bg-gold-500/20 text-gold-400 text-xs font-bold px-3 py-1 rounded-full uppercase tracking-widest border border-slate-200 dark:border-gold-500/30">
-              Expert Advisory
-            </span>
-            <h3 className="font-serif text-3xl sm:text-4xl lg:text-5xl font-extrabold tracking-tight text-slate-900 dark:text-white">
-              Book a Free <span className="text-gradient-emerald">Strategy Consultation</span>
-            </h3>
-            <p className="text-slate-600 dark:text-slate-300 text-sm leading-relaxed max-w-xl mx-auto md:mx-0">
-              Whether you are an enterprise looking to scale your workforce across the GCC, or an executive seeking your next career move, our senior consultants are here to guide you.
-            </p>
+        <section className="max-w-7xl mx-auto px-4 sm:px-8 space-y-8">
+          <div className="bg-white dark:bg-navy-950 text-slate-900 dark:text-white rounded-3xl p-8 sm:p-12 border border-slate-200 dark:border-gold-500/30 shadow-luxury relative overflow-hidden flex flex-col md:flex-row items-center justify-between gap-8 animate-fade-in-up">
+            {/* Decorative background element */}
+            <div className="absolute -top-24 -right-24 w-64 h-64 bg-gold-500/10 rounded-full blur-3xl"></div>
+
+            <div className="relative z-10 space-y-4 max-w-2xl text-center md:text-left">
+              <span className="bg-gold-500/20 text-gold-400 text-xs font-bold px-3 py-1 rounded-full uppercase tracking-widest border border-slate-200 dark:border-gold-500/30">
+                Expert Advisory
+              </span>
+              <h3 className="font-serif text-3xl sm:text-4xl lg:text-5xl font-extrabold tracking-tight text-slate-900 dark:text-white">
+                Book a Free <span className="text-gradient-emerald">Strategy Consultation</span>
+              </h3>
+              <p className="text-slate-600 dark:text-slate-300 text-sm leading-relaxed max-w-xl mx-auto md:mx-0">
+                Whether you are an enterprise looking to scale your workforce across the GCC, or an executive seeking your next career move, our senior consultants are here to guide you.
+              </p>
+            </div>
+
+            <div className="relative z-10 flex flex-col w-full md:w-auto gap-4">
+              <button
+                onClick={() => navigateTo('contact')}
+                className="px-8 py-4 bg-gold-shimmer text-navy-950 font-extrabold text-sm rounded-xl shadow-gold-glow hover-lift active-scale flex items-center justify-center space-x-2 w-full md:w-64"
+              >
+                <Calendar className="w-5 h-5" />
+                <span>Schedule a Call</span>
+              </button>
+              <button
+                onClick={() => navigateTo('contact')}
+                className="px-8 py-4 bg-slate-50 dark:bg-navy-900 text-slate-900 dark:text-white border border-slate-200 dark:border-gold-500/40 font-extrabold text-sm rounded-xl shadow-luxury hover-lift active-scale flex items-center justify-center space-x-2 w-full md:w-64"
+              >
+                <MessageSquare className="w-5 h-5 text-gold-500" />
+                <span>Send us an Inquiry</span>
+              </button>
+            </div>
           </div>
-          
-          <div className="relative z-10 flex flex-col w-full md:w-auto gap-4">
-            <button 
-              onClick={() => navigateTo('contact')}
-              className="px-8 py-4 bg-gold-shimmer text-navy-950 font-extrabold text-sm rounded-xl shadow-gold-glow hover-lift active-scale flex items-center justify-center space-x-2 w-full md:w-64"
-            >
-              <Calendar className="w-5 h-5" />
-              <span>Schedule a Call</span>
-            </button>
-            <button 
-              onClick={() => navigateTo('contact')}
-              className="px-8 py-4 bg-slate-50 dark:bg-navy-900 text-slate-900 dark:text-white border border-slate-200 dark:border-gold-500/40 font-extrabold text-sm rounded-xl shadow-luxury hover-lift active-scale flex items-center justify-center space-x-2 w-full md:w-64"
-            >
-              <MessageSquare className="w-5 h-5 text-gold-500" />
-              <span>Send us an Inquiry</span>
-            </button>
-          </div>
-        </div>
-      </section>
+        </section>
       </ScrollReveal>
 
       {/* FREQUENTLY ASKED QUESTIONS */}
       <ScrollReveal>
-      <section className="max-w-4xl mx-auto px-4 sm:px-8 space-y-8 pt-8">
-        <div className="text-center space-y-2">
-          <h2 className="text-xs font-bold text-gold-500 uppercase tracking-widest">Have Questions?</h2>
-          <h3 className="font-serif text-3xl font-extrabold text-navy-900 dark:text-white">Frequently Asked Questions</h3>
-        </div>
+        <section className="max-w-4xl mx-auto px-4 sm:px-8 space-y-8 pt-8">
+          <div className="text-center space-y-2">
+            <h2 className="text-xs font-bold text-gold-500 uppercase tracking-widest">Have Questions?</h2>
+            <h3 className="font-serif text-3xl font-extrabold text-navy-900 dark:text-white">Frequently Asked Questions</h3>
+          </div>
 
-        <div className="space-y-3">
-          {FAQS.map((faq, idx) => (
-            <div key={idx} className="glass-card bg-white dark:bg-navy-900 border border-slate-200 dark:border-navy-800 rounded-xl overflow-hidden text-xs">
-              <button
-                onClick={() => setOpenFaq(openFaq === idx ? -1 : idx)}
-                className="w-full text-left p-4 font-bold text-navy-900 dark:text-white flex justify-between items-center"
-              >
-                <span>{faq.question}</span>
-                <span className="text-gold-500 font-extrabold text-base">{openFaq === idx ? '−' : '+'}</span>
-              </button>
-              {openFaq === idx && (
-                <div className="px-4 pb-4 text-slate-800 dark:text-slate-200 leading-relaxed border-t border-slate-100 dark:border-navy-800 pt-3">
-                  {faq.answer}
-                </div>
-              )}
-            </div>
-          ))}
-        </div>
-      </section>
+          <div className="space-y-3">
+            {FAQS.map((faq, idx) => (
+              <div key={idx} className="glass-card bg-white dark:bg-navy-900 border border-slate-200 dark:border-navy-800 rounded-xl overflow-hidden text-xs">
+                <button
+                  onClick={() => setOpenFaq(openFaq === idx ? -1 : idx)}
+                  className="w-full text-left p-4 font-bold text-navy-900 dark:text-white flex justify-between items-center"
+                >
+                  <span>{faq.question}</span>
+                  <span className="text-gold-500 font-extrabold text-base">{openFaq === idx ? '−' : '+'}</span>
+                </button>
+                {openFaq === idx && (
+                  <div className="px-4 pb-4 text-slate-800 dark:text-slate-200 leading-relaxed border-t border-slate-100 dark:border-navy-800 pt-3">
+                    {faq.answer}
+                  </div>
+                )}
+              </div>
+            ))}
+          </div>
+        </section>
       </ScrollReveal>
 
     </div>

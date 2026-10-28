@@ -124,6 +124,92 @@ export const submitAcademyCourseEnquiry = async (enquiryData) => {
 };
 
 /**
+ * Submit Exam Enquiry
+ * Specifically for students submitting an enquiry for a competitive examination
+ */
+export const submitExamEnquiry = async (enquiryData) => {
+  const referenceNumber = generateAcademyReference();
+
+  if (!enquiryData.studentName || !enquiryData.studentName.trim()) {
+    throw new Error('Please enter your full name.');
+  }
+
+  const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+  if (!enquiryData.email || !emailRegex.test(enquiryData.email.trim())) {
+    throw new Error('Please enter a valid email address.');
+  }
+
+  if (!enquiryData.phone || enquiryData.phone.trim().length < 7) {
+    throw new Error('Please enter a valid mobile number with country/area code.');
+  }
+
+  if (!enquiryData.qualification || !enquiryData.qualification.trim()) {
+    throw new Error('Please select or specify your current educational qualification.');
+  }
+
+  if (!enquiryData.preferredLocation || !enquiryData.preferredLocation.trim()) {
+    throw new Error('Please specify your preferred study location.');
+  }
+
+  const payload = {
+    referenceNumber,
+    studentName: enquiryData.studentName.trim(),
+    email: enquiryData.email.trim().toLowerCase(),
+    phone: enquiryData.phone.trim(),
+    examId: enquiryData.examId || 'general-exam',
+    examName: enquiryData.examName || 'Competitive Examination',
+    qualification: enquiryData.qualification.trim(),
+    preferredLearningMode: enquiryData.preferredLearningMode || 'Online',
+    preferredLocation: enquiryData.preferredLocation.trim(),
+    questions: enquiryData.message ? enquiryData.message.trim() : (enquiryData.questions ? enquiryData.questions.trim() : ''),
+    academyId: enquiryData.academyId || 'revival-advisory',
+    academyName: enquiryData.academyName || 'Revival International Student Advisory',
+    courseId: enquiryData.courseId || 'exam-preparation-support',
+    courseName: enquiryData.courseName || `${enquiryData.examName || 'Competitive Exam'} Coaching & Preparation`,
+    enquiryType: 'Exam Enquiry',
+    serviceId: 'school-academy',
+    serviceTitle: 'Student Academy - Exam Enquiry',
+    createdAt: new Date().toISOString()
+  };
+
+  // 1. Dual-sync with Express server API (and SQLite store)
+  try {
+    const res = await fetch(`${API_BASE_URL}/api/student-academy/enquiries`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify(payload)
+    });
+    if (res.ok) {
+      const data = await res.json();
+      if (data && data.referenceNumber) {
+        payload.referenceNumber = data.referenceNumber;
+      }
+    }
+  } catch (apiErr) {
+    console.warn('Local API dual-sync notice for exam enquiry:', apiErr.message);
+  }
+
+  // 2. Fallback in localStorage
+  try {
+    const existing = JSON.parse(localStorage.getItem('revival_academy_enquiries') || '[]');
+    existing.unshift(payload);
+    localStorage.setItem('revival_academy_enquiries', JSON.stringify(existing.slice(0, 50)));
+  } catch (_) {}
+
+  // 3. Track analytics
+  trackCtaClick(`Exam Enquiry: ${payload.examName}`, 'Student Academy Module');
+
+  return {
+    success: true,
+    referenceNumber: payload.referenceNumber,
+    timestamp: payload.createdAt,
+    data: payload
+  };
+};
+
+/**
  * Fetch Enquiries (for staff/admin dashboards)
  */
 export const getAcademyEnquiries = async () => {
@@ -143,3 +229,4 @@ export const getAcademyEnquiries = async () => {
     return [];
   }
 };
+

@@ -1,8 +1,8 @@
 import React from 'react';
 import { useApp } from '../context/AppContext';
-import { 
-  Building2, Phone, Mail, MapPin, Globe, Shield, Award, 
-  Send, MessageSquare, Linkedin, Twitter, Facebook, Instagram, Youtube, CheckCircle2 
+import {
+  Building2, Phone, Mail, MapPin, Globe, Shield, Award,
+  Send, MessageSquare, Linkedin, Twitter, Facebook, Instagram, Youtube, CheckCircle2
 } from 'lucide-react';
 import { COUNTRIES_LIST } from '../data/mockData';
 
@@ -13,8 +13,8 @@ export const Footer = () => {
     const isActive = !isModal && activeTab === tab;
     return (
       <li>
-        <button 
-          onClick={onClick || (() => navigateTo(tab))} 
+        <button
+          onClick={onClick || (() => navigateTo(tab))}
           className={`hover:text-gold-400 transition flex items-center gap-2 ${isActive ? 'text-amber-400 font-bold' : ''}`}
         >
           <span className={`w-1.5 h-1.5 rounded-full shrink-0 ${isActive ? 'bg-gold-500 shadow-[0_0_8px_rgba(234,179,8,0.8)]' : 'bg-slate-600'}`}></span>
@@ -30,7 +30,7 @@ export const Footer = () => {
       <div className="absolute top-0 left-1/4 w-96 h-96 bg-gold-500/5 rounded-full blur-3xl pointer-events-none"></div>
 
       <div className="max-w-7xl mx-auto px-4 sm:px-8">
-        
+
         {/* Top Newsletter & Banner Callout */}
         <div className="glass-card bg-white dark:bg-navy-900 border border-slate-200 dark:border-gold-500/40 rounded-2xl p-8 mb-16 shadow-luxury flex flex-col lg:flex-row items-center justify-between gap-6">
           <div className="max-w-xl">
@@ -47,9 +47,9 @@ export const Footer = () => {
           </div>
 
           <div className="w-full lg:w-auto flex flex-col sm:flex-row gap-3">
-            <input 
-              type="email" 
-              placeholder="Enter corporate email address..." 
+            <input
+              type="email"
+              placeholder="Enter corporate email address..."
               className="bg-slate-50 dark:bg-navy-950 border border-slate-300 dark:border-navy-700 text-slate-900 dark:text-white placeholder-slate-500 text-xs rounded-xl px-4 py-3 min-w-[260px] focus:outline-none focus:border-gold-500 font-medium"
             />
             <button className="bg-gold-shimmer text-navy-950 font-bold text-xs px-6 py-3 rounded-xl hover:opacity-95 transition shadow-gold-glow flex items-center justify-center space-x-2">
@@ -61,7 +61,7 @@ export const Footer = () => {
 
         {/* Main Footer Links */}
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-10 pb-12 border-b border-slate-200 dark:border-navy-800 text-xs">
-          
+
           {/* Col 1: Brand Info */}
           <div className="lg:col-span-2 space-y-4">
             <div className="flex items-center space-x-3 cursor-pointer" onClick={() => navigateTo('home')}>

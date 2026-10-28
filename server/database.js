@@ -284,6 +284,15 @@ const initDb = async (db) => {
     { name: 'updatedAt', type: 'DATETIME' }
   ]);
 
+  // Safe migration: Ensure student_academy_enquiries table has exam enquiry fields
+  await ensureColumns('student_academy_enquiries', [
+    { name: 'qualification', type: 'TEXT' },
+    { name: 'preferredLocation', type: 'TEXT' },
+    { name: 'coachingMode', type: 'TEXT' },
+    { name: 'examSlug', type: 'TEXT' },
+    { name: 'enquiryType', type: "TEXT DEFAULT 'Exam Enquiry'" }
+  ]);
+
   // Seed default verified organizations if none exist
   try {
     const orgCount = await db.get("SELECT COUNT(*) as count FROM clients");
