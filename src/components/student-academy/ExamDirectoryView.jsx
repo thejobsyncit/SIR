@@ -52,48 +52,82 @@ export const ExamDirectoryView = ({ onSelectExam, onSelectDepartment, initialDep
     <div className="space-y-12">
       {/* Hero Header */}
       <ScrollReveal>
-        <div className="relative overflow-hidden rounded-3xl bg-gradient-to-br from-navy-950 via-navy-900 to-slate-900 border border-slate-800 text-white p-6 sm:p-10 md:p-12 shadow-luxury">
-          <div className="absolute top-0 right-0 w-96 h-96 bg-gold-500/10 rounded-full blur-3xl -z-0 pointer-events-none" />
-          <div className="relative z-10 grid grid-cols-1 lg:grid-cols-12 gap-8 lg:gap-12 items-center">
-            <div className="lg:col-span-7 space-y-4">
-              <div className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-gold-500/15 border border-gold-500/30 text-gold-400 text-xs font-bold uppercase tracking-wider">
-                <Sparkles className="w-3.5 h-3.5 text-gold-400" />
-                <span>Student Academy Advisory Portal</span>
-              </div>
-              <h1 className="text-3xl sm:text-4xl lg:text-5xl font-black text-white tracking-tight leading-tight">
-                Competitive Examinations &amp; <br />
-                <span className="text-transparent bg-clip-text bg-gradient-to-r from-gold-400 via-amber-200 to-gold-500">
-                  Verified Coaching Academies
+        <div className="glass-card bg-white dark:bg-navy-900 border border-slate-200 dark:border-gold-500/30 rounded-3xl p-6 sm:p-10 md:p-12 shadow-luxury relative overflow-hidden">
+          <div className="absolute top-0 right-0 w-96 h-96 bg-gold-500/5 rounded-full blur-3xl -z-10 pointer-events-none" />
+
+          <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 lg:gap-12 items-center">
+            {/* Left Column: Heading, Subtitle, Description, CTAs, and Key Stats */}
+            <div className="lg:col-span-7 space-y-5">
+              <div className="flex flex-wrap items-center gap-2">
+                <span className="bg-gold-500/15 text-gold-600 dark:text-gold-400 text-xs font-black px-3 py-1 rounded-full uppercase tracking-wider border border-gold-500/30">
+                  Student Academy Advisory Portal
                 </span>
+                <span className="bg-emerald-500/15 text-emerald-600 dark:text-emerald-400 text-xs font-extrabold px-3 py-1 rounded-full uppercase border border-emerald-500/30">
+                  Verified Advisory • 11 Departments
+                </span>
+              </div>
+
+              <h1 className="font-serif text-3xl sm:text-4xl md:text-5xl font-black text-navy-900 dark:text-white leading-tight">
+                Competitive Examinations &amp; Coaching Academies
               </h1>
-              <p className="text-slate-300 text-sm sm:text-base leading-relaxed">
+
+              <p className="text-base sm:text-lg text-gold-600 dark:text-gold-400 font-serif italic">
+                Comprehensive guidance across national government, technical, medical &amp; global exam pathways.
+              </p>
+
+              <p className="text-xs sm:text-sm text-slate-700 dark:text-slate-300 leading-relaxed font-medium">
                 Explore national government, banking, engineering, medical, defence, and global examinations. Compare up to 10 verified academies per exam with audited fees, transparent batch schedules, and direct course enquiry.
               </p>
 
-              {/* Quick Stats Bar */}
-              <div className="pt-4 grid grid-cols-2 sm:grid-cols-4 gap-3 sm:gap-4 border-t border-slate-800/80 text-xs">
+              {/* CTAs matching Career Guidance */}
+              <div className="pt-3 flex flex-wrap gap-3.5 items-center">
+                <button
+                  onClick={() => {
+                    const el = document.getElementById('browse-exams-section');
+                    if (el) el.scrollIntoView({ behavior: 'smooth' });
+                  }}
+                  className="px-6 py-3.5 bg-gold-shimmer text-navy-950 font-extrabold text-xs sm:text-sm rounded-xl shadow-gold-glow hover:opacity-95 transition flex items-center gap-2 focus:outline-none focus:ring-2 focus:ring-gold-500 cursor-pointer"
+                >
+                  <BookOpen className="w-4 h-4" />
+                  <span>Explore Examinations</span>
+                </button>
+
+                <button
+                  onClick={() => {
+                    const el = document.getElementById('international-tests-section');
+                    if (el) el.scrollIntoView({ behavior: 'smooth' });
+                  }}
+                  className="px-5 py-3.5 bg-slate-100 dark:bg-navy-800 text-slate-800 dark:text-slate-200 hover:text-navy-900 dark:hover:text-white font-bold text-xs sm:text-sm rounded-xl transition border border-slate-200 dark:border-navy-700 focus:outline-none focus:ring-2 focus:ring-gold-500 cursor-pointer flex items-center gap-2"
+                >
+                  <Globe2 className="w-4 h-4 text-gold-500" />
+                  <span>Global Tests ↓</span>
+                </button>
+              </div>
+
+              {/* Key Quick Stats */}
+              <div className="pt-6 border-t border-slate-100 dark:border-navy-800 grid grid-cols-2 sm:grid-cols-4 gap-4">
                 <div className="space-y-0.5">
-                  <span className="text-gold-400 font-extrabold text-lg sm:text-xl">11</span>
-                  <p className="text-slate-400 font-medium">Departments</p>
+                  <p className="text-[10px] text-slate-500 uppercase font-bold tracking-wider">Departments</p>
+                  <p className="text-xs sm:text-sm font-black text-navy-900 dark:text-white">11 Exam Sectors</p>
                 </div>
                 <div className="space-y-0.5">
-                  <span className="text-gold-400 font-extrabold text-lg sm:text-xl">40+</span>
-                  <p className="text-slate-400 font-medium">Competitive Exams</p>
+                  <p className="text-[10px] text-slate-500 uppercase font-bold tracking-wider">Competitive Exams</p>
+                  <p className="text-xs sm:text-sm font-black text-navy-900 dark:text-white">40+ In Catalog</p>
                 </div>
                 <div className="space-y-0.5">
-                  <span className="text-gold-400 font-extrabold text-lg sm:text-xl">100%</span>
-                  <p className="text-slate-400 font-medium">Audited Academies</p>
+                  <p className="text-[10px] text-slate-500 uppercase font-bold tracking-wider">Partner Academies</p>
+                  <p className="text-xs sm:text-sm font-black text-navy-900 dark:text-white">100% Audited</p>
                 </div>
                 <div className="space-y-0.5">
-                  <span className="text-gold-400 font-extrabold text-lg sm:text-xl">Zero Fee</span>
-                  <p className="text-slate-400 font-medium">Student Advisory</p>
+                  <p className="text-[10px] text-slate-500 uppercase font-bold tracking-wider">Advisory Access</p>
+                  <p className="text-xs sm:text-sm font-black text-gold-600 dark:text-gold-400">Zero Student Fee</p>
                 </div>
               </div>
             </div>
 
             {/* Right Column: Premium Visual Card */}
             <div className="lg:col-span-5 relative">
-              <div className="relative rounded-2xl overflow-hidden shadow-2xl border border-gold-500/30 group">
+              <div className="relative rounded-2xl overflow-hidden shadow-2xl border border-slate-200 dark:border-gold-500/30 group">
                 <img
                   src="/images/academy_students.jpg"
                   alt="Students Preparing at Verified Coaching Academy"
@@ -314,7 +348,7 @@ export const ExamDirectoryView = ({ onSelectExam, onSelectDepartment, initialDep
 
       {/* Dedicated Section: International Entrance & Language Tests */}
       <ScrollReveal>
-        <div className="glass-card bg-white dark:bg-navy-900 border border-slate-200 dark:border-gold-500/30 rounded-3xl p-6 sm:p-10 shadow-luxury space-y-6">
+        <div id="international-tests-section" className="glass-card bg-white dark:bg-navy-900 border border-slate-200 dark:border-gold-500/30 rounded-3xl p-6 sm:p-10 shadow-luxury space-y-6">
           <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 border-b border-slate-200 dark:border-navy-800 pb-4">
             <div className="space-y-1">
               <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-gold-500/15 text-gold-600 dark:text-gold-400 text-xs font-black uppercase tracking-wider border border-gold-500/30">

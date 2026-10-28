@@ -231,9 +231,9 @@ export const CourseEnquiryView = ({
       </div>
 
       {/* Course Enquiry Form */}
-      <div className="glass-card bg-white dark:bg-navy-900 border border-slate-200 dark:border-navy-800 rounded-3xl p-6 sm:p-10 shadow-luxury space-y-6">
+      <div className="glass-card bg-white dark:bg-navy-900 border border-slate-200 dark:border-gold-500/30 rounded-3xl p-6 sm:p-10 shadow-luxury space-y-6">
         <div className="space-y-1 border-b border-slate-100 dark:border-navy-800 pb-4">
-          <h2 className="text-xl font-bold text-slate-900 dark:text-white">
+          <h2 className="font-serif text-xl sm:text-2xl font-black text-navy-900 dark:text-white">
             Student Course Enquiry Form
           </h2>
           <p className="text-xs text-slate-500 dark:text-slate-400">
@@ -373,7 +373,7 @@ export const CourseEnquiryView = ({
           <button
             type="submit"
             disabled={loading}
-            className="w-full py-3.5 px-6 rounded-2xl bg-gold-500 hover:bg-gold-400 disabled:opacity-50 text-navy-950 font-black text-xs uppercase tracking-wider transition-all duration-200 shadow-md hover:shadow-lg flex items-center justify-center gap-2"
+            className="w-full py-3.5 px-6 rounded-xl bg-gold-shimmer text-navy-950 font-extrabold text-xs uppercase tracking-wider transition-all duration-200 shadow-gold-glow hover:opacity-95 active-scale flex items-center justify-center gap-2 cursor-pointer disabled:opacity-50"
             id="submit-academy-enquiry-btn"
           >
             {loading ? (
