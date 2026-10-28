@@ -1,15 +1,9 @@
 import React from 'react';
 import { useApp } from '../context/AppContext';
-<<<<<<< HEAD
+import { BrandLogoIcon } from './BrandLogoIcon';
 import {
   Building2, Phone, Mail, MapPin, Globe, Shield, Award,
   Send, MessageSquare, Linkedin, Twitter, Facebook, Instagram, Youtube, CheckCircle2
-=======
-import { BrandLogoIcon } from './BrandLogoIcon';
-import { 
-  Building2, Phone, Mail, MapPin, Globe, Shield, Award, 
-  Send, MessageSquare, Linkedin, Twitter, Facebook, Instagram, Youtube, CheckCircle2 
->>>>>>> origin/main
 } from 'lucide-react';
 import { COUNTRIES_LIST } from '../data/mockData';
 

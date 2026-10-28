@@ -38,19 +38,15 @@ export const EducationServiceDetail = ({ serviceId }) => {
     return <InternationalConsultingPage />;
   }
 
-<<<<<<< HEAD
-  if (service.id === 'school-academy' || cleanId === 'school-academy' || cleanId === 'student-academy' || cleanId === 'academy-for-school-students') {
-=======
-  if (service.id === 'intl-adm' || service.id === 'international-admissions') {
+  if (service.id === 'intl-adm' || service.id === 'international-admissions' || cleanId === 'intl-adm' || cleanId === 'international-admissions') {
     return <InternationalAdmissionsPage />;
   }
 
-  if (service.id === 'college-adm' || service.id === 'college-admission' || service.slug === 'college-admission-assistance') {
+  if (service.id === 'college-adm' || service.id === 'college-admission' || service.slug === 'college-admission-assistance' || cleanId === 'college-adm') {
     return <CollegeAdmissionsPage />;
   }
 
-  if (service.id === 'school-academy') {
->>>>>>> origin/main
+  if (service.id === 'school-academy' || cleanId === 'school-academy' || cleanId === 'student-academy' || cleanId === 'academy-for-school-students') {
     return <StudentAcademyPage />;
   }
 

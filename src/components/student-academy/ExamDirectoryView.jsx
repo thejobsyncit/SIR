@@ -50,137 +50,75 @@ export const ExamDirectoryView = ({ onSelectExam, onSelectDepartment, initialDep
 
   return (
     <div className="space-y-12">
-<<<<<<< HEAD
-      {/* Hero Header matching School Student Career Guidance theme */}
-      <ScrollReveal>
-        <div className="glass-card bg-white dark:bg-navy-900 border border-slate-200 dark:border-gold-500/30 rounded-3xl p-6 sm:p-10 md:p-12 shadow-luxury relative overflow-hidden">
-          <div className="absolute top-0 right-0 w-96 h-96 bg-gold-500/5 rounded-full blur-3xl -z-10 pointer-events-none" />
-
-          <div className="max-w-3xl space-y-5">
-            <div className="flex flex-wrap items-center gap-2">
-              <span className="bg-gold-500/15 text-gold-600 dark:text-gold-400 text-xs font-black px-3 py-1 rounded-full uppercase tracking-wider border border-gold-500/30">
-                Competitive Examinations
-              </span>
-              <span className="bg-emerald-500/15 text-emerald-600 dark:text-emerald-400 text-xs font-extrabold px-3 py-1 rounded-full uppercase border border-emerald-500/30">
-                Verified Academies • Academic Advisory
-              </span>
-            </div>
-
-            <h1 className="font-serif text-3xl sm:text-4xl md:text-5xl font-black text-navy-900 dark:text-white leading-tight">
-              Competitive Examinations &amp; <br />
-              <span className="text-gradient-gold">
-                Verified Coaching Academies
-              </span>
-            </h1>
-
-            <p className="text-base sm:text-lg text-gold-600 dark:text-gold-400 font-serif italic">
-              National entrance roadmaps, audited coaching centers, and certified admissions advisory.
-            </p>
-
-            <p className="text-xs sm:text-sm text-slate-700 dark:text-slate-300 leading-relaxed font-medium">
-              Explore national government, banking, engineering, medical, defence, and global examinations. Compare verified academies per exam with audited fees, transparent batch schedules, and direct course enquiry.
-            </p>
-
-            {/* CTAs */}
-            <div className="pt-3 flex flex-wrap gap-3.5 items-center">
-              <button
-                onClick={() => {
-                  const el = document.getElementById('browse-exams-section');
-                  if (el) el.scrollIntoView({ behavior: 'smooth' });
-                }}
-                className="px-6 py-3 bg-gold-shimmer text-navy-950 font-extrabold text-xs rounded-xl shadow-gold-glow hover:opacity-95 transition flex items-center gap-2 focus:outline-none focus:ring-2 focus:ring-gold-500 active-scale"
-              >
-                <GraduationCap className="w-4 h-4" />
-                <span>Explore Examinations Directory</span>
-              </button>
-            </div>
-
-            {/* Key Quick Stats */}
-            <div className="pt-6 border-t border-slate-100 dark:border-navy-800 grid grid-cols-2 sm:grid-cols-4 gap-4">
-              <div className="space-y-0.5">
-                <p className="text-[10px] text-slate-500 uppercase font-bold tracking-wider">Stream Categories</p>
-                <p className="text-xs sm:text-sm font-black text-navy-900 dark:text-white">11 Departments</p>
-              </div>
-              <div className="space-y-0.5">
-                <p className="text-[10px] text-slate-500 uppercase font-bold tracking-wider">National Tests</p>
-                <p className="text-xs sm:text-sm font-black text-navy-900 dark:text-white">40+ Competitive Exams</p>
-              </div>
-              <div className="space-y-0.5">
-                <p className="text-[10px] text-slate-500 uppercase font-bold tracking-wider">Tuition Transparency</p>
-                <p className="text-xs sm:text-sm font-black text-navy-900 dark:text-white">100% Audited Fees</p>
-              </div>
-              <div className="space-y-0.5">
-                <p className="text-[10px] text-slate-500 uppercase font-bold tracking-wider">Student Guidance</p>
-                <p className="text-xs sm:text-sm font-black text-navy-900 dark:text-white">Zero-Fee Advisory</p>
-=======
       {/* Hero Header */}
-      <div className="relative overflow-hidden rounded-3xl bg-gradient-to-br from-navy-950 via-navy-900 to-slate-900 border border-slate-800 text-white p-6 sm:p-10 md:p-12 shadow-luxury">
-        <div className="absolute top-0 right-0 w-96 h-96 bg-gold-500/10 rounded-full blur-3xl -z-0 pointer-events-none" />
-        <div className="relative z-10 grid grid-cols-1 lg:grid-cols-12 gap-8 lg:gap-12 items-center">
-          <div className="lg:col-span-7 space-y-4">
-            <div className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-gold-500/15 border border-gold-500/30 text-gold-400 text-xs font-bold uppercase tracking-wider">
-              <Sparkles className="w-3.5 h-3.5 text-gold-400" />
-              <span>Student Academy Advisory Portal</span>
-            </div>
-            <h1 className="text-3xl sm:text-4xl lg:text-5xl font-black text-white tracking-tight leading-tight">
-              Competitive Examinations &amp; <br />
-              <span className="text-transparent bg-clip-text bg-gradient-to-r from-gold-400 via-amber-200 to-gold-500">
-                Verified Coaching Academies
-              </span>
-            </h1>
-            <p className="text-slate-300 text-sm sm:text-base leading-relaxed">
-              Explore national government, banking, engineering, medical, defence, and global examinations. Compare up to 10 verified academies per exam with audited fees, transparent batch schedules, and direct course enquiry.
-            </p>
+      <ScrollReveal>
+        <div className="relative overflow-hidden rounded-3xl bg-gradient-to-br from-navy-950 via-navy-900 to-slate-900 border border-slate-800 text-white p-6 sm:p-10 md:p-12 shadow-luxury">
+          <div className="absolute top-0 right-0 w-96 h-96 bg-gold-500/10 rounded-full blur-3xl -z-0 pointer-events-none" />
+          <div className="relative z-10 grid grid-cols-1 lg:grid-cols-12 gap-8 lg:gap-12 items-center">
+            <div className="lg:col-span-7 space-y-4">
+              <div className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-gold-500/15 border border-gold-500/30 text-gold-400 text-xs font-bold uppercase tracking-wider">
+                <Sparkles className="w-3.5 h-3.5 text-gold-400" />
+                <span>Student Academy Advisory Portal</span>
+              </div>
+              <h1 className="text-3xl sm:text-4xl lg:text-5xl font-black text-white tracking-tight leading-tight">
+                Competitive Examinations &amp; <br />
+                <span className="text-transparent bg-clip-text bg-gradient-to-r from-gold-400 via-amber-200 to-gold-500">
+                  Verified Coaching Academies
+                </span>
+              </h1>
+              <p className="text-slate-300 text-sm sm:text-base leading-relaxed">
+                Explore national government, banking, engineering, medical, defence, and global examinations. Compare up to 10 verified academies per exam with audited fees, transparent batch schedules, and direct course enquiry.
+              </p>
 
-            {/* Quick Stats Bar */}
-            <div className="pt-4 grid grid-cols-2 sm:grid-cols-4 gap-3 sm:gap-4 border-t border-slate-800/80 text-xs">
-              <div className="space-y-0.5">
-                <span className="text-gold-400 font-extrabold text-lg sm:text-xl">11</span>
-                <p className="text-slate-400 font-medium">Departments</p>
-              </div>
-              <div className="space-y-0.5">
-                <span className="text-gold-400 font-extrabold text-lg sm:text-xl">40+</span>
-                <p className="text-slate-400 font-medium">Competitive Exams</p>
-              </div>
-              <div className="space-y-0.5">
-                <span className="text-gold-400 font-extrabold text-lg sm:text-xl">100%</span>
-                <p className="text-slate-400 font-medium">Audited Academies</p>
-              </div>
-              <div className="space-y-0.5">
-                <span className="text-gold-400 font-extrabold text-lg sm:text-xl">Zero Fee</span>
-                <p className="text-slate-400 font-medium">Student Advisory</p>
-              </div>
-            </div>
-          </div>
-
-          {/* Right Column: Premium Visual Card */}
-          <div className="lg:col-span-5 relative">
-            <div className="relative rounded-2xl overflow-hidden shadow-2xl border border-gold-500/30 group">
-              <img
-                src="/images/academy_students.jpg"
-                alt="Students Preparing at Verified Coaching Academy"
-                className="w-full h-72 sm:h-80 md:h-96 object-cover object-center group-hover:scale-105 transition duration-700 ease-out"
-                loading="eager"
-              />
-              <div className="absolute inset-0 bg-gradient-to-t from-navy-950/85 via-navy-950/30 to-transparent" />
-
-              {/* Floating Overlay Badge */}
-              <div className="absolute bottom-4 left-4 right-4 space-y-2">
-                <div className="bg-white/95 dark:bg-navy-900/95 backdrop-blur-md p-3.5 rounded-xl border border-gold-500/30 shadow-lg">
-                  <div className="flex items-center justify-between text-xs pb-1.5 border-b border-slate-100 dark:border-navy-800">
-                    <span className="font-bold text-navy-900 dark:text-white flex items-center gap-1.5">
-                      <GraduationCap className="w-3.5 h-3.5 text-gold-500" />
-                      Verified Partner Academies
-                    </span>
-                    <span className="bg-emerald-500/15 text-emerald-600 dark:text-emerald-400 text-[10px] font-black px-2 py-0.5 rounded">
-                      11 Exam Sectors
-                    </span>
-                  </div>
-                  <p className="text-[11px] text-slate-600 dark:text-slate-300 pt-1.5 font-medium leading-snug">
-                    Audited fee structures, batch schedules, and syllabus tracking for UPSC, SSC, NEET, GATE & CAT.
-                  </p>
+              {/* Quick Stats Bar */}
+              <div className="pt-4 grid grid-cols-2 sm:grid-cols-4 gap-3 sm:gap-4 border-t border-slate-800/80 text-xs">
+                <div className="space-y-0.5">
+                  <span className="text-gold-400 font-extrabold text-lg sm:text-xl">11</span>
+                  <p className="text-slate-400 font-medium">Departments</p>
                 </div>
->>>>>>> origin/main
+                <div className="space-y-0.5">
+                  <span className="text-gold-400 font-extrabold text-lg sm:text-xl">40+</span>
+                  <p className="text-slate-400 font-medium">Competitive Exams</p>
+                </div>
+                <div className="space-y-0.5">
+                  <span className="text-gold-400 font-extrabold text-lg sm:text-xl">100%</span>
+                  <p className="text-slate-400 font-medium">Audited Academies</p>
+                </div>
+                <div className="space-y-0.5">
+                  <span className="text-gold-400 font-extrabold text-lg sm:text-xl">Zero Fee</span>
+                  <p className="text-slate-400 font-medium">Student Advisory</p>
+                </div>
+              </div>
+            </div>
+
+            {/* Right Column: Premium Visual Card */}
+            <div className="lg:col-span-5 relative">
+              <div className="relative rounded-2xl overflow-hidden shadow-2xl border border-gold-500/30 group">
+                <img
+                  src="/images/academy_students.jpg"
+                  alt="Students Preparing at Verified Coaching Academy"
+                  className="w-full h-72 sm:h-80 md:h-96 object-cover object-center group-hover:scale-105 transition duration-700 ease-out"
+                  loading="eager"
+                />
+                <div className="absolute inset-0 bg-gradient-to-t from-navy-950/85 via-navy-950/30 to-transparent" />
+
+                {/* Floating Overlay Badge */}
+                <div className="absolute bottom-4 left-4 right-4 space-y-2">
+                  <div className="bg-white/95 dark:bg-navy-900/95 backdrop-blur-md p-3.5 rounded-xl border border-gold-500/30 shadow-lg">
+                    <div className="flex items-center justify-between text-xs pb-1.5 border-b border-slate-100 dark:border-navy-800">
+                      <span className="font-bold text-navy-900 dark:text-white flex items-center gap-1.5">
+                        <GraduationCap className="w-3.5 h-3.5 text-gold-500" />
+                        Verified Partner Academies
+                      </span>
+                      <span className="bg-emerald-500/15 text-emerald-600 dark:text-emerald-400 text-[10px] font-black px-2 py-0.5 rounded">
+                        11 Exam Sectors
+                      </span>
+                    </div>
+                    <p className="text-[11px] text-slate-600 dark:text-slate-300 pt-1.5 font-medium leading-snug">
+                      Audited fee structures, batch schedules, and syllabus tracking for UPSC, SSC, NEET, GATE &amp; CAT.
+                    </p>
+                  </div>
+                </div>
               </div>
             </div>
           </div>
