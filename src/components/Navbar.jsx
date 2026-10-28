@@ -332,8 +332,8 @@ export const Navbar = () => {
             ))}
           </div>
 
-          {/* Action CTAs: Matching Image 1 Layout with Revival Theme Colors (Gold Shimmer & Gold Outline) */}
-          <div className="hidden sm:flex items-center space-x-3">
+          {/* Action CTAs: Exact 1:1 Match with Reference Designs */}
+          <div className="hidden sm:flex items-center space-x-4">
             {user ? (
               <div className="flex items-center space-x-2 bg-slate-900/90 dark:bg-navy-950/90 border border-slate-200 dark:border-gold-500/40 px-3.5 py-1.5 rounded-full text-xs shadow-md">
                 <div className="w-7 h-7 rounded-full bg-gold-500 text-navy-950 font-bold flex items-center justify-center text-xs shadow-gold-glow">
@@ -359,27 +359,25 @@ export const Navbar = () => {
               </div>
             ) : (
               <>
-                {/* Register button: Light mode white with gold border/icon & navy text, Dark mode navy with gold border/icon/text */}
+                {/* Register button: Light mode white bg, 2px gold border, gold icon, dark navy text; Dark mode transparent header bg, 2px gold border, gold icon & text */}
                 <button
                   onClick={() => openAuthModal('register')}
-                  className="px-5 py-2 rounded-full text-xs sm:text-sm font-bold flex items-center space-x-2 transition-all duration-200 border-2 border-gold-500 bg-white text-navy-950 hover:bg-gold-500/5 dark:bg-navy-900 dark:text-gold-400 dark:border-gold-500 dark:hover:bg-navy-800 shadow-sm hover:scale-[1.02] active:scale-95 focus:outline-none focus:ring-2 focus:ring-gold-500 cursor-pointer"
+                  className="h-[42px] px-5 sm:px-6 rounded-full text-xs sm:text-sm font-bold flex items-center justify-center space-x-2 transition-all duration-200 border-2 border-gold-500 bg-white text-navy-950 hover:bg-gold-500/10 dark:bg-transparent dark:text-gold-400 dark:border-gold-500 dark:hover:bg-gold-500/10 shadow-sm hover:scale-[1.02] active:scale-95 focus:outline-none focus:ring-2 focus:ring-gold-500/50 cursor-pointer select-none"
                   aria-label="Register Account"
                 >
-                  <User className="w-4 h-4 text-gold-600 dark:text-gold-400 shrink-0" />
+                  <User className="w-4 h-4 text-gold-500 dark:text-gold-400 shrink-0" strokeWidth={2.2} />
                   <span>Register</span>
                 </button>
                 
-                {/* Sign In button: Light mode gold with dark navy icon & text, Dark mode gold with white icon & text and gold glow */}
+                {/* Sign In button: Solid gold bg; Light mode dark navy icon & text with soft gold shadow; Dark mode white icon & text with soft gold glow */}
                 <button
                   onClick={() => openAuthModal('login')}
-                  className="px-5 py-2 rounded-full text-xs sm:text-sm font-extrabold flex items-center space-x-2 transition-all duration-200 bg-gold-shimmer text-navy-950 shadow-md shadow-gold-500/20 hover:opacity-95 dark:text-white dark:shadow-gold-glow dark:shadow-[0_0_15px_rgba(212,175,55,0.35)] hover:scale-[1.02] active:scale-95 focus:outline-none focus:ring-2 focus:ring-gold-500 cursor-pointer"
+                  className="h-[42px] px-5 sm:px-6 rounded-full text-xs sm:text-sm font-bold flex items-center justify-center space-x-2 transition-all duration-200 bg-gold-500 hover:bg-[#c29d2b] dark:bg-gold-500 dark:hover:bg-[#dfb93e] text-navy-950 dark:text-white shadow-[0_0_20px_rgba(212,175,55,0.35)] dark:shadow-[0_0_25px_rgba(212,175,55,0.45)] hover:scale-[1.02] active:scale-95 focus:outline-none focus:ring-2 focus:ring-gold-500/50 cursor-pointer select-none"
                   aria-label="Sign In to Portal"
                 >
-                  <LogIn className="w-4 h-4 text-navy-950 dark:text-white shrink-0" />
+                  <LogIn className="w-4 h-4 text-navy-950 dark:text-white shrink-0" strokeWidth={2.2} />
                   <span>Sign In</span>
                 </button>
-
-
               </>
             )}
           </div>
@@ -473,18 +471,18 @@ export const Navbar = () => {
                 <>
                   <button
                     onClick={() => { openAuthModal('register'); setMobileMenuOpen(false); }}
-                    className="flex-1 py-3 px-4 rounded-full border-2 border-gold-500 bg-white text-navy-950 dark:bg-navy-900 dark:text-gold-400 dark:border-gold-500 font-bold text-xs shadow-sm hover:scale-[1.02] active:scale-95 transition-all duration-200 flex items-center justify-center space-x-2 cursor-pointer"
+                    className="flex-1 h-[42px] px-4 rounded-full border-2 border-gold-500 bg-white text-navy-950 dark:bg-transparent dark:text-gold-400 dark:border-gold-500 font-bold text-xs shadow-sm hover:scale-[1.02] active:scale-95 transition-all duration-200 flex items-center justify-center space-x-2 cursor-pointer select-none"
                     aria-label="Register Account"
                   >
-                    <User className="w-4 h-4 text-gold-600 dark:text-gold-400 shrink-0" />
+                    <User className="w-4 h-4 text-gold-500 dark:text-gold-400 shrink-0" strokeWidth={2.2} />
                     <span>Register</span>
                   </button>
                   <button
                     onClick={() => { openAuthModal('login'); setMobileMenuOpen(false); }}
-                    className="flex-1 py-3 px-4 rounded-full bg-gold-shimmer text-navy-950 dark:text-white font-extrabold text-xs shadow-md shadow-gold-500/20 dark:shadow-gold-glow hover:opacity-95 hover:scale-[1.02] active:scale-95 transition-all duration-200 flex items-center justify-center space-x-2 cursor-pointer"
+                    className="flex-1 h-[42px] px-4 rounded-full bg-gold-500 hover:bg-[#c29d2b] dark:bg-gold-500 dark:hover:bg-[#dfb93e] text-navy-950 dark:text-white font-bold text-xs shadow-[0_0_20px_rgba(212,175,55,0.35)] dark:shadow-[0_0_25px_rgba(212,175,55,0.45)] hover:scale-[1.02] active:scale-95 transition-all duration-200 flex items-center justify-center space-x-2 cursor-pointer select-none"
                     aria-label="Sign In to Portal"
                   >
-                    <LogIn className="w-4 h-4 text-navy-950 dark:text-white shrink-0" />
+                    <LogIn className="w-4 h-4 text-navy-950 dark:text-white shrink-0" strokeWidth={2.2} />
                     <span>Sign In</span>
                   </button>
                 </>
