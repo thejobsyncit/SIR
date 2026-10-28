@@ -335,7 +335,7 @@ export const ExamDirectoryView = ({ onSelectExam, onSelectDepartment, initialDep
                       id={`explore-academies-${exam.id}`}
                       data-action="exam-enquiry"
                     >
-                      <span>Exam Enquiry</span>
+                      <span>Explore Verified Academies</span>
                       <ArrowRight className="w-3.5 h-3.5" />
                     </button>
                   </div>
@@ -400,7 +400,7 @@ export const ExamDirectoryView = ({ onSelectExam, onSelectDepartment, initialDep
                     id={`explore-intl-academies-${exam.id}`}
                     data-action="exam-enquiry"
                   >
-                    <span>Exam Enquiry</span>
+                    <span>Explore Verified Academies</span>
                     <ArrowRight className="w-3.5 h-3.5" />
                   </button>
                 </div>
