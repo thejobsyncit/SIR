@@ -132,7 +132,7 @@ export const Home = () => {
 
               <button 
                 onClick={() => navigateTo('jobs')}
-                className="w-full py-3 bg-slate-50 dark:bg-navy-900 hover:bg-gold-500 hover:text-slate-900 dark:text-white text-slate-900 dark:text-white font-bold text-xs rounded-xl active-scale transition duration-300 flex items-center justify-center space-x-2"
+                className="w-full py-3 bg-gold-500 hover:bg-gold-400 text-navy-950 font-bold text-xs rounded-xl shadow-md hover:shadow-gold-glow active-scale transition duration-300 flex items-center justify-center space-x-2 cursor-pointer"
               >
                 <span>{t('hero.searchBtn')}</span>
                 <ArrowRight className="w-4 h-4" />

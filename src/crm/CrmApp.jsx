@@ -22,6 +22,7 @@ import { CrmAutomation } from './pages/CrmAutomation';
 import { CrmCalendar } from './pages/CrmCalendar';
 import { CrmSettings } from './pages/CrmSettings';
 import { CrmSuperAdmin } from './pages/CrmSuperAdmin';
+import { CrmConsultingBookings } from './pages/CrmConsultingBookings';
 
 import { Search, Sparkles, X, Send, Bot, Loader2 } from 'lucide-react';
 
@@ -95,6 +96,7 @@ const CrmAppContent = () => {
     }
 
     switch (activeModule) {
+      case 'consulting': return <CrmConsultingBookings />;
       case 'candidates': return <CrmCandidates />;
       case 'pipeline': return <CrmPipeline />;
       case 'domestic': return <CrmDomesticRecruitment />;

@@ -103,13 +103,13 @@ export const EDUCATION_SERVICES_DETAILED = [
     badge: 'Undergraduate & Diploma',
     tagline: 'End-to-End Higher Education & College Admissions Support',
     shortDescription: 'End-to-end guidance for undergraduate and postgraduate college admissions across leading institutions in the GCC and worldwide.',
-    heroDescription: 'Securing admission to your target college requires meticulous planning, competitive application positioning, and strict adherence to institutional deadlines. Our dedicated admissions specialists manage the end-to-end process from application drafting to offer confirmation.',
-    targetAudience: 'High school seniors, diploma holders, and transfer applicants seeking direct admission into accredited bachelor degree or diploma programs.',
+    heroDescription: 'Navigate your higher education journey with structured college and university admission support. From course selection and eligibility checks to application preparation, document verification, application follow-ups, and offer-letter guidance, The Revival International helps students understand and manage their admission process with greater clarity and confidence.',
+    targetAudience: 'Students completing Class 12, diploma holders, postgraduate aspirants, and transfer candidates seeking structured admission guidance.',
     keyStats: [
-      { label: 'Degrees', value: 'UG, B.Sc, B.A, B.E' },
-      { label: 'Support Scope', value: 'End-to-End Submission' },
-      { label: 'Application Form', value: 'Direct Portal Review' },
-      { label: 'Offer Tracking', value: 'Conditional to Firm' }
+      { label: 'Degrees', value: 'UG, PG, B.Sc., B.A., B.E., and other applicable programs' },
+      { label: 'Support Scope', value: 'End-to-End Application Assistance' },
+      { label: 'Application Support', value: 'Direct Portal Guidance' },
+      { label: 'Offer Tracking', value: 'Conditional Offer Follow-up' }
     ],
     keyBenefits: [
       {
@@ -437,18 +437,18 @@ export const EDUCATION_SERVICES_DETAILED = [
   {
     id: 'exec-seminars-lang',
     slug: 'executive-seminars-and-language-test-preparation',
-    title: 'Executive Seminars & Language Test Preparation',
+    title: 'Seminars & Language',
     category: 'Executive & Language',
     badge: 'Mastery & Certification',
-    tagline: 'Professional Executive Development & Certified Test Preparation (DET, OET, IELTS)',
-    shortDescription: 'Focused executive development seminars and structured preparation modules for international language proficiency tests.',
-    heroDescription: 'Whether preparing healthcare professionals for GCC or UK medical licensure with OET, empowering university candidates to ace IELTS and the Duolingo English Test (DET), or elevating corporate managers through executive leadership seminars, our certified trainers deliver benchmark results.',
-    targetAudience: 'Working professionals, corporate executives, registered nurses, doctors, healthcare practitioners, and students requiring certified English language scores.',
+    tagline: 'Executive Development, Professional Seminars & Certified Language Test Preparation',
+    shortDescription: 'Executive development seminars and certified language test preparation for IELTS, OET, DET, and TOEFL.',
+    heroDescription: 'Enhance professional communication, leadership capabilities, and language proficiency through structured training programs tailored to individual and organizational needs. The Revival International offers executive development seminars and preparation support for IELTS, OET, DET, and TOEFL, helping students, healthcare professionals, working professionals, and corporate teams prepare for their academic and career goals.',
+    targetAudience: 'Students, healthcare professionals, university applicants, working professionals, managers, executives, and corporate teams.',
     keyStats: [
-      { label: 'Test Modules', value: 'DET, OET, IELTS' },
-      { label: 'Executive Track', value: 'Leadership & Seminars' },
-      { label: 'Trainer Level', value: 'Certified Specialists' },
-      { label: 'Mock Testing', value: 'Full Diagnostic Simulations' }
+      { label: 'Language Tests', value: 'IELTS, OET, DET, TOEFL' },
+      { label: 'Executive Programs', value: 'Leadership & Seminars' },
+      { label: 'Training Formats', value: 'Individual & Corporate' },
+      { label: 'Learning Approach', value: 'Structured Preparation' }
     ],
     keyBenefits: [
       {

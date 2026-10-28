@@ -4,10 +4,9 @@ import { Calendar as CalendarIcon, Clock, Users, Video, Plus, Filter, X, CheckCi
 import { useCrm } from '../context/CrmContext';
 
 export const CrmCalendar = () => {
-  const { calendarEvents, addCalendarEvent, removeCalendarEvent } = useCrm();
+  const { calendarEvents, addCalendarEvent, removeCalendarEvent, leads = [] } = useCrm();
   const [filterType, setFilterType] = useState('All');
   const [modalOpen, setModalOpen] = useState(false);
-
 
   const [newEvent, setNewEvent] = useState({
     title: '',
@@ -17,7 +16,23 @@ export const CrmCalendar = () => {
     date: '2026-08-12'
   });
 
-  const filteredEvents = calendarEvents.filter(e => filterType === 'All' || e.type === filterType);
+  // Dynamically map consultation leads with dates/scheduled status into calendar events
+  const consultationEvents = leads
+    .filter(l => l.consultationDate || l.status === 'Consultation Scheduled')
+    .map(l => ({
+      id: `cons-${l.id}`,
+      title: `${l.name} • ${l.serviceTitle || 'Consultation'}`,
+      time: l.consultationTime || '11:00 AM GST',
+      type: 'Consultation',
+      candidate: l.name,
+      date: l.consultationDate || (l.createdAt ? l.createdAt.slice(0, 10) : '2026-08-10'),
+      isConsultationLead: true,
+      mode: l.consultationMode || 'Virtual Video Call',
+      referenceNumber: l.referenceNumber || l.id
+    }));
+
+  const allEvents = [...consultationEvents, ...calendarEvents];
+  const filteredEvents = allEvents.filter(e => filterType === 'All' || e.type === filterType);
 
   const handleCreateEvent = (e) => {
     e.preventDefault();
@@ -34,7 +49,7 @@ export const CrmCalendar = () => {
         <div>
           <span className="bg-gold-500/20 text-gold-700 dark:text-gold-400 text-[10px] font-bold px-2.5 py-1 rounded uppercase">Unified Executive Planner</span>
           <h1 className="font-serif text-2xl font-bold text-slate-900 dark:text-white mt-1">Master Schedule & Event Calendar</h1>
-          <p className="text-slate-600 dark:text-slate-400">Interviews, joining dates, visa milestones, client meetings, and recruiter leaves.</p>
+          <p className="text-slate-600 dark:text-slate-400">Interviews, joining dates, consulting appointments, client meetings, and recruiter leaves.</p>
         </div>
 
         <button 
@@ -49,7 +64,7 @@ export const CrmCalendar = () => {
       {/* Filter Chips */}
       <div className="glass-card bg-white dark:bg-navy-900 p-4 rounded-2xl border border-slate-200 dark:border-navy-800 flex flex-wrap gap-2 items-center shadow-sm">
         <span className="font-bold text-slate-800 dark:text-slate-200 mr-2 text-xs">Filter Calendar View:</span>
-        {['All', 'Interview', 'Meeting', 'Joining', 'Travel'].map(type => (
+        {['All', 'Consultation', 'Interview', 'Meeting', 'Joining', 'Travel'].map(type => (
           <button
             key={type}
             onClick={() => setFilterType(type)}
@@ -59,7 +74,7 @@ export const CrmCalendar = () => {
                 : 'bg-slate-100 dark:bg-navy-950 text-slate-700 dark:text-slate-300 hover:bg-slate-200 dark:hover:bg-navy-800 hover:text-slate-900 dark:hover:text-white border border-slate-200 dark:border-navy-800'
             }`}
           >
-            {type}
+            {type === 'Consultation' ? '🎓 Consultation' : type}
           </button>
         ))}
       </div>
@@ -75,22 +90,36 @@ export const CrmCalendar = () => {
           {filteredEvents.map((e) => (
             <div key={e.id} className="p-4 bg-slate-50 dark:bg-navy-950 rounded-xl border border-slate-200 dark:border-navy-800 flex justify-between items-center hover:border-gold-500/50 transition shadow-sm">
               <div className="space-y-1">
-                <p className="font-bold text-slate-900 dark:text-white text-sm">{e.title}</p>
+                <div className="flex items-center gap-2">
+                  <p className="font-bold text-slate-900 dark:text-white text-sm">{e.title}</p>
+                  {e.isConsultationLead && (
+                    <span className="bg-indigo-100 text-indigo-800 dark:bg-indigo-500/20 dark:text-indigo-300 font-extrabold text-[9px] px-2 py-0.5 rounded-full uppercase">
+                      Live Booking
+                    </span>
+                  )}
+                </div>
                 <p className="text-slate-600 dark:text-slate-300 text-xs font-medium">
-                  {e.date} at {e.time} • Candidate: <strong className="text-slate-900 dark:text-white font-bold">{e.candidate}</strong>
+                  {e.date} at {e.time} • Client/Candidate: <strong className="text-slate-900 dark:text-white font-bold">{e.candidate}</strong>
+                  {e.mode && ` • Mode: ${e.mode}`}
                 </p>
               </div>
               <div className="flex items-center gap-3">
-                <span className="bg-amber-100 dark:bg-gold-500/20 text-amber-900 dark:text-gold-400 border border-amber-300 dark:border-gold-500/30 font-bold px-3 py-1 rounded-full text-xs uppercase shadow-xs">
+                <span className={`font-bold px-3 py-1 rounded-full text-xs uppercase shadow-xs ${
+                  e.type === 'Consultation'
+                    ? 'bg-amber-100 text-amber-900 dark:bg-gold-500/20 dark:text-gold-300 border border-amber-300 dark:border-gold-500/30'
+                    : 'bg-blue-100 text-blue-900 dark:bg-blue-500/20 dark:text-blue-300 border border-blue-300 dark:border-blue-500/30'
+                }`}>
                   {e.type}
                 </span>
-                <button
-                  onClick={() => removeCalendarEvent(e.id)}
-                  className="text-slate-400 hover:text-red-500 dark:hover:text-red-400 transition cursor-pointer p-1"
-                  title="Remove Event"
-                >
-                  <Trash2 className="w-4 h-4" />
-                </button>
+                {!e.isConsultationLead && (
+                  <button
+                    onClick={() => removeCalendarEvent(e.id)}
+                    className="text-slate-400 hover:text-red-500 dark:hover:text-red-400 transition cursor-pointer p-1"
+                    title="Remove Event"
+                  >
+                    <Trash2 className="w-4 h-4" />
+                  </button>
+                )}
               </div>
             </div>
           ))}

@@ -31,6 +31,8 @@ vite.config.js.timestamp-*
 *.db-wal
 server/*.backup.db
 backups/
+*.sqlite
+server/*.sqlite
 
 # User uploads
 server/uploads/*

@@ -320,7 +320,7 @@ export const SERVICES_LIST = [
   },
   {
     id: 'exec-seminars-lang',
-    title: 'Executive Seminars & Language Test Preparation',
+    title: 'Seminars & Language',
     icon: 'Languages',
     category: 'Education',
     subCategory: 'Executive',

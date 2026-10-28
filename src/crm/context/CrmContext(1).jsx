@@ -27,7 +27,28 @@ export const CrmProvider = ({ children }) => {
   const loadState = (key, defaultData) => {
     try {
       const saved = localStorage.getItem(key);
-      return saved ? JSON.parse(saved) : defaultData;
+      if (!saved) return defaultData;
+      const parsed = JSON.parse(saved);
+      // Auto-purge any stale fake/mock data from previous seeds
+      if (Array.isArray(parsed)) {
+        const hasMockData = parsed.some(item => 
+          item?.id?.includes?.('REV-CAN-100') ||
+          item?.id?.includes?.('CLI-50') ||
+          item?.id?.includes?.('INT-88') ||
+          item?.id?.includes?.('INV-2026-') ||
+          item?.candidate === 'Alexander Wright' ||
+          item?.name === 'Alexander Wright' ||
+          item?.candidateName === 'Alexander Wright'
+        );
+        if (hasMockData) {
+          localStorage.removeItem(key);
+          return defaultData;
+        }
+      } else if (typeof parsed === 'string' && (parsed.includes('Hassan Al-Habtoor') || parsed.includes('Riyadh candidates'))) {
+        localStorage.removeItem(key);
+        return defaultData;
+      }
+      return parsed;
     } catch {
       return defaultData;
     }
@@ -38,20 +59,9 @@ export const CrmProvider = ({ children }) => {
   const [interviews, setInterviews] = useState(() => loadState('crm_interviews', CRM_INTERVIEWS));
   const [invoices, setInvoices] = useState(() => loadState('crm_invoices', CRM_INVOICES));
   const [auditLogs, setAuditLogs] = useState(() => loadState('crm_auditLogs', AUDIT_LOGS));
-  const [calendarEvents, setCalendarEvents] = useState(() => loadState('crm_calendarEvents', [
-    { id: 1, title: 'Alexander Wright MS Teams Panel Interview', time: '02:00 PM GST', type: 'Interview', candidate: 'Alexander Wright', date: '2026-08-08' },
-    { id: 2, title: 'MOHRE Visa Quota Review Meeting', time: '04:00 PM GST', type: 'Meeting', candidate: 'N/A', date: '2026-08-09' },
-    { id: 3, title: 'Elena Rostova Departure to Singapore', time: '09:30 PM GST', type: 'Travel', candidate: 'Elena Rostova', date: '2026-08-21' },
-    { id: 4, title: 'Dr. Sarah Joining at Saudi German Hospital', time: '08:00 AM AST', type: 'Joining', candidate: 'Dr. Sarah Al-Mansoori', date: '2026-08-18' }
-  ]));
-  const [recruiterTasks, setRecruiterTasks] = useState(() => loadState('crm_recruiterTasks', [
-    { id: 1, text: 'Conduct HR Screening Interview for Alexander Wright', priority: 'High', due: '11:00 AM', completed: false },
-    { id: 2, text: 'Submit 3 ICU Nurse Profiles to Saudi German Hospital', priority: 'Medium', due: '02:00 PM', completed: true },
-    { id: 3, text: 'Follow up on Degree Attestation for Dr. Sarah', priority: 'Urgent', due: '04:30 PM', completed: false }
-  ]));
-  const [recruiterNotes, setRecruiterNotes] = useState(() => loadState('crm_recruiterNotes', 
-    '1. Remind Client VP Hassan Al-Habtoor regarding 90-day replacement clause.\n2. Verify Prometric license for Riyadh candidates.'
-  ));
+  const [calendarEvents, setCalendarEvents] = useState(() => loadState('crm_calendarEvents', []));
+  const [recruiterTasks, setRecruiterTasks] = useState(() => loadState('crm_recruiterTasks', []));
+  const [recruiterNotes, setRecruiterNotes] = useState(() => loadState('crm_recruiterNotes', ''));
 
   useEffect(() => {
     localStorage.setItem('crm_candidates', JSON.stringify(candidates));

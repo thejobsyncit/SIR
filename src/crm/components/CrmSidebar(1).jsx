@@ -47,10 +47,7 @@ export const CrmSidebar = ({ collapsed, setCollapsed }) => {
       {/* Top Brand Logo */}
       <div className="p-4 border-b border-slate-200 dark:border-navy-800 flex items-center justify-between">
         <div className="flex items-center space-x-3 cursor-pointer" onClick={() => setActiveModule('dashboard')}>
-          <div className="w-9 h-9 rounded-xl bg-navy-950 border-2 border-gold-500 flex items-center justify-center shadow-lg shrink-0">
-            <span className="font-serif text-lg font-extrabold text-gold-500">S</span>
-            <span className="font-serif text-sm font-bold text-white">IR</span>
-          </div>
+          <img src="/images/logo.png" alt="The Revival International" className="w-9 h-9 object-contain shrink-0 drop-shadow-sm" />
           {!collapsed && (
             <div>
               <h2 className="font-serif text-base font-bold text-slate-900 dark:text-white tracking-tight leading-none">The Revival CRM</h2>

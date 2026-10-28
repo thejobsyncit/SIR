@@ -267,7 +267,10 @@ const initDb = async (db) => {
     { name: 'currentStage', type: 'TEXT' },
     { name: 'cvPath', type: 'TEXT' },
     { name: 'documentUrls', type: 'TEXT' },
-    { name: 'customFields', type: 'TEXT' }
+    { name: 'customFields', type: 'TEXT' },
+    { name: 'consultationDate', type: 'TEXT' },
+    { name: 'consultationTime', type: 'TEXT' },
+    { name: 'consultationMode', type: 'TEXT' }
   ]);
 
   // Safe migration: Ensure clients/organizations table has enterprise fields
@@ -284,6 +287,7 @@ const initDb = async (db) => {
     { name: 'updatedAt', type: 'DATETIME' }
   ]);
 
+<<<<<<< HEAD
   // Safe migration: Ensure student_academy_enquiries table has exam enquiry fields
   await ensureColumns('student_academy_enquiries', [
     { name: 'qualification', type: 'TEXT' },
@@ -364,5 +368,8 @@ const initDb = async (db) => {
     console.warn('Organization seed check warning:', seedErr.message);
   }
 
+=======
+  // No automatic fake/seed organizations - database starts clean for real entries only
+>>>>>>> origin/main
   console.log('Database initialized successfully with SQLite.');
 };

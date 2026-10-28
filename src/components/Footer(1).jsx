@@ -1,8 +1,15 @@
 import React from 'react';
 import { useApp } from '../context/AppContext';
+<<<<<<< HEAD
 import {
   Building2, Phone, Mail, MapPin, Globe, Shield, Award,
   Send, MessageSquare, Linkedin, Twitter, Facebook, Instagram, Youtube, CheckCircle2
+=======
+import { BrandLogoIcon } from './BrandLogoIcon';
+import { 
+  Building2, Phone, Mail, MapPin, Globe, Shield, Award, 
+  Send, MessageSquare, Linkedin, Twitter, Facebook, Instagram, Youtube, CheckCircle2 
+>>>>>>> origin/main
 } from 'lucide-react';
 import { COUNTRIES_LIST } from '../data/mockData';
 
@@ -65,10 +72,7 @@ export const Footer = () => {
           {/* Col 1: Brand Info */}
           <div className="lg:col-span-2 space-y-4">
             <div className="flex items-center space-x-3 cursor-pointer" onClick={() => navigateTo('home')}>
-              <div className="w-10 h-10 rounded-xl bg-slate-50 dark:bg-navy-900 border-2 border-gold-500 flex items-center justify-center shadow-lg">
-                <span className="font-serif text-xl font-extrabold text-gold-500">S</span>
-                <span className="font-serif text-lg font-bold text-slate-900 dark:text-white">IR</span>
-              </div>
+              <BrandLogoIcon className="w-10 h-10 shadow-md" />
               <div>
                 <span className="font-serif text-xl font-bold text-slate-900 dark:text-white tracking-tight">The Revival International</span>
                 <p className="text-[10px] uppercase text-gold-400 font-semibold tracking-widest">Global HR & Manpower Consultancy</p>

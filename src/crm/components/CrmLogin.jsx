@@ -195,11 +195,9 @@ export const CrmLogin = () => {
       <ScrollReveal>
       <div className="max-w-md w-full glass-card bg-navy-900/90 border border-gold-500/30 rounded-3xl p-8 shadow-luxury relative z-10 space-y-6 animate-in fade-in zoom-in-95">
         
-        {/* Company Logo Header */}
         <div className="text-center space-y-2">
-          <div className="w-16 h-16 rounded-2xl bg-navy-950 border-2 border-gold-500 flex items-center justify-center shadow-gold-glow mx-auto mb-2">
-            <span className="font-serif text-3xl font-extrabold text-gold-500">R</span>
-            <span className="font-serif text-2xl font-bold text-white">I</span>
+          <div className="w-16 h-16 flex items-center justify-center mx-auto mb-2 select-none">
+            <img src="/images/logo.png" alt="The Revival International" className="w-full h-full object-contain drop-shadow-md" />
           </div>
           <h2 className="font-serif text-2xl font-extrabold text-white tracking-tight">
             The Revival International Enterprise CRM

@@ -5,10 +5,10 @@ import { EducationSEO } from '../components/EducationSEO';
 import { EducationEnquiryModal } from '../components/EducationEnquiryModal';
 import ScrollReveal from '../components/ScrollReveal';
 import { trackServiceView, trackCtaClick } from '../services/analytics';
-import {
-  ArrowLeft, ArrowRight, CheckCircle2, ChevronDown, ChevronUp,
-  HelpCircle, FileText, Users, Compass, Globe, Sparkles, Building2,
-  Phone, Mail, Calendar, ShieldCheck, Award, GraduationCap, School,
+import { 
+  ArrowLeft, ArrowRight, CheckCircle2, ChevronDown, ChevronUp, 
+  HelpCircle, FileText, Users, Compass, Globe, Sparkles, Building2, 
+  Phone, Mail, Calendar, ShieldCheck, Award, GraduationCap, School, 
   Plane, Languages
 } from 'lucide-react';
 
@@ -22,6 +22,9 @@ const iconMap = {
 };
 
 import { InternationalConsultingPage } from './InternationalConsultingPage';
+import { InternationalAdmissionsPage } from './InternationalAdmissionsPage';
+import { CollegeAdmissionsPage } from './CollegeAdmissionsPage';
+import { SeminarsAndLanguagePage } from './SeminarsAndLanguagePage';
 import { StudentAcademyPage } from './StudentAcademyPage';
 import { CourseGuidanceCatalogue } from '../components/CourseGuidanceCatalogue';
 
@@ -35,8 +38,29 @@ export const EducationServiceDetail = ({ serviceId }) => {
     return <InternationalConsultingPage />;
   }
 
+<<<<<<< HEAD
   if (service.id === 'school-academy' || cleanId === 'school-academy' || cleanId === 'student-academy' || cleanId === 'academy-for-school-students') {
+=======
+  if (service.id === 'intl-adm' || service.id === 'international-admissions') {
+    return <InternationalAdmissionsPage />;
+  }
+
+  if (service.id === 'college-adm' || service.id === 'college-admission' || service.slug === 'college-admission-assistance') {
+    return <CollegeAdmissionsPage />;
+  }
+
+  if (service.id === 'school-academy') {
+>>>>>>> origin/main
     return <StudentAcademyPage />;
+  }
+
+  if (
+    service.id === 'exec-seminars-lang' ||
+    service.slug === 'executive-seminars-and-language-test-preparation' ||
+    service.id === 'seminars-and-language' ||
+    service.slug === 'seminars-and-language'
+  ) {
+    return <SeminarsAndLanguagePage />;
   }
 
   const [modalOpen, setModalOpen] = useState(false);
@@ -115,14 +139,14 @@ export const EducationServiceDetail = ({ serviceId }) => {
       <div className="bg-white/80 dark:bg-navy-950/80 border-b border-slate-200 dark:border-navy-800 backdrop-blur-sm sticky top-[73px] z-30">
         <div className="max-w-7xl mx-auto px-4 sm:px-8 py-3 flex items-center justify-between text-xs">
           <nav aria-label="Breadcrumb" className="flex items-center space-x-2 text-slate-500 dark:text-slate-400 font-medium overflow-x-auto whitespace-nowrap">
-            <button
+            <button 
               onClick={() => navigateTo('home')}
               className="hover:text-gold-500 transition focus:outline-none focus:text-gold-500"
             >
               Home
             </button>
             <span>/</span>
-            <button
+            <button 
               onClick={() => navigateTo('education')}
               className="hover:text-gold-500 transition focus:outline-none focus:text-gold-500"
             >
@@ -151,61 +175,98 @@ export const EducationServiceDetail = ({ serviceId }) => {
           <div className="glass-card bg-white dark:bg-navy-900 border border-slate-200 dark:border-gold-500/30 rounded-3xl p-6 sm:p-10 md:p-12 shadow-luxury relative overflow-hidden">
             <div className="absolute top-0 right-0 w-96 h-96 bg-gold-500/5 rounded-full blur-3xl -z-10 pointer-events-none" />
 
-            <div className="max-w-3xl space-y-5">
-              <div className="flex flex-wrap items-center gap-2">
-                <span className="bg-gold-500/15 text-gold-600 dark:text-gold-400 text-xs font-black px-3 py-1 rounded-full uppercase tracking-wider border border-gold-500/30">
-                  {service.badge}
-                </span>
-                <span className="bg-emerald-500/15 text-emerald-600 dark:text-emerald-400 text-xs font-extrabold px-3 py-1 rounded-full uppercase border border-emerald-500/30">
-                  Verified Service • {service.category}
-                </span>
+            <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 lg:gap-12 items-center">
+              {/* Left Column: Heading, Subtitle, Description, CTAs, and Key Stats */}
+              <div className="lg:col-span-7 space-y-5">
+                <div className="flex flex-wrap items-center gap-2">
+                  <span className="bg-gold-500/15 text-gold-600 dark:text-gold-400 text-xs font-black px-3 py-1 rounded-full uppercase tracking-wider border border-gold-500/30">
+                    {service.badge}
+                  </span>
+                  <span className="bg-emerald-500/15 text-emerald-600 dark:text-emerald-400 text-xs font-extrabold px-3 py-1 rounded-full uppercase border border-emerald-500/30">
+                    Verified Service • {service.category}
+                  </span>
+                </div>
+
+                <h1 className="font-serif text-3xl sm:text-4xl md:text-5xl font-black text-navy-900 dark:text-white leading-tight">
+                  {service.title}
+                </h1>
+
+                <p className="text-base sm:text-lg text-gold-600 dark:text-gold-400 font-serif italic">
+                  {service.tagline}
+                </p>
+
+                <p className="text-xs sm:text-sm text-slate-700 dark:text-slate-300 leading-relaxed font-medium">
+                  {service.heroDescription}
+                </p>
+
+                {/* CTAs */}
+                <div className="pt-3 flex flex-wrap gap-3.5 items-center">
+                  <button
+                    onClick={() => {
+                      trackCtaClick('Book Free Consultation', 'service_detail_hero', service.id);
+                      setSelectedSubProgram(null);
+                      setModalOpen(true);
+                    }}
+                    className="px-6 py-3.5 bg-gold-shimmer text-navy-950 font-extrabold text-xs sm:text-sm rounded-xl shadow-gold-glow hover:opacity-95 transition flex items-center gap-2 focus:outline-none focus:ring-2 focus:ring-gold-500 cursor-pointer"
+                  >
+                    <Calendar className="w-4 h-4" />
+                    <span>Book Free Consultation</span>
+                  </button>
+
+                  <button
+                    onClick={() => {
+                      const el = document.getElementById('workflow-section');
+                      if (el) el.scrollIntoView({ behavior: 'smooth' });
+                    }}
+                    className="px-5 py-3.5 bg-slate-100 dark:bg-navy-800 text-slate-800 dark:text-slate-200 hover:text-navy-900 dark:hover:text-white font-bold text-xs sm:text-sm rounded-xl transition border border-slate-200 dark:border-navy-700 focus:outline-none focus:ring-2 focus:ring-gold-500 cursor-pointer flex items-center gap-2"
+                  >
+                    <Compass className="w-4 h-4 text-gold-500" />
+                    <span>Explore Methodology ↓</span>
+                  </button>
+                </div>
+
+                {/* Key Quick Stats */}
+                <div className="pt-6 border-t border-slate-100 dark:border-navy-800 grid grid-cols-2 sm:grid-cols-4 gap-4">
+                  {service.keyStats.map((stat, idx) => (
+                    <div key={idx} className="space-y-0.5">
+                      <p className="text-[10px] text-slate-500 uppercase font-bold tracking-wider">{stat.label}</p>
+                      <p className="text-xs sm:text-sm font-black text-navy-900 dark:text-white">{stat.value}</p>
+                    </div>
+                  ))}
+                </div>
               </div>
 
-              <h1 className="font-serif text-3xl sm:text-4xl md:text-5xl font-black text-navy-900 dark:text-white leading-tight">
-                {service.title}
-              </h1>
+              {/* Right Column: Premium Visual Card (matching International Consulting) */}
+              <div className="lg:col-span-5 relative">
+                <div className="relative rounded-2xl overflow-hidden shadow-2xl border border-slate-200 dark:border-gold-500/30 group">
+                  <img
+                    src={service.id === 'college-adm' ? '/images/international_admissions.jpg' : '/images/academy_students.jpg'}
+                    alt={service.title}
+                    className="w-full h-72 sm:h-80 md:h-96 object-cover object-center group-hover:scale-105 transition duration-700 ease-out"
+                    loading="eager"
+                  />
+                  <div className="absolute inset-0 bg-gradient-to-t from-navy-950/85 via-navy-950/30 to-transparent" />
 
-              <p className="text-base sm:text-lg text-gold-600 dark:text-gold-400 font-serif italic">
-                {service.tagline}
-              </p>
-
-              <p className="text-xs sm:text-sm text-slate-700 dark:text-slate-300 leading-relaxed font-medium">
-                {service.heroDescription}
-              </p>
-
-              {/* CTAs */}
-              <div className="pt-3 flex flex-wrap gap-3.5 items-center">
-                <button
-                  onClick={() => {
-                    trackCtaClick('Book Free Consultation', 'service_detail_hero', service.id);
-                    setSelectedSubProgram(null);
-                    setModalOpen(true);
-                  }}
-                  className="px-6 py-3 bg-gold-shimmer text-navy-950 font-extrabold text-xs rounded-xl shadow-gold-glow hover:opacity-95 transition flex items-center gap-2 focus:outline-none focus:ring-2 focus:ring-gold-500"
-                >
-                  <Calendar className="w-4 h-4" />
-                  <span>Book Free Consultation</span>
-                </button>
-
-                <button
-                  onClick={() => {
-                    const el = document.getElementById('workflow-section');
-                    if (el) el.scrollIntoView({ behavior: 'smooth' });
-                  }}
-                  className="px-5 py-3 bg-slate-100 dark:bg-navy-800 text-slate-800 dark:text-slate-200 hover:text-navy-900 dark:hover:text-white font-bold text-xs rounded-xl transition border border-slate-200 dark:border-navy-700 focus:outline-none focus:ring-2 focus:ring-gold-500"
-                >
-                  <span>Explore Methodology ↓</span>
-                </button>
-              </div>
-
-              {/* Key Quick Stats */}
-              <div className="pt-6 border-t border-slate-100 dark:border-navy-800 grid grid-cols-2 sm:grid-cols-4 gap-4">
-                {service.keyStats.map((stat, idx) => (
-                  <div key={idx} className="space-y-0.5">
-                    <p className="text-[10px] text-slate-500 uppercase font-bold tracking-wider">{stat.label}</p>
-                    <p className="text-xs sm:text-sm font-black text-navy-900 dark:text-white">{stat.value}</p>
+                  {/* Floating Overlay Badge */}
+                  <div className="absolute bottom-4 left-4 right-4 space-y-2">
+                    <div className="bg-white/95 dark:bg-navy-900/95 backdrop-blur-md p-3.5 rounded-xl border border-gold-500/30 shadow-lg">
+                      <div className="flex items-center justify-between text-xs pb-1.5 border-b border-slate-100 dark:border-navy-800">
+                        <span className="font-bold text-navy-900 dark:text-white flex items-center gap-1.5">
+                          <Compass className="w-3.5 h-3.5 text-gold-500" />
+                          {service.id === 'school-career' ? 'Scientific Career & Stream Mapping' : 'Verified Admissions Support'}
+                        </span>
+                        <span className="bg-emerald-500/15 text-emerald-600 dark:text-emerald-400 text-[10px] font-black px-2 py-0.5 rounded">
+                          {service.id === 'school-career' ? 'Grades 8–12 & UG/PG' : 'UG & PG Tracks'}
+                        </span>
+                      </div>
+                      <p className="text-[11px] text-slate-600 dark:text-slate-300 pt-1.5 font-medium leading-snug">
+                        {service.id === 'school-career'
+                          ? 'Objective aptitude diagnostics and stream alignment across Science, Commerce, Humanities & STEM.'
+                          : 'Direct application portal coordination, document verification, and offer tracking.'}
+                      </p>
+                    </div>
                   </div>
-                ))}
+                </div>
               </div>
             </div>
           </div>
@@ -289,7 +350,7 @@ export const EducationServiceDetail = ({ serviceId }) => {
 
         {/* Key Benefits Grid or Course Guidance Catalogue */}
         {service.id === 'school-career' ? (
-          <CourseGuidanceCatalogue
+          <CourseGuidanceCatalogue 
             onInquire={(course) => {
               setSelectedSubProgram(`${course.abbreviation} (${course.name})`);
               setModalOpen(true);
@@ -312,7 +373,7 @@ export const EducationServiceDetail = ({ serviceId }) => {
 
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
                 {(service.keyBenefits || []).map((benefit, idx) => (
-                  <div
+                  <div 
                     key={idx}
                     className="glass-card bg-white dark:bg-navy-900 border border-slate-200 dark:border-navy-800 rounded-2xl p-6 space-y-3 hover:border-gold-500 transition duration-300"
                   >
@@ -377,7 +438,7 @@ export const EducationServiceDetail = ({ serviceId }) => {
 
             <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
               {service.howItWorks.map((step) => (
-                <div
+                <div 
                   key={step.step}
                   className="glass-card bg-white dark:bg-navy-900 border border-slate-200 dark:border-navy-800 rounded-2xl p-5 space-y-3 relative hover:border-gold-500 transition duration-300 flex flex-col justify-between"
                 >
@@ -422,7 +483,7 @@ export const EducationServiceDetail = ({ serviceId }) => {
 
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-3.5">
               {service.requiredDocuments.map((doc, idx) => (
-                <div
+                <div 
                   key={idx}
                   className="p-3.5 rounded-xl bg-slate-50 dark:bg-navy-950 border border-slate-200 dark:border-navy-800 text-xs flex items-start gap-2.5"
                 >
@@ -448,7 +509,7 @@ export const EducationServiceDetail = ({ serviceId }) => {
 
             <div className="space-y-3">
               {service.faqs.map((faq, idx) => (
-                <div
+                <div 
                   key={idx}
                   className="glass-card bg-white dark:bg-navy-900 border border-slate-200 dark:border-navy-800 rounded-2xl overflow-hidden transition"
                 >

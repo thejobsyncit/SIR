@@ -3,7 +3,7 @@ import { useCrm } from '../context/CrmContext';
 import { 
   LayoutDashboard, Users, GitMerge, Home, Globe, Building2, UserCheck, 
   Calendar, FileText, ShieldCheck, CreditCard, BarChart3, Sparkles, Zap, 
-  Settings, Lock, LogOut, Award, ChevronRight 
+  Settings, Lock, LogOut, Award, ChevronRight, CalendarCheck
 } from 'lucide-react';
 
 export const CrmSidebar = ({ collapsed, setCollapsed }) => {
@@ -11,6 +11,7 @@ export const CrmSidebar = ({ collapsed, setCollapsed }) => {
 
   const menuItems = [
     { id: 'dashboard', label: 'Dashboard', icon: LayoutDashboard },
+    { id: 'consulting', label: 'Consulting & Bookings', icon: CalendarCheck },
     { id: 'candidates', label: 'Candidates', icon: Users },
     { id: 'pipeline', label: 'Recruitment Pipeline', icon: GitMerge },
     { id: 'domestic', label: 'Domestic Hiring', icon: Home },
@@ -47,10 +48,7 @@ export const CrmSidebar = ({ collapsed, setCollapsed }) => {
       {/* Top Brand Logo */}
       <div className="p-4 border-b border-slate-200 dark:border-navy-800 flex items-center justify-between">
         <div className="flex items-center space-x-3 cursor-pointer" onClick={() => setActiveModule('dashboard')}>
-          <div className="w-9 h-9 rounded-xl bg-navy-950 border-2 border-gold-500 flex items-center justify-center shadow-lg shrink-0">
-            <span className="font-serif text-lg font-extrabold text-gold-500">R</span>
-            <span className="font-serif text-sm font-bold text-white">I</span>
-          </div>
+          <img src="/images/logo.png" alt="The Revival International" className="w-9 h-9 object-contain shrink-0 drop-shadow-sm" />
           {!collapsed && (
             <div>
               <h2 className="font-serif text-base font-bold text-slate-900 dark:text-white tracking-tight leading-none">The Revival CRM</h2>
@@ -81,6 +79,11 @@ export const CrmSidebar = ({ collapsed, setCollapsed }) => {
             >
               <Icon className={`w-4 h-4 shrink-0 ${isActive ? 'text-gold-500' : 'text-slate-600 dark:text-slate-200'}`} />
               {!collapsed && <span className="truncate flex-1 text-left">{item.label}</span>}
+              {!collapsed && item.id === 'consulting' && leads.filter(l => l.consultationDate || l.status === 'Consultation Scheduled' || (l.serviceId && (l.serviceId.includes('consult') || l.serviceId.includes('adm')))).length > 0 && (
+                <span className="px-1.5 py-0.5 text-[9px] font-extrabold rounded-full bg-amber-500 text-navy-950 font-mono shadow-xs">
+                  {leads.filter(l => l.consultationDate || l.status === 'Consultation Scheduled' || (l.serviceId && (l.serviceId.includes('consult') || l.serviceId.includes('adm')))).length}
+                </span>
+              )}
               {!collapsed && item.id === 'super-admin' && leads.filter(l => l.status === 'New').length > 0 && (
                 <span className="px-1.5 py-0.5 text-[9px] font-extrabold rounded-full bg-emerald-500 text-white animate-pulse">
                   {leads.filter(l => l.status === 'New').length}

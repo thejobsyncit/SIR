@@ -1427,7 +1427,9 @@ app.post(['/api/leads', '/api/consulting/enquiries'], async (req, res) => {
       jobTitle, skills, experience, workLocation, salaryRange, vacancies,
       seniority, industry, hiringTimeline, joiningDate, contractDuration,
       startDate, endDate, shiftRequirements, jobCategory, visaCategory,
-      currentStage, cvPath, documentUrls, customFields
+      currentStage, cvPath, documentUrls, customFields,
+      // Consultation scheduling & Booking fields
+      consultationDate, consultationTime, consultationMode, status: requestedStatus
     } = req.body;
 
     // 2. Strict Input Validation & Length Limits
@@ -1500,7 +1502,12 @@ app.post(['/api/leads', '/api/consulting/enquiries'], async (req, res) => {
       'overseas-place': 'REV-OVS',
       'visa-assist': 'REV-VISA',
       'work-permit': 'REV-WPR',
-      'intl-consult': 'REV-IC'
+      'intl-consult': 'REV-IC',
+      'college-adm': 'REV-CADM',
+      'intl-adm': 'REV-ADM',
+      'exec-seminars-lang': 'REV-SL',
+      'school-career': 'REV-CAR',
+      'school-academy': 'REV-ACA'
     };
     const isConsulting = safeServiceId === 'intl-consult' || (safeServiceTitle && safeServiceTitle.toLowerCase().includes('consulting'));
     const codePrefix = servicePrefixes[safeServiceId] || (isConsulting ? 'REV-IC' : 'REV-EDU');
@@ -1524,18 +1531,24 @@ app.post(['/api/leads', '/api/consulting/enquiries'], async (req, res) => {
       }
     }
 
+    const finalStatus = requestedStatus || (consultationDate ? 'Consultation Scheduled' : 'New Enquiry');
+
+    const defaultAdvisor = (typeof req.body.assignedEmployee === 'string' && req.body.assignedEmployee.trim()) ? req.body.assignedEmployee.trim() : 'Dhanalakshimi';
+
     // 5. Parameterized SQL insert into leads with all service fields
     await db.run(
       `INSERT INTO leads (
         id, name, email, company, phone, message, serviceId, serviceTitle,
         referenceNumber, countryInterest, assistanceType, intakeTerm, degreeLevel,
         preferredContactMethod, organizationId, organizationName, priority, status,
+        assignedEmployee,
         utmSource, utmMedium, utmCampaign, utmTerm, utmContent, referrer,
         jobTitle, skills, experience, workLocation, salaryRange, vacancies,
         seniority, industry, hiringTimeline, joiningDate, contractDuration,
         startDate, endDate, shiftRequirements, jobCategory, visaCategory,
-        currentStage, cvPath, documentUrls, customFields
-      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+        currentStage, cvPath, documentUrls, customFields,
+        consultationDate, consultationTime, consultationMode
+      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
       [
         leadId,
         name.trim(),
@@ -1554,7 +1567,8 @@ app.post(['/api/leads', '/api/consulting/enquiries'], async (req, res) => {
         resolvedOrgId,
         resolvedOrgName,
         priority || 'Medium',
-        'New Enquiry',
+        finalStatus,
+        defaultAdvisor,
         safeUtmSource,
         safeUtmMedium,
         safeUtmCampaign,
@@ -1581,7 +1595,10 @@ app.post(['/api/leads', '/api/consulting/enquiries'], async (req, res) => {
         currentStage ? String(currentStage).trim() : null,
         cvPath ? String(cvPath).trim() : null,
         documentUrls ? (typeof documentUrls === 'object' ? JSON.stringify(documentUrls) : String(documentUrls)) : null,
-        customFields ? (typeof customFields === 'object' ? JSON.stringify(customFields) : String(customFields)) : null
+        customFields ? (typeof customFields === 'object' ? JSON.stringify(customFields) : String(customFields)) : null,
+        consultationDate ? String(consultationDate).trim() : null,
+        consultationTime ? String(consultationTime).trim() : null,
+        consultationMode ? String(consultationMode).trim() : null
       ]
     );
 
@@ -1594,9 +1611,9 @@ app.post(['/api/leads', '/api/consulting/enquiries'], async (req, res) => {
         activityId,
         leadId,
         resolvedOrgId,
-        'Inquiry Received',
-        `New ${safeServiceTitle || 'Service'} Request (${refCode})`,
-        `Client submitted enquiry for ${safeServiceTitle || 'Service'}. Details: ${jobTitle ? `Job: ${jobTitle}. ` : ''}${countryInterest ? `Country: ${countryInterest}. ` : ''}Contact: ${preferredContactMethod || 'WhatsApp'}. Attribution: ${safeUtmSource ? `${safeUtmSource} / ${safeUtmMedium || 'cpc'}` : 'Direct/Organic'}.`,
+        consultationDate ? 'Consultation Booked' : 'Inquiry Received',
+        `${consultationDate ? 'Consultation Appointment Booked' : 'New ' + (safeServiceTitle || 'Service') + ' Request'} (${refCode})`,
+        `Client submitted enquiry for ${safeServiceTitle || 'Service'}. ${consultationDate ? `Booked Date: ${consultationDate} at ${consultationTime || 'TBD'} via ${consultationMode || 'Virtual Video'}. ` : ''}Details: ${jobTitle ? `Job: ${jobTitle}. ` : ''}${countryInterest ? `Country: ${countryInterest}. ` : ''}Contact: ${preferredContactMethod || 'WhatsApp'}. Attribution: ${safeUtmSource ? `${safeUtmSource} / ${safeUtmMedium || 'cpc'}` : 'Direct/Organic'}.`,
         'System Inbound'
       ]
     );
@@ -1617,7 +1634,11 @@ app.post(['/api/leads', '/api/consulting/enquiries'], async (req, res) => {
       preferredContactMethod,
       organizationId: resolvedOrgId,
       organizationName: resolvedOrgName,
-      status: 'New Enquiry',
+      status: finalStatus,
+      assignedEmployee: defaultAdvisor,
+      consultationDate: consultationDate || null,
+      consultationTime: consultationTime || null,
+      consultationMode: consultationMode || null,
       utmSource: safeUtmSource,
       utmMedium: safeUtmMedium,
       utmCampaign: safeUtmCampaign,
@@ -1668,7 +1689,8 @@ app.patch(['/api/leads/:id', '/api/consulting/enquiries/:id'], async (req, res) 
       jobTitle, skills, experience, workLocation, salaryRange, vacancies,
       seniority, industry, hiringTimeline, joiningDate, contractDuration,
       startDate, endDate, shiftRequirements, jobCategory, visaCategory,
-      currentStage, cvPath
+      currentStage, cvPath, consultationDate, consultationTime, consultationMode,
+      countryInterest, intakeTerm, degreeLevel, documentUrls, customFields
     } = req.body;
 
     const allowedStatuses = [
@@ -1676,6 +1698,10 @@ app.patch(['/api/leads/:id', '/api/consulting/enquiries/:id'], async (req, res) 
       'Follow-up Required', 'Consultation Scheduled', 'Consultation Completed',
       'Qualified', 'Proposal Pending', 'Proposal or Next Steps Pending',
       'In Progress', 'Converted', 'Completed', 'Closed / Lost', 'Closed', 'Archived',
+      // College & University Admission Workflow Stages (Phase 7)
+      'Course Selection', 'Documents Pending', 'Application in Preparation',
+      'Application Submitted', 'Awaiting Institution Decision', 'Offer Received',
+      'Enrollment in Progress',
       // Recruitment & Staffing Workflow Stages
       'Screening', 'Shortlisted', 'Interview Scheduled', 'Interview Completed',
       'Selected', 'Offer Released', 'Under Review', 'Visa Processing',
@@ -1725,6 +1751,14 @@ app.patch(['/api/leads/:id', '/api/consulting/enquiries/:id'], async (req, res) 
         visaCategory = COALESCE(?, visaCategory),
         currentStage = COALESCE(?, currentStage),
         cvPath = COALESCE(?, cvPath),
+        consultationDate = COALESCE(?, consultationDate),
+        consultationTime = COALESCE(?, consultationTime),
+        consultationMode = COALESCE(?, consultationMode),
+        countryInterest = COALESCE(?, countryInterest),
+        intakeTerm = COALESCE(?, intakeTerm),
+        degreeLevel = COALESCE(?, degreeLevel),
+        documentUrls = COALESCE(?, documentUrls),
+        customFields = COALESCE(?, customFields),
         updatedAt = CURRENT_TIMESTAMP
        WHERE id = ?`,
       [
@@ -1758,6 +1792,14 @@ app.patch(['/api/leads/:id', '/api/consulting/enquiries/:id'], async (req, res) 
         visaCategory !== undefined ? visaCategory : null,
         currentStage !== undefined ? currentStage : null,
         cvPath !== undefined ? cvPath : null,
+        consultationDate !== undefined ? consultationDate : null,
+        consultationTime !== undefined ? consultationTime : null,
+        consultationMode !== undefined ? consultationMode : null,
+        countryInterest !== undefined ? countryInterest : null,
+        intakeTerm !== undefined ? intakeTerm : null,
+        degreeLevel !== undefined ? degreeLevel : null,
+        documentUrls !== undefined ? (typeof documentUrls === 'object' ? JSON.stringify(documentUrls) : String(documentUrls)) : null,
+        customFields !== undefined ? (typeof customFields === 'object' ? JSON.stringify(customFields) : String(customFields)) : null,
         id
       ]
     );
