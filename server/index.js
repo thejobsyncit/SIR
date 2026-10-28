@@ -2486,12 +2486,14 @@ app.post('/api/student-academy/enquiries', async (req, res) => {
     // 1. Insert into student_academy_enquiries table
     await db.run(
       `INSERT INTO student_academy_enquiries 
-       (id, referenceNumber, studentName, studentEmail, studentPhone, preferredLearningMode, batchPreference, questions, academyId, academyName, examId, examName, courseId, courseName, qualification, preferredLocation, coachingMode, enquiryType, status)
-       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+       (id, referenceNumber, studentName, email, phone, studentEmail, studentPhone, preferredLearningMode, batchPreference, questions, academyId, academyName, examId, examName, courseId, courseName, qualification, preferredLocation, coachingMode, enquiryType, status)
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
       [
         enquiryId,
         refNum,
         studentName.trim(),
+        email.trim().toLowerCase(),
+        phone.trim(),
         email.trim().toLowerCase(),
         phone.trim(),
         learningMode,
