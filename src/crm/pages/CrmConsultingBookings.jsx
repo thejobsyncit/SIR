@@ -649,7 +649,9 @@ export const CrmConsultingBookings = () => {
               <thead>
                 <tr className="bg-slate-100 dark:bg-navy-950 text-slate-700 dark:text-gold-400 font-serif uppercase tracking-wider text-[10px] border-b border-slate-200 dark:border-navy-800">
                   <th className="p-3.5 font-extrabold">REF CODE & DATE</th>
-                  <th className="p-3.5 font-extrabold">CLIENT / CANDIDATE</th>
+                  <th className="p-3.5 font-extrabold min-w-[150px]">FULL NAME</th>
+                  <th className="p-3.5 font-extrabold min-w-[200px]">EMAIL ADDRESS</th>
+                  <th className="p-3.5 font-extrabold min-w-[160px]">MOBILE NUMBER</th>
                   <th className="p-3.5 font-extrabold">CONSULTATION TRACK</th>
                   <th className="p-3.5 font-extrabold">SCHEDULED APPOINTMENT</th>
                   <th className="p-3.5 font-extrabold">CONSULTATION MODE</th>
@@ -661,7 +663,7 @@ export const CrmConsultingBookings = () => {
               <tbody className="divide-y divide-slate-100 dark:divide-navy-800 text-slate-800 dark:text-slate-300">
                 {filteredBookings.length === 0 ? (
                   <tr>
-                    <td colSpan="8" className="p-12 text-center text-slate-500 dark:text-slate-400">
+                    <td colSpan="10" className="p-12 text-center text-slate-500 dark:text-slate-400">
                       <CalendarCheck className="w-10 h-10 text-slate-400 mx-auto mb-2 opacity-50" />
                       <p className="font-bold text-sm">No consultation bookings match your current criteria.</p>
                       <p className="text-[11px] mt-1">Try resetting filters or click "Book Direct Consultation" to record a new booking.</p>
@@ -688,35 +690,53 @@ export const CrmConsultingBookings = () => {
                           </span>
                         </td>
 
-                        {/* Client / Candidate Contact */}
-                        <td className="p-3.5">
-                          <div className="font-bold text-slate-900 dark:text-white flex items-center gap-1.5">
-                            <span>{booking.name}</span>
+                        {/* Full Name */}
+                        <td className="p-3.5 align-top min-w-[150px]">
+                          <div className="font-bold text-slate-900 dark:text-white whitespace-normal break-words">
+                            {booking.name || 'Anonymous Client'}
                           </div>
-                          <div className="text-[11px] text-slate-500 dark:text-slate-400 flex items-center gap-1 mt-0.5">
-                            <span className="truncate max-w-[150px]">{booking.email}</span>
-                          </div>
-                          <div className="flex items-center gap-2 mt-1">
-                            <span className="font-mono text-[10px] text-slate-600 dark:text-slate-300 font-semibold">{booking.phone}</span>
-                            {whatsappUrl && (
-                              <a
-                                href={whatsappUrl}
-                                target="_blank"
-                                rel="noopener noreferrer"
-                                className="text-emerald-600 dark:text-emerald-400 hover:opacity-80 transition"
-                                title="Chat on WhatsApp"
-                              >
-                                <MessageSquare className="w-3.5 h-3.5" />
-                              </a>
-                            )}
+                        </td>
+
+                        {/* Email Address */}
+                        <td className="p-3.5 align-top min-w-[200px] max-w-[260px]">
+                          {booking.email ? (
                             <a
                               href={mailtoUrl}
-                              className="text-blue-600 dark:text-blue-400 hover:opacity-80 transition"
+                              className="text-blue-600 dark:text-blue-400 hover:underline flex items-start gap-1.5 whitespace-normal break-all leading-snug"
                               title="Send Email"
                             >
-                              <Mail className="w-3.5 h-3.5" />
+                              <Mail className="w-3.5 h-3.5 text-blue-500 shrink-0 mt-0.5" />
+                              <span>{booking.email}</span>
                             </a>
-                          </div>
+                          ) : (
+                            <span className="text-slate-400 italic text-[11px]">Not provided</span>
+                          )}
+                        </td>
+
+                        {/* Mobile Number */}
+                        <td className="p-3.5 align-top min-w-[160px]">
+                          {booking.phone ? (
+                            <div className="flex items-center gap-2">
+                              <Phone className="w-3.5 h-3.5 text-slate-400 shrink-0" />
+                              <span className="font-mono text-xs text-slate-700 dark:text-slate-300 font-semibold whitespace-nowrap">
+                                {booking.phone}
+                              </span>
+                              {whatsappUrl && (
+                                <a
+                                  href={whatsappUrl}
+                                  target="_blank"
+                                  rel="noopener noreferrer"
+                                  className="text-emerald-600 dark:text-emerald-400 hover:text-emerald-500 font-extrabold bg-emerald-500/10 px-1.5 py-0.5 rounded border border-emerald-500/20 inline-flex items-center gap-0.5 text-[10px] transition"
+                                  title="Chat on WhatsApp"
+                                >
+                                  <MessageSquare className="w-3 h-3" />
+                                  <span>WA</span>
+                                </a>
+                              )}
+                            </div>
+                          ) : (
+                            <span className="text-slate-400 italic text-[11px]">Not provided</span>
+                          )}
                         </td>
 
                         {/* Consultation Track */}

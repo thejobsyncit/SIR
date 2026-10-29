@@ -293,7 +293,9 @@ const initDb = async (db) => {
     { name: 'preferredLocation', type: 'TEXT' },
     { name: 'coachingMode', type: 'TEXT' },
     { name: 'examSlug', type: 'TEXT' },
-    { name: 'enquiryType', type: "TEXT DEFAULT 'Exam Enquiry'" }
+    { name: 'enquiryType', type: "TEXT DEFAULT 'Exam Enquiry'" },
+    { name: 'assignedEmployee', type: "TEXT DEFAULT 'Dhanalakshimi'" },
+    { name: 'updatedAt', type: 'DATETIME' }
   ]);
 
   // Seed default verified organizations if none exist

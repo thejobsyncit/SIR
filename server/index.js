@@ -999,7 +999,7 @@ const inquiryRateLimits = new Map();
 const recentInquirySubmissions = new Map();
 
 // API Routes - LEADS & CONSULTING ENQUIRIES
-app.get(['/api/leads', '/api/consulting/enquiries'], async (req, res) => {
+app.get(['/api/leads', '/api/consulting/enquiries', '/api/career-guidance/enquiries'], async (req, res) => {
   try {
     const {
       serviceId, status, priority, assignedEmployee, search,
@@ -1020,6 +1020,10 @@ app.get(['/api/leads', '/api/consulting/enquiries'], async (req, res) => {
       if (serviceId === 'intl-consult') {
         query += ' AND (serviceId = ? OR LOWER(serviceTitle) LIKE ?)';
         params.push(serviceId, '%international consulting%');
+      } else if (serviceId === 'school-career' || serviceId === 'career-guidance') {
+        query += " AND (serviceId IN ('school-career', 'career-guidance') OR LOWER(serviceTitle) LIKE '%career%' OR LOWER(company) LIKE '%career%')";
+      } else if (serviceId === 'school-academy' || serviceId === 'student-academy') {
+        query += " AND (serviceId IN ('school-academy', 'student-academy') OR LOWER(serviceTitle) LIKE '%academy%' OR LOWER(company) LIKE '%student academy%' OR referenceNumber LIKE 'REV-ACA%')";
       } else {
         query += ' AND (serviceId = ? OR LOWER(serviceTitle) LIKE ?)';
         params.push(serviceId, `%${serviceId.toLowerCase()}%`);
@@ -1399,7 +1403,7 @@ app.get(['/api/leads/:id', '/api/consulting/enquiries/:id'], async (req, res) =>
 });
 
 // Create Lead / International Consulting Enquiry
-app.post(['/api/leads', '/api/consulting/enquiries'], async (req, res) => {
+app.post(['/api/leads', '/api/consulting/enquiries', '/api/career-guidance/enquiries'], async (req, res) => {
   try {
     // 1. Sliding window rate limiting: 60/min for localhost, 30/min for external IPs
     const clientIp = req.headers['x-forwarded-for'] || req.socket?.remoteAddress || 'unknown';
@@ -1507,6 +1511,7 @@ app.post(['/api/leads', '/api/consulting/enquiries'], async (req, res) => {
       'intl-adm': 'REV-ADM',
       'exec-seminars-lang': 'REV-SL',
       'school-career': 'REV-CAR',
+      'career-guidance': 'REV-CAR',
       'school-academy': 'REV-ACA'
     };
     const isConsulting = safeServiceId === 'intl-consult' || (safeServiceTitle && safeServiceTitle.toLowerCase().includes('consulting'));
@@ -1679,7 +1684,7 @@ app.post(['/api/leads', '/api/consulting/enquiries'], async (req, res) => {
 });
 
 // Update Lead Status, Assignment, Organization Link, & Workflow
-app.patch(['/api/leads/:id', '/api/consulting/enquiries/:id'], async (req, res) => {
+app.patch(['/api/leads/:id', '/api/consulting/enquiries/:id', '/api/student-academy/enquiries/:id'], async (req, res) => {
   try {
     const { id } = req.params;
     const {
@@ -2061,6 +2066,68 @@ app.delete(['/api/leads/:id', '/api/consulting/enquiries/:id'], async (req, res)
 });
 
 // Real-Time Database Metrics for International Consulting
+
+// Real-Time Database Metrics for Student Academy
+app.get('/api/crm/student-academy/metrics', async (req, res) => {
+  try {
+    const db = await getDb();
+    const academyCondition = "(serviceId IN ('school-academy', 'student-academy') OR LOWER(serviceTitle) LIKE '%academy%' OR LOWER(company) LIKE '%student academy%' OR referenceNumber LIKE 'REV-ACA%')";
+    const totalRow = await db.get(`SELECT COUNT(*) as count FROM leads WHERE ${academyCondition} AND (isArchived IS NULL OR isArchived = 0)`);
+    const newRow = await db.get(`SELECT COUNT(*) as count FROM leads WHERE ${academyCondition} AND (isArchived IS NULL OR isArchived = 0) AND status IN ('New', 'New Enquiry')`);
+    const inProgressRow = await db.get(`SELECT COUNT(*) as count FROM leads WHERE ${academyCondition} AND (isArchived IS NULL OR isArchived = 0) AND status IN ('In Progress', 'Contacted', 'Contact Pending', 'Consultation Scheduled', 'Proposal Pending', 'Course Selection')`);
+    const completedRow = await db.get(`SELECT COUNT(*) as count FROM leads WHERE ${academyCondition} AND (isArchived IS NULL OR isArchived = 0) AND status IN ('Converted', 'Completed', 'Consultation Completed', 'Qualified', 'Enrollment in Progress')`);
+
+    const metricsPayload = {
+      totalEnquiries: totalRow ? totalRow.count : 0,
+      newEnquiries: newRow ? newRow.count : 0,
+      inProgressEnquiries: inProgressRow ? inProgressRow.count : 0,
+      completedEnquiries: completedRow ? completedRow.count : 0,
+      timestamp: new Date().toISOString()
+    };
+
+    res.json({
+      success: true,
+      data: metricsPayload,
+      metrics: metricsPayload
+    });
+  } catch (error) {
+    console.error('Failed to get student academy metrics:', error);
+    res.status(500).json({ success: false, message: 'Failed to calculate student academy metrics' });
+  }
+});
+
+// Real-Time Database Metrics for Career Guidance
+app.get('/api/crm/career-guidance/metrics', async (req, res) => {
+  try {
+    const db = await getDb();
+
+    const careerCondition = "(serviceId IN ('school-career', 'career-guidance') OR LOWER(serviceTitle) LIKE '%career%' OR LOWER(company) LIKE '%career%')";
+    const totalRow = await db.get(`SELECT COUNT(*) as count FROM leads WHERE ${careerCondition} AND (isArchived IS NULL OR isArchived = 0)`);
+    const newRow = await db.get(`SELECT COUNT(*) as count FROM leads WHERE ${careerCondition} AND (isArchived IS NULL OR isArchived = 0) AND status IN ('New', 'New Enquiry')`);
+    const scheduledRow = await db.get(`SELECT COUNT(*) as count FROM leads WHERE ${careerCondition} AND (isArchived IS NULL OR isArchived = 0) AND status = 'Consultation Scheduled'`);
+    const inProgressRow = await db.get(`SELECT COUNT(*) as count FROM leads WHERE ${careerCondition} AND (isArchived IS NULL OR isArchived = 0) AND status IN ('In Progress', 'Contacted', 'Contact Pending', 'Consultation Scheduled', 'Proposal Pending', 'Proposal or Next Steps Pending')`);
+    const completedRow = await db.get(`SELECT COUNT(*) as count FROM leads WHERE ${careerCondition} AND (isArchived IS NULL OR isArchived = 0) AND status IN ('Converted', 'Completed', 'Consultation Completed', 'Qualified')`);
+
+    const metricsPayload = {
+      totalEnquiries: totalRow ? totalRow.count : 0,
+      newEnquiries: newRow ? newRow.count : 0,
+      consultationsScheduled: scheduledRow ? scheduledRow.count : 0,
+      inProgressEnquiries: inProgressRow ? inProgressRow.count : 0,
+      convertedEnquiries: completedRow ? completedRow.count : 0,
+      timestamp: new Date().toISOString()
+    };
+
+    res.json({
+      success: true,
+      data: metricsPayload,
+      metrics: metricsPayload
+    });
+  } catch (error) {
+    console.error('Failed to get career guidance metrics:', error);
+    res.status(500).json({ success: false, message: 'Failed to calculate career guidance metrics' });
+  }
+});
+
 app.get('/api/crm/consulting/metrics', async (req, res) => {
   try {
     const db = await getDb();
@@ -2453,6 +2520,7 @@ app.post('/api/student-academy/enquiries', async (req, res) => {
       preferredLearningMode,
       batchPreference,
       questions,
+      message,
       academyId,
       academyName,
       examId,
@@ -2463,7 +2531,8 @@ app.post('/api/student-academy/enquiries', async (req, res) => {
       preferredLocation,
       location,
       coachingMode,
-      enquiryType
+      enquiryType,
+      assignedEmployee
     } = req.body;
 
     if (!studentName || !email || !phone) {
@@ -2473,21 +2542,51 @@ app.post('/api/student-academy/enquiries', async (req, res) => {
       });
     }
 
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!emailRegex.test(email.trim())) {
+      return res.status(400).json({
+        success: false,
+        message: 'A valid email address is required.'
+      });
+    }
+
+    const cleanPhone = (phone || '').replace(/[\s\-\(\)\+]/g, '');
+    if (cleanPhone.length < 7) {
+      return res.status(400).json({
+        success: false,
+        message: 'A valid mobile number is required.'
+      });
+    }
+
+    // Duplicate Prevention Check (30 seconds window for same email + exam)
+    const now = Date.now();
+    const duplicateKey = `${email.trim().toLowerCase()}_${examId || examName || 'academy'}`;
+    const lastSubmitTime = recentInquirySubmissions.get(duplicateKey);
+    if (lastSubmitTime && (now - lastSubmitTime) < 30000) {
+      return res.status(409).json({
+        success: false,
+        message: 'A duplicate enquiry for this examination was recently received. Please allow a brief moment before resubmitting.'
+      });
+    }
+    recentInquirySubmissions.set(duplicateKey, now);
+
     const refNum = referenceNumber || `REV-ACA-2026-${Math.floor(10000 + Math.random() * 90000)}`;
     const enquiryId = `SA-ENQ-${Date.now()}-${Math.floor(100 + Math.random() * 900)}`;
     const db = await getDb();
-    const learningMode = preferredLearningMode || coachingMode || 'Online';
+    const learningMode = preferredLearningMode || coachingMode || 'Online Live';
     const studyLoc = preferredLocation || location || 'Online / Remote';
-    const qual = qualification || 'Graduate';
+    const qual = qualification || 'High School / 12th Standard';
     const targetExam = examName || 'Competitive Examination';
-    const targetCourse = courseName || `${targetExam} Coaching & Advisory`;
+    const targetCourse = courseName || `${targetExam} Comprehensive Coaching & Advisory`;
     const targetAcademy = academyName || 'Revival International Student Advisory';
+    const finalQuestions = questions || message || '';
+    const advisor = assignedEmployee || 'Dhanalakshimi';
 
     // 1. Insert into student_academy_enquiries table
     await db.run(
       `INSERT INTO student_academy_enquiries 
-       (id, referenceNumber, studentName, email, phone, studentEmail, studentPhone, preferredLearningMode, batchPreference, questions, academyId, academyName, examId, examName, courseId, courseName, qualification, preferredLocation, coachingMode, enquiryType, status)
-       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+       (id, referenceNumber, studentName, email, phone, studentEmail, studentPhone, preferredLearningMode, batchPreference, questions, academyId, academyName, examId, examName, courseId, courseName, qualification, preferredLocation, coachingMode, enquiryType, status, assignedEmployee)
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
       [
         enquiryId,
         refNum,
@@ -2498,7 +2597,7 @@ app.post('/api/student-academy/enquiries', async (req, res) => {
         phone.trim(),
         learningMode,
         batchPreference || 'Standard Cohort',
-        questions ? questions.trim() : '',
+        finalQuestions ? finalQuestions.trim() : '',
         academyId || 'revival-advisory',
         targetAcademy,
         examId || 'general-exam',
@@ -2509,29 +2608,51 @@ app.post('/api/student-academy/enquiries', async (req, res) => {
         studyLoc,
         learningMode,
         enquiryType || 'Exam Enquiry',
-        'New Enquiry'
+        'New Enquiry',
+        advisor
       ]
     );
 
-    // 2. Mirror into unified leads table for CRM visibility
+    // 2. Mirror into unified leads table for comprehensive CRM integration
     const leadId = `LEAD-${Date.now()}-${Math.floor(100 + Math.random() * 900)}`;
+    const customMetadata = JSON.stringify({
+      category: 'Student Academy',
+      enquiryType: enquiryType || 'Exam Enquiry',
+      examName: targetExam,
+      examId: examId || 'general-exam',
+      qualification: qual,
+      coachingMode: learningMode,
+      preferredLearningMode: learningMode,
+      studyLocation: studyLoc,
+      preferredLocation: studyLoc,
+      academyName: targetAcademy,
+      courseName: targetCourse,
+      questions: finalQuestions ? finalQuestions.trim() : ''
+    });
+
     await db.run(
       `INSERT INTO leads 
-       (id, name, email, phone, message, serviceId, serviceTitle, referenceNumber, status, assistanceType, degreeLevel, workLocation)
-       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+       (id, name, email, company, phone, message, serviceId, serviceTitle, referenceNumber, status, assistanceType, degreeLevel, workLocation, organizationName, assignedEmployee, priority, consultationMode, customFields)
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
       [
         leadId,
         studentName.trim(),
         email.trim().toLowerCase(),
+        'Student Academy',
         phone.trim(),
-        `Exam Enquiry: ${targetExam}. Qualification: ${qual}. Preferred Coaching Mode: ${learningMode}. Preferred Study Location: ${studyLoc}. Message: ${questions ? questions.trim() : 'None'}`,
+        `Exam Enquiry: ${targetExam}. Qualification: ${qual}. Preferred Coaching Mode: ${learningMode}. Preferred Study Location: ${studyLoc}. Message: ${finalQuestions ? finalQuestions.trim() : 'None'}`,
         'school-academy',
         'Student Academy',
         refNum,
         'New Enquiry',
         targetExam,
         qual,
-        studyLoc
+        studyLoc,
+        targetExam,
+        advisor,
+        'Medium',
+        learningMode,
+        customMetadata
       ]
     );
 

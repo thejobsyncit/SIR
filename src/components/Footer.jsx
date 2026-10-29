@@ -10,26 +10,116 @@ import { COUNTRIES_LIST } from '../data/mockData';
 export const Footer = ({ hideNewsletter = false }) => {
   const { navigateTo, setActiveModal, activeTab, isExamDetailsPage } = useApp();
 
+const isStudentAcademyTab = Boolean(
+    activeTab && (
+      activeTab === 'education-school-academy' ||
+      activeTab === 'school-academy' ||
+      activeTab === 'student-academy' ||
+      activeTab === 'education-student-academy' ||
+      activeTab === 'education/school-academy' ||
+      activeTab === 'education/student-academy' ||
+      activeTab === 'academy-for-school-students' ||
+      activeTab === 'education/academy-for-school-students' ||
+      activeTab.includes('school-academy') ||
+      activeTab.includes('student-academy') ||
+      activeTab.includes('academy-for-school-students')
+    )
+  );
+
+  const isCareerGuidanceTab = Boolean(
+    activeTab && (
+      activeTab === 'education-school-career' ||
+      activeTab === 'school-career' ||
+      activeTab === 'education/school-career' ||
+      activeTab === 'education-career-guidance' ||
+      activeTab === 'career-guidance' ||
+      activeTab === 'education/career-guidance' ||
+      activeTab === 'school-student-career-guidance' ||
+      activeTab === 'education-school-student-career-guidance' ||
+      activeTab === 'education/school-student-career-guidance' ||
+      activeTab.includes('school-career') ||
+      activeTab.includes('career-guidance') ||
+      activeTab.includes('school-student-career-guidance')
+    )
+  );
+
   const [isExamViewActive, setIsExamViewActive] = useState(() => {
     if (typeof window === 'undefined') return false;
     const hash = window.location.hash || '';
     return hash.includes('exam=') || hash.includes('exam-enquiry') || hash.includes('view=exam-enquiry');
   });
 
+const [isStudentAcademyActive, setIsStudentAcademyActive] = useState(() => {
+    if (typeof window === 'undefined') return false;
+    const hash = (window.location.hash || '').toLowerCase();
+    const path = (window.location.pathname || '').toLowerCase();
+    return (
+      hash.includes('school-academy') ||
+      hash.includes('student-academy') ||
+      hash.includes('academy-for-school-students') ||
+      path.includes('school-academy') ||
+      path.includes('student-academy') ||
+      path.includes('academy-for-school-students')
+    );
+  });
+
+  const [isCareerGuidanceActive, setIsCareerGuidanceActive] = useState(() => {
+    if (typeof window === 'undefined') return false;
+    const hash = (window.location.hash || '').toLowerCase();
+    const path = (window.location.pathname || '').toLowerCase();
+    return (
+      hash.includes('school-career') ||
+      hash.includes('career-guidance') ||
+      hash.includes('school-student-career-guidance') ||
+      path.includes('school-career') ||
+      path.includes('career-guidance') ||
+      path.includes('school-student-career-guidance')
+    );
+  });
+
   useEffect(() => {
-    const checkExamPage = () => {
-      const hash = typeof window !== 'undefined' ? (window.location.hash || '') : '';
+    const checkPages = () => {
+      const hash = typeof window !== 'undefined' ? (window.location.hash || '').toLowerCase() : '';
+      const path = typeof window !== 'undefined' ? (window.location.pathname || '').toLowerCase() : '';
+
       const hasExamHash = hash.includes('exam=') || hash.includes('exam-enquiry') || hash.includes('view=exam-enquiry');
       const hasDomEl = Boolean(typeof document !== 'undefined' && document.getElementById('exam-enquiry-page'));
       setIsExamViewActive(hasExamHash || hasDomEl || Boolean(isExamDetailsPage));
+
+      const hasCareerHash = 
+        hash.includes('school-career') || 
+        hash.includes('career-guidance') || 
+        hash.includes('school-student-career-guidance');
+      const hasCareerPath = 
+        path.includes('school-career') || 
+        path.includes('career-guidance') || 
+        path.includes('school-student-career-guidance');
+      const hasCareerEl = Boolean(typeof document !== 'undefined' && document.getElementById('career-guidance-page'));
+      setIsCareerGuidanceActive(hasCareerHash || hasCareerPath || hasCareerEl);
+
+      const hasAcademyHash = 
+        hash.includes('school-academy') || 
+        hash.includes('student-academy') || 
+        hash.includes('academy-for-school-students');
+      const hasAcademyPath = 
+        path.includes('school-academy') || 
+        path.includes('student-academy') || 
+        path.includes('academy-for-school-students');
+      const hasAcademyEl = Boolean(typeof document !== 'undefined' && (
+        document.getElementById('student-academy-page') || 
+        document.getElementById('student-academy-search') ||
+        document.getElementById('browse-exams-section')
+      ));
+      setIsStudentAcademyActive(hasAcademyHash || hasAcademyPath || hasAcademyEl);
+
     };
 
-    checkExamPage();
-    window.addEventListener('hashchange', checkExamPage);
-    window.addEventListener('popstate', checkExamPage);
+    checkPages();
+    window.addEventListener('hashchange', checkPages);
+    window.addEventListener('popstate', checkPages);
 
     const observer = typeof MutationObserver !== 'undefined' && typeof document !== 'undefined' && document.body
-      ? new MutationObserver(checkExamPage)
+      ? new MutationObserver(checkPages)
       : null;
 
     if (observer) {
@@ -37,13 +127,20 @@ export const Footer = ({ hideNewsletter = false }) => {
     }
 
     return () => {
-      window.removeEventListener('hashchange', checkExamPage);
-      window.removeEventListener('popstate', checkExamPage);
+      window.removeEventListener('hashchange', checkPages);
+      window.removeEventListener('popstate', checkPages);
       if (observer) observer.disconnect();
     };
   }, [isExamDetailsPage]);
 
-  const shouldHideNewsletter = hideNewsletter || Boolean(isExamDetailsPage) || isExamViewActive;
+  const shouldHideNewsletter = 
+    hideNewsletter || 
+    Boolean(isExamDetailsPage) || 
+    isExamViewActive || 
+    isCareerGuidanceTab || 
+    isCareerGuidanceActive || 
+    isStudentAcademyTab || 
+    isStudentAcademyActive;
 
   const NavLink = ({ tab, label, onClick, isModal }) => {
     const isActive = !isModal && activeTab === tab;

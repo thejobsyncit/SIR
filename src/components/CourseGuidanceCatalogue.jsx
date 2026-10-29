@@ -498,20 +498,6 @@ export const CourseGuidanceCatalogue = ({ onInquire }) => {
         </ScrollReveal>
       )}
 
-      {/* Official Regulatory & Verification Footnote */}
-      <ScrollReveal>
-        <div className="p-4 sm:p-6 rounded-2xl bg-slate-50 dark:bg-navy-950/80 border border-slate-200 dark:border-navy-800 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 text-xs text-slate-600 dark:text-slate-400">
-          <div className="flex items-start gap-2.5">
-            <ShieldCheck className="w-5 h-5 text-emerald-500 shrink-0 mt-0.5" />
-            <div>
-              <span className="font-bold text-navy-900 dark:text-white">Statutory Educational Framework Verification:</span>
-              <p className="text-[11px] leading-relaxed mt-0.5">
-                All degree curricula, duration specifications, entrance testing guidelines, and licensing standards are compiled in accordance with official Indian regulatory authorities (UGC, AICTE, NMC, BCI, COA, NCTE, PCI, INC, ICAR). Institutional seat cutoffs and domicile reservation matrices are subject to official university and state counseling authority gazettes.
-              </p>
-            </div>
-          </div>
-        </div>
-      </ScrollReveal>
 
       {/* Detail Modal Component */}
       <CourseDetailModal

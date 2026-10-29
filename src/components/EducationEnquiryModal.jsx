@@ -116,7 +116,17 @@ export const EducationEnquiryModal = ({ isOpen, onClose, preselectedServiceId = 
       phone: phone.trim(),
       serviceId: activeService.id,
       serviceTitle: `${activeService.title}${subDetail}`,
-      company: `Academic Advisory (${activeService.category})`,
+      company: activeService.id === 'school-career' ? 'Career Guidance' : (data.organization ? data.organization.trim() : `Academic Advisory (${activeService.category})`),
+      organizationName: data.organization ? data.organization.trim() : null,
+      degreeLevel: programLevel,
+      countryInterest: countryInterest !== 'All' ? countryInterest : 'Global / Flexible',
+      customFields: JSON.stringify({
+        organization: data.organization ? data.organization.trim() : '',
+        programLevel,
+        countryInterest,
+        subProgram: subProgram || null,
+        consent: Boolean(consent)
+      }),
       consultationDate,
       consultationTime,
       consultationMode,

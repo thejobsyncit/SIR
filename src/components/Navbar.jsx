@@ -2,8 +2,8 @@ import React, { useState, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useApp } from '../context/AppContext';
 import { BrandLogoIcon } from './BrandLogoIcon';
-import { 
-  Building2, Globe, Phone, Mail, Moon, Sun, Search, 
+import {
+  Building2, Globe, Phone, Mail, Moon, Sun, Search,
   User, Briefcase, ChevronDown, ChevronRight, Menu, X, Shield, Award, Sparkles, LogIn,
   GraduationCap, Compass, BookOpen, FileCheck, ArrowRight, Users, FileText,
   ShieldCheck, UserCheck, Languages, Flame, HeartPulse, Utensils, Code, Wrench, Factory,
@@ -78,7 +78,7 @@ export const Navbar = () => {
 
 
           {/* Quick AI Tools Button */}
-          <button 
+          <button
             onClick={() => setActiveModal('ai-resume')}
             className="hidden sm:flex items-center space-x-1.5 bg-gold-500/20 text-gold-400 hover:bg-gold-500 hover:text-slate-900 dark:text-white px-2.5 py-1 rounded text-xs font-medium transition"
           >
@@ -87,8 +87,8 @@ export const Navbar = () => {
           </button>
 
           {/* Language Selector */}
-          <select 
-            value={language} 
+          <select
+            value={language}
             onChange={(e) => setLanguage(e.target.value)}
             className="bg-slate-50 dark:bg-navy-900 text-slate-700 dark:text-slate-200 border border-slate-300 dark:border-navy-700 rounded px-2 py-0.5 text-xs focus:outline-none focus:border-gold-500 font-bold"
           >
@@ -99,7 +99,7 @@ export const Navbar = () => {
           </select>
 
           {/* Dark Mode Toggle */}
-          <button 
+          <button
             onClick={toggleDarkMode}
             aria-label="Toggle dark mode"
             className="p-1.5 rounded-lg bg-slate-100 hover:bg-slate-200 dark:bg-navy-800 dark:hover:bg-navy-700 text-slate-700 dark:text-gold-400 border border-slate-300 dark:border-navy-700 transition shadow-sm flex items-center justify-center"
@@ -113,10 +113,10 @@ export const Navbar = () => {
       {/* Main Glass Header */}
       <nav className="glass-card bg-white/90 dark:bg-navy-900/90 shadow-glass backdrop-blur-md border-b border-white/20 dark:border-navy-800 px-4 sm:px-8 py-3 transition">
         <div className="max-w-7xl mx-auto flex justify-between items-center">
-          
+
           {/* Logo */}
-          <div 
-            onClick={() => navigateTo('home')} 
+          <div
+            onClick={() => navigateTo('home')}
             className="cursor-pointer flex items-center space-x-2 sm:space-x-3.5 group"
           >
             <BrandLogoIcon className="w-10 h-10 sm:w-12 sm:h-12 group-hover:scale-105 transition duration-300 shadow-md" />
@@ -131,7 +131,7 @@ export const Navbar = () => {
           {/* Desktop Nav Items */}
           <div className="hidden xl:flex items-center space-x-1">
             {navItems.map((item) => (
-              <div 
+              <div
                 key={item.id}
                 className="relative"
                 onMouseEnter={() => item.hasMega && handleMenuEnter(item.hasMega)}
@@ -148,11 +148,10 @@ export const Navbar = () => {
                       navigateTo(item.id);
                     }
                   }}
-                  className={`px-3 py-2 rounded-lg text-xs font-semibold tracking-wide transition flex items-center space-x-1 cursor-pointer select-none ${
-                    activeTab === item.id 
-                      ? 'text-gold-500 bg-gold-500/10 dark:bg-gold-500/20 font-bold' 
+                  className={`px-3 py-2 rounded-lg text-xs font-semibold tracking-wide transition flex items-center space-x-1 cursor-pointer select-none ${activeTab === item.id
+                      ? 'text-gold-500 bg-gold-500/10 dark:bg-gold-500/20 font-bold'
                       : 'text-navy-900 dark:text-slate-200 hover:text-gold-500 hover:bg-slate-100 dark:hover:bg-navy-800'
-                  }`}
+                    }`}
                 >
                   <span>{item.label}</span>
                   {item.hasMega && (
@@ -162,13 +161,13 @@ export const Navbar = () => {
 
                 {/* Mega Menu Dropdown - Original High-Contrast Design */}
                 {megaMenuType === item.hasMega && (
-                  <div 
+                  <div
                     onMouseEnter={() => handleMenuEnter(item.hasMega)}
                     onMouseLeave={() => handleMenuLeave()}
                     className="absolute top-full pt-2 z-50 animate-in fade-in slide-in-from-top-1 duration-150 left-1/2 -translate-x-1/2 w-[88vw] sm:w-[380px] max-w-[92vw]"
                   >
                     <div className="relative bg-white dark:bg-[#0a1628] rounded-2xl p-4 sm:p-5 shadow-2xl border border-slate-200/90 dark:border-navy-700/90 overflow-hidden">
-                      
+
                       {/* Slim Gold Accent Indicator */}
                       <div className="absolute top-0 left-0 right-0 h-[2px] bg-gradient-to-r from-gold-500/10 via-gold-500 to-gold-500/10" />
 
@@ -188,7 +187,7 @@ export const Navbar = () => {
 
                           {/* 2-Column Compact Grid */}
                           <div className="grid grid-cols-2 gap-2 text-xs">
-                            
+
                             {/* Column 1: Academic Advisory */}
                             <div className="space-y-0.5">
                               <div className="px-1.5 py-1 text-[10px] font-black uppercase tracking-wider text-gold-700 dark:text-gold-400 flex items-center gap-1 border-b border-gold-500/15 mb-1">
@@ -332,26 +331,37 @@ export const Navbar = () => {
             ))}
           </div>
 
-          {/* Action CTAs: Exact 1:1 Match with Reference Designs */}
-          <div className="hidden sm:flex items-center space-x-4">
+          {/* Action CTAs: Matching Image 1 Layout with Revival Theme Colors (Gold Shimmer & Gold Outline) */}
+          <div className="hidden sm:flex items-center space-x-3">
             {user ? (
-              <div className="flex items-center space-x-2 bg-slate-900/90 dark:bg-navy-950/90 border border-slate-200 dark:border-gold-500/40 px-3.5 py-1.5 rounded-full text-xs shadow-md">
-                <div className="w-7 h-7 rounded-full bg-gold-500 text-navy-950 font-bold flex items-center justify-center text-xs shadow-gold-glow">
+              <div className="flex items-center space-x-2.5 bg-white dark:bg-navy-950/90 border border-[#E0B32D] dark:border-gold-500/40 px-3 py-1.5 rounded-full text-xs shadow-[0_4px_14px_rgba(15,23,42,0.10)] transition-all">
+                {/* User Avatar */}
+                <div className="w-7 h-7 sm:w-8 sm:h-8 rounded-full bg-[#D9AF2B] text-[#0B1B33] font-bold flex items-center justify-center text-xs shadow-sm shrink-0">
                   {user.name ? user.name[0].toUpperCase() : 'U'}
                 </div>
-                <div className="text-left">
-                  <p className="font-bold text-slate-900 dark:text-white leading-tight text-[11px] truncate max-w-[120px]">{user.name}</p>
-                  <span className="text-[9px] text-gold-400 font-semibold uppercase">{user.role}</span>
+
+                {/* Username and Role */}
+                <div className="text-left leading-tight pr-1">
+                  <p className="font-semibold text-[#0B1B33] dark:text-white text-xs truncate max-w-[120px]">
+                    {user.name}
+                  </p>
+                  <span className="text-[9px] sm:text-[10px] text-[#C99A00] dark:text-gold-400 font-bold uppercase tracking-wider block">
+                    {user.role}
+                  </span>
                 </div>
+
+                {/* Portal Button */}
                 <button
                   onClick={() => navigateTo('candidates')}
-                  className="px-2.5 py-1 bg-gold-500/20 hover:bg-gold-500 hover:text-slate-900 dark:text-white text-gold-400 rounded-full text-[10px] font-bold transition ml-1"
+                  className="px-3 py-1.5 bg-[#F8F1D9] hover:bg-[#F1E5C4] dark:bg-gold-500/20 dark:hover:bg-gold-500/30 text-[#B88A00] dark:text-gold-400 border border-[#E0B32D] dark:border-gold-500/40 rounded-full text-[11px] sm:text-xs font-semibold transition active:scale-95 cursor-pointer"
                 >
                   Portal
                 </button>
+
+                {/* Logout Button */}
                 <button
                   onClick={logout}
-                  className="px-2.5 py-1 bg-rose-500/20 hover:bg-rose-500 hover:text-slate-900 dark:text-white text-rose-300 rounded-full text-[10px] font-bold transition"
+                  className="px-3 py-1.5 bg-[#F8E7EB] hover:bg-[#F2D5DC] dark:bg-rose-500/20 dark:hover:bg-rose-500/30 text-[#9F3650] dark:text-rose-300 border border-[#F0CBD4] dark:border-rose-500/40 rounded-full text-[11px] sm:text-xs font-semibold transition active:scale-95 cursor-pointer"
                   title="Sign Out"
                 >
                   Logout
@@ -359,25 +369,25 @@ export const Navbar = () => {
               </div>
             ) : (
               <>
-                {/* Register button: Exact 1:1 match with reference design for Light & Dark modes */}
+                {/* Register button: Outline style matching Image 1 layout with website Revival Gold theme */}
                 <button
                   onClick={() => openAuthModal('register')}
-                  className="h-[44px] min-w-[128px] px-5 sm:px-6 rounded-full text-sm font-bold flex items-center justify-center space-x-2.5 transition-all duration-200 border-2 border-gold-500 bg-white text-navy-950 hover:bg-gold-500/10 dark:bg-navy-900 dark:text-gold-400 dark:border-gold-500 dark:hover:bg-gold-500/15 hover:border-gold-400 shadow-sm hover:scale-[1.02] active:scale-95 focus:outline-none focus:ring-2 focus:ring-gold-500/50 cursor-pointer select-none"
-                  aria-label="Register Account"
+                  className="px-4 py-2 rounded-full text-xs font-bold text-navy-900 dark:text-gold-400 bg-white dark:bg-navy-900 border-2 border-gold-500 hover:bg-gold-500/10 transition flex items-center space-x-1.5 shadow-sm"
                 >
-                  <User className="w-[18px] h-[18px] text-gold-500 dark:text-gold-400 shrink-0" strokeWidth={2} />
+                  <User className="w-3.5 h-3.5 text-gold-500" />
                   <span>Register</span>
                 </button>
-                
-                {/* Sign In button: Exact 1:1 match with reference design for Light & Dark modes */}
+
+                {/* Sign In button: Solid style matching Image 1 layout with website Revival Gold theme */}
                 <button
                   onClick={() => openAuthModal('login')}
-                  className="h-[44px] min-w-[120px] px-5 sm:px-6 rounded-full text-sm font-bold flex items-center justify-center space-x-2.5 transition-all duration-200 bg-gold-500 hover:bg-[#c29d2b] dark:bg-gold-500 dark:hover:bg-[#dfb93e] text-navy-950 dark:text-white shadow-[0_2px_14px_rgba(212,175,55,0.35)] dark:shadow-[0_0_24px_rgba(212,175,55,0.5)] hover:shadow-[0_4px_20px_rgba(212,175,55,0.5)] dark:hover:shadow-[0_0_30px_rgba(212,175,55,0.7)] hover:scale-[1.02] active:scale-95 focus:outline-none focus:ring-2 focus:ring-gold-500/50 cursor-pointer select-none"
-                  aria-label="Sign In to Portal"
+                  className="px-5 py-2 rounded-full text-xs font-bold text-slate-900 dark:text-white bg-gold-500 hover:bg-gold-600 shadow-gold-glow transition flex items-center space-x-1.5"
                 >
-                  <LogIn className="w-[18px] h-[18px] text-navy-950 dark:text-white shrink-0" strokeWidth={2.2} />
+                  <LogIn className="w-3.5 h-3.5 text-slate-900 dark:text-white" />
                   <span>Sign In</span>
                 </button>
+
+
               </>
             )}
           </div>
@@ -397,7 +407,7 @@ export const Navbar = () => {
         {/* Mobile Menu Drawer - Premium Glassmorphism */}
         {mobileMenuOpen && (
           <div className="xl:hidden mt-3 pt-4 border-t border-slate-200/50 dark:border-navy-700/50 flex flex-col gap-2.5 animate-in slide-in-from-top-4 duration-300">
-            
+
             {/* Dedicated Academic Advisory Mobile Card */}
             <div className="p-3 bg-gold-500/10 border border-gold-500/30 rounded-xl space-y-2">
               <div className="flex justify-between items-center">
@@ -454,18 +464,17 @@ export const Navbar = () => {
                     navigateTo(item.id);
                     setMobileMenuOpen(false);
                   }}
-                  className={`p-3.5 rounded-xl text-xs sm:text-sm font-semibold text-center transition-all duration-300 active:scale-95 shadow-sm block ${
-                    activeTab === item.id
+                  className={`p-3.5 rounded-xl text-xs sm:text-sm font-semibold text-center transition-all duration-300 active:scale-95 shadow-sm block ${activeTab === item.id
                       ? 'bg-gradient-to-r from-gold-500 to-gold-400 text-slate-900 dark:text-white font-bold shadow-gold-glow'
                       : 'bg-slate-50 dark:bg-navy-800/80 text-navy-900 dark:text-slate-200 border border-slate-200 dark:border-navy-700 hover:border-slate-200 dark:border-gold-500/50'
-                  }`}
+                    }`}
                   style={{ animationDelay: `${idx * 0.05}s` }}
                 >
                   {item.label}
                 </a>
               ))}
             </div>
-            
+
             <div className="flex gap-2.5 mt-2 border-t border-slate-200/50 dark:border-navy-700/50 pt-4">
               {!user ? (
                 <>
@@ -487,12 +496,35 @@ export const Navbar = () => {
                   </button>
                 </>
               ) : (
-                <button
-                  onClick={() => { logout(); setMobileMenuOpen(false); }}
-                  className="w-full py-3.5 bg-rose-500/10 border border-rose-500/30 text-rose-500 font-bold rounded-xl text-xs shadow-sm active:scale-95 transition"
-                >
-                  Log Out
-                </button>
+                <div className="w-full flex flex-col gap-2.5">
+                  <div className="flex items-center justify-between p-3 bg-white dark:bg-navy-900 border border-[#E0B32D] dark:border-gold-500/40 rounded-2xl shadow-[0_4px_14px_rgba(15,23,42,0.10)]">
+                    <div className="flex items-center gap-2.5">
+                      <div className="w-8 h-8 rounded-full bg-[#D9AF2B] text-[#0B1B33] font-bold flex items-center justify-center text-xs shadow-sm shrink-0">
+                        {user.name ? user.name[0].toUpperCase() : 'U'}
+                      </div>
+                      <div className="text-left leading-tight">
+                        <p className="font-semibold text-[#0B1B33] dark:text-white text-xs truncate max-w-[150px]">
+                          {user.name}
+                        </p>
+                        <span className="text-[10px] text-[#C99A00] dark:text-gold-400 font-bold uppercase tracking-wider block">
+                          {user.role}
+                        </span>
+                      </div>
+                    </div>
+                    <button
+                      onClick={() => { navigateTo('candidates'); setMobileMenuOpen(false); }}
+                      className="px-3 py-1.5 bg-[#F8F1D9] hover:bg-[#F1E5C4] dark:bg-gold-500/20 dark:hover:bg-gold-500/30 text-[#B88A00] dark:text-gold-400 border border-[#E0B32D] dark:border-gold-500/40 rounded-full text-xs font-semibold transition cursor-pointer"
+                    >
+                      Portal
+                    </button>
+                  </div>
+                  <button
+                    onClick={() => { logout(); setMobileMenuOpen(false); }}
+                    className="w-full py-2.5 bg-[#F8E7EB] hover:bg-[#F2D5DC] dark:bg-rose-500/20 dark:hover:bg-rose-500/30 text-[#9F3650] dark:text-rose-300 border border-[#F0CBD4] dark:border-rose-500/40 font-semibold rounded-xl text-xs transition cursor-pointer"
+                  >
+                    Logout
+                  </button>
+                </div>
               )}
             </div>
           </div>

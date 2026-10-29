@@ -105,7 +105,7 @@ export const ExamDirectoryView = ({ onSelectExam, onSelectDepartment, initialDep
               </div>
 
               {/* Key Quick Stats */}
-              <div className="pt-6 border-t border-slate-100 dark:border-navy-800 grid grid-cols-2 sm:grid-cols-4 gap-4">
+              <div className="pt-6 border-t border-slate-100 dark:border-navy-800 grid grid-cols-3 gap-3 sm:gap-4">
                 <div className="space-y-0.5">
                   <p className="text-[10px] text-slate-500 uppercase font-bold tracking-wider">Departments</p>
                   <p className="text-xs sm:text-sm font-black text-navy-900 dark:text-white">11 Exam Sectors</p>
@@ -117,10 +117,6 @@ export const ExamDirectoryView = ({ onSelectExam, onSelectDepartment, initialDep
                 <div className="space-y-0.5">
                   <p className="text-[10px] text-slate-500 uppercase font-bold tracking-wider">Partner Academies</p>
                   <p className="text-xs sm:text-sm font-black text-navy-900 dark:text-white">100% Audited</p>
-                </div>
-                <div className="space-y-0.5">
-                  <p className="text-[10px] text-slate-500 uppercase font-bold tracking-wider">Advisory Access</p>
-                  <p className="text-xs sm:text-sm font-black text-gold-600 dark:text-gold-400">Zero Student Fee</p>
                 </div>
               </div>
             </div>
@@ -335,7 +331,7 @@ export const ExamDirectoryView = ({ onSelectExam, onSelectDepartment, initialDep
                       id={`explore-academies-${exam.id}`}
                       data-action="exam-enquiry"
                     >
-                      <span>Explore Verified Academies</span>
+                      <span>Exam Enquiry</span>
                       <ArrowRight className="w-3.5 h-3.5" />
                     </button>
                   </div>
@@ -400,7 +396,7 @@ export const ExamDirectoryView = ({ onSelectExam, onSelectDepartment, initialDep
                     id={`explore-intl-academies-${exam.id}`}
                     data-action="exam-enquiry"
                   >
-                    <span>Explore Verified Academies</span>
+                    <span>Exam Enquiry</span>
                     <ArrowRight className="w-3.5 h-3.5" />
                   </button>
                 </div>

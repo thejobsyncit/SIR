@@ -30,8 +30,7 @@ export const StudentAcademyPage = () => {
   const { navigateTo } = useApp();
 
   // Navigation flow state:
-  // 'exams' -> 'academies' (Verified Academies Directory) -> 'academy-detail' -> 'course-enquiry'
-  // (Optional: 'exam-enquiry' for direct exam brochure/syllabus enquiry)
+  // 'exams' -> 'academies' (Exam Enquiry Page) -> 'academy-detail' -> 'course-enquiry'
   const [currentView, setCurrentView] = useState('exams');
   const [selectedExamId, setSelectedExamId] = useState(null);
   const [selectedAcademyId, setSelectedAcademyId] = useState(null);
@@ -46,8 +45,7 @@ export const StudentAcademyPage = () => {
         const params = new URLSearchParams(queryStr);
         const course = params.get('course');
         const academy = params.get('academy');
-        const examEnquiry = params.get('exam-enquiry') || params.get('enquiry');
-        const exam = params.get('exam');
+        const exam = params.get('exam') || params.get('exam-enquiry') || params.get('enquiry');
 
         if (course) {
           const c = getCourseById(course);
@@ -63,11 +61,6 @@ export const StudentAcademyPage = () => {
           setSelectedAcademyId(academy);
           if (exam) setSelectedExamId(exam);
           setCurrentView('academy-detail');
-          return;
-        }
-        if (examEnquiry) {
-          setSelectedExamId(examEnquiry);
-          setCurrentView('exam-enquiry');
           return;
         }
         if (exam) {
@@ -118,15 +111,6 @@ export const StudentAcademyPage = () => {
     }
   };
 
-  // Handler: Open direct exam enquiry
-  const handleOpenExamEnquiry = (examId) => {
-    setSelectedExamId(examId);
-    setCurrentView('exam-enquiry');
-    if (window.history && window.history.replaceState) {
-      window.history.replaceState(null, '', `#education-school-academy?exam-enquiry=${examId}`);
-    }
-  };
-
   // Back Handlers
   const handleBackToExams = () => {
     setSelectedExamId(null);
@@ -160,95 +144,71 @@ export const StudentAcademyPage = () => {
   const selectedCourse = selectedCourseId ? getCourseById(selectedCourseId) : null;
 
   return (
-    <div className="min-h-screen bg-slate-50 dark:bg-navy-950 text-slate-900 dark:text-slate-100 transition-colors duration-300">
+    <div id="student-academy-page" className="min-h-screen bg-slate-50 dark:bg-navy-950 text-slate-900 dark:text-slate-100 transition-colors duration-300">
       <EducationSEO
         title="Student Academy | Competitive Examinations & Verified Academies | Revival International"
         description="Explore 40+ competitive examinations across 11 departments. Compare up to 10 verified academies per exam with audited fees and direct course enquiry."
         keywords="student academy, competitive exams, upsc ias coaching, ssc cgl, neet ug, gate coaching, cat iim coaching, verified academies, revival international"
       />
 
-      {/* Breadcrumb Bar: Matches Reference Exactly */}
-      <div className="bg-white/80 dark:bg-navy-900/80 border-b border-slate-200 dark:border-navy-800 backdrop-blur-sm sticky top-[73px] z-30 transition-colors">
+      {/* Breadcrumb Bar */}
+      <div className="bg-white/80 dark:bg-navy-900/80 border-b border-slate-200 dark:border-navy-800 backdrop-blur-sm sticky top-[73px] z-30">
         <div className="max-w-7xl mx-auto px-4 sm:px-8 py-3 flex items-center justify-between text-xs">
           <nav aria-label="Breadcrumb" className="flex items-center space-x-2 text-slate-500 dark:text-slate-400 font-medium overflow-x-auto whitespace-nowrap">
             <button
               onClick={() => navigateTo('home')}
-              className="hover:text-gold-600 dark:hover:text-gold-400 transition flex items-center gap-1.5 focus:outline-none cursor-pointer"
+              className="hover:text-gold-500 transition flex items-center gap-1 focus:outline-none"
             >
-              <Home className="w-3.5 h-3.5 text-slate-500 dark:text-slate-400" />
+              <Home className="w-3.5 h-3.5" />
               <span>Home</span>
             </button>
-            <span className="text-slate-400 dark:text-slate-600">/</span>
+            <span>/</span>
             <button
-              onClick={() => navigateTo('services')}
-              className="hover:text-gold-600 dark:hover:text-gold-400 transition focus:outline-none cursor-pointer"
+              onClick={() => navigateTo('education')}
+              className="hover:text-gold-500 transition focus:outline-none"
             >
               Services
             </button>
-            <span className="text-slate-400 dark:text-slate-600">/</span>
-            {currentView === 'exams' ? (
-              <span className="text-gold-600 dark:text-gold-400 font-bold">
-                Student Academy
-              </span>
-            ) : (
-              <button
-                onClick={handleBackToExams}
-                className="hover:text-gold-600 dark:hover:text-gold-400 transition focus:outline-none cursor-pointer"
-              >
-                Student Academy
-              </button>
-            )}
+            <span>/</span>
+            <button
+              onClick={handleBackToExams}
+              className={`hover:text-gold-500 transition focus:outline-none ${currentView === 'exams' ? 'text-gold-500 font-bold' : ''
+                }`}
+            >
+              Student Academy
+            </button>
 
             {selectedExam && currentView !== 'exams' && (
               <>
-                <span className="text-slate-400 dark:text-slate-600">/</span>
-                {currentView === 'academies' ? (
-                  <span className="text-gold-600 dark:text-gold-400 font-bold">
-                    {selectedExam.code}
-                  </span>
-                ) : (
-                  <button
-                    onClick={handleBackToAcademies}
-                    className="hover:text-gold-600 dark:hover:text-gold-400 transition focus:outline-none cursor-pointer"
-                  >
-                    {selectedExam.code}
-                  </button>
-                )}
+                <span>/</span>
+                <button
+                  onClick={handleBackToAcademies}
+                  className={`hover:text-gold-500 transition focus:outline-none ${currentView === 'academies' ? 'text-gold-500 font-bold' : ''
+                    }`}
+                >
+                  {selectedExam.code} (Exam Enquiry)
+                </button>
               </>
             )}
 
             {selectedAcademy && (currentView === 'academy-detail' || currentView === 'course-enquiry') && (
               <>
-                <span className="text-slate-400 dark:text-slate-600">/</span>
-                {currentView === 'academy-detail' ? (
-                  <span className="text-gold-600 dark:text-gold-400 font-bold">
-                    {selectedAcademy.shortName || selectedAcademy.name}
-                  </span>
-                ) : (
-                  <button
-                    onClick={handleBackToAcademyDetail}
-                    className="hover:text-gold-600 dark:hover:text-gold-400 transition focus:outline-none cursor-pointer"
-                  >
-                    {selectedAcademy.shortName || selectedAcademy.name}
-                  </button>
-                )}
+                <span>/</span>
+                <button
+                  onClick={handleBackToAcademyDetail}
+                  className={`hover:text-gold-500 transition focus:outline-none ${currentView === 'academy-detail' ? 'text-gold-500 font-bold' : ''
+                    }`}
+                >
+                  {selectedAcademy.shortName}
+                </button>
               </>
             )}
 
             {selectedCourse && currentView === 'course-enquiry' && (
               <>
-                <span className="text-slate-400 dark:text-slate-600">/</span>
-                <span className="text-gold-600 dark:text-gold-400 font-bold">
+                <span>/</span>
+                <span className="text-gold-500 font-bold">
                   Course Enquiry
-                </span>
-              </>
-            )}
-
-            {currentView === 'exam-enquiry' && (
-              <>
-                <span className="text-slate-400 dark:text-slate-600">/</span>
-                <span className="text-gold-600 dark:text-gold-400 font-bold">
-                  Exam Enquiry
                 </span>
               </>
             )}
@@ -265,19 +225,10 @@ export const StudentAcademyPage = () => {
         )}
 
         {currentView === 'academies' && selectedExamId && (
-          <ExamAcademiesView
-            examId={selectedExamId}
-            onSelectAcademy={handleSelectAcademy}
-            onBackToExams={handleBackToExams}
-            onOpenEnquiry={handleOpenExamEnquiry}
-          />
-        )}
-
-        {currentView === 'exam-enquiry' && selectedExamId && (
           <ExamEnquiryView
             examId={selectedExamId}
             onSelectAcademy={handleSelectAcademy}
-            onBackToExams={handleBackToAcademies}
+            onBackToExams={handleBackToExams}
           />
         )}
 
@@ -303,5 +254,3 @@ export const StudentAcademyPage = () => {
     </div>
   );
 };
-
-export default StudentAcademyPage;

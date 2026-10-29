@@ -66,6 +66,12 @@ export const EducationServiceDetail = ({ serviceId }) => {
 
   const IconComponent = iconMap[service.icon] || GraduationCap;
 
+  const isCareerGuidance = 
+    service.id === 'school-career' || 
+    service.slug === 'school-student-career-guidance' ||
+    cleanId === 'school-career' || 
+    cleanId === 'career-guidance';
+
   useEffect(() => {
     if (service && service.id) {
       setModalServiceId(service.id);
@@ -118,7 +124,7 @@ export const EducationServiceDetail = ({ serviceId }) => {
   }
 
   return (
-    <div className="space-y-16 pb-20">
+    <div id={isCareerGuidance ? "career-guidance-page" : undefined} className="space-y-16 pb-20">
       <EducationSEO
         title={`${service.title} | Academic & University Advisory Dubai`}
         description={`${service.shortDescription} Comprehensive admissions roadmap, credential auditing, and certified mentorship in Dubai.`}
@@ -174,14 +180,16 @@ export const EducationServiceDetail = ({ serviceId }) => {
             <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 lg:gap-12 items-center">
               {/* Left Column: Heading, Subtitle, Description, CTAs, and Key Stats */}
               <div className="lg:col-span-7 space-y-5">
-                <div className="flex flex-wrap items-center gap-2">
-                  <span className="bg-gold-500/15 text-gold-600 dark:text-gold-400 text-xs font-black px-3 py-1 rounded-full uppercase tracking-wider border border-gold-500/30">
-                    {service.badge}
-                  </span>
-                  <span className="bg-emerald-500/15 text-emerald-600 dark:text-emerald-400 text-xs font-extrabold px-3 py-1 rounded-full uppercase border border-emerald-500/30">
-                    Verified Service • {service.category}
-                  </span>
-                </div>
+                {!isCareerGuidance && (
+                  <div className="flex flex-wrap items-center gap-2">
+                    <span className="bg-gold-500/15 text-gold-600 dark:text-gold-400 text-xs font-black px-3 py-1 rounded-full uppercase tracking-wider border border-gold-500/30">
+                      {service.badge}
+                    </span>
+                    <span className="bg-emerald-500/15 text-emerald-600 dark:text-emerald-400 text-xs font-extrabold px-3 py-1 rounded-full uppercase border border-emerald-500/30">
+                      Verified Service • {service.category}
+                    </span>
+                  </div>
+                )}
 
                 <h1 className="font-serif text-3xl sm:text-4xl md:text-5xl font-black text-navy-900 dark:text-white leading-tight">
                   {service.title}
@@ -222,14 +230,16 @@ export const EducationServiceDetail = ({ serviceId }) => {
                 </div>
 
                 {/* Key Quick Stats */}
-                <div className="pt-6 border-t border-slate-100 dark:border-navy-800 grid grid-cols-2 sm:grid-cols-4 gap-4">
-                  {service.keyStats.map((stat, idx) => (
-                    <div key={idx} className="space-y-0.5">
-                      <p className="text-[10px] text-slate-500 uppercase font-bold tracking-wider">{stat.label}</p>
-                      <p className="text-xs sm:text-sm font-black text-navy-900 dark:text-white">{stat.value}</p>
-                    </div>
-                  ))}
-                </div>
+                {service.keyStats && service.keyStats.length > 0 && !isCareerGuidance && service.id !== 'school-academy' && (
+                  <div className="pt-6 border-t border-slate-100 dark:border-navy-800 grid grid-cols-2 sm:grid-cols-4 gap-4">
+                    {service.keyStats.map((stat, idx) => (
+                      <div key={idx} className="space-y-0.5">
+                        <p className="text-[10px] text-slate-500 uppercase font-bold tracking-wider">{stat.label}</p>
+                        <p className="text-xs sm:text-sm font-black text-navy-900 dark:text-white">{stat.value}</p>
+                      </div>
+                    ))}
+                  </div>
+                )}
               </div>
 
               {/* Right Column: Premium Visual Card (matching International Consulting) */}
@@ -390,32 +400,34 @@ export const EducationServiceDetail = ({ serviceId }) => {
         )}
 
         {/* Who Is It For */}
-        <ScrollReveal>
-          <div className="glass-card bg-slate-50 dark:bg-navy-950 border border-slate-200 dark:border-navy-800 rounded-3xl p-6 sm:p-10 space-y-6">
-            <div className="flex items-center space-x-3 text-gold-600 dark:text-gold-400 pb-2 border-b border-slate-200 dark:border-navy-800">
-              <Users className="w-6 h-6" />
-              <div>
-                <h2 className="font-serif text-xl sm:text-2xl font-bold text-navy-900 dark:text-white">
-                  Intended Audience & Eligibility
-                </h2>
-                <p className="text-[10px] uppercase text-gold-600 dark:text-gold-400 font-bold tracking-widest">Candidate Profile Matching</p>
+        {!isCareerGuidance && (
+          <ScrollReveal>
+            <div className="glass-card bg-slate-50 dark:bg-navy-950 border border-slate-200 dark:border-navy-800 rounded-3xl p-6 sm:p-10 space-y-6">
+              <div className="flex items-center space-x-3 text-gold-600 dark:text-gold-400 pb-2 border-b border-slate-200 dark:border-navy-800">
+                <Users className="w-6 h-6" />
+                <div>
+                  <h2 className="font-serif text-xl sm:text-2xl font-bold text-navy-900 dark:text-white">
+                    Intended Audience & Eligibility
+                  </h2>
+                  <p className="text-[10px] uppercase text-gold-600 dark:text-gold-400 font-bold tracking-widest">Candidate Profile Matching</p>
+                </div>
+              </div>
+
+              <p className="text-xs sm:text-sm text-slate-700 dark:text-slate-300 leading-relaxed font-medium">
+                {service.targetAudience}
+              </p>
+
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3.5 pt-2">
+                {service.whoIsItFor.map((item, idx) => (
+                  <div key={idx} className="flex items-start gap-2.5 text-xs text-slate-700 dark:text-slate-300">
+                    <CheckCircle2 className="w-4 h-4 text-emerald-500 shrink-0 mt-0.5" />
+                    <span>{item}</span>
+                  </div>
+                ))}
               </div>
             </div>
-
-            <p className="text-xs sm:text-sm text-slate-700 dark:text-slate-300 leading-relaxed font-medium">
-              {service.targetAudience}
-            </p>
-
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3.5 pt-2">
-              {service.whoIsItFor.map((item, idx) => (
-                <div key={idx} className="flex items-start gap-2.5 text-xs text-slate-700 dark:text-slate-300">
-                  <CheckCircle2 className="w-4 h-4 text-emerald-500 shrink-0 mt-0.5" />
-                  <span>{item}</span>
-                </div>
-              ))}
-            </div>
-          </div>
-        </ScrollReveal>
+          </ScrollReveal>
+        )}
 
         {/* How The Service Works (Step-by-Step Workflow) */}
         <ScrollReveal>
@@ -605,57 +617,59 @@ export const EducationServiceDetail = ({ serviceId }) => {
         )}
 
         {/* Global Dubai Office / Contact Footer Banner */}
-        <ScrollReveal>
-          <div className="glass-card bg-gradient-to-r from-navy-950 via-navy-900 to-navy-950 border border-gold-500/40 rounded-3xl p-8 sm:p-10 text-white space-y-6 shadow-luxury">
-            <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-6">
-              <div className="space-y-2 max-w-2xl">
-                <span className="bg-gold-500/20 text-gold-400 text-xs font-black px-3 py-1 rounded-full uppercase tracking-wider">
-                  Dubai Headquarters Advisory Desk
-                </span>
-                <h3 className="font-serif text-2xl sm:text-3xl font-extrabold text-white">
-                  Ready to Shape Your Academic Future?
-                </h3>
-                <p className="text-xs text-slate-300 leading-relaxed">
-                  Connect with our licensed education consultants in Dubai or schedule a dedicated virtual appointment for your family.
-                </p>
+        {!isCareerGuidance && (
+          <ScrollReveal>
+            <div className="glass-card bg-gradient-to-r from-navy-950 via-navy-900 to-navy-950 border border-gold-500/40 rounded-3xl p-8 sm:p-10 text-white space-y-6 shadow-luxury">
+              <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-6">
+                <div className="space-y-2 max-w-2xl">
+                  <span className="bg-gold-500/20 text-gold-400 text-xs font-black px-3 py-1 rounded-full uppercase tracking-wider">
+                    Dubai Headquarters Advisory Desk
+                  </span>
+                  <h3 className="font-serif text-2xl sm:text-3xl font-extrabold text-white">
+                    Ready to Shape Your Academic Future?
+                  </h3>
+                  <p className="text-xs text-slate-300 leading-relaxed">
+                    Connect with our licensed education consultants in Dubai or schedule a dedicated virtual appointment for your family.
+                  </p>
+                </div>
+
+                <div className="flex flex-wrap gap-3 shrink-0">
+                  <button
+                    onClick={() => {
+                      trackCtaClick('Schedule Appointment', 'service_detail_bottom_banner', service.id);
+                      setSelectedSubProgram(null);
+                      setModalOpen(true);
+                    }}
+                    className="px-6 py-3 bg-gold-shimmer text-navy-950 font-extrabold text-xs rounded-xl shadow-gold-glow hover:opacity-95 transition"
+                  >
+                    Schedule Appointment
+                  </button>
+                  <button
+                    onClick={() => navigateTo('contact')}
+                    className="px-5 py-3 bg-white/10 text-white hover:bg-white/20 font-bold text-xs rounded-xl transition border border-white/20"
+                  >
+                    Visit Dubai Office
+                  </button>
+                </div>
               </div>
 
-              <div className="flex flex-wrap gap-3 shrink-0">
-                <button
-                  onClick={() => {
-                    trackCtaClick('Schedule Appointment', 'service_detail_bottom_banner', service.id);
-                    setSelectedSubProgram(null);
-                    setModalOpen(true);
-                  }}
-                  className="px-6 py-3 bg-gold-shimmer text-navy-950 font-extrabold text-xs rounded-xl shadow-gold-glow hover:opacity-95 transition"
-                >
-                  Schedule Appointment
-                </button>
-                <button
-                  onClick={() => navigateTo('contact')}
-                  className="px-5 py-3 bg-white/10 text-white hover:bg-white/20 font-bold text-xs rounded-xl transition border border-white/20"
-                >
-                  Visit Dubai Office
-                </button>
+              <div className="pt-4 border-t border-navy-800 grid grid-cols-1 sm:grid-cols-3 gap-4 text-xs text-slate-300">
+                <div className="flex items-center gap-2">
+                  <Phone className="w-4 h-4 text-gold-400 shrink-0" />
+                  <span>+971 4 123 4567</span>
+                </div>
+                <div className="flex items-center gap-2">
+                  <Mail className="w-4 h-4 text-gold-400 shrink-0" />
+                  <span>education@revivalinternational.com</span>
+                </div>
+                <div className="flex items-center gap-2">
+                  <Building2 className="w-4 h-4 text-gold-400 shrink-0" />
+                  <span>Rolex Tower, Business Bay, Dubai</span>
+                </div>
               </div>
             </div>
-
-            <div className="pt-4 border-t border-navy-800 grid grid-cols-1 sm:grid-cols-3 gap-4 text-xs text-slate-300">
-              <div className="flex items-center gap-2">
-                <Phone className="w-4 h-4 text-gold-400 shrink-0" />
-                <span>+971 4 123 4567</span>
-              </div>
-              <div className="flex items-center gap-2">
-                <Mail className="w-4 h-4 text-gold-400 shrink-0" />
-                <span>education@revivalinternational.com</span>
-              </div>
-              <div className="flex items-center gap-2">
-                <Building2 className="w-4 h-4 text-gold-400 shrink-0" />
-                <span>Rolex Tower, Business Bay, Dubai</span>
-              </div>
-            </div>
-          </div>
-        </ScrollReveal>
+          </ScrollReveal>
+        )}
 
       </div>
 

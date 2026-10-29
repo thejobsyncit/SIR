@@ -191,12 +191,6 @@ export const EDUCATION_SERVICES_DETAILED = [
     shortDescription: 'Specialized aptitude evaluation and personalized career counseling for middle and high school students and their parents.',
     heroDescription: 'Choosing high school streams and identifying long-term career inclinations early prevents costly academic misalignments. We provide scientific career mapping, stream selection guidance (Science, Commerce, Humanities, STEM), and personalized parent-student advisory sessions.',
     targetAudience: 'Middle and high school students (Grades 8 to 12) along with parents seeking clarity on stream choices, college subjects, and modern career landscapes.',
-    keyStats: [
-      { label: 'Target Grades', value: 'Grades 8 to 12' },
-      { label: 'Assessments', value: 'Aptitude & Interest' },
-      { label: 'Format', value: 'Student + Parent' },
-      { label: 'Roadmap', value: '5-Year Academic Plan' }
-    ],
     keyBenefits: [
       {
         title: 'Informed Stream Selection',

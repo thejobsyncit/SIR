@@ -53,6 +53,39 @@ export function App() {
     return <CrmApp />;
   }
 
+  const isStudentAcademyPage = Boolean(
+    activeTab && (
+      activeTab === 'education-school-academy' ||
+      activeTab === 'school-academy' ||
+      activeTab === 'student-academy' ||
+      activeTab === 'education-student-academy' ||
+      activeTab === 'education/school-academy' ||
+      activeTab === 'education/student-academy' ||
+      activeTab === 'academy-for-school-students' ||
+      activeTab === 'education/academy-for-school-students' ||
+      activeTab.includes('school-academy') ||
+      activeTab.includes('student-academy') ||
+      activeTab.includes('academy-for-school-students')
+    )
+  );
+
+  const isCareerGuidancePage = Boolean(
+    activeTab && (
+      activeTab === 'education-school-career' ||
+      activeTab === 'school-career' ||
+      activeTab === 'education/school-career' ||
+      activeTab === 'education-career-guidance' ||
+      activeTab === 'career-guidance' ||
+      activeTab === 'education/career-guidance' ||
+      activeTab === 'school-student-career-guidance' ||
+      activeTab === 'education-school-student-career-guidance' ||
+      activeTab === 'education/school-student-career-guidance' ||
+      activeTab.includes('school-career') ||
+      activeTab.includes('career-guidance') ||
+      activeTab.includes('school-student-career-guidance')
+    )
+  );
+
   const renderCurrentPage = () => {
     // Dedicated Academic & Education Advisory Routes
     if (activeTab === 'education') {
@@ -167,7 +200,7 @@ export function App() {
         {renderCurrentPage()}
       </main>
 
-      <Footer />
+      <Footer hideNewsletter={isCareerGuidancePage || isStudentAcademyPage} />
 
       {/* Global Interactive Modals & Floating Widgets */}
       <UnifiedAuthModal />
