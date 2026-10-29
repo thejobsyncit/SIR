@@ -645,6 +645,98 @@ export const CrmProvider = ({ children }) => {
     }
   };
 
+
+  const deleteLead = async (leadId, metadata = {}) => {
+    try {
+      const activeRole = currentRole || user?.role || 'Super Admin';
+      const activeUserName = user?.name || 'Super Admin';
+      const activeUserId = user?.id || 'usr-superadmin';
+
+      const res = await fetch(`/api/leads/${leadId}`, {
+        method: 'DELETE',
+        headers: {
+          'Content-Type': 'application/json',
+          'X-CRM-Role': activeRole,
+          'X-CRM-User': activeUserName,
+          'X-CRM-User-Id': activeUserId
+        }
+      });
+      const data = await res.json();
+      if (!res.ok || !data.success) {
+        throw new Error(data.message || 'Failed to delete record');
+      }
+
+      logAuditAction(`Permanently deleted ${metadata.entityType || 'lead'} '${leadId}' (${metadata.name || metadata.referenceNumber || ''}).`);
+      setLeads(prev => prev.filter(l => l.id !== leadId && l.referenceNumber !== leadId));
+      if (fetchLeads) await fetchLeads();
+      if (fetchLeadMetrics) await fetchLeadMetrics();
+      if (fetchConsultingMetrics) await fetchConsultingMetrics();
+      return data;
+    } catch (err) {
+      console.error('Error in deleteLead:', err);
+      throw err;
+    }
+  };
+
+  const deleteCandidate = async (candidateId, metadata = {}) => {
+    try {
+      const activeRole = currentRole || user?.role || 'Super Admin';
+      const activeUserName = user?.name || 'Super Admin';
+      const activeUserId = user?.id || 'usr-superadmin';
+
+      const res = await fetch(`/api/candidates/${candidateId}`, {
+        method: 'DELETE',
+        headers: {
+          'Content-Type': 'application/json',
+          'X-CRM-Role': activeRole,
+          'X-CRM-User': activeUserName,
+          'X-CRM-User-Id': activeUserId
+        }
+      });
+      const data = res.ok ? await res.json().catch(() => ({})) : {};
+      logAuditAction(`Permanently deleted candidate '${candidateId}' (${metadata.name || ''}).`);
+      setCandidates(prev => prev.filter(c => c.id !== candidateId));
+      return data;
+    } catch (err) {
+      console.error('Error in deleteCandidate:', err);
+      setCandidates(prev => prev.filter(c => c.id !== candidateId));
+      logAuditAction(`Permanently deleted candidate '${candidateId}' (${metadata.name || ''}).`);
+      throw err;
+    }
+  };
+
+  const deleteInterview = async (interviewId, metadata = {}) => {
+    try {
+      const activeRole = currentRole || user?.role || 'Super Admin';
+      const activeUserName = user?.name || 'Super Admin';
+      const activeUserId = user?.id || 'usr-superadmin';
+
+      const res = await fetch(`/api/interviews/${interviewId}`, {
+        method: 'DELETE',
+        headers: {
+          'Content-Type': 'application/json',
+          'X-CRM-Role': activeRole,
+          'X-CRM-User': activeUserName,
+          'X-CRM-User-Id': activeUserId
+        }
+      });
+      const data = res.ok ? await res.json().catch(() => ({})) : {};
+      logAuditAction(`Permanently deleted interview '${interviewId}' (${metadata.candidateName || ''}).`);
+      setInterviews(prev => prev.filter(i => i.id !== interviewId));
+      return data;
+    } catch (err) {
+      console.error('Error in deleteInterview:', err);
+      setInterviews(prev => prev.filter(i => i.id !== interviewId));
+      logAuditAction(`Permanently deleted interview '${interviewId}' (${metadata.candidateName || ''}).`);
+      throw err;
+    }
+  };
+
+  const deleteInvoice = (invoiceId, metadata = {}) => {
+    setInvoices(prev => prev.filter(i => i.id !== invoiceId));
+    logAuditAction(`Permanently deleted invoice '${invoiceId}' (${metadata.client || ''}).`);
+  };
+
   return (
     <CrmContext.Provider
       value={{
@@ -659,6 +751,7 @@ export const CrmProvider = ({ children }) => {
         activeDevices,
         user,
         currentRole,
+        isSuperAdmin,
         switchRole,
         hasPermission,
         darkMode,
@@ -669,6 +762,7 @@ export const CrmProvider = ({ children }) => {
         addCandidate,
         updateCandidate,
         updateCandidateStage,
+        deleteCandidate,
         selectedCandidate,
         setSelectedCandidate,
         clients,
@@ -681,12 +775,14 @@ export const CrmProvider = ({ children }) => {
         interviews,
         addInterview,
         updateInterview,
+        deleteInterview,
         calendarEvents,
         addCalendarEvent,
         removeCalendarEvent,
         invoices,
         addInvoice,
         updateInvoice,
+        deleteInvoice,
         recruiterTasks,
         addRecruiterTask,
         removeRecruiterTask,
@@ -719,6 +815,7 @@ export const CrmProvider = ({ children }) => {
         fetchLeads,
         updateLead,
         archiveLead,
+        deleteLead,
         addLeadActivity,
         scheduleLeadFollowUp,
         updateFollowUpStatus,

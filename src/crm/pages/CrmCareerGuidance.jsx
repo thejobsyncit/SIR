@@ -579,9 +579,27 @@ export const CrmCareerGuidance = () => {
       
       {/* Superadmin Status Notification Toast */}
       {statusNotice && (
-        <div className="p-3.5 rounded-2xl bg-emerald-500/10 border border-emerald-500/30 text-emerald-800 dark:text-emerald-300 font-bold text-xs flex items-center justify-between animate-in fade-in">
-          <span>{statusNotice}</span>
-          <button onClick={() => setStatusNotice('')} className="text-emerald-700 hover:text-emerald-900 dark:text-emerald-400 p-1">
+        <div className={`p-3.5 rounded-2xl border font-bold text-xs flex items-center justify-between animate-in fade-in ${
+          statusNotice.includes('Error') || statusNotice.includes('⚠️')
+            ? 'bg-rose-500/10 border-rose-500/30 text-rose-800 dark:text-rose-300' 
+            : 'bg-emerald-500/10 border-emerald-500/30 text-emerald-800 dark:text-emerald-300'
+        }`}>
+          <div className="flex items-center gap-2">
+            {statusNotice.includes('Error') || statusNotice.includes('⚠️') ? (
+              <AlertCircle className="w-4 h-4 text-rose-600 dark:text-rose-400 shrink-0" />
+            ) : (
+              <CheckCircle2 className="w-4 h-4 text-emerald-600 dark:text-emerald-400 shrink-0" />
+            )}
+            <span>{statusNotice}</span>
+          </div>
+          <button 
+            onClick={() => setStatusNotice('')} 
+            className={`p-1 rounded-lg transition ${
+              statusNotice.includes('Error') || statusNotice.includes('⚠️')
+                ? 'text-rose-700 hover:text-rose-900 dark:text-rose-400' 
+                : 'text-emerald-700 hover:text-emerald-900 dark:text-emerald-400'
+            }`}
+          >
             <X className="w-4 h-4" />
           </button>
         </div>
