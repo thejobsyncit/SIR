@@ -3,7 +3,7 @@ import cors from 'cors';
 import path from 'path';
 import fs from 'fs';
 import { fileURLToPath } from 'url';
-import { getDb, closeDb, checkDbHealth } from './database.js';
+import { getDb, closeDb, checkDbHealth, logAuditTrail } from './database.js';
 import nodemailer from 'nodemailer';
 import dotenv from 'dotenv';
 
@@ -51,11 +51,36 @@ app.use(cors({
   },
   credentials: true,
   methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
-  allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With', 'X-Forwarded-For']
+  allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With', 'X-Forwarded-For', 'X-CRM-Role', 'X-CRM-User', 'X-CRM-User-Id']
 }));
 
 app.use(express.json({ limit: '10mb' }));
 app.use(express.urlencoded({ extended: true, limit: '10mb' }));
+
+// Superadmin Authorization Middleware for Sensitive Operations
+const requireSuperAdmin = (req, res, next) => {
+  const roleHeader = (
+    req.headers['x-crm-role'] ||
+    req.headers['role'] ||
+    req.headers['x-user-role'] ||
+    ''
+  ).trim().toLowerCase();
+
+  const authHeader = (req.headers['authorization'] || '').trim().toLowerCase();
+
+  const isSuperAdminRole = roleHeader === 'super admin' || roleHeader === 'superadmin';
+  const isSuperAdminBearer = authHeader === 'bearer superadmin' || authHeader === 'bearer super admin';
+
+  if (!isSuperAdminRole && !isSuperAdminBearer) {
+    return res.status(403).json({
+      success: false,
+      error: 'Forbidden',
+      message: 'Access denied: Only users with the Superadmin role are authorized to delete CRM records.'
+    });
+  }
+  next();
+};
+
 
 // Operational Health & Performance Check Endpoint
 app.get('/api/health', async (req, res) => {
@@ -659,10 +684,28 @@ app.put('/api/jobs/:id', async (req, res) => {
   }
 });
 
-app.delete('/api/jobs/:id', async (req, res) => {
+app.delete('/api/jobs/:id', requireSuperAdmin, async (req, res) => {
   try {
     const db = await getDb();
+    const clientIp = req.ip || req.headers['x-forwarded-for'] || req.socket?.remoteAddress || '127.0.0.1';
+    const crmUser = req.headers['x-crm-user'] || 'Super Admin';
+    const crmUserId = req.headers['x-crm-user-id'] || 'usr-superadmin';
+    const crmRole = req.headers['x-crm-role'] || 'Super Admin';
+
+    const existingJob = await db.get('SELECT * FROM jobs WHERE id = ?', [req.params.id]);
     await db.run('DELETE FROM jobs WHERE id = ?', [req.params.id]);
+
+    await logAuditTrail(db, {
+      userId: crmUserId,
+      userName: crmUser,
+      role: crmRole,
+      action: 'DELETE_JOB',
+      entityType: 'Job Posting',
+      entityId: req.params.id,
+      details: { title: existingJob?.title, company: existingJob?.company },
+      ip: clientIp
+    });
+
     res.json({ success: true, message: 'Job deleted successfully' });
   } catch (error) {
     res.status(500).json({ success: false, message: 'Failed to delete job' });
@@ -713,13 +756,43 @@ app.put('/api/candidates/:id', async (req, res) => {
   }
 });
 
-app.delete('/api/candidates/:id', async (req, res) => {
+app.delete('/api/candidates/:id', requireSuperAdmin, async (req, res) => {
   try {
+    const { id } = req.params;
     const db = await getDb();
-    await db.run('DELETE FROM candidates WHERE id = ?', [req.params.id]);
-    res.json({ success: true });
+    const clientIp = req.ip || req.headers['x-forwarded-for'] || req.socket?.remoteAddress || '127.0.0.1';
+    const crmUser = req.headers['x-crm-user'] || 'Super Admin';
+    const crmUserId = req.headers['x-crm-user-id'] || 'usr-superadmin';
+    const crmRole = req.headers['x-crm-role'] || 'Super Admin';
+
+    const existingCand = await db.get('SELECT * FROM candidates WHERE id = ?', [id]);
+    if (!existingCand) {
+      return res.status(404).json({ success: false, message: 'Candidate record not found or already deleted' });
+    }
+
+    // Cascade: remove interviews linked to this candidate
+    await db.run('DELETE FROM interviews WHERE candidateId = ?', [id]);
+    await db.run('DELETE FROM candidates WHERE id = ?', [id]);
+
+    await logAuditTrail(db, {
+      userId: crmUserId,
+      userName: crmUser,
+      role: crmRole,
+      action: 'DELETE_CANDIDATE',
+      entityType: 'Candidate Profile',
+      entityId: id,
+      details: {
+        name: existingCand.name,
+        nationality: existingCand.nationality,
+        passport: existingCand.passport,
+        role: existingCand.currentRole
+      },
+      ip: clientIp
+    });
+
+    res.json({ success: true, message: `Candidate '${existingCand.name}' successfully deleted.`, id });
   } catch (error) {
-    res.status(500).json({ success: false, message: 'Failed to delete candidate' });
+    res.status(500).json({ success: false, message: 'Failed to delete candidate: ' + error.message });
   }
 });
 
@@ -944,16 +1017,45 @@ app.post(['/api/clients/:id/contacts', '/api/organizations/:id/contacts'], async
   }
 });
 
-app.delete(['/api/clients/:id', '/api/organizations/:id'], async (req, res) => {
+app.delete(['/api/clients/:id', '/api/organizations/:id'], requireSuperAdmin, async (req, res) => {
   try {
     const { id } = req.params;
     const db = await getDb();
-    await db.run('DELETE FROM clients WHERE id = ?', [id]);
+    const clientIp = req.ip || req.headers['x-forwarded-for'] || req.socket?.remoteAddress || '127.0.0.1';
+    const crmUser = req.headers['x-crm-user'] || 'Super Admin';
+    const crmUserId = req.headers['x-crm-user-id'] || 'usr-superadmin';
+    const crmRole = req.headers['x-crm-role'] || 'Super Admin';
+
+    const existingClient = await db.get('SELECT * FROM clients WHERE id = ?', [id]);
+    if (!existingClient) {
+      return res.status(404).json({ success: false, message: 'Organization record not found or already deleted' });
+    }
+
+    // Cascade cleanup linked contacts, activities, and follow-ups
     await db.run('DELETE FROM organization_contacts WHERE organizationId = ?', [id]);
-    res.json({ success: true, message: 'Organization record deleted successfully' });
+    await db.run('DELETE FROM enquiry_activities WHERE organizationId = ?', [id]);
+    await db.run('DELETE FROM follow_ups WHERE organizationId = ?', [id]);
+    await db.run('DELETE FROM clients WHERE id = ?', [id]);
+
+    await logAuditTrail(db, {
+      userId: crmUserId,
+      userName: crmUser,
+      role: crmRole,
+      action: 'DELETE_ORGANIZATION',
+      entityType: 'Client / Organization',
+      entityId: id,
+      details: {
+        company: existingClient.company,
+        country: existingClient.country,
+        organizationType: existingClient.organizationType
+      },
+      ip: clientIp
+    });
+
+    res.json({ success: true, message: `Organization '${existingClient.company}' deleted successfully`, id });
   } catch (error) {
     console.error('Failed to delete client:', error);
-    res.status(500).json({ success: false, message: 'Failed to delete client' });
+    res.status(500).json({ success: false, message: 'Failed to delete client: ' + error.message });
   }
 });
 
@@ -984,13 +1086,41 @@ app.post('/api/interviews', async (req, res) => {
   }
 });
 
-app.delete('/api/interviews/:id', async (req, res) => {
+app.delete('/api/interviews/:id', requireSuperAdmin, async (req, res) => {
   try {
+    const { id } = req.params;
     const db = await getDb();
-    await db.run('DELETE FROM interviews WHERE id = ?', [req.params.id]);
-    res.json({ success: true });
+    const clientIp = req.ip || req.headers['x-forwarded-for'] || req.socket?.remoteAddress || '127.0.0.1';
+    const crmUser = req.headers['x-crm-user'] || 'Super Admin';
+    const crmUserId = req.headers['x-crm-user-id'] || 'usr-superadmin';
+    const crmRole = req.headers['x-crm-role'] || 'Super Admin';
+
+    const existingInterview = await db.get('SELECT * FROM interviews WHERE id = ?', [id]);
+    if (!existingInterview) {
+      return res.status(404).json({ success: false, message: 'Interview record not found or already deleted' });
+    }
+
+    await db.run('DELETE FROM interviews WHERE id = ?', [id]);
+
+    await logAuditTrail(db, {
+      userId: crmUserId,
+      userName: crmUser,
+      role: crmRole,
+      action: 'DELETE_INTERVIEW',
+      entityType: 'Interview Schedule',
+      entityId: id,
+      details: {
+        candidateName: existingInterview.candidateName,
+        jobTitle: existingInterview.jobTitle,
+        company: existingInterview.company,
+        date: existingInterview.date
+      },
+      ip: clientIp
+    });
+
+    res.json({ success: true, message: `Interview for '${existingInterview.candidateName}' deleted successfully`, id });
   } catch (error) {
-    res.status(500).json({ success: false, message: 'Failed to delete interview' });
+    res.status(500).json({ success: false, message: 'Failed to delete interview: ' + error.message });
   }
 });
 
@@ -2051,21 +2181,96 @@ app.post(['/api/leads/:id/archive', '/api/consulting/enquiries/:id/archive'], as
 });
 
 // Delete Lead / Enquiry (Super Admin CRM)
-app.delete(['/api/leads/:id', '/api/consulting/enquiries/:id'], async (req, res) => {
+app.delete([
+  '/api/leads/:id',
+  '/api/consulting/enquiries/:id',
+  '/api/student-academy/enquiries/:id',
+  '/api/career-guidance/enquiries/:id'
+], requireSuperAdmin, async (req, res) => {
   try {
     const { id } = req.params;
     const db = await getDb();
-    await db.run('DELETE FROM leads WHERE id = ?', [id]);
-    await db.run('DELETE FROM enquiry_activities WHERE enquiryId = ?', [id]);
-    await db.run('DELETE FROM follow_ups WHERE enquiryId = ?', [id]);
-    res.json({ success: true, message: 'Lead deleted successfully', id });
+    const clientIp = req.ip || req.headers['x-forwarded-for'] || req.socket?.remoteAddress || '127.0.0.1';
+    const crmUser = req.headers['x-crm-user'] || 'Super Admin';
+    const crmUserId = req.headers['x-crm-user-id'] || 'usr-superadmin';
+    const crmRole = req.headers['x-crm-role'] || 'Super Admin';
+
+    // 1. Capture existing metadata before deletion
+    const existingLead = await db.get('SELECT * FROM leads WHERE id = ? OR referenceNumber = ?', [id, id]);
+    const existingAcademy = await db.get('SELECT * FROM student_academy_enquiries WHERE id = ? OR referenceNumber = ?', [id, id]);
+
+    if (!existingLead && !existingAcademy) {
+      return res.status(404).json({ success: false, message: 'Record not found or already deleted' });
+    }
+
+    const refNumber = existingLead?.referenceNumber || existingAcademy?.referenceNumber || id;
+    const recordName = existingLead?.name || existingAcademy?.studentName || 'Unknown Contact';
+    const serviceType = existingLead?.serviceTitle || existingLead?.serviceId || existingAcademy?.examName || existingAcademy?.academyName || 'Enquiry';
+
+    // Classify entity type for audit logging
+    let entityType = 'Lead / Enquiry';
+    const sId = (existingLead?.serviceId || '').toLowerCase();
+    const sTitle = (existingLead?.serviceTitle || '').toLowerCase();
+    const refUpper = (refNumber || '').toUpperCase();
+    if (sId.includes('student-academy') || sId.includes('school-academy') || refUpper.startsWith('REV-ACA') || existingAcademy) {
+      entityType = 'Student Academy Enquiry';
+    } else if (sId.includes('career') || refUpper.startsWith('REV-CAR') || sTitle.includes('career')) {
+      entityType = 'Career Guidance Enquiry';
+    } else if (sId.includes('consulting') || refUpper.startsWith('REV-CON') || sTitle.includes('consulting') || existingLead?.consultationDate) {
+      entityType = 'Consulting Booking';
+    }
+
+    // 2. Cascade cleanup of child activities and follow-ups safely
+    await db.run('DELETE FROM enquiry_activities WHERE enquiryId = ? OR enquiryId = ?', [id, refNumber]);
+    await db.run('DELETE FROM follow_ups WHERE enquiryId = ? OR enquiryId = ?', [id, refNumber]);
+
+    // 3. Delete from primary and synchronized tables
+    await db.run('DELETE FROM leads WHERE id = ? OR referenceNumber = ?', [id, refNumber]);
+    await db.run('DELETE FROM student_academy_enquiries WHERE id = ? OR referenceNumber = ?', [id, refNumber]);
+
+    // 4. Record persistent audit log
+    await logAuditTrail(db, {
+      userId: crmUserId,
+      userName: crmUser,
+      role: crmRole,
+      action: 'DELETE_RECORD',
+      entityType,
+      entityId: id,
+      details: {
+        referenceNumber: refNumber,
+        recordName,
+        serviceType,
+        deletedAt: new Date().toISOString()
+      },
+      ip: clientIp
+    });
+
+    res.json({
+      success: true,
+      message: `${entityType} '${recordName}' (${refNumber}) permanently deleted successfully.`,
+      id,
+      referenceNumber: refNumber,
+      entityType
+    });
   } catch (error) {
-    console.error('Failed to delete lead:', error);
-    res.status(500).json({ success: false, message: 'Failed to delete lead' });
+    console.error('Failed to delete lead / enquiry:', error);
+    res.status(500).json({ success: false, message: 'Failed to delete record: ' + error.message });
   }
 });
 
 // Real-Time Database Metrics for International Consulting
+
+
+// Persistent Audit Logs Endpoint
+app.get('/api/crm/audit-logs', async (req, res) => {
+  try {
+    const db = await getDb();
+    const logs = await db.all('SELECT * FROM audit_logs ORDER BY createdAt DESC LIMIT 150');
+    res.json({ success: true, data: logs });
+  } catch (error) {
+    res.status(500).json({ success: false, message: 'Failed to fetch audit logs' });
+  }
+});
 
 // Real-Time Database Metrics for Student Academy
 app.get('/api/crm/student-academy/metrics', async (req, res) => {

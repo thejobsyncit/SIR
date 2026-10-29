@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import ScrollReveal from '../../components/ScrollReveal';
+import { CrmDeleteConfirmModal } from '../components/CrmDeleteConfirmModal';
 import { useCrm } from '../context/CrmContext';
 import { 
   CalendarCheck, Calendar, Clock, Globe, Compass, GraduationCap, Building2,

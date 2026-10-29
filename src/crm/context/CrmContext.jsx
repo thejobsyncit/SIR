@@ -16,6 +16,8 @@ export const CrmProvider = ({ children }) => {
   });
 
   const [currentRole, setCurrentRole] = useState('Super Admin');
+  const isSuperAdmin = currentRole === 'Super Admin' || user?.role === 'Super Admin';
+
   const [darkMode, setDarkMode] = useState(() => {
     try {
       const saved = localStorage.getItem('sir_theme_mode');

@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import ScrollReveal from '../../components/ScrollReveal';
+import { CrmDeleteConfirmModal } from '../components/CrmDeleteConfirmModal';
 import { useCrm } from '../context/CrmContext';
 import { 
   Compass, Calendar, Clock, Globe, GraduationCap, Building2,
@@ -18,7 +19,9 @@ export const CrmCareerGuidance = () => {
     archiveLead,
     addLeadActivity,
     scheduleLeadFollowUp,
-    currentRole
+    currentRole,
+    isSuperAdmin,
+    deleteLead
   } = useCrm();
 
   const [searchQuery, setSearchQuery] = useState('');
@@ -38,6 +41,38 @@ export const CrmCareerGuidance = () => {
   const [followUpLead, setFollowUpLead] = useState(null);
   const [activityNote, setActivityNote] = useState('');
   const [submittingNote, setSubmittingNote] = useState(false);
+
+  // Superadmin Deletion State
+  const [deleteModalOpen, setDeleteModalOpen] = useState(false);
+  const [leadToDelete, setLeadToDelete] = useState(null);
+  const [isDeletingLead, setIsDeletingLead] = useState(false);
+  const [statusNotice, setStatusNotice] = useState('');
+
+  const handleConfirmDeleteLead = async () => {
+    if (!leadToDelete) return;
+    try {
+      setIsDeletingLead(true);
+      await deleteLead(leadToDelete.id, {
+        name: leadToDelete.name,
+        referenceNumber: leadToDelete.referenceNumber,
+        entityType: 'Career Guidance Enquiry'
+      });
+      setStatusNotice(`✓ Career Guidance enquiry for "${leadToDelete.name}" (${leadToDelete.referenceNumber || leadToDelete.id}) permanently deleted.`);
+      setDeleteModalOpen(false);
+      if (selectedEnquiry && (selectedEnquiry.id === leadToDelete.id || selectedEnquiry.referenceNumber === leadToDelete.referenceNumber)) {
+        setDossierModalOpen(false);
+        setSelectedEnquiry(null);
+      }
+      setLeadToDelete(null);
+      setTimeout(() => setStatusNotice(''), 5000);
+    } catch (err) {
+      console.error('Delete error:', err);
+      setStatusNotice(`⚠️ Error deleting enquiry: ${err.message}`);
+    } finally {
+      setIsDeletingLead(false);
+    }
+  };
+
 
   // Follow-up form
   const [followUpForm, setFollowUpForm] = useState({
@@ -541,6 +576,17 @@ export const CrmCareerGuidance = () => {
         </div>
       </div>
 
+      
+      {/* Superadmin Status Notification Toast */}
+      {statusNotice && (
+        <div className="p-3.5 rounded-2xl bg-emerald-500/10 border border-emerald-500/30 text-emerald-800 dark:text-emerald-300 font-bold text-xs flex items-center justify-between animate-in fade-in">
+          <span>{statusNotice}</span>
+          <button onClick={() => setStatusNotice('')} className="text-emerald-700 hover:text-emerald-900 dark:text-emerald-400 p-1">
+            <X className="w-4 h-4" />
+          </button>
+        </div>
+      )}
+
       {/* Filter & Search Bar */}
       <div className="glass-card bg-white dark:bg-navy-900/80 p-4 rounded-2xl border border-slate-200 dark:border-navy-800 shadow-xs space-y-3">
         <div className="flex flex-col lg:flex-row items-stretch lg:items-center justify-between gap-3">
@@ -852,6 +898,19 @@ export const CrmCareerGuidance = () => {
                         >
                           <Calendar className="w-4 h-4 text-amber-500" />
                         </button>
+
+                        {isSuperAdmin && (
+                          <button
+                            onClick={() => {
+                              setLeadToDelete(b);
+                              setDeleteModalOpen(true);
+                            }}
+                            className="p-1.5 rounded-lg bg-slate-100 dark:bg-navy-800 hover:bg-rose-100 dark:hover:bg-rose-950/50 text-slate-400 hover:text-rose-600 dark:hover:text-rose-400 transition cursor-pointer"
+                            title="Delete Enquiry (Superadmin Only)"
+                          >
+                            <Trash2 className="w-4 h-4" />
+                          </button>
+                        )}
                       </td>
                     </tr>
                   );
@@ -910,15 +969,30 @@ export const CrmCareerGuidance = () => {
                   Received on {selectedEnquiry.createdAt ? new Date(selectedEnquiry.createdAt).toLocaleString() : 'N/A'}
                 </p>
               </div>
-              <button
-                onClick={() => {
-                  setDossierModalOpen(false);
-                  setSelectedEnquiry(null);
-                }}
-                className="p-1.5 rounded-xl hover:bg-slate-100 dark:hover:bg-navy-800 text-slate-400 hover:text-slate-600"
-              >
-                <X className="w-5 h-5" />
-              </button>
+              <div className="flex items-center gap-2">
+                {isSuperAdmin && (
+                  <button
+                    onClick={() => {
+                      setLeadToDelete(selectedEnquiry);
+                      setDeleteModalOpen(true);
+                    }}
+                    className="px-3 py-1.5 rounded-xl border border-rose-200 dark:border-rose-900/60 bg-rose-50 dark:bg-rose-950/30 text-rose-600 dark:text-rose-400 font-bold hover:bg-rose-100 dark:hover:bg-rose-900/40 text-xs flex items-center gap-1.5 transition cursor-pointer"
+                    title="Delete this career guidance record (Superadmin Only)"
+                  >
+                    <Trash2 className="w-3.5 h-3.5" />
+                    <span>Delete Record</span>
+                  </button>
+                )}
+                <button
+                  onClick={() => {
+                    setDossierModalOpen(false);
+                    setSelectedEnquiry(null);
+                  }}
+                  className="p-1.5 rounded-xl hover:bg-slate-100 dark:hover:bg-navy-800 text-slate-400 hover:text-slate-600 cursor-pointer"
+                >
+                  <X className="w-5 h-5" />
+                </button>
+              </div>
             </div>
 
             {/* Profile Grid */}
@@ -1330,6 +1404,23 @@ export const CrmCareerGuidance = () => {
           </div>
         </div>
       )}
+
+      {/* Superadmin Delete Confirmation Modal */}
+      <CrmDeleteConfirmModal
+        isOpen={deleteModalOpen}
+        onClose={() => {
+          if (!isDeletingLead) {
+            setDeleteModalOpen(false);
+            setLeadToDelete(null);
+          }
+        }}
+        onConfirm={handleConfirmDeleteLead}
+        title="Delete Career Guidance Enquiry"
+        recordName={leadToDelete?.name}
+        recordRef={leadToDelete?.referenceNumber || leadToDelete?.id}
+        recordType="Career Guidance Enquiry"
+        isProcessing={isDeletingLead}
+      />
     </div>
   );
 };

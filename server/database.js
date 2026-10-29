@@ -53,6 +53,33 @@ export const closeDb = async () => {
   }
 };
 
+export const logAuditTrail = async (db, { userId, userName, role, action, entityType, entityId, details, ip }) => {
+  try {
+    const id = `AUD-${Date.now()}-${Math.floor(1000 + Math.random() * 9000)}`;
+    const detailsStr = typeof details === 'object' ? JSON.stringify(details) : (details || '');
+    await db.run(
+      `INSERT INTO audit_logs (id, userId, userName, role, action, entityType, entityId, details, ip, createdAt)
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+      [
+        id,
+        userId || 'system',
+        userName || 'Super Admin',
+        role || 'Super Admin',
+        action || 'DELETE_RECORD',
+        entityType || 'General',
+        entityId || 'N/A',
+        detailsStr,
+        ip || '127.0.0.1',
+        new Date().toISOString()
+      ]
+    );
+    return id;
+  } catch (err) {
+    console.error('Failed to write audit trail:', err.message);
+    return null;
+  }
+};
+
 export const checkDbHealth = async () => {
   try {
     const db = await getDb();
@@ -182,6 +209,19 @@ const initDb = async (db) => {
       createdBy TEXT,
       createdAt DATETIME DEFAULT CURRENT_TIMESTAMP,
       completedAt DATETIME
+    );
+
+    CREATE TABLE IF NOT EXISTS audit_logs (
+      id TEXT PRIMARY KEY,
+      userId TEXT,
+      userName TEXT,
+      role TEXT,
+      action TEXT NOT NULL,
+      entityType TEXT NOT NULL,
+      entityId TEXT NOT NULL,
+      details TEXT,
+      ip TEXT,
+      createdAt DATETIME DEFAULT CURRENT_TIMESTAMP
     );
 
     CREATE TABLE IF NOT EXISTS student_academy_enquiries (
