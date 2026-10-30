@@ -1,15 +1,8 @@
 import React, { useState, useMemo } from 'react';
 import { 
-  Search, X, Filter, Sparkles, GraduationCap, ChevronDown, 
-  ArrowRight, CheckCircle2, ShieldCheck, Calendar, BookOpen, 
-  Layers, RotateCcw, Building2, Briefcase, HeartPulse, Scale,
-  Atom, Terminal, Cpu, Sprout, Palette, Plane, Users, Archive, Award
+  Sparkles, GraduationCap, ArrowRight, ShieldCheck, Award
 } from 'lucide-react';
-import { 
-  COURSES_CATALOGUE, 
-  ACADEMIC_CATEGORIES, 
-  getCategoryCounts 
-} from '../data/coursesCatalogueData';
+import { COURSES_CATALOGUE } from '../data/coursesCatalogueData';
 import { CourseDetailModal } from './CourseDetailModal';
 import { UgDepartmentStreamsExplorer } from './UgDepartmentStreamsExplorer';
 import { UG_COURSES_CATALOGUE } from '../data/ugDepartmentStreamsData';
@@ -17,44 +10,9 @@ import { PgDepartmentStreamsExplorer } from './PgDepartmentStreamsExplorer';
 import { PG_COURSES_CATALOGUE } from '../data/pgDepartmentStreamsData';
 import ScrollReveal from './ScrollReveal';
 
-// Icon mapping for academic categories
-const categoryIcons = {
-  'BookOpen': BookOpen,
-  'Briefcase': Briefcase,
-  'Atom': Atom,
-  'Terminal': Terminal,
-  'Cpu': Cpu,
-  'HeartPulse': HeartPulse,
-  'Sprout': Sprout,
-  'Scale': Scale,
-  'GraduationCap': GraduationCap,
-  'Palette': Palette,
-  'Building2': Building2,
-  'Plane': Plane,
-  'Users': Users,
-  'Archive': Archive,
-  'Sparkles': Sparkles,
-  'Award': Award
-};
-
 export const CourseGuidanceCatalogue = ({ onInquire }) => {
-  const [searchQuery, setSearchQuery] = useState('');
   const [selectedLevel, setSelectedLevel] = useState('all'); // 'all', 'UG', 'PG'
-  const [selectedCategory, setSelectedCategory] = useState('all'); // categoryId
-  const [selectedDuration, setSelectedDuration] = useState('all'); // 'all', '1', '2', '3', '4', '5'
-  const [selectedStream, setSelectedStream] = useState('all'); // 'all', 'pcm', 'pcb', 'commerce', 'any'
-  const [sortBy, setSortBy] = useState('recommended'); // 'recommended', 'name-asc', 'duration-asc', 'duration-desc'
   const [activeModalCourse, setActiveModalCourse] = useState(null);
-
-  // Compute department counts for active courses
-  const categoryCounts = useMemo(() => {
-    const valid = COURSES_CATALOGUE.filter(c => c.level !== 'Integrated' && c.level !== 'Professional');
-    const counts = { all: valid.length };
-    ACADEMIC_CATEGORIES.forEach(cat => {
-      counts[cat.id] = valid.filter(c => c.categoryId === cat.id).length;
-    });
-    return counts;
-  }, []);
 
   // Level counts
   const levelCounts = useMemo(() => {
@@ -65,77 +23,14 @@ export const CourseGuidanceCatalogue = ({ onInquire }) => {
     };
   }, []);
 
-  // Filtered & Sorted Courses
+  // Filtered Courses (All Active Courses for View All Degrees)
   const filteredCourses = useMemo(() => {
-    let result = COURSES_CATALOGUE.filter((course) => {
+    return COURSES_CATALOGUE.filter((course) => {
       // Exclude non-degree level courses from Career Guidance catalogue
       if (course.level === 'Integrated' || course.level === 'Professional') return false;
-
-      // Level filter
-      if (selectedLevel === 'UG' && course.level !== 'UG') return false;
-      if (selectedLevel === 'PG' && course.level !== 'PG') return false;
-
-      // Category filter
-      if (selectedCategory !== 'all' && course.categoryId !== selectedCategory) return false;
-
-      // Duration filter
-      if (selectedDuration !== 'all') {
-        const d = parseFloat(selectedDuration);
-        if (d === 5 && course.durationYears < 5) return false;
-        if (d !== 5 && Math.floor(course.durationYears) !== d) return false;
-      }
-
-      // Stream filter
-      if (selectedStream !== 'all') {
-        const reqs = (course.requiredSubjects || []).join(' ').toLowerCase();
-        if (selectedStream === 'pcm' && !reqs.includes('physics') && !reqs.includes('mathematics') && !reqs.includes('pcm')) return false;
-        if (selectedStream === 'pcb' && !reqs.includes('biology') && !reqs.includes('pcb')) return false;
-        if (selectedStream === 'commerce' && !reqs.includes('commerce') && !reqs.includes('accountancy') && !reqs.includes('any stream')) return false;
-        if (selectedStream === 'any' && !reqs.includes('any stream') && !reqs.includes('any discipline')) return false;
-      }
-
-      // Search Query filter (course name, abbreviation, specialization, career interest, subjects, exams)
-      const q = searchQuery.toLowerCase().trim();
-      if (q) {
-        const nameMatch = course.name.toLowerCase().includes(q);
-        const abbrMatch = course.abbreviation.toLowerCase().includes(q);
-        const deptMatch = course.department.toLowerCase().includes(q);
-        const specMatch = (course.specializations || []).some(s => s.toLowerCase().includes(q));
-        const careerMatch = (course.careerOpportunities || []).some(c => c.toLowerCase().includes(q));
-        const sectorMatch = (course.employmentSectors || []).some(s => s.toLowerCase().includes(q));
-        const examMatch = (course.entranceExams || []).some(e => e.toLowerCase().includes(q));
-        const skillMatch = (course.coreSkills || []).some(sk => sk.toLowerCase().includes(q));
-
-        if (!nameMatch && !abbrMatch && !deptMatch && !specMatch && !careerMatch && !sectorMatch && !examMatch && !skillMatch) {
-          return false;
-        }
-      }
-
       return true;
     });
-
-    // Sorting
-    if (sortBy === 'name-asc') {
-      result.sort((a, b) => a.name.localeCompare(b.name));
-    } else if (sortBy === 'duration-asc') {
-      result.sort((a, b) => a.durationYears - b.durationYears);
-    } else if (sortBy === 'duration-desc') {
-      result.sort((a, b) => b.durationYears - a.durationYears);
-    }
-
-    return result;
-  }, [searchQuery, selectedLevel, selectedCategory, selectedDuration, selectedStream, sortBy]);
-
-  const hasActiveFilters = searchQuery !== '' || selectedLevel !== 'all' || selectedCategory !== 'all' || selectedDuration !== 'all' || selectedStream !== 'all';
-
-  const resetFilters = () => {
-    setSearchQuery('');
-    setSelectedLevel('all');
-    setSelectedCategory('all');
-    setSelectedDuration('all');
-    setSelectedStream('all');
-    setSortBy('recommended');
-  };
+  }, []);
 
   const getLevelBadgeClass = (level) => {
     switch (level) {
@@ -214,7 +109,7 @@ export const CourseGuidanceCatalogue = ({ onInquire }) => {
         </div>
       </ScrollReveal>
 
-      {/* Conditionally Render Dedicated UG / PG Department Streams Explorer or Standard Filters & Catalogue */}
+      {/* Conditionally Render Dedicated UG / PG Department Streams Explorer or Standard Catalogue */}
       {selectedLevel === 'UG' ? (
         <UgDepartmentStreamsExplorer
           onInquire={onInquire}
@@ -228,173 +123,6 @@ export const CourseGuidanceCatalogue = ({ onInquire }) => {
           onBackToAllLevels={() => setSelectedLevel('all')}
         />
       ) : (
-        <>
-          {/* Main Filter Control Station */}
-          <ScrollReveal>
-            <div className="glass-card bg-white dark:bg-navy-900/90 border border-slate-200 dark:border-gold-500/30 rounded-3xl p-5 sm:p-6 md:p-8 shadow-luxury space-y-6">
-              {/* Search Bar + Secondary Dropdown Filters */}
-              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-12 gap-3.5">
-            {/* Live Search Input (5 cols on large) */}
-            <div className="lg:col-span-5 relative">
-              <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
-              <input
-                type="text"
-                value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
-                placeholder="Search by course name, abbreviation (MBBS, B.Tech, MBA), specialization, or career role..."
-                className="w-full pl-10 pr-9 py-2.5 rounded-xl bg-slate-50 dark:bg-navy-950 border border-slate-200 dark:border-navy-700 text-xs text-navy-900 dark:text-white placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-gold-500 transition"
-              />
-              {searchQuery && (
-                <button
-                  onClick={() => setSearchQuery('')}
-                  className="absolute right-3 top-1/2 -translate-y-1/2 p-1 text-slate-400 hover:text-slate-600 dark:hover:text-white"
-                  aria-label="Clear search"
-                >
-                  <X className="w-3.5 h-3.5" />
-                </button>
-              )}
-            </div>
-
-            {/* Department Dropdown (3 cols) */}
-            <div className="lg:col-span-3">
-              <select
-                value={selectedCategory}
-                onChange={(e) => setSelectedCategory(e.target.value)}
-                className="w-full px-3.5 py-2.5 rounded-xl bg-slate-50 dark:bg-navy-950 border border-slate-200 dark:border-navy-700 text-xs font-medium text-navy-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-gold-500 transition cursor-pointer"
-                aria-label="Filter by Academic Department"
-              >
-                <option value="all">All 16 Academic Departments ({categoryCounts.all})</option>
-                {ACADEMIC_CATEGORIES.map((cat) => (
-                  <option key={cat.id} value={cat.id}>
-                    {cat.name} ({categoryCounts[cat.id] || 0})
-                  </option>
-                ))}
-              </select>
-            </div>
-
-            {/* Duration Filter (2 cols) */}
-            <div className="lg:col-span-2">
-              <select
-                value={selectedDuration}
-                onChange={(e) => setSelectedDuration(e.target.value)}
-                className="w-full px-3 py-2.5 rounded-xl bg-slate-50 dark:bg-navy-950 border border-slate-200 dark:border-navy-700 text-xs font-medium text-navy-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-gold-500 transition cursor-pointer"
-                aria-label="Filter by Course Duration"
-              >
-                <option value="all">Any Duration</option>
-                <option value="1">1 Year / Diploma</option>
-                <option value="2">2 Years (PG Master's)</option>
-                <option value="3">3 Years (UG Degrees)</option>
-                <option value="4">4 Years (B.Tech, B.Des, Agri)</option>
-                <option value="5">5+ Years (MBBS, B.Arch, Law)</option>
-              </select>
-            </div>
-
-            {/* Sort Selector (2 cols) */}
-            <div className="lg:col-span-2">
-              <select
-                value={sortBy}
-                onChange={(e) => setSortBy(e.target.value)}
-                className="w-full px-3 py-2.5 rounded-xl bg-slate-50 dark:bg-navy-950 border border-slate-200 dark:border-navy-700 text-xs font-medium text-navy-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-gold-500 transition cursor-pointer"
-                aria-label="Sort Courses"
-              >
-                <option value="recommended">Recommended</option>
-                <option value="name-asc">Alphabetical (A-Z)</option>
-                <option value="duration-asc">Duration (Shortest)</option>
-                <option value="duration-desc">Duration (Longest)</option>
-              </select>
-            </div>
-          </div>
-
-          {/* Quick Department Scrollable Chips */}
-          <div className="pt-2">
-            <div className="text-[11px] font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400 mb-2">
-              Explore Academic Streams:
-            </div>
-            <div className="flex items-center gap-1.5 overflow-x-auto pb-2 scrollbar-thin">
-              <button
-                onClick={() => setSelectedCategory('all')}
-                className={`px-3 py-1.5 rounded-full text-xs font-bold shrink-0 transition flex items-center gap-1.5 focus:outline-none ${
-                  selectedCategory === 'all'
-                    ? 'bg-navy-900 text-white dark:bg-gold-500 dark:text-navy-950 font-black'
-                    : 'bg-slate-100 dark:bg-navy-800 text-slate-700 dark:text-slate-300 hover:border-gold-500 border border-transparent'
-                }`}
-              >
-                <span>All Streams</span>
-                <span className="text-[10px] opacity-75">({categoryCounts.all})</span>
-              </button>
-              {ACADEMIC_CATEGORIES.map((cat) => {
-                const isSelected = selectedCategory === cat.id;
-                const IconComponent = categoryIcons[cat.icon] || BookOpen;
-                return (
-                  <button
-                    key={cat.id}
-                    onClick={() => setSelectedCategory(cat.id)}
-                    className={`px-3 py-1.5 rounded-full text-xs font-semibold shrink-0 transition flex items-center gap-1.5 focus:outline-none ${
-                      isSelected
-                        ? 'bg-navy-900 text-white dark:bg-gold-500 dark:text-navy-950 font-bold'
-                        : 'bg-slate-100 dark:bg-navy-800 text-slate-700 dark:text-slate-300 hover:border-gold-500 border border-transparent'
-                    }`}
-                  >
-                    <IconComponent className="w-3.5 h-3.5" />
-                    <span>{cat.name}</span>
-                    <span className="text-[10px] opacity-75">({categoryCounts[cat.id] || 0})</span>
-                  </button>
-                );
-              })}
-            </div>
-          </div>
-
-          {/* Active Filter Chips & Reset */}
-          {hasActiveFilters && (
-            <div className="pt-2 flex flex-wrap items-center gap-2 text-xs">
-              <span className="text-slate-500 dark:text-slate-400 font-bold">Active Filters:</span>
-              {searchQuery && (
-                <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg bg-gold-500/15 text-gold-700 dark:text-gold-300 border border-gold-500/30">
-                  Search: "{searchQuery}"
-                  <button onClick={() => setSearchQuery('')} className="hover:text-navy-900 dark:hover:text-white">
-                    <X className="w-3 h-3" />
-                  </button>
-                </span>
-              )}
-              {selectedLevel !== 'all' && (
-                <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg bg-gold-500/15 text-gold-700 dark:text-gold-300 border border-gold-500/30">
-                  Level: {selectedLevel}
-                  <button onClick={() => setSelectedLevel('all')} className="hover:text-navy-900 dark:hover:text-white">
-                    <X className="w-3 h-3" />
-                  </button>
-                </span>
-              )}
-              {selectedCategory !== 'all' && (
-                <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg bg-gold-500/15 text-gold-700 dark:text-gold-300 border border-gold-500/30">
-                  Dept: {ACADEMIC_CATEGORIES.find(c => c.id === selectedCategory)?.name}
-                  <button onClick={() => setSelectedCategory('all')} className="hover:text-navy-900 dark:hover:text-white">
-                    <X className="w-3 h-3" />
-                  </button>
-                </span>
-              )}
-              {selectedDuration !== 'all' && (
-                <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg bg-gold-500/15 text-gold-700 dark:text-gold-300 border border-gold-500/30">
-                  Duration: {selectedDuration} Years
-                  <button onClick={() => setSelectedDuration('all')} className="hover:text-navy-900 dark:hover:text-white">
-                    <X className="w-3 h-3" />
-                  </button>
-                </span>
-              )}
-
-              <button
-                onClick={resetFilters}
-                className="text-xs font-bold text-rose-600 dark:text-rose-400 hover:underline flex items-center gap-1 ml-auto"
-              >
-                <RotateCcw className="w-3 h-3" />
-                <span>Reset All Filters</span>
-              </button>
-            </div>
-          )}
-        </div>
-      </ScrollReveal>
-
-      {/* Courses Grid or Empty State */}
-      {filteredCourses.length > 0 ? (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
           {filteredCourses.map((course) => (
             <ScrollReveal key={course.id}>
@@ -491,48 +219,6 @@ export const CourseGuidanceCatalogue = ({ onInquire }) => {
             </ScrollReveal>
           ))}
         </div>
-      ) : (
-        /* Empty State */
-        <ScrollReveal>
-          <div className="glass-card bg-white dark:bg-navy-900 border border-slate-200 dark:border-navy-800 rounded-3xl p-10 sm:p-16 text-center space-y-4 max-w-xl mx-auto shadow-luxury">
-            <div className="w-16 h-16 rounded-2xl bg-gold-500/10 text-gold-500 mx-auto flex items-center justify-center">
-              <Search className="w-8 h-8" />
-            </div>
-            <h3 className="font-serif text-xl sm:text-2xl font-bold text-navy-900 dark:text-white">
-              No Courses Match Your Criteria
-            </h3>
-            <p className="text-xs text-slate-600 dark:text-slate-400 font-medium leading-relaxed">
-              We couldn't find any courses matching your current search or filter combination. Try clearing your filters or explore popular degrees below.
-            </p>
-            <div className="flex flex-wrap items-center justify-center gap-2 pt-2">
-              {['B.Tech', 'MBBS', 'MBA', 'Law', 'Data Science', 'Civil'].map((term) => (
-                <button
-                  key={term}
-                  onClick={() => {
-                    resetFilters();
-                    setSearchQuery(term);
-                  }}
-                  className="px-3 py-1 rounded-full text-xs font-semibold bg-slate-100 dark:bg-navy-800 text-slate-700 dark:text-slate-300 hover:border-gold-500 border border-transparent"
-                >
-                  "{term}"
-                </button>
-              ))}
-            </div>
-            <div className="pt-2">
-              <button
-                onClick={resetFilters}
-                className="px-6 py-2.5 bg-gold-shimmer text-navy-950 font-bold text-xs rounded-xl shadow-gold-glow hover:opacity-95 transition inline-flex items-center gap-2"
-              >
-                <RotateCcw className="w-3.5 h-3.5" />
-                <span>Reset All Filters</span>
-              </button>
-            </div>
-          </div>
-        </ScrollReveal>
-      )}
-
-
-              </>
       )}
 
       {/* Detail Modal Component */}
