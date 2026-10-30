@@ -183,15 +183,17 @@ export const EducationServiceDetail = ({ serviceId }) => {
 
             <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 lg:gap-12 items-center">
               {/* Left Column: Heading, Subtitle, Description, CTAs, and Key Stats */}
-              <div className="lg:col-span-7 space-y-5">
-                <div className="flex flex-wrap items-center gap-2">
-                  <span className="bg-gold-500/15 text-gold-600 dark:text-gold-400 text-xs font-black px-3 py-1 rounded-full uppercase tracking-wider border border-gold-500/30">
-                    {isCareerGuidance ? 'Academic & Degree Advisory' : service.badge}
-                  </span>
-                  <span className="bg-emerald-500/15 text-emerald-600 dark:text-emerald-400 text-xs font-extrabold px-3 py-1 rounded-full uppercase border border-emerald-500/30">
-                    Verified Service • {isCareerGuidance ? 'UG & PG Pathways' : service.category}
-                  </span>
-                </div>
+              <div className="lg:col-span-7 space-y-4 sm:space-y-5">
+                {!isCareerGuidance && (
+                  <div className="flex flex-wrap items-center gap-2">
+                    <span className="bg-gold-500/15 text-gold-600 dark:text-gold-400 text-xs font-black px-3 py-1 rounded-full uppercase tracking-wider border border-gold-500/30">
+                      {service.badge}
+                    </span>
+                    <span className="bg-emerald-500/15 text-emerald-600 dark:text-emerald-400 text-xs font-extrabold px-3 py-1 rounded-full uppercase border border-emerald-500/30">
+                      Verified Service • {service.category}
+                    </span>
+                  </div>
+                )}
 
                 <h1 className="font-serif text-3xl sm:text-4xl md:text-5xl font-black text-navy-900 dark:text-white leading-tight">
                   {isCareerGuidance ? 'Career Guidance' : service.title}
@@ -212,7 +214,7 @@ export const EducationServiceDetail = ({ serviceId }) => {
                 </p>
 
                 {/* CTAs */}
-                <div className="pt-3 flex flex-wrap gap-3.5 items-center">
+                <div className={`flex flex-wrap gap-3.5 items-center ${isCareerGuidance ? 'pt-1 sm:pt-2' : 'pt-3'}`}>
                   {!isCareerGuidance && (
                     <button
                       onClick={() => {
