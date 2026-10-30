@@ -397,14 +397,6 @@ export const EducationEnquiryModal = ({
                   <span className="font-semibold text-emerald-600 dark:text-emerald-400">{submittedLead.consultationMode}</span>
                 </div>
               )}
-              <div className="flex justify-between items-center text-slate-500">
-                <span>Advisory Hub:</span>
-                <span className="font-semibold text-[#0B1B33] dark:text-slate-200">Dubai HQ & Global Network</span>
-              </div>
-              <div className="flex justify-between items-center text-slate-500">
-                <span>Status in CRM:</span>
-                <span className="font-semibold text-amber-600 dark:text-gold-400">{isCareerGuidance ? 'New Enquiry' : 'Consultation Scheduled'}</span>
-              </div>
             </div>
 
             <button
