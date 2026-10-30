@@ -89,7 +89,7 @@ export const CrmCareerGuidance = () => {
     phone: '',
     countryCode: '+91',
     organization: '',
-    degreeLevel: 'High School / Stream Selection',
+    degreeLevel: 'Undergraduate (Bachelor Degree)',
     countryInterest: 'Global / Flexible',
     consultationDate: new Date(Date.now() + 86400000).toISOString().split('T')[0],
     consultationTime: '11:00 AM - 12:00 PM IST',
@@ -412,7 +412,7 @@ export const CrmCareerGuidance = () => {
           phone: '',
           countryCode: '+91',
           organization: '',
-          degreeLevel: 'High School / Stream Selection',
+          degreeLevel: 'Undergraduate (Bachelor Degree)',
           countryInterest: 'Global / Flexible',
           consultationDate: new Date(Date.now() + 86400000).toISOString().split('T')[0],
           consultationTime: '11:00 AM - 12:00 PM IST',
@@ -711,10 +711,8 @@ export const CrmCareerGuidance = () => {
               className="bg-slate-50 dark:bg-navy-950 border border-slate-200 dark:border-navy-700 text-slate-700 dark:text-slate-300 text-xs font-semibold rounded-xl px-3 py-2.5 focus:outline-none focus:ring-2 focus:ring-cyan-500 cursor-pointer"
             >
               <option value="all">All Academic Levels</option>
-              <option value="Middle School">Middle School (Grades 6–8)</option>
-              <option value="High School">High School (Grades 9–12)</option>
-              <option value="Undergraduate">Undergraduate</option>
-              <option value="Postgraduate">Postgraduate</option>
+              <option value="Undergraduate">Undergraduate (Bachelor Degree)</option>
+              <option value="Postgraduate">Postgraduate (Master Degree / MBA)</option>
             </select>
 
             {/* Destination Filter */}
@@ -724,6 +722,7 @@ export const CrmCareerGuidance = () => {
               className="bg-slate-50 dark:bg-navy-950 border border-slate-200 dark:border-navy-700 text-slate-700 dark:text-slate-300 text-xs font-semibold rounded-xl px-3 py-2.5 focus:outline-none focus:ring-2 focus:ring-cyan-500 cursor-pointer"
             >
               <option value="all">All Destinations</option>
+              <option value="India">India</option>
               <option value="United Kingdom">United Kingdom</option>
               <option value="United States">United States</option>
               <option value="Canada">Canada</option>
@@ -1389,10 +1388,8 @@ export const CrmCareerGuidance = () => {
                     onChange={(e) => setManualForm({ ...manualForm, degreeLevel: e.target.value })}
                     className="w-full bg-slate-50 dark:bg-navy-950 border border-slate-200 dark:border-navy-700 text-slate-800 dark:text-slate-200 rounded-xl px-3 py-2"
                   >
-                    <option value="Middle School (Grades 6-8)">Middle School (Grades 6–8)</option>
-                    <option value="High School / Stream Selection">High School (Grades 9–12)</option>
-                    <option value="Undergraduate">Undergraduate</option>
-                    <option value="Postgraduate">Postgraduate</option>
+                    <option value="Undergraduate (Bachelor Degree)">Undergraduate (Bachelor Degree)</option>
+                    <option value="Postgraduate (Master Degree / MBA)">Postgraduate (Master Degree / MBA)</option>
                   </select>
                 </div>
 
@@ -1406,6 +1403,7 @@ export const CrmCareerGuidance = () => {
                     className="w-full bg-slate-50 dark:bg-navy-950 border border-slate-200 dark:border-navy-700 text-slate-800 dark:text-slate-200 rounded-xl px-3 py-2"
                   >
                     <option value="Global / Flexible">Global / Flexible</option>
+                    <option value="India">India</option>
                     <option value="United Kingdom">United Kingdom</option>
                     <option value="United States">United States</option>
                     <option value="Canada">Canada</option>

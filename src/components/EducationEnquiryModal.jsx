@@ -9,7 +9,14 @@ export const EducationEnquiryModal = ({ isOpen, onClose, preselectedServiceId = 
   const [subProgram, setSubProgram] = useState(preselectedSubProgram || '');
   const [phone, setPhone] = useState('');
   const [countryInterest, setCountryInterest] = useState('All');
-  const [programLevel, setProgramLevel] = useState(preselectedLevel || 'Undergraduate');
+  const [programLevel, setProgramLevel] = useState(() => {
+    if (preselectedServiceId === 'school-career' || preselectedServiceId === 'career-guidance') {
+      return (preselectedLevel === 'PG' || preselectedLevel?.includes('Postgraduate'))
+        ? 'Postgraduate (Master Degree / MBA)'
+        : 'Undergraduate (Bachelor Degree)';
+    }
+    return preselectedLevel || 'Undergraduate (Bachelor Degree)';
+  });
   const [consultationDate, setConsultationDate] = useState(() => {
     return new Date(Date.now() + 86400000).toISOString().split('T')[0];
   });
@@ -21,6 +28,12 @@ export const EducationEnquiryModal = ({ isOpen, onClose, preselectedServiceId = 
   const [submittedLead, setSubmittedLead] = useState(null);
   const [formErrors, setFormErrors] = useState({});
 
+  const isCareerGuidance =
+    serviceId === 'school-career' ||
+    serviceId === 'career-guidance' ||
+    preselectedServiceId === 'school-career' ||
+    preselectedServiceId === 'career-guidance';
+
   useEffect(() => {
     if (preselectedServiceId) {
       setServiceId(preselectedServiceId);
@@ -29,7 +42,17 @@ export const EducationEnquiryModal = ({ isOpen, onClose, preselectedServiceId = 
       setSubProgram(preselectedSubProgram);
     }
     if (preselectedLevel) {
-      setProgramLevel(preselectedLevel);
+      if (preselectedServiceId === 'school-career' || preselectedServiceId === 'career-guidance') {
+        setProgramLevel(
+          preselectedLevel === 'PG' || preselectedLevel.includes('Postgraduate')
+            ? 'Postgraduate (Master Degree / MBA)'
+            : 'Undergraduate (Bachelor Degree)'
+        );
+      } else {
+        setProgramLevel(preselectedLevel);
+      }
+    } else if (preselectedServiceId === 'school-career' || preselectedServiceId === 'career-guidance') {
+      setProgramLevel('Undergraduate (Bachelor Degree)');
     }
   }, [preselectedServiceId, preselectedSubProgram, preselectedLevel]);
 
@@ -80,8 +103,18 @@ export const EducationEnquiryModal = ({ isOpen, onClose, preselectedServiceId = 
     } else if (cleanPhone.length < 7 || cleanPhone.length > 15) {
       errors.phone = `Phone number must be between 7 and 15 digits (currently ${cleanPhone.length} digits).`;
     }
-    if (!data.message || data.message.trim().length < 10) {
-      errors.message = 'Please provide inquiry details or background (minimum 10 characters).';
+    if (!isCareerGuidance) {
+      if (!data.message || data.message.trim().length < 10) {
+        errors.message = 'Please provide inquiry details or background (minimum 10 characters).';
+      }
+    }
+    if (isCareerGuidance) {
+      if (!programLevel) {
+        errors.programLevel = 'Please select your target academic level.';
+      }
+      if (!countryInterest) {
+        errors.countryInterest = 'Please select your target study destination.';
+      }
     }
     if (!consent) {
       errors.consent = 'You must acknowledge the communication consent to proceed.';
@@ -100,7 +133,7 @@ export const EducationEnquiryModal = ({ isOpen, onClose, preselectedServiceId = 
     const errors = validate(data);
     if (Object.keys(errors).length > 0) {
       setFormErrors(errors);
-      trackEnquiryValidationFailure('education_modal', activeService.id, Object.keys(errors));
+      trackEnquiryValidationFailure('education_modal', isCareerGuidance ? 'school-career' : activeService.id, Object.keys(errors));
       return;
     }
 
@@ -117,26 +150,28 @@ export const EducationEnquiryModal = ({ isOpen, onClose, preselectedServiceId = 
       name: data.name.trim(),
       email: data.email.trim(),
       phone: phone.trim(),
-      serviceId: activeService.id,
-      serviceTitle: `${activeService.title}${subDetail}`,
-      company: activeService.id === 'school-career' ? 'Career Guidance' : (data.organization ? data.organization.trim() : `Academic Advisory (${activeService.category})`),
+      serviceId: isCareerGuidance ? 'school-career' : activeService.id,
+      serviceTitle: isCareerGuidance ? 'Career Guidance' : `${activeService.title}${subDetail}`,
+      company: isCareerGuidance ? 'Career Guidance' : (activeService.id === 'school-career' ? 'Career Guidance' : (data.organization ? data.organization.trim() : `Academic Advisory (${activeService.category})`)),
       organizationName: data.organization ? data.organization.trim() : null,
       degreeLevel: programLevel,
       countryInterest: countryInterest !== 'All' ? countryInterest : 'Global / Flexible',
       customFields: JSON.stringify({
         organization: data.organization ? data.organization.trim() : '',
         programLevel,
-        countryInterest,
+        countryInterest: countryInterest !== 'All' ? countryInterest : 'Global / Flexible',
         subProgram: subProgram || null,
         streamName: (subProgram && subProgram.includes('[') && subProgram.includes(']')) ? subProgram.split('[')[1].split(']')[0].trim() : null,
         courseName: subProgram ? subProgram.split(' [')[0].trim() : null,
         consent: Boolean(consent)
       }),
-      consultationDate,
-      consultationTime,
-      consultationMode,
+      consultationDate: isCareerGuidance ? null : consultationDate,
+      consultationTime: isCareerGuidance ? null : consultationTime,
+      consultationMode: isCareerGuidance ? null : consultationMode,
       status: 'Consultation Scheduled',
-      message: `[Academic Advisory Consultation Booking: ${activeService.title}${subDetail}${levelDetail}${destDetail}${institutionDetail}]\nAppointment Date: ${consultationDate} at ${consultationTime}\nConsultation Mode: ${consultationMode}\n\nStudent/Applicant Message:\n${data.message.trim()}`,
+      message: isCareerGuidance
+        ? `[Career Guidance Academic Consultation Request]\nTarget Academic Level: ${programLevel}\nTarget Study Destination: ${countryInterest !== 'All' ? countryInterest : 'Global / Flexible'}\nCurrent Institution: ${data.organization ? data.organization.trim() : 'Not Specified'}\nApplicant: ${data.name.trim()}`
+        : `[Academic Advisory Consultation Booking: ${activeService.title}${subDetail}${levelDetail}${destDetail}${institutionDetail}]\nAppointment Date: ${consultationDate} at ${consultationTime}\nConsultation Mode: ${consultationMode}\n\nStudent/Applicant Message:\n${data.message ? data.message.trim() : ''}`,
       utmSource: attribution.utmSource,
       utmMedium: attribution.utmMedium,
       utmCampaign: attribution.utmCampaign,
@@ -156,23 +191,25 @@ export const EducationEnquiryModal = ({ isOpen, onClose, preselectedServiceId = 
         throw new Error(result.message || 'Server was unable to record your inquiry. Please try again.');
       }
 
-      const generatedRef = result.data?.referenceNumber || result.referenceNumber || result.data?.id || `REV-EDU-${Date.now().toString().slice(-6)}`;
+      const generatedRef = result.data?.referenceNumber || result.referenceNumber || result.data?.id || `REV-CAR-${Date.now().toString().slice(-6)}`;
 
       setSubmittedLead({
         id: generatedRef,
         name: data.name.trim(),
-        serviceTitle: activeService.title,
-        consultationDate,
-        consultationTime,
-        consultationMode
+        serviceTitle: isCareerGuidance ? 'Career Guidance' : activeService.title,
+        programLevel,
+        countryInterest: countryInterest !== 'All' ? countryInterest : 'Global / Flexible',
+        consultationDate: isCareerGuidance ? null : consultationDate,
+        consultationTime: isCareerGuidance ? null : consultationTime,
+        consultationMode: isCareerGuidance ? null : consultationMode
       });
 
       // Fire confirmed conversion event (deduplicated by referenceNumber)
       trackEnquiryConversion(
         generatedRef,
-        activeService.id,
-        activeService.title,
-        activeService.category,
+        isCareerGuidance ? 'school-career' : activeService.id,
+        isCareerGuidance ? 'Career Guidance' : activeService.title,
+        isCareerGuidance ? 'Career' : activeService.category,
         'education_modal'
       );
 
@@ -232,13 +269,33 @@ export const EducationEnquiryModal = ({ isOpen, onClose, preselectedServiceId = 
                 <span className="font-mono font-bold text-gold-500">#{submittedLead.id}</span>
               </div>
               <div className="flex justify-between items-center text-slate-500">
-                <span>Appointment Date & Time:</span>
-                <span className="font-bold text-slate-800 dark:text-slate-200">{submittedLead.consultationDate} ({submittedLead.consultationTime})</span>
+                <span>Applicant Name:</span>
+                <span className="font-bold text-slate-800 dark:text-slate-200">{submittedLead.name}</span>
               </div>
-              <div className="flex justify-between items-center text-slate-500">
-                <span>Consultation Mode:</span>
-                <span className="font-semibold text-emerald-600 dark:text-emerald-400">{submittedLead.consultationMode}</span>
-              </div>
+              {submittedLead.programLevel && (
+                <div className="flex justify-between items-center text-slate-500">
+                  <span>Target Academic Level:</span>
+                  <span className="font-bold text-slate-800 dark:text-slate-200">{submittedLead.programLevel}</span>
+                </div>
+              )}
+              {submittedLead.countryInterest && (
+                <div className="flex justify-between items-center text-slate-500">
+                  <span>Target Study Destination:</span>
+                  <span className="font-bold text-slate-800 dark:text-slate-200">{submittedLead.countryInterest}</span>
+                </div>
+              )}
+              {submittedLead.consultationDate && (
+                <div className="flex justify-between items-center text-slate-500">
+                  <span>Appointment Date & Time:</span>
+                  <span className="font-bold text-slate-800 dark:text-slate-200">{submittedLead.consultationDate} ({submittedLead.consultationTime})</span>
+                </div>
+              )}
+              {submittedLead.consultationMode && (
+                <div className="flex justify-between items-center text-slate-500">
+                  <span>Consultation Mode:</span>
+                  <span className="font-semibold text-emerald-600 dark:text-emerald-400">{submittedLead.consultationMode}</span>
+                </div>
+              )}
               <div className="flex justify-between items-center text-slate-500">
                 <span>Advisory Hub:</span>
                 <span className="font-semibold text-slate-800 dark:text-slate-200">Dubai HQ & Global Network</span>
@@ -254,7 +311,7 @@ export const EducationEnquiryModal = ({ isOpen, onClose, preselectedServiceId = 
                 setSubmittedLead(null);
                 onClose();
               }}
-              className="px-6 py-3 bg-gold-shimmer text-navy-950 font-bold text-xs rounded-xl shadow-gold-glow hover:opacity-95 transition"
+              className="px-6 py-3 bg-gold-shimmer text-navy-950 font-bold text-xs rounded-xl shadow-gold-glow hover:opacity-95 transition cursor-pointer"
             >
               Done & Return to Advisory
             </button>
@@ -263,20 +320,24 @@ export const EducationEnquiryModal = ({ isOpen, onClose, preselectedServiceId = 
           /* Consultation Request Form */
           <>
             <div className="space-y-1.5 pr-8">
-              <div className="flex items-center gap-2">
-                <span className="bg-gold-500/10 text-gold-600 dark:text-gold-400 text-[10px] font-bold px-2.5 py-0.5 rounded-full uppercase">
-                  {activeService.category} Advisory
-                </span>
-                <span className="bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 text-[10px] font-extrabold px-2 py-0.5 rounded-full uppercase">
-                  Direct Counsellor Desk
-                </span>
-              </div>
+              {!isCareerGuidance && (
+                <div className="flex items-center gap-2">
+                  <span className="bg-gold-500/10 text-gold-600 dark:text-gold-400 text-[10px] font-bold px-2.5 py-0.5 rounded-full uppercase">
+                    {activeService.category} Advisory
+                  </span>
+                  <span className="bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 text-[10px] font-extrabold px-2 py-0.5 rounded-full uppercase">
+                    Direct Counsellor Desk
+                  </span>
+                </div>
+              )}
               <h2 id="education-enquiry-title" className="font-serif text-2xl sm:text-3xl font-extrabold text-navy-900 dark:text-white">
                 Request Academic Consultation
               </h2>
-              <p className="text-xs text-slate-700 dark:text-slate-300">
-                Complete this form to schedule a tailored roadmap session with our Dubai education advisory team.
-              </p>
+              {!isCareerGuidance && (
+                <p className="text-xs text-slate-700 dark:text-slate-300">
+                  Complete this form to schedule a tailored roadmap session with our Dubai education advisory team.
+                </p>
+              )}
             </div>
 
             {submitError && (
@@ -289,28 +350,30 @@ export const EducationEnquiryModal = ({ isOpen, onClose, preselectedServiceId = 
             <form onSubmit={handleSubmit} className="space-y-4" noValidate>
 
               {/* Service Selector */}
-              <div>
-                <label className="block text-xs font-bold text-slate-800 dark:text-slate-200 mb-1">
-                  Service of Interest <span className="text-rose-500">*</span>
-                </label>
-                <select
-                  value={serviceId}
-                  onChange={(e) => {
-                    setServiceId(e.target.value);
-                    setSubProgram('');
-                  }}
-                  className="w-full bg-slate-50 dark:bg-navy-950 border border-slate-200 dark:border-navy-700 text-slate-800 dark:text-slate-200 text-xs font-semibold rounded-xl px-3.5 py-2.5 focus:outline-none focus:ring-2 focus:ring-gold-500"
-                >
-                  {EDUCATION_SERVICES_DETAILED.map((srv) => (
-                    <option key={srv.id} value={srv.id}>
-                      {srv.title} ({srv.category})
-                    </option>
-                  ))}
-                </select>
-              </div>
+              {!isCareerGuidance && (
+                <div>
+                  <label className="block text-xs font-bold text-slate-800 dark:text-slate-200 mb-1">
+                    Service of Interest <span className="text-rose-500">*</span>
+                  </label>
+                  <select
+                    value={serviceId}
+                    onChange={(e) => {
+                      setServiceId(e.target.value);
+                      setSubProgram('');
+                    }}
+                    className="w-full bg-slate-50 dark:bg-navy-950 border border-slate-200 dark:border-navy-700 text-slate-800 dark:text-slate-200 text-xs font-semibold rounded-xl px-3.5 py-2.5 focus:outline-none focus:ring-2 focus:ring-gold-500"
+                  >
+                    {EDUCATION_SERVICES_DETAILED.map((srv) => (
+                      <option key={srv.id} value={srv.id}>
+                        {srv.title} ({srv.category})
+                      </option>
+                    ))}
+                  </select>
+                </div>
+              )}
 
               {/* Sub-Program Selector (Only for Executive Seminars & Language Training) */}
-              {activeService.subProgrammes && (
+              {!isCareerGuidance && activeService.subProgrammes && (
                 <div>
                   <label className="block text-xs font-bold text-slate-800 dark:text-slate-200 mb-1">
                     Select Test or Program Focus
@@ -331,7 +394,7 @@ export const EducationEnquiryModal = ({ isOpen, onClose, preselectedServiceId = 
               )}
 
               {/* Preselected Course / Focus Banner (e.g. from Career Guidance Catalogue) */}
-              {subProgram && !activeService.subProgrammes && (
+              {!isCareerGuidance && subProgram && !activeService.subProgrammes && (
                 <div className="p-3 rounded-xl bg-gold-500/10 border border-gold-500/30 flex items-center justify-between text-xs">
                   <div>
                     <span className="text-[10px] uppercase font-bold text-gold-600 dark:text-gold-400 block tracking-wider">
@@ -344,7 +407,7 @@ export const EducationEnquiryModal = ({ isOpen, onClose, preselectedServiceId = 
                   <button
                     type="button"
                     onClick={() => setSubProgram('')}
-                    className="text-slate-400 hover:text-rose-500 text-xs font-semibold p-1 transition"
+                    className="text-slate-400 hover:text-rose-500 text-xs font-semibold p-1 transition cursor-pointer"
                     title="Clear selected course"
                   >
                     <X className="w-3.5 h-3.5" />
@@ -363,7 +426,7 @@ export const EducationEnquiryModal = ({ isOpen, onClose, preselectedServiceId = 
                     name="name"
                     required
                     placeholder="e.g. Tariq Al-Hashimi"
-                    onFocus={() => trackEnquiryStart('education_modal', activeService.id, activeService.title)}
+                    onFocus={() => trackEnquiryStart('education_modal', isCareerGuidance ? 'school-career' : activeService.id, isCareerGuidance ? 'Career Guidance' : activeService.title)}
                     onChange={() => {
                       if (formErrors.name) setFormErrors(prev => ({ ...prev, name: null }));
                     }}
@@ -414,7 +477,7 @@ export const EducationEnquiryModal = ({ isOpen, onClose, preselectedServiceId = 
                     name="phone"
                     value={phone}
                     onChange={handlePhoneChange}
-                    placeholder="e.g. +971 50 123 4567 or 5012345678"
+                    placeholder="e.g. +971 50 123 4567 or +91 98765 43210"
                     required
                     className={`w-full bg-slate-50 dark:bg-navy-950 border text-slate-800 dark:text-slate-200 text-xs rounded-xl px-3.5 py-2.5 font-mono tracking-wider focus:outline-none focus:ring-2 focus:ring-gold-500 ${formErrors.phone ? 'border-rose-500' : 'border-slate-200 dark:border-navy-700'
                       }`}
@@ -431,7 +494,7 @@ export const EducationEnquiryModal = ({ isOpen, onClose, preselectedServiceId = 
                   <input
                     type="text"
                     name="organization"
-                    placeholder="e.g. Dubai College / King's Academy"
+                    placeholder="e.g. Delhi Public School / IIT Madras"
                     className="w-full bg-slate-50 dark:bg-navy-950 border border-slate-200 dark:border-navy-700 text-slate-800 dark:text-slate-200 text-xs rounded-xl px-3.5 py-2.5 focus:outline-none focus:ring-2 focus:ring-gold-500"
                   />
                 </div>
@@ -441,31 +504,54 @@ export const EducationEnquiryModal = ({ isOpen, onClose, preselectedServiceId = 
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-3.5">
                 <div>
                   <label className="block text-xs font-bold text-slate-800 dark:text-slate-200 mb-1">
-                    Target Academic Level
+                    Target Academic Level <span className="text-rose-500">*</span>
                   </label>
                   <select
                     value={programLevel}
-                    onChange={(e) => setProgramLevel(e.target.value)}
-                    className="w-full bg-slate-50 dark:bg-navy-950 border border-slate-200 dark:border-navy-700 text-slate-800 dark:text-slate-200 text-xs font-semibold rounded-xl px-3.5 py-2.5 focus:outline-none focus:ring-2 focus:ring-gold-500"
+                    onChange={(e) => {
+                      setProgramLevel(e.target.value);
+                      if (formErrors.programLevel) setFormErrors(prev => ({ ...prev, programLevel: null }));
+                    }}
+                    className={`w-full bg-slate-50 dark:bg-navy-950 border text-slate-800 dark:text-slate-200 text-xs font-semibold rounded-xl px-3.5 py-2.5 focus:outline-none focus:ring-2 focus:ring-gold-500 ${
+                      formErrors.programLevel ? 'border-rose-500' : 'border-slate-200 dark:border-navy-700'
+                    }`}
                   >
-                    <option value="Middle School (Grades 6-8)">Middle School (Grades 6–8)</option>
-                    <option value="High School / Stream Selection">High School / Stream Selection (Grades 9–12)</option>
-                    <option value="Undergraduate (Bachelor Degree)">Undergraduate (Bachelor Degree)</option>
-                    <option value="Postgraduate (Master Degree / MBA)">Postgraduate (Master Degree / MBA)</option>
-                    <option value="Executive / Professional Certification">Executive / Professional Certification</option>
+                    {isCareerGuidance ? (
+                      <>
+                        <option value="Undergraduate (Bachelor Degree)">Undergraduate (Bachelor Degree)</option>
+                        <option value="Postgraduate (Master Degree / MBA)">Postgraduate (Master Degree / MBA)</option>
+                      </>
+                    ) : (
+                      <>
+                        <option value="Middle School (Grades 6-8)">Middle School (Grades 6–8)</option>
+                        <option value="High School / Stream Selection">High School / Stream Selection (Grades 9–12)</option>
+                        <option value="Undergraduate (Bachelor Degree)">Undergraduate (Bachelor Degree)</option>
+                        <option value="Postgraduate (Master Degree / MBA)">Postgraduate (Master Degree / MBA)</option>
+                        <option value="Executive / Professional Certification">Executive / Professional Certification</option>
+                      </>
+                    )}
                   </select>
+                  {formErrors.programLevel && (
+                    <p className="text-[11px] text-rose-500 mt-1 font-medium">{formErrors.programLevel}</p>
+                  )}
                 </div>
 
                 <div>
                   <label className="block text-xs font-bold text-slate-800 dark:text-slate-200 mb-1">
-                    Target Study Destination
+                    Target Study Destination <span className="text-rose-500">*</span>
                   </label>
                   <select
                     value={countryInterest}
-                    onChange={(e) => setCountryInterest(e.target.value)}
-                    className="w-full bg-slate-50 dark:bg-navy-950 border border-slate-200 dark:border-navy-700 text-slate-800 dark:text-slate-200 text-xs font-semibold rounded-xl px-3.5 py-2.5 focus:outline-none focus:ring-2 focus:ring-gold-500"
+                    onChange={(e) => {
+                      setCountryInterest(e.target.value);
+                      if (formErrors.countryInterest) setFormErrors(prev => ({ ...prev, countryInterest: null }));
+                    }}
+                    className={`w-full bg-slate-50 dark:bg-navy-950 border text-slate-800 dark:text-slate-200 text-xs font-semibold rounded-xl px-3.5 py-2.5 focus:outline-none focus:ring-2 focus:ring-gold-500 ${
+                      formErrors.countryInterest ? 'border-rose-500' : 'border-slate-200 dark:border-navy-700'
+                    }`}
                   >
                     <option value="All">Global / Flexible (Open to Advice)</option>
+                    <option value="India">India</option>
                     <option value="United Kingdom">United Kingdom (UK)</option>
                     <option value="United States">United States (USA)</option>
                     <option value="Canada">Canada</option>
@@ -473,83 +559,90 @@ export const EducationEnquiryModal = ({ isOpen, onClose, preselectedServiceId = 
                     <option value="Europe">Europe (Germany, Ireland, France)</option>
                     <option value="UAE & GCC">UAE & GCC Branch Campuses</option>
                   </select>
+                  {formErrors.countryInterest && (
+                    <p className="text-[11px] text-rose-500 mt-1 font-medium">{formErrors.countryInterest}</p>
+                  )}
                 </div>
               </div>
 
               {/* Consultation Scheduling Row: Date, Time & Mode */}
-              <div className="p-3.5 bg-gold-500/5 dark:bg-gold-500/10 border border-gold-500/20 rounded-2xl space-y-2">
-                <span className="text-[10px] font-extrabold text-gold-600 dark:text-gold-400 uppercase tracking-wider block">
-                  Select Consultation Appointment
-                </span>
-                
-                <div className="grid grid-cols-1 sm:grid-cols-3 gap-2.5">
-                  <div>
-                    <label className="block text-[10px] font-bold text-slate-600 dark:text-slate-400 mb-1">
-                      Preferred Date
-                    </label>
-                    <input
-                      type="date"
-                      value={consultationDate}
-                      onChange={(e) => setConsultationDate(e.target.value)}
-                      className="w-full bg-white dark:bg-navy-950 border border-slate-200 dark:border-navy-700 text-slate-800 dark:text-slate-200 text-xs rounded-xl px-2.5 py-2 font-bold focus:outline-none focus:ring-2 focus:ring-gold-500"
-                    />
-                  </div>
+              {!isCareerGuidance && (
+                <div className="p-3.5 bg-gold-500/5 dark:bg-gold-500/10 border border-gold-500/20 rounded-2xl space-y-2">
+                  <span className="text-[10px] font-extrabold text-gold-600 dark:text-gold-400 uppercase tracking-wider block">
+                    Select Consultation Appointment
+                  </span>
+                  
+                  <div className="grid grid-cols-1 sm:grid-cols-3 gap-2.5">
+                    <div>
+                      <label className="block text-[10px] font-bold text-slate-600 dark:text-slate-400 mb-1">
+                        Preferred Date
+                      </label>
+                      <input
+                        type="date"
+                        value={consultationDate}
+                        onChange={(e) => setConsultationDate(e.target.value)}
+                        className="w-full bg-white dark:bg-navy-950 border border-slate-200 dark:border-navy-700 text-slate-800 dark:text-slate-200 text-xs rounded-xl px-2.5 py-2 font-bold focus:outline-none focus:ring-2 focus:ring-gold-500"
+                      />
+                    </div>
 
-                  <div>
-                    <label className="block text-[10px] font-bold text-slate-600 dark:text-slate-400 mb-1">
-                      Time Slot
-                    </label>
-                    <select
-                      value={consultationTime}
-                      onChange={(e) => setConsultationTime(e.target.value)}
-                      className="w-full bg-white dark:bg-navy-950 border border-slate-200 dark:border-navy-700 text-slate-800 dark:text-slate-200 text-xs rounded-xl px-2.5 py-2 font-bold focus:outline-none focus:ring-2 focus:ring-gold-500 cursor-pointer"
-                    >
-                      <option value="09:30 AM - 10:30 AM IST">09:30 AM - 10:30 AM IST</option>
-                      <option value="11:00 AM - 12:00 PM IST">11:00 AM - 12:00 PM IST</option>
-                      <option value="02:00 PM - 03:00 PM IST">02:00 PM - 03:00 PM IST</option>
-                      <option value="04:00 PM - 05:00 PM IST">04:00 PM - 05:00 PM IST</option>
-                      <option value="06:00 PM - 07:00 PM IST">06:00 PM - 07:00 PM IST</option>
-                    </select>
-                  </div>
+                    <div>
+                      <label className="block text-[10px] font-bold text-slate-600 dark:text-slate-400 mb-1">
+                        Time Slot
+                      </label>
+                      <select
+                        value={consultationTime}
+                        onChange={(e) => setConsultationTime(e.target.value)}
+                        className="w-full bg-white dark:bg-navy-950 border border-slate-200 dark:border-navy-700 text-slate-800 dark:text-slate-200 text-xs rounded-xl px-2.5 py-2 font-bold focus:outline-none focus:ring-2 focus:ring-gold-500 cursor-pointer"
+                      >
+                        <option value="09:30 AM - 10:30 AM IST">09:30 AM - 10:30 AM IST</option>
+                        <option value="11:00 AM - 12:00 PM IST">11:00 AM - 12:00 PM IST</option>
+                        <option value="02:00 PM - 03:00 PM IST">02:00 PM - 03:00 PM IST</option>
+                        <option value="04:00 PM - 05:00 PM IST">04:00 PM - 05:00 PM IST</option>
+                        <option value="06:00 PM - 07:00 PM IST">06:00 PM - 07:00 PM IST</option>
+                      </select>
+                    </div>
 
-                  <div>
-                    <label className="block text-[10px] font-bold text-slate-600 dark:text-slate-400 mb-1">
-                      Format / Mode
-                    </label>
-                    <select
-                      value={consultationMode}
-                      onChange={(e) => setConsultationMode(e.target.value)}
-                      className="w-full bg-white dark:bg-navy-950 border border-slate-200 dark:border-navy-700 text-slate-800 dark:text-slate-200 text-xs rounded-xl px-2.5 py-2 font-bold focus:outline-none focus:ring-2 focus:ring-gold-500 cursor-pointer"
-                    >
-                      <option value="Virtual Video Call (Google Meet / Zoom)">Virtual Video Call</option>
-                      <option value="India HQ In-Person (Chennai)">India HQ In-Person (Chennai)</option>
-                      <option value="WhatsApp Consultation Call">WhatsApp Consultation</option>
-                      <option value="Direct Phone Call">Direct Phone Call</option>
-                    </select>
+                    <div>
+                      <label className="block text-[10px] font-bold text-slate-600 dark:text-slate-400 mb-1">
+                        Format / Mode
+                      </label>
+                      <select
+                        value={consultationMode}
+                        onChange={(e) => setConsultationMode(e.target.value)}
+                        className="w-full bg-white dark:bg-navy-950 border border-slate-200 dark:border-navy-700 text-slate-800 dark:text-slate-200 text-xs rounded-xl px-2.5 py-2 font-bold focus:outline-none focus:ring-2 focus:ring-gold-500 cursor-pointer"
+                      >
+                        <option value="Virtual Video Call (Google Meet / Zoom)">Virtual Video Call</option>
+                        <option value="India HQ In-Person (Chennai)">India HQ In-Person (Chennai)</option>
+                        <option value="WhatsApp Consultation Call">WhatsApp Consultation</option>
+                        <option value="Direct Phone Call">Direct Phone Call</option>
+                      </select>
+                    </div>
                   </div>
                 </div>
-              </div>
+              )}
 
               {/* Message */}
-              <div>
-                <label className="block text-xs font-bold text-slate-800 dark:text-slate-200 mb-1">
-                  Academic Background & Specific Questions <span className="text-rose-500">*</span>
-                </label>
-                <textarea
-                  name="message"
-                  rows={3}
-                  required
-                  placeholder="Share details about your current grades, target intake year (e.g. Fall 2027), preferred major, or questions for our counselor..."
-                  onChange={() => {
-                    if (formErrors.message) setFormErrors(prev => ({ ...prev, message: null }));
-                  }}
-                  className={`w-full bg-slate-50 dark:bg-navy-950 border text-slate-800 dark:text-slate-200 text-xs rounded-xl p-3 focus:outline-none focus:ring-2 focus:ring-gold-500 ${formErrors.message ? 'border-rose-500' : 'border-slate-200 dark:border-navy-700'
-                    }`}
-                />
-                {formErrors.message && (
-                  <p className="text-[11px] text-rose-500 mt-1 font-medium">{formErrors.message}</p>
-                )}
-              </div>
+              {!isCareerGuidance && (
+                <div>
+                  <label className="block text-xs font-bold text-slate-800 dark:text-slate-200 mb-1">
+                    Academic Background & Specific Questions <span className="text-rose-500">*</span>
+                  </label>
+                  <textarea
+                    name="message"
+                    rows={3}
+                    required
+                    placeholder="Share details about your current grades, target intake year (e.g. Fall 2027), preferred major, or questions for our counselor..."
+                    onChange={() => {
+                      if (formErrors.message) setFormErrors(prev => ({ ...prev, message: null }));
+                    }}
+                    className={`w-full bg-slate-50 dark:bg-navy-950 border text-slate-800 dark:text-slate-200 text-xs rounded-xl p-3 focus:outline-none focus:ring-2 focus:ring-gold-500 ${formErrors.message ? 'border-rose-500' : 'border-slate-200 dark:border-navy-700'
+                      }`}
+                  />
+                  {formErrors.message && (
+                    <p className="text-[11px] text-rose-500 mt-1 font-medium">{formErrors.message}</p>
+                  )}
+                </div>
+              )}
 
               {/* Consent Checkbox */}
               <div className="space-y-1">
@@ -581,14 +674,14 @@ export const EducationEnquiryModal = ({ isOpen, onClose, preselectedServiceId = 
                   type="button"
                   onClick={onClose}
                   disabled={isSubmitting}
-                  className="px-4 py-2.5 rounded-xl border border-slate-200 dark:border-navy-700 text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-navy-800 text-xs font-bold transition"
+                  className="px-4 py-2.5 rounded-xl border border-slate-200 dark:border-navy-700 text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-navy-800 text-xs font-bold transition cursor-pointer"
                 >
                   Cancel
                 </button>
                 <button
                   type="submit"
                   disabled={isSubmitting}
-                  className="px-6 py-2.5 bg-gold-shimmer text-navy-950 font-bold text-xs rounded-xl shadow-gold-glow hover:opacity-95 transition flex items-center gap-1.5 disabled:opacity-50"
+                  className="px-6 py-2.5 bg-gold-shimmer text-navy-950 font-bold text-xs rounded-xl shadow-gold-glow hover:opacity-95 transition flex items-center gap-1.5 disabled:opacity-50 cursor-pointer"
                 >
                   {isSubmitting ? (
                     <>
