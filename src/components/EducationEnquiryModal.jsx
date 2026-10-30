@@ -321,9 +321,9 @@ export const EducationEnquiryModal = ({ isOpen, onClose, preselectedServiceId = 
         ) : (
           /* Consultation Request Form (Wide Horizontal Layout) */
           <>
-            <div className="pr-8">
+            <div className="text-center px-8 sm:px-12">
               {!isCareerGuidance && (
-                <div className="flex items-center gap-2 mb-1.5">
+                <div className="flex items-center justify-center gap-2 mb-1.5">
                   <span className="bg-gold-500/10 text-gold-600 dark:text-gold-400 text-[10px] font-bold px-2.5 py-0.5 rounded-full uppercase">
                     {activeService.category} Advisory
                   </span>
@@ -332,11 +332,11 @@ export const EducationEnquiryModal = ({ isOpen, onClose, preselectedServiceId = 
                   </span>
                 </div>
               )}
-              <h2 id="education-enquiry-title" className="font-serif text-2xl sm:text-3xl font-extrabold text-[#0B1B33] dark:text-white tracking-tight">
+              <h2 id="education-enquiry-title" className="font-serif text-2xl sm:text-3xl font-extrabold text-[#0B1B33] dark:text-white tracking-tight text-center">
                 Request Academic Consultation
               </h2>
               {!isCareerGuidance && (
-                <p className="text-xs text-[#64748B] dark:text-slate-300 mt-1">
+                <p className="text-xs text-[#64748B] dark:text-slate-300 mt-1 text-center">
                   Complete this form to schedule a tailored roadmap session with our Dubai education advisory team.
                 </p>
               )}
@@ -349,7 +349,7 @@ export const EducationEnquiryModal = ({ isOpen, onClose, preselectedServiceId = 
               </div>
             )}
 
-            <form onSubmit={handleSubmit} className="space-y-3.5 sm:space-y-4" noValidate>
+            <form onSubmit={handleSubmit} className="text-left space-y-3.5 sm:space-y-4" noValidate>
 
               {/* Service Selector (Only for non-career services) */}
               {!isCareerGuidance && (
