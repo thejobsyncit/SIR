@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import ScrollReveal from '../../components/ScrollReveal';
 import { CrmDeleteConfirmModal } from '../components/CrmDeleteConfirmModal';
+import { CrmTableScrollContainer } from '../components/CrmTableScrollContainer';
 import { useCrm } from '../context/CrmContext';
 import { 
   GraduationCap, Calendar, Clock, Globe, Building2,
@@ -857,8 +858,8 @@ export const CrmStudentAcademy = () => {
       </div>
 
       {/* Enquiries Table */}
-      <div className="glass-card bg-white dark:bg-navy-900/90 rounded-2xl border border-slate-200 dark:border-navy-800 shadow-sm overflow-hidden">
-        <div className="overflow-x-auto">
+      <div className="glass-card bg-white dark:bg-navy-900/90 rounded-2xl border border-slate-200 dark:border-navy-800 shadow-sm">
+        <CrmTableScrollContainer label="Columns">
           <table className="w-full text-left text-xs">
             <thead>
               <tr className="border-b border-slate-200 dark:border-navy-800 bg-slate-50/75 dark:bg-navy-950/50 text-[11px] font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400">
@@ -1057,7 +1058,7 @@ export const CrmStudentAcademy = () => {
               )}
             </tbody>
           </table>
-        </div>
+        </CrmTableScrollContainer>
 
         {/* Pagination Bar */}
         {totalPages > 1 && (
