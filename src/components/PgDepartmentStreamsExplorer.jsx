@@ -10,8 +10,7 @@ import {
   PG_DEPARTMENT_STREAMS, 
   PG_COURSES_CATALOGUE, 
   getPgStreamById, 
-  getPgCoursesByStream, 
-  getPgCoursesByDegree 
+  getPgCoursesByStream 
 } from '../data/pgDepartmentStreamsData';
 import ScrollReveal from './ScrollReveal';
 
@@ -37,7 +36,6 @@ const streamIcons = {
 
 export const PgDepartmentStreamsExplorer = ({ onInquire, onSelectModalCourse, onBackToAllLevels }) => {
   const [selectedStreamId, setSelectedStreamId] = useState(null);
-  const [selectedDegreeAbbr, setSelectedDegreeAbbr] = useState('all');
   const [searchQuery, setSearchQuery] = useState('');
 
   // Active stream object
@@ -48,16 +46,12 @@ export const PgDepartmentStreamsExplorer = ({ onInquire, onSelectModalCourse, on
   // Total course count across all PG streams
   const totalPgCourses = PG_COURSES_CATALOGUE.length;
 
-  // Courses filtered by active stream, degree, and search query
+  // Courses filtered by active stream and search query
   const displayedCourses = useMemo(() => {
     let list = [];
 
     if (activeStream) {
-      if (!selectedDegreeAbbr || selectedDegreeAbbr === 'all') {
-        list = getPgCoursesByStream(activeStream.id);
-      } else {
-        list = getPgCoursesByDegree(activeStream.id, selectedDegreeAbbr);
-      }
+      list = getPgCoursesByStream(activeStream.id);
     } else {
       // If no stream is selected, but user typed a search query, search across all PG courses
       list = PG_COURSES_CATALOGUE;
@@ -80,7 +74,7 @@ export const PgDepartmentStreamsExplorer = ({ onInquire, onSelectModalCourse, on
     }
 
     return list;
-  }, [activeStream, selectedDegreeAbbr, searchQuery]);
+  }, [activeStream, searchQuery]);
 
   // Matching streams when searching at top-level
   const matchingStreams = useMemo(() => {
@@ -108,30 +102,20 @@ export const PgDepartmentStreamsExplorer = ({ onInquire, onSelectModalCourse, on
   // Handle stream selection
   const handleSelectStream = (streamId) => {
     setSelectedStreamId(streamId);
-    setSelectedDegreeAbbr('all');
     setSearchQuery('');
     // Smooth scroll to top of explorer
     const el = document.getElementById('pg-streams-explorer-section');
     if (el) el.scrollIntoView({ behavior: 'smooth', block: 'start' });
   };
 
-  // Handle degree selection
-  const handleSelectDegree = (degreeAbbr) => {
-    setSelectedDegreeAbbr(degreeAbbr);
-    const el = document.getElementById('pg-courses-view');
-    if (el) el.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
-  };
-
   // Reset to all streams
   const handleResetToStreams = () => {
     setSelectedStreamId(null);
-    setSelectedDegreeAbbr('all');
     setSearchQuery('');
   };
 
   // Reset all filters in current stream
   const handleResetFilters = () => {
-    setSelectedDegreeAbbr('all');
     setSearchQuery('');
   };
 
@@ -160,20 +144,8 @@ export const PgDepartmentStreamsExplorer = ({ onInquire, onSelectModalCourse, on
         {activeStream && (
           <>
             <ChevronRight className="w-3.5 h-3.5 text-slate-400" />
-            <button 
-              onClick={() => setSelectedDegreeAbbr('all')}
-              className={`hover:text-gold-600 dark:hover:text-gold-400 transition ${selectedDegreeAbbr === 'all' ? 'text-navy-950 dark:text-white font-black' : ''}`}
-            >
-              {activeStream.shortName}
-            </button>
-          </>
-        )}
-
-        {activeStream && selectedDegreeAbbr && selectedDegreeAbbr !== 'all' && (
-          <>
-            <ChevronRight className="w-3.5 h-3.5 text-slate-400" />
             <span className="text-gold-600 dark:text-gold-400 font-black">
-              {selectedDegreeAbbr} Degree
+              {activeStream.shortName}
             </span>
           </>
         )}
@@ -447,112 +419,8 @@ export const PgDepartmentStreamsExplorer = ({ onInquire, onSelectModalCourse, on
               </div>
             )}
 
-            {/* ========================================================================= */}
-            {/* STEP 2: SELECT DEGREE TRACK (Degrees Available for this Stream)           */}
-            {/* ========================================================================= */}
-            <div className="pt-4 border-t border-slate-200 dark:border-navy-800 space-y-4">
-              <div>
-                <div className="flex items-center justify-between">
-                  <div>
-                    <h3 className="font-serif text-base sm:text-lg font-bold text-navy-900 dark:text-white flex items-center gap-2">
-                      <GraduationCap className="w-5 h-5 text-gold-500" />
-                      <span>Applicable Postgraduate Degrees in {activeStream.shortName}</span>
-                    </h3>
-                    <p className="text-xs text-slate-500 dark:text-slate-400">
-                      Select a postgraduate qualification to explore courses mapped exclusively to that degree.
-                    </p>
-                  </div>
-
-                  {selectedDegreeAbbr !== 'all' && (
-                    <button
-                      onClick={() => setSelectedDegreeAbbr('all')}
-                      className="text-xs font-bold text-gold-600 dark:text-gold-400 hover:underline flex items-center gap-1"
-                    >
-                      <RotateCcw className="w-3 h-3" />
-                      <span>Show All Degrees</span>
-                    </button>
-                  )}
-                </div>
-              </div>
-
-              {/* Degree Cards Grid */}
-              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3.5">
-                {/* "All Degrees" Card */}
-                <button
-                  onClick={() => handleSelectDegree('all')}
-                  className={`text-left p-4 rounded-2xl border transition-all duration-200 focus:outline-none flex flex-col justify-between ${
-                    selectedDegreeAbbr === 'all'
-                      ? 'bg-gold-500/10 border-gold-500 shadow-gold-glow dark:bg-gold-500/15'
-                      : 'bg-slate-50 dark:bg-navy-950/70 border-slate-200 dark:border-navy-800 hover:border-gold-500/60'
-                  }`}
-                >
-                  <div className="space-y-1.5">
-                    <div className="flex items-center justify-between">
-                      <span className="text-sm font-black text-gold-600 dark:text-gold-400">
-                        All Degrees
-                      </span>
-                      <span className="text-[10px] font-black px-2 py-0.5 rounded-full bg-slate-200 dark:bg-navy-800 text-slate-700 dark:text-slate-300">
-                        {getPgCoursesByStream(activeStream.id).length} Courses
-                      </span>
-                    </div>
-                    <div className="text-xs font-bold text-navy-900 dark:text-white">
-                      Complete Department Scope
-                    </div>
-                    <p className="text-[11px] text-slate-500 dark:text-slate-400 line-clamp-2">
-                      View all specialized programs across all postgraduate qualifications in this department.
-                    </p>
-                  </div>
-                  <div className="pt-2 text-[10px] font-bold text-gold-600 dark:text-gold-400 flex items-center gap-1">
-                    <span>{selectedDegreeAbbr === 'all' ? 'Active Selection ✓' : 'Select All Tracks →'}</span>
-                  </div>
-                </button>
-
-                {/* Specific Degree Cards */}
-                {activeStream.degrees.map((degree) => {
-                  const isSelected = selectedDegreeAbbr.toLowerCase() === degree.abbr.toLowerCase();
-                  const count = getPgCoursesByDegree(activeStream.id, degree.abbr).length;
-
-                  return (
-                    <button
-                      key={degree.id}
-                      onClick={() => handleSelectDegree(degree.abbr)}
-                      className={`text-left p-4 rounded-2xl border transition-all duration-200 focus:outline-none flex flex-col justify-between ${
-                        isSelected
-                          ? 'bg-gold-500/10 border-gold-500 shadow-gold-glow dark:bg-gold-500/15'
-                          : 'bg-slate-50 dark:bg-navy-950/70 border-slate-200 dark:border-navy-800 hover:border-gold-500/60'
-                      }`}
-                    >
-                      <div className="space-y-1.5">
-                        <div className="flex items-center justify-between">
-                          <span className="text-base font-black text-gold-600 dark:text-gold-400">
-                            {degree.abbr}
-                          </span>
-                          <span className="text-[10px] font-black px-2 py-0.5 rounded-full bg-slate-200 dark:bg-navy-800 text-slate-700 dark:text-slate-300">
-                            {count} Courses
-                          </span>
-                        </div>
-                        <div className="text-xs font-bold text-navy-900 dark:text-white line-clamp-1">
-                          {degree.fullName}
-                        </div>
-                        <div className="text-[10px] font-semibold text-slate-500 dark:text-slate-400">
-                          {degree.duration}
-                        </div>
-                        <p className="text-[11px] text-slate-500 dark:text-slate-400 line-clamp-2">
-                          {degree.description}
-                        </p>
-                      </div>
-
-                      <div className="pt-2 text-[10px] font-bold text-gold-600 dark:text-gold-400 flex items-center gap-1">
-                        <span>{isSelected ? 'Active Selection ✓' : 'View Courses →'}</span>
-                      </div>
-                    </button>
-                  );
-                })}
-              </div>
-            </div>
-
             {/* Search Input Within Active Stream */}
-            <div className="pt-2">
+            <div className="pt-4 border-t border-slate-200 dark:border-navy-800">
               <div className="relative">
                 <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
                 <input
@@ -575,7 +443,7 @@ export const PgDepartmentStreamsExplorer = ({ onInquire, onSelectModalCourse, on
           </div>
 
           {/* ========================================================================= */}
-          {/* STEP 3: COURSES BELONGING TO SELECTED DEGREE / STREAM                      */}
+          {/* COURSES BELONGING TO SELECTED STREAM                                      */}
           {/* ========================================================================= */}
           <div id="pg-courses-view" className="space-y-6">
             <div className="flex flex-wrap items-center justify-between gap-3">
@@ -583,39 +451,12 @@ export const PgDepartmentStreamsExplorer = ({ onInquire, onSelectModalCourse, on
                 <h3 className="font-serif text-xl sm:text-2xl font-extrabold text-navy-900 dark:text-white flex items-center gap-2">
                   <span>Courses in</span>
                   <span className="text-gold-600 dark:text-gold-400">
-                    {selectedDegreeAbbr === 'all' ? activeStream.shortName : `${selectedDegreeAbbr} — ${activeStream.shortName}`}
+                    {activeStream.shortName}
                   </span>
                 </h3>
                 <p className="text-xs text-slate-500 dark:text-slate-400">
                   Showing {displayedCourses.length} accredited postgraduate courses matching your criteria.
                 </p>
-              </div>
-
-              {/* Quick Degree Filter Pills */}
-              <div className="flex items-center gap-1.5 overflow-x-auto pb-1 scrollbar-none">
-                <button
-                  onClick={() => setSelectedDegreeAbbr('all')}
-                  className={`px-3 py-1.5 rounded-full text-xs font-bold transition shrink-0 ${
-                    selectedDegreeAbbr === 'all'
-                      ? 'bg-navy-900 text-white dark:bg-gold-500 dark:text-navy-950'
-                      : 'bg-slate-100 dark:bg-navy-800 text-slate-700 dark:text-slate-300 hover:border-gold-500 border border-transparent'
-                  }`}
-                >
-                  All Degrees ({getPgCoursesByStream(activeStream.id).length})
-                </button>
-                {activeStream.degrees.map((d) => (
-                  <button
-                    key={d.id}
-                    onClick={() => setSelectedDegreeAbbr(d.abbr)}
-                    className={`px-3 py-1.5 rounded-full text-xs font-bold transition shrink-0 ${
-                      selectedDegreeAbbr.toLowerCase() === d.abbr.toLowerCase()
-                        ? 'bg-navy-900 text-white dark:bg-gold-500 dark:text-navy-950'
-                        : 'bg-slate-100 dark:bg-navy-800 text-slate-700 dark:text-slate-300 hover:border-gold-500 border border-transparent'
-                    }`}
-                  >
-                    {d.abbr} ({getPgCoursesByDegree(activeStream.id, d.abbr).length})
-                  </button>
-                ))}
               </div>
             </div>
 
