@@ -90,7 +90,7 @@ export const CrmCareerGuidance = () => {
     countryCode: '+91',
     organization: '',
     degreeLevel: 'Undergraduate (Bachelor Degree)',
-    countryInterest: 'Global / Flexible',
+    countryInterest: 'India',
     consultationDate: new Date(Date.now() + 86400000).toISOString().split('T')[0],
     consultationTime: '11:00 AM - 12:00 PM IST',
     consultationMode: 'Virtual Video Call (Google Meet / Zoom)',
@@ -1439,8 +1439,8 @@ export const CrmCareerGuidance = () => {
                     onChange={(e) => setManualForm({ ...manualForm, countryInterest: e.target.value })}
                     className="w-full bg-slate-50 dark:bg-navy-950 border border-slate-200 dark:border-navy-700 text-slate-800 dark:text-slate-200 rounded-xl px-3 py-2"
                   >
-                    <option value="Global / Flexible">Global / Flexible</option>
                     <option value="India">India</option>
+                    <option value="Global / Flexible">Global / Flexible</option>
                     <option value="United Kingdom">United Kingdom</option>
                     <option value="United States">United States</option>
                     <option value="Canada">Canada</option>

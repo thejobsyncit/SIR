@@ -57,7 +57,7 @@ export const EducationEnquiryModal = ({
     return parseCourseInfo(selectedCourse, preselectedSubProgram, preselectedLevel);
   });
   const [phone, setPhone] = useState('');
-  const [countryInterest, setCountryInterest] = useState('All');
+  const [countryInterest, setCountryInterest] = useState('India');
   const [programLevel, setProgramLevel] = useState(() => {
     if (preselectedServiceId === 'school-career' || preselectedServiceId === 'career-guidance') {
       return (preselectedLevel === 'PG' || preselectedLevel?.includes('Postgraduate'))
@@ -209,7 +209,7 @@ export const EducationEnquiryModal = ({
     const attribution = getAttributionData();
     const subDetail = subProgram ? ` | Sub-Track: ${subProgram}` : '';
     const levelDetail = programLevel ? ` | Level: ${programLevel}` : '';
-    const destDetail = countryInterest !== 'All' ? ` | Target Country: ${countryInterest}` : '';
+    const destDetail = countryInterest ? ` | Target Country: ${countryInterest}` : '';
     const institutionDetail = data.organization ? ` | School/Institute: ${data.organization.trim()}` : '';
 
     const courseName = activeCourse?.name || (subProgram ? (subProgram.includes('[') ? subProgram.split(' [')[0].trim() : subProgram.trim()) : null);
@@ -231,7 +231,7 @@ export const EducationEnquiryModal = ({
         : (activeService.id === 'school-career' ? 'Career Guidance' : (data.organization ? data.organization.trim() : `Academic Advisory (${activeService.category})`)),
       organizationName: data.organization ? data.organization.trim() : null,
       degreeLevel: programLevel,
-      countryInterest: countryInterest !== 'All' ? countryInterest : 'Global / Flexible',
+      countryInterest: countryInterest || 'India',
       assistanceType: isCareerGuidance ? (courseName || 'General Academic Consultation') : 'Profile Assessment',
       status: isCareerGuidance ? 'New Enquiry' : (consultationDate ? 'Consultation Scheduled' : 'New Enquiry'),
       courseName: courseName,
@@ -241,7 +241,7 @@ export const EducationEnquiryModal = ({
         organization: data.organization ? data.organization.trim() : '',
         programLevel,
         degreeLevel: courseLevel,
-        countryInterest: countryInterest !== 'All' ? countryInterest : 'Global / Flexible',
+        countryInterest: countryInterest || 'India',
         selectedCourse: courseName,
         courseName: courseName,
         courseAbbr: courseAbbr,
@@ -256,7 +256,7 @@ export const EducationEnquiryModal = ({
       consultationTime: isCareerGuidance ? null : consultationTime,
       consultationMode: isCareerGuidance ? null : consultationMode,
       message: isCareerGuidance
-        ? `[Career Guidance Academic Consultation Request]\nSelected Course / Degree: ${courseName || 'General Academic Consultation'}\nAcademic Level: ${programLevel} (${courseLevel})\nDepartment / Stream: ${streamName || 'General'}\nTarget Study Destination: ${countryInterest !== 'All' ? countryInterest : 'Global / Flexible'}\nCurrent Institution: ${data.organization ? data.organization.trim() : 'Not Specified'}\nApplicant: ${data.name.trim()}\nPhone: ${phone.trim()}\nEmail: ${data.email.trim()}`
+        ? `[Career Guidance Academic Consultation Request]\nSelected Course / Degree: ${courseName || 'General Academic Consultation'}\nAcademic Level: ${programLevel} (${courseLevel})\nDepartment / Stream: ${streamName || 'General'}\nTarget Study Destination: ${countryInterest || 'India'}\nCurrent Institution: ${data.organization ? data.organization.trim() : 'Not Specified'}\nApplicant: ${data.name.trim()}\nPhone: ${phone.trim()}\nEmail: ${data.email.trim()}`
         : `[Academic Advisory Consultation Booking: ${activeService.title}${subDetail}${levelDetail}${destDetail}${institutionDetail}]\nAppointment Date: ${consultationDate} at ${consultationTime}\nConsultation Mode: ${consultationMode}\n\nStudent/Applicant Message:\n${data.message ? data.message.trim() : ''}`,
       utmSource: attribution.utmSource,
       utmMedium: attribution.utmMedium,
@@ -286,7 +286,7 @@ export const EducationEnquiryModal = ({
         courseName: courseName,
         streamName: streamName,
         programLevel,
-        countryInterest: countryInterest !== 'All' ? countryInterest : 'Global / Flexible',
+        countryInterest: countryInterest || 'India',
         consultationDate: isCareerGuidance ? null : consultationDate,
         consultationTime: isCareerGuidance ? null : consultationTime,
         consultationMode: isCareerGuidance ? null : consultationMode
@@ -744,6 +744,7 @@ export const EducationEnquiryModal = ({
                     <option value="Australia">Australia & New Zealand</option>
                     <option value="Europe">Europe (Germany, Ireland, France)</option>
                     <option value="UAE & GCC">UAE & GCC Branch Campuses</option>
+                    <option value="Global / Flexible">Global / Flexible (Open to Advice)</option>
                   </select>
                   {formErrors.countryInterest && (
                     <p className="text-[11px] text-rose-500 mt-1 font-medium">{formErrors.countryInterest}</p>
