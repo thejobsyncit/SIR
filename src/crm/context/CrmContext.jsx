@@ -1,5 +1,6 @@
 import React, { createContext, useContext, useState, useEffect } from 'react';
 import { CRM_ROLES, ROLE_PERMISSIONS, CRM_CANDIDATES, CRM_CLIENTS, CRM_INTERVIEWS, CRM_INVOICES, PIPELINE_STAGES, AUDIT_LOGS } from '../data/mockCrmData';
+import { getLocalFallbackLeads } from '../../services/leadSubmissionService';
 
 const CrmContext = createContext();
 
@@ -119,11 +120,19 @@ export const CrmProvider = ({ children }) => {
       const url = `/api/leads${params.toString() ? `?${params.toString()}` : ''}`;
       const res = await fetch(url);
       const data = await res.json();
+      const localLeads = getLocalFallbackLeads();
       if (data && data.success && Array.isArray(data.data)) {
-        setLeads(data.data);
+        const serverIds = new Set(data.data.map(l => l.id));
+        const serverRefs = new Set(data.data.map(l => l.referenceNumber).filter(Boolean));
+        const extraLocal = localLeads.filter(l => !serverIds.has(l.id) && (!l.referenceNumber || !serverRefs.has(l.referenceNumber)));
+        setLeads([...extraLocal, ...data.data]);
+      } else if (localLeads.length > 0) {
+        setLeads(localLeads);
       }
     } catch (err) {
       console.error('Failed to load leads from backend:', err);
+      const localLeads = getLocalFallbackLeads();
+      if (localLeads.length > 0) setLeads(localLeads);
     } finally {
       setLoadingLeads(false);
     }

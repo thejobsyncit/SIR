@@ -5,6 +5,7 @@ import {
 } from 'lucide-react';
 import { trackEnquiryStart, trackEnquiryValidationFailure, trackEnquiryConversion } from '../services/analytics';
 import { getAttributionData } from '../utils/attribution';
+import { submitLeadWithFallback } from '../services/leadSubmissionService';
 
 export const CollegeAdmissionsForm = ({
   onSuccessCallback = null,
@@ -245,16 +246,10 @@ export const CollegeAdmissionsForm = ({
     };
 
     try {
-      const response = await fetch('/api/leads', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(payload)
-      });
+      const { ok, data: result } = await submitLeadWithFallback(payload);
 
-      const result = await response.json().catch(() => ({}));
-
-      if (!response.ok || !result.success) {
-        throw new Error(result.message || 'Unable to submit your college admission enquiry right now. Please check your details and try again.');
+      if (!ok || !result?.success) {
+        throw new Error(result?.message || 'Unable to submit your college admission enquiry right now. Please check your details and try again.');
       }
 
       const confirmedRef = result.data?.referenceNumber || `REV-CADM-2026-${Math.floor(10000 + Math.random() * 90000)}`;

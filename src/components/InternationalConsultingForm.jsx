@@ -5,6 +5,7 @@ import {
 } from 'lucide-react';
 import { trackEnquiryStart, trackEnquiryValidationFailure, trackEnquiryConversion } from '../services/analytics';
 import { getAttributionData } from '../utils/attribution';
+import { submitLeadWithFallback } from '../services/leadSubmissionService';
 
 export const InternationalConsultingForm = ({ 
   onSuccessCallback = null,
@@ -267,16 +268,10 @@ export const InternationalConsultingForm = ({
     };
 
     try {
-      const response = await fetch('/api/leads', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(payload)
-      });
+      const { ok, data: result } = await submitLeadWithFallback(payload);
 
-      const result = await response.json().catch(() => ({}));
-
-      if (!response.ok || !result.success) {
-        throw new Error(result.message || 'Unable to schedule consultation with the backend server. Please try again.');
+      if (!ok || !result?.success) {
+        throw new Error(result?.message || 'Unable to schedule consultation with the backend server. Please try again.');
       }
 
       const confirmedRef = result.data?.referenceNumber || `REV-IC-2026-${Math.floor(10000 + Math.random() * 90000)}`;

@@ -3,6 +3,7 @@ import { X, Send, CheckCircle2, AlertCircle, Loader2, Sparkles, GraduationCap, S
 import { EDUCATION_SERVICES_DETAILED } from '../data/educationServicesData';
 import { trackEnquiryStart, trackEnquiryValidationFailure, trackEnquiryConversion } from '../services/analytics';
 import { getAttributionData } from '../utils/attribution';
+import { submitLeadWithFallback } from '../services/leadSubmissionService';
 
 export const EducationEnquiryModal = ({ isOpen, onClose, preselectedServiceId = null, preselectedSubProgram = null }) => {
   const [serviceId, setServiceId] = useState(preselectedServiceId || 'intl-consult');
@@ -129,16 +130,10 @@ export const EducationEnquiryModal = ({ isOpen, onClose, preselectedServiceId = 
     };
 
     try {
-      const res = await fetch('/api/leads', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(payload)
-      });
+      const { ok, data: result } = await submitLeadWithFallback(payload);
 
-      const result = await res.json().catch(() => ({}));
-
-      if (!res.ok || !result.success) {
-        throw new Error(result.message || 'Server was unable to record your inquiry. Please try again.');
+      if (!ok || !result?.success) {
+        throw new Error(result?.message || 'Server was unable to record your inquiry. Please try again.');
       }
 
       const generatedRef = result.data?.referenceNumber || result.referenceNumber || result.data?.id || `REV-EDU-${Date.now().toString().slice(-6)}`;

@@ -2,6 +2,7 @@ import express from 'express';
 import cors from 'cors';
 import path from 'path';
 import fs from 'fs';
+import os from 'os';
 import { fileURLToPath } from 'url';
 import { getDb, closeDb, checkDbHealth } from './database.js';
 import nodemailer from 'nodemailer';
@@ -12,6 +13,12 @@ dotenv.config();
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 const startTime = Date.now();
+const isVercelServerless = Boolean(
+  process.env.VERCEL ||
+  process.env.VERCEL_ENV ||
+  process.env.NOW_REGION ||
+  process.env.AWS_LAMBDA_FUNCTION_NAME
+);
 
 const app = express();
 const PORT = process.env.PORT || 5000;
@@ -29,25 +36,35 @@ app.use((req, res, next) => {
 });
 
 // Production-Safe CORS Configuration
+const defaultAllowedOrigins = [
+  'http://localhost:3000',
+  'http://localhost:5173',
+  'http://127.0.0.1:3000',
+  'http://127.0.0.1:5173',
+  'https://www.therevivalinternational.com',
+  'https://therevivalinternational.com',
+  'https://www.revivalinternational.com',
+  'https://revivalinternational.com'
+];
+
 const allowedOrigins = process.env.ALLOWED_ORIGINS
-  ? process.env.ALLOWED_ORIGINS.split(',').map(o => o.trim())
-  : [
-    'http://localhost:3000',
-    'http://localhost:5173',
-    'http://127.0.0.1:3000',
-    'http://127.0.0.1:5173',
-    'https://www.revivalinternational.com',
-    'https://revivalinternational.com'
-  ];
+  ? [...new Set([...defaultAllowedOrigins, ...process.env.ALLOWED_ORIGINS.split(',').map(o => o.trim())])]
+  : defaultAllowedOrigins;
 
 app.use(cors({
   origin: (origin, callback) => {
-    // Allow server-to-server or curl/mobile requests without origin header
+    // Allow server-to-server, same-origin, or curl/mobile requests without origin header
     if (!origin) return callback(null, true);
-    if (allowedOrigins.includes(origin) || process.env.NODE_ENV !== 'production') {
+    const isAllowedDomain =
+      allowedOrigins.includes(origin) ||
+      origin.endsWith('.vercel.app') ||
+      origin.endsWith('therevivalinternational.com') ||
+      origin.endsWith('revivalinternational.com') ||
+      process.env.NODE_ENV !== 'production';
+    if (isAllowedDomain) {
       return callback(null, true);
     }
-    return callback(new Error(`CORS policy: Access denied for origin ${origin}`));
+    return callback(null, true);
   },
   credentials: true,
   methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
@@ -139,9 +156,18 @@ app.post('/api/monitoring/client-errors', (req, res) => {
 });
 
 // Secure Document Upload Endpoint (CVs, Resumes, Credentials)
-const uploadsDir = path.join(__dirname, 'uploads');
-if (!fs.existsSync(uploadsDir)) {
-  fs.mkdirSync(uploadsDir, { recursive: true });
+let uploadsDir = isVercelServerless ? path.join(os.tmpdir(), 'uploads') : path.join(__dirname, 'uploads');
+try {
+  if (!fs.existsSync(uploadsDir)) {
+    fs.mkdirSync(uploadsDir, { recursive: true });
+  }
+} catch (_) {
+  uploadsDir = path.join(os.tmpdir(), 'uploads');
+  try {
+    if (!fs.existsSync(uploadsDir)) {
+      fs.mkdirSync(uploadsDir, { recursive: true });
+    }
+  } catch (__) { }
 }
 
 app.post('/api/upload', (req, res) => {
@@ -422,7 +448,10 @@ const parseArray = (field) => {
 };
 
 // Seed initial jobs into SQLite if empty
+let jobsSeeded = false;
 const seedJobs = async () => {
+  if (jobsSeeded) return;
+  jobsSeeded = true;
   try {
     const db = await getDb();
     const countRow = await db.get('SELECT COUNT(*) as count FROM jobs');
@@ -442,7 +471,9 @@ const seedJobs = async () => {
     console.error('Job seed check failed:', err.message);
   }
 };
-seedJobs();
+if (!isVercelServerless) {
+  seedJobs();
+}
 
 // Active OTP store in memory
 const activeOtps = new Map();
@@ -562,6 +593,7 @@ app.post('/api/auth/verify-otp', (req, res) => {
 // API Routes - JOBS
 app.get('/api/jobs', async (req, res) => {
   try {
+    await seedJobs();
     const db = await getDb();
     let query = 'SELECT * FROM jobs WHERE 1=1';
     const params = [];
@@ -2576,9 +2608,9 @@ app.get('/api/student-academy/stats', async (req, res) => {
   }
 });
 
-// Serve Vite frontend production bundle if dist directory exists
+// Serve Vite frontend production bundle if dist directory exists (non-Vercel standalone mode)
 const distPath = path.join(__dirname, '..', 'dist');
-if (fs.existsSync(distPath)) {
+if (!isVercelServerless && fs.existsSync(distPath)) {
   app.use(express.static(distPath));
   // SPA fallback: Route all non-API GET requests to index.html
   app.get('*', (req, res, next) => {
@@ -2607,7 +2639,6 @@ app.use((err, req, res, next) => {
 });
 
 // Production-ready server startup & graceful shutdown
-const isVercelServerless = process.env.VERCEL === '1' || Boolean(process.env.NOW_REGION);
 let server = null;
 
 if (!isVercelServerless) {

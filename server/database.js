@@ -1,43 +1,229 @@
-import sqlite3 from 'sqlite3';
-import { open } from 'sqlite';
 import path from 'path';
 import fs from 'fs';
+import os from 'os';
 import { fileURLToPath } from 'url';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
-// Open SQLite database connection
 let dbInstance = null;
+let usingFallbackStore = false;
+
+const isServerlessEnv = () => {
+  return Boolean(
+    process.env.VERCEL === '1' ||
+    process.env.VERCEL ||
+    process.env.NOW_REGION ||
+    process.env.AWS_LAMBDA_FUNCTION_NAME
+  );
+};
 
 export const getDbPath = () => {
-  return process.env.DATABASE_PATH || path.join(__dirname, 'sir_recruitment.db');
+  if (process.env.DATABASE_PATH) {
+    // If relative path on serverless, resolve inside os.tmpdir()
+    if (isServerlessEnv() && !path.isAbsolute(process.env.DATABASE_PATH)) {
+      return path.join(os.tmpdir(), path.basename(process.env.DATABASE_PATH));
+    }
+    return process.env.DATABASE_PATH;
+  }
+
+  if (isServerlessEnv()) {
+    const tmpDbPath = path.join(os.tmpdir(), 'sir_recruitment.db');
+    const bundledDbPath = path.join(__dirname, 'sir_recruitment.db');
+    try {
+      if (!fs.existsSync(tmpDbPath) && fs.existsSync(bundledDbPath)) {
+        fs.copyFileSync(bundledDbPath, tmpDbPath);
+      }
+    } catch (copyErr) {
+      console.warn('Serverless DB copy notice:', copyErr.message);
+    }
+    return tmpDbPath;
+  }
+
+  return path.join(__dirname, 'sir_recruitment.db');
+};
+
+/**
+ * Pure-JS JSON / In-Memory Fallback Database Adapter for Serverless Environments
+ * where native C++ sqlite3 bindings are unavailable.
+ */
+const createFallbackDb = () => {
+  const storePath = path.join(os.tmpdir(), 'revival_serverless_store.json');
+  const defaultStore = {
+    jobs: [],
+    candidates: [],
+    clients: [],
+    interviews: [],
+    leads: [],
+    organization_contacts: [],
+    enquiry_activities: [],
+    follow_ups: [],
+    student_academy_enquiries: []
+  };
+
+  let store = { ...defaultStore };
+  try {
+    if (fs.existsSync(storePath)) {
+      const raw = JSON.parse(fs.readFileSync(storePath, 'utf8'));
+      store = { ...defaultStore, ...raw };
+    }
+  } catch (_) {
+    store = { ...defaultStore };
+  }
+
+  const persist = () => {
+    try {
+      fs.writeFileSync(storePath, JSON.stringify(store), 'utf8');
+    } catch (_) {}
+  };
+
+  const getTableName = (sql) => {
+    const m =
+      sql.match(/(?:INTO|FROM|UPDATE)\s+([a-zA-Z0-9_]+)/i) ||
+      sql.match(/TABLE\s+(?:IF\s+NOT\s+EXISTS\s+)?([a-zA-Z0-9_]+)/i);
+    return m ? m[1] : null;
+  };
+
+  return {
+    exec: async () => {},
+    close: async () => {},
+    run: async (sql, params = []) => {
+      const s = sql.trim();
+      const table = getTableName(s);
+      if (!table || !store[table]) return { changes: 0 };
+
+      if (/^INSERT\s+INTO/i.test(s)) {
+        const colMatch = s.match(/\(([^)]+)\)\s*VALUES/i);
+        const row = { createdAt: new Date().toISOString() };
+        if (colMatch) {
+          const cols = colMatch[1].split(',').map(c => c.trim());
+          cols.forEach((col, idx) => {
+            row[col] = params[idx] !== undefined ? params[idx] : null;
+          });
+        }
+        store[table].unshift(row);
+        persist();
+        return { changes: 1, lastID: row.id };
+      }
+
+      if (/^UPDATE/i.test(s)) {
+        const id = params[params.length - 1];
+        const idx = store[table].findIndex(r => r.id === id);
+        if (idx !== -1) {
+          const setPart = s.match(/SET\s+([\s\S]+?)\s+WHERE/i);
+          if (setPart) {
+            const assignments = setPart[1].split(',').map(a => a.trim());
+            let pIdx = 0;
+            assignments.forEach(assign => {
+              const col = assign.split('=')[0].trim();
+              if (assign.includes('?')) {
+                const val = params[pIdx++];
+                if (val !== null && val !== undefined) {
+                  store[table][idx][col] = val;
+                }
+              } else if (/CURRENT_TIMESTAMP/i.test(assign)) {
+                store[table][idx][col] = new Date().toISOString();
+              }
+            });
+          }
+          persist();
+          return { changes: 1 };
+        }
+        return { changes: 0 };
+      }
+
+      if (/^DELETE/i.test(s)) {
+        const id = params[0];
+        const before = store[table].length;
+        store[table] = store[table].filter(r => r.id !== id && r.enquiryId !== id);
+        persist();
+        return { changes: before - store[table].length };
+      }
+
+      return { changes: 0 };
+    },
+    get: async (sql, params = []) => {
+      const s = sql.trim();
+      if (/SELECT\s+1\s+as\s+alive/i.test(s)) {
+        return { alive: 1 };
+      }
+      const table = getTableName(s);
+      if (!table || !store[table]) return null;
+
+      if (/COUNT\(\*\)/i.test(s)) {
+        const rows = store[table];
+        return { count: rows.length, total: rows.length, totalAcademies: rows.length, totalExams: rows.length };
+      }
+
+      if (params.length > 0) {
+        const keyVal = params[0];
+        return (
+          store[table].find(
+            r =>
+              r.id === keyVal ||
+              r.referenceNumber === keyVal ||
+              (r.company && String(r.company).toLowerCase().trim() === String(keyVal).toLowerCase().trim())
+          ) || null
+        );
+      }
+
+      return store[table][0] || null;
+    },
+    all: async (sql, params = []) => {
+      const s = sql.trim();
+      if (/^PRAGMA\s+table_info/i.test(s)) {
+        return [];
+      }
+      const table = getTableName(s);
+      if (!table || !store[table]) return [];
+      let rows = [...store[table]];
+      if (/WHERE\s+enquiryId\s*=\s*\?/i.test(s) && params[0]) {
+        rows = rows.filter(r => r.enquiryId === params[0]);
+      }
+      if (/WHERE\s+organizationId\s*=\s*\?/i.test(s) && params[0]) {
+        rows = rows.filter(r => r.organizationId === params[0]);
+      }
+      return rows;
+    }
+  };
 };
 
 export const getDb = async () => {
   if (dbInstance) return dbInstance;
 
-  const dbPath = getDbPath();
-  const dbDir = path.dirname(dbPath);
-  if (!fs.existsSync(dbDir)) {
-    fs.mkdirSync(dbDir, { recursive: true });
-  }
-
-  dbInstance = await open({
-    filename: dbPath,
-    driver: sqlite3.Database
-  });
-
-  // Enable WAL mode for better concurrency and reliability in production
   try {
-    await dbInstance.run('PRAGMA journal_mode = WAL;');
-    await dbInstance.run('PRAGMA foreign_keys = ON;');
-  } catch (pragmaErr) {
-    console.warn('SQLite PRAGMA setup warning:', pragmaErr.message);
-  }
+    const dbPath = getDbPath();
+    const dbDir = path.dirname(dbPath);
+    if (!fs.existsSync(dbDir)) {
+      fs.mkdirSync(dbDir, { recursive: true });
+    }
 
-  await initDb(dbInstance);
-  return dbInstance;
+    const sqlite3Mod = await import('sqlite3');
+    const sqliteMod = await import('sqlite');
+    const sqlite3 = sqlite3Mod.default || sqlite3Mod;
+    const { open } = sqliteMod;
+
+    dbInstance = await open({
+      filename: dbPath,
+      driver: sqlite3.Database
+    });
+
+    try {
+      await dbInstance.run('PRAGMA journal_mode = WAL;');
+      await dbInstance.run('PRAGMA foreign_keys = ON;');
+    } catch (pragmaErr) {
+      console.warn('SQLite PRAGMA setup warning:', pragmaErr.message);
+    }
+
+    await initDb(dbInstance);
+    usingFallbackStore = false;
+    return dbInstance;
+  } catch (err) {
+    console.warn('SQLite unavailable in current runtime, activating serverless JSON store fallback:', err.message);
+    dbInstance = createFallbackDb();
+    usingFallbackStore = true;
+    return dbInstance;
+  }
 };
 
 export const closeDb = async () => {
@@ -59,14 +245,18 @@ export const checkDbHealth = async () => {
     const result = await db.get('SELECT 1 as alive');
     const dbPath = getDbPath();
     const dbSize = fs.existsSync(dbPath) ? fs.statSync(dbPath).size : 0;
-    return { status: 'connected', alive: result && result.alive === 1, sizeBytes: dbSize };
+    return {
+      status: 'connected',
+      engine: usingFallbackStore ? 'serverless-json' : 'sqlite',
+      alive: result && result.alive === 1,
+      sizeBytes: dbSize
+    };
   } catch (err) {
     return { status: 'error', message: err.message };
   }
 };
 
 const initDb = async (db) => {
-  // Create tables if they don't exist
   await db.exec(`
     CREATE TABLE IF NOT EXISTS jobs (
       id TEXT PRIMARY KEY,
@@ -204,10 +394,10 @@ const initDb = async (db) => {
     );
   `);
 
-  // Safe migration helper
   const ensureColumns = async (tableName, columnDefs) => {
     try {
       const existingCols = await db.all(`PRAGMA table_info(${tableName})`);
+      if (!existingCols || existingCols.length === 0) return;
       const existingColNames = existingCols.map(c => c.name);
       for (const col of columnDefs) {
         if (!existingColNames.includes(col.name)) {
@@ -219,7 +409,6 @@ const initDb = async (db) => {
     }
   };
 
-  // Safe migration: Ensure leads table has consulting, recruitment and workflow columns
   await ensureColumns('leads', [
     { name: 'serviceId', type: 'TEXT' },
     { name: 'serviceTitle', type: 'TEXT' },
@@ -247,7 +436,6 @@ const initDb = async (db) => {
     { name: 'referrer', type: 'TEXT' },
     { name: 'isArchived', type: 'INTEGER DEFAULT 0' },
     { name: 'updatedAt', type: 'DATETIME' },
-    // Phase 2: Nine Core Services columns (recruitment, staffing, executive search, visa, work permit)
     { name: 'jobTitle', type: 'TEXT' },
     { name: 'skills', type: 'TEXT' },
     { name: 'experience', type: 'TEXT' },
@@ -273,7 +461,6 @@ const initDb = async (db) => {
     { name: 'consultationMode', type: 'TEXT' }
   ]);
 
-  // Safe migration: Ensure clients/organizations table has enterprise fields
   await ensureColumns('clients', [
     { name: 'organizationType', type: "TEXT DEFAULT 'Company'" },
     { name: 'website', type: 'TEXT' },
@@ -287,6 +474,10 @@ const initDb = async (db) => {
     { name: 'updatedAt', type: 'DATETIME' }
   ]);
 
-  // No automatic fake/seed organizations - database starts clean for real entries only
-  console.log('Database initialized successfully with SQLite.');
+  await ensureColumns('student_academy_enquiries', [
+    { name: 'studentEmail', type: 'TEXT' },
+    { name: 'studentPhone', type: 'TEXT' }
+  ]);
+
+  console.log('Database initialized successfully.');
 };
