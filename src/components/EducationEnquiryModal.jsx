@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { X, Send, CheckCircle2, AlertCircle, Loader2, Sparkles, GraduationCap, ShieldCheck } from 'lucide-react';
+import { X, Send, CheckCircle2, AlertCircle, Loader2 } from 'lucide-react';
 import { EDUCATION_SERVICES_DETAILED } from '../data/educationServicesData';
 import { trackEnquiryStart, trackEnquiryValidationFailure, trackEnquiryConversion } from '../services/analytics';
 import { getAttributionData } from '../utils/attribution';
@@ -224,12 +224,14 @@ export const EducationEnquiryModal = ({ isOpen, onClose, preselectedServiceId = 
 
   return (
     <div
-      className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-950/80 backdrop-blur-md animate-in fade-in duration-200"
+      className="fixed inset-0 z-50 flex items-center justify-center p-4 sm:p-6 bg-slate-950/75 backdrop-blur-sm animate-in fade-in duration-200"
       onClick={() => { if (!isSubmitting) onClose(); }}
       role="presentation"
     >
       <div
-        className="glass-card bg-white dark:bg-navy-900 border border-slate-200 dark:border-gold-500/40 rounded-3xl max-w-xl w-full max-h-[92vh] overflow-y-auto p-6 sm:p-8 shadow-luxury relative space-y-6"
+        className={`glass-card bg-white dark:bg-navy-900 border border-[#DCE3EC] dark:border-gold-500/30 rounded-3xl ${
+          isCareerGuidance ? 'max-w-4xl lg:max-w-[920px]' : 'max-w-xl'
+        } w-full max-h-[92vh] overflow-y-auto p-6 sm:p-8 shadow-luxury relative space-y-4 sm:space-y-5`}
         onClick={(e) => e.stopPropagation()}
         role="dialog"
         aria-modal="true"
@@ -239,55 +241,55 @@ export const EducationEnquiryModal = ({ isOpen, onClose, preselectedServiceId = 
         <button
           onClick={onClose}
           disabled={isSubmitting}
-          className="absolute top-5 right-5 p-2 rounded-full text-slate-400 hover:text-slate-700 dark:hover:text-white hover:bg-slate-100 dark:hover:bg-navy-800 transition"
+          className="absolute top-5 right-5 sm:top-6 sm:right-6 p-2 rounded-xl text-[#64748B] hover:text-[#0B1B33] dark:hover:text-white hover:bg-slate-100 dark:hover:bg-navy-800 transition cursor-pointer"
           aria-label="Close modal"
         >
           <X className="w-5 h-5" />
         </button>
 
         {submittedLead ? (
-          /* Real Backend Success Screen */
-          <div className="text-center py-8 space-y-5 animate-in zoom-in-95 duration-300">
+          /* Real Backend Success Screen (Balanced 2-column Landscape Layout) */
+          <div className="text-center py-6 sm:py-8 space-y-4 sm:space-y-5 animate-in zoom-in-95 duration-300">
             <div className="w-16 h-16 rounded-full bg-emerald-500/20 text-emerald-500 mx-auto flex items-center justify-center shadow-gold-glow">
               <CheckCircle2 className="w-10 h-10" />
             </div>
-            <div className="space-y-2">
+            <div className="space-y-1.5">
               <span className="bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 text-xs font-bold px-3 py-1 rounded-full uppercase tracking-wider">
                 Inquiry Logged in Super Admin CRM
               </span>
-              <h3 className="font-serif text-2xl sm:text-3xl font-extrabold text-navy-900 dark:text-white">
+              <h3 className="font-serif text-2xl sm:text-3xl font-extrabold text-[#0B1B33] dark:text-white">
                 Thank You, {submittedLead.name}!
               </h3>
-              <p className="text-xs sm:text-sm text-slate-700 dark:text-slate-300 max-w-md mx-auto leading-relaxed">
-                Your consultation request for <strong className="text-navy-900 dark:text-white">{submittedLead.serviceTitle}</strong> has been securely registered in our advisor queue.
+              <p className="text-xs sm:text-sm text-[#64748B] dark:text-slate-300 max-w-lg mx-auto leading-relaxed">
+                Your consultation request for <strong className="text-[#0B1B33] dark:text-white">{submittedLead.serviceTitle}</strong> has been securely registered in our advisor queue.
               </p>
             </div>
 
-            <div className="p-4 rounded-2xl bg-slate-50 dark:bg-navy-950 border border-slate-200 dark:border-navy-800 text-xs text-left space-y-2 max-w-md mx-auto">
+            <div className="p-4 rounded-2xl bg-[#F8FAFC] dark:bg-navy-950 border border-[#DCE3EC] dark:border-navy-800 text-xs text-left grid grid-cols-1 sm:grid-cols-2 gap-x-6 gap-y-2.5 max-w-2xl mx-auto">
               <div className="flex justify-between items-center text-slate-500">
                 <span>Inquiry Reference ID:</span>
                 <span className="font-mono font-bold text-gold-500">#{submittedLead.id}</span>
               </div>
               <div className="flex justify-between items-center text-slate-500">
                 <span>Applicant Name:</span>
-                <span className="font-bold text-slate-800 dark:text-slate-200">{submittedLead.name}</span>
+                <span className="font-bold text-[#0B1B33] dark:text-slate-200">{submittedLead.name}</span>
               </div>
               {submittedLead.programLevel && (
                 <div className="flex justify-between items-center text-slate-500">
                   <span>Target Academic Level:</span>
-                  <span className="font-bold text-slate-800 dark:text-slate-200">{submittedLead.programLevel}</span>
+                  <span className="font-bold text-[#0B1B33] dark:text-slate-200">{submittedLead.programLevel}</span>
                 </div>
               )}
               {submittedLead.countryInterest && (
                 <div className="flex justify-between items-center text-slate-500">
                   <span>Target Study Destination:</span>
-                  <span className="font-bold text-slate-800 dark:text-slate-200">{submittedLead.countryInterest}</span>
+                  <span className="font-bold text-[#0B1B33] dark:text-slate-200">{submittedLead.countryInterest}</span>
                 </div>
               )}
               {submittedLead.consultationDate && (
                 <div className="flex justify-between items-center text-slate-500">
                   <span>Appointment Date & Time:</span>
-                  <span className="font-bold text-slate-800 dark:text-slate-200">{submittedLead.consultationDate} ({submittedLead.consultationTime})</span>
+                  <span className="font-bold text-[#0B1B33] dark:text-slate-200">{submittedLead.consultationDate} ({submittedLead.consultationTime})</span>
                 </div>
               )}
               {submittedLead.consultationMode && (
@@ -298,7 +300,7 @@ export const EducationEnquiryModal = ({ isOpen, onClose, preselectedServiceId = 
               )}
               <div className="flex justify-between items-center text-slate-500">
                 <span>Advisory Hub:</span>
-                <span className="font-semibold text-slate-800 dark:text-slate-200">Dubai HQ & Global Network</span>
+                <span className="font-semibold text-[#0B1B33] dark:text-slate-200">Dubai HQ & Global Network</span>
               </div>
               <div className="flex justify-between items-center text-slate-500">
                 <span>Status in CRM:</span>
@@ -311,17 +313,17 @@ export const EducationEnquiryModal = ({ isOpen, onClose, preselectedServiceId = 
                 setSubmittedLead(null);
                 onClose();
               }}
-              className="px-6 py-3 bg-gold-shimmer text-navy-950 font-bold text-xs rounded-xl shadow-gold-glow hover:opacity-95 transition cursor-pointer"
+              className="px-6 py-2.5 bg-gold-shimmer text-navy-950 font-bold text-xs rounded-xl shadow-gold-glow hover:opacity-95 transition cursor-pointer"
             >
               Done & Return to Advisory
             </button>
           </div>
         ) : (
-          /* Consultation Request Form */
+          /* Consultation Request Form (Wide Horizontal Layout) */
           <>
-            <div className="space-y-1.5 pr-8">
+            <div className="pr-8">
               {!isCareerGuidance && (
-                <div className="flex items-center gap-2">
+                <div className="flex items-center gap-2 mb-1.5">
                   <span className="bg-gold-500/10 text-gold-600 dark:text-gold-400 text-[10px] font-bold px-2.5 py-0.5 rounded-full uppercase">
                     {activeService.category} Advisory
                   </span>
@@ -330,11 +332,11 @@ export const EducationEnquiryModal = ({ isOpen, onClose, preselectedServiceId = 
                   </span>
                 </div>
               )}
-              <h2 id="education-enquiry-title" className="font-serif text-2xl sm:text-3xl font-extrabold text-navy-900 dark:text-white">
+              <h2 id="education-enquiry-title" className="font-serif text-2xl sm:text-3xl font-extrabold text-[#0B1B33] dark:text-white tracking-tight">
                 Request Academic Consultation
               </h2>
               {!isCareerGuidance && (
-                <p className="text-xs text-slate-700 dark:text-slate-300">
+                <p className="text-xs text-[#64748B] dark:text-slate-300 mt-1">
                   Complete this form to schedule a tailored roadmap session with our Dubai education advisory team.
                 </p>
               )}
@@ -347,12 +349,12 @@ export const EducationEnquiryModal = ({ isOpen, onClose, preselectedServiceId = 
               </div>
             )}
 
-            <form onSubmit={handleSubmit} className="space-y-4" noValidate>
+            <form onSubmit={handleSubmit} className="space-y-3.5 sm:space-y-4" noValidate>
 
-              {/* Service Selector */}
+              {/* Service Selector (Only for non-career services) */}
               {!isCareerGuidance && (
                 <div>
-                  <label className="block text-xs font-bold text-slate-800 dark:text-slate-200 mb-1">
+                  <label className="block text-xs font-bold text-[#0B1B33] dark:text-slate-200 mb-1">
                     Service of Interest <span className="text-rose-500">*</span>
                   </label>
                   <select
@@ -361,7 +363,7 @@ export const EducationEnquiryModal = ({ isOpen, onClose, preselectedServiceId = 
                       setServiceId(e.target.value);
                       setSubProgram('');
                     }}
-                    className="w-full bg-slate-50 dark:bg-navy-950 border border-slate-200 dark:border-navy-700 text-slate-800 dark:text-slate-200 text-xs font-semibold rounded-xl px-3.5 py-2.5 focus:outline-none focus:ring-2 focus:ring-gold-500"
+                    className="w-full bg-[#F8FAFC] dark:bg-navy-950 border border-[#DCE3EC] dark:border-navy-700 text-[#0B1B33] dark:text-slate-200 text-xs font-semibold rounded-xl px-3.5 py-2.5 focus:bg-white dark:focus:bg-navy-900 focus:outline-none focus:ring-2 focus:ring-gold-500 transition"
                   >
                     {EDUCATION_SERVICES_DETAILED.map((srv) => (
                       <option key={srv.id} value={srv.id}>
@@ -375,13 +377,13 @@ export const EducationEnquiryModal = ({ isOpen, onClose, preselectedServiceId = 
               {/* Sub-Program Selector (Only for Executive Seminars & Language Training) */}
               {!isCareerGuidance && activeService.subProgrammes && (
                 <div>
-                  <label className="block text-xs font-bold text-slate-800 dark:text-slate-200 mb-1">
+                  <label className="block text-xs font-bold text-[#0B1B33] dark:text-slate-200 mb-1">
                     Select Test or Program Focus
                   </label>
                   <select
                     value={subProgram}
                     onChange={(e) => setSubProgram(e.target.value)}
-                    className="w-full bg-slate-50 dark:bg-navy-950 border border-slate-200 dark:border-navy-700 text-slate-800 dark:text-slate-200 text-xs font-semibold rounded-xl px-3.5 py-2.5 focus:outline-none focus:ring-2 focus:ring-gold-500"
+                    className="w-full bg-[#F8FAFC] dark:bg-navy-950 border border-[#DCE3EC] dark:border-navy-700 text-[#0B1B33] dark:text-slate-200 text-xs font-semibold rounded-xl px-3.5 py-2.5 focus:bg-white dark:focus:bg-navy-900 focus:outline-none focus:ring-2 focus:ring-gold-500 transition"
                   >
                     <option value="">General Language & Seminar Inquiry</option>
                     {activeService.subProgrammes.map((sub) => (
@@ -393,7 +395,7 @@ export const EducationEnquiryModal = ({ isOpen, onClose, preselectedServiceId = 
                 </div>
               )}
 
-              {/* Preselected Course / Focus Banner (e.g. from Career Guidance Catalogue) */}
+              {/* Preselected Course / Focus Banner (Only for non-career services) */}
               {!isCareerGuidance && subProgram && !activeService.subProgrammes && (
                 <div className="p-3 rounded-xl bg-gold-500/10 border border-gold-500/30 flex items-center justify-between text-xs">
                   <div>
@@ -415,10 +417,10 @@ export const EducationEnquiryModal = ({ isOpen, onClose, preselectedServiceId = 
                 </div>
               )}
 
-              {/* Name & Email Row */}
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3.5">
+              {/* Row 1: Full Name | Email Address */}
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3.5 sm:gap-4">
                 <div>
-                  <label className="block text-xs font-bold text-slate-800 dark:text-slate-200 mb-1">
+                  <label className="block text-xs font-bold text-[#0B1B33] dark:text-slate-200 mb-1">
                     Full Name <span className="text-rose-500">*</span>
                   </label>
                   <input
@@ -430,8 +432,9 @@ export const EducationEnquiryModal = ({ isOpen, onClose, preselectedServiceId = 
                     onChange={() => {
                       if (formErrors.name) setFormErrors(prev => ({ ...prev, name: null }));
                     }}
-                    className={`w-full bg-slate-50 dark:bg-navy-950 border text-slate-800 dark:text-slate-200 text-xs rounded-xl px-3.5 py-2.5 focus:outline-none focus:ring-2 focus:ring-gold-500 ${formErrors.name ? 'border-rose-500' : 'border-slate-200 dark:border-navy-700'
-                      }`}
+                    className={`w-full bg-[#F8FAFC] dark:bg-navy-950 border text-[#0B1B33] dark:text-slate-200 text-xs rounded-xl px-3.5 py-2.5 focus:bg-white dark:focus:bg-navy-900 focus:outline-none focus:ring-2 focus:ring-gold-500 transition ${
+                      formErrors.name ? 'border-rose-500' : 'border-[#DCE3EC] dark:border-navy-700'
+                    }`}
                   />
                   {formErrors.name && (
                     <p className="text-[11px] text-rose-500 mt-1 font-medium">{formErrors.name}</p>
@@ -439,7 +442,7 @@ export const EducationEnquiryModal = ({ isOpen, onClose, preselectedServiceId = 
                 </div>
 
                 <div>
-                  <label className="block text-xs font-bold text-slate-800 dark:text-slate-200 mb-1">
+                  <label className="block text-xs font-bold text-[#0B1B33] dark:text-slate-200 mb-1">
                     Email Address <span className="text-rose-500">*</span>
                   </label>
                   <input
@@ -450,8 +453,9 @@ export const EducationEnquiryModal = ({ isOpen, onClose, preselectedServiceId = 
                     onChange={() => {
                       if (formErrors.email) setFormErrors(prev => ({ ...prev, email: null }));
                     }}
-                    className={`w-full bg-slate-50 dark:bg-navy-950 border text-slate-800 dark:text-slate-200 text-xs rounded-xl px-3.5 py-2.5 focus:outline-none focus:ring-2 focus:ring-gold-500 ${formErrors.email ? 'border-rose-500' : 'border-slate-200 dark:border-navy-700'
-                      }`}
+                    className={`w-full bg-[#F8FAFC] dark:bg-navy-950 border text-[#0B1B33] dark:text-slate-200 text-xs rounded-xl px-3.5 py-2.5 focus:bg-white dark:focus:bg-navy-900 focus:outline-none focus:ring-2 focus:ring-gold-500 transition ${
+                      formErrors.email ? 'border-rose-500' : 'border-[#DCE3EC] dark:border-navy-700'
+                    }`}
                   />
                   {formErrors.email && (
                     <p className="text-[11px] text-rose-500 mt-1 font-medium">{formErrors.email}</p>
@@ -459,11 +463,11 @@ export const EducationEnquiryModal = ({ isOpen, onClose, preselectedServiceId = 
                 </div>
               </div>
 
-              {/* Phone & Current Organization Row */}
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3.5">
+              {/* Row 2: Phone / WhatsApp | Current School / College / Employer */}
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3.5 sm:gap-4">
                 <div>
                   <div className="flex justify-between items-center mb-1">
-                    <label className="block text-xs font-bold text-slate-800 dark:text-slate-200">
+                    <label className="block text-xs font-bold text-[#0B1B33] dark:text-slate-200">
                       Phone / WhatsApp <span className="text-rose-500">*</span>
                     </label>
                     {phone.replace(/[\s\-\(\)\+]/g, '').length >= 7 && (
@@ -479,8 +483,9 @@ export const EducationEnquiryModal = ({ isOpen, onClose, preselectedServiceId = 
                     onChange={handlePhoneChange}
                     placeholder="e.g. +971 50 123 4567 or +91 98765 43210"
                     required
-                    className={`w-full bg-slate-50 dark:bg-navy-950 border text-slate-800 dark:text-slate-200 text-xs rounded-xl px-3.5 py-2.5 font-mono tracking-wider focus:outline-none focus:ring-2 focus:ring-gold-500 ${formErrors.phone ? 'border-rose-500' : 'border-slate-200 dark:border-navy-700'
-                      }`}
+                    className={`w-full bg-[#F8FAFC] dark:bg-navy-950 border text-[#0B1B33] dark:text-slate-200 text-xs rounded-xl px-3.5 py-2.5 font-mono tracking-wider focus:bg-white dark:focus:bg-navy-900 focus:outline-none focus:ring-2 focus:ring-gold-500 transition ${
+                      formErrors.phone ? 'border-rose-500' : 'border-[#DCE3EC] dark:border-navy-700'
+                    }`}
                   />
                   {formErrors.phone && (
                     <p className="text-[11px] text-rose-500 mt-1 font-medium">{formErrors.phone}</p>
@@ -488,22 +493,22 @@ export const EducationEnquiryModal = ({ isOpen, onClose, preselectedServiceId = 
                 </div>
 
                 <div>
-                  <label className="block text-xs font-bold text-slate-800 dark:text-slate-200 mb-1">
+                  <label className="block text-xs font-bold text-[#0B1B33] dark:text-slate-200 mb-1">
                     Current School / College / Employer
                   </label>
                   <input
                     type="text"
                     name="organization"
                     placeholder="e.g. Delhi Public School / IIT Madras"
-                    className="w-full bg-slate-50 dark:bg-navy-950 border border-slate-200 dark:border-navy-700 text-slate-800 dark:text-slate-200 text-xs rounded-xl px-3.5 py-2.5 focus:outline-none focus:ring-2 focus:ring-gold-500"
+                    className="w-full bg-[#F8FAFC] dark:bg-navy-950 border border-[#DCE3EC] dark:border-navy-700 text-[#0B1B33] dark:text-slate-200 text-xs rounded-xl px-3.5 py-2.5 focus:bg-white dark:focus:bg-navy-900 focus:outline-none focus:ring-2 focus:ring-gold-500 transition"
                   />
                 </div>
               </div>
 
-              {/* Level & Target Destination Row */}
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3.5">
+              {/* Row 3: Target Academic Level | Target Study Destination */}
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3.5 sm:gap-4">
                 <div>
-                  <label className="block text-xs font-bold text-slate-800 dark:text-slate-200 mb-1">
+                  <label className="block text-xs font-bold text-[#0B1B33] dark:text-slate-200 mb-1">
                     Target Academic Level <span className="text-rose-500">*</span>
                   </label>
                   <select
@@ -512,8 +517,8 @@ export const EducationEnquiryModal = ({ isOpen, onClose, preselectedServiceId = 
                       setProgramLevel(e.target.value);
                       if (formErrors.programLevel) setFormErrors(prev => ({ ...prev, programLevel: null }));
                     }}
-                    className={`w-full bg-slate-50 dark:bg-navy-950 border text-slate-800 dark:text-slate-200 text-xs font-semibold rounded-xl px-3.5 py-2.5 focus:outline-none focus:ring-2 focus:ring-gold-500 ${
-                      formErrors.programLevel ? 'border-rose-500' : 'border-slate-200 dark:border-navy-700'
+                    className={`w-full bg-[#F8FAFC] dark:bg-navy-950 border text-[#0B1B33] dark:text-slate-200 text-xs font-semibold rounded-xl px-3.5 py-2.5 focus:bg-white dark:focus:bg-navy-900 focus:outline-none focus:ring-2 focus:ring-gold-500 transition cursor-pointer ${
+                      formErrors.programLevel ? 'border-rose-500' : 'border-[#DCE3EC] dark:border-navy-700'
                     }`}
                   >
                     {isCareerGuidance ? (
@@ -537,7 +542,7 @@ export const EducationEnquiryModal = ({ isOpen, onClose, preselectedServiceId = 
                 </div>
 
                 <div>
-                  <label className="block text-xs font-bold text-slate-800 dark:text-slate-200 mb-1">
+                  <label className="block text-xs font-bold text-[#0B1B33] dark:text-slate-200 mb-1">
                     Target Study Destination <span className="text-rose-500">*</span>
                   </label>
                   <select
@@ -546,8 +551,8 @@ export const EducationEnquiryModal = ({ isOpen, onClose, preselectedServiceId = 
                       setCountryInterest(e.target.value);
                       if (formErrors.countryInterest) setFormErrors(prev => ({ ...prev, countryInterest: null }));
                     }}
-                    className={`w-full bg-slate-50 dark:bg-navy-950 border text-slate-800 dark:text-slate-200 text-xs font-semibold rounded-xl px-3.5 py-2.5 focus:outline-none focus:ring-2 focus:ring-gold-500 ${
-                      formErrors.countryInterest ? 'border-rose-500' : 'border-slate-200 dark:border-navy-700'
+                    className={`w-full bg-[#F8FAFC] dark:bg-navy-950 border text-[#0B1B33] dark:text-slate-200 text-xs font-semibold rounded-xl px-3.5 py-2.5 focus:bg-white dark:focus:bg-navy-900 focus:outline-none focus:ring-2 focus:ring-gold-500 transition cursor-pointer ${
+                      formErrors.countryInterest ? 'border-rose-500' : 'border-[#DCE3EC] dark:border-navy-700'
                     }`}
                   >
                     <option value="All">Global / Flexible (Open to Advice)</option>
@@ -565,7 +570,7 @@ export const EducationEnquiryModal = ({ isOpen, onClose, preselectedServiceId = 
                 </div>
               </div>
 
-              {/* Consultation Scheduling Row: Date, Time & Mode */}
+              {/* Consultation Scheduling Row: Date, Time & Mode (Only for non-career services) */}
               {!isCareerGuidance && (
                 <div className="p-3.5 bg-gold-500/5 dark:bg-gold-500/10 border border-gold-500/20 rounded-2xl space-y-2">
                   <span className="text-[10px] font-extrabold text-gold-600 dark:text-gold-400 uppercase tracking-wider block">
@@ -581,7 +586,7 @@ export const EducationEnquiryModal = ({ isOpen, onClose, preselectedServiceId = 
                         type="date"
                         value={consultationDate}
                         onChange={(e) => setConsultationDate(e.target.value)}
-                        className="w-full bg-white dark:bg-navy-950 border border-slate-200 dark:border-navy-700 text-slate-800 dark:text-slate-200 text-xs rounded-xl px-2.5 py-2 font-bold focus:outline-none focus:ring-2 focus:ring-gold-500"
+                        className="w-full bg-white dark:bg-navy-950 border border-[#DCE3EC] dark:border-navy-700 text-slate-800 dark:text-slate-200 text-xs rounded-xl px-2.5 py-2 font-bold focus:outline-none focus:ring-2 focus:ring-gold-500"
                       />
                     </div>
 
@@ -592,7 +597,7 @@ export const EducationEnquiryModal = ({ isOpen, onClose, preselectedServiceId = 
                       <select
                         value={consultationTime}
                         onChange={(e) => setConsultationTime(e.target.value)}
-                        className="w-full bg-white dark:bg-navy-950 border border-slate-200 dark:border-navy-700 text-slate-800 dark:text-slate-200 text-xs rounded-xl px-2.5 py-2 font-bold focus:outline-none focus:ring-2 focus:ring-gold-500 cursor-pointer"
+                        className="w-full bg-white dark:bg-navy-950 border border-[#DCE3EC] dark:border-navy-700 text-slate-800 dark:text-slate-200 text-xs rounded-xl px-2.5 py-2 font-bold focus:outline-none focus:ring-2 focus:ring-gold-500 cursor-pointer"
                       >
                         <option value="09:30 AM - 10:30 AM IST">09:30 AM - 10:30 AM IST</option>
                         <option value="11:00 AM - 12:00 PM IST">11:00 AM - 12:00 PM IST</option>
@@ -609,7 +614,7 @@ export const EducationEnquiryModal = ({ isOpen, onClose, preselectedServiceId = 
                       <select
                         value={consultationMode}
                         onChange={(e) => setConsultationMode(e.target.value)}
-                        className="w-full bg-white dark:bg-navy-950 border border-slate-200 dark:border-navy-700 text-slate-800 dark:text-slate-200 text-xs rounded-xl px-2.5 py-2 font-bold focus:outline-none focus:ring-2 focus:ring-gold-500 cursor-pointer"
+                        className="w-full bg-white dark:bg-navy-950 border border-[#DCE3EC] dark:border-navy-700 text-slate-800 dark:text-slate-200 text-xs rounded-xl px-2.5 py-2 font-bold focus:outline-none focus:ring-2 focus:ring-gold-500 cursor-pointer"
                       >
                         <option value="Virtual Video Call (Google Meet / Zoom)">Virtual Video Call</option>
                         <option value="India HQ In-Person (Chennai)">India HQ In-Person (Chennai)</option>
@@ -621,10 +626,10 @@ export const EducationEnquiryModal = ({ isOpen, onClose, preselectedServiceId = 
                 </div>
               )}
 
-              {/* Message */}
+              {/* Message (Only for non-career services) */}
               {!isCareerGuidance && (
                 <div>
-                  <label className="block text-xs font-bold text-slate-800 dark:text-slate-200 mb-1">
+                  <label className="block text-xs font-bold text-[#0B1B33] dark:text-slate-200 mb-1">
                     Academic Background & Specific Questions <span className="text-rose-500">*</span>
                   </label>
                   <textarea
@@ -635,8 +640,9 @@ export const EducationEnquiryModal = ({ isOpen, onClose, preselectedServiceId = 
                     onChange={() => {
                       if (formErrors.message) setFormErrors(prev => ({ ...prev, message: null }));
                     }}
-                    className={`w-full bg-slate-50 dark:bg-navy-950 border text-slate-800 dark:text-slate-200 text-xs rounded-xl p-3 focus:outline-none focus:ring-2 focus:ring-gold-500 ${formErrors.message ? 'border-rose-500' : 'border-slate-200 dark:border-navy-700'
-                      }`}
+                    className={`w-full bg-[#F8FAFC] dark:bg-navy-950 border text-[#0B1B33] dark:text-slate-200 text-xs rounded-xl p-3 focus:outline-none focus:ring-2 focus:ring-gold-500 ${
+                      formErrors.message ? 'border-rose-500' : 'border-[#DCE3EC] dark:border-navy-700'
+                    }`}
                   />
                   {formErrors.message && (
                     <p className="text-[11px] text-rose-500 mt-1 font-medium">{formErrors.message}</p>
@@ -645,7 +651,7 @@ export const EducationEnquiryModal = ({ isOpen, onClose, preselectedServiceId = 
               )}
 
               {/* Consent Checkbox */}
-              <div className="space-y-1">
+              <div className="pt-1">
                 <label className="flex items-start gap-2.5 cursor-pointer">
                   <input
                     type="checkbox"
@@ -657,14 +663,14 @@ export const EducationEnquiryModal = ({ isOpen, onClose, preselectedServiceId = 
                         setFormErrors(prev => ({ ...prev, consent: null }));
                       }
                     }}
-                    className="mt-0.5 rounded text-gold-500 focus:ring-gold-500 h-4 w-4 border-slate-300 dark:border-navy-700 bg-slate-50 dark:bg-navy-950"
+                    className="mt-0.5 rounded text-gold-500 focus:ring-gold-500 h-4 w-4 border-[#DCE3EC] dark:border-navy-700 bg-white dark:bg-navy-950"
                   />
-                  <span className="text-[11px] text-slate-600 dark:text-slate-400 leading-snug">
+                  <span className="text-[11px] text-[#64748B] dark:text-slate-400 leading-snug">
                     I agree to allow Revival International education advisors to contact me via Phone, WhatsApp, and Email regarding this inquiry. Private records are protected and never shared.
                   </span>
                 </label>
                 {formErrors.consent && (
-                  <p className="text-[11px] text-rose-500 font-medium pl-6">{formErrors.consent}</p>
+                  <p className="text-[11px] text-rose-500 font-medium pl-6 mt-0.5">{formErrors.consent}</p>
                 )}
               </div>
 
@@ -674,7 +680,7 @@ export const EducationEnquiryModal = ({ isOpen, onClose, preselectedServiceId = 
                   type="button"
                   onClick={onClose}
                   disabled={isSubmitting}
-                  className="px-4 py-2.5 rounded-xl border border-slate-200 dark:border-navy-700 text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-navy-800 text-xs font-bold transition cursor-pointer"
+                  className="px-5 py-2.5 rounded-xl border border-[#DCE3EC] dark:border-navy-700 bg-slate-100 hover:bg-slate-200 dark:bg-navy-800 dark:hover:bg-navy-700 text-[#0B1B33] dark:text-slate-200 text-xs font-bold transition cursor-pointer"
                 >
                   Cancel
                 </button>
