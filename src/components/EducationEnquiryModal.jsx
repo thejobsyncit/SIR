@@ -229,9 +229,8 @@ export const EducationEnquiryModal = ({ isOpen, onClose, preselectedServiceId = 
       role="presentation"
     >
       <div
-        className={`glass-card bg-white dark:bg-navy-900 border border-[#DCE3EC] dark:border-gold-500/30 rounded-3xl ${
-          isCareerGuidance ? 'max-w-4xl lg:max-w-[920px]' : 'max-w-xl'
-        } w-full max-h-[92vh] overflow-y-auto p-6 sm:p-8 shadow-luxury relative space-y-4 sm:space-y-5`}
+        className={`glass-card bg-white dark:bg-navy-900 border border-[#DCE3EC] dark:border-gold-500/30 rounded-3xl ${isCareerGuidance ? 'max-w-4xl lg:max-w-[920px]' : 'max-w-xl'
+          } w-full max-h-[92vh] overflow-y-auto p-6 sm:p-8 shadow-luxury relative space-y-4 sm:space-y-5`}
         onClick={(e) => e.stopPropagation()}
         role="dialog"
         aria-modal="true"
@@ -427,14 +426,13 @@ export const EducationEnquiryModal = ({ isOpen, onClose, preselectedServiceId = 
                     type="text"
                     name="name"
                     required
-                    placeholder="e.g. Tariq Al-Hashimi"
+                    placeholder="e.g. Naveen Kumar"
                     onFocus={() => trackEnquiryStart('education_modal', isCareerGuidance ? 'school-career' : activeService.id, isCareerGuidance ? 'Career Guidance' : activeService.title)}
                     onChange={() => {
                       if (formErrors.name) setFormErrors(prev => ({ ...prev, name: null }));
                     }}
-                    className={`w-full bg-[#F8FAFC] dark:bg-navy-950 border text-[#0B1B33] dark:text-slate-200 text-xs rounded-xl px-3.5 py-2.5 focus:bg-white dark:focus:bg-navy-900 focus:outline-none focus:ring-2 focus:ring-gold-500 transition ${
-                      formErrors.name ? 'border-rose-500' : 'border-[#DCE3EC] dark:border-navy-700'
-                    }`}
+                    className={`w-full bg-[#F8FAFC] dark:bg-navy-950 border text-[#0B1B33] dark:text-slate-200 text-xs rounded-xl px-3.5 py-2.5 focus:bg-white dark:focus:bg-navy-900 focus:outline-none focus:ring-2 focus:ring-gold-500 transition ${formErrors.name ? 'border-rose-500' : 'border-[#DCE3EC] dark:border-navy-700'
+                      }`}
                   />
                   {formErrors.name && (
                     <p className="text-[11px] text-rose-500 mt-1 font-medium">{formErrors.name}</p>
@@ -449,13 +447,12 @@ export const EducationEnquiryModal = ({ isOpen, onClose, preselectedServiceId = 
                     type="email"
                     name="email"
                     required
-                    placeholder="e.g. student@example.com"
+                    placeholder="e.g. Naveenkumar@example.com"
                     onChange={() => {
                       if (formErrors.email) setFormErrors(prev => ({ ...prev, email: null }));
                     }}
-                    className={`w-full bg-[#F8FAFC] dark:bg-navy-950 border text-[#0B1B33] dark:text-slate-200 text-xs rounded-xl px-3.5 py-2.5 focus:bg-white dark:focus:bg-navy-900 focus:outline-none focus:ring-2 focus:ring-gold-500 transition ${
-                      formErrors.email ? 'border-rose-500' : 'border-[#DCE3EC] dark:border-navy-700'
-                    }`}
+                    className={`w-full bg-[#F8FAFC] dark:bg-navy-950 border text-[#0B1B33] dark:text-slate-200 text-xs rounded-xl px-3.5 py-2.5 focus:bg-white dark:focus:bg-navy-900 focus:outline-none focus:ring-2 focus:ring-gold-500 transition ${formErrors.email ? 'border-rose-500' : 'border-[#DCE3EC] dark:border-navy-700'
+                      }`}
                   />
                   {formErrors.email && (
                     <p className="text-[11px] text-rose-500 mt-1 font-medium">{formErrors.email}</p>
@@ -481,11 +478,10 @@ export const EducationEnquiryModal = ({ isOpen, onClose, preselectedServiceId = 
                     name="phone"
                     value={phone}
                     onChange={handlePhoneChange}
-                    placeholder="e.g. +971 50 123 4567 or +91 98765 43210"
+                    placeholder="e.g. +91 98765 43210"
                     required
-                    className={`w-full bg-[#F8FAFC] dark:bg-navy-950 border text-[#0B1B33] dark:text-slate-200 text-xs rounded-xl px-3.5 py-2.5 font-mono tracking-wider focus:bg-white dark:focus:bg-navy-900 focus:outline-none focus:ring-2 focus:ring-gold-500 transition ${
-                      formErrors.phone ? 'border-rose-500' : 'border-[#DCE3EC] dark:border-navy-700'
-                    }`}
+                    className={`w-full bg-[#F8FAFC] dark:bg-navy-950 border text-[#0B1B33] dark:text-slate-200 text-xs rounded-xl px-3.5 py-2.5 font-mono tracking-wider focus:bg-white dark:focus:bg-navy-900 focus:outline-none focus:ring-2 focus:ring-gold-500 transition ${formErrors.phone ? 'border-rose-500' : 'border-[#DCE3EC] dark:border-navy-700'
+                      }`}
                   />
                   {formErrors.phone && (
                     <p className="text-[11px] text-rose-500 mt-1 font-medium">{formErrors.phone}</p>
@@ -517,9 +513,8 @@ export const EducationEnquiryModal = ({ isOpen, onClose, preselectedServiceId = 
                       setProgramLevel(e.target.value);
                       if (formErrors.programLevel) setFormErrors(prev => ({ ...prev, programLevel: null }));
                     }}
-                    className={`w-full bg-[#F8FAFC] dark:bg-navy-950 border text-[#0B1B33] dark:text-slate-200 text-xs font-semibold rounded-xl px-3.5 py-2.5 focus:bg-white dark:focus:bg-navy-900 focus:outline-none focus:ring-2 focus:ring-gold-500 transition cursor-pointer ${
-                      formErrors.programLevel ? 'border-rose-500' : 'border-[#DCE3EC] dark:border-navy-700'
-                    }`}
+                    className={`w-full bg-[#F8FAFC] dark:bg-navy-950 border text-[#0B1B33] dark:text-slate-200 text-xs font-semibold rounded-xl px-3.5 py-2.5 focus:bg-white dark:focus:bg-navy-900 focus:outline-none focus:ring-2 focus:ring-gold-500 transition cursor-pointer ${formErrors.programLevel ? 'border-rose-500' : 'border-[#DCE3EC] dark:border-navy-700'
+                      }`}
                   >
                     {isCareerGuidance ? (
                       <>
@@ -551,11 +546,10 @@ export const EducationEnquiryModal = ({ isOpen, onClose, preselectedServiceId = 
                       setCountryInterest(e.target.value);
                       if (formErrors.countryInterest) setFormErrors(prev => ({ ...prev, countryInterest: null }));
                     }}
-                    className={`w-full bg-[#F8FAFC] dark:bg-navy-950 border text-[#0B1B33] dark:text-slate-200 text-xs font-semibold rounded-xl px-3.5 py-2.5 focus:bg-white dark:focus:bg-navy-900 focus:outline-none focus:ring-2 focus:ring-gold-500 transition cursor-pointer ${
-                      formErrors.countryInterest ? 'border-rose-500' : 'border-[#DCE3EC] dark:border-navy-700'
-                    }`}
+                    className={`w-full bg-[#F8FAFC] dark:bg-navy-950 border text-[#0B1B33] dark:text-slate-200 text-xs font-semibold rounded-xl px-3.5 py-2.5 focus:bg-white dark:focus:bg-navy-900 focus:outline-none focus:ring-2 focus:ring-gold-500 transition cursor-pointer ${formErrors.countryInterest ? 'border-rose-500' : 'border-[#DCE3EC] dark:border-navy-700'
+                      }`}
                   >
-                    <option value="All">Global / Flexible (Open to Advice)</option>
+
                     <option value="India">India</option>
                     <option value="United Kingdom">United Kingdom (UK)</option>
                     <option value="United States">United States (USA)</option>
@@ -576,7 +570,7 @@ export const EducationEnquiryModal = ({ isOpen, onClose, preselectedServiceId = 
                   <span className="text-[10px] font-extrabold text-gold-600 dark:text-gold-400 uppercase tracking-wider block">
                     Select Consultation Appointment
                   </span>
-                  
+
                   <div className="grid grid-cols-1 sm:grid-cols-3 gap-2.5">
                     <div>
                       <label className="block text-[10px] font-bold text-slate-600 dark:text-slate-400 mb-1">
@@ -640,9 +634,8 @@ export const EducationEnquiryModal = ({ isOpen, onClose, preselectedServiceId = 
                     onChange={() => {
                       if (formErrors.message) setFormErrors(prev => ({ ...prev, message: null }));
                     }}
-                    className={`w-full bg-[#F8FAFC] dark:bg-navy-950 border text-[#0B1B33] dark:text-slate-200 text-xs rounded-xl p-3 focus:outline-none focus:ring-2 focus:ring-gold-500 ${
-                      formErrors.message ? 'border-rose-500' : 'border-[#DCE3EC] dark:border-navy-700'
-                    }`}
+                    className={`w-full bg-[#F8FAFC] dark:bg-navy-950 border text-[#0B1B33] dark:text-slate-200 text-xs rounded-xl p-3 focus:outline-none focus:ring-2 focus:ring-gold-500 ${formErrors.message ? 'border-rose-500' : 'border-[#DCE3EC] dark:border-navy-700'
+                      }`}
                   />
                   {formErrors.message && (
                     <p className="text-[11px] text-rose-500 mt-1 font-medium">{formErrors.message}</p>
