@@ -35,7 +35,8 @@ export const CourseDetailModal = ({ course, isOpen, onClose, onSelectCourse, onI
 
   const relatedCourses = React.useMemo(() => {
     if (course.streamId) {
-      return getCoursesByStream(course.streamId)
+      const streamCourses = course.level === 'PG' ? getPgCoursesByStream(course.streamId) : getCoursesByStream(course.streamId);
+      return streamCourses
         .filter(c => c.id !== course.id)
         .slice(0, 4)
         .map(c => ({
@@ -44,7 +45,10 @@ export const CourseDetailModal = ({ course, isOpen, onClose, onSelectCourse, onI
           department: c.streamName
         }));
     }
-    return getRelatedCourses(course.id) || [];
+    const related = getRelatedCourses(course.id) || [];
+    return related
+      .filter(c => c.level !== 'Integrated' && c.level !== 'Professional')
+      .slice(0, 4);
   }, [course]);
 
   const getLevelBadgeColor = (level) => {
@@ -53,10 +57,6 @@ export const CourseDetailModal = ({ course, isOpen, onClose, onSelectCourse, onI
         return 'bg-emerald-500/15 text-emerald-700 dark:text-emerald-400 border-emerald-500/30';
       case 'PG':
         return 'bg-purple-500/15 text-purple-700 dark:text-purple-400 border-purple-500/30';
-      case 'Integrated':
-        return 'bg-blue-500/15 text-blue-700 dark:text-blue-400 border-blue-500/30';
-      case 'Professional':
-        return 'bg-amber-500/15 text-amber-700 dark:text-amber-400 border-amber-500/30';
       default:
         return 'bg-gold-500/15 text-gold-700 dark:text-gold-400 border-gold-500/30';
     }

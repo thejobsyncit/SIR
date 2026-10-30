@@ -189,7 +189,7 @@ export const PgDepartmentStreamsExplorer = ({ onInquire, onSelectModalCourse, on
             <div className="text-center space-y-3 max-w-3xl mx-auto">
               <div className="inline-flex items-center gap-2 bg-purple-500/10 text-purple-700 dark:text-purple-300 text-xs font-black px-4 py-1.5 rounded-full uppercase tracking-wider border border-purple-500/20">
                 <Sparkles className="w-3.5 h-3.5 text-purple-500" />
-                <span>15 PG Department Streams • {totalPgCourses} Master's & Professional Degrees</span>
+                <span>15 PG Department Streams • {totalPgCourses} Master's Degrees</span>
               </div>
               <h2 className="font-serif text-3xl sm:text-4xl font-extrabold text-navy-900 dark:text-white leading-tight">
                 Explore Department Streams
@@ -738,3 +738,4 @@ export const PgDepartmentStreamsExplorer = ({ onInquire, onSelectModalCourse, on
     </div>
   );
 };
+

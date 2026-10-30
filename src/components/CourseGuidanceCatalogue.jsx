@@ -39,32 +39,41 @@ const categoryIcons = {
 
 export const CourseGuidanceCatalogue = ({ onInquire }) => {
   const [searchQuery, setSearchQuery] = useState('');
-  const [selectedLevel, setSelectedLevel] = useState('all'); // 'all', 'UG', 'PG', 'Professional', 'Integrated'
+  const [selectedLevel, setSelectedLevel] = useState('all'); // 'all', 'UG', 'PG'
   const [selectedCategory, setSelectedCategory] = useState('all'); // categoryId
   const [selectedDuration, setSelectedDuration] = useState('all'); // 'all', '1', '2', '3', '4', '5'
   const [selectedStream, setSelectedStream] = useState('all'); // 'all', 'pcm', 'pcb', 'commerce', 'any'
   const [sortBy, setSortBy] = useState('recommended'); // 'recommended', 'name-asc', 'duration-asc', 'duration-desc'
   const [activeModalCourse, setActiveModalCourse] = useState(null);
 
-  const categoryCounts = useMemo(() => getCategoryCounts(), []);
+  // Compute department counts for active courses
+  const categoryCounts = useMemo(() => {
+    const valid = COURSES_CATALOGUE.filter(c => c.level !== 'Integrated' && c.level !== 'Professional');
+    const counts = { all: valid.length };
+    ACADEMIC_CATEGORIES.forEach(cat => {
+      counts[cat.id] = valid.filter(c => c.categoryId === cat.id).length;
+    });
+    return counts;
+  }, []);
 
   // Level counts
   const levelCounts = useMemo(() => {
     return {
-      all: COURSES_CATALOGUE.length,
+      all: COURSES_CATALOGUE.filter(c => c.level !== 'Integrated' && c.level !== 'Professional').length,
       UG: UG_COURSES_CATALOGUE.length,
-      PG: PG_COURSES_CATALOGUE.length,
-      other: COURSES_CATALOGUE.filter(c => c.level === 'Integrated' || c.level === 'Professional').length
+      PG: PG_COURSES_CATALOGUE.length
     };
   }, []);
 
   // Filtered & Sorted Courses
   const filteredCourses = useMemo(() => {
     let result = COURSES_CATALOGUE.filter((course) => {
+      // Exclude non-degree level courses from Career Guidance catalogue
+      if (course.level === 'Integrated' || course.level === 'Professional') return false;
+
       // Level filter
       if (selectedLevel === 'UG' && course.level !== 'UG') return false;
       if (selectedLevel === 'PG' && course.level !== 'PG') return false;
-      if (selectedLevel === 'other' && course.level !== 'Integrated' && course.level !== 'Professional') return false;
 
       // Category filter
       if (selectedCategory !== 'all' && course.categoryId !== selectedCategory) return false;
@@ -134,10 +143,6 @@ export const CourseGuidanceCatalogue = ({ onInquire }) => {
         return 'bg-emerald-500/15 text-emerald-700 dark:text-emerald-400 border-emerald-500/30';
       case 'PG':
         return 'bg-purple-500/15 text-purple-700 dark:text-purple-400 border-purple-500/30';
-      case 'Integrated':
-        return 'bg-blue-500/15 text-blue-700 dark:text-blue-400 border-blue-500/30';
-      case 'Professional':
-        return 'bg-amber-500/15 text-amber-700 dark:text-amber-400 border-amber-500/30';
       default:
         return 'bg-gold-500/15 text-gold-700 dark:text-gold-400 border-gold-500/30';
     }
@@ -156,7 +161,7 @@ export const CourseGuidanceCatalogue = ({ onInquire }) => {
             UG & PG Course Guidance Catalogue
           </h2>
           <p className="text-xs sm:text-sm text-slate-700 dark:text-slate-300 leading-relaxed font-medium">
-            Explore verified undergraduate, postgraduate, and professional degree pathways across 16 academic disciplines. Compare eligibility prerequisites, national entrance exams, curriculum specializations, and statutory licensing standards.
+            Explore verified undergraduate and postgraduate degree pathways across academic disciplines. Compare eligibility prerequisites, national entrance exams, curriculum specializations, and statutory licensing standards.
           </p>
         </div>
       </ScrollReveal>
@@ -171,8 +176,7 @@ export const CourseGuidanceCatalogue = ({ onInquire }) => {
             {[
               { id: 'all', label: 'All Degrees', count: levelCounts.all },
               { id: 'UG', label: 'Undergraduate (UG)', count: levelCounts.UG },
-              { id: 'PG', label: 'Postgraduate (PG)', count: levelCounts.PG },
-              { id: 'other', label: 'Integrated & Professional', count: levelCounts.other }
+              { id: 'PG', label: 'Postgraduate (PG)', count: levelCounts.PG }
             ].map((lvl) => {
               const isSelected = selectedLevel === lvl.id;
               return (
@@ -203,7 +207,7 @@ export const CourseGuidanceCatalogue = ({ onInquire }) => {
               <>
                 <span>Showing:</span>
                 <strong className="text-navy-900 dark:text-white font-black">{filteredCourses.length}</strong>
-                <span>of {COURSES_CATALOGUE.length} Courses</span>
+                <span>of {levelCounts.all} Courses</span>
               </>
             )}
           </div>
