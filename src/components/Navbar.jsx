@@ -58,7 +58,7 @@ export const Navbar = () => {
   return (
     <header className="sticky top-0 z-50 transition-all duration-300">
       {/* Top Corporate Bar */}
-      <div className="bg-[#FFFFFF] dark:bg-navy-950 text-slate-600 dark:text-slate-300 text-xs py-2 px-4 sm:px-8 border-b border-slate-200 dark:border-navy-800 flex justify-between items-center">
+      <div className="bg-white dark:bg-navy-950 text-slate-600 dark:text-slate-300 text-xs py-2 px-4 sm:px-8 border-b border-slate-200 dark:border-navy-800 flex justify-between items-center">
         <div className="flex items-center space-x-6">
           <div className="flex items-center space-x-2">
             <Phone className="w-3.5 h-3.5 text-gold-500" />
@@ -111,30 +111,25 @@ export const Navbar = () => {
       </div>
 
       {/* Main Glass Header */}
-      <nav className="bg-[#FCFBF8] dark:bg-navy-900/95 backdrop-blur-md border-b border-slate-200/80 dark:border-navy-800 px-4 sm:px-6 xl:px-8 py-2.5 sm:py-3 transition shadow-xs">
-        <div className="max-w-[1440px] w-full mx-auto flex justify-between items-center gap-2 xl:gap-3 2xl:gap-4">
+      <nav className="glass-card bg-white/90 dark:bg-navy-900/90 shadow-glass backdrop-blur-md border-b border-white/20 dark:border-navy-800 px-4 sm:px-8 py-3 transition">
+        <div className="max-w-7xl mx-auto flex justify-between items-center">
 
-          {/* Logo & Brand Identity */}
+          {/* Logo */}
           <div
             onClick={() => navigateTo('home')}
-            className="cursor-pointer flex items-center space-x-2.5 sm:space-x-3 group shrink-0"
+            className="cursor-pointer flex items-center space-x-2 sm:space-x-3.5 group"
           >
-            <BrandLogoIcon className="w-10 h-10 sm:w-11 sm:h-11 group-hover:scale-105 transition duration-300 drop-shadow-sm" />
-            <div className="flex flex-col">
-              <div className="font-serif text-lg sm:text-xl xl:text-2xl font-black tracking-tight text-[#0B1B33] dark:text-white flex items-center gap-1.5 sm:gap-2">
-                <span>The Revival</span>
-                <span className="inline-block text-[#B88A00] dark:text-gold-400 font-sans text-[9px] sm:text-[10px] font-extrabold uppercase tracking-widest px-1.5 sm:px-2 py-0.5 bg-[#F8F1D9] dark:bg-gold-500/20 border border-[#E0B32D] dark:border-gold-500/40 rounded-md shadow-xs">
-                  INTERNATIONAL
-                </span>
+            <BrandLogoIcon className="w-10 h-10 sm:w-12 sm:h-12 group-hover:scale-105 transition duration-300 shadow-md" />
+            <div>
+              <div className="font-serif text-xl sm:text-2xl font-black tracking-tight text-navy-900 dark:text-white flex items-center gap-1.5 sm:gap-2">
+                The Revival <span className="inline-block text-gold-500 font-sans text-[8px] sm:text-[11px] font-bold uppercase tracking-widest px-1.5 sm:px-2 py-0.5 bg-slate-50 dark:bg-navy-900 text-gold-400 rounded-md shadow-sm">International</span>
               </div>
-              <p className="text-[9px] sm:text-[10px] uppercase tracking-widest text-slate-500 dark:text-slate-400 font-bold">
-                India • GCC • Worldwide
-              </p>
+              <p className="text-[9px] sm:text-[10px] uppercase tracking-widest text-slate-700 dark:text-slate-300 font-extrabold">India • GCC • Worldwide</p>
             </div>
           </div>
 
           {/* Desktop Nav Items */}
-          <div className="hidden xl:flex items-center space-x-0.5 2xl:space-x-1.5">
+          <div className="hidden xl:flex items-center space-x-1">
             {navItems.map((item) => (
               <div
                 key={item.id}
@@ -153,14 +148,14 @@ export const Navbar = () => {
                       navigateTo(item.id);
                     }
                   }}
-                  className={`px-2 xl:px-2.5 2xl:px-3 py-1.5 rounded-lg text-[15px] font-medium tracking-tight whitespace-nowrap transition-colors flex items-center gap-1 cursor-pointer select-none ${activeTab === item.id
-                      ? 'text-gold-600 dark:text-gold-400 font-semibold bg-gold-500/10 dark:bg-gold-500/20'
-                      : 'text-[#0B1B33] dark:text-slate-200 hover:text-gold-600 dark:hover:text-gold-400 hover:bg-slate-100/70 dark:hover:bg-navy-800/60'
+                  className={`px-3 py-2 rounded-lg text-xs font-semibold tracking-wide transition flex items-center space-x-1 cursor-pointer select-none ${activeTab === item.id
+                      ? 'text-gold-500 bg-gold-500/10 dark:bg-gold-500/20 font-bold'
+                      : 'text-navy-900 dark:text-slate-200 hover:text-gold-500 hover:bg-slate-100 dark:hover:bg-navy-800'
                     }`}
                 >
                   <span>{item.label}</span>
                   {item.hasMega && (
-                    <ChevronDown className={`w-3.5 h-3.5 text-slate-500 dark:text-slate-400 transition-transform duration-200 ${megaMenuType === item.hasMega ? 'rotate-180 text-gold-500' : ''}`} />
+                    <ChevronDown className={`w-3 h-3 text-slate-500 dark:text-slate-400 transition-transform duration-300 ${megaMenuType === item.hasMega ? 'rotate-180 text-gold-500' : ''}`} />
                   )}
                 </a>
 
@@ -336,37 +331,37 @@ export const Navbar = () => {
             ))}
           </div>
 
-          {/* Action CTAs: Logged-in Profile (Reference 2) / Register & Sign In */}
-          <div className="hidden sm:flex items-center space-x-3 shrink-0">
+          {/* Action CTAs: Matching Image 1 Layout with Revival Theme Colors (Gold Shimmer & Gold Outline) */}
+          <div className="hidden sm:flex items-center space-x-3">
             {user ? (
-              <div className="flex items-center gap-2.5 sm:gap-3 bg-white dark:bg-navy-900 border border-[#E0B32D] dark:border-gold-500/50 p-2 sm:px-3.5 sm:py-2 rounded-full shadow-[0_4px_14px_rgba(15,23,42,0.10)] transition-all">
-                {/* User Avatar: Circular 38-40px, Mustard gold #D9AF2B, Initial dark navy #0B1B33 */}
-                <div className="w-[38px] h-[38px] rounded-full bg-[#D9AF2B] text-[#0B1B33] font-bold text-sm sm:text-base flex items-center justify-center shrink-0 shadow-xs">
+              <div className="flex items-center space-x-2.5 bg-white dark:bg-navy-950/90 border border-[#E0B32D] dark:border-gold-500/40 px-3 py-1.5 rounded-full text-xs shadow-[0_4px_14px_rgba(15,23,42,0.10)] transition-all">
+                {/* User Avatar */}
+                <div className="w-7 h-7 sm:w-8 sm:h-8 rounded-full bg-[#D9AF2B] text-[#0B1B33] font-bold flex items-center justify-center text-xs shadow-sm shrink-0">
                   {user.name ? user.name[0].toUpperCase() : 'U'}
                 </div>
 
-                {/* Username and Role: Compact vertical stack */}
-                <div className="flex flex-col text-left leading-tight pr-0.5">
-                  <p className="font-medium text-[#0B1B33] dark:text-white text-[13px] sm:text-[14px] truncate max-w-[110px] xl:max-w-[130px]">
+                {/* Username and Role */}
+                <div className="text-left leading-tight pr-1">
+                  <p className="font-semibold text-[#0B1B33] dark:text-white text-xs truncate max-w-[120px]">
                     {user.name}
                   </p>
-                  <span className="text-[10px] sm:text-[11px] text-[#C99A00] dark:text-gold-400 font-bold uppercase tracking-wider block">
+                  <span className="text-[9px] sm:text-[10px] text-[#C99A00] dark:text-gold-400 font-bold uppercase tracking-wider block">
                     {user.role}
                   </span>
                 </div>
 
-                {/* Portal Button: Pale gold #F8F1D9, Border #E0B32D, Text #B88A00 */}
+                {/* Portal Button */}
                 <button
-                  onClick={() => navigateTo(user?.role === 'employer' ? 'employers' : 'candidates')}
-                  className="px-3.5 py-1.5 bg-[#F8F1D9] hover:bg-[#F0E3BD] dark:bg-gold-500/20 dark:hover:bg-gold-500/30 text-[#B88A00] dark:text-gold-300 border border-[#E0B32D] dark:border-gold-500/50 rounded-full text-[13px] font-semibold transition active:scale-95 cursor-pointer whitespace-nowrap shadow-xs"
+                  onClick={() => navigateTo('candidates')}
+                  className="px-3 py-1.5 bg-[#F8F1D9] hover:bg-[#F1E5C4] dark:bg-gold-500/20 dark:hover:bg-gold-500/30 text-[#B88A00] dark:text-gold-400 border border-[#E0B32D] dark:border-gold-500/40 rounded-full text-[11px] sm:text-xs font-semibold transition active:scale-95 cursor-pointer"
                 >
                   Portal
                 </button>
 
-                {/* Logout Button: Pale rose #F8E7EB, Border #F0C9D2, Text #B83250 */}
+                {/* Logout Button */}
                 <button
                   onClick={logout}
-                  className="px-3.5 py-1.5 bg-[#F8E7EB] hover:bg-[#F2D6DC] dark:bg-rose-500/20 dark:hover:bg-rose-500/30 text-[#B83250] dark:text-rose-300 border border-[#F0C9D2] dark:border-rose-500/50 rounded-full text-[13px] font-semibold transition active:scale-95 cursor-pointer whitespace-nowrap shadow-xs"
+                  className="px-3 py-1.5 bg-[#F8E7EB] hover:bg-[#F2D5DC] dark:bg-rose-500/20 dark:hover:bg-rose-500/30 text-[#9F3650] dark:text-rose-300 border border-[#F0CBD4] dark:border-rose-500/40 rounded-full text-[11px] sm:text-xs font-semibold transition active:scale-95 cursor-pointer"
                   title="Sign Out"
                 >
                   Logout
@@ -377,7 +372,7 @@ export const Navbar = () => {
                 {/* Register button: Outline style matching Image 1 layout with website Revival Gold theme */}
                 <button
                   onClick={() => openAuthModal('register')}
-                  className="px-4 py-2 rounded-full text-xs font-bold text-[#0B1B33] dark:text-gold-400 bg-white dark:bg-navy-900 border-2 border-gold-500 hover:bg-gold-500/10 transition flex items-center space-x-1.5 shadow-sm cursor-pointer"
+                  className="px-4 py-2 rounded-full text-xs font-bold text-navy-900 dark:text-gold-400 bg-white dark:bg-navy-900 border-2 border-gold-500 hover:bg-gold-500/10 transition flex items-center space-x-1.5 shadow-sm"
                 >
                   <User className="w-3.5 h-3.5 text-gold-500" />
                   <span>Register</span>
@@ -386,11 +381,13 @@ export const Navbar = () => {
                 {/* Sign In button: Solid style matching Image 1 layout with website Revival Gold theme */}
                 <button
                   onClick={() => openAuthModal('login')}
-                  className="px-5 py-2 rounded-full text-xs font-bold text-slate-900 dark:text-white bg-gold-500 hover:bg-gold-600 shadow-gold-glow transition flex items-center space-x-1.5 cursor-pointer"
+                  className="px-5 py-2 rounded-full text-xs font-bold text-slate-900 dark:text-white bg-gold-500 hover:bg-gold-600 shadow-gold-glow transition flex items-center space-x-1.5"
                 >
                   <LogIn className="w-3.5 h-3.5 text-slate-900 dark:text-white" />
                   <span>Sign In</span>
                 </button>
+
+
               </>
             )}
           </div>
@@ -500,30 +497,30 @@ export const Navbar = () => {
                 </>
               ) : (
                 <div className="w-full flex flex-col gap-2.5">
-                  <div className="flex items-center justify-between p-2.5 sm:p-3 bg-white dark:bg-navy-900 border border-[#E0B32D] dark:border-gold-500/50 rounded-2xl shadow-[0_4px_14px_rgba(15,23,42,0.10)]">
+                  <div className="flex items-center justify-between p-3 bg-white dark:bg-navy-900 border border-[#E0B32D] dark:border-gold-500/40 rounded-2xl shadow-[0_4px_14px_rgba(15,23,42,0.10)]">
                     <div className="flex items-center gap-2.5">
-                      <div className="w-[38px] h-[38px] rounded-full bg-[#D9AF2B] text-[#0B1B33] font-bold text-sm flex items-center justify-center shadow-xs shrink-0">
+                      <div className="w-8 h-8 rounded-full bg-[#D9AF2B] text-[#0B1B33] font-bold flex items-center justify-center text-xs shadow-sm shrink-0">
                         {user.name ? user.name[0].toUpperCase() : 'U'}
                       </div>
                       <div className="text-left leading-tight">
-                        <p className="font-medium text-[#0B1B33] dark:text-white text-[13px] sm:text-[14px] truncate max-w-[150px]">
+                        <p className="font-semibold text-[#0B1B33] dark:text-white text-xs truncate max-w-[150px]">
                           {user.name}
                         </p>
-                        <span className="text-[10px] sm:text-[11px] text-[#C99A00] dark:text-gold-400 font-bold uppercase tracking-wider block">
+                        <span className="text-[10px] text-[#C99A00] dark:text-gold-400 font-bold uppercase tracking-wider block">
                           {user.role}
                         </span>
                       </div>
                     </div>
                     <button
-                      onClick={() => { navigateTo(user?.role === 'employer' ? 'employers' : 'candidates'); setMobileMenuOpen(false); }}
-                      className="px-3.5 py-1.5 bg-[#F8F1D9] hover:bg-[#F0E3BD] dark:bg-gold-500/20 dark:hover:bg-gold-500/30 text-[#B88A00] dark:text-gold-300 border border-[#E0B32D] dark:border-gold-500/50 rounded-full text-[13px] font-semibold transition cursor-pointer whitespace-nowrap"
+                      onClick={() => { navigateTo('candidates'); setMobileMenuOpen(false); }}
+                      className="px-3 py-1.5 bg-[#F8F1D9] hover:bg-[#F1E5C4] dark:bg-gold-500/20 dark:hover:bg-gold-500/30 text-[#B88A00] dark:text-gold-400 border border-[#E0B32D] dark:border-gold-500/40 rounded-full text-xs font-semibold transition cursor-pointer"
                     >
                       Portal
                     </button>
                   </div>
                   <button
                     onClick={() => { logout(); setMobileMenuOpen(false); }}
-                    className="w-full py-2.5 bg-[#F8E7EB] hover:bg-[#F2D6DC] dark:bg-rose-500/20 dark:hover:bg-rose-500/30 text-[#B83250] dark:text-rose-300 border border-[#F0C9D2] dark:border-rose-500/50 font-semibold rounded-xl text-[13px] transition cursor-pointer"
+                    className="w-full py-2.5 bg-[#F8E7EB] hover:bg-[#F2D5DC] dark:bg-rose-500/20 dark:hover:bg-rose-500/30 text-[#9F3650] dark:text-rose-300 border border-[#F0CBD4] dark:border-rose-500/40 font-semibold rounded-xl text-xs transition cursor-pointer"
                   >
                     Logout
                   </button>
