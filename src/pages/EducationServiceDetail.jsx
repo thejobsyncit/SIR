@@ -127,13 +127,16 @@ export const EducationServiceDetail = ({ serviceId }) => {
   return (
     <div id={isCareerGuidance ? "career-guidance-page" : undefined} className="space-y-16 pb-20">
       <EducationSEO
-        title={`${service.title} | Academic & University Advisory Dubai`}
-        description={`${service.shortDescription} Comprehensive admissions roadmap, credential auditing, and certified mentorship in Dubai.`}
+        title={`${isCareerGuidance ? 'Career Guidance' : service.title} | Academic & University Advisory Dubai`}
+        description={isCareerGuidance 
+          ? 'Make informed decisions about your education and career with personalized academic guidance. Explore undergraduate (UG), postgraduate (PG), and professional courses across multiple departments.'
+          : `${service.shortDescription} Comprehensive admissions roadmap, credential auditing, and certified mentorship in Dubai.`
+        }
         canonicalPath={`education/${service.slug || service.id}`}
         breadcrumbs={[
           { name: 'Home', item: '/' },
           { name: 'Academic Advisory', item: '/education' },
-          { name: service.title, item: `/education/${service.slug || service.id}` }
+          { name: isCareerGuidance ? 'Career Guidance' : service.title, item: `/education/${service.slug || service.id}` }
         ]}
         structuredData={structuredData}
       />
@@ -157,7 +160,7 @@ export const EducationServiceDetail = ({ serviceId }) => {
             </button>
             <span>/</span>
             <span className="text-gold-600 dark:text-gold-400 font-bold truncate max-w-[200px] sm:max-w-none">
-              {service.title}
+              {isCareerGuidance ? 'Career Guidance' : service.title}
             </span>
           </nav>
 
@@ -181,27 +184,31 @@ export const EducationServiceDetail = ({ serviceId }) => {
             <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 lg:gap-12 items-center">
               {/* Left Column: Heading, Subtitle, Description, CTAs, and Key Stats */}
               <div className="lg:col-span-7 space-y-5">
-                {!isCareerGuidance && (
-                  <div className="flex flex-wrap items-center gap-2">
-                    <span className="bg-gold-500/15 text-gold-600 dark:text-gold-400 text-xs font-black px-3 py-1 rounded-full uppercase tracking-wider border border-gold-500/30">
-                      {service.badge}
-                    </span>
-                    <span className="bg-emerald-500/15 text-emerald-600 dark:text-emerald-400 text-xs font-extrabold px-3 py-1 rounded-full uppercase border border-emerald-500/30">
-                      Verified Service • {service.category}
-                    </span>
-                  </div>
-                )}
+                <div className="flex flex-wrap items-center gap-2">
+                  <span className="bg-gold-500/15 text-gold-600 dark:text-gold-400 text-xs font-black px-3 py-1 rounded-full uppercase tracking-wider border border-gold-500/30">
+                    {isCareerGuidance ? 'Academic & Degree Advisory' : service.badge}
+                  </span>
+                  <span className="bg-emerald-500/15 text-emerald-600 dark:text-emerald-400 text-xs font-extrabold px-3 py-1 rounded-full uppercase border border-emerald-500/30">
+                    Verified Service • {isCareerGuidance ? 'UG & PG Pathways' : service.category}
+                  </span>
+                </div>
 
                 <h1 className="font-serif text-3xl sm:text-4xl md:text-5xl font-black text-navy-900 dark:text-white leading-tight">
-                  {service.title}
+                  {isCareerGuidance ? 'Career Guidance' : service.title}
                 </h1>
 
                 <p className="text-base sm:text-lg text-gold-600 dark:text-gold-400 font-serif italic">
-                  {service.tagline}
+                  {isCareerGuidance 
+                    ? 'Explore Academic Pathways & Discover Your Future Career' 
+                    : service.tagline
+                  }
                 </p>
 
                 <p className="text-xs sm:text-sm text-slate-700 dark:text-slate-300 leading-relaxed font-medium">
-                  {service.heroDescription}
+                  {isCareerGuidance 
+                    ? 'Make informed decisions about your education and career with personalized academic guidance. Explore undergraduate (UG), postgraduate (PG), and professional courses across multiple departments, understand eligibility requirements, compare specializations, and discover career opportunities aligned with your interests and goals.'
+                    : service.heroDescription
+                  }
                 </p>
 
                 {/* CTAs */}
@@ -220,13 +227,14 @@ export const EducationServiceDetail = ({ serviceId }) => {
 
                   <button
                     onClick={() => {
-                      const el = document.getElementById('workflow-section');
+                      const targetId = isCareerGuidance ? 'course-guidance-catalogue' : 'workflow-section';
+                      const el = document.getElementById(targetId);
                       if (el) el.scrollIntoView({ behavior: 'smooth' });
                     }}
                     className="px-5 py-3.5 bg-slate-100 dark:bg-navy-800 text-slate-800 dark:text-slate-200 hover:text-navy-900 dark:hover:text-white font-bold text-xs sm:text-sm rounded-xl transition border border-slate-200 dark:border-navy-700 focus:outline-none focus:ring-2 focus:ring-gold-500 cursor-pointer flex items-center gap-2"
                   >
                     <Compass className="w-4 h-4 text-gold-500" />
-                    <span>Explore Methodology ↓</span>
+                    <span>{isCareerGuidance ? 'Explore Courses ↓' : 'Explore Methodology ↓'}</span>
                   </button>
                 </div>
 
@@ -248,7 +256,7 @@ export const EducationServiceDetail = ({ serviceId }) => {
                 <div className="relative rounded-2xl overflow-hidden shadow-2xl border border-slate-200 dark:border-gold-500/30 group">
                   <img
                     src={service.id === 'college-adm' ? '/images/international_admissions.jpg' : '/images/academy_students.jpg'}
-                    alt={service.title}
+                    alt={isCareerGuidance ? 'Career Guidance' : service.title}
                     className="w-full h-72 sm:h-80 md:h-96 object-cover object-center group-hover:scale-105 transition duration-700 ease-out"
                     loading="eager"
                   />
@@ -260,15 +268,15 @@ export const EducationServiceDetail = ({ serviceId }) => {
                       <div className="flex items-center justify-between text-xs pb-1.5 border-b border-slate-100 dark:border-navy-800">
                         <span className="font-bold text-navy-900 dark:text-white flex items-center gap-1.5">
                           <Compass className="w-3.5 h-3.5 text-gold-500" />
-                          {service.id === 'school-career' ? 'Scientific Career & Stream Mapping' : 'Verified Admissions Support'}
+                          {isCareerGuidance ? 'Comprehensive Academic & Career Advisory' : 'Verified Admissions Support'}
                         </span>
                         <span className="bg-emerald-500/15 text-emerald-600 dark:text-emerald-400 text-[10px] font-black px-2 py-0.5 rounded">
-                          {service.id === 'school-career' ? 'Grades 8–12 & UG/PG' : 'UG & PG Tracks'}
+                          {isCareerGuidance ? 'UG, PG & Professional' : 'UG & PG Tracks'}
                         </span>
                       </div>
                       <p className="text-[11px] text-slate-600 dark:text-slate-300 pt-1.5 font-medium leading-snug">
-                        {service.id === 'school-career'
-                          ? 'Objective aptitude diagnostics and stream alignment across Science, Commerce, Humanities & STEM.'
+                        {isCareerGuidance
+                          ? 'Personalized educational guidance across undergraduate, postgraduate, and professional degree pathways.'
                           : 'Direct application portal coordination, document verification, and offer tracking.'}
                       </p>
                     </div>
