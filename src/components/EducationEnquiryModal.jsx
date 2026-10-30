@@ -325,6 +325,28 @@ export const EducationEnquiryModal = ({ isOpen, onClose, preselectedServiceId = 
                 </div>
               )}
 
+              {/* Preselected Course / Focus Banner (e.g. from Career Guidance Catalogue) */}
+              {subProgram && !activeService.subProgrammes && (
+                <div className="p-3 rounded-xl bg-gold-500/10 border border-gold-500/30 flex items-center justify-between text-xs">
+                  <div>
+                    <span className="text-[10px] uppercase font-bold text-gold-600 dark:text-gold-400 block tracking-wider">
+                      Selected Academic Focus / Course
+                    </span>
+                    <span className="font-bold text-navy-900 dark:text-white">
+                      {subProgram}
+                    </span>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => setSubProgram('')}
+                    className="text-slate-400 hover:text-rose-500 text-xs font-semibold p-1 transition"
+                    title="Clear selected course"
+                  >
+                    <X className="w-3.5 h-3.5" />
+                  </button>
+                </div>
+              )}
+
               {/* Name & Email Row */}
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-3.5">
                 <div>

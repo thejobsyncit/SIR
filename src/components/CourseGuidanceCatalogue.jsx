@@ -11,6 +11,8 @@ import {
   getCategoryCounts 
 } from '../data/coursesCatalogueData';
 import { CourseDetailModal } from './CourseDetailModal';
+import { UgDepartmentStreamsExplorer } from './UgDepartmentStreamsExplorer';
+import { UG_COURSES_CATALOGUE } from '../data/ugDepartmentStreamsData';
 import ScrollReveal from './ScrollReveal';
 
 // Icon mapping for academic categories
@@ -48,7 +50,7 @@ export const CourseGuidanceCatalogue = ({ onInquire }) => {
   const levelCounts = useMemo(() => {
     return {
       all: COURSES_CATALOGUE.length,
-      UG: COURSES_CATALOGUE.filter(c => c.level === 'UG').length,
+      UG: UG_COURSES_CATALOGUE.length,
       PG: COURSES_CATALOGUE.filter(c => c.level === 'PG').length,
       other: COURSES_CATALOGUE.filter(c => c.level === 'Integrated' || c.level === 'Professional').length
     };
@@ -157,50 +159,67 @@ export const CourseGuidanceCatalogue = ({ onInquire }) => {
         </div>
       </ScrollReveal>
 
-      {/* Main Filter Control Station */}
+      {/* Level Switcher Station */}
       <ScrollReveal>
-        <div className="glass-card bg-white dark:bg-navy-900/90 border border-slate-200 dark:border-gold-500/30 rounded-3xl p-5 sm:p-6 md:p-8 shadow-luxury space-y-6">
-          {/* Level Switcher Buttons */}
-          <div className="flex flex-wrap items-center justify-between gap-3 pb-4 border-b border-slate-200 dark:border-navy-800">
-            <div className="flex flex-wrap items-center gap-2 w-full sm:w-auto">
-              <span className="text-xs font-bold text-slate-500 dark:text-slate-400 mr-1 hidden sm:inline">
-                Degree Level:
-              </span>
-              {[
-                { id: 'all', label: 'All Degrees', count: levelCounts.all },
-                { id: 'UG', label: 'Undergraduate (UG)', count: levelCounts.UG },
-                { id: 'PG', label: 'Postgraduate (PG)', count: levelCounts.PG },
-                { id: 'other', label: 'Integrated & Professional', count: levelCounts.other }
-              ].map((lvl) => {
-                const isSelected = selectedLevel === lvl.id;
-                return (
-                  <button
-                    key={lvl.id}
-                    onClick={() => setSelectedLevel(lvl.id)}
-                    className={`px-3.5 py-1.5 rounded-xl text-xs font-bold transition flex items-center gap-2 focus:outline-none focus:ring-2 focus:ring-gold-500 ${
-                      isSelected
-                        ? 'bg-gold-shimmer text-navy-950 shadow-gold-glow'
-                        : 'bg-slate-100 dark:bg-navy-800 text-slate-700 dark:text-slate-300 hover:bg-slate-200 dark:hover:bg-navy-700'
-                    }`}
-                  >
-                    <span>{lvl.label}</span>
-                    <span className={`text-[10px] px-1.5 py-0.2 rounded-full ${isSelected ? 'bg-navy-950/20 text-navy-950 font-black' : 'bg-slate-200 dark:bg-navy-900 text-slate-500 dark:text-slate-400'}`}>
-                      {lvl.count}
-                    </span>
-                  </button>
-                );
-              })}
-            </div>
-
-            <div className="text-xs font-medium text-slate-500 dark:text-slate-400 flex items-center gap-1.5">
-              <span>Showing:</span>
-              <strong className="text-navy-900 dark:text-white font-black">{filteredCourses.length}</strong>
-              <span>of {COURSES_CATALOGUE.length} Courses</span>
-            </div>
+        <div className="glass-card bg-white dark:bg-navy-900/90 border border-slate-200 dark:border-gold-500/30 rounded-3xl p-4 sm:p-5 shadow-luxury flex flex-wrap items-center justify-between gap-3">
+          <div className="flex flex-wrap items-center gap-2 w-full sm:w-auto">
+            <span className="text-xs font-bold text-slate-500 dark:text-slate-400 mr-1 hidden sm:inline">
+              Degree Level:
+            </span>
+            {[
+              { id: 'all', label: 'All Degrees', count: levelCounts.all },
+              { id: 'UG', label: 'Undergraduate (UG)', count: levelCounts.UG },
+              { id: 'PG', label: 'Postgraduate (PG)', count: levelCounts.PG },
+              { id: 'other', label: 'Integrated & Professional', count: levelCounts.other }
+            ].map((lvl) => {
+              const isSelected = selectedLevel === lvl.id;
+              return (
+                <button
+                  key={lvl.id}
+                  onClick={() => setSelectedLevel(lvl.id)}
+                  className={`px-3.5 py-1.5 rounded-xl text-xs font-bold transition flex items-center gap-2 focus:outline-none focus:ring-2 focus:ring-gold-500 ${
+                    isSelected
+                      ? 'bg-gold-shimmer text-navy-950 shadow-gold-glow'
+                      : 'bg-slate-100 dark:bg-navy-800 text-slate-700 dark:text-slate-300 hover:bg-slate-200 dark:hover:bg-navy-700'
+                  }`}
+                >
+                  <span>{lvl.label}</span>
+                  <span className={`text-[10px] px-1.5 py-0.2 rounded-full ${isSelected ? 'bg-navy-950/20 text-navy-950 font-black' : 'bg-slate-200 dark:bg-navy-900 text-slate-500 dark:text-slate-400'}`}>
+                    {lvl.count}
+                  </span>
+                </button>
+              );
+            })}
           </div>
 
-          {/* Search Bar + Secondary Dropdown Filters */}
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-12 gap-3.5">
+          <div className="text-xs font-medium text-slate-500 dark:text-slate-400 flex items-center gap-1.5">
+            {selectedLevel === 'UG' ? (
+              <span>13 Department Streams • 129 Accredited Courses</span>
+            ) : (
+              <>
+                <span>Showing:</span>
+                <strong className="text-navy-900 dark:text-white font-black">{filteredCourses.length}</strong>
+                <span>of {COURSES_CATALOGUE.length} Courses</span>
+              </>
+            )}
+          </div>
+        </div>
+      </ScrollReveal>
+
+      {/* Conditionally Render Dedicated UG Department Streams Explorer or Standard Filters & Catalogue */}
+      {selectedLevel === 'UG' ? (
+        <UgDepartmentStreamsExplorer
+          onInquire={onInquire}
+          onSelectModalCourse={(course) => setActiveModalCourse(course)}
+          onBackToAllLevels={() => setSelectedLevel('all')}
+        />
+      ) : (
+        <>
+          {/* Main Filter Control Station */}
+          <ScrollReveal>
+            <div className="glass-card bg-white dark:bg-navy-900/90 border border-slate-200 dark:border-gold-500/30 rounded-3xl p-5 sm:p-6 md:p-8 shadow-luxury space-y-6">
+              {/* Search Bar + Secondary Dropdown Filters */}
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-12 gap-3.5">
             {/* Live Search Input (5 cols on large) */}
             <div className="lg:col-span-5 relative">
               <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
@@ -498,6 +517,9 @@ export const CourseGuidanceCatalogue = ({ onInquire }) => {
         </ScrollReveal>
       )}
 
+
+              </>
+      )}
 
       {/* Detail Modal Component */}
       <CourseDetailModal

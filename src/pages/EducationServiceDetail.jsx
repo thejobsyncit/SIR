@@ -358,7 +358,8 @@ export const EducationServiceDetail = ({ serviceId }) => {
         {service.id === 'school-career' ? (
           <CourseGuidanceCatalogue 
             onInquire={(course) => {
-              setSelectedSubProgram(`${course.abbreviation} (${course.name})`);
+              const streamPart = course.streamName ? ` [${course.streamName}]` : '';
+              setSelectedSubProgram(`${course.abbreviation} - ${course.name}${streamPart}`);
               setModalOpen(true);
             }}
           />
