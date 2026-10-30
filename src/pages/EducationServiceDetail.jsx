@@ -519,48 +519,50 @@ export const EducationServiceDetail = ({ serviceId }) => {
         </ScrollReveal>
 
         {/* FAQs Accordion */}
-        <ScrollReveal>
-          <div className="space-y-6 max-w-4xl mx-auto">
-            <div className="text-center space-y-2">
-              <span className="bg-gold-500/10 text-gold-600 dark:text-gold-400 text-xs font-bold px-3 py-1 rounded-full uppercase tracking-wider">
-                Questions Answered
-              </span>
-              <h2 className="font-serif text-2xl sm:text-3xl font-extrabold text-navy-900 dark:text-white">
-                Frequently Asked Questions
-              </h2>
-            </div>
+        {!isCareerGuidance && (
+          <ScrollReveal>
+            <div className="space-y-6 max-w-4xl mx-auto">
+              <div className="text-center space-y-2">
+                <span className="bg-gold-500/10 text-gold-600 dark:text-gold-400 text-xs font-bold px-3 py-1 rounded-full uppercase tracking-wider">
+                  Questions Answered
+                </span>
+                <h2 className="font-serif text-2xl sm:text-3xl font-extrabold text-navy-900 dark:text-white">
+                  Frequently Asked Questions
+                </h2>
+              </div>
 
-            <div className="space-y-3">
-              {service.faqs.map((faq, idx) => (
-                <div 
-                  key={idx}
-                  className="glass-card bg-white dark:bg-navy-900 border border-slate-200 dark:border-navy-800 rounded-2xl overflow-hidden transition"
-                >
-                  <button
-                    onClick={() => toggleFaq(idx)}
-                    aria-expanded={openFaqIndex === idx}
-                    className="w-full text-left p-4 sm:p-5 flex justify-between items-center text-xs sm:text-sm font-bold text-navy-900 dark:text-white hover:text-gold-500 transition focus:outline-none"
+              <div className="space-y-3">
+                {service.faqs.map((faq, idx) => (
+                  <div 
+                    key={idx}
+                    className="glass-card bg-white dark:bg-navy-900 border border-slate-200 dark:border-navy-800 rounded-2xl overflow-hidden transition"
                   >
-                    <span className="flex items-center gap-2">
-                      <HelpCircle className="w-4 h-4 text-gold-500 shrink-0" />
-                      <span>{faq.q}</span>
-                    </span>
-                    {openFaqIndex === idx ? (
-                      <ChevronUp className="w-4 h-4 text-gold-500 shrink-0 ml-2" />
-                    ) : (
-                      <ChevronDown className="w-4 h-4 text-slate-400 shrink-0 ml-2" />
+                    <button
+                      onClick={() => toggleFaq(idx)}
+                      aria-expanded={openFaqIndex === idx}
+                      className="w-full text-left p-4 sm:p-5 flex justify-between items-center text-xs sm:text-sm font-bold text-navy-900 dark:text-white hover:text-gold-500 transition focus:outline-none"
+                    >
+                      <span className="flex items-center gap-2">
+                        <HelpCircle className="w-4 h-4 text-gold-500 shrink-0" />
+                        <span>{faq.q}</span>
+                      </span>
+                      {openFaqIndex === idx ? (
+                        <ChevronUp className="w-4 h-4 text-gold-500 shrink-0 ml-2" />
+                      ) : (
+                        <ChevronDown className="w-4 h-4 text-slate-400 shrink-0 ml-2" />
+                      )}
+                    </button>
+                    {openFaqIndex === idx && (
+                      <div className="px-5 pb-5 pt-1 text-xs text-slate-700 dark:text-slate-300 leading-relaxed font-medium border-t border-slate-100 dark:border-navy-800/60">
+                        {faq.a}
+                      </div>
                     )}
-                  </button>
-                  {openFaqIndex === idx && (
-                    <div className="px-5 pb-5 pt-1 text-xs text-slate-700 dark:text-slate-300 leading-relaxed font-medium border-t border-slate-100 dark:border-navy-800/60">
-                      {faq.a}
-                    </div>
-                  )}
-                </div>
-              ))}
+                  </div>
+                ))}
+              </div>
             </div>
-          </div>
-        </ScrollReveal>
+          </ScrollReveal>
+        )}
 
         {/* Related Services */}
         {relatedServices.length > 0 && (
