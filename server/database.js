@@ -310,7 +310,10 @@ const initDb = async (db) => {
     { name: 'customFields', type: 'TEXT' },
     { name: 'consultationDate', type: 'TEXT' },
     { name: 'consultationTime', type: 'TEXT' },
-    { name: 'consultationMode', type: 'TEXT' }
+    { name: 'consultationMode', type: 'TEXT' },
+    { name: 'courseName', type: 'TEXT' },
+    { name: 'streamName', type: 'TEXT' },
+    { name: 'department', type: 'TEXT' }
   ]);
 
   // Safe migration: Ensure clients/organizations table has enterprise fields

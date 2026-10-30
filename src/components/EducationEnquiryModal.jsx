@@ -1,12 +1,61 @@
 import React, { useState, useEffect } from 'react';
-import { X, Send, CheckCircle2, AlertCircle, Loader2 } from 'lucide-react';
+import { X, Send, CheckCircle2, AlertCircle, Loader2, GraduationCap, Sparkles } from 'lucide-react';
 import { EDUCATION_SERVICES_DETAILED } from '../data/educationServicesData';
 import { trackEnquiryStart, trackEnquiryValidationFailure, trackEnquiryConversion } from '../services/analytics';
 import { getAttributionData } from '../utils/attribution';
 
-export const EducationEnquiryModal = ({ isOpen, onClose, preselectedServiceId = null, preselectedSubProgram = null, preselectedLevel = null }) => {
+// Helper to parse course and stream metadata
+const parseCourseInfo = (courseObj, subProgStr, levelStr) => {
+  if (courseObj && typeof courseObj === 'object') {
+    return {
+      name: courseObj.name || '',
+      abbreviation: courseObj.abbreviation || '',
+      streamName: courseObj.streamName || courseObj.department || '',
+      department: courseObj.department || courseObj.streamName || '',
+      level: courseObj.level || (levelStr?.includes('Postgraduate') || levelStr === 'PG' ? 'PG' : 'UG'),
+      degrees: Array.isArray(courseObj.degrees) ? courseObj.degrees : (courseObj.degrees ? [courseObj.degrees] : []),
+      duration: courseObj.duration || courseObj.typicalDuration || ''
+    };
+  }
+  if (subProgStr && typeof subProgStr === 'string' && subProgStr.trim()) {
+    let sName = '';
+    let cName = subProgStr.trim();
+    if (cName.includes('[') && cName.includes(']')) {
+      sName = cName.split('[')[1].split(']')[0].trim();
+      cName = cName.split(' [')[0].trim();
+    }
+    let abbr = '';
+    if (cName.includes(' - ')) {
+      const parts = cName.split(' - ');
+      abbr = parts[0].trim();
+      cName = parts.slice(1).join(' - ').trim();
+    }
+    return {
+      name: cName,
+      abbreviation: abbr,
+      streamName: sName,
+      department: sName,
+      level: levelStr?.includes('Postgraduate') || levelStr === 'PG' ? 'PG' : 'UG',
+      degrees: [],
+      duration: ''
+    };
+  }
+  return null;
+};
+
+export const EducationEnquiryModal = ({ 
+  isOpen, 
+  onClose, 
+  preselectedServiceId = null, 
+  preselectedSubProgram = null, 
+  preselectedLevel = null,
+  selectedCourse = null
+}) => {
   const [serviceId, setServiceId] = useState(preselectedServiceId || 'intl-consult');
   const [subProgram, setSubProgram] = useState(preselectedSubProgram || '');
+  const [activeCourse, setActiveCourse] = useState(() => {
+    return parseCourseInfo(selectedCourse, preselectedSubProgram, preselectedLevel);
+  });
   const [phone, setPhone] = useState('');
   const [countryInterest, setCountryInterest] = useState('All');
   const [programLevel, setProgramLevel] = useState(() => {
@@ -41,6 +90,21 @@ export const EducationEnquiryModal = ({ isOpen, onClose, preselectedServiceId = 
     if (preselectedSubProgram) {
       setSubProgram(preselectedSubProgram);
     }
+
+    if (selectedCourse || preselectedSubProgram) {
+      const parsed = parseCourseInfo(selectedCourse, preselectedSubProgram, preselectedLevel);
+      setActiveCourse(parsed);
+      if (parsed) {
+        if (parsed.level === 'PG') {
+          setProgramLevel('Postgraduate (Master Degree / MBA)');
+        } else if (parsed.level === 'UG') {
+          setProgramLevel('Undergraduate (Bachelor Degree)');
+        }
+      }
+    } else {
+      setActiveCourse(null);
+    }
+
     if (preselectedLevel) {
       if (preselectedServiceId === 'school-career' || preselectedServiceId === 'career-guidance') {
         setProgramLevel(
@@ -52,9 +116,11 @@ export const EducationEnquiryModal = ({ isOpen, onClose, preselectedServiceId = 
         setProgramLevel(preselectedLevel);
       }
     } else if (preselectedServiceId === 'school-career' || preselectedServiceId === 'career-guidance') {
-      setProgramLevel('Undergraduate (Bachelor Degree)');
+      if (!selectedCourse && !preselectedSubProgram) {
+        setProgramLevel('Undergraduate (Bachelor Degree)');
+      }
     }
-  }, [preselectedServiceId, preselectedSubProgram, preselectedLevel]);
+  }, [preselectedServiceId, preselectedSubProgram, preselectedLevel, selectedCourse]);
 
   // Handle escape key
   useEffect(() => {
@@ -146,31 +212,51 @@ export const EducationEnquiryModal = ({ isOpen, onClose, preselectedServiceId = 
     const destDetail = countryInterest !== 'All' ? ` | Target Country: ${countryInterest}` : '';
     const institutionDetail = data.organization ? ` | School/Institute: ${data.organization.trim()}` : '';
 
+    const courseName = activeCourse?.name || (subProgram ? (subProgram.includes('[') ? subProgram.split(' [')[0].trim() : subProgram.trim()) : null);
+    const courseAbbr = activeCourse?.abbreviation || null;
+    const streamName = activeCourse?.streamName || activeCourse?.department || (subProgram && subProgram.includes('[') && subProgram.includes(']') ? subProgram.split('[')[1].split(']')[0].trim() : null);
+    const department = activeCourse?.department || activeCourse?.streamName || streamName;
+    const courseLevel = activeCourse?.level || (programLevel.includes('Postgraduate') ? 'PG' : 'UG');
+
     const payload = {
       name: data.name.trim(),
       email: data.email.trim(),
       phone: phone.trim(),
       serviceId: isCareerGuidance ? 'school-career' : activeService.id,
-      serviceTitle: isCareerGuidance ? 'Career Guidance' : `${activeService.title}${subDetail}`,
-      company: isCareerGuidance ? 'Career Guidance' : (activeService.id === 'school-career' ? 'Career Guidance' : (data.organization ? data.organization.trim() : `Academic Advisory (${activeService.category})`)),
+      serviceTitle: isCareerGuidance 
+        ? (courseName ? `Career Guidance | ${courseName}` : 'Career Guidance')
+        : `${activeService.title}${subDetail}`,
+      company: isCareerGuidance 
+        ? (data.organization ? data.organization.trim() : 'Career Guidance') 
+        : (activeService.id === 'school-career' ? 'Career Guidance' : (data.organization ? data.organization.trim() : `Academic Advisory (${activeService.category})`)),
       organizationName: data.organization ? data.organization.trim() : null,
       degreeLevel: programLevel,
       countryInterest: countryInterest !== 'All' ? countryInterest : 'Global / Flexible',
+      assistanceType: isCareerGuidance ? (courseName || 'General Academic Consultation') : 'Profile Assessment',
+      status: isCareerGuidance ? 'New Enquiry' : (consultationDate ? 'Consultation Scheduled' : 'New Enquiry'),
+      courseName: courseName,
+      streamName: streamName,
+      department: department,
       customFields: JSON.stringify({
         organization: data.organization ? data.organization.trim() : '',
         programLevel,
+        degreeLevel: courseLevel,
         countryInterest: countryInterest !== 'All' ? countryInterest : 'Global / Flexible',
+        selectedCourse: courseName,
+        courseName: courseName,
+        courseAbbr: courseAbbr,
+        streamName: streamName,
+        department: department,
+        degrees: activeCourse?.degrees || null,
+        duration: activeCourse?.duration || null,
         subProgram: subProgram || null,
-        streamName: (subProgram && subProgram.includes('[') && subProgram.includes(']')) ? subProgram.split('[')[1].split(']')[0].trim() : null,
-        courseName: subProgram ? subProgram.split(' [')[0].trim() : null,
         consent: Boolean(consent)
       }),
       consultationDate: isCareerGuidance ? null : consultationDate,
       consultationTime: isCareerGuidance ? null : consultationTime,
       consultationMode: isCareerGuidance ? null : consultationMode,
-      status: 'Consultation Scheduled',
       message: isCareerGuidance
-        ? `[Career Guidance Academic Consultation Request]\nTarget Academic Level: ${programLevel}\nTarget Study Destination: ${countryInterest !== 'All' ? countryInterest : 'Global / Flexible'}\nCurrent Institution: ${data.organization ? data.organization.trim() : 'Not Specified'}\nApplicant: ${data.name.trim()}`
+        ? `[Career Guidance Academic Consultation Request]\nSelected Course / Degree: ${courseName || 'General Academic Consultation'}\nAcademic Level: ${programLevel} (${courseLevel})\nDepartment / Stream: ${streamName || 'General'}\nTarget Study Destination: ${countryInterest !== 'All' ? countryInterest : 'Global / Flexible'}\nCurrent Institution: ${data.organization ? data.organization.trim() : 'Not Specified'}\nApplicant: ${data.name.trim()}\nPhone: ${phone.trim()}\nEmail: ${data.email.trim()}`
         : `[Academic Advisory Consultation Booking: ${activeService.title}${subDetail}${levelDetail}${destDetail}${institutionDetail}]\nAppointment Date: ${consultationDate} at ${consultationTime}\nConsultation Mode: ${consultationMode}\n\nStudent/Applicant Message:\n${data.message ? data.message.trim() : ''}`,
       utmSource: attribution.utmSource,
       utmMedium: attribution.utmMedium,
@@ -196,7 +282,9 @@ export const EducationEnquiryModal = ({ isOpen, onClose, preselectedServiceId = 
       setSubmittedLead({
         id: generatedRef,
         name: data.name.trim(),
-        serviceTitle: isCareerGuidance ? 'Career Guidance' : activeService.title,
+        serviceTitle: isCareerGuidance ? (courseName ? `Career Guidance | ${courseName}` : 'Career Guidance') : activeService.title,
+        courseName: courseName,
+        streamName: streamName,
         programLevel,
         countryInterest: countryInterest !== 'All' ? countryInterest : 'Global / Flexible',
         consultationDate: isCareerGuidance ? null : consultationDate,
@@ -273,6 +361,18 @@ export const EducationEnquiryModal = ({ isOpen, onClose, preselectedServiceId = 
                 <span>Applicant Name:</span>
                 <span className="font-bold text-[#0B1B33] dark:text-slate-200">{submittedLead.name}</span>
               </div>
+              {submittedLead.courseName && (
+                <div className="flex justify-between items-start text-slate-500 sm:col-span-2 pt-1 border-t border-slate-200 dark:border-navy-800">
+                  <span className="shrink-0 font-semibold">Selected Course / Degree:</span>
+                  <span className="font-bold text-gold-600 dark:text-gold-400 text-right ml-2">{submittedLead.courseName}</span>
+                </div>
+              )}
+              {submittedLead.streamName && (
+                <div className="flex justify-between items-start text-slate-500 sm:col-span-2">
+                  <span className="shrink-0 font-semibold">Department / Stream:</span>
+                  <span className="font-semibold text-slate-700 dark:text-slate-300 text-right ml-2">{submittedLead.streamName}</span>
+                </div>
+              )}
               {submittedLead.programLevel && (
                 <div className="flex justify-between items-center text-slate-500">
                   <span>Target Academic Level:</span>
@@ -303,7 +403,7 @@ export const EducationEnquiryModal = ({ isOpen, onClose, preselectedServiceId = 
               </div>
               <div className="flex justify-between items-center text-slate-500">
                 <span>Status in CRM:</span>
-                <span className="font-semibold text-amber-600 dark:text-gold-400">Consultation Scheduled</span>
+                <span className="font-semibold text-amber-600 dark:text-gold-400">{isCareerGuidance ? 'New Enquiry' : 'Consultation Scheduled'}</span>
               </div>
             </div>
 
@@ -349,6 +449,101 @@ export const EducationEnquiryModal = ({ isOpen, onClose, preselectedServiceId = 
             )}
 
             <form onSubmit={handleSubmit} className="text-left space-y-3.5 sm:space-y-4" noValidate>
+
+              {/* Highlighted Section: Selected Course / Degree (Career Guidance) */}
+              {isCareerGuidance && (
+                <div className="p-3.5 sm:p-4 rounded-2xl bg-[#F8FAFC] dark:bg-navy-950/80 border border-gold-500/30 shadow-sm space-y-2">
+                  <div className="flex items-center justify-between gap-3">
+                    <div className="flex items-center gap-2">
+                      <span className="p-1.5 rounded-lg bg-gold-500/15 text-gold-600 dark:text-gold-400">
+                        <GraduationCap className="w-4 h-4" />
+                      </span>
+                      <span className="text-[11px] font-extrabold uppercase tracking-wider text-gold-600 dark:text-gold-400">
+                        Selected Course / Degree
+                      </span>
+                    </div>
+                    {activeCourse && (
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setActiveCourse(null);
+                          setSubProgram('');
+                        }}
+                        className="text-[11px] font-bold text-slate-400 hover:text-rose-500 dark:hover:text-rose-400 transition flex items-center gap-1 cursor-pointer"
+                        title="Clear or change selected course"
+                      >
+                        <X className="w-3.5 h-3.5" />
+                        <span>Change / Clear</span>
+                      </button>
+                    )}
+                  </div>
+
+                  {activeCourse ? (
+                    <div className="space-y-2 pt-0.5">
+                      <div className="flex flex-wrap items-center gap-2">
+                        {activeCourse.abbreviation && (
+                          <span className="text-xs font-black font-sans px-2.5 py-0.5 rounded-lg bg-gold-500 text-navy-950 shadow-sm">
+                            {activeCourse.abbreviation}
+                          </span>
+                        )}
+                        <span className="font-serif text-sm sm:text-base font-bold text-[#0B1B33] dark:text-white leading-tight">
+                          {activeCourse.name}
+                        </span>
+                      </div>
+
+                      <div className="flex flex-wrap items-center gap-x-3 gap-y-1 text-xs text-slate-600 dark:text-slate-300 font-medium">
+                        <div className="flex items-center gap-1">
+                          <span className="text-slate-400 font-semibold">Level:</span>
+                          <span className="font-bold text-navy-900 dark:text-white">
+                            {activeCourse.level === 'PG' ? 'Postgraduate (PG)' : 'Undergraduate (UG)'}
+                          </span>
+                        </div>
+
+                        {(activeCourse.streamName || activeCourse.department) && (
+                          <>
+                            <span className="text-slate-300 dark:text-navy-700 hidden sm:inline">•</span>
+                            <div className="flex items-center gap-1">
+                              <span className="text-slate-400 font-semibold">Stream:</span>
+                              <span className="font-bold text-gold-600 dark:text-gold-400">
+                                {activeCourse.streamName || activeCourse.department}
+                              </span>
+                            </div>
+                          </>
+                        )}
+
+                        {activeCourse.duration && (
+                          <>
+                            <span className="text-slate-300 dark:text-navy-700 hidden sm:inline">•</span>
+                            <div className="flex items-center gap-1 text-[11px] text-slate-500 dark:text-slate-400">
+                              <span>Duration:</span>
+                              <span className="font-semibold">{activeCourse.duration}</span>
+                            </div>
+                          </>
+                        )}
+
+                        {Array.isArray(activeCourse.degrees) && activeCourse.degrees.length > 0 && (
+                          <>
+                            <span className="text-slate-300 dark:text-navy-700 hidden sm:inline">•</span>
+                            <div className="flex items-center gap-1 text-[11px] text-slate-500 dark:text-slate-400">
+                              <span>Degrees:</span>
+                              <span className="font-semibold">{activeCourse.degrees.join(' / ')}</span>
+                            </div>
+                          </>
+                        )}
+                      </div>
+                    </div>
+                  ) : (
+                    <div className="text-xs text-slate-600 dark:text-slate-300 space-y-1 pt-0.5">
+                      <p className="font-medium text-slate-700 dark:text-slate-200">
+                        General Academic Consultation — You can choose your target academic level below, or preselect a course from the catalogue.
+                      </p>
+                      <p className="text-[11px] text-slate-500 dark:text-slate-400">
+                        Our Dubai education advisors will evaluate your profile and recommend the ideal academic streams and degree programs.
+                      </p>
+                    </div>
+                  )}
+                </div>
+              )}
 
               {/* Service Selector (Only for non-career services) */}
               {!isCareerGuidance && (

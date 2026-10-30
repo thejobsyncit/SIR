@@ -129,7 +129,7 @@ export const CrmCareerGuidance = () => {
     if (fetchLeads) fetchLeads();
   }, []);
 
-  // Parse lead details and extract stream, course, and level
+  // Parse lead details and extract stream, course, level, and abbreviation
   const parseCareerDetails = (lead) => {
     if (!lead) return {};
     let custom = {};
@@ -139,8 +139,9 @@ export const CrmCareerGuidance = () => {
       } catch (_) {}
     }
 
-    let streamName = custom.streamName || custom.stream || '';
-    let courseName = custom.courseName || custom.course || '';
+    let streamName = lead.streamName || lead.department || custom.streamName || custom.department || custom.stream || '';
+    let courseName = lead.courseName || custom.courseName || custom.selectedCourse || custom.course || '';
+    let courseAbbr = custom.courseAbbr || '';
     const subProgram = custom.subProgram || '';
 
     // If stream or course not directly in customFields, parse subProgram
@@ -148,7 +149,19 @@ export const CrmCareerGuidance = () => {
       streamName = subProgram.split('[')[1].split(']')[0].trim();
     }
     if (!courseName && subProgram) {
-      courseName = subProgram.split(' [')[0].trim();
+      let rawCourse = subProgram.split(' [')[0].trim();
+      if (rawCourse.includes(' - ')) {
+        const parts = rawCourse.split(' - ');
+        if (!courseAbbr) courseAbbr = parts[0].trim();
+        courseName = parts.slice(1).join(' - ').trim();
+      } else {
+        courseName = rawCourse;
+      }
+    }
+
+    // Check assistanceType if still missing
+    if (!courseName && lead.assistanceType && lead.assistanceType !== 'Destination & Profile Assessment' && lead.assistanceType !== 'Stream Planning & Course Advisory' && lead.assistanceType !== 'General Academic Consultation') {
+      courseName = lead.assistanceType;
     }
 
     // Check serviceTitle if still missing
@@ -163,15 +176,31 @@ export const CrmCareerGuidance = () => {
           courseName = track.split(' [')[0].trim();
         }
       }
+    } else if (!courseName && lead.serviceTitle && lead.serviceTitle.includes('Career Guidance |')) {
+      courseName = lead.serviceTitle.split('Career Guidance |')[1].trim();
+    } else if (!courseName && lead.serviceTitle && lead.serviceTitle.includes('Career Guidance -')) {
+      courseName = lead.serviceTitle.split('Career Guidance -')[1].trim();
     }
 
-    // Program level
-    const programLevel = custom.programLevel || lead.degreeLevel || (streamName ? 'Degree Stream' : '');
+    // Program level resolution & badge
+    const programLevel = custom.programLevel || lead.degreeLevel || (custom.degreeLevel === 'PG' ? 'Postgraduate (Master Degree / MBA)' : 'Undergraduate (Bachelor Degree)');
+    let levelBadge = 'UG';
+    if (
+      custom.degreeLevel === 'PG' ||
+      (programLevel && (programLevel.toLowerCase().includes('post') || programLevel.toLowerCase().includes('master') || programLevel === 'PG')) ||
+      (courseName && (courseName.startsWith('M.') || courseName.startsWith('MBA') || courseName.startsWith('MCA') || courseName.startsWith('M.Sc') || courseName.startsWith('M.Tech') || courseName.startsWith('M.E.')))
+    ) {
+      levelBadge = 'PG';
+    } else {
+      levelBadge = 'UG';
+    }
 
     return {
-      streamName,
-      courseName,
+      streamName: streamName || 'General Academic Stream',
+      courseName: courseName || 'General Academic Consultation',
+      courseAbbr,
       programLevel,
+      levelBadge,
       ...custom
     };
   };
@@ -790,14 +819,15 @@ export const CrmCareerGuidance = () => {
           <table className="w-full text-left text-xs">
             <thead>
               <tr className="border-b border-slate-200 dark:border-navy-800 bg-slate-50/75 dark:bg-navy-950/50 text-[11px] font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400">
-                <th className="py-3.5 px-4">Ref Code & Date</th>
-                <th className="py-3.5 px-4 min-w-[150px]">Full Name</th>
-                <th className="py-3.5 px-4 min-w-[200px]">Email Address</th>
-                <th className="py-3.5 px-4 min-w-[160px]">Mobile Number</th>
-                <th className="py-3.5 px-4">School / College</th>
-                <th className="py-3.5 px-4">Target Level & Country</th>
-                <th className="py-3.5 px-4">Consultation Slot</th>
-                <th className="py-3.5 px-4">Assigned Counselor</th>
+                <th className="py-3.5 px-4">Reference Code & Date</th>
+                <th className="py-3.5 px-4 min-w-[150px]">Student Name</th>
+                <th className="py-3.5 px-4 min-w-[180px]">Email Address</th>
+                <th className="py-3.5 px-4 min-w-[150px]">Mobile Number</th>
+                <th className="py-3.5 px-4 min-w-[220px]">Selected Course / Degree</th>
+                <th className="py-3.5 px-4 text-center">Academic Level</th>
+                <th className="py-3.5 px-4 min-w-[180px]">Department / Stream</th>
+                <th className="py-3.5 px-4">Study Destination</th>
+                <th className="py-3.5 px-4">Assigned Counsellor</th>
                 <th className="py-3.5 px-4">Status</th>
                 <th className="py-3.5 px-4 text-right">Actions</th>
               </tr>
@@ -805,7 +835,7 @@ export const CrmCareerGuidance = () => {
             <tbody className="divide-y divide-slate-100 dark:divide-navy-800/60">
               {paginatedLeads.length === 0 ? (
                 <tr>
-                  <td colSpan={10} className="py-12 text-center space-y-3">
+                  <td colSpan={11} className="py-12 text-center space-y-3">
                     <Compass className="w-10 h-10 text-slate-300 dark:text-navy-700 mx-auto" />
                     <p className="font-semibold text-slate-600 dark:text-slate-400 text-sm">
                       No career guidance enquiries found matching current filters.
@@ -836,11 +866,16 @@ export const CrmCareerGuidance = () => {
                         </div>
                       </td>
 
-                      {/* Full Name */}
+                      {/* Student Name */}
                       <td className="py-3.5 px-4 align-top min-w-[150px]">
                         <div className="font-bold text-slate-900 dark:text-white text-xs whitespace-normal break-words">
                           {b.name || 'Anonymous Student'}
                         </div>
+                        {(b.organizationName || b.company) && (b.organizationName !== 'Individual' && b.company !== 'Career Guidance') && (
+                          <div className="text-[10px] text-slate-400 truncate max-w-[160px] mt-0.5" title={b.organizationName || b.company}>
+                            {b.organizationName || b.company}
+                          </div>
+                        )}
                       </td>
 
                       {/* Email Address */}
@@ -882,53 +917,51 @@ export const CrmCareerGuidance = () => {
                         )}
                       </td>
 
-                      {/* Current School / College / Employer */}
-                      <td className="py-3.5 px-4 align-top">
-                        <div className="text-xs font-semibold text-slate-800 dark:text-slate-200">
-                          {b.organizationName || b.company || 'Not Specified'}
+                      {/* Selected Course / Degree */}
+                      <td className="py-3.5 px-4 align-top min-w-[220px] max-w-[320px]">
+                        <div className="font-bold text-slate-900 dark:text-white text-xs whitespace-normal break-words leading-snug" title={details.courseName}>
+                          {details.courseName}
                         </div>
-                        <span className="text-[10px] text-slate-400">Current Institution</span>
+                        {details.courseAbbr && details.courseAbbr !== details.courseName && (
+                          <div className="text-[10px] font-mono font-bold text-amber-600 dark:text-amber-400 mt-0.5">
+                            {details.courseAbbr}
+                          </div>
+                        )}
                       </td>
 
-                      {/* Target Level & Country */}
-                      <td className="py-3.5 px-4 align-top min-w-[170px]">
-                        <div className="font-semibold text-slate-800 dark:text-slate-200">
-                          {b.degreeLevel || details.programLevel || 'Stream Planning'}
+                      {/* Academic Level */}
+                      <td className="py-3.5 px-4 align-top whitespace-nowrap text-center">
+                        <span className={`inline-flex items-center gap-1 text-[11px] font-black px-2.5 py-0.5 rounded-full border ${
+                          details.levelBadge === 'PG'
+                            ? 'bg-purple-500/10 text-purple-600 dark:text-purple-400 border-purple-500/20'
+                            : 'bg-cyan-500/10 text-cyan-600 dark:text-cyan-400 border-cyan-500/20'
+                        }`}>
+                          <GraduationCap className="w-3 h-3" />
+                          <span>{details.levelBadge}</span>
+                        </span>
+                        <div className="text-[10px] text-slate-400 mt-0.5">
+                          {details.levelBadge === 'PG' ? 'Postgraduate' : 'Undergraduate'}
                         </div>
-                        {details.courseName && (
-                          <div className="text-[11px] text-amber-600 dark:text-amber-400 font-bold truncate max-w-[210px] mt-0.5" title={details.courseName}>
-                            {details.courseName}
-                          </div>
-                        )}
-                        {details.streamName && (
-                          <div className="text-[10px] text-slate-500 dark:text-slate-400 truncate max-w-[210px]" title={details.streamName}>
-                            {details.streamName}
-                          </div>
-                        )}
-                        <div className="text-[11px] text-cyan-600 dark:text-cyan-400 flex items-center gap-1 mt-1 font-semibold">
-                          <Globe className="w-3 h-3 shrink-0" />
+                      </td>
+
+                      {/* Department / Stream */}
+                      <td className="py-3.5 px-4 align-top min-w-[180px] max-w-[240px]">
+                        <div className="text-xs font-semibold text-slate-700 dark:text-slate-300 whitespace-normal break-words leading-snug" title={details.streamName}>
+                          {details.streamName}
+                        </div>
+                      </td>
+
+                      {/* Study Destination */}
+                      <td className="py-3.5 px-4 align-top whitespace-nowrap">
+                        <div className="text-xs font-semibold text-cyan-600 dark:text-cyan-400 flex items-center gap-1.5">
+                          <Globe className="w-3.5 h-3.5 shrink-0" />
                           <span>{b.countryInterest || 'Global / Flexible'}</span>
                         </div>
-                      </td>
-
-                      {/* Consultation Slot & Mode */}
-                      <td className="py-3.5 px-4 align-top">
-                        {b.consultationDate ? (
-                          <div className="space-y-0.5">
-                            <div className="font-bold text-slate-800 dark:text-slate-200 flex items-center gap-1">
-                              <Calendar className="w-3 h-3 text-cyan-500 shrink-0" />
-                              <span>{b.consultationDate}</span>
-                            </div>
-                            <div className="text-[11px] text-slate-500 flex items-center gap-1 font-mono">
-                              <Clock className="w-3 h-3 shrink-0" />
-                              <span>{b.consultationTime || '11:00 AM IST'}</span>
-                            </div>
-                            <div className="text-[10px] text-slate-400 truncate max-w-[150px]" title={b.consultationMode}>
-                              {b.consultationMode || 'Virtual Call'}
-                            </div>
+                        {b.consultationDate && (
+                          <div className="text-[10px] text-slate-400 flex items-center gap-1 mt-1 font-mono">
+                            <Calendar className="w-2.5 h-2.5 text-slate-400" />
+                            <span>{b.consultationDate}</span>
                           </div>
-                        ) : (
-                          <span className="text-slate-400 italic text-[11px]">Pending slot pick</span>
                         )}
                       </td>
 
@@ -1103,16 +1136,20 @@ export const CrmCareerGuidance = () => {
                 {(() => {
                   const dossierDetails = parseCareerDetails(selectedEnquiry);
                   return (
-                    <div className="space-y-1">
-                      <div><strong>Current School/Org:</strong> {selectedEnquiry.organizationName || selectedEnquiry.company || 'Not Specified'}</div>
-                      <div><strong>Target Level:</strong> {selectedEnquiry.degreeLevel || dossierDetails.programLevel || 'High School / Stream Planning'}</div>
-                      {dossierDetails.streamName && (
-                        <div><strong>Selected Stream:</strong> <span className="text-amber-600 dark:text-amber-400 font-semibold">{dossierDetails.streamName}</span></div>
+                    <div className="space-y-1.5 text-xs">
+                      <div>
+                        <strong>Selected Course / Degree:</strong>{' '}
+                        <span className="text-amber-600 dark:text-amber-400 font-bold block sm:inline mt-0.5 sm:mt-0">
+                          {dossierDetails.courseName}
+                        </span>
+                      </div>
+                      {dossierDetails.courseAbbr && dossierDetails.courseAbbr !== dossierDetails.courseName && (
+                        <div><strong>Degree / Abbr:</strong> <span className="font-mono font-semibold">{dossierDetails.courseAbbr}</span></div>
                       )}
-                      {dossierDetails.courseName && (
-                        <div><strong>Selected Course / Degree:</strong> <span className="text-amber-600 dark:text-amber-400 font-semibold">{dossierDetails.courseName}</span></div>
-                      )}
-                      <div><strong>Target Country:</strong> {selectedEnquiry.countryInterest || 'Global / Flexible'}</div>
+                      <div><strong>Academic Level:</strong> <span className="font-semibold">{dossierDetails.programLevel} ({dossierDetails.levelBadge})</span></div>
+                      <div><strong>Department / Stream:</strong> <span className="font-semibold">{dossierDetails.streamName}</span></div>
+                      <div><strong>Current Institution:</strong> {selectedEnquiry.organizationName || selectedEnquiry.company || 'Not Specified'}</div>
+                      <div><strong>Target Destination:</strong> {selectedEnquiry.countryInterest || 'Global / Flexible'}</div>
                     </div>
                   );
                 })()}

@@ -1563,7 +1563,8 @@ app.post(['/api/leads', '/api/consulting/enquiries', '/api/career-guidance/enqui
       startDate, endDate, shiftRequirements, jobCategory, visaCategory,
       currentStage, cvPath, documentUrls, customFields,
       // Consultation scheduling & Booking fields
-      consultationDate, consultationTime, consultationMode, status: requestedStatus
+      consultationDate, consultationTime, consultationMode, status: requestedStatus,
+      courseName, streamName, department
     } = req.body;
 
     // 2. Strict Input Validation & Length Limits
@@ -1670,6 +1671,26 @@ app.post(['/api/leads', '/api/consulting/enquiries', '/api/career-guidance/enqui
 
     const defaultAdvisor = (typeof req.body.assignedEmployee === 'string' && req.body.assignedEmployee.trim()) ? req.body.assignedEmployee.trim() : 'Dhanalakshimi';
 
+    // Resolve courseName, streamName, department
+    let resolvedCourseName = (courseName && typeof courseName === 'string' && courseName.trim()) ? courseName.trim() : null;
+    let resolvedStreamName = (streamName && typeof streamName === 'string' && streamName.trim()) ? streamName.trim() : null;
+    let resolvedDepartment = (department && typeof department === 'string' && department.trim()) ? department.trim() : null;
+
+    if (customFields) {
+      try {
+        const parsedCustom = typeof customFields === 'string' ? JSON.parse(customFields) : customFields;
+        if (!resolvedCourseName && parsedCustom.courseName) resolvedCourseName = String(parsedCustom.courseName).trim();
+        if (!resolvedCourseName && parsedCustom.selectedCourse) resolvedCourseName = String(parsedCustom.selectedCourse).trim();
+        if (!resolvedStreamName && parsedCustom.streamName) resolvedStreamName = String(parsedCustom.streamName).trim();
+        if (!resolvedDepartment && parsedCustom.department) resolvedDepartment = String(parsedCustom.department).trim();
+        if (!resolvedDepartment && parsedCustom.streamName) resolvedDepartment = String(parsedCustom.streamName).trim();
+      } catch (_) {}
+    }
+
+    if (!resolvedCourseName && assistanceType && assistanceType !== 'Destination & Profile Assessment' && assistanceType !== 'Stream Planning & Course Advisory') {
+      resolvedCourseName = String(assistanceType).trim();
+    }
+
     // 5. Parameterized SQL insert into leads with all service fields
     await db.run(
       `INSERT INTO leads (
@@ -1682,8 +1703,9 @@ app.post(['/api/leads', '/api/consulting/enquiries', '/api/career-guidance/enqui
         seniority, industry, hiringTimeline, joiningDate, contractDuration,
         startDate, endDate, shiftRequirements, jobCategory, visaCategory,
         currentStage, cvPath, documentUrls, customFields,
-        consultationDate, consultationTime, consultationMode
-      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+        consultationDate, consultationTime, consultationMode,
+        courseName, streamName, department
+      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
       [
         leadId,
         name.trim(),
@@ -1733,7 +1755,10 @@ app.post(['/api/leads', '/api/consulting/enquiries', '/api/career-guidance/enqui
         customFields ? (typeof customFields === 'object' ? JSON.stringify(customFields) : String(customFields)) : null,
         consultationDate ? String(consultationDate).trim() : null,
         consultationTime ? String(consultationTime).trim() : null,
-        consultationMode ? String(consultationMode).trim() : null
+        consultationMode ? String(consultationMode).trim() : null,
+        resolvedCourseName,
+        resolvedStreamName,
+        resolvedDepartment
       ]
     );
 
@@ -1757,6 +1782,9 @@ app.post(['/api/leads', '/api/consulting/enquiries', '/api/career-guidance/enqui
       id: leadId,
       referenceNumber: refCode,
       name: name.trim(),
+      courseName: resolvedCourseName,
+      streamName: resolvedStreamName,
+      department: resolvedDepartment,
       email: email.trim(),
       company: safeCompany,
       phone: phone.trim(),
@@ -1894,6 +1922,9 @@ app.patch(['/api/leads/:id', '/api/consulting/enquiries/:id', '/api/student-acad
         degreeLevel = COALESCE(?, degreeLevel),
         documentUrls = COALESCE(?, documentUrls),
         customFields = COALESCE(?, customFields),
+        courseName = COALESCE(?, courseName),
+        streamName = COALESCE(?, streamName),
+        department = COALESCE(?, department),
         updatedAt = CURRENT_TIMESTAMP
        WHERE id = ?`,
       [

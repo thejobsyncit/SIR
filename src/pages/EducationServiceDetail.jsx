@@ -63,6 +63,7 @@ export const EducationServiceDetail = ({ serviceId }) => {
   const [modalServiceId, setModalServiceId] = useState(service.id);
   const [selectedSubProgram, setSelectedSubProgram] = useState(null);
   const [selectedLevel, setSelectedLevel] = useState(null);
+  const [selectedCourseObj, setSelectedCourseObj] = useState(null);
   const [openFaqIndex, setOpenFaqIndex] = useState(0);
 
   const IconComponent = iconMap[service.icon] || GraduationCap;
@@ -371,9 +372,10 @@ export const EducationServiceDetail = ({ serviceId }) => {
         {service.id === 'school-career' ? (
           <CourseGuidanceCatalogue 
             onInquire={(course) => {
-              const streamPart = course.streamName ? ` [${course.streamName}]` : '';
-              setSelectedSubProgram(`${course.abbreviation} - ${course.name}${streamPart}`);
-              setSelectedLevel(course.level === 'PG' ? 'Postgraduate' : 'Undergraduate');
+              const streamPart = course.streamName ? ` [${course.streamName}]` : (course.department ? ` [${course.department}]` : '');
+              setSelectedSubProgram(`${course.abbreviation ? course.abbreviation + ' - ' : ''}${course.name}${streamPart}`);
+              setSelectedLevel(course.level === 'PG' ? 'Postgraduate (Master Degree / MBA)' : 'Undergraduate (Bachelor Degree)');
+              setSelectedCourseObj(course);
               setModalOpen(true);
             }}
           />
@@ -697,10 +699,12 @@ export const EducationServiceDetail = ({ serviceId }) => {
           setModalOpen(false);
           setSelectedSubProgram(null);
           setSelectedLevel(null);
+          setSelectedCourseObj(null);
         }}
         preselectedServiceId={modalServiceId}
         preselectedSubProgram={selectedSubProgram}
         preselectedLevel={selectedLevel}
+        selectedCourse={selectedCourseObj}
       />
     </div>
   );
