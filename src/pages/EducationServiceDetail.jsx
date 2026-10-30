@@ -62,6 +62,7 @@ export const EducationServiceDetail = ({ serviceId }) => {
   const [modalOpen, setModalOpen] = useState(false);
   const [modalServiceId, setModalServiceId] = useState(service.id);
   const [selectedSubProgram, setSelectedSubProgram] = useState(null);
+  const [selectedLevel, setSelectedLevel] = useState(null);
   const [openFaqIndex, setOpenFaqIndex] = useState(0);
 
   const IconComponent = iconMap[service.icon] || GraduationCap;
@@ -360,6 +361,7 @@ export const EducationServiceDetail = ({ serviceId }) => {
             onInquire={(course) => {
               const streamPart = course.streamName ? ` [${course.streamName}]` : '';
               setSelectedSubProgram(`${course.abbreviation} - ${course.name}${streamPart}`);
+              setSelectedLevel(course.level === 'PG' ? 'Postgraduate' : 'Undergraduate');
               setModalOpen(true);
             }}
           />
@@ -677,9 +679,14 @@ export const EducationServiceDetail = ({ serviceId }) => {
       {/* Reusable Consultation Enquiry Modal */}
       <EducationEnquiryModal
         isOpen={modalOpen}
-        onClose={() => setModalOpen(false)}
+        onClose={() => {
+          setModalOpen(false);
+          setSelectedSubProgram(null);
+          setSelectedLevel(null);
+        }}
         preselectedServiceId={modalServiceId}
         preselectedSubProgram={selectedSubProgram}
+        preselectedLevel={selectedLevel}
       />
     </div>
   );

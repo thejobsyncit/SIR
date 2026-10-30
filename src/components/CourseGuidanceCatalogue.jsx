@@ -13,6 +13,8 @@ import {
 import { CourseDetailModal } from './CourseDetailModal';
 import { UgDepartmentStreamsExplorer } from './UgDepartmentStreamsExplorer';
 import { UG_COURSES_CATALOGUE } from '../data/ugDepartmentStreamsData';
+import { PgDepartmentStreamsExplorer } from './PgDepartmentStreamsExplorer';
+import { PG_COURSES_CATALOGUE } from '../data/pgDepartmentStreamsData';
 import ScrollReveal from './ScrollReveal';
 
 // Icon mapping for academic categories
@@ -51,7 +53,7 @@ export const CourseGuidanceCatalogue = ({ onInquire }) => {
     return {
       all: COURSES_CATALOGUE.length,
       UG: UG_COURSES_CATALOGUE.length,
-      PG: COURSES_CATALOGUE.filter(c => c.level === 'PG').length,
+      PG: PG_COURSES_CATALOGUE.length,
       other: COURSES_CATALOGUE.filter(c => c.level === 'Integrated' || c.level === 'Professional').length
     };
   }, []);
@@ -195,6 +197,8 @@ export const CourseGuidanceCatalogue = ({ onInquire }) => {
           <div className="text-xs font-medium text-slate-500 dark:text-slate-400 flex items-center gap-1.5">
             {selectedLevel === 'UG' ? (
               <span>13 Department Streams • 129 Accredited Courses</span>
+            ) : selectedLevel === 'PG' ? (
+              <span>15 Department Streams • 195 Master's Courses</span>
             ) : (
               <>
                 <span>Showing:</span>
@@ -206,9 +210,15 @@ export const CourseGuidanceCatalogue = ({ onInquire }) => {
         </div>
       </ScrollReveal>
 
-      {/* Conditionally Render Dedicated UG Department Streams Explorer or Standard Filters & Catalogue */}
+      {/* Conditionally Render Dedicated UG / PG Department Streams Explorer or Standard Filters & Catalogue */}
       {selectedLevel === 'UG' ? (
         <UgDepartmentStreamsExplorer
+          onInquire={onInquire}
+          onSelectModalCourse={(course) => setActiveModalCourse(course)}
+          onBackToAllLevels={() => setSelectedLevel('all')}
+        />
+      ) : selectedLevel === 'PG' ? (
+        <PgDepartmentStreamsExplorer
           onInquire={onInquire}
           onSelectModalCourse={(course) => setActiveModalCourse(course)}
           onBackToAllLevels={() => setSelectedLevel('all')}

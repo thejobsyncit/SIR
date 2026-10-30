@@ -4,12 +4,12 @@ import { EDUCATION_SERVICES_DETAILED } from '../data/educationServicesData';
 import { trackEnquiryStart, trackEnquiryValidationFailure, trackEnquiryConversion } from '../services/analytics';
 import { getAttributionData } from '../utils/attribution';
 
-export const EducationEnquiryModal = ({ isOpen, onClose, preselectedServiceId = null, preselectedSubProgram = null }) => {
+export const EducationEnquiryModal = ({ isOpen, onClose, preselectedServiceId = null, preselectedSubProgram = null, preselectedLevel = null }) => {
   const [serviceId, setServiceId] = useState(preselectedServiceId || 'intl-consult');
   const [subProgram, setSubProgram] = useState(preselectedSubProgram || '');
   const [phone, setPhone] = useState('');
   const [countryInterest, setCountryInterest] = useState('All');
-  const [programLevel, setProgramLevel] = useState('Undergraduate');
+  const [programLevel, setProgramLevel] = useState(preselectedLevel || 'Undergraduate');
   const [consultationDate, setConsultationDate] = useState(() => {
     return new Date(Date.now() + 86400000).toISOString().split('T')[0];
   });
@@ -28,7 +28,10 @@ export const EducationEnquiryModal = ({ isOpen, onClose, preselectedServiceId = 
     if (preselectedSubProgram) {
       setSubProgram(preselectedSubProgram);
     }
-  }, [preselectedServiceId, preselectedSubProgram]);
+    if (preselectedLevel) {
+      setProgramLevel(preselectedLevel);
+    }
+  }, [preselectedServiceId, preselectedSubProgram, preselectedLevel]);
 
   // Handle escape key
   useEffect(() => {
@@ -125,6 +128,8 @@ export const EducationEnquiryModal = ({ isOpen, onClose, preselectedServiceId = 
         programLevel,
         countryInterest,
         subProgram: subProgram || null,
+        streamName: (subProgram && subProgram.includes('[') && subProgram.includes(']')) ? subProgram.split('[')[1].split(']')[0].trim() : null,
+        courseName: subProgram ? subProgram.split(' [')[0].trim() : null,
         consent: Boolean(consent)
       }),
       consultationDate,

@@ -6,6 +6,7 @@ import {
 } from 'lucide-react';
 import { getRelatedCourses } from '../data/coursesCatalogueData';
 import { getCoursesByStream } from '../data/ugDepartmentStreamsData';
+import { getPgCoursesByStream } from '../data/pgDepartmentStreamsData';
 
 export const CourseDetailModal = ({ course, isOpen, onClose, onSelectCourse, onInquire }) => {
   const [activeTab, setActiveTab] = useState('overview');

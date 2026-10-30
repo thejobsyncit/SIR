@@ -129,6 +129,53 @@ export const CrmCareerGuidance = () => {
     if (fetchLeads) fetchLeads();
   }, []);
 
+  // Parse lead details and extract stream, course, and level
+  const parseCareerDetails = (lead) => {
+    if (!lead) return {};
+    let custom = {};
+    if (lead.customFields) {
+      try {
+        custom = typeof lead.customFields === 'string' ? JSON.parse(lead.customFields) : lead.customFields;
+      } catch (_) {}
+    }
+
+    let streamName = custom.streamName || custom.stream || '';
+    let courseName = custom.courseName || custom.course || '';
+    const subProgram = custom.subProgram || '';
+
+    // If stream or course not directly in customFields, parse subProgram
+    if (!streamName && subProgram && subProgram.includes('[') && subProgram.includes(']')) {
+      streamName = subProgram.split('[')[1].split(']')[0].trim();
+    }
+    if (!courseName && subProgram) {
+      courseName = subProgram.split(' [')[0].trim();
+    }
+
+    // Check serviceTitle if still missing
+    if ((!streamName || !courseName) && lead.serviceTitle && lead.serviceTitle.includes('Sub-Track:')) {
+      const parts = lead.serviceTitle.split('Sub-Track:');
+      if (parts[1]) {
+        const track = parts[1].trim();
+        if (!streamName && track.includes('[') && track.includes(']')) {
+          streamName = track.split('[')[1].split(']')[0].trim();
+        }
+        if (!courseName) {
+          courseName = track.split(' [')[0].trim();
+        }
+      }
+    }
+
+    // Program level
+    const programLevel = custom.programLevel || lead.degreeLevel || (streamName ? 'Degree Stream' : '');
+
+    return {
+      streamName,
+      courseName,
+      programLevel,
+      ...custom
+    };
+  };
+
   // Filter logic to isolate Career Guidance inquiries
   const isCareerLead = (l) => {
     if (!l) return false;
@@ -163,6 +210,8 @@ export const CrmCareerGuidance = () => {
 
   // Filtered Leads
   const filteredLeads = careerLeads.filter(b => {
+    const details = parseCareerDetails(b);
+
     // Search
     if (searchQuery.trim()) {
       const q = searchQuery.toLowerCase();
@@ -174,6 +223,9 @@ export const CrmCareerGuidance = () => {
         (b.organizationName && b.organizationName.toLowerCase().includes(q)) ||
         (b.company && b.company.toLowerCase().includes(q)) ||
         (b.degreeLevel && b.degreeLevel.toLowerCase().includes(q)) ||
+        (details.programLevel && details.programLevel.toLowerCase().includes(q)) ||
+        (details.streamName && details.streamName.toLowerCase().includes(q)) ||
+        (details.courseName && details.courseName.toLowerCase().includes(q)) ||
         (b.countryInterest && b.countryInterest.toLowerCase().includes(q)) ||
         (b.message && b.message.toLowerCase().includes(q));
       if (!match) return false;
@@ -196,7 +248,8 @@ export const CrmCareerGuidance = () => {
 
     // Academic Level Filter
     if (levelFilter !== 'all') {
-      if (!b.degreeLevel || !b.degreeLevel.toLowerCase().includes(levelFilter.toLowerCase())) return false;
+      const levelCombined = `${b.degreeLevel || ''} ${details.programLevel || ''}`.toLowerCase();
+      if (!levelCombined.includes(levelFilter.toLowerCase())) return false;
     }
 
     // Destination Filter
@@ -413,6 +466,8 @@ export const CrmCareerGuidance = () => {
       'Phone',
       'School / Organization',
       'Target Academic Level',
+      'Selected Stream',
+      'Selected Course',
       'Target Destination',
       'Consultation Date',
       'Time Slot',
@@ -420,21 +475,26 @@ export const CrmCareerGuidance = () => {
       'Assigned Counselor',
       'Status'
     ];
-    const rows = careerLeads.map(l => [
-      `"${l.referenceNumber || l.id || ''}"`,
-      `"${l.createdAt || ''}"`,
-      `"${(l.name || '').replace(/"/g, '""')}"`,
-      `"${l.email || ''}"`,
-      `"${l.phone || ''}"`,
-      `"${(l.organizationName || l.company || '').replace(/"/g, '""')}"`,
-      `"${(l.degreeLevel || '').replace(/"/g, '""')}"`,
-      `"${(l.countryInterest || '').replace(/"/g, '""')}"`,
-      `"${l.consultationDate || ''}"`,
-      `"${l.consultationTime || ''}"`,
-      `"${(l.consultationMode || '').replace(/"/g, '""')}"`,
-      `"${(l.assignedEmployee || 'Unassigned').replace(/"/g, '""')}"`,
-      `"${l.status || ''}"`
-    ]);
+    const rows = careerLeads.map(l => {
+      const details = parseCareerDetails(l);
+      return [
+        `"${l.referenceNumber || l.id || ''}"`,
+        `"${l.createdAt || ''}"`,
+        `"${(l.name || '').replace(/"/g, '""')}"`,
+        `"${l.email || ''}"`,
+        `"${l.phone || ''}"`,
+        `"${(l.organizationName || l.company || '').replace(/"/g, '""')}"`,
+        `"${(l.degreeLevel || details.programLevel || '').replace(/"/g, '""')}"`,
+        `"${(details.streamName || '').replace(/"/g, '""')}"`,
+        `"${(details.courseName || '').replace(/"/g, '""')}"`,
+        `"${(l.countryInterest || '').replace(/"/g, '""')}"`,
+        `"${l.consultationDate || ''}"`,
+        `"${l.consultationTime || ''}"`,
+        `"${(l.consultationMode || '').replace(/"/g, '""')}"`,
+        `"${(l.assignedEmployee || 'Unassigned').replace(/"/g, '""')}"`,
+        `"${l.status || ''}"`
+      ];
+    });
 
     const csvContent = 'data:text/csv;charset=utf-8,' + [headers.join(','), ...rows.map(e => e.join(','))].join('\n');
     const encodedUri = encodeURI(csvContent);
@@ -758,6 +818,7 @@ export const CrmCareerGuidance = () => {
                 </tr>
               ) : (
                 paginatedLeads.map((b) => {
+                  const details = parseCareerDetails(b);
                   const cleanPhone = (b.phone || '').replace(/[\s\-\(\)\+]/g, '');
                   const waLink = cleanPhone ? `https://wa.me/${cleanPhone}` : null;
 
@@ -831,11 +892,21 @@ export const CrmCareerGuidance = () => {
                       </td>
 
                       {/* Target Level & Country */}
-                      <td className="py-3.5 px-4 align-top">
-                        <div className="font-medium text-slate-800 dark:text-slate-200">
-                          {b.degreeLevel || 'Stream Planning'}
+                      <td className="py-3.5 px-4 align-top min-w-[170px]">
+                        <div className="font-semibold text-slate-800 dark:text-slate-200">
+                          {b.degreeLevel || details.programLevel || 'Stream Planning'}
                         </div>
-                        <div className="text-[11px] text-cyan-600 dark:text-cyan-400 flex items-center gap-1 mt-0.5 font-semibold">
+                        {details.courseName && (
+                          <div className="text-[11px] text-amber-600 dark:text-amber-400 font-bold truncate max-w-[210px] mt-0.5" title={details.courseName}>
+                            {details.courseName}
+                          </div>
+                        )}
+                        {details.streamName && (
+                          <div className="text-[10px] text-slate-500 dark:text-slate-400 truncate max-w-[210px]" title={details.streamName}>
+                            {details.streamName}
+                          </div>
+                        )}
+                        <div className="text-[11px] text-cyan-600 dark:text-cyan-400 flex items-center gap-1 mt-1 font-semibold">
                           <Globe className="w-3 h-3 shrink-0" />
                           <span>{b.countryInterest || 'Global / Flexible'}</span>
                         </div>
@@ -1030,11 +1101,22 @@ export const CrmCareerGuidance = () => {
                 <span className="font-bold uppercase tracking-wider text-[10px] text-cyan-600 dark:text-cyan-400 block">
                   Academic Focus
                 </span>
-                <div className="space-y-1">
-                  <div><strong>Current School/Org:</strong> {selectedEnquiry.organizationName || selectedEnquiry.company || 'Not Specified'}</div>
-                  <div><strong>Target Level:</strong> {selectedEnquiry.degreeLevel || 'High School / Stream Planning'}</div>
-                  <div><strong>Target Country:</strong> {selectedEnquiry.countryInterest || 'Global / Flexible'}</div>
-                </div>
+                {(() => {
+                  const dossierDetails = parseCareerDetails(selectedEnquiry);
+                  return (
+                    <div className="space-y-1">
+                      <div><strong>Current School/Org:</strong> {selectedEnquiry.organizationName || selectedEnquiry.company || 'Not Specified'}</div>
+                      <div><strong>Target Level:</strong> {selectedEnquiry.degreeLevel || dossierDetails.programLevel || 'High School / Stream Planning'}</div>
+                      {dossierDetails.streamName && (
+                        <div><strong>Selected Stream:</strong> <span className="text-amber-600 dark:text-amber-400 font-semibold">{dossierDetails.streamName}</span></div>
+                      )}
+                      {dossierDetails.courseName && (
+                        <div><strong>Selected Course / Degree:</strong> <span className="text-amber-600 dark:text-amber-400 font-semibold">{dossierDetails.courseName}</span></div>
+                      )}
+                      <div><strong>Target Country:</strong> {selectedEnquiry.countryInterest || 'Global / Flexible'}</div>
+                    </div>
+                  );
+                })()}
               </div>
 
               <div className="p-3.5 bg-slate-50 dark:bg-navy-950 rounded-2xl border border-slate-200 dark:border-navy-800 space-y-2">
