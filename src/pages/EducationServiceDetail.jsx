@@ -267,24 +267,40 @@ export const EducationServiceDetail = ({ serviceId }) => {
                   />
                   <div className="absolute inset-0 bg-gradient-to-t from-navy-950/85 via-navy-950/30 to-transparent" />
 
-                  {/* Floating Overlay Badge */}
-                  <div className="absolute bottom-4 left-4 right-4 space-y-2">
-                    <div className="bg-white/95 dark:bg-navy-900/95 backdrop-blur-md p-3.5 rounded-xl border border-gold-500/30 shadow-lg">
-                      <div className="flex items-center justify-between text-xs pb-1.5 border-b border-slate-100 dark:border-navy-800">
-                        <span className="font-bold text-navy-900 dark:text-white flex items-center gap-1.5">
-                          <Compass className="w-3.5 h-3.5 text-gold-500" />
-                          {isCareerGuidance ? 'Comprehensive Academic & Career Advisory' : 'Verified Admissions Support'}
-                        </span>
-                        <span className="bg-emerald-500/15 text-emerald-600 dark:text-emerald-400 text-[10px] font-black px-2 py-0.5 rounded">
-                          {isCareerGuidance ? 'UG, PG & Professional' : 'UG & PG Tracks'}
-                        </span>
+                  {/* Floating Overlay Badge / Banner Card */}
+                  <div className="absolute bottom-4 left-4 right-4">
+                    {isCareerGuidance ? (
+                      <div className="bg-white/95 dark:bg-navy-900/95 backdrop-blur-md p-4 sm:p-4.5 rounded-xl border border-gold-500/30 shadow-lg space-y-2">
+                        <div>
+                          <h3 className="font-serif text-lg sm:text-xl font-extrabold text-[#0B1B33] dark:text-white leading-tight">
+                            Explore Your Future
+                          </h3>
+                          <p className="text-xs sm:text-[13px] text-slate-700 dark:text-slate-300 font-medium leading-relaxed mt-1.5">
+                            Discover courses, compare degrees, and find an academic pathway aligned with your ambitions.
+                          </p>
+                        </div>
+                        <div className="pt-2 border-t border-slate-100 dark:border-navy-800">
+                          <span className="text-[10px] sm:text-[11px] font-black uppercase tracking-widest text-gold-600 dark:text-gold-400 block">
+                            EXPLORE • PLAN • ACHIEVE
+                          </span>
+                        </div>
                       </div>
-                      <p className="text-[11px] text-slate-600 dark:text-slate-300 pt-1.5 font-medium leading-snug">
-                        {isCareerGuidance
-                          ? 'Personalized educational guidance across undergraduate, postgraduate, and professional degree pathways.'
-                          : 'Direct application portal coordination, document verification, and offer tracking.'}
-                      </p>
-                    </div>
+                    ) : (
+                      <div className="bg-white/95 dark:bg-navy-900/95 backdrop-blur-md p-3.5 rounded-xl border border-gold-500/30 shadow-lg space-y-1.5">
+                        <div className="flex items-center justify-between text-xs pb-1.5 border-b border-slate-100 dark:border-navy-800">
+                          <span className="font-bold text-navy-900 dark:text-white flex items-center gap-1.5">
+                            <Compass className="w-3.5 h-3.5 text-gold-500" />
+                            Verified Admissions Support
+                          </span>
+                          <span className="bg-emerald-500/15 text-emerald-600 dark:text-emerald-400 text-[10px] font-black px-2 py-0.5 rounded">
+                            UG & PG Tracks
+                          </span>
+                        </div>
+                        <p className="text-[11px] text-slate-600 dark:text-slate-300 font-medium leading-snug">
+                          Direct application portal coordination, document verification, and offer tracking.
+                        </p>
+                      </div>
+                    )}
                   </div>
                 </div>
               </div>
