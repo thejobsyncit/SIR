@@ -213,17 +213,19 @@ export const EducationServiceDetail = ({ serviceId }) => {
 
                 {/* CTAs */}
                 <div className="pt-3 flex flex-wrap gap-3.5 items-center">
-                  <button
-                    onClick={() => {
-                      trackCtaClick('Book Free Consultation', 'service_detail_hero', service.id);
-                      setSelectedSubProgram(null);
-                      setModalOpen(true);
-                    }}
-                    className="px-6 py-3.5 bg-gold-shimmer text-navy-950 font-extrabold text-xs sm:text-sm rounded-xl shadow-gold-glow hover:opacity-95 transition flex items-center gap-2 focus:outline-none focus:ring-2 focus:ring-gold-500 cursor-pointer"
-                  >
-                    <Calendar className="w-4 h-4" />
-                    <span>Book Free Consultation</span>
-                  </button>
+                  {!isCareerGuidance && (
+                    <button
+                      onClick={() => {
+                        trackCtaClick('Book Free Consultation', 'service_detail_hero', service.id);
+                        setSelectedSubProgram(null);
+                        setModalOpen(true);
+                      }}
+                      className="px-6 py-3.5 bg-gold-shimmer text-navy-950 font-extrabold text-xs sm:text-sm rounded-xl shadow-gold-glow hover:opacity-95 transition flex items-center gap-2 focus:outline-none focus:ring-2 focus:ring-gold-500 cursor-pointer"
+                    >
+                      <Calendar className="w-4 h-4" />
+                      <span>Book Free Consultation</span>
+                    </button>
+                  )}
 
                   <button
                     onClick={() => {
