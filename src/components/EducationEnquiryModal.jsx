@@ -43,11 +43,11 @@ const parseCourseInfo = (courseObj, subProgStr, levelStr) => {
   return null;
 };
 
-export const EducationEnquiryModal = ({ 
-  isOpen, 
-  onClose, 
-  preselectedServiceId = null, 
-  preselectedSubProgram = null, 
+export const EducationEnquiryModal = ({
+  isOpen,
+  onClose,
+  preselectedServiceId = null,
+  preselectedSubProgram = null,
   preselectedLevel = null,
   selectedCourse = null
 }) => {
@@ -223,11 +223,11 @@ export const EducationEnquiryModal = ({
       email: data.email.trim(),
       phone: phone.trim(),
       serviceId: isCareerGuidance ? 'school-career' : activeService.id,
-      serviceTitle: isCareerGuidance 
+      serviceTitle: isCareerGuidance
         ? (courseName ? `Career Guidance | ${courseName}` : 'Career Guidance')
         : `${activeService.title}${subDetail}`,
-      company: isCareerGuidance 
-        ? (data.organization ? data.organization.trim() : 'Career Guidance') 
+      company: isCareerGuidance
+        ? (data.organization ? data.organization.trim() : 'Career Guidance')
         : (activeService.id === 'school-career' ? 'Career Guidance' : (data.organization ? data.organization.trim() : `Academic Advisory (${activeService.category})`)),
       organizationName: data.organization ? data.organization.trim() : null,
       degreeLevel: programLevel,
@@ -647,7 +647,7 @@ export const EducationEnquiryModal = ({
                 </div>
               </div>
 
-              {/* Row 2: Phone / WhatsApp | Current School / College / Employer */}
+              {/* Row 2: Phone / WhatsApp | Current School / College*/}
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-3.5 sm:gap-4">
                 <div>
                   <div className="flex justify-between items-center mb-1">

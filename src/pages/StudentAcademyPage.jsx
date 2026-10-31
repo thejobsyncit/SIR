@@ -32,6 +32,7 @@ export const StudentAcademyPage = () => {
   // Navigation flow state:
   // 'exams' -> 'academies' (Exam Enquiry Page) -> 'academy-detail' -> 'course-enquiry'
   const [currentView, setCurrentView] = useState('exams');
+  const [selectedCategoryId, setSelectedCategoryId] = useState(null);
   const [selectedExamId, setSelectedExamId] = useState(null);
   const [selectedAcademyId, setSelectedAcademyId] = useState(null);
   const [selectedCourseId, setSelectedCourseId] = useState(null);
@@ -43,6 +44,11 @@ export const StudentAcademyPage = () => {
       if (hash.includes('?')) {
         const queryStr = hash.split('?')[1];
         const params = new URLSearchParams(queryStr);
+        const category = params.get('category');
+        if (category) {
+          setSelectedCategoryId(category);
+          setCurrentView('exams');
+        }
         const course = params.get('course');
         const academy = params.get('academy');
         const exam = params.get('exam') || params.get('exam-enquiry') || params.get('enquiry');
@@ -220,6 +226,7 @@ export const StudentAcademyPage = () => {
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 sm:py-12">
         {currentView === 'exams' && (
           <ExamDirectoryView
+            initialCategoryId={selectedCategoryId}
             onSelectExam={handleSelectExam}
           />
         )}

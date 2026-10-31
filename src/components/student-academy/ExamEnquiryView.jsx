@@ -8,10 +8,19 @@ import {
 import { getExamById } from '../../data/studentAcademyData';
 import { getExamEnquiryDetails } from '../../data/examEnquiryDetailsData';
 import { submitExamEnquiry } from '../../services/academyService';
+import {
+  SearchableCountrySelect,
+  isInternationalOrGccExam,
+  resolveDefaultExamCountry
+} from './SearchableCountrySelect';
 
 export const ExamEnquiryView = ({ examId, onBackToExams }) => {
   const exam = useMemo(() => getExamById(examId), [examId]);
   const details = useMemo(() => getExamEnquiryDetails(examId, exam), [examId, exam]);
+  const isInternationalOrGcc = useMemo(
+    () => isInternationalOrGccExam(exam, { id: exam?.category || exam?.categoryId }),
+    [exam]
+  );
 
   // Form state
   const [formData, setFormData] = useState({
@@ -20,10 +29,19 @@ export const ExamEnquiryView = ({ examId, onBackToExams }) => {
     phone: '',
     qualification: 'Undergraduate Degree (B.A./B.Sc/B.Com)',
     preferredLearningMode: 'Online Live',
-    preferredLocation: 'Online / Remote',
+    preferredLocation: isInternationalOrGcc ? resolveDefaultExamCountry(exam) : 'Online / Remote',
     message: '',
     selectedCourseOption: ''
   });
+
+  React.useEffect(() => {
+    if (exam && isInternationalOrGcc) {
+      setFormData(prev => ({
+        ...prev,
+        preferredLocation: resolveDefaultExamCountry(exam)
+      }));
+    }
+  }, [exam, isInternationalOrGcc]);
 
   const [formErrors, setFormErrors] = useState({});
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -81,7 +99,7 @@ export const ExamEnquiryView = ({ examId, onBackToExams }) => {
     }
 
     if (!formData.preferredLocation.trim()) {
-      errors.preferredLocation = 'Please specify your preferred study location.';
+      errors.preferredLocation = isInternationalOrGcc ? 'Please select your target country.' : 'Please specify your preferred study location.';
     }
 
     setFormErrors(errors);
@@ -108,6 +126,8 @@ export const ExamEnquiryView = ({ examId, onBackToExams }) => {
         qualification: formData.qualification,
         preferredLearningMode: formData.preferredLearningMode,
         preferredLocation: formData.preferredLocation,
+        targetCountry: formData.preferredLocation,
+        countryInterest: formData.preferredLocation,
         message: formData.message,
         courseName: formData.selectedCourseOption || `${details.abbreviation} Comprehensive Coaching & Advisory`
       };
@@ -241,7 +261,7 @@ export const ExamEnquiryView = ({ examId, onBackToExams }) => {
                 <span className="font-semibold text-slate-800 dark:text-slate-200">{submissionSuccess.data.preferredLearningMode}</span>
               </div>
               <div className="flex justify-between items-center">
-                <span className="text-slate-500">Study Location:</span>
+                <span className="text-slate-500">{isInternationalOrGcc ? 'Target Country:' : 'Study Location:'}</span>
                 <span className="font-semibold text-slate-800 dark:text-slate-200">{submissionSuccess.data.preferredLocation}</span>
               </div>
             </div>
@@ -415,28 +435,55 @@ export const ExamEnquiryView = ({ examId, onBackToExams }) => {
                 </div>
               </div>
 
-              {/* Preferred Study Location */}
-              <div>
-                <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1">
-                  Preferred Study Location <span className="text-rose-500">*</span>
-                </label>
-                <div className="relative">
-                  <MapPin className="w-4 h-4 text-slate-400 absolute left-3.5 top-1/2 -translate-y-1/2 pointer-events-none" />
-                  <input
-                    type="text"
+              {/* Target Country (International & GCC) vs Preferred Study Location (Indian) */}
+              {isInternationalOrGcc ? (
+                <div>
+                  <label 
+                    htmlFor="input-enquiry-target-country"
+                    className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1"
+                  >
+                    Target Country <span className="text-rose-500">*</span>
+                  </label>
+                  <SearchableCountrySelect
+                    id="input-enquiry-target-country"
                     name="preferredLocation"
                     value={formData.preferredLocation}
-                    onChange={handleChange}
-                    placeholder="e.g. Dubai, Chennai, Delhi, Bangalore, or Online"
-                    className={`w-full pl-10 pr-3.5 py-2.5 rounded-xl bg-slate-50 dark:bg-navy-950 border ${formErrors.preferredLocation ? 'border-rose-500' : 'border-slate-200 dark:border-navy-700'
-                      } text-xs text-navy-900 dark:text-white placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-gold-500 font-medium`}
-                    id="input-enquiry-location"
+                    onChange={(countryName) => {
+                      setFormData(prev => ({ ...prev, preferredLocation: countryName }));
+                      if (formErrors.preferredLocation) {
+                        setFormErrors(prev => ({ ...prev, preferredLocation: null }));
+                      }
+                    }}
+                    error={formErrors.preferredLocation}
+                    placeholder="Select Target Country..."
                   />
+                  <p className="text-[11px] text-slate-500 dark:text-slate-400 mt-1">
+                    Select your preferred destination country or GCC licensing jurisdiction.
+                  </p>
                 </div>
-                {formErrors.preferredLocation && (
-                  <p className="text-[11px] text-rose-500 mt-1">{formErrors.preferredLocation}</p>
-                )}
-              </div>
+              ) : (
+                <div>
+                  <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1">
+                    Preferred Study Location <span className="text-rose-500">*</span>
+                  </label>
+                  <div className="relative">
+                    <MapPin className="w-4 h-4 text-slate-400 absolute left-3.5 top-1/2 -translate-y-1/2 pointer-events-none" />
+                    <input
+                      type="text"
+                      name="preferredLocation"
+                      value={formData.preferredLocation}
+                      onChange={handleChange}
+                      placeholder="e.g. Dubai, Chennai, Delhi, Bangalore, or Online"
+                      className={`w-full pl-10 pr-3.5 py-2.5 rounded-xl bg-slate-50 dark:bg-navy-950 border ${formErrors.preferredLocation ? 'border-rose-500' : 'border-slate-200 dark:border-navy-700'
+                        } text-xs text-navy-900 dark:text-white placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-gold-500 font-medium`}
+                      id="input-enquiry-location"
+                    />
+                  </div>
+                  {formErrors.preferredLocation && (
+                    <p className="text-[11px] text-rose-500 mt-1">{formErrors.preferredLocation}</p>
+                  )}
+                </div>
+              )}
             </div>
 
             {/* Message or Additional Questions */}

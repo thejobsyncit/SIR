@@ -2765,6 +2765,8 @@ app.post('/api/student-academy/enquiries', async (req, res) => {
       courseName,
       qualification,
       preferredLocation,
+      targetCountry,
+      countryInterest,
       location,
       coachingMode,
       enquiryType,
@@ -2810,7 +2812,7 @@ app.post('/api/student-academy/enquiries', async (req, res) => {
     const enquiryId = `SA-ENQ-${Date.now()}-${Math.floor(100 + Math.random() * 900)}`;
     const db = await getDb();
     const learningMode = preferredLearningMode || coachingMode || 'Online Live';
-    const studyLoc = preferredLocation || location || 'Online / Remote';
+    const studyLoc = targetCountry || countryInterest || preferredLocation || location || 'Online / Remote';
     const qual = qualification || 'High School / 12th Standard';
     const targetExam = examName || 'Competitive Examination';
     const targetCourse = courseName || `${targetExam} Comprehensive Coaching & Advisory`;
@@ -2861,6 +2863,8 @@ app.post('/api/student-academy/enquiries', async (req, res) => {
       preferredLearningMode: learningMode,
       studyLocation: studyLoc,
       preferredLocation: studyLoc,
+      targetCountry: studyLoc,
+      countryInterest: studyLoc,
       academyName: targetAcademy,
       courseName: targetCourse,
       questions: finalQuestions ? finalQuestions.trim() : ''
@@ -2868,15 +2872,15 @@ app.post('/api/student-academy/enquiries', async (req, res) => {
 
     await db.run(
       `INSERT INTO leads 
-       (id, name, email, company, phone, message, serviceId, serviceTitle, referenceNumber, status, assistanceType, degreeLevel, workLocation, organizationName, assignedEmployee, priority, consultationMode, customFields)
-       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+       (id, name, email, company, phone, message, serviceId, serviceTitle, referenceNumber, status, assistanceType, degreeLevel, workLocation, organizationName, assignedEmployee, priority, consultationMode, customFields, countryInterest)
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
       [
         leadId,
         studentName.trim(),
         email.trim().toLowerCase(),
         'Student Academy',
         phone.trim(),
-        `Exam Enquiry: ${targetExam}. Qualification: ${qual}. Preferred Coaching Mode: ${learningMode}. Preferred Study Location: ${studyLoc}. Message: ${finalQuestions ? finalQuestions.trim() : 'None'}`,
+        `Exam Enquiry: ${targetExam}. Qualification: ${qual}. Preferred Coaching Mode: ${learningMode}. Target Country: ${studyLoc}. Message: ${finalQuestions ? finalQuestions.trim() : 'None'}`,
         'school-academy',
         'Student Academy',
         refNum,
@@ -2888,7 +2892,8 @@ app.post('/api/student-academy/enquiries', async (req, res) => {
         advisor,
         'Medium',
         learningMode,
-        customMetadata
+        customMetadata,
+        studyLoc
       ]
     );
 

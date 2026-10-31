@@ -31,13 +31,12 @@ export const CourseDetailModal = ({ course, isOpen, onClose, onSelectCourse, onI
     setActiveTab('overview');
   }, [course?.id]);
 
-  if (!isOpen || !course) return null;
-
   const relatedCourses = React.useMemo(() => {
+    if (!course) return [];
     if (course.streamId) {
       const streamCourses = course.level === 'PG' ? getPgCoursesByStream(course.streamId) : getCoursesByStream(course.streamId);
-      return streamCourses
-        .filter(c => c.id !== course.id)
+      return (streamCourses || [])
+        .filter(c => c && c.id !== course.id)
         .slice(0, 4)
         .map(c => ({
           ...c,
@@ -46,10 +45,12 @@ export const CourseDetailModal = ({ course, isOpen, onClose, onSelectCourse, onI
         }));
     }
     const related = getRelatedCourses(course.id) || [];
-    return related
-      .filter(c => c.level !== 'Integrated' && c.level !== 'Professional')
+    return (related || [])
+      .filter(c => c && c.level !== 'Integrated' && c.level !== 'Professional')
       .slice(0, 4);
   }, [course]);
+
+  if (!isOpen || !course) return null;
 
   const getLevelBadgeColor = (level) => {
     switch (level) {

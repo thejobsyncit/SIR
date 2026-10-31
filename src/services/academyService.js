@@ -147,8 +147,9 @@ export const submitExamEnquiry = async (enquiryData) => {
     throw new Error('Please select or specify your current educational qualification.');
   }
 
-  if (!enquiryData.preferredLocation || !enquiryData.preferredLocation.trim()) {
-    throw new Error('Please specify your preferred study location.');
+  const loc = enquiryData.targetCountry || enquiryData.preferredLocation;
+  if (!loc || !loc.trim()) {
+    throw new Error('Please specify your preferred study location or target country.');
   }
 
   const payload = {
@@ -160,7 +161,9 @@ export const submitExamEnquiry = async (enquiryData) => {
     examName: enquiryData.examName || 'Competitive Examination',
     qualification: enquiryData.qualification.trim(),
     preferredLearningMode: enquiryData.preferredLearningMode || 'Online',
-    preferredLocation: enquiryData.preferredLocation.trim(),
+    preferredLocation: (enquiryData.targetCountry || enquiryData.preferredLocation).trim(),
+    targetCountry: (enquiryData.targetCountry || enquiryData.preferredLocation).trim(),
+    countryInterest: (enquiryData.targetCountry || enquiryData.preferredLocation).trim(),
     questions: enquiryData.message ? enquiryData.message.trim() : (enquiryData.questions ? enquiryData.questions.trim() : ''),
     academyId: enquiryData.academyId || 'revival-advisory',
     academyName: enquiryData.academyName || 'Revival International Student Advisory',

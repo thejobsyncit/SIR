@@ -229,7 +229,11 @@ export const CrmStudentAcademy = () => {
     if (!coachingMode) coachingMode = 'Online Live';
 
     // 4. Study Location Resolution
-    let studyLocation = saRecord.preferredLocation || custom.studyLocation || custom.preferredLocation || lead.workLocation;
+    let studyLocation = saRecord.preferredLocation || custom.targetCountry || custom.countryInterest || custom.studyLocation || custom.preferredLocation || lead.countryInterest || lead.workLocation;
+    if (!studyLocation && lead.message && lead.message.includes('Target Country:')) {
+      const match = lead.message.match(/Target Country:\s*([\s\S]+?)(?=\.\s*Message:|\.|$)/i);
+      if (match && match[1]) studyLocation = match[1].trim();
+    }
     if (!studyLocation && lead.message && lead.message.includes('Preferred Study Location:')) {
       const match = lead.message.match(/Preferred Study Location:\s*([\s\S]+?)(?=\.\s*Message:|\.|$)/i);
       if (match && match[1]) studyLocation = match[1].trim();
@@ -1177,7 +1181,7 @@ export const CrmStudentAcademy = () => {
                   <div className="space-y-1">
                     <div><strong>Current Qualification:</strong> <span className="font-semibold">{details.qualification}</span></div>
                     <div><strong>Category:</strong> Student Academy / Competitive Exams</div>
-                    <div><strong>Study Location:</strong> {details.studyLocation}</div>
+                    <div><strong>Target Country / Study Location:</strong> <span className="font-semibold text-gold-600 dark:text-gold-400">{details.studyLocation}</span></div>
                   </div>
                 </div>
 
