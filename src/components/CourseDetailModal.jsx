@@ -87,17 +87,17 @@ export const CourseDetailModal = ({ course, isOpen, onClose, onSelectCourse, onI
 
           <div className="space-y-3 pr-8">
             <div className="flex flex-wrap items-center gap-2">
-              <span className={`text-[11px] font-black px-2.5 py-0.5 rounded-full uppercase tracking-wider border ${getLevelBadgeColor(course.level)}`}>
-                {course.level === 'UG' ? 'Undergraduate' : course.level === 'PG' ? 'Postgraduate' : course.level} Degree
+              <span className={`text-[11px] font-black px-2.5 py-0.5 rounded-full uppercase tracking-wider border ${getLevelBadgeColor(course?.level)}`}>
+                {course?.level === 'UG' ? 'Undergraduate' : course?.level === 'PG' ? 'Postgraduate' : (course?.level || 'Academic')} Degree
               </span>
               <span className="text-[11px] font-bold px-2.5 py-0.5 rounded-full bg-slate-100 dark:bg-navy-800 text-slate-700 dark:text-slate-300 border border-slate-200 dark:border-navy-700">
-                {course.department || course.streamName}
+                {course?.department || course?.streamName || 'General Academic Discipline'}
               </span>
               <span className="text-[11px] font-medium px-2.5 py-0.5 rounded-full bg-gold-500/10 text-gold-700 dark:text-gold-400 border border-gold-500/20 flex items-center gap-1">
                 <Calendar className="w-3 h-3" />
-                {course.typicalDuration || course.duration}
+                {course?.typicalDuration || course?.duration || '2 Years'}
               </span>
-              {course.licensingRequired && (
+              {course?.licensingRequired && (
                 <span className="text-[11px] font-bold px-2.5 py-0.5 rounded-full bg-rose-500/15 text-rose-700 dark:text-rose-400 border border-rose-500/30 flex items-center gap-1">
                   <ShieldCheck className="w-3 h-3" />
                   Regulated Professional License
@@ -107,20 +107,20 @@ export const CourseDetailModal = ({ course, isOpen, onClose, onSelectCourse, onI
 
             <div className="flex flex-col sm:flex-row sm:items-baseline gap-2">
               <span className="text-2xl sm:text-3xl font-black text-gold-600 dark:text-gold-400 font-sans tracking-tight">
-                {course.abbreviation}
+                {course?.abbreviation || 'DEG'}
               </span>
               <h2 id="course-modal-title" className="text-xl sm:text-2xl font-serif font-extrabold text-navy-900 dark:text-white leading-tight">
-                {course.name}
+                {course?.name || 'Academic Degree Program'}
               </h2>
             </div>
 
             <p className="text-xs sm:text-sm text-slate-600 dark:text-slate-300 font-medium leading-relaxed max-w-3xl">
-              {course.shortDescription || course.overview}
+              {course?.shortDescription || course?.overview || 'Comprehensive degree curriculum and academic progression pathway.'}
             </p>
 
             <div className="flex items-center gap-2 pt-1 text-[11px] text-emerald-700 dark:text-emerald-400 font-medium">
               <CheckCircle2 className="w-3.5 h-3.5 shrink-0" />
-              <span>{course.verificationStatus || 'Statutory Verified'} • {course.regulatoryBody}</span>
+              <span>{course?.verificationStatus || 'Statutory Verified'} • {course?.regulatoryBody || 'UGC / Statutory Regulatory Councils'}</span>
             </div>
           </div>
         </div>
@@ -227,15 +227,15 @@ export const CourseDetailModal = ({ course, isOpen, onClose, onSelectCourse, onI
                   Eligibility Criteria & Mandatory Prerequisites
                 </h4>
                 <p className="text-xs sm:text-sm font-semibold text-slate-800 dark:text-slate-200 leading-relaxed">
-                  {course.eligibility}
+                  {course.eligibility || 'Completion of qualifying academic examinations (10+2 / Bachelor Degree) from an accredited board or recognized university.'}
                 </p>
                 <div className="flex flex-wrap items-center gap-2 pt-2">
                   <span className="text-[11px] font-bold text-slate-500 dark:text-slate-400">Required Subject Combinations:</span>
                   {(course.requiredSubjects || [
-                    course.eligibility?.includes('PCB') ? 'Physics, Chemistry, Biology' :
-                    course.eligibility?.includes('Physics') ? 'Physics & Mathematics' :
-                    course.eligibility?.includes('Commerce') ? 'Commerce / Accountancy' :
-                    'Qualifying 10+2 Subjects'
+                    typeof course.eligibility === 'string' && course.eligibility.includes('PCB') ? 'Physics, Chemistry, Biology' :
+                    typeof course.eligibility === 'string' && course.eligibility.includes('Physics') ? 'Physics & Mathematics' :
+                    typeof course.eligibility === 'string' && course.eligibility.includes('Commerce') ? 'Commerce / Accountancy' :
+                    'Qualifying Academic Subjects'
                   ]).map((subj, idx) => (
                     <span key={idx} className="text-[11px] font-bold px-2 py-0.5 rounded-md bg-white dark:bg-navy-900 border border-slate-300 dark:border-navy-700 text-navy-900 dark:text-white">
                       {subj}
@@ -381,10 +381,10 @@ export const CourseDetailModal = ({ course, isOpen, onClose, onSelectCourse, onI
                   <span>Statutory Regulatory Framework</span>
                 </div>
                 <h4 className="font-serif text-lg font-bold text-navy-900 dark:text-white">
-                  {course.regulatoryBody}
+                  {course.regulatoryBody || 'UGC / Statutory Regulatory Authority'}
                 </h4>
                 <p className="text-xs font-medium text-slate-700 dark:text-slate-300 leading-relaxed">
-                  Academic curriculum, duration standards, minimum faculty guidelines, and degree specifications are governed by {course.regulatoryBody}.
+                  Academic curriculum, duration standards, minimum faculty guidelines, and degree specifications are governed by {course.regulatoryBody || 'statutory university and regulatory guidelines'}.
                 </p>
                 <div className="text-[11px] font-semibold text-slate-500 dark:text-slate-400 pt-1">
                   Official Reference: <span className="text-gold-600 dark:text-gold-400">{course.officialReference || 'UGC / Statutory Regulatory Councils Guidelines'}</span>
@@ -435,7 +435,7 @@ export const CourseDetailModal = ({ course, isOpen, onClose, onSelectCourse, onI
               }}
               className="px-5 py-2.5 bg-gold-shimmer text-navy-950 font-bold text-xs rounded-xl shadow-gold-glow hover:opacity-95 transition flex items-center justify-center gap-2 w-full sm:w-auto shrink-0"
             >
-              <span>Inquire for {course.abbreviation} Guidance</span>
+              <span>Inquire for {course.abbreviation || course.name || 'Degree'} Guidance</span>
               <ArrowRight className="w-3.5 h-3.5" />
             </button>
           </div>

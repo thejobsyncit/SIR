@@ -310,7 +310,7 @@ export const PgDepartmentStreamsExplorer = ({ onInquire, onSelectModalCourse, on
                             </span>
                           </div>
                           <span className="text-[11px] font-semibold text-slate-500 dark:text-slate-400">
-                            {course.duration.split(' ')[0]} Yrs
+                            {(course.duration || '2 Years').toString().split(' ')[0]} Yrs
                           </span>
                         </div>
 
@@ -477,11 +477,11 @@ export const PgDepartmentStreamsExplorer = ({ onInquire, onSelectModalCourse, on
                               {(course.degrees || []).join(' / ')}
                             </span>
                             <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-gold-500/10 text-gold-700 dark:text-gold-300 border border-gold-500/20">
-                              {course.regulatoryBody.split('/')[0].trim()}
+                              {(course.regulatoryBody || 'UGC').toString().split('/')[0].trim()}
                             </span>
                           </div>
                           <span className="text-[11px] font-semibold text-slate-500 dark:text-slate-400 shrink-0">
-                            {course.duration.split(' ')[0]} Yrs
+                            {(course.duration || '2 Years').toString().split(' ')[0]} Yrs
                           </span>
                         </div>
 

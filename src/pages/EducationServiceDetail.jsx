@@ -467,13 +467,15 @@ export const EducationServiceDetail = ({ serviceId }) => {
           <div id="workflow-section" className="space-y-8 scroll-mt-24">
             <div className="text-center space-y-2 max-w-2xl mx-auto">
               <span className="bg-gold-500/10 text-gold-600 dark:text-gold-400 text-xs font-bold px-3 py-1 rounded-full uppercase tracking-wider">
-                Advisory Methodology
+                {isCareerGuidance ? 'YOUR ACADEMIC JOURNEY' : 'Advisory Methodology'}
               </span>
               <h2 className="font-serif text-2xl sm:text-3xl font-extrabold text-navy-900 dark:text-white">
-                How the Process Works
+                {isCareerGuidance ? 'How Career Guidance Works' : 'How the Process Works'}
               </h2>
               <p className="text-xs text-slate-700 dark:text-slate-300">
-                A structured 4-stage execution model designed to ensure transparency, compliance, and deadline discipline.
+                {isCareerGuidance
+                  ? 'A simple, structured process to explore courses, compare degrees, and choose an academic pathway aligned with your interests and career goals.'
+                  : 'A structured 4-stage execution model designed to ensure transparency, compliance, and deadline discipline.'}
               </p>
             </div>
 
@@ -504,37 +506,39 @@ export const EducationServiceDetail = ({ serviceId }) => {
         </ScrollReveal>
 
         {/* Documentation & Checklist */}
-        <ScrollReveal>
-          <div className="glass-card bg-white dark:bg-navy-900 border border-slate-200 dark:border-gold-500/30 rounded-3xl p-6 sm:p-10 space-y-6 shadow-glass">
-            <div className="flex items-center space-x-3 text-gold-600 dark:text-gold-400 pb-2 border-b border-slate-100 dark:border-navy-800">
-              <FileText className="w-6 h-6" />
-              <div>
-                <h2 className="font-serif text-xl sm:text-2xl font-bold text-navy-900 dark:text-white">
-                  Documentation & Requirements Checklist
-                </h2>
-                <p className="text-[10px] uppercase text-gold-600 dark:text-gold-400 font-bold tracking-widest">
-                  Required Application Dossier
-                </p>
+        {!isCareerGuidance && (
+          <ScrollReveal>
+            <div className="glass-card bg-white dark:bg-navy-900 border border-slate-200 dark:border-gold-500/30 rounded-3xl p-6 sm:p-10 space-y-6 shadow-glass">
+              <div className="flex items-center space-x-3 text-gold-600 dark:text-gold-400 pb-2 border-b border-slate-100 dark:border-navy-800">
+                <FileText className="w-6 h-6" />
+                <div>
+                  <h2 className="font-serif text-xl sm:text-2xl font-bold text-navy-900 dark:text-white">
+                    Documentation & Requirements Checklist
+                  </h2>
+                  <p className="text-[10px] uppercase text-gold-600 dark:text-gold-400 font-bold tracking-widest">
+                    Required Application Dossier
+                  </p>
+                </div>
+              </div>
+
+              <p className="text-xs text-slate-700 dark:text-slate-300">
+                Prepare the following verified credentials to expedite your consultation and admissions file evaluation:
+              </p>
+
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3.5">
+                {service.requiredDocuments.map((doc, idx) => (
+                  <div 
+                    key={idx}
+                    className="p-3.5 rounded-xl bg-slate-50 dark:bg-navy-950 border border-slate-200 dark:border-navy-800 text-xs flex items-start gap-2.5"
+                  >
+                    <CheckCircle2 className="w-4 h-4 text-gold-500 shrink-0 mt-0.5" />
+                    <span className="text-slate-800 dark:text-slate-200 font-medium">{doc}</span>
+                  </div>
+                ))}
               </div>
             </div>
-
-            <p className="text-xs text-slate-700 dark:text-slate-300">
-              Prepare the following verified credentials to expedite your consultation and admissions file evaluation:
-            </p>
-
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3.5">
-              {service.requiredDocuments.map((doc, idx) => (
-                <div 
-                  key={idx}
-                  className="p-3.5 rounded-xl bg-slate-50 dark:bg-navy-950 border border-slate-200 dark:border-navy-800 text-xs flex items-start gap-2.5"
-                >
-                  <CheckCircle2 className="w-4 h-4 text-gold-500 shrink-0 mt-0.5" />
-                  <span className="text-slate-800 dark:text-slate-200 font-medium">{doc}</span>
-                </div>
-              ))}
-            </div>
-          </div>
-        </ScrollReveal>
+          </ScrollReveal>
+        )}
 
         {/* FAQs Accordion */}
         {!isCareerGuidance && (

@@ -1853,7 +1853,8 @@ app.patch(['/api/leads/:id', '/api/consulting/enquiries/:id', '/api/student-acad
       seniority, industry, hiringTimeline, joiningDate, contractDuration,
       startDate, endDate, shiftRequirements, jobCategory, visaCategory,
       currentStage, cvPath, consultationDate, consultationTime, consultationMode,
-      countryInterest, intakeTerm, degreeLevel, documentUrls, customFields
+      countryInterest, intakeTerm, degreeLevel, documentUrls, customFields,
+      courseName, streamName, department
     } = req.body;
 
     const allowedStatuses = [
@@ -1966,6 +1967,9 @@ app.patch(['/api/leads/:id', '/api/consulting/enquiries/:id', '/api/student-acad
         degreeLevel !== undefined ? degreeLevel : null,
         documentUrls !== undefined ? (typeof documentUrls === 'object' ? JSON.stringify(documentUrls) : String(documentUrls)) : null,
         customFields !== undefined ? (typeof customFields === 'object' ? JSON.stringify(customFields) : String(customFields)) : null,
+        courseName !== undefined ? courseName : null,
+        streamName !== undefined ? streamName : null,
+        department !== undefined ? department : null,
         id
       ]
     );

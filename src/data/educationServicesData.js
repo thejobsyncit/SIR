@@ -218,23 +218,23 @@ export const EDUCATION_SERVICES_DETAILED = [
     howItWorks: [
       {
         step: 1,
-        title: 'Career & Interest Profiling',
-        desc: 'The student completes an interactive evaluation exploring cognitive strengths, work styles, and subject interests.'
+        title: 'Explore Degrees & Courses',
+        desc: 'Browse undergraduate and postgraduate degrees across academic departments. Explore course details, specializations, durations, and available study options.'
       },
       {
         step: 2,
-        title: 'Comprehensive Diagnostic Report',
-        desc: 'Detailed analysis charting top matching career clusters and corresponding high school subject combinations.'
+        title: 'Compare Your Options',
+        desc: 'Compare degrees and specializations based on eligibility requirements, course duration, academic interests, and potential career opportunities.'
       },
       {
         step: 3,
-        title: 'Joint Counselling Appointment',
-        desc: 'In-depth consultation with the student and parents led by a certified education counsellor.'
+        title: 'Submit an Academic Enquiry',
+        desc: 'Select your preferred course or degree and submit the academic consultation form. Automatically include the selected course details in the enquiry and store the enquiry in the existing CRM Career Guidance module.'
       },
       {
         step: 4,
-        title: 'Actionable Academic Roadmap',
-        desc: 'Delivery of a personalized 3-to-5-year milestone roadmap outlining target entrance tests, subjects, and summer enrichment.'
+        title: 'Receive Personalized Guidance',
+        desc: 'The advisory team reviews the enquiry and guides the student on eligibility, admission pathways, suitable study destinations, and the next steps for pursuing the selected course.'
       }
     ],
     requiredDocuments: [

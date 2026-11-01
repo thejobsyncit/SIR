@@ -307,7 +307,7 @@ export const UgDepartmentStreamsExplorer = ({ onInquire, onSelectModalCourse, on
                             </span>
                           </div>
                           <span className="text-[11px] font-semibold text-slate-500 dark:text-slate-400">
-                            {course.duration.split(' ')[0]} Yrs
+                            {(course.duration || '3 Years').toString().split(' ')[0]} Yrs
                           </span>
                         </div>
 
@@ -463,7 +463,7 @@ export const UgDepartmentStreamsExplorer = ({ onInquire, onSelectModalCourse, on
                             </span>
                           </div>
                           <span className="text-[11px] font-semibold text-slate-500 dark:text-slate-400 shrink-0">
-                            {course.duration.split(' ')[0]} Yrs
+                            {(course.duration || '3 Years').toString().split(' ')[0]} Yrs
                           </span>
                         </div>
 
