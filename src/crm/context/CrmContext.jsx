@@ -5,18 +5,50 @@ import { getLocalFallbackLeads } from '../../services/leadSubmissionService';
 const CrmContext = createContext();
 
 export const CrmProvider = ({ children }) => {
-  // Default to false so user sees the Login screen first
-  const [isAuthenticated, setIsAuthenticated] = useState(false);
-  const [user, setUser] = useState({
+  // Session persistence: restore authenticated session from localStorage across page refresh
+  const [isAuthenticated, setIsAuthenticated] = useState(() => {
+    try {
+      const saved = localStorage.getItem('sir_crm_session');
+      if (!saved) return false;
+      const parsed = JSON.parse(saved);
+      return Boolean(parsed && parsed.isAuthenticated);
+    } catch {
+      return false;
+    }
+  });
+
+  const DEFAULT_USER = {
     id: 'emp-1',
     name: 'Dhanalakshimi',
     email: 'dhana.jasync@gmail.com',
     role: 'Super Admin',
     department: 'India Operations HQ',
     avatar: 'https://images.unsplash.com/photo-1573496359142-b8d87734a5a2?w=150&auto=format&fit=crop&q=80'
+  };
+
+  const [user, setUser] = useState(() => {
+    try {
+      const saved = localStorage.getItem('sir_crm_session');
+      if (saved) {
+        const parsed = JSON.parse(saved);
+        if (parsed && parsed.user && typeof parsed.user === 'object') {
+          return { ...DEFAULT_USER, ...parsed.user };
+        }
+      }
+    } catch {}
+    return DEFAULT_USER;
   });
 
-  const [currentRole, setCurrentRole] = useState('Super Admin');
+  const [currentRole, setCurrentRole] = useState(() => {
+    try {
+      const saved = localStorage.getItem('sir_crm_session');
+      if (saved) {
+        const parsed = JSON.parse(saved);
+        if (parsed && parsed.currentRole) return parsed.currentRole;
+      }
+    } catch {}
+    return 'Super Admin';
+  });
   const [darkMode, setDarkMode] = useState(() => {
     try {
       const saved = localStorage.getItem('sir_theme_mode');
@@ -174,7 +206,7 @@ export const CrmProvider = ({ children }) => {
     try {
       const res = await fetch('/api/clients');
       const data = await res.json();
-      if (data && data.success && Array.isArray(data.data) && data.data.length > 0) {
+      if (data && data.success && Array.isArray(data.data)) {
         setClients(data.data);
       }
     } catch (err) {
@@ -259,7 +291,57 @@ export const CrmProvider = ({ children }) => {
   const [globalAddInvoiceOpen, setGlobalAddInvoiceOpen] = useState(false);
 
   // UI & Drawer Modals
-  const [activeModule, setActiveModule] = useState('dashboard');
+  const [activeModule, setActiveModuleState] = useState(() => {
+    try {
+      const saved = localStorage.getItem('sir_crm_session');
+      if (saved) {
+        const parsed = JSON.parse(saved);
+        if (parsed && parsed.activeModule) return parsed.activeModule;
+      }
+    } catch {}
+    return 'dashboard';
+  });
+
+  const setActiveModule = (mod) => {
+    setActiveModuleState(mod);
+    try {
+      const raw = localStorage.getItem('sir_crm_session');
+      if (raw) {
+        const parsed = JSON.parse(raw);
+        if (parsed && parsed.isAuthenticated) {
+          localStorage.setItem('sir_crm_session', JSON.stringify({
+            ...parsed,
+            activeModule: mod
+          }));
+        }
+      }
+    } catch {}
+  };
+
+  const [consultingServiceFilter, setConsultingServiceFilterState] = useState(() => {
+    try {
+      const saved = localStorage.getItem('sir_crm_session');
+      if (saved) {
+        const parsed = JSON.parse(saved);
+        if (parsed && parsed.consultingServiceFilter) return parsed.consultingServiceFilter;
+      }
+    } catch {}
+    return 'all';
+  });
+
+  const setConsultingServiceFilter = (filterVal) => {
+    setConsultingServiceFilterState(filterVal);
+    try {
+      const raw = localStorage.getItem('sir_crm_session');
+      if (raw) {
+        const parsed = JSON.parse(raw);
+        localStorage.setItem('sir_crm_session', JSON.stringify({
+          ...parsed,
+          consultingServiceFilter: filterVal
+        }));
+      }
+    } catch {}
+  };
   const [commandPaletteOpen, setCommandPaletteOpen] = useState(false);
   const [aiDrawerOpen, setAiDrawerOpen] = useState(false);
   const [notificationsOpen, setNotificationsOpen] = useState(false);
@@ -308,6 +390,9 @@ export const CrmProvider = ({ children }) => {
           if (prev >= 900) {
             setIsAuthenticated(false);
             setShowIdleModal(false);
+            try {
+              localStorage.removeItem('sir_crm_session');
+            } catch (e) {}
             return 0;
           }
           return prev + 1;
@@ -334,11 +419,15 @@ export const CrmProvider = ({ children }) => {
   }, []);
 
   const hasPermission = (moduleName) => {
+    if (!moduleName) return true;
     if (moduleName === 'super-admin') {
       return currentRole === 'Super Admin';
     }
     if (currentRole === 'Super Admin') return true;
-    const permissions = ROLE_PERMISSIONS[currentRole] || [];
+    if (typeof moduleName === 'string' && moduleName.startsWith('consulting')) {
+      moduleName = 'consulting';
+    }
+    const permissions = (currentRole && ROLE_PERMISSIONS[currentRole]) || [];
     return permissions.includes('all') || permissions.includes(moduleName);
   };
 
@@ -346,22 +435,38 @@ export const CrmProvider = ({ children }) => {
     if (accountLocked) return false;
     
     const assignedRole = roleName || currentRole;
-    setIsAuthenticated(true);
-    setFailedLoginAttempts(0);
-    setCurrentRole(assignedRole);
-    setUser({
+    const userData = {
       id: 'usr-' + Math.floor(100 + Math.random() * 900),
       name: email.split('@')[0].toUpperCase().replace('.', ' '),
       email,
       role: assignedRole,
       department: 'Enterprise Talent',
       avatar: 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=150&auto=format&fit=crop&q=80'
-    });
+    };
+
+    setIsAuthenticated(true);
+    setFailedLoginAttempts(0);
+    setCurrentRole(assignedRole);
+    setUser(userData);
 
     // Ensure active module is allowed for assigned role
     const perms = ROLE_PERMISSIONS[assignedRole] || [];
+    let nextModule = activeModule;
     if (assignedRole !== 'Super Admin' && !perms.includes('all') && !perms.includes(activeModule)) {
-      setActiveModule(perms[0] || 'workspace');
+      nextModule = perms[0] || 'workspace';
+      setActiveModuleState(nextModule);
+    }
+
+    try {
+      localStorage.setItem('sir_crm_session', JSON.stringify({
+        isAuthenticated: true,
+        user: userData,
+        currentRole: assignedRole,
+        activeModule: nextModule,
+        loginTime: new Date().toISOString()
+      }));
+    } catch (e) {
+      console.warn('Could not save CRM session to localStorage', e);
     }
 
     logAuditAction(`User ${email} logged in under role '${assignedRole}'.`);
@@ -375,6 +480,9 @@ export const CrmProvider = ({ children }) => {
 
   const logout = () => {
     setIsAuthenticated(false);
+    try {
+      localStorage.removeItem('sir_crm_session');
+    } catch (e) {}
     logAuditAction(`User ${user.name} logged out.`);
   };
 
@@ -399,15 +507,35 @@ export const CrmProvider = ({ children }) => {
     logAuditAction(`Updated candidate profile ${updatedCand.id}.`);
   };
 
+  const deleteCandidate = async (candidateId) => {
+    try {
+      await fetch(`/api/candidates/${candidateId}`, {
+        method: 'DELETE'
+      });
+    } catch (err) {
+      console.warn('Backend delete candidate error (continuing with local removal):', err);
+    }
+    setCandidates(prev => prev.filter(c => c.id !== candidateId));
+    logAuditAction(`Deleted candidate profile ${candidateId}.`);
+  };
+
   const addClient = (newClient) => {
     const clientToAdd = { ...newClient, id: `CLI-${Math.floor(Math.random() * 9000) + 1000}`, agreementStatus: 'Active', logo: newClient.company.charAt(0).toUpperCase() };
     setClients(prev => [clientToAdd, ...prev]);
     logAuditAction(`Registered new client account ${clientToAdd.company} (${clientToAdd.id}).`);
   };
 
-  const removeClient = (clientId) => {
+  const removeClient = async (clientId) => {
+    try {
+      await fetch(`/api/clients/${clientId}`, {
+        method: 'DELETE'
+      });
+    } catch (err) {
+      console.warn('Backend delete error (continuing with local removal):', err);
+    }
     setClients(prev => prev.filter(c => c.id !== clientId));
     logAuditAction(`Deleted corporate client account ${clientId}.`);
+    await fetchConsultingMetrics();
   };
 
   const addInterview = (newInterview) => {
@@ -423,6 +551,16 @@ export const CrmProvider = ({ children }) => {
   const updateInterview = (updatedInterview) => {
     setInterviews(prev => prev.map(i => i.id === updatedInterview.id ? updatedInterview : i));
     logAuditAction(`Updated interview record ${updatedInterview.id}.`);
+  };
+
+  const deleteInterview = async (interviewId) => {
+    try {
+      await fetch(`/api/interviews/${interviewId}`, { method: 'DELETE' });
+    } catch (err) {
+      console.warn('Backend delete interview error:', err);
+    }
+    setInterviews(prev => prev.filter(i => i.id !== interviewId));
+    logAuditAction(`Deleted interview ${interviewId}.`);
   };
 
   const addCalendarEvent = (newEvent) => {
@@ -451,10 +589,24 @@ export const CrmProvider = ({ children }) => {
 
   const switchRole = (newRole) => {
     setCurrentRole(newRole);
-    setUser(prev => ({ ...prev, role: newRole }));
+    const updatedUser = { ...user, role: newRole };
+    setUser(updatedUser);
+    let nextMod = activeModule;
     if (newRole !== 'Super Admin' && activeModule === 'super-admin') {
+      nextMod = 'dashboard';
       setActiveModule('dashboard');
     }
+    try {
+      const raw = localStorage.getItem('sir_crm_session');
+      const prev = raw ? JSON.parse(raw) : {};
+      localStorage.setItem('sir_crm_session', JSON.stringify({
+        ...prev,
+        isAuthenticated: true,
+        user: updatedUser,
+        currentRole: newRole,
+        activeModule: nextMod
+      }));
+    } catch (e) {}
     logAuditAction(`Switched active session view role to '${newRole}'.`);
   };
 
@@ -652,6 +804,29 @@ export const CrmProvider = ({ children }) => {
     }
   };
 
+  const deleteLead = async (leadId) => {
+    try {
+      await fetch(`/api/leads/${leadId}`, { method: 'DELETE' });
+    } catch (err) {
+      console.warn('Backend delete lead error (continuing with local removal):', err);
+    }
+    // Also remove from localStorage offline leads fallback
+    try {
+      const stored = localStorage.getItem('sir_offline_leads');
+      if (stored) {
+        const parsed = JSON.parse(stored);
+        if (Array.isArray(parsed)) {
+          const filtered = parsed.filter(l => l.id !== leadId && l.referenceNumber !== leadId);
+          localStorage.setItem('sir_offline_leads', JSON.stringify(filtered));
+        }
+      }
+    } catch (e) {}
+    setLeads(prev => prev.filter(l => l.id !== leadId && l.referenceNumber !== leadId));
+    logAuditAction(`Permanently deleted lead/booking '${leadId}'.`);
+    await fetchConsultingMetrics();
+    await fetchLeadMetrics();
+  };
+
   return (
     <CrmContext.Provider
       value={{
@@ -675,6 +850,7 @@ export const CrmProvider = ({ children }) => {
         candidates,
         addCandidate,
         updateCandidate,
+        deleteCandidate,
         updateCandidateStage,
         selectedCandidate,
         setSelectedCandidate,
@@ -688,6 +864,7 @@ export const CrmProvider = ({ children }) => {
         interviews,
         addInterview,
         updateInterview,
+        deleteInterview,
         calendarEvents,
         addCalendarEvent,
         removeCalendarEvent,
@@ -726,6 +903,7 @@ export const CrmProvider = ({ children }) => {
         fetchLeads,
         updateLead,
         archiveLead,
+        deleteLead,
         addLeadActivity,
         scheduleLeadFollowUp,
         updateFollowUpStatus,
@@ -740,7 +918,9 @@ export const CrmProvider = ({ children }) => {
         followUpsSummary,
         fetchFollowUpsSummary,
         selectedMetricsRange,
-        setSelectedMetricsRange
+        setSelectedMetricsRange,
+        consultingServiceFilter,
+        setConsultingServiceFilter
       }}
     >
       {children}

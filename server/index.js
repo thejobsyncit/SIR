@@ -5,6 +5,7 @@ import fs from 'fs';
 import os from 'os';
 import { fileURLToPath } from 'url';
 import { getDb, closeDb, checkDbHealth } from './database.js';
+import { registerClientPortalRoutes } from './clientPortalRoutes.js';
 import nodemailer from 'nodemailer';
 import dotenv from 'dotenv';
 
@@ -68,7 +69,7 @@ app.use(cors({
   },
   credentials: true,
   methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
-  allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With', 'X-Forwarded-For']
+  allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With', 'X-Forwarded-For', 'X-Client-Token']
 }));
 
 app.use(express.json({ limit: '10mb' }));
@@ -2607,6 +2608,9 @@ app.get('/api/student-academy/stats', async (req, res) => {
     });
   }
 });
+
+// Register Dedicated Client Portal & Admin/Staff Client Management Routes
+registerClientPortalRoutes(app, uploadsDir);
 
 // Serve Vite frontend production bundle if dist directory exists (non-Vercel standalone mode)
 const distPath = path.join(__dirname, '..', 'dist');

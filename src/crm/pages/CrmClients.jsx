@@ -3,7 +3,8 @@ import { useCrm } from '../context/CrmContext';
 import { 
   Building2, Phone, Mail, MessageSquare, Plus, FileText, CheckCircle2, 
   Search, Eye, Filter, X, Send, DollarSign, Calendar, Clock, UserCheck, 
-  ShieldAlert, Trash2, Globe, GraduationCap, School, Award, RefreshCw, AlertCircle, Edit, Check
+  ShieldAlert, Trash2, Globe, GraduationCap, School, Award, RefreshCw, AlertCircle, Edit, Check,
+  MapPin
 } from 'lucide-react';
 import ScrollReveal from '../../components/ScrollReveal';
 
@@ -22,6 +23,29 @@ export const CrmClients = () => {
   const [modalOpen, setModalOpen] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [formError, setFormError] = useState(null);
+  const [deleteConfirmClient, setDeleteConfirmClient] = useState(null);
+  const [isDeleting, setIsDeleting] = useState(false);
+
+  const handleDeleteClient = (client) => {
+    setDeleteConfirmClient(client);
+  };
+
+  const confirmDeleteClient = async () => {
+    if (!deleteConfirmClient) return;
+    setIsDeleting(true);
+    try {
+      await removeClient(deleteConfirmClient.id);
+      if (selectedClient && selectedClient.id === deleteConfirmClient.id) {
+        setSelectedClient(null);
+        setClientDetailData(null);
+      }
+      setDeleteConfirmClient(null);
+    } catch (err) {
+      alert('Failed to delete organization: ' + (err.message || 'Unknown error'));
+    } finally {
+      setIsDeleting(false);
+    }
+  };
 
   // New Organization Form State
   const [newOrg, setNewOrg] = useState({
@@ -417,16 +441,33 @@ export const CrmClients = () => {
                     </p>
                   </div>
 
-                  <button
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      handleOpenClient(cli);
-                    }}
-                    className="p-1.5 bg-slate-100 hover:bg-slate-200 dark:bg-navy-950 dark:hover:bg-navy-800 text-slate-700 dark:text-slate-300 rounded-lg border border-slate-200 dark:border-navy-700 font-bold transition flex items-center gap-1"
-                  >
-                    <Eye className="w-3.5 h-3.5" />
-                    <span className="text-[10px]">Workspace</span>
-                  </button>
+                  <div className="flex items-center gap-1.5 shrink-0">
+                    <button
+                      type="button"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        handleOpenClient(cli);
+                      }}
+                      className="p-1.5 px-2.5 bg-slate-100 hover:bg-slate-200 dark:bg-navy-950 dark:hover:bg-navy-800 text-slate-700 dark:text-slate-300 rounded-lg border border-slate-200 dark:border-navy-700 font-bold transition flex items-center gap-1 cursor-pointer"
+                      title="Open Organization Workspace"
+                    >
+                      <Eye className="w-3.5 h-3.5 text-gold-500" />
+                      <span className="text-[10px]">Workspace</span>
+                    </button>
+
+                    <button
+                      type="button"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        handleDeleteClient(cli);
+                      }}
+                      className="p-1.5 px-2 bg-rose-50 hover:bg-rose-100 dark:bg-rose-950/40 dark:hover:bg-rose-900/60 text-rose-600 dark:text-rose-400 rounded-lg border border-rose-200 dark:border-rose-900/50 font-bold transition flex items-center gap-1 cursor-pointer"
+                      title={`Delete ${cli.company || 'organization'}`}
+                    >
+                      <Trash2 className="w-3.5 h-3.5" />
+                      <span className="text-[10px]">Delete</span>
+                    </button>
+                  </div>
                 </div>
               </div>
             );
@@ -667,11 +708,21 @@ export const CrmClients = () => {
 
               <div className="flex items-center gap-2">
                 <button
+                  type="button"
                   onClick={() => setIsEditing(!isEditing)}
-                  className="px-3 py-1.5 bg-slate-100 hover:bg-slate-200 dark:bg-navy-950 dark:hover:bg-navy-800 text-slate-700 dark:text-slate-300 rounded-xl font-bold text-xs flex items-center gap-1 border border-slate-200 dark:border-navy-700 transition"
+                  className="px-3 py-1.5 bg-slate-100 hover:bg-slate-200 dark:bg-navy-950 dark:hover:bg-navy-800 text-slate-700 dark:text-slate-300 rounded-xl font-bold text-xs flex items-center gap-1 border border-slate-200 dark:border-navy-700 transition cursor-pointer"
                 >
                   <Edit className="w-3.5 h-3.5" />
                   <span>{isEditing ? 'Cancel Edit' : 'Edit Profile'}</span>
+                </button>
+                <button
+                  type="button"
+                  onClick={() => handleDeleteClient(selectedClient)}
+                  className="px-3 py-1.5 bg-rose-50 hover:bg-rose-100 dark:bg-rose-950/40 dark:hover:bg-rose-900/60 text-rose-600 dark:text-rose-400 rounded-xl font-bold text-xs flex items-center gap-1 border border-rose-200 dark:border-rose-900/50 transition cursor-pointer"
+                  title="Delete Organization"
+                >
+                  <Trash2 className="w-3.5 h-3.5" />
+                  <span>Delete</span>
                 </button>
                 <button 
                   onClick={() => { setSelectedClient(null); setClientDetailData(null); }} 
@@ -1124,6 +1175,59 @@ export const CrmClients = () => {
               </div>
             )}
 
+          </div>
+        </div>
+      )}
+
+      {/* DELETE CONFIRMATION MODAL */}
+      {deleteConfirmClient && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-navy-950/80 backdrop-blur-sm animate-in fade-in">
+          <div className="glass-card bg-white dark:bg-navy-900 border border-rose-500/40 rounded-3xl max-w-md w-full p-6 shadow-luxury space-y-4">
+            <div className="w-12 h-12 rounded-2xl bg-rose-500/10 border border-rose-500/30 text-rose-500 flex items-center justify-center mx-auto">
+              <Trash2 className="w-6 h-6" />
+            </div>
+
+            <div className="text-center space-y-1.5">
+              <h3 className="font-serif text-lg font-bold text-slate-900 dark:text-white">
+                Delete Organization?
+              </h3>
+              <p className="text-xs text-slate-500 dark:text-slate-400">
+                Are you sure you want to permanently delete{' '}
+                <strong className="text-slate-900 dark:text-white">
+                  {deleteConfirmClient.company}
+                </strong>{' '}
+                (#{deleteConfirmClient.id})? All associated contacts and records will also be removed. This action cannot be undone.
+              </p>
+            </div>
+
+            <div className="flex gap-2 pt-2">
+              <button
+                type="button"
+                onClick={() => setDeleteConfirmClient(null)}
+                disabled={isDeleting}
+                className="flex-1 py-2.5 rounded-xl border border-slate-300 dark:border-navy-700 hover:bg-slate-100 dark:hover:bg-navy-800 text-slate-700 dark:text-slate-300 font-bold text-xs transition cursor-pointer"
+              >
+                Cancel
+              </button>
+              <button
+                type="button"
+                onClick={confirmDeleteClient}
+                disabled={isDeleting}
+                className="flex-1 py-2.5 rounded-xl bg-rose-600 hover:bg-rose-500 text-white font-bold text-xs shadow-md transition flex items-center justify-center gap-1.5 cursor-pointer disabled:opacity-50"
+              >
+                {isDeleting ? (
+                  <>
+                    <RefreshCw className="w-3.5 h-3.5 animate-spin" />
+                    <span>Deleting...</span>
+                  </>
+                ) : (
+                  <>
+                    <Trash2 className="w-3.5 h-3.5" />
+                    <span>Delete Organization</span>
+                  </>
+                )}
+              </button>
+            </div>
           </div>
         </div>
       )}

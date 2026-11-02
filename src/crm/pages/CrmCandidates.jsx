@@ -1,16 +1,40 @@
 import React, { useState } from 'react';
 import { useCrm } from '../context/CrmContext';
 import { ASSIGNED_RECRUITERS } from '../data/mockCrmData';
-import { Users, Search, Plus, Sparkles, FileText, CheckCircle2, Shield, Eye, Bookmark, Filter, X, Send, UserCheck } from 'lucide-react';
+import { Users, Search, Plus, Sparkles, FileText, CheckCircle2, Shield, Eye, Bookmark, Filter, X, Send, UserCheck, Trash2, AlertCircle } from 'lucide-react';
 import { CrmAddCandidateModal } from '../components/CrmAddCandidateModal';
 import ScrollReveal from '../../components/ScrollReveal';
 
 export const CrmCandidates = () => {
-  const { candidates, setAiDrawerOpen, globalAddCandidateOpen, setGlobalAddCandidateOpen } = useCrm();
+  const { candidates, deleteCandidate, setAiDrawerOpen, globalAddCandidateOpen, setGlobalAddCandidateOpen } = useCrm();
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedNationality, setSelectedNationality] = useState('All');
   const [selectedRecruiter, setSelectedRecruiter] = useState('All');
   const [viewCand, setViewCand] = useState(null);
+  const [deleteConfirmCand, setDeleteConfirmCand] = useState(null);
+  const [isDeleting, setIsDeleting] = useState(false);
+
+  const handleDeleteCandidate = (cand) => {
+    setDeleteConfirmCand(cand);
+  };
+
+  const confirmDeleteCandidate = async () => {
+    if (!deleteConfirmCand) return;
+    setIsDeleting(true);
+    try {
+      if (deleteCandidate) {
+        await deleteCandidate(deleteConfirmCand.id);
+      }
+      if (viewCand && viewCand.id === deleteConfirmCand.id) {
+        setViewCand(null);
+      }
+      setDeleteConfirmCand(null);
+    } catch (err) {
+      alert('Failed to delete candidate: ' + (err.message || 'Unknown error'));
+    } finally {
+      setIsDeleting(false);
+    }
+  };
 
   const filtered = candidates.filter(c => {
     const matchesSearch = c.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
@@ -140,8 +164,22 @@ export const CrmCandidates = () => {
             </div>
 
             <div className="pt-3 border-t border-slate-200 dark:border-navy-800 flex justify-between items-center text-[10px] text-slate-500 dark:text-slate-400">
-              <span>Recruiter: <strong className="text-slate-900 dark:text-white">{cand.assignedRecruiter}</strong></span>
-              <span className="bg-gold-500/20 text-gold-600 dark:text-gold-400 font-bold px-2 py-0.5 rounded uppercase">{cand.stage}</span>
+              <div className="space-y-0.5">
+                <span>Recruiter: <strong className="text-slate-900 dark:text-white">{cand.assignedRecruiter}</strong></span>
+                <span className="block bg-gold-500/20 text-gold-600 dark:text-gold-400 font-bold px-2 py-0.5 rounded uppercase w-fit">{cand.stage}</span>
+              </div>
+              <button
+                type="button"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  handleDeleteCandidate(cand);
+                }}
+                className="p-1.5 px-2.5 bg-rose-50 hover:bg-rose-100 dark:bg-rose-950/40 dark:hover:bg-rose-900/60 text-rose-600 dark:text-rose-400 rounded-lg border border-rose-200 dark:border-rose-900/50 font-bold transition flex items-center gap-1 cursor-pointer"
+                title={`Delete ${cand.name}`}
+              >
+                <Trash2 className="w-3.5 h-3.5" />
+                <span className="text-[10px]">Delete</span>
+              </button>
             </div>
           </div>
         ))}
@@ -184,7 +222,59 @@ export const CrmCandidates = () => {
             </div>
 
             <div className="flex gap-2 pt-2">
-              <button onClick={() => setViewCand(null)} className="flex-1 py-2 bg-slate-200 dark:bg-navy-800 text-slate-900 dark:text-white font-bold rounded-xl">Close</button>
+              <button 
+                type="button"
+                onClick={() => handleDeleteCandidate(viewCand)} 
+                className="py-2.5 px-4 bg-rose-50 hover:bg-rose-100 dark:bg-rose-950/40 dark:hover:bg-rose-900/60 text-rose-600 dark:text-rose-400 font-bold rounded-xl border border-rose-200 dark:border-rose-900/50 flex items-center justify-center gap-1.5 transition cursor-pointer text-xs"
+              >
+                <Trash2 className="w-3.5 h-3.5" />
+                <span>Delete Candidate</span>
+              </button>
+              <button onClick={() => setViewCand(null)} className="flex-1 py-2.5 bg-slate-200 dark:bg-navy-800 hover:bg-slate-300 dark:hover:bg-navy-700 text-slate-900 dark:text-white font-bold rounded-xl transition cursor-pointer text-xs">Close</button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Delete Candidate Confirmation Modal */}
+      {deleteConfirmCand && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-navy-950/80 backdrop-blur-sm animate-in fade-in">
+          <div className="glass-card bg-white dark:bg-navy-900 border border-rose-500/40 rounded-3xl max-w-md w-full p-6 shadow-luxury space-y-4">
+            <div className="w-12 h-12 rounded-2xl bg-rose-500/10 border border-rose-500/30 text-rose-500 flex items-center justify-center mx-auto">
+              <Trash2 className="w-6 h-6" />
+            </div>
+
+            <div className="text-center space-y-1.5">
+              <h3 className="font-serif text-lg font-bold text-slate-900 dark:text-white">
+                Delete Candidate?
+              </h3>
+              <p className="text-xs text-slate-500 dark:text-slate-400">
+                Are you sure you want to permanently delete <strong className="text-slate-900 dark:text-white">{deleteConfirmCand.name}</strong> (#{deleteConfirmCand.id})? All compliance documents and profile records will be permanently removed.
+              </p>
+            </div>
+
+            <div className="flex gap-2 pt-2">
+              <button
+                type="button"
+                onClick={() => setDeleteConfirmCand(null)}
+                disabled={isDeleting}
+                className="flex-1 py-2.5 rounded-xl border border-slate-300 dark:border-navy-700 hover:bg-slate-100 dark:hover:bg-navy-800 text-slate-700 dark:text-slate-300 font-bold text-xs transition cursor-pointer"
+              >
+                Cancel
+              </button>
+              <button
+                type="button"
+                onClick={confirmDeleteCandidate}
+                disabled={isDeleting}
+                className="flex-1 py-2.5 rounded-xl bg-rose-600 hover:bg-rose-500 text-white font-bold text-xs shadow-md transition flex items-center justify-center gap-1.5 cursor-pointer disabled:opacity-50"
+              >
+                {isDeleting ? 'Deleting...' : (
+                  <>
+                    <Trash2 className="w-3.5 h-3.5" />
+                    <span>Delete Candidate</span>
+                  </>
+                )}
+              </button>
             </div>
           </div>
         </div>

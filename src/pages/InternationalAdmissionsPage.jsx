@@ -1298,6 +1298,69 @@ export const InternationalAdmissionsPage = () => {
           </div>
         </ScrollReveal>
 
+        {/* ========================================================================= */}
+        {/* SECTION 11: FINAL CONVERSION SECTION                                      */}
+        {/* ========================================================================= */}
+        <ScrollReveal>
+          <div className="relative overflow-hidden rounded-3xl bg-gradient-to-br from-navy-950 via-[#102A43] to-navy-900 border border-gold-500/30 p-8 sm:p-12 text-center text-white shadow-2xl space-y-6">
+            <div className="absolute top-0 right-0 w-96 h-96 bg-gold-500/10 rounded-full blur-3xl pointer-events-none" />
+            <div className="absolute bottom-0 left-0 w-96 h-96 bg-gold-500/5 rounded-full blur-3xl pointer-events-none" />
+
+            <div className="relative z-10 max-w-2xl mx-auto space-y-4">
+              <span className="bg-gold-500/20 text-gold-400 text-xs font-black px-3.5 py-1.5 rounded-full uppercase tracking-wider border border-gold-500/30 inline-block">
+                Start Your Admissions Journey
+              </span>
+
+              <h2 className="font-serif text-2xl sm:text-3xl md:text-4xl font-black text-white leading-tight">
+                Your Global Education Journey Starts Here.
+              </h2>
+
+              <p className="text-sm sm:text-base text-slate-300 leading-relaxed font-normal">
+                Connect with our senior international admissions counselors today to plan your multi-portal university applications, verify academic documentation, and receive dedicated admission guidance.
+              </p>
+
+              <div className="flex flex-col sm:flex-row items-center justify-center gap-3.5 pt-4">
+                <button
+                  onClick={() => {
+                    trackCtaClick('final_cta_book_free_consultation', 'International Admissions');
+                    scrollToSection('admissions-consultation-booking');
+                  }}
+                  className="w-full sm:w-auto px-7 py-3.5 rounded-xl bg-gold-shimmer text-navy-950 font-extrabold text-xs shadow-gold-glow hover:opacity-95 transition-all flex items-center justify-center gap-2 cursor-pointer"
+                >
+                  <span>Book Free Consultation</span>
+                  <ArrowRight className="w-4 h-4" />
+                </button>
+
+                <a
+                  href="https://wa.me/919003475405?text=Hello%20The%20Revival%20International,%20I%20would%20like%20to%20enquire%20about%20International%20Admissions%20support."
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  onClick={() => trackCtaClick('final_cta_whatsapp', 'International Admissions')}
+                  className="w-full sm:w-auto px-7 py-3.5 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white font-extrabold text-xs shadow-md transition-all flex items-center justify-center gap-2 cursor-pointer"
+                >
+                  <span>WhatsApp Consultation</span>
+                  <ExternalLink className="w-3.5 h-3.5" />
+                </a>
+              </div>
+
+              <div className="flex flex-wrap items-center justify-center gap-6 pt-4 text-xs text-slate-400">
+                <div className="flex items-center gap-1.5">
+                  <CheckCircle2 className="w-3.5 h-3.5 text-gold-400" />
+                  <span>100% Confidential</span>
+                </div>
+                <div className="flex items-center gap-1.5">
+                  <CheckCircle2 className="w-3.5 h-3.5 text-gold-400" />
+                  <span>Direct University Portals</span>
+                </div>
+                <div className="flex items-center gap-1.5">
+                  <CheckCircle2 className="w-3.5 h-3.5 text-gold-400" />
+                  <span>Verified Advisors</span>
+                </div>
+              </div>
+            </div>
+          </div>
+        </ScrollReveal>
+
       </div>
     </div>
   );

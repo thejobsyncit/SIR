@@ -1,7 +1,8 @@
 import React, { useState, useEffect } from 'react';
 import { 
   Send, CheckCircle2, AlertCircle, Loader2, Sparkles, ShieldCheck, 
-  Calendar, Phone, Mail, User, Clock, BookOpen, Award, Check
+  Calendar, Phone, Mail, User, Clock, BookOpen, Award, Check,
+  ChevronRight, ChevronLeft, Briefcase, GraduationCap, Languages, Building2
 } from 'lucide-react';
 import { trackEnquiryStart, trackEnquiryValidationFailure, trackEnquiryConversion } from '../services/analytics';
 import { getAttributionData } from '../utils/attribution';
@@ -16,17 +17,23 @@ export const SeminarsLanguageForm = ({
   // Tomorrow's date for start date picker
   const tomorrow = new Date(Date.now() + 86400000).toISOString().split('T')[0];
 
+  const [currentStep, setCurrentStep] = useState(1);
   const [formData, setFormData] = useState({
+    // Step 1: Personal Details
     name: '',
-    phone: '',
-    countryCode: '+971',
     email: '',
-    applicantType: 'Student',
+    countryCode: '+971',
+    phone: '',
+    applicantType: 'Student', // Student, Working Professional, Healthcare Professional, Corporate Representative
+
+    // Step 2: Program & Training Requirements
     interestedProgram: preselectedProgram || 'IELTS',
     currentProficiency: '',
-    preferredTrainingFormat: 'Online',
+    preferredTrainingFormat: 'Online', // Online, Classroom, Corporate
     preferredStartDate: tomorrow,
-    preferredContactMethod: 'WhatsApp',
+
+    // Step 3: Contact & Questions
+    preferredContactMethod: 'WhatsApp', // WhatsApp, Phone Call, Email
     additionalQuestions: '',
     consent: false
   });
@@ -40,6 +47,8 @@ export const SeminarsLanguageForm = ({
   useEffect(() => {
     if (preselectedProgram && preselectedProgram !== formData.interestedProgram) {
       setFormData(prev => ({ ...prev, interestedProgram: preselectedProgram }));
+      // Advance to step 2 so user immediately sees their selected program
+      setCurrentStep(2);
     }
   }, [preselectedProgram]);
 
@@ -61,35 +70,32 @@ export const SeminarsLanguageForm = ({
 
   const applicantTypeOptions = [
     'Student',
-    'Healthcare Professional',
     'Working Professional',
-    'Corporate Representative',
-    'Other'
+    'Healthcare Professional',
+    'Corporate Representative'
   ];
 
-  const interestedProgramOptions = [
-    'IELTS',
-    'OET',
-    'DET',
-    'TOEFL',
-    'Leadership Seminar',
+  const programOptions = [
+    'IELTS Preparation',
+    'OET Preparation',
+    'TOEFL Preparation',
+    'Duolingo English Test (DET)',
+    'Leadership & Management',
     'Corporate Communication',
-    'Executive Workshop',
-    'Corporate Training'
+    'Executive Development Workshops',
+    'Corporate Training Programs'
   ];
 
   const trainingFormatOptions = [
-    { id: 'Individual', label: 'Individual 1-on-1' },
-    { id: 'Group', label: 'Group Batch' },
-    { id: 'Online', label: 'Online Virtual' },
-    { id: 'In-Person', label: 'In-Person (Dubai / Chennai)' },
-    { id: 'Corporate', label: 'Corporate Cohort' }
+    { id: 'Online', label: 'Online Training (Live Virtual)' },
+    { id: 'Classroom', label: 'Classroom Training (In-Person)' },
+    { id: 'Corporate', label: 'Corporate / On-site Training' }
   ];
 
   const contactMethodOptions = [
-    { id: 'WhatsApp', label: 'WhatsApp' },
-    { id: 'Phone', label: 'Phone Call' },
-    { id: 'Email', label: 'Email' }
+    { id: 'WhatsApp', label: 'WhatsApp Call / Chat' },
+    { id: 'Phone Call', label: 'Direct Phone Call' },
+    { id: 'Email', label: 'Email Advisory' }
   ];
 
   const handleChange = (e) => {
@@ -115,74 +121,72 @@ export const SeminarsLanguageForm = ({
     }
   };
 
-  const validate = () => {
+  const validateStep = (stepNumber) => {
     const errors = {};
 
-    // 1. Full Name
-    if (!formData.name || formData.name.trim().length < 2) {
-      errors.name = 'Full name is required (minimum 2 characters).';
-    } else if (formData.name.trim().length > 100) {
-      errors.name = 'Full name must not exceed 100 characters.';
-    }
-
-    // 2. Email Address
-    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-    if (!formData.email || !emailRegex.test(formData.email.trim())) {
-      errors.email = 'Please provide a valid email address.';
-    }
-
-    // 3. Phone Number
-    if (!formData.phone || formData.phone.length < 7) {
-      errors.phone = 'Valid phone number is required (at least 7 digits).';
-    } else if (formData.phone.length > 15) {
-      errors.phone = 'Phone number exceeds maximum length.';
-    }
-
-    // 4. Applicant Type
-    if (!formData.applicantType) {
-      errors.applicantType = 'Please select your applicant type.';
-    }
-
-    // 5. Interested Program
-    if (!formData.interestedProgram) {
-      errors.interestedProgram = 'Please select an interested program.';
-    }
-
-    // 6. Current Proficiency or Training Requirements
-    if (!formData.currentProficiency || formData.currentProficiency.trim().length < 2) {
-      errors.currentProficiency = 'Please provide your current proficiency or training requirements.';
-    } else if (formData.currentProficiency.trim().length > 1000) {
-      errors.currentProficiency = 'Proficiency details must not exceed 1000 characters.';
-    }
-
-    // 7. Preferred Training Format
-    if (!formData.preferredTrainingFormat) {
-      errors.preferredTrainingFormat = 'Please choose a preferred training format.';
-    }
-
-    // 8. Preferred Start Date
-    if (!formData.preferredStartDate) {
-      errors.preferredStartDate = 'Preferred start date is required.';
-    } else {
-      const selected = new Date(formData.preferredStartDate);
-      const today = new Date();
-      today.setHours(0, 0, 0, 0);
-      if (selected < today) {
-        errors.preferredStartDate = 'Start date cannot be in the past.';
+    if (stepNumber === 1) {
+      if (!formData.name || formData.name.trim().length < 2) {
+        errors.name = 'Full name is required (minimum 2 characters).';
+      }
+      const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+      if (!formData.email || !emailRegex.test(formData.email.trim())) {
+        errors.email = 'Please provide a valid email address.';
+      }
+      if (!formData.phone || formData.phone.length < 7) {
+        errors.phone = 'Valid phone number is required (at least 7 digits).';
+      }
+      if (!formData.applicantType) {
+        errors.applicantType = 'Please select your applicant type.';
       }
     }
 
-    // 9. Preferred Contact Method
-    if (!formData.preferredContactMethod) {
-      errors.preferredContactMethod = 'Please choose a preferred contact method.';
+    if (stepNumber === 2) {
+      if (!formData.interestedProgram) {
+        errors.interestedProgram = 'Please select a training or test prep program.';
+      }
+      if (!formData.currentProficiency || formData.currentProficiency.trim().length < 2) {
+        errors.currentProficiency = 'Please provide your current proficiency or training requirements.';
+      }
+      if (!formData.preferredTrainingFormat) {
+        errors.preferredTrainingFormat = 'Please select a preferred training format.';
+      }
+      if (!formData.preferredStartDate) {
+        errors.preferredStartDate = 'Preferred start date is required.';
+      } else {
+        const selected = new Date(formData.preferredStartDate);
+        const today = new Date();
+        today.setHours(0, 0, 0, 0);
+        if (selected < today) {
+          errors.preferredStartDate = 'Start date cannot be in the past.';
+        }
+      }
     }
 
-    // 10. Privacy Consent Checkbox
-    if (!formData.consent) {
-      errors.consent = 'Privacy consent is required to process your consultation request.';
+    if (stepNumber === 3) {
+      if (!formData.preferredContactMethod) {
+        errors.preferredContactMethod = 'Please choose a preferred contact method.';
+      }
+      if (!formData.consent) {
+        errors.consent = 'Privacy consent is required to process your consultation request.';
+      }
     }
 
     return errors;
+  };
+
+  const goToNextStep = () => {
+    const errors = validateStep(currentStep);
+    if (Object.keys(errors).length > 0) {
+      setFormErrors(errors);
+      return;
+    }
+    setFormErrors({});
+    setCurrentStep(prev => Math.min(prev + 1, 3));
+  };
+
+  const goToPrevStep = () => {
+    setFormErrors({});
+    setCurrentStep(prev => Math.max(prev - 1, 1));
   };
 
   const handleSubmit = async (e) => {
@@ -190,11 +194,17 @@ export const SeminarsLanguageForm = ({
     if (isSubmitting) return;
 
     setSubmitError(null);
-    const errors = validate();
+    const step1Errors = validateStep(1);
+    const step2Errors = validateStep(2);
+    const step3Errors = validateStep(3);
 
-    if (Object.keys(errors).length > 0) {
-      setFormErrors(errors);
-      trackEnquiryValidationFailure('seminars_language_page', 'exec-seminars-lang', Object.keys(errors));
+    const allErrors = { ...step1Errors, ...step2Errors, ...step3Errors };
+    if (Object.keys(allErrors).length > 0) {
+      setFormErrors(allErrors);
+      if (Object.keys(step1Errors).length > 0) setCurrentStep(1);
+      else if (Object.keys(step2Errors).length > 0) setCurrentStep(2);
+      else setCurrentStep(3);
+      trackEnquiryValidationFailure('seminars_language_page', 'exec-seminars-lang', Object.keys(allErrors));
       return;
     }
 
@@ -225,7 +235,18 @@ export const SeminarsLanguageForm = ({
       consultationMode: formData.preferredTrainingFormat,
       status: 'New Enquiry',
       priority: 'High',
-      message: `[Seminars & Language Consultation Enquiry]\n\n• Applicant Type: ${formData.applicantType}\n• Interested Program: ${formData.interestedProgram}\n• Current Proficiency / Training Requirements: ${formData.currentProficiency.trim()}\n• Preferred Training Format: ${formData.preferredTrainingFormat}\n• Preferred Start Date: ${formData.preferredStartDate}\n• Preferred Contact Method: ${formData.preferredContactMethod}\n\nAdditional Questions & Context:\n${formData.additionalQuestions.trim() || 'No additional questions specified.'}`,
+      message: `[Seminars & Language Consultation Enquiry]
+
+• Applicant Name: ${formData.name.trim()}
+• Applicant Type: ${formData.applicantType}
+• Interested Program: ${formData.interestedProgram}
+• Current Proficiency / Training Requirements: ${formData.currentProficiency.trim()}
+• Preferred Training Format: ${formData.preferredTrainingFormat}
+• Preferred Start Date: ${formData.preferredStartDate}
+• Preferred Contact Method: ${formData.preferredContactMethod}
+
+Additional Questions & Context:
+${formData.additionalQuestions.trim() || 'No additional questions specified.'}`,
       utmSource: attribution.utmSource,
       utmMedium: attribution.utmMedium,
       utmCampaign: attribution.utmCampaign,
@@ -255,7 +276,6 @@ export const SeminarsLanguageForm = ({
 
       setSubmissionSuccess(successData);
 
-      // Track conversion
       trackEnquiryConversion(
         confirmedRef,
         'exec-seminars-lang',
@@ -268,7 +288,7 @@ export const SeminarsLanguageForm = ({
         onSuccessCallback(successData);
       }
     } catch (err) {
-      console.error('Seminars & Language enquiry submission error:', err);
+      console.error('Seminars & Language consultation booking error:', err);
       setSubmitError(err.message || 'A network error occurred while connecting to the database server. Please try again.');
     } finally {
       setIsSubmitting(false);
@@ -278,11 +298,11 @@ export const SeminarsLanguageForm = ({
   const resetForm = () => {
     setFormData({
       name: '',
-      phone: '',
-      countryCode: '+971',
       email: '',
+      countryCode: '+971',
+      phone: '',
       applicantType: 'Student',
-      interestedProgram: preselectedProgram || 'IELTS',
+      interestedProgram: 'IELTS Preparation',
       currentProficiency: '',
       preferredTrainingFormat: 'Online',
       preferredStartDate: tomorrow,
@@ -291,421 +311,509 @@ export const SeminarsLanguageForm = ({
       consent: false
     });
     setFormErrors({});
-    setSubmitError(null);
     setSubmissionSuccess(null);
+    setCurrentStep(1);
   };
 
-  // SUCCESS STATE (Displayed ONLY upon genuine successful HTTP response from backend)
   if (submissionSuccess) {
     return (
-      <div className={`glass-card bg-white dark:bg-navy-900 border border-emerald-500/40 rounded-3xl p-6 sm:p-10 space-y-6 text-center ${embedded ? '' : 'shadow-luxury'}`}>
-        <div className="w-16 h-16 rounded-full bg-emerald-500/10 text-emerald-500 mx-auto flex items-center justify-center border border-emerald-500/30">
-          <CheckCircle2 className="w-8 h-8" />
+      <div className="bg-white rounded-2xl border border-emerald-200/80 p-8 md:p-10 shadow-xl text-center max-w-2xl mx-auto animate-fadeIn">
+        <div className="w-16 h-16 rounded-full bg-emerald-50 border-2 border-emerald-400 text-emerald-600 flex items-center justify-center mx-auto mb-6 shadow-sm">
+          <CheckCircle2 className="w-9 h-9" />
         </div>
 
-        <div className="space-y-2">
-          <span className="bg-emerald-500/15 text-emerald-600 dark:text-emerald-400 text-[11px] font-extrabold px-3 py-1 rounded-full uppercase tracking-wider border border-emerald-500/30">
-            Consultation Enquiry Received
-          </span>
-          <h3 className="font-serif text-2xl sm:text-3xl font-bold text-navy-900 dark:text-white">
-            Thank You, {submissionSuccess.name}!
-          </h3>
-          <p className="text-xs sm:text-sm text-slate-700 dark:text-slate-300 max-w-lg mx-auto font-medium">
-            Your enquiry for <strong>{submissionSuccess.program}</strong> has been registered in the Revival International database. An educational training specialist will connect with you to formulate your personalized plan.
-          </p>
-        </div>
+        <span className="inline-block px-3.5 py-1 rounded-full text-xs font-semibold bg-emerald-100/70 text-emerald-800 uppercase tracking-wider mb-3">
+          Training Enquiry Synchronized
+        </span>
 
-        {/* Confirmed Reference Card */}
-        <div className="bg-slate-50 dark:bg-navy-950 p-5 rounded-2xl border border-slate-200 dark:border-navy-800 max-w-lg mx-auto text-left space-y-3">
-          <div className="flex justify-between items-center text-xs pb-3 border-b border-slate-200 dark:border-navy-800">
-            <span className="text-slate-500 font-bold uppercase tracking-wider text-[10px]">Official Consultation Reference</span>
-            <span className="font-mono font-black text-gold-600 dark:text-gold-400 text-sm tracking-wide bg-gold-500/10 px-3 py-0.5 rounded border border-gold-500/30">
+        <h3 className="text-2xl md:text-3xl font-serif font-bold text-[#102A43] mb-3">
+          Consultation Request Confirmed
+        </h3>
+
+        <p className="text-gray-600 max-w-lg mx-auto text-sm md:text-base mb-6 leading-relaxed">
+          Thank you, <strong className="text-gray-900">{submissionSuccess.name}</strong>. Your training and diagnostic assessment request has been logged. Our lead instructor will contact you via {submissionSuccess.contactMethod}.
+        </p>
+
+        {/* Reference & Training Summary Card */}
+        <div className="bg-[#F7F9FC] border border-gray-200/80 rounded-xl p-5 mb-6 text-left text-sm space-y-3">
+          <div className="flex items-center justify-between pb-3 border-b border-gray-200">
+            <span className="text-gray-500 font-medium">Consultation Reference:</span>
+            <span className="font-mono font-bold text-[#102A43] bg-white px-2.5 py-1 rounded border border-gray-200">
               {submissionSuccess.referenceNumber}
             </span>
           </div>
 
-          <div className="grid grid-cols-2 gap-3 text-xs">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 pt-1">
             <div>
-              <p className="text-[10px] text-slate-400 font-bold uppercase">Interested Program</p>
-              <p className="font-bold text-slate-800 dark:text-slate-200 truncate">{submissionSuccess.program}</p>
+              <span className="text-gray-500 block text-xs uppercase tracking-wider">Interested Program</span>
+              <span className="font-semibold text-gray-900">{submissionSuccess.program}</span>
             </div>
             <div>
-              <p className="text-[10px] text-slate-400 font-bold uppercase">Applicant Type</p>
-              <p className="font-bold text-slate-800 dark:text-slate-200 truncate">{submissionSuccess.applicantType}</p>
+              <span className="text-gray-500 block text-xs uppercase tracking-wider">Applicant Category</span>
+              <span className="font-semibold text-gray-900">{submissionSuccess.applicantType}</span>
             </div>
             <div>
-              <p className="text-[10px] text-slate-400 font-bold uppercase">Preferred Format</p>
-              <p className="font-bold text-gold-600 dark:text-gold-400">{submissionSuccess.format}</p>
+              <span className="text-gray-500 block text-xs uppercase tracking-wider">Training Format</span>
+              <span className="font-semibold text-gray-900">{submissionSuccess.format}</span>
             </div>
             <div>
-              <p className="text-[10px] text-slate-400 font-bold uppercase">Target Start Date</p>
-              <p className="font-bold text-emerald-600 dark:text-emerald-400 truncate">{submissionSuccess.startDate}</p>
+              <span className="text-gray-500 block text-xs uppercase tracking-wider">Preferred Start Date</span>
+              <span className="font-semibold text-gray-900">{submissionSuccess.startDate}</span>
             </div>
           </div>
         </div>
 
-        <div className="text-xs text-slate-500 dark:text-slate-400 space-y-1">
-          <p>Confirmation email dispatched to: <strong className="text-slate-800 dark:text-slate-200">{submissionSuccess.email}</strong></p>
-          <p className="text-[11px]">Training desk active Monday to Saturday, 09:30 AM – 06:30 PM Gulf Standard Time.</p>
+        <div className="bg-amber-50/70 border border-amber-200 rounded-lg p-4 mb-6 text-xs text-amber-900 text-left">
+          <strong>Advisor Note:</strong> A trainer will connect with you via {submissionSuccess.contactMethod} to administer your diagnostic assessment and finalize your cohort timetable.
         </div>
 
-        <div className="pt-2 flex justify-center gap-3">
+        <div className="flex flex-col sm:flex-row items-center justify-center gap-3">
           <button
             onClick={resetForm}
-            className="px-5 py-2.5 bg-slate-100 hover:bg-slate-200 dark:bg-navy-800 dark:hover:bg-navy-700 text-slate-800 dark:text-slate-200 text-xs font-bold rounded-xl transition cursor-pointer"
+            className="w-full sm:w-auto px-6 py-2.5 rounded-lg border border-gray-300 text-gray-700 hover:bg-gray-50 font-medium text-sm transition-colors cursor-pointer"
           >
-            Submit Another Enquiry
+            Submit Another Request
           </button>
+          <a
+            href="https://wa.me/919003475405?text=Hello%20The%20Revival%20International,%20I%20have%20submitted%20a%20Seminars%20and%20Language%20Preparation%20enquiry."
+            target="_blank"
+            rel="noopener noreferrer"
+            className="w-full sm:w-auto px-6 py-2.5 rounded-lg bg-[#25D366] hover:bg-[#20ba59] text-white font-medium text-sm inline-flex items-center justify-center gap-2 shadow-sm transition-colors"
+          >
+            <Phone className="w-4 h-4" /> Connect on WhatsApp
+          </a>
         </div>
       </div>
     );
   }
 
-  // ACTIVE CONSULTATION FORM
   return (
-    <form onSubmit={handleSubmit} className="space-y-5 text-xs text-slate-800 dark:text-slate-200" noValidate>
-      
-      {/* Header Info Banner */}
-      <div className="flex items-center justify-between pb-3 border-b border-slate-200 dark:border-navy-800">
-        <div>
-          <h3 className="font-serif text-lg sm:text-xl font-bold text-navy-900 dark:text-white flex items-center gap-2">
-            <Sparkles className="w-4 h-4 text-gold-500" />
-            <span>Seminars & Language Consultation</span>
-          </h3>
-          <p className="text-[11px] text-slate-500 dark:text-slate-400">
-            Personalized training consultation for IELTS, OET, DET, TOEFL, executive seminars, and corporate development cohorts.
-          </p>
-        </div>
-        <span className="hidden sm:inline-flex bg-gold-500/10 text-gold-600 dark:text-gold-400 text-[10px] font-black px-2.5 py-1 rounded-full uppercase border border-gold-500/20">
-          Executive & Language Training
-        </span>
-      </div>
-
-      {submitError && (
-        <div className="p-3.5 bg-rose-50 dark:bg-rose-950/40 border border-rose-300 dark:border-rose-800 text-rose-700 dark:text-rose-300 rounded-xl flex items-start gap-2.5 animate-in fade-in">
-          <AlertCircle className="w-4 h-4 shrink-0 mt-0.5" />
-          <div className="text-xs space-y-0.5">
-            <p className="font-bold">Submission Failed</p>
-            <p className="text-[11px]">{submitError}</p>
+    <div className={`bg-white rounded-2xl border border-gray-200 shadow-xl overflow-hidden ${embedded ? '' : 'max-w-3xl mx-auto'}`}>
+      {/* Form Header */}
+      <div className="bg-[#102A43] text-white px-6 py-6 md:px-8 border-b border-[#1b3d60]">
+        <div className="flex items-center justify-between">
+          <div>
+            <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-semibold bg-[#C6A45C]/20 text-[#C6A45C] border border-[#C6A45C]/30 uppercase tracking-wider mb-2">
+              <Sparkles className="w-3.5 h-3.5" /> Direct Training Intake
+            </span>
+            <h3 className="text-xl md:text-2xl font-serif font-bold text-white">
+              Seminars &amp; Language Consultation
+            </h3>
+            <p className="text-gray-300 text-xs md:text-sm mt-1">
+              Get personalized training recommendations based on your goals, proficiency level, and format.
+            </p>
           </div>
         </div>
-      )}
 
-      {/* Row 1: Full Name & Email Address */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-        {/* Full Name */}
-        <div className="space-y-1">
-          <label htmlFor="sl-name" className="block text-slate-700 dark:text-slate-300 font-bold">
-            Full Name <span className="text-rose-500">*</span>
-          </label>
-          <div className="relative">
-            <User className="w-3.5 h-3.5 text-slate-400 absolute left-3 top-3 pointer-events-none" />
-            <input
-              id="sl-name"
-              type="text"
-              name="name"
-              value={formData.name}
-              onChange={handleChange}
-              onFocus={() => trackEnquiryStart('seminars_language_page', 'exec-seminars-lang', 'Seminars & Language')}
-              placeholder="e.g. Dr. Priya Nair / Johnathan Miller"
-              disabled={isSubmitting}
-              className={`w-full pl-9 pr-3 py-2 bg-slate-50 dark:bg-navy-950 border rounded-xl font-semibold text-slate-900 dark:text-white placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-gold-500 transition ${
-                formErrors.name ? 'border-rose-500 ring-1 ring-rose-500' : 'border-slate-300 dark:border-navy-700'
-              }`}
-            />
+        {/* 3-Step Wizard Progress Bar */}
+        <div className="mt-6 pt-5 border-t border-white/10">
+          <div className="grid grid-cols-3 gap-2">
+            {[
+              { num: 1, title: 'Personal Info', desc: 'Contact Details' },
+              { num: 2, title: 'Program & Goals', desc: 'Target Modules' },
+              { num: 3, title: 'Consultation', desc: 'Mode & Schedule' }
+            ].map(step => {
+              const isActive = currentStep === step.num;
+              const isCompleted = currentStep > step.num;
+              return (
+                <div key={step.num} className="relative">
+                  <div className="flex items-center gap-2">
+                    <div 
+                      className={`w-7 h-7 rounded-full flex items-center justify-center text-xs font-bold transition-all ${
+                        isCompleted 
+                          ? 'bg-[#C6A45C] text-white' 
+                          : isActive 
+                            ? 'bg-white text-[#102A43] ring-2 ring-[#C6A45C]' 
+                            : 'bg-white/20 text-white/60'
+                      }`}
+                    >
+                      {isCompleted ? <Check className="w-4 h-4 stroke-[3]" /> : step.num}
+                    </div>
+                    <div className="hidden sm:block text-left leading-tight">
+                      <div className={`text-xs font-bold ${isActive ? 'text-white' : isCompleted ? 'text-gray-200' : 'text-white/50'}`}>
+                        {step.title}
+                      </div>
+                      <div className="text-[10px] text-gray-400">
+                        {step.desc}
+                      </div>
+                    </div>
+                  </div>
+                  <div className={`h-1 w-full rounded mt-2.5 transition-all ${
+                    isCompleted ? 'bg-[#C6A45C]' : isActive ? 'bg-white' : 'bg-white/10'
+                  }`} />
+                </div>
+              );
+            })}
           </div>
-          {formErrors.name && (
-            <p className="text-[10px] text-rose-500 font-bold">{formErrors.name}</p>
-          )}
-        </div>
-
-        {/* Email Address */}
-        <div className="space-y-1">
-          <label htmlFor="sl-email" className="block text-slate-700 dark:text-slate-300 font-bold">
-            Email Address <span className="text-rose-500">*</span>
-          </label>
-          <div className="relative">
-            <Mail className="w-3.5 h-3.5 text-slate-400 absolute left-3 top-3 pointer-events-none" />
-            <input
-              id="sl-email"
-              type="email"
-              name="email"
-              value={formData.email}
-              onChange={handleChange}
-              placeholder="e.g. professional@example.com"
-              disabled={isSubmitting}
-              className={`w-full pl-9 pr-3 py-2 bg-slate-50 dark:bg-navy-950 border rounded-xl font-semibold text-slate-900 dark:text-white placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-gold-500 transition ${
-                formErrors.email ? 'border-rose-500 ring-1 ring-rose-500' : 'border-slate-300 dark:border-navy-700'
-              }`}
-            />
-          </div>
-          {formErrors.email && (
-            <p className="text-[10px] text-rose-500 font-bold">{formErrors.email}</p>
-          )}
         </div>
       </div>
 
-      {/* Row 2: Phone with Country Code & Applicant Type */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-        {/* Phone Number with Country Code */}
-        <div className="space-y-1">
-          <label htmlFor="sl-phone" className="block text-slate-700 dark:text-slate-300 font-bold">
-            Phone Number with Country Code <span className="text-rose-500">*</span>
-          </label>
-          <div className="flex gap-2">
-            <select
-              name="countryCode"
-              value={formData.countryCode}
-              onChange={handleChange}
-              disabled={isSubmitting}
-              aria-label="Country Code"
-              className="w-32 bg-slate-50 dark:bg-navy-950 border border-slate-300 dark:border-navy-700 rounded-xl px-2.5 py-2 font-bold text-slate-800 dark:text-slate-200 focus:outline-none focus:ring-2 focus:ring-gold-500 text-xs shrink-0 cursor-pointer"
-            >
-              {countryCodes.map(c => (
-                <option key={c.code} value={c.code}>{c.label}</option>
-              ))}
-            </select>
-            <div className="relative flex-1">
-              <Phone className="w-3.5 h-3.5 text-slate-400 absolute left-3 top-3 pointer-events-none" />
-              <input
-                id="sl-phone"
-                type="tel"
-                name="phone"
-                value={formData.phone}
-                onChange={handlePhoneChange}
-                placeholder="50 123 4567"
-                disabled={isSubmitting}
-                className={`w-full pl-9 pr-3 py-2 bg-slate-50 dark:bg-navy-950 border rounded-xl font-semibold text-slate-900 dark:text-white placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-gold-500 transition ${
-                  formErrors.phone ? 'border-rose-500 ring-1 ring-rose-500' : 'border-slate-300 dark:border-navy-700'
-                }`}
-              />
+      {/* Form Content */}
+      <form onSubmit={handleSubmit} className="p-6 md:p-8 space-y-6">
+        {submitError && (
+          <div className="p-4 rounded-xl bg-red-50 border border-red-200 text-red-700 text-sm flex items-start gap-3">
+            <AlertCircle className="w-5 h-5 shrink-0 mt-0.5" />
+            <div>
+              <strong className="block font-semibold">Booking Submission Notice</strong>
+              <span>{submitError}</span>
             </div>
           </div>
-          {formErrors.phone && (
-            <p className="text-[10px] text-rose-500 font-bold">{formErrors.phone}</p>
-          )}
-        </div>
-
-        {/* Applicant Type */}
-        <div className="space-y-1">
-          <label htmlFor="sl-applicant-type" className="block text-slate-700 dark:text-slate-300 font-bold">
-            Applicant Type <span className="text-rose-500">*</span>
-          </label>
-          <select
-            id="sl-applicant-type"
-            name="applicantType"
-            value={formData.applicantType}
-            onChange={handleChange}
-            disabled={isSubmitting}
-            className="w-full px-3 py-2 bg-slate-50 dark:bg-navy-950 border border-slate-300 dark:border-navy-700 rounded-xl font-semibold text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-gold-500 cursor-pointer"
-          >
-            {applicantTypeOptions.map(opt => (
-              <option key={opt} value={opt}>{opt}</option>
-            ))}
-          </select>
-          {formErrors.applicantType && (
-            <p className="text-[10px] text-rose-500 font-bold">{formErrors.applicantType}</p>
-          )}
-        </div>
-      </div>
-
-      {/* Row 3: Interested Program & Current Proficiency / Training Requirements */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-        {/* Interested Program */}
-        <div className="space-y-1">
-          <label htmlFor="sl-program" className="block text-slate-700 dark:text-slate-300 font-bold">
-            Interested Program <span className="text-rose-500">*</span>
-          </label>
-          <div className="relative">
-            <Award className="w-3.5 h-3.5 text-gold-500 absolute left-3 top-3 pointer-events-none" />
-            <select
-              id="sl-program"
-              name="interestedProgram"
-              value={formData.interestedProgram}
-              onChange={handleChange}
-              disabled={isSubmitting}
-              className="w-full pl-9 pr-3 py-2 bg-slate-50 dark:bg-navy-950 border border-slate-300 dark:border-navy-700 rounded-xl font-semibold text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-gold-500 cursor-pointer"
-            >
-              {interestedProgramOptions.map(opt => (
-                <option key={opt} value={opt}>{opt}</option>
-              ))}
-            </select>
-          </div>
-          {formErrors.interestedProgram && (
-            <p className="text-[10px] text-rose-500 font-bold">{formErrors.interestedProgram}</p>
-          )}
-        </div>
-
-        {/* Current Proficiency or Training Requirements */}
-        <div className="space-y-1">
-          <label htmlFor="sl-proficiency" className="block text-slate-700 dark:text-slate-300 font-bold">
-            Current Proficiency / Training Requirements <span className="text-rose-500">*</span>
-          </label>
-          <input
-            id="sl-proficiency"
-            type="text"
-            name="currentProficiency"
-            value={formData.currentProficiency}
-            onChange={handleChange}
-            placeholder="e.g. Intermediate English / Targeting IELTS Band 7.5 / Team of 12"
-            disabled={isSubmitting}
-            className={`w-full px-3 py-2 bg-slate-50 dark:bg-navy-950 border rounded-xl font-semibold text-slate-900 dark:text-white placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-gold-500 transition ${
-              formErrors.currentProficiency ? 'border-rose-500 ring-1 ring-rose-500' : 'border-slate-300 dark:border-navy-700'
-            }`}
-          />
-          {formErrors.currentProficiency && (
-            <p className="text-[10px] text-rose-500 font-bold">{formErrors.currentProficiency}</p>
-          )}
-        </div>
-      </div>
-
-      {/* Row 4: Preferred Training Format & Preferred Start Date */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-        {/* Preferred Training Format */}
-        <div className="space-y-1">
-          <label htmlFor="sl-format" className="block text-slate-700 dark:text-slate-300 font-bold">
-            Preferred Training Format <span className="text-rose-500">*</span>
-          </label>
-          <select
-            id="sl-format"
-            name="preferredTrainingFormat"
-            value={formData.preferredTrainingFormat}
-            onChange={handleChange}
-            disabled={isSubmitting}
-            className="w-full px-3 py-2 bg-slate-50 dark:bg-navy-950 border border-slate-300 dark:border-navy-700 rounded-xl font-semibold text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-gold-500 cursor-pointer"
-          >
-            {trainingFormatOptions.map(opt => (
-              <option key={opt.id} value={opt.id}>{opt.label}</option>
-            ))}
-          </select>
-          {formErrors.preferredTrainingFormat && (
-            <p className="text-[10px] text-rose-500 font-bold">{formErrors.preferredTrainingFormat}</p>
-          )}
-        </div>
-
-        {/* Preferred Start Date */}
-        <div className="space-y-1">
-          <label htmlFor="sl-start-date" className="block text-slate-700 dark:text-slate-300 font-bold">
-            Preferred Start Date <span className="text-rose-500">*</span>
-          </label>
-          <div className="relative">
-            <Calendar className="w-3.5 h-3.5 text-slate-400 absolute left-3 top-3 pointer-events-none" />
-            <input
-              id="sl-start-date"
-              type="date"
-              name="preferredStartDate"
-              min={new Date().toISOString().split('T')[0]}
-              value={formData.preferredStartDate}
-              onChange={handleChange}
-              disabled={isSubmitting}
-              className={`w-full pl-9 pr-3 py-2 bg-slate-50 dark:bg-navy-950 border rounded-xl font-semibold text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-gold-500 transition ${
-                formErrors.preferredStartDate ? 'border-rose-500 ring-1 ring-rose-500' : 'border-slate-300 dark:border-navy-700'
-              }`}
-            />
-          </div>
-          {formErrors.preferredStartDate && (
-            <p className="text-[10px] text-rose-500 font-bold">{formErrors.preferredStartDate}</p>
-          )}
-        </div>
-      </div>
-
-      {/* Row 5: Preferred Contact Method */}
-      <div className="space-y-1.5">
-        <label className="block text-slate-700 dark:text-slate-300 font-bold">
-          Preferred Contact Method <span className="text-rose-500">*</span>
-        </label>
-        <div className="grid grid-cols-3 gap-2">
-          {contactMethodOptions.map(method => (
-            <label
-              key={method.id}
-              className={`p-2.5 rounded-xl border flex items-center justify-center gap-2 cursor-pointer transition text-xs font-semibold ${
-                formData.preferredContactMethod === method.id
-                  ? 'bg-gold-500/15 border-gold-500 text-gold-700 dark:text-gold-300 shadow-sm'
-                  : 'bg-slate-50 dark:bg-navy-950 border-slate-200 dark:border-navy-800 text-slate-700 dark:text-slate-300 hover:border-slate-300'
-              }`}
-            >
-              <input
-                type="radio"
-                name="preferredContactMethod"
-                value={method.id}
-                checked={formData.preferredContactMethod === method.id}
-                onChange={handleChange}
-                disabled={isSubmitting}
-                className="text-gold-500 focus:ring-gold-500"
-              />
-              <span>{method.label}</span>
-            </label>
-          ))}
-        </div>
-      </div>
-
-      {/* Row 6: Additional Questions */}
-      <div className="space-y-1">
-        <div className="flex justify-between items-center">
-          <label htmlFor="sl-questions" className="block text-slate-700 dark:text-slate-300 font-bold">
-            Additional Questions <span className="text-slate-400 font-normal">(Optional)</span>
-          </label>
-          <span className="text-[10px] text-slate-400 font-mono">
-            {formData.additionalQuestions.length}/2000 chars
-          </span>
-        </div>
-        <textarea
-          id="sl-questions"
-          name="additionalQuestions"
-          rows={3}
-          value={formData.additionalQuestions}
-          onChange={handleChange}
-          placeholder="Please share any target score requirements, specific corporate topics, team sizes, or scheduling preferences..."
-          disabled={isSubmitting}
-          className="w-full p-3 bg-slate-50 dark:bg-navy-950 border border-slate-300 dark:border-navy-700 rounded-xl font-medium text-slate-900 dark:text-white placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-gold-500 transition leading-relaxed"
-        />
-      </div>
-
-      {/* Row 7: Privacy Consent Checkbox */}
-      <div className="space-y-1 pt-1">
-        <label className="flex items-start gap-2.5 cursor-pointer">
-          <input
-            type="checkbox"
-            name="consent"
-            checked={formData.consent}
-            onChange={handleChange}
-            disabled={isSubmitting}
-            className="mt-0.5 rounded border-slate-300 text-gold-500 focus:ring-gold-500 cursor-pointer"
-          />
-          <span className="text-[11px] text-slate-600 dark:text-slate-400 leading-snug">
-            I agree to the privacy policy and consent to receiving consultation correspondence from The Revival International training advisors regarding my training enquiry.
-          </span>
-        </label>
-        {formErrors.consent && (
-          <p className="text-[10px] text-rose-500 font-bold">{formErrors.consent}</p>
         )}
-      </div>
 
-      {/* Submit Enquiry Button */}
-      <div className="pt-2">
-        <button
-          type="submit"
-          disabled={isSubmitting}
-          className="w-full py-3.5 px-6 bg-gold-shimmer text-navy-950 font-black text-xs sm:text-sm rounded-xl shadow-gold-glow hover:opacity-95 transition flex items-center justify-center gap-2 cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
-        >
-          {isSubmitting ? (
-            <>
-              <Loader2 className="w-4 h-4 animate-spin text-navy-950" />
-              <span>Submitting Consultation Enquiry...</span>
-            </>
-          ) : (
-            <>
-              <Send className="w-4 h-4" />
-              <span>Submit Enquiry</span>
-            </>
-          )}
-        </button>
-      </div>
+        {/* STEP 1: Personal & Contact Information */}
+        {currentStep === 1 && (
+          <div className="space-y-5 animate-fadeIn">
+            <div className="border-b border-gray-100 pb-3">
+              <h4 className="text-base font-bold text-[#102A43] flex items-center gap-2">
+                <User className="w-4 h-4 text-[#C6A45C]" /> Step 1: Personal &amp; Contact Information
+              </h4>
+              <p className="text-xs text-gray-500 mt-0.5">Please provide your primary contact details for training correspondence.</p>
+            </div>
 
-      <div className="flex items-center justify-center gap-2 text-[10px] text-slate-400 pt-1">
-        <ShieldCheck className="w-3.5 h-3.5 text-emerald-500" />
-        <span>SSL Encrypted Transmission • Connected to Official CRM • Authentic Consultation Dispatch</span>
-      </div>
-    </form>
+            {/* Applicant Type Selection */}
+            <div>
+              <label className="block text-xs font-bold uppercase tracking-wider text-gray-700 mb-2">
+                Applicant Type <span className="text-red-500">*</span>
+              </label>
+              <div className="grid grid-cols-2 sm:grid-cols-4 gap-2.5">
+                {applicantTypeOptions.map(t => (
+                  <label
+                    key={t}
+                    className={`flex items-center justify-center p-3 rounded-xl border text-xs font-semibold cursor-pointer text-center transition-all ${
+                      formData.applicantType === t
+                        ? 'border-[#102A43] bg-[#102A43] text-white shadow-sm'
+                        : 'border-gray-200 bg-gray-50 text-gray-700 hover:border-gray-300'
+                    }`}
+                  >
+                    <input
+                      type="radio"
+                      name="applicantType"
+                      value={t}
+                      checked={formData.applicantType === t}
+                      onChange={handleChange}
+                      className="sr-only"
+                    />
+                    <span>{t}</span>
+                  </label>
+                ))}
+              </div>
+              {formErrors.applicantType && <p className="text-xs text-red-600 mt-1">{formErrors.applicantType}</p>}
+            </div>
+
+            {/* Full Name */}
+            <div>
+              <label htmlFor="name" className="block text-xs font-bold uppercase tracking-wider text-gray-700 mb-1.5">
+                Full Name <span className="text-red-500">*</span>
+              </label>
+              <div className="relative">
+                <User className="w-4 h-4 text-gray-400 absolute left-3.5 top-1/2 -translate-y-1/2 pointer-events-none" />
+                <input
+                  id="name"
+                  type="text"
+                  name="name"
+                  placeholder="e.g. Dr. Ayesha Siddiqua / David Miller"
+                  value={formData.name}
+                  onChange={handleChange}
+                  className={`w-full pl-10 pr-4 py-2.5 text-sm rounded-xl border ${
+                    formErrors.name ? 'border-red-400 bg-red-50/30' : 'border-gray-300 bg-white'
+                  } focus:outline-none focus:ring-2 focus:ring-[#102A43] text-gray-900 transition-all`}
+                  required
+                />
+              </div>
+              {formErrors.name && <p className="text-xs text-red-600 mt-1">{formErrors.name}</p>}
+            </div>
+
+            {/* Email Address */}
+            <div>
+              <label htmlFor="email" className="block text-xs font-bold uppercase tracking-wider text-gray-700 mb-1.5">
+                Email Address <span className="text-red-500">*</span>
+              </label>
+              <div className="relative">
+                <Mail className="w-4 h-4 text-gray-400 absolute left-3.5 top-1/2 -translate-y-1/2 pointer-events-none" />
+                <input
+                  id="email"
+                  type="email"
+                  name="email"
+                  placeholder="name@example.com"
+                  value={formData.email}
+                  onChange={handleChange}
+                  className={`w-full pl-10 pr-4 py-2.5 text-sm rounded-xl border ${
+                    formErrors.email ? 'border-red-400 bg-red-50/30' : 'border-gray-300 bg-white'
+                  } focus:outline-none focus:ring-2 focus:ring-[#102A43] text-gray-900 transition-all`}
+                  required
+                />
+              </div>
+              {formErrors.email && <p className="text-xs text-red-600 mt-1">{formErrors.email}</p>}
+            </div>
+
+            {/* Phone Number with Country Code */}
+            <div>
+              <label htmlFor="phone" className="block text-xs font-bold uppercase tracking-wider text-gray-700 mb-1.5">
+                Phone Number (with Country Code) <span className="text-red-500">*</span>
+              </label>
+              <div className="flex gap-2">
+                <div className="w-2/5 min-w-[120px]">
+                  <select
+                    name="countryCode"
+                    value={formData.countryCode}
+                    onChange={handleChange}
+                    className="w-full px-3 py-2.5 text-xs sm:text-sm rounded-xl border border-gray-300 bg-white focus:outline-none focus:ring-2 focus:ring-[#102A43] text-gray-900 font-medium"
+                  >
+                    {countryCodes.map(c => (
+                      <option key={c.code} value={c.code}>{c.label}</option>
+                    ))}
+                  </select>
+                </div>
+                <div className="flex-1 relative">
+                  <Phone className="w-4 h-4 text-gray-400 absolute left-3.5 top-1/2 -translate-y-1/2 pointer-events-none" />
+                  <input
+                    id="phone"
+                    type="tel"
+                    name="phone"
+                    placeholder="50 123 4567"
+                    value={formData.phone}
+                    onChange={handlePhoneChange}
+                    className={`w-full pl-10 pr-4 py-2.5 text-sm rounded-xl border ${
+                      formErrors.phone ? 'border-red-400 bg-red-50/30' : 'border-gray-300 bg-white'
+                    } focus:outline-none focus:ring-2 focus:ring-[#102A43] text-gray-900 transition-all`}
+                    required
+                  />
+                </div>
+              </div>
+              {formErrors.phone && <p className="text-xs text-red-600 mt-1">{formErrors.phone}</p>}
+            </div>
+
+            <div className="pt-4 flex justify-end">
+              <button
+                type="button"
+                onClick={goToNextStep}
+                className="px-6 py-2.5 rounded-xl bg-[#102A43] hover:bg-[#193a5c] text-white font-medium text-sm flex items-center gap-2 shadow-sm transition-all cursor-pointer"
+              >
+                Continue to Program Details <ChevronRight className="w-4 h-4" />
+              </button>
+            </div>
+          </div>
+        )}
+
+        {/* STEP 2: Program & Training Details */}
+        {currentStep === 2 && (
+          <div className="space-y-5 animate-fadeIn">
+            <div className="border-b border-gray-100 pb-3">
+              <h4 className="text-base font-bold text-[#102A43] flex items-center gap-2">
+                <BookOpen className="w-4 h-4 text-[#C6A45C]" /> Step 2: Target Program &amp; Training Requirements
+              </h4>
+              <p className="text-xs text-gray-500 mt-0.5">Tell us about your learning objectives, current proficiency, and timeline.</p>
+            </div>
+
+            {/* Interested Program Selection */}
+            <div>
+              <label htmlFor="interestedProgram" className="block text-xs font-bold uppercase tracking-wider text-gray-700 mb-1.5">
+                Interested Program <span className="text-red-500">*</span>
+              </label>
+              <select
+                id="interestedProgram"
+                name="interestedProgram"
+                value={formData.interestedProgram}
+                onChange={handleChange}
+                className="w-full px-3.5 py-2.5 text-sm rounded-xl border border-gray-300 bg-white focus:outline-none focus:ring-2 focus:ring-[#102A43] text-gray-900 font-medium"
+              >
+                {programOptions.map(prog => (
+                  <option key={prog} value={prog}>{prog}</option>
+                ))}
+              </select>
+              {formErrors.interestedProgram && <p className="text-xs text-red-600 mt-1">{formErrors.interestedProgram}</p>}
+            </div>
+
+            {/* Current Proficiency / Training Requirements */}
+            <div>
+              <label htmlFor="currentProficiency" className="block text-xs font-bold uppercase tracking-wider text-gray-700 mb-1.5">
+                Current Proficiency / Training Requirements <span className="text-red-500">*</span>
+              </label>
+              <textarea
+                id="currentProficiency"
+                name="currentProficiency"
+                rows={3}
+                placeholder="Mention your target band/score (e.g. IELTS 7.5, OET B in all sub-tests) or executive training goals for your team."
+                value={formData.currentProficiency}
+                onChange={handleChange}
+                className={`w-full p-3 text-sm rounded-xl border ${
+                  formErrors.currentProficiency ? 'border-red-400 bg-red-50/30' : 'border-gray-300 bg-white'
+                } focus:outline-none focus:ring-2 focus:ring-[#102A43] text-gray-900 transition-all`}
+                required
+              />
+              {formErrors.currentProficiency && <p className="text-xs text-red-600 mt-1">{formErrors.currentProficiency}</p>}
+            </div>
+
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              {/* Preferred Training Format */}
+              <div>
+                <label className="block text-xs font-bold uppercase tracking-wider text-gray-700 mb-1.5">
+                  Preferred Training Format <span className="text-red-500">*</span>
+                </label>
+                <select
+                  name="preferredTrainingFormat"
+                  value={formData.preferredTrainingFormat}
+                  onChange={handleChange}
+                  className="w-full px-3.5 py-2.5 text-sm rounded-xl border border-gray-300 bg-white focus:outline-none focus:ring-2 focus:ring-[#102A43] text-gray-900"
+                >
+                  {trainingFormatOptions.map(f => (
+                    <option key={f.id} value={f.id}>{f.label}</option>
+                  ))}
+                </select>
+                {formErrors.preferredTrainingFormat && <p className="text-xs text-red-600 mt-1">{formErrors.preferredTrainingFormat}</p>}
+              </div>
+
+              {/* Preferred Start Date */}
+              <div>
+                <label htmlFor="preferredStartDate" className="block text-xs font-bold uppercase tracking-wider text-gray-700 mb-1.5">
+                  Preferred Start Date <span className="text-red-500">*</span>
+                </label>
+                <div className="relative">
+                  <Calendar className="w-4 h-4 text-gray-400 absolute left-3.5 top-1/2 -translate-y-1/2 pointer-events-none" />
+                  <input
+                    id="preferredStartDate"
+                    type="date"
+                    name="preferredStartDate"
+                    min={tomorrow}
+                    value={formData.preferredStartDate}
+                    onChange={handleChange}
+                    className={`w-full pl-10 pr-4 py-2.5 text-sm rounded-xl border ${
+                      formErrors.preferredStartDate ? 'border-red-400 bg-red-50/30' : 'border-gray-300 bg-white'
+                    } focus:outline-none focus:ring-2 focus:ring-[#102A43] text-gray-900`}
+                    required
+                  />
+                </div>
+                {formErrors.preferredStartDate && <p className="text-xs text-red-600 mt-1">{formErrors.preferredStartDate}</p>}
+              </div>
+            </div>
+
+            <div className="pt-4 flex justify-between items-center">
+              <button
+                type="button"
+                onClick={goToPrevStep}
+                className="px-5 py-2.5 rounded-xl border border-gray-300 text-gray-700 hover:bg-gray-50 font-medium text-sm flex items-center gap-1.5 transition-all cursor-pointer"
+              >
+                <ChevronLeft className="w-4 h-4" /> Back to Personal
+              </button>
+              <button
+                type="button"
+                onClick={goToNextStep}
+                className="px-6 py-2.5 rounded-xl bg-[#102A43] hover:bg-[#193a5c] text-white font-medium text-sm flex items-center gap-2 shadow-sm transition-all cursor-pointer"
+              >
+                Continue to Scheduling <ChevronRight className="w-4 h-4" />
+              </button>
+            </div>
+          </div>
+        )}
+
+        {/* STEP 3: Consultation & Scheduling */}
+        {currentStep === 3 && (
+          <div className="space-y-5 animate-fadeIn">
+            <div className="border-b border-gray-100 pb-3">
+              <h4 className="text-base font-bold text-[#102A43] flex items-center gap-2">
+                <Calendar className="w-4 h-4 text-[#C6A45C]" /> Step 3: Contact Method &amp; Scheduling
+              </h4>
+              <p className="text-xs text-gray-500 mt-0.5">Select how you would like our instructors or corporate advisors to connect with you.</p>
+            </div>
+
+            {/* Preferred Contact Method */}
+            <div>
+              <label className="block text-xs font-bold uppercase tracking-wider text-gray-700 mb-2">
+                Preferred Contact Method <span className="text-red-500">*</span>
+              </label>
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                {contactMethodOptions.map(method => (
+                  <label
+                    key={method.id}
+                    className={`flex flex-col items-center justify-center p-3.5 rounded-xl border text-center cursor-pointer transition-all ${
+                      formData.preferredContactMethod === method.id
+                        ? 'border-[#102A43] bg-[#102A43] text-white shadow-sm'
+                        : 'border-gray-200 bg-gray-50 text-gray-700 hover:border-gray-300'
+                    }`}
+                  >
+                    <input
+                      type="radio"
+                      name="preferredContactMethod"
+                      value={method.id}
+                      checked={formData.preferredContactMethod === method.id}
+                      onChange={handleChange}
+                      className="sr-only"
+                    />
+                    <span className="text-xs font-semibold">{method.label}</span>
+                  </label>
+                ))}
+              </div>
+              {formErrors.preferredContactMethod && <p className="text-xs text-red-600 mt-1">{formErrors.preferredContactMethod}</p>}
+            </div>
+
+            {/* Additional Questions */}
+            <div>
+              <label htmlFor="additionalQuestions" className="block text-xs font-bold uppercase tracking-wider text-gray-700 mb-1.5">
+                Additional Questions (Optional)
+              </label>
+              <textarea
+                id="additionalQuestions"
+                name="additionalQuestions"
+                rows={2}
+                placeholder="Any specific scheduling preferences, corporate cohort sizes, or previous test attempts?"
+                value={formData.additionalQuestions}
+                onChange={handleChange}
+                className="w-full p-3 text-sm rounded-xl border border-gray-300 bg-white focus:outline-none focus:ring-2 focus:ring-[#102A43] text-gray-900 transition-all"
+              />
+            </div>
+
+            {/* Consent Checkbox */}
+            <div className="pt-2">
+              <label className="flex items-start gap-3 cursor-pointer">
+                <input
+                  type="checkbox"
+                  name="consent"
+                  checked={formData.consent}
+                  onChange={handleChange}
+                  className="mt-1 h-4 w-4 rounded border-gray-300 text-[#102A43] focus:ring-[#102A43]"
+                  required
+                />
+                <span className="text-xs text-gray-600 leading-relaxed">
+                  I consent to The Revival International processing my contact details to arrange my training diagnostic session in accordance with the Privacy Policy. <span className="text-red-500">*</span>
+                </span>
+              </label>
+              {formErrors.consent && <p className="text-xs text-red-600 mt-1">{formErrors.consent}</p>}
+            </div>
+
+            {/* Submit & Back Controls */}
+            <div className="pt-4 flex justify-between items-center">
+              <button
+                type="button"
+                onClick={goToPrevStep}
+                disabled={isSubmitting}
+                className="px-5 py-2.5 rounded-xl border border-gray-300 text-gray-700 hover:bg-gray-50 font-medium text-sm flex items-center gap-1.5 transition-all cursor-pointer"
+              >
+                <ChevronLeft className="w-4 h-4" /> Back to Program
+              </button>
+
+              <button
+                type="submit"
+                disabled={isSubmitting}
+                className="px-7 py-3 rounded-xl bg-[#C6A45C] hover:bg-[#b5934b] text-[#102A43] font-bold text-sm flex items-center gap-2 shadow-md transition-all disabled:opacity-50 cursor-pointer"
+              >
+                {isSubmitting ? (
+                  <>
+                    <Loader2 className="w-4 h-4 animate-spin text-[#102A43]" />
+                    <span>Scheduling Consultation...</span>
+                  </>
+                ) : (
+                  <>
+                    <span>Confirm &amp; Book Free Consultation</span>
+                    <Send className="w-4 h-4" />
+                  </>
+                )}
+              </button>
+            </div>
+          </div>
+        )}
+      </form>
+    </div>
   );
 };
+
+export default SeminarsLanguageForm;

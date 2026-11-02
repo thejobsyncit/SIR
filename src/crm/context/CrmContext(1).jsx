@@ -4,18 +4,50 @@ import { CRM_ROLES, ROLE_PERMISSIONS, CRM_CANDIDATES, CRM_CLIENTS, CRM_INTERVIEW
 const CrmContext = createContext();
 
 export const CrmProvider = ({ children }) => {
-  // Default to false so user sees the Login screen first
-  const [isAuthenticated, setIsAuthenticated] = useState(false);
-  const [user, setUser] = useState({
+  // Session persistence: restore authenticated session from localStorage across page refresh
+  const [isAuthenticated, setIsAuthenticated] = useState(() => {
+    try {
+      const saved = localStorage.getItem('sir_crm_session');
+      if (!saved) return false;
+      const parsed = JSON.parse(saved);
+      return Boolean(parsed && parsed.isAuthenticated);
+    } catch {
+      return false;
+    }
+  });
+
+  const DEFAULT_USER = {
     id: 'usr-901',
     name: 'Tariq Al-Mansoori',
     email: 'tariq.admin@revivalinternational.com',
     role: 'Super Admin',
     department: 'Executive Board',
     avatar: 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=150&auto=format&fit=crop&q=80'
+  };
+
+  const [user, setUser] = useState(() => {
+    try {
+      const saved = localStorage.getItem('sir_crm_session');
+      if (saved) {
+        const parsed = JSON.parse(saved);
+        if (parsed && parsed.user && typeof parsed.user === 'object') {
+          return { ...DEFAULT_USER, ...parsed.user };
+        }
+      }
+    } catch {}
+    return DEFAULT_USER;
   });
 
-  const [currentRole, setCurrentRole] = useState('Super Admin');
+  const [currentRole, setCurrentRole] = useState(() => {
+    try {
+      const saved = localStorage.getItem('sir_crm_session');
+      if (saved) {
+        const parsed = JSON.parse(saved);
+        if (parsed && parsed.currentRole) return parsed.currentRole;
+      }
+    } catch {}
+    return 'Super Admin';
+  });
   const [darkMode, setDarkMode] = useState(() => {
     try {
       const saved = localStorage.getItem('sir_theme_mode');
@@ -170,11 +202,15 @@ export const CrmProvider = ({ children }) => {
   }, []);
 
   const hasPermission = (moduleName) => {
+    if (!moduleName) return true;
     if (moduleName === 'super-admin') {
       return currentRole === 'Super Admin';
     }
     if (currentRole === 'Super Admin') return true;
-    const permissions = ROLE_PERMISSIONS[currentRole] || [];
+    if (typeof moduleName === 'string' && moduleName.startsWith('consulting')) {
+      moduleName = 'consulting';
+    }
+    const permissions = (currentRole && ROLE_PERMISSIONS[currentRole]) || [];
     return permissions.includes('all') || permissions.includes(moduleName);
   };
 
@@ -182,22 +218,38 @@ export const CrmProvider = ({ children }) => {
     if (accountLocked) return false;
     
     const assignedRole = roleName || currentRole;
-    setIsAuthenticated(true);
-    setFailedLoginAttempts(0);
-    setCurrentRole(assignedRole);
-    setUser({
+    const userData = {
       id: 'usr-' + Math.floor(100 + Math.random() * 900),
       name: email.split('@')[0].toUpperCase().replace('.', ' '),
       email,
       role: assignedRole,
       department: 'Enterprise Talent',
       avatar: 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=150&auto=format&fit=crop&q=80'
-    });
+    };
+
+    setIsAuthenticated(true);
+    setFailedLoginAttempts(0);
+    setCurrentRole(assignedRole);
+    setUser(userData);
 
     // Ensure active module is allowed for assigned role
     const perms = ROLE_PERMISSIONS[assignedRole] || [];
+    let nextModule = activeModule;
     if (assignedRole !== 'Super Admin' && !perms.includes('all') && !perms.includes(activeModule)) {
-      setActiveModule(perms[0] || 'workspace');
+      nextModule = perms[0] || 'workspace';
+      setActiveModule(nextModule);
+    }
+
+    try {
+      localStorage.setItem('sir_crm_session', JSON.stringify({
+        isAuthenticated: true,
+        user: userData,
+        currentRole: assignedRole,
+        activeModule: nextModule,
+        loginTime: new Date().toISOString()
+      }));
+    } catch (e) {
+      console.warn('Could not save CRM session', e);
     }
 
     logAuditAction(`User ${email} logged in under role '${assignedRole}'.`);
@@ -211,6 +263,9 @@ export const CrmProvider = ({ children }) => {
 
   const logout = () => {
     setIsAuthenticated(false);
+    try {
+      localStorage.removeItem('sir_crm_session');
+    } catch (e) {}
     logAuditAction(`User ${user.name} logged out.`);
   };
 
@@ -241,7 +296,14 @@ export const CrmProvider = ({ children }) => {
     logAuditAction(`Registered new client account ${clientToAdd.company} (${clientToAdd.id}).`);
   };
 
-  const removeClient = (clientId) => {
+  const removeClient = async (clientId) => {
+    try {
+      await fetch(`/api/clients/${clientId}`, {
+        method: 'DELETE'
+      });
+    } catch (err) {
+      console.warn('Backend delete error (continuing with local removal):', err);
+    }
     setClients(prev => prev.filter(c => c.id !== clientId));
     logAuditAction(`Deleted corporate client account ${clientId}.`);
   };

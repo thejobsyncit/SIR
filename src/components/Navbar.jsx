@@ -165,9 +165,11 @@ export const Navbar = () => {
                   <div 
                     onMouseEnter={() => handleMenuEnter(item.hasMega)}
                     onMouseLeave={() => handleMenuLeave()}
-                    className="absolute top-full pt-2 z-50 animate-in fade-in slide-in-from-top-1 duration-150 left-1/2 -translate-x-1/2 w-[88vw] sm:w-[380px] max-w-[92vw]"
+                    className={`absolute top-full pt-2 z-50 animate-in fade-in slide-in-from-top-1 duration-150 left-1/2 -translate-x-1/2 w-[90vw] ${
+                      item.hasMega === 'industries' ? 'sm:w-[400px] md:w-[420px]' : 'sm:w-[460px] md:w-[470px]'
+                    } max-w-[94vw]`}
                   >
-                    <div className="relative bg-white dark:bg-[#0a1628] rounded-2xl p-4 sm:p-5 shadow-2xl border border-slate-200/90 dark:border-navy-700/90 overflow-hidden">
+                    <div className="relative bg-white dark:bg-[#0a1628] rounded-2xl p-3.5 sm:p-4 shadow-2xl border border-slate-200/90 dark:border-navy-700/90 overflow-hidden">
                       
                       {/* Slim Gold Accent Indicator */}
                       <div className="absolute top-0 left-0 right-0 h-[2px] bg-gradient-to-r from-gold-500/10 via-gold-500 to-gold-500/10" />
@@ -196,12 +198,12 @@ export const Navbar = () => {
                                 <span className="truncate">Academic Advisory</span>
                               </div>
                               {[
-                                { id: 'intl-consult', title: 'Intl Consulting', href: '/international-consulting', tab: 'international-consulting' },
-                                { id: 'college-adm', title: 'College Admissions', href: '/education/college-admission-assistance', tab: 'education-college-adm' },
-                                { id: 'school-career', title: 'Career Guidance', href: '/education/school-student-career-guidance', tab: 'education-school-career' },
-                                { id: 'intl-adm', title: 'Intl Admissions', href: '/education/international-admissions', tab: 'education-intl-adm' },
-                                { id: 'school-academy', title: 'Student Academy', href: '/education/academy-for-school-students', tab: 'education-school-academy' },
-                                { id: 'exec-seminars-lang', title: 'Seminars & Language', href: '/education/executive-seminars-and-language-test-preparation', tab: 'education-exec-seminars-lang' }
+                                { id: 'intl-consult', title: 'International Consulting', href: '/international-consulting', tab: 'international-consulting' },
+                                { id: 'college-adm', title: 'College Admission Assistance', href: '/education/college-admission-assistance', tab: 'education-college-adm' },
+                                { id: 'school-career', title: 'School Student Career Guidance', href: '/education/school-student-career-guidance', tab: 'education-school-career' },
+                                { id: 'intl-adm', title: 'International Admissions', href: '/education/international-admissions', tab: 'education-intl-adm' },
+                                { id: 'school-academy', title: 'Academy for School Students', href: '/education/academy-for-school-students', tab: 'education-school-academy' },
+                                { id: 'exec-seminars-lang', title: 'Executive Seminars & Language Prep', href: '/education/executive-seminars-and-language-test-preparation', tab: 'education-exec-seminars-lang' }
                               ].map((srv) => (
                                 <a
                                   key={srv.id}
@@ -211,10 +213,10 @@ export const Navbar = () => {
                                     navigateTo(srv.tab);
                                     setMegaMenuType(null);
                                   }}
-                                  className="w-full text-left px-1.5 py-1.5 rounded-md hover:bg-gold-50 dark:hover:bg-navy-800/80 text-slate-700 dark:text-slate-200 hover:text-gold-600 dark:hover:text-gold-400 font-medium transition flex items-center justify-between group cursor-pointer"
+                                  className="w-full text-left px-1.5 py-1 rounded-md hover:bg-gold-50 dark:hover:bg-navy-800/80 text-slate-700 dark:text-slate-200 hover:text-gold-600 dark:hover:text-gold-400 font-medium transition flex items-center justify-between group cursor-pointer"
                                 >
-                                  <span className="truncate text-[11px]">• {srv.title}</span>
-                                  <ChevronRight className="w-3 h-3 text-slate-300 dark:text-slate-600 group-hover:text-gold-500 opacity-0 group-hover:opacity-100 transition shrink-0" />
+                                  <span className="text-[11px] leading-snug line-clamp-1 group-hover:text-gold-600 dark:group-hover:text-gold-400 font-medium">• {srv.title}</span>
+                                  <ChevronRight className="w-3 h-3 text-slate-300 dark:text-slate-600 group-hover:text-gold-500 opacity-0 group-hover:opacity-100 transition shrink-0 ml-1" />
                                 </a>
                               ))}
                             </div>
@@ -227,11 +229,11 @@ export const Navbar = () => {
                               </div>
                               {[
                                 { id: 'exec-search', title: 'Executive Search', tab: 'exec-search' },
-                                { id: 'intl-rec', title: 'Intl Recruitment', tab: 'intl-rec' },
+                                { id: 'intl-rec', title: 'International Recruitment', tab: 'intl-rec' },
                                 { id: 'dom-rec', title: 'Domestic Recruitment', tab: 'dom-rec' },
                                 { id: 'perm-staff', title: 'Permanent Staffing', tab: 'perm-staff' },
                                 { id: 'contract-staff', title: 'Contract Staffing', tab: 'contract-staff' },
-                                { id: 'visa-assist', title: 'Visa & Permits', tab: 'visa-assist' }
+                                { id: 'visa-assist', title: 'Visa Assistance & Permits', tab: 'visa-assist' }
                               ].map((srv) => (
                                 <a
                                   key={srv.id}
@@ -241,10 +243,10 @@ export const Navbar = () => {
                                     navigateToService(srv.tab);
                                     setMegaMenuType(null);
                                   }}
-                                  className="w-full text-left px-1.5 py-1.5 rounded-md hover:bg-gold-50 dark:hover:bg-navy-800/80 text-slate-700 dark:text-slate-200 hover:text-gold-600 dark:hover:text-gold-400 font-medium transition flex items-center justify-between group cursor-pointer"
+                                  className="w-full text-left px-1.5 py-1 rounded-md hover:bg-gold-50 dark:hover:bg-navy-800/80 text-slate-700 dark:text-slate-200 hover:text-gold-600 dark:hover:text-gold-400 font-medium transition flex items-center justify-between group cursor-pointer"
                                 >
-                                  <span className="truncate text-[11px]">• {srv.title}</span>
-                                  <ChevronRight className="w-3 h-3 text-slate-300 dark:text-slate-600 group-hover:text-gold-500 opacity-0 group-hover:opacity-100 transition shrink-0" />
+                                  <span className="text-[11px] leading-snug line-clamp-1 group-hover:text-gold-600 dark:group-hover:text-gold-400 font-medium">• {srv.title}</span>
+                                  <ChevronRight className="w-3 h-3 text-slate-300 dark:text-slate-600 group-hover:text-gold-500 opacity-0 group-hover:opacity-100 transition shrink-0 ml-1" />
                                 </a>
                               ))}
                             </div>
@@ -410,12 +412,12 @@ export const Navbar = () => {
               </div>
               <div className="grid grid-cols-2 gap-1.5 text-[11px]">
                 {[
-                  { id: 'intl-consult', label: 'Intl Consulting', href: '/international-consulting', tab: 'international-consulting' },
-                  { id: 'college-adm', label: 'College Admissions', href: '/education/college-admission-assistance', tab: 'education-college-adm' },
-                  { id: 'school-career', label: 'Career Guidance', href: '/education/school-student-career-guidance', tab: 'education-school-career' },
-                  { id: 'intl-adm', label: 'Intl Admissions', href: '/education/international-admissions', tab: 'education-intl-adm' },
-                  { id: 'school-academy', label: 'Student Academy', href: '/education/academy-for-school-students', tab: 'education-school-academy' },
-                  { id: 'exec-seminars-lang', label: 'Seminars & Language', href: '/education/executive-seminars-and-language-test-preparation', tab: 'education-exec-seminars-lang' }
+                  { id: 'intl-consult', label: 'International Consulting', href: '/international-consulting', tab: 'international-consulting' },
+                  { id: 'college-adm', label: 'College Admission Assistance', href: '/education/college-admission-assistance', tab: 'education-college-adm' },
+                  { id: 'school-career', label: 'School Student Career Guidance', href: '/education/school-student-career-guidance', tab: 'education-school-career' },
+                  { id: 'intl-adm', label: 'International Admissions', href: '/education/international-admissions', tab: 'education-intl-adm' },
+                  { id: 'school-academy', label: 'Academy for School Students', href: '/education/academy-for-school-students', tab: 'education-school-academy' },
+                  { id: 'exec-seminars-lang', label: 'Executive Seminars & Language Prep', href: '/education/executive-seminars-and-language-test-preparation', tab: 'education-exec-seminars-lang' }
                 ].map((s) => (
                   <a
                     key={s.id}

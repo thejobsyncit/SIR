@@ -36,7 +36,11 @@ export const UnifiedAuth = ({ defaultMode = 'login', defaultRole = 'candidate', 
       setError('Please provide email and password.');
       return;
     }
-    loginCandidate(candidateLogin.email, candidateLogin.password);
+    const result = loginCandidate(candidateLogin.email, candidateLogin.password);
+    if (!result || !result.success) {
+      setError(result?.message || 'Invalid credentials. Please register if you do not have an account.');
+      return;
+    }
     navigateTo('candidates');
     if (onSuccess) onSuccess();
     setActiveModal(null);
@@ -54,14 +58,19 @@ export const UnifiedAuth = ({ defaultMode = 'login', defaultRole = 'candidate', 
       setError('Passwords do not match.');
       return;
     }
-    registerCandidate({
+    const result = registerCandidate({
       fullName: candidateReg.fullName,
       email: candidateReg.email,
+      password: candidateReg.password,
       phone: `${candidateReg.countryCode} ${candidateReg.phone}`,
       preferredCountry: candidateReg.preferredCountry,
       industry: candidateReg.industry,
       resumeName: candidateReg.resumeName || 'Uploaded_CV.pdf'
     });
+    if (!result || !result.success) {
+      setError(result?.message || 'Registration failed. Please try again.');
+      return;
+    }
     navigateTo('candidates');
     if (onSuccess) onSuccess();
     setActiveModal(null);
@@ -69,16 +78,21 @@ export const UnifiedAuth = ({ defaultMode = 'login', defaultRole = 'candidate', 
 
   // Quick Demo Login
   const handleDemoCandidateLogin = () => {
-    loginCandidate('candidate@revivalinternational.com', 'demo123');
-    navigateTo('candidates');
-    if (onSuccess) onSuccess();
-    setActiveModal(null);
+    setError('');
+    const result = loginCandidate('candidate@revivalinternational.com', 'demo123');
+    if (result && result.success) {
+      navigateTo('candidates');
+      if (onSuccess) onSuccess();
+      setActiveModal(null);
+    } else {
+      setError(result?.message || 'Demo access failed.');
+    }
   };
 
   return (
     <div className="w-full max-w-xl mx-auto px-4 py-8">
       <div className="bg-white dark:bg-navy-950 rounded-3xl p-6 sm:p-8 shadow-2xl border border-slate-200 dark:border-gold-500/30">
-        
+
         {/* Revival Branding Header */}
         <div className="flex flex-col items-center text-center mb-6">
           <BrandLogoIcon className="w-20 h-20 shadow-luxury mb-3" />
@@ -86,7 +100,7 @@ export const UnifiedAuth = ({ defaultMode = 'login', defaultRole = 'candidate', 
             {authMode === 'login' ? 'Sign In to Your Account' : 'Create Your Candidate Account'}
           </h2>
           <p className="text-xs text-slate-600 dark:text-slate-400 font-medium mt-1">
-            {authMode === 'login' 
+            {authMode === 'login'
               ? 'Access your Candidate Portal to track job applications and interview updates.'
               : 'Register to apply for international vacancies and explore overseas opportunities.'}
           </p>

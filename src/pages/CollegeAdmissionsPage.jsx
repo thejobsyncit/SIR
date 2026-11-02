@@ -8,7 +8,8 @@ import {
   ArrowLeft, ArrowRight, CheckCircle2, ChevronDown, ChevronUp,
   HelpCircle, FileText, Users, Compass, Globe, Sparkles, Building2,
   Phone, Mail, Calendar, ShieldCheck, Award, GraduationCap, School,
-  ClipboardCheck, Clock, BookOpen, CheckSquare, AlertCircle, Layers, Search
+  ClipboardCheck, Clock, BookOpen, CheckSquare, AlertCircle, Layers, Search,
+  ChevronRight, MapPin, Check, Briefcase, UserCheck, Shield
 } from 'lucide-react';
 
 export const CollegeAdmissionsPage = () => {
@@ -16,7 +17,7 @@ export const CollegeAdmissionsPage = () => {
   const [openFaqIndex, setOpenFaqIndex] = useState(0);
   const [prefillData, setPrefillData] = useState(null);
 
-  // Interactive Eligibility Assessment State (Phase 3)
+  // Interactive Eligibility Assessment State
   const [eligibilityInput, setEligibilityInput] = useState({
     currentQualification: 'Class 12 / Higher Secondary (Completed or Appearing)',
     academicResults: '',
@@ -25,10 +26,13 @@ export const CollegeAdmissionsPage = () => {
   });
   const [eligibilityFeedback, setEligibilityFeedback] = useState(null);
 
-  // Interactive Document Checklist Filter & Check State (Phase 5)
+  // Interactive Document Checklist Filter & Check State
   const [docCourseFilter, setDocCourseFilter] = useState('all');
   const [docDestinationFilter, setDocDestinationFilter] = useState('all');
-  const [checkedDocs, setCheckedDocs] = useState({});
+  const [checkedDocs, setCheckedDocs] = useState({
+    'doc-marksheets': true,
+    'doc-id-passport': true
+  });
 
   useEffect(() => {
     window.scrollTo(0, 0);
@@ -42,11 +46,11 @@ export const CollegeAdmissionsPage = () => {
     }
   };
 
-  // Phase 1: Four Key Hero Information Blocks
+  // 4 Key Hero Information Blocks
   const heroInfoBlocks = [
     {
-      label: 'Degrees',
-      value: 'UG, PG, B.Sc., B.A., B.E., and other applicable programs',
+      label: 'Degrees Supported',
+      value: 'UG, PG, B.Tech, B.Sc., B.A., B.Com, MBA',
       icon: GraduationCap
     },
     {
@@ -56,17 +60,17 @@ export const CollegeAdmissionsPage = () => {
     },
     {
       label: 'Application Support',
-      value: 'Direct Portal Guidance',
+      value: 'Direct Institutional Portal Guidance',
       icon: Compass
     },
     {
       label: 'Offer Tracking',
-      value: 'Conditional Offer Follow-up',
+      value: 'Conditional & Unconditional Offer Follow-up',
       icon: ClipboardCheck
     }
   ];
 
-  // Phase 2: Six College Admission Service Cards
+  // Six College Admission Service Cards
   const admissionServices = [
     {
       id: 'course-college-selection',
@@ -77,9 +81,9 @@ export const CollegeAdmissionsPage = () => {
       description: 'Structured shortlisting of courses, degree specializations, and accredited institutions tailored to your academic background.',
       points: [
         'Understand the student’s interests, qualifications, and academic goals.',
-        'Explore suitable courses, colleges, and universities.',
-        'Compare available programs and entry requirements.',
-        'Provide guidance for selecting suitable options.'
+        'Explore suitable courses, colleges, and accredited universities.',
+        'Compare available programs, cutoffs, and entry requirements.',
+        'Provide a personalized, balanced college shortlist.'
       ],
       actionLabel: 'Enquire About Course Selection'
     },
@@ -92,9 +96,9 @@ export const CollegeAdmissionsPage = () => {
       description: 'Objective review of your marksheets, subjects, and grades against official institutional entry requirements.',
       points: [
         'Review the student’s current qualification and academic results.',
-        'Identify relevant course entry requirements.',
-        'Explain prerequisite subjects and minimum criteria where verified.',
-        'Highlight any missing information required for assessment.'
+        'Identify relevant course entry requirements and cutoffs.',
+        'Explain prerequisite subjects and minimum eligibility criteria.',
+        'Highlight any missing documentation needed for admissions.'
       ],
       actionLabel: 'Check Eligibility Requirements'
     },
@@ -106,10 +110,10 @@ export const CollegeAdmissionsPage = () => {
       icon: FileText,
       description: 'Step-by-step guidance through college and university application forms for accurate, complete submissions.',
       points: [
-        'Guide students through application forms.',
-        'Explain application requirements and submission steps.',
-        'Help organize required documents.',
-        'Review information for completeness before submission.'
+        'Guide students through centralized and direct application portals.',
+        'Explain application requirements, deadlines, and submission steps.',
+        'Help structure academic resumes and personal statements.',
+        'Review information for completeness before final submission.'
       ],
       actionLabel: 'Start Application Preparation'
     },
@@ -119,12 +123,12 @@ export const CollegeAdmissionsPage = () => {
       title: 'Document Verification and Checklist',
       badge: 'Dossier Audit',
       icon: CheckSquare,
-      description: 'Course-specific document organization to ensure transcripts, certificates, and IDs are properly prepared.',
+      description: 'Course-specific document organization to ensure transcripts, certificates, and IDs are properly audited.',
       points: [
-        'Provide a course-specific document checklist.',
-        'Help organize academic transcripts and marksheets.',
-        'Identify applicable identification, certificates, and supporting documents.',
-        'Track missing documents and pending actions.'
+        'Provide a course-specific document preparation checklist.',
+        'Help organize academic transcripts, marksheets, and transfer certificates.',
+        'Identify applicable identification, certificates, and entrance scorecards.',
+        'Track missing documents and pending institutional verifications.'
       ],
       actionLabel: 'View Document Checklist',
       targetSection: 'admission-document-checklist'
@@ -137,10 +141,10 @@ export const CollegeAdmissionsPage = () => {
       icon: Clock,
       description: 'Systematic tracking of target colleges, intake cutoffs, submission progress, and pending institutional actions.',
       points: [
-        'Record target colleges and application progress.',
+        'Record target colleges, courses, and application portal reference IDs.',
         'Track deadlines, submission status, and pending requirements.',
-        'Provide reminders for important dates where supported.',
-        'Allow students or authorized staff to update application status.'
+        'Provide timely alerts for important counseling and cutoff dates.',
+        'Allow students and parents to review application progress updates.'
       ],
       actionLabel: 'Track Application Timeline'
     },
@@ -152,16 +156,16 @@ export const CollegeAdmissionsPage = () => {
       icon: Award,
       description: 'Clear explanation of conditional or unconditional offer letters, outstanding conditions, and enrollment steps.',
       points: [
-        'Help students understand received offer letters.',
+        'Help students understand received offer letters and merit ranks.',
         'Track conditional and unconditional offers where applicable.',
-        'Explain outstanding conditions and required next steps.',
+        'Explain outstanding conditions, fee payment schedules, and seat confirmation.',
         'Provide guidance on acceptance deadlines and enrollment documentation.'
       ],
       actionLabel: 'Get Offer Letter Guidance'
     }
   ];
 
-  // Phase 3: Intended Audience Groups ("Who Can We Help?")
+  // Intended Audience Groups ("Who Can We Help?")
   const studentGroups = [
     {
       title: 'Students completing Class 12 and exploring undergraduate courses.',
@@ -190,99 +194,95 @@ export const CollegeAdmissionsPage = () => {
     }
   ];
 
-  // Phase 4: Four-Step Admission Process ("How the Admission Process Works")
+  // Four-Step Admission Process ("How the Admission Process Works")
   const admissionSteps = [
     {
       step: '01',
-      label: 'Step 1 — Initial Consultation',
       title: 'Initial Consultation',
-      desc: 'Understand the student’s qualifications, interests, preferred courses, budget, and study destination.'
+      desc: 'Understand the student’s academic qualifications, career interests, preferred degree streams, budget, and location preferences.'
     },
     {
       step: '02',
-      label: 'Step 2 — Course and College Selection',
       title: 'Course and College Selection',
-      desc: 'Identify suitable options and explain verified admission requirements.'
+      desc: 'Identify suitable institutions, review cutoff criteria, and structure a balanced shortlist of reach, target, and safe colleges.'
     },
     {
       step: '03',
-      label: 'Step 3 — Application and Document Submission',
       title: 'Application and Document Submission',
-      desc: 'Assist with application preparation, document checklists, and submission guidance.'
+      desc: 'Assist with portal form completion, document dossier verification, statement reviews, and timely application submission.'
     },
     {
       step: '04',
-      label: 'Step 4 — Offer and Enrollment Follow-up',
       title: 'Offer and Enrollment Follow-up',
-      desc: 'Help track application updates, outstanding conditions, deadlines, and enrollment steps.'
+      desc: 'Help track application updates, clarify conditional or unconditional offers, and guide fee and enrollment confirmation.'
     }
   ];
 
-  // Phase 5: Configurable Documentation Checklist ("Admission Document Checklist")
+  // Configurable Documentation Checklist
   const checklistDocuments = [
     {
       id: 'doc-marksheets',
-      title: 'Class 10 and Class 12 marksheets, where applicable.',
+      title: 'Class 10 and Class 12 Marksheets & Passing Certificates',
       applicability: 'Applicable for UG, Diploma & PG verification',
       courses: ['all', 'ug', 'pg', 'diploma'],
       destinations: ['all', 'domestic', 'international'],
-      requirementNote: 'Where applicable (Predicted grades or provisional marksheets may be considered for initial conditional review).'
+      requirementNote: 'Predicted grades or provisional marksheets may be used for initial conditional application.'
     },
     {
       id: 'doc-diploma-degree',
-      title: 'Diploma or degree certificates, where applicable.',
-      applicability: 'Applicable for Diploma holders & Postgraduate (PG) applicants',
+      title: 'Diploma or Bachelor’s Degree Certificates',
+      applicability: 'Applicable for Diploma holders & PG applicants',
       courses: ['all', 'pg', 'diploma'],
       destinations: ['all', 'domestic', 'international'],
-      requirementNote: 'Where applicable (Provisional certificate or final semester marksheets for graduating students).'
+      requirementNote: 'Provisional degree certificate or consolidated marksheets for graduating applicants.'
     },
     {
       id: 'doc-transcripts',
-      title: 'Academic transcripts.',
-      applicability: 'Consolidated or semester-wise official academic records',
+      title: 'Official Academic Transcripts',
+      applicability: 'Semester-wise consolidated institutional records',
       courses: ['all', 'ug', 'pg', 'diploma'],
       destinations: ['all', 'domestic', 'international'],
-      requirementNote: 'Commonly requested for credit evaluation, PG admissions, and transfer applications.'
+      requirementNote: 'Requested for credit evaluation, lateral entry, and postgraduate admissions.'
     },
     {
       id: 'doc-id-passport',
-      title: 'Government-issued identification or passport, if required.',
-      applicability: 'Identity verification for portal registration',
+      title: 'Government-Issued Photo ID or Passport',
+      applicability: 'Identity verification for candidate registration',
       courses: ['all', 'ug', 'pg', 'diploma'],
       destinations: ['all', 'domestic', 'international'],
-      requirementNote: 'If required (National ID / Aadhaar for domestic colleges; valid Passport for international institutions).'
+      requirementNote: 'Aadhaar / National ID for domestic admissions; valid Passport for international colleges.'
     },
     {
       id: 'doc-sop',
-      title: 'Statement of Purpose (SOP), if required.',
-      applicability: 'Personal statement outlining academic goals & course motivation',
+      title: 'Statement of Purpose (SOP) or Personal Statement',
+      applicability: 'Statement articulating academic goals and motivation',
       courses: ['all', 'ug', 'pg'],
       destinations: ['all', 'international', 'domestic'],
-      requirementNote: 'If required by the selected university or specialized degree program.'
+      requirementNote: 'Required for selective universities, business schools, and specialized honors programs.'
     },
     {
       id: 'doc-lor',
-      title: 'Recommendation letters, if required.',
-      applicability: 'Academic or faculty reference letters on institutional letterhead',
+      title: 'Letters of Recommendation (Academic / Faculty)',
+      applicability: 'References from school teachers or college professors',
       courses: ['all', 'ug', 'pg'],
       destinations: ['all', 'international'],
-      requirementNote: 'If required (Typically 1 to 2 academic references for select universities and postgraduate tracks).'
+      requirementNote: 'Typically 1 to 2 references on institutional letterhead for select universities.'
     },
     {
       id: 'doc-english',
-      title: 'English-language proficiency results, if required.',
-      applicability: 'IELTS, TOEFL, PTE, DET, or medium-of-instruction certificate',
+      title: 'Entrance Scorecard or Language Proficiency Results',
+      applicability: 'National/State Entrance or IELTS/PTE/DET results',
       courses: ['all', 'ug', 'pg'],
-      destinations: ['all', 'international'],
-      requirementNote: 'If required by the destination university or program entry criteria.'
+      destinations: ['all', 'international', 'domestic'],
+      requirementNote: 'JEE, NEET, CUET, GATE, CAT, or language test results where mandated by the university.'
     },
     {
       id: 'doc-additional',
-      title: 'Additional documents requested by the selected institution.',
-      applicability: 'Transfer certificate, migration certificate, portfolio, or entrance scorecard',
+      title: 'Transfer & Migration Certificate (TC)',
+      applicability: 'Issued by previous school or college board',
       courses: ['all', 'ug', 'pg', 'diploma'],
       destinations: ['all', 'domestic', 'international'],
-      requirementNote: 'Varies by course, college, and admission board regulations.'
+      requirementNote: 'Mandatory at the final enrollment stage upon accepting an admission offer.'
     }
   ];
 
@@ -292,28 +292,37 @@ export const CollegeAdmissionsPage = () => {
     return courseMatch && destMatch;
   });
 
-  // Phase 7: 10-Stage Configurable Application Status Workflow
+  const toggleDocCheck = (id) => {
+    setCheckedDocs(prev => ({
+      ...prev,
+      [id]: !prev[id]
+    }));
+  };
+
+  const checkedCount = Object.values(checkedDocs).filter(Boolean).length;
+
+  // 10-Stage Configurable Application Status Workflow
   const workflowStages = [
-    { step: 1, name: 'New Enquiry', desc: 'Enquiry logged and linked to College Admission Assistance' },
-    { step: 2, name: 'Consultation Scheduled', desc: 'Initial advisor session scheduled with student/parent' },
-    { step: 3, name: 'Course Selection', desc: 'Shortlisting suitable courses, colleges, and eligibility criteria' },
-    { step: 4, name: 'Documents Pending', desc: 'Collecting and verifying required transcripts & certificates' },
-    { step: 5, name: 'Application in Preparation', desc: 'Completing institutional portal forms and dossier review' },
-    { step: 6, name: 'Application Submitted', desc: 'Verified submission to selected college/university portal' },
-    { step: 7, name: 'Awaiting Institution Decision', desc: 'Monitoring admissions board review and queries' },
-    { step: 8, name: 'Offer Received', desc: 'Evaluating conditional or unconditional offer letter terms' },
-    { step: 9, name: 'Enrollment in Progress', desc: 'Assisting with condition clearing and enrollment steps' },
-    { step: 10, name: 'Closed', desc: 'Admission workflow completed or closed' }
+    { step: 1, name: 'New Enquiry', desc: 'Enquiry logged and assigned to an advisor' },
+    { step: 2, name: 'Consultation Scheduled', desc: 'One-on-one session with student/parent' },
+    { step: 3, name: 'Course Selection', desc: 'Target course & college shortlisting' },
+    { step: 4, name: 'Documents Pending', desc: 'Collecting & auditing academic records' },
+    { step: 5, name: 'Application in Preparation', desc: 'Completing portal forms & statements' },
+    { step: 6, name: 'Application Submitted', desc: 'Verified filing into university portal' },
+    { step: 7, name: 'Awaiting Decision', desc: 'Monitoring admissions board review' },
+    { step: 8, name: 'Offer Received', desc: 'Evaluating offer letter terms & cutoffs' },
+    { step: 9, name: 'Enrollment in Progress', desc: 'Fee confirmation & condition clearing' },
+    { step: 10, name: 'Closed', desc: 'Admission confirmed & seat secured' }
   ];
 
-  // Phase 8: Related Academic Advisory Services (All 5 Existing Services)
+  // Related Academic Advisory Services
   const relatedServices = [
     {
-      id: 'intl-adm',
-      title: 'International Admissions',
-      badge: 'Global Portals',
-      desc: 'End-to-end university application coordination across UCAS, Common App, and direct international portals.',
-      route: 'education-intl-adm'
+      id: 'intl-consult',
+      title: 'International Consulting',
+      badge: 'Destination Strategy',
+      desc: 'Strategic global education advisory comparing study destinations, tuition structures, and eligibility.',
+      route: 'education-intl-consult'
     },
     {
       id: 'school-career',
@@ -321,6 +330,13 @@ export const CollegeAdmissionsPage = () => {
       badge: 'Stream & Career Mapping',
       desc: 'Scientific aptitude evaluation, stream selection (Grades 8–12), and UG/PG course guidance catalogue.',
       route: 'education-school-career'
+    },
+    {
+      id: 'intl-adm',
+      title: 'International Admissions',
+      badge: 'Global Portals',
+      desc: 'End-to-end university application coordination across UCAS, Common App, and direct international portals.',
+      route: 'education-intl-adm'
     },
     {
       id: 'school-academy',
@@ -335,17 +351,10 @@ export const CollegeAdmissionsPage = () => {
       badge: 'Executive & Test Prep',
       desc: 'Executive development seminars and structured language test preparation for IELTS, OET, DET, and TOEFL.',
       route: 'education-exec-seminars-lang'
-    },
-    {
-      id: 'intl-consult',
-      title: 'International Consulting',
-      badge: 'Destination Strategy',
-      desc: 'Strategic global education advisory comparing study destinations, tuition structures, and eligibility.',
-      route: 'education-intl-consult'
     }
   ];
 
-  // Phase 9: FAQ Accordion Questions & Verified Answers
+  // FAQ Accordion Questions & Verified Answers
   const faqs = [
     {
       q: 'What is included in College Admission Assistance?',
@@ -360,820 +369,800 @@ export const CollegeAdmissionsPage = () => {
       a: 'Many colleges and universities allow students currently completing Class 12 or their final degree semester to submit initial applications using school-verified predicted grades or provisional marksheets. Where applicable, institutions may issue a Conditional Offer subject to meeting final exam criteria.'
     },
     {
-      q: 'What documents may be required?',
-      a: 'Commonly requested documents include Class 10 and Class 12 marksheets, diploma or degree certificates (where applicable), academic transcripts, government-issued ID or passport, and—depending on the institution and course—a Statement of Purpose (SOP), recommendation letters, or English proficiency results. Requirements vary by institution and program.'
+      q: 'What documents do I need before applying?',
+      a: 'Commonly requested documents include Class 10 and 12 marksheets, degree/diploma certificates for PG applicants, official academic transcripts, a valid government photo ID or passport, and any mandatory entrance test scorecards. Specialized degrees may also require a Statement of Purpose and faculty recommendation letters.'
     },
     {
-      q: 'Can you help with transfer applications?',
-      a: 'Yes. For students exploring course or college transfers, we help organize academic transcripts, course syllabi, and supporting documentation required by the receiving institution to evaluate transfer eligibility and credit recognition.'
+      q: 'Do you assist with both Indian and international college applications?',
+      a: 'Yes. We assist students applying to leading colleges and universities in India as well as premier regional and international campuses in the UAE, UK, US, Canada, Europe, and Australia. Our guidance is tailored to each institutional portal and board.'
     },
     {
-      q: 'Do you help students track application progress?',
-      a: 'Yes. Every enquiry is logged in our admissions workflow system with a unique reference number. Our team tracks target colleges, submission dates, pending documents, institutional deadlines, and conditional offer follow-ups.'
+      q: 'Does The Revival International guarantee college admission?',
+      a: 'No. As an ethical educational advisory firm, we do not guarantee admissions or seat allotments. Admission decisions rest entirely with the respective university admissions committees based on their published cutoffs, entrance exam ranks, and eligibility guidelines.'
     },
     {
-      q: 'Does admission assistance guarantee an offer?',
-      a: 'No. The Revival International provides structured guidance, eligibility checks, document verification, and application support, but final admission decisions and offer letters are issued solely at the discretion of the respective educational institution based on their official admission criteria and seat availability.'
-    }
-  ];
-
-  // Structured Data for SEO (Phase 10)
-  const structuredData = [
-    {
-      '@context': 'https://schema.org',
-      '@type': 'Service',
-      'name': 'College Admission Assistance',
-      'serviceType': 'Higher Education & College Admissions Support',
-      'provider': {
-        '@type': 'EducationalOrganization',
-        'name': 'The Revival International',
-        'url': 'https://www.revivalinternational.com/education/college-admission-assistance'
-      },
-      'description': 'Navigate your higher education journey with structured college and university admission support. From course selection and eligibility checks to application preparation, document verification, application follow-ups, and offer-letter guidance.'
+      q: 'Can parents join the college admission consultation?',
+      a: 'Yes, we warmly welcome parents and guardians to participate in all consultation sessions. Selecting a college program and managing financial budgets is an important family decision, and family participation ensures clear expectations and informed decisions.'
     },
     {
-      '@context': 'https://schema.org',
-      '@type': 'FAQPage',
-      'mainEntity': faqs.map(faq => ({
-        '@type': 'Question',
-        'name': faq.q,
-        'acceptedAnswer': {
-          '@type': 'Answer',
-          'text': faq.a
-        }
-      }))
+      q: 'How do I start my college admission assistance process?',
+      a: 'You can begin by submitting our consultation form below or completing the quick Eligibility Assessment on this page. An academic advisor will review your marks and reach out to schedule an advisory consultation.'
     }
   ];
 
   const handleEligibilitySubmit = (e) => {
     e.preventDefault();
-    if (!eligibilityInput.academicResults.trim() || !eligibilityInput.preferredCourse.trim()) {
-      setEligibilityFeedback({
-        type: 'warning',
-        text: 'Please enter your academic results and preferred course so we can prepare your preliminary eligibility assessment.'
-      });
+    const results = eligibilityInput.academicResults.trim();
+    const course = eligibilityInput.preferredCourse.trim();
+
+    if (!results || !course) {
+      alert('Please enter your academic results and preferred course to run the eligibility check.');
       return;
     }
 
     setEligibilityFeedback({
-      type: 'ready',
-      text: `Preliminary details captured for ${eligibilityInput.preferredCourse.trim()} (${eligibilityInput.preferredDestination}). Please complete the consultation form below so an advisor can verify your subject prerequisites against official institutional criteria. Final eligibility depends on the relevant institution’s official admission criteria.`
+      status: 'Preliminary Review Ready',
+      message: `Your profile for ${course} (${eligibilityInput.currentQualification}) with academic score ${results} has been evaluated. Our advisors can map suitable institutions across ${eligibilityInput.preferredDestination}.`,
+      action: 'Proceed to Consultation Booking'
     });
 
     setPrefillData({
       currentQualification: eligibilityInput.currentQualification,
-      academicResults: eligibilityInput.academicResults.trim(),
-      preferredCourse: eligibilityInput.preferredCourse.trim(),
+      academicResults: results,
+      preferredCourse: course,
       preferredDestination: eligibilityInput.preferredDestination,
-      additionalQuestions: `Requesting Eligibility Assessment for ${eligibilityInput.preferredCourse.trim()} in ${eligibilityInput.preferredDestination} with qualification: ${eligibilityInput.currentQualification} (${eligibilityInput.academicResults.trim()}).`
+      additionalQuestions: `[From Eligibility Check]: Evaluated ${course} with score ${results}. Requesting college options in ${eligibilityInput.preferredDestination}.`
     });
 
-    setTimeout(() => {
-      scrollToSection('college-admission-consultation');
-    }, 250);
-  };
-
-  const handleServiceCardAction = (service) => {
-    trackCtaClick(service.title, 'college_admission_services', 'college-adm');
-    if (service.targetSection) {
-      scrollToSection(service.targetSection);
-      return;
-    }
-    setPrefillData(prev => ({
-      ...(prev || {}),
-      additionalQuestions: `Enquiring specifically about: ${service.title} — ${service.description}`
-    }));
     scrollToSection('college-admission-consultation');
   };
 
-  const toggleDocCheck = (id) => {
-    setCheckedDocs(prev => ({ ...prev, [id]: !prev[id] }));
+  const handleServiceCardAction = (srv) => {
+    trackCtaClick(srv.actionLabel, 'service_card', 'college-adm');
+    if (srv.targetSection) {
+      scrollToSection(srv.targetSection);
+    } else {
+      setPrefillData(prev => ({
+        ...prev,
+        additionalQuestions: `[Interested in Module ${srv.number}: ${srv.title}]. Please provide guidance on this service.`
+      }));
+      scrollToSection('college-admission-consultation');
+    }
   };
 
+  // Structured Data Schema
+  const structuredData = [
+    {
+      '@context': 'https://schema.org',
+      '@type': 'EducationalOrganization',
+      'name': 'The Revival International - College Admission Assistance',
+      'url': 'https://www.therevivalinternational.com/college-admission',
+      'description': 'End-to-end college admission assistance, university shortlisting, course selection, eligibility diagnostics, and application dossier management.',
+      'address': {
+        '@type': 'PostalAddress',
+        'addressLocality': 'Dubai',
+        'addressCountry': 'AE'
+      }
+    },
+    {
+      '@context': 'https://schema.org',
+      '@type': 'FAQPage',
+      'mainEntity': faqs.map(item => ({
+        '@type': 'Question',
+        'name': item.q,
+        'acceptedAnswer': {
+          '@type': 'Answer',
+          'text': item.a
+        }
+      }))
+    }
+  ];
+
+  const breadcrumbs = [
+    { name: 'Home', url: '/' },
+    { name: 'Services', url: '/#services' },
+    { name: 'College Admission Assistance', url: '/#college-admission' }
+  ];
+
   return (
-    <div className="space-y-16 pb-24 text-slate-800 dark:text-slate-200">
+    <div className="bg-[#F7F9FC] text-[#263238] font-sans min-h-screen selection:bg-[#C6A45C]/30 selection:text-[#102A43]">
       <EducationSEO
         title="College Admission Assistance | The Revival International"
-        description="Navigate your higher education journey with structured college and university admission support. Course selection, eligibility checks, application preparation, document verification, and offer-letter guidance."
-        canonicalPath="education/college-admission-assistance"
-        breadcrumbs={[
-          { name: 'Home', item: '/' },
-          { name: 'Academic Advisory', item: '/education' },
-          { name: 'College Admission Assistance', item: '/education/college-admission-assistance' }
-        ]}
+        description="End-to-end college admission assistance, university shortlisting, course selection, eligibility diagnostics, and application dossier management."
+        canonicalPath="college-admission"
         structuredData={structuredData}
+        breadcrumbs={breadcrumbs}
+        keywords="College Admission Assistance, University Applications, College Course Selection, Higher Education Advisory, Admission Eligibility, College Application Portal Guidance"
       />
 
-      {/* Sticky Breadcrumb Navigation Bar */}
-      <div className="bg-white/80 dark:bg-navy-950/80 border-b border-slate-200 dark:border-navy-800 backdrop-blur-sm sticky top-[73px] z-30">
-        <div className="max-w-7xl mx-auto px-4 sm:px-8 py-3 flex items-center justify-between text-xs">
-          <nav aria-label="Breadcrumb" className="flex items-center space-x-2 text-slate-500 dark:text-slate-400 font-medium overflow-x-auto whitespace-nowrap">
+      {/* SECTION 1: HERO BANNER (Clean White Background with Premium Corporate Accents) */}
+      <section className="relative overflow-hidden pt-28 pb-16 md:pt-36 md:pb-24 bg-white border-b border-gray-200/80">
+        <div className="absolute inset-0 opacity-[0.03] pointer-events-none bg-[radial-gradient(#102A43_1px,transparent_1px)] [background-size:24px_24px]" />
+        <div className="absolute -top-32 -right-32 w-96 h-96 rounded-full bg-[#C6A45C]/10 blur-3xl pointer-events-none" />
+
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 relative z-10">
+
+          {/* Breadcrumb Navigation */}
+          <nav aria-label="Breadcrumb" className="flex items-center gap-2 text-xs text-gray-500 mb-6 font-medium">
             <button
               onClick={() => navigateTo('home')}
-              className="hover:text-gold-500 transition focus:outline-none focus:text-gold-500 cursor-pointer"
+              className="hover:text-[#102A43] transition-colors cursor-pointer"
             >
               Home
             </button>
-            <span>/</span>
+            <ChevronRight className="w-3 h-3 text-gray-400" />
             <button
-              onClick={() => navigateTo('education')}
-              className="hover:text-gold-500 transition focus:outline-none focus:text-gold-500 cursor-pointer"
+              onClick={() => navigateTo('services')}
+              className="hover:text-[#102A43] transition-colors cursor-pointer"
             >
-              Academic Advisory
+              Services
             </button>
-            <span>/</span>
-            <span className="text-gold-600 dark:text-gold-400 font-bold truncate max-w-[200px] sm:max-w-none">
+            <ChevronRight className="w-3 h-3 text-gray-400" />
+            <span className="text-[#C6A45C] font-semibold">
               College Admission Assistance
             </span>
           </nav>
 
-          <button
-            onClick={() => navigateTo('education')}
-            className="hidden sm:flex items-center space-x-1.5 text-slate-700 dark:text-slate-300 hover:text-gold-500 font-bold text-xs transition shrink-0 ml-4 cursor-pointer"
-          >
-            <ArrowLeft className="w-3.5 h-3.5" />
-            <span>All Education Services</span>
-          </button>
-        </div>
-      </div>
+          <div className="grid grid-cols-1 lg:grid-cols-12 gap-12 lg:gap-8 items-center">
 
-      <div className="max-w-7xl mx-auto px-4 sm:px-8 space-y-16">
+            {/* Left Column: Heading, Subheading, Description, CTAs */}
+            <div className="lg:col-span-7 space-y-6 text-left">
 
-        {/* ========================================================================= */}
-        {/* PHASE 1: PREMIUM HERO SECTION                                             */}
-        {/* ========================================================================= */}
-        <ScrollReveal>
-          <div className="glass-card bg-white dark:bg-navy-900 border border-slate-200 dark:border-gold-500/30 rounded-3xl p-6 sm:p-10 md:p-12 shadow-luxury relative overflow-hidden">
-            <div className="absolute top-0 right-0 w-96 h-96 bg-gold-500/5 rounded-full blur-3xl -z-10 pointer-events-none" />
-
-            <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 lg:gap-12 items-center">
-              {/* Left Column: Heading, Subtitle, Description, CTAs */}
-              <div className="lg:col-span-7 space-y-5">
-                <div className="flex flex-wrap items-center gap-2">
-                  <span className="bg-gold-500/15 text-gold-600 dark:text-gold-400 text-xs font-black px-3 py-1 rounded-full uppercase tracking-wider border border-gold-500/30">
-                    Higher Education Advisory
-                  </span>
-                  <span className="bg-emerald-500/15 text-emerald-600 dark:text-emerald-400 text-xs font-extrabold px-3 py-1 rounded-full uppercase border border-emerald-500/30">
-                    Verified Service • Admissions
-                  </span>
-                </div>
-
-                <h1 className="font-serif text-3xl sm:text-4xl md:text-5xl font-black text-navy-900 dark:text-white leading-tight">
-                  College Admission Assistance
-                </h1>
-
-                <p className="text-base sm:text-lg text-gold-600 dark:text-gold-400 font-serif italic">
-                  End-to-End Higher Education &amp; College Admissions Support
-                </p>
-
-                <p className="text-xs sm:text-sm text-slate-700 dark:text-slate-300 leading-relaxed font-medium">
-                  Navigate your higher education journey with structured college and university admission support. From course selection and eligibility checks to application preparation, document verification, application follow-ups, and offer-letter guidance, The Revival International helps students understand and manage their admission process with greater clarity and confidence.
-                </p>
-
-                {/* Two Functional CTA Buttons */}
-                <div className="pt-3 flex flex-wrap gap-3.5 items-center">
-                  <button
-                    type="button"
-                    onClick={() => {
-                      trackCtaClick('Book Free Consultation', 'hero_section', 'college-adm');
-                      scrollToSection('college-admission-consultation');
-                    }}
-                    className="px-6 py-3.5 bg-gold-shimmer text-navy-950 font-extrabold text-xs sm:text-sm rounded-xl shadow-gold-glow hover:opacity-95 transition flex items-center gap-2 focus:outline-none focus:ring-2 focus:ring-gold-500 cursor-pointer"
-                  >
-                    <Calendar className="w-4 h-4" />
-                    <span>Book Free Consultation</span>
-                  </button>
-
-                  <button
-                    type="button"
-                    onClick={() => {
-                      trackCtaClick('Explore Admission Process', 'hero_section', 'college-adm');
-                      scrollToSection('admission-process-section');
-                    }}
-                    className="px-5 py-3.5 bg-slate-100 dark:bg-navy-800 text-slate-800 dark:text-slate-200 hover:text-navy-900 dark:hover:text-white font-bold text-xs sm:text-sm rounded-xl transition border border-slate-200 dark:border-navy-700 focus:outline-none focus:ring-2 focus:ring-gold-500 cursor-pointer flex items-center gap-2"
-                  >
-                    <Compass className="w-4 h-4 text-gold-500" />
-                    <span>Explore Admission Process ↓</span>
-                  </button>
-                </div>
+              <div className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-[#102A43]/5 border border-[#102A43]/15 text-[#102A43] text-xs font-bold tracking-widest uppercase shadow-xs">
+                <Sparkles className="w-3.5 h-3.5 text-[#C6A45C]" />
+                <span>HIGHER EDUCATION ADVISORY</span>
               </div>
 
-              {/* Right Column: Premium Visual Card (matching International Consulting) */}
-              <div className="lg:col-span-5 relative">
-                <div className="relative rounded-2xl overflow-hidden shadow-2xl border border-slate-200 dark:border-gold-500/30 group">
-                  <img
-                    src="/images/international_admissions.jpg"
-                    alt="Students Reviewing College Admission Applications and University Course Options"
-                    className="w-full h-72 sm:h-80 md:h-96 object-cover object-center group-hover:scale-105 transition duration-700 ease-out"
-                    loading="eager"
-                  />
-                  <div className="absolute inset-0 bg-gradient-to-t from-navy-950/85 via-navy-950/30 to-transparent" />
+              <h1 className="text-4xl sm:text-5xl lg:text-6xl font-serif font-extrabold text-[#102A43] tracking-tight leading-[1.15]">
+                College Admission Assistance
+              </h1>
 
-                  {/* Floating Overlay Badge */}
-                  <div className="absolute bottom-4 left-4 right-4 space-y-2">
-                    <div className="bg-white/95 dark:bg-navy-900/95 backdrop-blur-md p-3.5 rounded-xl border border-gold-500/30 shadow-lg">
-                      <div className="flex items-center justify-between text-xs pb-1.5 border-b border-slate-100 dark:border-navy-800">
-                        <span className="font-bold text-navy-900 dark:text-white flex items-center gap-1.5">
-                          <GraduationCap className="w-3.5 h-3.5 text-gold-500" />
-                          Structured Admissions Desk
-                        </span>
-                        <span className="bg-emerald-500/15 text-emerald-600 dark:text-emerald-400 text-[10px] font-black px-2 py-0.5 rounded">
-                          UG • PG • Diploma
-                        </span>
-                      </div>
-                      <p className="text-[11px] text-slate-600 dark:text-slate-300 pt-1.5 font-medium leading-snug">
-                        Course matching, document checklists, portal guidance, and conditional offer follow-up.
-                      </p>
-                    </div>
-                  </div>
-                </div>
-              </div>
-            </div>
-
-            {/* Four Key Information Blocks */}
-            <div className="pt-8 mt-8 border-t border-slate-100 dark:border-navy-800 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-              {heroInfoBlocks.map((block, idx) => {
-                const Icon = block.icon;
-                return (
-                  <div key={idx} className="p-4 rounded-2xl bg-slate-50 dark:bg-navy-950 border border-slate-200 dark:border-navy-800 space-y-1.5">
-                    <div className="flex items-center gap-2 text-gold-600 dark:text-gold-400">
-                      <Icon className="w-4 h-4 shrink-0" />
-                      <p className="text-[10px] text-slate-500 dark:text-slate-400 uppercase font-bold tracking-wider">{block.label}</p>
-                    </div>
-                    <p className="text-xs sm:text-sm font-black text-navy-900 dark:text-white leading-snug">{block.value}</p>
-                  </div>
-                );
-              })}
-            </div>
-          </div>
-        </ScrollReveal>
-
-        {/* ========================================================================= */}
-        {/* PHASE 2: COLLEGE ADMISSION SERVICES (6 SERVICE CARDS)                     */}
-        {/* ========================================================================= */}
-        <ScrollReveal>
-          <section aria-labelledby="admission-services-heading" className="space-y-8">
-            <div className="text-center space-y-2 max-w-3xl mx-auto">
-              <span className="bg-gold-500/10 text-gold-600 dark:text-gold-400 text-xs font-bold px-3 py-1 rounded-full uppercase tracking-wider">
-                Structured Support Scope
-              </span>
-              <h2 id="admission-services-heading" className="font-serif text-2xl sm:text-3xl md:text-4xl font-extrabold text-navy-900 dark:text-white">
-                Your Complete College Admission Journey
-              </h2>
-              <p className="text-xs sm:text-sm text-slate-700 dark:text-slate-300">
-                Six core admission support modules designed to guide students and parents from initial course exploration to enrollment readiness.
+              <p className="text-xl sm:text-2xl font-medium text-[#C6A45C] leading-snug">
+                Strategic University Application &amp; College Enrollment Support
               </p>
+
+              <p className="text-[#475569] text-base sm:text-lg leading-relaxed max-w-2xl font-normal">
+                Navigate your higher education journey with structured college and university admission support. From course selection and eligibility diagnostics to application preparation, document auditing, deadline tracking, and offer-letter guidance, our advisors help students secure admissions with clarity and confidence.
+              </p>
+
+              <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-4 pt-2">
+                <button
+                  onClick={() => {
+                    trackCtaClick('hero_book_free_consultation', 'College Admission Assistance');
+                    scrollToSection('college-admission-consultation');
+                  }}
+                  className="px-8 py-4 rounded-xl bg-[#102A43] hover:bg-[#1a3d60] text-white font-bold text-base shadow-lg hover:shadow-xl transition-all duration-200 flex items-center justify-center gap-2 cursor-pointer"
+                >
+                  <span>Book Free Consultation</span>
+                  <ArrowRight className="w-4 h-4 text-[#C6A45C]" />
+                </button>
+
+                <button
+                  onClick={() => {
+                    trackCtaClick('hero_check_eligibility', 'College Admission Assistance');
+                    scrollToSection('who-can-we-help-section');
+                  }}
+                  className="px-8 py-4 rounded-xl bg-white hover:bg-gray-50 text-[#102A43] border border-gray-300 font-semibold text-base transition-all duration-200 flex items-center justify-center gap-2 shadow-xs cursor-pointer"
+                >
+                  <ClipboardCheck className="w-4 h-4 text-[#C6A45C]" />
+                  <span>Check Admission Eligibility</span>
+                </button>
+              </div>
+
+              {/* 4 Hero Information Blocks */}
+              <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 pt-4 border-t border-gray-100">
+                {heroInfoBlocks.map((block, idx) => {
+                  const Icon = block.icon;
+                  return (
+                    <div key={idx} className="p-3 bg-[#F7F9FC] rounded-xl border border-gray-200/80">
+                      <div className="flex items-center gap-1.5 text-[#C6A45C] mb-1">
+                        <Icon className="w-3.5 h-3.5 shrink-0" />
+                        <span className="text-[10px] uppercase font-bold text-gray-500 tracking-wider">{block.label}</span>
+                      </div>
+                      <p className="text-xs font-bold text-[#102A43] leading-tight">{block.value}</p>
+                    </div>
+                  );
+                })}
+              </div>
+
             </div>
 
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-              {admissionServices.map((srv) => {
-                const Icon = srv.icon;
-                return (
-                  <div
-                    key={srv.id}
-                    className="glass-card bg-white dark:bg-navy-900 border border-slate-200 dark:border-navy-800 rounded-2xl p-6 space-y-4 hover:border-gold-500 transition duration-300 flex flex-col justify-between shadow-sm"
-                  >
-                    <div className="space-y-3.5">
-                      <div className="flex items-center justify-between">
-                        <div className="w-11 h-11 rounded-xl bg-gold-500/10 border border-gold-500/30 text-gold-600 dark:text-gold-400 flex items-center justify-center">
-                          <Icon className="w-5 h-5" />
-                        </div>
-                        <span className="bg-slate-100 dark:bg-navy-800 text-slate-600 dark:text-slate-300 text-[10px] font-extrabold px-2.5 py-1 rounded-full uppercase tracking-wider">
-                          {srv.badge}
-                        </span>
+            {/* Right Column: High-Quality College Admissions Image & Floating Card */}
+            <div className="lg:col-span-5 relative">
+              <div className="relative rounded-2xl overflow-hidden shadow-2xl border-4 border-gray-100 group">
+                <img
+                  src="/images/international_admissions.jpg"
+                  alt="Students Reviewing College Admission Applications and Courses"
+                  className="w-full h-[380px] sm:h-[440px] object-cover group-hover:scale-105 transition-transform duration-700 ease-out"
+                  loading="eager"
+                />
+                <div className="absolute inset-0 bg-gradient-to-t from-black/40 via-transparent to-transparent pointer-events-none" />
+              </div>
+
+              {/* Floating Card: Personalized College Placement Advisory */}
+              <div className="absolute -bottom-6 -left-4 sm:-bottom-6 sm:-left-6 bg-white text-[#102A43] rounded-xl p-4 sm:p-5 shadow-2xl border border-gray-200 flex items-center gap-4 max-w-[320px]">
+                <div className="w-12 h-12 rounded-lg bg-[#102A43] text-[#C6A45C] flex items-center justify-center shrink-0 shadow-md">
+                  <GraduationCap className="w-6 h-6" />
+                </div>
+                <div>
+                  <div className="text-[11px] font-bold uppercase tracking-wider text-gray-500">
+                    Admission Milestone
+                  </div>
+                  <div className="text-sm font-bold text-[#102A43] leading-snug">
+                    Personalized College Placement Advisory
+                  </div>
+                </div>
+              </div>
+            </div>
+
+          </div>
+        </div>
+      </section>
+
+      {/* SECTION 2: SIX ADMISSION SUPPORT MODULES */}
+      <section id="admission-modules" className="py-20 bg-white">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+
+          <div className="text-center max-w-3xl mx-auto mb-16">
+            <h2 className="text-3xl sm:text-4xl font-serif font-bold text-[#102A43] tracking-tight">
+              Six Admission Support Modules
+            </h2>
+            <div className="w-16 h-1 bg-[#C6A45C] mx-auto my-4 rounded-full" />
+            <p className="text-base sm:text-lg text-gray-600">
+              A structured advisory curriculum guiding students from initial course exploration to enrollment readiness.
+            </p>
+          </div>
+
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
+            {admissionServices.map((srv) => {
+              const Icon = srv.icon;
+              return (
+                <div
+                  key={srv.id}
+                  className="bg-[#F7F9FC] rounded-2xl p-7 border border-gray-200/90 hover:border-[#C6A45C]/60 shadow-sm hover:shadow-md transition-all duration-300 flex flex-col justify-between group"
+                >
+                  <div className="space-y-4">
+                    <div className="flex items-center justify-between">
+                      <div className="w-12 h-12 rounded-xl bg-[#102A43] text-[#C6A45C] flex items-center justify-center shadow-sm">
+                        <Icon className="w-6 h-6" />
                       </div>
+                      <span className="bg-white text-[#102A43] border border-gray-200 text-[10px] font-extrabold px-3 py-1 rounded-full uppercase tracking-wider">
+                        {srv.badge}
+                      </span>
+                    </div>
 
-                      <div>
-                        <span className="text-[10px] font-mono font-bold text-gold-600 dark:text-gold-400 uppercase">
-                          Module {srv.number}
-                        </span>
-                        <h3 className="font-serif text-lg sm:text-xl font-bold text-navy-900 dark:text-white mt-0.5">
-                          {srv.title}
-                        </h3>
-                      </div>
+                    <div>
+                      <span className="text-xs font-mono font-bold text-[#C6A45C] uppercase tracking-wider">
+                        Module {srv.number}
+                      </span>
+                      <h3 className="font-serif text-xl font-bold text-[#102A43] mt-1 group-hover:text-[#C6A45C] transition-colors">
+                        {srv.title}
+                      </h3>
+                    </div>
 
-                      <p className="text-xs text-slate-600 dark:text-slate-400 leading-relaxed">
-                        {srv.description}
-                      </p>
+                    <p className="text-gray-600 text-xs sm:text-sm leading-relaxed">
+                      {srv.description}
+                    </p>
 
-                      <ul className="space-y-2 pt-1">
+                    <div className="pt-2 border-t border-gray-200/80">
+                      <ul className="space-y-2">
                         {srv.points.map((pt, i) => (
-                          <li key={i} className="text-xs text-slate-700 dark:text-slate-300 flex items-start gap-2 leading-relaxed font-medium">
-                            <CheckCircle2 className="w-3.5 h-3.5 text-emerald-500 shrink-0 mt-0.5" />
+                          <li key={i} className="text-xs text-gray-700 flex items-start gap-2 leading-relaxed">
+                            <CheckCircle2 className="w-3.5 h-3.5 text-[#C6A45C] shrink-0 mt-0.5" />
                             <span>{pt}</span>
                           </li>
                         ))}
                       </ul>
                     </div>
-
-                    <div className="pt-4 border-t border-slate-100 dark:border-navy-800">
-                      <button
-                        type="button"
-                        onClick={() => handleServiceCardAction(srv)}
-                        className="w-full py-2.5 px-4 bg-slate-50 hover:bg-gold-500 dark:bg-navy-950 dark:hover:bg-gold-500 text-navy-900 hover:text-navy-950 dark:text-white dark:hover:text-navy-950 font-bold text-xs rounded-xl border border-slate-200 dark:border-navy-800 transition flex items-center justify-center gap-1.5 cursor-pointer"
-                      >
-                        <span>{srv.actionLabel}</span>
-                        <ArrowRight className="w-3.5 h-3.5" />
-                      </button>
-                    </div>
-                  </div>
-                );
-              })}
-            </div>
-          </section>
-        </ScrollReveal>
-
-        {/* ========================================================================= */}
-        {/* PHASE 3: INTENDED AUDIENCE & ELIGIBILITY ("WHO CAN WE HELP?")             */}
-        {/* ========================================================================= */}
-        <ScrollReveal>
-          <section aria-labelledby="who-can-we-help-heading" className="glass-card bg-white dark:bg-navy-900 border border-slate-200 dark:border-gold-500/30 rounded-3xl p-6 sm:p-10 space-y-8 shadow-luxury">
-            <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start">
-              {/* Left: 5 Student Groups */}
-              <div className="lg:col-span-7 space-y-5">
-                <div className="space-y-2">
-                  <span className="bg-gold-500/15 text-gold-600 dark:text-gold-400 text-xs font-black px-3 py-1 rounded-full uppercase tracking-wider">
-                    Intended Audience &amp; Eligibility
-                  </span>
-                  <h2 id="who-can-we-help-heading" className="font-serif text-2xl sm:text-3xl font-extrabold text-navy-900 dark:text-white">
-                    Who Can We Help?
-                  </h2>
-                  <p className="text-xs sm:text-sm text-slate-700 dark:text-slate-300 leading-relaxed">
-                    We support students and families across distinct stages of higher education planning, subject to each institution’s official entry standards.
-                  </p>
-                </div>
-
-                <div className="space-y-3">
-                  {studentGroups.map((group, idx) => (
-                    <div
-                      key={idx}
-                      className="p-4 rounded-2xl bg-slate-50 dark:bg-navy-950 border border-slate-200 dark:border-navy-800 flex items-start gap-3.5"
-                    >
-                      <div className="w-7 h-7 rounded-full bg-emerald-500/15 text-emerald-600 dark:text-emerald-400 flex items-center justify-center shrink-0 mt-0.5">
-                        <CheckCircle2 className="w-4 h-4" />
-                      </div>
-                      <div className="space-y-1 flex-1">
-                        <div className="flex flex-wrap items-center justify-between gap-2">
-                          <h3 className="text-xs sm:text-sm font-bold text-navy-900 dark:text-white">
-                            {group.title}
-                          </h3>
-                          <span className="text-[10px] font-bold px-2 py-0.5 rounded bg-gold-500/15 text-gold-600 dark:text-gold-400">
-                            {group.badge}
-                          </span>
-                        </div>
-                        <p className="text-xs text-slate-600 dark:text-slate-400 leading-relaxed">
-                          {group.desc}
-                        </p>
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              </div>
-
-              {/* Right: Interactive Eligibility Assessment CTA */}
-              <div className="lg:col-span-5 bg-slate-50 dark:bg-navy-950 border border-slate-200 dark:border-gold-500/30 rounded-2xl p-6 space-y-4">
-                <div className="space-y-1">
-                  <span className="text-[10px] font-black uppercase tracking-wider text-gold-600 dark:text-gold-400 flex items-center gap-1.5">
-                    <ClipboardCheck className="w-3.5 h-3.5" />
-                    Interactive Eligibility Check
-                  </span>
-                  <h3 className="font-serif text-xl font-bold text-navy-900 dark:text-white">
-                    Request an Eligibility Assessment
-                  </h3>
-                  <p className="text-xs text-slate-600 dark:text-slate-400">
-                    Share your academic profile below to initiate a structured eligibility check for your target course.
-                  </p>
-                </div>
-
-                <form onSubmit={handleEligibilitySubmit} className="space-y-3.5">
-                  <div>
-                    <label htmlFor="elig-qual" className="block text-[11px] font-bold text-slate-700 dark:text-slate-300 mb-1">
-                      Current Qualification
-                    </label>
-                    <select
-                      id="elig-qual"
-                      value={eligibilityInput.currentQualification}
-                      onChange={(e) => setEligibilityInput(prev => ({ ...prev, currentQualification: e.target.value }))}
-                      className="w-full px-3 py-2 rounded-xl bg-white dark:bg-navy-900 border border-slate-200 dark:border-navy-800 text-xs text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-gold-500"
-                    >
-                      <option value="Class 12 / Higher Secondary (Completed or Appearing)">Class 12 / Higher Secondary</option>
-                      <option value="Polytechnic / 3-Year Diploma Holder (Lateral / Degree Entry)">Diploma Holder (3-Year / Polytechnic)</option>
-                      <option value="Bachelor’s Degree Completed or Final Year (Planning PG)">Bachelor’s Degree (Planning PG)</option>
-                      <option value="Undergraduate Student (Exploring Course / College Transfer)">Current UG Student (Transfer)</option>
-                    </select>
                   </div>
 
-                  <div>
-                    <label htmlFor="elig-results" className="block text-[11px] font-bold text-slate-700 dark:text-slate-300 mb-1">
-                      Academic Results (Percentage / CGPA / Subjects)
-                    </label>
-                    <input
-                      id="elig-results"
-                      type="text"
-                      value={eligibilityInput.academicResults}
-                      onChange={(e) => setEligibilityInput(prev => ({ ...prev, academicResults: e.target.value }))}
-                      placeholder="e.g. 84% in Class 12 PCM or 7.9 CGPA"
-                      className="w-full px-3 py-2 rounded-xl bg-white dark:bg-navy-900 border border-slate-200 dark:border-navy-800 text-xs text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-gold-500"
-                    />
-                  </div>
-
-                  <div>
-                    <label htmlFor="elig-course" className="block text-[11px] font-bold text-slate-700 dark:text-slate-300 mb-1">
-                      Preferred Course
-                    </label>
-                    <input
-                      id="elig-course"
-                      type="text"
-                      value={eligibilityInput.preferredCourse}
-                      onChange={(e) => setEligibilityInput(prev => ({ ...prev, preferredCourse: e.target.value }))}
-                      placeholder="e.g. B.E. CSE, B.Sc. Biotechnology, B.A., MBA"
-                      className="w-full px-3 py-2 rounded-xl bg-white dark:bg-navy-900 border border-slate-200 dark:border-navy-800 text-xs text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-gold-500"
-                    />
-                  </div>
-
-                  <div>
-                    <label htmlFor="elig-dest" className="block text-[11px] font-bold text-slate-700 dark:text-slate-300 mb-1">
-                      Preferred Study Destination
-                    </label>
-                    <select
-                      id="elig-dest"
-                      value={eligibilityInput.preferredDestination}
-                      onChange={(e) => setEligibilityInput(prev => ({ ...prev, preferredDestination: e.target.value }))}
-                      className="w-full px-3 py-2 rounded-xl bg-white dark:bg-navy-900 border border-slate-200 dark:border-navy-800 text-xs text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-gold-500"
-                    >
-                      <option value="India (Premier Colleges & Universities)">India (Premier Colleges & Universities)</option>
-                      <option value="United Arab Emirates (Dubai / Abu Dhabi Campuses)">United Arab Emirates (UAE)</option>
-                      <option value="United Kingdom">United Kingdom</option>
-                      <option value="United States">United States</option>
-                      <option value="Canada">Canada</option>
-                      <option value="Australia">Australia</option>
-                      <option value="Germany & Europe">Germany & Europe</option>
-                      <option value="Open to Multiple Study Destinations">Open to Multiple Destinations</option>
-                    </select>
-                  </div>
-
-                  {eligibilityFeedback && (
-                    <div
-                      role="status"
-                      className={`p-3 rounded-xl text-[11px] leading-relaxed border ${
-                        eligibilityFeedback.type === 'warning'
-                          ? 'bg-amber-500/10 border-amber-500/30 text-amber-700 dark:text-amber-300'
-                          : 'bg-emerald-500/10 border-emerald-500/30 text-emerald-700 dark:text-emerald-300'
-                      }`}
-                    >
-                      {eligibilityFeedback.text}
-                    </div>
-                  )}
-
-                  <button
-                    type="submit"
-                    className="w-full py-3 bg-gold-shimmer text-navy-950 font-extrabold text-xs rounded-xl shadow-gold-glow hover:opacity-95 transition flex items-center justify-center gap-2 cursor-pointer"
-                  >
-                    <span>Proceed to Eligibility Consultation</span>
-                    <ArrowRight className="w-4 h-4" />
-                  </button>
-                </form>
-
-                <div className="p-3 rounded-xl bg-white dark:bg-navy-900 border border-slate-200 dark:border-navy-800 text-[11px] text-slate-500 dark:text-slate-400 flex items-start gap-2">
-                  <AlertCircle className="w-4 h-4 text-gold-500 shrink-0 mt-0.5" />
-                  <span>
-                    <strong>Important Eligibility Policy:</strong> Not every student is automatically eligible for every course. Final eligibility depends on the relevant institution’s official admission criteria, prerequisite subjects, and regulatory norms.
-                  </span>
-                </div>
-              </div>
-            </div>
-          </section>
-        </ScrollReveal>
-
-        {/* ========================================================================= */}
-        {/* PHASE 4: ADMISSION PROCESS ("HOW THE ADMISSION PROCESS WORKS")            */}
-        {/* ========================================================================= */}
-        <ScrollReveal>
-          <section id="admission-process-section" aria-labelledby="admission-process-heading" className="space-y-8 scroll-mt-24">
-            <div className="text-center space-y-2 max-w-2xl mx-auto">
-              <span className="bg-gold-500/10 text-gold-600 dark:text-gold-400 text-xs font-bold px-3 py-1 rounded-full uppercase tracking-wider">
-                4-Step Execution Timeline
-              </span>
-              <h2 id="admission-process-heading" className="font-serif text-2xl sm:text-3xl md:text-4xl font-extrabold text-navy-900 dark:text-white">
-                How the Admission Process Works
-              </h2>
-              <p className="text-xs sm:text-sm text-slate-700 dark:text-slate-300">
-                A transparent four-step workflow designed to keep students and parents informed from initial consultation through enrollment.
-              </p>
-            </div>
-
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-5">
-              {admissionSteps.map((item) => (
-                <div
-                  key={item.step}
-                  className="glass-card bg-white dark:bg-navy-900 border border-slate-200 dark:border-navy-800 rounded-2xl p-6 space-y-4 relative hover:border-gold-500 transition duration-300 flex flex-col justify-between"
-                >
-                  <div className="space-y-3">
-                    <div className="flex items-center justify-between">
-                      <span className="w-9 h-9 rounded-xl bg-gold-500 text-navy-950 font-black text-xs flex items-center justify-center shadow-gold-glow">
-                        {item.step}
-                      </span>
-                      <span className="text-[10px] font-mono uppercase tracking-wider text-slate-400 font-bold">
-                        Stage {item.step} of 04
-                      </span>
-                    </div>
-
-                    <h3 className="font-serif text-base sm:text-lg font-bold text-navy-900 dark:text-white">
-                      {item.label}
-                    </h3>
-
-                    <p className="text-xs text-slate-700 dark:text-slate-300 leading-relaxed font-medium">
-                      {item.desc}
-                    </p>
-                  </div>
-
-                  <div className="pt-3 border-t border-slate-100 dark:border-navy-800 flex items-center justify-between text-[11px] text-gold-600 dark:text-gold-400 font-bold">
-                    <span>Verified Milestone</span>
-                    <CheckCircle2 className="w-3.5 h-3.5" />
-                  </div>
-                </div>
-              ))}
-            </div>
-          </section>
-        </ScrollReveal>
-
-        {/* ========================================================================= */}
-        {/* PHASE 5: DOCUMENTATION CHECKLIST ("ADMISSION DOCUMENT CHECKLIST")         */}
-        {/* ========================================================================= */}
-        <ScrollReveal>
-          <section id="admission-document-checklist" aria-labelledby="doc-checklist-heading" className="glass-card bg-white dark:bg-navy-900 border border-slate-200 dark:border-gold-500/30 rounded-3xl p-6 sm:p-10 space-y-6 shadow-luxury scroll-mt-24">
-            <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4 pb-4 border-b border-slate-200 dark:border-navy-800">
-              <div className="flex items-start gap-3">
-                <div className="w-11 h-11 rounded-2xl bg-gold-500/15 border border-gold-500/30 text-gold-600 dark:text-gold-400 flex items-center justify-center shrink-0 mt-0.5">
-                  <FileText className="w-5 h-5" />
-                </div>
-                <div className="space-y-1">
-                  <span className="text-[10px] uppercase text-gold-600 dark:text-gold-400 font-black tracking-widest">
-                    Configurable Requirements By Course &amp; Destination
-                  </span>
-                  <h2 id="doc-checklist-heading" className="font-serif text-2xl sm:text-3xl font-extrabold text-navy-900 dark:text-white">
-                    Admission Document Checklist
-                  </h2>
-                  <p className="text-xs text-slate-600 dark:text-slate-400">
-                    Filter commonly requested documents below by program level or destination, and check off items you already have ready.
-                  </p>
-                </div>
-              </div>
-
-              {/* Interactive Course & Destination Filters */}
-              <div className="flex flex-wrap items-center gap-2.5">
-                <select
-                  aria-label="Filter checklist by course level"
-                  value={docCourseFilter}
-                  onChange={(e) => setDocCourseFilter(e.target.value)}
-                  className="px-3 py-2 rounded-xl bg-slate-50 dark:bg-navy-950 border border-slate-200 dark:border-navy-800 text-xs font-bold text-slate-800 dark:text-slate-200 focus:outline-none focus:ring-2 focus:ring-gold-500"
-                >
-                  <option value="all">All Program Levels</option>
-                  <option value="ug">Undergraduate (Class 12 → UG)</option>
-                  <option value="diploma">Diploma / Transfer Entry</option>
-                  <option value="pg">Postgraduate (Bachelor’s → PG)</option>
-                </select>
-
-                <select
-                  aria-label="Filter checklist by study destination"
-                  value={docDestinationFilter}
-                  onChange={(e) => setDocDestinationFilter(e.target.value)}
-                  className="px-3 py-2 rounded-xl bg-slate-50 dark:bg-navy-950 border border-slate-200 dark:border-navy-800 text-xs font-bold text-slate-800 dark:text-slate-200 focus:outline-none focus:ring-2 focus:ring-gold-500"
-                >
-                  <option value="all">All Study Destinations</option>
-                  <option value="domestic">India &amp; Regional Campuses</option>
-                  <option value="international">International Universities</option>
-                </select>
-              </div>
-            </div>
-
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              {filteredDocuments.map((doc) => {
-                const isChecked = !!checkedDocs[doc.id];
-                return (
-                  <div
-                    key={doc.id}
-                    onClick={() => toggleDocCheck(doc.id)}
-                    role="checkbox"
-                    aria-checked={isChecked}
-                    tabIndex={0}
-                    onKeyDown={(e) => {
-                      if (e.key === 'Enter' || e.key === ' ') {
-                        e.preventDefault();
-                        toggleDocCheck(doc.id);
-                      }
-                    }}
-                    className={`p-4 rounded-2xl border transition cursor-pointer flex items-start gap-3.5 ${
-                      isChecked
-                        ? 'bg-emerald-500/5 border-emerald-500/40 dark:bg-emerald-500/10'
-                        : 'bg-slate-50 dark:bg-navy-950 border-slate-200 dark:border-navy-800 hover:border-gold-500/50'
-                    }`}
-                  >
-                    <div className={`w-5 h-5 rounded-md flex items-center justify-center shrink-0 mt-0.5 border ${
-                      isChecked
-                        ? 'bg-emerald-500 border-emerald-500 text-white'
-                        : 'border-slate-300 dark:border-navy-700 bg-white dark:bg-navy-900'
-                    }`}>
-                      {isChecked && <CheckCircle2 className="w-3.5 h-3.5" />}
-                    </div>
-
-                    <div className="space-y-1 flex-1">
-                      <p className="text-xs sm:text-sm font-bold text-navy-900 dark:text-white">
-                        {doc.title}
-                      </p>
-                      <p className="text-[11px] text-gold-600 dark:text-gold-400 font-semibold">
-                        {doc.applicability}
-                      </p>
-                      <p className="text-[11px] text-slate-500 dark:text-slate-400 leading-relaxed">
-                        {doc.requirementNote}
-                      </p>
-                    </div>
-                  </div>
-                );
-              })}
-            </div>
-
-            <div className="p-4 rounded-2xl bg-amber-500/10 border border-amber-500/30 text-xs text-slate-700 dark:text-slate-300 flex items-start gap-3">
-              <AlertCircle className="w-4 h-4 text-gold-500 shrink-0 mt-0.5" />
-              <p className="leading-relaxed">
-                <strong>Important Documentation Notice:</strong> Document requirements vary by institution, country, and specific degree program. Not every document listed above is mandatory for every applicant. Our admissions team customizes and manages your exact checklist in the CRM based on your chosen course, institution, and destination.
-              </p>
-            </div>
-          </section>
-        </ScrollReveal>
-
-        {/* ========================================================================= */}
-        {/* PHASE 7: CONFIGURABLE 10-STAGE APPLICATION WORKFLOW TRANSPARENCY          */}
-        {/* ========================================================================= */}
-        <ScrollReveal>
-          <section aria-labelledby="workflow-tracking-heading" className="glass-card bg-gradient-to-br from-navy-950 via-navy-900 to-slate-900 border border-slate-800 rounded-3xl p-6 sm:p-10 text-white space-y-6 shadow-luxury">
-            <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 border-b border-slate-800 pb-5">
-              <div className="space-y-1">
-                <span className="bg-gold-500/20 text-gold-400 text-[10px] font-black px-3 py-1 rounded-full uppercase tracking-wider">
-                  CRM &amp; Application Tracking Integration
-                </span>
-                <h2 id="workflow-tracking-heading" className="font-serif text-2xl sm:text-3xl font-extrabold text-white">
-                  10-Stage Application Status Workflow
-                </h2>
-                <p className="text-xs text-slate-300 max-w-2xl">
-                  Every College Admission Assistance enquiry is tracked through a structured 10-stage workflow by authorized advisors—with verified confirmation required before any application is marked submitted or offer received.
-                </p>
-              </div>
-              <div className="text-xs bg-white/5 border border-white/10 px-4 py-2.5 rounded-2xl shrink-0">
-                <p className="text-[10px] uppercase text-gold-400 font-bold">Tracked Attributes</p>
-                <p className="font-bold text-white">Checklist • Deadlines • Offer Conditions • Follow-Ups</p>
-              </div>
-            </div>
-
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-3.5">
-              {workflowStages.map((st) => (
-                <div
-                  key={st.step}
-                  className="p-3.5 rounded-2xl bg-white/5 border border-white/10 space-y-1.5 hover:border-gold-500/40 transition"
-                >
-                  <div className="flex items-center justify-between text-[10px] font-mono text-gold-400 font-bold">
-                    <span>STAGE {st.step < 10 ? `0${st.step}` : st.step}</span>
-                    <CheckCircle2 className="w-3.5 h-3.5 text-emerald-400" />
-                  </div>
-                  <p className="text-xs font-extrabold text-white">{st.name}</p>
-                  <p className="text-[11px] text-slate-300 leading-snug">{st.desc}</p>
-                </div>
-              ))}
-            </div>
-          </section>
-        </ScrollReveal>
-
-        {/* ========================================================================= */}
-        {/* PHASE 6: ADMISSION ENQUIRY FORM ("COLLEGE ADMISSION CONSULTATION")        */}
-        {/* ========================================================================= */}
-        <ScrollReveal>
-          <section id="college-admission-consultation" aria-label="College Admission Consultation Form" className="scroll-mt-24">
-            <CollegeAdmissionsForm initialValues={prefillData} />
-          </section>
-        </ScrollReveal>
-
-        {/* ========================================================================= */}
-        {/* PHASE 9: ACCESSIBLE FAQ ACCORDION                                         */}
-        {/* ========================================================================= */}
-        <ScrollReveal>
-          <section aria-labelledby="college-adm-faq-heading" className="space-y-6 max-w-4xl mx-auto">
-            <div className="text-center space-y-2">
-              <span className="bg-gold-500/10 text-gold-600 dark:text-gold-400 text-xs font-bold px-3 py-1 rounded-full uppercase tracking-wider">
-                Verified Admissions Policies
-              </span>
-              <h2 id="college-adm-faq-heading" className="font-serif text-2xl sm:text-3xl font-extrabold text-navy-900 dark:text-white">
-                Frequently Asked Questions
-              </h2>
-              <p className="text-xs text-slate-600 dark:text-slate-400">
-                Clear answers regarding course selection, predicted grades, transfer applications, and institutional admission policies.
-              </p>
-            </div>
-
-            <div className="space-y-3">
-              {faqs.map((faq, idx) => {
-                const isOpen = openFaqIndex === idx;
-                const panelId = `college-adm-faq-panel-${idx}`;
-                const btnId = `college-adm-faq-btn-${idx}`;
-                return (
-                  <div
-                    key={idx}
-                    className="glass-card bg-white dark:bg-navy-900 border border-slate-200 dark:border-navy-800 rounded-2xl overflow-hidden transition"
-                  >
-                    <button
-                      id={btnId}
-                      type="button"
-                      onClick={() => setOpenFaqIndex(isOpen ? -1 : idx)}
-                      aria-expanded={isOpen}
-                      aria-controls={panelId}
-                      className="w-full text-left p-4 sm:p-5 flex justify-between items-center text-xs sm:text-sm font-bold text-navy-900 dark:text-white hover:text-gold-500 transition focus:outline-none focus:ring-2 focus:ring-inset focus:ring-gold-500 cursor-pointer"
-                    >
-                      <span className="flex items-center gap-2.5">
-                        <HelpCircle className="w-4 h-4 text-gold-500 shrink-0" />
-                        <span>{faq.q}</span>
-                      </span>
-                      {isOpen ? (
-                        <ChevronUp className="w-4 h-4 text-gold-500 shrink-0 ml-2" />
-                      ) : (
-                        <ChevronDown className="w-4 h-4 text-slate-400 shrink-0 ml-2" />
-                      )}
-                    </button>
-                    {isOpen && (
-                      <div
-                        id={panelId}
-                        role="region"
-                        aria-labelledby={btnId}
-                        className="px-5 pb-5 pt-2 text-xs text-slate-700 dark:text-slate-300 leading-relaxed font-medium border-t border-slate-100 dark:border-navy-800/60"
-                      >
-                        {faq.a}
-                      </div>
-                    )}
-                  </div>
-                );
-              })}
-            </div>
-          </section>
-        </ScrollReveal>
-
-        {/* ========================================================================= */}
-        {/* PHASE 8: RELATED ACADEMIC ADVISORY SERVICES                               */}
-        {/* ========================================================================= */}
-        <ScrollReveal>
-          <section aria-labelledby="related-services-heading" className="space-y-6">
-            <div className="flex flex-col sm:flex-row sm:items-end justify-between gap-3 border-b border-slate-200 dark:border-navy-800 pb-4">
-              <div>
-                <span className="text-[10px] uppercase font-bold tracking-widest text-gold-600 dark:text-gold-400">
-                  Integrated Academic Ecosystem
-                </span>
-                <h2 id="related-services-heading" className="font-serif text-xl sm:text-2xl font-bold text-navy-900 dark:text-white">
-                  Related Academic Advisory Services
-                </h2>
-              </div>
-              <button
-                type="button"
-                onClick={() => navigateTo('education')}
-                className="text-xs font-bold text-gold-600 dark:text-gold-400 hover:underline flex items-center gap-1 cursor-pointer self-start sm:self-auto"
-              >
-                <span>View All Academic Services</span>
-                <ArrowRight className="w-3.5 h-3.5" />
-              </button>
-            </div>
-
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4">
-              {relatedServices.map((rel) => (
-                <div
-                  key={rel.id}
-                  className="glass-card bg-white dark:bg-navy-900 border border-slate-200 dark:border-navy-800 p-5 rounded-2xl space-y-3 hover:border-gold-500 transition duration-300 flex flex-col justify-between"
-                >
-                  <div className="space-y-2">
-                    <span className="inline-block bg-gold-500/10 text-gold-600 dark:text-gold-400 text-[10px] font-bold px-2.5 py-0.5 rounded-full uppercase">
-                      {rel.badge}
-                    </span>
-                    <h3 className="font-serif text-base font-bold text-navy-900 dark:text-white">
-                      {rel.title}
-                    </h3>
-                    <p className="text-xs text-slate-600 dark:text-slate-400 leading-relaxed">
-                      {rel.desc}
-                    </p>
-                  </div>
-
-                  <div className="pt-3 border-t border-slate-100 dark:border-navy-800">
+                  <div className="pt-6 border-t border-gray-200/80 mt-6">
                     <button
                       type="button"
-                      onClick={() => navigateTo(rel.route)}
-                      className="text-xs font-bold text-navy-900 dark:text-gold-400 hover:text-gold-600 flex items-center gap-1 cursor-pointer"
+                      onClick={() => handleServiceCardAction(srv)}
+                      className="w-full py-2.5 px-4 bg-white hover:bg-[#102A43] text-[#102A43] hover:text-white font-bold text-xs rounded-xl border border-gray-300 hover:border-[#102A43] transition-all flex items-center justify-center gap-1.5 shadow-2xs cursor-pointer"
                     >
-                      <span>Explore Service</span>
+                      <span>{srv.actionLabel}</span>
                       <ArrowRight className="w-3.5 h-3.5" />
                     </button>
                   </div>
                 </div>
+              );
+            })}
+          </div>
+
+        </div>
+      </section>
+
+      {/* SECTION 3: ELIGIBILITY ASSESSMENT & WHO CAN WE HELP */}
+      <section id="who-can-we-help-section" className="py-20 bg-[#F7F9FC] border-y border-gray-200/70 scroll-mt-20">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+
+          <div className="text-center max-w-3xl mx-auto mb-16">
+            <h2 className="text-3xl sm:text-4xl font-serif font-bold text-[#102A43] tracking-tight">
+              Who Can We Help &amp; Eligibility Assessment
+            </h2>
+            <div className="w-16 h-1 bg-[#C6A45C] mx-auto my-4 rounded-full" />
+            <p className="text-base sm:text-lg text-gray-600">
+              Objective evaluation tailored to your qualification level, target stream, and institutional cutoffs.
+            </p>
+          </div>
+
+          <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start">
+
+            {/* Left Column: 5 Student Groups */}
+            <div className="lg:col-span-7 space-y-4">
+              <h3 className="text-xl font-serif font-bold text-[#102A43] mb-4">
+                Tailored Advisory by Student Background
+              </h3>
+
+              {studentGroups.map((group, idx) => (
+                <div
+                  key={idx}
+                  className="p-5 rounded-2xl bg-white border border-gray-200 shadow-xs flex items-start gap-3.5"
+                >
+                  <div className="w-8 h-8 rounded-full bg-[#102A43]/5 text-[#102A43] flex items-center justify-center shrink-0 mt-0.5">
+                    <CheckCircle2 className="w-4 h-4 text-[#C6A45C]" />
+                  </div>
+                  <div className="space-y-1 flex-1">
+                    <div className="flex flex-wrap items-center justify-between gap-2">
+                      <h4 className="text-sm font-bold text-[#102A43]">
+                        {group.title}
+                      </h4>
+                      <span className="text-[10px] font-bold px-2.5 py-0.5 rounded-full bg-[#102A43]/5 text-[#102A43] border border-gray-200">
+                        {group.badge}
+                      </span>
+                    </div>
+                    <p className="text-xs text-gray-600 leading-relaxed">
+                      {group.desc}
+                    </p>
+                  </div>
+                </div>
               ))}
             </div>
-          </section>
-        </ScrollReveal>
 
-      </div>
+            {/* Right Column: Interactive Eligibility Assessment Tool */}
+            <div className="lg:col-span-5 bg-white border border-gray-200 rounded-2xl p-6 sm:p-8 shadow-sm space-y-5">
+              <div className="space-y-1 pb-3 border-b border-gray-100">
+                <span className="text-[10px] font-black uppercase tracking-wider text-[#C6A45C] flex items-center gap-1.5">
+                  <ClipboardCheck className="w-3.5 h-3.5" />
+                  Interactive Diagnostic Tool
+                </span>
+                <h3 className="font-serif text-xl font-bold text-[#102A43]">
+                  Evaluate My Admission Eligibility
+                </h3>
+                <p className="text-xs text-gray-500">
+                  Enter your academic credentials below for an instant preliminary course alignment check.
+                </p>
+              </div>
+
+              <form onSubmit={handleEligibilitySubmit} className="space-y-4">
+                <div>
+                  <label htmlFor="elig-qual" className="block text-xs font-bold uppercase tracking-wider text-gray-700 mb-1">
+                    Current Qualification
+                  </label>
+                  <select
+                    id="elig-qual"
+                    value={eligibilityInput.currentQualification}
+                    onChange={(e) => setEligibilityInput(prev => ({ ...prev, currentQualification: e.target.value }))}
+                    className="w-full px-3.5 py-2.5 rounded-xl bg-white border border-gray-300 text-xs sm:text-sm text-gray-900 focus:outline-none focus:ring-2 focus:ring-[#102A43]"
+                  >
+                    <option value="Class 12 / Higher Secondary (Completed or Appearing)">Class 12 / Higher Secondary</option>
+                    <option value="Diploma / Polytechnic">Diploma / Polytechnic</option>
+                    <option value="Bachelor’s Degree (Undergraduate)">Bachelor’s Degree (Undergraduate)</option>
+                    <option value="College Transfer Applicant">College Transfer Applicant</option>
+                  </select>
+                </div>
+
+                <div>
+                  <label htmlFor="elig-results" className="block text-xs font-bold uppercase tracking-wider text-gray-700 mb-1">
+                    Academic Results / Percentage
+                  </label>
+                  <input
+                    id="elig-results"
+                    type="text"
+                    placeholder="e.g. 85%, CGPA 8.2, or Predicted 90%"
+                    value={eligibilityInput.academicResults}
+                    onChange={(e) => setEligibilityInput(prev => ({ ...prev, academicResults: e.target.value }))}
+                    className="w-full px-3.5 py-2.5 rounded-xl bg-white border border-gray-300 text-xs sm:text-sm text-gray-900 focus:outline-none focus:ring-2 focus:ring-[#102A43]"
+                    required
+                  />
+                </div>
+
+                <div>
+                  <label htmlFor="elig-course" className="block text-xs font-bold uppercase tracking-wider text-gray-700 mb-1">
+                    Preferred Course / Degree Stream
+                  </label>
+                  <input
+                    id="elig-course"
+                    type="text"
+                    placeholder="e.g. B.Tech Computer Science, BBA, B.Com"
+                    value={eligibilityInput.preferredCourse}
+                    onChange={(e) => setEligibilityInput(prev => ({ ...prev, preferredCourse: e.target.value }))}
+                    className="w-full px-3.5 py-2.5 rounded-xl bg-white border border-gray-300 text-xs sm:text-sm text-gray-900 focus:outline-none focus:ring-2 focus:ring-[#102A43]"
+                    required
+                  />
+                </div>
+
+                <div>
+                  <label htmlFor="elig-dest" className="block text-xs font-bold uppercase tracking-wider text-gray-700 mb-1">
+                    Target Study Location
+                  </label>
+                  <select
+                    id="elig-dest"
+                    value={eligibilityInput.preferredDestination}
+                    onChange={(e) => setEligibilityInput(prev => ({ ...prev, preferredDestination: e.target.value }))}
+                    className="w-full px-3.5 py-2.5 rounded-xl bg-white border border-gray-300 text-xs sm:text-sm text-gray-900 focus:outline-none focus:ring-2 focus:ring-[#102A43]"
+                  >
+                    <option value="India (Premier Colleges & Universities)">India (Premier Colleges &amp; Universities)</option>
+                    <option value="United Arab Emirates & GCC Universities">UAE &amp; GCC Universities</option>
+                    <option value="United Kingdom & Europe">United Kingdom &amp; Europe</option>
+                    <option value="United States & Canada">United States &amp; Canada</option>
+                    <option value="Australia & New Zealand">Australia &amp; New Zealand</option>
+                  </select>
+                </div>
+
+                <button
+                  type="submit"
+                  className="w-full py-3 bg-[#102A43] hover:bg-[#1a3d60] text-white font-bold text-xs sm:text-sm rounded-xl transition flex items-center justify-center gap-2 shadow-md cursor-pointer"
+                >
+                  <ClipboardCheck className="w-4 h-4 text-[#C6A45C]" />
+                  <span>Evaluate My Eligibility &amp; Pre-Fill Booking</span>
+                </button>
+              </form>
+
+              {eligibilityFeedback && (
+                <div className="p-4 rounded-xl bg-emerald-50 border border-emerald-200 text-emerald-900 text-xs space-y-2 animate-fadeIn">
+                  <div className="flex items-center gap-2 font-bold">
+                    <CheckCircle2 className="w-4 h-4 text-emerald-600" />
+                    <span>{eligibilityFeedback.status}</span>
+                  </div>
+                  <p className="leading-relaxed">{eligibilityFeedback.message}</p>
+                </div>
+              )}
+            </div>
+
+          </div>
+
+        </div>
+      </section>
+
+      {/* SECTION 4: FOUR-STEP ADMISSION PROCESS */}
+      <section id="admission-process-section" className="py-20 bg-white scroll-mt-20">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+
+          <div className="text-center max-w-3xl mx-auto mb-16">
+            <h2 className="text-3xl sm:text-4xl font-serif font-bold text-[#102A43] tracking-tight">
+              Our College Admission Process
+            </h2>
+            <div className="w-16 h-1 bg-[#C6A45C] mx-auto my-4 rounded-full" />
+            <p className="text-base sm:text-lg text-gray-600">
+              A transparent four-stage methodology ensuring organized application timelines and enrollment success.
+            </p>
+          </div>
+
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+            {admissionSteps.map((item) => (
+              <div
+                key={item.step}
+                className="bg-[#F7F9FC] rounded-2xl p-6 border border-gray-200 shadow-xs hover:border-[#C6A45C] hover:shadow-md transition-all duration-300 flex flex-col justify-between"
+              >
+                <div className="space-y-3">
+                  <div className="flex items-center justify-between">
+                    <span className="w-10 h-10 rounded-xl bg-[#102A43] text-[#C6A45C] font-serif font-bold text-sm flex items-center justify-center shadow-xs">
+                      {item.step}
+                    </span>
+                    <span className="text-[10px] font-mono uppercase tracking-wider text-gray-400 font-bold">
+                      Stage {item.step} of 04
+                    </span>
+                  </div>
+
+                  <h3 className="font-serif text-lg font-bold text-[#102A43]">
+                    {item.title}
+                  </h3>
+
+                  <p className="text-xs text-gray-600 leading-relaxed font-normal">
+                    {item.desc}
+                  </p>
+                </div>
+
+                <div className="pt-4 border-t border-gray-200/80 flex items-center justify-between text-[11px] text-[#C6A45C] font-bold mt-4">
+                  <span>Verified Milestone</span>
+                  <CheckCircle2 className="w-3.5 h-3.5" />
+                </div>
+              </div>
+            ))}
+          </div>
+
+        </div>
+      </section>
+
+      {/* SECTION 5: ADMISSION DOCUMENT CHECKLIST */}
+      <section id="admission-document-checklist" className="py-20 bg-[#F7F9FC] border-y border-gray-200/70 scroll-mt-20">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+
+          <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-6 mb-12 pb-6 border-b border-gray-200">
+            <div>
+              <span className="text-xs font-black uppercase tracking-widest text-[#C6A45C]">
+                Configurable Requirements Dossier
+              </span>
+              <h2 className="text-3xl sm:text-4xl font-serif font-bold text-[#102A43] tracking-tight mt-1">
+                Admission Document Checklist
+              </h2>
+              <p className="text-sm text-gray-600 mt-1">
+                Filter documents by program level or destination, and check off records you have prepared.
+              </p>
+            </div>
+
+            {/* Interactive Filters & Prepared Count */}
+            <div className="flex flex-wrap items-center gap-3">
+              <div className="px-3.5 py-1.5 rounded-full bg-white border border-gray-200 text-xs font-bold text-[#102A43] shadow-xs">
+                {checkedCount} / {checklistDocuments.length} Documents Ready
+              </div>
+
+              <select
+                aria-label="Filter checklist by course level"
+                value={docCourseFilter}
+                onChange={(e) => setDocCourseFilter(e.target.value)}
+                className="px-3.5 py-2 rounded-xl bg-white border border-gray-300 text-xs font-bold text-gray-800 focus:outline-none focus:ring-2 focus:ring-[#102A43]"
+              >
+                <option value="all">All Program Levels</option>
+                <option value="ug">Undergraduate (UG)</option>
+                <option value="diploma">Diploma / Lateral Entry</option>
+                <option value="pg">Postgraduate (PG)</option>
+              </select>
+
+              <select
+                aria-label="Filter checklist by study destination"
+                value={docDestinationFilter}
+                onChange={(e) => setDocDestinationFilter(e.target.value)}
+                className="px-3.5 py-2 rounded-xl bg-white border border-gray-300 text-xs font-bold text-gray-800 focus:outline-none focus:ring-2 focus:ring-[#102A43]"
+              >
+                <option value="all">All Destinations</option>
+                <option value="domestic">India &amp; Regional Campuses</option>
+                <option value="international">International Universities</option>
+              </select>
+            </div>
+          </div>
+
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            {filteredDocuments.map((doc) => {
+              const isChecked = !!checkedDocs[doc.id];
+              return (
+                <div
+                  key={doc.id}
+                  onClick={() => toggleDocCheck(doc.id)}
+                  className={`p-5 rounded-2xl border transition-all cursor-pointer flex items-start gap-4 ${isChecked
+                      ? 'bg-white border-emerald-300 shadow-xs'
+                      : 'bg-white border-gray-200 hover:border-gray-300'
+                    }`}
+                >
+                  <div
+                    className={`w-6 h-6 rounded-lg flex items-center justify-center shrink-0 mt-0.5 transition-colors ${isChecked
+                        ? 'bg-emerald-600 text-white'
+                        : 'border-2 border-gray-300 bg-gray-50'
+                      }`}
+                  >
+                    {isChecked && <Check className="w-4 h-4 stroke-[3]" />}
+                  </div>
+
+                  <div className="space-y-1 flex-1">
+                    <h3 className="text-sm font-bold text-[#102A43]">
+                      {doc.title}
+                    </h3>
+                    <p className="text-xs text-gray-500 font-medium">
+                      {doc.applicability}
+                    </p>
+                    <p className="text-[11px] text-gray-400 italic">
+                      {doc.requirementNote}
+                    </p>
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+
+        </div>
+      </section>
+
+      {/* SECTION 6: APPLICATION WORKFLOW TRACKING */}
+      <section className="py-20 bg-white">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+
+          <div className="bg-[#102A43] text-white rounded-3xl p-8 sm:p-12 shadow-xl relative overflow-hidden">
+            <div className="absolute top-0 right-0 w-96 h-96 bg-[#C6A45C]/10 rounded-full blur-3xl pointer-events-none" />
+
+            <div className="max-w-3xl mb-10">
+              <span className="text-xs font-bold uppercase tracking-widest text-[#C6A45C] flex items-center gap-2">
+                <Clock className="w-4 h-4 text-[#C6A45C]" />
+                Institutional Milestone Management
+              </span>
+              <h2 className="text-2xl sm:text-3xl md:text-4xl font-serif font-extrabold text-white mt-2">
+                10-Stage Application Status Workflow
+              </h2>
+              <p className="text-gray-300 text-xs sm:text-sm mt-2 leading-relaxed">
+                Every application managed by our team is systematically tracked from initial intake to final seat enrollment through our dedicated advisory database.
+              </p>
+            </div>
+
+            <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-3 sm:gap-4">
+              {workflowStages.map((stage) => (
+                <div
+                  key={stage.step}
+                  className="p-4 rounded-xl bg-white/5 border border-white/10 space-y-1.5 hover:bg-white/10 transition-colors"
+                >
+                  <div className="flex items-center justify-between">
+                    <span className="text-xs font-mono font-bold text-[#C6A45C]">
+                      Step {stage.step}
+                    </span>
+                    <span className="w-2 h-2 rounded-full bg-[#C6A45C]" />
+                  </div>
+                  <h3 className="text-xs sm:text-sm font-bold text-white leading-tight">
+                    {stage.name}
+                  </h3>
+                  <p className="text-[11px] text-gray-400 leading-snug">
+                    {stage.desc}
+                  </p>
+                </div>
+              ))}
+            </div>
+
+          </div>
+
+        </div>
+      </section>
+
+      {/* SECTION 7: CONSULTATION BOOKING */}
+      <section id="college-admission-consultation" className="py-20 bg-[#F7F9FC] border-t border-gray-200 scroll-mt-20">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+
+          <div className="text-center max-w-3xl mx-auto mb-12">
+            <h2 className="text-3xl sm:text-4xl font-serif font-bold text-[#102A43] tracking-tight">
+              Book Your College Admission Consultation
+            </h2>
+            <div className="w-16 h-1 bg-[#C6A45C] mx-auto my-4 rounded-full" />
+            <p className="text-base sm:text-lg text-gray-600">
+              Schedule a one-on-one session with our higher education advisors to review your marks, shortlist colleges, and plan your application dossier.
+            </p>
+          </div>
+
+          <CollegeAdmissionsForm initialValues={prefillData} />
+
+        </div>
+      </section>
+
+      {/* SECTION 8: FAQ ACCORDION */}
+      <section className="py-20 bg-white">
+        <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8">
+
+          <div className="text-center max-w-3xl mx-auto mb-16">
+            <h2 className="text-3xl sm:text-4xl font-serif font-bold text-[#102A43] tracking-tight">
+              Frequently Asked Questions
+            </h2>
+            <div className="w-16 h-1 bg-[#C6A45C] mx-auto my-4 rounded-full" />
+            <p className="text-base sm:text-lg text-gray-600">
+              Verified answers regarding college admissions, cutoffs, predicted grades, and document requirements.
+            </p>
+          </div>
+
+          <div className="space-y-4">
+            {faqs.map((faq, index) => {
+              const isOpen = openFaqIndex === index;
+              return (
+                <div
+                  key={index}
+                  className="rounded-xl border border-gray-200 bg-[#F7F9FC] overflow-hidden transition-all duration-200"
+                >
+                  <button
+                    onClick={() => setOpenFaqIndex(isOpen ? -1 : index)}
+                    className="w-full text-left px-6 py-5 flex items-center justify-between gap-4 font-serif font-semibold text-[#102A43] text-base hover:text-[#C6A45C] transition-colors cursor-pointer"
+                    aria-expanded={isOpen}
+                  >
+                    <span>{faq.q}</span>
+                    <span className="shrink-0 w-8 h-8 rounded-full bg-white flex items-center justify-center text-gray-500 shadow-xs border border-gray-200">
+                      {isOpen ? <ChevronUp className="w-4 h-4 text-[#C6A45C]" /> : <ChevronDown className="w-4 h-4" />}
+                    </span>
+                  </button>
+
+                  {isOpen && (
+                    <div className="px-6 pb-6 pt-1 text-xs sm:text-sm text-gray-600 leading-relaxed border-t border-gray-100 bg-white">
+                      {faq.a}
+                    </div>
+                  )}
+                </div>
+              );
+            })}
+          </div>
+
+        </div>
+      </section>
+
+      {/* SECTION 9: RELATED ADVISORY SERVICES */}
+      <section className="py-20 bg-[#F7F9FC] border-t border-gray-200/80">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+          <div className="text-center max-w-3xl mx-auto mb-12">
+            <span className="text-xs font-bold uppercase tracking-widest text-[#C6A45C]">
+              Comprehensive Education Advisory
+            </span>
+            <h2 className="text-2xl sm:text-3xl font-serif font-bold text-[#102A43] mt-1">
+              Explore Related Education Services
+            </h2>
+          </div>
+
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
+            {relatedServices.map((srv) => (
+              <div
+                key={srv.id}
+                className="bg-white rounded-2xl p-6 border border-gray-200 hover:border-[#C6A45C] hover:shadow-md transition-all duration-300 flex flex-col justify-between"
+              >
+                <div className="space-y-2">
+                  <span className="text-[10px] font-bold px-2.5 py-0.5 rounded-full bg-[#102A43]/5 text-[#102A43] border border-gray-200">
+                    {srv.badge}
+                  </span>
+                  <h3 className="font-serif text-lg font-bold text-[#102A43]">
+                    {srv.title}
+                  </h3>
+                  <p className="text-xs text-gray-600 leading-relaxed">
+                    {srv.desc}
+                  </p>
+                </div>
+
+                <div className="pt-4 border-t border-gray-100 mt-4">
+                  <button
+                    onClick={() => navigateTo(srv.route)}
+                    className="text-xs font-bold text-[#102A43] hover:text-[#C6A45C] flex items-center gap-1.5 transition-colors cursor-pointer"
+                  >
+                    <span>View Service Details</span>
+                    <ArrowRight className="w-3.5 h-3.5" />
+                  </button>
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      </section>
+
+      {/* SECTION 10: FINAL CTA */}
+      <section className="py-20 bg-[#102A43] text-white relative overflow-hidden">
+        <div className="absolute top-1/2 -right-24 w-80 h-80 rounded-full bg-[#C6A45C]/10 blur-3xl pointer-events-none" />
+        <div className="absolute -bottom-24 -left-24 w-80 h-80 rounded-full bg-[#C6A45C]/10 blur-3xl pointer-events-none" />
+
+        <div className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 text-center relative z-10">
+          <h2 className="text-3xl sm:text-4xl lg:text-5xl font-serif font-extrabold text-white mb-4 tracking-tight">
+            Ready to Secure Your College Admission?
+          </h2>
+
+          <p className="text-gray-200 text-base sm:text-lg max-w-2xl mx-auto mb-8 font-normal leading-relaxed">
+            Connect with our senior education advisors today for personalized course shortlisting, eligibility evaluation, and application dossier management.
+          </p>
+
+          <div className="flex flex-col sm:flex-row items-center justify-center gap-4">
+            <button
+              onClick={() => {
+                trackCtaClick('final_cta_book_free_consultation', 'College Admission Assistance');
+                scrollToSection('college-admission-consultation');
+              }}
+              className="w-full sm:w-auto px-8 py-4 rounded-xl bg-[#C6A45C] hover:bg-[#b5934b] text-[#102A43] font-bold text-base shadow-lg hover:shadow-xl transition-all duration-200 flex items-center justify-center gap-2 cursor-pointer"
+            >
+              <span>Book Free Consultation</span>
+              <ArrowRight className="w-4 h-4" />
+            </button>
+
+            <button
+              onClick={() => {
+                trackCtaClick('final_cta_contact_team', 'College Admission Assistance');
+                navigateTo('contact');
+              }}
+              className="w-full sm:w-auto px-8 py-4 rounded-xl bg-transparent hover:bg-white/10 text-white border border-[#C6A45C] hover:border-white font-semibold text-base transition-all duration-200 flex items-center justify-center gap-2 cursor-pointer"
+            >
+              <span>Contact Admissions Team</span>
+            </button>
+          </div>
+        </div>
+      </section>
+
     </div>
   );
 };
 
+export default CollegeAdmissionsPage;

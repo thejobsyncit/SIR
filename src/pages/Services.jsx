@@ -53,7 +53,7 @@ export const Services = () => {
 
   const categories = [
     'All', 
-    'Education', 
+    'Academic Advisory', 
     'Recruitment', 
     'Executive', 
     'Staffing', 
@@ -69,7 +69,11 @@ export const Services = () => {
     const counts = { 'All': SERVICES_LIST.length };
     categories.forEach(cat => {
       if (cat !== 'All') {
-        counts[cat] = SERVICES_LIST.filter(s => s.category === cat || s.subCategory === cat).length;
+        if (cat === 'Academic Advisory') {
+          counts[cat] = SERVICES_LIST.filter(s => s.category === 'Education' || s.subCategory === 'Education' || s.id === 'intl-consult').length;
+        } else {
+          counts[cat] = SERVICES_LIST.filter(s => s.category === cat || s.subCategory === cat).length;
+        }
       }
     });
     return counts;
@@ -83,6 +87,8 @@ export const Services = () => {
         ...SERVICES_LIST.filter(s => s.category === 'Education' || s.subCategory === 'Education'),
         ...SERVICES_LIST.filter(s => s.category !== 'Education' && s.subCategory !== 'Education')
       ];
+    } else if (selectedCategory === 'Academic Advisory') {
+      list = SERVICES_LIST.filter(s => s.category === 'Education' || s.subCategory === 'Education' || s.id === 'intl-consult');
     } else {
       list = SERVICES_LIST.filter(s => s.category === selectedCategory || s.subCategory === selectedCategory);
     }

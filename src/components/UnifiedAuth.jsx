@@ -36,7 +36,11 @@ export const UnifiedAuth = ({ defaultMode = 'login', defaultRole = 'candidate', 
       setError('Please provide email and password.');
       return;
     }
-    loginCandidate(candidateLogin.email, candidateLogin.password);
+    const result = loginCandidate(candidateLogin.email, candidateLogin.password);
+    if (!result || !result.success) {
+      setError(result?.message || 'Invalid credentials. Please register if you do not have an account.');
+      return;
+    }
     navigateTo('candidates');
     if (onSuccess) onSuccess();
     setActiveModal(null);
@@ -54,14 +58,19 @@ export const UnifiedAuth = ({ defaultMode = 'login', defaultRole = 'candidate', 
       setError('Passwords do not match.');
       return;
     }
-    registerCandidate({
+    const result = registerCandidate({
       fullName: candidateReg.fullName,
       email: candidateReg.email,
+      password: candidateReg.password,
       phone: `${candidateReg.countryCode} ${candidateReg.phone}`,
       preferredCountry: candidateReg.preferredCountry,
       industry: candidateReg.industry,
       resumeName: candidateReg.resumeName || 'Uploaded_CV.pdf'
     });
+    if (!result || !result.success) {
+      setError(result?.message || 'Registration failed. Please try again.');
+      return;
+    }
     navigateTo('candidates');
     if (onSuccess) onSuccess();
     setActiveModal(null);
@@ -69,10 +78,15 @@ export const UnifiedAuth = ({ defaultMode = 'login', defaultRole = 'candidate', 
 
   // Quick Demo Login
   const handleDemoCandidateLogin = () => {
-    loginCandidate('candidate@revivalinternational.com', 'demo123');
-    navigateTo('candidates');
-    if (onSuccess) onSuccess();
-    setActiveModal(null);
+    setError('');
+    const result = loginCandidate('candidate@revivalinternational.com', 'demo123');
+    if (result && result.success) {
+      navigateTo('candidates');
+      if (onSuccess) onSuccess();
+      setActiveModal(null);
+    } else {
+      setError(result?.message || 'Demo access failed.');
+    }
   };
 
   return (

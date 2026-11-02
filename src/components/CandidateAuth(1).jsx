@@ -34,7 +34,11 @@ export const CandidateAuth = () => {
       setError('Please provide both email and password.');
       return;
     }
-    loginCandidate(loginData.email, loginData.password);
+    const result = loginCandidate(loginData.email, loginData.password);
+    if (!result || !result.success) {
+      setError(result?.message || 'No registered candidate account found with this email. Please register first.');
+      return;
+    }
   };
 
   const handleRegisterSubmit = (e) => {
@@ -48,18 +52,27 @@ export const CandidateAuth = () => {
       setError('Passwords do not match.');
       return;
     }
-    registerCandidate({
+    const result = registerCandidate({
       fullName: regData.fullName,
       email: regData.email,
+      password: regData.password,
       phone: `${regData.countryCode} ${regData.phone}`,
       preferredCountry: regData.preferredCountry,
       industry: regData.industry,
       resumeName: regData.resumeName || 'Uploaded_Executive_CV.pdf'
     });
+    if (!result || !result.success) {
+      setError(result?.message || 'Registration failed. Please try again.');
+      return;
+    }
   };
 
   const handleDemoLogin = () => {
-    loginCandidate('candidate@revivalinternational.com', 'demo123');
+    setError('');
+    const result = loginCandidate('candidate@revivalinternational.com', 'demo123');
+    if (!result || !result.success) {
+      setError(result?.message || 'Demo login failed.');
+    }
   };
 
   const handleFileChange = (e) => {

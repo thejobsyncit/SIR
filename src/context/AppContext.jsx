@@ -159,67 +159,118 @@ export const AppProvider = ({ children }) => {
 
   const loginCandidate = (email, password) => {
     const normalizedEmail = (email || '').toLowerCase().trim();
+    if (!normalizedEmail || !password) {
+      return { success: false, message: 'Please provide both email and password.' };
+    }
+
     const db = getCandidateDB();
     let candidateUser = db[normalizedEmail];
 
-    if (!candidateUser) {
-      candidateUser = {
-        name: email.split('@')[0].replace('.', ' ').replace(/\b\w/g, c => c.toUpperCase()) || 'Executive Candidate',
-        email: email,
-        phone: '',
-        dob: '',
-        gender: '',
-        title: '',
-        location: '',
-        preferredCountry: '',
-        experience: '',
-        qualification: '',
-        skills: [],
-        expectedSalary: '',
-        avatar: '',
-        role: 'candidate',
-        candidateId: 'REV-CAN-' + Math.floor(10000 + Math.random() * 90000),
-        resumeUploaded: false,
-        resumeName: '',
-        mohreAttested: false,
-        loginTime: new Date().toISOString()
-      };
-    } else {
-      candidateUser = { ...candidateUser, loginTime: new Date().toISOString() };
+    // Predefined Quick Demo Candidate account
+    if (normalizedEmail === 'candidate@revivalinternational.com') {
+      if (password !== 'demo123') {
+        return { success: false, message: 'Invalid password for Demo account. Use demo123.' };
+      }
+      if (!candidateUser) {
+        candidateUser = {
+          name: 'Demo Candidate',
+          email: 'candidate@revivalinternational.com',
+          password: 'demo123',
+          phone: '+971 50 123 4567',
+          dob: '1992-05-14',
+          gender: 'Male',
+          title: 'Senior Civil Project Manager',
+          location: 'Dubai, UAE',
+          preferredCountry: 'UAE',
+          experience: '8 Years',
+          qualification: 'B.Tech Civil Engineering',
+          skills: ['Project Management', 'AutoCAD', 'Primavera P6', 'Site Supervision'],
+          expectedSalary: '18,000 AED',
+          avatar: '',
+          role: 'candidate',
+          isRegistered: true,
+          candidateId: 'REV-CAN-DEMO',
+          resumeUploaded: true,
+          resumeName: 'Demo_Executive_CV.pdf',
+          mohreAttested: true,
+          loginTime: new Date().toISOString()
+        };
+      } else {
+        candidateUser = { ...candidateUser, isRegistered: true, password: 'demo123', loginTime: new Date().toISOString() };
+      }
+
+      saveCandidateToDB(candidateUser);
+      saveUserSession(candidateUser);
+      setActiveTab('candidates');
+      return { success: true, user: candidateUser };
     }
 
+    // Regular users MUST be registered first
+    if (!candidateUser || !candidateUser.isRegistered) {
+      return {
+        success: false,
+        message: 'No registered account found with this email. Please click "Create Candidate Account" below to register first.'
+      };
+    }
+
+    // Verify password
+    if (candidateUser.password && candidateUser.password !== password) {
+      return {
+        success: false,
+        message: 'Incorrect password. Please verify and try again.'
+      };
+    }
+
+    candidateUser = { ...candidateUser, loginTime: new Date().toISOString() };
     saveCandidateToDB(candidateUser);
     saveUserSession(candidateUser);
     setActiveTab('candidates');
-    return candidateUser;
+    return { success: true, user: candidateUser };
   };
 
   const registerCandidate = (data) => {
     const normalizedEmail = (data.email || '').toLowerCase().trim();
+    if (!normalizedEmail) {
+      return { success: false, message: 'Valid email is required.' };
+    }
+    if (!data.password) {
+      return { success: false, message: 'Password is required for registration.' };
+    }
+
     const db = getCandidateDB();
     const existing = db[normalizedEmail] || {};
+
+    if (existing && existing.isRegistered) {
+      return {
+        success: false,
+        message: 'An account with this email is already registered. Please sign in.'
+      };
+    }
 
     const candidateUser = {
       ...existing,
       name: data.fullName || existing.name || '',
-      email: data.email || existing.email || '',
+      email: normalizedEmail,
+      password: data.password,
       phone: data.phone || existing.phone || '',
       dob: existing.dob || '',
       gender: existing.gender || '',
       title: data.industry || existing.title || '',
       location: existing.location || '',
-      preferredCountry: data.preferredCountry || existing.preferredCountry || '',
+      preferredCountry: data.preferredCountry || existing.preferredCountry || 'UAE',
       experience: existing.experience || '',
       qualification: existing.qualification || '',
       skills: existing.skills || [],
       expectedSalary: existing.expectedSalary || '',
       avatar: existing.avatar || '',
       role: 'candidate',
+      isRegistered: true,
       candidateId: existing.candidateId || ('REV-CAN-' + Math.floor(10000 + Math.random() * 90000)),
       resumeUploaded: !!data.resumeName || existing.resumeUploaded || false,
       resumeName: data.resumeName || existing.resumeName || '',
       mohreAttested: existing.mohreAttested || false,
-      registeredAt: existing.registeredAt || new Date().toISOString()
+      registeredAt: existing.registeredAt || new Date().toISOString(),
+      loginTime: new Date().toISOString()
     };
 
     saveCandidateToDB(candidateUser);
@@ -239,7 +290,7 @@ export const AppProvider = ({ children }) => {
       });
     }
 
-    return candidateUser;
+    return { success: true, user: candidateUser };
   };
 
   const updateUserProfile = (profileData) => {
