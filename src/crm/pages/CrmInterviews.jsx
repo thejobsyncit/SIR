@@ -12,7 +12,6 @@ export const CrmInterviews = () => {
   const [modalOpen, setModalOpen] = useState(false);
   const [feedbackModalOpen, setFeedbackModalOpen] = useState(null);
   const [deleteConfirmInterview, setDeleteConfirmInterview] = useState(null);
-  const [isDeletingInterview, setIsDeletingInterview] = useState(false);
 
   // Form State
   const [newInterview, setNewInterview] = useState({

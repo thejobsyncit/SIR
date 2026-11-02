@@ -508,16 +508,31 @@ export const CrmProvider = ({ children }) => {
     logAuditAction(`Updated candidate profile ${updatedCand.id}.`);
   };
 
-  const deleteCandidate = async (candidateId) => {
+  const deleteCandidate = async (candidateId, metadata = {}) => {
     try {
-      await fetch(`/api/candidates/${candidateId}`, {
-        method: 'DELETE'
+      const activeRole = currentRole || user?.role || 'Super Admin';
+      const activeUserName = user?.name || 'Super Admin';
+      const activeUserId = user?.id || 'usr-superadmin';
+
+      const res = await fetch(`/api/candidates/${candidateId}`, {
+        method: 'DELETE',
+        headers: {
+          'Content-Type': 'application/json',
+          'X-CRM-Role': activeRole,
+          'X-CRM-User': activeUserName,
+          'X-CRM-User-Id': activeUserId
+        }
       });
+      const data = res.ok ? await res.json().catch(() => ({})) : {};
+      logAuditAction(`Permanently deleted candidate '${candidateId}' (${metadata.name || ''}).`);
+      setCandidates(prev => prev.filter(c => c.id !== candidateId));
+      return data;
     } catch (err) {
-      console.warn('Backend delete candidate error (continuing with local removal):', err);
+      console.error('Error in deleteCandidate:', err);
+      setCandidates(prev => prev.filter(c => c.id !== candidateId));
+      logAuditAction(`Permanently deleted candidate '${candidateId}' (${metadata.name || ''}).`);
+      throw err;
     }
-    setCandidates(prev => prev.filter(c => c.id !== candidateId));
-    logAuditAction(`Deleted candidate profile ${candidateId}.`);
   };
 
   const addClient = (newClient) => {
@@ -554,14 +569,31 @@ export const CrmProvider = ({ children }) => {
     logAuditAction(`Updated interview record ${updatedInterview.id}.`);
   };
 
-  const deleteInterview = async (interviewId) => {
+  const deleteInterview = async (interviewId, metadata = {}) => {
     try {
-      await fetch(`/api/interviews/${interviewId}`, { method: 'DELETE' });
+      const activeRole = currentRole || user?.role || 'Super Admin';
+      const activeUserName = user?.name || 'Super Admin';
+      const activeUserId = user?.id || 'usr-superadmin';
+
+      const res = await fetch(`/api/interviews/${interviewId}`, {
+        method: 'DELETE',
+        headers: {
+          'Content-Type': 'application/json',
+          'X-CRM-Role': activeRole,
+          'X-CRM-User': activeUserName,
+          'X-CRM-User-Id': activeUserId
+        }
+      });
+      const data = res.ok ? await res.json().catch(() => ({})) : {};
+      logAuditAction(`Permanently deleted interview '${interviewId}' (${metadata.candidateName || ''}).`);
+      setInterviews(prev => prev.filter(i => i.id !== interviewId));
+      return data;
     } catch (err) {
-      console.warn('Backend delete interview error:', err);
+      console.error('Error in deleteInterview:', err);
+      setInterviews(prev => prev.filter(i => i.id !== interviewId));
+      logAuditAction(`Permanently deleted interview '${interviewId}' (${metadata.candidateName || ''}).`);
+      throw err;
     }
-    setInterviews(prev => prev.filter(i => i.id !== interviewId));
-    logAuditAction(`Deleted interview ${interviewId}.`);
   };
 
   const addCalendarEvent = (newEvent) => {
@@ -849,64 +881,9 @@ export const CrmProvider = ({ children }) => {
     }
   };
 
-  const deleteCandidate = async (candidateId, metadata = {}) => {
-    try {
-      const activeRole = currentRole || user?.role || 'Super Admin';
-      const activeUserName = user?.name || 'Super Admin';
-      const activeUserId = user?.id || 'usr-superadmin';
-
-      const res = await fetch(`/api/candidates/${candidateId}`, {
-        method: 'DELETE',
-        headers: {
-          'Content-Type': 'application/json',
-          'X-CRM-Role': activeRole,
-          'X-CRM-User': activeUserName,
-          'X-CRM-User-Id': activeUserId
-        }
-      });
-      const data = res.ok ? await res.json().catch(() => ({})) : {};
-      logAuditAction(`Permanently deleted candidate '${candidateId}' (${metadata.name || ''}).`);
-      setCandidates(prev => prev.filter(c => c.id !== candidateId));
-      return data;
-    } catch (err) {
-      console.error('Error in deleteCandidate:', err);
-      setCandidates(prev => prev.filter(c => c.id !== candidateId));
-      logAuditAction(`Permanently deleted candidate '${candidateId}' (${metadata.name || ''}).`);
-      throw err;
-    }
-  };
-
-  const deleteInterview = async (interviewId, metadata = {}) => {
-    try {
-      const activeRole = currentRole || user?.role || 'Super Admin';
-      const activeUserName = user?.name || 'Super Admin';
-      const activeUserId = user?.id || 'usr-superadmin';
-
-      const res = await fetch(`/api/interviews/${interviewId}`, {
-        method: 'DELETE',
-        headers: {
-          'Content-Type': 'application/json',
-          'X-CRM-Role': activeRole,
-          'X-CRM-User': activeUserName,
-          'X-CRM-User-Id': activeUserId
-        }
-      });
-      const data = res.ok ? await res.json().catch(() => ({})) : {};
-      logAuditAction(`Permanently deleted interview '${interviewId}' (${metadata.candidateName || ''}).`);
-      setInterviews(prev => prev.filter(i => i.id !== interviewId));
-      return data;
-    } catch (err) {
-      console.error('Error in deleteInterview:', err);
-      setInterviews(prev => prev.filter(i => i.id !== interviewId));
-      logAuditAction(`Permanently deleted interview '${interviewId}' (${metadata.candidateName || ''}).`);
-      throw err;
-    }
-  };
-
   const deleteInvoice = (invoiceId, metadata = {}) => {
     setInvoices(prev => prev.filter(i => i.id !== invoiceId));
     logAuditAction(`Permanently deleted invoice '${invoiceId}' (${metadata.client || ''}).`);
-  };
   };
 
   return (
@@ -935,7 +912,6 @@ export const CrmProvider = ({ children }) => {
         updateCandidate,
         deleteCandidate,
         updateCandidateStage,
-        deleteCandidate,
         selectedCandidate,
         setSelectedCandidate,
         clients,

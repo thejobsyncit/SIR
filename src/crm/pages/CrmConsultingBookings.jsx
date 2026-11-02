@@ -797,41 +797,12 @@ export const CrmConsultingBookings = () => {
                             )}
                             <a
                               href={mailtoUrl}
-                              className="text-blue-600 dark:text-blue-400 hover:underline flex items-start gap-1.5 whitespace-normal break-all leading-snug"
+                              className="text-blue-600 dark:text-blue-400 hover:opacity-80 transition"
                               title="Send Email"
                             >
-                              <Mail className="w-3.5 h-3.5 text-blue-500 shrink-0 mt-0.5" />
-                              <span>{booking.email}</span>
+                              <Mail className="w-3.5 h-3.5" />
                             </a>
-                          ) : (
-                            <span className="text-slate-400 italic text-[11px]">Not provided</span>
-                          )}
-                        </td>
-
-                        {/* Mobile Number */}
-                        <td className="p-3.5 align-top min-w-[160px]">
-                          {booking.phone ? (
-                            <div className="flex items-center gap-2">
-                              <Phone className="w-3.5 h-3.5 text-slate-400 shrink-0" />
-                              <span className="font-mono text-xs text-slate-700 dark:text-slate-300 font-semibold whitespace-nowrap">
-                                {booking.phone}
-                              </span>
-                              {whatsappUrl && (
-                                <a
-                                  href={whatsappUrl}
-                                  target="_blank"
-                                  rel="noopener noreferrer"
-                                  className="text-emerald-600 dark:text-emerald-400 hover:text-emerald-500 font-extrabold bg-emerald-500/10 px-1.5 py-0.5 rounded border border-emerald-500/20 inline-flex items-center gap-0.5 text-[10px] transition"
-                                  title="Chat on WhatsApp"
-                                >
-                                  <MessageSquare className="w-3 h-3" />
-                                  <span>WA</span>
-                                </a>
-                              )}
-                            </div>
-                          ) : (
-                            <span className="text-slate-400 italic text-[11px]">Not provided</span>
-                          )}
+                          </div>
                         </td>
 
                         {/* Consultation Track */}
