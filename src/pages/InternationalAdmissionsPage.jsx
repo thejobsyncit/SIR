@@ -5,10 +5,10 @@ import { InternationalAdmissionsForm } from '../components/InternationalAdmissio
 import ScrollReveal from '../components/ScrollReveal';
 import { trackServiceView, trackCtaClick } from '../services/analytics';
 import { 
-  Globe, Compass, CheckCircle2, ChevronDown, ChevronUp, ArrowRight, ArrowLeft,
-  Calendar, ShieldCheck, Award, FileText, Users, DollarSign, Clock, HelpCircle,
-  Sparkles, GraduationCap, Building2, ExternalLink, MapPin, Check, BookOpen, Send,
-  AlertCircle, Briefcase, FileCheck, Landmark, Plane, BadgeCheck, Layers, FileSignature
+  Globe, Compass, CheckCircle2, ChevronDown, ChevronUp, ArrowRight,
+  Calendar, ShieldCheck, Award, FileText, Users, Clock, HelpCircle,
+  GraduationCap, Building2, ExternalLink, Send, AlertCircle, Briefcase,
+  FileCheck, Landmark, Plane, Layers, ChevronRight, MessageSquare, Check
 } from 'lucide-react';
 
 export const InternationalAdmissionsPage = () => {
@@ -22,31 +22,38 @@ export const InternationalAdmissionsPage = () => {
     trackServiceView('intl-adm', 'International Admissions', 'Admissions');
   }, []);
 
+  const scrollToSection = (id) => {
+    const el = document.getElementById(id);
+    if (el) {
+      el.scrollIntoView({ behavior: 'smooth' });
+    }
+  };
+
   // Section 1: Hero Info Blocks
   const heroInfoBlocks = [
     {
       icon: Globe,
       label: 'Destinations',
-      value: 'UK, USA, Canada, Europe, Australia and UAE',
+      value: 'UK, USA, Canada, Europe, Australia & UAE',
       subtext: 'Global University Application Support'
     },
     {
       icon: Layers,
       label: 'Application Portals',
-      value: 'UCAS, Common App and Direct Applications',
+      value: 'UCAS, Common App & Direct Portals',
       subtext: 'Centralized & Institutional Systems'
     },
     {
-      icon: FileSignature,
+      icon: FileCheck,
       label: 'Application Stages',
-      value: 'Application Preparation to CAS / I-20',
+      value: 'Profile Review to CAS / I-20',
       subtext: 'End-to-End Application Tracking'
     },
     {
       icon: ShieldCheck,
       label: 'Compliance Support',
-      value: 'Document Verification and Application Requirements',
-      subtext: 'Institutional & Document Accuracy'
+      value: 'Document Verification & Requirements',
+      subtext: 'Institutional & Academic Accuracy'
     }
   ];
 
@@ -55,93 +62,93 @@ export const InternationalAdmissionsPage = () => {
     {
       id: '01',
       title: 'Multi-Country University Portals',
-      desc: 'Provide guidance on application systems, including UCAS for the UK, Common App and other applicable US application platforms, OUAC for Ontario, Canada, and direct university applications where required.',
+      desc: 'Expert guidance across application systems including UCAS for the UK, Common App and Coalition for the US, OUAC for Canada, Uni-Assist for Europe, and direct university portals worldwide.',
       icon: Layers,
       highlights: [
-        'UCAS profile setup, personal statement review, and course choice management',
-        'Common App activity lists, institutional supplement prompts, and counselor forms',
-        'OUAC and Canadian provincial portal management and direct uploads',
-        'European university portals (e.g. Uni-Assist) and Australian direct admissions'
+        'UCAS profile configuration, course choice management & deadline tracking',
+        'Common App activity lists, institutional supplement prompts & counselor coordination',
+        'Canadian provincial portal submissions and direct institutional uploads',
+        'European portals (e.g., Uni-Assist) and Australian university direct applications'
       ]
     },
     {
       id: '02',
       title: 'Academic Document Verification & Attestation',
-      desc: 'Help students organize transcripts, marksheets, certificates, translations, and other documents required by their chosen institutions. Explain verification and attestation requirements where applicable.',
+      desc: 'Systematic organization and pre-screening of transcripts, marksheets, degree certificates, certified English translations, and credential evaluations tailored to each destination.',
       icon: FileCheck,
       highlights: [
-        'Pre-screening transcripts, provisional certificates, and predicted grade cards',
-        'Guidance on certified English translations and credential evaluation (e.g. WES, ECE)',
+        'Pre-screening transcripts, provisional certificates & predicted grades',
+        'Guidance on certified English translations and evaluation services (WES, ECE)',
         'Notarization, apostille, and Ministry of Foreign Affairs (MOFA) attestation steps',
-        'Course syllabus mapping for credit transfers and advanced standing'
+        'Course syllabus mapping for academic credit transfers and advanced standing'
       ]
     },
     {
       id: '03',
-      title: 'CAS and I-20 Compliance Guidance',
-      desc: 'Provide application-stage guidance for UK CAS-related processes and US I-20 requirements, subject to university decisions and the applicable rules. Clearly distinguish admissions support from the final decisions made by universities and immigration authorities.',
+      title: 'CAS & I-20 Compliance Guidance',
+      desc: 'Structured application-stage compliance for UK CAS (Confirmation of Acceptance for Studies) and US Form I-20 requirements, with diagnostic credibility interview preparation.',
       icon: ShieldCheck,
       highlights: [
-        'UK Confirmation of Acceptance for Studies (CAS) document readiness audits',
+        'UK CAS document readiness audits and academic condition tracking',
         'US Form I-20 financial documentation and affidavit structuring',
         'University credibility interview preparation and diagnostic mock sessions',
-        'Clear distinction between academic admissions and official visa issuance'
+        'Transparent boundary between academic admissions and official visa issuance'
       ]
     },
     {
       id: '04',
       title: 'Direct Liaison with Admissions Offices',
-      desc: 'Support application follow-ups, clarification of outstanding documents, communication regarding application status, and responses to additional requirements from institutions.',
+      desc: 'Active application follow-ups, clarification of outstanding documents, communication regarding admissions status, and immediate responses to institutional queries.',
       icon: Landmark,
       highlights: [
-        'Direct email correspondence with university international admissions teams',
+        'Direct correspondence with university international admissions committees',
         'Expediting conditional offer reviews and document receipt confirmations',
-        'Clarifying prerequisite subject requirements or syllabus overlap queries',
+        'Clarifying prerequisite subject requirements and syllabus overlap queries',
         'Managing offer acceptance deadlines and tuition deposit coordination'
       ]
     }
   ];
 
-  // Section 3: International Admissions Process (4 Steps)
+  // Section 3: International Admissions Process (4-Step Timeline)
   const admissionsProcessSteps = [
     {
       step: '01',
       title: 'Application Planning',
       points: [
-        'Review the student’s academic profile and intended course.',
-        'Identify suitable institutions and entry requirements.',
-        'Organize application deadlines and intake preferences.',
-        'Prepare a university application shortlist.'
+        'Review the student’s academic profile, qualifications, and intended course of study.',
+        'Identify target institutions, entry benchmarks, and country-specific criteria.',
+        'Organize intake deadlines and build an admissions timeline.',
+        'Prepare a balanced university shortlist (Aspirational, Target, and Safe).'
       ]
     },
     {
       step: '02',
       title: 'Submission & Portal Management',
       points: [
-        'Help prepare application information and supporting documents.',
-        'Provide guidance on UCAS, Common App, OUAC, or direct application portals, as applicable.',
-        'Track submission progress and outstanding requirements.',
-        'Maintain an organized application checklist.'
+        'Compile and verify academic records, essays, and letters of recommendation.',
+        'Manage submissions across UCAS, Common App, OUAC, or direct portals.',
+        'Track submission progress, payment receipts, and portal credentials.',
+        'Maintain an organized status checklist for every university application.'
       ]
     },
     {
       step: '03',
       title: 'Offer Evaluation & Condition Clearing',
       points: [
-        'Help students understand conditional and unconditional offers.',
-        'Explain outstanding academic or document conditions.',
-        'Organize next steps based on the university’s instructions.',
-        'Support communication with admissions offices when clarification is required.'
+        'Analyze conditional versus unconditional offer letters and scholarship awards.',
+        'Clarify outstanding academic, financial, or document conditions.',
+        'Coordinate document resubmissions and formal acceptance with admissions offices.',
+        'Assist with tuition deposit confirmation and enrollment commitment.'
       ]
     },
     {
       step: '04',
       title: 'Visa & Pre-Departure Coordination',
       points: [
-        'Provide a destination-specific document checklist.',
-        'Explain the next steps following admission and relevant institutional documentation.',
-        'Help organize pre-departure preparation.',
-        'Direct students to official sources for current visa and immigration requirements.'
+        'Provide a destination-specific visa document checklist and financial guidelines.',
+        'Explain CAS and Form I-20 issuance steps following confirmed admission.',
+        'Direct students to official government immigration portals for visa filing.',
+        'Organize pre-departure orientation, housing guidance, and travel planning.'
       ]
     }
   ];
@@ -151,25 +158,25 @@ export const InternationalAdmissionsPage = () => {
     {
       title: 'Undergraduate Applicants',
       badge: 'Bachelor’s Degrees',
-      desc: 'Students completing Grade 12 or equivalent who are preparing for bachelor’s degree applications across international universities and regional branch campuses.',
+      desc: 'High school graduates (CBSE, ISC, A-Levels, IB, American High School) preparing bachelor’s degree applications across world-ranked universities.',
       icon: GraduationCap
     },
     {
       title: 'Postgraduate Applicants',
-      badge: 'Master’s & Professional',
-      desc: 'Graduates applying for master’s degrees, professional programs, or research opportunities requiring rigorous academic portfolios and specialized essays.',
-      icon: BookOpen
+      badge: 'Master’s & Professional Degrees',
+      desc: 'University graduates applying for 1-year UK Master’s, 2-year US/Canadian degrees, or specialized European programs requiring advanced research proposals.',
+      icon: Award
     },
     {
-      title: 'Students Applying to Multiple Universities',
+      title: 'Multi-Destination Applicants',
       badge: 'Multi-Portal Management',
-      desc: 'Applicants who need help coordinating different application portals, diverse document formats, and varying intake deadlines across multiple countries.',
+      desc: 'Students applying simultaneously across multiple countries (e.g., UK + US + Canada) who need coordinated portal management and deadline oversight.',
       icon: Layers
     },
     {
-      title: 'Students Requiring End-to-End Guidance',
-      badge: 'Comprehensive Support',
-      desc: 'Applicants seeking structured support from initial planning through offer evaluation, condition clearing, and pre-departure preparation.',
+      title: 'Comprehensive Advisory Candidates',
+      badge: 'End-to-End Guidance',
+      desc: 'Families seeking complete advisory support from early profile diagnostics through offer acceptance, document compliance, and pre-departure briefings.',
       icon: Users
     }
   ];
@@ -177,39 +184,39 @@ export const InternationalAdmissionsPage = () => {
   // Section 5: Document Checklist (9 Items)
   const documentChecklist = [
     {
-      title: 'Official academic transcripts and marksheets',
+      title: 'Official Academic Transcripts & Marksheets',
       desc: 'High school transcripts (Grades 9–12) for undergraduate applicants; semester-wise university transcripts for postgraduate candidates.'
     },
     {
-      title: 'Degree certificates or provisional certificates, where applicable',
-      desc: 'Certified bachelor’s degree completion certificate or provisional degree certificate issued by the registrar.'
+      title: 'Degree Certificates or Provisional Certificates',
+      desc: 'Certified bachelor’s degree completion certificate or provisional degree certificate issued by the university registrar.'
     },
     {
-      title: 'Valid passport',
-      desc: 'Clear full-color scan of international passport personal information and expiration page with minimum 6 to 18 months validity.'
+      title: 'Valid International Passport',
+      desc: 'Clear full-color scan of passport personal information and expiration page with a minimum of 6 to 18 months validity remaining.'
     },
     {
-      title: 'English language proficiency scores, if required',
-      desc: 'Official scorecard for IELTS Academic, TOEFL iBT, Pearson PTE Academic, or Duolingo English Test (DET) where mandated by the course.'
+      title: 'English Language Proficiency Scores',
+      desc: 'Official score report for IELTS Academic, TOEFL iBT, Pearson PTE Academic, or Duolingo English Test (DET) where mandated.'
     },
     {
-      title: 'Statement of Purpose or personal statement, where applicable',
-      desc: 'Program-specific personal statement outlining academic motivations, chosen subject interests, and future career objectives.'
+      title: 'Statement of Purpose / Personal Statement',
+      desc: 'Course-specific personal statement outlining academic motivations, chosen subject interests, and future career objectives.'
     },
     {
-      title: 'Academic or professional letters of recommendation, where required',
+      title: 'Academic & Professional Reference Letters (LORs)',
       desc: 'One to three formal reference letters from teachers, professors, or professional managers on official institutional letterhead.'
     },
     {
-      title: 'Curriculum Vitae or resume for relevant programs',
+      title: 'Curriculum Vitae (CV) / Academic Resume',
       desc: 'Comprehensive summary of educational history, co-curricular achievements, internships, research projects, and skills.'
     },
     {
-      title: 'Portfolio, research proposal, or additional course-specific documents, if required',
-      desc: 'Creative portfolio for architecture/design, writing sample for humanities, or research proposal for PhD and thesis tracks.'
+      title: 'Portfolio or Research Proposal (if applicable)',
+      desc: 'Creative portfolio for architecture/design, writing sample for humanities, or research proposal for thesis/PhD tracks.'
     },
     {
-      title: 'Financial documents when required for subsequent processes',
+      title: 'Financial Solvency & Sponsorship Documents',
       desc: 'Bank solvency certificate, sponsorship declaration, or approved educational loan letter for CAS, I-20, or visa processing.'
     }
   ];
@@ -218,19 +225,19 @@ export const InternationalAdmissionsPage = () => {
   const destinationData = {
     'uk': {
       name: 'United Kingdom',
-      flag: '🇬🇧',
+      flagUrl: 'https://flagcdn.com/w40/gb.png',
       badge: 'UCAS & Direct University Portals',
-      applicationPortals: 'Centralized UCAS portal for undergraduate applications (maximum 5 course selections) | Direct university admissions portals for postgraduate and master’s programs.',
+      applicationPortals: 'Centralized UCAS portal for undergraduate applications (maximum 5 course choices) | Direct university admissions portals for postgraduate master’s and PhD programs.',
       typicalDocuments: [
         'Class 10 & 12 official marksheets / Predicted grades',
-        'Academic transcripts & Bachelor’s degree (for PG)',
+        'University transcripts & Bachelor’s degree (for Master’s)',
         'UCAS Personal Statement (4,000 characters / 47 lines)',
         'Academic Reference Letter on official school letterhead',
-        'Valid Passport and English language scorecard'
+        'Valid Passport and English language scorecard (IELTS/PTE)'
       ],
-      planningConsiderations: 'UK applications emphasize strong subject alignment and academic mastery in the chosen discipline. 1-Year Master’s degrees require focused preparation for rapid admissions turnaround.',
-      academicLanguageReqs: 'Undergraduate: CBSE/ISC 75%–90%, A-Levels (AAA to BBC), or IB (30–36 pts). IELTS Academic 6.0 – 7.0 (or CBSE Class 12 English waiver at select universities). Postgraduate: 2:1 or 2:2 equivalence (60%–70%).',
-      deadlineConsiderations: 'October 15: Oxford, Cambridge, and medicine/dentistry. Late January: Equal consideration deadline for most undergraduate UCAS courses. June 30: Final deadline for regular UCAS applications. Rolling admissions for postgraduate tracks.',
+      planningConsiderations: 'UK applications emphasize strong subject alignment and academic mastery in the chosen discipline. 1-Year accelerated Master’s programs require early submission for rapid turnaround.',
+      academicLanguageReqs: 'Undergraduate: CBSE/ISC 75%–90%, A-Levels (AAA to BBC), or IB (30–36 pts). IELTS Academic 6.0–7.0 (CBSE Class 12 English waiver available at select institutions). Postgraduate: 2:1 or 2:2 equivalence (60%–70%).',
+      deadlineConsiderations: 'October 15: Oxford, Cambridge, and Medicine/Dentistry/Veterinary. Late January: Equal consideration deadline for most undergraduate courses. Rolling admissions for postgraduate tracks.',
       officialLinks: [
         { label: 'UCAS Official Portal', url: 'https://www.ucas.com' },
         { label: 'Study UK (British Council)', url: 'https://study-uk.britishcouncil.org' },
@@ -239,7 +246,7 @@ export const InternationalAdmissionsPage = () => {
     },
     'usa': {
       name: 'United States',
-      flag: '🇺🇸',
+      flagUrl: 'https://flagcdn.com/w40/us.png',
       badge: 'Common App, Coalition & Graduate Portals',
       applicationPortals: 'The Common Application and Coalition Application for undergraduate colleges | Departmental graduate admissions portals for Master’s, STEM, and MBA applications.',
       typicalDocuments: [
@@ -249,95 +256,95 @@ export const InternationalAdmissionsPage = () => {
         'English proficiency scores (TOEFL / IELTS / DET)',
         'Credential evaluation (e.g. WES) for 3-year bachelor degrees'
       ],
-      planningConsiderations: 'Holistic admissions review evaluating extracurricular leadership, community impact, personal essays, and academic rigor. SAT/ACT optional at many colleges.',
-      academicLanguageReqs: 'Undergraduate: Competitive unweighted GPA (3.0+ on a 4.0 scale); TOEFL 80–100+ or IELTS 6.5–7.5. Postgraduate: 4-year degree (or 3-year + evaluated credits); GRE/GMAT required for select competitive programs.',
-      deadlineConsiderations: 'Early Decision (ED) & Early Action (EA): November 1 – 15. Regular Decision (RD): January 1 – 15. Priority scholarship cutoffs often align with early action windows.',
+      planningConsiderations: 'Holistic admissions evaluating GPA, essay depth, extracurricular leadership, and community impact. Financial documentation is required prior to Form I-20 issuance.',
+      academicLanguageReqs: 'Undergraduate: GPA 3.0+ / 80%+ equivalent; SAT/ACT optional at many universities. TOEFL 80–100+, IELTS 6.5–7.5, or DET 115–130. Graduate: GRE/GMAT for select STEM/MBA tracks.',
+      deadlineConsiderations: 'Early Decision / Early Action: November 1–15. Regular Decision: January 1–15. Graduate deadlines range from December through March.',
       officialLinks: [
-        { label: 'Common Application Portal', url: 'https://www.commonapp.org' },
+        { label: 'The Common Application', url: 'https://www.commonapp.org' },
         { label: 'EducationUSA (U.S. Department of State)', url: 'https://educationusa.state.gov' },
-        { label: 'Study in the States (DHS)', url: 'https://studyinthestates.dhs.gov' }
+        { label: 'U.S. Student Visas (F-1)', url: 'https://travel.state.gov' }
       ]
     },
     'canada': {
       name: 'Canada',
-      flag: '🇨🇦',
-      badge: 'OUAC & Direct Institutional Portals',
-      applicationPortals: 'OUAC (Ontario Universities’ Application Centre) for Ontario universities | Direct institution portals for British Columbia, Alberta, Quebec, and Atlantic provinces.',
+      flagUrl: 'https://flagcdn.com/w40/ca.png',
+      badge: 'OUAC & Direct Provincial University Portals',
+      applicationPortals: 'Ontario Universities’ Application Centre (OUAC) for Ontario | Direct university portals for British Columbia, Alberta, Quebec, and other provinces.',
       typicalDocuments: [
-        'Secondary school transcripts and final board certificates',
-        'Official degree certificates and semester marksheets (for PG)',
+        'High school transcripts & completion certificates',
+        'Bachelor’s transcripts & degree certificate (for PG)',
         'Statement of Intent or Statement of Purpose',
         'Academic Letters of Reference',
-        'Proof of English proficiency (IELTS Academic / PTE)'
+        'IELTS Academic (minimum 6.5 with no band below 6.0) or TOEFL'
       ],
-      planningConsiderations: 'Provincial Attestation Letter (PAL) required under current IRCC study permit rules following university acceptance. Co-op degree options require early application.',
-      academicLanguageReqs: 'Undergraduate: Minimum 70%–85% overall average in Grade 12 depending on faculty competitiveness. Postgraduate: 4-year Bachelor’s with minimum B / 3.0 GPA in the last two years. IELTS Academic 6.5 (minimum 6.0 each band).',
-      deadlineConsiderations: 'January 15: Major universities (e.g., UBC, Toronto, McGill). February – March: General provincial cutoffs. Early submission recommended to secure PAL allocation.',
+      planningConsiderations: 'Strong emphasis on academic percentage and prerequisite courses (e.g., Grade 12 Math for Business/Engineering). Co-op programs require early registration.',
+      academicLanguageReqs: 'Undergraduate: 70%–85%+ in Class 12 board examinations. IELTS Academic 6.5 overall. Postgraduate: Minimum 4-year bachelor’s degree with B/B+ average (70%–75%+).',
+      deadlineConsiderations: 'Primary Fall intake deadlines range from January 15 to March 1. Select colleges offer January (Winter) intake options.',
       officialLinks: [
-        { label: 'EduCanada Official Gateway', url: 'https://www.educanada.ca' },
-        { label: 'OUAC (Ontario Universities Application Centre)', url: 'https://www.ouac.on.ca' },
-        { label: 'IRCC Study Permit Information', url: 'https://www.canada.ca/en/immigration-refugees-citizenship/services/study-canada.html' }
+        { label: 'OUAC (Ontario Universities)', url: 'https://www.ouac.on.ca' },
+        { label: 'EduCanada (Government of Canada)', url: 'https://www.educanada.ca' },
+        { label: 'Immigration, Refugees and Citizenship Canada (IRCC)', url: 'https://www.canada.ca/en/immigration-refugees-citizenship.html' }
       ]
     },
     'australia': {
       name: 'Australia',
-      flag: '🇦🇺',
-      badge: 'Direct Admissions & State Portals',
-      applicationPortals: 'Direct university online application portals for most international students | State tertiary admissions centres (e.g. UAC for NSW, VTAC for Victoria) for select cohorts.',
+      flagUrl: 'https://flagcdn.com/w40/au.png',
+      badge: 'Direct University Admissions & State Tiers',
+      applicationPortals: 'Direct admissions through university international portals | VTAC (Victoria), UAC (NSW/ACT), and QTAC (Queensland) where applicable.',
       typicalDocuments: [
-        'Certified copies of Year 12 or Bachelor’s academic transcripts',
-        'English proficiency scorecard (IELTS Academic or PTE Academic)',
-        'Genuine Student (GS) statement addressing study intentions',
-        'Passport scan and details of any prior visa history'
+        'Certified high school marksheets or bachelor’s degree records',
+        'IELTS Academic / PTE Academic scorecard',
+        'Genuine Student (GS) assessment statement and evidence',
+        'Proof of financial capacity and medical cover (OSHC)',
+        'Curriculum Vitae for postgraduate study'
       ],
-      planningConsiderations: 'Australia operates on a two-semester calendar (February and July intakes). Genuine Student (GS) assessment thoroughly evaluates course relevance and educational background.',
-      academicLanguageReqs: 'Undergraduate: Australian Year 12 equivalent (ATAR equivalent benchmark or 65%–85% in national boards). Postgraduate: Recognized Bachelor’s degree with 60%–65%+. IELTS 6.5 (no band below 6.0) or PTE 58+.',
-      deadlineConsiderations: 'November – December for Semester 1 (February Intake); April – May for Semester 2 (July Intake). Rolling admissions processed upon document completion.',
+      planningConsiderations: 'Dual major intakes per year: Semester 1 (February) and Semester 2 (July). Clear compliance with the Genuine Student (GS) assessment standard is mandatory.',
+      academicLanguageReqs: 'Undergraduate: CBSE/ISC 65%–85% or ATAR equivalent. IELTS Academic 6.0–6.5 (PTE 50–58). Postgraduate: Bachelor’s degree in related discipline with 60%–70%+.',
+      deadlineConsiderations: 'Semester 1 (Feb start): Applications close October–November. Semester 2 (July start): Applications close April–May.',
       officialLinks: [
-        { label: 'Study Australia Official Portal', url: 'https://www.studyaustralia.gov.au' },
-        { label: 'Department of Home Affairs Student Visa (Subclass 500)', url: 'https://immi.homeaffairs.gov.au/visas/getting-a-visa/visa-listing/student-500' },
-        { label: 'QILT University Course Comparisons', url: 'https://www.qilt.edu.au' }
+        { label: 'Study Australia (Australian Government)', url: 'https://www.studyaustralia.gov.au' },
+        { label: 'Department of Home Affairs (Subclass 500)', url: 'https://immi.homeaffairs.gov.au' }
       ]
     },
     'europe': {
       name: 'Europe',
-      flag: '🇪🇺',
-      badge: 'Uni-Assist, National Portals & Direct Submissions',
-      applicationPortals: 'Uni-Assist centralized portal for many German universities | Studielink for the Netherlands | Direct university applications across Ireland, France, Switzerland, and Scandinavia.',
+      flagUrl: 'https://flagcdn.com/w40/eu.png',
+      badge: 'Uni-Assist & National Higher Education Portals',
+      applicationPortals: 'Uni-Assist and Hochschulstart for Germany | Studielink for the Netherlands | Campus France | Direct portals for Ireland, Sweden, and Switzerland.',
       typicalDocuments: [
-        'Certified copies of secondary or bachelor’s academic credentials',
-        'Curriculum Vitae formatted in EuroPass or academic layout',
-        'Statement of Motivation detailing academic objectives',
-        'APS Certificate for applicants from designated Asian regions (Germany)',
-        'Language scorecard: English (IELTS) or German (TestDaF/Goethe) where relevant'
+        'Secondary school leaving certificate & university transcripts',
+        'APS Certificate for Indian students applying to Germany',
+        'Motivational letter tailored to European institutional formats',
+        'Certified English proficiency score (IELTS/TOEFL)',
+        'Course syllabus description for credit validation'
       ],
-      planningConsiderations: 'European public universities emphasize strict consecutive subject credit match (ECTS requirements). English-taught bachelor’s programs are growing but have strict quotas.',
-      academicLanguageReqs: 'High school diploma evaluated via Anabin/national databases (Studienkolleg required for select curricula). English programs: IELTS 6.5+. Master’s programs require close alignment of undergraduate credits.',
-      deadlineConsiderations: 'July 15 for German Winter Intake (October start); January 15 for Summer Intake (April start). Dutch numerus fixus programs close January 15.',
+      planningConsiderations: 'Many public European universities offer tuition-free or low-tuition English-taught degrees. APS verification and blocked account setup must be factored into timelines.',
+      academicLanguageReqs: 'Undergraduate: 75%–85% in Grade 12 (13 years of schooling or Studienkolleg required in select nations). IELTS 6.5+. Postgraduate: Relevant bachelor’s with ECTS match.',
+      deadlineConsiderations: 'Winter Semester (September/October): Deadlines between March 1 and July 15. Summer Semester (March/April): Deadlines in October–January.',
       officialLinks: [
-        { label: 'DAAD Germany International Programmes', url: 'https://www.daad.de/en/' },
-        { label: 'Uni-Assist Application Gateway', url: 'https://www.uni-assist.de/en/' },
-        { label: 'Studielink Netherlands Portal', url: 'https://www.studielink.nl' }
+        { label: 'DAAD Germany Study Portal', url: 'https://www.daad.de' },
+        { label: 'Studielink Netherlands', url: 'https://www.studielink.nl' },
+        { label: 'Study in Europe (European Commission)', url: 'https://europa.eu' }
       ]
     },
     'uae': {
       name: 'United Arab Emirates',
-      flag: '🇦🇪',
-      badge: 'CAA Accredited & International Branch Campuses',
-      applicationPortals: 'Direct university portal applications for international branch campuses (e.g. Heriot-Watt, Birmingham, Wollongong, RIT, Curtin) and UAE national universities.',
+      flagUrl: 'https://flagcdn.com/w40/ae.png',
+      badge: 'Branch Campuses & Federal Universities',
+      applicationPortals: 'Direct university admissions portals for global branch campuses (e.g., Heriot-Watt Dubai, University of Birmingham Dubai, Wollongong Dubai, Middlesex Dubai, NYU Abu Dhabi).',
       typicalDocuments: [
-        'Official 10th and 12th grade marksheets / Bachelor’s degree certificates',
-        'Valid Passport copy and UAE Emirates ID (if resident)',
-        'High school certificate equivalency issued by UAE Ministry of Education (MOE)',
-        'Proof of English proficiency (IELTS Academic or EmSAT English)'
+        'Attested Grade 12 or Bachelor’s transcripts',
+        'UAE Ministry of Education (MOE) Equalization Certificate where required',
+        'Valid Passport & UAE Resident Visa / Emirates ID (if resident)',
+        'English Language Proficiency scorecard (IELTS / EmSAT / TOEFL)',
+        'Statement of Purpose and Letters of Recommendation'
       ],
-      planningConsiderations: 'Global branch campuses in Dubai Knowledge Park, Dubai International Academic City, and Abu Dhabi offer identical home-country degree credentials with local accreditation.',
-      academicLanguageReqs: 'Undergraduate: Minimum 70%–80% in 12th grade; EmSAT English 1400+ or IELTS 6.0. Postgraduate: Bachelor’s degree recognized by UAE Ministry with GPA 2.5 – 3.0/4.0.',
-      deadlineConsiderations: 'July – August for Fall Intake (September start); November – December for Spring Intake (January start). Fast-track rolling processing available for early applicants.',
+      planningConsiderations: 'Students earn identical UK, Australian, or US degrees while studying in Dubai or Abu Dhabi. Flexible September and January intakes with streamlined visa sponsorships.',
+      academicLanguageReqs: 'Undergraduate: CBSE/ISC 65%–80%, A-Levels (BBB to CCD), or IB (28–34 pts). IELTS 6.0 or EmSAT English 1400+. Postgraduate: Recognized bachelor’s degree with GPA 2.5–3.0+.',
+      deadlineConsiderations: 'September Intake: Applications open February through August. January Intake: Applications open October through December. Rolling evaluations.',
       officialLinks: [
-        { label: 'UAE Ministry of Education (Higher Education)', url: 'https://www.moe.gov.ae' },
-        { label: 'KHDA Dubai Higher Education Directory', url: 'https://www.khda.gov.ae' },
-        { label: 'Commission for Academic Accreditation (CAA)', url: 'https://www.caa.ae' }
+        { label: 'KHDA Dubai Higher Education', url: 'https://www.khda.gov.ae' },
+        { label: 'UAE Ministry of Education', url: 'https://www.moe.gov.ae' }
       ]
     }
   };
@@ -350,112 +357,117 @@ export const InternationalAdmissionsPage = () => {
     scrollToSection('admissions-consultation-booking');
   };
 
-  // Section 7: Application Timeline & Deadline Planning (8 Major Stages)
+  // Section 7: Application Timeline (7 Stages)
   const timelineStages = [
     {
       num: 1,
       title: 'Initial Profile Review',
-      fallDesc: 'Months 14–12 (Jul – Sep): Diagnostic appraisal of academic grades, prerequisite gaps, and testing strategy.',
-      springDesc: 'Months 10–9 (Mar – Apr): Rapid profile audit and selection of spring-eligible programs.',
-      summerDesc: 'Months 8–7 (Oct – Nov): Short-cycle eligibility assessment for immediate summer intake tracks.'
+      fallDesc: 'Months 14–12 (Jul–Sep): Diagnostic audit of academic transcripts, target course requirements, and language testing schedule.',
+      springDesc: 'Months 10–9 (Mar–Apr): Fast-track profile appraisal and selection of spring-eligible programs across target countries.',
+      summerDesc: 'Months 8–7 (Oct–Nov): Accelerated eligibility review for summer diploma, foundation, and direct university pathways.'
     },
     {
       num: 2,
-      title: 'University and Course Shortlisting',
-      fallDesc: 'Months 12–10 (Oct – Dec): Curating a 3-tier shortlist: Aspirational (Reach), Target, and Safe institutions.',
-      springDesc: 'Months 8–7 (May – Jun): Selecting institutions with January/February semester enrollments.',
-      summerDesc: 'Months 6–5 (Dec – Jan): Finalizing specialized summer diploma or foundation degree options.'
+      title: 'University Shortlisting',
+      fallDesc: 'Months 12–10 (Oct–Dec): Curating a 3-tier shortlist of Aspirational, Target, and Safe institutions based on entry standards.',
+      springDesc: 'Months 8–7 (May–Jun): Selecting universities offering January/February semester intakes with compatible course modules.',
+      summerDesc: 'Months 6–5 (Dec–Jan): Finalizing specialized summer term institutions and matching prerequisite course benchmarks.'
     },
     {
       num: 3,
       title: 'Document Preparation',
-      fallDesc: 'Months 10–8 (Dec – Feb): Drafting personal statements, securing transcripts, and requesting reference letters.',
-      springDesc: 'Months 7–6 (Jun – Jul): Accelerating SOP completion, transcript attestation, and reference letters.',
-      summerDesc: 'Months 5–4 (Jan – Feb): Compiling verified marksheets, resumes, and test scorecards.'
+      fallDesc: 'Months 10–8 (Dec–Feb): Drafting personal statements, compiling transcripts, obtaining LORs, and scheduling language tests.',
+      springDesc: 'Months 7–6 (Jun–Jul): Finalizing Statements of Purpose, securing academic references, and completing credential translations.',
+      summerDesc: 'Months 5–4 (Jan–Feb): Compiling certified marksheets, CV, letters of recommendation, and verified test scorecards.'
     },
     {
       num: 4,
       title: 'Application Submission',
-      fallDesc: 'Months 8–6 (Feb – Apr): Submitting portal applications (UCAS, Common App, direct portals) prior to deadlines.',
-      springDesc: 'Months 5–4 (Aug – Sep): Submitting early spring admission applications across target portals.',
-      summerDesc: 'Months 4–3 (Feb – Mar): Priority submission for summer term direct university portals.'
+      fallDesc: 'Months 8–6 (Feb–Apr): Submitting portal applications (UCAS, Common App, OUAC, direct portals) ahead of priority deadlines.',
+      springDesc: 'Months 5–4 (Aug–Sep): Submitting early spring admission dossiers and monitoring institutional application portal receipts.',
+      summerDesc: 'Months 4–3 (Feb–Mar): Priority direct application submission and document portal uploads for summer semester cohorts.'
     },
     {
       num: 5,
-      title: 'Application Follow-Up',
-      fallDesc: 'Months 6–5 (Apr – May): Monitoring portal statuses, resolving document queries, and university liaison.',
-      springDesc: 'Months 4–3 (Sep – Oct): Tracking expedited admissions evaluations and responding to queries.',
-      summerDesc: 'Months 3–2 (Mar – Apr): Direct coordination with admissions boards for rapid review.'
+      title: 'Offer Evaluation',
+      fallDesc: 'Months 6–4 (Apr–Jun): Reviewing conditional and unconditional offer letters, comparing scholarship grants, and selecting choices.',
+      springDesc: 'Months 4–3 (Sep–Oct): Evaluating admission responses, reviewing condition requirements, and finalizing primary offer acceptance.',
+      summerDesc: 'Months 3–2 (Mar–Apr): Reviewing offers, confirming enrollment commitments, and submitting seat confirmation documentation.'
     },
     {
       num: 6,
-      title: 'Offer Evaluation',
-      fallDesc: 'Months 5–4 (May – Jun): Analyzing conditional versus unconditional offers and scholarship allocations.',
-      springDesc: 'Months 3–2 (Oct – Nov): Comparing admission offers, entry conditions, and scholarship grants.',
-      summerDesc: 'Months 2–1 (Apr – May): Reviewing offer letters and confirming enrollment deposits.'
+      title: 'Admission Documentation (CAS & I-20)',
+      fallDesc: 'Months 4–2 (Jun–Jul): Clearing academic conditions, paying tuition deposits, and obtaining UK CAS or US Form I-20 documentation.',
+      springDesc: 'Months 2–1 (Nov–Dec): Clearing institutional conditions, completing financial solvency checks, and securing enrollment certificates.',
+      summerDesc: 'Month 2–1 (Apr–May): Finalizing tuition deposit transfers, clearing admissions conditions, and obtaining official acceptance letters.'
     },
     {
       num: 7,
-      title: 'Condition Clearing and Required Institutional Documentation',
-      fallDesc: 'Months 4–2 (Jun – Jul): Fulfilling academic conditions, paying tuition deposits, and obtaining CAS or I-20.',
-      springDesc: 'Months 2–1 (Nov – Dec): Fulfilling document conditions and securing official CAS / Form I-20.',
-      summerDesc: 'Month 1 (May): Finalizing tuition deposits and obtaining enrollment confirmations.'
-    },
-    {
-      num: 8,
-      title: 'Visa Preparation and Pre-Departure',
-      fallDesc: 'Months 2–1 (Jul – Aug): Compiling visa checklists, booking biometrics, housing, and pre-departure briefings.',
-      springDesc: 'Month 1 (Dec – Jan): Visa stamping, accommodation coordination, flight bookings, and travel briefings.',
-      summerDesc: 'Immediate (May – Jun): Fast-track visa filing, health insurance clearance, and travel arrangement.'
+      title: 'Pre-Departure Preparation',
+      fallDesc: 'Months 2–1 (Jul–Aug): Destination visa application filing, biometrics appointment, accommodation booking, and travel briefings.',
+      springDesc: 'Month 1 (Dec–Jan): Student visa processing, health insurance coordination, student housing confirmation, and travel logistics.',
+      summerDesc: 'Month 1 (May–Jun): Priority visa filing, international medical insurance, flight bookings, and pre-departure orientation.'
     }
   ];
 
-  // Section 9: Frequently Asked Questions (7 exact questions specified)
+  // Section 10: Frequently Asked Questions (10 Exact Questions from Prompt)
   const faqs = [
     {
-      q: 'Which countries can I apply to through your admissions support?',
-      a: 'We provide guidance for applications to universities in destinations such as the UK, USA, Canada, Australia, Europe, and the UAE, depending on the student’s goals and institutional requirements.'
+      q: 'Which countries can I apply to?',
+      a: 'Through The Revival International, you can apply to leading universities across the United Kingdom, United States, Canada, Australia, Europe (including Germany, Ireland, the Netherlands, and France), and the United Arab Emirates (including premier international branch campuses in Dubai and Abu Dhabi).'
     },
     {
-      q: 'Can I apply to multiple universities at the same time?',
-      a: 'This depends on the application system, destination, course, and institution. We can help organize application choices and their respective requirements.'
+      q: 'Can I apply to multiple universities?',
+      a: 'Yes. Our advisors help you coordinate applications across multiple institutions and countries simultaneously. For example, in the UK you can select up to 5 courses via UCAS, in the US you can apply to multiple universities through Common App, and across Canada, Europe, Australia, and the UAE we coordinate direct university portal submissions.'
     },
     {
-      q: 'Which documents are needed for international admissions?',
-      a: 'Requirements vary by institution and program. Common documents include academic records, identification, language test results where required, and additional course-specific materials.'
+      q: 'What documents are required?',
+      a: 'Standard documents include official academic transcripts and marksheets (Grades 9–12 for UG, semester transcripts for PG), degree/provisional certificates, valid passport scan, English language proficiency scores (IELTS, TOEFL, PTE, or Duolingo), a Statement of Purpose or personal statement, academic/professional reference letters (LORs), and an updated CV. Additional requirements like portfolios or research proposals apply to specific disciplines.'
     },
     {
-      q: 'Can you guarantee admission to a university?',
-      a: 'No. Admission decisions are made by the respective universities and depend on their eligibility criteria and selection processes.'
+      q: 'Do you provide UCAS and Common App assistance?',
+      a: 'Yes. We provide complete end-to-end guidance for centralized application portals. For UCAS, we guide you through profile setup, course code selection, personal statement formatting (4,000 characters), and teacher reference tracking. For the US Common App, we assist with activity lists, personal essays (650 words), college supplements, and counselor recommendations.'
     },
     {
-      q: 'Do you provide visa assistance after admission?',
-      a: 'We can help organize document checklists and explain general next steps. Applicants must follow the latest official immigration requirements for their destination.'
+      q: 'Can you help with university shortlisting?',
+      a: 'Absolutely. We utilize a structured 3-tier shortlisting methodology based on your academic GPA, test scores, intended career path, budget, and geographic preferences: Aspirational (Reach), Target (Realistic), and Safe (High-Probability) institutions.'
     },
     {
-      q: 'What happens if my offer has conditions?',
-      a: 'We can help you understand the stated conditions, organize the required documents, and identify the next steps communicated by the institution.'
+      q: 'What is a conditional offer?',
+      a: 'A conditional offer means the university has reserved a seat for you provided you fulfill specific academic or administrative requirements before enrollment—such as achieving specified final board exam marks, submitting a verified English language score, or providing attested degree certificates. Once met, the university converts it into an unconditional offer.'
     },
     {
-      q: 'How do I book a consultation?',
-      a: 'Visitors can complete the consultation form and select their preferred contact method. The enquiry should be sent to the existing backend and CRM.'
+      q: 'Can you help with CAS and I-20 documentation?',
+      a: 'Yes. We guide you through the institutional paperwork necessary to obtain your UK CAS (Confirmation of Acceptance for Studies) or US Form I-20. This includes pre-CAS document audits, financial affidavit verification, proof of funds checking, and mock credibility interview preparation.'
+    },
+    {
+      q: 'Do you provide post-admission support?',
+      a: 'Yes. Our admissions advisory extends beyond receiving your offer letter. We guide you through tuition deposit deadlines, on-campus and private accommodation selection, destination-specific visa document checklists, health insurance requirements, and comprehensive pre-departure orientations.'
+    },
+    {
+      q: 'Can I book an online consultation?',
+      a: 'Yes. You can schedule a 1-on-1 virtual consultation via Google Meet or Zoom, or request a consultation via WhatsApp or direct phone call. Select your preferred date, time slot, and mode using our consultation booking form on this page.'
+    },
+    {
+      q: 'Do you guarantee admission or visa approval?',
+      a: 'No ethical consultancy guarantees admission or visa approval. Final admissions decisions rest entirely with university admissions committees based on their independent criteria, and visa issuance is governed solely by the sovereign immigration authorities of the destination country. We ensure your application is professionally prepared, verified, and positioned for maximum competitive advantage.'
     }
   ];
 
-  // Section 10: Related Services
+  // Related Academic Advisory Services
   const relatedServices = [
     {
       id: 'intl-consult',
       title: 'International Consulting',
       badge: 'Strategy',
-      desc: 'Strategic destination comparison, academic profile diagnostics, and long-term education roadmap planning.',
+      desc: 'Strategic study destination comparison, academic profile diagnostics, and long-term education roadmap planning.',
       path: 'international-consulting'
     },
     {
       id: 'college-adm',
-      title: 'College Admissions Assistance',
+      title: 'College Admission Assistance',
       badge: 'Undergraduate',
-      desc: 'End-to-end guidance for undergraduate college admissions and local campus branches across the GCC.',
+      desc: 'End-to-end guidance for undergraduate college admissions, campus branches, and stream selection.',
       path: 'education-college-adm'
     },
     {
@@ -467,9 +479,9 @@ export const InternationalAdmissionsPage = () => {
     },
     {
       id: 'exec-seminars-lang',
-      title: 'Seminars & Language',
-      badge: 'Executive & Language',
-      desc: 'Executive development seminars and structured preparation for IELTS, OET, DET, and TOEFL.',
+      title: 'Seminars & Language Preparation',
+      badge: 'Executive & Tests',
+      desc: 'Executive development seminars and structured preparation modules for IELTS, OET, DET, and TOEFL.',
       path: 'education-exec-seminars-lang'
     },
     {
@@ -515,671 +527,728 @@ export const InternationalAdmissionsPage = () => {
     }
   ];
 
-  const scrollToSection = (id) => {
-    const el = document.getElementById(id);
-    if (el) {
-      el.scrollIntoView({ behavior: 'smooth' });
-    }
-  };
-
   return (
-    <div className="space-y-16 pb-24 text-slate-800 dark:text-slate-200">
+    <div className="bg-white text-slate-800">
       <EducationSEO
-        title="International Admissions | Global University Applications & Compliance"
-        description="From navigating UCAS in the UK and Common App in the United States to managing direct university applications in Canada, Europe, and Australia, The Revival International supports students throughout the international admissions process."
+        title="International Admissions | Global University Applications & Compliance – The Revival International"
+        description="Comprehensive university admissions consultancy for the UK, USA, Canada, Australia, Europe, and UAE. UCAS, Common App, document verification, CAS/I-20 compliance, and consultation booking."
         canonicalPath="education/international-admissions"
         breadcrumbs={[
           { name: 'Home', item: '/' },
-          { name: 'Academic Advisory', item: '/education' },
+          { name: 'Services', item: '/services' },
           { name: 'International Admissions', item: '/education/international-admissions' }
         ]}
         structuredData={structuredData}
       />
 
-      {/* Sticky Breadcrumb Navigation Bar */}
-      <div className="bg-white/80 dark:bg-navy-950/80 border-b border-slate-200 dark:border-navy-800 backdrop-blur-sm sticky top-[73px] z-30">
-        <div className="max-w-7xl mx-auto px-4 sm:px-8 py-3 flex items-center justify-between text-xs">
-          <nav aria-label="Breadcrumb" className="flex items-center space-x-2 text-slate-500 dark:text-slate-400 font-medium overflow-x-auto whitespace-nowrap">
+      {/* ========================================================================= */}
+      {/* SECTION 1: HERO SECTION                                                   */}
+      {/* ========================================================================= */}
+      <section className="relative overflow-hidden pt-28 pb-16 md:pt-36 md:pb-24 bg-white border-b border-gray-200/80">
+        {/* Subtle Architectural Grid Background */}
+        <div className="absolute inset-0 opacity-[0.03] pointer-events-none bg-[radial-gradient(#102A43_1px,transparent_1px)] [background-size:24px_24px]" />
+        <div className="absolute -top-32 -right-32 w-96 h-96 rounded-full bg-[#C6A45C]/10 blur-3xl pointer-events-none" />
+
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 relative z-10">
+          
+          {/* Breadcrumb Navigation */}
+          <nav aria-label="Breadcrumb" className="flex items-center gap-2 text-xs text-gray-500 mb-6 font-medium">
             <button 
-              onClick={() => navigateTo('home')}
-              className="hover:text-gold-500 transition focus:outline-none focus:text-gold-500 cursor-pointer"
+              onClick={() => navigateTo('home')} 
+              className="hover:text-[#102A43] transition-colors cursor-pointer"
             >
               Home
             </button>
-            <span>/</span>
+            <ChevronRight className="w-3 h-3 text-gray-400" />
             <button 
-              onClick={() => navigateTo('education')}
-              className="hover:text-gold-500 transition focus:outline-none focus:text-gold-500 cursor-pointer"
+              onClick={() => navigateTo('services')} 
+              className="hover:text-[#102A43] transition-colors cursor-pointer"
             >
-              Academic Advisory
+              Services
             </button>
-            <span>/</span>
-            <span className="text-gold-600 dark:text-gold-400 font-bold truncate max-w-[200px] sm:max-w-none">
-              International Admissions
-            </span>
+            <ChevronRight className="w-3 h-3 text-gray-400" />
+            <span className="text-[#C6A45C] font-semibold">International Admissions</span>
           </nav>
 
-          <button
-            onClick={() => navigateTo('education')}
-            className="hidden sm:flex items-center space-x-1.5 text-slate-700 dark:text-slate-300 hover:text-gold-500 font-bold text-xs transition shrink-0 ml-4 cursor-pointer"
-          >
-            <ArrowLeft className="w-3.5 h-3.5" />
-            <span>All Education Services</span>
-          </button>
-        </div>
-      </div>
-
-      <div className="max-w-7xl mx-auto px-4 sm:px-8 space-y-16">
-
-        {/* ========================================================================= */}
-        {/* SECTION 1: HERO SECTION — INTERNATIONAL ADMISSIONS                        */}
-        {/* ========================================================================= */}
-        <ScrollReveal>
-          <div className="glass-card bg-white dark:bg-navy-900 border border-slate-200 dark:border-gold-500/30 rounded-3xl p-6 sm:p-10 md:p-12 shadow-luxury relative overflow-hidden">
-            <div className="absolute top-0 right-0 w-96 h-96 bg-gold-500/5 rounded-full blur-3xl -z-10 pointer-events-none" />
-
-            <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 lg:gap-12 items-center">
-              {/* Left Column: Heading, Subtitle, Description, and CTAs */}
-              <div className="lg:col-span-7 space-y-5">
-                <div className="flex flex-wrap items-center gap-2">
-                  <span className="bg-gold-500/15 text-gold-600 dark:text-gold-400 text-xs font-black px-3 py-1 rounded-full uppercase tracking-wider border border-gold-500/30">
-                    University Placement
-                  </span>
-                  <span className="bg-emerald-500/15 text-emerald-600 dark:text-emerald-400 text-xs font-extrabold px-3 py-1 rounded-full uppercase border border-emerald-500/30">
-                    Verified Service • Admissions
-                  </span>
-                </div>
-
-                <h1 className="font-serif text-3xl sm:text-4xl md:text-5xl font-black text-navy-900 dark:text-white leading-tight">
-                  International Admissions
-                </h1>
-
-                <p className="text-base sm:text-lg text-gold-600 dark:text-gold-400 font-serif italic">
-                  End-to-End Global University Applications, Compliance & Admission Guidance
-                </p>
-
-                <p className="text-xs sm:text-sm text-slate-700 dark:text-slate-300 leading-relaxed font-medium">
-                  From navigating UCAS in the UK and Common App in the United States to managing direct university applications in Canada, Europe, and Australia, The Revival International supports students throughout the international admissions process. Our team helps coordinate applications, prepare academic documents, monitor deadlines, and organize admission requirements with attention to accuracy and compliance.
-                </p>
-
-                {/* Two CTA Buttons */}
-                <div className="pt-3 flex flex-wrap gap-3.5 items-center">
-                  <button
-                    onClick={() => {
-                      trackCtaClick('Book Free Consultation', 'hero_section', 'intl-adm');
-                      scrollToSection('admissions-consultation-booking');
-                    }}
-                    className="px-6 py-3.5 bg-gold-shimmer text-navy-950 font-extrabold text-xs sm:text-sm rounded-xl shadow-gold-glow hover:opacity-95 transition flex items-center gap-2 focus:outline-none focus:ring-2 focus:ring-gold-500 cursor-pointer"
-                  >
-                    <Calendar className="w-4 h-4" />
-                    <span>Book Free Consultation</span>
-                  </button>
-
-                  <button
-                    onClick={() => {
-                      trackCtaClick('Explore Admissions Process', 'hero_section', 'intl-adm');
-                      scrollToSection('admissions-process-section');
-                    }}
-                    className="px-5 py-3.5 bg-slate-100 dark:bg-navy-800 text-slate-800 dark:text-slate-200 hover:text-navy-900 dark:hover:text-white font-bold text-xs sm:text-sm rounded-xl transition border border-slate-200 dark:border-navy-700 focus:outline-none focus:ring-2 focus:ring-gold-500 cursor-pointer flex items-center gap-2"
-                  >
-                    <Compass className="w-4 h-4 text-gold-500" />
-                    <span>Explore Admissions Process ↓</span>
-                  </button>
-                </div>
+          <div className="grid grid-cols-1 lg:grid-cols-12 gap-12 lg:gap-8 items-center">
+            
+            {/* Left Column: Heading & Content */}
+            <div className="lg:col-span-7 space-y-6">
+              
+              <div className="flex flex-wrap items-center gap-2.5">
+                <span className="inline-flex items-center px-3 py-1 rounded-full text-xs font-bold tracking-wider uppercase bg-[#C6A45C]/15 text-[#C6A45C] border border-[#C6A45C]/30">
+                  University Placement
+                </span>
+                <span className="inline-flex items-center px-3 py-1 rounded-full text-xs font-bold tracking-wider uppercase bg-emerald-50 text-emerald-700 border border-emerald-200">
+                  Verified Service • Admissions
+                </span>
               </div>
 
-              {/* Right Column: Premium Visual of International Admissions */}
-              <div className="lg:col-span-5 relative">
-                <div className="relative rounded-2xl overflow-hidden shadow-2xl border border-slate-200 dark:border-gold-500/30 group">
-                  <img
-                    src="/images/international_admissions.jpg"
-                    alt="International Students Reviewing University Application Portfolios"
-                    className="w-full h-72 sm:h-80 md:h-96 object-cover object-center group-hover:scale-105 transition duration-700 ease-out"
-                    loading="eager"
-                  />
-                  <div className="absolute inset-0 bg-gradient-to-t from-navy-950/85 via-navy-950/30 to-transparent" />
-                  
-                  {/* Floating Overlay Badge */}
-                  <div className="absolute bottom-4 left-4 right-4 space-y-2">
-                    <div className="bg-white/95 dark:bg-navy-900/95 backdrop-blur-md p-3.5 rounded-xl border border-gold-500/30 shadow-lg">
-                      <div className="flex items-center justify-between text-xs pb-1.5 border-b border-slate-100 dark:border-navy-800">
-                        <span className="font-bold text-navy-900 dark:text-white flex items-center gap-1.5">
-                          <Landmark className="w-3.5 h-3.5 text-gold-500" />
-                          Global Admissions Coordination
-                        </span>
-                        <span className="bg-emerald-500/15 text-emerald-600 dark:text-emerald-400 text-[10px] font-black px-2 py-0.5 rounded">
-                          Active Intakes
-                        </span>
-                      </div>
-                      <p className="text-[11px] text-slate-600 dark:text-slate-300 pt-1.5 font-medium leading-snug">
-                        Multi-country application portal management with verified document compliance.
-                      </p>
-                    </div>
-                  </div>
-                </div>
-              </div>
-            </div>
+              <h1 className="font-serif text-3xl sm:text-4xl md:text-5xl lg:text-6xl font-bold text-[#102A43] tracking-tight leading-[1.15]">
+                International Admissions
+              </h1>
 
-            {/* Four Information Blocks below Hero */}
-            <div className="pt-8 mt-8 border-t border-slate-100 dark:border-navy-800 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-              {heroInfoBlocks.map((block, idx) => {
-                const Icon = block.icon;
-                return (
-                  <div key={idx} className="p-4 rounded-2xl bg-slate-50 dark:bg-navy-950 border border-slate-200 dark:border-navy-800 space-y-1.5">
-                    <div className="flex items-center gap-2 text-gold-600 dark:text-gold-400">
-                      <Icon className="w-4 h-4" />
-                      <p className="text-[10px] text-slate-500 dark:text-slate-400 uppercase font-bold tracking-wider">{block.label}</p>
-                    </div>
-                    <p className="text-xs sm:text-sm font-black text-navy-900 dark:text-white leading-snug">{block.value}</p>
-                    <p className="text-[11px] text-slate-500 dark:text-slate-400 font-medium">{block.subtext}</p>
-                  </div>
-                );
-              })}
-            </div>
-          </div>
-        </ScrollReveal>
-
-        {/* ========================================================================= */}
-        {/* SECTION 2: KEY BENEFITS & SERVICE HIGHLIGHTS (4 CARDS)                    */}
-        {/* ========================================================================= */}
-        <ScrollReveal>
-          <div className="space-y-8">
-            <div className="text-center space-y-2 max-w-2xl mx-auto">
-              <span className="bg-gold-500/10 text-gold-600 dark:text-gold-400 text-xs font-bold px-3 py-1 rounded-full uppercase tracking-wider">
-                Admissions Advantages
-              </span>
-              <h2 className="font-serif text-2xl sm:text-3xl font-extrabold text-navy-900 dark:text-white">
-                Key Benefits & Service Highlights
-              </h2>
-              <p className="text-xs text-slate-700 dark:text-slate-300">
-                How our admissions coordinators ensure application precision, document verification, and proactive admissions office communication.
+              <p className="font-serif italic text-lg sm:text-xl text-[#C6A45C]">
+                Strategic Global University Applications, Compliance & Admission Guidance
               </p>
-            </div>
 
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-              {keyBenefits.map((benefit) => {
-                const Icon = benefit.icon;
-                return (
-                  <div 
-                    key={benefit.id}
-                    className="glass-card bg-white dark:bg-navy-900 border border-slate-200 dark:border-navy-800 rounded-2xl p-6 sm:p-7 space-y-4 hover:border-gold-500 transition duration-300 flex flex-col justify-between"
-                  >
-                    <div className="space-y-3">
-                      <div className="flex justify-between items-center">
-                        <div className="w-11 h-11 rounded-xl bg-gold-500/10 text-gold-500 flex items-center justify-center font-bold">
-                          <Icon className="w-5 h-5" />
-                        </div>
-                        <span className="text-xs font-mono font-bold text-slate-400 bg-slate-100 dark:bg-navy-950 px-2.5 py-1 rounded-md">
-                          {benefit.id}
-                        </span>
-                      </div>
-
-                      <h3 className="font-serif text-lg sm:text-xl font-bold text-navy-900 dark:text-white">
-                        {benefit.title}
-                      </h3>
-
-                      <p className="text-xs text-slate-700 dark:text-slate-300 leading-relaxed font-medium">
-                        {benefit.desc}
-                      </p>
-
-                      <div className="space-y-2 pt-2 border-t border-slate-100 dark:border-navy-800">
-                        <p className="text-[11px] font-bold text-slate-800 dark:text-slate-200 uppercase tracking-wider">
-                          Key Deliverables:
-                        </p>
-                        <ul className="space-y-1.5">
-                          {benefit.highlights.map((item, i) => (
-                            <li key={i} className="text-xs text-slate-600 dark:text-slate-400 flex items-start gap-2">
-                              <CheckCircle2 className="w-3.5 h-3.5 text-gold-500 shrink-0 mt-0.5" />
-                              <span>{item}</span>
-                            </li>
-                          ))}
-                        </ul>
-                      </div>
-                    </div>
-                  </div>
-                );
-              })}
-            </div>
-          </div>
-        </ScrollReveal>
-
-        {/* ========================================================================= */}
-        {/* SECTION 3: INTERNATIONAL ADMISSIONS PROCESS                               */}
-        {/* ========================================================================= */}
-        <ScrollReveal>
-          <div id="admissions-process-section" className="space-y-8 scroll-mt-24">
-            <div className="text-center space-y-2 max-w-2xl mx-auto">
-              <span className="bg-gold-500/10 text-gold-600 dark:text-gold-400 text-xs font-bold px-3 py-1 rounded-full uppercase tracking-wider">
-                Execution Framework
-              </span>
-              <h2 className="font-serif text-2xl sm:text-3xl font-extrabold text-navy-900 dark:text-white">
-                International Admissions Process
-              </h2>
-              <p className="text-xs text-slate-700 dark:text-slate-300">
-                A structured four-step methodology guiding applicants through application planning, portal execution, condition clearing, and pre-departure coordination.
+              <p className="text-sm sm:text-base text-gray-600 leading-relaxed max-w-2xl">
+                From navigating UCAS in the UK and Common App in the United States to managing direct university applications in Canada, Europe, and Australia, The Revival International supports students throughout the international admissions process. Our team helps coordinate applications, prepare academic documents, monitor deadlines, and organize admission requirements with attention to accuracy and compliance.
               </p>
-            </div>
 
-            <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-              {admissionsProcessSteps.map((step) => (
-                <div 
-                  key={step.step}
-                  className="glass-card bg-white dark:bg-navy-900 border border-slate-200 dark:border-navy-800 rounded-2xl p-5 space-y-3 relative hover:border-gold-500 transition duration-300 flex flex-col justify-between"
+              {/* Action Buttons */}
+              <div className="pt-2 flex flex-col sm:flex-row items-stretch sm:items-center gap-4">
+                <button
+                  onClick={() => {
+                    trackCtaClick('hero_book_free_consultation', 'International Admissions');
+                    scrollToSection('admissions-consultation-booking');
+                  }}
+                  className="px-8 py-4 rounded-xl bg-[#C6A45C] hover:bg-[#b5934b] text-[#102A43] font-bold text-sm shadow-md hover:shadow-lg transition-all duration-200 flex items-center justify-center gap-2 cursor-pointer"
                 >
-                  <div className="space-y-2.5">
-                    <span className="w-8 h-8 rounded-full bg-gold-500 text-navy-950 font-extrabold text-xs flex items-center justify-center shadow-gold-glow">
-                      {step.step}
-                    </span>
-                    <h3 className="font-serif text-base font-bold text-navy-900 dark:text-white">
-                      Step {step.step} — {step.title.replace(/^Step \d+ — /, '')}
-                    </h3>
-                    
-                    <ul className="space-y-1.5 pt-1">
-                      {step.points.map((pt, i) => (
-                        <li key={i} className="text-xs text-slate-600 dark:text-slate-400 flex items-start gap-1.5">
-                          <CheckCircle2 className="w-3.5 h-3.5 text-gold-500 shrink-0 mt-0.5" />
-                          <span className="leading-snug">{pt}</span>
-                        </li>
-                      ))}
-                    </ul>
-                  </div>
-                  <div className="pt-2 text-[10px] text-slate-400 font-mono uppercase tracking-wider border-t border-slate-100 dark:border-navy-800">
-                    Stage {step.step} of 04
+                  <Calendar className="w-4 h-4" />
+                  <span>Book Free Consultation</span>
+                </button>
+
+                <button
+                  onClick={() => {
+                    trackCtaClick('hero_explore_process', 'International Admissions');
+                    scrollToSection('admissions-process-section');
+                  }}
+                  className="px-8 py-4 rounded-xl bg-white hover:bg-gray-50 text-[#102A43] border border-gray-300 font-semibold text-sm transition-all duration-200 flex items-center justify-center gap-2 cursor-pointer"
+                >
+                  <Compass className="w-4 h-4 text-[#C6A45C]" />
+                  <span>Explore Admissions Process ↓</span>
+                </button>
+              </div>
+
+              {/* Trust Indicators */}
+              <div className="pt-4 flex flex-wrap items-center gap-6 text-xs text-gray-600 border-t border-gray-100">
+                <span className="flex items-center gap-1.5 font-medium">
+                  <Check className="w-4 h-4 text-[#C6A45C]" /> 100% Confidential
+                </span>
+                <span className="flex items-center gap-1.5 font-medium">
+                  <Check className="w-4 h-4 text-[#C6A45C]" /> Direct University Portals
+                </span>
+                <span className="flex items-center gap-1.5 font-medium">
+                  <Check className="w-4 h-4 text-[#C6A45C]" /> Verified Advisors
+                </span>
+              </div>
+
+            </div>
+
+            {/* Right Column: Hero Visual Card */}
+            <div className="lg:col-span-5 relative">
+              <div className="relative rounded-2xl overflow-hidden shadow-2xl border border-gray-200 group">
+                <img
+                  src="/images/international_admissions.jpg"
+                  alt="International university students reviewing admissions portfolios"
+                  className="w-full h-[380px] sm:h-[440px] object-cover object-center group-hover:scale-105 transition-transform duration-700 ease-out"
+                />
+                <div className="absolute inset-0 bg-gradient-to-t from-[#102A43]/90 via-[#102A43]/30 to-transparent" />
+                
+                {/* Floating Overlay Badge */}
+                <div className="absolute bottom-6 left-6 right-6">
+                  <div className="bg-white/95 backdrop-blur-md p-4 rounded-xl border border-[#C6A45C]/30 shadow-xl">
+                    <div className="flex items-center justify-between pb-2 mb-2 border-b border-gray-100">
+                      <span className="font-bold text-[#102A43] flex items-center gap-2 text-xs">
+                        <Landmark className="w-4 h-4 text-[#C6A45C]" />
+                        Global Admissions Coordination
+                      </span>
+                      <span className="bg-emerald-50 text-emerald-700 text-[10px] font-bold px-2 py-0.5 rounded">
+                        Active Portals
+                      </span>
+                    </div>
+                    <p className="text-[11px] text-gray-600 leading-snug">
+                      Multi-country university portal management, verified document compliance, and dedicated admission mentorship.
+                    </p>
                   </div>
                 </div>
-              ))}
-            </div>
-
-            {/* Compliance & Regulatory Notice */}
-            <div className="p-4 rounded-2xl bg-amber-500/10 border border-amber-500/30 flex items-start gap-3 text-xs text-amber-900 dark:text-amber-200">
-              <AlertCircle className="w-4 h-4 text-amber-500 shrink-0 mt-0.5" />
-              <div className="space-y-0.5">
-                <p className="font-bold uppercase tracking-wider text-[11px]">Admissions & Compliance Notice</p>
-                <p className="text-[11px] leading-relaxed text-amber-800 dark:text-amber-300">
-                  The Revival International provides professional application coordination, document verification guidance, and portal management. We do not promise or guarantee university admission, Confirmation of Acceptance for Studies (CAS), Form I-20 issuance, visa approvals, or any immigration outcome. Final admissions decisions rest solely with respective university admissions committees, and visa issuance remains under the sovereign legal jurisdiction of destination immigration authorities.
-                </p>
               </div>
             </div>
+
           </div>
-        </ScrollReveal>
 
-        {/* ========================================================================= */}
-        {/* SECTION 4: INTENDED AUDIENCE & ELIGIBILITY                                */}
-        {/* ========================================================================= */}
-        <ScrollReveal>
-          <div className="space-y-6">
-            <div className="text-center space-y-2 max-w-2xl mx-auto">
-              <span className="bg-gold-500/10 text-gold-600 dark:text-gold-400 text-xs font-bold px-3 py-1 rounded-full uppercase tracking-wider">
-                Target Applicants
-              </span>
-              <h2 className="font-serif text-2xl sm:text-3xl font-extrabold text-navy-900 dark:text-white">
-                Who Can Benefit from Our Admissions Support?
-              </h2>
-              <p className="text-xs text-slate-700 dark:text-slate-300">
-                Tailored application management tracks adapted to secondary graduates, postgraduate aspirants, and complex multi-destination applicants.
-              </p>
-            </div>
+          {/* 4 Hero Info Cards */}
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mt-16 pt-10 border-t border-gray-200/80">
+            {heroInfoBlocks.map((block, i) => {
+              const Icon = block.icon;
+              return (
+                <div key={i} className="p-4 rounded-xl bg-gray-50/80 border border-gray-200/60 flex items-start gap-3">
+                  <div className="w-10 h-10 rounded-lg bg-[#C6A45C]/15 text-[#C6A45C] flex items-center justify-center shrink-0">
+                    <Icon className="w-5 h-5" />
+                  </div>
+                  <div>
+                    <span className="text-[10px] uppercase font-bold text-gray-500 tracking-wider block">
+                      {block.label}
+                    </span>
+                    <span className="font-bold text-[#102A43] text-xs leading-snug block mt-0.5">
+                      {block.value}
+                    </span>
+                    <span className="text-[10px] text-gray-500 block mt-0.5">
+                      {block.subtext}
+                    </span>
+                  </div>
+                </div>
+              );
+            })}
+          </div>
 
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
-              {targetAudienceCards.map((aud, idx) => {
-                const Icon = aud.icon;
-                return (
-                  <div
-                    key={idx}
-                    className="glass-card bg-white dark:bg-navy-900 border border-slate-200 dark:border-navy-800 rounded-2xl p-6 space-y-3 hover:border-gold-500 transition duration-300 flex flex-col justify-between"
-                  >
-                    <div className="space-y-2.5">
-                      <div className="flex justify-between items-center">
-                        <div className="w-10 h-10 rounded-xl bg-gold-500/10 text-gold-500 flex items-center justify-center font-bold">
-                          <Icon className="w-5 h-5" />
-                        </div>
-                        <span className="text-[10px] font-bold text-gold-600 dark:text-gold-400 bg-gold-500/10 px-2.5 py-0.5 rounded-full uppercase">
-                          {aud.badge}
-                        </span>
+        </div>
+      </section>
+
+      {/* ========================================================================= */}
+      {/* SECTION 2: KEY BENEFITS & SERVICE HIGHLIGHTS (4 Cards)                    */}
+      {/* ========================================================================= */}
+      <section id="key-benefits" className="py-20 bg-white">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+          
+          <div className="text-center max-w-3xl mx-auto mb-16 space-y-3">
+            <span className="text-[#C6A45C] font-semibold text-xs tracking-wider uppercase">
+              Admissions Excellence
+            </span>
+            <h2 className="font-serif text-3xl sm:text-4xl font-bold text-[#102A43]">
+              Key Benefits & Service Highlights
+            </h2>
+            <p className="text-sm text-gray-600">
+              Rigorous portal management, verified document compliance, and direct university liaison across major international study corridors.
+            </p>
+          </div>
+
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+            {keyBenefits.map((benefit) => {
+              const Icon = benefit.icon;
+              return (
+                <div
+                  key={benefit.id}
+                  className="rounded-2xl p-8 bg-white border border-gray-200/80 hover:border-[#C6A45C] shadow-sm hover:shadow-xl transition-all duration-300 flex flex-col justify-between"
+                >
+                  <div className="space-y-4">
+                    <div className="flex justify-between items-center pb-3 border-b border-gray-100">
+                      <div className="w-12 h-12 rounded-xl bg-[#C6A45C]/10 text-[#C6A45C] flex items-center justify-center">
+                        <Icon className="w-6 h-6" />
                       </div>
-
-                      <h3 className="font-serif text-base font-bold text-navy-900 dark:text-white">
-                        {aud.title}
-                      </h3>
-
-                      <p className="text-xs text-slate-700 dark:text-slate-300 leading-relaxed font-medium">
-                        {aud.desc}
-                      </p>
+                      <span className="font-mono text-xs font-bold text-[#C6A45C]">
+                        #{benefit.id}
+                      </span>
                     </div>
 
-                    <div className="pt-3 border-t border-slate-100 dark:border-navy-800">
-                      <button
-                        onClick={() => scrollToSection('admissions-consultation-booking')}
-                        className="text-xs font-bold text-gold-600 dark:text-gold-400 hover:underline flex items-center gap-1 cursor-pointer"
-                      >
-                        <span>Schedule Admissions Call</span>
-                        <ArrowRight className="w-3.5 h-3.5" />
-                      </button>
+                    <h3 className="font-serif text-xl font-bold text-[#102A43]">
+                      {benefit.title}
+                    </h3>
+
+                    <p className="text-xs sm:text-sm text-gray-600 leading-relaxed">
+                      {benefit.desc}
+                    </p>
+
+                    <div className="pt-2 space-y-2">
+                      <span className="text-[11px] font-bold text-gray-500 uppercase tracking-wider block">
+                        Core Deliverables:
+                      </span>
+                      <ul className="space-y-1.5">
+                        {benefit.highlights.map((item, idx) => (
+                          <li key={idx} className="text-xs text-gray-700 flex items-start gap-2">
+                            <CheckCircle2 className="w-3.5 h-3.5 text-[#C6A45C] shrink-0 mt-0.5" />
+                            <span>{item}</span>
+                          </li>
+                        ))}
+                      </ul>
                     </div>
                   </div>
-                );
-              })}
-            </div>
 
-            <div className="p-3.5 rounded-xl bg-slate-100 dark:bg-navy-950 border border-slate-200 dark:border-navy-800 text-[11px] text-slate-600 dark:text-slate-400">
-              <span className="font-bold text-slate-800 dark:text-slate-200">Institutional Variance Notice: </span>
-              <span>
-                Please note that eligibility, academic qualifications, language scores, and document requirements vary by institution, specific course, and destination country. Our advisors evaluate each student’s background against the latest verified requirements of their chosen universities.
-              </span>
-            </div>
+                  <div className="pt-6 mt-6 border-t border-gray-100">
+                    <button
+                      onClick={() => scrollToSection('admissions-consultation-booking')}
+                      className="text-xs font-bold text-[#C6A45C] hover:text-[#b5934b] flex items-center gap-1.5 cursor-pointer"
+                    >
+                      <span>Consult with Admissions Specialist</span>
+                      <ArrowRight className="w-3.5 h-3.5" />
+                    </button>
+                  </div>
+                </div>
+              );
+            })}
           </div>
-        </ScrollReveal>
 
-        {/* ========================================================================= */}
-        {/* SECTION 5: INTERNATIONAL ADMISSIONS DOCUMENT CHECKLIST                    */}
-        {/* ========================================================================= */}
-        <ScrollReveal>
-          <div className="glass-card bg-white dark:bg-navy-900 border border-slate-200 dark:border-gold-500/30 rounded-3xl p-6 sm:p-10 space-y-6 shadow-glass">
-            <div className="flex items-center space-x-3 text-gold-600 dark:text-gold-400 pb-2 border-b border-slate-100 dark:border-navy-800">
-              <FileCheck className="w-6 h-6" />
-              <div>
-                <h2 className="font-serif text-xl sm:text-2xl font-bold text-navy-900 dark:text-white">
-                  International Admissions Document Checklist
-                </h2>
-                <p className="text-[10px] uppercase text-gold-600 dark:text-gold-400 font-bold tracking-widest">
-                  Documents to Prepare for Application Portals
-                </p>
-              </div>
-            </div>
+        </div>
+      </section>
 
-            <p className="text-xs text-slate-700 dark:text-slate-300">
-              Prepare the following verified credentials to ensure smooth application processing and prevent delays during portal verification:
+      {/* ========================================================================= */}
+      {/* SECTION 3: INTERNATIONAL ADMISSIONS PROCESS (4-Step Timeline)             */}
+      {/* ========================================================================= */}
+      <section id="admissions-process-section" className="py-20 bg-[#F7F9FC] border-y border-gray-200/70">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+          
+          <div className="text-center max-w-3xl mx-auto mb-16 space-y-3">
+            <span className="text-[#C6A45C] font-semibold text-xs tracking-wider uppercase">
+              Proven Methodology
+            </span>
+            <h2 className="font-serif text-3xl sm:text-4xl font-bold text-[#102A43]">
+              International Admissions Process
+            </h2>
+            <p className="text-sm text-gray-600">
+              A structured 4-stage advisory workflow engineered for transparent tracking, high document readiness, and timely application submission.
             </p>
+          </div>
 
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-              {documentChecklist.map((doc, idx) => (
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+            {admissionsProcessSteps.map((stepItem) => (
+              <div 
+                key={stepItem.step}
+                className="bg-white rounded-2xl p-6 border border-gray-200/80 shadow-sm relative space-y-4 hover:border-[#C6A45C] transition-all"
+              >
+                <div className="w-10 h-10 rounded-full bg-[#102A43] text-[#C6A45C] font-black text-sm flex items-center justify-center font-mono shadow-md">
+                  {stepItem.step}
+                </div>
+
+                <h3 className="font-serif text-lg font-bold text-[#102A43]">
+                  {stepItem.title}
+                </h3>
+
+                <ul className="space-y-2 text-xs text-gray-600">
+                  {stepItem.points.map((pt, i) => (
+                    <li key={i} className="flex items-start gap-2">
+                      <span className="text-[#C6A45C] font-bold">•</span>
+                      <span>{pt}</span>
+                    </li>
+                  ))}
+                </ul>
+              </div>
+            ))}
+          </div>
+
+          <div className="mt-12 text-center">
+            <button
+              onClick={() => scrollToSection('admissions-consultation-booking')}
+              className="inline-flex items-center gap-2 px-8 py-3.5 rounded-xl bg-[#102A43] hover:bg-[#1c3d5a] text-white font-bold text-xs shadow-md transition cursor-pointer"
+            >
+              <span>Start Your Application Process</span>
+              <ArrowRight className="w-4 h-4 text-[#C6A45C]" />
+            </button>
+          </div>
+
+        </div>
+      </section>
+
+      {/* ========================================================================= */}
+      {/* SECTION 4: WHO CAN BENEFIT FROM OUR ADMISSIONS SUPPORT? (4 Cards)         */}
+      {/* ========================================================================= */}
+      <section id="who-benefits" className="py-20 bg-white">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+          
+          <div className="text-center max-w-3xl mx-auto mb-16 space-y-3">
+            <span className="text-[#C6A45C] font-semibold text-xs tracking-wider uppercase">
+              Target Candidates
+            </span>
+            <h2 className="font-serif text-3xl sm:text-4xl font-bold text-[#102A43]">
+              Who Can Benefit from Our Admissions Support?
+            </h2>
+            <p className="text-sm text-gray-600">
+              Tailored application tracks for secondary school leavers, postgraduate aspirants, and complex multi-destination applicants.
+            </p>
+          </div>
+
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
+            {targetAudienceCards.map((aud, idx) => {
+              const Icon = aud.icon;
+              return (
                 <div
                   key={idx}
-                  className="p-4 rounded-xl bg-slate-50 dark:bg-navy-950 border border-slate-200 dark:border-navy-800 text-xs space-y-1.5"
+                  className="rounded-2xl p-6 bg-white border border-gray-200 hover:border-[#C6A45C] shadow-sm hover:shadow-lg transition-all flex flex-col justify-between"
                 >
-                  <div className="flex items-start gap-2">
-                    <CheckCircle2 className="w-4 h-4 text-gold-500 shrink-0 mt-0.5" />
-                    <span className="text-slate-900 dark:text-white font-bold leading-snug">{doc.title}</span>
-                  </div>
-                  <p className="text-[11px] text-slate-600 dark:text-slate-400 pl-6 leading-relaxed">
-                    {doc.desc}
-                  </p>
-                </div>
-              ))}
-            </div>
-
-            <div className="p-3.5 rounded-xl bg-slate-100 dark:bg-navy-950 border border-slate-200 dark:border-navy-800 text-[11px] text-slate-600 dark:text-slate-400">
-              <span className="font-bold text-slate-800 dark:text-slate-200">Note: </span>
-              <span>
-                The final document checklist depends on the selected institution, program, country, and application stage. We do not require every document for every applicant. Your assigned admissions counselor will furnish a customized document checklist tailored to your specific application shortlist.
-              </span>
-            </div>
-          </div>
-        </ScrollReveal>
-
-        {/* ========================================================================= */}
-        {/* SECTION 6: INTERACTIVE APPLICATION DESTINATION EXPLORER                   */}
-        {/* ========================================================================= */}
-        <ScrollReveal>
-          <div id="admissions-destination-explorer" className="space-y-8 scroll-mt-24">
-            <div className="text-center space-y-2 max-w-2xl mx-auto">
-              <span className="bg-gold-500/10 text-gold-600 dark:text-gold-400 text-xs font-bold px-3 py-1 rounded-full uppercase tracking-wider">
-                Destination Systems
-              </span>
-              <h2 className="font-serif text-2xl sm:text-3xl font-extrabold text-navy-900 dark:text-white">
-                Interactive Application Destination Explorer
-              </h2>
-              <p className="text-xs text-slate-700 dark:text-slate-300">
-                Explore common application portals, document standards, planning considerations, academic and language requirements, and official portals across major study destinations.
-              </p>
-            </div>
-
-            {/* Destination Selector Tabs */}
-            <div className="flex flex-wrap justify-center gap-2 p-1.5 bg-slate-100 dark:bg-navy-950 rounded-2xl border border-slate-200 dark:border-navy-800 max-w-4xl mx-auto">
-              {[
-                { key: 'uk', label: 'United Kingdom', flag: '🇬🇧' },
-                { key: 'usa', label: 'United States', flag: '🇺🇸' },
-                { key: 'canada', label: 'Canada', flag: '🇨🇦' },
-                { key: 'australia', label: 'Australia', flag: '🇦🇺' },
-                { key: 'europe', label: 'Europe', flag: '🇪🇺' },
-                { key: 'uae', label: 'United Arab Emirates', flag: '🇦🇪' }
-              ].map(dest => (
-                <button
-                  key={dest.key}
-                  onClick={() => setSelectedDestinationKey(dest.key)}
-                  className={`px-4 py-2.5 rounded-xl text-xs font-bold transition flex items-center gap-2 cursor-pointer ${
-                    selectedDestinationKey === dest.key
-                      ? 'bg-gold-shimmer text-navy-950 shadow-gold-glow'
-                      : 'text-slate-600 dark:text-slate-400 hover:text-navy-900 dark:hover:text-white hover:bg-white/50 dark:hover:bg-navy-900/50'
-                  }`}
-                >
-                  <span className="text-sm">{dest.flag}</span>
-                  <span>{dest.label}</span>
-                </button>
-              ))}
-            </div>
-
-            {/* Destination Details Card */}
-            <div className="glass-card bg-white dark:bg-navy-900 border border-slate-200 dark:border-navy-800 rounded-3xl p-6 sm:p-10 space-y-8 shadow-luxury transition-all duration-300">
-              
-              {/* Header */}
-              <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 pb-6 border-b border-slate-200 dark:border-navy-800">
-                <div className="space-y-1">
-                  <div className="flex items-center gap-2.5">
-                    <span className="text-2xl">{currentDestination.flag}</span>
-                    <h3 className="font-serif text-2xl sm:text-3xl font-bold text-navy-900 dark:text-white">
-                      {currentDestination.name}
-                    </h3>
-                  </div>
-                  <p className="text-xs font-bold text-gold-600 dark:text-gold-400">
-                    {currentDestination.badge}
-                  </p>
-                </div>
-
-                <button
-                  onClick={() => handleEnquireDestination(currentDestination.name)}
-                  className="px-5 py-2.5 bg-gold-shimmer text-navy-950 font-extrabold text-xs rounded-xl shadow-gold-glow hover:opacity-95 transition flex items-center gap-1.5 cursor-pointer shrink-0"
-                >
-                  <Send className="w-3.5 h-3.5" />
-                  <span>Enquire About Admissions in {currentDestination.name}</span>
-                </button>
-              </div>
-
-              {/* 2-Column Responsive Information Grid */}
-              <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
-                
-                {/* Column 1: Application Methods & Typical Documents */}
-                <div className="space-y-6">
-                  {/* Common Application Methods or Portals */}
-                  <div className="p-4 rounded-2xl bg-slate-50 dark:bg-navy-950 border border-slate-200 dark:border-navy-800 space-y-2">
-                    <h4 className="font-serif text-sm font-bold text-navy-900 dark:text-white flex items-center gap-2">
-                      <Layers className="w-4 h-4 text-gold-500" />
-                      <span>Common Application Methods & Portals</span>
-                    </h4>
-                    <p className="text-xs text-slate-700 dark:text-slate-300 leading-relaxed font-medium">
-                      {currentDestination.applicationPortals}
-                    </p>
-                  </div>
-
-                  {/* Typical Admission Document Requirements */}
                   <div className="space-y-3">
-                    <h4 className="font-serif text-sm font-bold text-navy-900 dark:text-white flex items-center gap-2">
-                      <FileCheck className="w-4 h-4 text-gold-500" />
-                      <span>Typical Admission Document Requirements</span>
-                    </h4>
-                    <ul className="space-y-2">
-                      {currentDestination.typicalDocuments.map((doc, i) => (
-                        <li key={i} className="text-xs text-slate-600 dark:text-slate-400 flex items-start gap-2">
-                          <CheckCircle2 className="w-3.5 h-3.5 text-gold-500 shrink-0 mt-0.5" />
-                          <span>{doc}</span>
-                        </li>
-                      ))}
-                    </ul>
+                    <div className="w-10 h-10 rounded-xl bg-[#C6A45C]/10 text-[#C6A45C] flex items-center justify-center">
+                      <Icon className="w-5 h-5" />
+                    </div>
+                    <span className="inline-block px-2 py-0.5 rounded text-[10px] font-bold bg-gray-100 text-[#102A43] uppercase">
+                      {aud.badge}
+                    </span>
+                    <h3 className="font-serif text-base font-bold text-[#102A43]">
+                      {aud.title}
+                    </h3>
+                    <p className="text-xs text-gray-600 leading-relaxed">
+                      {aud.desc}
+                    </p>
                   </div>
 
-                  {/* General Application Planning Considerations */}
-                  <div className="space-y-2 pt-2 border-t border-slate-100 dark:border-navy-800">
-                    <h4 className="font-serif text-sm font-bold text-navy-900 dark:text-white flex items-center gap-2">
-                      <Compass className="w-4 h-4 text-gold-500" />
-                      <span>General Planning Considerations</span>
-                    </h4>
-                    <p className="text-xs text-slate-700 dark:text-slate-300 leading-relaxed font-medium">
-                      {currentDestination.planningConsiderations}
-                    </p>
+                  <div className="pt-4 mt-4 border-t border-gray-100">
+                    <button
+                      onClick={() => scrollToSection('admissions-consultation-booking')}
+                      className="text-xs font-bold text-[#C6A45C] hover:text-[#b5934b] flex items-center gap-1 cursor-pointer"
+                    >
+                      <span>Schedule Admissions Call</span>
+                      <ArrowRight className="w-3.5 h-3.5" />
+                    </button>
                   </div>
                 </div>
+              );
+            })}
+          </div>
 
-                {/* Column 2: Academic/Language Reqs, Deadlines & Official Links */}
-                <div className="space-y-6">
-                  {/* Relevant Academic and Language Requirements */}
-                  <div className="p-4 rounded-2xl bg-slate-50 dark:bg-navy-950 border border-slate-200 dark:border-navy-800 space-y-2">
-                    <h4 className="font-serif text-sm font-bold text-navy-900 dark:text-white flex items-center gap-2">
-                      <Award className="w-4 h-4 text-gold-500" />
-                      <span>Relevant Academic & Language Benchmarks</span>
-                    </h4>
-                    <p className="text-xs text-slate-700 dark:text-slate-300 leading-relaxed font-medium">
-                      {currentDestination.academicLanguageReqs}
-                    </p>
-                  </div>
+          <div className="mt-8 p-4 rounded-xl bg-gray-50 border border-gray-200 text-xs text-gray-600 max-w-4xl mx-auto">
+            <span className="font-bold text-[#102A43]">Institutional Variance Notice: </span>
+            <span>
+              Eligibility, academic benchmarks, language thresholds, and credential verification procedures vary significantly between institutions, departments, and destination countries. Our senior counselors evaluate your academic background against the latest verified admissions criteria of your target universities.
+            </span>
+          </div>
 
-                  {/* Important Deadline Considerations */}
-                  <div className="space-y-2">
-                    <h4 className="font-serif text-sm font-bold text-navy-900 dark:text-white flex items-center gap-2">
-                      <Clock className="w-4 h-4 text-gold-500" />
-                      <span>Important Deadline Considerations</span>
-                    </h4>
-                    <p className="text-xs text-slate-700 dark:text-slate-300 leading-relaxed font-medium">
-                      {currentDestination.deadlineConsiderations}
-                    </p>
-                  </div>
+        </div>
+      </section>
 
-                  {/* Official University or Application Portal Links */}
-                  <div className="space-y-2.5 pt-2 border-t border-slate-100 dark:border-navy-800">
-                    <h4 className="font-serif text-xs font-bold text-slate-400 uppercase tracking-wider">
-                      Official University & Portal Resources
-                    </h4>
-                    <div className="space-y-2">
-                      {currentDestination.officialLinks.map((link, i) => (
-                        <a
-                          key={i}
-                          href={link.url}
-                          target="_blank"
-                          rel="noopener noreferrer"
-                          className="p-2.5 rounded-xl bg-slate-100 dark:bg-navy-800 hover:bg-gold-500/10 dark:hover:bg-gold-500/10 border border-slate-200 dark:border-navy-700 text-xs font-bold text-navy-900 dark:text-white hover:text-gold-600 dark:hover:text-gold-400 flex items-center justify-between transition group"
-                        >
-                          <span>{link.label}</span>
-                          <ExternalLink className="w-3.5 h-3.5 text-slate-400 group-hover:text-gold-500 transition" />
-                        </a>
-                      ))}
-                    </div>
-                  </div>
+      {/* ========================================================================= */}
+      {/* SECTION 5: INTERNATIONAL ADMISSIONS DOCUMENT CHECKLIST (9 Items)          */}
+      {/* ========================================================================= */}
+      <section id="document-checklist" className="py-20 bg-[#F7F9FC] border-y border-gray-200/70">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+          
+          <div className="text-center max-w-3xl mx-auto mb-16 space-y-3">
+            <span className="text-[#C6A45C] font-semibold text-xs tracking-wider uppercase">
+              Preparation Roadmap
+            </span>
+            <h2 className="font-serif text-3xl sm:text-4xl font-bold text-[#102A43]">
+              International Admissions Document Checklist
+            </h2>
+            <p className="text-sm text-gray-600">
+              Essential academic, language, and identification credentials required across international university portals.
+            </p>
+          </div>
+
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
+            {documentChecklist.map((doc, idx) => (
+              <div
+                key={idx}
+                className="bg-white rounded-2xl p-5 border border-gray-200/80 shadow-sm space-y-2 hover:border-[#C6A45C] transition-all"
+              >
+                <div className="flex items-start gap-2.5">
+                  <CheckCircle2 className="w-4 h-4 text-[#C6A45C] shrink-0 mt-0.5" />
+                  <h3 className="font-bold text-xs sm:text-sm text-[#102A43] leading-snug">
+                    {doc.title}
+                  </h3>
+                </div>
+                <p className="text-xs text-gray-600 pl-6 leading-relaxed">
+                  {doc.desc}
+                </p>
+              </div>
+            ))}
+          </div>
+
+          <div className="mt-8 p-4 rounded-xl bg-white border border-gray-200 text-xs text-gray-600 max-w-4xl mx-auto text-center">
+            <span className="font-bold text-[#102A43]">Customized Checklist Note: </span>
+            <span>
+              Requirements differ by course, degree level, and university. Not every applicant requires all items. Your assigned admissions advisor will provide a tailored checklist specific to your chosen institutions.
+            </span>
+          </div>
+
+        </div>
+      </section>
+
+      {/* ========================================================================= */}
+      {/* SECTION 6: INTERACTIVE APPLICATION DESTINATION EXPLORER (6 Countries)     */}
+      {/* ========================================================================= */}
+      <section id="destination-explorer" className="py-20 bg-white">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+          
+          <div className="text-center max-w-3xl mx-auto mb-12 space-y-3">
+            <span className="text-[#C6A45C] font-semibold text-xs tracking-wider uppercase">
+              Destination Systems
+            </span>
+            <h2 className="font-serif text-3xl sm:text-4xl font-bold text-[#102A43]">
+              Interactive Application Destination Explorer
+            </h2>
+            <p className="text-sm text-gray-600">
+              Select a target destination below to inspect specific application portals, required documentation, planning considerations, academic benchmarks, and official university portals.
+            </p>
+          </div>
+
+          {/* 6 Country Selection Tabs with Real FlagCDN Icons */}
+          <div className="flex flex-wrap justify-center gap-2.5 p-2 bg-gray-100 rounded-2xl max-w-4xl mx-auto mb-10 border border-gray-200">
+            {[
+              { key: 'uk', label: 'United Kingdom', flagUrl: 'https://flagcdn.com/w40/gb.png' },
+              { key: 'usa', label: 'United States', flagUrl: 'https://flagcdn.com/w40/us.png' },
+              { key: 'canada', label: 'Canada', flagUrl: 'https://flagcdn.com/w40/ca.png' },
+              { key: 'australia', label: 'Australia', flagUrl: 'https://flagcdn.com/w40/au.png' },
+              { key: 'europe', label: 'Europe', flagUrl: 'https://flagcdn.com/w40/eu.png' },
+              { key: 'uae', label: 'United Arab Emirates', flagUrl: 'https://flagcdn.com/w40/ae.png' }
+            ].map(dest => (
+              <button
+                key={dest.key}
+                onClick={() => setSelectedDestinationKey(dest.key)}
+                className={`px-4 py-2.5 rounded-xl text-xs font-bold transition-all flex items-center gap-2 cursor-pointer ${
+                  selectedDestinationKey === dest.key
+                    ? 'bg-[#102A43] text-white shadow-md'
+                    : 'text-gray-700 hover:text-[#102A43] hover:bg-white/80'
+                }`}
+              >
+                <img 
+                  src={dest.flagUrl} 
+                  alt={dest.label}
+                  className="w-5 h-3.5 object-cover rounded-sm shadow-xs" 
+                />
+                <span>{dest.label}</span>
+              </button>
+            ))}
+          </div>
+
+          {/* Dynamic Destination Details Card */}
+          <div className="bg-white rounded-3xl p-6 sm:p-10 border border-gray-200 shadow-xl space-y-8">
+            
+            {/* Header of Active Tab */}
+            <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 pb-6 border-b border-gray-200">
+              <div className="space-y-1">
+                <div className="flex items-center gap-3">
+                  <img 
+                    src={currentDestination.flagUrl} 
+                    alt={currentDestination.name}
+                    className="w-8 h-5.5 object-cover rounded shadow-xs" 
+                  />
+                  <h3 className="font-serif text-2xl sm:text-3xl font-bold text-[#102A43]">
+                    {currentDestination.name}
+                  </h3>
+                </div>
+                <p className="text-xs font-bold text-[#C6A45C]">
+                  {currentDestination.badge}
+                </p>
+              </div>
+
+              <button
+                onClick={() => handleEnquireDestination(currentDestination.name)}
+                className="px-6 py-3 bg-[#C6A45C] hover:bg-[#b5934b] text-[#102A43] font-bold text-xs rounded-xl shadow-md transition flex items-center gap-2 cursor-pointer shrink-0"
+              >
+                <Send className="w-3.5 h-3.5" />
+                <span>Enquire About Admissions in {currentDestination.name}</span>
+              </button>
+            </div>
+
+            {/* 2-Column Responsive Information Layout */}
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+              
+              {/* Column 1: Application Portals & Required Documents */}
+              <div className="space-y-6">
+                
+                <div className="p-4 rounded-xl bg-gray-50 border border-gray-200 space-y-2">
+                  <h4 className="font-serif text-sm font-bold text-[#102A43] flex items-center gap-2">
+                    <Layers className="w-4 h-4 text-[#C6A45C]" />
+                    <span>Common Application Methods & Portals</span>
+                  </h4>
+                  <p className="text-xs text-gray-700 leading-relaxed">
+                    {currentDestination.applicationPortals}
+                  </p>
+                </div>
+
+                <div className="space-y-3">
+                  <h4 className="font-serif text-sm font-bold text-[#102A43] flex items-center gap-2">
+                    <FileCheck className="w-4 h-4 text-[#C6A45C]" />
+                    <span>Typical Document Requirements</span>
+                  </h4>
+                  <ul className="space-y-2">
+                    {currentDestination.typicalDocuments.map((doc, i) => (
+                      <li key={i} className="text-xs text-gray-700 flex items-start gap-2">
+                        <CheckCircle2 className="w-3.5 h-3.5 text-[#C6A45C] shrink-0 mt-0.5" />
+                        <span>{doc}</span>
+                      </li>
+                    ))}
+                  </ul>
+                </div>
+
+                <div className="p-4 rounded-xl bg-gray-50 border border-gray-200 space-y-2">
+                  <h4 className="font-serif text-sm font-bold text-[#102A43] flex items-center gap-2">
+                    <Compass className="w-4 h-4 text-[#C6A45C]" />
+                    <span>General Planning Considerations</span>
+                  </h4>
+                  <p className="text-xs text-gray-700 leading-relaxed">
+                    {currentDestination.planningConsiderations}
+                  </p>
                 </div>
 
               </div>
 
-              {/* Bottom Card Action */}
-              <div className="pt-6 border-t border-slate-200 dark:border-navy-800 flex flex-col sm:flex-row items-center justify-between gap-4">
-                <p className="text-xs text-slate-500 dark:text-slate-400 text-center sm:text-left">
-                  Requirements differ between universities. Where details differ between programs, our team provides tailored guidelines.
-                </p>
-                <button
-                  onClick={() => handleEnquireDestination(currentDestination.name)}
-                  className="w-full sm:w-auto px-6 py-3 bg-gold-shimmer text-navy-950 font-extrabold text-xs rounded-xl shadow-gold-glow hover:opacity-95 transition flex items-center justify-center gap-2 cursor-pointer shrink-0"
-                >
-                  <Send className="w-3.5 h-3.5" />
-                  <span>Enquire About Admissions in {currentDestination.name}</span>
-                </button>
+              {/* Column 2: Academic Requirements, Deadlines & Official Links */}
+              <div className="space-y-6">
+                
+                <div className="p-4 rounded-xl bg-gray-50 border border-gray-200 space-y-2">
+                  <h4 className="font-serif text-sm font-bold text-[#102A43] flex items-center gap-2">
+                    <Award className="w-4 h-4 text-[#C6A45C]" />
+                    <span>Academic & Language Benchmarks</span>
+                  </h4>
+                  <p className="text-xs text-gray-700 leading-relaxed">
+                    {currentDestination.academicLanguageReqs}
+                  </p>
+                </div>
+
+                <div className="p-4 rounded-xl bg-gray-50 border border-gray-200 space-y-2">
+                  <h4 className="font-serif text-sm font-bold text-[#102A43] flex items-center gap-2">
+                    <Clock className="w-4 h-4 text-[#C6A45C]" />
+                    <span>Important Deadline Considerations</span>
+                  </h4>
+                  <p className="text-xs text-gray-700 leading-relaxed">
+                    {currentDestination.deadlineConsiderations}
+                  </p>
+                </div>
+
+                <div className="space-y-2 pt-2">
+                  <h4 className="text-xs font-bold text-gray-500 uppercase tracking-wider">
+                    Official University & Portal Resources:
+                  </h4>
+                  <div className="space-y-2">
+                    {currentDestination.officialLinks.map((link, i) => (
+                      <a
+                        key={i}
+                        href={link.url}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="p-3 rounded-xl bg-gray-50 hover:bg-[#C6A45C]/10 border border-gray-200 text-xs font-bold text-[#102A43] hover:text-[#C6A45C] flex items-center justify-between transition group"
+                      >
+                        <span>{link.label}</span>
+                        <ExternalLink className="w-3.5 h-3.5 text-gray-400 group-hover:text-[#C6A45C] transition" />
+                      </a>
+                    ))}
+                  </div>
+                </div>
+
               </div>
 
             </div>
-          </div>
-        </ScrollReveal>
 
-        {/* ========================================================================= */}
-        {/* SECTION 7: APPLICATION TIMELINE & DEADLINE PLANNING                       */}
-        {/* ========================================================================= */}
-        <ScrollReveal>
-          <div className="space-y-8">
-            <div className="text-center space-y-2 max-w-2xl mx-auto">
-              <span className="bg-gold-500/10 text-gold-600 dark:text-gold-400 text-xs font-bold px-3 py-1 rounded-full uppercase tracking-wider">
-                Planning Roadmap
-              </span>
-              <h2 className="font-serif text-2xl sm:text-3xl font-extrabold text-navy-900 dark:text-white">
-                Application Timeline & Deadline Planning
-              </h2>
-              <p className="text-xs text-slate-700 dark:text-slate-300">
-                A visual timeline detailing the 8 major stages from initial profile review to visa coordination. Select an intended intake to view targeted milestone windows.
+            {/* Bottom Enquire Action */}
+            <div className="pt-6 border-t border-gray-200 flex flex-col sm:flex-row items-center justify-between gap-4">
+              <p className="text-xs text-gray-500 text-center sm:text-left">
+                Admissions requirements differ between universities and specific course tracks. Our advisors provide individualized guidelines for your shortlist.
+              </p>
+              <button
+                onClick={() => handleEnquireDestination(currentDestination.name)}
+                className="w-full sm:w-auto px-7 py-3 bg-[#102A43] hover:bg-[#1c3d5a] text-white font-bold text-xs rounded-xl shadow-md transition flex items-center justify-center gap-2 cursor-pointer shrink-0"
+              >
+                <Send className="w-3.5 h-3.5 text-[#C6A45C]" />
+                <span>Enquire About Admissions in {currentDestination.name}</span>
+              </button>
+            </div>
+
+          </div>
+
+        </div>
+      </section>
+
+      {/* ========================================================================= */}
+      {/* SECTION 7: APPLICATION TIMELINE & DEADLINE PLANNING (3 Intakes)           */}
+      {/* ========================================================================= */}
+      <section id="application-timeline" className="py-20 bg-[#F7F9FC] border-y border-gray-200/70">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+          
+          <div className="text-center max-w-3xl mx-auto mb-12 space-y-3">
+            <span className="text-[#C6A45C] font-semibold text-xs tracking-wider uppercase">
+              Milestone Strategy
+            </span>
+            <h2 className="font-serif text-3xl sm:text-4xl font-bold text-[#102A43]">
+              Application Timeline & Deadline Planning
+            </h2>
+            <p className="text-sm text-gray-600">
+              A 7-stage roadmap from initial profile review to visa coordination. Select an intended intake below to view tailored milestone windows.
+            </p>
+          </div>
+
+          {/* Intake Selector Toggle Buttons */}
+          <div className="flex justify-center gap-2 p-1.5 bg-white rounded-2xl border border-gray-200 max-w-md mx-auto mb-10 shadow-sm">
+            {[
+              { key: 'fall', label: 'Fall Intake (Primary)' },
+              { key: 'spring', label: 'Spring Intake' },
+              { key: 'summer', label: 'Summer Intake' }
+            ].map(intake => (
+              <button
+                key={intake.key}
+                onClick={() => setSelectedIntakeTimeline(intake.key)}
+                className={`flex-1 py-2 px-3 rounded-xl text-xs font-bold transition cursor-pointer ${
+                  selectedIntakeTimeline === intake.key
+                    ? 'bg-[#102A43] text-white shadow-sm'
+                    : 'text-gray-600 hover:text-[#102A43]'
+                }`}
+              >
+                {intake.label}
+              </button>
+            ))}
+          </div>
+
+          {/* 7 Stages Grid */}
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+            {timelineStages.map((stage) => {
+              let stageText = stage.fallDesc;
+              if (selectedIntakeTimeline === 'spring') stageText = stage.springDesc;
+              if (selectedIntakeTimeline === 'summer') stageText = stage.summerDesc;
+
+              return (
+                <div
+                  key={stage.num}
+                  className="bg-white rounded-2xl p-6 border border-gray-200 shadow-sm hover:border-[#C6A45C] transition flex flex-col justify-between"
+                >
+                  <div className="space-y-3">
+                    <div className="flex justify-between items-center">
+                      <span className="w-8 h-8 rounded-full bg-[#102A43] text-[#C6A45C] font-black text-xs flex items-center justify-center font-mono">
+                        0{stage.num}
+                      </span>
+                      <span className="text-[10px] text-gray-400 font-mono font-bold uppercase">
+                        Stage {stage.num} of 7
+                      </span>
+                    </div>
+
+                    <h4 className="font-serif text-sm font-bold text-[#102A43] leading-snug">
+                      {stage.title}
+                    </h4>
+
+                    <p className="text-xs text-gray-600 leading-relaxed">
+                      {stageText}
+                    </p>
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+
+          <div className="mt-8 p-4 rounded-xl bg-white border border-gray-200 text-xs text-gray-600 max-w-4xl mx-auto text-center">
+            <span className="font-bold text-[#102A43]">Planning Period Notice: </span>
+            <span>
+              Universal cutoffs do not exist across all international universities. The planning windows shown above represent realistic benchmarks. Specific institutional deadlines are communicated upon university shortlisting.
+            </span>
+          </div>
+
+        </div>
+      </section>
+
+      {/* ========================================================================= */}
+      {/* SECTION 8: ADMISSIONS & COMPLIANCE NOTICE                                 */}
+      {/* ========================================================================= */}
+      <section id="compliance-notice" className="py-16 bg-white">
+        <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8">
+          <div className="p-6 rounded-2xl bg-amber-50/70 border border-amber-200/80 flex items-start gap-4">
+            <AlertCircle className="w-6 h-6 text-amber-600 shrink-0 mt-0.5" />
+            <div className="space-y-2">
+              <h3 className="font-serif text-base font-bold text-amber-900 uppercase tracking-wide">
+                Admissions & Compliance Notice
+              </h3>
+              <p className="text-xs text-amber-900/90 leading-relaxed">
+                The Revival International provides professional admissions guidance, document verification assistance, and application portal coordination. We do not promise, guarantee, or influence university admission offers, Confirmation of Acceptance for Studies (CAS), Form I-20 issuance, or student visas. Final admission decisions rest exclusively with the respective university admissions committees, and visa decisions remain under the sovereign jurisdiction of the destination country’s immigration authorities.
               </p>
             </div>
-
-            {/* Intake Selector Toggle */}
-            <div className="flex justify-center gap-2 p-1.5 bg-slate-100 dark:bg-navy-950 rounded-2xl border border-slate-200 dark:border-navy-800 max-w-md mx-auto">
-              {[
-                { key: 'fall', label: 'Fall Intake (Primary)' },
-                { key: 'spring', label: 'Spring Intake' },
-                { key: 'summer', label: 'Summer Intake' }
-              ].map(intake => (
-                <button
-                  key={intake.key}
-                  onClick={() => setSelectedIntakeTimeline(intake.key)}
-                  className={`flex-1 py-2 px-3 rounded-xl text-xs font-bold transition cursor-pointer ${
-                    selectedIntakeTimeline === intake.key
-                      ? 'bg-gold-shimmer text-navy-950 shadow-gold-glow'
-                      : 'text-slate-600 dark:text-slate-400 hover:text-navy-900 dark:hover:text-white'
-                  }`}
-                >
-                  {intake.label}
-                </button>
-              ))}
-            </div>
-
-            {/* 8-Stage Timeline Grid */}
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-              {timelineStages.map((stage) => {
-                let stageText = stage.fallDesc;
-                if (selectedIntakeTimeline === 'spring') stageText = stage.springDesc;
-                if (selectedIntakeTimeline === 'summer') stageText = stage.summerDesc;
-
-                return (
-                  <div
-                    key={stage.num}
-                    className="glass-card bg-white dark:bg-navy-900 border border-slate-200 dark:border-navy-800 rounded-2xl p-5 space-y-2.5 hover:border-gold-500 transition duration-300 flex flex-col justify-between"
-                  >
-                    <div className="space-y-2">
-                      <div className="flex justify-between items-center">
-                        <span className="w-7 h-7 rounded-full bg-gold-500 text-navy-950 font-black text-xs flex items-center justify-center shadow-gold-glow">
-                          0{stage.num}
-                        </span>
-                        <span className="text-[10px] text-slate-400 font-mono font-bold uppercase">
-                          Stage {stage.num} of 8
-                        </span>
-                      </div>
-                      <h4 className="font-serif text-sm font-bold text-navy-900 dark:text-white leading-snug">
-                        {stage.title}
-                      </h4>
-                      <p className="text-xs text-slate-600 dark:text-slate-400 leading-relaxed font-medium">
-                        {stageText}
-                      </p>
-                    </div>
-                  </div>
-                );
-              })}
-            </div>
-
-            <div className="p-3.5 rounded-xl bg-slate-100 dark:bg-navy-950 border border-slate-200 dark:border-navy-800 text-[11px] text-slate-600 dark:text-slate-400 text-center">
-              <span className="font-bold text-slate-800 dark:text-slate-200">Planning Period Notice: </span>
-              <span>
-                Universal cutoffs do not exist across all universities. General planning periods displayed above are realistic estimates. Specific institutional deadlines are communicated upon shortlisting.
-              </span>
-            </div>
           </div>
-        </ScrollReveal>
+        </div>
+      </section>
 
-        {/* ========================================================================= */}
-        {/* SECTION 8: INTERNATIONAL ADMISSIONS CONSULTATION FORM                     */}
-        {/* ========================================================================= */}
-        <ScrollReveal>
-          <div id="admissions-consultation-booking" className="glass-card bg-white dark:bg-navy-900 border border-slate-200 dark:border-gold-500/30 rounded-3xl p-6 sm:p-10 md:p-12 space-y-6 shadow-luxury scroll-mt-24">
+      {/* ========================================================================= */}
+      {/* SECTION 9: INTERNATIONAL ADMISSIONS CONSULTATION FORM                     */}
+      {/* ========================================================================= */}
+      <section id="admissions-consultation-booking" className="py-20 bg-[#F7F9FC] border-t border-gray-200 scroll-mt-20">
+        <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8">
+          
+          <div className="text-center max-w-2xl mx-auto mb-12 space-y-3">
+            <span className="text-[#C6A45C] font-semibold text-xs tracking-wider uppercase">
+              Schedule An Advisory Session
+            </span>
+            <h2 className="font-serif text-3xl sm:text-4xl font-bold text-[#102A43]">
+              Book Your Admissions Consultation
+            </h2>
+            <p className="text-sm text-gray-600">
+              Submit your academic profile below to connect with a senior admissions counselor for customized university shortlisting and application planning.
+            </p>
+          </div>
+
+          <div className="bg-white rounded-3xl p-6 sm:p-10 md:p-12 border border-gray-200 shadow-xl">
             <InternationalAdmissionsForm
               embedded={true}
               preselectedDestination={formPreselectedDestination}
@@ -1191,177 +1260,183 @@ export const InternationalAdmissionsPage = () => {
               }}
             />
           </div>
-        </ScrollReveal>
 
-        {/* ========================================================================= */}
-        {/* SECTION 9: FREQUENTLY ASKED QUESTIONS                                     */}
-        {/* ========================================================================= */}
-        <ScrollReveal>
-          <div className="space-y-6 max-w-4xl mx-auto">
-            <div className="text-center space-y-2">
-              <span className="bg-gold-500/10 text-gold-600 dark:text-gold-400 text-xs font-bold px-3 py-1 rounded-full uppercase tracking-wider">
-                Common Questions
-              </span>
-              <h2 className="font-serif text-2xl sm:text-3xl font-extrabold text-navy-900 dark:text-white">
-                Frequently Asked Questions
-              </h2>
-            </div>
+        </div>
+      </section>
 
-            <div className="space-y-3">
-              {faqs.map((faq, idx) => (
-                <div 
-                  key={idx}
-                  className="glass-card bg-white dark:bg-navy-900 border border-slate-200 dark:border-navy-800 rounded-2xl overflow-hidden transition"
-                >
-                  <button
-                    onClick={() => setOpenFaqIndex(openFaqIndex === idx ? -1 : idx)}
-                    aria-expanded={openFaqIndex === idx}
-                    className="w-full text-left p-4 sm:p-5 flex justify-between items-center text-xs sm:text-sm font-bold text-navy-900 dark:text-white hover:text-gold-500 transition focus:outline-none cursor-pointer"
-                  >
-                    <span className="flex items-center gap-2">
-                      <HelpCircle className="w-4 h-4 text-gold-500 shrink-0" />
-                      <span>{faq.q}</span>
-                    </span>
-                    {openFaqIndex === idx ? (
-                      <ChevronUp className="w-4 h-4 text-gold-500 shrink-0 ml-2" />
-                    ) : (
-                      <ChevronDown className="w-4 h-4 text-slate-400 shrink-0 ml-2" />
-                    )}
-                  </button>
-                  {openFaqIndex === idx && (
-                    <div className="px-5 pb-5 pt-1 text-xs text-slate-700 dark:text-slate-300 leading-relaxed font-medium border-t border-slate-100 dark:border-navy-800/60">
-                      {faq.a}
-                    </div>
-                  )}
-                </div>
-              ))}
-            </div>
+      {/* ========================================================================= */}
+      {/* SECTION 10: FREQUENTLY ASKED QUESTIONS (10 Accordion Items)               */}
+      {/* ========================================================================= */}
+      <section id="faq-section" className="py-20 bg-white">
+        <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8">
+          
+          <div className="text-center max-w-2xl mx-auto mb-14 space-y-3">
+            <span className="text-[#C6A45C] font-semibold text-xs tracking-wider uppercase">
+              Got Questions?
+            </span>
+            <h2 className="font-serif text-3xl sm:text-4xl font-bold text-[#102A43]">
+              Frequently Asked Questions
+            </h2>
+            <p className="text-sm text-gray-600">
+              Authoritative answers to common questions regarding multi-country applications, entry benchmarks, and our admissions advisory services.
+            </p>
           </div>
-        </ScrollReveal>
 
-        {/* ========================================================================= */}
-        {/* SECTION 10: RELATED ACADEMIC ADVISORY SERVICES                            */}
-        {/* ========================================================================= */}
-        <ScrollReveal>
-          <div className="space-y-6">
-            <div className="flex justify-between items-end border-b border-slate-200 dark:border-navy-800 pb-3">
-              <div>
-                <span className="text-[10px] uppercase font-bold tracking-widest text-gold-600 dark:text-gold-400">
-                  Comprehensive Academic Portfolio
-                </span>
-                <h3 className="font-serif text-xl sm:text-2xl font-bold text-navy-900 dark:text-white">
-                  Related Academic Advisory Services
-                </h3>
-              </div>
-              <button
-                onClick={() => navigateTo('education')}
-                className="text-xs font-bold text-gold-600 dark:text-gold-400 hover:underline flex items-center gap-1 cursor-pointer"
+          <div className="space-y-3.5">
+            {faqs.map((faq, idx) => (
+              <div 
+                key={idx}
+                className="rounded-2xl border border-gray-200 bg-white overflow-hidden transition-all duration-200"
               >
-                <span>View All Services</span>
-                <ArrowRight className="w-3.5 h-3.5" />
-              </button>
-            </div>
-
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4">
-              {relatedServices.map((rel) => (
-                <div
-                  key={rel.id}
-                  className="glass-card bg-white dark:bg-navy-900 border border-slate-200 dark:border-navy-800 p-5 rounded-2xl space-y-3 hover:border-gold-500 transition duration-300 flex flex-col justify-between"
-                >
-                  <div className="space-y-2">
-                    <div className="flex justify-between items-center">
-                      <span className="bg-gold-500/10 text-gold-600 dark:text-gold-400 text-[10px] font-bold px-2 py-0.5 rounded uppercase">
-                        {rel.badge}
-                      </span>
-                      <span className="text-[10px] text-slate-400 font-mono font-bold">#{rel.id}</span>
-                    </div>
-                    <h4 className="font-serif text-sm font-bold text-navy-900 dark:text-white leading-snug">
-                      {rel.title}
-                    </h4>
-                    <p className="text-[11px] text-slate-700 dark:text-slate-300 font-medium leading-relaxed">
-                      {rel.desc}
-                    </p>
-                  </div>
-
-                  <div className="pt-3 border-t border-slate-100 dark:border-navy-800">
-                    <button
-                      onClick={() => navigateTo(rel.path)}
-                      className="text-xs font-bold text-gold-600 dark:text-gold-400 hover:underline flex items-center gap-1 cursor-pointer"
-                    >
-                      <span>View Details</span>
-                      <ArrowRight className="w-3.5 h-3.5" />
-                    </button>
-                  </div>
-                </div>
-              ))}
-            </div>
-          </div>
-        </ScrollReveal>
-
-        {/* ========================================================================= */}
-        {/* SECTION 11: FINAL CONVERSION SECTION                                      */}
-        {/* ========================================================================= */}
-        <ScrollReveal>
-          <div className="relative overflow-hidden rounded-3xl bg-gradient-to-br from-navy-950 via-[#102A43] to-navy-900 border border-gold-500/30 p-8 sm:p-12 text-center text-white shadow-2xl space-y-6">
-            <div className="absolute top-0 right-0 w-96 h-96 bg-gold-500/10 rounded-full blur-3xl pointer-events-none" />
-            <div className="absolute bottom-0 left-0 w-96 h-96 bg-gold-500/5 rounded-full blur-3xl pointer-events-none" />
-
-            <div className="relative z-10 max-w-2xl mx-auto space-y-4">
-              <span className="bg-gold-500/20 text-gold-400 text-xs font-black px-3.5 py-1.5 rounded-full uppercase tracking-wider border border-gold-500/30 inline-block">
-                Start Your Admissions Journey
-              </span>
-
-              <h2 className="font-serif text-2xl sm:text-3xl md:text-4xl font-black text-white leading-tight">
-                Your Global Education Journey Starts Here.
-              </h2>
-
-              <p className="text-sm sm:text-base text-slate-300 leading-relaxed font-normal">
-                Connect with our senior international admissions counselors today to plan your multi-portal university applications, verify academic documentation, and receive dedicated admission guidance.
-              </p>
-
-              <div className="flex flex-col sm:flex-row items-center justify-center gap-3.5 pt-4">
                 <button
-                  onClick={() => {
-                    trackCtaClick('final_cta_book_free_consultation', 'International Admissions');
-                    scrollToSection('admissions-consultation-booking');
-                  }}
-                  className="w-full sm:w-auto px-7 py-3.5 rounded-xl bg-gold-shimmer text-navy-950 font-extrabold text-xs shadow-gold-glow hover:opacity-95 transition-all flex items-center justify-center gap-2 cursor-pointer"
+                  onClick={() => setOpenFaqIndex(openFaqIndex === idx ? -1 : idx)}
+                  aria-expanded={openFaqIndex === idx}
+                  className="w-full text-left p-5 flex justify-between items-center text-sm font-bold text-[#102A43] hover:text-[#C6A45C] transition focus:outline-none cursor-pointer"
                 >
-                  <span>Book Free Consultation</span>
-                  <ArrowRight className="w-4 h-4" />
+                  <span className="flex items-center gap-3">
+                    <HelpCircle className="w-4 h-4 text-[#C6A45C] shrink-0" />
+                    <span>{faq.q}</span>
+                  </span>
+                  {openFaqIndex === idx ? (
+                    <ChevronUp className="w-4 h-4 text-[#C6A45C] shrink-0 ml-2" />
+                  ) : (
+                    <ChevronDown className="w-4 h-4 text-gray-400 shrink-0 ml-2" />
+                  )}
                 </button>
-
-                <a
-                  href="https://wa.me/919003475405?text=Hello%20The%20Revival%20International,%20I%20would%20like%20to%20enquire%20about%20International%20Admissions%20support."
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  onClick={() => trackCtaClick('final_cta_whatsapp', 'International Admissions')}
-                  className="w-full sm:w-auto px-7 py-3.5 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white font-extrabold text-xs shadow-md transition-all flex items-center justify-center gap-2 cursor-pointer"
-                >
-                  <span>WhatsApp Consultation</span>
-                  <ExternalLink className="w-3.5 h-3.5" />
-                </a>
+                {openFaqIndex === idx && (
+                  <div className="px-5 pb-5 pt-1 text-xs sm:text-sm text-gray-600 leading-relaxed border-t border-gray-100">
+                    {faq.a}
+                  </div>
+                )}
               </div>
-
-              <div className="flex flex-wrap items-center justify-center gap-6 pt-4 text-xs text-slate-400">
-                <div className="flex items-center gap-1.5">
-                  <CheckCircle2 className="w-3.5 h-3.5 text-gold-400" />
-                  <span>100% Confidential</span>
-                </div>
-                <div className="flex items-center gap-1.5">
-                  <CheckCircle2 className="w-3.5 h-3.5 text-gold-400" />
-                  <span>Direct University Portals</span>
-                </div>
-                <div className="flex items-center gap-1.5">
-                  <CheckCircle2 className="w-3.5 h-3.5 text-gold-400" />
-                  <span>Verified Advisors</span>
-                </div>
-              </div>
-            </div>
+            ))}
           </div>
-        </ScrollReveal>
 
-      </div>
+        </div>
+      </section>
+
+      {/* ========================================================================= */}
+      {/* RELATED ACADEMIC ADVISORY SERVICES                                        */}
+      {/* ========================================================================= */}
+      <section className="py-16 bg-[#F7F9FC] border-y border-gray-200/70">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+          
+          <div className="flex justify-between items-end mb-8 pb-3 border-b border-gray-200">
+            <div>
+              <span className="text-xs font-bold uppercase tracking-wider text-[#C6A45C]">
+                Explore Services
+              </span>
+              <h3 className="font-serif text-2xl font-bold text-[#102A43]">
+                Related Academic Advisory Services
+              </h3>
+            </div>
+            <button
+              onClick={() => navigateTo('services')}
+              className="text-xs font-bold text-[#C6A45C] hover:underline flex items-center gap-1 cursor-pointer"
+            >
+              <span>View All Services</span>
+              <ArrowRight className="w-3.5 h-3.5" />
+            </button>
+          </div>
+
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4">
+            {relatedServices.map((rel) => (
+              <div
+                key={rel.id}
+                className="bg-white border border-gray-200 p-5 rounded-2xl space-y-3 hover:border-[#C6A45C] transition flex flex-col justify-between shadow-xs"
+              >
+                <div className="space-y-2">
+                  <div className="flex justify-between items-center">
+                    <span className="bg-[#C6A45C]/10 text-[#C6A45C] text-[10px] font-bold px-2 py-0.5 rounded uppercase">
+                      {rel.badge}
+                    </span>
+                    <span className="text-[10px] text-gray-400 font-mono">#{rel.id}</span>
+                  </div>
+                  <h4 className="font-serif text-sm font-bold text-[#102A43] leading-snug">
+                    {rel.title}
+                  </h4>
+                  <p className="text-[11px] text-gray-600 leading-relaxed">
+                    {rel.desc}
+                  </p>
+                </div>
+
+                <div className="pt-3 border-t border-gray-100">
+                  <button
+                    onClick={() => navigateTo(rel.path)}
+                    className="text-xs font-bold text-[#C6A45C] hover:underline flex items-center gap-1 cursor-pointer"
+                  >
+                    <span>View Details</span>
+                    <ArrowRight className="w-3.5 h-3.5" />
+                  </button>
+                </div>
+              </div>
+            ))}
+          </div>
+
+        </div>
+      </section>
+
+      {/* ========================================================================= */}
+      {/* SECTION 11: FINAL CONVERSION CTA BANNER                                   */}
+      {/* ========================================================================= */}
+      <section className="py-20 bg-[#102A43] text-white relative overflow-hidden">
+        <div className="absolute top-0 right-0 w-96 h-96 bg-[#C6A45C]/10 rounded-full blur-3xl pointer-events-none" />
+        <div className="absolute bottom-0 left-0 w-96 h-96 bg-[#C6A45C]/5 rounded-full blur-3xl pointer-events-none" />
+
+        <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 text-center relative z-10 space-y-6">
+          <span className="inline-block px-3.5 py-1.5 rounded-full text-xs font-black uppercase tracking-wider bg-[#C6A45C]/20 text-[#C6A45C] border border-[#C6A45C]/30">
+            Start Your Admissions Journey
+          </span>
+
+          <h2 className="font-serif text-3xl sm:text-4xl md:text-5xl font-bold text-white tracking-tight leading-tight">
+            Your Global Education Journey Starts Here.
+          </h2>
+
+          <p className="text-sm sm:text-base text-gray-300 leading-relaxed max-w-2xl mx-auto">
+            Connect with our senior international university admissions counselors today to plan your multi-portal university applications, verify academic documentation, and receive dedicated admission guidance.
+          </p>
+
+          <div className="flex flex-col sm:flex-row items-center justify-center gap-4 pt-4">
+            <button
+              onClick={() => {
+                trackCtaClick('final_cta_book_free_consultation', 'International Admissions');
+                scrollToSection('admissions-consultation-booking');
+              }}
+              className="w-full sm:w-auto px-8 py-4 rounded-xl bg-[#C6A45C] hover:bg-[#b5934b] text-[#102A43] font-bold text-sm shadow-lg hover:shadow-xl transition-all duration-200 flex items-center justify-center gap-2 cursor-pointer"
+            >
+              <span>Book Free Consultation</span>
+              <ArrowRight className="w-4 h-4" />
+            </button>
+
+            <a
+              href="https://wa.me/919003475405?text=Hello%20The%20Revival%20International,%20I%20would%20like%20to%20enquire%20about%20International%20Admissions%20support."
+              target="_blank"
+              rel="noopener noreferrer"
+              onClick={() => trackCtaClick('final_cta_whatsapp', 'International Admissions')}
+              className="w-full sm:w-auto px-8 py-4 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-sm shadow-md transition-all duration-200 flex items-center justify-center gap-2 cursor-pointer"
+            >
+              <MessageSquare className="w-4 h-4" />
+              <span>WhatsApp Consultation</span>
+              <ExternalLink className="w-3.5 h-3.5" />
+            </a>
+          </div>
+
+          <div className="flex flex-wrap items-center justify-center gap-6 pt-6 text-xs text-gray-400">
+            <span className="flex items-center gap-1.5">
+              <Check className="w-4 h-4 text-[#C6A45C]" /> 100% Confidential
+            </span>
+            <span className="flex items-center gap-1.5">
+              <Check className="w-4 h-4 text-[#C6A45C]" /> Direct University Portals
+            </span>
+            <span className="flex items-center gap-1.5">
+              <Check className="w-4 h-4 text-[#C6A45C]" /> Verified Admissions Advisors
+            </span>
+          </div>
+        </div>
+      </section>
+
     </div>
   );
 };
+
+export default InternationalAdmissionsPage;

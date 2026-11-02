@@ -101,6 +101,7 @@ export function App() {
     }
     if (
       activeTab === 'education-intl-adm' ||
+      activeTab === 'intl-adm' ||
       activeTab === 'international-admissions' ||
       activeTab === 'education/international-admissions' ||
       activeTab === 'education/intl-adm'
