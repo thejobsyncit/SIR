@@ -1,16 +1,47 @@
 import React, { useState } from 'react';
 import { useCrm } from '../context/CrmContext';
 import { ASSIGNED_RECRUITERS } from '../data/mockCrmData';
-import { Users, Search, Plus, Sparkles, FileText, CheckCircle2, Shield, Eye, Bookmark, Filter, X, Send, UserCheck } from 'lucide-react';
+import { Users, Search, Plus, Sparkles, FileText, CheckCircle2, Shield, Eye, Bookmark, Filter, X, Send, UserCheck, Trash2 } from 'lucide-react';
 import { CrmAddCandidateModal } from '../components/CrmAddCandidateModal';
 import ScrollReveal from '../../components/ScrollReveal';
+import { CrmDeleteConfirmModal } from '../components/CrmDeleteConfirmModal';
 
 export const CrmCandidates = () => {
-  const { candidates, setAiDrawerOpen, globalAddCandidateOpen, setGlobalAddCandidateOpen } = useCrm();
+  const { candidates, setAiDrawerOpen, globalAddCandidateOpen, setGlobalAddCandidateOpen, isSuperAdmin, deleteCandidate } = useCrm();
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedNationality, setSelectedNationality] = useState('All');
   const [selectedRecruiter, setSelectedRecruiter] = useState('All');
   const [viewCand, setViewCand] = useState(null);
+
+  // Superadmin Deletion State
+  const [deleteModalOpen, setDeleteModalOpen] = useState(false);
+  const [candToDelete, setCandToDelete] = useState(null);
+  const [isDeletingCand, setIsDeletingCand] = useState(false);
+  const [statusNotice, setStatusNotice] = useState('');
+
+  const handleConfirmDeleteCand = async () => {
+    if (!candToDelete) return;
+    try {
+      setIsDeletingCand(true);
+      await deleteCandidate(candToDelete.id, {
+        name: candToDelete.name,
+        nationality: candToDelete.nationality
+      });
+      setStatusNotice(`✓ Candidate "${candToDelete.name}" (${candToDelete.id}) permanently deleted.`);
+      setDeleteModalOpen(false);
+      if (viewCand && viewCand.id === candToDelete.id) {
+        setViewCand(null);
+      }
+      setCandToDelete(null);
+      setTimeout(() => setStatusNotice(''), 5000);
+    } catch (err) {
+      console.error('Delete error:', err);
+      setStatusNotice(`⚠️ Error deleting candidate: ${err.message}`);
+    } finally {
+      setIsDeletingCand(false);
+    }
+  };
+
 
   const filtered = candidates.filter(c => {
     const matchesSearch = c.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
@@ -52,6 +83,17 @@ export const CrmCandidates = () => {
         </div>
       </div>
       </ScrollReveal>
+
+      
+      {/* Superadmin Status Notification Toast */}
+      {statusNotice && (
+        <div className="p-3.5 rounded-2xl bg-emerald-500/10 border border-emerald-500/30 text-emerald-800 dark:text-emerald-300 font-bold text-xs flex items-center justify-between animate-in fade-in">
+          <span>{statusNotice}</span>
+          <button onClick={() => setStatusNotice('')} className="text-emerald-700 hover:text-emerald-900 dark:text-emerald-400 p-1">
+            <X className="w-4 h-4" />
+          </button>
+        </div>
+      )}
 
       {/* Filter Bar */}
       <ScrollReveal>

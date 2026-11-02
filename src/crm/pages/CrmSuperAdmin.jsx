@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import ScrollReveal from '../../components/ScrollReveal';
+import { CrmDeleteConfirmModal } from '../components/CrmDeleteConfirmModal';
 import { useCrm } from '../context/CrmContext';
 import { CRM_ROLES } from '../data/mockCrmData';
 import { 
@@ -136,6 +137,57 @@ export const CrmSuperAdmin = () => {
   const [inquiriesSubView, setInquiriesSubView] = useState('leads');
   const [selectedLead, setSelectedLead] = useState(null);
   const [leadActionLoading, setLeadActionLoading] = useState(false);
+
+  // Unified Superadmin Deletion State
+  const [deleteModalOpen, setDeleteModalOpen] = useState(false);
+  const [itemToDelete, setItemToDelete] = useState(null);
+  const [deleteType, setDeleteType] = useState('lead'); // 'lead' | 'employee'
+  const [isDeleting, setIsDeleting] = useState(false);
+
+  const triggerDeleteLead = (lead) => {
+    setItemToDelete(lead);
+    setDeleteType('lead');
+    setDeleteModalOpen(true);
+  };
+
+  const triggerDeleteEmployee = (emp) => {
+    setItemToDelete(emp);
+    setDeleteType('employee');
+    setDeleteModalOpen(true);
+  };
+
+  const handleConfirmDelete = async () => {
+    if (!itemToDelete) return;
+    try {
+      setIsDeleting(true);
+      if (deleteType === 'lead') {
+        await deleteLead(itemToDelete.id, {
+          name: itemToDelete.name,
+          referenceNumber: itemToDelete.referenceNumber || itemToDelete.id,
+          entityType: 'Inquiry / Lead'
+        });
+        setStatusMsg(`✓ Successfully deleted inquiry from "${itemToDelete.name}"`);
+        if (selectedLead && (selectedLead.id === itemToDelete.id || selectedLead.referenceNumber === itemToDelete.referenceNumber)) {
+          setSelectedLead(null);
+        }
+      } else if (deleteType === 'employee') {
+        const updated = employees.filter(e => e.id !== itemToDelete.id);
+        setEmployees(updated);
+        syncToLocalStorage(updated);
+        logAuditAction(`Super Admin deleted employee account '${itemToDelete.name}'.`);
+        setStatusMsg(`✓ Deleted employee account '${itemToDelete.name}'.`);
+      }
+      setDeleteModalOpen(false);
+      setItemToDelete(null);
+      setTimeout(() => setStatusMsg(''), 4000);
+    } catch (err) {
+      console.error(err);
+      setStatusMsg(`⚠️ Error during deletion: ${err.message}`);
+    } finally {
+      setIsDeleting(false);
+    }
+  };
+
   const [copiedLeadId, setCopiedLeadId] = useState(null);
   const [leadModalTab, setLeadModalTab] = useState('details');
   const [leadInternalNotesInput, setLeadInternalNotesInput] = useState('');

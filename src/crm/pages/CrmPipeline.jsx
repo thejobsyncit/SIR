@@ -7,13 +7,41 @@ import {
   ChevronDown, ChevronUp, Briefcase, Star, ExternalLink, ShieldCheck
 } from 'lucide-react';
 import ScrollReveal from '../../components/ScrollReveal';
+import { CrmDeleteConfirmModal } from '../components/CrmDeleteConfirmModal';
 
 export const CrmPipeline = () => {
-  const { candidates, updateCandidateStage } = useCrm();
+  const { candidates, updateCandidateStage, isSuperAdmin, deleteCandidate } = useCrm();
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedRecruiter, setSelectedRecruiter] = useState('All');
   const [showRecruiterDetails, setShowRecruiterDetails] = useState(true);
   const [viewRecruiterModal, setViewRecruiterModal] = useState(null);
+
+  // Superadmin Deletion State
+  const [deleteModalOpen, setDeleteModalOpen] = useState(false);
+  const [candToDelete, setCandToDelete] = useState(null);
+  const [isDeletingCand, setIsDeletingCand] = useState(false);
+  const [statusNotice, setStatusNotice] = useState('');
+
+  const handleConfirmDeleteCand = async () => {
+    if (!candToDelete) return;
+    try {
+      setIsDeletingCand(true);
+      await deleteCandidate(candToDelete.id, {
+        name: candToDelete.name,
+        nationality: candToDelete.nationality
+      });
+      setStatusNotice(`✓ Pipeline candidate "${candToDelete.name}" (${candToDelete.id}) permanently deleted.`);
+      setDeleteModalOpen(false);
+      setCandToDelete(null);
+      setTimeout(() => setStatusNotice(''), 5000);
+    } catch (err) {
+      console.error('Delete error:', err);
+      setStatusNotice(`⚠️ Error deleting candidate: ${err.message}`);
+    } finally {
+      setIsDeletingCand(false);
+    }
+  };
+
 
   const filteredCandidates = candidates.filter(c => {
     const matchesSearch = (c.name || '').toLowerCase().includes(searchTerm.toLowerCase()) ||
@@ -48,6 +76,17 @@ export const CrmPipeline = () => {
         </div>
       </div>
       </ScrollReveal>
+
+      
+      {/* Superadmin Status Notification Toast */}
+      {statusNotice && (
+        <div className="p-3.5 rounded-2xl bg-emerald-500/10 border border-emerald-500/30 text-emerald-800 dark:text-emerald-300 font-bold text-xs flex items-center justify-between animate-in fade-in">
+          <span>{statusNotice}</span>
+          <button onClick={() => setStatusNotice('')} className="text-emerald-700 hover:text-emerald-900 dark:text-emerald-400 p-1">
+            <X className="w-4 h-4" />
+          </button>
+        </div>
+      )}
 
       {/* Filter Bar */}
       <ScrollReveal>

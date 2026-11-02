@@ -68,7 +68,10 @@ async function runRegressionSuite() {
   assert((postJobRes.status === 200 || postJobRes.status === 201) && postJobRes.data.success === true, 'POST /api/jobs created job mandate successfully');
   
   // Delete the test job to keep catalog clean
-  const delJobRes = await api(`/api/jobs/${testJobId}`, { method: 'DELETE' });
+  const delJobRes = await api(`/api/jobs/${testJobId}`, { 
+    method: 'DELETE',
+    headers: { 'x-crm-role': 'Super Admin' }
+  });
   assert(delJobRes.status === 200 && delJobRes.data.success === true, 'DELETE /api/jobs/:id removed test job mandate safely');
 
   // --- MODULE 3: Candidate Module & Applications ---

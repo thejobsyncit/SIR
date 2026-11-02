@@ -1,16 +1,72 @@
 import React, { useState, useEffect } from 'react';
-import { X, Send, CheckCircle2, AlertCircle, Loader2, Sparkles, GraduationCap, ShieldCheck } from 'lucide-react';
+import { X, Send, CheckCircle2, AlertCircle, Loader2, GraduationCap, Sparkles } from 'lucide-react';
 import { EDUCATION_SERVICES_DETAILED } from '../data/educationServicesData';
 import { trackEnquiryStart, trackEnquiryValidationFailure, trackEnquiryConversion } from '../services/analytics';
 import { getAttributionData } from '../utils/attribution';
 import { submitLeadWithFallback } from '../services/leadSubmissionService';
 
-export const EducationEnquiryModal = ({ isOpen, onClose, preselectedServiceId = null, preselectedSubProgram = null }) => {
+// Helper to parse course and stream metadata
+const parseCourseInfo = (courseObj, subProgStr, levelStr) => {
+  if (courseObj && typeof courseObj === 'object') {
+    return {
+      name: courseObj.name || '',
+      abbreviation: courseObj.abbreviation || '',
+      streamName: courseObj.streamName || courseObj.department || '',
+      department: courseObj.department || courseObj.streamName || '',
+      level: courseObj.level || (levelStr?.includes('Postgraduate') || levelStr === 'PG' ? 'PG' : 'UG'),
+      degrees: Array.isArray(courseObj.degrees) ? courseObj.degrees : (courseObj.degrees ? [courseObj.degrees] : []),
+      duration: courseObj.duration || courseObj.typicalDuration || ''
+    };
+  }
+  if (subProgStr && typeof subProgStr === 'string' && subProgStr.trim()) {
+    let sName = '';
+    let cName = subProgStr.trim();
+    if (cName.includes('[') && cName.includes(']')) {
+      sName = cName.split('[')[1].split(']')[0].trim();
+      cName = cName.split(' [')[0].trim();
+    }
+    let abbr = '';
+    if (cName.includes(' - ')) {
+      const parts = cName.split(' - ');
+      abbr = parts[0].trim();
+      cName = parts.slice(1).join(' - ').trim();
+    }
+    return {
+      name: cName,
+      abbreviation: abbr,
+      streamName: sName,
+      department: sName,
+      level: levelStr?.includes('Postgraduate') || levelStr === 'PG' ? 'PG' : 'UG',
+      degrees: [],
+      duration: ''
+    };
+  }
+  return null;
+};
+
+export const EducationEnquiryModal = ({
+  isOpen,
+  onClose,
+  preselectedServiceId = null,
+  preselectedSubProgram = null,
+  preselectedLevel = null,
+  selectedCourse = null
+}) => {
   const [serviceId, setServiceId] = useState(preselectedServiceId || 'intl-consult');
   const [subProgram, setSubProgram] = useState(preselectedSubProgram || '');
+  const [activeCourse, setActiveCourse] = useState(() => {
+    return parseCourseInfo(selectedCourse, preselectedSubProgram, preselectedLevel);
+  });
   const [phone, setPhone] = useState('');
-  const [countryInterest, setCountryInterest] = useState('All');
-  const [programLevel, setProgramLevel] = useState('Undergraduate');
+  const [countryInterest, setCountryInterest] = useState('India');
+  const [programLevel, setProgramLevel] = useState(() => {
+    if (preselectedServiceId === 'school-career' || preselectedServiceId === 'career-guidance') {
+      return (preselectedLevel === 'PG' || preselectedLevel?.includes('Postgraduate'))
+        ? 'Postgraduate (Master Degree / MBA)'
+        : 'Undergraduate (Bachelor Degree)';
+    }
+    return preselectedLevel || 'Undergraduate (Bachelor Degree)';
+  });
   const [consultationDate, setConsultationDate] = useState(() => {
     return new Date(Date.now() + 86400000).toISOString().split('T')[0];
   });
@@ -22,6 +78,12 @@ export const EducationEnquiryModal = ({ isOpen, onClose, preselectedServiceId = 
   const [submittedLead, setSubmittedLead] = useState(null);
   const [formErrors, setFormErrors] = useState({});
 
+  const isCareerGuidance =
+    serviceId === 'school-career' ||
+    serviceId === 'career-guidance' ||
+    preselectedServiceId === 'school-career' ||
+    preselectedServiceId === 'career-guidance';
+
   useEffect(() => {
     if (preselectedServiceId) {
       setServiceId(preselectedServiceId);
@@ -29,7 +91,37 @@ export const EducationEnquiryModal = ({ isOpen, onClose, preselectedServiceId = 
     if (preselectedSubProgram) {
       setSubProgram(preselectedSubProgram);
     }
-  }, [preselectedServiceId, preselectedSubProgram]);
+
+    if (selectedCourse || preselectedSubProgram) {
+      const parsed = parseCourseInfo(selectedCourse, preselectedSubProgram, preselectedLevel);
+      setActiveCourse(parsed);
+      if (parsed) {
+        if (parsed.level === 'PG') {
+          setProgramLevel('Postgraduate (Master Degree / MBA)');
+        } else if (parsed.level === 'UG') {
+          setProgramLevel('Undergraduate (Bachelor Degree)');
+        }
+      }
+    } else {
+      setActiveCourse(null);
+    }
+
+    if (preselectedLevel) {
+      if (preselectedServiceId === 'school-career' || preselectedServiceId === 'career-guidance') {
+        setProgramLevel(
+          preselectedLevel === 'PG' || preselectedLevel.includes('Postgraduate')
+            ? 'Postgraduate (Master Degree / MBA)'
+            : 'Undergraduate (Bachelor Degree)'
+        );
+      } else {
+        setProgramLevel(preselectedLevel);
+      }
+    } else if (preselectedServiceId === 'school-career' || preselectedServiceId === 'career-guidance') {
+      if (!selectedCourse && !preselectedSubProgram) {
+        setProgramLevel('Undergraduate (Bachelor Degree)');
+      }
+    }
+  }, [preselectedServiceId, preselectedSubProgram, preselectedLevel, selectedCourse]);
 
   // Handle escape key
   useEffect(() => {
@@ -78,8 +170,18 @@ export const EducationEnquiryModal = ({ isOpen, onClose, preselectedServiceId = 
     } else if (cleanPhone.length < 7 || cleanPhone.length > 15) {
       errors.phone = `Phone number must be between 7 and 15 digits (currently ${cleanPhone.length} digits).`;
     }
-    if (!data.message || data.message.trim().length < 10) {
-      errors.message = 'Please provide inquiry details or background (minimum 10 characters).';
+    if (!isCareerGuidance) {
+      if (!data.message || data.message.trim().length < 10) {
+        errors.message = 'Please provide inquiry details or background (minimum 10 characters).';
+      }
+    }
+    if (isCareerGuidance) {
+      if (!programLevel) {
+        errors.programLevel = 'Please select your target academic level.';
+      }
+      if (!countryInterest) {
+        errors.countryInterest = 'Please select your target study destination.';
+      }
     }
     if (!consent) {
       errors.consent = 'You must acknowledge the communication consent to proceed.';
@@ -98,7 +200,7 @@ export const EducationEnquiryModal = ({ isOpen, onClose, preselectedServiceId = 
     const errors = validate(data);
     if (Object.keys(errors).length > 0) {
       setFormErrors(errors);
-      trackEnquiryValidationFailure('education_modal', activeService.id, Object.keys(errors));
+      trackEnquiryValidationFailure('education_modal', isCareerGuidance ? 'school-career' : activeService.id, Object.keys(errors));
       return;
     }
 
@@ -108,21 +210,55 @@ export const EducationEnquiryModal = ({ isOpen, onClose, preselectedServiceId = 
     const attribution = getAttributionData();
     const subDetail = subProgram ? ` | Sub-Track: ${subProgram}` : '';
     const levelDetail = programLevel ? ` | Level: ${programLevel}` : '';
-    const destDetail = countryInterest !== 'All' ? ` | Target Country: ${countryInterest}` : '';
+    const destDetail = countryInterest ? ` | Target Country: ${countryInterest}` : '';
     const institutionDetail = data.organization ? ` | School/Institute: ${data.organization.trim()}` : '';
+
+    const courseName = activeCourse?.name || (subProgram ? (subProgram.includes('[') ? subProgram.split(' [')[0].trim() : subProgram.trim()) : null);
+    const courseAbbr = activeCourse?.abbreviation || null;
+    const streamName = activeCourse?.streamName || activeCourse?.department || (subProgram && subProgram.includes('[') && subProgram.includes(']') ? subProgram.split('[')[1].split(']')[0].trim() : null);
+    const department = activeCourse?.department || activeCourse?.streamName || streamName;
+    const courseLevel = activeCourse?.level || (programLevel.includes('Postgraduate') ? 'PG' : 'UG');
 
     const payload = {
       name: data.name.trim(),
       email: data.email.trim(),
       phone: phone.trim(),
-      serviceId: activeService.id,
-      serviceTitle: `${activeService.title}${subDetail}`,
-      company: `Academic Advisory (${activeService.category})`,
-      consultationDate,
-      consultationTime,
-      consultationMode,
-      status: 'Consultation Scheduled',
-      message: `[Academic Advisory Consultation Booking: ${activeService.title}${subDetail}${levelDetail}${destDetail}${institutionDetail}]\nAppointment Date: ${consultationDate} at ${consultationTime}\nConsultation Mode: ${consultationMode}\n\nStudent/Applicant Message:\n${data.message.trim()}`,
+      serviceId: isCareerGuidance ? 'school-career' : activeService.id,
+      serviceTitle: isCareerGuidance
+        ? (courseName ? `Career Guidance | ${courseName}` : 'Career Guidance')
+        : `${activeService.title}${subDetail}`,
+      company: isCareerGuidance
+        ? (data.organization ? data.organization.trim() : 'Career Guidance')
+        : (activeService.id === 'school-career' ? 'Career Guidance' : (data.organization ? data.organization.trim() : `Academic Advisory (${activeService.category})`)),
+      organizationName: data.organization ? data.organization.trim() : null,
+      degreeLevel: programLevel,
+      countryInterest: countryInterest || 'India',
+      assistanceType: isCareerGuidance ? (courseName || 'General Academic Consultation') : 'Profile Assessment',
+      status: isCareerGuidance ? 'New Enquiry' : (consultationDate ? 'Consultation Scheduled' : 'New Enquiry'),
+      courseName: courseName,
+      streamName: streamName,
+      department: department,
+      customFields: JSON.stringify({
+        organization: data.organization ? data.organization.trim() : '',
+        programLevel,
+        degreeLevel: courseLevel,
+        countryInterest: countryInterest || 'India',
+        selectedCourse: courseName,
+        courseName: courseName,
+        courseAbbr: courseAbbr,
+        streamName: streamName,
+        department: department,
+        degrees: activeCourse?.degrees || null,
+        duration: activeCourse?.duration || null,
+        subProgram: subProgram || null,
+        consent: Boolean(consent)
+      }),
+      consultationDate: isCareerGuidance ? null : consultationDate,
+      consultationTime: isCareerGuidance ? null : consultationTime,
+      consultationMode: isCareerGuidance ? null : consultationMode,
+      message: isCareerGuidance
+        ? `[Career Guidance Academic Consultation Request]\nSelected Course / Degree: ${courseName || 'General Academic Consultation'}\nAcademic Level: ${programLevel} (${courseLevel})\nDepartment / Stream: ${streamName || 'General'}\nTarget Study Destination: ${countryInterest || 'India'}\nCurrent Institution: ${data.organization ? data.organization.trim() : 'Not Specified'}\nApplicant: ${data.name.trim()}\nPhone: ${phone.trim()}\nEmail: ${data.email.trim()}`
+        : `[Academic Advisory Consultation Booking: ${activeService.title}${subDetail}${levelDetail}${destDetail}${institutionDetail}]\nAppointment Date: ${consultationDate} at ${consultationTime}\nConsultation Mode: ${consultationMode}\n\nStudent/Applicant Message:\n${data.message ? data.message.trim() : ''}`,
       utmSource: attribution.utmSource,
       utmMedium: attribution.utmMedium,
       utmCampaign: attribution.utmCampaign,
@@ -136,23 +272,27 @@ export const EducationEnquiryModal = ({ isOpen, onClose, preselectedServiceId = 
         throw new Error(result?.message || 'Server was unable to record your inquiry. Please try again.');
       }
 
-      const generatedRef = result.data?.referenceNumber || result.referenceNumber || result.data?.id || `REV-EDU-${Date.now().toString().slice(-6)}`;
+      const generatedRef = result.data?.referenceNumber || result.referenceNumber || result.data?.id || `REV-CAR-${Date.now().toString().slice(-6)}`;
 
       setSubmittedLead({
         id: generatedRef,
         name: data.name.trim(),
-        serviceTitle: activeService.title,
-        consultationDate,
-        consultationTime,
-        consultationMode
+        serviceTitle: isCareerGuidance ? (courseName ? `Career Guidance | ${courseName}` : 'Career Guidance') : activeService.title,
+        courseName: courseName,
+        streamName: streamName,
+        programLevel,
+        countryInterest: countryInterest || 'India',
+        consultationDate: isCareerGuidance ? null : consultationDate,
+        consultationTime: isCareerGuidance ? null : consultationTime,
+        consultationMode: isCareerGuidance ? null : consultationMode
       });
 
       // Fire confirmed conversion event (deduplicated by referenceNumber)
       trackEnquiryConversion(
         generatedRef,
-        activeService.id,
-        activeService.title,
-        activeService.category,
+        isCareerGuidance ? 'school-career' : activeService.id,
+        isCareerGuidance ? 'Career Guidance' : activeService.title,
+        isCareerGuidance ? 'Career' : activeService.category,
         'education_modal'
       );
 
@@ -167,12 +307,13 @@ export const EducationEnquiryModal = ({ isOpen, onClose, preselectedServiceId = 
 
   return (
     <div
-      className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-950/80 backdrop-blur-md animate-in fade-in duration-200"
+      className="fixed inset-0 z-50 flex items-center justify-center p-4 sm:p-6 bg-slate-950/75 backdrop-blur-sm animate-in fade-in duration-200"
       onClick={() => { if (!isSubmitting) onClose(); }}
       role="presentation"
     >
       <div
-        className="glass-card bg-white dark:bg-navy-900 border border-slate-200 dark:border-gold-500/40 rounded-3xl max-w-xl w-full max-h-[92vh] overflow-y-auto p-6 sm:p-8 shadow-luxury relative space-y-6"
+        className={`glass-card bg-white dark:bg-navy-900 border border-[#DCE3EC] dark:border-gold-500/30 rounded-3xl ${isCareerGuidance ? 'max-w-4xl lg:max-w-[920px]' : 'max-w-xl'
+          } w-full max-h-[92vh] overflow-y-auto p-6 sm:p-8 shadow-luxury relative space-y-4 sm:space-y-5`}
         onClick={(e) => e.stopPropagation()}
         role="dialog"
         aria-modal="true"
@@ -182,51 +323,75 @@ export const EducationEnquiryModal = ({ isOpen, onClose, preselectedServiceId = 
         <button
           onClick={onClose}
           disabled={isSubmitting}
-          className="absolute top-5 right-5 p-2 rounded-full text-slate-400 hover:text-slate-700 dark:hover:text-white hover:bg-slate-100 dark:hover:bg-navy-800 transition"
+          className="absolute top-5 right-5 sm:top-6 sm:right-6 p-2 rounded-xl text-[#64748B] hover:text-[#0B1B33] dark:hover:text-white hover:bg-slate-100 dark:hover:bg-navy-800 transition cursor-pointer"
           aria-label="Close modal"
         >
           <X className="w-5 h-5" />
         </button>
 
         {submittedLead ? (
-          /* Real Backend Success Screen */
-          <div className="text-center py-8 space-y-5 animate-in zoom-in-95 duration-300">
+          /* Real Backend Success Screen (Balanced 2-column Landscape Layout) */
+          <div className="text-center py-6 sm:py-8 space-y-4 sm:space-y-5 animate-in zoom-in-95 duration-300">
             <div className="w-16 h-16 rounded-full bg-emerald-500/20 text-emerald-500 mx-auto flex items-center justify-center shadow-gold-glow">
               <CheckCircle2 className="w-10 h-10" />
             </div>
-            <div className="space-y-2">
+            <div className="space-y-1.5">
               <span className="bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 text-xs font-bold px-3 py-1 rounded-full uppercase tracking-wider">
                 Inquiry Logged in Super Admin CRM
               </span>
-              <h3 className="font-serif text-2xl sm:text-3xl font-extrabold text-navy-900 dark:text-white">
+              <h3 className="font-serif text-2xl sm:text-3xl font-extrabold text-[#0B1B33] dark:text-white">
                 Thank You, {submittedLead.name}!
               </h3>
-              <p className="text-xs sm:text-sm text-slate-700 dark:text-slate-300 max-w-md mx-auto leading-relaxed">
-                Your consultation request for <strong className="text-navy-900 dark:text-white">{submittedLead.serviceTitle}</strong> has been securely registered in our advisor queue.
+              <p className="text-xs sm:text-sm text-[#64748B] dark:text-slate-300 max-w-lg mx-auto leading-relaxed">
+                Your consultation request for <strong className="text-[#0B1B33] dark:text-white">{submittedLead.serviceTitle}</strong> has been securely registered in our advisor queue.
               </p>
             </div>
 
-            <div className="p-4 rounded-2xl bg-slate-50 dark:bg-navy-950 border border-slate-200 dark:border-navy-800 text-xs text-left space-y-2 max-w-md mx-auto">
+            <div className="p-4 rounded-2xl bg-[#F8FAFC] dark:bg-navy-950 border border-[#DCE3EC] dark:border-navy-800 text-xs text-left grid grid-cols-1 sm:grid-cols-2 gap-x-6 gap-y-2.5 max-w-2xl mx-auto">
               <div className="flex justify-between items-center text-slate-500">
                 <span>Inquiry Reference ID:</span>
                 <span className="font-mono font-bold text-gold-500">#{submittedLead.id}</span>
               </div>
               <div className="flex justify-between items-center text-slate-500">
-                <span>Appointment Date & Time:</span>
-                <span className="font-bold text-slate-800 dark:text-slate-200">{submittedLead.consultationDate} ({submittedLead.consultationTime})</span>
+                <span>Applicant Name:</span>
+                <span className="font-bold text-[#0B1B33] dark:text-slate-200">{submittedLead.name}</span>
               </div>
-              <div className="flex justify-between items-center text-slate-500">
-                <span>Consultation Mode:</span>
-                <span className="font-semibold text-emerald-600 dark:text-emerald-400">{submittedLead.consultationMode}</span>
-              </div>
-              <div className="flex justify-between items-center text-slate-500">
-                <span>Advisory Hub:</span>
-                <span className="font-semibold text-slate-800 dark:text-slate-200">Dubai HQ & Global Network</span>
-              </div>
-              <div className="flex justify-between items-center text-slate-500">
-                <span>Status in CRM:</span>
-                <span className="font-semibold text-amber-600 dark:text-gold-400">Consultation Scheduled</span>
-              </div>
+              {submittedLead.courseName && (
+                <div className="flex justify-between items-start text-slate-500 sm:col-span-2 pt-1 border-t border-slate-200 dark:border-navy-800">
+                  <span className="shrink-0 font-semibold">Selected Course / Degree:</span>
+                  <span className="font-bold text-gold-600 dark:text-gold-400 text-right ml-2">{submittedLead.courseName}</span>
+                </div>
+              )}
+              {submittedLead.streamName && (
+                <div className="flex justify-between items-start text-slate-500 sm:col-span-2">
+                  <span className="shrink-0 font-semibold">Department / Stream:</span>
+                  <span className="font-semibold text-slate-700 dark:text-slate-300 text-right ml-2">{submittedLead.streamName}</span>
+                </div>
+              )}
+              {submittedLead.programLevel && (
+                <div className="flex justify-between items-center text-slate-500">
+                  <span>Target Academic Level:</span>
+                  <span className="font-bold text-[#0B1B33] dark:text-slate-200">{submittedLead.programLevel}</span>
+                </div>
+              )}
+              {submittedLead.countryInterest && (
+                <div className="flex justify-between items-center text-slate-500">
+                  <span>Target Study Destination:</span>
+                  <span className="font-bold text-[#0B1B33] dark:text-slate-200">{submittedLead.countryInterest}</span>
+                </div>
+              )}
+              {submittedLead.consultationDate && (
+                <div className="flex justify-between items-center text-slate-500">
+                  <span>Appointment Date & Time:</span>
+                  <span className="font-bold text-[#0B1B33] dark:text-slate-200">{submittedLead.consultationDate} ({submittedLead.consultationTime})</span>
+                </div>
+              )}
+              {submittedLead.consultationMode && (
+                <div className="flex justify-between items-center text-slate-500">
+                  <span>Consultation Mode:</span>
+                  <span className="font-semibold text-emerald-600 dark:text-emerald-400">{submittedLead.consultationMode}</span>
+                </div>
+              )}
             </div>
 
             <button
@@ -234,29 +399,33 @@ export const EducationEnquiryModal = ({ isOpen, onClose, preselectedServiceId = 
                 setSubmittedLead(null);
                 onClose();
               }}
-              className="px-6 py-3 bg-gold-shimmer text-navy-950 font-bold text-xs rounded-xl shadow-gold-glow hover:opacity-95 transition"
+              className="px-6 py-2.5 bg-gold-shimmer text-navy-950 font-bold text-xs rounded-xl shadow-gold-glow hover:opacity-95 transition cursor-pointer"
             >
               Done & Return to Advisory
             </button>
           </div>
         ) : (
-          /* Consultation Request Form */
+          /* Consultation Request Form (Wide Horizontal Layout) */
           <>
-            <div className="space-y-1.5 pr-8">
-              <div className="flex items-center gap-2">
-                <span className="bg-gold-500/10 text-gold-600 dark:text-gold-400 text-[10px] font-bold px-2.5 py-0.5 rounded-full uppercase">
-                  {activeService.category} Advisory
-                </span>
-                <span className="bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 text-[10px] font-extrabold px-2 py-0.5 rounded-full uppercase">
-                  Direct Counsellor Desk
-                </span>
-              </div>
-              <h2 id="education-enquiry-title" className="font-serif text-2xl sm:text-3xl font-extrabold text-navy-900 dark:text-white">
+            <div className="text-center px-8 sm:px-12">
+              {!isCareerGuidance && (
+                <div className="flex items-center justify-center gap-2 mb-1.5">
+                  <span className="bg-gold-500/10 text-gold-600 dark:text-gold-400 text-[10px] font-bold px-2.5 py-0.5 rounded-full uppercase">
+                    {activeService.category} Advisory
+                  </span>
+                  <span className="bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 text-[10px] font-extrabold px-2 py-0.5 rounded-full uppercase">
+                    Direct Counsellor Desk
+                  </span>
+                </div>
+              )}
+              <h2 id="education-enquiry-title" className="font-serif text-2xl sm:text-3xl font-extrabold text-[#0B1B33] dark:text-white tracking-tight text-center">
                 Request Academic Consultation
               </h2>
-              <p className="text-xs text-slate-700 dark:text-slate-300">
-                Complete this form to schedule a tailored roadmap session with our Dubai education advisory team.
-              </p>
+              {!isCareerGuidance && (
+                <p className="text-xs text-[#64748B] dark:text-slate-300 mt-1 text-center">
+                  Complete this form to schedule a tailored roadmap session with our Dubai education advisory team.
+                </p>
+              )}
             </div>
 
             {submitError && (
@@ -266,39 +435,136 @@ export const EducationEnquiryModal = ({ isOpen, onClose, preselectedServiceId = 
               </div>
             )}
 
-            <form onSubmit={handleSubmit} className="space-y-4" noValidate>
+            <form onSubmit={handleSubmit} className="text-left space-y-3.5 sm:space-y-4" noValidate>
 
-              {/* Service Selector */}
-              <div>
-                <label className="block text-xs font-bold text-slate-800 dark:text-slate-200 mb-1">
-                  Service of Interest <span className="text-rose-500">*</span>
-                </label>
-                <select
-                  value={serviceId}
-                  onChange={(e) => {
-                    setServiceId(e.target.value);
-                    setSubProgram('');
-                  }}
-                  className="w-full bg-slate-50 dark:bg-navy-950 border border-slate-200 dark:border-navy-700 text-slate-800 dark:text-slate-200 text-xs font-semibold rounded-xl px-3.5 py-2.5 focus:outline-none focus:ring-2 focus:ring-gold-500"
-                >
-                  {EDUCATION_SERVICES_DETAILED.map((srv) => (
-                    <option key={srv.id} value={srv.id}>
-                      {srv.title} ({srv.category})
-                    </option>
-                  ))}
-                </select>
-              </div>
+              {/* Highlighted Section: Selected Course / Degree (Career Guidance) */}
+              {isCareerGuidance && (
+                <div className="p-3.5 sm:p-4 rounded-2xl bg-[#F8FAFC] dark:bg-navy-950/80 border border-gold-500/30 shadow-sm space-y-2">
+                  <div className="flex items-center justify-between gap-3">
+                    <div className="flex items-center gap-2">
+                      <span className="p-1.5 rounded-lg bg-gold-500/15 text-gold-600 dark:text-gold-400">
+                        <GraduationCap className="w-4 h-4" />
+                      </span>
+                      <span className="text-[11px] font-extrabold uppercase tracking-wider text-gold-600 dark:text-gold-400">
+                        Selected Course / Degree
+                      </span>
+                    </div>
+                    {activeCourse && (
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setActiveCourse(null);
+                          setSubProgram('');
+                        }}
+                        className="text-[11px] font-bold text-slate-400 hover:text-rose-500 dark:hover:text-rose-400 transition flex items-center gap-1 cursor-pointer"
+                        title="Clear or change selected course"
+                      >
+                        <X className="w-3.5 h-3.5" />
+                        <span>Change / Clear</span>
+                      </button>
+                    )}
+                  </div>
+
+                  {activeCourse ? (
+                    <div className="space-y-2 pt-0.5">
+                      <div className="flex flex-wrap items-center gap-2">
+                        {activeCourse.abbreviation && (
+                          <span className="text-xs font-black font-sans px-2.5 py-0.5 rounded-lg bg-gold-500 text-navy-950 shadow-sm">
+                            {activeCourse.abbreviation}
+                          </span>
+                        )}
+                        <span className="font-serif text-sm sm:text-base font-bold text-[#0B1B33] dark:text-white leading-tight">
+                          {activeCourse.name}
+                        </span>
+                      </div>
+
+                      <div className="flex flex-wrap items-center gap-x-3 gap-y-1 text-xs text-slate-600 dark:text-slate-300 font-medium">
+                        <div className="flex items-center gap-1">
+                          <span className="text-slate-400 font-semibold">Level:</span>
+                          <span className="font-bold text-navy-900 dark:text-white">
+                            {activeCourse.level === 'PG' ? 'Postgraduate (PG)' : 'Undergraduate (UG)'}
+                          </span>
+                        </div>
+
+                        {(activeCourse.streamName || activeCourse.department) && (
+                          <>
+                            <span className="text-slate-300 dark:text-navy-700 hidden sm:inline">•</span>
+                            <div className="flex items-center gap-1">
+                              <span className="text-slate-400 font-semibold">Stream:</span>
+                              <span className="font-bold text-gold-600 dark:text-gold-400">
+                                {activeCourse.streamName || activeCourse.department}
+                              </span>
+                            </div>
+                          </>
+                        )}
+
+                        {activeCourse.duration && (
+                          <>
+                            <span className="text-slate-300 dark:text-navy-700 hidden sm:inline">•</span>
+                            <div className="flex items-center gap-1 text-[11px] text-slate-500 dark:text-slate-400">
+                              <span>Duration:</span>
+                              <span className="font-semibold">{activeCourse.duration}</span>
+                            </div>
+                          </>
+                        )}
+
+                        {Array.isArray(activeCourse.degrees) && activeCourse.degrees.length > 0 && (
+                          <>
+                            <span className="text-slate-300 dark:text-navy-700 hidden sm:inline">•</span>
+                            <div className="flex items-center gap-1 text-[11px] text-slate-500 dark:text-slate-400">
+                              <span>Degrees:</span>
+                              <span className="font-semibold">{activeCourse.degrees.join(' / ')}</span>
+                            </div>
+                          </>
+                        )}
+                      </div>
+                    </div>
+                  ) : (
+                    <div className="text-xs text-slate-600 dark:text-slate-300 space-y-1 pt-0.5">
+                      <p className="font-medium text-slate-700 dark:text-slate-200">
+                        General Academic Consultation — You can choose your target academic level below, or preselect a course from the catalogue.
+                      </p>
+                      <p className="text-[11px] text-slate-500 dark:text-slate-400">
+                        Our Dubai education advisors will evaluate your profile and recommend the ideal academic streams and degree programs.
+                      </p>
+                    </div>
+                  )}
+                </div>
+              )}
+
+              {/* Service Selector (Only for non-career services) */}
+              {!isCareerGuidance && (
+                <div>
+                  <label className="block text-xs font-bold text-[#0B1B33] dark:text-slate-200 mb-1">
+                    Service of Interest <span className="text-rose-500">*</span>
+                  </label>
+                  <select
+                    value={serviceId}
+                    onChange={(e) => {
+                      setServiceId(e.target.value);
+                      setSubProgram('');
+                    }}
+                    className="w-full bg-[#F8FAFC] dark:bg-navy-950 border border-[#DCE3EC] dark:border-navy-700 text-[#0B1B33] dark:text-slate-200 text-xs font-semibold rounded-xl px-3.5 py-2.5 focus:bg-white dark:focus:bg-navy-900 focus:outline-none focus:ring-2 focus:ring-gold-500 transition"
+                  >
+                    {EDUCATION_SERVICES_DETAILED.map((srv) => (
+                      <option key={srv.id} value={srv.id}>
+                        {srv.title} ({srv.category})
+                      </option>
+                    ))}
+                  </select>
+                </div>
+              )}
 
               {/* Sub-Program Selector (Only for Executive Seminars & Language Training) */}
-              {activeService.subProgrammes && (
+              {!isCareerGuidance && activeService.subProgrammes && (
                 <div>
-                  <label className="block text-xs font-bold text-slate-800 dark:text-slate-200 mb-1">
+                  <label className="block text-xs font-bold text-[#0B1B33] dark:text-slate-200 mb-1">
                     Select Test or Program Focus
                   </label>
                   <select
                     value={subProgram}
                     onChange={(e) => setSubProgram(e.target.value)}
-                    className="w-full bg-slate-50 dark:bg-navy-950 border border-slate-200 dark:border-navy-700 text-slate-800 dark:text-slate-200 text-xs font-semibold rounded-xl px-3.5 py-2.5 focus:outline-none focus:ring-2 focus:ring-gold-500"
+                    className="w-full bg-[#F8FAFC] dark:bg-navy-950 border border-[#DCE3EC] dark:border-navy-700 text-[#0B1B33] dark:text-slate-200 text-xs font-semibold rounded-xl px-3.5 py-2.5 focus:bg-white dark:focus:bg-navy-900 focus:outline-none focus:ring-2 focus:ring-gold-500 transition"
                   >
                     <option value="">General Language & Seminar Inquiry</option>
                     {activeService.subProgrammes.map((sub) => (
@@ -310,22 +576,44 @@ export const EducationEnquiryModal = ({ isOpen, onClose, preselectedServiceId = 
                 </div>
               )}
 
-              {/* Name & Email Row */}
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3.5">
+              {/* Preselected Course / Focus Banner (Only for non-career services) */}
+              {!isCareerGuidance && subProgram && !activeService.subProgrammes && (
+                <div className="p-3 rounded-xl bg-gold-500/10 border border-gold-500/30 flex items-center justify-between text-xs">
+                  <div>
+                    <span className="text-[10px] uppercase font-bold text-gold-600 dark:text-gold-400 block tracking-wider">
+                      Selected Academic Focus / Course
+                    </span>
+                    <span className="font-bold text-navy-900 dark:text-white">
+                      {subProgram}
+                    </span>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => setSubProgram('')}
+                    className="text-slate-400 hover:text-rose-500 text-xs font-semibold p-1 transition cursor-pointer"
+                    title="Clear selected course"
+                  >
+                    <X className="w-3.5 h-3.5" />
+                  </button>
+                </div>
+              )}
+
+              {/* Row 1: Full Name | Email Address */}
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3.5 sm:gap-4">
                 <div>
-                  <label className="block text-xs font-bold text-slate-800 dark:text-slate-200 mb-1">
+                  <label className="block text-xs font-bold text-[#0B1B33] dark:text-slate-200 mb-1">
                     Full Name <span className="text-rose-500">*</span>
                   </label>
                   <input
                     type="text"
                     name="name"
                     required
-                    placeholder="e.g. Tariq Al-Hashimi"
-                    onFocus={() => trackEnquiryStart('education_modal', activeService.id, activeService.title)}
+                    placeholder="e.g. Naveen Kumar"
+                    onFocus={() => trackEnquiryStart('education_modal', isCareerGuidance ? 'school-career' : activeService.id, isCareerGuidance ? 'Career Guidance' : activeService.title)}
                     onChange={() => {
                       if (formErrors.name) setFormErrors(prev => ({ ...prev, name: null }));
                     }}
-                    className={`w-full bg-slate-50 dark:bg-navy-950 border text-slate-800 dark:text-slate-200 text-xs rounded-xl px-3.5 py-2.5 focus:outline-none focus:ring-2 focus:ring-gold-500 ${formErrors.name ? 'border-rose-500' : 'border-slate-200 dark:border-navy-700'
+                    className={`w-full bg-[#F8FAFC] dark:bg-navy-950 border text-[#0B1B33] dark:text-slate-200 text-xs rounded-xl px-3.5 py-2.5 focus:bg-white dark:focus:bg-navy-900 focus:outline-none focus:ring-2 focus:ring-gold-500 transition ${formErrors.name ? 'border-rose-500' : 'border-[#DCE3EC] dark:border-navy-700'
                       }`}
                   />
                   {formErrors.name && (
@@ -334,18 +622,18 @@ export const EducationEnquiryModal = ({ isOpen, onClose, preselectedServiceId = 
                 </div>
 
                 <div>
-                  <label className="block text-xs font-bold text-slate-800 dark:text-slate-200 mb-1">
+                  <label className="block text-xs font-bold text-[#0B1B33] dark:text-slate-200 mb-1">
                     Email Address <span className="text-rose-500">*</span>
                   </label>
                   <input
                     type="email"
                     name="email"
                     required
-                    placeholder="e.g. student@example.com"
+                    placeholder="e.g. Naveenkumar@example.com"
                     onChange={() => {
                       if (formErrors.email) setFormErrors(prev => ({ ...prev, email: null }));
                     }}
-                    className={`w-full bg-slate-50 dark:bg-navy-950 border text-slate-800 dark:text-slate-200 text-xs rounded-xl px-3.5 py-2.5 focus:outline-none focus:ring-2 focus:ring-gold-500 ${formErrors.email ? 'border-rose-500' : 'border-slate-200 dark:border-navy-700'
+                    className={`w-full bg-[#F8FAFC] dark:bg-navy-950 border text-[#0B1B33] dark:text-slate-200 text-xs rounded-xl px-3.5 py-2.5 focus:bg-white dark:focus:bg-navy-900 focus:outline-none focus:ring-2 focus:ring-gold-500 transition ${formErrors.email ? 'border-rose-500' : 'border-[#DCE3EC] dark:border-navy-700'
                       }`}
                   />
                   {formErrors.email && (
@@ -354,11 +642,11 @@ export const EducationEnquiryModal = ({ isOpen, onClose, preselectedServiceId = 
                 </div>
               </div>
 
-              {/* Phone & Current Organization Row */}
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3.5">
+              {/* Row 2: Phone / WhatsApp | Current School / College*/}
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3.5 sm:gap-4">
                 <div>
                   <div className="flex justify-between items-center mb-1">
-                    <label className="block text-xs font-bold text-slate-800 dark:text-slate-200">
+                    <label className="block text-xs font-bold text-[#0B1B33] dark:text-slate-200">
                       Phone / WhatsApp <span className="text-rose-500">*</span>
                     </label>
                     {phone.replace(/[\s\-\(\)\+]/g, '').length >= 7 && (
@@ -372,9 +660,9 @@ export const EducationEnquiryModal = ({ isOpen, onClose, preselectedServiceId = 
                     name="phone"
                     value={phone}
                     onChange={handlePhoneChange}
-                    placeholder="e.g. +971 50 123 4567 or 5012345678"
+                    placeholder="e.g. +91 98765 43210"
                     required
-                    className={`w-full bg-slate-50 dark:bg-navy-950 border text-slate-800 dark:text-slate-200 text-xs rounded-xl px-3.5 py-2.5 font-mono tracking-wider focus:outline-none focus:ring-2 focus:ring-gold-500 ${formErrors.phone ? 'border-rose-500' : 'border-slate-200 dark:border-navy-700'
+                    className={`w-full bg-[#F8FAFC] dark:bg-navy-950 border text-[#0B1B33] dark:text-slate-200 text-xs rounded-xl px-3.5 py-2.5 font-mono tracking-wider focus:bg-white dark:focus:bg-navy-900 focus:outline-none focus:ring-2 focus:ring-gold-500 transition ${formErrors.phone ? 'border-rose-500' : 'border-[#DCE3EC] dark:border-navy-700'
                       }`}
                   />
                   {formErrors.phone && (
@@ -383,134 +671,163 @@ export const EducationEnquiryModal = ({ isOpen, onClose, preselectedServiceId = 
                 </div>
 
                 <div>
-                  <label className="block text-xs font-bold text-slate-800 dark:text-slate-200 mb-1">
+                  <label className="block text-xs font-bold text-[#0B1B33] dark:text-slate-200 mb-1">
                     Current School / College / Employer
                   </label>
                   <input
                     type="text"
                     name="organization"
-                    placeholder="e.g. Dubai College / King's Academy"
-                    className="w-full bg-slate-50 dark:bg-navy-950 border border-slate-200 dark:border-navy-700 text-slate-800 dark:text-slate-200 text-xs rounded-xl px-3.5 py-2.5 focus:outline-none focus:ring-2 focus:ring-gold-500"
+                    placeholder="e.g. Delhi Public School / IIT Madras"
+                    className="w-full bg-[#F8FAFC] dark:bg-navy-950 border border-[#DCE3EC] dark:border-navy-700 text-[#0B1B33] dark:text-slate-200 text-xs rounded-xl px-3.5 py-2.5 focus:bg-white dark:focus:bg-navy-900 focus:outline-none focus:ring-2 focus:ring-gold-500 transition"
                   />
                 </div>
               </div>
 
-              {/* Level & Target Destination Row */}
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3.5">
+              {/* Row 3: Target Academic Level | Target Study Destination */}
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3.5 sm:gap-4">
                 <div>
-                  <label className="block text-xs font-bold text-slate-800 dark:text-slate-200 mb-1">
-                    Target Academic Level
+                  <label className="block text-xs font-bold text-[#0B1B33] dark:text-slate-200 mb-1">
+                    Target Academic Level <span className="text-rose-500">*</span>
                   </label>
                   <select
                     value={programLevel}
-                    onChange={(e) => setProgramLevel(e.target.value)}
-                    className="w-full bg-slate-50 dark:bg-navy-950 border border-slate-200 dark:border-navy-700 text-slate-800 dark:text-slate-200 text-xs font-semibold rounded-xl px-3.5 py-2.5 focus:outline-none focus:ring-2 focus:ring-gold-500"
+                    onChange={(e) => {
+                      setProgramLevel(e.target.value);
+                      if (formErrors.programLevel) setFormErrors(prev => ({ ...prev, programLevel: null }));
+                    }}
+                    className={`w-full bg-[#F8FAFC] dark:bg-navy-950 border text-[#0B1B33] dark:text-slate-200 text-xs font-semibold rounded-xl px-3.5 py-2.5 focus:bg-white dark:focus:bg-navy-900 focus:outline-none focus:ring-2 focus:ring-gold-500 transition cursor-pointer ${formErrors.programLevel ? 'border-rose-500' : 'border-[#DCE3EC] dark:border-navy-700'
+                      }`}
                   >
-                    <option value="Middle School (Grades 6-8)">Middle School (Grades 6–8)</option>
-                    <option value="High School / Stream Selection">High School / Stream Selection (Grades 9–12)</option>
-                    <option value="Undergraduate (Bachelor Degree)">Undergraduate (Bachelor Degree)</option>
-                    <option value="Postgraduate (Master Degree / MBA)">Postgraduate (Master Degree / MBA)</option>
-                    <option value="Executive / Professional Certification">Executive / Professional Certification</option>
+                    {isCareerGuidance ? (
+                      <>
+                        <option value="Undergraduate (Bachelor Degree)">Undergraduate (Bachelor Degree)</option>
+                        <option value="Postgraduate (Master Degree / MBA)">Postgraduate (Master Degree / MBA)</option>
+                      </>
+                    ) : (
+                      <>
+                        <option value="Middle School (Grades 6-8)">Middle School (Grades 6–8)</option>
+                        <option value="High School / Stream Selection">High School / Stream Selection (Grades 9–12)</option>
+                        <option value="Undergraduate (Bachelor Degree)">Undergraduate (Bachelor Degree)</option>
+                        <option value="Postgraduate (Master Degree / MBA)">Postgraduate (Master Degree / MBA)</option>
+                        <option value="Executive / Professional Certification">Executive / Professional Certification</option>
+                      </>
+                    )}
                   </select>
+                  {formErrors.programLevel && (
+                    <p className="text-[11px] text-rose-500 mt-1 font-medium">{formErrors.programLevel}</p>
+                  )}
                 </div>
 
                 <div>
-                  <label className="block text-xs font-bold text-slate-800 dark:text-slate-200 mb-1">
-                    Target Study Destination
+                  <label className="block text-xs font-bold text-[#0B1B33] dark:text-slate-200 mb-1">
+                    Target Study Destination <span className="text-rose-500">*</span>
                   </label>
                   <select
                     value={countryInterest}
-                    onChange={(e) => setCountryInterest(e.target.value)}
-                    className="w-full bg-slate-50 dark:bg-navy-950 border border-slate-200 dark:border-navy-700 text-slate-800 dark:text-slate-200 text-xs font-semibold rounded-xl px-3.5 py-2.5 focus:outline-none focus:ring-2 focus:ring-gold-500"
+                    onChange={(e) => {
+                      setCountryInterest(e.target.value);
+                      if (formErrors.countryInterest) setFormErrors(prev => ({ ...prev, countryInterest: null }));
+                    }}
+                    className={`w-full bg-[#F8FAFC] dark:bg-navy-950 border text-[#0B1B33] dark:text-slate-200 text-xs font-semibold rounded-xl px-3.5 py-2.5 focus:bg-white dark:focus:bg-navy-900 focus:outline-none focus:ring-2 focus:ring-gold-500 transition cursor-pointer ${formErrors.countryInterest ? 'border-rose-500' : 'border-[#DCE3EC] dark:border-navy-700'
+                      }`}
                   >
-                    <option value="All">Global / Flexible (Open to Advice)</option>
+
+                    <option value="India">India</option>
                     <option value="United Kingdom">United Kingdom (UK)</option>
                     <option value="United States">United States (USA)</option>
                     <option value="Canada">Canada</option>
                     <option value="Australia">Australia & New Zealand</option>
                     <option value="Europe">Europe (Germany, Ireland, France)</option>
                     <option value="UAE & GCC">UAE & GCC Branch Campuses</option>
+                    <option value="Global / Flexible">Global / Flexible (Open to Advice)</option>
                   </select>
+                  {formErrors.countryInterest && (
+                    <p className="text-[11px] text-rose-500 mt-1 font-medium">{formErrors.countryInterest}</p>
+                  )}
                 </div>
               </div>
 
-              {/* Consultation Scheduling Row: Date, Time & Mode */}
-              <div className="p-3.5 bg-gold-500/5 dark:bg-gold-500/10 border border-gold-500/20 rounded-2xl space-y-2">
-                <span className="text-[10px] font-extrabold text-gold-600 dark:text-gold-400 uppercase tracking-wider block">
-                  Select Consultation Appointment
-                </span>
-                
-                <div className="grid grid-cols-1 sm:grid-cols-3 gap-2.5">
-                  <div>
-                    <label className="block text-[10px] font-bold text-slate-600 dark:text-slate-400 mb-1">
-                      Preferred Date
-                    </label>
-                    <input
-                      type="date"
-                      value={consultationDate}
-                      onChange={(e) => setConsultationDate(e.target.value)}
-                      className="w-full bg-white dark:bg-navy-950 border border-slate-200 dark:border-navy-700 text-slate-800 dark:text-slate-200 text-xs rounded-xl px-2.5 py-2 font-bold focus:outline-none focus:ring-2 focus:ring-gold-500"
-                    />
-                  </div>
+              {/* Consultation Scheduling Row: Date, Time & Mode (Only for non-career services) */}
+              {!isCareerGuidance && (
+                <div className="p-3.5 bg-gold-500/5 dark:bg-gold-500/10 border border-gold-500/20 rounded-2xl space-y-2">
+                  <span className="text-[10px] font-extrabold text-gold-600 dark:text-gold-400 uppercase tracking-wider block">
+                    Select Consultation Appointment
+                  </span>
 
-                  <div>
-                    <label className="block text-[10px] font-bold text-slate-600 dark:text-slate-400 mb-1">
-                      Time Slot
-                    </label>
-                    <select
-                      value={consultationTime}
-                      onChange={(e) => setConsultationTime(e.target.value)}
-                      className="w-full bg-white dark:bg-navy-950 border border-slate-200 dark:border-navy-700 text-slate-800 dark:text-slate-200 text-xs rounded-xl px-2.5 py-2 font-bold focus:outline-none focus:ring-2 focus:ring-gold-500 cursor-pointer"
-                    >
-                      <option value="09:30 AM - 10:30 AM IST">09:30 AM - 10:30 AM IST</option>
-                      <option value="11:00 AM - 12:00 PM IST">11:00 AM - 12:00 PM IST</option>
-                      <option value="02:00 PM - 03:00 PM IST">02:00 PM - 03:00 PM IST</option>
-                      <option value="04:00 PM - 05:00 PM IST">04:00 PM - 05:00 PM IST</option>
-                      <option value="06:00 PM - 07:00 PM IST">06:00 PM - 07:00 PM IST</option>
-                    </select>
-                  </div>
+                  <div className="grid grid-cols-1 sm:grid-cols-3 gap-2.5">
+                    <div>
+                      <label className="block text-[10px] font-bold text-slate-600 dark:text-slate-400 mb-1">
+                        Preferred Date
+                      </label>
+                      <input
+                        type="date"
+                        value={consultationDate}
+                        onChange={(e) => setConsultationDate(e.target.value)}
+                        className="w-full bg-white dark:bg-navy-950 border border-[#DCE3EC] dark:border-navy-700 text-slate-800 dark:text-slate-200 text-xs rounded-xl px-2.5 py-2 font-bold focus:outline-none focus:ring-2 focus:ring-gold-500"
+                      />
+                    </div>
 
-                  <div>
-                    <label className="block text-[10px] font-bold text-slate-600 dark:text-slate-400 mb-1">
-                      Format / Mode
-                    </label>
-                    <select
-                      value={consultationMode}
-                      onChange={(e) => setConsultationMode(e.target.value)}
-                      className="w-full bg-white dark:bg-navy-950 border border-slate-200 dark:border-navy-700 text-slate-800 dark:text-slate-200 text-xs rounded-xl px-2.5 py-2 font-bold focus:outline-none focus:ring-2 focus:ring-gold-500 cursor-pointer"
-                    >
-                      <option value="Virtual Video Call (Google Meet / Zoom)">Virtual Video Call</option>
-                      <option value="India HQ In-Person (Chennai)">India HQ In-Person (Chennai)</option>
-                      <option value="WhatsApp Consultation Call">WhatsApp Consultation</option>
-                      <option value="Direct Phone Call">Direct Phone Call</option>
-                    </select>
+                    <div>
+                      <label className="block text-[10px] font-bold text-slate-600 dark:text-slate-400 mb-1">
+                        Time Slot
+                      </label>
+                      <select
+                        value={consultationTime}
+                        onChange={(e) => setConsultationTime(e.target.value)}
+                        className="w-full bg-white dark:bg-navy-950 border border-[#DCE3EC] dark:border-navy-700 text-slate-800 dark:text-slate-200 text-xs rounded-xl px-2.5 py-2 font-bold focus:outline-none focus:ring-2 focus:ring-gold-500 cursor-pointer"
+                      >
+                        <option value="09:30 AM - 10:30 AM IST">09:30 AM - 10:30 AM IST</option>
+                        <option value="11:00 AM - 12:00 PM IST">11:00 AM - 12:00 PM IST</option>
+                        <option value="02:00 PM - 03:00 PM IST">02:00 PM - 03:00 PM IST</option>
+                        <option value="04:00 PM - 05:00 PM IST">04:00 PM - 05:00 PM IST</option>
+                        <option value="06:00 PM - 07:00 PM IST">06:00 PM - 07:00 PM IST</option>
+                      </select>
+                    </div>
+
+                    <div>
+                      <label className="block text-[10px] font-bold text-slate-600 dark:text-slate-400 mb-1">
+                        Format / Mode
+                      </label>
+                      <select
+                        value={consultationMode}
+                        onChange={(e) => setConsultationMode(e.target.value)}
+                        className="w-full bg-white dark:bg-navy-950 border border-[#DCE3EC] dark:border-navy-700 text-slate-800 dark:text-slate-200 text-xs rounded-xl px-2.5 py-2 font-bold focus:outline-none focus:ring-2 focus:ring-gold-500 cursor-pointer"
+                      >
+                        <option value="Virtual Video Call (Google Meet / Zoom)">Virtual Video Call</option>
+                        <option value="India HQ In-Person (Chennai)">India HQ In-Person (Chennai)</option>
+                        <option value="WhatsApp Consultation Call">WhatsApp Consultation</option>
+                        <option value="Direct Phone Call">Direct Phone Call</option>
+                      </select>
+                    </div>
                   </div>
                 </div>
-              </div>
+              )}
 
-              {/* Message */}
-              <div>
-                <label className="block text-xs font-bold text-slate-800 dark:text-slate-200 mb-1">
-                  Academic Background & Specific Questions <span className="text-rose-500">*</span>
-                </label>
-                <textarea
-                  name="message"
-                  rows={3}
-                  required
-                  placeholder="Share details about your current grades, target intake year (e.g. Fall 2027), preferred major, or questions for our counselor..."
-                  onChange={() => {
-                    if (formErrors.message) setFormErrors(prev => ({ ...prev, message: null }));
-                  }}
-                  className={`w-full bg-slate-50 dark:bg-navy-950 border text-slate-800 dark:text-slate-200 text-xs rounded-xl p-3 focus:outline-none focus:ring-2 focus:ring-gold-500 ${formErrors.message ? 'border-rose-500' : 'border-slate-200 dark:border-navy-700'
-                    }`}
-                />
-                {formErrors.message && (
-                  <p className="text-[11px] text-rose-500 mt-1 font-medium">{formErrors.message}</p>
-                )}
-              </div>
+              {/* Message (Only for non-career services) */}
+              {!isCareerGuidance && (
+                <div>
+                  <label className="block text-xs font-bold text-[#0B1B33] dark:text-slate-200 mb-1">
+                    Academic Background & Specific Questions <span className="text-rose-500">*</span>
+                  </label>
+                  <textarea
+                    name="message"
+                    rows={3}
+                    required
+                    placeholder="Share details about your current grades, target intake year (e.g. Fall 2027), preferred major, or questions for our counselor..."
+                    onChange={() => {
+                      if (formErrors.message) setFormErrors(prev => ({ ...prev, message: null }));
+                    }}
+                    className={`w-full bg-[#F8FAFC] dark:bg-navy-950 border text-[#0B1B33] dark:text-slate-200 text-xs rounded-xl p-3 focus:outline-none focus:ring-2 focus:ring-gold-500 ${formErrors.message ? 'border-rose-500' : 'border-[#DCE3EC] dark:border-navy-700'
+                      }`}
+                  />
+                  {formErrors.message && (
+                    <p className="text-[11px] text-rose-500 mt-1 font-medium">{formErrors.message}</p>
+                  )}
+                </div>
+              )}
 
               {/* Consent Checkbox */}
-              <div className="space-y-1">
+              <div className="pt-1">
                 <label className="flex items-start gap-2.5 cursor-pointer">
                   <input
                     type="checkbox"
@@ -522,14 +839,14 @@ export const EducationEnquiryModal = ({ isOpen, onClose, preselectedServiceId = 
                         setFormErrors(prev => ({ ...prev, consent: null }));
                       }
                     }}
-                    className="mt-0.5 rounded text-gold-500 focus:ring-gold-500 h-4 w-4 border-slate-300 dark:border-navy-700 bg-slate-50 dark:bg-navy-950"
+                    className="mt-0.5 rounded text-gold-500 focus:ring-gold-500 h-4 w-4 border-[#DCE3EC] dark:border-navy-700 bg-white dark:bg-navy-950"
                   />
-                  <span className="text-[11px] text-slate-600 dark:text-slate-400 leading-snug">
+                  <span className="text-[11px] text-[#64748B] dark:text-slate-400 leading-snug">
                     I agree to allow Revival International education advisors to contact me via Phone, WhatsApp, and Email regarding this inquiry. Private records are protected and never shared.
                   </span>
                 </label>
                 {formErrors.consent && (
-                  <p className="text-[11px] text-rose-500 font-medium pl-6">{formErrors.consent}</p>
+                  <p className="text-[11px] text-rose-500 font-medium pl-6 mt-0.5">{formErrors.consent}</p>
                 )}
               </div>
 
@@ -539,14 +856,14 @@ export const EducationEnquiryModal = ({ isOpen, onClose, preselectedServiceId = 
                   type="button"
                   onClick={onClose}
                   disabled={isSubmitting}
-                  className="px-4 py-2.5 rounded-xl border border-slate-200 dark:border-navy-700 text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-navy-800 text-xs font-bold transition"
+                  className="px-5 py-2.5 rounded-xl border border-[#DCE3EC] dark:border-navy-700 bg-slate-100 hover:bg-slate-200 dark:bg-navy-800 dark:hover:bg-navy-700 text-[#0B1B33] dark:text-slate-200 text-xs font-bold transition cursor-pointer"
                 >
                   Cancel
                 </button>
                 <button
                   type="submit"
                   disabled={isSubmitting}
-                  className="px-6 py-2.5 bg-gold-shimmer text-navy-950 font-bold text-xs rounded-xl shadow-gold-glow hover:opacity-95 transition flex items-center gap-1.5 disabled:opacity-50"
+                  className="px-6 py-2.5 bg-gold-shimmer text-navy-950 font-bold text-xs rounded-xl shadow-gold-glow hover:opacity-95 transition flex items-center gap-1.5 disabled:opacity-50 cursor-pointer"
                 >
                   {isSubmitting ? (
                     <>

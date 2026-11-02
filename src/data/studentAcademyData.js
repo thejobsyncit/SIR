@@ -491,6 +491,18 @@ export const ACADEMY_EXAMINATIONS = [
     officialUrl: 'https://indianrailways.gov.in',
     shortDesc: 'Centralized recruitment examination for Junior Engineer, Depot Material Superintendent, and Chemical & Metallurgical Assistant posts in Indian Railways.'
   },
+  {
+    id: 'exam-jee-main-adv',
+    departmentId: 'engineering',
+    code: 'JEE Main & Advanced',
+    name: 'Joint Entrance Examination (Main & Advanced)',
+    conductingBody: 'National Testing Agency (NTA) & IITs',
+    eligibility: '10+2 with Physics, Mathematics, and Chemistry (Min 75% or top 20 percentile in Board)',
+    pattern: 'JEE Main (Paper 1 CBT) → JEE Advanced (Paper 1 & 2 CBT for IIT admissions)',
+    popularSubjects: ['Calculus & Algebra', 'Mechanics & Electrodynamics', 'Organic & Physical Chemistry'],
+    nextCycle: 'Session 1: Jan 2027 | Session 2: Apr 2027',
+    shortDesc: 'The premier national entrance examination for admissions to B.Tech, B.E., and Integrated M.Tech programs across IITs, NITs, IIITs, and Centrally Funded Technical Institutes (CFTIs).'
+  },
 
   // 4. Medical and Healthcare
   {

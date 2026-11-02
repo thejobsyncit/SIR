@@ -16,6 +16,7 @@
     "test:acceptance": "node test-acceptance-regression.js",
     "test:journeys": "node test-e2e-user-journeys.js",
     "test:regression": "node test-regression-comprehensive.js",
+    "test:superadmin-delete": "node test-superadmin-delete.cjs",
     "test:analytics": "node test-analytics-tracking.cjs",
     "test:seo": "node test-advanced-seo.cjs",
     "test:cro": "node test-cro-ux.cjs",

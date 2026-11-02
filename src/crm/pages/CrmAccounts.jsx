@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import ScrollReveal from '../../components/ScrollReveal';
+import { CrmDeleteConfirmModal } from '../components/CrmDeleteConfirmModal';
 import { useCrm } from '../context/CrmContext';
 import { 
   CreditCard, DollarSign, FileSpreadsheet, Plus, CheckCircle2, Clock, 
@@ -7,8 +8,34 @@ import {
 } from 'lucide-react';
 
 export const CrmAccounts = () => {
-  const { invoices, addInvoice, updateInvoice } = useCrm();
+  const { invoices, addInvoice, updateInvoice, isSuperAdmin, deleteInvoice } = useCrm();
   const [modalOpen, setModalOpen] = useState(false);
+
+  // Superadmin Deletion State
+  const [deleteModalOpen, setDeleteModalOpen] = useState(false);
+  const [invToDelete, setInvToDelete] = useState(null);
+  const [isDeletingInv, setIsDeletingInv] = useState(false);
+  const [statusNotice, setStatusNotice] = useState('');
+
+  const handleConfirmDeleteInv = async () => {
+    if (!invToDelete) return;
+    try {
+      setIsDeletingInv(true);
+      if (deleteInvoice) {
+        deleteInvoice(invToDelete.id, { client: invToDelete.client });
+      }
+      setStatusNotice(`✓ Invoice "${invToDelete.id}" for "${invToDelete.client}" permanently deleted.`);
+      setDeleteModalOpen(false);
+      setInvToDelete(null);
+      setTimeout(() => setStatusNotice(''), 5000);
+    } catch (err) {
+      console.error('Delete error:', err);
+      setStatusNotice(`⚠️ Error deleting invoice: ${err.message}`);
+    } finally {
+      setIsDeletingInv(false);
+    }
+  };
+
   
   // Payment Gateway Multi-Step State
   const [paymentGatewayOpen, setPaymentGatewayOpen] = useState(null);
@@ -171,6 +198,17 @@ STATUS: PAID & AUDITED (GRADE A)
           <p className="text-[10px] text-slate-500 dark:text-slate-400 font-semibold">82.1% Profit Margin</p>
         </div>
       </div>
+
+      
+      {/* Superadmin Status Notification Toast */}
+      {statusNotice && (
+        <div className="p-3.5 rounded-2xl bg-emerald-500/10 border border-emerald-500/30 text-emerald-800 dark:text-emerald-300 font-bold text-xs flex items-center justify-between animate-in fade-in">
+          <span>{statusNotice}</span>
+          <button onClick={() => setStatusNotice('')} className="text-emerald-700 hover:text-emerald-900 dark:text-emerald-400 p-1">
+            <X className="w-4 h-4" />
+          </button>
+        </div>
+      )}
 
       {/* Invoices Grid */}
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6">

@@ -5,6 +5,8 @@ import {
   Calendar, Layers, Sparkles, Scale, HeartPulse, ExternalLink, HelpCircle
 } from 'lucide-react';
 import { getRelatedCourses } from '../data/coursesCatalogueData';
+import { getCoursesByStream } from '../data/ugDepartmentStreamsData';
+import { getPgCoursesByStream } from '../data/pgDepartmentStreamsData';
 
 export const CourseDetailModal = ({ course, isOpen, onClose, onSelectCourse, onInquire }) => {
   const [activeTab, setActiveTab] = useState('overview');
@@ -29,9 +31,26 @@ export const CourseDetailModal = ({ course, isOpen, onClose, onSelectCourse, onI
     setActiveTab('overview');
   }, [course?.id]);
 
-  if (!isOpen || !course) return null;
+  const relatedCourses = React.useMemo(() => {
+    if (!course) return [];
+    if (course.streamId) {
+      const streamCourses = course.level === 'PG' ? getPgCoursesByStream(course.streamId) : getCoursesByStream(course.streamId);
+      return (streamCourses || [])
+        .filter(c => c && c.id !== course.id)
+        .slice(0, 4)
+        .map(c => ({
+          ...c,
+          typicalDuration: c.duration,
+          department: c.streamName
+        }));
+    }
+    const related = getRelatedCourses(course.id) || [];
+    return (related || [])
+      .filter(c => c && c.level !== 'Integrated' && c.level !== 'Professional')
+      .slice(0, 4);
+  }, [course]);
 
-  const relatedCourses = getRelatedCourses(course.id);
+  if (!isOpen || !course) return null;
 
   const getLevelBadgeColor = (level) => {
     switch (level) {
@@ -39,10 +58,6 @@ export const CourseDetailModal = ({ course, isOpen, onClose, onSelectCourse, onI
         return 'bg-emerald-500/15 text-emerald-700 dark:text-emerald-400 border-emerald-500/30';
       case 'PG':
         return 'bg-purple-500/15 text-purple-700 dark:text-purple-400 border-purple-500/30';
-      case 'Integrated':
-        return 'bg-blue-500/15 text-blue-700 dark:text-blue-400 border-blue-500/30';
-      case 'Professional':
-        return 'bg-amber-500/15 text-amber-700 dark:text-amber-400 border-amber-500/30';
       default:
         return 'bg-gold-500/15 text-gold-700 dark:text-gold-400 border-gold-500/30';
     }
@@ -72,17 +87,17 @@ export const CourseDetailModal = ({ course, isOpen, onClose, onSelectCourse, onI
 
           <div className="space-y-3 pr-8">
             <div className="flex flex-wrap items-center gap-2">
-              <span className={`text-[11px] font-black px-2.5 py-0.5 rounded-full uppercase tracking-wider border ${getLevelBadgeColor(course.level)}`}>
-                {course.level === 'UG' ? 'Undergraduate' : course.level === 'PG' ? 'Postgraduate' : course.level} Degree
+              <span className={`text-[11px] font-black px-2.5 py-0.5 rounded-full uppercase tracking-wider border ${getLevelBadgeColor(course?.level)}`}>
+                {course?.level === 'UG' ? 'Undergraduate' : course?.level === 'PG' ? 'Postgraduate' : (course?.level || 'Academic')} Degree
               </span>
               <span className="text-[11px] font-bold px-2.5 py-0.5 rounded-full bg-slate-100 dark:bg-navy-800 text-slate-700 dark:text-slate-300 border border-slate-200 dark:border-navy-700">
-                {course.department}
+                {course?.department || course?.streamName || 'General Academic Discipline'}
               </span>
               <span className="text-[11px] font-medium px-2.5 py-0.5 rounded-full bg-gold-500/10 text-gold-700 dark:text-gold-400 border border-gold-500/20 flex items-center gap-1">
                 <Calendar className="w-3 h-3" />
-                {course.typicalDuration}
+                {course?.typicalDuration || course?.duration || '2 Years'}
               </span>
-              {course.licensingRequired && (
+              {course?.licensingRequired && (
                 <span className="text-[11px] font-bold px-2.5 py-0.5 rounded-full bg-rose-500/15 text-rose-700 dark:text-rose-400 border border-rose-500/30 flex items-center gap-1">
                   <ShieldCheck className="w-3 h-3" />
                   Regulated Professional License
@@ -92,20 +107,20 @@ export const CourseDetailModal = ({ course, isOpen, onClose, onSelectCourse, onI
 
             <div className="flex flex-col sm:flex-row sm:items-baseline gap-2">
               <span className="text-2xl sm:text-3xl font-black text-gold-600 dark:text-gold-400 font-sans tracking-tight">
-                {course.abbreviation}
+                {course?.abbreviation || 'DEG'}
               </span>
               <h2 id="course-modal-title" className="text-xl sm:text-2xl font-serif font-extrabold text-navy-900 dark:text-white leading-tight">
-                {course.name}
+                {course?.name || 'Academic Degree Program'}
               </h2>
             </div>
 
             <p className="text-xs sm:text-sm text-slate-600 dark:text-slate-300 font-medium leading-relaxed max-w-3xl">
-              {course.shortDescription}
+              {course?.shortDescription || course?.overview || 'Comprehensive degree curriculum and academic progression pathway.'}
             </p>
 
             <div className="flex items-center gap-2 pt-1 text-[11px] text-emerald-700 dark:text-emerald-400 font-medium">
               <CheckCircle2 className="w-3.5 h-3.5 shrink-0" />
-              <span>{course.verificationStatus} • {course.regulatoryBody}</span>
+              <span>{course?.verificationStatus || 'Statutory Verified'} • {course?.regulatoryBody || 'UGC / Statutory Regulatory Councils'}</span>
             </div>
           </div>
         </div>
@@ -149,7 +164,7 @@ export const CourseDetailModal = ({ course, isOpen, onClose, onSelectCourse, onI
                   Key Specializations & Concentrations
                 </h3>
                 <div className="flex flex-wrap gap-2">
-                  {course.specializations.map((spec, idx) => (
+                  {(course.specializations || []).map((spec, idx) => (
                     <span 
                       key={idx} 
                       className="text-xs font-semibold px-3 py-1.5 rounded-xl bg-slate-100 dark:bg-navy-800 text-slate-800 dark:text-slate-200 border border-slate-200 dark:border-navy-700"
@@ -166,7 +181,13 @@ export const CourseDetailModal = ({ course, isOpen, onClose, onSelectCourse, onI
                   Core Curriculum & Main Subjects
                 </h3>
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
-                  {course.mainSubjects.map((sub, idx) => (
+                  {(course.mainSubjects || [
+                    'Theoretical Foundations & Computational Principles',
+                    'Advanced Laboratory & Practical Practicums',
+                    'Departmental Core Coursework',
+                    'Interdisciplinary Electives & Specializations',
+                    'Capstone Project, Internship & Viva Voce'
+                  ]).map((sub, idx) => (
                     <div key={idx} className="flex items-start gap-2 text-xs font-medium text-slate-700 dark:text-slate-300 bg-slate-50 dark:bg-navy-950/60 p-2.5 rounded-xl border border-slate-200/60 dark:border-navy-800">
                       <span className="w-1.5 h-1.5 rounded-full bg-gold-500 mt-1.5 shrink-0" />
                       <span>{sub}</span>
@@ -181,7 +202,13 @@ export const CourseDetailModal = ({ course, isOpen, onClose, onSelectCourse, onI
                   Practical & Applied Industry Competencies
                 </h3>
                 <div className="flex flex-wrap gap-2">
-                  {course.coreSkills.map((skill, idx) => (
+                  {(course.coreSkills || [
+                    'Analytical Problem Solving',
+                    'Applied Domain Specialization',
+                    'Technical Research & Methodologies',
+                    'Industry Tools Proficiency',
+                    'Collaborative Project Engineering'
+                  ]).map((skill, idx) => (
                     <span key={idx} className="text-xs font-medium px-2.5 py-1 rounded-lg bg-emerald-500/10 text-emerald-800 dark:text-emerald-300 border border-emerald-500/20">
                       ✓ {skill}
                     </span>
@@ -200,11 +227,16 @@ export const CourseDetailModal = ({ course, isOpen, onClose, onSelectCourse, onI
                   Eligibility Criteria & Mandatory Prerequisites
                 </h4>
                 <p className="text-xs sm:text-sm font-semibold text-slate-800 dark:text-slate-200 leading-relaxed">
-                  {course.eligibility}
+                  {course.eligibility || 'Completion of qualifying academic examinations (10+2 / Bachelor Degree) from an accredited board or recognized university.'}
                 </p>
                 <div className="flex flex-wrap items-center gap-2 pt-2">
                   <span className="text-[11px] font-bold text-slate-500 dark:text-slate-400">Required Subject Combinations:</span>
-                  {course.requiredSubjects.map((subj, idx) => (
+                  {(course.requiredSubjects || [
+                    typeof course.eligibility === 'string' && course.eligibility.includes('PCB') ? 'Physics, Chemistry, Biology' :
+                    typeof course.eligibility === 'string' && course.eligibility.includes('Physics') ? 'Physics & Mathematics' :
+                    typeof course.eligibility === 'string' && course.eligibility.includes('Commerce') ? 'Commerce / Accountancy' :
+                    'Qualifying Academic Subjects'
+                  ]).map((subj, idx) => (
                     <span key={idx} className="text-[11px] font-bold px-2 py-0.5 rounded-md bg-white dark:bg-navy-900 border border-slate-300 dark:border-navy-700 text-navy-900 dark:text-white">
                       {subj}
                     </span>
@@ -218,7 +250,7 @@ export const CourseDetailModal = ({ course, isOpen, onClose, onSelectCourse, onI
                   Recognized Entrance Examinations
                 </h4>
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
-                  {course.entranceExams.map((exam, idx) => (
+                  {(course.entranceExams || []).map((exam, idx) => (
                     <div key={idx} className="flex items-center gap-2.5 p-3 rounded-xl bg-slate-50 dark:bg-navy-950/60 border border-slate-200 dark:border-navy-800">
                       <div className="w-7 h-7 rounded-lg bg-gold-500/15 text-gold-600 dark:text-gold-400 flex items-center justify-center font-bold text-xs shrink-0">
                         0{idx + 1}
@@ -235,7 +267,7 @@ export const CourseDetailModal = ({ course, isOpen, onClose, onSelectCourse, onI
                   Typical Admission & Selection Workflow
                 </h4>
                 <p className="text-xs font-medium text-slate-700 dark:text-slate-300 leading-relaxed bg-slate-50 dark:bg-navy-950/40 p-4 rounded-xl border border-slate-200 dark:border-navy-800">
-                  {course.admissionProcess}
+                  {course.admissionProcess || 'National or State Entrance Examination score followed by centralized counseling, document verification, and merit seat allocation.'}
                 </p>
               </div>
 
@@ -257,7 +289,7 @@ export const CourseDetailModal = ({ course, isOpen, onClose, onSelectCourse, onI
                   High-Demand Career Roles & Job Profiles
                 </h4>
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
-                  {course.careerOpportunities.map((career, idx) => (
+                  {(course.careerOpportunities || course.careerPaths || []).map((career, idx) => (
                     <div key={idx} className="flex items-center gap-2 text-xs font-bold text-slate-800 dark:text-slate-200 bg-slate-50 dark:bg-navy-950/60 p-3 rounded-xl border border-slate-200 dark:border-navy-800">
                       <CheckCircle2 className="w-4 h-4 text-emerald-500 shrink-0" />
                       <span>{career}</span>
@@ -272,7 +304,7 @@ export const CourseDetailModal = ({ course, isOpen, onClose, onSelectCourse, onI
                   Key Employment Sectors & Hiring Domains
                 </h4>
                 <div className="flex flex-wrap gap-2">
-                  {course.employmentSectors.map((sector, idx) => (
+                  {(course.employmentSectors || ['Corporate & Technology Enterprises', 'R&D Laboratories', 'Global Advisory Firms']).map((sector, idx) => (
                     <span key={idx} className="text-xs font-medium px-3 py-1.5 rounded-xl bg-slate-100 dark:bg-navy-800 text-slate-700 dark:text-slate-300 border border-slate-200 dark:border-navy-700">
                       {sector}
                     </span>
@@ -291,7 +323,12 @@ export const CourseDetailModal = ({ course, isOpen, onClose, onSelectCourse, onI
                   UG to PG & Academic Progression Pathways
                 </h4>
                 <div className="flex flex-wrap gap-2">
-                  {course.higherStudyPathways.map((progression, idx) => (
+                  {(course.higherStudyPathways || [
+                    'Master of Technology (M.Tech / M.E.)',
+                    'Master of Science (M.Sc.)',
+                    'Master of Business Administration (MBA / PGDM)',
+                    'Integrated Ph.D. / Research Fellowship'
+                  ]).map((progression, idx) => (
                     <div key={idx} className="flex items-center gap-2 px-3 py-2 rounded-xl bg-gold-500/10 border border-gold-500/20 text-xs font-bold text-navy-900 dark:text-white">
                       <ArrowRight className="w-3.5 h-3.5 text-gold-500" />
                       <span>{progression}</span>
@@ -344,13 +381,13 @@ export const CourseDetailModal = ({ course, isOpen, onClose, onSelectCourse, onI
                   <span>Statutory Regulatory Framework</span>
                 </div>
                 <h4 className="font-serif text-lg font-bold text-navy-900 dark:text-white">
-                  {course.regulatoryBody}
+                  {course.regulatoryBody || 'UGC / Statutory Regulatory Authority'}
                 </h4>
                 <p className="text-xs font-medium text-slate-700 dark:text-slate-300 leading-relaxed">
-                  Academic curriculum, duration standards, minimum faculty guidelines, and degree specifications are governed by {course.regulatoryBody}.
+                  Academic curriculum, duration standards, minimum faculty guidelines, and degree specifications are governed by {course.regulatoryBody || 'statutory university and regulatory guidelines'}.
                 </p>
                 <div className="text-[11px] font-semibold text-slate-500 dark:text-slate-400 pt-1">
-                  Official Reference: <span className="text-gold-600 dark:text-gold-400">{course.officialReference}</span>
+                  Official Reference: <span className="text-gold-600 dark:text-gold-400">{course.officialReference || 'UGC / Statutory Regulatory Councils Guidelines'}</span>
                 </div>
               </div>
 
@@ -398,7 +435,7 @@ export const CourseDetailModal = ({ course, isOpen, onClose, onSelectCourse, onI
               }}
               className="px-5 py-2.5 bg-gold-shimmer text-navy-950 font-bold text-xs rounded-xl shadow-gold-glow hover:opacity-95 transition flex items-center justify-center gap-2 w-full sm:w-auto shrink-0"
             >
-              <span>Inquire for {course.abbreviation} Guidance</span>
+              <span>Inquire for {course.abbreviation || course.name || 'Degree'} Guidance</span>
               <ArrowRight className="w-3.5 h-3.5" />
             </button>
           </div>

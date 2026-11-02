@@ -6,6 +6,7 @@ import {
   ShieldAlert, Trash2, Globe, GraduationCap, School, Award, RefreshCw, AlertCircle, Edit, Check
 } from 'lucide-react';
 import ScrollReveal from '../../components/ScrollReveal';
+import { CrmDeleteConfirmModal } from '../components/CrmDeleteConfirmModal';
 
 export const CrmClients = () => {
   const { 
@@ -22,6 +23,37 @@ export const CrmClients = () => {
   const [modalOpen, setModalOpen] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [formError, setFormError] = useState(null);
+
+  // Superadmin Deletion State
+  const [deleteModalOpen, setDeleteModalOpen] = useState(false);
+  const [clientToDelete, setClientToDelete] = useState(null);
+  const [isDeletingClient, setIsDeletingClient] = useState(false);
+  const [statusNotice, setStatusNotice] = useState('');
+
+  const handleConfirmDeleteClient = async () => {
+    if (!clientToDelete) return;
+    try {
+      setIsDeletingClient(true);
+      await deleteClient(clientToDelete.id, {
+        company: clientToDelete.company,
+        country: clientToDelete.country
+      });
+      setStatusNotice(`✓ Organization "${clientToDelete.company}" (${clientToDelete.id}) permanently deleted.`);
+      setDeleteModalOpen(false);
+      if (selectedClient && selectedClient.id === clientToDelete.id) {
+        setSelectedClient(null);
+        setClientDetailData(null);
+      }
+      setClientToDelete(null);
+      setTimeout(() => setStatusNotice(''), 5000);
+    } catch (err) {
+      console.error('Delete error:', err);
+      setStatusNotice(`⚠️ Error deleting organization: ${err.message}`);
+    } finally {
+      setIsDeletingClient(false);
+    }
+  };
+
 
   // New Organization Form State
   const [newOrg, setNewOrg] = useState({

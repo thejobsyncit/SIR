@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import ScrollReveal from '../../components/ScrollReveal';
+import { CrmDeleteConfirmModal } from '../components/CrmDeleteConfirmModal';
 import { useCrm } from '../context/CrmContext';
 import { 
   Calendar, Video, Clock, UserCheck, Link, Plus, CheckCircle2, 
@@ -7,7 +8,7 @@ import {
 } from 'lucide-react';
 
 export const CrmInterviews = () => {
-  const { interviews, addInterview, updateInterview } = useCrm();
+  const { interviews, addInterview, updateInterview, isSuperAdmin, deleteInterview } = useCrm();
   const [modalOpen, setModalOpen] = useState(false);
   const [feedbackModalOpen, setFeedbackModalOpen] = useState(null);
 
@@ -25,6 +26,33 @@ export const CrmInterviews = () => {
   // Feedback State
   const [feedbackText, setFeedbackText] = useState('');
   const [resultStatus, setResultStatus] = useState('Passed');
+
+  // Superadmin Deletion State
+  const [deleteModalOpen, setDeleteModalOpen] = useState(false);
+  const [interviewToDelete, setInterviewToDelete] = useState(null);
+  const [isDeletingInterview, setIsDeletingInterview] = useState(false);
+  const [statusNotice, setStatusNotice] = useState('');
+
+  const handleConfirmDeleteInterview = async () => {
+    if (!interviewToDelete) return;
+    try {
+      setIsDeletingInterview(true);
+      await deleteInterview(interviewToDelete.id, {
+        candidateName: interviewToDelete.candidateName,
+        jobTitle: interviewToDelete.jobTitle
+      });
+      setStatusNotice(`✓ Interview schedule for "${interviewToDelete.candidateName}" (${interviewToDelete.id}) permanently deleted.`);
+      setDeleteModalOpen(false);
+      setInterviewToDelete(null);
+      setTimeout(() => setStatusNotice(''), 5000);
+    } catch (err) {
+      console.error('Delete error:', err);
+      setStatusNotice(`⚠️ Error deleting interview: ${err.message}`);
+    } finally {
+      setIsDeletingInterview(false);
+    }
+  };
+
 
   const handleCreateInterview = (e) => {
     e.preventDefault();
@@ -89,6 +117,17 @@ export const CrmInterviews = () => {
           <span>Schedule New Panel Interview</span>
         </button>
       </div>
+
+      
+      {/* Superadmin Status Notification Toast */}
+      {statusNotice && (
+        <div className="p-3.5 rounded-2xl bg-emerald-500/10 border border-emerald-500/30 text-emerald-800 dark:text-emerald-300 font-bold text-xs flex items-center justify-between animate-in fade-in">
+          <span>{statusNotice}</span>
+          <button onClick={() => setStatusNotice('')} className="text-emerald-700 hover:text-emerald-900 dark:text-emerald-400 p-1">
+            <X className="w-4 h-4" />
+          </button>
+        </div>
+      )}
 
       {/* Interview Cards Grid */}
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6">

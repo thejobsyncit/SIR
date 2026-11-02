@@ -37,3 +37,6 @@ server/*.sqlite
 # User uploads
 server/uploads/*
 !server/uploads/.gitkeep
+# OneDrive duplicate / sync conflict files
+*(1).*
+*(1)

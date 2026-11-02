@@ -424,7 +424,13 @@ export const CrmDashboard = () => {
                     <td className="p-3 text-right">
                       <button
                         onClick={() => {
-                          setActiveModule('consulting');
+                          if (srv.serviceId === 'school-career' || (srv.serviceTitle || '').toLowerCase().includes('career')) {
+                            setActiveModule('career-guidance');
+                          } else if (srv.serviceId === 'school-academy' || (srv.serviceTitle || '').toLowerCase().includes('academy')) {
+                            setActiveModule('student-academy');
+                          } else {
+                            setActiveModule('consulting');
+                          }
                         }}
                         className="px-2.5 py-1 bg-navy-900 dark:bg-gold-500 text-white dark:text-navy-950 rounded-lg font-bold text-[10px] hover:opacity-90 transition cursor-pointer flex items-center gap-1 ml-auto"
                         title={`Open bookings for ${srv.serviceTitle}`}

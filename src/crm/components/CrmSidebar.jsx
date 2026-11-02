@@ -3,7 +3,7 @@ import { useCrm } from '../context/CrmContext';
 import { 
   LayoutDashboard, Users, GitMerge, Home, Globe, Building2, UserCheck, 
   Calendar, FileText, ShieldCheck, CreditCard, BarChart3, Sparkles, Zap, 
-  Settings, Lock, LogOut, Award, ChevronRight, CalendarCheck
+  Settings, Lock, LogOut, Award, ChevronRight, CalendarCheck, Compass, GraduationCap
 } from 'lucide-react';
 
 export const CrmSidebar = ({ collapsed, setCollapsed }) => {
@@ -12,6 +12,8 @@ export const CrmSidebar = ({ collapsed, setCollapsed }) => {
   const menuItems = [
     { id: 'dashboard', label: 'Dashboard', icon: LayoutDashboard },
     { id: 'consulting', label: 'Consulting & Bookings', icon: CalendarCheck },
+    { id: 'career-guidance', label: 'Career Guidance', icon: Compass },
+    { id: 'student-academy', label: 'Student Academy', icon: GraduationCap },
     { id: 'candidates', label: 'Candidates', icon: Users },
     { id: 'pipeline', label: 'Recruitment Pipeline', icon: GitMerge },
     { id: 'domestic', label: 'Domestic Hiring', icon: Home },

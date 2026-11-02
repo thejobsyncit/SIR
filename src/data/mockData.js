@@ -320,7 +320,7 @@ export const SERVICES_LIST = [
   },
   {
     id: 'exec-seminars-lang',
-    title: 'Seminars & Language',
+    title: 'Executive Seminars & Language Test Preparation',
     icon: 'Languages',
     category: 'Education',
     subCategory: 'Executive',
@@ -410,6 +410,34 @@ export const VISA_MATRIX_FULL = [
   { country: 'United States', visaType: 'H-1B, L-1, O-1 Categories', requirements: 'Employer sponsorship, relevant qualifications, visa category eligibility', age: '21+ years', minQualification: 'Bachelor / Master Degree', experience: '3 - 6+ years', language: 'English (Fluent)', processingTime: '60 - 180 Days', avgCost: 'USD 460 - 2,500+' },
   { country: 'Japan', visaType: 'Engineer/Specialist Work Visa', requirements: 'Job offer, degree or relevant experience, employer sponsorship', age: '20 - 50 years', minQualification: 'Bachelor Degree / 10 yrs Exp', experience: '1 - 5+ years', language: 'JLPT N3/N2 or English', processingTime: '30 - 60 Days', avgCost: 'JPY 3,000' },
   { country: 'South Korea', visaType: 'E-series Work Visa', requirements: 'Job offer, qualifications, employer sponsorship', age: '18 - 45 years', minQualification: 'Degree / Vocational', experience: '1 - 3+ years', language: 'TOPIK Level 2+ or English', processingTime: '21 - 45 Days', avgCost: 'KRW 60,000 - 100,000' }
+];
+
+export const TARGET_COUNTRY_OPTIONS = [
+  // GCC Countries
+  { name: 'United Arab Emirates', code: 'UAE', flag: '🇦🇪', region: 'GCC' },
+  { name: 'Saudi Arabia', code: 'KSA', flag: '🇸🇦', region: 'GCC' },
+  { name: 'Qatar', code: 'QAT', flag: '🇶🇦', region: 'GCC' },
+  { name: 'Oman', code: 'OMN', flag: '🇴🇲', region: 'GCC' },
+  { name: 'Kuwait', code: 'KWT', flag: '🇰🇼', region: 'GCC' },
+  { name: 'Bahrain', code: 'BHR', flag: '🇧🇭', region: 'GCC' },
+  // Europe & Western Destinations
+  { name: 'United Kingdom', code: 'GBR', flag: '🇬🇧', region: 'Europe & Western' },
+  { name: 'United States', code: 'USA', flag: '🇺🇸', region: 'Europe & Western' },
+  { name: 'Canada', code: 'CAN', flag: '🇨🇦', region: 'Europe & Western' },
+  { name: 'Australia', code: 'AUS', flag: '🇦🇺', region: 'Europe & Western' },
+  { name: 'New Zealand', code: 'NZL', flag: '🇳🇿', region: 'Europe & Western' },
+  { name: 'Ireland', code: 'IRL', flag: '🇮🇪', region: 'Europe & Western' },
+  { name: 'Germany', code: 'DEU', flag: '🇩🇪', region: 'Europe & Western' },
+  { name: 'Netherlands', code: 'NLD', flag: '🇳🇱', region: 'Europe & Western' },
+  { name: 'France', code: 'FRA', flag: '🇫🇷', region: 'Europe & Western' },
+  { name: 'Switzerland', code: 'CHE', flag: '🇨🇭', region: 'Europe & Western' },
+  // Asia-Pacific & Others
+  { name: 'Singapore', code: 'SGP', flag: '🇸🇬', region: 'Asia-Pacific' },
+  { name: 'Malaysia', code: 'MYS', flag: '🇲🇾', region: 'Asia-Pacific' },
+  { name: 'Japan', code: 'JPN', flag: '🇯🇵', region: 'Asia-Pacific' },
+  { name: 'South Korea', code: 'KOR', flag: '🇰🇷', region: 'Asia-Pacific' },
+  { name: 'India', code: 'IND', flag: '🇮🇳', region: 'South Asia' },
+  { name: 'Global / Flexible (Open to Advice)', code: 'GLOBAL', flag: '🌐', region: 'Global' }
 ];
 
 export const PRICING_PLANS = [

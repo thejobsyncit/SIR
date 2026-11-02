@@ -4,7 +4,7 @@ import path from 'path';
 import fs from 'fs';
 import os from 'os';
 import { fileURLToPath } from 'url';
-import { getDb, closeDb, checkDbHealth } from './database.js';
+import { getDb, closeDb, checkDbHealth, logAuditTrail } from './database.js';
 import nodemailer from 'nodemailer';
 import dotenv from 'dotenv';
 
@@ -68,11 +68,36 @@ app.use(cors({
   },
   credentials: true,
   methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
-  allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With', 'X-Forwarded-For']
+  allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With', 'X-Forwarded-For', 'X-CRM-Role', 'X-CRM-User', 'X-CRM-User-Id']
 }));
 
 app.use(express.json({ limit: '10mb' }));
 app.use(express.urlencoded({ extended: true, limit: '10mb' }));
+
+// Superadmin Authorization Middleware for Sensitive Operations
+const requireSuperAdmin = (req, res, next) => {
+  const roleHeader = (
+    req.headers['x-crm-role'] ||
+    req.headers['role'] ||
+    req.headers['x-user-role'] ||
+    ''
+  ).trim().toLowerCase();
+
+  const authHeader = (req.headers['authorization'] || '').trim().toLowerCase();
+
+  const isSuperAdminRole = roleHeader === 'super admin' || roleHeader === 'superadmin';
+  const isSuperAdminBearer = authHeader === 'bearer superadmin' || authHeader === 'bearer super admin';
+
+  if (!isSuperAdminRole && !isSuperAdminBearer) {
+    return res.status(403).json({
+      success: false,
+      error: 'Forbidden',
+      message: 'Access denied: Only users with the Superadmin role are authorized to delete CRM records.'
+    });
+  }
+  next();
+};
+
 
 // Operational Health & Performance Check Endpoint
 app.get('/api/health', async (req, res) => {
@@ -691,10 +716,28 @@ app.put('/api/jobs/:id', async (req, res) => {
   }
 });
 
-app.delete('/api/jobs/:id', async (req, res) => {
+app.delete('/api/jobs/:id', requireSuperAdmin, async (req, res) => {
   try {
     const db = await getDb();
+    const clientIp = req.ip || req.headers['x-forwarded-for'] || req.socket?.remoteAddress || '127.0.0.1';
+    const crmUser = req.headers['x-crm-user'] || 'Super Admin';
+    const crmUserId = req.headers['x-crm-user-id'] || 'usr-superadmin';
+    const crmRole = req.headers['x-crm-role'] || 'Super Admin';
+
+    const existingJob = await db.get('SELECT * FROM jobs WHERE id = ?', [req.params.id]);
     await db.run('DELETE FROM jobs WHERE id = ?', [req.params.id]);
+
+    await logAuditTrail(db, {
+      userId: crmUserId,
+      userName: crmUser,
+      role: crmRole,
+      action: 'DELETE_JOB',
+      entityType: 'Job Posting',
+      entityId: req.params.id,
+      details: { title: existingJob?.title, company: existingJob?.company },
+      ip: clientIp
+    });
+
     res.json({ success: true, message: 'Job deleted successfully' });
   } catch (error) {
     res.status(500).json({ success: false, message: 'Failed to delete job' });
@@ -745,13 +788,43 @@ app.put('/api/candidates/:id', async (req, res) => {
   }
 });
 
-app.delete('/api/candidates/:id', async (req, res) => {
+app.delete('/api/candidates/:id', requireSuperAdmin, async (req, res) => {
   try {
+    const { id } = req.params;
     const db = await getDb();
-    await db.run('DELETE FROM candidates WHERE id = ?', [req.params.id]);
-    res.json({ success: true });
+    const clientIp = req.ip || req.headers['x-forwarded-for'] || req.socket?.remoteAddress || '127.0.0.1';
+    const crmUser = req.headers['x-crm-user'] || 'Super Admin';
+    const crmUserId = req.headers['x-crm-user-id'] || 'usr-superadmin';
+    const crmRole = req.headers['x-crm-role'] || 'Super Admin';
+
+    const existingCand = await db.get('SELECT * FROM candidates WHERE id = ?', [id]);
+    if (!existingCand) {
+      return res.status(404).json({ success: false, message: 'Candidate record not found or already deleted' });
+    }
+
+    // Cascade: remove interviews linked to this candidate
+    await db.run('DELETE FROM interviews WHERE candidateId = ?', [id]);
+    await db.run('DELETE FROM candidates WHERE id = ?', [id]);
+
+    await logAuditTrail(db, {
+      userId: crmUserId,
+      userName: crmUser,
+      role: crmRole,
+      action: 'DELETE_CANDIDATE',
+      entityType: 'Candidate Profile',
+      entityId: id,
+      details: {
+        name: existingCand.name,
+        nationality: existingCand.nationality,
+        passport: existingCand.passport,
+        role: existingCand.currentRole
+      },
+      ip: clientIp
+    });
+
+    res.json({ success: true, message: `Candidate '${existingCand.name}' successfully deleted.`, id });
   } catch (error) {
-    res.status(500).json({ success: false, message: 'Failed to delete candidate' });
+    res.status(500).json({ success: false, message: 'Failed to delete candidate: ' + error.message });
   }
 });
 
@@ -976,16 +1049,45 @@ app.post(['/api/clients/:id/contacts', '/api/organizations/:id/contacts'], async
   }
 });
 
-app.delete(['/api/clients/:id', '/api/organizations/:id'], async (req, res) => {
+app.delete(['/api/clients/:id', '/api/organizations/:id'], requireSuperAdmin, async (req, res) => {
   try {
     const { id } = req.params;
     const db = await getDb();
-    await db.run('DELETE FROM clients WHERE id = ?', [id]);
+    const clientIp = req.ip || req.headers['x-forwarded-for'] || req.socket?.remoteAddress || '127.0.0.1';
+    const crmUser = req.headers['x-crm-user'] || 'Super Admin';
+    const crmUserId = req.headers['x-crm-user-id'] || 'usr-superadmin';
+    const crmRole = req.headers['x-crm-role'] || 'Super Admin';
+
+    const existingClient = await db.get('SELECT * FROM clients WHERE id = ?', [id]);
+    if (!existingClient) {
+      return res.status(404).json({ success: false, message: 'Organization record not found or already deleted' });
+    }
+
+    // Cascade cleanup linked contacts, activities, and follow-ups
     await db.run('DELETE FROM organization_contacts WHERE organizationId = ?', [id]);
-    res.json({ success: true, message: 'Organization record deleted successfully' });
+    await db.run('DELETE FROM enquiry_activities WHERE organizationId = ?', [id]);
+    await db.run('DELETE FROM follow_ups WHERE organizationId = ?', [id]);
+    await db.run('DELETE FROM clients WHERE id = ?', [id]);
+
+    await logAuditTrail(db, {
+      userId: crmUserId,
+      userName: crmUser,
+      role: crmRole,
+      action: 'DELETE_ORGANIZATION',
+      entityType: 'Client / Organization',
+      entityId: id,
+      details: {
+        company: existingClient.company,
+        country: existingClient.country,
+        organizationType: existingClient.organizationType
+      },
+      ip: clientIp
+    });
+
+    res.json({ success: true, message: `Organization '${existingClient.company}' deleted successfully`, id });
   } catch (error) {
     console.error('Failed to delete client:', error);
-    res.status(500).json({ success: false, message: 'Failed to delete client' });
+    res.status(500).json({ success: false, message: 'Failed to delete client: ' + error.message });
   }
 });
 
@@ -1016,13 +1118,41 @@ app.post('/api/interviews', async (req, res) => {
   }
 });
 
-app.delete('/api/interviews/:id', async (req, res) => {
+app.delete('/api/interviews/:id', requireSuperAdmin, async (req, res) => {
   try {
+    const { id } = req.params;
     const db = await getDb();
-    await db.run('DELETE FROM interviews WHERE id = ?', [req.params.id]);
-    res.json({ success: true });
+    const clientIp = req.ip || req.headers['x-forwarded-for'] || req.socket?.remoteAddress || '127.0.0.1';
+    const crmUser = req.headers['x-crm-user'] || 'Super Admin';
+    const crmUserId = req.headers['x-crm-user-id'] || 'usr-superadmin';
+    const crmRole = req.headers['x-crm-role'] || 'Super Admin';
+
+    const existingInterview = await db.get('SELECT * FROM interviews WHERE id = ?', [id]);
+    if (!existingInterview) {
+      return res.status(404).json({ success: false, message: 'Interview record not found or already deleted' });
+    }
+
+    await db.run('DELETE FROM interviews WHERE id = ?', [id]);
+
+    await logAuditTrail(db, {
+      userId: crmUserId,
+      userName: crmUser,
+      role: crmRole,
+      action: 'DELETE_INTERVIEW',
+      entityType: 'Interview Schedule',
+      entityId: id,
+      details: {
+        candidateName: existingInterview.candidateName,
+        jobTitle: existingInterview.jobTitle,
+        company: existingInterview.company,
+        date: existingInterview.date
+      },
+      ip: clientIp
+    });
+
+    res.json({ success: true, message: `Interview for '${existingInterview.candidateName}' deleted successfully`, id });
   } catch (error) {
-    res.status(500).json({ success: false, message: 'Failed to delete interview' });
+    res.status(500).json({ success: false, message: 'Failed to delete interview: ' + error.message });
   }
 });
 
@@ -1031,7 +1161,7 @@ const inquiryRateLimits = new Map();
 const recentInquirySubmissions = new Map();
 
 // API Routes - LEADS & CONSULTING ENQUIRIES
-app.get(['/api/leads', '/api/consulting/enquiries'], async (req, res) => {
+app.get(['/api/leads', '/api/consulting/enquiries', '/api/career-guidance/enquiries'], async (req, res) => {
   try {
     const {
       serviceId, status, priority, assignedEmployee, search,
@@ -1052,6 +1182,10 @@ app.get(['/api/leads', '/api/consulting/enquiries'], async (req, res) => {
       if (serviceId === 'intl-consult') {
         query += ' AND (serviceId = ? OR LOWER(serviceTitle) LIKE ?)';
         params.push(serviceId, '%international consulting%');
+      } else if (serviceId === 'school-career' || serviceId === 'career-guidance') {
+        query += " AND (serviceId IN ('school-career', 'career-guidance') OR LOWER(serviceTitle) LIKE '%career%' OR LOWER(company) LIKE '%career%')";
+      } else if (serviceId === 'school-academy' || serviceId === 'student-academy') {
+        query += " AND (serviceId IN ('school-academy', 'student-academy') OR LOWER(serviceTitle) LIKE '%academy%' OR LOWER(company) LIKE '%student academy%' OR referenceNumber LIKE 'REV-ACA%')";
       } else {
         query += ' AND (serviceId = ? OR LOWER(serviceTitle) LIKE ?)';
         params.push(serviceId, `%${serviceId.toLowerCase()}%`);
@@ -1431,7 +1565,7 @@ app.get(['/api/leads/:id', '/api/consulting/enquiries/:id'], async (req, res) =>
 });
 
 // Create Lead / International Consulting Enquiry
-app.post(['/api/leads', '/api/consulting/enquiries'], async (req, res) => {
+app.post(['/api/leads', '/api/consulting/enquiries', '/api/career-guidance/enquiries'], async (req, res) => {
   try {
     // 1. Sliding window rate limiting: 60/min for localhost, 30/min for external IPs
     const clientIp = req.headers['x-forwarded-for'] || req.socket?.remoteAddress || 'unknown';
@@ -1461,7 +1595,8 @@ app.post(['/api/leads', '/api/consulting/enquiries'], async (req, res) => {
       startDate, endDate, shiftRequirements, jobCategory, visaCategory,
       currentStage, cvPath, documentUrls, customFields,
       // Consultation scheduling & Booking fields
-      consultationDate, consultationTime, consultationMode, status: requestedStatus
+      consultationDate, consultationTime, consultationMode, status: requestedStatus,
+      courseName, streamName, department
     } = req.body;
 
     // 2. Strict Input Validation & Length Limits
@@ -1539,6 +1674,7 @@ app.post(['/api/leads', '/api/consulting/enquiries'], async (req, res) => {
       'intl-adm': 'REV-ADM',
       'exec-seminars-lang': 'REV-SL',
       'school-career': 'REV-CAR',
+      'career-guidance': 'REV-CAR',
       'school-academy': 'REV-ACA'
     };
     const isConsulting = safeServiceId === 'intl-consult' || (safeServiceTitle && safeServiceTitle.toLowerCase().includes('consulting'));
@@ -1567,6 +1703,26 @@ app.post(['/api/leads', '/api/consulting/enquiries'], async (req, res) => {
 
     const defaultAdvisor = (typeof req.body.assignedEmployee === 'string' && req.body.assignedEmployee.trim()) ? req.body.assignedEmployee.trim() : 'Dhanalakshimi';
 
+    // Resolve courseName, streamName, department
+    let resolvedCourseName = (courseName && typeof courseName === 'string' && courseName.trim()) ? courseName.trim() : null;
+    let resolvedStreamName = (streamName && typeof streamName === 'string' && streamName.trim()) ? streamName.trim() : null;
+    let resolvedDepartment = (department && typeof department === 'string' && department.trim()) ? department.trim() : null;
+
+    if (customFields) {
+      try {
+        const parsedCustom = typeof customFields === 'string' ? JSON.parse(customFields) : customFields;
+        if (!resolvedCourseName && parsedCustom.courseName) resolvedCourseName = String(parsedCustom.courseName).trim();
+        if (!resolvedCourseName && parsedCustom.selectedCourse) resolvedCourseName = String(parsedCustom.selectedCourse).trim();
+        if (!resolvedStreamName && parsedCustom.streamName) resolvedStreamName = String(parsedCustom.streamName).trim();
+        if (!resolvedDepartment && parsedCustom.department) resolvedDepartment = String(parsedCustom.department).trim();
+        if (!resolvedDepartment && parsedCustom.streamName) resolvedDepartment = String(parsedCustom.streamName).trim();
+      } catch (_) {}
+    }
+
+    if (!resolvedCourseName && assistanceType && assistanceType !== 'Destination & Profile Assessment' && assistanceType !== 'Stream Planning & Course Advisory') {
+      resolvedCourseName = String(assistanceType).trim();
+    }
+
     // 5. Parameterized SQL insert into leads with all service fields
     await db.run(
       `INSERT INTO leads (
@@ -1579,8 +1735,9 @@ app.post(['/api/leads', '/api/consulting/enquiries'], async (req, res) => {
         seniority, industry, hiringTimeline, joiningDate, contractDuration,
         startDate, endDate, shiftRequirements, jobCategory, visaCategory,
         currentStage, cvPath, documentUrls, customFields,
-        consultationDate, consultationTime, consultationMode
-      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+        consultationDate, consultationTime, consultationMode,
+        courseName, streamName, department
+      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
       [
         leadId,
         name.trim(),
@@ -1630,7 +1787,10 @@ app.post(['/api/leads', '/api/consulting/enquiries'], async (req, res) => {
         customFields ? (typeof customFields === 'object' ? JSON.stringify(customFields) : String(customFields)) : null,
         consultationDate ? String(consultationDate).trim() : null,
         consultationTime ? String(consultationTime).trim() : null,
-        consultationMode ? String(consultationMode).trim() : null
+        consultationMode ? String(consultationMode).trim() : null,
+        resolvedCourseName,
+        resolvedStreamName,
+        resolvedDepartment
       ]
     );
 
@@ -1654,6 +1814,9 @@ app.post(['/api/leads', '/api/consulting/enquiries'], async (req, res) => {
       id: leadId,
       referenceNumber: refCode,
       name: name.trim(),
+      courseName: resolvedCourseName,
+      streamName: resolvedStreamName,
+      department: resolvedDepartment,
       email: email.trim(),
       company: safeCompany,
       phone: phone.trim(),
@@ -1711,7 +1874,7 @@ app.post(['/api/leads', '/api/consulting/enquiries'], async (req, res) => {
 });
 
 // Update Lead Status, Assignment, Organization Link, & Workflow
-app.patch(['/api/leads/:id', '/api/consulting/enquiries/:id'], async (req, res) => {
+app.patch(['/api/leads/:id', '/api/consulting/enquiries/:id', '/api/student-academy/enquiries/:id'], async (req, res) => {
   try {
     const { id } = req.params;
     const {
@@ -1722,7 +1885,8 @@ app.patch(['/api/leads/:id', '/api/consulting/enquiries/:id'], async (req, res) 
       seniority, industry, hiringTimeline, joiningDate, contractDuration,
       startDate, endDate, shiftRequirements, jobCategory, visaCategory,
       currentStage, cvPath, consultationDate, consultationTime, consultationMode,
-      countryInterest, intakeTerm, degreeLevel, documentUrls, customFields
+      countryInterest, intakeTerm, degreeLevel, documentUrls, customFields,
+      courseName, streamName, department
     } = req.body;
 
     const allowedStatuses = [
@@ -1791,6 +1955,9 @@ app.patch(['/api/leads/:id', '/api/consulting/enquiries/:id'], async (req, res) 
         degreeLevel = COALESCE(?, degreeLevel),
         documentUrls = COALESCE(?, documentUrls),
         customFields = COALESCE(?, customFields),
+        courseName = COALESCE(?, courseName),
+        streamName = COALESCE(?, streamName),
+        department = COALESCE(?, department),
         updatedAt = CURRENT_TIMESTAMP
        WHERE id = ?`,
       [
@@ -1832,6 +1999,9 @@ app.patch(['/api/leads/:id', '/api/consulting/enquiries/:id'], async (req, res) 
         degreeLevel !== undefined ? degreeLevel : null,
         documentUrls !== undefined ? (typeof documentUrls === 'object' ? JSON.stringify(documentUrls) : String(documentUrls)) : null,
         customFields !== undefined ? (typeof customFields === 'object' ? JSON.stringify(customFields) : String(customFields)) : null,
+        courseName !== undefined ? courseName : null,
+        streamName !== undefined ? streamName : null,
+        department !== undefined ? department : null,
         id
       ]
     );
@@ -2078,21 +2248,158 @@ app.post(['/api/leads/:id/archive', '/api/consulting/enquiries/:id/archive'], as
 });
 
 // Delete Lead / Enquiry (Super Admin CRM)
-app.delete(['/api/leads/:id', '/api/consulting/enquiries/:id'], async (req, res) => {
+app.delete([
+  '/api/leads/:id',
+  '/api/consulting/enquiries/:id',
+  '/api/student-academy/enquiries/:id',
+  '/api/career-guidance/enquiries/:id'
+], requireSuperAdmin, async (req, res) => {
   try {
     const { id } = req.params;
     const db = await getDb();
-    await db.run('DELETE FROM leads WHERE id = ?', [id]);
-    await db.run('DELETE FROM enquiry_activities WHERE enquiryId = ?', [id]);
-    await db.run('DELETE FROM follow_ups WHERE enquiryId = ?', [id]);
-    res.json({ success: true, message: 'Lead deleted successfully', id });
+    const clientIp = req.ip || req.headers['x-forwarded-for'] || req.socket?.remoteAddress || '127.0.0.1';
+    const crmUser = req.headers['x-crm-user'] || 'Super Admin';
+    const crmUserId = req.headers['x-crm-user-id'] || 'usr-superadmin';
+    const crmRole = req.headers['x-crm-role'] || 'Super Admin';
+
+    // 1. Capture existing metadata before deletion
+    const existingLead = await db.get('SELECT * FROM leads WHERE id = ? OR referenceNumber = ?', [id, id]);
+    const existingAcademy = await db.get('SELECT * FROM student_academy_enquiries WHERE id = ? OR referenceNumber = ?', [id, id]);
+
+    if (!existingLead && !existingAcademy) {
+      return res.status(404).json({ success: false, message: 'Record not found or already deleted' });
+    }
+
+    const refNumber = existingLead?.referenceNumber || existingAcademy?.referenceNumber || id;
+    const recordName = existingLead?.name || existingAcademy?.studentName || 'Unknown Contact';
+    const serviceType = existingLead?.serviceTitle || existingLead?.serviceId || existingAcademy?.examName || existingAcademy?.academyName || 'Enquiry';
+
+    // Classify entity type for audit logging
+    let entityType = 'Lead / Enquiry';
+    const sId = (existingLead?.serviceId || '').toLowerCase();
+    const sTitle = (existingLead?.serviceTitle || '').toLowerCase();
+    const refUpper = (refNumber || '').toUpperCase();
+    if (sId.includes('student-academy') || sId.includes('school-academy') || refUpper.startsWith('REV-ACA') || existingAcademy) {
+      entityType = 'Student Academy Enquiry';
+    } else if (sId.includes('career') || refUpper.startsWith('REV-CAR') || sTitle.includes('career')) {
+      entityType = 'Career Guidance Enquiry';
+    } else if (sId.includes('consulting') || refUpper.startsWith('REV-CON') || sTitle.includes('consulting') || existingLead?.consultationDate) {
+      entityType = 'Consulting Booking';
+    }
+
+    // 2. Cascade cleanup of child activities and follow-ups safely
+    await db.run('DELETE FROM enquiry_activities WHERE enquiryId = ? OR enquiryId = ?', [id, refNumber]);
+    await db.run('DELETE FROM follow_ups WHERE enquiryId = ? OR enquiryId = ?', [id, refNumber]);
+
+    // 3. Delete from primary and synchronized tables
+    await db.run('DELETE FROM leads WHERE id = ? OR referenceNumber = ?', [id, refNumber]);
+    await db.run('DELETE FROM student_academy_enquiries WHERE id = ? OR referenceNumber = ?', [id, refNumber]);
+
+    // 4. Record persistent audit log
+    await logAuditTrail(db, {
+      userId: crmUserId,
+      userName: crmUser,
+      role: crmRole,
+      action: 'DELETE_RECORD',
+      entityType,
+      entityId: id,
+      details: {
+        referenceNumber: refNumber,
+        recordName,
+        serviceType,
+        deletedAt: new Date().toISOString()
+      },
+      ip: clientIp
+    });
+
+    res.json({
+      success: true,
+      message: `${entityType} '${recordName}' (${refNumber}) permanently deleted successfully.`,
+      id,
+      referenceNumber: refNumber,
+      entityType
+    });
   } catch (error) {
-    console.error('Failed to delete lead:', error);
-    res.status(500).json({ success: false, message: 'Failed to delete lead' });
+    console.error('Failed to delete lead / enquiry:', error);
+    res.status(500).json({ success: false, message: 'Failed to delete record: ' + error.message });
   }
 });
 
 // Real-Time Database Metrics for International Consulting
+
+
+// Persistent Audit Logs Endpoint
+app.get('/api/crm/audit-logs', async (req, res) => {
+  try {
+    const db = await getDb();
+    const logs = await db.all('SELECT * FROM audit_logs ORDER BY createdAt DESC LIMIT 150');
+    res.json({ success: true, data: logs });
+  } catch (error) {
+    res.status(500).json({ success: false, message: 'Failed to fetch audit logs' });
+  }
+});
+
+// Real-Time Database Metrics for Student Academy
+app.get('/api/crm/student-academy/metrics', async (req, res) => {
+  try {
+    const db = await getDb();
+    const academyCondition = "(serviceId IN ('school-academy', 'student-academy') OR LOWER(serviceTitle) LIKE '%academy%' OR LOWER(company) LIKE '%student academy%' OR referenceNumber LIKE 'REV-ACA%')";
+    const totalRow = await db.get(`SELECT COUNT(*) as count FROM leads WHERE ${academyCondition} AND (isArchived IS NULL OR isArchived = 0)`);
+    const newRow = await db.get(`SELECT COUNT(*) as count FROM leads WHERE ${academyCondition} AND (isArchived IS NULL OR isArchived = 0) AND status IN ('New', 'New Enquiry')`);
+    const inProgressRow = await db.get(`SELECT COUNT(*) as count FROM leads WHERE ${academyCondition} AND (isArchived IS NULL OR isArchived = 0) AND status IN ('In Progress', 'Contacted', 'Contact Pending', 'Consultation Scheduled', 'Proposal Pending', 'Course Selection')`);
+    const completedRow = await db.get(`SELECT COUNT(*) as count FROM leads WHERE ${academyCondition} AND (isArchived IS NULL OR isArchived = 0) AND status IN ('Converted', 'Completed', 'Consultation Completed', 'Qualified', 'Enrollment in Progress')`);
+
+    const metricsPayload = {
+      totalEnquiries: totalRow ? totalRow.count : 0,
+      newEnquiries: newRow ? newRow.count : 0,
+      inProgressEnquiries: inProgressRow ? inProgressRow.count : 0,
+      completedEnquiries: completedRow ? completedRow.count : 0,
+      timestamp: new Date().toISOString()
+    };
+
+    res.json({
+      success: true,
+      data: metricsPayload,
+      metrics: metricsPayload
+    });
+  } catch (error) {
+    console.error('Failed to get student academy metrics:', error);
+    res.status(500).json({ success: false, message: 'Failed to calculate student academy metrics' });
+  }
+});
+
+// Real-Time Database Metrics for Career Guidance
+app.get('/api/crm/career-guidance/metrics', async (req, res) => {
+  try {
+    const db = await getDb();
+
+    const careerCondition = "(serviceId IN ('school-career', 'career-guidance') OR LOWER(serviceTitle) LIKE '%career%' OR LOWER(company) LIKE '%career%')";
+    const totalRow = await db.get(`SELECT COUNT(*) as count FROM leads WHERE ${careerCondition} AND (isArchived IS NULL OR isArchived = 0)`);
+    const newRow = await db.get(`SELECT COUNT(*) as count FROM leads WHERE ${careerCondition} AND (isArchived IS NULL OR isArchived = 0) AND status IN ('New', 'New Enquiry')`);
+    const scheduledRow = await db.get(`SELECT COUNT(*) as count FROM leads WHERE ${careerCondition} AND (isArchived IS NULL OR isArchived = 0) AND status = 'Consultation Scheduled'`);
+    const inProgressRow = await db.get(`SELECT COUNT(*) as count FROM leads WHERE ${careerCondition} AND (isArchived IS NULL OR isArchived = 0) AND status IN ('In Progress', 'Contacted', 'Contact Pending', 'Consultation Scheduled', 'Proposal Pending', 'Proposal or Next Steps Pending')`);
+    const completedRow = await db.get(`SELECT COUNT(*) as count FROM leads WHERE ${careerCondition} AND (isArchived IS NULL OR isArchived = 0) AND status IN ('Converted', 'Completed', 'Consultation Completed', 'Qualified')`);
+
+    const metricsPayload = {
+      totalEnquiries: totalRow ? totalRow.count : 0,
+      newEnquiries: newRow ? newRow.count : 0,
+      consultationsScheduled: scheduledRow ? scheduledRow.count : 0,
+      inProgressEnquiries: inProgressRow ? inProgressRow.count : 0,
+      convertedEnquiries: completedRow ? completedRow.count : 0,
+      timestamp: new Date().toISOString()
+    };
+
+    res.json({
+      success: true,
+      data: metricsPayload,
+      metrics: metricsPayload
+    });
+  } catch (error) {
+    console.error('Failed to get career guidance metrics:', error);
+    res.status(500).json({ success: false, message: 'Failed to calculate career guidance metrics' });
+  }
+});
+
 app.get('/api/crm/consulting/metrics', async (req, res) => {
   try {
     const db = await getDb();
@@ -2485,12 +2792,21 @@ app.post('/api/student-academy/enquiries', async (req, res) => {
       preferredLearningMode,
       batchPreference,
       questions,
+      message,
       academyId,
       academyName,
       examId,
       examName,
       courseId,
-      courseName
+      courseName,
+      qualification,
+      preferredLocation,
+      targetCountry,
+      countryInterest,
+      location,
+      coachingMode,
+      enquiryType,
+      assignedEmployee
     } = req.body;
 
     if (!studentName || !email || !phone) {
@@ -2500,52 +2816,120 @@ app.post('/api/student-academy/enquiries', async (req, res) => {
       });
     }
 
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!emailRegex.test(email.trim())) {
+      return res.status(400).json({
+        success: false,
+        message: 'A valid email address is required.'
+      });
+    }
+
+    const cleanPhone = (phone || '').replace(/[\s\-\(\)\+]/g, '');
+    if (cleanPhone.length < 7) {
+      return res.status(400).json({
+        success: false,
+        message: 'A valid mobile number is required.'
+      });
+    }
+
+    // Duplicate Prevention Check (30 seconds window for same email + exam)
+    const now = Date.now();
+    const duplicateKey = `${email.trim().toLowerCase()}_${examId || examName || 'academy'}`;
+    const lastSubmitTime = recentInquirySubmissions.get(duplicateKey);
+    if (lastSubmitTime && (now - lastSubmitTime) < 30000) {
+      return res.status(409).json({
+        success: false,
+        message: 'A duplicate enquiry for this examination was recently received. Please allow a brief moment before resubmitting.'
+      });
+    }
+    recentInquirySubmissions.set(duplicateKey, now);
+
     const refNum = referenceNumber || `REV-ACA-2026-${Math.floor(10000 + Math.random() * 90000)}`;
     const enquiryId = `SA-ENQ-${Date.now()}-${Math.floor(100 + Math.random() * 900)}`;
     const db = await getDb();
+    const learningMode = preferredLearningMode || coachingMode || 'Online Live';
+    const studyLoc = targetCountry || countryInterest || preferredLocation || location || 'Online / Remote';
+    const qual = qualification || 'High School / 12th Standard';
+    const targetExam = examName || 'Competitive Examination';
+    const targetCourse = courseName || `${targetExam} Comprehensive Coaching & Advisory`;
+    const targetAcademy = academyName || 'Revival International Student Advisory';
+    const finalQuestions = questions || message || '';
+    const advisor = assignedEmployee || 'Dhanalakshimi';
 
     // 1. Insert into student_academy_enquiries table
     await db.run(
       `INSERT INTO student_academy_enquiries 
-       (id, referenceNumber, studentName, studentEmail, studentPhone, preferredLearningMode, batchPreference, questions, academyId, academyName, examId, examName, courseId, courseName, status)
-       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+       (id, referenceNumber, studentName, email, phone, studentEmail, studentPhone, preferredLearningMode, batchPreference, questions, academyId, academyName, examId, examName, courseId, courseName, qualification, preferredLocation, coachingMode, enquiryType, status, assignedEmployee)
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
       [
         enquiryId,
         refNum,
         studentName.trim(),
         email.trim().toLowerCase(),
         phone.trim(),
-        preferredLearningMode || 'Classroom',
-        batchPreference || 'Any Batch',
-        questions ? questions.trim() : '',
-        academyId || 'unknown',
-        academyName || 'Verified Academy',
-        examId || 'unknown',
-        examName || 'Competitive Exam',
-        courseId || 'unknown',
-        courseName || 'Academy Course',
-        'New Enquiry'
+        email.trim().toLowerCase(),
+        phone.trim(),
+        learningMode,
+        batchPreference || 'Standard Cohort',
+        finalQuestions ? finalQuestions.trim() : '',
+        academyId || 'revival-advisory',
+        targetAcademy,
+        examId || 'general-exam',
+        targetExam,
+        courseId || 'exam-coaching-advisory',
+        targetCourse,
+        qual,
+        studyLoc,
+        learningMode,
+        enquiryType || 'Exam Enquiry',
+        'New Enquiry',
+        advisor
       ]
     );
 
-    // 2. Mirror into unified leads table for CRM visibility
+    // 2. Mirror into unified leads table for comprehensive CRM integration
     const leadId = `LEAD-${Date.now()}-${Math.floor(100 + Math.random() * 900)}`;
+    const customMetadata = JSON.stringify({
+      category: 'Student Academy',
+      enquiryType: enquiryType || 'Exam Enquiry',
+      examName: targetExam,
+      examId: examId || 'general-exam',
+      qualification: qual,
+      coachingMode: learningMode,
+      preferredLearningMode: learningMode,
+      studyLocation: studyLoc,
+      preferredLocation: studyLoc,
+      targetCountry: studyLoc,
+      countryInterest: studyLoc,
+      academyName: targetAcademy,
+      courseName: targetCourse,
+      questions: finalQuestions ? finalQuestions.trim() : ''
+    });
+
     await db.run(
       `INSERT INTO leads 
-       (id, name, email, phone, message, serviceId, serviceTitle, referenceNumber, status, assistanceType, degreeLevel)
-       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+       (id, name, email, company, phone, message, serviceId, serviceTitle, referenceNumber, status, assistanceType, degreeLevel, workLocation, organizationName, assignedEmployee, priority, consultationMode, customFields, countryInterest)
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
       [
         leadId,
         studentName.trim(),
         email.trim().toLowerCase(),
+        'Student Academy',
         phone.trim(),
-        `Student Academy Enquiry for ${courseName} at ${academyName}. Target Exam: ${examName}. Preferred Mode: ${preferredLearningMode}. Batch: ${batchPreference}. Note: ${questions || 'None'}`,
+        `Exam Enquiry: ${targetExam}. Qualification: ${qual}. Preferred Coaching Mode: ${learningMode}. Target Country: ${studyLoc}. Message: ${finalQuestions ? finalQuestions.trim() : 'None'}`,
         'school-academy',
         'Student Academy',
         refNum,
         'New Enquiry',
-        examName || 'Competitive Exam',
-        courseName || 'Academy Course'
+        targetExam,
+        qual,
+        studyLoc,
+        targetExam,
+        advisor,
+        'Medium',
+        learningMode,
+        customMetadata,
+        studyLoc
       ]
     );
 

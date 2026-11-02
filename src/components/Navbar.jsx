@@ -2,8 +2,8 @@ import React, { useState, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useApp } from '../context/AppContext';
 import { BrandLogoIcon } from './BrandLogoIcon';
-import { 
-  Building2, Globe, Phone, Mail, Moon, Sun, Search, 
+import {
+  Building2, Globe, Phone, Mail, Moon, Sun, Search,
   User, Briefcase, ChevronDown, ChevronRight, Menu, X, Shield, Award, Sparkles, LogIn,
   GraduationCap, Compass, BookOpen, FileCheck, ArrowRight, Users, FileText,
   ShieldCheck, UserCheck, Languages, Flame, HeartPulse, Utensils, Code, Wrench, Factory,
@@ -78,7 +78,7 @@ export const Navbar = () => {
 
 
           {/* Quick AI Tools Button */}
-          <button 
+          <button
             onClick={() => setActiveModal('ai-resume')}
             className="hidden sm:flex items-center space-x-1.5 bg-gold-500/20 text-gold-400 hover:bg-gold-500 hover:text-slate-900 dark:text-white px-2.5 py-1 rounded text-xs font-medium transition"
           >
@@ -87,8 +87,8 @@ export const Navbar = () => {
           </button>
 
           {/* Language Selector */}
-          <select 
-            value={language} 
+          <select
+            value={language}
             onChange={(e) => setLanguage(e.target.value)}
             className="bg-slate-50 dark:bg-navy-900 text-slate-700 dark:text-slate-200 border border-slate-300 dark:border-navy-700 rounded px-2 py-0.5 text-xs focus:outline-none focus:border-gold-500 font-bold"
           >
@@ -99,7 +99,7 @@ export const Navbar = () => {
           </select>
 
           {/* Dark Mode Toggle */}
-          <button 
+          <button
             onClick={toggleDarkMode}
             aria-label="Toggle dark mode"
             className="p-1.5 rounded-lg bg-slate-100 hover:bg-slate-200 dark:bg-navy-800 dark:hover:bg-navy-700 text-slate-700 dark:text-gold-400 border border-slate-300 dark:border-navy-700 transition shadow-sm flex items-center justify-center"
@@ -111,17 +111,17 @@ export const Navbar = () => {
       </div>
 
       {/* Main Glass Header */}
-      <nav className="glass-card bg-white/90 dark:bg-navy-900/90 shadow-glass backdrop-blur-md border-b border-white/20 dark:border-navy-800 px-4 sm:px-8 py-3 transition">
-        <div className="max-w-7xl mx-auto flex justify-between items-center">
-          
+      <nav className="bg-[#FFFFFF] dark:bg-navy-900/95 shadow-sm backdrop-blur-md border-b border-slate-200/80 dark:border-navy-800 px-4 sm:px-6 xl:px-4 2xl:px-8 py-2.5 sm:py-3 transition">
+        <div className="max-w-[1440px] w-full mx-auto flex justify-between xl:justify-center items-center gap-4 xl:gap-7 2xl:gap-8">
+
           {/* Logo */}
-          <div 
-            onClick={() => navigateTo('home')} 
-            className="cursor-pointer flex items-center space-x-2 sm:space-x-3.5 group"
+          <div
+            onClick={() => navigateTo('home')}
+            className="cursor-pointer flex items-center space-x-2.5 sm:space-x-3.5 group shrink-0"
           >
             <BrandLogoIcon className="w-10 h-10 sm:w-12 sm:h-12 group-hover:scale-105 transition duration-300 shadow-md" />
             <div>
-              <div className="font-serif text-xl sm:text-2xl font-black tracking-tight text-navy-900 dark:text-white flex items-center gap-1.5 sm:gap-2">
+              <div className="font-serif text-xl sm:text-2xl font-black tracking-tight text-[#0B1B33] dark:text-white flex items-center gap-1.5 sm:gap-2">
                 The Revival <span className="inline-block text-gold-500 font-sans text-[8px] sm:text-[11px] font-bold uppercase tracking-widest px-1.5 sm:px-2 py-0.5 bg-slate-50 dark:bg-navy-900 text-gold-400 rounded-md shadow-sm">International</span>
               </div>
               <p className="text-[9px] sm:text-[10px] uppercase tracking-widest text-slate-700 dark:text-slate-300 font-extrabold">India • GCC • Worldwide</p>
@@ -129,9 +129,9 @@ export const Navbar = () => {
           </div>
 
           {/* Desktop Nav Items */}
-          <div className="hidden xl:flex items-center space-x-1">
+          <div className="hidden xl:flex items-center space-x-1 2xl:space-x-1.5 shrink-0">
             {navItems.map((item) => (
-              <div 
+              <div
                 key={item.id}
                 className="relative"
                 onMouseEnter={() => item.hasMega && handleMenuEnter(item.hasMega)}
@@ -148,13 +148,12 @@ export const Navbar = () => {
                       navigateTo(item.id);
                     }
                   }}
-                  className={`px-3 py-2 rounded-lg text-xs font-semibold tracking-wide transition flex items-center space-x-1 cursor-pointer select-none ${
-                    activeTab === item.id 
-                      ? 'text-gold-500 bg-gold-500/10 dark:bg-gold-500/20 font-bold' 
-                      : 'text-navy-900 dark:text-slate-200 hover:text-gold-500 hover:bg-slate-100 dark:hover:bg-navy-800'
-                  }`}
+                  className={`px-2.5 xl:px-3 py-2 rounded-lg text-xs font-semibold tracking-wide transition flex items-center space-x-1 cursor-pointer select-none whitespace-nowrap ${activeTab === item.id
+                      ? 'text-gold-500 bg-gold-500/10 dark:bg-gold-500/20 font-bold'
+                      : 'text-[#0B1B33] dark:text-slate-200 hover:text-gold-500 hover:bg-slate-100 dark:hover:bg-navy-800'
+                    }`}
                 >
-                  <span>{item.label}</span>
+                  <span className="whitespace-nowrap">{item.label}</span>
                   {item.hasMega && (
                     <ChevronDown className={`w-3 h-3 text-slate-500 dark:text-slate-400 transition-transform duration-300 ${megaMenuType === item.hasMega ? 'rotate-180 text-gold-500' : ''}`} />
                   )}
@@ -162,13 +161,13 @@ export const Navbar = () => {
 
                 {/* Mega Menu Dropdown - Original High-Contrast Design */}
                 {megaMenuType === item.hasMega && (
-                  <div 
+                  <div
                     onMouseEnter={() => handleMenuEnter(item.hasMega)}
                     onMouseLeave={() => handleMenuLeave()}
                     className="absolute top-full pt-2 z-50 animate-in fade-in slide-in-from-top-1 duration-150 left-1/2 -translate-x-1/2 w-[88vw] sm:w-[380px] max-w-[92vw]"
                   >
                     <div className="relative bg-white dark:bg-[#0a1628] rounded-2xl p-4 sm:p-5 shadow-2xl border border-slate-200/90 dark:border-navy-700/90 overflow-hidden">
-                      
+
                       {/* Slim Gold Accent Indicator */}
                       <div className="absolute top-0 left-0 right-0 h-[2px] bg-gradient-to-r from-gold-500/10 via-gold-500 to-gold-500/10" />
 
@@ -188,7 +187,7 @@ export const Navbar = () => {
 
                           {/* 2-Column Compact Grid */}
                           <div className="grid grid-cols-2 gap-2 text-xs">
-                            
+
                             {/* Column 1: Academic Advisory */}
                             <div className="space-y-0.5">
                               <div className="px-1.5 py-1 text-[10px] font-black uppercase tracking-wider text-gold-700 dark:text-gold-400 flex items-center gap-1 border-b border-gold-500/15 mb-1">
@@ -332,64 +331,76 @@ export const Navbar = () => {
             ))}
           </div>
 
-          {/* Action CTAs: Matching Image 1 Layout with Revival Theme Colors (Gold Shimmer & Gold Outline) */}
-          <div className="hidden sm:flex items-center space-x-3">
-            {user ? (
-              <div className="flex items-center space-x-2 bg-slate-900/90 dark:bg-navy-950/90 border border-slate-200 dark:border-gold-500/40 px-3.5 py-1.5 rounded-full text-xs shadow-md">
-                <div className="w-7 h-7 rounded-full bg-gold-500 text-navy-950 font-bold flex items-center justify-center text-xs shadow-gold-glow">
-                  {user.name ? user.name[0].toUpperCase() : 'U'}
+          {/* Right Header Actions & Mobile Menu Wrapper */}
+          <div className="flex items-center gap-3 shrink-0">
+            {/* Action CTAs: Matching Master Logged-Out Layout with Revival Theme Colors */}
+            <div className="hidden sm:flex items-center justify-start shrink-0 w-[245px]">
+              {user ? (
+                <div className="flex items-center space-x-2 bg-[#FFFFFF] dark:bg-navy-900 border border-[#E0B32D] dark:border-gold-500/40 px-2.5 py-1.5 rounded-full text-xs shadow-[0_2px_10px_rgba(15,23,42,0.08)] transition-all">
+                  {/* User Avatar */}
+                  <div className="w-7 h-7 rounded-full bg-[#D9AF2B] text-[#0B1B33] font-bold text-xs flex items-center justify-center shadow-xs shrink-0">
+                    {user.name ? user.name[0].toUpperCase() : 'U'}
+                  </div>
+
+                  {/* Username and Role */}
+                  <div className="text-left leading-tight pr-0.5 shrink-0">
+                    <p className="font-semibold text-[#0B1B33] dark:text-white text-xs truncate max-w-[85px]" title={user.name}>
+                      {user.name}
+                    </p>
+                    <span className="text-[9px] text-[#C99A00] dark:text-gold-400 font-bold uppercase tracking-wider block">
+                      {user.role}
+                    </span>
+                  </div>
+
+                  {/* Portal Button */}
+                  <button
+                    onClick={() => navigateTo(user?.role === 'employer' ? 'employers' : 'candidates')}
+                    className="px-2.5 py-1 bg-[#F8F1D9] hover:bg-[#F0E3BD] dark:bg-gold-500/20 text-[#B88A00] dark:text-gold-400 border border-[#E0B32D] dark:border-gold-500/40 rounded-full text-[11px] font-semibold transition active:scale-95 cursor-pointer whitespace-nowrap"
+                  >
+                    Portal
+                  </button>
+
+                  {/* Logout Button */}
+                  <button
+                    onClick={logout}
+                    className="px-2.5 py-1 bg-[#F8E7EB] hover:bg-[#F2D6DC] dark:bg-rose-500/20 text-[#B83250] dark:text-rose-300 border border-[#F0C9D2] dark:border-rose-500/40 rounded-full text-[11px] font-semibold transition active:scale-95 cursor-pointer whitespace-nowrap"
+                    title="Sign Out"
+                  >
+                    Logout
+                  </button>
                 </div>
-                <div className="text-left">
-                  <p className="font-bold text-slate-900 dark:text-white leading-tight text-[11px] truncate max-w-[120px]">{user.name}</p>
-                  <span className="text-[9px] text-gold-400 font-semibold uppercase">{user.role}</span>
+              ) : (
+                <div className="flex items-center space-x-3.5">
+                  {/* Register button */}
+                  <button
+                    onClick={() => openAuthModal('register')}
+                    className="px-4 py-2 rounded-full text-xs font-bold text-[#0B1B33] dark:text-gold-400 bg-white dark:bg-navy-900 border-2 border-[#E0B32D] hover:bg-gold-500/10 transition flex items-center space-x-1.5 shadow-sm cursor-pointer whitespace-nowrap"
+                  >
+                    <User className="w-3.5 h-3.5 text-gold-500" />
+                    <span>Register</span>
+                  </button>
+
+                  {/* Sign In button */}
+                  <button
+                    onClick={() => openAuthModal('login')}
+                    className="px-5 py-2 rounded-full text-xs font-bold text-[#0B1B33] dark:text-navy-950 bg-[#D9AF2B] hover:bg-[#c99f24] shadow-gold-glow transition flex items-center space-x-1.5 cursor-pointer whitespace-nowrap"
+                  >
+                    <LogIn className="w-3.5 h-3.5 text-[#0B1B33]" />
+                    <span>Sign In</span>
+                  </button>
                 </div>
-                <button
-                  onClick={() => navigateTo('candidates')}
-                  className="px-2.5 py-1 bg-gold-500/20 hover:bg-gold-500 hover:text-slate-900 dark:text-white text-gold-400 rounded-full text-[10px] font-bold transition ml-1"
-                >
-                  Portal
-                </button>
-                <button
-                  onClick={logout}
-                  className="px-2.5 py-1 bg-rose-500/20 hover:bg-rose-500 hover:text-slate-900 dark:text-white text-rose-300 rounded-full text-[10px] font-bold transition"
-                  title="Sign Out"
-                >
-                  Logout
-                </button>
-              </div>
-            ) : (
-              <>
-                {/* Register button: Outline style matching Image 1 layout with website Revival Gold theme */}
-                <button
-                  onClick={() => openAuthModal('register')}
-                  className="px-4 py-2 rounded-full text-xs font-bold text-navy-900 dark:text-gold-400 bg-white dark:bg-navy-900 border-2 border-gold-500 hover:bg-gold-500/10 transition flex items-center space-x-1.5 shadow-sm"
-                >
-                  <User className="w-3.5 h-3.5 text-gold-500" />
-                  <span>Register</span>
-                </button>
-                
-                {/* Sign In button: Solid style matching Image 1 layout with website Revival Gold theme */}
-                <button
-                  onClick={() => openAuthModal('login')}
-                  className="px-5 py-2 rounded-full text-xs font-bold text-slate-900 dark:text-white bg-gold-500 hover:bg-gold-600 shadow-gold-glow transition flex items-center space-x-1.5"
-                >
-                  <LogIn className="w-3.5 h-3.5 text-slate-900 dark:text-white" />
-                  <span>Sign In</span>
-                </button>
+              )}
+            </div>
 
-
-              </>
-            )}
-          </div>
-
-          {/* Mobile Menu Button */}
-          <div className="xl:hidden flex items-center">
-            <button
-              onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
-              className="p-2 rounded-lg bg-slate-100 dark:bg-navy-800 border border-slate-300 dark:border-navy-700 text-slate-900 dark:text-white shadow-sm active:scale-95 transition"
-            >
-              {mobileMenuOpen ? <X className="w-6 h-6" /> : <Menu className="w-6 h-6" />}
-            </button>
+            {/* Mobile Menu Button */}
+            <div className="xl:hidden flex items-center">
+              <button
+                onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
+                className="p-2 rounded-lg bg-slate-100 dark:bg-navy-800 border border-slate-300 dark:border-navy-700 text-slate-900 dark:text-white shadow-sm active:scale-95 transition"
+              >
+                {mobileMenuOpen ? <X className="w-6 h-6" /> : <Menu className="w-6 h-6" />}
+              </button>
+            </div>
           </div>
 
         </div>
@@ -397,7 +408,7 @@ export const Navbar = () => {
         {/* Mobile Menu Drawer - Premium Glassmorphism */}
         {mobileMenuOpen && (
           <div className="xl:hidden mt-3 pt-4 border-t border-slate-200/50 dark:border-navy-700/50 flex flex-col gap-2.5 animate-in slide-in-from-top-4 duration-300">
-            
+
             {/* Dedicated Academic Advisory Mobile Card */}
             <div className="p-3 bg-gold-500/10 border border-gold-500/30 rounded-xl space-y-2">
               <div className="flex justify-between items-center">
@@ -454,43 +465,67 @@ export const Navbar = () => {
                     navigateTo(item.id);
                     setMobileMenuOpen(false);
                   }}
-                  className={`p-3.5 rounded-xl text-xs sm:text-sm font-semibold text-center transition-all duration-300 active:scale-95 shadow-sm block ${
-                    activeTab === item.id
+                  className={`p-3.5 rounded-xl text-xs sm:text-sm font-semibold text-center transition-all duration-300 active:scale-95 shadow-sm block ${activeTab === item.id
                       ? 'bg-gradient-to-r from-gold-500 to-gold-400 text-slate-900 dark:text-white font-bold shadow-gold-glow'
                       : 'bg-slate-50 dark:bg-navy-800/80 text-navy-900 dark:text-slate-200 border border-slate-200 dark:border-navy-700 hover:border-slate-200 dark:border-gold-500/50'
-                  }`}
+                    }`}
                   style={{ animationDelay: `${idx * 0.05}s` }}
                 >
                   {item.label}
                 </a>
               ))}
             </div>
-            
+
             <div className="flex gap-2.5 mt-2 border-t border-slate-200/50 dark:border-navy-700/50 pt-4">
               {!user ? (
                 <>
                   <button
                     onClick={() => { openAuthModal('register'); setMobileMenuOpen(false); }}
-                    className="flex-1 py-3.5 bg-white dark:bg-navy-900 border-2 border-gold-500 text-gold-600 dark:text-gold-400 font-bold rounded-xl text-xs shadow-sm active:scale-95 transition flex items-center justify-center space-x-1"
+                    className="flex-1 h-[44px] px-4 rounded-full border-2 border-gold-500 bg-white text-navy-950 dark:bg-navy-900 dark:text-gold-400 dark:border-gold-500 font-bold text-sm shadow-sm hover:scale-[1.02] active:scale-95 transition-all duration-200 flex items-center justify-center space-x-2 cursor-pointer select-none"
+                    aria-label="Register Account"
                   >
-                    <User className="w-4 h-4" />
+                    <User className="w-[18px] h-[18px] text-gold-500 dark:text-gold-400 shrink-0" strokeWidth={2} />
                     <span>Register</span>
                   </button>
                   <button
                     onClick={() => { openAuthModal('login'); setMobileMenuOpen(false); }}
-                    className="flex-1 py-3.5 bg-gold-shimmer text-navy-950 font-bold rounded-xl text-xs shadow-gold-glow active:scale-95 transition flex items-center justify-center space-x-1"
+                    className="flex-1 h-[44px] px-4 rounded-full bg-gold-500 hover:bg-[#c29d2b] dark:bg-gold-500 dark:hover:bg-[#dfb93e] text-navy-950 dark:text-white font-bold text-sm shadow-[0_2px_14px_rgba(212,175,55,0.35)] dark:shadow-[0_0_24px_rgba(212,175,55,0.5)] hover:scale-[1.02] active:scale-95 transition-all duration-200 flex items-center justify-center space-x-2 cursor-pointer select-none"
+                    aria-label="Sign In to Portal"
                   >
-                    <LogIn className="w-4 h-4" />
+                    <LogIn className="w-[18px] h-[18px] text-navy-950 dark:text-white shrink-0" strokeWidth={2.2} />
                     <span>Sign In</span>
                   </button>
                 </>
               ) : (
-                <button
-                  onClick={() => { logout(); setMobileMenuOpen(false); }}
-                  className="w-full py-3.5 bg-rose-500/10 border border-rose-500/30 text-rose-500 font-bold rounded-xl text-xs shadow-sm active:scale-95 transition"
-                >
-                  Log Out
-                </button>
+                <div className="w-full flex flex-col gap-2.5">
+                  <div className="flex items-center justify-between p-3 bg-white dark:bg-navy-900 border border-[#E0B32D] dark:border-gold-500/40 rounded-2xl shadow-[0_4px_14px_rgba(15,23,42,0.10)]">
+                    <div className="flex items-center gap-2.5">
+                      <div className="w-8 h-8 rounded-full bg-[#D9AF2B] text-[#0B1B33] font-bold flex items-center justify-center text-xs shadow-sm shrink-0">
+                        {user.name ? user.name[0].toUpperCase() : 'U'}
+                      </div>
+                      <div className="text-left leading-tight">
+                        <p className="font-semibold text-[#0B1B33] dark:text-white text-xs truncate max-w-[150px]">
+                          {user.name}
+                        </p>
+                        <span className="text-[10px] text-[#C99A00] dark:text-gold-400 font-bold uppercase tracking-wider block">
+                          {user.role}
+                        </span>
+                      </div>
+                    </div>
+                    <button
+                      onClick={() => { navigateTo(user?.role === 'employer' ? 'employers' : 'candidates'); setMobileMenuOpen(false); }}
+                    className="px-3 py-1.5 bg-[#F8F1D9] hover:bg-[#F0E3BD] dark:bg-gold-500/20 text-[#B88A00] dark:text-gold-400 border border-[#E0B32D] dark:border-gold-500/40 rounded-full text-xs font-semibold transition cursor-pointer"
+                    >
+                      Portal
+                    </button>
+                  </div>
+                  <button
+                    onClick={() => { logout(); setMobileMenuOpen(false); }}
+                    className="w-full py-2.5 bg-[#F8E7EB] hover:bg-[#F2D6DC] dark:bg-rose-500/20 text-[#B83250] dark:text-rose-300 border border-[#F0C9D2] dark:border-rose-500/40 font-semibold rounded-xl text-xs transition cursor-pointer"
+                  >
+                    Logout
+                  </button>
+                </div>
               )}
             </div>
           </div>

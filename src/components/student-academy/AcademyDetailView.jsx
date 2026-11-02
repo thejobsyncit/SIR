@@ -60,16 +60,16 @@ export const AcademyDetailView = ({
       </div>
 
       {/* Academy Master Profile Banner */}
-      <div className="glass-card bg-white dark:bg-navy-900 border border-slate-200 dark:border-navy-800 rounded-3xl p-6 sm:p-10 shadow-luxury space-y-6">
+      <div className="glass-card bg-white dark:bg-navy-900 border border-slate-200 dark:border-gold-500/30 rounded-3xl p-6 sm:p-10 shadow-luxury space-y-6">
         <div className="flex flex-col md:flex-row md:items-start justify-between gap-6 border-b border-slate-100 dark:border-navy-800 pb-6">
           <div className="flex items-start gap-5">
-            <div className="w-16 h-16 sm:w-20 sm:h-20 rounded-2xl bg-gradient-to-br from-slate-900 to-navy-950 text-gold-400 border border-gold-500/30 flex items-center justify-center font-black text-2xl sm:text-3xl shrink-0 shadow-lg">
+            <div className="w-16 h-16 sm:w-20 sm:h-20 rounded-2xl bg-gradient-to-br from-slate-900 to-navy-950 text-gold-400 border border-gold-500/30 flex items-center justify-center font-black text-2xl sm:text-3xl shrink-0 shadow-lg font-serif">
               {academy.shortName.charAt(0)}
             </div>
 
             <div className="space-y-2">
               <div className="flex flex-wrap items-center gap-2">
-                <span className="px-3 py-1 rounded-full bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 text-xs font-bold uppercase tracking-wider border border-emerald-500/20 inline-flex items-center gap-1.5">
+                <span className="px-3 py-1 rounded-full bg-emerald-500/15 text-emerald-600 dark:text-emerald-400 text-xs font-extrabold uppercase tracking-wider border border-emerald-500/30 inline-flex items-center gap-1.5">
                   <ShieldCheck className="w-3.5 h-3.5" />
                   <span>Verified Partner Academy</span>
                 </span>
@@ -78,7 +78,7 @@ export const AcademyDetailView = ({
                 </span>
               </div>
 
-              <h1 className="text-2xl sm:text-3xl lg:text-4xl font-black text-slate-900 dark:text-white">
+              <h1 className="font-serif text-2xl sm:text-3xl lg:text-4xl font-black text-navy-900 dark:text-white">
                 {academy.name}
               </h1>
 
@@ -105,7 +105,7 @@ export const AcademyDetailView = ({
               {academy.learningModes.map((mode, idx) => (
                 <span
                   key={idx}
-                  className="px-2.5 py-1 rounded-lg bg-gold-500/10 text-gold-600 dark:text-gold-400 text-xs font-bold border border-gold-500/20"
+                  className="px-2.5 py-1 rounded-lg bg-gold-500/15 text-gold-600 dark:text-gold-400 text-xs font-bold border border-gold-500/30"
                 >
                   {mode}
                 </span>
@@ -115,23 +115,23 @@ export const AcademyDetailView = ({
         </div>
 
         {/* Contact Information & Physical Address Grid */}
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 p-5 rounded-2xl bg-slate-50 dark:bg-navy-950/80 border border-slate-200/80 dark:border-navy-800 text-xs">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 p-5 rounded-2xl bg-slate-50 dark:bg-navy-950 border border-slate-100 dark:border-navy-800 text-xs">
           <div className="space-y-1">
-            <span className="text-slate-400 font-semibold flex items-center gap-1.5">
+            <span className="text-slate-500 dark:text-slate-400 font-semibold flex items-center gap-1.5">
               <MapPin className="w-3.5 h-3.5 text-gold-500" />
               <span>Campus Address</span>
             </span>
-            <p className="font-medium text-slate-800 dark:text-slate-200 leading-snug">
+            <p className="font-medium text-navy-900 dark:text-slate-200 leading-snug">
               {academy.address}
             </p>
           </div>
 
           <div className="space-y-1">
-            <span className="text-slate-400 font-semibold flex items-center gap-1.5">
+            <span className="text-slate-500 dark:text-slate-400 font-semibold flex items-center gap-1.5">
               <Phone className="w-3.5 h-3.5 text-gold-500" />
               <span>Direct Phone</span>
             </span>
-            <p className="font-medium text-slate-800 dark:text-slate-200">
+            <p className="font-medium text-navy-900 dark:text-slate-200">
               <a href={`tel:${academy.phone}`} className="hover:text-gold-500">
                 {academy.phone}
               </a>
@@ -139,11 +139,11 @@ export const AcademyDetailView = ({
           </div>
 
           <div className="space-y-1">
-            <span className="text-slate-400 font-semibold flex items-center gap-1.5">
+            <span className="text-slate-500 dark:text-slate-400 font-semibold flex items-center gap-1.5">
               <Mail className="w-3.5 h-3.5 text-gold-500" />
               <span>Official Email</span>
             </span>
-            <p className="font-medium text-slate-800 dark:text-slate-200">
+            <p className="font-medium text-navy-900 dark:text-slate-200">
               <a href={`mailto:${academy.email}`} className="hover:text-gold-500">
                 {academy.email}
               </a>
@@ -151,16 +151,16 @@ export const AcademyDetailView = ({
           </div>
 
           <div className="space-y-1">
-            <span className="text-slate-400 font-semibold flex items-center gap-1.5">
+            <span className="text-slate-500 dark:text-slate-400 font-semibold flex items-center gap-1.5">
               <Globe className="w-3.5 h-3.5 text-gold-500" />
               <span>Official Website</span>
             </span>
-            <p className="font-medium text-slate-800 dark:text-slate-200">
+            <p className="font-medium text-navy-900 dark:text-slate-200">
               <a
                 href={academy.website}
                 target="_blank"
                 rel="noopener noreferrer"
-                className="text-gold-500 hover:underline"
+                className="text-gold-600 dark:text-gold-400 font-bold hover:underline"
               >
                 Visit Academy Portal →
               </a>
@@ -170,10 +170,10 @@ export const AcademyDetailView = ({
 
         {/* Introduction */}
         <div className="space-y-2">
-          <h2 className="text-sm font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400">
+          <h2 className="font-serif text-sm font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400">
             About the Academy
           </h2>
-          <p className="text-xs sm:text-sm text-slate-700 dark:text-slate-300 leading-relaxed">
+          <p className="text-xs sm:text-sm text-slate-700 dark:text-slate-300 leading-relaxed font-medium">
             {academy.description}
           </p>
         </div>
@@ -181,12 +181,12 @@ export const AcademyDetailView = ({
         {/* Facilities & Teaching Methods Two-Column Grid */}
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6 pt-2">
           {/* Facilities */}
-          <div className="p-5 rounded-2xl bg-white dark:bg-navy-950 border border-slate-200 dark:border-navy-800 space-y-3">
-            <h3 className="text-xs font-bold uppercase tracking-wider text-slate-700 dark:text-slate-300 flex items-center gap-2">
+          <div className="p-5 rounded-2xl bg-slate-50 dark:bg-navy-950 border border-slate-100 dark:border-navy-800 space-y-3">
+            <h3 className="font-serif text-xs font-bold uppercase tracking-wider text-navy-900 dark:text-white flex items-center gap-2">
               <Building2 className="w-4 h-4 text-gold-500" />
               <span>Campus Facilities &amp; Infrastructure</span>
             </h3>
-            <ul className="space-y-2 text-xs text-slate-600 dark:text-slate-400">
+            <ul className="space-y-2 text-xs text-slate-700 dark:text-slate-300 font-medium">
               {academy.facilities.map((fac, idx) => (
                 <li key={idx} className="flex items-start gap-2">
                   <CheckCircle2 className="w-3.5 h-3.5 text-emerald-500 shrink-0 mt-0.5" />
@@ -197,12 +197,12 @@ export const AcademyDetailView = ({
           </div>
 
           {/* Teaching Methods */}
-          <div className="p-5 rounded-2xl bg-white dark:bg-navy-950 border border-slate-200 dark:border-navy-800 space-y-3">
-            <h3 className="text-xs font-bold uppercase tracking-wider text-slate-700 dark:text-slate-300 flex items-center gap-2">
+          <div className="p-5 rounded-2xl bg-slate-50 dark:bg-navy-950 border border-slate-100 dark:border-navy-800 space-y-3">
+            <h3 className="font-serif text-xs font-bold uppercase tracking-wider text-navy-900 dark:text-white flex items-center gap-2">
               <Award className="w-4 h-4 text-gold-500" />
               <span>Pedagogy &amp; Teaching Methodology</span>
             </h3>
-            <ul className="space-y-2 text-xs text-slate-600 dark:text-slate-400">
+            <ul className="space-y-2 text-xs text-slate-700 dark:text-slate-300 font-medium">
               {academy.teachingMethods.map((meth, idx) => (
                 <li key={idx} className="flex items-start gap-2">
                   <Sparkles className="w-3.5 h-3.5 text-gold-500 shrink-0 mt-0.5" />
@@ -273,7 +273,7 @@ export const AcademyDetailView = ({
                     <div className="shrink-0">
                       <button
                         onClick={() => onSelectCourse(course.id)}
-                        className="w-full sm:w-auto inline-flex items-center justify-center gap-2 px-6 py-3 rounded-xl bg-gold-500 hover:bg-gold-400 text-navy-950 font-black text-xs uppercase tracking-wider transition-all duration-200 shadow-md hover:shadow-lg"
+                        className="w-full sm:w-auto inline-flex items-center justify-center gap-2 px-6 py-3 rounded-xl bg-gold-shimmer text-navy-950 font-extrabold text-xs uppercase tracking-wider transition-all duration-200 shadow-gold-glow hover:opacity-95 active-scale cursor-pointer"
                         id={`btn-enquire-${course.id}`}
                       >
                         <span>Enquire About This Course</span>
@@ -359,9 +359,9 @@ export const AcademyDetailView = ({
 
       {/* Separate Section: Other Examinations & Courses Offered by Same Academy */}
       {otherCourses.length > 0 && (
-        <div className="glass-card bg-white dark:bg-navy-900 border border-slate-200 dark:border-navy-800 rounded-3xl p-6 sm:p-8 space-y-6">
+        <div className="glass-card bg-white dark:bg-navy-900 border border-slate-200 dark:border-gold-500/30 rounded-3xl p-6 sm:p-8 space-y-6 shadow-luxury">
           <div className="space-y-1 border-b border-slate-100 dark:border-navy-800 pb-4">
-            <h3 className="text-lg font-bold text-slate-900 dark:text-white flex items-center gap-2">
+            <h3 className="font-serif text-lg font-bold text-navy-900 dark:text-white flex items-center gap-2">
               <Layers className="w-4 h-4 text-gold-500" />
               <span>Other Examinations &amp; Courses by {academy.shortName}</span>
             </h3>

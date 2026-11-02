@@ -31,7 +31,7 @@ export const AppProvider = ({ children }) => {
         }
         try {
           localStorage.setItem('sir_theme_mode', next ? 'dark' : 'light');
-        } catch (e) {}
+        } catch (e) { }
         return next;
       });
     }
@@ -56,7 +56,8 @@ export const AppProvider = ({ children }) => {
   const [activeTab, setActiveTab] = useState(() => {
     if (typeof window !== 'undefined') {
       const path = window.location.pathname.replace(/^\/+|\/+$/g, '');
-      const hash = window.location.hash.replace('#', '');
+      const rawHash = window.location.hash.replace('#', '');
+      const hash = rawHash.split('?')[0];
       if (path === 'crm' || path.startsWith('crm/') || hash === 'crm') return 'crm';
       if (hash) return hash;
       if (path && path !== '') return path;
@@ -67,7 +68,8 @@ export const AppProvider = ({ children }) => {
   useEffect(() => {
     const handleHashChange = () => {
       if (typeof window !== 'undefined') {
-        const hash = window.location.hash.replace('#', '');
+        const rawHash = window.location.hash.replace('#', '');
+        const hash = rawHash.split('?')[0];
         if (hash) {
           setActiveTab(hash);
         }
@@ -225,7 +227,7 @@ export const AppProvider = ({ children }) => {
     saveCandidateToDB(candidateUser);
     saveUserSession(candidateUser);
     setActiveTab('candidates');
-    
+
     // CRM Integration: Add candidate to internal CRM database
     if (crm && crm.addCandidate) {
       crm.addCandidate({
@@ -272,7 +274,7 @@ export const AppProvider = ({ children }) => {
   };
 
   const toggleSaveJob = (jobId) => {
-    setSavedJobs(prev => 
+    setSavedJobs(prev =>
       prev.includes(jobId) ? prev.filter(id => id !== jobId) : [...prev, jobId]
     );
   };
@@ -289,7 +291,7 @@ export const AppProvider = ({ children }) => {
       status: 'Under AI Resume Screening',
       step: 1
     };
-    
+
     // Post to backend Candidates API as a new lead
     try {
       await fetch('/api/candidates', {
@@ -313,7 +315,7 @@ export const AppProvider = ({ children }) => {
       const updated = [newApp, ...prev];
       try {
         localStorage.setItem('sir_job_applications', JSON.stringify(updated));
-      } catch {}
+      } catch { }
       return updated;
     });
   };
@@ -334,7 +336,7 @@ export const AppProvider = ({ children }) => {
       });
       try {
         localStorage.setItem('sir_job_applications', JSON.stringify(updated));
-      } catch {}
+      } catch { }
       return updated;
     });
   };
@@ -484,7 +486,7 @@ export const AppProvider = ({ children }) => {
       } else {
         sessionStorage.removeItem('sir_selected_service_id');
       }
-    } catch {}
+    } catch { }
   };
 
   const [selectedIndustryId, setSelectedIndustryId] = useState(null);
