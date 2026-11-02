@@ -26,7 +26,8 @@ export const ExamEnquiryView = ({ examId, onBackToExams }) => {
     qualification: 'Undergraduate Degree (B.A./B.Sc/B.Com)',
     preferredLearningMode: 'Online Live',
     preferredLocation: '',
-    selectedCourseOption: ''
+    selectedCourseOption: '',
+    consent: false
   });
 
   React.useEffect(() => {
@@ -75,26 +76,46 @@ export const ExamEnquiryView = ({ examId, onBackToExams }) => {
   // Form Validation
   const validateForm = () => {
     const errors = {};
-    if (!formData.studentName.trim() || formData.studentName.trim().length < 2) {
-      errors.studentName = 'Please enter your full name (at least 2 characters).';
+
+    const trimmedName = (formData.studentName || '').trim();
+    if (!trimmedName || trimmedName.length < 2) {
+      errors.studentName = 'Please enter your full name (minimum 2 characters).';
+    } else if (/^\d+$/.test(trimmedName)) {
+      errors.studentName = 'Full name cannot consist only of numbers.';
+    } else if (!/^[a-zA-Z\u00C0-\u024F\u1E00-\u1EFF\s.'\-(),]+$/.test(trimmedName)) {
+      errors.studentName = 'Full name cannot contain numbers or unsupported special characters.';
     }
 
-    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-    if (!formData.email.trim() || !emailRegex.test(formData.email.trim())) {
-      errors.email = 'Please enter a valid email address.';
+    const trimmedEmail = (formData.email || '').trim();
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[a-zA-Z]{2,}$/;
+    if (!trimmedEmail || !emailRegex.test(trimmedEmail)) {
+      errors.email = 'Please provide a valid email address with a domain extension (e.g. name@example.com).';
     }
 
-    const phoneDigits = formData.phone.replace(/[^0-9]/g, '');
-    if (!formData.phone.trim() || phoneDigits.length < 7) {
-      errors.phone = 'Please enter a valid mobile number with country code.';
+    const rawPhone = (formData.phone || '').trim();
+    const cleanPhone = rawPhone.replace(/[\s\-\(\)\+]/g, '');
+    if (!cleanPhone) {
+      errors.phone = 'Please provide a valid mobile or WhatsApp number with country code.';
+    } else if (!/^[0-9+\s\-()]+$/.test(rawPhone)) {
+      errors.phone = 'Phone number can only contain digits, spaces, and formatting characters (+, -, ()).';
+    } else if (cleanPhone.length < 7 || cleanPhone.length > 15) {
+      errors.phone = `Phone number must be between 7 and 15 digits (currently ${cleanPhone.length} digits).`;
     }
 
     if (!formData.qualification.trim()) {
       errors.qualification = 'Please select your current educational qualification.';
     }
 
+    if (!formData.preferredLearningMode || !formData.preferredLearningMode.trim()) {
+      errors.preferredLearningMode = 'Please select your preferred learning mode.';
+    }
+
     if (!formData.preferredLocation.trim()) {
       errors.preferredLocation = isInternationalOrGcc ? 'Please enter your target country.' : 'Please enter your target country.';
+    }
+
+    if (!formData.consent) {
+      errors.consent = 'You must acknowledge the communication consent to proceed.';
     }
 
     setFormErrors(errors);
@@ -124,7 +145,9 @@ export const ExamEnquiryView = ({ examId, onBackToExams }) => {
         targetCountry: formData.preferredLocation,
         countryInterest: formData.preferredLocation,
         message: '',
-        courseName: formData.selectedCourseOption || `${details.abbreviation} Comprehensive Coaching & Advisory`
+        courseName: formData.selectedCourseOption || `${details.abbreviation} Comprehensive Coaching & Advisory`,
+        consent: Boolean(formData.consent),
+        isExamEnquiry: true
       };
 
       const result = await submitExamEnquiry(payload);
@@ -287,7 +310,7 @@ export const ExamEnquiryView = ({ examId, onBackToExams }) => {
           </div>
         ) : (
           /* Active Form */
-          <form onSubmit={handleSubmit} className="space-y-5" id="form-exam-enquiry">
+          <form onSubmit={handleSubmit} noValidate className="space-y-5" id="form-exam-enquiry">
             <div className="flex items-center gap-2.5 text-gold-600 dark:text-gold-400 border-b border-slate-100 dark:border-navy-800 pb-3">
               <Send className="w-5 h-5 text-gold-500" />
               <h2 className="font-serif text-base sm:text-lg font-bold text-navy-900 dark:text-white uppercase tracking-wider">
@@ -305,7 +328,7 @@ export const ExamEnquiryView = ({ examId, onBackToExams }) => {
             {/* Auto-populated Selected Exam */}
             <div>
               <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1">
-                Selected Examination (Pre-populated)
+                Selected Examination / Pathway <span className="text-rose-500 font-bold">*</span>
               </label>
               <div className="px-3.5 py-2.5 rounded-xl bg-slate-100 dark:bg-navy-950 border border-slate-200 dark:border-navy-700 text-xs font-bold text-gold-600 dark:text-gold-400 flex items-center justify-between">
                 <span>{details.fullName} ({details.abbreviation})</span>
@@ -407,7 +430,7 @@ export const ExamEnquiryView = ({ examId, onBackToExams }) => {
                 </select>
               </div>
 
-              {/* Preferred Coaching Mode */}
+              {/* Preferred Learning Mode <span className="text-rose-500 font-bold">*</span> */}
               <div>
                 <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1.5">
                   Preferred Coaching Mode
@@ -488,6 +511,32 @@ export const ExamEnquiryView = ({ examId, onBackToExams }) => {
             </div>
 
             
+
+            {/* Consent Checkbox */}
+            <div className="pt-1">
+              <label className="flex items-start gap-2.5 cursor-pointer">
+                <input
+                  type="checkbox"
+                  name="consent"
+                  id="checkbox-view-consent"
+                  checked={formData.consent}
+                  onChange={(e) => {
+                    const checked = e.target.checked;
+                    setFormData(prev => ({ ...prev, consent: checked }));
+                    if (formErrors.consent) {
+                      setFormErrors(prev => ({ ...prev, consent: null }));
+                    }
+                  }}
+                  className={`mt-0.5 rounded ${formErrors.consent ? 'border-rose-500 ring-1 ring-rose-500' : 'border-slate-300'} text-gold-600 focus:ring-gold-500 w-4 h-4 cursor-pointer`}
+                />
+                <span className="text-[11px] text-slate-600 dark:text-slate-400 leading-tight">
+                  I agree to receive verified course syllabus details, fee estimates, and consultation advice from Revival International Academic Advisory via WhatsApp, phone, or email. <span className="text-rose-500 font-bold">*</span>
+                </span>
+              </label>
+              {formErrors.consent && (
+                <p className="text-[11px] text-rose-500 mt-1 font-medium pl-6.5">{formErrors.consent}</p>
+              )}
+            </div>
 
             {/* Submit Button */}
             <button

@@ -170,6 +170,8 @@ export const submitExamEnquiry = async (enquiryData) => {
     courseId: enquiryData.courseId || 'exam-preparation-support',
     courseName: enquiryData.courseName || `${enquiryData.examName || 'Competitive Exam'} Coaching & Preparation`,
     enquiryType: 'Exam Enquiry',
+    consent: enquiryData.consent !== undefined ? Boolean(enquiryData.consent) : true,
+    isExamEnquiry: true,
     serviceId: 'school-academy',
     serviceTitle: 'Student Academy - Exam Enquiry',
     createdAt: new Date().toISOString()

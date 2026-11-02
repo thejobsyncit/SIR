@@ -157,29 +157,47 @@ export const EducationEnquiryModal = ({
 
   const validate = (data) => {
     const errors = {};
-    if (!data.name || data.name.trim().length < 2) {
+    const trimmedName = (data.name || '').trim();
+    if (!trimmedName || trimmedName.length < 2) {
       errors.name = 'Please provide your full name (minimum 2 characters).';
+    } else if (/^\d+$/.test(trimmedName)) {
+      errors.name = 'Full name cannot consist only of numbers.';
+    } else if (!/^[a-zA-Z\u00C0-\u024F\u1E00-\u1EFF\s.'\-(),]+$/.test(trimmedName)) {
+      errors.name = 'Full name cannot contain numbers or unsupported special characters.';
     }
-    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-    if (!data.email || !emailRegex.test(data.email.trim())) {
-      errors.email = 'Please provide a valid email address.';
+
+    const trimmedEmail = (data.email || '').trim();
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[a-zA-Z]{2,}$/;
+    if (!trimmedEmail || !emailRegex.test(trimmedEmail)) {
+      errors.email = 'Please provide a valid email address with a domain extension (e.g. name@example.com).';
     }
-    const cleanPhone = (phone || data.phone || '').replace(/[\s\-\(\)\+]/g, '');
+
+    const rawPhone = (phone || data.phone || '').trim();
+    const cleanPhone = rawPhone.replace(/[\s\-\(\)\+]/g, '');
     if (!cleanPhone) {
       errors.phone = 'Please provide your phone or WhatsApp number.';
+    } else if (!/^[0-9+\s\-()]+$/.test(rawPhone)) {
+      errors.phone = 'Phone number can only contain digits, spaces, and formatting characters (+, -, ()).';
     } else if (cleanPhone.length < 7 || cleanPhone.length > 15) {
       errors.phone = `Phone number must be between 7 and 15 digits (currently ${cleanPhone.length} digits).`;
     }
+
     if (!isCareerGuidance) {
       if (!data.message || data.message.trim().length < 10) {
         errors.message = 'Please provide inquiry details or background (minimum 10 characters).';
       }
     }
     if (isCareerGuidance) {
-      if (!programLevel) {
+      const trimmedOrg = (data.organization || '').trim();
+      if (!trimmedOrg) {
+        errors.organization = 'Please provide your current school or college name.';
+      } else if (trimmedOrg.length < 2) {
+        errors.organization = 'School or college name must be at least 2 characters.';
+      }
+      if (!programLevel || !programLevel.trim()) {
         errors.programLevel = 'Please select your target academic level.';
       }
-      if (!countryInterest) {
+      if (!countryInterest || !countryInterest.trim()) {
         errors.countryInterest = 'Please select your target study destination.';
       }
     }
@@ -223,6 +241,7 @@ export const EducationEnquiryModal = ({
       name: data.name.trim(),
       email: data.email.trim(),
       phone: phone.trim(),
+      consent: Boolean(consent),
       serviceId: isCareerGuidance ? 'school-career' : activeService.id,
       serviceTitle: isCareerGuidance
         ? (courseName ? `Career Guidance | ${courseName}` : 'Career Guidance')
@@ -440,29 +459,13 @@ export const EducationEnquiryModal = ({
               {/* Highlighted Section: Selected Course / Degree (Career Guidance) */}
               {isCareerGuidance && (
                 <div className="p-3.5 sm:p-4 rounded-2xl bg-[#F8FAFC] dark:bg-navy-950/80 border border-gold-500/30 shadow-sm space-y-2">
-                  <div className="flex items-center justify-between gap-3">
-                    <div className="flex items-center gap-2">
-                      <span className="p-1.5 rounded-lg bg-gold-500/15 text-gold-600 dark:text-gold-400">
-                        <GraduationCap className="w-4 h-4" />
-                      </span>
-                      <span className="text-[11px] font-extrabold uppercase tracking-wider text-gold-600 dark:text-gold-400">
-                        Selected Course / Degree
-                      </span>
-                    </div>
-                    {activeCourse && (
-                      <button
-                        type="button"
-                        onClick={() => {
-                          setActiveCourse(null);
-                          setSubProgram('');
-                        }}
-                        className="text-[11px] font-bold text-slate-400 hover:text-rose-500 dark:hover:text-rose-400 transition flex items-center gap-1 cursor-pointer"
-                        title="Clear or change selected course"
-                      >
-                        <X className="w-3.5 h-3.5" />
-                        <span>Change / Clear</span>
-                      </button>
-                    )}
+                  <div className="flex items-center gap-2">
+                    <span className="p-1.5 rounded-lg bg-gold-500/15 text-gold-600 dark:text-gold-400">
+                      <GraduationCap className="w-4 h-4" />
+                    </span>
+                    <span className="text-[11px] font-extrabold uppercase tracking-wider text-gold-600 dark:text-gold-400">
+                      Selected Course / Degree
+                    </span>
                   </div>
 
                   {activeCourse ? (
@@ -672,14 +675,22 @@ export const EducationEnquiryModal = ({
 
                 <div>
                   <label className="block text-xs font-bold text-[#0B1B33] dark:text-slate-200 mb-1">
-                    Current School / College / Employer
+                    {isCareerGuidance ? 'Current School / College' : 'Current School / College / Employer'} {isCareerGuidance && <span className="text-rose-500">*</span>}
                   </label>
                   <input
                     type="text"
                     name="organization"
+                    required={isCareerGuidance}
                     placeholder="e.g. Delhi Public School / IIT Madras"
-                    className="w-full bg-[#F8FAFC] dark:bg-navy-950 border border-[#DCE3EC] dark:border-navy-700 text-[#0B1B33] dark:text-slate-200 text-xs rounded-xl px-3.5 py-2.5 focus:bg-white dark:focus:bg-navy-900 focus:outline-none focus:ring-2 focus:ring-gold-500 transition"
+                    onChange={() => {
+                      if (formErrors.organization) setFormErrors(prev => ({ ...prev, organization: null }));
+                    }}
+                    className={`w-full bg-[#F8FAFC] dark:bg-navy-950 border text-[#0B1B33] dark:text-slate-200 text-xs rounded-xl px-3.5 py-2.5 focus:bg-white dark:focus:bg-navy-900 focus:outline-none focus:ring-2 focus:ring-gold-500 transition ${formErrors.organization ? 'border-rose-500' : 'border-[#DCE3EC] dark:border-navy-700'
+                      }`}
                   />
+                  {formErrors.organization && (
+                    <p className="text-[11px] text-rose-500 mt-1 font-medium">{formErrors.organization}</p>
+                  )}
                 </div>
               </div>
 
@@ -700,6 +711,7 @@ export const EducationEnquiryModal = ({
                   >
                     {isCareerGuidance ? (
                       <>
+                        <option value="">-- Select Academic Level --</option>
                         <option value="Undergraduate (Bachelor Degree)">Undergraduate (Bachelor Degree)</option>
                         <option value="Postgraduate (Master Degree / MBA)">Postgraduate (Master Degree / MBA)</option>
                       </>
@@ -732,6 +744,7 @@ export const EducationEnquiryModal = ({
                       }`}
                   >
 
+                    <option value="">-- Select Study Destination --</option>
                     <option value="India">India</option>
                     <option value="United Kingdom">United Kingdom (UK)</option>
                     <option value="United States">United States (USA)</option>
