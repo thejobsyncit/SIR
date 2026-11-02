@@ -3,6 +3,7 @@ import { X, Send, CheckCircle2, AlertCircle, Loader2, GraduationCap, Sparkles } 
 import { EDUCATION_SERVICES_DETAILED } from '../data/educationServicesData';
 import { trackEnquiryStart, trackEnquiryValidationFailure, trackEnquiryConversion } from '../services/analytics';
 import { getAttributionData } from '../utils/attribution';
+import { submitLeadWithFallback } from '../services/leadSubmissionService';
 
 // Helper to parse course and stream metadata
 const parseCourseInfo = (courseObj, subProgStr, levelStr) => {
@@ -265,16 +266,10 @@ export const EducationEnquiryModal = ({
     };
 
     try {
-      const res = await fetch('/api/leads', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(payload)
-      });
+      const { ok, data: result } = await submitLeadWithFallback(payload);
 
-      const result = await res.json().catch(() => ({}));
-
-      if (!res.ok || !result.success) {
-        throw new Error(result.message || 'Server was unable to record your inquiry. Please try again.');
+      if (!ok || !result?.success) {
+        throw new Error(result?.message || 'Server was unable to record your inquiry. Please try again.');
       }
 
       const generatedRef = result.data?.referenceNumber || result.referenceNumber || result.data?.id || `REV-CAR-${Date.now().toString().slice(-6)}`;

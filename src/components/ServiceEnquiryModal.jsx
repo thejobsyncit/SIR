@@ -6,6 +6,7 @@ import {
 } from 'lucide-react';
 import { trackEnquiryStart, trackEnquiryConversion } from '../services/analytics';
 import { getAttributionData } from '../utils/attribution';
+import { submitLeadWithFallback } from '../services/leadSubmissionService';
 
 const serviceIcons = {
   'dom-rec': Building2,
@@ -253,15 +254,9 @@ export const ServiceEnquiryModal = ({ isOpen, onClose, service, onNavigateToJobs
         status: (formData.consultationCall && formData.consultationDate) ? 'Consultation Scheduled' : 'New'
       };
 
-      const res = await fetch('/api/leads', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(payload)
-      });
+      const { ok, data: json } = await submitLeadWithFallback(payload);
 
-      const json = await res.json();
-
-      if (res.ok && json.success) {
+      if (ok && json?.success) {
         setSubmittedLead(json.data || json.lead);
         trackEnquiryConversion('service_modal', service.id, json.data?.referenceNumber);
       } else {
