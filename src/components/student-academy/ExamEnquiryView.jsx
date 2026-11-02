@@ -8,11 +8,7 @@ import {
 import { getExamById } from '../../data/studentAcademyData';
 import { getExamEnquiryDetails } from '../../data/examEnquiryDetailsData';
 import { submitExamEnquiry } from '../../services/academyService';
-import {
-  SearchableCountrySelect,
-  isInternationalOrGccExam,
-  resolveDefaultExamCountry
-} from './SearchableCountrySelect';
+import { isInternationalOrGccExam } from './SearchableCountrySelect';
 
 export const ExamEnquiryView = ({ examId, onBackToExams }) => {
   const exam = useMemo(() => getExamById(examId), [examId]);
@@ -29,8 +25,7 @@ export const ExamEnquiryView = ({ examId, onBackToExams }) => {
     phone: '',
     qualification: 'Undergraduate Degree (B.A./B.Sc/B.Com)',
     preferredLearningMode: 'Online Live',
-    preferredLocation: isInternationalOrGcc ? resolveDefaultExamCountry(exam) : 'Online / Remote',
-    message: '',
+    preferredLocation: '',
     selectedCourseOption: ''
   });
 
@@ -38,7 +33,7 @@ export const ExamEnquiryView = ({ examId, onBackToExams }) => {
     if (exam && isInternationalOrGcc) {
       setFormData(prev => ({
         ...prev,
-        preferredLocation: resolveDefaultExamCountry(exam)
+        preferredLocation: ''
       }));
     }
   }, [exam, isInternationalOrGcc]);
@@ -99,7 +94,7 @@ export const ExamEnquiryView = ({ examId, onBackToExams }) => {
     }
 
     if (!formData.preferredLocation.trim()) {
-      errors.preferredLocation = isInternationalOrGcc ? 'Please select your target country.' : 'Please specify your preferred study location.';
+      errors.preferredLocation = isInternationalOrGcc ? 'Please enter your target country.' : 'Please enter your target country.';
     }
 
     setFormErrors(errors);
@@ -128,7 +123,7 @@ export const ExamEnquiryView = ({ examId, onBackToExams }) => {
         preferredLocation: formData.preferredLocation,
         targetCountry: formData.preferredLocation,
         countryInterest: formData.preferredLocation,
-        message: formData.message,
+        message: '',
         courseName: formData.selectedCourseOption || `${details.abbreviation} Comprehensive Coaching & Advisory`
       };
 
@@ -444,63 +439,55 @@ export const ExamEnquiryView = ({ examId, onBackToExams }) => {
                   >
                     Target Country <span className="text-rose-500">*</span>
                   </label>
-                  <SearchableCountrySelect
-                    id="input-enquiry-target-country"
-                    name="preferredLocation"
-                    value={formData.preferredLocation}
-                    onChange={(countryName) => {
-                      setFormData(prev => ({ ...prev, preferredLocation: countryName }));
-                      if (formErrors.preferredLocation) {
-                        setFormErrors(prev => ({ ...prev, preferredLocation: null }));
-                      }
-                    }}
-                    error={formErrors.preferredLocation}
-                    placeholder="Select Target Country..."
-                  />
+                  <div className="relative">
+                    <Globe className="w-4 h-4 text-slate-400 absolute left-3.5 top-1/2 -translate-y-1/2 pointer-events-none" />
+                    <input
+                      type="text"
+                      id="input-enquiry-target-country"
+                      name="preferredLocation"
+                      value={formData.preferredLocation}
+                      onChange={handleChange}
+                      placeholder="Enter your target country (e.g., India, UAE, UK, Saudi Arabia)"
+                      className={`w-full pl-10 pr-3.5 py-2.5 rounded-xl bg-slate-50 dark:bg-navy-950 border ${formErrors.preferredLocation ? 'border-rose-500' : 'border-slate-200 dark:border-navy-700'
+                        } text-xs text-navy-900 dark:text-white placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-gold-500 font-medium`}
+                    />
+                  </div>
+                  {formErrors.preferredLocation && (
+                    <p className="text-[11px] text-rose-500 mt-1 font-medium">{formErrors.preferredLocation}</p>
+                  )}
                   <p className="text-[11px] text-slate-500 dark:text-slate-400 mt-1">
-                    Select your preferred destination country or GCC licensing jurisdiction.
+                    Enter your preferred destination country or GCC licensing jurisdiction.
                   </p>
                 </div>
               ) : (
                 <div>
-                  <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1">
-                    Preferred Study Location <span className="text-rose-500">*</span>
+                  <label 
+                    htmlFor="input-enquiry-location"
+                    className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1"
+                  >
+                    Target Country <span className="text-rose-500">*</span>
                   </label>
                   <div className="relative">
                     <MapPin className="w-4 h-4 text-slate-400 absolute left-3.5 top-1/2 -translate-y-1/2 pointer-events-none" />
                     <input
                       type="text"
                       name="preferredLocation"
+                      id="input-enquiry-location"
                       value={formData.preferredLocation}
                       onChange={handleChange}
-                      placeholder="e.g. Dubai, Chennai, Delhi, Bangalore, or Online"
+                      placeholder="Enter your target country (e.g., India, UAE, UK, Saudi Arabia)"
                       className={`w-full pl-10 pr-3.5 py-2.5 rounded-xl bg-slate-50 dark:bg-navy-950 border ${formErrors.preferredLocation ? 'border-rose-500' : 'border-slate-200 dark:border-navy-700'
                         } text-xs text-navy-900 dark:text-white placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-gold-500 font-medium`}
-                      id="input-enquiry-location"
                     />
                   </div>
                   {formErrors.preferredLocation && (
-                    <p className="text-[11px] text-rose-500 mt-1">{formErrors.preferredLocation}</p>
+                    <p className="text-[11px] text-rose-500 mt-1 font-medium">{formErrors.preferredLocation}</p>
                   )}
                 </div>
               )}
             </div>
 
-            {/* Message or Additional Questions */}
-            <div>
-              <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1">
-                Message or Questions (Optional)
-              </label>
-              <textarea
-                name="message"
-                rows="3"
-                value={formData.message}
-                onChange={handleChange}
-                placeholder="Ask about test series, batch timings, fees, or specific subject guidance..."
-                className="w-full px-3.5 py-2.5 rounded-xl bg-slate-50 dark:bg-navy-950 border border-slate-200 dark:border-navy-700 text-xs text-navy-900 dark:text-white placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-gold-500 resize-none font-medium"
-                id="textarea-enquiry-message"
-              />
-            </div>
+            
 
             {/* Submit Button */}
             <button

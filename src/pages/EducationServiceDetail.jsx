@@ -592,9 +592,11 @@ export const EducationServiceDetail = ({ serviceId }) => {
             <div className="space-y-6">
               <div className="flex justify-between items-end border-b border-slate-200 dark:border-navy-800 pb-3">
                 <div>
-                  <span className="text-[10px] uppercase font-bold tracking-widest text-gold-600 dark:text-gold-400">
-                    Integrated Offerings
-                  </span>
+                  {!isCareerGuidance && (
+                    <span className="text-[10px] uppercase font-bold tracking-widest text-gold-600 dark:text-gold-400">
+                      Integrated Offerings
+                    </span>
+                  )}
                   <h3 className="font-serif text-xl sm:text-2xl font-bold text-navy-900 dark:text-white">
                     Related Academic Advisory Services
                   </h3>

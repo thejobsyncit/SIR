@@ -5,11 +5,7 @@ import {
   GraduationCap, MapPin, Monitor
 } from 'lucide-react';
 import { submitExamEnquiry } from '../../services/academyService';
-import {
-  SearchableCountrySelect,
-  isInternationalOrGccExam,
-  resolveDefaultExamCountry
-} from './SearchableCountrySelect';
+import { isInternationalOrGccExam } from './SearchableCountrySelect';
 
 export const ExamEnquiryModal = ({ isOpen, onClose, exam, selectedCourse, category }) => {
   const isInternationalOrGcc = isInternationalOrGccExam(exam, category);
@@ -20,8 +16,7 @@ export const ExamEnquiryModal = ({ isOpen, onClose, exam, selectedCourse, catego
     phone: '',
     qualification: 'Bachelor\'s Degree',
     preferredLearningMode: selectedCourse?.deliveryMode || 'Online Live',
-    preferredLocation: isInternationalOrGcc ? resolveDefaultExamCountry(exam) : (exam?.country || 'Dubai, UAE'),
-    message: '',
+    preferredLocation: '',
     consent: true
   });
 
@@ -32,18 +27,10 @@ export const ExamEnquiryModal = ({ isOpen, onClose, exam, selectedCourse, catego
   // Sync defaults whenever exam or selectedCourse changes
   useEffect(() => {
     if (exam) {
-      const isIntlOrGcc = isInternationalOrGccExam(exam, category);
-      const initialLocation = isIntlOrGcc
-        ? resolveDefaultExamCountry(exam)
-        : (exam.country || 'Dubai, UAE');
-
       setFormData((prev) => ({
         ...prev,
-        preferredLocation: initialLocation,
-        preferredLearningMode: selectedCourse?.deliveryMode || 'Online Live',
-        message: selectedCourse 
-          ? `I am inquiring about the ${selectedCourse.courseName} by ${selectedCourse.academyName} for ${exam.code}. Please provide upcoming batch dates and enrollment details.`
-          : `I am seeking advisory and preparation guidance for ${exam.name} (${exam.code}).`
+        preferredLocation: '',
+        preferredLearningMode: selectedCourse?.deliveryMode || 'Online Live'
       }));
     }
   }, [exam, selectedCourse, category]);
@@ -104,7 +91,7 @@ export const ExamEnquiryModal = ({ isOpen, onClose, exam, selectedCourse, catego
       return;
     }
     if (!formData.preferredLocation || !formData.preferredLocation.trim()) {
-      setError(isInternationalOrGcc ? 'Please select your target country.' : 'Please specify your preferred study location.');
+      setError('Please enter your target country.');
       return;
     }
     if (!formData.consent) {
@@ -126,7 +113,7 @@ export const ExamEnquiryModal = ({ isOpen, onClose, exam, selectedCourse, catego
         preferredLocation: formData.preferredLocation.trim(),
         targetCountry: formData.preferredLocation.trim(),
         countryInterest: formData.preferredLocation.trim(),
-        message: formData.message.trim(),
+        message: '',
         academyId: selectedCourse ? 'verified-academy-partner' : 'revival-advisory',
         academyName: selectedCourse ? selectedCourse.academyName : 'Revival International Academic Advisory',
         courseId: selectedCourse ? selectedCourse.id : `${exam.id}-guidance`,
@@ -411,62 +398,51 @@ export const ExamEnquiryModal = ({ isOpen, onClose, exam, selectedCourse, catego
                   </select>
                 </div>
 
-                {/* Target Country Selection (International Exams & GCC Licensing) vs Study Location (Indian Exams) */}
+                {/* Target Country Selection (International Exams & GCC Licensing) */}
                 {isInternationalOrGcc ? (
                   <div className="space-y-1 sm:col-span-2">
-                    <label 
+                    <label
                       htmlFor="input-enquiry-target-country"
                       className="text-xs font-bold text-slate-700 dark:text-slate-300 flex items-center gap-1.5"
                     >
                       <Globe2 className="w-3.5 h-3.5 text-gold-500" />
                       <span>Target Country *</span>
                     </label>
-                    <SearchableCountrySelect
-                      id="input-enquiry-target-country"
-                      name="preferredLocation"
-                      value={formData.preferredLocation}
-                      onChange={(countryName) => {
-                        setFormData(prev => ({ ...prev, preferredLocation: countryName }));
-                        if (error) setError(null);
-                      }}
-                      placeholder="Select Target Country..."
-                    />
-                    <p className="text-[11px] text-slate-500 dark:text-slate-400">
-                      Select your preferred destination country or GCC licensing jurisdiction.
-                    </p>
-                  </div>
-                ) : (
-                  <div className="space-y-1 sm:col-span-2">
-                    <label className="text-xs font-bold text-slate-700 dark:text-slate-300 flex items-center gap-1.5">
-                      <MapPin className="w-3.5 h-3.5 text-gold-500" />
-                      <span>Target Study Destination / Country *</span>
-                    </label>
                     <input
+                      id="input-enquiry-target-country"
                       type="text"
                       name="preferredLocation"
                       value={formData.preferredLocation}
                       onChange={handleChange}
-                      placeholder="e.g. Dubai / UAE, Saudi Arabia, UK, Germany, USA, India"
+                      placeholder="Enter your target country (e.g., India, UAE, UK, Saudi Arabia)"
+                      required
+                      className="w-full px-3.5 py-2.5 rounded-xl border border-slate-200 dark:border-navy-700 bg-white dark:bg-navy-800 text-navy-900 dark:text-white text-xs font-medium focus:ring-2 focus:ring-gold-500 focus:outline-none"
+                    />
+                    <p className="text-[11px] text-slate-500 dark:text-slate-400">
+                      Specify your preferred destination country or GCC licensing jurisdiction.
+                    </p>
+                  </div>
+                ) : (
+                  <div className="space-y-1 sm:col-span-2">
+                    <label
+                      htmlFor="input-enquiry-target-location"
+                      className="text-xs font-bold text-slate-700 dark:text-slate-300 flex items-center gap-1.5"
+                    >
+                      <MapPin className="w-3.5 h-3.5 text-gold-500" />
+                      <span>Target Country *</span>
+                    </label>
+                    <input
+                      id="input-enquiry-target-location"
+                      type="text"
+                      name="preferredLocation"
+                      value={formData.preferredLocation}
+                      onChange={handleChange}
+                      placeholder="Enter your target country (e.g., India, UAE, UK, Saudi Arabia)"
                       required
                       className="w-full px-3.5 py-2.5 rounded-xl border border-slate-200 dark:border-navy-700 bg-white dark:bg-navy-800 text-navy-900 dark:text-white text-xs font-medium focus:ring-2 focus:ring-gold-500 focus:outline-none"
                     />
                   </div>
-                )}
-
-                {/* Questions / Message */}
-                <div className="space-y-1 sm:col-span-2">
-                  <label className="text-xs font-bold text-slate-700 dark:text-slate-300">
-                    Specific Questions or Background (Optional)
-                  </label>
-                  <textarea
-                    name="message"
-                    rows={3}
-                    value={formData.message}
-                    onChange={handleChange}
-                    placeholder="Tell us about your target score, exam timeline, or specific coaching requirements..."
-                    className="w-full px-3.5 py-2.5 rounded-xl border border-slate-200 dark:border-navy-700 bg-white dark:bg-navy-800 text-navy-900 dark:text-white text-xs font-medium focus:ring-2 focus:ring-gold-500 focus:outline-none resize-none"
-                  />
-                </div>
+                ) }
 
                 {/* Consent Checkbox */}
                 <div className="sm:col-span-2 pt-1">
