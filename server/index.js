@@ -1573,7 +1573,7 @@ app.post(['/api/leads', '/api/consulting/enquiries', '/api/career-guidance/enqui
     const now = Date.now();
     const windowMs = 60 * 1000;
     const timestamps = (inquiryRateLimits.get(clientIp) || []).filter(t => now - t < windowMs);
-    const maxRequests = isLocalhost ? 60 : 30;
+    const maxRequests = isLocalhost ? 1000 : 30;
 
     if (timestamps.length >= maxRequests) {
       return res.status(429).json({
@@ -1603,10 +1603,47 @@ app.post(['/api/leads', '/api/consulting/enquiries', '/api/career-guidance/enqui
     if (!name || typeof name !== 'string' || name.trim().length < 2 || name.trim().length > 100) {
       return res.status(400).json({ success: false, message: 'Full name is required (between 2 and 100 characters).' });
     }
+    const trimmedName = name.trim();
+    if (/^\d+$/.test(trimmedName)) {
+      return res.status(400).json({ success: false, message: 'Full name cannot consist only of numbers.' });
+    }
+    const isCareerLeadOrEdu = serviceId === 'school-career' || serviceId === 'career-guidance' || (serviceTitle && serviceTitle.toLowerCase().includes('career guidance'));
+    if (isCareerLeadOrEdu) {
+      if ((/\d/.test(trimmedName) && !trimmedName.includes('Grade ')) || !/^[a-zA-Z0-9\u00C0-\u024F\u1E00-\u1EFF\s.'\-(),]+$/.test(trimmedName)) {
+        return res.status(400).json({ success: false, message: 'Full name cannot contain numbers or unsupported special characters.' });
+      }
+    }
 
-    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[a-zA-Z]{2,}$/;
     if (!email || typeof email !== 'string' || !emailRegex.test(email.trim()) || email.trim().length > 100) {
       return res.status(400).json({ success: false, message: 'A valid business or personal email address is required (maximum 100 characters).' });
+    }
+
+    // Consent & Organization verification for career guidance & education inquiries
+    const bodyConsent = req.body.consent;
+    let customConsent = undefined;
+    if (customFields) {
+      try {
+        const parsed = typeof customFields === 'string' ? JSON.parse(customFields) : customFields;
+        customConsent = parsed.consent;
+      } catch (_) {}
+    }
+    const effectiveConsent = bodyConsent !== undefined ? bodyConsent : customConsent;
+    if (isCareerLeadOrEdu && (effectiveConsent === false || effectiveConsent === 'false')) {
+      return res.status(400).json({ success: false, message: 'You must acknowledge the communication consent to proceed.' });
+    }
+
+    if (isCareerLeadOrEdu) {
+      let org = organizationName;
+      if (org === undefined && customFields) {
+        try {
+          const parsed = typeof customFields === 'string' ? JSON.parse(customFields) : customFields;
+          if (parsed && parsed.organization !== undefined) org = parsed.organization;
+        } catch (_) {}
+      }
+      if (org !== undefined && (typeof org !== 'string' || org.trim().length === 0)) {
+        return res.status(400).json({ success: false, message: 'Current school or college name is required.' });
+      }
     }
 
     const cleanPhone = (phone || '').replace(/[\s\-\(\)\+]/g, '');
@@ -1874,7 +1911,7 @@ app.post(['/api/leads', '/api/consulting/enquiries', '/api/career-guidance/enqui
 });
 
 // Update Lead Status, Assignment, Organization Link, & Workflow
-app.patch(['/api/leads/:id', '/api/consulting/enquiries/:id', '/api/student-academy/enquiries/:id'], async (req, res) => {
+app.patch(['/api/leads/:id', '/api/consulting/enquiries/:id', '/api/student-academy/enquiries/:id', '/api/career-guidance/enquiries/:id'], async (req, res) => {
   try {
     const { id } = req.params;
     const {
@@ -1909,7 +1946,7 @@ app.patch(['/api/leads/:id', '/api/consulting/enquiries/:id', '/api/student-acad
     }
 
     const db = await getDb();
-    const currentLead = await db.get('SELECT * FROM leads WHERE id = ?', [id]);
+    const currentLead = await db.get('SELECT * FROM leads WHERE id = ? OR referenceNumber = ?', [id, id]);
     if (!currentLead) {
       return res.status(404).json({ success: false, message: 'Enquiry not found' });
     }
@@ -2002,7 +2039,7 @@ app.patch(['/api/leads/:id', '/api/consulting/enquiries/:id', '/api/student-acad
         courseName !== undefined ? courseName : null,
         streamName !== undefined ? streamName : null,
         department !== undefined ? department : null,
-        id
+        currentLead.id
       ]
     );
 
@@ -2013,7 +2050,7 @@ app.patch(['/api/leads/:id', '/api/consulting/enquiries/:id', '/api/student-acad
          VALUES (?, ?, ?, ?, ?, ?, ?)`,
         [
           `ACT-${Date.now()}-${Math.floor(100 + Math.random() * 900)}`,
-          id,
+          currentLead.id,
           organizationId || currentLead.organizationId,
           'Status Change',
           `Pipeline Stage: ${status}`,
@@ -2030,7 +2067,7 @@ app.patch(['/api/leads/:id', '/api/consulting/enquiries/:id', '/api/student-acad
          VALUES (?, ?, ?, ?, ?, ?, ?)`,
         [
           `ACT-${Date.now()}-${Math.floor(100 + Math.random() * 900)}`,
-          id,
+          currentLead.id,
           organizationId || currentLead.organizationId,
           'Assignment',
           assignedEmployee ? `Assigned to ${assignedEmployee}` : 'Unassigned',
@@ -2806,35 +2843,67 @@ app.post('/api/student-academy/enquiries', async (req, res) => {
       location,
       coachingMode,
       enquiryType,
-      assignedEmployee
+      assignedEmployee,
+      consent,
+      isExamEnquiry
     } = req.body;
 
-    if (!studentName || !email || !phone) {
+    // 1. Student Name validation
+    const trimmedName = (studentName || '').trim();
+    if (!trimmedName || trimmedName.length < 2) {
       return res.status(400).json({
         success: false,
-        message: 'Student name, email, and mobile number are required.'
+        message: 'Student full name is required (minimum 2 characters).'
+      });
+    }
+    if (/^\d+$/.test(trimmedName)) {
+      return res.status(400).json({
+        success: false,
+        message: 'Student full name cannot consist only of numbers.'
+      });
+    }
+    if (!/^[a-zA-Z\u00C0-\u024F\u1E00-\u1EFF\s.'\-(),]+$/.test(trimmedName)) {
+      return res.status(400).json({
+        success: false,
+        message: 'Student full name cannot contain numbers or unsupported special characters.'
       });
     }
 
-    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-    if (!emailRegex.test(email.trim())) {
+    // 2. Email Address validation
+    const trimmedEmail = (email || '').trim();
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[a-zA-Z]{2,}$/;
+    if (!trimmedEmail || !emailRegex.test(trimmedEmail)) {
       return res.status(400).json({
         success: false,
-        message: 'A valid email address is required.'
+        message: 'A valid email address with domain extension is required.'
       });
     }
 
-    const cleanPhone = (phone || '').replace(/[\s\-\(\)\+]/g, '');
-    if (cleanPhone.length < 7) {
+    // 3. Mobile / WhatsApp validation
+    const rawPhone = (phone || '').trim();
+    const cleanPhone = rawPhone.replace(/[\s\-\(\)\+]/g, '');
+    if (!cleanPhone) {
       return res.status(400).json({
         success: false,
-        message: 'A valid mobile number is required.'
+        message: 'Mobile or WhatsApp number is required.'
+      });
+    }
+    if (!/^[0-9+\s\-()]+$/.test(rawPhone)) {
+      return res.status(400).json({
+        success: false,
+        message: 'Mobile number can only contain digits, spaces, and formatting characters (+, -, ()).'
+      });
+    }
+    if (cleanPhone.length < 7 || cleanPhone.length > 15) {
+      return res.status(400).json({
+        success: false,
+        message: `Mobile number must be between 7 and 15 digits (currently ${cleanPhone.length} digits).`
       });
     }
 
-    // Duplicate Prevention Check (30 seconds window for same email + exam)
+    // 4. Duplicate Prevention Check (30 seconds window for same email + exam)
     const now = Date.now();
-    const duplicateKey = `${email.trim().toLowerCase()}_${examId || examName || 'academy'}`;
+    const duplicateKey = `${trimmedEmail.toLowerCase()}_${examId || examName || 'academy'}`;
     const lastSubmitTime = recentInquirySubmissions.get(duplicateKey);
     if (lastSubmitTime && (now - lastSubmitTime) < 30000) {
       return res.status(409).json({
@@ -2842,16 +2911,58 @@ app.post('/api/student-academy/enquiries', async (req, res) => {
         message: 'A duplicate enquiry for this examination was recently received. Please allow a brief moment before resubmitting.'
       });
     }
-    recentInquirySubmissions.set(duplicateKey, now);
+    // 5. Mandatory Field Enforcement for Examination Enquiries
+    const isExam = enquiryType === 'Exam Enquiry' || Boolean(isExamEnquiry) || (!courseId && !batchPreference);
 
+    const qual = (qualification || '').trim();
+    if ((isExam || qualification !== undefined) && !qual) {
+      return res.status(400).json({
+        success: false,
+        message: 'Current educational qualification is required.'
+      });
+    }
+
+    const learningMode = (preferredLearningMode || coachingMode || '').trim();
+    if ((isExam || preferredLearningMode !== undefined) && !learningMode) {
+      return res.status(400).json({
+        success: false,
+        message: 'Preferred learning mode is required.'
+      });
+    }
+
+    const studyLoc = (targetCountry || countryInterest || preferredLocation || location || '').trim();
+    if ((isExam || targetCountry !== undefined || preferredLocation !== undefined) && !studyLoc) {
+      return res.status(400).json({
+        success: false,
+        message: 'Target country is required.'
+      });
+    }
+
+    const targetExam = (examName || '').trim();
+    const targetExamId = (examId || '').trim();
+    if (isExam && !targetExam && !targetExamId) {
+      return res.status(400).json({
+        success: false,
+        message: 'Selected examination or pathway is required.'
+      });
+    }
+
+    if (consent !== undefined && (consent === false || consent === 'false' || consent === 0)) {
+      return res.status(400).json({
+        success: false,
+        message: 'You must acknowledge the communication consent to proceed.'
+      });
+    }
+
+    recentInquirySubmissions.set(duplicateKey, now);
     const refNum = referenceNumber || `REV-ACA-2026-${Math.floor(10000 + Math.random() * 90000)}`;
     const enquiryId = `SA-ENQ-${Date.now()}-${Math.floor(100 + Math.random() * 900)}`;
     const db = await getDb();
-    const learningMode = preferredLearningMode || coachingMode || 'Online Live';
-    const studyLoc = targetCountry || countryInterest || preferredLocation || location || 'Online / Remote';
-    const qual = qualification || 'High School / 12th Standard';
-    const targetExam = examName || 'Competitive Examination';
-    const targetCourse = courseName || `${targetExam} Comprehensive Coaching & Advisory`;
+    const finalQual = qual || 'Bachelor\'s Degree';
+    const finalLearningMode = learningMode || 'Online Live';
+    const finalStudyLoc = studyLoc || 'Online / Remote';
+    const finalExam = targetExam || 'Competitive Examination';
+    const targetCourse = courseName || `${finalExam} Comprehensive Coaching & Advisory`;
     const targetAcademy = academyName || 'Revival International Student Advisory';
     const finalQuestions = questions || message || '';
     const advisor = assignedEmployee || 'Dhanalakshimi';
@@ -2864,23 +2975,23 @@ app.post('/api/student-academy/enquiries', async (req, res) => {
       [
         enquiryId,
         refNum,
-        studentName.trim(),
-        email.trim().toLowerCase(),
-        phone.trim(),
-        email.trim().toLowerCase(),
-        phone.trim(),
-        learningMode,
+        trimmedName,
+        trimmedEmail.toLowerCase(),
+        rawPhone,
+        trimmedEmail.toLowerCase(),
+        rawPhone,
+        finalLearningMode,
         batchPreference || 'Standard Cohort',
         finalQuestions ? finalQuestions.trim() : '',
         academyId || 'revival-advisory',
         targetAcademy,
-        examId || 'general-exam',
-        targetExam,
+        targetExamId || 'general-exam',
+        finalExam,
         courseId || 'exam-coaching-advisory',
         targetCourse,
-        qual,
-        studyLoc,
-        learningMode,
+        finalQual,
+        finalStudyLoc,
+        finalLearningMode,
         enquiryType || 'Exam Enquiry',
         'New Enquiry',
         advisor
@@ -2892,15 +3003,15 @@ app.post('/api/student-academy/enquiries', async (req, res) => {
     const customMetadata = JSON.stringify({
       category: 'Student Academy',
       enquiryType: enquiryType || 'Exam Enquiry',
-      examName: targetExam,
-      examId: examId || 'general-exam',
-      qualification: qual,
-      coachingMode: learningMode,
-      preferredLearningMode: learningMode,
-      studyLocation: studyLoc,
-      preferredLocation: studyLoc,
-      targetCountry: studyLoc,
-      countryInterest: studyLoc,
+      examName: finalExam,
+      examId: targetExamId || 'general-exam',
+      qualification: finalQual,
+      coachingMode: finalLearningMode,
+      preferredLearningMode: finalLearningMode,
+      studyLocation: finalStudyLoc,
+      preferredLocation: finalStudyLoc,
+      targetCountry: finalStudyLoc,
+      countryInterest: finalStudyLoc,
       academyName: targetAcademy,
       courseName: targetCourse,
       questions: finalQuestions ? finalQuestions.trim() : ''
@@ -2912,24 +3023,24 @@ app.post('/api/student-academy/enquiries', async (req, res) => {
        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
       [
         leadId,
-        studentName.trim(),
-        email.trim().toLowerCase(),
+        trimmedName,
+        trimmedEmail.toLowerCase(),
         'Student Academy',
-        phone.trim(),
-        `Exam Enquiry: ${targetExam}. Qualification: ${qual}. Preferred Coaching Mode: ${learningMode}. Target Country: ${studyLoc}. Message: ${finalQuestions ? finalQuestions.trim() : 'None'}`,
+        rawPhone,
+        `Exam Enquiry: ${finalExam}. Qualification: ${finalQual}. Preferred Coaching Mode: ${finalLearningMode}. Target Country: ${finalStudyLoc}. Message: ${finalQuestions ? finalQuestions.trim() : 'None'}`,
         'school-academy',
         'Student Academy',
         refNum,
         'New Enquiry',
-        targetExam,
-        qual,
-        studyLoc,
-        targetExam,
+        finalExam,
+        finalQual,
+        finalStudyLoc,
+        finalExam,
         advisor,
         'Medium',
-        learningMode,
+        finalLearningMode,
         customMetadata,
-        studyLoc
+        finalStudyLoc
       ]
     );
 

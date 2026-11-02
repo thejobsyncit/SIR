@@ -14,12 +14,13 @@ export const ExamEnquiryModal = ({ isOpen, onClose, exam, selectedCourse, catego
     studentName: '',
     email: '',
     phone: '',
-    qualification: 'Bachelor\'s Degree',
-    preferredLearningMode: selectedCourse?.deliveryMode || 'Online Live',
+    qualification: '',
+    preferredLearningMode: selectedCourse?.deliveryMode || '',
     preferredLocation: '',
-    consent: true
+    consent: false
   });
 
+  const [fieldErrors, setFieldErrors] = useState({});
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
   const [successResult, setSuccessResult] = useState(null);
@@ -30,7 +31,7 @@ export const ExamEnquiryModal = ({ isOpen, onClose, exam, selectedCourse, catego
       setFormData((prev) => ({
         ...prev,
         preferredLocation: '',
-        preferredLearningMode: selectedCourse?.deliveryMode || 'Online Live'
+        preferredLearningMode: selectedCourse?.deliveryMode || prev.preferredLearningMode || ''
       }));
     }
   }, [exam, selectedCourse, category]);
@@ -56,49 +57,104 @@ export const ExamEnquiryModal = ({ isOpen, onClose, exam, selectedCourse, catego
 
   const handleModalClose = () => {
     setError(null);
+    setFieldErrors({});
     setSuccessResult(null);
     onClose();
   };
 
   const handleChange = (e) => {
     const { name, value, type, checked } = e.target;
+    const newVal = type === 'checkbox' ? checked : value;
     setFormData((prev) => ({
       ...prev,
-      [name]: type === 'checkbox' ? checked : value
+      [name]: newVal
     }));
+    if (fieldErrors[name]) {
+      setFieldErrors((prev) => {
+        const next = { ...prev };
+        delete next[name];
+        return next;
+      });
+    }
+    if (error) {
+      setError(null);
+    }
+  };
+
+  const validate = () => {
+    const errors = {};
+
+    // 1. Selected Examination / Pathway
+    if (!exam || (!exam.id && !exam.name && !exam.code)) {
+      errors.exam = 'A valid examination or pathway must be selected.';
+    }
+
+    // 2. Student Full Name
+    const trimmedName = (formData.studentName || '').trim();
+    if (!trimmedName || trimmedName.length < 2) {
+      errors.studentName = 'Please enter your full name (minimum 2 characters).';
+    } else if (/^\d+$/.test(trimmedName)) {
+      errors.studentName = 'Full name cannot consist only of numbers.';
+    } else if (!/^[a-zA-Z\u00C0-\u024F\u1E00-\u1EFF\s.'\-(),]+$/.test(trimmedName)) {
+      errors.studentName = 'Full name cannot contain numbers or unsupported special characters.';
+    }
+
+    // 3. Email Address
+    const trimmedEmail = (formData.email || '').trim();
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[a-zA-Z]{2,}$/;
+    if (!trimmedEmail || !emailRegex.test(trimmedEmail)) {
+      errors.email = 'Please provide a valid email address with a domain extension (e.g. name@example.com).';
+    }
+
+    // 4. Mobile / WhatsApp Number
+    const rawPhone = (formData.phone || '').trim();
+    const cleanPhone = rawPhone.replace(/[\s\-\(\)\+]/g, '');
+    if (!cleanPhone) {
+      errors.phone = 'Please provide a valid mobile or WhatsApp number with country code.';
+    } else if (!/^[0-9+\s\-()]+$/.test(rawPhone)) {
+      errors.phone = 'Phone number can only contain digits, spaces, and formatting characters (+, -, ()).';
+    } else if (cleanPhone.length < 7 || cleanPhone.length > 15) {
+      errors.phone = `Phone number must be between 7 and 15 digits (currently ${cleanPhone.length} digits).`;
+    }
+
+    // 5. Current Qualification
+    const trimmedQual = (formData.qualification || '').trim();
+    if (!trimmedQual) {
+      errors.qualification = 'Please select your current educational qualification.';
+    }
+
+    // 6. Preferred Learning Mode
+    const trimmedMode = (formData.preferredLearningMode || '').trim();
+    if (!trimmedMode) {
+      errors.preferredLearningMode = 'Please select your preferred learning mode.';
+    }
+
+    // 7. Target Country
+    const trimmedLoc = (formData.preferredLocation || '').trim();
+    if (!trimmedLoc) {
+      errors.preferredLocation = 'Please enter your target country.';
+    }
+
+    // 8. Communication Consent Checkbox
+    if (!formData.consent) {
+      errors.consent = 'You must acknowledge the communication consent to proceed.';
+    }
+
+    return errors;
   };
 
   const handleSubmit = async (e) => {
     e.preventDefault();
     setError(null);
 
-    // Validation
-    if (!formData.studentName.trim()) {
-      setError('Please enter your full name.');
-      return;
-    }
-    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-    if (!emailRegex.test(formData.email.trim())) {
-      setError('Please provide a valid email address.');
-      return;
-    }
-    if (formData.phone.trim().length < 7) {
-      setError('Please provide a valid mobile or WhatsApp number with country code.');
-      return;
-    }
-    if (!formData.qualification.trim()) {
-      setError('Please specify your current educational qualification.');
-      return;
-    }
-    if (!formData.preferredLocation || !formData.preferredLocation.trim()) {
-      setError('Please enter your target country.');
-      return;
-    }
-    if (!formData.consent) {
-      setError('Please acknowledge the communication consent to proceed.');
+    const validationErrors = validate();
+    if (Object.keys(validationErrors).length > 0) {
+      setFieldErrors(validationErrors);
+      setError('Please resolve the highlighted required fields before submitting.');
       return;
     }
 
+    setFieldErrors({});
     setLoading(true);
 
     try {
@@ -109,7 +165,7 @@ export const ExamEnquiryModal = ({ isOpen, onClose, exam, selectedCourse, catego
         examId: exam.id,
         examName: exam.name,
         qualification: formData.qualification.trim(),
-        preferredLearningMode: formData.preferredLearningMode,
+        preferredLearningMode: formData.preferredLearningMode.trim(),
         preferredLocation: formData.preferredLocation.trim(),
         targetCountry: formData.preferredLocation.trim(),
         countryInterest: formData.preferredLocation.trim(),
@@ -118,7 +174,9 @@ export const ExamEnquiryModal = ({ isOpen, onClose, exam, selectedCourse, catego
         academyName: selectedCourse ? selectedCourse.academyName : 'Revival International Academic Advisory',
         courseId: selectedCourse ? selectedCourse.id : `${exam.id}-guidance`,
         courseName: selectedCourse ? selectedCourse.courseName : `${exam.code} Examination & Licensing Guidance`,
-        enquiryType: selectedCourse ? 'Course Enquiry' : 'Exam Enquiry'
+        enquiryType: selectedCourse ? 'Course Enquiry' : 'Exam Enquiry',
+        consent: Boolean(formData.consent),
+        isExamEnquiry: true
       };
 
       const result = await submitExamEnquiry(payload);
@@ -255,12 +313,13 @@ export const ExamEnquiryModal = ({ isOpen, onClose, exam, selectedCourse, catego
             </div>
           ) : (
             /* FORM VIEW */
-            <form onSubmit={handleSubmit} className="space-y-5">
+            <form onSubmit={handleSubmit} noValidate className="space-y-5">
               {/* Highlighted Selected Exam Context Banner */}
-              <div className="bg-slate-50 dark:bg-navy-950 border border-slate-200 dark:border-gold-500/30 rounded-2xl p-4 space-y-2">
+              <div className={`bg-slate-50 dark:bg-navy-950 border ${fieldErrors.exam ? 'border-rose-500 ring-1 ring-rose-500' : 'border-slate-200 dark:border-gold-500/30'} rounded-2xl p-4 space-y-2`}>
                 <div className="flex items-center justify-between gap-2">
-                  <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">
-                    Selected Examination / Pathway
+                  <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider flex items-center gap-1">
+                    <span>Selected Examination / Pathway</span>
+                    <span className="text-rose-500 font-bold">*</span>
                   </span>
                   <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-emerald-500/15 text-emerald-700 dark:text-emerald-400 border border-emerald-500/30">
                     Auto-Populated
@@ -295,6 +354,9 @@ export const ExamEnquiryModal = ({ isOpen, onClose, exam, selectedCourse, catego
                   </div>
                 )}
               </div>
+              {fieldErrors.exam && (
+                <p className="text-[11px] text-rose-500 font-medium">{fieldErrors.exam}</p>
+              )}
 
               {/* Error Alert */}
               {error && (
@@ -308,94 +370,116 @@ export const ExamEnquiryModal = ({ isOpen, onClose, exam, selectedCourse, catego
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 {/* Full Name */}
                 <div className="space-y-1 sm:col-span-2">
-                  <label className="text-xs font-bold text-slate-700 dark:text-slate-300 flex items-center gap-1.5">
+                  <label htmlFor="input-enquiry-studentName" className="text-xs font-bold text-slate-700 dark:text-slate-300 flex items-center gap-1.5">
                     <User className="w-3.5 h-3.5 text-gold-500" />
-                    <span>Student Full Name *</span>
+                    <span>Student Full Name</span>
+                    <span className="text-rose-500 font-bold">*</span>
                   </label>
                   <input
+                    id="input-enquiry-studentName"
                     type="text"
                     name="studentName"
                     value={formData.studentName}
                     onChange={handleChange}
                     placeholder="e.g. Rahul Sharma"
-                    required
-                    className="w-full px-3.5 py-2.5 rounded-xl border border-slate-200 dark:border-navy-700 bg-white dark:bg-navy-800 text-navy-900 dark:text-white text-xs font-medium focus:ring-2 focus:ring-gold-500 focus:outline-none"
+                    className={`w-full px-3.5 py-2.5 rounded-xl border ${fieldErrors.studentName ? 'border-rose-500 focus:ring-rose-500' : 'border-slate-200 dark:border-navy-700 focus:ring-gold-500'} bg-white dark:bg-navy-800 text-navy-900 dark:text-white text-xs font-medium focus:ring-2 focus:outline-none transition`}
                   />
+                  {fieldErrors.studentName && (
+                    <p className="text-[11px] text-rose-500 mt-1 font-medium">{fieldErrors.studentName}</p>
+                  )}
                 </div>
 
                 {/* Email Address */}
                 <div className="space-y-1">
-                  <label className="text-xs font-bold text-slate-700 dark:text-slate-300 flex items-center gap-1.5">
+                  <label htmlFor="input-enquiry-email" className="text-xs font-bold text-slate-700 dark:text-slate-300 flex items-center gap-1.5">
                     <Mail className="w-3.5 h-3.5 text-gold-500" />
-                    <span>Email Address *</span>
+                    <span>Email Address</span>
+                    <span className="text-rose-500 font-bold">*</span>
                   </label>
                   <input
+                    id="input-enquiry-email"
                     type="email"
                     name="email"
                     value={formData.email}
                     onChange={handleChange}
                     placeholder="e.g. rahul@example.com"
-                    required
-                    className="w-full px-3.5 py-2.5 rounded-xl border border-slate-200 dark:border-navy-700 bg-white dark:bg-navy-800 text-navy-900 dark:text-white text-xs font-medium focus:ring-2 focus:ring-gold-500 focus:outline-none"
+                    className={`w-full px-3.5 py-2.5 rounded-xl border ${fieldErrors.email ? 'border-rose-500 focus:ring-rose-500' : 'border-slate-200 dark:border-navy-700 focus:ring-gold-500'} bg-white dark:bg-navy-800 text-navy-900 dark:text-white text-xs font-medium focus:ring-2 focus:outline-none transition`}
                   />
+                  {fieldErrors.email && (
+                    <p className="text-[11px] text-rose-500 mt-1 font-medium">{fieldErrors.email}</p>
+                  )}
                 </div>
 
                 {/* Mobile / WhatsApp */}
                 <div className="space-y-1">
-                  <label className="text-xs font-bold text-slate-700 dark:text-slate-300 flex items-center gap-1.5">
+                  <label htmlFor="input-enquiry-phone" className="text-xs font-bold text-slate-700 dark:text-slate-300 flex items-center gap-1.5">
                     <Phone className="w-3.5 h-3.5 text-gold-500" />
-                    <span>Mobile / WhatsApp Number *</span>
+                    <span>Mobile Number</span>
+                    <span className="text-rose-500 font-bold">*</span>
                   </label>
                   <input
+                    id="input-enquiry-phone"
                     type="tel"
                     name="phone"
                     value={formData.phone}
                     onChange={handleChange}
-                    placeholder="e.g. +971 50 123 4567 / +91 98765 43210"
-                    required
-                    className="w-full px-3.5 py-2.5 rounded-xl border border-slate-200 dark:border-navy-700 bg-white dark:bg-navy-800 text-navy-900 dark:text-white text-xs font-medium focus:ring-2 focus:ring-gold-500 focus:outline-none"
+                    placeholder="e.g. +91 98765 43210"
+                    className={`w-full px-3.5 py-2.5 rounded-xl border ${fieldErrors.phone ? 'border-rose-500 focus:ring-rose-500' : 'border-slate-200 dark:border-navy-700 focus:ring-gold-500'} bg-white dark:bg-navy-800 text-navy-900 dark:text-white text-xs font-medium focus:ring-2 focus:outline-none transition`}
                   />
+                  {fieldErrors.phone && (
+                    <p className="text-[11px] text-rose-500 mt-1 font-medium">{fieldErrors.phone}</p>
+                  )}
                 </div>
 
                 {/* Academic Qualification */}
                 <div className="space-y-1">
-                  <label className="text-xs font-bold text-slate-700 dark:text-slate-300 flex items-center gap-1.5">
+                  <label htmlFor="select-enquiry-qualification" className="text-xs font-bold text-slate-700 dark:text-slate-300 flex items-center gap-1.5">
                     <GraduationCap className="w-3.5 h-3.5 text-gold-500" />
-                    <span>Current Qualification *</span>
+                    <span>Current Qualification</span>
+                    <span className="text-rose-500 font-bold">*</span>
                   </label>
                   <select
+                    id="select-enquiry-qualification"
                     name="qualification"
                     value={formData.qualification}
                     onChange={handleChange}
-                    className="w-full px-3.5 py-2.5 rounded-xl border border-slate-200 dark:border-navy-700 bg-white dark:bg-navy-800 text-navy-900 dark:text-white text-xs font-medium focus:ring-2 focus:ring-gold-500 focus:outline-none"
+                    className={`w-full px-3.5 py-2.5 rounded-xl border ${fieldErrors.qualification ? 'border-rose-500 focus:ring-rose-500' : 'border-slate-200 dark:border-navy-700 focus:ring-gold-500'} bg-white dark:bg-navy-800 text-navy-900 dark:text-white text-xs font-medium focus:ring-2 focus:outline-none transition cursor-pointer`}
                   >
+                    <option value="">Select your qualification</option>
                     <option value="High School (10th / 12th)">High School (10th / 12th)</option>
                     <option value="Undergraduate Student (Pursuing)">Undergraduate Student (Pursuing)</option>
                     <option value="Bachelor's Degree">Bachelor's Degree (B.E./B.Tech/B.Sc/B.Com/B.A.)</option>
                     <option value="MBBS / BDS / Medical Graduate">MBBS / BDS / Medical Graduate</option>
                     <option value="Master's / Post Graduate">Master's / Post Graduate (M.Tech/MBA/M.Sc)</option>
-                    <option value="Working Professional">Working Professional</option>
+
                   </select>
+                  {fieldErrors.qualification && (
+                    <p className="text-[11px] text-rose-500 mt-1 font-medium">{fieldErrors.qualification}</p>
+                  )}
                 </div>
 
                 {/* Preferred Learning Mode */}
                 <div className="space-y-1">
-                  <label className="text-xs font-bold text-slate-700 dark:text-slate-300 flex items-center gap-1.5">
+                  <label htmlFor="select-enquiry-learning-mode" className="text-xs font-bold text-slate-700 dark:text-slate-300 flex items-center gap-1.5">
                     <Monitor className="w-3.5 h-3.5 text-gold-500" />
                     <span>Preferred Learning Mode</span>
+                    <span className="text-rose-500 font-bold">*</span>
                   </label>
                   <select
+                    id="select-enquiry-learning-mode"
                     name="preferredLearningMode"
                     value={formData.preferredLearningMode}
                     onChange={handleChange}
-                    className="w-full px-3.5 py-2.5 rounded-xl border border-slate-200 dark:border-navy-700 bg-white dark:bg-navy-800 text-navy-900 dark:text-white text-xs font-medium focus:ring-2 focus:ring-gold-500 focus:outline-none"
+                    className={`w-full px-3.5 py-2.5 rounded-xl border ${fieldErrors.preferredLearningMode ? 'border-rose-500 focus:ring-rose-500' : 'border-slate-200 dark:border-navy-700 focus:ring-gold-500'} bg-white dark:bg-navy-800 text-navy-900 dark:text-white text-xs font-medium focus:ring-2 focus:outline-none transition cursor-pointer`}
                   >
+                    <option value="">Select preferred learning mode</option>
                     <option value="Online Live">Online Live Interactive</option>
-                    <option value="Classroom (Dubai / Branch)">Classroom (Dubai / Branch)</option>
+                    <option value="Classroom (Dubai / Branch)">Classroom </option>
                     <option value="Hybrid (Classroom + Online)">Hybrid (Classroom + Online)</option>
-                    <option value="Weekend Batch">Weekend Batch</option>
-                    <option value="Self-Paced with Mentorship">Self-Paced with Mentorship</option>
                   </select>
+                  {fieldErrors.preferredLearningMode && (
+                    <p className="text-[11px] text-rose-500 mt-1 font-medium">{fieldErrors.preferredLearningMode}</p>
+                  )}
                 </div>
 
                 {/* Target Country Selection (International Exams & GCC Licensing) */}
@@ -406,7 +490,8 @@ export const ExamEnquiryModal = ({ isOpen, onClose, exam, selectedCourse, catego
                       className="text-xs font-bold text-slate-700 dark:text-slate-300 flex items-center gap-1.5"
                     >
                       <Globe2 className="w-3.5 h-3.5 text-gold-500" />
-                      <span>Target Country *</span>
+                      <span>Target Country</span>
+                      <span className="text-rose-500 font-bold">*</span>
                     </label>
                     <input
                       id="input-enquiry-target-country"
@@ -415,9 +500,11 @@ export const ExamEnquiryModal = ({ isOpen, onClose, exam, selectedCourse, catego
                       value={formData.preferredLocation}
                       onChange={handleChange}
                       placeholder="Enter your target country (e.g., India, UAE, UK, Saudi Arabia)"
-                      required
-                      className="w-full px-3.5 py-2.5 rounded-xl border border-slate-200 dark:border-navy-700 bg-white dark:bg-navy-800 text-navy-900 dark:text-white text-xs font-medium focus:ring-2 focus:ring-gold-500 focus:outline-none"
+                      className={`w-full px-3.5 py-2.5 rounded-xl border ${fieldErrors.preferredLocation ? 'border-rose-500 focus:ring-rose-500' : 'border-slate-200 dark:border-navy-700 focus:ring-gold-500'} bg-white dark:bg-navy-800 text-navy-900 dark:text-white text-xs font-medium focus:ring-2 focus:outline-none transition`}
                     />
+                    {fieldErrors.preferredLocation && (
+                      <p className="text-[11px] text-rose-500 mt-1 font-medium">{fieldErrors.preferredLocation}</p>
+                    )}
                     <p className="text-[11px] text-slate-500 dark:text-slate-400">
                       Specify your preferred destination country or GCC licensing jurisdiction.
                     </p>
@@ -429,7 +516,8 @@ export const ExamEnquiryModal = ({ isOpen, onClose, exam, selectedCourse, catego
                       className="text-xs font-bold text-slate-700 dark:text-slate-300 flex items-center gap-1.5"
                     >
                       <MapPin className="w-3.5 h-3.5 text-gold-500" />
-                      <span>Target Country *</span>
+                      <span>Target Country</span>
+                      <span className="text-rose-500 font-bold">*</span>
                     </label>
                     <input
                       id="input-enquiry-target-location"
@@ -438,11 +526,13 @@ export const ExamEnquiryModal = ({ isOpen, onClose, exam, selectedCourse, catego
                       value={formData.preferredLocation}
                       onChange={handleChange}
                       placeholder="Enter your target country (e.g., India, UAE, UK, Saudi Arabia)"
-                      required
-                      className="w-full px-3.5 py-2.5 rounded-xl border border-slate-200 dark:border-navy-700 bg-white dark:bg-navy-800 text-navy-900 dark:text-white text-xs font-medium focus:ring-2 focus:ring-gold-500 focus:outline-none"
+                      className={`w-full px-3.5 py-2.5 rounded-xl border ${fieldErrors.preferredLocation ? 'border-rose-500 focus:ring-rose-500' : 'border-slate-200 dark:border-navy-700 focus:ring-gold-500'} bg-white dark:bg-navy-800 text-navy-900 dark:text-white text-xs font-medium focus:ring-2 focus:outline-none transition`}
                     />
+                    {fieldErrors.preferredLocation && (
+                      <p className="text-[11px] text-rose-500 mt-1 font-medium">{fieldErrors.preferredLocation}</p>
+                    )}
                   </div>
-                ) }
+                )}
 
                 {/* Consent Checkbox */}
                 <div className="sm:col-span-2 pt-1">
@@ -450,14 +540,18 @@ export const ExamEnquiryModal = ({ isOpen, onClose, exam, selectedCourse, catego
                     <input
                       type="checkbox"
                       name="consent"
+                      id="checkbox-enquiry-consent"
                       checked={formData.consent}
                       onChange={handleChange}
-                      className="mt-0.5 rounded border-slate-300 text-gold-600 focus:ring-gold-500 w-4 h-4"
+                      className={`mt-0.5 rounded ${fieldErrors.consent ? 'border-rose-500 ring-1 ring-rose-500' : 'border-slate-300'} text-gold-600 focus:ring-gold-500 w-4 h-4 cursor-pointer`}
                     />
                     <span className="text-[11px] text-slate-600 dark:text-slate-400 leading-tight">
-                      I agree to receive verified course syllabus details, fee estimates, and consultation advice from Revival International Academic Advisory via WhatsApp, phone, or email.
+                      I agree to receive verified course syllabus details, fee estimates, and consultation advice from Revival International Academic Advisory via WhatsApp, phone, or email. <span className="text-rose-500 font-bold">*</span>
                     </span>
                   </label>
+                  {fieldErrors.consent && (
+                    <p className="text-[11px] text-rose-500 mt-1 font-medium pl-6.5">{fieldErrors.consent}</p>
+                  )}
                 </div>
               </div>
 
@@ -497,4 +591,3 @@ export const ExamEnquiryModal = ({ isOpen, onClose, exam, selectedCourse, catego
     </div>
   );
 };
-
