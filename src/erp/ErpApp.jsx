@@ -6,8 +6,22 @@ import { useApp } from '../context/AppContext';
 import { Moon, Sun } from 'lucide-react';
 
 export const ErpApp = () => {
-  const [isAuthenticated, setIsAuthenticated] = useState(false);
-  const [adminUser, setAdminUser] = useState(null);
+  const [isAuthenticated, setIsAuthenticated] = useState(() => {
+    try {
+      const saved = localStorage.getItem('sir_erp_session');
+      return saved ? Boolean(JSON.parse(saved).isAuthenticated) : false;
+    } catch {
+      return false;
+    }
+  });
+  const [adminUser, setAdminUser] = useState(() => {
+    try {
+      const saved = localStorage.getItem('sir_erp_session');
+      return saved ? JSON.parse(saved).adminUser : null;
+    } catch {
+      return null;
+    }
+  });
   const { navigateTo, darkMode, toggleDarkMode } = useApp();
 
   // Ensure ERP follows the global dark mode toggle from AppContext
@@ -23,6 +37,9 @@ export const ErpApp = () => {
     return <ErpLogin onLogin={(user) => {
       setAdminUser(user);
       setIsAuthenticated(true);
+      try {
+        localStorage.setItem('sir_erp_session', JSON.stringify({ isAuthenticated: true, adminUser: user }));
+      } catch (e) {}
     }} />;
   }
 
@@ -68,7 +85,10 @@ export const ErpApp = () => {
             </div>
           </div>
           <button 
-            onClick={() => setIsAuthenticated(false)}
+            onClick={() => {
+              setIsAuthenticated(false);
+              try { localStorage.removeItem('sir_erp_session'); } catch (e) {}
+            }}
             className="text-xs font-bold text-rose-500 hover:text-rose-600 dark:text-rose-400 dark:hover:text-rose-300 px-4 py-2 rounded-xl border border-rose-200 hover:bg-rose-50 dark:border-rose-500/30 dark:hover:bg-rose-500/10 transition shadow-sm"
           >
             End Session

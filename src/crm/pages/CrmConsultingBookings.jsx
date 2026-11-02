@@ -5,7 +5,7 @@ import { useCrm } from '../context/CrmContext';
 import { 
   CalendarCheck, Calendar, Clock, Globe, Compass, GraduationCap, Building2,
   Users, CheckCircle2, AlertCircle, Phone, Mail, MessageSquare, Plus, Search,
-  Filter, RefreshCw, Download, ChevronRight, X, UserCheck, ShieldCheck,
+  Filter, RefreshCw, Download, ChevronRight, ChevronLeft, X, UserCheck, ShieldCheck,
   MapPin, ExternalLink, Sparkles, Send, Trash2, ArrowRight, Eye, CheckSquare,
   FileText, Briefcase
 } from 'lucide-react';
@@ -17,14 +17,30 @@ export const CrmConsultingBookings = () => {
     fetchLeads,
     updateLead,
     archiveLead,
+    deleteLead,
     addLeadActivity,
     scheduleLeadFollowUp,
     consultingMetrics,
-    fetchConsultingMetrics
+    fetchConsultingMetrics,
+    consultingServiceFilter = 'all',
+    setConsultingServiceFilter
   } = useCrm();
 
   const [searchQuery, setSearchQuery] = useState('');
-  const [serviceFilter, setServiceFilter] = useState('all');
+  const [serviceFilter, setServiceFilter] = useState(consultingServiceFilter || 'all');
+
+  useEffect(() => {
+    if (consultingServiceFilter) {
+      setServiceFilter(consultingServiceFilter);
+    }
+  }, [consultingServiceFilter]);
+
+  const handleServiceFilterChange = (newVal) => {
+    setServiceFilter(newVal);
+    if (setConsultingServiceFilter) {
+      setConsultingServiceFilter(newVal);
+    }
+  };
   const [statusFilter, setStatusFilter] = useState('all');
   const [modeFilter, setModeFilter] = useState('all');
   const [destinationFilter, setDestinationFilter] = useState('all');
@@ -39,6 +55,31 @@ export const CrmConsultingBookings = () => {
   const [newBookingModalOpen, setNewBookingModalOpen] = useState(false);
   const [followUpModalOpen, setFollowUpModalOpen] = useState(false);
   const [followUpLead, setFollowUpLead] = useState(null);
+  const [deleteConfirmBooking, setDeleteConfirmBooking] = useState(null);
+  const [isDeletingBooking, setIsDeletingBooking] = useState(false);
+
+  const handleDeleteBooking = (booking) => {
+    setDeleteConfirmBooking(booking);
+  };
+
+  const confirmDeleteBooking = async () => {
+    if (!deleteConfirmBooking) return;
+    setIsDeletingBooking(true);
+    try {
+      if (deleteLead) {
+        await deleteLead(deleteConfirmBooking.id);
+      }
+      if (selectedBooking && (selectedBooking.id === deleteConfirmBooking.id || selectedBooking.referenceNumber === deleteConfirmBooking.referenceNumber)) {
+        setSelectedBooking(null);
+        setDossierModalOpen(false);
+      }
+      setDeleteConfirmBooking(null);
+    } catch (err) {
+      alert('Failed to delete booking: ' + (err.message || 'Unknown error'));
+    } finally {
+      setIsDeletingBooking(false);
+    }
+  };
 
   // Follow-up form
   const [followUpForm, setFollowUpForm] = useState({
@@ -102,11 +143,12 @@ export const CrmConsultingBookings = () => {
 
   // Filter leads to include all consulting, academic advisory, and direct consultation bookings
   const isConsultingLead = (l) => {
+    if (!l) return false;
     const sId = (l.serviceId || '').toLowerCase();
     const title = (l.serviceTitle || '').toLowerCase();
     const msg = (l.message || '').toLowerCase();
     return (
-      l.consultationDate ||
+      Boolean(l.consultationDate) ||
       l.status === 'Consultation Scheduled' ||
       l.status === 'Consultation Completed' ||
       sId.includes('consult') ||
@@ -121,10 +163,11 @@ export const CrmConsultingBookings = () => {
     );
   };
 
-  const consultingBookings = leads.filter(isConsultingLead);
+  const consultingBookings = Array.isArray(leads) ? leads.filter(isConsultingLead) : [];
 
   // Apply Search & Filters
   const filteredBookings = consultingBookings.filter(b => {
+    if (!b) return false;
     // Search
     if (searchQuery.trim()) {
       const q = searchQuery.toLowerCase();
@@ -139,19 +182,28 @@ export const CrmConsultingBookings = () => {
       if (!match) return false;
     }
 
-    // Service Filter
+    // Service Filter (exact academic advisory & consulting service matching)
     if (serviceFilter !== 'all') {
+      const sId = (b.serviceId || '').toLowerCase();
+      const title = (b.serviceTitle || '').toLowerCase();
+
       if (serviceFilter === 'intl-consult') {
-        const match = (b.serviceId === 'intl-consult' || (b.serviceTitle || '').toLowerCase().includes('international consulting'));
+        const match = sId === 'intl-consult' || sId.includes('intl-consult') || title.includes('international consulting') || title.includes('intl consulting');
         if (!match) return false;
-      } else if (serviceFilter === 'admissions') {
-        const match = ((b.serviceId || '').includes('adm') || (b.serviceTitle || '').toLowerCase().includes('admission'));
+      } else if (serviceFilter === 'college-adm' || serviceFilter === 'admissions') {
+        const match = sId === 'college-adm' || sId.includes('college') || title.includes('college admission') || title.includes('college');
         if (!match) return false;
-      } else if (serviceFilter === 'career') {
-        const match = ((b.serviceId || '').includes('career') || (b.serviceId || '').includes('academy'));
+      } else if (serviceFilter === 'school-career') {
+        const match = sId === 'school-career' || sId.includes('career') || title.includes('career guidance') || title.includes('career');
         if (!match) return false;
-      } else if (serviceFilter === 'lang') {
-        const match = ((b.serviceId || '').includes('lang') || (b.serviceTitle || '').toLowerCase().includes('language'));
+      } else if (serviceFilter === 'intl-adm') {
+        const match = sId === 'intl-adm' || sId === 'intl-admissions' || (sId.includes('adm') && !sId.includes('college')) || (title.includes('international admission') || title.includes('intl admission'));
+        if (!match) return false;
+      } else if (serviceFilter === 'school-academy' || serviceFilter === 'career') {
+        const match = sId === 'school-academy' || sId.includes('academy') || title.includes('student academy') || title.includes('academy');
+        if (!match) return false;
+      } else if (serviceFilter === 'exec-seminars-lang' || serviceFilter === 'lang') {
+        const match = sId === 'exec-seminars-lang' || sId.includes('seminar') || sId.includes('lang') || title.includes('seminar') || title.includes('language');
         if (!match) return false;
       } else if (serviceFilter === 'corporate') {
         const match = (!b.serviceId || b.serviceId.includes('rec') || b.serviceId.includes('staff') || b.serviceId.includes('exec'));
@@ -199,6 +251,20 @@ export const CrmConsultingBookings = () => {
 
     return true;
   });
+
+  // Pagination State (30 items per page)
+  const ITEMS_PER_PAGE = 30;
+  const [currentPage, setCurrentPage] = useState(1);
+
+  // Reset to page 1 whenever filters change
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [searchQuery, serviceFilter, statusFilter, destinationFilter, intakeFilter, modeFilter, dateRangeFilter]);
+
+  const totalPages = Math.max(1, Math.ceil(filteredBookings.length / ITEMS_PER_PAGE));
+  const startIndex = (currentPage - 1) * ITEMS_PER_PAGE;
+  const endIndex = Math.min(startIndex + ITEMS_PER_PAGE, filteredBookings.length);
+  const paginatedBookings = filteredBookings.slice(startIndex, endIndex);
 
   // KPI Counts
   const totalCount = consultingBookings.length;
@@ -393,7 +459,16 @@ export const CrmConsultingBookings = () => {
             </div>
             <h1 className="font-serif text-2xl font-bold text-slate-900 dark:text-white flex items-center gap-2.5">
               <CalendarCheck className="w-6 h-6 text-gold-500" />
-              Consulting & Advisory Bookings CRM
+              <span>
+                {serviceFilter === 'intl-consult' && 'International Consulting Bookings'}
+                {serviceFilter === 'college-adm' && 'College Admission Assistance Bookings'}
+                {serviceFilter === 'school-career' && 'School Student Career Guidance Bookings'}
+                {serviceFilter === 'intl-adm' && 'International Admissions Bookings'}
+                {serviceFilter === 'school-academy' && 'Academy for School Students Bookings & Enquiries'}
+                {serviceFilter === 'exec-seminars-lang' && 'Executive Seminars & Language Prep Bookings'}
+                {serviceFilter === 'corporate' && 'Corporate & Recruitment Consulting'}
+                {(serviceFilter === 'all' || !serviceFilter) && 'Consulting & Advisory Bookings CRM'}
+              </span>
             </h1>
             <p className="text-slate-600 dark:text-slate-400 max-w-2xl font-medium">
               Manage all client and candidate consultation appointments, destination roadmaps, admissions counseling, and executive strategy sessions from one unified portal.
@@ -460,7 +535,7 @@ export const CrmConsultingBookings = () => {
 
           <div className="glass-card bg-white dark:bg-navy-900 p-4 rounded-2xl border border-slate-200 dark:border-navy-800 space-y-1 shadow-xs">
             <span className="text-[10px] font-bold text-indigo-600 dark:text-indigo-400 uppercase tracking-wider block">
-              Intl Consulting
+              International Consulting
             </span>
             <p className="font-serif text-2xl font-black text-indigo-600 dark:text-indigo-400">
               {intlConsultCount}
@@ -537,14 +612,16 @@ export const CrmConsultingBookings = () => {
               {/* Service Filter */}
               <select
                 value={serviceFilter}
-                onChange={(e) => setServiceFilter(e.target.value)}
+                onChange={(e) => handleServiceFilterChange(e.target.value)}
                 className="px-3 py-2 bg-slate-50 dark:bg-navy-950 border border-slate-300 dark:border-navy-700 rounded-xl text-xs text-slate-900 dark:text-white font-bold focus:outline-none focus:border-gold-500 cursor-pointer"
               >
                 <option value="all">All Consultation Services</option>
-                <option value="intl-consult">🎓 International Consulting</option>
-                <option value="admissions">🏛️ Admissions (College & Intl)</option>
-                <option value="career">🧭 Career Guidance & Academy</option>
-                <option value="lang">🗣️ Executive & Language Prep</option>
+                <option value="intl-consult">🌐 International Consulting</option>
+                <option value="college-adm">🎓 College Admission Assistance</option>
+                <option value="school-career">🧭 School Student Career Guidance</option>
+                <option value="intl-adm">✈️ International Admissions</option>
+                <option value="school-academy">🏫 Academy for School Students</option>
+                <option value="exec-seminars-lang">🗣️ Executive Seminars & Language Prep</option>
                 <option value="corporate">💼 Corporate & Recruitment Consulting</option>
               </select>
 
@@ -613,7 +690,7 @@ export const CrmConsultingBookings = () => {
                 <button
                   onClick={() => {
                     setSearchQuery('');
-                    setServiceFilter('all');
+                    handleServiceFilterChange('all');
                     setStatusFilter('all');
                     setDestinationFilter('all');
                     setIntakeFilter('all');
@@ -645,33 +722,32 @@ export const CrmConsultingBookings = () => {
             </div>
           </div>
 
-          <div className="overflow-x-auto">
+          <div className="overflow-x-auto scrollbar-thin scrollbar-thumb-gold-500/40 hover:scrollbar-thumb-gold-500 scrollbar-track-slate-100 dark:scrollbar-track-navy-950">
             <table className="w-full text-left text-xs border-collapse">
               <thead>
                 <tr className="bg-slate-100 dark:bg-navy-950 text-slate-700 dark:text-gold-400 font-serif uppercase tracking-wider text-[10px] border-b border-slate-200 dark:border-navy-800">
-                  <th className="p-3.5 font-extrabold">REF CODE & DATE</th>
-                  <th className="p-3.5 font-extrabold min-w-[150px]">FULL NAME</th>
-                  <th className="p-3.5 font-extrabold min-w-[200px]">EMAIL ADDRESS</th>
-                  <th className="p-3.5 font-extrabold min-w-[160px]">MOBILE NUMBER</th>
-                  <th className="p-3.5 font-extrabold">CONSULTATION TRACK</th>
-                  <th className="p-3.5 font-extrabold">SCHEDULED APPOINTMENT</th>
-                  <th className="p-3.5 font-extrabold">CONSULTATION MODE</th>
-                  <th className="p-3.5 font-extrabold">ASSIGNED ADVISOR</th>
-                  <th className="p-3.5 font-extrabold">STATUS</th>
-                  <th className="p-3.5 font-extrabold text-right">ACTIONS</th>
+                  <th className="px-2 py-2.5 font-extrabold w-10 text-center">#</th>
+                  <th className="px-3 py-2.5 font-extrabold whitespace-nowrap">REF CODE & DATE</th>
+                  <th className="px-3 py-2.5 font-extrabold">CLIENT / CANDIDATE</th>
+                  <th className="px-3 py-2.5 font-extrabold">CONSULTATION TRACK</th>
+                  <th className="px-3 py-2.5 font-extrabold whitespace-nowrap">SCHEDULED APPOINTMENT</th>
+                  <th className="px-2.5 py-2.5 font-extrabold whitespace-nowrap">CONSULTATION MODE</th>
+                  <th className="px-2.5 py-2.5 font-extrabold whitespace-nowrap">ASSIGNED ADVISOR</th>
+                  <th className="px-2.5 py-2.5 font-extrabold whitespace-nowrap">STATUS</th>
+                  <th className="px-3 py-2.5 font-extrabold text-right whitespace-nowrap">ACTIONS</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-slate-100 dark:divide-navy-800 text-slate-800 dark:text-slate-300">
                 {filteredBookings.length === 0 ? (
                   <tr>
-                    <td colSpan="10" className="p-12 text-center text-slate-500 dark:text-slate-400">
+                    <td colSpan="9" className="p-12 text-center text-slate-500 dark:text-slate-400">
                       <CalendarCheck className="w-10 h-10 text-slate-400 mx-auto mb-2 opacity-50" />
                       <p className="font-bold text-sm">No consultation bookings match your current criteria.</p>
                       <p className="text-[11px] mt-1">Try resetting filters or click "Book Direct Consultation" to record a new booking.</p>
                     </td>
                   </tr>
                 ) : (
-                  filteredBookings.map((booking) => {
+                  paginatedBookings.map((booking, idx) => {
                     const cleanPhone = (booking.phone || '').replace(/[^0-9]/g, '');
                     const whatsappUrl = cleanPhone ? `https://wa.me/${cleanPhone}?text=Hello%20${encodeURIComponent(booking.name)},%20regarding%20your%20consultation%20booking%20with%20The%20Revival%20International...` : null;
                     const mailtoUrl = `mailto:${booking.email}?subject=Regarding Your Consultation - The Revival International&body=Dear ${encodeURIComponent(booking.name)},%0D%0A%0D%0AThank you for booking a consultation with The Revival International regarding ${encodeURIComponent(booking.serviceTitle || 'our advisory services')}.%0D%0A%0D%0A`;
@@ -681,9 +757,16 @@ export const CrmConsultingBookings = () => {
                         key={booking.id} 
                         className="hover:bg-slate-50 dark:hover:bg-navy-950/60 transition group"
                       >
+                        {/* Serial Number (1, 2, 3, 4...) */}
+                        <td className="px-2 py-2.5 text-center">
+                          <span className="inline-flex items-center justify-center w-6 h-6 rounded-lg bg-gold-500/10 dark:bg-gold-500/20 text-gold-700 dark:text-gold-400 font-mono font-extrabold text-xs border border-gold-500/30">
+                            {startIndex + idx + 1}
+                          </span>
+                        </td>
+
                         {/* Ref Code & Date */}
-                        <td className="p-3.5">
-                          <span className="font-mono font-bold text-gold-600 dark:text-gold-400 block">
+                        <td className="px-3 py-2.5 whitespace-nowrap">
+                          <span className="font-mono font-bold text-gold-600 dark:text-gold-400 block text-xs">
                             {booking.referenceNumber || booking.id.slice(0, 12)}
                           </span>
                           <span className="text-[10px] text-slate-500 font-medium block">
@@ -691,16 +774,27 @@ export const CrmConsultingBookings = () => {
                           </span>
                         </td>
 
-                        {/* Full Name */}
-                        <td className="p-3.5 align-top min-w-[150px]">
-                          <div className="font-bold text-slate-900 dark:text-white whitespace-normal break-words">
-                            {booking.name || 'Anonymous Client'}
+                        {/* Client / Candidate Contact */}
+                        <td className="px-3 py-2.5 max-w-[160px]">
+                          <div className="font-bold text-slate-900 dark:text-white truncate">
+                            {booking.name}
                           </div>
-                        </td>
-
-                        {/* Email Address */}
-                        <td className="p-3.5 align-top min-w-[200px] max-w-[260px]">
-                          {booking.email ? (
+                          <div className="text-[11px] text-slate-500 dark:text-slate-400 truncate mt-0.5" title={booking.email}>
+                            {booking.email}
+                          </div>
+                          <div className="flex items-center gap-1.5 mt-1">
+                            <span className="font-mono text-[10px] text-slate-600 dark:text-slate-300 font-semibold">{booking.phone}</span>
+                            {whatsappUrl && (
+                              <a
+                                href={whatsappUrl}
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                className="text-emerald-600 dark:text-emerald-400 hover:opacity-80 transition"
+                                title="Chat on WhatsApp"
+                              >
+                                <MessageSquare className="w-3.5 h-3.5" />
+                              </a>
+                            )}
                             <a
                               href={mailtoUrl}
                               className="text-blue-600 dark:text-blue-400 hover:underline flex items-start gap-1.5 whitespace-normal break-all leading-snug"
@@ -741,28 +835,28 @@ export const CrmConsultingBookings = () => {
                         </td>
 
                         {/* Consultation Track */}
-                        <td className="p-3.5">
-                          <span className="font-bold text-slate-900 dark:text-white block truncate max-w-[160px]">
+                        <td className="px-3 py-2.5 max-w-[160px]">
+                          <span className="font-bold text-slate-900 dark:text-white block truncate" title={booking.serviceTitle || booking.serviceId}>
                             {booking.serviceTitle || booking.serviceId || 'International Consulting'}
                           </span>
                           {booking.countryInterest && (
-                            <span className="inline-block mt-0.5 px-2 py-0.5 rounded text-[10px] font-semibold bg-slate-100 dark:bg-navy-800 text-slate-700 dark:text-slate-300 border border-slate-200 dark:border-navy-700">
+                            <span className="inline-block mt-0.5 px-1.5 py-0.2 rounded text-[9px] font-semibold bg-slate-100 dark:bg-navy-800 text-slate-700 dark:text-slate-300 border border-slate-200 dark:border-navy-700">
                               🌍 {booking.countryInterest}
                             </span>
                           )}
                           {booking.degreeLevel && (
-                            <span className="text-[10px] text-slate-500 dark:text-slate-400 block truncate max-w-[160px]">
+                            <span className="text-[10px] text-slate-500 dark:text-slate-400 block truncate" title={booking.degreeLevel}>
                               {booking.degreeLevel}
                             </span>
                           )}
                         </td>
 
                         {/* Scheduled Appointment */}
-                        <td className="p-3.5">
+                        <td className="px-3 py-2.5 whitespace-nowrap">
                           {booking.consultationDate ? (
                             <div className="space-y-0.5">
-                              <span className="font-bold text-slate-900 dark:text-white flex items-center gap-1">
-                                <Calendar className="w-3.5 h-3.5 text-gold-500" />
+                              <span className="font-bold text-slate-900 dark:text-white flex items-center gap-1 text-[11px]">
+                                <Calendar className="w-3 h-3 text-gold-500" />
                                 {booking.consultationDate}
                               </span>
                               <span className="text-[10px] text-slate-500 dark:text-slate-400 flex items-center gap-1">
@@ -778,27 +872,27 @@ export const CrmConsultingBookings = () => {
                         </td>
 
                         {/* Consultation Mode */}
-                        <td className="p-3.5">
-                          <span className={`px-2.5 py-1 rounded-lg text-[10px] font-extrabold inline-flex items-center gap-1 ${
+                        <td className="px-2.5 py-2.5 whitespace-nowrap">
+                          <span className={`px-2 py-0.5 rounded-md text-[10px] font-extrabold inline-flex items-center gap-1 ${
                             (booking.consultationMode || '').toLowerCase().includes('india') || (booking.consultationMode || '').toLowerCase().includes('in-person') || (booking.consultationMode || '').toLowerCase().includes('chennai') || (booking.consultationMode || '').toLowerCase().includes('office') || (booking.consultationMode || '').toLowerCase().includes('dubai')
                               ? 'bg-purple-100 text-purple-800 dark:bg-purple-500/20 dark:text-purple-300 border border-purple-300 dark:border-purple-500/30'
                               : (booking.consultationMode || '').toLowerCase().includes('whatsapp')
                               ? 'bg-emerald-100 text-emerald-800 dark:bg-emerald-500/20 dark:text-emerald-300 border border-emerald-300 dark:border-emerald-500/30'
                               : 'bg-blue-100 text-blue-800 dark:bg-blue-500/20 dark:text-blue-300 border border-blue-300 dark:border-blue-500/30'
                           }`}>
-                            {(booking.consultationMode || '').toLowerCase().includes('india') || (booking.consultationMode || '').toLowerCase().includes('in-person') || (booking.consultationMode || '').toLowerCase().includes('chennai') || (booking.consultationMode || '').toLowerCase().includes('office') || (booking.consultationMode || '').toLowerCase().includes('dubai') ? '🏢 India HQ Office' :
-                             (booking.consultationMode || '').toLowerCase().includes('whatsapp') ? '💬 WhatsApp Video' :
-                             (booking.consultationMode || '').toLowerCase().includes('phone') ? '📞 Phone Call' :
-                             '💻 Virtual (Meet/Zoom)'}
+                            {(booking.consultationMode || '').toLowerCase().includes('india') || (booking.consultationMode || '').toLowerCase().includes('in-person') || (booking.consultationMode || '').toLowerCase().includes('chennai') || (booking.consultationMode || '').toLowerCase().includes('office') || (booking.consultationMode || '').toLowerCase().includes('dubai') ? '🏢 India HQ' :
+                             (booking.consultationMode || '').toLowerCase().includes('whatsapp') ? '💬 WhatsApp' :
+                             (booking.consultationMode || '').toLowerCase().includes('phone') ? '📞 Phone' :
+                             '💻 Virtual'}
                           </span>
                         </td>
 
                         {/* Assigned Advisor */}
-                        <td className="p-3.5">
+                        <td className="px-2.5 py-2.5 whitespace-nowrap">
                           <select
                             value={booking.assignedEmployee || 'Dhanalakshimi'}
                             onChange={(e) => handleAssignChange(booking.id, e.target.value)}
-                            className="bg-slate-50 dark:bg-navy-950 border border-slate-200 dark:border-navy-700 text-slate-800 dark:text-slate-200 text-[11px] rounded-lg p-1.5 font-bold focus:outline-none focus:border-gold-500 cursor-pointer"
+                            className="bg-slate-50 dark:bg-navy-950 border border-slate-200 dark:border-navy-700 text-slate-800 dark:text-slate-200 text-[11px] rounded-lg px-2 py-1 font-bold focus:outline-none focus:border-gold-500 cursor-pointer max-w-[125px]"
                           >
                             {counselors.map(c => (
                               <option key={c} value={c}>{c}</option>
@@ -807,11 +901,11 @@ export const CrmConsultingBookings = () => {
                         </td>
 
                         {/* Status Dropdown */}
-                        <td className="p-3.5">
+                        <td className="px-2.5 py-2.5 whitespace-nowrap">
                           <select
                             value={booking.status || 'New Enquiry'}
                             onChange={(e) => handleStatusChange(booking.id, e.target.value)}
-                            className={`text-[11px] font-extrabold rounded-lg px-2.5 py-1 border focus:outline-none cursor-pointer ${
+                            className={`text-[11px] font-extrabold rounded-lg px-2 py-1 border focus:outline-none cursor-pointer max-w-[145px] truncate ${
                               booking.status === 'Consultation Scheduled'
                                 ? 'bg-amber-100 text-amber-900 border-amber-300 dark:bg-gold-500/20 dark:text-gold-300 dark:border-gold-500/40'
                                 : booking.status === 'Consultation Completed' || booking.status === 'Qualified'
@@ -824,33 +918,33 @@ export const CrmConsultingBookings = () => {
                             }`}
                           >
                             <option value="New Enquiry">1. New Enquiry</option>
-                            <option value="Consultation Scheduled">2. Consultation Scheduled</option>
+                            <option value="Consultation Scheduled">2. Scheduled</option>
                             <option value="Course Selection">3. Course Selection</option>
-                            <option value="Documents Pending">4. Documents Pending</option>
-                            <option value="Application in Preparation">5. Application in Preparation</option>
-                            <option value="Application Submitted">6. Application Submitted</option>
-                            <option value="Awaiting Institution Decision">7. Awaiting Institution Decision</option>
+                            <option value="Documents Pending">4. Docs Pending</option>
+                            <option value="Application in Preparation">5. App Prep</option>
+                            <option value="Application Submitted">6. App Submitted</option>
+                            <option value="Awaiting Institution Decision">7. Awaiting Decision</option>
                             <option value="Offer Received">8. Offer Received</option>
-                            <option value="Enrollment in Progress">9. Enrollment in Progress</option>
+                            <option value="Enrollment in Progress">9. Enrolling</option>
                             <option value="Closed">10. Closed</option>
                             <option value="Contacted">📞 Contacted</option>
                             <option value="In Progress">⏳ In Progress</option>
                             <option value="Consultation Completed">✅ Completed</option>
                             <option value="Qualified">🎓 Qualified</option>
-                            <option value="Converted">🏆 Converted / Enrolled</option>
-                            <option value="Closed / Lost">❌ Closed / Lost</option>
+                            <option value="Converted">🏆 Converted</option>
+                            <option value="Closed / Lost">❌ Lost</option>
                           </select>
                         </td>
 
                         {/* Actions */}
-                        <td className="p-3.5 text-right">
-                          <div className="flex items-center justify-end gap-1.5">
+                        <td className="px-3 py-2.5 text-right whitespace-nowrap">
+                          <div className="flex items-center justify-end gap-1">
                             <button
                               onClick={() => {
                                 setSelectedBooking(booking);
                                 setDossierModalOpen(true);
                               }}
-                              className="px-2.5 py-1 bg-slate-100 hover:bg-slate-200 dark:bg-navy-800 dark:hover:bg-navy-700 text-slate-800 dark:text-slate-200 font-bold rounded-lg text-[10px] transition cursor-pointer flex items-center gap-1"
+                              className="px-2 py-1 bg-slate-100 hover:bg-slate-200 dark:bg-navy-800 dark:hover:bg-navy-700 text-slate-800 dark:text-slate-200 font-bold rounded-lg text-[10px] transition cursor-pointer flex items-center gap-1"
                               title="View full booking dossier"
                             >
                               <Eye className="w-3 h-3 text-gold-500" />
@@ -862,11 +956,20 @@ export const CrmConsultingBookings = () => {
                                 setFollowUpLead(booking);
                                 setFollowUpModalOpen(true);
                               }}
-                              className="px-2.5 py-1 bg-amber-50 hover:bg-amber-100 dark:bg-gold-500/10 dark:hover:bg-gold-500/20 text-amber-800 dark:text-gold-400 font-bold rounded-lg text-[10px] transition cursor-pointer flex items-center gap-1 border border-amber-200 dark:border-gold-500/30"
+                              className="px-2 py-1 bg-amber-50 hover:bg-amber-100 dark:bg-gold-500/10 dark:hover:bg-gold-500/20 text-amber-800 dark:text-gold-400 font-bold rounded-lg text-[10px] transition cursor-pointer flex items-center gap-1 border border-amber-200 dark:border-gold-500/30"
                               title="Schedule CRM follow-up"
                             >
                               <Calendar className="w-3 h-3" />
                               <span>Follow-Up</span>
+                            </button>
+
+                            <button
+                              onClick={() => handleDeleteBooking(booking)}
+                              className="p-1 px-1.5 bg-rose-50 hover:bg-rose-100 dark:bg-rose-950/40 dark:hover:bg-rose-900/60 text-rose-600 dark:text-rose-400 rounded-lg border border-rose-200 dark:border-rose-900/50 font-bold text-[10px] transition cursor-pointer flex items-center gap-0.5"
+                              title={`Delete booking ${booking.referenceNumber || booking.id}`}
+                            >
+                              <Trash2 className="w-3 h-3" />
+                              <span>Delete</span>
                             </button>
                           </div>
                         </td>
@@ -876,6 +979,82 @@ export const CrmConsultingBookings = () => {
                 )}
               </tbody>
             </table>
+          </div>
+
+          {/* Pagination Controls Footer (30 Items Per Page) */}
+          <div className="p-4 border-t border-slate-200 dark:border-navy-800 bg-slate-50/50 dark:bg-navy-950/50 flex flex-col sm:flex-row items-center justify-between gap-3 text-xs">
+            <div className="text-slate-600 dark:text-slate-400 font-medium">
+              Showing <strong className="text-slate-900 dark:text-white font-bold">{filteredBookings.length === 0 ? 0 : startIndex + 1}</strong> to <strong className="text-slate-900 dark:text-white font-bold">{endIndex}</strong> of <strong className="text-slate-900 dark:text-white font-bold">{filteredBookings.length}</strong> bookings (30 per page)
+            </div>
+
+            {totalPages > 1 && (
+              <div className="flex items-center gap-1.5 flex-wrap justify-center">
+                <button
+                  type="button"
+                  onClick={() => setCurrentPage(1)}
+                  disabled={currentPage === 1}
+                  className="px-2.5 py-1.5 rounded-lg border border-slate-200 dark:border-navy-700 bg-white dark:bg-navy-900 text-slate-700 dark:text-slate-300 disabled:opacity-40 disabled:cursor-not-allowed hover:bg-gold-50 dark:hover:bg-navy-800 font-bold text-xs transition cursor-pointer"
+                  title="First Page"
+                >
+                  First
+                </button>
+
+                <button
+                  type="button"
+                  onClick={() => setCurrentPage(prev => Math.max(1, prev - 1))}
+                  disabled={currentPage === 1}
+                  className="px-3 py-1.5 rounded-lg border border-slate-200 dark:border-navy-700 bg-white dark:bg-navy-900 text-slate-700 dark:text-slate-300 disabled:opacity-40 disabled:cursor-not-allowed hover:bg-gold-50 dark:hover:bg-navy-800 font-bold text-xs transition cursor-pointer flex items-center gap-1"
+                >
+                  <ChevronLeft className="w-3.5 h-3.5" />
+                  <span>Prev</span>
+                </button>
+
+                <div className="flex items-center gap-1">
+                  {Array.from({ length: totalPages }, (_, i) => i + 1)
+                    .filter(p => p === 1 || p === totalPages || Math.abs(p - currentPage) <= 1)
+                    .map((pageNum, i, arr) => {
+                      const prevPageNum = arr[i - 1];
+                      const showEllipsis = prevPageNum && pageNum - prevPageNum > 1;
+                      return (
+                        <React.Fragment key={pageNum}>
+                          {showEllipsis && <span className="px-1 text-slate-400 font-bold">...</span>}
+                          <button
+                            type="button"
+                            onClick={() => setCurrentPage(pageNum)}
+                            className={`w-8 h-8 rounded-lg font-bold font-mono text-xs transition cursor-pointer flex items-center justify-center ${
+                              currentPage === pageNum
+                                ? 'bg-gold-500 text-navy-950 font-extrabold shadow-sm'
+                                : 'border border-slate-200 dark:border-navy-700 bg-white dark:bg-navy-900 text-slate-700 dark:text-slate-300 hover:bg-gold-50 dark:hover:bg-navy-800'
+                            }`}
+                          >
+                            {pageNum}
+                          </button>
+                        </React.Fragment>
+                      );
+                    })}
+                </div>
+
+                <button
+                  type="button"
+                  onClick={() => setCurrentPage(prev => Math.min(totalPages, prev + 1))}
+                  disabled={currentPage >= totalPages}
+                  className="px-3 py-1.5 rounded-lg border border-slate-200 dark:border-navy-700 bg-white dark:bg-navy-900 text-slate-700 dark:text-slate-300 disabled:opacity-40 disabled:cursor-not-allowed hover:bg-gold-50 dark:hover:bg-navy-800 font-bold text-xs transition cursor-pointer flex items-center gap-1"
+                >
+                  <span>Next</span>
+                  <ChevronRight className="w-3.5 h-3.5" />
+                </button>
+
+                <button
+                  type="button"
+                  onClick={() => setCurrentPage(totalPages)}
+                  disabled={currentPage >= totalPages}
+                  className="px-2.5 py-1.5 rounded-lg border border-slate-200 dark:border-navy-700 bg-white dark:bg-navy-900 text-slate-700 dark:text-slate-300 disabled:opacity-40 disabled:cursor-not-allowed hover:bg-gold-50 dark:hover:bg-navy-800 font-bold text-xs transition cursor-pointer"
+                  title="Last Page"
+                >
+                  Last
+                </button>
+              </div>
+            )}
           </div>
 
         </div>
@@ -1140,6 +1319,15 @@ export const CrmConsultingBookings = () => {
 
                 <div className="flex items-center gap-2">
                   <button
+                    type="button"
+                    onClick={() => handleDeleteBooking(selectedBooking)}
+                    className="px-3.5 py-2 bg-rose-50 hover:bg-rose-100 dark:bg-rose-950/40 dark:hover:bg-rose-900/60 text-rose-600 dark:text-rose-400 font-bold rounded-xl border border-rose-200 dark:border-rose-900/50 flex items-center gap-1.5 transition cursor-pointer text-xs"
+                    title="Delete booking permanently"
+                  >
+                    <Trash2 className="w-3.5 h-3.5" />
+                    <span>Delete Booking</span>
+                  </button>
+                  <button
                     onClick={() => {
                       setFollowUpLead(selectedBooking);
                       setDossierModalOpen(false);
@@ -1158,6 +1346,50 @@ export const CrmConsultingBookings = () => {
                 </div>
               </div>
 
+            </div>
+          </div>
+        )}
+
+        {/* Delete Booking Confirmation Modal */}
+        {deleteConfirmBooking && (
+          <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-navy-950/80 backdrop-blur-sm animate-in fade-in">
+            <div className="glass-card bg-white dark:bg-navy-900 border border-rose-500/40 rounded-3xl max-w-md w-full p-6 shadow-luxury space-y-4">
+              <div className="w-12 h-12 rounded-2xl bg-rose-500/10 border border-rose-500/30 text-rose-500 flex items-center justify-center mx-auto">
+                <Trash2 className="w-6 h-6" />
+              </div>
+
+              <div className="text-center space-y-1.5">
+                <h3 className="font-serif text-lg font-bold text-slate-900 dark:text-white">
+                  Delete Consultation Booking?
+                </h3>
+                <p className="text-xs text-slate-500 dark:text-slate-400">
+                  Are you sure you want to permanently delete booking <strong className="text-slate-900 dark:text-white">{deleteConfirmBooking.referenceNumber || deleteConfirmBooking.id}</strong> for <strong className="text-slate-900 dark:text-white">{deleteConfirmBooking.name}</strong>? This will remove all dossier records, notes, and activity history.
+                </p>
+              </div>
+
+              <div className="flex gap-2 pt-2">
+                <button
+                  type="button"
+                  onClick={() => setDeleteConfirmBooking(null)}
+                  disabled={isDeletingBooking}
+                  className="flex-1 py-2.5 rounded-xl border border-slate-300 dark:border-navy-700 hover:bg-slate-100 dark:hover:bg-navy-800 text-slate-700 dark:text-slate-300 font-bold text-xs transition cursor-pointer"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="button"
+                  onClick={confirmDeleteBooking}
+                  disabled={isDeletingBooking}
+                  className="flex-1 py-2.5 rounded-xl bg-rose-600 hover:bg-rose-500 text-white font-bold text-xs shadow-md transition flex items-center justify-center gap-1.5 cursor-pointer disabled:opacity-50"
+                >
+                  {isDeletingBooking ? 'Deleting...' : (
+                    <>
+                      <Trash2 className="w-3.5 h-3.5" />
+                      <span>Delete Booking</span>
+                    </>
+                  )}
+                </button>
+              </div>
             </div>
           </div>
         )}

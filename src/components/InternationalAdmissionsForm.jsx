@@ -1,7 +1,8 @@
 import React, { useState, useEffect } from 'react';
 import { 
   Send, CheckCircle2, AlertCircle, Loader2, Sparkles, ShieldCheck, 
-  Globe, Calendar, Phone, Mail, User, Clock, BookOpen, FileText, Check, Award
+  Globe, Calendar, Phone, Mail, User, Clock, BookOpen, FileText, Check, Award,
+  ChevronRight, ChevronLeft, Building2, GraduationCap, MapPin
 } from 'lucide-react';
 import { trackEnquiryStart, trackEnquiryValidationFailure, trackEnquiryConversion } from '../services/analytics';
 import { getAttributionData } from '../utils/attribution';
@@ -16,21 +17,29 @@ export const InternationalAdmissionsForm = ({
   // Initialize tomorrow's date for appointment picker
   const tomorrow = new Date(Date.now() + 86400000).toISOString().split('T')[0];
 
+  const [currentStep, setCurrentStep] = useState(1);
   const [formData, setFormData] = useState({
+    // 1-4. Personal Information
     name: '',
-    phone: '',
-    countryCode: '+971',
     email: '',
+    countryCode: '+971',
+    phone: '',
     currentCountry: 'United Arab Emirates',
+
+    // 5-10. Academic Information
     preferredDestination: preselectedDestination || 'United Kingdom',
     academicLevel: 'Undergraduate',
     preferredCourse: '',
-    intendedIntake: 'Fall Intake',
-    currentQualification: '12th Grade / Secondary School',
+    currentQualification: '12th Grade / CBSE / ICSE',
     percentageOrGpa: '',
     englishTestStatus: 'Planning to Take Test Soon',
-    applicationStatus: 'Preparing Documents',
-    consultationMethod: 'Online Meeting',
+
+    // 11-12. Application Information
+    applicationStatus: 'Shortlisting Universities',
+    intendedIntake: 'Fall Intake',
+
+    // 13-17. Consultation Preferences
+    consultationMethod: 'Online Meeting (Google Meet / Zoom)',
     appointmentDate: tomorrow,
     timeSlot: 'Morning (09:00 AM - 12:00 PM)',
     additionalRequirements: '',
@@ -46,6 +55,7 @@ export const InternationalAdmissionsForm = ({
   useEffect(() => {
     if (preselectedDestination && preselectedDestination !== formData.preferredDestination) {
       setFormData(prev => ({ ...prev, preferredDestination: preselectedDestination }));
+      setCurrentStep(2);
     }
   }, [preselectedDestination]);
 
@@ -65,6 +75,15 @@ export const InternationalAdmissionsForm = ({
     { code: '+60', label: 'Malaysia (+60)' }
   ];
 
+  const destinationOptions = [
+    'United Kingdom',
+    'United States',
+    'Canada',
+    'Australia',
+    'Europe',
+    'United Arab Emirates'
+  ];
+
   const currentCountryOptions = [
     'United Arab Emirates',
     'Saudi Arabia',
@@ -77,72 +96,61 @@ export const InternationalAdmissionsForm = ({
     'United States',
     'Canada',
     'Australia',
-    'Germany',
+    'Germany / EU',
     'Other / International'
-  ];
-
-  const destinationOptions = [
-    'United Kingdom',
-    'United States',
-    'Canada',
-    'Australia',
-    'Europe',
-    'United Arab Emirates',
-    'Multiple / Undecided'
   ];
 
   const academicLevelOptions = [
     'Undergraduate (Bachelor’s Degree)',
     'Postgraduate (Master’s Degree)',
-    'Doctorate (PhD / Research)',
-    'Executive MBA & Professional Programs'
+    'Doctoral / PhD',
+    'Diploma / Foundation',
+    'Other Academic Program'
+  ];
+
+  const qualificationOptions = [
+    '12th Grade / CBSE / ICSE',
+    'Diploma / Polytechnic',
+    'Bachelor’s Degree',
+    'Master’s Degree',
+    'Other Qualification'
+  ];
+
+  const englishTestOptions = [
+    'IELTS',
+    'TOEFL',
+    'PTE',
+    'Duolingo',
+    'Planning to Take Test Soon',
+    'Not Yet Started'
+  ];
+
+  const applicationStatusOptions = [
+    'Not Started – Exploring Universities',
+    'Shortlisting Universities',
+    'Applications in Progress',
+    'Received Conditional Offer',
+    'Received Unconditional Offer'
   ];
 
   const intakeOptions = [
     'Fall Intake',
     'Spring Intake',
-    'Summer Intake'
-  ];
-
-  const qualificationOptions = [
-    '12th Grade / CBSE / ICSE',
-    'IB Diploma (International Baccalaureate)',
-    'Cambridge A-Levels / IGCSE',
-    'American High School Diploma',
-    'Bachelor’s Degree in Progress',
-    'Completed Bachelor’s Degree',
-    'Master’s Degree Holder',
-    'Polytechnic / Higher Diploma'
-  ];
-
-  const englishTestOptions = [
-    'Appeared / Have Scorecard (IELTS / TOEFL / PTE / DET)',
-    'Planning to Take Test Soon',
-    'Awaiting Test Results',
-    'Exempt / English Medium Background',
-    'Need Test Preparation Guidance'
-  ];
-
-  const applicationStatusOptions = [
-    'Not Started — Exploring Universities',
-    'Preparing Documents — Need Guidance',
-    'Applied — Awaiting Decision',
-    'Received Offer — Need Evaluation',
-    'Need Further Guidance'
+    'Summer Intake',
+    'Flexible'
   ];
 
   const consultationMethodOptions = [
-    { id: 'Online Meeting', label: 'Online Meeting (Google Meet / Zoom)' },
-    { id: 'WhatsApp', label: 'WhatsApp' },
-    { id: 'Phone Call', label: 'Phone Call' },
-    { id: 'Email', label: 'Email' }
+    { id: 'Online Meeting (Google Meet / Zoom)', label: 'Online Meeting (Google Meet / Zoom)' },
+    { id: 'WhatsApp', label: 'WhatsApp Call / Chat' },
+    { id: 'Phone Call', label: 'Direct Phone Call' },
+    { id: 'Email', label: 'Email Advisory' }
   ];
 
   const timeSlotOptions = [
     'Morning (09:00 AM - 12:00 PM)',
     'Afternoon (12:00 PM - 03:00 PM)',
-    'Evening (03:00 PM - 06:00 PM)',
-    'Night (06:00 PM - 08:00 PM)'
+    'Evening (03:00 PM - 06:00 PM)'
   ];
 
   const handleChange = (e) => {
@@ -168,99 +176,84 @@ export const InternationalAdmissionsForm = ({
     }
   };
 
-  const validate = () => {
+  const validateStep = (stepNumber) => {
     const errors = {};
 
-    // 1. Full Name
-    if (!formData.name || formData.name.trim().length < 2) {
-      errors.name = 'Full name is required (minimum 2 characters).';
-    } else if (formData.name.trim().length > 100) {
-      errors.name = 'Full name must not exceed 100 characters.';
-    }
-
-    // 2. Email Address
-    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-    if (!formData.email || !emailRegex.test(formData.email.trim())) {
-      errors.email = 'Please provide a valid email address.';
-    }
-
-    // 3. Phone Number
-    if (!formData.phone || formData.phone.length < 7) {
-      errors.phone = 'Valid phone number is required (at least 7 digits).';
-    } else if (formData.phone.length > 15) {
-      errors.phone = 'Phone number exceeds maximum length.';
-    }
-
-    // 4. Current Country of Residence
-    if (!formData.currentCountry) {
-      errors.currentCountry = 'Current country of residence is required.';
-    }
-
-    // 5. Preferred Study Destination
-    if (!formData.preferredDestination) {
-      errors.preferredDestination = 'Please select a preferred study destination.';
-    }
-
-    // 6. Target Academic Level
-    if (!formData.academicLevel) {
-      errors.academicLevel = 'Please select your target academic level.';
-    }
-
-    // 7. Preferred Course or Subject
-    if (!formData.preferredCourse || formData.preferredCourse.trim().length < 2) {
-      errors.preferredCourse = 'Please enter your preferred course or subject area.';
-    }
-
-    // 8. Intended Intake
-    if (!formData.intendedIntake) {
-      errors.intendedIntake = 'Please select your intended intake.';
-    }
-
-    // 9. Current Qualification
-    if (!formData.currentQualification) {
-      errors.currentQualification = 'Current qualification is required.';
-    }
-
-    // 10. English Language Test Status
-    if (!formData.englishTestStatus) {
-      errors.englishTestStatus = 'Please select your English test status.';
-    }
-
-    // 11. Application Status
-    if (!formData.applicationStatus) {
-      errors.applicationStatus = 'Please indicate your current application status.';
-    }
-
-    // 12. Preferred Consultation Method
-    if (!formData.consultationMethod) {
-      errors.consultationMethod = 'Please choose a consultation method.';
-    }
-
-    // 13. Preferred Appointment Date
-    if (!formData.appointmentDate) {
-      errors.appointmentDate = 'Appointment date is required.';
-    } else {
-      const selected = new Date(formData.appointmentDate);
-      const today = new Date();
-      today.setHours(0, 0, 0, 0);
-      if (selected < today) {
-        errors.appointmentDate = 'Appointment date cannot be in the past.';
+    if (stepNumber === 1) {
+      if (!formData.name || formData.name.trim().length < 2) {
+        errors.name = 'Full name is required (minimum 2 characters).';
+      }
+      const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+      if (!formData.email || !emailRegex.test(formData.email.trim())) {
+        errors.email = 'Please provide a valid email address.';
+      }
+      if (!formData.phone || formData.phone.length < 7) {
+        errors.phone = 'Valid phone number is required (at least 7 digits).';
+      }
+      if (!formData.currentCountry) {
+        errors.currentCountry = 'Current country of residence is required.';
       }
     }
 
-    // 14. Additional Requirements or Questions
-    if (!formData.additionalRequirements || formData.additionalRequirements.trim().length < 10) {
-      errors.additionalRequirements = 'Please provide additional requirements or questions (minimum 10 characters).';
-    } else if (formData.additionalRequirements.trim().length > 3000) {
-      errors.additionalRequirements = 'Details must not exceed 3000 characters.';
+    if (stepNumber === 2) {
+      if (!formData.preferredDestination) {
+        errors.preferredDestination = 'Preferred destination is required.';
+      }
+      if (!formData.academicLevel) {
+        errors.academicLevel = 'Target academic level is required.';
+      }
+      if (!formData.preferredCourse || formData.preferredCourse.trim().length < 2) {
+        errors.preferredCourse = 'Preferred course or subject is required.';
+      }
+      if (!formData.currentQualification) {
+        errors.currentQualification = 'Current qualification is required.';
+      }
+      if (!formData.englishTestStatus) {
+        errors.englishTestStatus = 'Please select your English test status.';
+      }
+      if (!formData.intendedIntake) {
+        errors.intendedIntake = 'Intended intake is required.';
+      }
     }
 
-    // 15. Privacy Consent Checkbox
-    if (!formData.consent) {
-      errors.consent = 'Privacy consent is required to process your admissions consultation.';
+    if (stepNumber === 3) {
+      if (!formData.consultationMethod) {
+        errors.consultationMethod = 'Please choose a consultation method.';
+      }
+      if (!formData.appointmentDate) {
+        errors.appointmentDate = 'Appointment date is required.';
+      } else {
+        const selected = new Date(formData.appointmentDate);
+        const today = new Date();
+        today.setHours(0, 0, 0, 0);
+        if (selected < today) {
+          errors.appointmentDate = 'Appointment date cannot be in the past.';
+        }
+      }
+      if (!formData.timeSlot) {
+        errors.timeSlot = 'Please select a preferred time slot.';
+      }
+      if (!formData.consent) {
+        errors.consent = 'Privacy consent is required to process your admissions consultation.';
+      }
     }
 
     return errors;
+  };
+
+  const goToNextStep = () => {
+    const errors = validateStep(currentStep);
+    if (Object.keys(errors).length > 0) {
+      setFormErrors(errors);
+      return;
+    }
+    setFormErrors({});
+    setCurrentStep(prev => Math.min(prev + 1, 3));
+  };
+
+  const goToPrevStep = () => {
+    setFormErrors({});
+    setCurrentStep(prev => Math.max(prev - 1, 1));
   };
 
   const handleSubmit = async (e) => {
@@ -268,11 +261,17 @@ export const InternationalAdmissionsForm = ({
     if (isSubmitting) return;
 
     setSubmitError(null);
-    const errors = validate();
+    const step1Errors = validateStep(1);
+    const step2Errors = validateStep(2);
+    const step3Errors = validateStep(3);
 
-    if (Object.keys(errors).length > 0) {
-      setFormErrors(errors);
-      trackEnquiryValidationFailure('admissions_page', 'intl-adm', Object.keys(errors));
+    const allErrors = { ...step1Errors, ...step2Errors, ...step3Errors };
+    if (Object.keys(allErrors).length > 0) {
+      setFormErrors(allErrors);
+      if (Object.keys(step1Errors).length > 0) setCurrentStep(1);
+      else if (Object.keys(step2Errors).length > 0) setCurrentStep(2);
+      else setCurrentStep(3);
+      trackEnquiryValidationFailure('admissions_page', 'intl-adm', Object.keys(allErrors));
       return;
     }
 
@@ -282,7 +281,6 @@ export const InternationalAdmissionsForm = ({
     const attribution = getAttributionData();
     const fullPhoneNumber = `${formData.countryCode} ${formData.phone}`.trim();
 
-    // Map all fields according to backend lead/consulting schema
     const payload = {
       name: formData.name.trim(),
       email: formData.email.trim(),
@@ -305,7 +303,23 @@ export const InternationalAdmissionsForm = ({
       consultationMode: formData.consultationMethod,
       status: 'Consultation Scheduled',
       priority: 'High',
-      message: `[International Admissions Consultation Request]\n\n• Preferred Destination: ${formData.preferredDestination}\n• Target Academic Level: ${formData.academicLevel}\n• Preferred Course/Subject: ${formData.preferredCourse.trim()}\n• Intended Intake: ${formData.intendedIntake}\n• Current Qualification: ${formData.currentQualification}\n• Academic % or GPA: ${formData.percentageOrGpa.trim() || 'Not specified'}\n• English Test Status: ${formData.englishTestStatus}\n• Application Status: ${formData.applicationStatus}\n• Preferred Consultation Method: ${formData.consultationMethod}\n• Scheduled Date & Time: ${formData.appointmentDate} (${formData.timeSlot})\n• Country of Residence: ${formData.currentCountry}\n\nApplicant Questions & Requirements:\n${formData.additionalRequirements.trim()}`,
+      message: `[International Admissions Consultation Request]
+
+• Applicant Name: ${formData.name.trim()}
+• Country of Residence: ${formData.currentCountry}
+• Preferred Study Destination: ${formData.preferredDestination}
+• Target Academic Level: ${formData.academicLevel}
+• Preferred Course / Subject: ${formData.preferredCourse.trim()}
+• Current Qualification: ${formData.currentQualification}
+• Academic % or GPA: ${formData.percentageOrGpa.trim() || 'Not specified'}
+• English Language Test Status: ${formData.englishTestStatus}
+• Current Application Status: ${formData.applicationStatus}
+• Intended Admission Intake: ${formData.intendedIntake}
+• Preferred Consultation Method: ${formData.consultationMethod}
+• Scheduled Appointment Date: ${formData.appointmentDate} (${formData.timeSlot})
+
+Additional Requirements & Notes:
+${formData.additionalRequirements.trim() || 'No additional questions specified.'}`,
       utmSource: attribution.utmSource,
       utmMedium: attribution.utmMedium,
       utmCampaign: attribution.utmCampaign,
@@ -339,7 +353,6 @@ export const InternationalAdmissionsForm = ({
 
       setSubmissionSuccess(successData);
 
-      // Track conversion
       trackEnquiryConversion(
         confirmedRef,
         'intl-adm',
@@ -352,7 +365,7 @@ export const InternationalAdmissionsForm = ({
         onSuccessCallback(successData);
       }
     } catch (err) {
-      console.error('Admissions consultation booking error:', err);
+      console.error('Admissions consultation booking submission error:', err);
       setSubmitError(err.message || 'A network error occurred while connecting to the database server. Please try again.');
     } finally {
       setIsSubmitting(false);
@@ -362,612 +375,630 @@ export const InternationalAdmissionsForm = ({
   const resetForm = () => {
     setFormData({
       name: '',
-      phone: '',
-      countryCode: '+971',
       email: '',
+      countryCode: '+971',
+      phone: '',
       currentCountry: 'United Arab Emirates',
-      preferredDestination: preselectedDestination || 'United Kingdom',
+      preferredDestination: 'United Kingdom',
       academicLevel: 'Undergraduate',
       preferredCourse: '',
-      intendedIntake: 'Fall Intake',
-      currentQualification: '12th Grade / Secondary School',
+      currentQualification: '12th Grade / CBSE / ICSE',
       percentageOrGpa: '',
       englishTestStatus: 'Planning to Take Test Soon',
-      applicationStatus: 'Preparing Documents',
-      consultationMethod: 'Online Meeting',
+      applicationStatus: 'Shortlisting Universities',
+      intendedIntake: 'Fall Intake',
+      consultationMethod: 'Online Meeting (Google Meet / Zoom)',
       appointmentDate: tomorrow,
       timeSlot: 'Morning (09:00 AM - 12:00 PM)',
       additionalRequirements: '',
       consent: false
     });
     setFormErrors({});
-    setSubmitError(null);
     setSubmissionSuccess(null);
+    setCurrentStep(1);
   };
 
-  // SUCCESS STATE (Displayed ONLY upon genuine successful HTTP response from backend)
   if (submissionSuccess) {
     return (
-      <div className={`glass-card bg-white dark:bg-navy-900 border border-emerald-500/40 rounded-3xl p-6 sm:p-10 space-y-6 text-center ${embedded ? '' : 'shadow-luxury'}`}>
-        <div className="w-16 h-16 rounded-full bg-emerald-500/10 text-emerald-500 mx-auto flex items-center justify-center border border-emerald-500/30">
-          <CheckCircle2 className="w-8 h-8" />
+      <div className="bg-white rounded-2xl border border-emerald-200/80 p-8 md:p-10 shadow-xl text-center max-w-2xl mx-auto animate-fadeIn">
+        <div className="w-16 h-16 rounded-full bg-emerald-50 border-2 border-emerald-400 text-emerald-600 flex items-center justify-center mx-auto mb-6 shadow-sm">
+          <CheckCircle2 className="w-9 h-9" />
         </div>
 
-        <div className="space-y-2">
-          <span className="bg-emerald-500/15 text-emerald-600 dark:text-emerald-400 text-[11px] font-extrabold px-3 py-1 rounded-full uppercase tracking-wider border border-emerald-500/30">
-            Admissions Consultation Confirmed
-          </span>
-          <h3 className="font-serif text-2xl sm:text-3xl font-bold text-navy-900 dark:text-white">
-            Thank You, {submissionSuccess.name}!
-          </h3>
-          <p className="text-xs sm:text-sm text-slate-700 dark:text-slate-300 max-w-lg mx-auto font-medium">
-            Your international admissions consultation has been saved to the Revival International database. An admissions officer will review your course preferences and connect with you at your chosen appointment slot.
-          </p>
-        </div>
+        <span className="inline-block px-3.5 py-1 rounded-full text-xs font-semibold bg-emerald-100/70 text-emerald-800 uppercase tracking-wider mb-3">
+          Application Consultation Confirmed
+        </span>
 
-        {/* Confirmed Reference Card */}
-        <div className="bg-slate-50 dark:bg-navy-950 p-5 rounded-2xl border border-slate-200 dark:border-navy-800 max-w-lg mx-auto text-left space-y-3">
-          <div className="flex justify-between items-center text-xs pb-3 border-b border-slate-200 dark:border-navy-800">
-            <span className="text-slate-500 font-bold uppercase tracking-wider text-[10px]">Admissions Reference Number</span>
-            <span className="font-mono font-black text-gold-600 dark:text-gold-400 text-sm tracking-wide bg-gold-500/10 px-3 py-0.5 rounded border border-gold-500/30">
+        <h3 className="text-2xl md:text-3xl font-serif font-bold text-[#102A43] mb-3">
+          Admissions Advisory Scheduled
+        </h3>
+
+        <p className="text-gray-600 max-w-lg mx-auto text-sm md:text-base mb-6 leading-relaxed">
+          Thank you, <strong className="text-gray-900">{submissionSuccess.name}</strong>. Your international admissions dossier request has been registered in our CRM. A senior admissions coordinator will review your academic background and connect with you.
+        </p>
+
+        {/* Reference & Application Summary Card */}
+        <div className="bg-[#F7F9FC] border border-gray-200/80 rounded-xl p-5 mb-6 text-left text-sm space-y-3">
+          <div className="flex items-center justify-between pb-3 border-b border-gray-200">
+            <span className="text-gray-500 font-medium">Admissions Reference:</span>
+            <span className="font-mono font-bold text-[#102A43] bg-white px-2.5 py-1 rounded border border-gray-200">
               {submissionSuccess.referenceNumber}
             </span>
           </div>
 
-          <div className="grid grid-cols-2 gap-3 text-xs">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 pt-1">
             <div>
-              <p className="text-[10px] text-slate-400 font-bold uppercase">Destination & Level</p>
-              <p className="font-bold text-slate-800 dark:text-slate-200 truncate">{submissionSuccess.destination}</p>
-              <p className="text-[11px] text-slate-500 truncate">{submissionSuccess.academicLevel}</p>
+              <span className="text-gray-500 block text-xs uppercase tracking-wider">Target Destination</span>
+              <span className="font-semibold text-gray-900">{submissionSuccess.destination}</span>
             </div>
             <div>
-              <p className="text-[10px] text-slate-400 font-bold uppercase">Course & Intake</p>
-              <p className="font-bold text-slate-800 dark:text-slate-200 truncate">{submissionSuccess.course}</p>
-              <p className="text-[11px] text-gold-600 dark:text-gold-400 truncate">{submissionSuccess.intake}</p>
+              <span className="text-gray-500 block text-xs uppercase tracking-wider">Target Program</span>
+              <span className="font-semibold text-gray-900">{submissionSuccess.course}</span>
             </div>
             <div>
-              <p className="text-[10px] text-slate-400 font-bold uppercase">Appointment Date & Time</p>
-              <p className="font-bold text-gold-600 dark:text-gold-400">
-                {submissionSuccess.appointmentDate}
-              </p>
-              <p className="text-[11px] text-slate-600 dark:text-slate-400">{submissionSuccess.timeSlot}</p>
+              <span className="text-gray-500 block text-xs uppercase tracking-wider">Scheduled Date</span>
+              <span className="font-semibold text-gray-900">{submissionSuccess.appointmentDate}</span>
             </div>
             <div>
-              <p className="text-[10px] text-slate-400 font-bold uppercase">Consultation Format</p>
-              <p className="font-bold text-emerald-600 dark:text-emerald-400 truncate">{submissionSuccess.consultationMethod}</p>
+              <span className="text-gray-500 block text-xs uppercase tracking-wider">Preferred Time Slot</span>
+              <span className="font-semibold text-gray-900">{submissionSuccess.timeSlot}</span>
+            </div>
+            <div className="sm:col-span-2">
+              <span className="text-gray-500 block text-xs uppercase tracking-wider">Consultation Format</span>
+              <span className="font-semibold text-gray-900">{submissionSuccess.consultationMethod}</span>
             </div>
           </div>
         </div>
 
-        <div className="text-xs text-slate-500 dark:text-slate-400 space-y-1">
-          <p>Confirmation email sent to: <strong className="text-slate-800 dark:text-slate-200">{submissionSuccess.email}</strong></p>
-          <p className="text-[11px]">Admissions coordination desk active Monday to Saturday, 09:30 AM – 06:30 PM Gulf Standard Time.</p>
+        <div className="bg-amber-50/70 border border-amber-200 rounded-lg p-4 mb-6 text-xs text-amber-900 text-left">
+          <strong>Admissions Compliance Note:</strong> Please prepare digital scans of your current transcripts and valid passport information page for your advisory meeting to ensure expedited portal evaluation.
         </div>
 
-        <div className="pt-2 flex justify-center gap-3">
+        <div className="flex flex-col sm:flex-row items-center justify-center gap-3">
           <button
             onClick={resetForm}
-            className="px-5 py-2.5 bg-slate-100 hover:bg-slate-200 dark:bg-navy-800 dark:hover:bg-navy-700 text-slate-800 dark:text-slate-200 text-xs font-bold rounded-xl transition cursor-pointer"
+            className="w-full sm:w-auto px-6 py-2.5 rounded-lg border border-gray-300 text-gray-700 hover:bg-gray-50 font-medium text-sm transition-colors cursor-pointer"
           >
-            Submit Another Application Query
+            Submit Another Admissions Request
           </button>
+          <a
+            href="https://wa.me/919003475405?text=Hello%20The%20Revival%20International,%20I%20have%20submitted%20an%20International%20Admissions%20consultation%20request."
+            target="_blank"
+            rel="noopener noreferrer"
+            className="w-full sm:w-auto px-6 py-2.5 rounded-lg bg-[#25D366] hover:bg-[#20ba59] text-white font-medium text-sm inline-flex items-center justify-center gap-2 shadow-sm transition-colors"
+          >
+            <Phone className="w-4 h-4" /> Connect on WhatsApp
+          </a>
         </div>
       </div>
     );
   }
 
-  // ACTIVE CONSULTATION FORM
   return (
-    <form onSubmit={handleSubmit} className="space-y-5 text-xs text-slate-800 dark:text-slate-200" noValidate>
-      
-      {/* Header Info Banner */}
-      <div className="flex items-center justify-between pb-3 border-b border-slate-200 dark:border-navy-800">
-        <div>
-          <h3 className="font-serif text-lg sm:text-xl font-bold text-navy-900 dark:text-white flex items-center gap-2">
-            <Sparkles className="w-4 h-4 text-gold-500" />
-            <span>International Admissions Consultation</span>
-          </h3>
-          <p className="text-[11px] text-slate-500 dark:text-slate-400">
-            Direct university application coordination, portal management, and compliance advisory with dedicated admissions counselors.
-          </p>
-        </div>
-        <span className="hidden sm:inline-flex bg-gold-500/10 text-gold-600 dark:text-gold-400 text-[10px] font-black px-2.5 py-1 rounded-full uppercase border border-gold-500/20">
-          UCAS • Common App • Direct
-        </span>
-      </div>
-
-      {submitError && (
-        <div className="p-3.5 bg-rose-50 dark:bg-rose-950/40 border border-rose-300 dark:border-rose-800 text-rose-700 dark:text-rose-300 rounded-xl flex items-start gap-2.5 animate-in fade-in">
-          <AlertCircle className="w-4 h-4 shrink-0 mt-0.5" />
-          <div className="text-xs space-y-0.5">
-            <p className="font-bold">Submission Failed</p>
-            <p className="text-[11px]">{submitError}</p>
-          </div>
-        </div>
-      )}
-
-      {/* Row 1: Full Name & Email Address */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-        {/* Full Name */}
-        <div className="space-y-1">
-          <label htmlFor="iac-name" className="block text-slate-700 dark:text-slate-300 font-bold">
-            Full Name <span className="text-rose-500">*</span>
-          </label>
-          <div className="relative">
-            <User className="w-3.5 h-3.5 text-slate-400 absolute left-3 top-3 pointer-events-none" />
-            <input
-              id="iac-name"
-              type="text"
-              name="name"
-              value={formData.name}
-              onChange={handleChange}
-              onFocus={() => trackEnquiryStart('admissions_page', 'intl-adm', 'International Admissions')}
-              placeholder="e.g. Liam Anderson / Fatima Al Nuaimi"
-              disabled={isSubmitting}
-              className={`w-full pl-9 pr-3 py-2 bg-slate-50 dark:bg-navy-950 border rounded-xl font-semibold text-slate-900 dark:text-white placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-gold-500 transition ${
-                formErrors.name ? 'border-rose-500 ring-1 ring-rose-500' : 'border-slate-300 dark:border-navy-700'
-              }`}
-            />
-          </div>
-          {formErrors.name && (
-            <p className="text-[10px] text-rose-500 font-bold">{formErrors.name}</p>
-          )}
-        </div>
-
-        {/* Email Address */}
-        <div className="space-y-1">
-          <label htmlFor="iac-email" className="block text-slate-700 dark:text-slate-300 font-bold">
-            Email Address <span className="text-rose-500">*</span>
-          </label>
-          <div className="relative">
-            <Mail className="w-3.5 h-3.5 text-slate-400 absolute left-3 top-3 pointer-events-none" />
-            <input
-              id="iac-email"
-              type="email"
-              name="email"
-              value={formData.email}
-              onChange={handleChange}
-              placeholder="e.g. student@example.com"
-              disabled={isSubmitting}
-              className={`w-full pl-9 pr-3 py-2 bg-slate-50 dark:bg-navy-950 border rounded-xl font-semibold text-slate-900 dark:text-white placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-gold-500 transition ${
-                formErrors.email ? 'border-rose-500 ring-1 ring-rose-500' : 'border-slate-300 dark:border-navy-700'
-              }`}
-            />
-          </div>
-          {formErrors.email && (
-            <p className="text-[10px] text-rose-500 font-bold">{formErrors.email}</p>
-          )}
-        </div>
-      </div>
-
-      {/* Row 2: Phone with Country Code & Current Country of Residence */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-        {/* Phone Number with Country Code */}
-        <div className="space-y-1">
-          <label htmlFor="iac-phone" className="block text-slate-700 dark:text-slate-300 font-bold">
-            Phone Number with Country Code <span className="text-rose-500">*</span>
-          </label>
-          <div className="flex gap-2">
-            <select
-              name="countryCode"
-              value={formData.countryCode}
-              onChange={handleChange}
-              disabled={isSubmitting}
-              aria-label="Country Code"
-              className="w-32 bg-slate-50 dark:bg-navy-950 border border-slate-300 dark:border-navy-700 rounded-xl px-2.5 py-2 font-bold text-slate-800 dark:text-slate-200 focus:outline-none focus:ring-2 focus:ring-gold-500 text-xs shrink-0 cursor-pointer"
-            >
-              {countryCodes.map(c => (
-                <option key={c.code} value={c.code}>{c.label}</option>
-              ))}
-            </select>
-            <div className="relative flex-1">
-              <Phone className="w-3.5 h-3.5 text-slate-400 absolute left-3 top-3 pointer-events-none" />
-              <input
-                id="iac-phone"
-                type="tel"
-                name="phone"
-                value={formData.phone}
-                onChange={handlePhoneChange}
-                placeholder="50 123 4567"
-                disabled={isSubmitting}
-                className={`w-full pl-9 pr-3 py-2 bg-slate-50 dark:bg-navy-950 border rounded-xl font-semibold text-slate-900 dark:text-white placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-gold-500 transition ${
-                  formErrors.phone ? 'border-rose-500 ring-1 ring-rose-500' : 'border-slate-300 dark:border-navy-700'
-                }`}
-              />
-            </div>
-          </div>
-          {formErrors.phone && (
-            <p className="text-[10px] text-rose-500 font-bold">{formErrors.phone}</p>
-          )}
-        </div>
-
-        {/* Current Country of Residence */}
-        <div className="space-y-1">
-          <label htmlFor="iac-current-country" className="block text-slate-700 dark:text-slate-300 font-bold">
-            Current Country of Residence <span className="text-rose-500">*</span>
-          </label>
-          <div className="relative">
-            <Globe className="w-3.5 h-3.5 text-slate-400 absolute left-3 top-3 pointer-events-none" />
-            <select
-              id="iac-current-country"
-              name="currentCountry"
-              value={formData.currentCountry}
-              onChange={handleChange}
-              disabled={isSubmitting}
-              className="w-full pl-9 pr-3 py-2 bg-slate-50 dark:bg-navy-950 border border-slate-300 dark:border-navy-700 rounded-xl font-semibold text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-gold-500 cursor-pointer"
-            >
-              {currentCountryOptions.map(opt => (
-                <option key={opt} value={opt}>{opt}</option>
-              ))}
-            </select>
-          </div>
-          {formErrors.currentCountry && (
-            <p className="text-[10px] text-rose-500 font-bold">{formErrors.currentCountry}</p>
-          )}
-        </div>
-      </div>
-
-      {/* Row 3: Preferred Study Destination & Target Academic Level */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-        {/* Preferred Study Destination */}
-        <div className="space-y-1">
-          <label htmlFor="iac-destination" className="block text-slate-700 dark:text-slate-300 font-bold">
-            Preferred Study Destination <span className="text-rose-500">*</span>
-          </label>
-          <div className="relative">
-            <Globe className="w-3.5 h-3.5 text-gold-500 absolute left-3 top-3 pointer-events-none" />
-            <select
-              id="iac-destination"
-              name="preferredDestination"
-              value={formData.preferredDestination}
-              onChange={handleChange}
-              disabled={isSubmitting}
-              className="w-full pl-9 pr-3 py-2 bg-slate-50 dark:bg-navy-950 border border-slate-300 dark:border-navy-700 rounded-xl font-semibold text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-gold-500 cursor-pointer"
-            >
-              {destinationOptions.map(opt => (
-                <option key={opt} value={opt}>{opt}</option>
-              ))}
-            </select>
-          </div>
-          {formErrors.preferredDestination && (
-            <p className="text-[10px] text-rose-500 font-bold">{formErrors.preferredDestination}</p>
-          )}
-        </div>
-
-        {/* Target Academic Level */}
-        <div className="space-y-1">
-          <label htmlFor="iac-academic-level" className="block text-slate-700 dark:text-slate-300 font-bold">
-            Target Academic Level <span className="text-rose-500">*</span>
-          </label>
-          <div className="relative">
-            <BookOpen className="w-3.5 h-3.5 text-slate-400 absolute left-3 top-3 pointer-events-none" />
-            <select
-              id="iac-academic-level"
-              name="academicLevel"
-              value={formData.academicLevel}
-              onChange={handleChange}
-              disabled={isSubmitting}
-              className="w-full pl-9 pr-3 py-2 bg-slate-50 dark:bg-navy-950 border border-slate-300 dark:border-navy-700 rounded-xl font-semibold text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-gold-500 cursor-pointer"
-            >
-              {academicLevelOptions.map(opt => (
-                <option key={opt} value={opt}>{opt}</option>
-              ))}
-            </select>
-          </div>
-          {formErrors.academicLevel && (
-            <p className="text-[10px] text-rose-500 font-bold">{formErrors.academicLevel}</p>
-          )}
-        </div>
-      </div>
-
-      {/* Row 4: Preferred Course or Subject & Intended Intake */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-        {/* Preferred Course or Subject */}
-        <div className="space-y-1">
-          <label htmlFor="iac-course" className="block text-slate-700 dark:text-slate-300 font-bold">
-            Preferred Course or Subject <span className="text-rose-500">*</span>
-          </label>
-          <div className="relative">
-            <FileText className="w-3.5 h-3.5 text-slate-400 absolute left-3 top-3 pointer-events-none" />
-            <input
-              id="iac-course"
-              type="text"
-              name="preferredCourse"
-              value={formData.preferredCourse}
-              onChange={handleChange}
-              placeholder="e.g. Computer Science, Business Analytics, Law, Mechanical Eng"
-              disabled={isSubmitting}
-              className={`w-full pl-9 pr-3 py-2 bg-slate-50 dark:bg-navy-950 border rounded-xl font-semibold text-slate-900 dark:text-white placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-gold-500 transition ${
-                formErrors.preferredCourse ? 'border-rose-500 ring-1 ring-rose-500' : 'border-slate-300 dark:border-navy-700'
-              }`}
-            />
-          </div>
-          {formErrors.preferredCourse && (
-            <p className="text-[10px] text-rose-500 font-bold">{formErrors.preferredCourse}</p>
-          )}
-        </div>
-
-        {/* Intended Intake */}
-        <div className="space-y-1">
-          <label htmlFor="iac-intake" className="block text-slate-700 dark:text-slate-300 font-bold">
-            Intended Intake <span className="text-rose-500">*</span>
-          </label>
-          <div className="relative">
-            <Calendar className="w-3.5 h-3.5 text-slate-400 absolute left-3 top-3 pointer-events-none" />
-            <select
-              id="iac-intake"
-              name="intendedIntake"
-              value={formData.intendedIntake}
-              onChange={handleChange}
-              disabled={isSubmitting}
-              className="w-full pl-9 pr-3 py-2 bg-slate-50 dark:bg-navy-950 border border-slate-300 dark:border-navy-700 rounded-xl font-semibold text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-gold-500 cursor-pointer"
-            >
-              {intakeOptions.map(opt => (
-                <option key={opt} value={opt}>{opt}</option>
-              ))}
-            </select>
-          </div>
-          {formErrors.intendedIntake && (
-            <p className="text-[10px] text-rose-500 font-bold">{formErrors.intendedIntake}</p>
-          )}
-        </div>
-      </div>
-
-      {/* Row 5: Current Qualification & Academic % or GPA */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-        {/* Current Qualification */}
-        <div className="space-y-1">
-          <label htmlFor="iac-qualification" className="block text-slate-700 dark:text-slate-300 font-bold">
-            Current Qualification <span className="text-rose-500">*</span>
-          </label>
-          <select
-            id="iac-qualification"
-            name="currentQualification"
-            value={formData.currentQualification}
-            onChange={handleChange}
-            disabled={isSubmitting}
-            className="w-full px-3 py-2 bg-slate-50 dark:bg-navy-950 border border-slate-300 dark:border-navy-700 rounded-xl font-semibold text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-gold-500 cursor-pointer"
-          >
-            {qualificationOptions.map(opt => (
-              <option key={opt} value={opt}>{opt}</option>
-            ))}
-          </select>
-          {formErrors.currentQualification && (
-            <p className="text-[10px] text-rose-500 font-bold">{formErrors.currentQualification}</p>
-          )}
-        </div>
-
-        {/* Academic Percentage or GPA */}
-        <div className="space-y-1">
-          <label htmlFor="iac-gpa" className="block text-slate-700 dark:text-slate-300 font-bold">
-            Academic Percentage or GPA <span className="text-slate-400 font-normal">(where applicable)</span>
-          </label>
-          <input
-            id="iac-gpa"
-            type="text"
-            name="percentageOrGpa"
-            value={formData.percentageOrGpa}
-            onChange={handleChange}
-            placeholder="e.g. 88%, GPA 3.7/4.0, or First Class"
-            disabled={isSubmitting}
-            className="w-full px-3 py-2 bg-slate-50 dark:bg-navy-950 border border-slate-300 dark:border-navy-700 rounded-xl font-semibold text-slate-900 dark:text-white placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-gold-500 transition"
-          />
-        </div>
-      </div>
-
-      {/* Row 6: English Language Test Status & Application Status */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-        {/* English Language Test Status */}
-        <div className="space-y-1">
-          <label htmlFor="iac-english-test" className="block text-slate-700 dark:text-slate-300 font-bold">
-            English Language Test Status <span className="text-rose-500">*</span>
-          </label>
-          <select
-            id="iac-english-test"
-            name="englishTestStatus"
-            value={formData.englishTestStatus}
-            onChange={handleChange}
-            disabled={isSubmitting}
-            className="w-full px-3 py-2 bg-slate-50 dark:bg-navy-950 border border-slate-300 dark:border-navy-700 rounded-xl font-semibold text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-gold-500 cursor-pointer"
-          >
-            {englishTestOptions.map(opt => (
-              <option key={opt} value={opt}>{opt}</option>
-            ))}
-          </select>
-          {formErrors.englishTestStatus && (
-            <p className="text-[10px] text-rose-500 font-bold">{formErrors.englishTestStatus}</p>
-          )}
-        </div>
-
-        {/* Application Status */}
-        <div className="space-y-1">
-          <label htmlFor="iac-app-status" className="block text-slate-700 dark:text-slate-300 font-bold">
-            Current Application Status <span className="text-rose-500">*</span>
-          </label>
-          <select
-            id="iac-app-status"
-            name="applicationStatus"
-            value={formData.applicationStatus}
-            onChange={handleChange}
-            disabled={isSubmitting}
-            className="w-full px-3 py-2 bg-slate-50 dark:bg-navy-950 border border-slate-300 dark:border-navy-700 rounded-xl font-semibold text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-gold-500 cursor-pointer"
-          >
-            {applicationStatusOptions.map(opt => (
-              <option key={opt} value={opt}>{opt}</option>
-            ))}
-          </select>
-          {formErrors.applicationStatus && (
-            <p className="text-[10px] text-rose-500 font-bold">{formErrors.applicationStatus}</p>
-          )}
-        </div>
-      </div>
-
-      {/* Row 7: Preferred Consultation Method */}
-      <div className="space-y-1.5">
-        <label className="block text-slate-700 dark:text-slate-300 font-bold">
-          Preferred Consultation Method <span className="text-rose-500">*</span>
-        </label>
-        <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
-          {consultationMethodOptions.map(method => (
-            <label
-              key={method.id}
-              className={`p-2.5 rounded-xl border flex items-center gap-2 cursor-pointer transition text-xs font-semibold ${
-                formData.consultationMethod === method.id
-                  ? 'bg-gold-500/15 border-gold-500 text-gold-700 dark:text-gold-300 shadow-sm'
-                  : 'bg-slate-50 dark:bg-navy-950 border-slate-200 dark:border-navy-800 text-slate-700 dark:text-slate-300 hover:border-slate-300'
-              }`}
-            >
-              <input
-                type="radio"
-                name="consultationMethod"
-                value={method.id}
-                checked={formData.consultationMethod === method.id}
-                onChange={handleChange}
-                disabled={isSubmitting}
-                className="text-gold-500 focus:ring-gold-500"
-              />
-              <span className="truncate">{method.label}</span>
-            </label>
-          ))}
-        </div>
-        {formErrors.consultationMethod && (
-          <p className="text-[10px] text-rose-500 font-bold">{formErrors.consultationMethod}</p>
-        )}
-      </div>
-
-      {/* Row 8: Appointment Date & Time Slot */}
-      <div className="p-4 rounded-2xl bg-gold-500/5 dark:bg-navy-950 border border-gold-500/25 space-y-3">
+    <div className={`bg-white rounded-2xl border border-gray-200 shadow-xl overflow-hidden ${embedded ? '' : 'max-w-3xl mx-auto'}`}>
+      {/* Form Header */}
+      <div className="bg-[#102A43] text-white px-6 py-6 md:px-8 border-b border-[#1b3d60]">
         <div className="flex items-center justify-between">
-          <div className="flex items-center gap-2">
-            <Calendar className="w-4 h-4 text-gold-500" />
-            <h4 className="font-bold text-navy-900 dark:text-white text-xs uppercase tracking-wider">
-              Admissions Advisory Appointment Slot
-            </h4>
+          <div>
+            <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-semibold bg-[#C6A45C]/20 text-[#C6A45C] border border-[#C6A45C]/30 uppercase tracking-wider mb-2">
+              <Sparkles className="w-3.5 h-3.5" /> University Placement Intake
+            </span>
+            <h3 className="text-xl md:text-2xl font-serif font-bold text-white">
+              International Admissions Consultation
+            </h3>
+            <p className="text-gray-300 text-xs md:text-sm mt-1">
+              Personalized university application coordination, portal management, and compliance advisory support.
+            </p>
           </div>
-          <span className="text-[10px] text-emerald-600 dark:text-emerald-400 font-bold bg-emerald-500/10 px-2.5 py-0.5 rounded-full border border-emerald-500/20">
-            Direct Calendar Booking
-          </span>
         </div>
 
-        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-          {/* Preferred Appointment Date */}
-          <div className="space-y-1">
-            <label htmlFor="iac-date" className="block text-slate-700 dark:text-slate-300 font-bold text-[11px]">
-              Preferred Appointment Date <span className="text-rose-500">*</span>
-            </label>
-            <input
-              id="iac-date"
-              type="date"
-              name="appointmentDate"
-              min={new Date().toISOString().split('T')[0]}
-              value={formData.appointmentDate}
-              onChange={handleChange}
-              disabled={isSubmitting}
-              className={`w-full px-3 py-2 bg-white dark:bg-navy-900 border rounded-xl font-semibold text-slate-900 dark:text-white text-xs focus:ring-2 focus:ring-gold-500 transition ${
-                formErrors.appointmentDate ? 'border-rose-500 ring-1 ring-rose-500' : 'border-slate-300 dark:border-navy-700'
-              }`}
-            />
-            {formErrors.appointmentDate && (
-              <p className="text-[10px] text-rose-500 font-bold">{formErrors.appointmentDate}</p>
-            )}
+        {/* 3-Step Wizard Progress Bar */}
+        <div className="mt-6 pt-5 border-t border-white/10">
+          <div className="grid grid-cols-3 gap-2">
+            {[
+              { num: 1, title: 'Personal Info', desc: 'Contact & Country' },
+              { num: 2, title: 'Academic Profile', desc: 'Target Course & Level' },
+              { num: 3, title: 'Consultation', desc: 'Status & Schedule' }
+            ].map(step => {
+              const isActive = currentStep === step.num;
+              const isCompleted = currentStep > step.num;
+              return (
+                <div key={step.num} className="relative">
+                  <div className="flex items-center gap-2">
+                    <div 
+                      className={`w-7 h-7 rounded-full flex items-center justify-center text-xs font-bold transition-all ${
+                        isCompleted 
+                          ? 'bg-[#C6A45C] text-white' 
+                          : isActive 
+                            ? 'bg-white text-[#102A43] ring-2 ring-[#C6A45C]' 
+                            : 'bg-white/20 text-white/60'
+                      }`}
+                    >
+                      {isCompleted ? <Check className="w-4 h-4 stroke-[3]" /> : step.num}
+                    </div>
+                    <div className="hidden sm:block text-left leading-tight">
+                      <div className={`text-xs font-bold ${isActive ? 'text-white' : isCompleted ? 'text-gray-200' : 'text-white/50'}`}>
+                        {step.title}
+                      </div>
+                      <div className="text-[10px] text-gray-400">
+                        {step.desc}
+                      </div>
+                    </div>
+                  </div>
+                  <div className={`h-1 w-full rounded mt-2.5 transition-all ${
+                    isCompleted ? 'bg-[#C6A45C]' : isActive ? 'bg-white' : 'bg-white/10'
+                  }`} />
+                </div>
+              );
+            })}
           </div>
+        </div>
+      </div>
 
-          {/* Preferred Time Slot */}
-          <div className="space-y-1">
-            <label htmlFor="iac-time-slot" className="block text-slate-700 dark:text-slate-300 font-bold text-[11px]">
-              Preferred Time Slot <span className="text-rose-500">*</span>
-            </label>
-            <div className="relative">
-              <Clock className="w-3.5 h-3.5 text-slate-400 absolute left-3 top-3 pointer-events-none" />
-              <select
-                id="iac-time-slot"
-                name="timeSlot"
-                value={formData.timeSlot}
-                onChange={handleChange}
-                disabled={isSubmitting}
-                className="w-full pl-9 pr-3 py-2 bg-white dark:bg-navy-900 border border-slate-300 dark:border-navy-700 rounded-xl font-semibold text-slate-900 dark:text-white text-xs focus:ring-2 focus:ring-gold-500 cursor-pointer"
-              >
-                {timeSlotOptions.map(slot => (
-                  <option key={slot} value={slot}>{slot}</option>
-                ))}
-              </select>
+      {/* Form Content */}
+      <form onSubmit={handleSubmit} className="p-6 md:p-8 space-y-6">
+        {submitError && (
+          <div className="p-4 rounded-xl bg-red-50 border border-red-200 text-red-700 text-sm flex items-start gap-3">
+            <AlertCircle className="w-5 h-5 shrink-0 mt-0.5" />
+            <div>
+              <strong className="block font-semibold">Booking Submission Notice</strong>
+              <span>{submitError}</span>
             </div>
           </div>
-        </div>
-      </div>
-
-      {/* Row 9: Additional Requirements or Questions */}
-      <div className="space-y-1">
-        <div className="flex justify-between items-center">
-          <label htmlFor="iac-requirements" className="block text-slate-700 dark:text-slate-300 font-bold">
-            Additional Requirements or Questions <span className="text-rose-500">*</span>
-          </label>
-          <span className="text-[10px] text-slate-400 font-mono">
-            {formData.additionalRequirements.length}/3000 chars
-          </span>
-        </div>
-        <textarea
-          id="iac-requirements"
-          name="additionalRequirements"
-          rows={4}
-          value={formData.additionalRequirements}
-          onChange={handleChange}
-          placeholder="Please describe any specific target universities (e.g., Russell Group, Go8, Big 10), questions about deadlines, document requirements, portfolio guidelines, or offer conditions..."
-          disabled={isSubmitting}
-          className={`w-full p-3 bg-slate-50 dark:bg-navy-950 border rounded-xl font-medium text-slate-900 dark:text-white placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-gold-500 transition leading-relaxed ${
-            formErrors.additionalRequirements ? 'border-rose-500 ring-1 ring-rose-500' : 'border-slate-300 dark:border-navy-700'
-          }`}
-        />
-        {formErrors.additionalRequirements && (
-          <p className="text-[10px] text-rose-500 font-bold">{formErrors.additionalRequirements}</p>
         )}
-      </div>
 
-      {/* Row 10: Privacy Consent Checkbox */}
-      <div className="space-y-1 pt-1">
-        <label className="flex items-start gap-2.5 cursor-pointer">
-          <input
-            type="checkbox"
-            name="consent"
-            checked={formData.consent}
-            onChange={handleChange}
-            disabled={isSubmitting}
-            className="mt-0.5 rounded border-slate-300 text-gold-500 focus:ring-gold-500 cursor-pointer"
-          />
-          <span className="text-[11px] text-slate-600 dark:text-slate-400 leading-snug">
-            I agree to the privacy policy and consent to receiving admissions guidance and application correspondence from The Revival International educational advisors. My details will not be shared with unauthorized third parties.
-          </span>
-        </label>
-        {formErrors.consent && (
-          <p className="text-[10px] text-rose-500 font-bold">{formErrors.consent}</p>
+        {/* STEP 1: Personal Information */}
+        {currentStep === 1 && (
+          <div className="space-y-5 animate-fadeIn">
+            <div className="border-b border-gray-100 pb-3">
+              <h4 className="text-base font-bold text-[#102A43] flex items-center gap-2">
+                <User className="w-4 h-4 text-[#C6A45C]" /> Step 1: Personal &amp; Contact Information
+              </h4>
+              <p className="text-xs text-gray-500 mt-0.5">Please provide your verified contact details for admissions correspondence.</p>
+            </div>
+
+            {/* Full Name */}
+            <div>
+              <label htmlFor="name" className="block text-xs font-bold uppercase tracking-wider text-gray-700 mb-1.5">
+                Full Name <span className="text-red-500">*</span>
+              </label>
+              <div className="relative">
+                <User className="w-4 h-4 text-gray-400 absolute left-3.5 top-1/2 -translate-y-1/2 pointer-events-none" />
+                <input
+                  id="name"
+                  type="text"
+                  name="name"
+                  placeholder="e.g. Jessica Williams"
+                  value={formData.name}
+                  onChange={handleChange}
+                  className={`w-full pl-10 pr-4 py-2.5 text-sm rounded-xl border ${
+                    formErrors.name ? 'border-red-400 bg-red-50/30' : 'border-gray-300 bg-white'
+                  } focus:outline-none focus:ring-2 focus:ring-[#102A43] text-gray-900 transition-all`}
+                  required
+                />
+              </div>
+              {formErrors.name && <p className="text-xs text-red-600 mt-1">{formErrors.name}</p>}
+            </div>
+
+            {/* Email Address */}
+            <div>
+              <label htmlFor="email" className="block text-xs font-bold uppercase tracking-wider text-gray-700 mb-1.5">
+                Email Address <span className="text-red-500">*</span>
+              </label>
+              <div className="relative">
+                <Mail className="w-4 h-4 text-gray-400 absolute left-3.5 top-1/2 -translate-y-1/2 pointer-events-none" />
+                <input
+                  id="email"
+                  type="email"
+                  name="email"
+                  placeholder="name@example.com"
+                  value={formData.email}
+                  onChange={handleChange}
+                  className={`w-full pl-10 pr-4 py-2.5 text-sm rounded-xl border ${
+                    formErrors.email ? 'border-red-400 bg-red-50/30' : 'border-gray-300 bg-white'
+                  } focus:outline-none focus:ring-2 focus:ring-[#102A43] text-gray-900 transition-all`}
+                  required
+                />
+              </div>
+              {formErrors.email && <p className="text-xs text-red-600 mt-1">{formErrors.email}</p>}
+            </div>
+
+            {/* Phone Number with Country Code */}
+            <div>
+              <label htmlFor="phone" className="block text-xs font-bold uppercase tracking-wider text-gray-700 mb-1.5">
+                Phone Number (with Country Code) <span className="text-red-500">*</span>
+              </label>
+              <div className="flex gap-2">
+                <div className="w-2/5 min-w-[120px]">
+                  <select
+                    name="countryCode"
+                    value={formData.countryCode}
+                    onChange={handleChange}
+                    className="w-full px-3 py-2.5 text-xs sm:text-sm rounded-xl border border-gray-300 bg-white focus:outline-none focus:ring-2 focus:ring-[#102A43] text-gray-900 font-medium"
+                  >
+                    {countryCodes.map(c => (
+                      <option key={c.code} value={c.code}>{c.label}</option>
+                    ))}
+                  </select>
+                </div>
+                <div className="flex-1 relative">
+                  <Phone className="w-4 h-4 text-gray-400 absolute left-3.5 top-1/2 -translate-y-1/2 pointer-events-none" />
+                  <input
+                    id="phone"
+                    type="tel"
+                    name="phone"
+                    placeholder="50 123 4567"
+                    value={formData.phone}
+                    onChange={handlePhoneChange}
+                    className={`w-full pl-10 pr-4 py-2.5 text-sm rounded-xl border ${
+                      formErrors.phone ? 'border-red-400 bg-red-50/30' : 'border-gray-300 bg-white'
+                    } focus:outline-none focus:ring-2 focus:ring-[#102A43] text-gray-900 transition-all`}
+                    required
+                  />
+                </div>
+              </div>
+              {formErrors.phone && <p className="text-xs text-red-600 mt-1">{formErrors.phone}</p>}
+            </div>
+
+            {/* Current Country of Residence */}
+            <div>
+              <label htmlFor="currentCountry" className="block text-xs font-bold uppercase tracking-wider text-gray-700 mb-1.5">
+                Current Country of Residence <span className="text-red-500">*</span>
+              </label>
+              <div className="relative">
+                <Globe className="w-4 h-4 text-gray-400 absolute left-3.5 top-1/2 -translate-y-1/2 pointer-events-none" />
+                <select
+                  id="currentCountry"
+                  name="currentCountry"
+                  value={formData.currentCountry}
+                  onChange={handleChange}
+                  className="w-full pl-10 pr-4 py-2.5 text-sm rounded-xl border border-gray-300 bg-white focus:outline-none focus:ring-2 focus:ring-[#102A43] text-gray-900"
+                >
+                  {currentCountryOptions.map(c => (
+                    <option key={c} value={c}>{c}</option>
+                  ))}
+                </select>
+              </div>
+              {formErrors.currentCountry && <p className="text-xs text-red-600 mt-1">{formErrors.currentCountry}</p>}
+            </div>
+
+            <div className="pt-4 flex justify-end">
+              <button
+                type="button"
+                onClick={goToNextStep}
+                className="px-6 py-2.5 rounded-xl bg-[#102A43] hover:bg-[#193a5c] text-white font-medium text-sm flex items-center gap-2 shadow-sm transition-all cursor-pointer"
+              >
+                Continue to Academic Profile <ChevronRight className="w-4 h-4" />
+              </button>
+            </div>
+          </div>
         )}
-      </div>
 
-      {/* Primary CTA Button: Book My Admissions Consultation */}
-      <div className="pt-2">
-        <button
-          type="submit"
-          disabled={isSubmitting}
-          className="w-full py-3.5 px-6 bg-gold-shimmer text-navy-950 font-black text-xs sm:text-sm rounded-xl shadow-gold-glow hover:opacity-95 transition flex items-center justify-center gap-2 cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
-        >
-          {isSubmitting ? (
-            <>
-              <Loader2 className="w-4 h-4 animate-spin text-navy-950" />
-              <span>Registering Admissions Consultation...</span>
-            </>
-          ) : (
-            <>
-              <Send className="w-4 h-4" />
-              <span>Book My Admissions Consultation</span>
-            </>
-          )}
-        </button>
-      </div>
+        {/* STEP 2: Academic & Destination Information */}
+        {currentStep === 2 && (
+          <div className="space-y-5 animate-fadeIn">
+            <div className="border-b border-gray-100 pb-3">
+              <h4 className="text-base font-bold text-[#102A43] flex items-center gap-2">
+                <BookOpen className="w-4 h-4 text-[#C6A45C]" /> Step 2: Target Destination &amp; Academic Credentials
+              </h4>
+              <p className="text-xs text-gray-500 mt-0.5">Tell us about your target study destination, program, and current qualification.</p>
+            </div>
 
-      <div className="flex items-center justify-center gap-2 text-[10px] text-slate-400 pt-1">
-        <ShieldCheck className="w-3.5 h-3.5 text-emerald-500" />
-        <span>SSL Encrypted Transmission • Synchronized with Official CRM • Verified Application Reference</span>
-      </div>
-    </form>
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              {/* Preferred Study Destination */}
+              <div>
+                <label className="block text-xs font-bold uppercase tracking-wider text-gray-700 mb-1.5">
+                  Preferred Study Destination <span className="text-red-500">*</span>
+                </label>
+                <select
+                  name="preferredDestination"
+                  value={formData.preferredDestination}
+                  onChange={handleChange}
+                  className="w-full px-3.5 py-2.5 text-sm rounded-xl border border-gray-300 bg-white focus:outline-none focus:ring-2 focus:ring-[#102A43] text-gray-900 font-medium"
+                >
+                  {destinationOptions.map(d => (
+                    <option key={d} value={d}>{d}</option>
+                  ))}
+                </select>
+                {formErrors.preferredDestination && <p className="text-xs text-red-600 mt-1">{formErrors.preferredDestination}</p>}
+              </div>
+
+              {/* Target Academic Level */}
+              <div>
+                <label className="block text-xs font-bold uppercase tracking-wider text-gray-700 mb-1.5">
+                  Target Academic Level <span className="text-red-500">*</span>
+                </label>
+                <select
+                  name="academicLevel"
+                  value={formData.academicLevel}
+                  onChange={handleChange}
+                  className="w-full px-3.5 py-2.5 text-sm rounded-xl border border-gray-300 bg-white focus:outline-none focus:ring-2 focus:ring-[#102A43] text-gray-900"
+                >
+                  {academicLevelOptions.map(lvl => (
+                    <option key={lvl} value={lvl}>{lvl}</option>
+                  ))}
+                </select>
+                {formErrors.academicLevel && <p className="text-xs text-red-600 mt-1">{formErrors.academicLevel}</p>}
+              </div>
+
+              {/* Preferred Course or Subject */}
+              <div>
+                <label htmlFor="preferredCourse" className="block text-xs font-bold uppercase tracking-wider text-gray-700 mb-1.5">
+                  Preferred Course or Subject <span className="text-red-500">*</span>
+                </label>
+                <input
+                  id="preferredCourse"
+                  type="text"
+                  name="preferredCourse"
+                  placeholder="e.g. Computer Science (BSc / MSc) or Law"
+                  value={formData.preferredCourse}
+                  onChange={handleChange}
+                  className={`w-full px-3.5 py-2.5 text-sm rounded-xl border ${
+                    formErrors.preferredCourse ? 'border-red-400 bg-red-50/30' : 'border-gray-300 bg-white'
+                  } focus:outline-none focus:ring-2 focus:ring-[#102A43] text-gray-900`}
+                  required
+                />
+                {formErrors.preferredCourse && <p className="text-xs text-red-600 mt-1">{formErrors.preferredCourse}</p>}
+              </div>
+
+              {/* Current Qualification */}
+              <div>
+                <label className="block text-xs font-bold uppercase tracking-wider text-gray-700 mb-1.5">
+                  Current Qualification <span className="text-red-500">*</span>
+                </label>
+                <select
+                  name="currentQualification"
+                  value={formData.currentQualification}
+                  onChange={handleChange}
+                  className="w-full px-3.5 py-2.5 text-sm rounded-xl border border-gray-300 bg-white focus:outline-none focus:ring-2 focus:ring-[#102A43] text-gray-900"
+                >
+                  {qualificationOptions.map(q => (
+                    <option key={q} value={q}>{q}</option>
+                  ))}
+                </select>
+              </div>
+
+              {/* Academic Percentage or GPA */}
+              <div>
+                <label htmlFor="percentageOrGpa" className="block text-xs font-bold uppercase tracking-wider text-gray-700 mb-1.5">
+                  Academic Percentage or GPA (Optional)
+                </label>
+                <input
+                  id="percentageOrGpa"
+                  type="text"
+                  name="percentageOrGpa"
+                  placeholder="e.g. 88%, GPA 3.7 / 4.0, or Predicted"
+                  value={formData.percentageOrGpa}
+                  onChange={handleChange}
+                  className="w-full px-3.5 py-2.5 text-sm rounded-xl border border-gray-300 bg-white focus:outline-none focus:ring-2 focus:ring-[#102A43] text-gray-900"
+                />
+              </div>
+
+              {/* English Language Test Status */}
+              <div>
+                <label className="block text-xs font-bold uppercase tracking-wider text-gray-700 mb-1.5">
+                  English Language Test Status <span className="text-red-500">*</span>
+                </label>
+                <select
+                  name="englishTestStatus"
+                  value={formData.englishTestStatus}
+                  onChange={handleChange}
+                  className="w-full px-3.5 py-2.5 text-sm rounded-xl border border-gray-300 bg-white focus:outline-none focus:ring-2 focus:ring-[#102A43] text-gray-900"
+                >
+                  {englishTestOptions.map(opt => (
+                    <option key={opt} value={opt}>{opt}</option>
+                  ))}
+                </select>
+              </div>
+
+              {/* Current Application Status */}
+              <div>
+                <label className="block text-xs font-bold uppercase tracking-wider text-gray-700 mb-1.5">
+                  Current Application Status
+                </label>
+                <select
+                  name="applicationStatus"
+                  value={formData.applicationStatus}
+                  onChange={handleChange}
+                  className="w-full px-3.5 py-2.5 text-sm rounded-xl border border-gray-300 bg-white focus:outline-none focus:ring-2 focus:ring-[#102A43] text-gray-900"
+                >
+                  {applicationStatusOptions.map(st => (
+                    <option key={st} value={st}>{st}</option>
+                  ))}
+                </select>
+              </div>
+
+              {/* Intended Intake */}
+              <div>
+                <label className="block text-xs font-bold uppercase tracking-wider text-gray-700 mb-1.5">
+                  Intended Intake <span className="text-red-500">*</span>
+                </label>
+                <select
+                  name="intendedIntake"
+                  value={formData.intendedIntake}
+                  onChange={handleChange}
+                  className="w-full px-3.5 py-2.5 text-sm rounded-xl border border-gray-300 bg-white focus:outline-none focus:ring-2 focus:ring-[#102A43] text-gray-900"
+                >
+                  {intakeOptions.map(i => (
+                    <option key={i} value={i}>{i}</option>
+                  ))}
+                </select>
+              </div>
+            </div>
+
+            <div className="pt-4 flex justify-between items-center">
+              <button
+                type="button"
+                onClick={goToPrevStep}
+                className="px-5 py-2.5 rounded-xl border border-gray-300 text-gray-700 hover:bg-gray-50 font-medium text-sm flex items-center gap-1.5 transition-all cursor-pointer"
+              >
+                <ChevronLeft className="w-4 h-4" /> Back to Personal
+              </button>
+              <button
+                type="button"
+                onClick={goToNextStep}
+                className="px-6 py-2.5 rounded-xl bg-[#102A43] hover:bg-[#193a5c] text-white font-medium text-sm flex items-center gap-2 shadow-sm transition-all cursor-pointer"
+              >
+                Continue to Scheduling <ChevronRight className="w-4 h-4" />
+              </button>
+            </div>
+          </div>
+        )}
+
+        {/* STEP 3: Consultation Preferences & Requirements */}
+        {currentStep === 3 && (
+          <div className="space-y-5 animate-fadeIn">
+            <div className="border-b border-gray-100 pb-3">
+              <h4 className="text-base font-bold text-[#102A43] flex items-center gap-2">
+                <Calendar className="w-4 h-4 text-[#C6A45C]" /> Step 3: Consultation Preferences &amp; Scheduling
+              </h4>
+              <p className="text-xs text-gray-500 mt-0.5">Select how you would like our international admissions team to connect with you.</p>
+            </div>
+
+            {/* Preferred Consultation Method */}
+            <div>
+              <label className="block text-xs font-bold uppercase tracking-wider text-gray-700 mb-2">
+                Preferred Consultation Method <span className="text-red-500">*</span>
+              </label>
+              <div className="grid grid-cols-2 sm:grid-cols-4 gap-2.5">
+                {consultationMethodOptions.map(m => (
+                  <label
+                    key={m.id}
+                    className={`flex items-center justify-center p-3 rounded-xl border text-xs font-semibold cursor-pointer text-center transition-all ${
+                      formData.consultationMethod === m.id
+                        ? 'border-[#102A43] bg-[#102A43] text-white shadow-sm'
+                        : 'border-gray-200 bg-gray-50 text-gray-700 hover:border-gray-300'
+                    }`}
+                  >
+                    <input
+                      type="radio"
+                      name="consultationMethod"
+                      value={m.id}
+                      checked={formData.consultationMethod === m.id}
+                      onChange={handleChange}
+                      className="sr-only"
+                    />
+                    <span>{m.label}</span>
+                  </label>
+                ))}
+              </div>
+              {formErrors.consultationMethod && <p className="text-xs text-red-600 mt-1">{formErrors.consultationMethod}</p>}
+            </div>
+
+            {/* Preferred Appointment Date & Time Slot */}
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              <div>
+                <label htmlFor="appointmentDate" className="block text-xs font-bold uppercase tracking-wider text-gray-700 mb-1.5">
+                  Preferred Appointment Date <span className="text-red-500">*</span>
+                </label>
+                <div className="relative">
+                  <Calendar className="w-4 h-4 text-gray-400 absolute left-3.5 top-1/2 -translate-y-1/2 pointer-events-none" />
+                  <input
+                    id="appointmentDate"
+                    type="date"
+                    name="appointmentDate"
+                    min={tomorrow}
+                    value={formData.appointmentDate}
+                    onChange={handleChange}
+                    className={`w-full pl-10 pr-4 py-2.5 text-sm rounded-xl border ${
+                      formErrors.appointmentDate ? 'border-red-400 bg-red-50/30' : 'border-gray-300 bg-white'
+                    } focus:outline-none focus:ring-2 focus:ring-[#102A43] text-gray-900`}
+                    required
+                  />
+                </div>
+                {formErrors.appointmentDate && <p className="text-xs text-red-600 mt-1">{formErrors.appointmentDate}</p>}
+              </div>
+
+              <div>
+                <label htmlFor="timeSlot" className="block text-xs font-bold uppercase tracking-wider text-gray-700 mb-1.5">
+                  Preferred Time Slot <span className="text-red-500">*</span>
+                </label>
+                <div className="relative">
+                  <Clock className="w-4 h-4 text-gray-400 absolute left-3.5 top-1/2 -translate-y-1/2 pointer-events-none" />
+                  <select
+                    id="timeSlot"
+                    name="timeSlot"
+                    value={formData.timeSlot}
+                    onChange={handleChange}
+                    className="w-full pl-10 pr-4 py-2.5 text-sm rounded-xl border border-gray-300 bg-white focus:outline-none focus:ring-2 focus:ring-[#102A43] text-gray-900"
+                  >
+                    {timeSlotOptions.map(slot => (
+                      <option key={slot} value={slot}>{slot}</option>
+                    ))}
+                  </select>
+                </div>
+                {formErrors.timeSlot && <p className="text-xs text-red-600 mt-1">{formErrors.timeSlot}</p>}
+              </div>
+            </div>
+
+            {/* Additional Requirements or Questions */}
+            <div>
+              <label htmlFor="additionalRequirements" className="block text-xs font-bold uppercase tracking-wider text-gray-700 mb-1.5">
+                Additional Requirements or Questions
+              </label>
+              <textarea
+                id="additionalRequirements"
+                name="additionalRequirements"
+                rows={2}
+                placeholder="Mention specific target universities, application portals (UCAS, Common App), or scholarship requirements."
+                value={formData.additionalRequirements}
+                onChange={handleChange}
+                className="w-full p-3 text-sm rounded-xl border border-gray-300 bg-white focus:outline-none focus:ring-2 focus:ring-[#102A43] text-gray-900 transition-all"
+              />
+            </div>
+
+            {/* Consent Checkbox */}
+            <div className="pt-2">
+              <label className="flex items-start gap-3 cursor-pointer">
+                <input
+                  type="checkbox"
+                  name="consent"
+                  checked={formData.consent}
+                  onChange={handleChange}
+                  className="mt-1 h-4 w-4 rounded border-gray-300 text-[#102A43] focus:ring-[#102A43]"
+                  required
+                />
+                <span className="text-xs text-gray-600 leading-relaxed">
+                  I consent to The Revival International processing my academic and contact details to coordinate my university admissions consultation in accordance with the Privacy Policy. <span className="text-red-500">*</span>
+                </span>
+              </label>
+              {formErrors.consent && <p className="text-xs text-red-600 mt-1">{formErrors.consent}</p>}
+            </div>
+
+            {/* Submit & Back Controls */}
+            <div className="pt-4 flex justify-between items-center">
+              <button
+                type="button"
+                onClick={goToPrevStep}
+                disabled={isSubmitting}
+                className="px-5 py-2.5 rounded-xl border border-gray-300 text-gray-700 hover:bg-gray-50 font-medium text-sm flex items-center gap-1.5 transition-all cursor-pointer"
+              >
+                <ChevronLeft className="w-4 h-4" /> Back to Academic
+              </button>
+
+              <button
+                type="submit"
+                disabled={isSubmitting}
+                className="px-7 py-3 rounded-xl bg-[#C6A45C] hover:bg-[#b5934b] text-[#102A43] font-bold text-sm flex items-center gap-2 shadow-md transition-all disabled:opacity-50 cursor-pointer"
+              >
+                {isSubmitting ? (
+                  <>
+                    <Loader2 className="w-4 h-4 animate-spin text-[#102A43]" />
+                    <span>Booking Admissions Consultation...</span>
+                  </>
+                ) : (
+                  <>
+                    <span>Book My Admissions Consultation</span>
+                    <Send className="w-4 h-4" />
+                  </>
+                )}
+              </button>
+            </div>
+          </div>
+        )}
+      </form>
+    </div>
   );
 };
+
+export default InternationalAdmissionsForm;

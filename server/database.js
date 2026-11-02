@@ -58,7 +58,13 @@ const createFallbackDb = () => {
     organization_contacts: [],
     enquiry_activities: [],
     follow_ups: [],
-    student_academy_enquiries: []
+    student_academy_enquiries: [],
+    client_accounts: [],
+    client_documents: [],
+    client_appointments: [],
+    client_messages: [],
+    client_notifications: [],
+    client_invoices: []
   };
 
   let store = { ...defaultStore };
@@ -162,6 +168,7 @@ const createFallbackDb = () => {
             r =>
               r.id === keyVal ||
               r.referenceNumber === keyVal ||
+              (r.email && String(r.email).toLowerCase().trim() === String(keyVal).toLowerCase().trim()) ||
               (r.company && String(r.company).toLowerCase().trim() === String(keyVal).toLowerCase().trim())
           ) || null
         );
@@ -182,6 +189,16 @@ const createFallbackDb = () => {
       }
       if (/WHERE\s+organizationId\s*=\s*\?/i.test(s) && params[0]) {
         rows = rows.filter(r => r.organizationId === params[0]);
+      }
+      if (/clientId\s*=\s*\?/i.test(s) && params[0]) {
+        const cid = params[0];
+        const cemail = params[1] ? String(params[1]).toLowerCase().trim() : null;
+        rows = rows.filter(
+          r =>
+            r.clientId === cid ||
+            (cemail && r.email && String(r.email).toLowerCase().trim() === cemail) ||
+            (cemail && r.clientEmail && String(r.clientEmail).toLowerCase().trim() === cemail)
+        );
       }
       return rows;
     }
@@ -432,6 +449,122 @@ const initDb = async (db) => {
       status TEXT DEFAULT 'New Enquiry',
       createdAt DATETIME DEFAULT CURRENT_TIMESTAMP
     );
+
+    CREATE TABLE IF NOT EXISTS client_accounts (
+      id TEXT PRIMARY KEY,
+      clientType TEXT DEFAULT 'Individual',
+      name TEXT NOT NULL,
+      email TEXT UNIQUE NOT NULL,
+      passwordHash TEXT NOT NULL,
+      phone TEXT,
+      companyName TEXT,
+      companyRegNumber TEXT,
+      industry TEXT,
+      designation TEXT,
+      country TEXT DEFAULT 'United Arab Emirates',
+      city TEXT,
+      address TEXT,
+      website TEXT,
+      avatarUrl TEXT,
+      emailVerified INTEGER DEFAULT 1,
+      verificationCode TEXT,
+      resetToken TEXT,
+      resetTokenExpires INTEGER,
+      notificationPrefs TEXT,
+      assignedConsultant TEXT DEFAULT 'Dhanalakshimi',
+      organizationId TEXT,
+      status TEXT DEFAULT 'Active',
+      createdAt DATETIME DEFAULT CURRENT_TIMESTAMP,
+      updatedAt DATETIME DEFAULT CURRENT_TIMESTAMP
+    );
+
+    CREATE TABLE IF NOT EXISTS client_documents (
+      id TEXT PRIMARY KEY,
+      clientId TEXT NOT NULL,
+      clientEmail TEXT,
+      enquiryId TEXT,
+      serviceId TEXT,
+      serviceTitle TEXT,
+      documentName TEXT NOT NULL,
+      documentCategory TEXT DEFAULT 'Supporting Document',
+      fileName TEXT,
+      filePath TEXT,
+      fileType TEXT,
+      fileSize INTEGER DEFAULT 0,
+      uploadedBy TEXT DEFAULT 'Client',
+      verificationStatus TEXT DEFAULT 'Pending Verification',
+      rejectionReason TEXT,
+      requestedBy TEXT,
+      notes TEXT,
+      createdAt DATETIME DEFAULT CURRENT_TIMESTAMP,
+      updatedAt DATETIME DEFAULT CURRENT_TIMESTAMP
+    );
+
+    CREATE TABLE IF NOT EXISTS client_appointments (
+      id TEXT PRIMARY KEY,
+      clientId TEXT NOT NULL,
+      clientName TEXT,
+      clientEmail TEXT,
+      clientPhone TEXT,
+      enquiryId TEXT,
+      serviceId TEXT,
+      serviceTitle TEXT,
+      consultantName TEXT DEFAULT 'Dhanalakshimi',
+      consultantRole TEXT DEFAULT 'Senior Global Advisor',
+      appointmentDate TEXT NOT NULL,
+      appointmentTime TEXT NOT NULL,
+      consultationMode TEXT DEFAULT 'Online Video (Google Meet / Zoom)',
+      meetingLink TEXT,
+      location TEXT,
+      status TEXT DEFAULT 'Scheduled',
+      notes TEXT,
+      createdAt DATETIME DEFAULT CURRENT_TIMESTAMP,
+      updatedAt DATETIME DEFAULT CURRENT_TIMESTAMP
+    );
+
+    CREATE TABLE IF NOT EXISTS client_messages (
+      id TEXT PRIMARY KEY,
+      clientId TEXT NOT NULL,
+      clientEmail TEXT,
+      enquiryId TEXT,
+      serviceTitle TEXT,
+      senderRole TEXT NOT NULL,
+      senderName TEXT NOT NULL,
+      message TEXT NOT NULL,
+      attachmentUrl TEXT,
+      attachmentName TEXT,
+      isRead INTEGER DEFAULT 0,
+      createdAt DATETIME DEFAULT CURRENT_TIMESTAMP
+    );
+
+    CREATE TABLE IF NOT EXISTS client_notifications (
+      id TEXT PRIMARY KEY,
+      clientId TEXT NOT NULL,
+      clientEmail TEXT,
+      enquiryId TEXT,
+      type TEXT DEFAULT 'status_update',
+      title TEXT NOT NULL,
+      message TEXT NOT NULL,
+      isRead INTEGER DEFAULT 0,
+      createdAt DATETIME DEFAULT CURRENT_TIMESTAMP
+    );
+
+    CREATE TABLE IF NOT EXISTS client_invoices (
+      id TEXT PRIMARY KEY,
+      clientId TEXT NOT NULL,
+      clientEmail TEXT,
+      enquiryId TEXT,
+      serviceTitle TEXT NOT NULL,
+      amount REAL NOT NULL,
+      currency TEXT DEFAULT 'AED',
+      status TEXT DEFAULT 'Pending',
+      dueDate TEXT,
+      paidAt TEXT,
+      paymentMethod TEXT,
+      receiptNumber TEXT,
+      notes TEXT,
+      createdAt DATETIME DEFAULT CURRENT_TIMESTAMP
+    );
   `);
 
   const ensureColumns = async (tableName, columnDefs) => {
@@ -501,7 +634,11 @@ const initDb = async (db) => {
     { name: 'consultationMode', type: 'TEXT' },
     { name: 'courseName', type: 'TEXT' },
     { name: 'streamName', type: 'TEXT' },
-    { name: 'department', type: 'TEXT' }
+    { name: 'department', type: 'TEXT' },
+    { name: 'clientId', type: 'TEXT' },
+    { name: 'progressStep', type: 'INTEGER DEFAULT 1' },
+    { name: 'progressPercent', type: 'INTEGER DEFAULT 15' },
+    { name: 'workflowType', type: 'TEXT' }
   ]);
 
   await ensureColumns('clients', [
