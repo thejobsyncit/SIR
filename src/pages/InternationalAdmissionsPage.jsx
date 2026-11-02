@@ -8,7 +8,7 @@ import {
   Globe, Compass, CheckCircle2, ChevronDown, ChevronUp, ArrowRight,
   Calendar, ShieldCheck, Award, FileText, Users, Clock, HelpCircle,
   GraduationCap, Building2, ExternalLink, Send, AlertCircle, Briefcase,
-  FileCheck, Landmark, Plane, Layers, ChevronRight, MessageSquare, Check
+  FileCheck, Landmark, Plane, Layers, ChevronRight, MessageSquare, Check, Sparkles
 } from 'lucide-react';
 
 export const InternationalAdmissionsPage = () => {
@@ -572,127 +572,98 @@ export const InternationalAdmissionsPage = () => {
 
           <div className="grid grid-cols-1 lg:grid-cols-12 gap-12 lg:gap-8 items-center">
             
-            {/* Left Column: Heading & Content */}
-            <div className="lg:col-span-7 space-y-6">
+            {/* Left Column: Heading, Subheading, Description, CTAs (Exact 1:1 match with Image 1) */}
+            <div className="lg:col-span-7 space-y-6 text-left">
               
-              <div className="flex flex-wrap items-center gap-2.5">
-                <span className="inline-flex items-center px-3 py-1 rounded-full text-xs font-bold tracking-wider uppercase bg-[#C6A45C]/15 text-[#C6A45C] border border-[#C6A45C]/30">
-                  University Placement
-                </span>
-                <span className="inline-flex items-center px-3 py-1 rounded-full text-xs font-bold tracking-wider uppercase bg-emerald-50 text-emerald-700 border border-emerald-200">
-                  Verified Service • Admissions
-                </span>
+              {/* Small Label */}
+              <div className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-[#102A43]/5 border border-[#102A43]/15 text-[#102A43] text-xs font-bold tracking-widest uppercase shadow-xs">
+                <Sparkles className="w-3.5 h-3.5 text-[#C6A45C]" />
+                <span>INTERNATIONAL ADMISSIONS ADVISORY</span>
               </div>
 
-              <h1 className="font-serif text-3xl sm:text-4xl md:text-5xl lg:text-6xl font-bold text-[#102A43] tracking-tight leading-[1.15]">
+              {/* Main Heading */}
+              <h1 className="text-4xl sm:text-5xl lg:text-6xl font-serif font-extrabold text-[#102A43] tracking-tight leading-[1.15]">
                 International Admissions
               </h1>
 
-              <p className="font-serif italic text-lg sm:text-xl text-[#C6A45C]">
-                Strategic Global University Applications, Compliance & Admission Guidance
+              {/* Subheading in Gold */}
+              <p className="text-xl sm:text-2xl font-medium text-[#C6A45C] leading-snug">
+                Strategic Global Education Advisory & Destination Planning
               </p>
 
-              <p className="text-sm sm:text-base text-gray-600 leading-relaxed max-w-2xl">
-                From navigating UCAS in the UK and Common App in the United States to managing direct university applications in Canada, Europe, and Australia, The Revival International supports students throughout the international admissions process. Our team helps coordinate applications, prepare academic documents, monitor deadlines, and organize admission requirements with attention to accuracy and compliance.
+              {/* Description */}
+              <p className="text-[#475569] text-base sm:text-lg leading-relaxed max-w-2xl font-normal">
+                Navigate international education opportunities with personalized guidance on university selection, admission requirements, scholarships, financial planning, and global study destinations.
               </p>
 
-              {/* Action Buttons */}
-              <div className="pt-2 flex flex-col sm:flex-row items-stretch sm:items-center gap-4">
+              {/* Primary & Secondary CTAs (Navy button with gold arrow + white button with gold compass) */}
+              <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-4 pt-2">
                 <button
                   onClick={() => {
                     trackCtaClick('hero_book_free_consultation', 'International Admissions');
                     scrollToSection('admissions-consultation-booking');
                   }}
-                  className="px-8 py-4 rounded-xl bg-[#C6A45C] hover:bg-[#b5934b] text-[#102A43] font-bold text-sm shadow-md hover:shadow-lg transition-all duration-200 flex items-center justify-center gap-2 cursor-pointer"
+                  className="px-8 py-4 rounded-xl bg-[#102A43] hover:bg-[#1a3d60] text-white font-bold text-base shadow-lg hover:shadow-xl transition-all duration-200 flex items-center justify-center gap-2 cursor-pointer"
                 >
-                  <Calendar className="w-4 h-4" />
                   <span>Book Free Consultation</span>
+                  <ArrowRight className="w-4 h-4 text-[#C6A45C]" />
                 </button>
 
                 <button
                   onClick={() => {
-                    trackCtaClick('hero_explore_process', 'International Admissions');
-                    scrollToSection('admissions-process-section');
+                    trackCtaClick('hero_explore_admissions_process', 'International Admissions');
+                    scrollToSection('destination-explorer');
                   }}
-                  className="px-8 py-4 rounded-xl bg-white hover:bg-gray-50 text-[#102A43] border border-gray-300 font-semibold text-sm transition-all duration-200 flex items-center justify-center gap-2 cursor-pointer"
+                  className="px-8 py-4 rounded-xl bg-white hover:bg-gray-50 text-[#102A43] border border-gray-300 font-semibold text-base transition-all duration-200 flex items-center justify-center gap-2 shadow-xs cursor-pointer"
                 >
                   <Compass className="w-4 h-4 text-[#C6A45C]" />
-                  <span>Explore Admissions Process ↓</span>
+                  <span>Explore Study Destinations</span>
                 </button>
               </div>
 
               {/* Trust Indicators */}
-              <div className="pt-4 flex flex-wrap items-center gap-6 text-xs text-gray-600 border-t border-gray-100">
-                <span className="flex items-center gap-1.5 font-medium">
-                  <Check className="w-4 h-4 text-[#C6A45C]" /> 100% Confidential
+              <div className="pt-2 flex flex-wrap items-center gap-6 text-xs text-[#64748B] font-medium">
+                <span className="flex items-center gap-1.5">
+                  <CheckCircle2 className="w-4 h-4 text-[#C6A45C]" /> 100% Confidential
                 </span>
-                <span className="flex items-center gap-1.5 font-medium">
-                  <Check className="w-4 h-4 text-[#C6A45C]" /> Direct University Portals
+                <span className="flex items-center gap-1.5">
+                  <CheckCircle2 className="w-4 h-4 text-[#C6A45C]" /> Objective Advisory
                 </span>
-                <span className="flex items-center gap-1.5 font-medium">
-                  <Check className="w-4 h-4 text-[#C6A45C]" /> Verified Advisors
+                <span className="flex items-center gap-1.5">
+                  <CheckCircle2 className="w-4 h-4 text-[#C6A45C]" /> Top Global Corridors
                 </span>
               </div>
-
             </div>
 
-            {/* Right Column: Hero Visual Card */}
+            {/* Right Column: International Campus Image & Floating Card (Exact 1:1 match with Image 1) */}
             <div className="lg:col-span-5 relative">
-              <div className="relative rounded-2xl overflow-hidden shadow-2xl border border-gray-200 group">
+              <div className="relative rounded-2xl overflow-hidden shadow-2xl border-4 border-gray-100 group">
                 <img
-                  src="/images/international_admissions.jpg"
-                  alt="International university students reviewing admissions portfolios"
-                  className="w-full h-[380px] sm:h-[440px] object-cover object-center group-hover:scale-105 transition-transform duration-700 ease-out"
+                  src="/images/international_campus.jpg"
+                  alt="International University Campus Architecture"
+                  className="w-full h-[380px] sm:h-[440px] object-cover group-hover:scale-105 transition-transform duration-700 ease-out"
+                  loading="eager"
                 />
-                <div className="absolute inset-0 bg-gradient-to-t from-[#102A43]/90 via-[#102A43]/30 to-transparent" />
-                
-                {/* Floating Overlay Badge */}
-                <div className="absolute bottom-6 left-6 right-6">
-                  <div className="bg-white/95 backdrop-blur-md p-4 rounded-xl border border-[#C6A45C]/30 shadow-xl">
-                    <div className="flex items-center justify-between pb-2 mb-2 border-b border-gray-100">
-                      <span className="font-bold text-[#102A43] flex items-center gap-2 text-xs">
-                        <Landmark className="w-4 h-4 text-[#C6A45C]" />
-                        Global Admissions Coordination
-                      </span>
-                      <span className="bg-emerald-50 text-emerald-700 text-[10px] font-bold px-2 py-0.5 rounded">
-                        Active Portals
-                      </span>
-                    </div>
-                    <p className="text-[11px] text-gray-600 leading-snug">
-                      Multi-country university portal management, verified document compliance, and dedicated admission mentorship.
-                    </p>
+                <div className="absolute inset-0 bg-gradient-to-t from-black/40 via-transparent to-transparent pointer-events-none" />
+              </div>
+
+              {/* Floating Card: Trusted Mentorship */}
+              <div className="absolute -bottom-6 -left-4 sm:-bottom-6 sm:-left-6 bg-white text-[#102A43] rounded-xl p-4 sm:p-5 shadow-2xl border border-gray-200 flex items-center gap-4 max-w-[320px]">
+                <div className="w-12 h-12 rounded-lg bg-[#102A43] text-[#C6A45C] flex items-center justify-center shrink-0 shadow-md">
+                  <GraduationCap className="w-6 h-6" />
+                </div>
+                <div>
+                  <div className="text-[11px] font-bold uppercase tracking-wider text-gray-500">
+                    Trusted Mentorship
+                  </div>
+                  <div className="text-sm font-bold text-[#102A43] leading-snug">
+                    Personalized Global Education Advisory
                   </div>
                 </div>
               </div>
             </div>
 
           </div>
-
-          {/* 4 Hero Info Cards */}
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mt-16 pt-10 border-t border-gray-200/80">
-            {heroInfoBlocks.map((block, i) => {
-              const Icon = block.icon;
-              return (
-                <div key={i} className="p-4 rounded-xl bg-gray-50/80 border border-gray-200/60 flex items-start gap-3">
-                  <div className="w-10 h-10 rounded-lg bg-[#C6A45C]/15 text-[#C6A45C] flex items-center justify-center shrink-0">
-                    <Icon className="w-5 h-5" />
-                  </div>
-                  <div>
-                    <span className="text-[10px] uppercase font-bold text-gray-500 tracking-wider block">
-                      {block.label}
-                    </span>
-                    <span className="font-bold text-[#102A43] text-xs leading-snug block mt-0.5">
-                      {block.value}
-                    </span>
-                    <span className="text-[10px] text-gray-500 block mt-0.5">
-                      {block.subtext}
-                    </span>
-                  </div>
-                </div>
-              );
-            })}
-          </div>
-
         </div>
       </section>
 
