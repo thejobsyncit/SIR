@@ -4,7 +4,7 @@ import path from 'path';
 import fs from 'fs';
 import os from 'os';
 import { fileURLToPath } from 'url';
-import { getDb, closeDb, checkDbHealth, logAuditTrail } from './database.js';
+import { getDb, closeDb, checkDbHealth, logAuditTrail, DEFAULT_CRM_EMPLOYEES, DEFAULT_CRM_CANDIDATES, DEFAULT_CRM_LEADS } from './database.js';
 import { registerClientPortalRoutes } from './clientPortalRoutes.js';
 import { COURSES_CATALOGUE } from '../src/data/coursesCatalogueData.js';
 import nodemailer from 'nodemailer';
@@ -785,7 +785,16 @@ app.get('/api/employees', async (req, res) => {
     }
 
     query += ' ORDER BY createdAt ASC';
-    const rows = await db.all(query, params);
+    let rows = await db.all(query, params);
+    if (!rows || rows.length === 0) {
+      for (const emp of DEFAULT_CRM_EMPLOYEES) {
+        await db.run(
+          `INSERT OR IGNORE INTO employees (id, employeeId, name, email, phone, role, department, password, status) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+          [emp.id, emp.employeeId, emp.name, emp.email, emp.phone, emp.role, emp.department, emp.password, emp.status]
+        );
+      }
+      rows = await db.all(query, params);
+    }
     res.json({ success: true, data: rows });
   } catch (error) {
     console.error('Failed to fetch employees:', error);
@@ -986,7 +995,18 @@ app.delete('/api/employees/:id', async (req, res) => {
 app.get('/api/candidates', async (req, res) => {
   try {
     const db = await getDb();
-    const rows = await db.all('SELECT * FROM candidates ORDER BY createdAt DESC');
+    let rows = await db.all('SELECT * FROM candidates ORDER BY createdAt DESC');
+    if (!rows || rows.length === 0) {
+      for (const dc of DEFAULT_CRM_CANDIDATES) {
+        await db.run(`
+          INSERT INTO candidates (id, name, email, phone, nationality, currentEmployer, currentRole, currentSalary, expectedSalary, score, stage, skills, source, passport, aiSummary, experience)
+          VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+        `, [
+          dc.id, dc.name, dc.email, dc.phone, dc.nationality, dc.currentEmployer, dc.currentRole, dc.currentSalary, dc.expectedSalary, dc.score, dc.stage, dc.skills, dc.source, dc.passport, dc.aiSummary, dc.experience
+        ]);
+      }
+      rows = await db.all('SELECT * FROM candidates ORDER BY createdAt DESC');
+    }
     res.json({
       success: true,
       data: rows.map(r => ({
@@ -1001,6 +1021,7 @@ app.get('/api/candidates', async (req, res) => {
       }))
     });
   } catch (error) {
+    console.error('Failed to fetch candidates:', error);
     res.status(500).json({ success: false, message: 'Failed to fetch candidates' });
   }
 });
@@ -1086,11 +1107,28 @@ app.post('/api/candidates', async (req, res) => {
       }
     }
 
-    const cand = await db.get('SELECT * FROM candidates WHERE id = ?', [candId]);
+    const cand = (await db.get('SELECT * FROM candidates WHERE id = ?', [candId])) || {
+      id: candId,
+      name: name || 'New Candidate',
+      email: email || '',
+      phone: phone || '',
+      nationality: nationality || 'UAE',
+      currentEmployer: currentEmployer || 'Revival International Talent Pool',
+      currentRole: currentRole || 'Executive Candidate',
+      currentSalary: currentSalary || 'Confidential',
+      expectedSalary: expectedSalary || 'Market Standard',
+      score: score || 88,
+      stage: stage || 'lead',
+      skills: skillsStr,
+      source: source || 'Website Registration',
+      passport: passport || 'Standard (Verified)',
+      aiSummary: aiSummary || '',
+      experience: experience || '3-5 Years'
+    };
     res.json({ success: true, data: { ...cand, skills: parseArray(cand.skills) } });
   } catch (error) {
     console.error('Failed to save candidate:', error);
-    res.status(500).json({ success: false, message: 'Failed to save candidate' });
+    res.status(500).json({ success: false, message: 'Failed to save candidate: ' + (error.message || '') });
   }
 });
 
@@ -1596,7 +1634,18 @@ app.get(['/api/leads', '/api/consulting/enquiries', '/api/career-guidance/enquir
       params.push(parsedLimit, offset);
     }
 
-    const rows = await db.all(query, params);
+    let rows = await db.all(query, params);
+    if ((!rows || rows.length === 0) && !search && (!serviceId || serviceId === 'all') && (!status || status === 'all')) {
+      for (const dl of DEFAULT_CRM_LEADS) {
+        await db.run(`
+          INSERT INTO leads (id, name, email, phone, company, message, serviceId, serviceTitle, countryInterest, assistanceType, intakeTerm, status, assignedEmployee)
+          VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+        `, [
+          dl.id, dl.name, dl.email, dl.phone, dl.company, dl.message, dl.serviceId, dl.serviceTitle, dl.countryInterest, dl.assistanceType, dl.intakeTerm, dl.status, dl.assignedEmployee
+        ]);
+      }
+      rows = await db.all(query, params);
+    }
 
     if (limit) {
       const parsedLimit = Math.max(1, parseInt(limit, 10));

@@ -43,6 +43,201 @@ export const getDbPath = () => {
   return path.join(__dirname, 'sir_recruitment.db');
 };
 
+export const DEFAULT_CRM_EMPLOYEES = [
+  { id: 'emp-1', employeeId: 'REV-EMP-001', name: 'Dhanalakshimi', email: 'thejobsyncit@gmail.com', phone: '+91 9003475405', role: 'Super Admin', department: 'Executive Management', password: 'Thejobsync@26', status: 'Active', createdAt: '2026-11-01 09:00:00' },
+  { id: 'emp-2', employeeId: 'REV-EMP-002', name: 'Sarah Jenkins', email: 'sarah.admin@revivalinternational.com', phone: '+91 98400 11002', role: 'Admin', department: 'Operations Management', password: 'Password123!', status: 'Active', createdAt: '2026-11-01 09:00:00' },
+  { id: 'emp-3', employeeId: 'REV-EMP-003', name: 'Priya Sharma', email: 'priya.lead@revivalinternational.com', phone: '+91 98400 11003', role: 'HR Lead', department: 'Human Resources', password: 'Password123!', status: 'Active', createdAt: '2026-11-01 09:00:00' },
+  { id: 'emp-4', employeeId: 'REV-EMP-004', name: 'Kishore Kumar', email: 'kishore.recruiter@revivalinternational.com', phone: '+91 98400 11004', role: 'Recruiter', department: 'Talent Acquisition & ATS', password: 'Password123!', status: 'Active', createdAt: '2026-11-01 09:00:00' },
+  { id: 'emp-5', employeeId: 'REV-EMP-005', name: 'Sreeja Nair', email: 'sreeja.jasync@gmail.com', phone: '+91 9876543211', role: 'Placement Coordinator', department: 'Placement & Industry Relations', password: 'Password123!', status: 'Active', createdAt: '2026-11-01 09:00:00' },
+  { id: 'emp-6', employeeId: 'REV-EMP-006', name: 'Balavarshini', email: 'balavarshini2223@gmail.com', phone: '+91 9876543214', role: 'HR Operations', department: 'HR & Student Operations', password: 'Password123!', status: 'Active', createdAt: '2026-11-01 09:00:00' }
+];
+
+export const DEFAULT_CRM_CANDIDATES = [
+  {
+    id: 'REV-CAN-101',
+    name: 'Alexander Wright',
+    email: 'alexander.wright@gmail.com',
+    phone: '+971 50 123 4567',
+    nationality: 'British',
+    currentEmployer: 'Arabtec Construction LLC',
+    currentRole: 'Senior Civil Project Manager',
+    currentSalary: 'AED 38,000',
+    expectedSalary: 'AED 45,000',
+    score: 95,
+    stage: 'interview',
+    skills: '["FIDIC Red Book", "Primavera P6", "High-Rise Construction", "Budget Control"]',
+    source: 'Executive Headhunting',
+    passport: 'UK (Valid 2031)',
+    aiSummary: 'Tier-1 GCC civil project director with 12+ years of mega high-rise execution across Dubai and Riyadh.',
+    experience: '12 Years',
+    assignedRecruiter: 'Kishore Kumar (Recruiter)',
+    createdAt: '2026-11-01 10:00:00'
+  },
+  {
+    id: 'REV-CAN-102',
+    name: 'Dr. Sarah Al-Mansoori',
+    email: 'dr.sarah.mansoori@gmail.com',
+    phone: '+966 50 234 5678',
+    nationality: 'Saudi / UAE',
+    currentEmployer: 'King Faisal Specialist Hospital',
+    currentRole: 'Consultant Critical Care & ICU',
+    currentSalary: 'SAR 42,000',
+    expectedSalary: 'SAR 50,000',
+    score: 97,
+    stage: 'shortlisted',
+    skills: '["Critical Care Medicine", "ICU Ventilation", "JCI Accreditation", "Saudi Prometric"]',
+    source: 'Medical Referral',
+    passport: 'Saudi Arabia (Verified)',
+    aiSummary: 'Board-certified ICU Consultant with Saudi Prometric license and extensive critical care leadership.',
+    experience: '9 Years',
+    assignedRecruiter: 'Kishore Kumar (Recruiter)',
+    createdAt: '2026-11-02 11:30:00'
+  },
+  {
+    id: 'REV-CAN-103',
+    name: 'Mohamed Tariq',
+    email: 'candidate_test_1793170475278@domain.com',
+    phone: '+971 50 112 2334',
+    nationality: 'Indian',
+    currentEmployer: 'Emirates NBD Technology',
+    currentRole: 'Lead Cloud Solutions Architect',
+    currentSalary: 'AED 28,000',
+    expectedSalary: 'AED 35,000',
+    score: 92,
+    stage: 'lead',
+    skills: '["AWS Solutions Architect", "Kubernetes", "DevOps CI/CD", "Fintech Compliance"]',
+    source: 'Candidate Portal Application',
+    passport: 'India (Valid 2029)',
+    aiSummary: 'Enterprise cloud architect certified in AWS and Kubernetes with hands-on fintech banking deployments.',
+    experience: '8 Years',
+    assignedRecruiter: 'Dhanalakshimi (Lead Advisor)',
+    createdAt: '2026-10-28 06:54:35'
+  },
+  {
+    id: 'REV-CAN-104',
+    name: 'Elena Rostova',
+    email: 'elena.rostova@outlook.com',
+    phone: '+65 9123 4567',
+    nationality: 'Singaporean',
+    currentEmployer: 'DBS Bank Singapore',
+    currentRole: 'Senior Cybersecurity Operations Lead',
+    currentSalary: 'SGD 14,000',
+    expectedSalary: 'SGD 16,500',
+    score: 94,
+    stage: 'screening',
+    skills: '["Splunk SIEM", "Threat Hunting", "CISSP", "Incident Response"]',
+    source: 'Talent Acquisition',
+    passport: 'Singapore (Verified)',
+    aiSummary: 'CISSP certified security lead with deep experience in banking SOC leadership and threat mitigation.',
+    experience: '7 Years',
+    assignedRecruiter: 'Kishore Kumar (Recruiter)',
+    createdAt: '2026-11-03 14:15:00'
+  },
+  {
+    id: 'REV-CAN-105',
+    name: 'Rajesh Kumar',
+    email: 'rajesh.kumar@gmail.com',
+    phone: '+91 98401 55667',
+    nationality: 'Indian',
+    currentEmployer: 'Larsen & Toubro Heavy Civil',
+    currentRole: 'Senior Structural BIM Engineer',
+    currentSalary: 'INR 18,00,000',
+    expectedSalary: 'AED 22,000',
+    score: 89,
+    stage: 'applied',
+    skills: '["Revit Structural", "Navisworks Manage", "BIM 360", "Clash Detection"]',
+    source: 'GCC Career Fair',
+    passport: 'India (ECNR Verified)',
+    aiSummary: 'Experienced structural BIM professional with international metro and high-rise project credentials.',
+    experience: '6 Years',
+    assignedRecruiter: 'Sreeja Nair (Placement Coordinator)',
+    createdAt: '2026-11-04 09:20:00'
+  }
+];
+
+export const DEFAULT_CRM_LEADS = [
+  {
+    id: 'LEAD-9001',
+    name: 'Zubair Al Mansoor',
+    email: 'zubair.m@gmail.com',
+    phone: '+971 50 876 5432',
+    company: 'Al Mansoor Holdings',
+    serviceId: 'intl-consult',
+    serviceTitle: 'International Consulting',
+    countryInterest: 'UAE',
+    assistanceType: 'UAE Golden Visa & Corporate Setup',
+    intakeTerm: 'Immediate 2026',
+    status: 'In Progress',
+    assignedEmployee: 'Fatima Al Zahra',
+    message: 'Seeking comprehensive consultation for Dubai Golden Visa and corporate holding structure.',
+    createdAt: '2026-11-04 14:00:00'
+  },
+  {
+    id: 'LEAD-9002',
+    name: 'Pooja Ramakrishnan',
+    email: 'pooja.ram@yahoo.com',
+    phone: '+91 98401 23456',
+    company: 'Individual Candidate',
+    serviceId: 'college-adm',
+    serviceTitle: 'College Admission Assistance',
+    countryInterest: 'Canada',
+    assistanceType: 'Fall 2027 Postgraduate Admissions',
+    intakeTerm: 'Fall 2027',
+    status: 'Contacted',
+    assignedEmployee: 'Fatima Al Zahra',
+    message: 'Shortlisting Canadian universities for Master in Data Science. Needs IELTS preparation counseling.',
+    createdAt: '2026-11-03 16:30:00'
+  },
+  {
+    id: 'LEAD-9003',
+    name: 'Karthik Subburaj',
+    email: 'karthik.s@gmail.com',
+    phone: '+91 97890 87654',
+    company: 'Individual Candidate',
+    serviceId: 'intl-adm',
+    serviceTitle: 'International Admissions',
+    countryInterest: 'Germany',
+    assistanceType: 'Public University STEM Admissions',
+    intakeTerm: 'Winter 2026',
+    status: 'Consultation Scheduled',
+    assignedEmployee: 'Priya Sharma',
+    message: 'Looking for tuition-free public universities in Germany for Automotive Engineering.',
+    createdAt: '2026-11-05 11:15:00'
+  },
+  {
+    id: 'LEAD-9004',
+    name: 'Naveen Vignesh',
+    email: 'naveen.v@outlook.com',
+    phone: '+971 55 345 6789',
+    company: 'Individual Candidate',
+    serviceId: 'school-career',
+    serviceTitle: 'School Student Career Guidance',
+    countryInterest: 'UAE & UK',
+    assistanceType: 'Psychometric Aptitude & Stream Selection',
+    intakeTerm: 'Grade 11 Intake',
+    status: 'New',
+    assignedEmployee: 'Balavarshini',
+    message: 'Career guidance consultation for Grade 10 student choosing IB streams.',
+    createdAt: '2026-11-05 13:45:00'
+  },
+  {
+    id: 'LEAD-9005',
+    name: 'Ahmed Tariq',
+    email: 'ahmed.t@gmail.com',
+    phone: '+971 52 112 2334',
+    company: 'Gulf Horizon Logistics',
+    serviceId: 'exec-seminars-lang',
+    serviceTitle: 'Executive Seminars & Language Hub',
+    countryInterest: 'UAE',
+    assistanceType: 'Corporate Business Arabic Seminar',
+    intakeTerm: 'Q4 2026',
+    status: 'In Progress',
+    assignedEmployee: 'Fatima Al Zahra',
+    message: 'Corporate enquiry for training 5 senior executives in Business Arabic and Gulf etiquette.',
+    createdAt: '2026-11-02 10:20:00'
+  }
+];
+
 /**
  * Pure-JS JSON / In-Memory Fallback Database Adapter for Serverless Environments
  * where native C++ sqlite3 bindings are unavailable.
@@ -51,10 +246,11 @@ const createFallbackDb = () => {
   const storePath = path.join(os.tmpdir(), 'revival_serverless_store.json');
   const defaultStore = {
     jobs: [],
-    candidates: [],
+    candidates: [...DEFAULT_CRM_CANDIDATES],
     clients: [],
     interviews: [],
-    leads: [],
+    leads: [...DEFAULT_CRM_LEADS],
+    employees: [...DEFAULT_CRM_EMPLOYEES],
     organization_contacts: [],
     enquiry_activities: [],
     follow_ups: [],
@@ -65,7 +261,8 @@ const createFallbackDb = () => {
     client_messages: [],
     client_notifications: [],
     client_invoices: [],
-    career_departments: []
+    career_departments: [],
+    audit_logs: []
   };
 
   let store = { ...defaultStore };
@@ -73,6 +270,11 @@ const createFallbackDb = () => {
     if (fs.existsSync(storePath)) {
       const raw = JSON.parse(fs.readFileSync(storePath, 'utf8'));
       store = { ...defaultStore, ...raw };
+      // Ensure arrays are never undefined
+      Object.keys(defaultStore).forEach(k => {
+        if (!Array.isArray(store[k])) store[k] = [...defaultStore[k]];
+        else if (store[k].length === 0 && defaultStore[k].length > 0) store[k] = [...defaultStore[k]];
+      });
     }
   } catch (_) {
     store = { ...defaultStore };
@@ -97,17 +299,19 @@ const createFallbackDb = () => {
     run: async (sql, params = []) => {
       const s = sql.trim();
       const table = getTableName(s);
-      if (!table || !store[table]) return { changes: 0 };
+      if (!table) return { changes: 0 };
+      if (!store[table]) store[table] = [];
 
       if (/^INSERT\s+INTO/i.test(s)) {
         const colMatch = s.match(/\(([^)]+)\)\s*VALUES/i);
-        const row = { createdAt: new Date().toISOString() };
+        const row = { id: params[0] || `REC-${Date.now()}`, createdAt: new Date().toISOString() };
         if (colMatch) {
           const cols = colMatch[1].split(',').map(c => c.trim());
           cols.forEach((col, idx) => {
             row[col] = params[idx] !== undefined ? params[idx] : null;
           });
         }
+        if (params[0] && !row.id) row.id = params[0];
         store[table].unshift(row);
         persist();
         return { changes: 1, lastID: row.id };
@@ -155,7 +359,8 @@ const createFallbackDb = () => {
         return { alive: 1 };
       }
       const table = getTableName(s);
-      if (!table || !store[table]) return null;
+      if (!table) return null;
+      if (!store[table]) store[table] = [];
 
       if (/COUNT\(\*\)/i.test(s)) {
         const rows = store[table];
@@ -164,15 +369,14 @@ const createFallbackDb = () => {
 
       if (params.length > 0) {
         const keyVal = params[0];
-        return (
-          store[table].find(
-            r =>
-              r.id === keyVal ||
-              r.referenceNumber === keyVal ||
-              (r.email && String(r.email).toLowerCase().trim() === String(keyVal).toLowerCase().trim()) ||
-              (r.company && String(r.company).toLowerCase().trim() === String(keyVal).toLowerCase().trim())
-          ) || null
+        const found = store[table].find(r =>
+          r.id === keyVal ||
+          r.employeeId === keyVal ||
+          r.referenceNumber === keyVal ||
+          (r.email && String(r.email).toLowerCase().trim() === String(keyVal).toLowerCase().trim()) ||
+          (r.company && String(r.company).toLowerCase().trim() === String(keyVal).toLowerCase().trim())
         );
+        if (found) return found;
       }
 
       return store[table][0] || null;
@@ -183,8 +387,10 @@ const createFallbackDb = () => {
         return [];
       }
       const table = getTableName(s);
-      if (!table || !store[table]) return [];
+      if (!table) return [];
+      if (!store[table]) store[table] = [];
       let rows = [...store[table]];
+
       if (/WHERE\s+enquiryId\s*=\s*\?/i.test(s) && params[0]) {
         rows = rows.filter(r => r.enquiryId === params[0]);
       }
@@ -200,6 +406,12 @@ const createFallbackDb = () => {
             (cemail && r.email && String(r.email).toLowerCase().trim() === cemail) ||
             (cemail && r.clientEmail && String(r.clientEmail).toLowerCase().trim() === cemail)
         );
+      }
+      if (/WHERE\s+role\s*=\s*\?/i.test(s) && params[0]) {
+        rows = rows.filter(r => (r.role || '').toLowerCase() === String(params[0]).toLowerCase());
+      }
+      if (/WHERE\s+status\s*=\s*\?/i.test(s) && params[0]) {
+        rows = rows.filter(r => (r.status || '').toLowerCase() === String(params[0]).toLowerCase());
       }
       return rows;
     }

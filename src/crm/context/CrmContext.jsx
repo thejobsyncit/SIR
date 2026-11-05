@@ -63,26 +63,10 @@ export const CrmProvider = ({ children }) => {
       const saved = localStorage.getItem(key);
       if (!saved) return defaultData;
       const parsed = JSON.parse(saved);
-      // Auto-purge any stale fake/mock data from previous seeds
-      if (Array.isArray(parsed)) {
-        const hasMockData = parsed.some(item => 
-          item?.id?.includes?.('REV-CAN-100') ||
-          item?.id?.includes?.('CLI-50') ||
-          item?.id?.includes?.('INT-88') ||
-          item?.id?.includes?.('INV-2026-') ||
-          item?.candidate === 'Alexander Wright' ||
-          item?.name === 'Alexander Wright' ||
-          item?.candidateName === 'Alexander Wright'
-        );
-        if (hasMockData) {
-          localStorage.removeItem(key);
-          return defaultData;
-        }
-      } else if (typeof parsed === 'string' && (parsed.includes('Hassan Al-Habtoor') || parsed.includes('Riyadh candidates'))) {
-        localStorage.removeItem(key);
+      if (Array.isArray(parsed) && parsed.length === 0 && Array.isArray(defaultData) && defaultData.length > 0) {
         return defaultData;
       }
-      return parsed;
+      return parsed || defaultData;
     } catch {
       return defaultData;
     }
@@ -523,8 +507,14 @@ export const CrmProvider = ({ children }) => {
   };
 
   const addCandidate = async (newCand) => {
-    const candidateToAdd = { ...newCand, id: newCand.id || `CAND-${Math.floor(Math.random() * 9000) + 1000}` };
-    setCandidates(prev => [candidateToAdd, ...prev]);
+    const candidateToAdd = { ...newCand, id: newCand.id || `REV-CAN-${Math.floor(Math.random() * 9000) + 1000}` };
+    setCandidates(prev => {
+      const updated = [candidateToAdd, ...prev.filter(c => c.id !== candidateToAdd.id)];
+      try {
+        localStorage.setItem('crm_candidates', JSON.stringify(updated));
+      } catch {}
+      return updated;
+    });
     logAuditAction(`Added new candidate ${candidateToAdd.name} (${candidateToAdd.id}).`);
     try {
       await fetch('/api/candidates', {
@@ -537,9 +527,22 @@ export const CrmProvider = ({ children }) => {
     }
   };
 
-  const updateCandidate = (updatedCand) => {
-    setCandidates(prev => prev.map(c => c.id === updatedCand.id ? updatedCand : c));
+  const updateCandidate = async (updatedCand) => {
+    setCandidates(prev => {
+      const updated = prev.map(c => c.id === updatedCand.id ? updatedCand : c);
+      try {
+        localStorage.setItem('crm_candidates', JSON.stringify(updated));
+      } catch {}
+      return updated;
+    });
     logAuditAction(`Updated candidate profile ${updatedCand.id}.`);
+    try {
+      await fetch(`/api/candidates/${updatedCand.id}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(updatedCand)
+      });
+    } catch (err) {}
   };
 
   const deleteCandidate = async (candidateId, metadata = {}) => {
