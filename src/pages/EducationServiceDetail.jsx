@@ -27,9 +27,15 @@ import { CollegeAdmissionsPage } from './CollegeAdmissionsPage';
 import { SeminarsAndLanguagePage } from './SeminarsAndLanguagePage';
 import { StudentAcademyPage } from './StudentAcademyPage';
 import { CourseGuidanceCatalogue } from '../components/CourseGuidanceCatalogue';
+import { 
+  savePendingCareerEnquiry, 
+  getPendingCareerEnquiry, 
+  clearPendingCareerEnquiry, 
+  validatePendingCourse 
+} from '../utils/careerGuidanceAuth.js';
 
 export const EducationServiceDetail = ({ serviceId }) => {
-  const { navigateTo } = useApp();
+  const { navigateTo, user } = useApp();
 
   const cleanId = (serviceId || '').split('?')[0];
   const service = getEducationServiceById(cleanId) || getEducationServiceBySlug(cleanId) || EDUCATION_SERVICES_DETAILED[0];
@@ -80,6 +86,47 @@ export const EducationServiceDetail = ({ serviceId }) => {
       trackServiceView(service.id, service.title, service.category || 'Education');
     }
   }, [service?.id]);
+
+  
+  // Handle course inquiry with authentication guard
+  const handleCourseInquire = (course) => {
+    if (!course) return;
+
+    // Check authentication: If unauthenticated, redirect to login and preserve course selection
+    const isAuthenticated = Boolean(user && user.email);
+    if (!isAuthenticated) {
+      savePendingCareerEnquiry(course, 'education-school-career');
+      navigateTo('login');
+      return;
+    }
+
+    // Authenticated user: open enquiry modal directly
+    const streamPart = course.streamName ? ` [${course.streamName}]` : (course.department ? ` [${course.department}]` : '');
+    setSelectedSubProgram(`${course.abbreviation ? course.abbreviation + ' - ' : ''}${course.name}${streamPart}`);
+    setSelectedLevel(course.level === 'PG' ? 'Postgraduate (Master Degree / MBA)' : 'Undergraduate (Bachelor Degree)');
+    setSelectedCourseObj(course);
+    setModalOpen(true);
+  };
+
+  // Restore pending Career Guidance enquiry after successful login or registration
+  useEffect(() => {
+    if (isCareerGuidance && user && user.email) {
+      const pending = getPendingCareerEnquiry();
+      if (pending && (pending.courseId || pending.courseName || pending.abbreviation)) {
+        const validatedCourse = validatePendingCourse(pending);
+        if (validatedCourse) {
+          const streamPart = validatedCourse.streamName 
+            ? ` [${validatedCourse.streamName}]` 
+            : (validatedCourse.department ? ` [${validatedCourse.department}]` : '');
+          setSelectedSubProgram(`${validatedCourse.abbreviation ? validatedCourse.abbreviation + ' - ' : ''}${validatedCourse.name}${streamPart}`);
+          setSelectedLevel(validatedCourse.level === 'PG' ? 'Postgraduate (Master Degree / MBA)' : 'Undergraduate (Bachelor Degree)');
+          setSelectedCourseObj(validatedCourse);
+          setModalOpen(true);
+        }
+        clearPendingCareerEnquiry();
+      }
+    }
+  }, [isCareerGuidance, user]);
 
   const toggleFaq = (index) => {
     setOpenFaqIndex(openFaqIndex === index ? -1 : index);
@@ -387,13 +434,7 @@ export const EducationServiceDetail = ({ serviceId }) => {
         {/* Key Benefits Grid or Course Guidance Catalogue */}
         {service.id === 'school-career' ? (
           <CourseGuidanceCatalogue 
-            onInquire={(course) => {
-              const streamPart = course.streamName ? ` [${course.streamName}]` : (course.department ? ` [${course.department}]` : '');
-              setSelectedSubProgram(`${course.abbreviation ? course.abbreviation + ' - ' : ''}${course.name}${streamPart}`);
-              setSelectedLevel(course.level === 'PG' ? 'Postgraduate (Master Degree / MBA)' : 'Undergraduate (Bachelor Degree)');
-              setSelectedCourseObj(course);
-              setModalOpen(true);
-            }}
+            onInquire={handleCourseInquire}
           />
         ) : (
           <ScrollReveal>

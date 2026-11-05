@@ -1,12 +1,20 @@
 import React, { useState } from 'react';
 import { useApp } from '../context/AppContext';
 import { BrandLogoIcon } from './BrandLogoIcon';
-import { Briefcase, ArrowRight, User, Lock, Mail, Phone, Sparkles, CheckCircle2 } from 'lucide-react';
+import { Briefcase, ArrowRight, User, Lock, Mail, Phone, Sparkles, CheckCircle2, GraduationCap } from 'lucide-react';
+import { getPendingCareerEnquiry } from '../utils/careerGuidanceAuth.js';
+import { getPendingStudentAcademyEnquiry } from '../utils/studentAcademyAuth.js';
 
 export const UnifiedAuth = ({ defaultMode = 'login', defaultRole = 'candidate', onSuccess }) => {
   const { loginCandidate, registerCandidate, setActiveModal, navigateTo } = useApp();
   const [authMode, setAuthMode] = useState(defaultMode); // 'login' | 'register'
   const [error, setError] = useState('');
+  const [pendingCareerEnquiry, setPendingCareerEnquiry] = useState(() => {
+    return getPendingCareerEnquiry();
+  });
+  const [pendingStudentAcademyEnquiry, setPendingStudentAcademyEnquiry] = useState(() => {
+    return getPendingStudentAcademyEnquiry();
+  });
 
   // Candidate Form States
   const [candidateLogin, setCandidateLogin] = useState({ email: '', password: '' });
@@ -41,7 +49,15 @@ export const UnifiedAuth = ({ defaultMode = 'login', defaultRole = 'candidate', 
       setError(result?.message || 'Invalid credentials. Please register if you do not have an account.');
       return;
     }
-    navigateTo('candidates');
+    const pendingAcademy = getPendingStudentAcademyEnquiry();
+    const pendingCareer = getPendingCareerEnquiry();
+    if (pendingAcademy && pendingAcademy.route) {
+      navigateTo(pendingAcademy.route);
+    } else if (pendingCareer && pendingCareer.route) {
+      navigateTo(pendingCareer.route);
+    } else {
+      navigateTo('candidates');
+    }
     if (onSuccess) onSuccess();
     setActiveModal(null);
   };
@@ -71,7 +87,15 @@ export const UnifiedAuth = ({ defaultMode = 'login', defaultRole = 'candidate', 
       setError(result?.message || 'Registration failed. Please try again.');
       return;
     }
-    navigateTo('candidates');
+    const pendingAcademy = getPendingStudentAcademyEnquiry();
+    const pendingCareer = getPendingCareerEnquiry();
+    if (pendingAcademy && pendingAcademy.route) {
+      navigateTo(pendingAcademy.route);
+    } else if (pendingCareer && pendingCareer.route) {
+      navigateTo(pendingCareer.route);
+    } else {
+      navigateTo('candidates');
+    }
     if (onSuccess) onSuccess();
     setActiveModal(null);
   };
@@ -81,7 +105,15 @@ export const UnifiedAuth = ({ defaultMode = 'login', defaultRole = 'candidate', 
     setError('');
     const result = loginCandidate('candidate@revivalinternational.com', 'demo123');
     if (result && result.success) {
-      navigateTo('candidates');
+      const pendingAcademy = getPendingStudentAcademyEnquiry();
+      const pendingCareer = getPendingCareerEnquiry();
+      if (pendingAcademy && pendingAcademy.route) {
+        navigateTo(pendingAcademy.route);
+      } else if (pendingCareer && pendingCareer.route) {
+        navigateTo(pendingCareer.route);
+      } else {
+        navigateTo('candidates');
+      }
       if (onSuccess) onSuccess();
       setActiveModal(null);
     } else {
@@ -105,6 +137,48 @@ export const UnifiedAuth = ({ defaultMode = 'login', defaultRole = 'candidate', 
               : 'Register to apply for international vacancies and explore overseas opportunities.'}
           </p>
         </div>
+
+        {pendingStudentAcademyEnquiry && (
+          <div className="mb-5 p-4 bg-gold-500/10 border border-gold-500/30 rounded-2xl flex items-start gap-3 text-xs animate-in fade-in">
+            <GraduationCap className="w-5 h-5 text-gold-500 shrink-0 mt-0.5" />
+            <div>
+              <p className="font-bold text-navy-900 dark:text-gold-300">
+                Student Academy Examination Enquiry
+              </p>
+              <p className="text-slate-600 dark:text-slate-300 mt-0.5 leading-relaxed">
+                Sign in or create an account to proceed with your consultation inquiry for{' '}
+                <strong className="text-navy-950 dark:text-white font-bold">
+                  {pendingStudentAcademyEnquiry.examName || pendingStudentAcademyEnquiry.examCode}
+                </strong>
+                {pendingStudentAcademyEnquiry.categoryName
+                  ? ` (${pendingStudentAcademyEnquiry.categoryName})`
+                  : ''}
+                . You will be returned directly to complete your inquiry.
+              </p>
+            </div>
+          </div>
+        )}
+
+        {pendingCareerEnquiry && (!pendingStudentAcademyEnquiry) && (
+          <div className="mb-5 p-4 bg-gold-500/10 border border-gold-500/30 rounded-2xl flex items-start gap-3 text-xs animate-in fade-in">
+            <GraduationCap className="w-5 h-5 text-gold-500 shrink-0 mt-0.5" />
+            <div>
+              <p className="font-bold text-navy-900 dark:text-gold-300">
+                Academic Consultation Inquiry
+              </p>
+              <p className="text-slate-600 dark:text-slate-300 mt-0.5 leading-relaxed">
+                Sign in or create an account to proceed with your consultation inquiry for{' '}
+                <strong className="text-navy-950 dark:text-white font-bold">
+                  {pendingCareerEnquiry.courseName || pendingCareerEnquiry.abbreviation}
+                </strong>
+                {pendingCareerEnquiry.abbreviation && pendingCareerEnquiry.courseName && !pendingCareerEnquiry.courseName.includes(pendingCareerEnquiry.abbreviation)
+                  ? ` (${pendingCareerEnquiry.abbreviation})`
+                  : ''}
+                . You will be returned directly to complete your request.
+              </p>
+            </div>
+          </div>
+        )}
 
         {error && (
           <div className="mb-4 p-3 bg-rose-500/10 border border-rose-500/30 rounded-xl text-rose-600 dark:text-rose-300 text-xs font-medium">

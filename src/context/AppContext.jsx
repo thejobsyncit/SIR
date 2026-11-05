@@ -1,3 +1,5 @@
+import { getPendingCareerEnquiry } from '../utils/careerGuidanceAuth.js';
+import { getPendingStudentAcademyEnquiry } from '../utils/studentAcademyAuth.js';
 import React, { createContext, useContext, useState, useEffect } from 'react';
 import { TRANSLATIONS } from '../data/translations';
 import { useCrm } from '../crm/context/CrmContext';
@@ -203,7 +205,15 @@ export const AppProvider = ({ children }) => {
 
       saveCandidateToDB(candidateUser);
       saveUserSession(candidateUser);
-      setActiveTab('candidates');
+      const pendingAcademy = typeof getPendingStudentAcademyEnquiry === 'function' ? getPendingStudentAcademyEnquiry() : null;
+      const pendingCareer = typeof getPendingCareerEnquiry === 'function' ? getPendingCareerEnquiry() : null;
+      const targetTab = (pendingAcademy && pendingAcademy.route)
+        ? pendingAcademy.route
+        : ((pendingCareer && pendingCareer.route) ? pendingCareer.route : 'candidates');
+      setActiveTab(targetTab);
+      if (typeof window !== 'undefined' && targetTab !== 'candidates') {
+        window.location.hash = targetTab;
+      }
       return { success: true, user: candidateUser };
     }
 
@@ -226,7 +236,15 @@ export const AppProvider = ({ children }) => {
     candidateUser = { ...candidateUser, loginTime: new Date().toISOString() };
     saveCandidateToDB(candidateUser);
     saveUserSession(candidateUser);
-    setActiveTab('candidates');
+    const pendingAcademy = typeof getPendingStudentAcademyEnquiry === 'function' ? getPendingStudentAcademyEnquiry() : null;
+      const pendingCareer = typeof getPendingCareerEnquiry === 'function' ? getPendingCareerEnquiry() : null;
+      const targetTab = (pendingAcademy && pendingAcademy.route)
+        ? pendingAcademy.route
+        : ((pendingCareer && pendingCareer.route) ? pendingCareer.route : 'candidates');
+      setActiveTab(targetTab);
+      if (typeof window !== 'undefined' && targetTab !== 'candidates') {
+        window.location.hash = targetTab;
+      }
     return { success: true, user: candidateUser };
   };
 
@@ -277,7 +295,15 @@ export const AppProvider = ({ children }) => {
 
     saveCandidateToDB(candidateUser);
     saveUserSession(candidateUser);
-    setActiveTab('candidates');
+    const pendingAcademy = typeof getPendingStudentAcademyEnquiry === 'function' ? getPendingStudentAcademyEnquiry() : null;
+      const pendingCareer = typeof getPendingCareerEnquiry === 'function' ? getPendingCareerEnquiry() : null;
+      const targetTab = (pendingAcademy && pendingAcademy.route)
+        ? pendingAcademy.route
+        : ((pendingCareer && pendingCareer.route) ? pendingCareer.route : 'candidates');
+      setActiveTab(targetTab);
+      if (typeof window !== 'undefined' && targetTab !== 'candidates') {
+        window.location.hash = targetTab;
+      }
 
     // CRM Integration: Add candidate to internal CRM database
     if (crm && crm.addCandidate) {

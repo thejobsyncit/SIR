@@ -38,6 +38,8 @@ export const submitAcademyCourseEnquiry = async (enquiryData) => {
     email: enquiryData.email.trim().toLowerCase(),
     phone: enquiryData.phone.trim(),
     preferredLearningMode: enquiryData.preferredLearningMode || 'Classroom',
+    coachingMode: enquiryData.preferredLearningMode || enquiryData.coachingMode || 'Classroom',
+    preferredLocation: (enquiryData.preferredLocation || enquiryData.location || enquiryData.targetCountry || '').trim(),
     batchPreference: enquiryData.batchPreference || 'Any Batch',
     questions: enquiryData.questions ? enquiryData.questions.trim() : '',
     academyId: enquiryData.academyId,

@@ -6,6 +6,7 @@ import os from 'os';
 import { fileURLToPath } from 'url';
 import { getDb, closeDb, checkDbHealth, logAuditTrail } from './database.js';
 import { registerClientPortalRoutes } from './clientPortalRoutes.js';
+import { COURSES_CATALOGUE } from '../src/data/coursesCatalogueData.js';
 import nodemailer from 'nodemailer';
 import dotenv from 'dotenv';
 
@@ -1167,6 +1168,7 @@ app.get(['/api/leads', '/api/consulting/enquiries', '/api/career-guidance/enquir
     const {
       serviceId, status, priority, assignedEmployee, search,
       range = 'all', startDate, endDate, includeArchived,
+      level, department,
       page, limit
     } = req.query;
     const db = await getDb();
@@ -1217,6 +1219,23 @@ app.get(['/api/leads', '/api/consulting/enquiries', '/api/career-guidance/enquir
       params.push(priority);
     }
 
+    // Academic level filter (UG / PG)
+    if (level && level !== 'all' && level !== 'All') {
+      const lvl = level.toUpperCase();
+      if (lvl === 'UG') {
+        query += " AND (degreeLevel LIKE '%Undergraduate%' OR degreeLevel = 'UG' OR customFields LIKE '%\"degreeLevel\":\"UG\"%' OR customFields LIKE '%Undergraduate%')";
+      } else if (lvl === 'PG') {
+        query += " AND (degreeLevel LIKE '%Postgraduate%' OR degreeLevel = 'PG' OR customFields LIKE '%\"degreeLevel\":\"PG\"%' OR customFields LIKE '%Postgraduate%')";
+      }
+    }
+
+    // Department filter
+    if (department && department !== 'all' && department !== 'All') {
+      query += " AND (LOWER(COALESCE(department, '')) LIKE ? OR LOWER(COALESCE(streamName, '')) LIKE ? OR LOWER(COALESCE(customFields, '')) LIKE ?)";
+      const dLike = `%${department.trim().toLowerCase()}%`;
+      params.push(dLike, dLike, dLike);
+    }
+
     if (assignedEmployee && assignedEmployee !== 'all') {
       if (assignedEmployee === 'unassigned' || assignedEmployee === 'Unassigned') {
         query += ' AND (assignedEmployee IS NULL OR assignedEmployee = "")';
@@ -1240,8 +1259,8 @@ app.get(['/api/leads', '/api/consulting/enquiries', '/api/career-guidance/enquir
 
     if (search && search.trim()) {
       const s = `%${search.trim().toLowerCase()}%`;
-      query += ' AND (LOWER(name) LIKE ? OR LOWER(email) LIKE ? OR LOWER(phone) LIKE ? OR LOWER(message) LIKE ? OR LOWER(company) LIKE ? OR LOWER(COALESCE(referenceNumber, "")) LIKE ? OR LOWER(COALESCE(countryInterest, "")) LIKE ? OR LOWER(COALESCE(serviceTitle, "")) LIKE ? OR LOWER(COALESCE(jobTitle, "")) LIKE ? OR LOWER(COALESCE(skills, "")) LIKE ?)';
-      params.push(s, s, s, s, s, s, s, s, s, s);
+      query += ' AND (LOWER(name) LIKE ? OR LOWER(email) LIKE ? OR LOWER(phone) LIKE ? OR LOWER(message) LIKE ? OR LOWER(company) LIKE ? OR LOWER(COALESCE(organizationName, "")) LIKE ? OR LOWER(COALESCE(referenceNumber, "")) LIKE ? OR LOWER(COALESCE(countryInterest, "")) LIKE ? OR LOWER(COALESCE(serviceTitle, "")) LIKE ? OR LOWER(COALESCE(courseName, "")) LIKE ? OR LOWER(COALESCE(department, "")) LIKE ? OR LOWER(COALESCE(streamName, "")) LIKE ? OR LOWER(COALESCE(jobTitle, "")) LIKE ? OR LOWER(COALESCE(skills, "")) LIKE ?)';
+      params.push(s, s, s, s, s, s, s, s, s, s, s, s, s, s);
     }
 
     // Check count for pagination
@@ -1916,6 +1935,7 @@ app.patch(['/api/leads/:id', '/api/consulting/enquiries/:id', '/api/student-acad
   try {
     const { id } = req.params;
     const {
+      name, email, phone,
       status, assignedEmployee, priority, organizationId, organizationName,
       nextAction, nextActionDate, lastFollowUpDate, lastContactedDate,
       leadScore, internalNotes, isArchived, updatedBy,
@@ -1955,6 +1975,9 @@ app.patch(['/api/leads/:id', '/api/consulting/enquiries/:id', '/api/student-acad
     // Update lead record with all tracked workflow attributes
     await db.run(
       `UPDATE leads SET
+        name = COALESCE(?, name),
+        email = COALESCE(?, email),
+        phone = COALESCE(?, phone),
         status = COALESCE(?, status),
         assignedEmployee = COALESCE(?, assignedEmployee),
         priority = COALESCE(?, priority),
@@ -1999,6 +2022,9 @@ app.patch(['/api/leads/:id', '/api/consulting/enquiries/:id', '/api/student-acad
         updatedAt = CURRENT_TIMESTAMP
        WHERE id = ?`,
       [
+        name !== undefined ? name : null,
+        email !== undefined ? email : null,
+        phone !== undefined ? phone : null,
         status || null,
         assignedEmployee !== undefined ? assignedEmployee : null,
         priority || null,
@@ -2095,7 +2121,7 @@ app.patch(['/api/leads/:id', '/api/consulting/enquiries/:id', '/api/student-acad
       );
     }
 
-    const updated = await db.get('SELECT * FROM leads WHERE id = ?', [id]);
+    const updated = await db.get('SELECT * FROM leads WHERE id = ?', [currentLead.id]);
     res.json({ success: true, message: 'Enquiry updated successfully', data: updated });
   } catch (error) {
     console.error('Failed to update lead:', error);
@@ -2405,6 +2431,281 @@ app.get('/api/crm/student-academy/metrics', async (req, res) => {
     res.status(500).json({ success: false, message: 'Failed to calculate student academy metrics' });
   }
 });
+
+// =========================================================================
+// CAREER GUIDANCE: UG & PG ACADEMIC DEPARTMENT CRUD & MANAGEMENT
+// =========================================================================
+
+// Helper middleware for role verification on department changes
+const requireDeptAdmin = (req, res, next) => {
+  const crmRole = (req.headers['x-crm-role'] || req.headers['role'] || 'Super Admin').trim().toLowerCase();
+  const unauthorizedRoles = ['candidate', 'student', 'guest', 'client', 'applicant'];
+  if (unauthorizedRoles.includes(crmRole)) {
+    return res.status(403).json({
+      success: false,
+      message: 'Access denied: insufficient permissions to manage academic departments.'
+    });
+  }
+  next();
+};
+
+// 1. Read All Departments (with Level filtering, Search, and computed stats)
+app.get('/api/career-guidance/departments', async (req, res) => {
+  try {
+    const { level, search, status } = req.query;
+    const db = await getDb();
+
+    let query = 'SELECT * FROM career_departments WHERE 1=1';
+    const params = [];
+
+    if (level && level !== 'all' && level !== 'All') {
+      query += ' AND level = ?';
+      params.push(level.toUpperCase());
+    }
+
+    if (status && status !== 'all' && status !== 'All') {
+      query += ' AND status = ?';
+      params.push(status);
+    }
+
+    if (search && search.trim()) {
+      const s = `%${search.trim().toLowerCase()}%`;
+      query += ' AND (LOWER(name) LIKE ? OR LOWER(COALESCE(description, "")) LIKE ?)';
+      params.push(s, s);
+    }
+
+    query += ' ORDER BY level ASC, name ASC';
+
+    const departments = await db.all(query, params);
+
+    // Fetch leads for career guidance to compute accurate enquiry count
+    const careerLeads = await db.all(
+      "SELECT id, department, streamName, degreeLevel, customFields FROM leads WHERE (serviceId IN ('school-career', 'career-guidance') OR LOWER(serviceTitle) LIKE '%career%' OR LOWER(company) LIKE '%career%')"
+    );
+
+    // Augment with computed courseCount and enquiryCount
+    const augmented = departments.map(dept => {
+      const dNorm = (dept.name || '').toLowerCase().replace(/&/g, 'and').replace(/[^a-z0-9]/g, '');
+      const deptLevel = (dept.level || '').toUpperCase();
+
+      // Count matching courses from official catalogue
+      const courseCount = (COURSES_CATALOGUE || []).filter(c => {
+        const cNorm = (c.department || '').toLowerCase().replace(/&/g, 'and').replace(/[^a-z0-9]/g, '');
+        const cLevel = (c.level || '').toUpperCase();
+        const matchesLevel = !cLevel || cLevel === deptLevel;
+        const matchesName = cNorm.includes(dNorm) || dNorm.includes(cNorm);
+        return matchesLevel && matchesName;
+      }).length;
+
+      // Count matching enquiries in leads table
+      const enquiryCount = careerLeads.filter(lead => {
+        const leadLevel = (lead.degreeLevel || '').toLowerCase().includes('undergraduate') || (lead.degreeLevel || '') === 'UG' || (lead.customFields || '').includes('"degreeLevel":"UG"') || (lead.customFields || '').includes('Undergraduate') ? 'UG' :
+          (lead.degreeLevel || '').toLowerCase().includes('postgraduate') || (lead.degreeLevel || '') === 'PG' || (lead.customFields || '').includes('"degreeLevel":"PG"') || (lead.customFields || '').includes('Postgraduate') ? 'PG' : null;
+
+        const blob = `${lead.department || ''} ${lead.streamName || ''} ${lead.customFields || ''}`.toLowerCase();
+        const matchesName = blob.includes(dept.name.toLowerCase()) || (dept.id && blob.includes(dept.id.toLowerCase()));
+        if (!matchesName) return false;
+        if (leadLevel && leadLevel !== deptLevel) return false;
+        return true;
+      }).length;
+
+      return {
+        ...dept,
+        courseCount,
+        enquiryCount
+      };
+    });
+
+    res.json({
+      success: true,
+      count: augmented.length,
+      data: augmented
+    });
+  } catch (error) {
+    console.error('Failed to fetch career guidance departments:', error);
+    res.status(500).json({ success: false, message: 'Failed to fetch departments' });
+  }
+});
+
+// 2. Create Academic Department (with duplicate validation within level)
+app.post('/api/career-guidance/departments', requireDeptAdmin, async (req, res) => {
+  try {
+    const { name, level, description, status = 'Active' } = req.body;
+
+    if (!name || !name.trim()) {
+      return res.status(400).json({ success: false, message: 'Department name is required.' });
+    }
+
+    if (!level || !['UG', 'PG'].includes(level.trim().toUpperCase())) {
+      return res.status(400).json({ success: false, message: 'Academic level must be either UG or PG.' });
+    }
+
+    const trimmedName = name.trim();
+    const cleanLevel = level.trim().toUpperCase();
+    const db = await getDb();
+
+    // Check duplicate name within the same academic level (case-insensitive)
+    const existing = await db.get(
+      'SELECT id FROM career_departments WHERE LOWER(TRIM(name)) = LOWER(?) AND level = ?',
+      [trimmedName, cleanLevel]
+    );
+
+    if (existing) {
+      return res.status(400).json({
+        success: false,
+        message: `Department '${trimmedName}' already exists under ${cleanLevel} level.`
+      });
+    }
+
+    const slug = trimmedName
+      .toLowerCase()
+      .replace(/[^a-z0-9]+/g, '-')
+      .replace(/(^-|-$)/g, '')
+      .slice(0, 30);
+    const id = `dept-${cleanLevel.toLowerCase()}-${slug}-${Date.now().toString(36)}`;
+
+    await db.run(
+      `INSERT INTO career_departments (id, name, level, description, status, createdAt, updatedAt)
+       VALUES (?, ?, ?, ?, ?, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)`,
+      [id, trimmedName, cleanLevel, description ? description.trim() : '', status || 'Active']
+    );
+
+    const created = await db.get('SELECT * FROM career_departments WHERE id = ?', [id]);
+    res.status(201).json({
+      success: true,
+      message: `Department '${trimmedName}' created successfully.`,
+      data: created
+    });
+  } catch (error) {
+    console.error('Failed to create career department:', error);
+    res.status(500).json({ success: false, message: 'Failed to create department' });
+  }
+});
+
+// 3. Update Academic Department
+app.patch('/api/career-guidance/departments/:id', requireDeptAdmin, async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { name, level, description, status } = req.body;
+    const db = await getDb();
+
+    const currentDept = await db.get('SELECT * FROM career_departments WHERE id = ?', [id]);
+    if (!currentDept) {
+      return res.status(404).json({ success: false, message: 'Department not found' });
+    }
+
+    const nextName = name !== undefined ? name.trim() : currentDept.name;
+    const nextLevel = level !== undefined ? level.trim().toUpperCase() : currentDept.level;
+
+    if (!nextName) {
+      return res.status(400).json({ success: false, message: 'Department name cannot be empty.' });
+    }
+
+    if (level !== undefined && !['UG', 'PG'].includes(nextLevel)) {
+      return res.status(400).json({ success: false, message: 'Academic level must be either UG or PG.' });
+    }
+
+    // Check duplicate if name or level is updated
+    if (nextName.toLowerCase() !== currentDept.name.toLowerCase() || nextLevel !== currentDept.level) {
+      const existing = await db.get(
+        'SELECT id FROM career_departments WHERE LOWER(TRIM(name)) = LOWER(?) AND level = ? AND id != ?',
+        [nextName, nextLevel, id]
+      );
+      if (existing) {
+        return res.status(400).json({
+          success: false,
+          message: `Department '${nextName}' already exists under ${nextLevel} level.`
+        });
+      }
+    }
+
+    await db.run(
+      `UPDATE career_departments SET
+        name = ?,
+        level = ?,
+        description = ?,
+        status = ?,
+        updatedAt = CURRENT_TIMESTAMP
+       WHERE id = ?`,
+      [
+        nextName,
+        nextLevel,
+        description !== undefined ? description.trim() : currentDept.description,
+        status !== undefined ? status : currentDept.status,
+        id
+      ]
+    );
+
+    const updated = await db.get('SELECT * FROM career_departments WHERE id = ?', [id]);
+    res.json({
+      success: true,
+      message: `Department '${nextName}' updated successfully.`,
+      data: updated
+    });
+  } catch (error) {
+    console.error('Failed to update department:', error);
+    res.status(500).json({ success: false, message: 'Failed to update department' });
+  }
+});
+
+// 4. Delete Academic Department (with safety verification)
+app.delete('/api/career-guidance/departments/:id', requireDeptAdmin, async (req, res) => {
+  try {
+    const { id } = req.params;
+    const force = req.query.force === 'true' || req.query.force === true;
+    const db = await getDb();
+
+    const dept = await db.get('SELECT * FROM career_departments WHERE id = ?', [id]);
+    if (!dept) {
+      return res.status(404).json({ success: false, message: 'Department not found or already deleted' });
+    }
+
+    // Check references unless force delete requested
+    if (!force) {
+      const dNorm = (dept.name || '').toLowerCase().replace(/&/g, 'and').replace(/[^a-z0-9]/g, '');
+      const deptLevel = (dept.level || '').toUpperCase();
+
+      const courseCount = (COURSES_CATALOGUE || []).filter(c => {
+        const cNorm = (c.department || '').toLowerCase().replace(/&/g, 'and').replace(/[^a-z0-9]/g, '');
+        const cLevel = (c.level || '').toUpperCase();
+        return (!cLevel || cLevel === deptLevel) && (cNorm.includes(dNorm) || dNorm.includes(cNorm));
+      }).length;
+
+      const careerLeads = await db.all(
+        "SELECT id, department, streamName, degreeLevel, customFields FROM leads WHERE (serviceId IN ('school-career', 'career-guidance') OR LOWER(serviceTitle) LIKE '%career%' OR LOWER(company) LIKE '%career%')"
+      );
+
+      const enquiryCount = careerLeads.filter(lead => {
+        const blob = `${lead.department || ''} ${lead.streamName || ''} ${lead.customFields || ''}`.toLowerCase();
+        return blob.includes(dept.name.toLowerCase()) || (dept.id && blob.includes(dept.id.toLowerCase()));
+      }).length;
+
+      const totalReferences = courseCount + enquiryCount;
+
+      if (totalReferences > 0) {
+        return res.status(400).json({
+          success: false,
+          isReferenced: true,
+          courseCount,
+          enquiryCount,
+          message: `Department '${dept.name}' is associated with ${totalReferences} course(s) or enquiry record(s). Cannot delete without force confirmation. You can deactivate it instead.`
+        });
+      }
+    }
+
+    await db.run('DELETE FROM career_departments WHERE id = ?', [id]);
+
+    res.json({
+      success: true,
+      message: `Department '${dept.name}' deleted successfully.`,
+      id
+    });
+  } catch (error) {
+    console.error('Failed to delete department:', error);
+    res.status(500).json({ success: false, message: 'Failed to delete department' });
+  }
+});
+
 
 // Real-Time Database Metrics for Career Guidance
 app.get('/api/crm/career-guidance/metrics', async (req, res) => {
@@ -3064,7 +3365,7 @@ app.get('/api/student-academy/enquiries', async (req, res) => {
   try {
     const db = await getDb();
     const enquiries = await db.all(
-      'SELECT * FROM student_academy_enquiries ORDER BY createdAt DESC LIMIT 100'
+      'SELECT * FROM student_academy_enquiries ORDER BY createdAt DESC LIMIT 1000'
     );
     res.json({
       success: true,

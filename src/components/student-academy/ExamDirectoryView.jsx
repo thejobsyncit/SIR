@@ -16,6 +16,13 @@ import {
 } from '../../data/competitiveExamsData';
 import { ExamDetailModal } from './ExamDetailModal';
 import { ExamEnquiryModal } from './ExamEnquiryModal';
+import { useApp } from '../../context/AppContext';
+import {
+  savePendingStudentAcademyEnquiry,
+  getPendingStudentAcademyEnquiry,
+  clearPendingStudentAcademyEnquiry,
+  validatePendingExam
+} from '../../utils/studentAcademyAuth.js';
 
 // Icon mapping for all 22 categories
 const CATEGORY_ICONS = {
@@ -45,6 +52,7 @@ const INTERNATIONAL_CATEGORY_IDS = [
 ];
 
 export const ExamDirectoryView = ({ initialCategoryId = null, onInquireExam }) => {
+  const { user, navigateTo } = useApp();
   const [selectedCategoryId, setSelectedCategoryId] = useState(initialCategoryId);
   const [searchQuery, setSearchQuery] = useState('');
   const [categoryGroup, setCategoryGroup] = useState('all'); // 'all', 'national', 'international'
@@ -248,11 +256,45 @@ export const ExamDirectoryView = ({ initialCategoryId = null, onInquireExam }) =
   };
 
   const handleOpenEnquiryModal = (exam, course = null) => {
+    // Authentication Guard: If user is not logged in, redirect to login page and preserve enquiry details
+    const isAuthenticated = Boolean(user && user.email);
+    if (!isAuthenticated) {
+      savePendingStudentAcademyEnquiry({
+        exam,
+        selectedCourse: course,
+        category: activeCategory,
+        route: 'education-school-academy',
+        action: 'open_exam_enquiry',
+        view: 'directory_modal'
+      });
+      navigateTo('login');
+      return;
+    }
+
     setEnquiryExam(exam);
     setEnquiryCourse(course);
     setIsEnquiryModalOpen(true);
     setIsDetailModalOpen(false);
   };
+
+  // Restore pending Student Academy enquiry after successful login or registration
+  React.useEffect(() => {
+    if (user && user.email) {
+      const pending = getPendingStudentAcademyEnquiry();
+      if (pending && (pending.examId || pending.examName)) {
+        const validated = validatePendingExam(pending);
+        if (validated) {
+          if (pending.categoryId) {
+            setSelectedCategoryId(pending.categoryId);
+          }
+          setEnquiryExam(validated);
+          setEnquiryCourse(pending.selectedCourse || null);
+          setIsEnquiryModalOpen(true);
+          clearPendingStudentAcademyEnquiry();
+        }
+      }
+    }
+  }, [user]);
 
   const handleCloseEnquiryModal = () => {
     setIsEnquiryModalOpen(false);

@@ -19,7 +19,6 @@ import { CrmAccounts } from './pages/CrmAccounts';
 import { CrmReports } from './pages/CrmReports';
 import { CrmAiSuite } from './pages/CrmAiSuite';
 import { CrmAutomation } from './pages/CrmAutomation';
-import { CrmCalendar } from './pages/CrmCalendar';
 import { CrmSettings } from './pages/CrmSettings';
 import { CrmSuperAdmin } from './pages/CrmSuperAdmin';
 import { CrmConsultingBookings } from './pages/CrmConsultingBookings';
@@ -115,7 +114,6 @@ const CrmAppContent = () => {
       case 'reports': return <CrmReports />;
       case 'ai-suite': return <CrmAiSuite />;
       case 'automation': return <CrmAutomation />;
-      case 'calendar': return <CrmCalendar />;
       case 'super-admin': return <CrmSuperAdmin />;
       case 'settings': return <CrmSettings />;
       case 'dashboard':
@@ -125,14 +123,14 @@ const CrmAppContent = () => {
   };
 
   return (
-    <div className="min-h-screen bg-slate-50 dark:bg-[#040714] text-slate-900 dark:text-white flex flex-col font-sans selection:bg-gold-500 selection:text-navy-950">
+    <div className="h-screen h-[100dvh] max-h-screen bg-slate-50 dark:bg-[#040714] text-slate-900 dark:text-white flex flex-col font-sans selection:bg-gold-500 selection:text-navy-950 overflow-hidden">
       
       <CrmHeader collapsed={collapsed} setCollapsed={setCollapsed} />
 
-      <div className="flex-1 flex overflow-hidden">
+      <div className="flex-1 min-h-0 flex overflow-hidden">
         <CrmSidebar collapsed={collapsed} setCollapsed={setCollapsed} />
 
-        <main className="flex-1 overflow-y-auto p-6 bg-slate-50 dark:bg-transparent">
+        <main className="flex-1 min-w-0 min-h-0 overflow-y-auto overscroll-y-contain crm-main-scroll p-6 bg-slate-50 dark:bg-transparent">
           {renderModule()}
         </main>
       </div>

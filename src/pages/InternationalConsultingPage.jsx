@@ -281,6 +281,24 @@ export const InternationalConsultingPage = () => {
   const structuredData = [
     {
       '@context': 'https://schema.org',
+      '@type': 'Service',
+      'name': 'International Education Consulting',
+      'serviceType': 'Academic and Educational Advisory',
+      'provider': {
+        '@type': 'EducationalOrganization',
+        'name': 'The Revival International',
+        'url': 'https://www.therevivalinternational.com/international-consulting',
+        'address': {
+          '@type': 'PostalAddress',
+          'addressLocality': 'Dubai',
+          'addressRegion': 'Dubai',
+          'addressCountry': 'AE'
+        }
+      },
+      'description': 'Strategic global education advisory and destination planning across the UK, USA, Canada, Australia, Germany, and UAE.'
+    },
+    {
+      '@context': 'https://schema.org',
       '@type': 'EducationalOrganization',
       'name': 'The Revival International',
       'url': 'https://www.therevivalinternational.com/international-consulting',

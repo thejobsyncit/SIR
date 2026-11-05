@@ -6,8 +6,15 @@ import {
 } from 'lucide-react';
 import { submitExamEnquiry } from '../../services/academyService';
 import { isInternationalOrGccExam } from './SearchableCountrySelect';
+import { useApp } from '../../context/AppContext';
+import {
+  savePendingStudentAcademyEnquiry,
+  getPendingStudentAcademyEnquiry,
+  clearPendingStudentAcademyEnquiry
+} from '../../utils/studentAcademyAuth.js';
 
 export const ExamEnquiryModal = ({ isOpen, onClose, exam, selectedCourse, category }) => {
+  const { user, navigateTo } = useApp();
   const isInternationalOrGcc = isInternationalOrGccExam(exam, category);
 
   const [formData, setFormData] = useState({
@@ -19,6 +26,31 @@ export const ExamEnquiryModal = ({ isOpen, onClose, exam, selectedCourse, catego
     preferredLocation: '',
     consent: false
   });
+
+  
+  // Pre-fill user details or restore saved inquiry formData
+  useEffect(() => {
+    if (isOpen) {
+      const pending = getPendingStudentAcademyEnquiry();
+      if (pending && pending.formData) {
+        setFormData(prev => ({
+          ...prev,
+          ...pending.formData,
+          studentName: pending.formData.studentName || user?.fullName || user?.name || prev.studentName,
+          email: pending.formData.email || user?.email || prev.email,
+          phone: pending.formData.phone || user?.phone || prev.phone
+        }));
+        clearPendingStudentAcademyEnquiry();
+      } else if (user) {
+        setFormData(prev => ({
+          ...prev,
+          studentName: prev.studentName || user.fullName || user.name || '',
+          email: prev.email || user.email || '',
+          phone: prev.phone || user.phone || ''
+        }));
+      }
+    }
+  }, [isOpen, user]);
 
   const [fieldErrors, setFieldErrors] = useState({});
   const [loading, setLoading] = useState(false);
@@ -151,6 +183,31 @@ export const ExamEnquiryModal = ({ isOpen, onClose, exam, selectedCourse, catego
     if (Object.keys(validationErrors).length > 0) {
       setFieldErrors(validationErrors);
       setError('Please resolve the highlighted required fields before submitting.');
+      return;
+    }
+
+    // Authentication Guard: If guest user, preserve entered details and redirect to login
+    const isAuthenticated = Boolean(user && user.email);
+    if (!isAuthenticated) {
+      savePendingStudentAcademyEnquiry({
+        exam,
+        selectedCourse,
+        category,
+        route: 'education-school-academy',
+        formData: {
+          studentName: formData.studentName,
+          email: formData.email,
+          phone: formData.phone,
+          qualification: formData.qualification,
+          preferredLearningMode: formData.preferredLearningMode,
+          preferredLocation: formData.preferredLocation,
+          consent: formData.consent
+        },
+        action: 'submit_exam_enquiry',
+        view: 'directory_modal'
+      });
+      navigateTo('login');
+      handleModalClose();
       return;
     }
 

@@ -24,11 +24,16 @@ import {
   getCourseById
 } from '../data/studentAcademyData';
 import {
+  getPendingStudentAcademyEnquiry,
+  clearPendingStudentAcademyEnquiry,
+  validatePendingExam
+} from '../utils/studentAcademyAuth.js';
+import {
   GraduationCap, ChevronRight, Home, BookOpen, Building2, Layers, Award, ArrowRight
 } from 'lucide-react';
 
 export const StudentAcademyPage = () => {
-  const { navigateTo } = useApp();
+  const { navigateTo, user } = useApp();
 
   // Navigation flow state:
   // 'exams' -> 'academies' (Exam Enquiry Page) -> 'academy-detail' -> 'course-enquiry'
@@ -39,6 +44,31 @@ export const StudentAcademyPage = () => {
   const [selectedCourseId, setSelectedCourseId] = useState(null);
   const [inquiryModalOpen, setInquiryModalOpen] = useState(false);
   const [inquiryServiceId, setInquiryServiceId] = useState('school-career');
+
+  
+  // Restore pending Student Academy enquiry after successful login or registration
+  useEffect(() => {
+    if (user && user.email) {
+      const pending = getPendingStudentAcademyEnquiry();
+      if (pending) {
+        if (pending.view === 'directory_modal' && pending.examId) {
+          if (pending.categoryId) {
+            setSelectedCategoryId(pending.categoryId);
+          }
+          setCurrentView('exams');
+        } else if (pending.examId) {
+          setSelectedExamId(pending.examId);
+          if (pending.academyId) setSelectedAcademyId(pending.academyId);
+          setCurrentView(pending.view || 'academies');
+        } else if (pending.courseId) {
+          setSelectedCourseId(pending.courseId);
+          if (pending.academyId) setSelectedAcademyId(pending.academyId);
+          if (pending.examId) setSelectedExamId(pending.examId);
+          setCurrentView('course-enquiry');
+        }
+      }
+    }
+  }, [user]);
 
   const handleInquireService = (serviceId) => {
     setInquiryServiceId(serviceId);
