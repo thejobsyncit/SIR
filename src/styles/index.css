@@ -185,3 +185,45 @@
   border: 2px solid transparent;
   background-clip: padding-box;
 }
+
+
+/* CRM Independent Scrollable Panels */
+.crm-sidebar-scroll {
+  scrollbar-width: thin;
+  scrollbar-color: rgba(212, 160, 23, 0.3) transparent;
+  overscroll-behavior-y: contain;
+}
+
+.dark .crm-sidebar-scroll {
+  scrollbar-color: rgba(212, 160, 23, 0.4) transparent;
+}
+
+.crm-sidebar-scroll::-webkit-scrollbar {
+  width: 5px;
+}
+
+.crm-sidebar-scroll::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.crm-sidebar-scroll::-webkit-scrollbar-thumb {
+  background: rgba(212, 160, 23, 0.25);
+  border-radius: 9999px;
+}
+
+.crm-sidebar-scroll::-webkit-scrollbar-thumb:hover {
+  background: rgba(212, 160, 23, 0.5);
+}
+
+.dark .crm-sidebar-scroll::-webkit-scrollbar-thumb {
+  background: rgba(212, 160, 23, 0.35);
+  border-radius: 9999px;
+}
+
+.dark .crm-sidebar-scroll::-webkit-scrollbar-thumb:hover {
+  background: rgba(212, 160, 23, 0.65);
+}
+
+.crm-main-scroll {
+  overscroll-behavior-y: contain;
+}

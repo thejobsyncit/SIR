@@ -28,6 +28,7 @@ import { SeminarsAndLanguagePage } from './pages/SeminarsAndLanguagePage';
 import { getEducationServiceById, getEducationServiceBySlug } from './data/educationServicesData';
 import { NotFound } from './pages/NotFound';
 import { UnifiedAuthModal } from './components/UnifiedAuthModal';
+import { UnifiedAuth } from './components/UnifiedAuth';
 import { CrmApp } from './crm/CrmApp';
 import { ErpApp } from './erp/ErpApp';
 
@@ -175,8 +176,26 @@ export function App() {
         return <JobsPage />;
       case 'employers':
         return <EmployerPortal />;
-      case 'candidates':
+            case 'candidates':
         return <CandidatePortal />;
+      case 'login':
+        return (
+          <div className="py-12 px-4 bg-slate-50/50 dark:bg-navy-950/50 min-h-[70vh] flex items-center justify-center">
+            <UnifiedAuth defaultMode="login" defaultRole="candidate" />
+          </div>
+        );
+      case 'register':
+        return (
+          <div className="py-12 px-4 bg-slate-50/50 dark:bg-navy-950/50 min-h-[70vh] flex items-center justify-center">
+            <UnifiedAuth defaultMode="register" defaultRole="candidate" />
+          </div>
+        );
+      case 'auth':
+        return (
+          <div className="py-12 px-4 bg-slate-50/50 dark:bg-navy-950/50 min-h-[70vh] flex items-center justify-center">
+            <UnifiedAuth defaultMode="login" defaultRole="candidate" />
+          </div>
+        );
       case 'visa-eligibility':
         return <VisaEligibilityPage />;
       case 'background-verification':

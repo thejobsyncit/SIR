@@ -9,8 +9,15 @@ import { getExamById } from '../../data/studentAcademyData';
 import { getExamEnquiryDetails } from '../../data/examEnquiryDetailsData';
 import { submitExamEnquiry } from '../../services/academyService';
 import { isInternationalOrGccExam } from './SearchableCountrySelect';
+import { useApp } from '../../context/AppContext';
+import {
+  savePendingStudentAcademyEnquiry,
+  getPendingStudentAcademyEnquiry,
+  clearPendingStudentAcademyEnquiry
+} from '../../utils/studentAcademyAuth.js';
 
 export const ExamEnquiryView = ({ examId, onBackToExams }) => {
+  const { user, navigateTo } = useApp();
   const exam = useMemo(() => getExamById(examId), [examId]);
   const details = useMemo(() => getExamEnquiryDetails(examId, exam), [examId, exam]);
   const isInternationalOrGcc = useMemo(
@@ -38,6 +45,29 @@ export const ExamEnquiryView = ({ examId, onBackToExams }) => {
       }));
     }
   }, [exam, isInternationalOrGcc]);
+
+  
+  // Pre-fill user details or restore saved inquiry formData
+  React.useEffect(() => {
+    const pending = getPendingStudentAcademyEnquiry();
+    if (pending && pending.formData && (pending.examId === examId || !pending.examId)) {
+      setFormData(prev => ({
+        ...prev,
+        ...pending.formData,
+        studentName: pending.formData.studentName || user?.fullName || user?.name || prev.studentName,
+        email: pending.formData.email || user?.email || prev.email,
+        phone: pending.formData.phone || user?.phone || prev.phone
+      }));
+      clearPendingStudentAcademyEnquiry();
+    } else if (user) {
+      setFormData(prev => ({
+        ...prev,
+        studentName: prev.studentName || user.fullName || user.name || '',
+        email: prev.email || user.email || '',
+        phone: prev.phone || user.phone || ''
+      }));
+    }
+  }, [examId, user]);
 
   const [formErrors, setFormErrors] = useState({});
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -128,6 +158,33 @@ export const ExamEnquiryView = ({ examId, onBackToExams }) => {
     setApiError(null);
 
     if (!validateForm()) {
+      return;
+    }
+
+    // Authentication Guard: If guest user, preserve entered details and redirect to login
+    const isAuthenticated = Boolean(user && user.email);
+    if (!isAuthenticated) {
+      savePendingStudentAcademyEnquiry({
+        exam,
+        examId: exam.id,
+        examName: `${details.fullName} (${details.abbreviation})`,
+        categoryId: exam.category || exam.categoryId,
+        categoryName: details.categoryTitle || '',
+        route: `education-school-academy?exam=${exam.id}`,
+        formData: {
+          studentName: formData.studentName,
+          email: formData.email,
+          phone: formData.phone,
+          qualification: formData.qualification,
+          preferredLearningMode: formData.preferredLearningMode,
+          preferredLocation: formData.preferredLocation,
+          selectedCourseOption: formData.selectedCourseOption,
+          consent: formData.consent
+        },
+        action: 'submit_exam_enquiry',
+        view: 'academies'
+      });
+      navigateTo('login');
       return;
     }
 

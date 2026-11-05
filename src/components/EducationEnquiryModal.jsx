@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { useApp } from '../context/AppContext';
 import { X, Send, CheckCircle2, AlertCircle, Loader2, GraduationCap, Sparkles } from 'lucide-react';
 import { EDUCATION_SERVICES_DETAILED } from '../data/educationServicesData';
 import { trackEnquiryStart, trackEnquiryValidationFailure, trackEnquiryConversion } from '../services/analytics';
@@ -9,13 +10,22 @@ import { submitLeadWithFallback } from '../services/leadSubmissionService';
 const parseCourseInfo = (courseObj, subProgStr, levelStr) => {
   if (courseObj && typeof courseObj === 'object') {
     return {
-      name: courseObj.name || '',
-      abbreviation: courseObj.abbreviation || '',
-      streamName: courseObj.streamName || courseObj.department || '',
-      department: courseObj.department || courseObj.streamName || '',
+      name: courseObj.name || courseObj.course_name || '',
+      abbreviation: courseObj.abbreviation || courseObj.course_code || courseObj.degree_type || '',
+      streamName: courseObj.streamName || courseObj.department || courseObj.department_name || '',
+      department: courseObj.department || courseObj.department_name || courseObj.streamName || '',
       level: courseObj.level || (levelStr?.includes('Postgraduate') || levelStr === 'PG' ? 'PG' : 'UG'),
-      degrees: Array.isArray(courseObj.degrees) ? courseObj.degrees : (courseObj.degrees ? [courseObj.degrees] : []),
-      duration: courseObj.duration || courseObj.typicalDuration || ''
+      degrees: Array.isArray(courseObj.degrees) ? courseObj.degrees : (courseObj.degrees ? [courseObj.degrees] : (courseObj.degree_type ? [courseObj.degree_type] : [])),
+      duration: courseObj.duration || courseObj.standard_duration || courseObj.typicalDuration || '',
+      specialization: courseObj.specialization || courseObj.specialization_name || null,
+      specialization_id: courseObj.specialization_id || null,
+      college: courseObj.college || courseObj.college_name || null,
+      college_id: courseObj.college_id || null,
+      fees: courseObj.fees || null,
+      entrance_exams: courseObj.entrance_exams || null,
+      eligibility: courseObj.eligibility || null,
+      category_name: courseObj.category_name || null,
+      category_id: courseObj.category_id || null
     };
   }
   if (subProgStr && typeof subProgStr === 'string' && subProgStr.trim()) {
@@ -57,7 +67,16 @@ export const EducationEnquiryModal = ({
   const [activeCourse, setActiveCourse] = useState(() => {
     return parseCourseInfo(selectedCourse, preselectedSubProgram, preselectedLevel);
   });
-  const [phone, setPhone] = useState('');
+  const appContext = typeof useApp === 'function' ? useApp() : null;
+  const user = appContext?.user || null;
+  const [phone, setPhone] = useState(() => user?.phone || '');
+
+  // Pre-fill phone if user logs in while modal is in use
+  useEffect(() => {
+    if (user?.phone && !phone) {
+      setPhone(user.phone);
+    }
+  }, [user]);
   const [countryInterest, setCountryInterest] = useState('India');
   const [programLevel, setProgramLevel] = useState(() => {
     if (preselectedServiceId === 'school-career' || preselectedServiceId === 'career-guidance') {
@@ -257,6 +276,16 @@ export const EducationEnquiryModal = ({
       courseName: courseName,
       streamName: streamName,
       department: department,
+      category_id: activeCourse?.category_id || null,
+      category_name: activeCourse?.category_name || null,
+      specialization_id: activeCourse?.specialization_id || null,
+      specialization: activeCourse?.specialization || null,
+      college_id: activeCourse?.college_id || null,
+      college_name: activeCourse?.college || null,
+      preferred_state: data.preferred_state || countryInterest || 'India',
+      preferred_city: data.preferred_city || null,
+      marks_or_percentage: data.marks_or_percentage || null,
+      entrance_exam_details: data.entrance_exam_details || null,
       customFields: JSON.stringify({
         organization: data.organization ? data.organization.trim() : '',
         programLevel,
@@ -267,6 +296,16 @@ export const EducationEnquiryModal = ({
         courseAbbr: courseAbbr,
         streamName: streamName,
         department: department,
+        category_id: activeCourse?.category_id || null,
+        category_name: activeCourse?.category_name || null,
+        specialization: activeCourse?.specialization || null,
+        specialization_id: activeCourse?.specialization_id || null,
+        college: activeCourse?.college || null,
+        college_id: activeCourse?.college_id || null,
+        preferred_state: data.preferred_state || countryInterest || 'India',
+        preferred_city: data.preferred_city || null,
+        marks_or_percentage: data.marks_or_percentage || null,
+        entrance_exam_details: data.entrance_exam_details || null,
         degrees: activeCourse?.degrees || null,
         duration: activeCourse?.duration || null,
         subProgram: subProgram || null,
@@ -482,6 +521,18 @@ export const EducationEnquiryModal = ({
                       </div>
 
                       <div className="flex flex-wrap items-center gap-x-3 gap-y-1 text-xs text-slate-600 dark:text-slate-300 font-medium">
+                        {activeCourse.college && (
+                          <div className="w-full pb-1 text-xs font-bold text-navy-900 dark:text-white flex items-center gap-1.5">
+                            <span className="text-gold-600 dark:text-gold-400">🏛️ Selected Institution:</span>
+                            <span>{activeCourse.college}</span>
+                          </div>
+                        )}
+                        {activeCourse.specialization && (
+                          <div className="w-full pb-1 text-xs font-bold text-navy-900 dark:text-white flex items-center gap-1.5">
+                            <span className="text-gold-600 dark:text-gold-400">✨ Specialization:</span>
+                            <span className="bg-gold-500/10 text-gold-600 dark:text-gold-400 px-2 py-0.5 rounded-md">{activeCourse.specialization}</span>
+                          </div>
+                        )}
                         <div className="flex items-center gap-1">
                           <span className="text-slate-400 font-semibold">Level:</span>
                           <span className="font-bold text-navy-900 dark:text-white">
@@ -612,6 +663,7 @@ export const EducationEnquiryModal = ({
                     name="name"
                     required
                     placeholder="e.g. Naveen Kumar"
+                    defaultValue={user?.fullName || user?.name || ''}
                     onFocus={() => trackEnquiryStart('education_modal', isCareerGuidance ? 'school-career' : activeService.id, isCareerGuidance ? 'Career Guidance' : activeService.title)}
                     onChange={() => {
                       if (formErrors.name) setFormErrors(prev => ({ ...prev, name: null }));
@@ -633,6 +685,7 @@ export const EducationEnquiryModal = ({
                     name="email"
                     required
                     placeholder="e.g. Naveenkumar@example.com"
+                    defaultValue={user?.email || ''}
                     onChange={() => {
                       if (formErrors.email) setFormErrors(prev => ({ ...prev, email: null }));
                     }}

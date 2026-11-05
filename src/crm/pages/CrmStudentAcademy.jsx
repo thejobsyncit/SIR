@@ -8,8 +8,27 @@ import {
   Users, CheckCircle2, AlertCircle, Phone, Mail, MessageSquare, Plus, Search,
   Filter, RefreshCw, Download, ChevronRight, X, UserCheck, ShieldCheck,
   MapPin, ExternalLink, Sparkles, Send, Trash2, ArrowRight, Eye, CheckSquare,
-  FileText, Briefcase, Award, ChevronLeft, BookOpen, Layers
+  FileText, Briefcase, Award, ChevronLeft, BookOpen, Layers, ArrowUpDown, Copy, Check
 } from 'lucide-react';
+
+
+// Formatter for enquiry submission date
+const formatEnquiryDate = (dateString) => {
+  if (!dateString) return '—';
+  try {
+    const cleanStr = String(dateString).trim();
+    const isoStr = cleanStr.includes('T') ? cleanStr : cleanStr.replace(' ', 'T') + (cleanStr.endsWith('Z') ? '' : 'Z');
+    const d = new Date(isoStr);
+    if (isNaN(d.getTime())) {
+      const fallbackD = new Date(cleanStr);
+      if (isNaN(fallbackD.getTime())) return '—';
+      return fallbackD.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
+    }
+    return d.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
+  } catch (_) {
+    return '—';
+  }
+};
 
 export const CrmStudentAcademy = () => {
   const {
@@ -34,6 +53,8 @@ export const CrmStudentAcademy = () => {
   const [dateRangeFilter, setDateRangeFilter] = useState('all');
   const [currentPage, setCurrentPage] = useState(1);
   const pageSize = 10;
+  const [dateSortOrder, setDateSortOrder] = useState('desc'); // 'desc' | 'asc'
+  const [copiedRef, setCopiedRef] = useState(null);
 
   // Local state for exact records fetched from student_academy_enquiries
   const [saDbEnquiries, setSaDbEnquiries] = useState({});
@@ -218,7 +239,9 @@ export const CrmStudentAcademy = () => {
       const match = lead.message.match(/Qualification:\s*([\s\S]+?)(?=\.\s*Preferred|\.\s*Message:|\.|$)/i);
       if (match && match[1]) qualification = match[1].trim();
     }
-    if (!qualification) qualification = 'High School / 12th Standard';
+    if (!qualification || qualification === 'null' || qualification === 'undefined') {
+      qualification = '—';
+    }
 
     // 3. Coaching Mode Resolution
     let coachingMode = saRecord.preferredLearningMode || saRecord.coachingMode || custom.coachingMode || custom.preferredLearningMode || lead.consultationMode;
@@ -226,7 +249,9 @@ export const CrmStudentAcademy = () => {
       const match = lead.message.match(/Preferred Coaching Mode:\s*([\s\S]+?)(?=\.\s*Preferred|\.\s*Message:|\.|$)/i);
       if (match && match[1]) coachingMode = match[1].trim();
     }
-    if (!coachingMode) coachingMode = 'Online Live';
+    if (!coachingMode || coachingMode === 'null' || coachingMode === 'undefined' || coachingMode === 'Not Specified' || coachingMode === '-') {
+      coachingMode = '—';
+    }
 
     // 4. Study Location Resolution
     let studyLocation = saRecord.preferredLocation || custom.targetCountry || custom.countryInterest || custom.studyLocation || custom.preferredLocation || lead.countryInterest || lead.workLocation;
@@ -238,7 +263,12 @@ export const CrmStudentAcademy = () => {
       const match = lead.message.match(/Preferred Study Location:\s*([\s\S]+?)(?=\.\s*Message:|\.|$)/i);
       if (match && match[1]) studyLocation = match[1].trim();
     }
-    if (!studyLocation) studyLocation = 'Online / Remote';
+    if (!studyLocation || studyLocation === 'null' || studyLocation === 'undefined' || studyLocation === 'Not Specified' || studyLocation === '-' || studyLocation === 'All') {
+      studyLocation = '—';
+    }
+
+    // 5. Reference Code Resolution
+    const refCode = lead.referenceNumber || saRecord.referenceNumber || (lead.id && lead.id.startsWith('REV-ACA') ? lead.id : null) || '—';
 
     // 5. Course / Cohort Name
     const courseName = saRecord.courseName || custom.courseName || '';
@@ -252,12 +282,14 @@ export const CrmStudentAcademy = () => {
     if (!studentQuestions) studentQuestions = lead.message || '';
 
     return {
+      refCode,
       examName,
       courseName,
       qualification,
       coachingMode,
       studyLocation,
-      studentQuestions
+      studentQuestions,
+      saRecordCreatedAt: saRecord.createdAt || null
     };
   };
 
@@ -372,9 +404,22 @@ export const CrmStudentAcademy = () => {
     return true;
   });
 
+  // Sort Leads by Date
+  const sortedLeads = useMemo(() => {
+    return [...filteredLeads].sort((a, b) => {
+      const saA = saDbEnquiries[a.referenceNumber || a.id] || {};
+      const saB = saDbEnquiries[b.referenceNumber || b.id] || {};
+      const dateA = a.createdAt || saA.createdAt;
+      const dateB = b.createdAt || saB.createdAt;
+      const timeA = dateA ? new Date(dateA).getTime() : 0;
+      const timeB = dateB ? new Date(dateB).getTime() : 0;
+      return dateSortOrder === 'asc' ? timeA - timeB : timeB - timeA;
+    });
+  }, [filteredLeads, dateSortOrder, saDbEnquiries]);
+
   // Pagination
-  const totalPages = Math.ceil(filteredLeads.length / pageSize) || 1;
-  const paginatedLeads = filteredLeads.slice((currentPage - 1) * pageSize, currentPage * pageSize);
+  const totalPages = Math.ceil(sortedLeads.length / pageSize) || 1;
+  const paginatedLeads = sortedLeads.slice((currentPage - 1) * pageSize, currentPage * pageSize);
 
   // Status badge styling helper
   const getStatusBadge = (status) => {
@@ -549,30 +594,30 @@ export const CrmStudentAcademy = () => {
   const exportToCsv = () => {
     if (!academyLeads || academyLeads.length === 0) return;
     const headers = [
-      'Reference No',
-      'Created Date',
-      'Student Full Name',
+      'Reference Code',
+      'Student Name',
       'Email',
-      'Mobile Phone',
-      'Selected Examination',
+      'Mobile Number',
+      'Date',
+      'Examination',
+      'Mode',
+      'Location',
       'Educational Qualification',
-      'Coaching Mode',
-      'Study Location',
       'Assigned Counselor',
       'Status'
     ];
     const rows = academyLeads.map(l => {
       const p = parseLeadDetails(l);
       return [
-        `"${l.referenceNumber || l.id || ''}"`,
-        `"${l.createdAt || ''}"`,
+        `"${(p.refCode || '').replace(/"/g, '""')}"`,
         `"${(l.name || '').replace(/"/g, '""')}"`,
         `"${l.email || ''}"`,
         `"${l.phone || ''}"`,
-        `"${p.examName.replace(/"/g, '""')}"`,
-        `"${p.qualification.replace(/"/g, '""')}"`,
-        `"${p.coachingMode.replace(/"/g, '""')}"`,
-        `"${p.studyLocation.replace(/"/g, '""')}"`,
+        `"${formatEnquiryDate(l.createdAt || p.saRecordCreatedAt)}"`,
+        `"${(p.examName || '').replace(/"/g, '""')}"`,
+        `"${(p.coachingMode || '').replace(/"/g, '""')}"`,
+        `"${(p.studyLocation || '').replace(/"/g, '""')}"`,
+        `"${(p.qualification || '').replace(/"/g, '""')}"`,
         `"${(l.assignedEmployee || 'Unassigned').replace(/"/g, '""')}"`,
         `"${l.status || ''}"`
       ];
@@ -867,13 +912,24 @@ export const CrmStudentAcademy = () => {
           <table className="w-full text-left text-xs">
             <thead>
               <tr className="border-b border-slate-200 dark:border-navy-800 bg-slate-50/75 dark:bg-navy-950/50 text-[11px] font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400">
-                <th className="py-3.5 px-4">Ref Code &amp; Date</th>
-                <th className="py-3.5 px-4 min-w-[150px]">Full Name</th>
+                <th className="py-3.5 px-4 min-w-[140px]">Reference Code</th>
+                <th className="py-3.5 px-4 min-w-[150px]">Student Name</th>
                 <th className="py-3.5 px-4 min-w-[200px]">Email Address</th>
                 <th className="py-3.5 px-4 min-w-[160px]">Mobile Number</th>
+                <th 
+                  className="py-3.5 px-4 min-w-[120px] cursor-pointer select-none hover:text-slate-700 dark:hover:text-slate-200 transition"
+                  onClick={() => setDateSortOrder(prev => prev === 'desc' ? 'asc' : 'desc')}
+                  title="Click to sort by Date"
+                >
+                  <div className="flex items-center gap-1.5">
+                    <span>Date</span>
+                    <ArrowUpDown className="w-3 h-3 text-slate-400" />
+                  </div>
+                </th>
                 <th className="py-3.5 px-4 min-w-[280px] max-w-[420px]">Selected Examination</th>
                 <th className="py-3.5 px-4">Educational Qualification</th>
-                <th className="py-3.5 px-4">Mode &amp; Location</th>
+                <th className="py-3.5 px-4 min-w-[130px]">Mode</th>
+                <th className="py-3.5 px-4 min-w-[150px]">Location</th>
                 <th className="py-3.5 px-4">Assigned Counselor</th>
                 <th className="py-3.5 px-4">Status</th>
                 <th className="py-3.5 px-4 text-right">Actions</th>
@@ -882,7 +938,7 @@ export const CrmStudentAcademy = () => {
             <tbody className="divide-y divide-slate-100 dark:divide-navy-800/60">
               {paginatedLeads.length === 0 ? (
                 <tr>
-                  <td colSpan={10} className="py-12 text-center space-y-3">
+                  <td colSpan={12} className="py-12 text-center space-y-3">
                     <GraduationCap className="w-10 h-10 text-slate-300 dark:text-navy-700 mx-auto" />
                     <p className="font-semibold text-slate-600 dark:text-slate-400 text-sm">
                       No Student Academy enquiries found matching current filters.
@@ -903,17 +959,31 @@ export const CrmStudentAcademy = () => {
                       key={b.id}
                       className="hover:bg-slate-50/60 dark:hover:bg-navy-800/40 transition duration-150 group"
                     >
-                      {/* Ref Code & Date */}
-                      <td className="py-3.5 px-4 align-top">
-                        <div className="font-mono font-bold text-slate-900 dark:text-white text-xs">
-                          {b.referenceNumber || b.id}
-                        </div>
-                        <div className="text-[11px] text-slate-400 mt-0.5">
-                          {b.createdAt ? new Date(b.createdAt).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }) : 'Recent'}
-                        </div>
+                      {/* Reference Code */}
+                      <td className="py-3.5 px-4 align-top whitespace-nowrap min-w-[140px]">
+                        {details.refCode !== '—' ? (
+                          <div className="flex items-center gap-1.5 group/ref">
+                            <span className="font-mono font-bold text-slate-900 dark:text-white text-xs select-all" title={details.refCode}>
+                              {details.refCode}
+                            </span>
+                            <button
+                              onClick={() => {
+                                navigator.clipboard?.writeText(details.refCode);
+                                setCopiedRef(details.refCode);
+                                setTimeout(() => setCopiedRef(null), 2000);
+                              }}
+                              className="opacity-0 group-hover/ref:opacity-100 p-0.5 text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 transition cursor-pointer"
+                              title="Copy Reference Code"
+                            >
+                              {copiedRef === details.refCode ? <Check className="w-3 h-3 text-emerald-500" /> : <Copy className="w-3 h-3" />}
+                            </button>
+                          </div>
+                        ) : (
+                          <span className="text-slate-400 font-mono text-xs">—</span>
+                        )}
                       </td>
 
-                      {/* Full Name */}
+                      {/* Student Name */}
                       <td className="py-3.5 px-4 align-top min-w-[150px]">
                         <div className="font-bold text-slate-900 dark:text-white text-xs whitespace-normal break-words">
                           {b.name || 'Anonymous Student'}
@@ -959,6 +1029,14 @@ export const CrmStudentAcademy = () => {
                         )}
                       </td>
 
+                      {/* Date */}
+                      <td className="py-3.5 px-4 align-top whitespace-nowrap min-w-[120px]">
+                        <div className="font-semibold text-slate-800 dark:text-slate-200 text-xs flex items-center gap-1.5">
+                          <Calendar className="w-3.5 h-3.5 text-slate-400 shrink-0" />
+                          <span>{formatEnquiryDate(b.createdAt || details.saRecordCreatedAt)}</span>
+                        </div>
+                      </td>
+
                       {/* Selected Examination - Full examination name displayed with multi-line text wrapping */}
                       <td className="py-3.5 px-4 align-top min-w-[280px] max-w-[420px]">
                         <div className="flex items-start gap-2.5 p-2.5 rounded-xl bg-indigo-50/90 dark:bg-indigo-950/40 border border-indigo-500/20 text-indigo-950 dark:text-indigo-200 shadow-xs">
@@ -977,15 +1055,27 @@ export const CrmStudentAcademy = () => {
                         <span className="text-[10px] text-slate-400">Current Qualification</span>
                       </td>
 
-                      {/* Coaching Mode & Study Location */}
-                      <td className="py-3.5 px-4 align-top">
-                        <span className={`inline-block px-2 py-0.5 rounded-full text-[10px] font-extrabold uppercase tracking-wider border ${getModeBadge(details.coachingMode)}`}>
-                          {details.coachingMode}
-                        </span>
-                        <div className="text-[11px] text-slate-500 flex items-center gap-1 mt-1 font-medium">
-                          <MapPin className="w-3 h-3 text-slate-400 shrink-0" />
-                          <span className="whitespace-normal break-words" title={details.studyLocation}>{details.studyLocation}</span>
-                        </div>
+                      {/* Mode */}
+                      <td className="py-3.5 px-4 align-top whitespace-nowrap min-w-[130px]">
+                        {details.coachingMode && details.coachingMode !== '—' ? (
+                          <span className={`inline-block px-2 py-0.5 rounded-full text-[10px] font-extrabold uppercase tracking-wider border ${getModeBadge(details.coachingMode)}`}>
+                            {details.coachingMode}
+                          </span>
+                        ) : (
+                          <span className="text-slate-400 font-mono text-xs">—</span>
+                        )}
+                      </td>
+
+                      {/* Location */}
+                      <td className="py-3.5 px-4 align-top min-w-[150px] max-w-[220px]">
+                        {details.studyLocation && details.studyLocation !== '—' ? (
+                          <div className="text-xs font-semibold text-slate-800 dark:text-slate-200 flex items-start gap-1.5 whitespace-normal break-words">
+                            <MapPin className="w-3.5 h-3.5 text-slate-400 shrink-0 mt-0.5" />
+                            <span title={details.studyLocation}>{details.studyLocation}</span>
+                          </div>
+                        ) : (
+                          <span className="text-slate-400 font-mono text-xs">—</span>
+                        )}
                       </td>
 
                       {/* Assigned Counselor */}
