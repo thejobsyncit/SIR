@@ -6,6 +6,7 @@ import os from 'os';
 import { fileURLToPath } from 'url';
 import { getDb, closeDb, checkDbHealth, logAuditTrail } from './database.js';
 import { registerClientPortalRoutes } from './clientPortalRoutes.js';
+import { COURSES_CATALOGUE } from '../src/data/coursesCatalogueData.js';
 import nodemailer from 'nodemailer';
 import dotenv from 'dotenv';
 import { handleAIAdvisorQuery, REVIVAL_KNOWLEDGE_BASE } from './services/aiAdvisorEngine.js';
@@ -1482,6 +1483,7 @@ app.get(['/api/leads', '/api/consulting/enquiries', '/api/career-guidance/enquir
     const {
       serviceId, status, priority, assignedEmployee, search,
       range = 'all', startDate, endDate, includeArchived,
+      level, department,
       page, limit
     } = req.query;
     const db = await getDb();
@@ -1532,6 +1534,23 @@ app.get(['/api/leads', '/api/consulting/enquiries', '/api/career-guidance/enquir
       params.push(priority);
     }
 
+    // Academic level filter (UG / PG)
+    if (level && level !== 'all' && level !== 'All') {
+      const lvl = level.toUpperCase();
+      if (lvl === 'UG') {
+        query += " AND (degreeLevel LIKE '%Undergraduate%' OR degreeLevel = 'UG' OR customFields LIKE '%\"degreeLevel\":\"UG\"%' OR customFields LIKE '%Undergraduate%')";
+      } else if (lvl === 'PG') {
+        query += " AND (degreeLevel LIKE '%Postgraduate%' OR degreeLevel = 'PG' OR customFields LIKE '%\"degreeLevel\":\"PG\"%' OR customFields LIKE '%Postgraduate%')";
+      }
+    }
+
+    // Department filter
+    if (department && department !== 'all' && department !== 'All') {
+      query += " AND (LOWER(COALESCE(department, '')) LIKE ? OR LOWER(COALESCE(streamName, '')) LIKE ? OR LOWER(COALESCE(customFields, '')) LIKE ?)";
+      const dLike = `%${department.trim().toLowerCase()}%`;
+      params.push(dLike, dLike, dLike);
+    }
+
     if (assignedEmployee && assignedEmployee !== 'all') {
       if (assignedEmployee === 'unassigned' || assignedEmployee === 'Unassigned') {
         query += ' AND (assignedEmployee IS NULL OR assignedEmployee = "")';
@@ -1555,8 +1574,8 @@ app.get(['/api/leads', '/api/consulting/enquiries', '/api/career-guidance/enquir
 
     if (search && search.trim()) {
       const s = `%${search.trim().toLowerCase()}%`;
-      query += ' AND (LOWER(name) LIKE ? OR LOWER(email) LIKE ? OR LOWER(phone) LIKE ? OR LOWER(message) LIKE ? OR LOWER(company) LIKE ? OR LOWER(COALESCE(referenceNumber, "")) LIKE ? OR LOWER(COALESCE(countryInterest, "")) LIKE ? OR LOWER(COALESCE(serviceTitle, "")) LIKE ? OR LOWER(COALESCE(jobTitle, "")) LIKE ? OR LOWER(COALESCE(skills, "")) LIKE ?)';
-      params.push(s, s, s, s, s, s, s, s, s, s);
+      query += ' AND (LOWER(name) LIKE ? OR LOWER(email) LIKE ? OR LOWER(phone) LIKE ? OR LOWER(message) LIKE ? OR LOWER(company) LIKE ? OR LOWER(COALESCE(organizationName, "")) LIKE ? OR LOWER(COALESCE(referenceNumber, "")) LIKE ? OR LOWER(COALESCE(countryInterest, "")) LIKE ? OR LOWER(COALESCE(serviceTitle, "")) LIKE ? OR LOWER(COALESCE(courseName, "")) LIKE ? OR LOWER(COALESCE(department, "")) LIKE ? OR LOWER(COALESCE(streamName, "")) LIKE ? OR LOWER(COALESCE(jobTitle, "")) LIKE ? OR LOWER(COALESCE(skills, "")) LIKE ?)';
+      params.push(s, s, s, s, s, s, s, s, s, s, s, s, s, s);
     }
 
     // Check count for pagination
@@ -1889,7 +1908,7 @@ app.post(['/api/leads', '/api/consulting/enquiries', '/api/career-guidance/enqui
     const now = Date.now();
     const windowMs = 60 * 1000;
     const timestamps = (inquiryRateLimits.get(clientIp) || []).filter(t => now - t < windowMs);
-    const maxRequests = isLocalhost ? 60 : 30;
+    const maxRequests = isLocalhost ? 1000 : 30;
 
     if (timestamps.length >= maxRequests) {
       return res.status(429).json({
@@ -1919,10 +1938,47 @@ app.post(['/api/leads', '/api/consulting/enquiries', '/api/career-guidance/enqui
     if (!name || typeof name !== 'string' || name.trim().length < 2 || name.trim().length > 100) {
       return res.status(400).json({ success: false, message: 'Full name is required (between 2 and 100 characters).' });
     }
+    const trimmedName = name.trim();
+    if (/^\d+$/.test(trimmedName)) {
+      return res.status(400).json({ success: false, message: 'Full name cannot consist only of numbers.' });
+    }
+    const isCareerLeadOrEdu = serviceId === 'school-career' || serviceId === 'career-guidance' || (serviceTitle && serviceTitle.toLowerCase().includes('career guidance'));
+    if (isCareerLeadOrEdu) {
+      if ((/\d/.test(trimmedName) && !trimmedName.includes('Grade ')) || !/^[a-zA-Z0-9\u00C0-\u024F\u1E00-\u1EFF\s.'\-(),]+$/.test(trimmedName)) {
+        return res.status(400).json({ success: false, message: 'Full name cannot contain numbers or unsupported special characters.' });
+      }
+    }
 
-    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[a-zA-Z]{2,}$/;
     if (!email || typeof email !== 'string' || !emailRegex.test(email.trim()) || email.trim().length > 100) {
       return res.status(400).json({ success: false, message: 'A valid business or personal email address is required (maximum 100 characters).' });
+    }
+
+    // Consent & Organization verification for career guidance & education inquiries
+    const bodyConsent = req.body.consent;
+    let customConsent = undefined;
+    if (customFields) {
+      try {
+        const parsed = typeof customFields === 'string' ? JSON.parse(customFields) : customFields;
+        customConsent = parsed.consent;
+      } catch (_) {}
+    }
+    const effectiveConsent = bodyConsent !== undefined ? bodyConsent : customConsent;
+    if (isCareerLeadOrEdu && (effectiveConsent === false || effectiveConsent === 'false')) {
+      return res.status(400).json({ success: false, message: 'You must acknowledge the communication consent to proceed.' });
+    }
+
+    if (isCareerLeadOrEdu) {
+      let org = organizationName;
+      if (org === undefined && customFields) {
+        try {
+          const parsed = typeof customFields === 'string' ? JSON.parse(customFields) : customFields;
+          if (parsed && parsed.organization !== undefined) org = parsed.organization;
+        } catch (_) {}
+      }
+      if (org !== undefined && (typeof org !== 'string' || org.trim().length === 0)) {
+        return res.status(400).json({ success: false, message: 'Current school or college name is required.' });
+      }
     }
 
     const cleanPhone = (phone || '').replace(/[\s\-\(\)\+]/g, '');
@@ -2190,10 +2246,11 @@ app.post(['/api/leads', '/api/consulting/enquiries', '/api/career-guidance/enqui
 });
 
 // Update Lead Status, Assignment, Organization Link, & Workflow
-app.patch(['/api/leads/:id', '/api/consulting/enquiries/:id', '/api/student-academy/enquiries/:id'], async (req, res) => {
+app.patch(['/api/leads/:id', '/api/consulting/enquiries/:id', '/api/student-academy/enquiries/:id', '/api/career-guidance/enquiries/:id'], async (req, res) => {
   try {
     const { id } = req.params;
     const {
+      name, email, phone,
       status, assignedEmployee, priority, organizationId, organizationName,
       nextAction, nextActionDate, lastFollowUpDate, lastContactedDate,
       leadScore, internalNotes, isArchived, updatedBy,
@@ -2225,7 +2282,7 @@ app.patch(['/api/leads/:id', '/api/consulting/enquiries/:id', '/api/student-acad
     }
 
     const db = await getDb();
-    const currentLead = await db.get('SELECT * FROM leads WHERE id = ?', [id]);
+    const currentLead = await db.get('SELECT * FROM leads WHERE id = ? OR referenceNumber = ?', [id, id]);
     if (!currentLead) {
       return res.status(404).json({ success: false, message: 'Enquiry not found' });
     }
@@ -2233,6 +2290,9 @@ app.patch(['/api/leads/:id', '/api/consulting/enquiries/:id', '/api/student-acad
     // Update lead record with all tracked workflow attributes
     await db.run(
       `UPDATE leads SET
+        name = COALESCE(?, name),
+        email = COALESCE(?, email),
+        phone = COALESCE(?, phone),
         status = COALESCE(?, status),
         assignedEmployee = COALESCE(?, assignedEmployee),
         priority = COALESCE(?, priority),
@@ -2277,6 +2337,9 @@ app.patch(['/api/leads/:id', '/api/consulting/enquiries/:id', '/api/student-acad
         updatedAt = CURRENT_TIMESTAMP
        WHERE id = ?`,
       [
+        name !== undefined ? name : null,
+        email !== undefined ? email : null,
+        phone !== undefined ? phone : null,
         status || null,
         assignedEmployee !== undefined ? assignedEmployee : null,
         priority || null,
@@ -2318,7 +2381,7 @@ app.patch(['/api/leads/:id', '/api/consulting/enquiries/:id', '/api/student-acad
         courseName !== undefined ? courseName : null,
         streamName !== undefined ? streamName : null,
         department !== undefined ? department : null,
-        id
+        currentLead.id
       ]
     );
 
@@ -2329,7 +2392,7 @@ app.patch(['/api/leads/:id', '/api/consulting/enquiries/:id', '/api/student-acad
          VALUES (?, ?, ?, ?, ?, ?, ?)`,
         [
           `ACT-${Date.now()}-${Math.floor(100 + Math.random() * 900)}`,
-          id,
+          currentLead.id,
           organizationId || currentLead.organizationId,
           'Status Change',
           `Pipeline Stage: ${status}`,
@@ -2346,7 +2409,7 @@ app.patch(['/api/leads/:id', '/api/consulting/enquiries/:id', '/api/student-acad
          VALUES (?, ?, ?, ?, ?, ?, ?)`,
         [
           `ACT-${Date.now()}-${Math.floor(100 + Math.random() * 900)}`,
-          id,
+          currentLead.id,
           organizationId || currentLead.organizationId,
           'Assignment',
           assignedEmployee ? `Assigned to ${assignedEmployee}` : 'Unassigned',
@@ -2373,7 +2436,7 @@ app.patch(['/api/leads/:id', '/api/consulting/enquiries/:id', '/api/student-acad
       );
     }
 
-    const updated = await db.get('SELECT * FROM leads WHERE id = ?', [id]);
+    const updated = await db.get('SELECT * FROM leads WHERE id = ?', [currentLead.id]);
     res.json({ success: true, message: 'Enquiry updated successfully', data: updated });
   } catch (error) {
     console.error('Failed to update lead:', error);
@@ -2683,6 +2746,281 @@ app.get('/api/crm/student-academy/metrics', async (req, res) => {
     res.status(500).json({ success: false, message: 'Failed to calculate student academy metrics' });
   }
 });
+
+// =========================================================================
+// CAREER GUIDANCE: UG & PG ACADEMIC DEPARTMENT CRUD & MANAGEMENT
+// =========================================================================
+
+// Helper middleware for role verification on department changes
+const requireDeptAdmin = (req, res, next) => {
+  const crmRole = (req.headers['x-crm-role'] || req.headers['role'] || 'Super Admin').trim().toLowerCase();
+  const unauthorizedRoles = ['candidate', 'student', 'guest', 'client', 'applicant'];
+  if (unauthorizedRoles.includes(crmRole)) {
+    return res.status(403).json({
+      success: false,
+      message: 'Access denied: insufficient permissions to manage academic departments.'
+    });
+  }
+  next();
+};
+
+// 1. Read All Departments (with Level filtering, Search, and computed stats)
+app.get('/api/career-guidance/departments', async (req, res) => {
+  try {
+    const { level, search, status } = req.query;
+    const db = await getDb();
+
+    let query = 'SELECT * FROM career_departments WHERE 1=1';
+    const params = [];
+
+    if (level && level !== 'all' && level !== 'All') {
+      query += ' AND level = ?';
+      params.push(level.toUpperCase());
+    }
+
+    if (status && status !== 'all' && status !== 'All') {
+      query += ' AND status = ?';
+      params.push(status);
+    }
+
+    if (search && search.trim()) {
+      const s = `%${search.trim().toLowerCase()}%`;
+      query += ' AND (LOWER(name) LIKE ? OR LOWER(COALESCE(description, "")) LIKE ?)';
+      params.push(s, s);
+    }
+
+    query += ' ORDER BY level ASC, name ASC';
+
+    const departments = await db.all(query, params);
+
+    // Fetch leads for career guidance to compute accurate enquiry count
+    const careerLeads = await db.all(
+      "SELECT id, department, streamName, degreeLevel, customFields FROM leads WHERE (serviceId IN ('school-career', 'career-guidance') OR LOWER(serviceTitle) LIKE '%career%' OR LOWER(company) LIKE '%career%')"
+    );
+
+    // Augment with computed courseCount and enquiryCount
+    const augmented = departments.map(dept => {
+      const dNorm = (dept.name || '').toLowerCase().replace(/&/g, 'and').replace(/[^a-z0-9]/g, '');
+      const deptLevel = (dept.level || '').toUpperCase();
+
+      // Count matching courses from official catalogue
+      const courseCount = (COURSES_CATALOGUE || []).filter(c => {
+        const cNorm = (c.department || '').toLowerCase().replace(/&/g, 'and').replace(/[^a-z0-9]/g, '');
+        const cLevel = (c.level || '').toUpperCase();
+        const matchesLevel = !cLevel || cLevel === deptLevel;
+        const matchesName = cNorm.includes(dNorm) || dNorm.includes(cNorm);
+        return matchesLevel && matchesName;
+      }).length;
+
+      // Count matching enquiries in leads table
+      const enquiryCount = careerLeads.filter(lead => {
+        const leadLevel = (lead.degreeLevel || '').toLowerCase().includes('undergraduate') || (lead.degreeLevel || '') === 'UG' || (lead.customFields || '').includes('"degreeLevel":"UG"') || (lead.customFields || '').includes('Undergraduate') ? 'UG' :
+          (lead.degreeLevel || '').toLowerCase().includes('postgraduate') || (lead.degreeLevel || '') === 'PG' || (lead.customFields || '').includes('"degreeLevel":"PG"') || (lead.customFields || '').includes('Postgraduate') ? 'PG' : null;
+
+        const blob = `${lead.department || ''} ${lead.streamName || ''} ${lead.customFields || ''}`.toLowerCase();
+        const matchesName = blob.includes(dept.name.toLowerCase()) || (dept.id && blob.includes(dept.id.toLowerCase()));
+        if (!matchesName) return false;
+        if (leadLevel && leadLevel !== deptLevel) return false;
+        return true;
+      }).length;
+
+      return {
+        ...dept,
+        courseCount,
+        enquiryCount
+      };
+    });
+
+    res.json({
+      success: true,
+      count: augmented.length,
+      data: augmented
+    });
+  } catch (error) {
+    console.error('Failed to fetch career guidance departments:', error);
+    res.status(500).json({ success: false, message: 'Failed to fetch departments' });
+  }
+});
+
+// 2. Create Academic Department (with duplicate validation within level)
+app.post('/api/career-guidance/departments', requireDeptAdmin, async (req, res) => {
+  try {
+    const { name, level, description, status = 'Active' } = req.body;
+
+    if (!name || !name.trim()) {
+      return res.status(400).json({ success: false, message: 'Department name is required.' });
+    }
+
+    if (!level || !['UG', 'PG'].includes(level.trim().toUpperCase())) {
+      return res.status(400).json({ success: false, message: 'Academic level must be either UG or PG.' });
+    }
+
+    const trimmedName = name.trim();
+    const cleanLevel = level.trim().toUpperCase();
+    const db = await getDb();
+
+    // Check duplicate name within the same academic level (case-insensitive)
+    const existing = await db.get(
+      'SELECT id FROM career_departments WHERE LOWER(TRIM(name)) = LOWER(?) AND level = ?',
+      [trimmedName, cleanLevel]
+    );
+
+    if (existing) {
+      return res.status(400).json({
+        success: false,
+        message: `Department '${trimmedName}' already exists under ${cleanLevel} level.`
+      });
+    }
+
+    const slug = trimmedName
+      .toLowerCase()
+      .replace(/[^a-z0-9]+/g, '-')
+      .replace(/(^-|-$)/g, '')
+      .slice(0, 30);
+    const id = `dept-${cleanLevel.toLowerCase()}-${slug}-${Date.now().toString(36)}`;
+
+    await db.run(
+      `INSERT INTO career_departments (id, name, level, description, status, createdAt, updatedAt)
+       VALUES (?, ?, ?, ?, ?, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)`,
+      [id, trimmedName, cleanLevel, description ? description.trim() : '', status || 'Active']
+    );
+
+    const created = await db.get('SELECT * FROM career_departments WHERE id = ?', [id]);
+    res.status(201).json({
+      success: true,
+      message: `Department '${trimmedName}' created successfully.`,
+      data: created
+    });
+  } catch (error) {
+    console.error('Failed to create career department:', error);
+    res.status(500).json({ success: false, message: 'Failed to create department' });
+  }
+});
+
+// 3. Update Academic Department
+app.patch('/api/career-guidance/departments/:id', requireDeptAdmin, async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { name, level, description, status } = req.body;
+    const db = await getDb();
+
+    const currentDept = await db.get('SELECT * FROM career_departments WHERE id = ?', [id]);
+    if (!currentDept) {
+      return res.status(404).json({ success: false, message: 'Department not found' });
+    }
+
+    const nextName = name !== undefined ? name.trim() : currentDept.name;
+    const nextLevel = level !== undefined ? level.trim().toUpperCase() : currentDept.level;
+
+    if (!nextName) {
+      return res.status(400).json({ success: false, message: 'Department name cannot be empty.' });
+    }
+
+    if (level !== undefined && !['UG', 'PG'].includes(nextLevel)) {
+      return res.status(400).json({ success: false, message: 'Academic level must be either UG or PG.' });
+    }
+
+    // Check duplicate if name or level is updated
+    if (nextName.toLowerCase() !== currentDept.name.toLowerCase() || nextLevel !== currentDept.level) {
+      const existing = await db.get(
+        'SELECT id FROM career_departments WHERE LOWER(TRIM(name)) = LOWER(?) AND level = ? AND id != ?',
+        [nextName, nextLevel, id]
+      );
+      if (existing) {
+        return res.status(400).json({
+          success: false,
+          message: `Department '${nextName}' already exists under ${nextLevel} level.`
+        });
+      }
+    }
+
+    await db.run(
+      `UPDATE career_departments SET
+        name = ?,
+        level = ?,
+        description = ?,
+        status = ?,
+        updatedAt = CURRENT_TIMESTAMP
+       WHERE id = ?`,
+      [
+        nextName,
+        nextLevel,
+        description !== undefined ? description.trim() : currentDept.description,
+        status !== undefined ? status : currentDept.status,
+        id
+      ]
+    );
+
+    const updated = await db.get('SELECT * FROM career_departments WHERE id = ?', [id]);
+    res.json({
+      success: true,
+      message: `Department '${nextName}' updated successfully.`,
+      data: updated
+    });
+  } catch (error) {
+    console.error('Failed to update department:', error);
+    res.status(500).json({ success: false, message: 'Failed to update department' });
+  }
+});
+
+// 4. Delete Academic Department (with safety verification)
+app.delete('/api/career-guidance/departments/:id', requireDeptAdmin, async (req, res) => {
+  try {
+    const { id } = req.params;
+    const force = req.query.force === 'true' || req.query.force === true;
+    const db = await getDb();
+
+    const dept = await db.get('SELECT * FROM career_departments WHERE id = ?', [id]);
+    if (!dept) {
+      return res.status(404).json({ success: false, message: 'Department not found or already deleted' });
+    }
+
+    // Check references unless force delete requested
+    if (!force) {
+      const dNorm = (dept.name || '').toLowerCase().replace(/&/g, 'and').replace(/[^a-z0-9]/g, '');
+      const deptLevel = (dept.level || '').toUpperCase();
+
+      const courseCount = (COURSES_CATALOGUE || []).filter(c => {
+        const cNorm = (c.department || '').toLowerCase().replace(/&/g, 'and').replace(/[^a-z0-9]/g, '');
+        const cLevel = (c.level || '').toUpperCase();
+        return (!cLevel || cLevel === deptLevel) && (cNorm.includes(dNorm) || dNorm.includes(cNorm));
+      }).length;
+
+      const careerLeads = await db.all(
+        "SELECT id, department, streamName, degreeLevel, customFields FROM leads WHERE (serviceId IN ('school-career', 'career-guidance') OR LOWER(serviceTitle) LIKE '%career%' OR LOWER(company) LIKE '%career%')"
+      );
+
+      const enquiryCount = careerLeads.filter(lead => {
+        const blob = `${lead.department || ''} ${lead.streamName || ''} ${lead.customFields || ''}`.toLowerCase();
+        return blob.includes(dept.name.toLowerCase()) || (dept.id && blob.includes(dept.id.toLowerCase()));
+      }).length;
+
+      const totalReferences = courseCount + enquiryCount;
+
+      if (totalReferences > 0) {
+        return res.status(400).json({
+          success: false,
+          isReferenced: true,
+          courseCount,
+          enquiryCount,
+          message: `Department '${dept.name}' is associated with ${totalReferences} course(s) or enquiry record(s). Cannot delete without force confirmation. You can deactivate it instead.`
+        });
+      }
+    }
+
+    await db.run('DELETE FROM career_departments WHERE id = ?', [id]);
+
+    res.json({
+      success: true,
+      message: `Department '${dept.name}' deleted successfully.`,
+      id
+    });
+  } catch (error) {
+    console.error('Failed to delete department:', error);
+    res.status(500).json({ success: false, message: 'Failed to delete department' });
+  }
+});
+
 
 // Real-Time Database Metrics for Career Guidance
 app.get('/api/crm/career-guidance/metrics', async (req, res) => {
@@ -3239,35 +3577,67 @@ app.post('/api/student-academy/enquiries', async (req, res) => {
       location,
       coachingMode,
       enquiryType,
-      assignedEmployee
+      assignedEmployee,
+      consent,
+      isExamEnquiry
     } = req.body;
 
-    if (!studentName || !email || !phone) {
+    // 1. Student Name validation
+    const trimmedName = (studentName || '').trim();
+    if (!trimmedName || trimmedName.length < 2) {
       return res.status(400).json({
         success: false,
-        message: 'Student name, email, and mobile number are required.'
+        message: 'Student full name is required (minimum 2 characters).'
+      });
+    }
+    if (/^\d+$/.test(trimmedName)) {
+      return res.status(400).json({
+        success: false,
+        message: 'Student full name cannot consist only of numbers.'
+      });
+    }
+    if (!/^[a-zA-Z\u00C0-\u024F\u1E00-\u1EFF\s.'\-(),]+$/.test(trimmedName)) {
+      return res.status(400).json({
+        success: false,
+        message: 'Student full name cannot contain numbers or unsupported special characters.'
       });
     }
 
-    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-    if (!emailRegex.test(email.trim())) {
+    // 2. Email Address validation
+    const trimmedEmail = (email || '').trim();
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[a-zA-Z]{2,}$/;
+    if (!trimmedEmail || !emailRegex.test(trimmedEmail)) {
       return res.status(400).json({
         success: false,
-        message: 'A valid email address is required.'
+        message: 'A valid email address with domain extension is required.'
       });
     }
 
-    const cleanPhone = (phone || '').replace(/[\s\-\(\)\+]/g, '');
-    if (cleanPhone.length < 7) {
+    // 3. Mobile / WhatsApp validation
+    const rawPhone = (phone || '').trim();
+    const cleanPhone = rawPhone.replace(/[\s\-\(\)\+]/g, '');
+    if (!cleanPhone) {
       return res.status(400).json({
         success: false,
-        message: 'A valid mobile number is required.'
+        message: 'Mobile or WhatsApp number is required.'
+      });
+    }
+    if (!/^[0-9+\s\-()]+$/.test(rawPhone)) {
+      return res.status(400).json({
+        success: false,
+        message: 'Mobile number can only contain digits, spaces, and formatting characters (+, -, ()).'
+      });
+    }
+    if (cleanPhone.length < 7 || cleanPhone.length > 15) {
+      return res.status(400).json({
+        success: false,
+        message: `Mobile number must be between 7 and 15 digits (currently ${cleanPhone.length} digits).`
       });
     }
 
-    // Duplicate Prevention Check (30 seconds window for same email + exam)
+    // 4. Duplicate Prevention Check (30 seconds window for same email + exam)
     const now = Date.now();
-    const duplicateKey = `${email.trim().toLowerCase()}_${examId || examName || 'academy'}`;
+    const duplicateKey = `${trimmedEmail.toLowerCase()}_${examId || examName || 'academy'}`;
     const lastSubmitTime = recentInquirySubmissions.get(duplicateKey);
     if (lastSubmitTime && (now - lastSubmitTime) < 30000) {
       return res.status(409).json({
@@ -3275,16 +3645,58 @@ app.post('/api/student-academy/enquiries', async (req, res) => {
         message: 'A duplicate enquiry for this examination was recently received. Please allow a brief moment before resubmitting.'
       });
     }
-    recentInquirySubmissions.set(duplicateKey, now);
+    // 5. Mandatory Field Enforcement for Examination Enquiries
+    const isExam = enquiryType === 'Exam Enquiry' || Boolean(isExamEnquiry) || (!courseId && !batchPreference);
 
+    const qual = (qualification || '').trim();
+    if ((isExam || qualification !== undefined) && !qual) {
+      return res.status(400).json({
+        success: false,
+        message: 'Current educational qualification is required.'
+      });
+    }
+
+    const learningMode = (preferredLearningMode || coachingMode || '').trim();
+    if ((isExam || preferredLearningMode !== undefined) && !learningMode) {
+      return res.status(400).json({
+        success: false,
+        message: 'Preferred learning mode is required.'
+      });
+    }
+
+    const studyLoc = (targetCountry || countryInterest || preferredLocation || location || '').trim();
+    if ((isExam || targetCountry !== undefined || preferredLocation !== undefined) && !studyLoc) {
+      return res.status(400).json({
+        success: false,
+        message: 'Target country is required.'
+      });
+    }
+
+    const targetExam = (examName || '').trim();
+    const targetExamId = (examId || '').trim();
+    if (isExam && !targetExam && !targetExamId) {
+      return res.status(400).json({
+        success: false,
+        message: 'Selected examination or pathway is required.'
+      });
+    }
+
+    if (consent !== undefined && (consent === false || consent === 'false' || consent === 0)) {
+      return res.status(400).json({
+        success: false,
+        message: 'You must acknowledge the communication consent to proceed.'
+      });
+    }
+
+    recentInquirySubmissions.set(duplicateKey, now);
     const refNum = referenceNumber || `REV-ACA-2026-${Math.floor(10000 + Math.random() * 90000)}`;
     const enquiryId = `SA-ENQ-${Date.now()}-${Math.floor(100 + Math.random() * 900)}`;
     const db = await getDb();
-    const learningMode = preferredLearningMode || coachingMode || 'Online Live';
-    const studyLoc = targetCountry || countryInterest || preferredLocation || location || 'Online / Remote';
-    const qual = qualification || 'High School / 12th Standard';
-    const targetExam = examName || 'Competitive Examination';
-    const targetCourse = courseName || `${targetExam} Comprehensive Coaching & Advisory`;
+    const finalQual = qual || 'Bachelor\'s Degree';
+    const finalLearningMode = learningMode || 'Online Live';
+    const finalStudyLoc = studyLoc || 'Online / Remote';
+    const finalExam = targetExam || 'Competitive Examination';
+    const targetCourse = courseName || `${finalExam} Comprehensive Coaching & Advisory`;
     const targetAcademy = academyName || 'Revival International Student Advisory';
     const finalQuestions = questions || message || '';
     const advisor = assignedEmployee || 'Dhanalakshimi';
@@ -3297,23 +3709,23 @@ app.post('/api/student-academy/enquiries', async (req, res) => {
       [
         enquiryId,
         refNum,
-        studentName.trim(),
-        email.trim().toLowerCase(),
-        phone.trim(),
-        email.trim().toLowerCase(),
-        phone.trim(),
-        learningMode,
+        trimmedName,
+        trimmedEmail.toLowerCase(),
+        rawPhone,
+        trimmedEmail.toLowerCase(),
+        rawPhone,
+        finalLearningMode,
         batchPreference || 'Standard Cohort',
         finalQuestions ? finalQuestions.trim() : '',
         academyId || 'revival-advisory',
         targetAcademy,
-        examId || 'general-exam',
-        targetExam,
+        targetExamId || 'general-exam',
+        finalExam,
         courseId || 'exam-coaching-advisory',
         targetCourse,
-        qual,
-        studyLoc,
-        learningMode,
+        finalQual,
+        finalStudyLoc,
+        finalLearningMode,
         enquiryType || 'Exam Enquiry',
         'New Enquiry',
         advisor
@@ -3325,15 +3737,15 @@ app.post('/api/student-academy/enquiries', async (req, res) => {
     const customMetadata = JSON.stringify({
       category: 'Student Academy',
       enquiryType: enquiryType || 'Exam Enquiry',
-      examName: targetExam,
-      examId: examId || 'general-exam',
-      qualification: qual,
-      coachingMode: learningMode,
-      preferredLearningMode: learningMode,
-      studyLocation: studyLoc,
-      preferredLocation: studyLoc,
-      targetCountry: studyLoc,
-      countryInterest: studyLoc,
+      examName: finalExam,
+      examId: targetExamId || 'general-exam',
+      qualification: finalQual,
+      coachingMode: finalLearningMode,
+      preferredLearningMode: finalLearningMode,
+      studyLocation: finalStudyLoc,
+      preferredLocation: finalStudyLoc,
+      targetCountry: finalStudyLoc,
+      countryInterest: finalStudyLoc,
       academyName: targetAcademy,
       courseName: targetCourse,
       questions: finalQuestions ? finalQuestions.trim() : ''
@@ -3345,24 +3757,24 @@ app.post('/api/student-academy/enquiries', async (req, res) => {
        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
       [
         leadId,
-        studentName.trim(),
-        email.trim().toLowerCase(),
+        trimmedName,
+        trimmedEmail.toLowerCase(),
         'Student Academy',
-        phone.trim(),
-        `Exam Enquiry: ${targetExam}. Qualification: ${qual}. Preferred Coaching Mode: ${learningMode}. Target Country: ${studyLoc}. Message: ${finalQuestions ? finalQuestions.trim() : 'None'}`,
+        rawPhone,
+        `Exam Enquiry: ${finalExam}. Qualification: ${finalQual}. Preferred Coaching Mode: ${finalLearningMode}. Target Country: ${finalStudyLoc}. Message: ${finalQuestions ? finalQuestions.trim() : 'None'}`,
         'school-academy',
         'Student Academy',
         refNum,
         'New Enquiry',
-        targetExam,
-        qual,
-        studyLoc,
-        targetExam,
+        finalExam,
+        finalQual,
+        finalStudyLoc,
+        finalExam,
         advisor,
         'Medium',
-        learningMode,
+        finalLearningMode,
         customMetadata,
-        studyLoc
+        finalStudyLoc
       ]
     );
 
@@ -3385,7 +3797,7 @@ app.get('/api/student-academy/enquiries', async (req, res) => {
   try {
     const db = await getDb();
     const enquiries = await db.all(
-      'SELECT * FROM student_academy_enquiries ORDER BY createdAt DESC LIMIT 100'
+      'SELECT * FROM student_academy_enquiries ORDER BY createdAt DESC LIMIT 1000'
     );
     res.json({
       success: true,

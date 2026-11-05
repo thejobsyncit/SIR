@@ -24,7 +24,7 @@ export const CrmHeader = ({ collapsed, setCollapsed }) => {
   const [quickMenuOpen, setQuickMenuOpen] = useState(false);
 
   return (
-    <header className="bg-white dark:bg-[#070c1e]/90 backdrop-blur-xl text-slate-900 dark:text-white border-b border-slate-200 dark:border-slate-800/80 px-6 py-3 flex justify-between items-center z-20 font-sans shadow-sm">
+    <header className="bg-white dark:bg-[#070c1e]/90 backdrop-blur-xl text-slate-900 dark:text-white border-b border-slate-200 dark:border-slate-800/80 px-6 py-3 flex justify-between items-center z-20 font-sans shadow-sm shrink-0">
       
       {/* Left Search & Sidebar Toggle */}
       <div className="flex items-center space-x-4">

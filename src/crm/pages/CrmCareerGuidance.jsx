@@ -8,8 +8,27 @@ import {
   Users, CheckCircle2, AlertCircle, Phone, Mail, MessageSquare, Plus, Search,
   Filter, RefreshCw, Download, ChevronRight, X, UserCheck, ShieldCheck,
   MapPin, ExternalLink, Sparkles, Send, Trash2, ArrowRight, Eye, CheckSquare,
-  FileText, Briefcase, Award, ChevronLeft
+  FileText, Briefcase, Award, ChevronLeft, ArrowUpDown
 } from 'lucide-react';
+
+
+// Formatter for enquiry submission date
+const formatEnquiryDate = (dateString) => {
+  if (!dateString) return '—';
+  try {
+    const cleanStr = String(dateString).trim();
+    const isoStr = cleanStr.includes('T') ? cleanStr : cleanStr.replace(' ', 'T') + (cleanStr.endsWith('Z') ? '' : 'Z');
+    const d = new Date(isoStr);
+    if (isNaN(d.getTime())) {
+      const fallbackD = new Date(cleanStr);
+      if (isNaN(fallbackD.getTime())) return '—';
+      return fallbackD.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
+    }
+    return d.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
+  } catch (_) {
+    return '—';
+  }
+};
 
 export const CrmCareerGuidance = () => {
   const {
@@ -196,12 +215,85 @@ export const CrmCareerGuidance = () => {
       levelBadge = 'UG';
     }
 
+    // Resolve Student's Current School / College
+    let schoolOrCollege = '';
+    const candidates = [
+      lead.organizationName,
+      custom.organization,
+      custom.organizationName,
+      custom.school,
+      custom.currentSchool,
+      custom.currentCollege,
+      custom.institution,
+      custom.currentInstitution,
+      lead.school,
+      lead.college,
+      lead.institution
+    ];
+
+    for (const cand of candidates) {
+      if (cand && typeof cand === 'string') {
+        const clean = cand.trim();
+        if (
+          clean &&
+          clean !== 'Individual' &&
+          clean !== 'Career Guidance' &&
+          clean !== 'Not Specified' &&
+          clean !== 'None' &&
+          clean !== 'N/A' &&
+          clean !== '-' &&
+          clean !== '—' &&
+          !clean.startsWith('Service Inquiry:') &&
+          !clean.toLowerCase().startsWith('academic advisory')
+        ) {
+          schoolOrCollege = clean;
+          break;
+        }
+      }
+    }
+
+    if (!schoolOrCollege && lead.company && typeof lead.company === 'string') {
+      const cleanComp = lead.company.trim();
+      if (
+        cleanComp &&
+        cleanComp !== 'Individual' &&
+        cleanComp !== 'Career Guidance' &&
+        !cleanComp.toLowerCase().startsWith('academic advisory') &&
+        !cleanComp.startsWith('Service Inquiry:') &&
+        cleanComp !== 'Not Specified' &&
+        cleanComp !== 'None' &&
+        cleanComp !== 'N/A' &&
+        cleanComp !== '-' &&
+        cleanComp !== '—'
+      ) {
+        schoolOrCollege = cleanComp;
+      }
+    }
+
+    if (!schoolOrCollege && lead.message && typeof lead.message === 'string') {
+      const match = lead.message.match(/(?:Current Institution|School\/Institute|School \/ College|Current School|Current College|School|Institution)\s*:\s*([^\r\n]+)/i);
+      if (match && match[1]) {
+        const parsed = match[1].trim();
+        if (
+          parsed &&
+          parsed !== 'Not Specified' &&
+          parsed !== 'None' &&
+          parsed !== 'N/A' &&
+          parsed !== '-' &&
+          parsed !== '—'
+        ) {
+          schoolOrCollege = parsed;
+        }
+      }
+    }
+
     return {
       streamName: streamName || 'General Academic Stream',
       courseName: courseName || 'General Academic Consultation',
       courseAbbr,
       programLevel,
       levelBadge,
+      schoolOrCollege: schoolOrCollege || '—',
       ...custom
     };
   };
@@ -251,6 +343,7 @@ export const CrmCareerGuidance = () => {
         (b.phone && b.phone.toLowerCase().includes(q)) ||
         (b.referenceNumber && b.referenceNumber.toLowerCase().includes(q)) ||
         (b.organizationName && b.organizationName.toLowerCase().includes(q)) ||
+        (details.schoolOrCollege && details.schoolOrCollege !== '—' && details.schoolOrCollege.toLowerCase().includes(q)) ||
         (b.company && b.company.toLowerCase().includes(q)) ||
         (b.degreeLevel && b.degreeLevel.toLowerCase().includes(q)) ||
         (details.programLevel && details.programLevel.toLowerCase().includes(q)) ||
@@ -314,9 +407,19 @@ export const CrmCareerGuidance = () => {
     return true;
   });
 
+  // Date Sorting State
+  const [dateSortOrder, setDateSortOrder] = useState('desc'); // 'desc' | 'asc'
+
+  // Sort Leads by Date
+  const sortedLeads = [...filteredLeads].sort((a, b) => {
+    const timeA = a.createdAt ? new Date(a.createdAt).getTime() : 0;
+    const timeB = b.createdAt ? new Date(b.createdAt).getTime() : 0;
+    return dateSortOrder === 'asc' ? timeA - timeB : timeB - timeA;
+  });
+
   // Pagination
-  const totalPages = Math.ceil(filteredLeads.length / pageSize) || 1;
-  const paginatedLeads = filteredLeads.slice((currentPage - 1) * pageSize, currentPage * pageSize);
+  const totalPages = Math.ceil(sortedLeads.length / pageSize) || 1;
+  const paginatedLeads = sortedLeads.slice((currentPage - 1) * pageSize, currentPage * pageSize);
 
   // Status badge styling helper
   const getStatusBadge = (status) => {
@@ -820,13 +923,24 @@ export const CrmCareerGuidance = () => {
           <table className="w-full text-left text-xs">
             <thead>
               <tr className="border-b border-slate-200 dark:border-navy-800 bg-slate-50/75 dark:bg-navy-950/50 text-[11px] font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400">
-                <th className="py-3.5 px-4">Reference Code & Date</th>
+                <th className="py-3.5 px-4 min-w-[130px]">Enquiry ID</th>
                 <th className="py-3.5 px-4 min-w-[150px]">Student Name</th>
                 <th className="py-3.5 px-4 min-w-[180px]">Email Address</th>
                 <th className="py-3.5 px-4 min-w-[150px]">Mobile Number</th>
-                <th className="py-3.5 px-4 min-w-[220px]">Selected Course / Degree</th>
+                <th 
+                  className="py-3.5 px-4 min-w-[120px] cursor-pointer select-none hover:text-slate-700 dark:hover:text-slate-200 transition"
+                  onClick={() => setDateSortOrder(prev => prev === 'desc' ? 'asc' : 'desc')}
+                  title="Click to sort by Date"
+                >
+                  <div className="flex items-center gap-1.5">
+                    <span>Date</span>
+                    <ArrowUpDown className="w-3 h-3 text-slate-400" />
+                  </div>
+                </th>
+                <th className="py-3.5 px-4 min-w-[170px]">School / College</th>
                 <th className="py-3.5 px-4 text-center">Academic Level</th>
                 <th className="py-3.5 px-4 min-w-[180px]">Department / Stream</th>
+                <th className="py-3.5 px-4 min-w-[220px]">Selected Course / Degree</th>
                 <th className="py-3.5 px-4">Study Destination</th>
                 <th className="py-3.5 px-4">Assigned Counsellor</th>
                 <th className="py-3.5 px-4">Status</th>
@@ -836,7 +950,7 @@ export const CrmCareerGuidance = () => {
             <tbody className="divide-y divide-slate-100 dark:divide-navy-800/60">
               {paginatedLeads.length === 0 ? (
                 <tr>
-                  <td colSpan={11} className="py-12 text-center space-y-3">
+                  <td colSpan={13} className="py-12 text-center space-y-3">
                     <Compass className="w-10 h-10 text-slate-300 dark:text-navy-700 mx-auto" />
                     <p className="font-semibold text-slate-600 dark:text-slate-400 text-sm">
                       No career guidance enquiries found matching current filters.
@@ -857,13 +971,10 @@ export const CrmCareerGuidance = () => {
                       key={b.id}
                       className="hover:bg-slate-50/60 dark:hover:bg-navy-800/40 transition duration-150 group"
                     >
-                      {/* Ref Code & Date */}
-                      <td className="py-3.5 px-4 align-top">
+                      {/* Enquiry ID */}
+                      <td className="py-3.5 px-4 align-top whitespace-nowrap min-w-[130px]">
                         <div className="font-mono font-bold text-slate-900 dark:text-white text-xs">
                           {b.referenceNumber || b.id}
-                        </div>
-                        <div className="text-[11px] text-slate-400 mt-0.5">
-                          {b.createdAt ? new Date(b.createdAt).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }) : 'Recent'}
                         </div>
                       </td>
 
@@ -872,11 +983,6 @@ export const CrmCareerGuidance = () => {
                         <div className="font-bold text-slate-900 dark:text-white text-xs whitespace-normal break-words">
                           {b.name || 'Anonymous Student'}
                         </div>
-                        {(b.organizationName || b.company) && (b.organizationName !== 'Individual' && b.company !== 'Career Guidance') && (
-                          <div className="text-[10px] text-slate-400 truncate max-w-[160px] mt-0.5" title={b.organizationName || b.company}>
-                            {b.organizationName || b.company}
-                          </div>
-                        )}
                       </td>
 
                       {/* Email Address */}
@@ -918,16 +1024,31 @@ export const CrmCareerGuidance = () => {
                         )}
                       </td>
 
-                      {/* Selected Course / Degree */}
-                      <td className="py-3.5 px-4 align-top min-w-[220px] max-w-[320px]">
-                        <div className="font-bold text-slate-900 dark:text-white text-xs whitespace-normal break-words leading-snug" title={details.courseName}>
-                          {details.courseName}
+                      {/* Date */}
+                      <td className="py-3.5 px-4 align-top whitespace-nowrap min-w-[120px]">
+                        <div className="font-semibold text-slate-800 dark:text-slate-200 text-xs flex items-center gap-1.5">
+                          <Calendar className="w-3.5 h-3.5 text-slate-400 shrink-0" />
+                          <span>{formatEnquiryDate(b.createdAt)}</span>
                         </div>
-                        {details.courseAbbr && details.courseAbbr !== details.courseName && (
-                          <div className="text-[10px] font-mono font-bold text-amber-600 dark:text-amber-400 mt-0.5">
-                            {details.courseAbbr}
-                          </div>
-                        )}
+                      </td>
+
+                      {/* School / College */}
+                      <td className="py-3.5 px-4 align-top min-w-[170px] max-w-[240px]">
+                        <div className="flex items-start gap-1.5 text-xs">
+                          {details.schoolOrCollege !== '—' && (
+                            <Building2 className="w-3.5 h-3.5 text-slate-400 shrink-0 mt-0.5" />
+                          )}
+                          <span
+                            className={`whitespace-normal break-words leading-snug ${
+                              details.schoolOrCollege === '—'
+                                ? 'text-slate-400 font-mono'
+                                : 'font-semibold text-slate-800 dark:text-slate-200'
+                            }`}
+                            title={details.schoolOrCollege !== '—' ? details.schoolOrCollege : 'No school/college recorded'}
+                          >
+                            {details.schoolOrCollege}
+                          </span>
+                        </div>
                       </td>
 
                       {/* Academic Level */}
@@ -950,6 +1071,18 @@ export const CrmCareerGuidance = () => {
                         <div className="text-xs font-semibold text-slate-700 dark:text-slate-300 whitespace-normal break-words leading-snug" title={details.streamName}>
                           {details.streamName}
                         </div>
+                      </td>
+
+                      {/* Selected Course / Degree */}
+                      <td className="py-3.5 px-4 align-top min-w-[220px] max-w-[320px]">
+                        <div className="font-bold text-slate-900 dark:text-white text-xs whitespace-normal break-words leading-snug" title={details.courseName}>
+                          {details.courseName}
+                        </div>
+                        {details.courseAbbr && details.courseAbbr !== details.courseName && (
+                          <div className="text-[10px] font-mono font-bold text-amber-600 dark:text-amber-400 mt-0.5">
+                            {details.courseAbbr}
+                          </div>
+                        )}
                       </td>
 
                       {/* Study Destination */}
@@ -1149,7 +1282,8 @@ export const CrmCareerGuidance = () => {
                       )}
                       <div><strong>Academic Level:</strong> <span className="font-semibold">{dossierDetails.programLevel} ({dossierDetails.levelBadge})</span></div>
                       <div><strong>Department / Stream:</strong> <span className="font-semibold">{dossierDetails.streamName}</span></div>
-                      <div><strong>Current Institution:</strong> {selectedEnquiry.organizationName || selectedEnquiry.company || 'Not Specified'}</div>
+                      <div><strong>Enquiry Date:</strong> <span className="font-semibold">{formatEnquiryDate(selectedEnquiry.createdAt)}</span></div>
+                      <div><strong>School / College:</strong> <span className="font-semibold">{dossierDetails.schoolOrCollege !== '—' ? dossierDetails.schoolOrCollege : 'Not Specified'}</span></div>
                       <div><strong>Target Destination:</strong> {selectedEnquiry.countryInterest || 'Global / Flexible'}</div>
                     </div>
                   );

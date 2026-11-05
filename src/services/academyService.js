@@ -38,6 +38,8 @@ export const submitAcademyCourseEnquiry = async (enquiryData) => {
     email: enquiryData.email.trim().toLowerCase(),
     phone: enquiryData.phone.trim(),
     preferredLearningMode: enquiryData.preferredLearningMode || 'Classroom',
+    coachingMode: enquiryData.preferredLearningMode || enquiryData.coachingMode || 'Classroom',
+    preferredLocation: (enquiryData.preferredLocation || enquiryData.location || enquiryData.targetCountry || '').trim(),
     batchPreference: enquiryData.batchPreference || 'Any Batch',
     questions: enquiryData.questions ? enquiryData.questions.trim() : '',
     academyId: enquiryData.academyId,
@@ -170,6 +172,8 @@ export const submitExamEnquiry = async (enquiryData) => {
     courseId: enquiryData.courseId || 'exam-preparation-support',
     courseName: enquiryData.courseName || `${enquiryData.examName || 'Competitive Exam'} Coaching & Preparation`,
     enquiryType: 'Exam Enquiry',
+    consent: enquiryData.consent !== undefined ? Boolean(enquiryData.consent) : true,
+    isExamEnquiry: true,
     serviceId: 'school-academy',
     serviceTitle: 'Student Academy - Exam Enquiry',
     createdAt: new Date().toISOString()

@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { useApp } from '../context/AppContext';
 import { X, Send, CheckCircle2, AlertCircle, Loader2, GraduationCap, Sparkles } from 'lucide-react';
 import { EDUCATION_SERVICES_DETAILED } from '../data/educationServicesData';
 import { trackEnquiryStart, trackEnquiryValidationFailure, trackEnquiryConversion } from '../services/analytics';
@@ -9,13 +10,22 @@ import { submitLeadWithFallback } from '../services/leadSubmissionService';
 const parseCourseInfo = (courseObj, subProgStr, levelStr) => {
   if (courseObj && typeof courseObj === 'object') {
     return {
-      name: courseObj.name || '',
-      abbreviation: courseObj.abbreviation || '',
-      streamName: courseObj.streamName || courseObj.department || '',
-      department: courseObj.department || courseObj.streamName || '',
+      name: courseObj.name || courseObj.course_name || '',
+      abbreviation: courseObj.abbreviation || courseObj.course_code || courseObj.degree_type || '',
+      streamName: courseObj.streamName || courseObj.department || courseObj.department_name || '',
+      department: courseObj.department || courseObj.department_name || courseObj.streamName || '',
       level: courseObj.level || (levelStr?.includes('Postgraduate') || levelStr === 'PG' ? 'PG' : 'UG'),
-      degrees: Array.isArray(courseObj.degrees) ? courseObj.degrees : (courseObj.degrees ? [courseObj.degrees] : []),
-      duration: courseObj.duration || courseObj.typicalDuration || ''
+      degrees: Array.isArray(courseObj.degrees) ? courseObj.degrees : (courseObj.degrees ? [courseObj.degrees] : (courseObj.degree_type ? [courseObj.degree_type] : [])),
+      duration: courseObj.duration || courseObj.standard_duration || courseObj.typicalDuration || '',
+      specialization: courseObj.specialization || courseObj.specialization_name || null,
+      specialization_id: courseObj.specialization_id || null,
+      college: courseObj.college || courseObj.college_name || null,
+      college_id: courseObj.college_id || null,
+      fees: courseObj.fees || null,
+      entrance_exams: courseObj.entrance_exams || null,
+      eligibility: courseObj.eligibility || null,
+      category_name: courseObj.category_name || null,
+      category_id: courseObj.category_id || null
     };
   }
   if (subProgStr && typeof subProgStr === 'string' && subProgStr.trim()) {
@@ -57,7 +67,16 @@ export const EducationEnquiryModal = ({
   const [activeCourse, setActiveCourse] = useState(() => {
     return parseCourseInfo(selectedCourse, preselectedSubProgram, preselectedLevel);
   });
-  const [phone, setPhone] = useState('');
+  const appContext = typeof useApp === 'function' ? useApp() : null;
+  const user = appContext?.user || null;
+  const [phone, setPhone] = useState(() => user?.phone || '');
+
+  // Pre-fill phone if user logs in while modal is in use
+  useEffect(() => {
+    if (user?.phone && !phone) {
+      setPhone(user.phone);
+    }
+  }, [user]);
   const [countryInterest, setCountryInterest] = useState('India');
   const [programLevel, setProgramLevel] = useState(() => {
     if (preselectedServiceId === 'school-career' || preselectedServiceId === 'career-guidance') {
@@ -157,29 +176,47 @@ export const EducationEnquiryModal = ({
 
   const validate = (data) => {
     const errors = {};
-    if (!data.name || data.name.trim().length < 2) {
+    const trimmedName = (data.name || '').trim();
+    if (!trimmedName || trimmedName.length < 2) {
       errors.name = 'Please provide your full name (minimum 2 characters).';
+    } else if (/^\d+$/.test(trimmedName)) {
+      errors.name = 'Full name cannot consist only of numbers.';
+    } else if (!/^[a-zA-Z\u00C0-\u024F\u1E00-\u1EFF\s.'\-(),]+$/.test(trimmedName)) {
+      errors.name = 'Full name cannot contain numbers or unsupported special characters.';
     }
-    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-    if (!data.email || !emailRegex.test(data.email.trim())) {
-      errors.email = 'Please provide a valid email address.';
+
+    const trimmedEmail = (data.email || '').trim();
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[a-zA-Z]{2,}$/;
+    if (!trimmedEmail || !emailRegex.test(trimmedEmail)) {
+      errors.email = 'Please provide a valid email address with a domain extension (e.g. name@example.com).';
     }
-    const cleanPhone = (phone || data.phone || '').replace(/[\s\-\(\)\+]/g, '');
+
+    const rawPhone = (phone || data.phone || '').trim();
+    const cleanPhone = rawPhone.replace(/[\s\-\(\)\+]/g, '');
     if (!cleanPhone) {
       errors.phone = 'Please provide your phone or WhatsApp number.';
+    } else if (!/^[0-9+\s\-()]+$/.test(rawPhone)) {
+      errors.phone = 'Phone number can only contain digits, spaces, and formatting characters (+, -, ()).';
     } else if (cleanPhone.length < 7 || cleanPhone.length > 15) {
       errors.phone = `Phone number must be between 7 and 15 digits (currently ${cleanPhone.length} digits).`;
     }
+
     if (!isCareerGuidance) {
       if (!data.message || data.message.trim().length < 10) {
         errors.message = 'Please provide inquiry details or background (minimum 10 characters).';
       }
     }
     if (isCareerGuidance) {
-      if (!programLevel) {
+      const trimmedOrg = (data.organization || '').trim();
+      if (!trimmedOrg) {
+        errors.organization = 'Please provide your current school or college name.';
+      } else if (trimmedOrg.length < 2) {
+        errors.organization = 'School or college name must be at least 2 characters.';
+      }
+      if (!programLevel || !programLevel.trim()) {
         errors.programLevel = 'Please select your target academic level.';
       }
-      if (!countryInterest) {
+      if (!countryInterest || !countryInterest.trim()) {
         errors.countryInterest = 'Please select your target study destination.';
       }
     }
@@ -223,6 +260,7 @@ export const EducationEnquiryModal = ({
       name: data.name.trim(),
       email: data.email.trim(),
       phone: phone.trim(),
+      consent: Boolean(consent),
       serviceId: isCareerGuidance ? 'school-career' : activeService.id,
       serviceTitle: isCareerGuidance
         ? (courseName ? `Career Guidance | ${courseName}` : 'Career Guidance')
@@ -238,6 +276,16 @@ export const EducationEnquiryModal = ({
       courseName: courseName,
       streamName: streamName,
       department: department,
+      category_id: activeCourse?.category_id || null,
+      category_name: activeCourse?.category_name || null,
+      specialization_id: activeCourse?.specialization_id || null,
+      specialization: activeCourse?.specialization || null,
+      college_id: activeCourse?.college_id || null,
+      college_name: activeCourse?.college || null,
+      preferred_state: data.preferred_state || countryInterest || 'India',
+      preferred_city: data.preferred_city || null,
+      marks_or_percentage: data.marks_or_percentage || null,
+      entrance_exam_details: data.entrance_exam_details || null,
       customFields: JSON.stringify({
         organization: data.organization ? data.organization.trim() : '',
         programLevel,
@@ -248,6 +296,16 @@ export const EducationEnquiryModal = ({
         courseAbbr: courseAbbr,
         streamName: streamName,
         department: department,
+        category_id: activeCourse?.category_id || null,
+        category_name: activeCourse?.category_name || null,
+        specialization: activeCourse?.specialization || null,
+        specialization_id: activeCourse?.specialization_id || null,
+        college: activeCourse?.college || null,
+        college_id: activeCourse?.college_id || null,
+        preferred_state: data.preferred_state || countryInterest || 'India',
+        preferred_city: data.preferred_city || null,
+        marks_or_percentage: data.marks_or_percentage || null,
+        entrance_exam_details: data.entrance_exam_details || null,
         degrees: activeCourse?.degrees || null,
         duration: activeCourse?.duration || null,
         subProgram: subProgram || null,
@@ -440,29 +498,13 @@ export const EducationEnquiryModal = ({
               {/* Highlighted Section: Selected Course / Degree (Career Guidance) */}
               {isCareerGuidance && (
                 <div className="p-3.5 sm:p-4 rounded-2xl bg-[#F8FAFC] dark:bg-navy-950/80 border border-gold-500/30 shadow-sm space-y-2">
-                  <div className="flex items-center justify-between gap-3">
-                    <div className="flex items-center gap-2">
-                      <span className="p-1.5 rounded-lg bg-gold-500/15 text-gold-600 dark:text-gold-400">
-                        <GraduationCap className="w-4 h-4" />
-                      </span>
-                      <span className="text-[11px] font-extrabold uppercase tracking-wider text-gold-600 dark:text-gold-400">
-                        Selected Course / Degree
-                      </span>
-                    </div>
-                    {activeCourse && (
-                      <button
-                        type="button"
-                        onClick={() => {
-                          setActiveCourse(null);
-                          setSubProgram('');
-                        }}
-                        className="text-[11px] font-bold text-slate-400 hover:text-rose-500 dark:hover:text-rose-400 transition flex items-center gap-1 cursor-pointer"
-                        title="Clear or change selected course"
-                      >
-                        <X className="w-3.5 h-3.5" />
-                        <span>Change / Clear</span>
-                      </button>
-                    )}
+                  <div className="flex items-center gap-2">
+                    <span className="p-1.5 rounded-lg bg-gold-500/15 text-gold-600 dark:text-gold-400">
+                      <GraduationCap className="w-4 h-4" />
+                    </span>
+                    <span className="text-[11px] font-extrabold uppercase tracking-wider text-gold-600 dark:text-gold-400">
+                      Selected Course / Degree
+                    </span>
                   </div>
 
                   {activeCourse ? (
@@ -479,6 +521,18 @@ export const EducationEnquiryModal = ({
                       </div>
 
                       <div className="flex flex-wrap items-center gap-x-3 gap-y-1 text-xs text-slate-600 dark:text-slate-300 font-medium">
+                        {activeCourse.college && (
+                          <div className="w-full pb-1 text-xs font-bold text-navy-900 dark:text-white flex items-center gap-1.5">
+                            <span className="text-gold-600 dark:text-gold-400">🏛️ Selected Institution:</span>
+                            <span>{activeCourse.college}</span>
+                          </div>
+                        )}
+                        {activeCourse.specialization && (
+                          <div className="w-full pb-1 text-xs font-bold text-navy-900 dark:text-white flex items-center gap-1.5">
+                            <span className="text-gold-600 dark:text-gold-400">✨ Specialization:</span>
+                            <span className="bg-gold-500/10 text-gold-600 dark:text-gold-400 px-2 py-0.5 rounded-md">{activeCourse.specialization}</span>
+                          </div>
+                        )}
                         <div className="flex items-center gap-1">
                           <span className="text-slate-400 font-semibold">Level:</span>
                           <span className="font-bold text-navy-900 dark:text-white">
@@ -609,6 +663,7 @@ export const EducationEnquiryModal = ({
                     name="name"
                     required
                     placeholder="e.g. Naveen Kumar"
+                    defaultValue={user?.fullName || user?.name || ''}
                     onFocus={() => trackEnquiryStart('education_modal', isCareerGuidance ? 'school-career' : activeService.id, isCareerGuidance ? 'Career Guidance' : activeService.title)}
                     onChange={() => {
                       if (formErrors.name) setFormErrors(prev => ({ ...prev, name: null }));
@@ -630,6 +685,7 @@ export const EducationEnquiryModal = ({
                     name="email"
                     required
                     placeholder="e.g. Naveenkumar@example.com"
+                    defaultValue={user?.email || ''}
                     onChange={() => {
                       if (formErrors.email) setFormErrors(prev => ({ ...prev, email: null }));
                     }}
@@ -672,14 +728,22 @@ export const EducationEnquiryModal = ({
 
                 <div>
                   <label className="block text-xs font-bold text-[#0B1B33] dark:text-slate-200 mb-1">
-                    Current School / College / Employer
+                    {isCareerGuidance ? 'Current School / College' : 'Current School / College / Employer'} {isCareerGuidance && <span className="text-rose-500">*</span>}
                   </label>
                   <input
                     type="text"
                     name="organization"
+                    required={isCareerGuidance}
                     placeholder="e.g. Delhi Public School / IIT Madras"
-                    className="w-full bg-[#F8FAFC] dark:bg-navy-950 border border-[#DCE3EC] dark:border-navy-700 text-[#0B1B33] dark:text-slate-200 text-xs rounded-xl px-3.5 py-2.5 focus:bg-white dark:focus:bg-navy-900 focus:outline-none focus:ring-2 focus:ring-gold-500 transition"
+                    onChange={() => {
+                      if (formErrors.organization) setFormErrors(prev => ({ ...prev, organization: null }));
+                    }}
+                    className={`w-full bg-[#F8FAFC] dark:bg-navy-950 border text-[#0B1B33] dark:text-slate-200 text-xs rounded-xl px-3.5 py-2.5 focus:bg-white dark:focus:bg-navy-900 focus:outline-none focus:ring-2 focus:ring-gold-500 transition ${formErrors.organization ? 'border-rose-500' : 'border-[#DCE3EC] dark:border-navy-700'
+                      }`}
                   />
+                  {formErrors.organization && (
+                    <p className="text-[11px] text-rose-500 mt-1 font-medium">{formErrors.organization}</p>
+                  )}
                 </div>
               </div>
 
@@ -700,6 +764,7 @@ export const EducationEnquiryModal = ({
                   >
                     {isCareerGuidance ? (
                       <>
+                        <option value="">-- Select Academic Level --</option>
                         <option value="Undergraduate (Bachelor Degree)">Undergraduate (Bachelor Degree)</option>
                         <option value="Postgraduate (Master Degree / MBA)">Postgraduate (Master Degree / MBA)</option>
                       </>
@@ -732,6 +797,7 @@ export const EducationEnquiryModal = ({
                       }`}
                   >
 
+                    <option value="">-- Select Study Destination --</option>
                     <option value="India">India</option>
                     <option value="United Kingdom">United Kingdom (UK)</option>
                     <option value="United States">United States (USA)</option>

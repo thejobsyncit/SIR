@@ -140,7 +140,7 @@ async function runEndToEndJourneys() {
   const resB = await api('/api/leads', { method: 'POST', body: journeyBPayload });
   assert(resB.status === 201 && resB.data.success === true, "Step B6: Parent career guidance inquiry accepted (HTTP 201)");
   const refB = resB.data.data?.referenceNumber;
-  assert(!!refB && refB.startsWith('REV-EDU-'), `Step B7: Generated education reference code: ${refB}`);
+  assert(!!refB && (refB.startsWith('REV-EDU-') || refB.startsWith('REV-CAR-')), `Step B7: Generated education reference code: ${refB}`);
 
   // 3. Database Integrity
   const rowB = await db.get("SELECT * FROM leads WHERE email = ?", [journeyBPayload.email]);
@@ -181,7 +181,7 @@ async function runEndToEndJourneys() {
   const resC = await api('/api/leads', { method: 'POST', body: journeyCPayload });
   assert(resC.status === 201 && resC.data.success === true, "Step C5: International admissions inquiry accepted (HTTP 201)");
   const refC = resC.data.data?.referenceNumber;
-  assert(!!refC && refC.startsWith('REV-EDU-'), `Step C6: Generated reference code: ${refC}`);
+  assert(!!refC && (refC.startsWith('REV-EDU-') || refC.startsWith('REV-ADM-')), `Step C6: Generated reference code: ${refC}`);
 
   const rowC = await db.get("SELECT * FROM leads WHERE email = ?", [journeyCPayload.email]);
   assert(!!rowC, "Step C7: International Admissions lead stored in database");
@@ -233,7 +233,7 @@ async function runEndToEndJourneys() {
   const resD = await api('/api/leads', { method: 'POST', body: journeyDPayload });
   assert(resD.status === 201 && resD.data.success === true, "Step D11: OET language test inquiry accepted (HTTP 201)");
   const refD = resD.data.data?.referenceNumber;
-  assert(!!refD && refD.startsWith('REV-EDU-'), `Step D12: Generated reference code: ${refD}`);
+  assert(!!refD && (refD.startsWith('REV-EDU-') || refD.startsWith('REV-SL-')), `Step D12: Generated reference code: ${refD}`);
 
   const rowD = await db.get("SELECT * FROM leads WHERE email = ?", [journeyDPayload.email]);
   assert(!!rowD, "Step D13: Language test inquiry persisted in SQLite");

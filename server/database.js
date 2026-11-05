@@ -64,7 +64,8 @@ const createFallbackDb = () => {
     client_appointments: [],
     client_messages: [],
     client_notifications: [],
-    client_invoices: []
+    client_invoices: [],
+    career_departments: []
   };
 
   let store = { ...defaultStore };
@@ -549,6 +550,17 @@ const initDb = async (db) => {
       createdAt DATETIME DEFAULT CURRENT_TIMESTAMP
     );
 
+    
+    CREATE TABLE IF NOT EXISTS career_departments (
+      id TEXT PRIMARY KEY,
+      name TEXT NOT NULL,
+      level TEXT NOT NULL,
+      description TEXT,
+      status TEXT DEFAULT 'Active',
+      createdAt DATETIME DEFAULT CURRENT_TIMESTAMP,
+      updatedAt DATETIME DEFAULT CURRENT_TIMESTAMP
+    );
+
     CREATE TABLE IF NOT EXISTS client_invoices (
       id TEXT PRIMARY KEY,
       clientId TEXT NOT NULL,
@@ -772,6 +784,59 @@ const initDb = async (db) => {
     }
   } catch (seedErr) {
     console.warn('Organization seed check warning:', seedErr.message);
+  }
+
+  
+  // Seed default UG & PG Career Guidance Departments if none exist
+  try {
+    const deptCount = await db.get("SELECT COUNT(*) as count FROM career_departments");
+    if (!deptCount || deptCount.count === 0) {
+      const seedDepartments = [
+        // Undergraduate (UG) Departments
+        { id: 'dept-ug-cs-it', name: 'Computer Science & Information Technology', level: 'UG', description: 'Engineering computational paradigms, artificial intelligence systems, cloud architectures, and digital security.', status: 'Active' },
+        { id: 'dept-ug-ece-eee', name: 'Electronics & Communication', level: 'UG', description: 'Semiconductor design, integrated VLSI circuits, wireless telecommunications, and robotics.', status: 'Active' },
+        { id: 'dept-ug-mech-mfg', name: 'Mechanical & Manufacturing', level: 'UG', description: 'Classical mechanics, thermodynamics, automated mechatronics, electric vehicle design, and industrial manufacturing.', status: 'Active' },
+        { id: 'dept-ug-civil-infra', name: 'Civil & Infrastructure', level: 'UG', description: 'Structural engineering, smart city development, geotechnical modeling, and environmental hydraulics.', status: 'Active' },
+        { id: 'dept-ug-bio-life', name: 'Biological & Life Sciences', level: 'UG', description: 'Biotechnology, molecular biology, bioinformatics, immunology, and genetic engineering.', status: 'Active' },
+        { id: 'dept-ug-comm-mgmt', name: 'Commerce & Management', level: 'UG', description: 'Corporate accounting, financial analysis, investment banking, marketing analytics, and business administration.', status: 'Active' },
+        { id: 'dept-ug-math-phys', name: 'Mathematics & Physical Sciences', level: 'UG', description: 'Quantitative analysis, computational physics, chemical sciences, and actuarial mathematics.', status: 'Active' },
+        { id: 'dept-ug-arch-design', name: 'Architecture, Design & Creative Arts', level: 'UG', description: 'Architectural planning, visual communication, user experience design, and industrial styling.', status: 'Active' },
+        { id: 'dept-ug-arts-hum', name: 'Arts, Humanities & Social Sciences', level: 'UG', description: 'World literatures, behavioral psychology, journalism, international relations, and public policy.', status: 'Active' },
+        { id: 'dept-ug-agri-food', name: 'Agriculture & Food Technology', level: 'UG', description: 'Agronomy, horticulture, food biotechnology, post-harvest engineering, and precision farming.', status: 'Active' },
+        { id: 'dept-ug-med-allied', name: 'Medical & Allied Health Sciences', level: 'UG', description: 'Clinical medicine, nursing sciences, physiotherapy, pharmacy, medical lab technology, and allied healthcare.', status: 'Active' },
+        { id: 'dept-ug-law', name: 'Law', level: 'UG', description: 'Constitutional law, corporate jurisprudence, intellectual property, and judicial advocacy.', status: 'Active' },
+        { id: 'dept-ug-hosp-aviat', name: 'Hospitality, Tourism & Aviation', level: 'UG', description: 'Hospitality administration, commercial aviation operations, airport logistics, and international tourism.', status: 'Active' },
+        { id: 'dept-ug-edu-teach', name: 'Education & Teaching', level: 'UG', description: 'Pedagogical design, childhood development, and modern educational technology.', status: 'Active' },
+
+        // Postgraduate (PG) Departments
+        { id: 'dept-pg-cs-it', name: 'Computer Science & Information Technology', level: 'PG', description: 'Advanced machine learning, enterprise cloud infrastructure, cyber intelligence, and distributed systems.', status: 'Active' },
+        { id: 'dept-pg-ece-eee', name: 'Electronics, Electrical & Communication', level: 'PG', description: 'Advanced VLSI semiconductor architecture, RF communication, embedded robotics, and power systems.', status: 'Active' },
+        { id: 'dept-pg-mech-aero', name: 'Mechanical, Automobile & Aerospace', level: 'PG', description: 'Computational fluid dynamics, propulsion engineering, autonomous vehicle dynamics, and robotics.', status: 'Active' },
+        { id: 'dept-pg-civil-infra', name: 'Civil & Infrastructure', level: 'PG', description: 'Earthquake engineering, structural resilience, environmental geotechnics, and smart transportation.', status: 'Active' },
+        { id: 'dept-pg-bio-life', name: 'Biological & Life Sciences', level: 'PG', description: 'Advanced molecular genetics, clinical bioinformatics, cellular immunology, and biopharmaceutical research.', status: 'Active' },
+        { id: 'dept-pg-mgmt-comm', name: 'Business, Management & Commerce', level: 'PG', description: 'MBA specializations, global supply chain, investment banking, risk management, and fintech leadership.', status: 'Active' },
+        { id: 'dept-pg-math-phys', name: 'Mathematics, Statistics & Physical Sciences', level: 'PG', description: 'Applied mathematics, quantum materials, predictive statistical modeling, and chemical physics.', status: 'Active' },
+        { id: 'dept-pg-arch-design', name: 'Architecture, Design & Creative Arts', level: 'PG', description: 'Master of Architecture, urban planning, sustainable environmental design, and master of design.', status: 'Active' },
+        { id: 'dept-pg-arts-hum', name: 'Arts, Humanities & Social Sciences', level: 'PG', description: 'Clinical psychology, international diplomatic relations, linguistics, and public administration.', status: 'Active' },
+        { id: 'dept-pg-agri-food', name: 'Agriculture, Food & Environmental Studies', level: 'PG', description: 'Sustainable agriculture, climate adaptation, food biotechnology, and agribusiness economics.', status: 'Active' },
+        { id: 'dept-pg-med-allied', name: 'Medical & Allied Health Sciences', level: 'PG', description: 'Medical research, clinical pharmacology, public health administration, and clinical diagnostics.', status: 'Active' },
+        { id: 'dept-pg-law', name: 'Law', level: 'PG', description: 'Master of Laws (LL.M), international commercial arbitration, corporate compliance, and cyber law.', status: 'Active' },
+        { id: 'dept-pg-edu-teach', name: 'Education & Teaching', level: 'PG', description: 'Master of Education (M.Ed), curriculum design, educational leadership, and instructional tech.', status: 'Active' },
+        { id: 'dept-pg-hosp-aviat', name: 'Hospitality, Tourism & Aviation', level: 'PG', description: 'Strategic hospitality leadership, luxury brand management, and aviation airline governance.', status: 'Active' },
+        { id: 'dept-pg-media-film', name: 'Media, Film & Performing Arts', level: 'PG', description: 'Broadcast journalism, film direction, digital media production, and corporate communications.', status: 'Active' }
+      ];
+
+      for (const dept of seedDepartments) {
+        await db.run(
+          `INSERT INTO career_departments (id, name, level, description, status, createdAt, updatedAt)
+           VALUES (?, ?, ?, ?, ?, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)`,
+          [dept.id, dept.name, dept.level, dept.description, dept.status]
+        );
+      }
+      console.log('Seeded verified UG & PG departments into career_departments table.');
+    }
+  } catch (seedDeptErr) {
+    console.warn('Career departments seed warning:', seedDeptErr.message);
   }
 
   console.log('Database initialized successfully with SQLite.');

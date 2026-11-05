@@ -48,105 +48,28 @@ export const PIPELINE_STAGES = [
   { id: 'offer_accepted', title: 'Offer Accepted', color: 'bg-orange-500' },
   { id: 'documentation', title: 'Documentation', color: 'bg-teal-500' },
   { id: 'bgv', title: 'Background Verification', color: 'bg-teal-600' },
-  { id: 'visa_process', title: 'Visa Process', color: 'bg-sky-600' },
-  { id: 'travel_process', title: 'Travel Process', color: 'bg-blue-600' },
-  { id: 'joined', title: 'Joined', color: 'bg-emerald-600' },
-  { id: 'rejected', title: 'Rejected', color: 'bg-rose-600' },
-  { id: 'hold', title: 'Hold', color: 'bg-yellow-600' }
+  { id: 'visa_applied', title: 'Visa Applied', color: 'bg-emerald-500' },
+  { id: 'visa_approved', title: 'Visa Approved', color: 'bg-emerald-600' },
+  { id: 'ticket_booked', title: 'Ticket Booked', color: 'bg-sky-500' },
+  { id: 'deployed', title: 'Deployed', color: 'bg-green-600' },
+  { id: 'joined', title: 'Joined', color: 'bg-emerald-700' },
+  { id: 'probation_passed', title: 'Probation Passed', color: 'bg-teal-700' },
+  { id: 'rejected', title: 'Rejected', color: 'bg-rose-500' },
+  { id: 'withdrawn', title: 'Withdrawn', color: 'bg-slate-400' }
 ];
 
-export const CRM_CANDIDATES = [];
-
-export const CRM_CLIENTS = [];
-
-export const CRM_INTERVIEWS = [];
-
-export const CRM_INVOICES = [];
-
-export const ASSIGNED_RECRUITERS = [
-  {
-    id: 'REC-001',
-    name: 'Dhanalakshimi',
-    role: 'Super Admin & Lead Advisor',
-    avatar: 'https://images.unsplash.com/photo-1573496359142-b8d87734a5a2?w=150&auto=format&fit=crop&q=80',
-    email: 'dhana.jasync@gmail.com',
-    phone: '+91 98400 11221',
-    location: 'Chennai HQ, India',
-    specialties: ['International Consulting', 'Academic Advisory', 'Executive Strategy'],
-    activeCandidates: 0,
-    totalPlacements: 0,
-    revenueUSD: 0,
-    targetPct: 100,
-    rating: 5.0,
-    status: 'Active'
-  },
-  {
-    id: 'REC-002',
-    name: 'Sreeja',
-    role: 'Senior Academic Counselor',
-    avatar: 'https://images.unsplash.com/photo-1580894732444-8ecded7900cd?w=150&auto=format&fit=crop&q=80',
-    email: 'sreeja@revivalinternational.com',
-    phone: '+91 98400 11222',
-    location: 'Chennai HQ, India',
-    specialties: ['Higher Education Advisory', 'Admissions', 'Destination Roadmaps'],
-    activeCandidates: 0,
-    totalPlacements: 0,
-    revenueUSD: 0,
-    targetPct: 100,
-    rating: 4.9,
-    status: 'Active'
-  },
-  {
-    id: 'REC-003',
-    name: 'chentamilselvi',
-    role: 'Senior Admissions Specialist',
-    avatar: 'https://images.unsplash.com/photo-1573497019940-1c28c88b4f3e?w=150&auto=format&fit=crop&q=80',
-    email: 'chentamilselvi@revivalinternational.com',
-    phone: '+91 98400 11223',
-    location: 'Chennai HQ, India',
-    specialties: ['College Admission Assistance', 'STEM & Medical Advisory'],
-    activeCandidates: 0,
-    totalPlacements: 0,
-    revenueUSD: 0,
-    targetPct: 100,
-    rating: 4.8,
-    status: 'Active'
-  },
-  {
-    id: 'REC-004',
-    name: 'Diviya',
-    role: 'International Admissions Advisor',
-    avatar: 'https://images.unsplash.com/photo-1594824813566-88855ce78c0c?w=150&auto=format&fit=crop&q=80',
-    email: 'diviya@revivalinternational.com',
-    phone: '+91 98400 11224',
-    location: 'Chennai HQ, India',
-    specialties: ['UK, US & Canada Consulting', 'Visa & Attestation'],
-    activeCandidates: 0,
-    totalPlacements: 0,
-    revenueUSD: 0,
-    targetPct: 100,
-    rating: 4.9,
-    status: 'Active'
-  },
-  {
-    id: 'REC-005',
-    name: 'balavarshini',
-    role: 'Student Career Counselor',
-    avatar: 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=150&auto=format&fit=crop&q=80',
-    email: 'balavarshini@revivalinternational.com',
-    phone: '+91 98400 11225',
-    location: 'Chennai HQ, India',
-    specialties: ['School Career Guidance', 'Aptitude & Profile Mapping'],
-    activeCandidates: 0,
-    totalPlacements: 0,
-    revenueUSD: 0,
-    targetPct: 100,
-    rating: 4.8,
-    status: 'Active'
-  }
+export const RECRUITER_LEADERBOARD = [
+  { rank: 1, name: 'Sreeja', role: 'Placement Coordinator', score: 98, placements: 14, pipeline: 28, avatar: 'SJ' },
+  { rank: 2, name: 'Dhanalakshimi', role: 'Placement Coordinator', score: 94, placements: 12, pipeline: 22, avatar: 'DH' },
+  { rank: 3, name: 'Kishore Kumar', role: 'Recruiter', score: 89, placements: 10, pipeline: 19, avatar: 'KK' },
+  { rank: 4, name: 'Balavarshini', role: 'HR Operations', score: 85, placements: 8, pipeline: 15, avatar: 'BV' },
+  { rank: 5, name: 'Sarah Jenkins', role: 'Admin', score: 82, placements: 7, pipeline: 12, avatar: 'SJ' }
 ];
 
-export const RECRUITER_LEADERBOARD = [];
-
-export const AUDIT_LOGS = [];
-
+export const AUDIT_LOGS = [
+  { id: 1, user: 'Super Admin', role: 'Super Admin', action: 'Employee account created: Sarah Jenkins (Admin)', timestamp: '10 mins ago', ip: '192.168.1.1' },
+  { id: 2, user: 'Priya Sharma', role: 'HR Lead', action: 'Assigned 6 international consulting leads to HR Operations', timestamp: '25 mins ago', ip: '192.168.1.42' },
+  { id: 3, user: 'Kishore Kumar', role: 'Recruiter', action: 'Ran ATS resume scoring on candidate Alexander Wright (94% match)', timestamp: '42 mins ago', ip: '192.168.1.88' },
+  { id: 4, user: 'Sreeja Nair', role: 'Placement Coordinator', action: 'Updated candidate submission status for Al Habtoor Contracting', timestamp: '1 hour ago', ip: '192.168.1.15' },
+  { id: 5, user: 'Balavarshini', role: 'HR Operations', action: 'Logged follow-up call with UAE Golden Visa applicant', timestamp: '2 hours ago', ip: '192.168.1.33' }
+];
