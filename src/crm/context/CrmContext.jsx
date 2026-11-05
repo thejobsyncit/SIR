@@ -203,6 +203,29 @@ export const CrmProvider = ({ children }) => {
     }
   };
 
+  const fetchCandidates = async () => {
+    try {
+      const res = await fetch('/api/candidates');
+      if (res.ok) {
+        const data = await res.json();
+        if (data && data.success && Array.isArray(data.data)) {
+          setCandidates(prev => {
+            const serverCandidates = data.data;
+            const serverIds = new Set(serverCandidates.map(c => c.id));
+            const localOnly = (prev || []).filter(c => !serverIds.has(c.id));
+            const merged = [...serverCandidates, ...localOnly];
+            try {
+              localStorage.setItem('crm_candidates', JSON.stringify(merged));
+            } catch {}
+            return merged;
+          });
+        }
+      }
+    } catch (err) {
+      console.error('Failed to fetch candidates from backend:', err);
+    }
+  };
+
   const fetchClients = async () => {
     try {
       const res = await fetch('/api/clients');
@@ -243,6 +266,7 @@ export const CrmProvider = ({ children }) => {
   };
 
   useEffect(() => {
+    fetchCandidates();
     fetchLeads();
     fetchClients();
     fetchFollowUps();
@@ -251,6 +275,7 @@ export const CrmProvider = ({ children }) => {
     fetchFollowUpsSummary();
     // Periodically sync new inquiries, follow-ups, and metrics every 15 seconds
     const interval = setInterval(() => {
+      fetchCandidates();
       fetchLeads();
       fetchFollowUps();
       fetchConsultingMetrics();
@@ -497,10 +522,19 @@ export const CrmProvider = ({ children }) => {
     logAuditAction(`Updated candidate ${candidateId} stage to '${newStage}'.`);
   };
 
-  const addCandidate = (newCand) => {
-    const candidateToAdd = { ...newCand, id: `CAND-${Math.floor(Math.random() * 9000) + 1000}` };
+  const addCandidate = async (newCand) => {
+    const candidateToAdd = { ...newCand, id: newCand.id || `CAND-${Math.floor(Math.random() * 9000) + 1000}` };
     setCandidates(prev => [candidateToAdd, ...prev]);
     logAuditAction(`Added new candidate ${candidateToAdd.name} (${candidateToAdd.id}).`);
+    try {
+      await fetch('/api/candidates', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(candidateToAdd)
+      });
+    } catch (err) {
+      console.error('Failed to sync added candidate to backend:', err);
+    }
   };
 
   const updateCandidate = (updatedCand) => {
@@ -908,6 +942,7 @@ export const CrmProvider = ({ children }) => {
         activeModule,
         setActiveModule,
         candidates,
+        fetchCandidates,
         addCandidate,
         updateCandidate,
         deleteCandidate,

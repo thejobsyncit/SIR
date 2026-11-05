@@ -1,35 +1,37 @@
 export const CRM_ROLES = [
   'Super Admin',
   'Admin',
+  'HR Lead',
   'Recruiter',
-  'Interviewer',
-  'Client Coordinator'
+  'Placement Coordinator',
+  'HR Operations'
 ];
 
 export const ROLE_PERMISSIONS = {
   'Super Admin': ['all'],
-  'Admin': ['dashboard', 'consulting', 'career-guidance', 'student-academy', 'candidates', 'pipeline', 'domestic', 'international', 'clients', 'workspace', 'interviews', 'documentation', 'visa', 'verification', 'accounts', 'reports', 'ai-suite', 'automation', 'calendar', 'settings'],
-  'Recruiter': ['dashboard', 'consulting', 'career-guidance', 'student-academy', 'candidates', 'pipeline', 'domestic', 'international', 'workspace', 'interviews', 'documentation', 'calendar', 'reports'],
-  'Interviewer': ['dashboard', 'consulting', 'career-guidance', 'student-academy', 'candidates', 'interviews', 'calendar', 'workspace'],
-  'Client Coordinator': ['dashboard', 'consulting', 'career-guidance', 'student-academy', 'clients', 'domestic', 'international', 'pipeline', 'interviews', 'workspace', 'reports'],
-  
-  // Legacy aliases for full backward compatibility
-  'HR & Talent Manager': ['dashboard', 'consulting', 'career-guidance', 'student-academy', 'candidates', 'pipeline', 'domestic', 'international', 'clients', 'workspace', 'interviews', 'documentation', 'reports', 'calendar'],
-  'Domestic Recruiter': ['dashboard', 'consulting', 'career-guidance', 'student-academy', 'candidates', 'pipeline', 'domestic', 'workspace', 'interviews', 'calendar'],
-  'International Recruiter': ['dashboard', 'consulting', 'career-guidance', 'student-academy', 'candidates', 'pipeline', 'international', 'workspace', 'interviews', 'visa', 'calendar'],
-  'Placement Coordinator': ['dashboard', 'consulting', 'career-guidance', 'student-academy', 'candidates', 'pipeline', 'clients', 'interviews', 'workspace', 'calendar'],
-  'Client Account Manager': ['dashboard', 'consulting', 'career-guidance', 'student-academy', 'clients', 'domestic', 'international', 'interviews', 'workspace'],
-  'Interview Coordinator': ['dashboard', 'consulting', 'career-guidance', 'student-academy', 'candidates', 'interviews', 'calendar', 'workspace'],
-  'Documentation & Visa Specialist': ['dashboard', 'consulting', 'career-guidance', 'student-academy', 'candidates', 'documentation', 'visa', 'workspace'],
-  'Background Verification Officer': ['dashboard', 'consulting', 'career-guidance', 'student-academy', 'candidates', 'verification', 'documentation', 'workspace'],
-  'Accounts & Billing Executive': ['dashboard', 'accounts', 'clients', 'reports'],
-  'HR Professional': ['dashboard', 'consulting', 'career-guidance', 'student-academy', 'candidates', 'pipeline', 'domestic', 'international', 'clients', 'workspace', 'interviews', 'documentation', 'reports', 'calendar'],
-  'Application Support': ['dashboard', 'consulting', 'career-guidance', 'student-academy', 'candidates', 'documentation', 'visa', 'verification', 'workspace'],
-  'DMS': ['dashboard', 'candidates', 'documentation', 'workspace'],
-  'HR Manager': ['dashboard', 'consulting', 'career-guidance', 'student-academy', 'candidates', 'pipeline', 'domestic', 'international', 'clients', 'workspace', 'interviews', 'documentation', 'reports', 'calendar'],
-  'Accounts & Treasury': ['dashboard', 'accounts', 'clients', 'reports'],
-  'Accounts': ['dashboard', 'accounts', 'clients', 'reports'],
-  'Coordinator': ['dashboard', 'consulting', 'career-guidance', 'student-academy', 'candidates', 'pipeline', 'domestic', 'international', 'clients', 'workspace', 'interviews', 'documentation', 'calendar']
+  'Admin': [
+    'dashboard', 'consulting', 'career-guidance', 'student-academy', 
+    'candidates', 'pipeline', 'domestic', 'international', 'clients', 
+    'workspace', 'interviews', 'documentation', 'visa', 'verification', 
+    'accounts', 'reports', 'ai-suite', 'calendar', 'settings'
+  ],
+  'HR Lead': [
+    'dashboard', 'consulting', 'career-guidance', 'student-academy', 
+    'candidates', 'pipeline', 'workspace', 'interviews', 'reports', 
+    'calendar'
+  ],
+  'Recruiter': [
+    'dashboard', 'candidates', 'pipeline', 'workspace', 'interviews', 
+    'documentation', 'calendar'
+  ],
+  'Placement Coordinator': [
+    'dashboard', 'candidates', 'pipeline', 'clients', 'interviews', 
+    'workspace', 'calendar'
+  ],
+  'HR Operations': [
+    'dashboard', 'consulting', 'career-guidance', 'student-academy', 
+    'candidates', 'documentation', 'calendar'
+  ]
 };
 
 export const PIPELINE_STAGES = [

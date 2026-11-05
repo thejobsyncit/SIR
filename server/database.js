@@ -565,7 +565,45 @@ const initDb = async (db) => {
       notes TEXT,
       createdAt DATETIME DEFAULT CURRENT_TIMESTAMP
     );
+
+    CREATE TABLE IF NOT EXISTS employees (
+      id TEXT PRIMARY KEY,
+      employeeId TEXT UNIQUE,
+      name TEXT NOT NULL,
+      email TEXT UNIQUE NOT NULL,
+      phone TEXT,
+      role TEXT NOT NULL,
+      department TEXT,
+      password TEXT NOT NULL,
+      status TEXT DEFAULT 'Active',
+      createdAt DATETIME DEFAULT CURRENT_TIMESTAMP,
+      updatedAt DATETIME DEFAULT CURRENT_TIMESTAMP
+    );
   `);
+
+  // Seed default employees for all 6 roles if table is empty
+  try {
+    const existingEmployees = await db.all('SELECT COUNT(*) as count FROM employees');
+    if (existingEmployees && existingEmployees[0] && existingEmployees[0].count === 0) {
+      const defaultEmps = [
+        { id: 'emp-1', employeeId: 'REV-EMP-001', name: 'Dhanalakshimi', email: 'thejobsyncit@gmail.com', phone: '+91 9003475405', role: 'Super Admin', department: 'Executive Management', password: 'Thejobsync@26', status: 'Active' },
+        { id: 'emp-2', employeeId: 'REV-EMP-002', name: 'Sarah Jenkins', email: 'sarah.admin@revivalinternational.com', phone: '+91 98400 11002', role: 'Admin', department: 'Administration', password: 'Password123!', status: 'Active' },
+        { id: 'emp-3', employeeId: 'REV-EMP-003', name: 'Priya Sharma', email: 'priya.lead@revivalinternational.com', phone: '+91 98400 11003', role: 'HR Lead', department: 'Human Resources', password: 'Password123!', status: 'Active' },
+        { id: 'emp-4', employeeId: 'REV-EMP-004', name: 'Kishore Kumar', email: 'kishore.recruiter@revivalinternational.com', phone: '+91 98400 11004', role: 'Recruiter', department: 'Recruitment & ATS', password: 'Password123!', status: 'Active' },
+        { id: 'emp-5', employeeId: 'REV-EMP-005', name: 'Sreeja Nair', email: 'sreeja.jasync@gmail.com', phone: '+91 9876543211', role: 'Placement Coordinator', department: 'Placement & Client Relations', password: 'Password123!', status: 'Active' },
+        { id: 'emp-6', employeeId: 'REV-EMP-006', name: 'Balavarshini', email: 'balavarshini2223@gmail.com', phone: '+91 9876543214', role: 'HR Operations', department: 'HR Operations', password: 'Password123!', status: 'Active' }
+      ];
+      for (const emp of defaultEmps) {
+        await db.run(
+          `INSERT OR IGNORE INTO employees (id, employeeId, name, email, phone, role, department, password, status) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+          [emp.id, emp.employeeId, emp.name, emp.email, emp.phone, emp.role, emp.department, emp.password, emp.status]
+        );
+      }
+      console.log('✓ Seeded default employees across all 6 CRM roles.');
+    }
+  } catch (err) {
+    console.warn('Employee table seeding notice:', err.message);
+  }
 
   const ensureColumns = async (tableName, columnDefs) => {
     try {

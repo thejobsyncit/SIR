@@ -48,6 +48,16 @@ export const CandidateAuth = () => {
       setError('Please fill in all required fields.');
       return;
     }
+    const emailRegex = /^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+.[a-zA-Z]{2,}$/;
+    if (!emailRegex.test(regData.email.trim())) {
+      setError('Please provide a valid email address (e.g. name@gmail.com).');
+      return;
+    }
+    const digitsOnly = (regData.phone || '').replace(/\D/g, '');
+    if (digitsOnly.length !== 10) {
+      setError('Phone number must be exactly 10 digits.');
+      return;
+    }
     if (regData.password !== regData.confirmPassword) {
       setError('Passwords do not match.');
       return;

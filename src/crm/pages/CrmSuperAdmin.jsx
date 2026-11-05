@@ -35,13 +35,27 @@ export const CrmSuperAdmin = () => {
 
   const [activeTab, setActiveTab] = useState('overview'); // 'overview' | 'inquiries' | 'employees' | 'attendance' | 'leaves' | 'company' | 'master'
 
-  // Pre-seeded Employee Accounts matching the user's reference UI
+  // Helper to map role to Revival department
+  const getDepartmentForRole = (role) => {
+    switch (role) {
+      case 'Super Admin': return 'Executive Management';
+      case 'Admin': return 'Operations Management';
+      case 'HR Lead': return 'Human Resources';
+      case 'Recruiter': return 'Talent Acquisition';
+      case 'Placement Coordinator': return 'Placement & Industry Relations';
+      case 'HR Operations': return 'HR & Student Operations';
+      default: return 'Corporate Operations';
+    }
+  };
+
+  // Pre-seeded Employee Accounts matching the exact 6 corporate roles
   const initialEmployees = [
-    { id: 'emp-1', name: 'Dhanalakshimi', role: 'Placement Coordinator', email: 'dhana.jasync@gmail.com', phone: '+91 9876543210', password: 'Password123!', status: 'Active' },
-    { id: 'emp-2', name: 'Sreeja', role: 'Placement Coordinator', email: 'sreeja.jasync@gmail.com', phone: '+91 9876543211', password: 'Password123!', status: 'Active' },
-    { id: 'emp-3', name: 'chentamilselvi', role: 'DMS', email: 'chentamilselvip7@gmail.com', phone: '+91 9876543212', password: 'Password123!', status: 'Active' },
-    { id: 'emp-4', name: 'Diviya', role: 'Application Support', email: 'abi.jasync@gmail.com', phone: '+91 9876543213', password: 'Password123!', status: 'Active' },
-    { id: 'emp-5', name: 'balavarshini', role: 'Application Support', email: 'balavarshini2223@gmail.com', phone: '+91 9876543214', password: 'Password123!', status: 'Active' }
+    { id: 'emp-0', employeeId: 'EMP-1001', name: 'Super Admin', role: 'Super Admin', department: 'Executive Management', email: 'thejobsyncit@gmail.com', phone: '+91 9003475405', password: 'Thejobsync@26', status: 'Active' },
+    { id: 'emp-1', employeeId: 'EMP-1002', name: 'Tariq Al Mansoor', role: 'Admin', department: 'Operations Management', email: 'tariq.admin@revivalinternational.com', phone: '+971 50 123 4567', password: 'Password123!', status: 'Active' },
+    { id: 'emp-2', employeeId: 'EMP-1003', name: 'Sarah Al Zaabi', role: 'HR Lead', department: 'Human Resources', email: 'sarah.hr@revivalinternational.com', phone: '+971 50 234 5678', password: 'Password123!', status: 'Active' },
+    { id: 'emp-3', employeeId: 'EMP-1004', name: 'Sreeja Recruiter', role: 'Recruiter', department: 'Talent Acquisition', email: 'sreeja.jasync@gmail.com', phone: '+91 9876543211', password: 'Password123!', status: 'Active' },
+    { id: 'emp-4', employeeId: 'EMP-1005', name: 'Dhanalakshimi', role: 'Placement Coordinator', department: 'Placement & Industry Relations', email: 'dhana.jasync@gmail.com', phone: '+91 9876543210', password: 'Password123!', status: 'Active' },
+    { id: 'emp-5', employeeId: 'EMP-1006', name: 'Fatima Al Zahra', role: 'HR Operations', department: 'HR & Student Operations', email: 'fatima.ops@revivalinternational.com', phone: '+971 50 456 7890', password: 'Password123!', status: 'Active' }
   ];
 
   const [employees, setEmployees] = useState(() => {
@@ -51,9 +65,11 @@ export const CrmSuperAdmin = () => {
         const parsed = JSON.parse(saved);
         if (Array.isArray(parsed) && parsed.length > 0) {
           return parsed.map((u, i) => ({
-            id: `emp-${i + 1}`,
+            id: u.id || `emp-${i + 1}`,
+            employeeId: u.employeeId || `EMP-${1000 + i + 1}`,
             name: u.name || u.email.split('@')[0],
             role: u.role || 'Super Admin',
+            department: u.department || getDepartmentForRole(u.role || 'Super Admin'),
             email: u.email,
             phone: u.phone || '+91 9800011122',
             password: u.password || 'Password123!',
@@ -64,6 +80,26 @@ export const CrmSuperAdmin = () => {
     }
     return initialEmployees;
   });
+
+  // Load from SQLite database on mount if available
+  useEffect(() => {
+    const fetchDbEmployees = async () => {
+      try {
+        const res = await fetch('http://localhost:5000/api/employees');
+        if (res.ok) {
+          const json = await res.json();
+          const list = Array.isArray(json) ? json : (json.data || []);
+          if (Array.isArray(list) && list.length > 0) {
+            setEmployees(list);
+            syncToLocalStorage(list);
+          }
+        }
+      } catch (err) {
+        // Fallback to local state
+      }
+    };
+    fetchDbEmployees();
+  }, []);
 
   // Attendance Tab State
   const [attendanceList, setAttendanceList] = useState([
@@ -561,7 +597,8 @@ export const CrmSuperAdmin = () => {
       email: emp.email,
       password: emp.password,
       phone: emp.phone,
-      role: emp.role
+      role: emp.role,
+      department: emp.department || getDepartmentForRole(emp.role)
     });
     // Scroll to top where the form is usually visible on mobile, or just let them see it
     window.scrollTo({ top: 0, behavior: 'smooth' });
@@ -569,7 +606,7 @@ export const CrmSuperAdmin = () => {
 
   const handleCancelEdit = () => {
     setEditingEmployeeId(null);
-    setNewEmployee({ name: '', email: '', password: '', phone: '', role: 'Recruiter' });
+    setNewEmployee({ name: '', email: '', password: '', phone: '', role: 'Recruiter', department: 'Talent Acquisition' });
     setEmailError('');
   };
 
@@ -585,21 +622,42 @@ export const CrmSuperAdmin = () => {
   // Sync state changes back to localStorage registeredUsers so any created account can immediately log in!
   const syncToLocalStorage = (updatedEmpList) => {
     const registeredFormat = updatedEmpList.map(e => ({
+      id: e.id,
+      employeeId: e.employeeId,
       name: e.name,
       email: e.email.trim().toLowerCase(),
       password: e.password,
       role: e.role,
+      department: e.department || getDepartmentForRole(e.role),
       phone: e.phone,
       status: e.status || 'Active'
     }));
     localStorage.setItem('sir_crm_registered_users', JSON.stringify(registeredFormat));
   };
 
+  // Toggle Employee Account Status (Active <-> Inactive)
+  const handleToggleEmployeeStatus = async (emp) => {
+    const nextStatus = emp.status === 'Active' ? 'Inactive' : 'Active';
+    const updated = employees.map(e => e.id === emp.id ? { ...e, status: nextStatus } : e);
+    setEmployees(updated);
+    syncToLocalStorage(updated);
+
+    try {
+      await fetch(`http://localhost:5000/api/employees/${emp.id}/toggle-status`, {
+        method: 'PATCH'
+      });
+    } catch (err) {}
+
+    logAuditAction(`Super Admin changed status of employee '${emp.name}' to ${nextStatus}.`);
+    setStatusMsg(`✓ Employee '${emp.name}' account status updated to ${nextStatus}.`);
+    setTimeout(() => setStatusMsg(''), 4000);
+  };
+
   useEffect(() => {
     syncToLocalStorage(employees);
   }, []);
 
-  const handleSaveEmployee = (e) => {
+  const handleSaveEmployee = async (e) => {
     e.preventDefault();
     setEmailError('');
     if (!newEmployee.email || !newEmployee.password) {
@@ -613,6 +671,7 @@ export const CrmSuperAdmin = () => {
         setEmailError('An employee with this email already exists.');
         return;
       }
+      const departmentToSet = newEmployee.department || getDepartmentForRole(newEmployee.role);
       const updated = employees.map(emp => {
         if (emp.id === editingEmployeeId) {
           return {
@@ -621,13 +680,30 @@ export const CrmSuperAdmin = () => {
             email: newEmployee.email.trim().toLowerCase(),
             password: newEmployee.password,
             phone: newEmployee.phone.trim() || '+91 9800000000',
-            role: newEmployee.role
+            role: newEmployee.role,
+            department: departmentToSet
           };
         }
         return emp;
       });
       setEmployees(updated);
       syncToLocalStorage(updated);
+
+      try {
+        await fetch(`http://localhost:5000/api/employees/${editingEmployeeId}`, {
+          method: 'PUT',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            name: newEmployee.name.trim() || newEmployee.email.split('@')[0],
+            email: newEmployee.email.trim().toLowerCase(),
+            password: newEmployee.password,
+            phone: newEmployee.phone.trim() || '+91 9800000000',
+            role: newEmployee.role,
+            department: departmentToSet
+          })
+        });
+      } catch (err) {}
+
       logAuditAction(`Super Admin updated employee account '${newEmployee.email}'.`);
       setStatusMsg(`✓ Employee Account '${newEmployee.name || newEmployee.email}' updated successfully!`);
     } else {
@@ -636,24 +712,38 @@ export const CrmSuperAdmin = () => {
         setEmailError('An employee with this email already exists.');
         return;
       }
+      const generatedId = `emp-${Date.now()}`;
+      const generatedEmpId = `EMP-${1000 + employees.length + 1}`;
+      const departmentToSet = newEmployee.department || getDepartmentForRole(newEmployee.role);
       const createdEmp = {
-        id: `emp-${Date.now()}`,
+        id: generatedId,
+        employeeId: generatedEmpId,
         name: newEmployee.name.trim() || newEmployee.email.split('@')[0],
         email: newEmployee.email.trim().toLowerCase(),
         password: newEmployee.password,
         phone: newEmployee.phone.trim() || '+91 9800000000',
         role: newEmployee.role,
+        department: departmentToSet,
         status: 'Active'
       };
 
       const updated = [createdEmp, ...employees];
       setEmployees(updated);
       syncToLocalStorage(updated);
+
+      try {
+        await fetch('http://localhost:5000/api/employees', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(createdEmp)
+        });
+      } catch (err) {}
+
       logAuditAction(`Super Admin created employee account '${createdEmp.email}'.`);
       setStatusMsg(`✓ Employee Account '${createdEmp.name}' created successfully!`);
     }
     
-    setNewEmployee({ name: '', email: '', password: '', phone: '', role: 'Recruiter' });
+    setNewEmployee({ name: '', email: '', password: '', phone: '', role: 'Recruiter', department: 'Talent Acquisition' });
     setEditingEmployeeId(null);
     setShowPassword(false);
     setTimeout(() => setStatusMsg(''), 5000);
@@ -1826,54 +1916,91 @@ export const CrmSuperAdmin = () => {
               <table className="w-full text-left text-xs border-collapse">
                 <thead>
                   <tr className="bg-slate-100 dark:bg-navy-950 text-slate-900 dark:text-gold-400 font-serif uppercase tracking-wider text-[10px] border-b border-slate-200 dark:border-navy-800">
-                    <th className="p-3 font-extrabold">NAME</th>
-                    <th className="p-3 font-extrabold">ROLE</th>
-                    <th className="p-3 font-extrabold">CONTACT INFO</th>
-                    <th className="p-3 font-extrabold text-red-600 dark:text-red-400">PASSWORD</th>
-                    <th className="p-3 font-extrabold">STATUS</th>
-                    <th className="p-3 font-extrabold text-right">ACTION</th>
+                    <th className="p-3 font-extrabold whitespace-nowrap">EMPLOYEE NAME</th>
+                    <th className="p-3 font-extrabold whitespace-nowrap">EMPLOYEE ID</th>
+                    <th className="p-3 font-extrabold whitespace-nowrap">EMAIL</th>
+                    <th className="p-3 font-extrabold whitespace-nowrap">PHONE NUMBER</th>
+                    <th className="p-3 font-extrabold whitespace-nowrap">ROLE</th>
+                    <th className="p-3 font-extrabold whitespace-nowrap">DEPARTMENT</th>
+                    <th className="p-3 font-extrabold whitespace-nowrap">ACCOUNT STATUS</th>
+                    <th className="p-3 font-extrabold text-right whitespace-nowrap">ACTIONS</th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-slate-200 dark:divide-navy-800 text-slate-800 dark:text-slate-300">
-                  {filteredEmployees.map(emp => (
+                  {filteredEmployees.map((emp, idx) => (
                     <tr key={emp.id} className="hover:bg-slate-50 dark:hover:bg-navy-950/60 transition">
+                      {/* 1. Employee Name */}
                       <td className="p-3 font-bold text-slate-900 dark:text-white flex items-center space-x-2.5">
                         <div className="w-7 h-7 rounded-full bg-blue-100 dark:bg-blue-600/30 text-blue-700 dark:text-blue-400 font-bold flex items-center justify-center border border-blue-300 dark:border-blue-500/40 text-[11px] shrink-0">
                           {emp.name.charAt(0).toUpperCase()}
                         </div>
-                        <span className="truncate">{emp.name}</span>
+                        <span className="truncate max-w-[140px] font-semibold">{emp.name}</span>
                       </td>
-                      <td className="p-3">
-                        <span className="bg-purple-100 dark:bg-purple-500/20 text-purple-900 dark:text-purple-300 font-extrabold px-2.5 py-1 rounded-full text-[10px] border border-purple-300 dark:border-purple-500/30">
+
+                      {/* 2. Employee ID */}
+                      <td className="p-3 font-mono font-bold text-slate-700 dark:text-slate-300 whitespace-nowrap">
+                        <span className="px-2 py-0.5 rounded bg-slate-100 dark:bg-navy-800 border border-slate-200 dark:border-navy-700">
+                          {emp.employeeId || `EMP-${1001 + idx}`}
+                        </span>
+                      </td>
+
+                      {/* 3. Email */}
+                      <td className="p-3 font-mono text-slate-700 dark:text-slate-300 truncate max-w-[170px]" title={emp.email}>
+                        {emp.email}
+                      </td>
+
+                      {/* 4. Phone Number */}
+                      <td className="p-3 font-mono text-slate-600 dark:text-slate-400 whitespace-nowrap">
+                        {emp.phone}
+                      </td>
+
+                      {/* 5. Role */}
+                      <td className="p-3 whitespace-nowrap">
+                        <span className={`px-2.5 py-1 rounded-full text-[10px] font-extrabold border ${
+                          emp.role === 'Super Admin'
+                            ? 'bg-amber-100 text-amber-900 border-amber-300 dark:bg-amber-950/60 dark:text-amber-300 dark:border-amber-700'
+                            : emp.role === 'Admin'
+                            ? 'bg-indigo-100 text-indigo-900 border-indigo-300 dark:bg-indigo-950/60 dark:text-indigo-300 dark:border-indigo-700'
+                            : emp.role === 'HR Lead'
+                            ? 'bg-blue-100 text-blue-900 border-blue-300 dark:bg-blue-950/60 dark:text-blue-300 dark:border-blue-700'
+                            : emp.role === 'Recruiter'
+                            ? 'bg-purple-100 text-purple-900 border-purple-300 dark:bg-purple-950/60 dark:text-purple-300 dark:border-purple-700'
+                            : emp.role === 'Placement Coordinator'
+                            ? 'bg-teal-100 text-teal-900 border-teal-300 dark:bg-teal-950/60 dark:text-teal-300 dark:border-teal-700'
+                            : 'bg-emerald-100 text-emerald-900 border-emerald-300 dark:bg-emerald-950/60 dark:text-emerald-300 dark:border-emerald-700'
+                        }`}>
                           {emp.role}
                         </span>
                       </td>
-                      <td className="p-3 font-mono">
-                        <div className="font-bold text-slate-900 dark:text-slate-200 truncate max-w-[140px] sm:max-w-[180px]" title={emp.email}>{emp.email}</div>
-                        <div className="text-[10px] font-bold text-slate-500 dark:text-slate-400 mt-0.5">{emp.phone}</div>
+
+                      {/* 6. Department */}
+                      <td className="p-3 text-slate-700 dark:text-slate-300 whitespace-nowrap font-medium">
+                        {emp.department || getDepartmentForRole(emp.role)}
                       </td>
-                      <td className="p-3 font-mono text-[10px] font-bold text-red-600 dark:text-red-400">
-                        <div className="flex items-center gap-2">
-                          {visiblePasswords.has(emp.id) ? emp.password : '••••••••'}
-                          <button 
-                            onClick={() => toggleRowPassword(emp.id)} 
-                            className="text-slate-400 hover:text-slate-600 dark:hover:text-slate-300 transition cursor-pointer"
-                          >
-                            {visiblePasswords.has(emp.id) ? <EyeOff className="w-3 h-3" /> : <Eye className="w-3 h-3" />}
-                          </button>
-                        </div>
+
+                      {/* 7. Account Status */}
+                      <td className="p-3 whitespace-nowrap">
+                        <button
+                          onClick={() => handleToggleEmployeeStatus(emp)}
+                          className={`px-2.5 py-0.5 rounded text-[10px] font-extrabold border transition cursor-pointer flex items-center gap-1.5 ${
+                            emp.status === 'Active'
+                              ? 'bg-emerald-100 text-emerald-900 border-emerald-300 dark:bg-emerald-950/50 dark:text-emerald-400 dark:border-emerald-700 hover:bg-emerald-200'
+                              : 'bg-rose-100 text-rose-900 border-rose-300 dark:bg-rose-950/50 dark:text-rose-400 dark:border-rose-700 hover:bg-rose-200'
+                          }`}
+                          title="Click to toggle Active / Inactive"
+                        >
+                          <span className={`w-1.5 h-1.5 rounded-full ${emp.status === 'Active' ? 'bg-emerald-600 animate-pulse' : 'bg-rose-600'}`} />
+                          {emp.status}
+                        </button>
                       </td>
-                      <td className="p-3">
-                        <span className="bg-emerald-100 dark:bg-emerald-500/20 text-emerald-900 dark:text-emerald-400 font-extrabold px-2.5 py-0.5 rounded text-[10px] border border-emerald-300 dark:border-emerald-500/30">
-                          ● {emp.status}
-                        </span>
-                      </td>
-                      <td className="p-3 text-right">
+
+                      {/* 8. Actions */}
+                      <td className="p-3 text-right whitespace-nowrap">
                         <div className="flex items-center justify-end gap-1">
                           <button 
                             onClick={() => handleEditClick(emp)} 
                             className="p-1.5 text-blue-600 dark:text-blue-400 hover:text-blue-700 dark:hover:text-blue-300 hover:bg-blue-100 dark:hover:bg-blue-500/20 rounded-lg transition cursor-pointer"
-                            title="Edit Employee Account"
+                            title="Edit Employee Details & Role"
                           >
                             <Edit className="w-4 h-4" />
                           </button>
@@ -1913,7 +2040,7 @@ export const CrmSuperAdmin = () => {
                   required 
                   value={newEmployee.name} 
                   onChange={e=>setNewEmployee({...newEmployee, name: e.target.value})} 
-                  placeholder="e.g. Dhanalakshimi" 
+                  placeholder="e.g. Sarah Al Zaabi" 
                   className="w-full bg-slate-100 dark:bg-navy-950 border border-slate-300 dark:border-navy-700 text-slate-900 dark:text-white rounded-xl p-2.5 font-bold focus:outline-none focus:border-gold-500"
                 />
               </div>
@@ -1928,7 +2055,7 @@ export const CrmSuperAdmin = () => {
                     setNewEmployee({...newEmployee, email: e.target.value});
                     if (emailError) setEmailError('');
                   }} 
-                  placeholder="dhana.jasync@gmail.com" 
+                  placeholder="sarah.hr@revivalinternational.com" 
                   className={`w-full bg-slate-100 dark:bg-navy-950 border ${emailError ? 'border-red-500 focus:border-red-500' : 'border-slate-300 dark:border-navy-700 focus:border-gold-500'} text-slate-900 dark:text-white rounded-xl p-2.5 font-bold focus:outline-none`}
                 />
                 {emailError && <p className="text-red-500 text-[10px] font-bold mt-1">{emailError}</p>}
@@ -1962,22 +2089,41 @@ export const CrmSuperAdmin = () => {
                   type="text" 
                   value={newEmployee.phone} 
                   onChange={e=>setNewEmployee({...newEmployee, phone: e.target.value})} 
-                  placeholder="+91 9876543210" 
+                  placeholder="+971 50 123 4567" 
                   className="w-full bg-slate-100 dark:bg-navy-950 border border-slate-300 dark:border-navy-700 text-slate-900 dark:text-white rounded-xl p-2.5 font-bold focus:outline-none focus:border-gold-500"
                 />
               </div>
 
               <div>
-                <label className="block font-extrabold text-slate-800 dark:text-slate-200 mb-1">Role *</label>
+                <label className="block font-extrabold text-slate-800 dark:text-slate-200 mb-1">
+                  Assign Corporate Role * (Exactly 6 Roles)
+                </label>
                 <select 
                   value={newEmployee.role} 
-                  onChange={e=>setNewEmployee({...newEmployee, role: e.target.value})}
-                  className="w-full bg-slate-100 dark:bg-navy-950 border border-slate-300 dark:border-navy-700 text-slate-900 dark:text-white rounded-xl p-2.5 font-bold focus:outline-none focus:border-gold-500"
+                  onChange={e => {
+                    const role = e.target.value;
+                    setNewEmployee({
+                      ...newEmployee,
+                      role,
+                      department: getDepartmentForRole(role)
+                    });
+                  }}
+                  className="w-full bg-slate-100 dark:bg-navy-950 border border-slate-300 dark:border-navy-700 text-slate-900 dark:text-white rounded-xl p-2.5 font-bold focus:outline-none focus:border-gold-500 cursor-pointer"
                 >
                   {CRM_ROLES.map(r => (
                     <option key={r} value={r}>{r}</option>
                   ))}
                 </select>
+              </div>
+
+              <div>
+                <label className="block font-extrabold text-slate-800 dark:text-slate-200 mb-1">Department</label>
+                <input 
+                  type="text"
+                  value={newEmployee.department || getDepartmentForRole(newEmployee.role)} 
+                  onChange={e=>setNewEmployee({...newEmployee, department: e.target.value})} 
+                  className="w-full bg-slate-100 dark:bg-navy-950 border border-slate-300 dark:border-navy-700 text-slate-900 dark:text-white rounded-xl p-2.5 font-bold focus:outline-none focus:border-gold-500"
+                />
               </div>
 
               <button 

@@ -40,3 +40,4 @@ server/uploads/*
 # OneDrive duplicate / sync conflict files
 *(1).*
 *(1)
+SIR-main/

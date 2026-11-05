@@ -6,7 +6,7 @@ import ScrollReveal from '../components/ScrollReveal';
 import { SEO } from '../components/SEO';
 
 export const JobsPage = () => {
-  const { setSelectedJob, applyForJob, applications, toggleSaveJob, savedJobs, setActiveModal, postedJobs, t, selectedJobCategory: selectedCategory, setSelectedJobCategory: setSelectedCategory } = useApp();
+  const { user, openAuthModal, pendingJobToApply, setPendingJobToApply, setSelectedJob, applyForJob, applications, toggleSaveJob, savedJobs, setActiveModal, postedJobs, t, selectedJobCategory: selectedCategory, setSelectedJobCategory: setSelectedCategory } = useApp();
   const [jobs, setJobs] = useState([]);
   const [loading, setLoading] = useState(true);
 
@@ -77,16 +77,33 @@ export const JobsPage = () => {
     fetchJobs();
   }, [keyword, selectedCountry, selectedCategory, selectedJobType, postedJobs]);
 
+  // Auto-apply when user registers or logs in with a pending job
+  useEffect(() => {
+    if (user && user.email && pendingJobToApply) {
+      const targetJob = pendingJobToApply;
+      setPendingJobToApply(null);
+      applyForJob(targetJob);
+      setApplyJob(targetJob);
+      setAppliedSuccess(true);
+    }
+  }, [user, pendingJobToApply]);
+
   const handleQuickApply = (e, job) => {
     e.stopPropagation();
-    applyForJob(job);
+    if (!user || !user.email) {
+      setApplyJob(null);
+      setAppliedSuccess(false);
+      setPendingJobToApply(job);
+      openAuthModal('register', 'candidate');
+      return;
+    }
     setApplyJob(job);
-    setAppliedSuccess(true);
+    setAppliedSuccess(false);
   };
 
-  const submitApplication = () => {
+  const submitApplication = async () => {
     if (applyJob) {
-      applyForJob(applyJob);
+      await applyForJob(applyJob);
       setAppliedSuccess(true);
     }
   };
@@ -332,7 +349,17 @@ export const JobsPage = () => {
                   <span>Applied</span>
                 </button>
               ) : (
-                <button onClick={() => { const j = viewJob; setViewJob(null); setApplyJob(j); setAppliedSuccess(false); }} className="flex-1 py-2.5 bg-gold-shimmer text-navy-950 font-bold text-xs rounded-xl shadow-gold-glow">Apply for Position</button>
+                <button onClick={() => {
+                const j = viewJob;
+                setViewJob(null);
+                if (!user || !user.email) {
+                  setPendingJobToApply(j);
+                  openAuthModal('register', 'candidate');
+                  return;
+                }
+                setApplyJob(j);
+                setAppliedSuccess(false);
+              }} className="flex-1 py-2.5 bg-gold-shimmer text-navy-950 font-bold text-xs rounded-xl shadow-gold-glow">Apply for Position</button>
               )}
             </div>
           </div>
@@ -355,17 +382,17 @@ export const JobsPage = () => {
               <div className="space-y-3 text-xs">
                 <div>
                   <label className="block font-bold text-slate-700 dark:text-slate-200 mb-1">Full Name</label>
-                  <input type="text" defaultValue="John Doe" className="w-full bg-slate-50 dark:bg-navy-950 border rounded-lg p-2 text-navy-900 dark:text-white" />
+                  <input type="text" readOnly value={user?.name || 'Candidate'} className="w-full bg-slate-50 dark:bg-navy-950 border rounded-lg p-2 text-navy-900 dark:text-white font-semibold" />
                 </div>
                 <div>
                   <label className="block font-bold text-slate-700 dark:text-slate-200 mb-1">Email Address</label>
-                  <input type="email" defaultValue="candidate@revivalinternational.com" className="w-full bg-slate-50 dark:bg-navy-950 border rounded-lg p-2 text-navy-900 dark:text-white" />
+                  <input type="email" readOnly value={user?.email || ''} className="w-full bg-slate-50 dark:bg-navy-950 border rounded-lg p-2 text-navy-900 dark:text-white font-semibold" />
                 </div>
                 <div>
                   <label className="block font-bold text-slate-700 dark:text-slate-200 mb-1">Attached Resume</label>
                   <div className="p-3 bg-emerald-500/10 border border-emerald-500/30 rounded-xl text-emerald-600 dark:text-emerald-400 flex justify-between items-center">
-                    <span>📄 John_Doe_Executive_CV.pdf</span>
-                    <span className="font-bold">Attached</span>
+                    <span className="font-medium">📄 {user?.resumeName || `${(user?.name || 'Executive').replace(/\s+/g, '_')}_CV.pdf`}</span>
+                    <span className="font-bold text-[10px] bg-emerald-500/20 text-emerald-600 dark:text-emerald-400 px-2 py-0.5 rounded">Verified Profile</span>
                   </div>
                 </div>
                 <button onClick={submitApplication} className="w-full py-3 bg-gold-shimmer text-navy-950 font-bold text-xs rounded-xl shadow-gold-glow flex items-center justify-center space-x-2">

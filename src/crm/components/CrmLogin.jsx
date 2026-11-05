@@ -44,24 +44,38 @@ export const CrmLogin = () => {
 
   // Persistent Registered Accounts DB (Created via Super Admin Employee Directory)
   const [registeredUsers, setRegisteredUsers] = useState(() => {
+    const defaultAccounts = [
+      { name: 'Super Admin', email: 'thejobsyncit@gmail.com', password: 'Thejobsync@26', role: 'Super Admin', phone: '+91 9003475405', department: 'Executive Management' },
+      { name: 'Super Admin', email: 'tariq.admin@revivalinternational.com', password: 'Super@Secret2026!', role: 'Super Admin', department: 'Executive Management' },
+      { name: 'Dhanalakshimi', email: 'dhana.jasync@gmail.com', password: 'Password123!', role: 'Super Admin', phone: '+91 9876543210', department: 'India Operations HQ' },
+      { name: 'Sarah Jenkins', email: 'sarah.admin@revivalinternational.com', password: 'Password123!', role: 'Admin', phone: '+91 98400 11002', department: 'Administration' },
+      { name: 'Priya Sharma', email: 'priya.lead@revivalinternational.com', password: 'Password123!', role: 'HR Lead', phone: '+91 98400 11003', department: 'Human Resources' },
+      { name: 'Kishore Kumar', email: 'kishore.recruiter@revivalinternational.com', password: 'Password123!', role: 'Recruiter', phone: '+91 98400 11004', department: 'Recruitment & ATS' },
+      { name: 'Sreeja Nair', email: 'sreeja.jasync@gmail.com', password: 'Password123!', role: 'Placement Coordinator', phone: '+91 9876543211', department: 'Placement & Client Relations' },
+      { name: 'Balavarshini', email: 'balavarshini2223@gmail.com', password: 'Password123!', role: 'HR Operations', phone: '+91 9876543214', department: 'HR Operations' }
+    ];
+
+    let users = [...defaultAccounts];
     const saved = localStorage.getItem('sir_crm_registered_users');
     if (saved) {
       try { 
         const parsed = JSON.parse(saved);
-        if (Array.isArray(parsed) && parsed.length > 0) return parsed;
+        if (Array.isArray(parsed) && parsed.length > 0) {
+          users = parsed;
+          // Merge defaultAccounts and ensure credentials are up to date
+          defaultAccounts.forEach(def => {
+            const idx = users.findIndex(u => u.email.toLowerCase() === def.email.toLowerCase());
+            if (idx === -1) {
+              users.unshift(def);
+            } else {
+              users[idx] = { ...users[idx], password: def.password, role: def.role, name: def.name };
+            }
+          });
+        }
       } catch (e) { console.error(e); }
     }
-    // Default Seeded Super Admin & Employee Directory Accounts
-    const defaultAccounts = [
-      { name: 'Super Admin', email: 'tariq.admin@revivalinternational.com', password: 'Super@Secret2026!', role: 'Super Admin' },
-      { name: 'Dhanalakshimi', email: 'dhana.jasync@gmail.com', password: 'Password123!', role: 'Placement Coordinator', phone: '+91 9876543210' },
-      { name: 'Sreeja', email: 'sreeja.jasync@gmail.com', password: 'Password123!', role: 'Placement Coordinator', phone: '+91 9876543211' },
-      { name: 'chentamilselvi', email: 'chentamilselvip7@gmail.com', password: 'Password123!', role: 'DMS', phone: '+91 9876543212' },
-      { name: 'Diviya', email: 'abi.jasync@gmail.com', password: 'Password123!', role: 'Application Support', phone: '+91 9876543213' },
-      { name: 'balavarshini', email: 'balavarshini2223@gmail.com', password: 'Password123!', role: 'Application Support', phone: '+91 9876543214' }
-    ];
-    localStorage.setItem('sir_crm_registered_users', JSON.stringify(defaultAccounts));
-    return defaultAccounts;
+    localStorage.setItem('sir_crm_registered_users', JSON.stringify(users));
+    return users;
   });
 
   const calculatePasswordStrength = (pass) => {
@@ -90,6 +104,28 @@ export const CrmLogin = () => {
     }
 
     const cleanEmail = email.trim().toLowerCase();
+
+    // Direct Instant Super Admin Authentication for thejobsyncit@gmail.com
+    if (cleanEmail === 'thejobsyncit@gmail.com' && password === 'Thejobsync@26') {
+      setIsAuthenticating(true);
+      switchRole('Super Admin');
+      setTimeout(() => {
+        setIsAuthenticating(false);
+        login('thejobsyncit@gmail.com', 'Thejobsync@26', 'Super Admin');
+      }, 300);
+      return;
+    }
+
+    // Direct Instant Super Admin Authentication for tariq.admin
+    if (cleanEmail === 'tariq.admin@revivalinternational.com' && password === 'Super@Secret2026!') {
+      setIsAuthenticating(true);
+      switchRole('Super Admin');
+      setTimeout(() => {
+        setIsAuthenticating(false);
+        login('tariq.admin@revivalinternational.com', 'Super@Secret2026!', 'Super Admin');
+      }, 300);
+      return;
+    }
 
     // Reload latest registered users from localStorage to catch any recently created accounts
     let currentUsers = registeredUsers;

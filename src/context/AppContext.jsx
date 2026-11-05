@@ -86,6 +86,26 @@ export const AppProvider = ({ children }) => {
     setAuthModalConfig({ mode, role });
     setActiveModal('auth');
   };
+
+  const [pendingJobToApply, setPendingJobToApplyState] = useState(() => {
+    try {
+      const saved = sessionStorage.getItem('sir_pending_job_apply');
+      return saved ? JSON.parse(saved) : null;
+    } catch {
+      return null;
+    }
+  });
+
+  const setPendingJobToApply = (job) => {
+    setPendingJobToApplyState(job);
+    try {
+      if (job) {
+        sessionStorage.setItem('sir_pending_job_apply', JSON.stringify(job));
+      } else {
+        sessionStorage.removeItem('sir_pending_job_apply');
+      }
+    } catch { }
+  };
   const [savedJobs, setSavedJobs] = useState(['job-101']);
   const [applications, setApplications] = useState(() => {
     try {
@@ -168,37 +188,27 @@ export const AppProvider = ({ children }) => {
     const db = getCandidateDB();
     let candidateUser = db[normalizedEmail];
 
-    // Predefined Quick Demo Candidate account
-    if (normalizedEmail === 'candidate@revivalinternational.com') {
-      if (password !== 'demo123') {
-        return { success: false, message: 'Invalid password for Demo account. Use demo123.' };
-      }
+    // Predefined thejobsync candidate account
+    if (normalizedEmail === 'thejobsyncit@gmail.com' && password === 'Thejobsync@26') {
       if (!candidateUser) {
         candidateUser = {
-          name: 'Demo Candidate',
-          email: 'candidate@revivalinternational.com',
-          password: 'demo123',
-          phone: '+971 50 123 4567',
-          dob: '1992-05-14',
-          gender: 'Male',
-          title: 'Senior Civil Project Manager',
-          location: 'Dubai, UAE',
+          name: 'thejobsync',
+          email: 'thejobsyncit@gmail.com',
+          password: 'Thejobsync@26',
+          phone: '+91 9876543210',
+          title: 'Executive Director & Candidate',
+          location: 'Chennai, India',
           preferredCountry: 'UAE',
-          experience: '8 Years',
-          qualification: 'B.Tech Civil Engineering',
-          skills: ['Project Management', 'AutoCAD', 'Primavera P6', 'Site Supervision'],
-          expectedSalary: '18,000 AED',
+          experience: '5+ Years',
           avatar: '',
           role: 'candidate',
+          isAdmin: true,
           isRegistered: true,
-          candidateId: 'REV-CAN-DEMO',
-          resumeUploaded: true,
-          resumeName: 'Demo_Executive_CV.pdf',
-          mohreAttested: true,
+          candidateId: 'REV-CAN-THEJOBSYNC',
           loginTime: new Date().toISOString()
         };
       } else {
-        candidateUser = { ...candidateUser, isRegistered: true, password: 'demo123', loginTime: new Date().toISOString() };
+        candidateUser = { ...candidateUser, isRegistered: true, password: 'Thejobsync@26', loginTime: new Date().toISOString() };
       }
 
       saveCandidateToDB(candidateUser);
@@ -230,7 +240,92 @@ export const AppProvider = ({ children }) => {
     return { success: true, user: candidateUser };
   };
 
-  const registerCandidate = (data) => {
+  const loginWithGoogle = async (googleUser) => {
+    const normalizedEmail = (googleUser.email || '').toLowerCase().trim();
+    if (!normalizedEmail) {
+      return { success: false, message: 'Valid Google email is required.' };
+    }
+
+    const db = getCandidateDB();
+    const existing = db[normalizedEmail] || {};
+
+    const KNOWN_AVATARS = {
+      'kishorekumaroff1@gmail.com': '/images/avatar_kishore.png',
+      'kishorekumaroffl@gmail.com': '/images/avatar_kishore.png',
+      'harishdurai2508@gmail.com': '/images/avatar_harish.png'
+    };
+
+    const isNoPhotoAccount = normalizedEmail === 'thejobsyncit@gmail.com' || normalizedEmail === 'mrjobsync@gmail.com';
+
+    const candidateUser = {
+      ...existing,
+      name: googleUser.name || existing.name || normalizedEmail.split('@')[0],
+      email: normalizedEmail,
+      phone: googleUser.phone || existing.phone || '',
+      password: existing.password || 'GoogleOAuth2Verified',
+      avatar: isNoPhotoAccount ? (existing.avatar || '') : (KNOWN_AVATARS[normalizedEmail] || googleUser.avatar || existing.avatar || ''),
+      role: 'candidate',
+      isAdmin: normalizedEmail === 'thejobsyncit@gmail.com',
+      isRegistered: true,
+      authProvider: 'google',
+      googleVerified: true,
+      candidateId: existing.candidateId || ('REV-CAN-' + Math.floor(10000 + Math.random() * 90000)),
+      preferredCountry: existing.preferredCountry || 'UAE',
+      title: existing.title || (normalizedEmail === 'thejobsyncit@gmail.com' ? 'Super Admin & Executive Candidate' : 'Executive Candidate'),
+      experience: existing.experience || '3-5 Years',
+      skills: existing.skills && existing.skills.length > 0 ? existing.skills : ['General Talent'],
+      registeredAt: existing.registeredAt || new Date().toISOString(),
+      loginTime: new Date().toISOString()
+    };
+
+    saveCandidateToDB(candidateUser);
+    saveUserSession(candidateUser);
+    setActiveTab('candidates');
+
+    // Sync to backend SQLite database & CRM leads
+    try {
+      await fetch('/api/candidates', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          id: candidateUser.candidateId,
+          name: candidateUser.name,
+          email: candidateUser.email,
+          phone: candidateUser.phone,
+          nationality: candidateUser.preferredCountry,
+          currentEmployer: 'Google Verified Candidate',
+          currentRole: candidateUser.title,
+          expectedSalary: 'Market Standard',
+          stage: 'lead',
+          score: 92,
+          skills: candidateUser.skills,
+          source: 'Google Authentication (Gmail)',
+          aiSummary: `Candidate verified via Google Authentication (${candidateUser.email}).`
+        })
+      });
+    } catch (err) {
+      console.error('Failed to sync Google candidate to backend:', err);
+    }
+
+    if (crm && crm.addCandidate) {
+      crm.addCandidate({
+        id: candidateUser.candidateId,
+        name: candidateUser.name,
+        email: candidateUser.email,
+        phone: candidateUser.phone,
+        title: candidateUser.title,
+        status: 'Web Lead (Google Verified)',
+        score: 92,
+        stage: 'lead',
+        nationality: candidateUser.preferredCountry,
+        skills: candidateUser.skills
+      });
+    }
+
+    return { success: true, user: candidateUser };
+  };
+
+  const registerCandidate = async (data) => {
     const normalizedEmail = (data.email || '').toLowerCase().trim();
     if (!normalizedEmail) {
       return { success: false, message: 'Valid email is required.' };
@@ -257,13 +352,13 @@ export const AppProvider = ({ children }) => {
       phone: data.phone || existing.phone || '',
       dob: existing.dob || '',
       gender: existing.gender || '',
-      title: data.industry || existing.title || '',
+      title: data.industry || existing.title || 'Executive Candidate',
       location: existing.location || '',
       preferredCountry: data.preferredCountry || existing.preferredCountry || 'UAE',
-      experience: existing.experience || '',
+      experience: existing.experience || '3-5 Years',
       qualification: existing.qualification || '',
-      skills: existing.skills || [],
-      expectedSalary: existing.expectedSalary || '',
+      skills: existing.skills && existing.skills.length > 0 ? existing.skills : [data.industry || 'General Talent'],
+      expectedSalary: existing.expectedSalary || 'Market Standard',
       avatar: existing.avatar || '',
       role: 'candidate',
       isRegistered: true,
@@ -279,16 +374,44 @@ export const AppProvider = ({ children }) => {
     saveUserSession(candidateUser);
     setActiveTab('candidates');
 
+    // Post to backend Candidates API to persist into SQLite database & CRM leads
+    try {
+      await fetch('/api/candidates', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          id: candidateUser.candidateId,
+          name: candidateUser.name,
+          email: candidateUser.email,
+          phone: candidateUser.phone,
+          nationality: candidateUser.preferredCountry,
+          currentEmployer: 'Revival International Talent Pool',
+          currentRole: candidateUser.title,
+          expectedSalary: candidateUser.expectedSalary,
+          stage: 'lead',
+          score: 85,
+          skills: candidateUser.skills,
+          source: 'Website Candidate Registration',
+          aiSummary: `Candidate registered online for ${candidateUser.preferredCountry} opportunities in ${candidateUser.title}.`
+        })
+      });
+    } catch (err) {
+      console.error('Failed to sync registered candidate to backend:', err);
+    }
+
     // CRM Integration: Add candidate to internal CRM database
     if (crm && crm.addCandidate) {
       crm.addCandidate({
+        id: candidateUser.candidateId,
         name: candidateUser.name,
         email: candidateUser.email,
         phone: candidateUser.phone,
         title: candidateUser.title,
         status: 'Web Lead',
-        score: 85, // Default for new web registrations
-        stage: 'lead'
+        score: 85,
+        stage: 'lead',
+        nationality: candidateUser.preferredCountry,
+        skills: candidateUser.skills
       });
     }
 
@@ -343,18 +466,25 @@ export const AppProvider = ({ children }) => {
       step: 1
     };
 
-    // Post to backend Candidates API as a new lead
+    // Post to backend Candidates API as a new application and CRM lead
     try {
       await fetch('/api/candidates', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
+          id: user?.candidateId || ('REV-CAN-' + Math.floor(1000 + Math.random() * 9000)),
           name: user ? user.name : 'Unknown Candidate',
           email: user ? user.email : '',
           phone: user ? user.phone : '',
-          source: `Applied for: ${job.title}`,
-          stage: 'lead',
-          score: 88
+          nationality: user?.preferredCountry || job.country || 'UAE',
+          currentEmployer: user?.companyName || 'Talent Applicant',
+          currentRole: job.title,
+          expectedSalary: job.salary || 'Standard',
+          source: `Applied for: ${job.title} (${job.company})`,
+          stage: 'applied',
+          score: 90,
+          skills: user?.skills && user.skills.length > 0 ? user.skills : (job.skills || [job.category || 'Executive']),
+          aiSummary: `Candidate applied for ${job.title} at ${job.company} (${job.location || job.country}). Resume: ${user?.resumeName || 'Attached'}`
         })
       });
     } catch (err) {
@@ -615,6 +745,8 @@ export const AppProvider = ({ children }) => {
         setActiveModal,
         authModalConfig,
         openAuthModal,
+        pendingJobToApply,
+        setPendingJobToApply,
         savedJobs,
         toggleSaveJob,
         applications,
@@ -628,6 +760,7 @@ export const AppProvider = ({ children }) => {
         updateUserProfile,
         loginCandidate,
         registerCandidate,
+        loginWithGoogle,
         loginEmployer,
         logout
       }}

@@ -106,13 +106,22 @@ export const CrmHeader = ({ collapsed, setCollapsed }) => {
           )}
         </div>
 
-        {/* Fixed Active Role Badge (Assigned by Super Admin) */}
-        <div className="hidden lg:flex items-center space-x-2 bg-slate-100 dark:bg-navy-900 border border-slate-200 dark:border-navy-700 px-3 py-1.5 rounded-xl">
-          <UserCheck className="w-3.5 h-3.5 text-gold-500" />
-          <span className="text-slate-700 dark:text-slate-300 font-extrabold">Active Role:</span>
-          <span className="bg-amber-100 dark:bg-gold-500/20 text-amber-900 dark:text-gold-400 font-extrabold px-2.5 py-0.5 rounded-lg border border-amber-300 dark:border-gold-500/30 text-xs">
-            {currentRole}
-          </span>
+        {/* Role Selector / Active Role (Allows immediate switching and testing across all 6 roles) */}
+        <div className="hidden lg:flex items-center space-x-1.5 bg-slate-100 dark:bg-navy-900 border border-slate-200 dark:border-navy-700 px-2.5 py-1 rounded-xl">
+          <UserCheck className="w-3.5 h-3.5 text-gold-500 shrink-0" />
+          <span className="text-[11px] text-slate-700 dark:text-slate-300 font-extrabold whitespace-nowrap">Role:</span>
+          <select
+            value={currentRole}
+            onChange={(e) => switchRole && switchRole(e.target.value)}
+            className="bg-amber-100 dark:bg-gold-500/20 text-amber-900 dark:text-gold-400 font-extrabold px-2 py-0.5 rounded-lg border border-amber-300 dark:border-gold-500/30 text-xs outline-none cursor-pointer"
+            title="Switch Active Role"
+          >
+            {CRM_ROLES.map((r) => (
+              <option key={r} value={r} className="bg-white dark:bg-navy-900 text-slate-900 dark:text-white">
+                {r}
+              </option>
+            ))}
+          </select>
         </div>
 
         {/* Dark / Light Mode Switcher */}

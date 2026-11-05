@@ -30,7 +30,7 @@ export const CrmSidebar = ({ collapsed, setCollapsed }) => {
     setConsultingServiceFilter
   } = useCrm();
 
-  const [consultingOpen, setConsultingOpen] = useState(true);
+  const [consultingOpen, setConsultingOpen] = useState(false);
 
   const getServiceCount = (srvId) => {
     if (!Array.isArray(leads)) return 0;
@@ -113,7 +113,7 @@ export const CrmSidebar = ({ collapsed, setCollapsed }) => {
       
       {/* Top Brand Logo */}
       <div className="p-4 border-b border-slate-200 dark:border-navy-800 flex items-center justify-between">
-        <div className="flex items-center space-x-3 cursor-pointer" onClick={() => setActiveModule('dashboard')}>
+        <div className="flex items-center space-x-3 cursor-pointer" onClick={() => { setActiveModule('dashboard'); setConsultingOpen(false); }}>
           <img src="/images/logo.png" alt="The Revival International" className="w-9 h-9 object-contain shrink-0 drop-shadow-sm" />
           {!collapsed && (
             <div>
@@ -228,6 +228,7 @@ export const CrmSidebar = ({ collapsed, setCollapsed }) => {
               key={item.id}
               onClick={() => {
                 setActiveModule(item.id);
+                setConsultingOpen(false);
                 if (window.innerWidth < 1024) setCollapsed(true);
               }}
               className={`w-full flex items-center space-x-3 px-3 py-2.5 rounded-xl transition duration-200 ${

@@ -1,10 +1,10 @@
-import React, { useState, useRef } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useApp } from '../context/AppContext';
 import { BrandLogoIcon } from './BrandLogoIcon';
 import {
   Building2, Globe, Phone, Mail, Moon, Sun, Search,
-  User, Briefcase, ChevronDown, ChevronRight, Menu, X, Shield, Award, Sparkles, LogIn,
+  User, Briefcase, ChevronDown, ChevronRight, Menu, X, Shield, Award, Sparkles, LogIn, LogOut, LayoutDashboard,
   GraduationCap, Compass, BookOpen, FileCheck, ArrowRight, Users, FileText,
   ShieldCheck, UserCheck, Languages, Flame, HeartPulse, Utensils, Code, Wrench, Factory,
   ShoppingBag, Truck, Plane, Landmark
@@ -31,6 +31,18 @@ export const Navbar = () => {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [megaMenuType, setMegaMenuType] = useState(null); // 'services' | 'industries' | null
   const menuTimeoutRef = useRef(null);
+  const userMenuRef = useRef(null);
+  const [userMenuOpen, setUserMenuOpen] = useState(false);
+
+  useEffect(() => {
+    const handleClickOutside = (event) => {
+      if (userMenuRef.current && !userMenuRef.current.contains(event.target)) {
+        setUserMenuOpen(false);
+      }
+    };
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, []);
 
   const handleMenuEnter = (type) => {
     if (menuTimeoutRef.current) clearTimeout(menuTimeoutRef.current);
@@ -48,7 +60,6 @@ export const Navbar = () => {
     { id: 'home', label: t('nav.home') },
     { id: 'about', label: t('nav.about') },
     { id: 'services', label: t('nav.services'), hasMega: 'services' },
-    { id: 'industries', label: t('nav.industries'), hasMega: 'industries' },
     { id: 'jobs', label: t('nav.jobs') },
     { id: 'visa-eligibility', label: t('nav.visa') },
     { id: 'background-verification', label: t('nav.verification') },
@@ -149,8 +160,8 @@ export const Navbar = () => {
                     }
                   }}
                   className={`px-2.5 xl:px-3 py-2 rounded-lg text-xs font-semibold tracking-wide transition flex items-center space-x-1 cursor-pointer select-none whitespace-nowrap ${activeTab === item.id
-                      ? 'text-gold-500 bg-gold-500/10 dark:bg-gold-500/20 font-bold'
-                      : 'text-[#0B1B33] dark:text-slate-200 hover:text-gold-500 hover:bg-slate-100 dark:hover:bg-navy-800'
+                    ? 'text-gold-500 bg-gold-500/10 dark:bg-gold-500/20 font-bold'
+                    : 'text-[#0B1B33] dark:text-slate-200 hover:text-gold-500 hover:bg-slate-100 dark:hover:bg-navy-800'
                     }`}
                 >
                   <span className="whitespace-nowrap">{item.label}</span>
@@ -164,9 +175,8 @@ export const Navbar = () => {
                   <div
                     onMouseEnter={() => handleMenuEnter(item.hasMega)}
                     onMouseLeave={() => handleMenuLeave()}
-                    className={`absolute top-full pt-2 z-50 animate-in fade-in slide-in-from-top-1 duration-150 left-1/2 -translate-x-1/2 w-[90vw] ${
-                      item.hasMega === 'industries' ? 'sm:w-[400px] md:w-[420px]' : 'sm:w-[460px] md:w-[470px]'
-                    } max-w-[94vw]`}
+                    className={`absolute top-full pt-2 z-50 animate-in fade-in slide-in-from-top-1 duration-150 left-1/2 -translate-x-1/2 w-[90vw] ${item.hasMega === 'industries' ? 'sm:w-[400px] md:w-[420px]' : 'sm:w-[460px] md:w-[470px]'
+                      } max-w-[94vw]`}
                   >
                     <div className="relative bg-white dark:bg-[#0a1628] rounded-2xl p-3.5 sm:p-4 shadow-2xl border border-slate-200/90 dark:border-navy-700/90 overflow-hidden">
                       {/* Slim Gold Accent Indicator */}
@@ -277,54 +287,7 @@ export const Navbar = () => {
                         </div>
                       )}
 
-                      {/* INDUSTRIES DROPDOWN - EXACT FIRST DESIGN */}
-                      {item.hasMega === 'industries' && (
-                        <div>
-                          {/* Slim Header */}
-                          <div className="flex items-center justify-between pb-2 mb-2 border-b border-slate-100 dark:border-navy-800">
-                            <span className="text-[11px] font-black uppercase tracking-wider text-navy-950 dark:text-white flex items-center gap-1.5">
-                              <Building2 className="w-3.5 h-3.5 text-gold-500" />
-                              <span>Sectors & Industries</span>
-                            </span>
-                            <span className="text-[10px] font-bold text-gold-600 dark:text-gold-400 bg-gold-500/10 px-2 py-0.5 rounded-full border border-gold-500/20 font-mono">
-                              12 Sectors
-                            </span>
-                          </div>
 
-                          {/* 2-Column Compact Grid */}
-                          <div className="grid grid-cols-2 gap-1 text-xs">
-                            {INDUSTRIES_LIST.map((ind) => (
-                              <button
-                                key={ind.id}
-                                onClick={() => {
-                                  navigateToIndustry(ind.id);
-                                  setMegaMenuType(null);
-                                }}
-                                className="text-left px-2 py-1.5 rounded-md hover:bg-gold-50 dark:hover:bg-navy-800/80 text-slate-700 dark:text-slate-200 hover:text-gold-600 dark:hover:text-gold-400 transition flex items-center justify-between group cursor-pointer"
-                              >
-                                <span className="text-[11px] font-medium truncate">• {ind.name}</span>
-                                <span className="text-[9px] text-slate-400 group-hover:text-gold-500 font-mono shrink-0 ml-1">
-                                  {ind.openJobs}
-                                </span>
-                              </button>
-                            ))}
-                          </div>
-
-                          {/* Slim Bottom Link */}
-                          <div className="mt-2 pt-1.5 border-t border-slate-100 dark:border-navy-800 text-center">
-                            <button
-                              onClick={() => {
-                                navigateTo('jobs');
-                                setMegaMenuType(null);
-                              }}
-                              className="text-[11px] font-bold text-gold-700 dark:text-gold-400 hover:underline flex items-center justify-center gap-1 w-full cursor-pointer"
-                            >
-                              <span>Explore All Industry Vacancies</span>
-                              <ArrowRight className="w-3 h-3" />
-                            </button>
-                          </div>
-                        </div>
-                      )}
                     </div>
                   </div>
                 )}
@@ -337,38 +300,130 @@ export const Navbar = () => {
             {/* Action CTAs: Matching Master Logged-Out Layout with Revival Theme Colors */}
             <div className="hidden sm:flex items-center justify-start shrink-0 w-[245px]">
               {user ? (
-                <div className="flex items-center space-x-2 bg-[#FFFFFF] dark:bg-navy-900 border border-[#E0B32D] dark:border-gold-500/40 px-2.5 py-1.5 rounded-full text-xs shadow-[0_2px_10px_rgba(15,23,42,0.08)] transition-all">
-                  {/* User Avatar */}
-                  <div className="w-7 h-7 rounded-full bg-[#D9AF2B] text-[#0B1B33] font-bold text-xs flex items-center justify-center shadow-xs shrink-0">
-                    {user.name ? user.name[0].toUpperCase() : 'U'}
-                  </div>
-
-                  {/* Username and Role */}
-                  <div className="text-left leading-tight pr-0.5 shrink-0">
-                    <p className="font-semibold text-[#0B1B33] dark:text-white text-xs truncate max-w-[85px]" title={user.name}>
-                      {user.name}
-                    </p>
-                    <span className="text-[9px] text-[#C99A00] dark:text-gold-400 font-bold uppercase tracking-wider block">
-                      {user.role}
-                    </span>
-                  </div>
-
-                  {/* Portal Button */}
+                <div className="relative" ref={userMenuRef}>
+                  {/* Interactive Profile Pill Trigger */}
                   <button
-                    onClick={() => navigateTo(user?.role === 'employer' ? 'employers' : 'candidates')}
-                    className="px-2.5 py-1 bg-[#F8F1D9] hover:bg-[#F0E3BD] dark:bg-gold-500/20 text-[#B88A00] dark:text-gold-400 border border-[#E0B32D] dark:border-gold-500/40 rounded-full text-[11px] font-semibold transition active:scale-95 cursor-pointer whitespace-nowrap"
+                    type="button"
+                    onClick={() => setUserMenuOpen(!userMenuOpen)}
+                    className="flex items-center gap-2 bg-white dark:bg-navy-900 border-2 border-gold-500/40 hover:border-gold-500 pl-1.5 pr-3 py-1 rounded-full text-xs shadow-md transition-all active:scale-95 cursor-pointer group"
+                    title="Account Menu"
                   >
-                    Portal
+                    {/* User Avatar */}
+                    <div className="w-7 h-7 rounded-full bg-gradient-to-tr from-gold-600 to-gold-400 text-navy-950 font-extrabold text-xs flex items-center justify-center shadow-xs shrink-0 overflow-hidden border border-white dark:border-navy-900">
+                      {user.avatar ? (
+                        <img src={user.avatar} alt={user.name} className="w-full h-full object-cover" />
+                      ) : (
+                        <span>{user.name ? user.name[0].toUpperCase() : 'U'}</span>
+                      )}
+                    </div>
+
+                    {/* Username & Role */}
+                    <div className="text-left leading-tight shrink-0 max-w-[95px]">
+                      <p className="font-bold text-[#0B1B33] dark:text-white text-xs truncate">
+                        {user.name}
+                      </p>
+                      <span className="text-[9px] text-gold-600 dark:text-gold-400 font-bold uppercase tracking-wider block truncate">
+                        {user.role}
+                      </span>
+                    </div>
+
+                    {/* Animated Chevron Arrow */}
+                    <ChevronDown className={`w-3.5 h-3.5 text-slate-400 group-hover:text-gold-500 transition-transform duration-200 ${userMenuOpen ? 'rotate-180 text-gold-500' : ''}`} />
                   </button>
 
-                  {/* Logout Button */}
-                  <button
-                    onClick={logout}
-                    className="px-2.5 py-1 bg-[#F8E7EB] hover:bg-[#F2D6DC] dark:bg-rose-500/20 text-[#B83250] dark:text-rose-300 border border-[#F0C9D2] dark:border-rose-500/40 rounded-full text-[11px] font-semibold transition active:scale-95 cursor-pointer whitespace-nowrap"
-                    title="Sign Out"
-                  >
-                    Logout
-                  </button>
+                  {/* User Profile & Actions Dropdown Menu */}
+                  <AnimatePresence>
+                    {userMenuOpen && (
+                      <motion.div
+                        initial={{ opacity: 0, y: 8, scale: 0.95 }}
+                        animate={{ opacity: 1, y: 0, scale: 1 }}
+                        exit={{ opacity: 0, y: 8, scale: 0.95 }}
+                        transition={{ duration: 0.15 }}
+                        className="absolute right-0 top-full mt-2 w-64 bg-white dark:bg-navy-900 rounded-2xl shadow-2xl border border-slate-200 dark:border-navy-700 p-2 z-50 overflow-hidden"
+                      >
+                        {/* User Profile Header */}
+                        <div className="p-3 bg-slate-50 dark:bg-navy-800/80 rounded-xl mb-1.5 border border-slate-100 dark:border-navy-700/50">
+                          <div className="flex items-center gap-2.5">
+                            <div className="w-9 h-9 rounded-full bg-gradient-to-tr from-gold-600 to-gold-400 text-navy-950 font-extrabold text-sm flex items-center justify-center shrink-0 shadow-sm overflow-hidden">
+                              {user.avatar ? (
+                                <img src={user.avatar} alt={user.name} className="w-full h-full object-cover" />
+                              ) : (
+                                <span>{user.name ? user.name[0].toUpperCase() : 'U'}</span>
+                              )}
+                            </div>
+                            <div className="min-w-0 flex-1">
+                              <p className="font-bold text-navy-900 dark:text-white text-xs truncate">
+                                {user.name}
+                              </p>
+                              <p className="text-[11px] text-slate-500 dark:text-slate-400 font-mono truncate">
+                                {user.email || 'Candidate Account'}
+                              </p>
+                              <span className="inline-block mt-0.5 text-[9px] font-bold text-emerald-600 dark:text-emerald-400 bg-emerald-500/10 px-1.5 py-0.2 rounded border border-emerald-500/20 uppercase tracking-wider">
+                                {user.role === 'employer' ? 'Corporate Employer' : 'Verified Candidate'}
+                              </span>
+                            </div>
+                          </div>
+                        </div>
+
+                        {/* Dropdown Navigation Actions */}
+                        <div className="space-y-0.5 text-xs">
+                          <button
+                            type="button"
+                            onClick={() => {
+                              navigateTo(user?.role === 'employer' ? 'employers' : 'candidates');
+                              setUserMenuOpen(false);
+                            }}
+                            className="w-full px-3 py-2.5 rounded-xl text-left font-semibold text-slate-700 dark:text-slate-200 hover:bg-gold-500/10 hover:text-gold-600 dark:hover:text-gold-400 transition flex items-center gap-2.5 cursor-pointer group"
+                          >
+                            <LayoutDashboard className="w-4 h-4 text-gold-500 group-hover:scale-110 transition shrink-0" />
+                            <span className="truncate">Candidate Dashboard</span>
+                          </button>
+
+                          {(user?.role === 'admin' || user?.email?.toLowerCase() === 'thejobsyncit@gmail.com') && (
+                            <button
+                              type="button"
+                              onClick={() => {
+                                navigateTo('crm');
+                                setUserMenuOpen(false);
+                              }}
+                              className="w-full px-3 py-2.5 rounded-xl text-left font-semibold text-slate-700 dark:text-slate-200 hover:bg-gold-500/10 hover:text-gold-600 dark:hover:text-gold-400 transition flex items-center gap-2.5 cursor-pointer group"
+                            >
+                              <ShieldCheck className="w-4 h-4 text-emerald-500 group-hover:scale-110 transition shrink-0" />
+                              <span className="truncate">Super Admin CRM</span>
+                            </button>
+                          )}
+
+                          <button
+                            type="button"
+                            onClick={() => {
+                              navigateTo('jobs');
+                              setUserMenuOpen(false);
+                            }}
+                            className="w-full px-3 py-2.5 rounded-xl text-left font-semibold text-slate-700 dark:text-slate-200 hover:bg-gold-500/10 hover:text-gold-600 dark:hover:text-gold-400 transition flex items-center gap-2.5 cursor-pointer group"
+                          >
+                            <Briefcase className="w-4 h-4 text-gold-500 group-hover:scale-110 transition shrink-0" />
+                            <span className="truncate">Browse Open Vacancies</span>
+                          </button>
+                        </div>
+
+                        {/* Divider */}
+                        <div className="my-1.5 border-t border-slate-100 dark:border-navy-800" />
+
+                        {/* Logout Button */}
+                        <button
+                          type="button"
+                          onClick={() => {
+                            logout();
+                            setUserMenuOpen(false);
+                          }}
+                          className="w-full px-3 py-2.5 rounded-xl text-left font-semibold text-rose-600 dark:text-rose-400 hover:bg-rose-500/10 transition flex items-center gap-2.5 cursor-pointer group"
+                        >
+                          <LogOut className="w-4 h-4 text-rose-500 group-hover:translate-x-0.5 transition shrink-0" />
+                          <span>Sign Out (Logout)</span>
+                        </button>
+                      </motion.div>
+                    )}
+                  </AnimatePresence>
                 </div>
               ) : (
                 <div className="flex items-center space-x-3.5">
@@ -467,8 +522,8 @@ export const Navbar = () => {
                     setMobileMenuOpen(false);
                   }}
                   className={`p-3.5 rounded-xl text-xs sm:text-sm font-semibold text-center transition-all duration-300 active:scale-95 shadow-sm block ${activeTab === item.id
-                      ? 'bg-gradient-to-r from-gold-500 to-gold-400 text-slate-900 dark:text-white font-bold shadow-gold-glow'
-                      : 'bg-slate-50 dark:bg-navy-800/80 text-navy-900 dark:text-slate-200 border border-slate-200 dark:border-navy-700 hover:border-slate-200 dark:border-gold-500/50'
+                    ? 'bg-gradient-to-r from-gold-500 to-gold-400 text-slate-900 dark:text-white font-bold shadow-gold-glow'
+                    : 'bg-slate-50 dark:bg-navy-800/80 text-navy-900 dark:text-slate-200 border border-slate-200 dark:border-navy-700 hover:border-slate-200 dark:border-gold-500/50'
                     }`}
                   style={{ animationDelay: `${idx * 0.05}s` }}
                 >
@@ -501,8 +556,12 @@ export const Navbar = () => {
                 <div className="w-full flex flex-col gap-2.5">
                   <div className="flex items-center justify-between p-3 bg-white dark:bg-navy-900 border border-[#E0B32D] dark:border-gold-500/40 rounded-2xl shadow-[0_4px_14px_rgba(15,23,42,0.10)]">
                     <div className="flex items-center gap-2.5">
-                      <div className="w-8 h-8 rounded-full bg-[#D9AF2B] text-[#0B1B33] font-bold flex items-center justify-center text-xs shadow-sm shrink-0">
-                        {user.name ? user.name[0].toUpperCase() : 'U'}
+                      <div className="w-8 h-8 rounded-full bg-[#D9AF2B] text-[#0B1B33] font-bold flex items-center justify-center text-xs shadow-sm shrink-0 overflow-hidden border border-gold-500/30">
+                        {user.avatar ? (
+                          <img src={user.avatar} alt={user.name} className="w-full h-full object-cover" />
+                        ) : (
+                          <span>{user.name ? user.name[0].toUpperCase() : 'U'}</span>
+                        )}
                       </div>
                       <div className="text-left leading-tight">
                         <p className="font-semibold text-[#0B1B33] dark:text-white text-xs truncate max-w-[150px]">
@@ -515,7 +574,7 @@ export const Navbar = () => {
                     </div>
                     <button
                       onClick={() => { navigateTo(user?.role === 'employer' ? 'employers' : 'candidates'); setMobileMenuOpen(false); }}
-                    className="px-3 py-1.5 bg-[#F8F1D9] hover:bg-[#F0E3BD] dark:bg-gold-500/20 text-[#B88A00] dark:text-gold-400 border border-[#E0B32D] dark:border-gold-500/40 rounded-full text-xs font-semibold transition cursor-pointer"
+                      className="px-3 py-1.5 bg-[#F8F1D9] hover:bg-[#F0E3BD] dark:bg-gold-500/20 text-[#B88A00] dark:text-gold-400 border border-[#E0B32D] dark:border-gold-500/40 rounded-full text-xs font-semibold transition cursor-pointer"
                     >
                       Portal
                     </button>

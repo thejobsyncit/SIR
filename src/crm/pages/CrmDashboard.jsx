@@ -4,10 +4,14 @@ import {
   Users, Building2, Globe, Briefcase, Award, TrendingUp, Calendar, Clock, 
   DollarSign, ShieldCheck, CheckCircle2, ArrowUpRight, GraduationCap, 
   Compass, BookOpen, AlertCircle, ChevronRight, Phone, MessageSquare, 
-  Filter, RefreshCw, CheckSquare, Layers, UserCheck, XCircle 
+  Filter, RefreshCw, CheckSquare, Layers, UserCheck, XCircle, LayoutDashboard, Eye
 } from 'lucide-react';
 import { RECRUITER_LEADERBOARD, AUDIT_LOGS } from '../data/mockCrmData';
 import ScrollReveal from '../../components/ScrollReveal';
+import { CrmHrLeadDashboard } from './CrmHrLeadDashboard';
+import { CrmRecruiterDashboard } from './CrmRecruiterDashboard';
+import { CrmPlacementCoordinatorDashboard } from './CrmPlacementCoordinatorDashboard';
+import { CrmHrOperationsDashboard } from './CrmHrOperationsDashboard';
 
 export const CrmDashboard = () => {
   const { 
@@ -28,6 +32,51 @@ export const CrmDashboard = () => {
     invoices = [],
     interviews = []
   } = useCrm();
+
+  // Admin/Super Admin preview tab for inspecting other role dashboards
+  const [adminRoleView, setAdminRoleView] = useState('master');
+
+  // Direct role routing for non-admin roles
+  if (currentRole === 'HR Lead') {
+    return <CrmHrLeadDashboard />;
+  }
+  if (currentRole === 'Recruiter') {
+    return <CrmRecruiterDashboard />;
+  }
+  if (currentRole === 'Placement Coordinator') {
+    return <CrmPlacementCoordinatorDashboard />;
+  }
+  if (currentRole === 'HR Operations') {
+    return <CrmHrOperationsDashboard />;
+  }
+
+  // If Super Admin or Admin chose to inspect a role dashboard
+  if ((currentRole === 'Super Admin' || currentRole === 'Admin') && adminRoleView !== 'master') {
+    return (
+      <div className="space-y-4">
+        {/* Admin Role Switcher Bar */}
+        <div className="bg-amber-50 dark:bg-amber-950/40 border border-amber-200 dark:border-amber-800/50 p-3 rounded-xl flex items-center justify-between">
+          <div className="flex items-center gap-2">
+            <Eye className="w-4 h-4 text-amber-600" />
+            <span className="text-xs font-bold text-amber-900 dark:text-amber-200">
+              Admin Inspection Mode: Previewing {adminRoleView} Dashboard
+            </span>
+          </div>
+          <button
+            onClick={() => setAdminRoleView('master')}
+            className="px-3 py-1 bg-amber-600 hover:bg-amber-700 text-white text-xs font-semibold rounded-lg transition"
+          >
+            ← Return to Master Executive Dashboard
+          </button>
+        </div>
+
+        {adminRoleView === 'HR Lead' && <CrmHrLeadDashboard />}
+        {adminRoleView === 'Recruiter' && <CrmRecruiterDashboard />}
+        {adminRoleView === 'Placement Coordinator' && <CrmPlacementCoordinatorDashboard />}
+        {adminRoleView === 'HR Operations' && <CrmHrOperationsDashboard />}
+      </div>
+    );
+  }
 
   const [dateRange, setDateRange] = useState('all');
   const [loadingMetrics, setLoadingMetrics] = useState(false);
@@ -161,6 +210,34 @@ export const CrmDashboard = () => {
           </span>
         </div>
       </div>
+
+      {/* Quick Inspection Switcher for Super Admin / Admin */}
+      {(currentRole === 'Super Admin' || currentRole === 'Admin') && (
+        <div className="bg-white dark:bg-navy-900 border border-slate-200 dark:border-navy-700 p-3.5 rounded-2xl shadow-sm flex flex-wrap items-center justify-between gap-2">
+          <div className="flex items-center gap-2">
+            <Layers className="w-4 h-4 text-amber-500" />
+            <span className="text-xs font-bold text-slate-800 dark:text-slate-200">
+              Role-Based Dashboard Preview (Super Admin / Admin Tool):
+            </span>
+          </div>
+          <div className="flex flex-wrap items-center gap-2">
+            {[
+              { id: 'HR Lead', label: 'HR Lead Dashboard', color: 'border-blue-200 text-blue-700 bg-blue-50 dark:bg-blue-950/40 dark:text-blue-300' },
+              { id: 'Recruiter', label: 'Recruiter Dashboard', color: 'border-purple-200 text-purple-700 bg-purple-50 dark:bg-purple-950/40 dark:text-purple-300' },
+              { id: 'Placement Coordinator', label: 'Placement Coordinator', color: 'border-amber-200 text-amber-700 bg-amber-50 dark:bg-amber-950/40 dark:text-amber-300' },
+              { id: 'HR Operations', label: 'HR Operations', color: 'border-emerald-200 text-emerald-700 bg-emerald-50 dark:bg-emerald-950/40 dark:text-emerald-300' }
+            ].map(r => (
+              <button
+                key={r.id}
+                onClick={() => setAdminRoleView(r.id)}
+                className={`text-xs px-3 py-1.5 rounded-xl border ${r.color} font-semibold transition hover:scale-[1.02] cursor-pointer`}
+              >
+                Inspect {r.label} →
+              </button>
+            ))}
+          </div>
+        </div>
+      )}
       </ScrollReveal>
 
       {/* KPI Widgets Grid */}

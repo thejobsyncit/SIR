@@ -57,6 +57,21 @@ export const CandidatePortal = () => {
   const initialPhoneState = parsePhone(user?.phone || '');
   const [selectedCountryCode, setSelectedCountryCode] = useState(initialPhoneState.code);
   const [phoneDigits, setPhoneDigits] = useState(initialPhoneState.digits);
+  const quickPhotoInputRef = useRef(null);
+
+  // Handle direct quick photo upload from candidate header avatar
+  const handleQuickPhotoUpload = (e) => {
+    const file = e.target.files && e.target.files[0];
+    if (file) {
+      const reader = new FileReader();
+      reader.onloadend = () => {
+        const photoData = reader.result;
+        setProfileForm(prev => ({ ...prev, avatar: photoData }));
+        updateUserProfile({ avatar: photoData });
+      };
+      reader.readAsDataURL(file);
+    }
+  };
   const [screeningModalApp, setScreeningModalApp] = useState(null);
   const [interviewModalApp, setInterviewModalApp] = useState(null);
   const [isMicMuted, setIsMicMuted] = useState(false);
@@ -169,7 +184,7 @@ export const CandidatePortal = () => {
     }
   }, [user]);
 
-  if (!user || user.role !== 'candidate') {
+  if (!user) {
     return <UnifiedAuth defaultRole="candidate" />;
   }
 
@@ -333,10 +348,18 @@ export const CandidatePortal = () => {
                 </div>
               )}
               
+              <input 
+                type="file" 
+                ref={quickPhotoInputRef} 
+                onChange={handleQuickPhotoUpload} 
+                accept="image/*" 
+                className="hidden" 
+              />
               <button 
-                onClick={() => setActiveTab('edit-profile')}
-                className="absolute -bottom-1 -right-1 bg-slate-50 dark:bg-navy-900 text-gold-400 p-1.5 rounded-lg border border-slate-200 dark:border-gold-500/50 hover:bg-gold-500 hover:text-slate-900 dark:text-white transition shadow"
-                title="Upload Profile Picture"
+                type="button"
+                onClick={() => quickPhotoInputRef.current && quickPhotoInputRef.current.click()}
+                className="absolute -bottom-1 -right-1 bg-slate-50 dark:bg-navy-900 text-gold-400 p-1.5 rounded-lg border border-slate-200 dark:border-gold-500/50 hover:bg-gold-500 hover:text-slate-900 dark:text-white transition shadow cursor-pointer"
+                title="Click to Upload Profile Picture from Device"
               >
                 <Camera className="w-3.5 h-3.5" />
               </button>
@@ -361,7 +384,17 @@ export const CandidatePortal = () => {
             <h1 className="font-serif text-2xl font-bold text-slate-900 dark:text-white mt-1">
               {user.name || 'Candidate Profile'}
             </h1>
-            <p className="text-xs text-slate-700 dark:text-slate-300 font-semibold mt-0.5">
+            <div className="flex flex-wrap items-center gap-2 mt-1">
+              <span className="text-xs font-semibold text-slate-700 dark:text-gold-400 bg-slate-100 dark:bg-navy-900 px-2 py-0.5 rounded-md border border-slate-200 dark:border-gold-500/20">
+                {user.email}
+              </span>
+              {user.googleVerified && (
+                <span className="text-[10px] font-bold text-emerald-600 dark:text-emerald-400 bg-emerald-500/10 px-2 py-0.5 rounded border border-emerald-500/20 flex items-center gap-1">
+                  <CheckCircle2 className="w-3 h-3" /> Google Authenticated
+                </span>
+              )}
+            </div>
+            <p className="text-xs text-slate-700 dark:text-slate-300 font-semibold mt-1">
               {user.title ? user.title : <span className="text-rose-400 italic">No Designation Added</span>} • {user.location ? user.location : <span className="text-slate-500 dark:text-slate-400 italic">No Location Set</span>}
             </p>
             <p className="text-[11px] text-slate-500 font-medium">

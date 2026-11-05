@@ -202,7 +202,7 @@ CREATE TABLE IF NOT EXISTS public.system_audit_logs (
       {/* Tabs Navigation Bar */}
       <div className="glass-card bg-white dark:bg-navy-900 p-2.5 rounded-2xl border border-slate-200 dark:border-navy-800 flex space-x-2 font-bold overflow-x-auto shadow-sm items-center">
         {[
-          { id: 'rbac', label: '16-Role RBAC Matrix' },
+          { id: 'rbac', label: '6-Role Corporate RBAC Matrix' },
           { id: 'company', label: 'Company Profile' },
           { id: 'api', label: 'SMTP, SMS & Gateways' },
           { id: 'security', label: 'Security & IP Whitelisting' },
@@ -248,7 +248,7 @@ CREATE TABLE IF NOT EXISTS public.system_audit_logs (
               Super Admin Control: Create New System User Account
             </h4>
 
-            <form onSubmit={(e) => {
+            <form onSubmit={async (e) => {
               e.preventDefault();
               const form = e.target;
               const name = form.name.value;
@@ -258,9 +258,17 @@ CREATE TABLE IF NOT EXISTS public.system_audit_logs (
 
               const saved = localStorage.getItem('sir_crm_registered_users');
               let users = saved ? JSON.parse(saved) : [];
-              const newUser = { name, email, role, password };
+              const newUser = { name, email, role, password, status: 'Active' };
               users = [newUser, ...users.filter(u => u.email !== email)];
               localStorage.setItem('sir_crm_registered_users', JSON.stringify(users));
+
+              try {
+                await fetch('http://localhost:5000/api/employees', {
+                  method: 'POST',
+                  headers: { 'Content-Type': 'application/json' },
+                  body: JSON.stringify(newUser)
+                });
+              } catch (err) {}
 
               logAuditAction(`Super Admin created new user account '${email}' assigned as '${role}'.`);
               showStatus(`✓ System Account '${email}' created & registered under role '${role}'!`);

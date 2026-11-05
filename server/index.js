@@ -8,6 +8,7 @@ import { getDb, closeDb, checkDbHealth, logAuditTrail } from './database.js';
 import { registerClientPortalRoutes } from './clientPortalRoutes.js';
 import nodemailer from 'nodemailer';
 import dotenv from 'dotenv';
+import { handleAIAdvisorQuery, REVIVAL_KNOWLEDGE_BASE } from './services/aiAdvisorEngine.js';
 
 dotenv.config();
 
@@ -745,12 +746,259 @@ app.delete('/api/jobs/:id', requireSuperAdmin, async (req, res) => {
   }
 });
 
+// ==========================================
+// API Routes - EMPLOYEES & ROLE MANAGEMENT (6 OFFICIAL ROLES)
+// ==========================================
+const VALID_CRM_ROLES = [
+  'Super Admin',
+  'Admin',
+  'HR Lead',
+  'Recruiter',
+  'Placement Coordinator',
+  'HR Operations'
+];
+
+app.get('/api/employees', async (req, res) => {
+  try {
+    const db = await getDb();
+    const { role, department, status, search } = req.query;
+    let query = 'SELECT * FROM employees WHERE 1=1';
+    const params = [];
+
+    if (role && role !== 'all') {
+      query += ' AND role = ?';
+      params.push(role);
+    }
+    if (department && department !== 'all') {
+      query += ' AND department = ?';
+      params.push(department);
+    }
+    if (status && status !== 'all') {
+      query += ' AND status = ?';
+      params.push(status);
+    }
+    if (search && search.trim()) {
+      const term = `%${search.trim().toLowerCase()}%`;
+      query += ' AND (LOWER(name) LIKE ? OR LOWER(email) LIKE ? OR LOWER(phone) LIKE ? OR LOWER(employeeId) LIKE ?)';
+      params.push(term, term, term, term);
+    }
+
+    query += ' ORDER BY createdAt ASC';
+    const rows = await db.all(query, params);
+    res.json({ success: true, data: rows });
+  } catch (error) {
+    console.error('Failed to fetch employees:', error);
+    res.status(500).json({ success: false, message: 'Failed to fetch employees' });
+  }
+});
+
+app.post('/api/employees', async (req, res) => {
+  try {
+    const { name, email, phone, role, department, password, status } = req.body;
+    if (!name || !email || !password || !role) {
+      return res.status(400).json({ success: false, message: 'Name, email, password, and role are required.' });
+    }
+
+    if (!VALID_CRM_ROLES.includes(role)) {
+      return res.status(400).json({ 
+        success: false, 
+        message: `Invalid role '${role}'. Must be one of: ${VALID_CRM_ROLES.join(', ')}` 
+      });
+    }
+
+    const cleanEmail = email.trim().toLowerCase();
+    const db = await getDb();
+
+    // Check duplicate email
+    const existing = await db.get('SELECT id FROM employees WHERE LOWER(email) = ?', [cleanEmail]);
+    if (existing) {
+      return res.status(409).json({ success: false, message: `An employee with email '${cleanEmail}' already exists.` });
+    }
+
+    const id = `emp-${Date.now()}`;
+    const employeeId = req.body.employeeId || `REV-EMP-${Math.floor(100 + Math.random() * 900)}`;
+    const finalDept = department || (
+      role === 'Super Admin' ? 'Executive Management' :
+      role === 'Admin' ? 'Administration' :
+      role === 'HR Lead' ? 'Human Resources' :
+      role === 'Recruiter' ? 'Recruitment & ATS' :
+      role === 'Placement Coordinator' ? 'Placement & Client Relations' :
+      'HR Operations'
+    );
+
+    await db.run(
+      `INSERT INTO employees (id, employeeId, name, email, phone, role, department, password, status) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+      [id, employeeId, name.trim(), cleanEmail, phone || '', role, finalDept, password, status || 'Active']
+    );
+
+    const clientIp = getClientIp(req);
+    const { crmUser, crmRole, crmUserId } = getCrmContext(req);
+    await logAuditTrail(db, {
+      userId: crmUserId,
+      userName: crmUser,
+      role: crmRole,
+      action: 'CREATE_EMPLOYEE',
+      entityType: 'Employee',
+      entityId: id,
+      details: { name: name.trim(), email: cleanEmail, role, department: finalDept },
+      ip: clientIp
+    });
+
+    res.status(201).json({
+      success: true,
+      message: `Employee '${name}' created successfully as ${role}.`,
+      data: { id, employeeId, name: name.trim(), email: cleanEmail, phone: phone || '', role, department: finalDept, status: status || 'Active' }
+    });
+  } catch (error) {
+    console.error('Failed to create employee:', error);
+    res.status(500).json({ success: false, message: 'Failed to create employee' });
+  }
+});
+
+app.put('/api/employees/:id', async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { name, email, phone, role, department, password, status, employeeId } = req.body;
+    const db = await getDb();
+
+    const existing = await db.get('SELECT * FROM employees WHERE id = ?', [id]);
+    if (!existing) {
+      return res.status(404).json({ success: false, message: 'Employee not found.' });
+    }
+
+    if (role && !VALID_CRM_ROLES.includes(role)) {
+      return res.status(400).json({ 
+        success: false, 
+        message: `Invalid role '${role}'. Must be one of: ${VALID_CRM_ROLES.join(', ')}` 
+      });
+    }
+
+    const cleanEmail = email ? email.trim().toLowerCase() : existing.email;
+    if (email && cleanEmail !== existing.email.toLowerCase()) {
+      const duplicate = await db.get('SELECT id FROM employees WHERE LOWER(email) = ? AND id != ?', [cleanEmail, id]);
+      if (duplicate) {
+        return res.status(409).json({ success: false, message: `Email '${cleanEmail}' is already used by another employee.` });
+      }
+    }
+
+    const updatedName = name !== undefined ? name.trim() : existing.name;
+    const updatedPhone = phone !== undefined ? phone.trim() : existing.phone;
+    const updatedRole = role !== undefined ? role : existing.role;
+    const updatedDept = department !== undefined ? department.trim() : existing.department;
+    const updatedPass = password !== undefined && password.trim() ? password.trim() : existing.password;
+    const updatedStatus = status !== undefined ? status : existing.status;
+    const updatedEmpId = employeeId !== undefined ? employeeId : existing.employeeId;
+
+    await db.run(
+      `UPDATE employees SET name = ?, email = ?, phone = ?, role = ?, department = ?, password = ?, status = ?, employeeId = ?, updatedAt = CURRENT_TIMESTAMP WHERE id = ?`,
+      [updatedName, cleanEmail, updatedPhone, updatedRole, updatedDept, updatedPass, updatedStatus, updatedEmpId, id]
+    );
+
+    const clientIp = getClientIp(req);
+    const { crmUser, crmRole, crmUserId } = getCrmContext(req);
+    await logAuditTrail(db, {
+      userId: crmUserId,
+      userName: crmUser,
+      role: crmRole,
+      action: 'UPDATE_EMPLOYEE',
+      entityType: 'Employee',
+      entityId: id,
+      details: { name: updatedName, email: cleanEmail, role: updatedRole, status: updatedStatus },
+      ip: clientIp
+    });
+
+    res.json({
+      success: true,
+      message: `Employee '${updatedName}' updated successfully.`,
+      data: { id, employeeId: updatedEmpId, name: updatedName, email: cleanEmail, phone: updatedPhone, role: updatedRole, department: updatedDept, status: updatedStatus }
+    });
+  } catch (error) {
+    console.error('Failed to update employee:', error);
+    res.status(500).json({ success: false, message: 'Failed to update employee' });
+  }
+});
+
+app.patch('/api/employees/:id/toggle-status', async (req, res) => {
+  try {
+    const { id } = req.params;
+    const db = await getDb();
+    const existing = await db.get('SELECT * FROM employees WHERE id = ?', [id]);
+    if (!existing) {
+      return res.status(404).json({ success: false, message: 'Employee not found.' });
+    }
+
+    const newStatus = existing.status === 'Active' ? 'Inactive' : 'Active';
+    await db.run('UPDATE employees SET status = ?, updatedAt = CURRENT_TIMESTAMP WHERE id = ?', [newStatus, id]);
+
+    const clientIp = getClientIp(req);
+    const { crmUser, crmRole, crmUserId } = getCrmContext(req);
+    await logAuditTrail(db, {
+      userId: crmUserId,
+      userName: crmUser,
+      role: crmRole,
+      action: 'TOGGLE_EMPLOYEE_STATUS',
+      entityType: 'Employee',
+      entityId: id,
+      details: { name: existing.name, oldStatus: existing.status, newStatus },
+      ip: clientIp
+    });
+
+    res.json({ success: true, status: newStatus, message: `Employee status set to ${newStatus}.` });
+  } catch (error) {
+    console.error('Failed to toggle employee status:', error);
+    res.status(500).json({ success: false, message: 'Failed to toggle employee status' });
+  }
+});
+
+app.delete('/api/employees/:id', async (req, res) => {
+  try {
+    const { id } = req.params;
+    const db = await getDb();
+    const existing = await db.get('SELECT * FROM employees WHERE id = ?', [id]);
+    if (!existing) {
+      return res.status(404).json({ success: false, message: 'Employee not found.' });
+    }
+
+    await db.run('DELETE FROM employees WHERE id = ?', [id]);
+
+    const clientIp = getClientIp(req);
+    const { crmUser, crmRole, crmUserId } = getCrmContext(req);
+    await logAuditTrail(db, {
+      userId: crmUserId,
+      userName: crmUser,
+      role: crmRole,
+      action: 'DELETE_EMPLOYEE',
+      entityType: 'Employee',
+      entityId: id,
+      details: { name: existing.name, email: existing.email, role: existing.role },
+      ip: clientIp
+    });
+
+    res.json({ success: true, message: `Employee '${existing.name}' deleted successfully.` });
+  } catch (error) {
+    console.error('Failed to delete employee:', error);
+    res.status(500).json({ success: false, message: 'Failed to delete employee' });
+  }
+});
+
 // API Routes - CANDIDATES
 app.get('/api/candidates', async (req, res) => {
   try {
     const db = await getDb();
     const rows = await db.all('SELECT * FROM candidates ORDER BY createdAt DESC');
-    res.json({ success: true, data: rows.map(r => ({ ...r, skills: parseArray(r.skills) })) });
+    res.json({
+      success: true,
+      data: rows.map(r => ({
+        ...r,
+        skills: parseArray(r.skills),
+        assignedRecruiter: r.assignedRecruiter || 'Dhanalakshimi (Lead Advisor)',
+        stage: r.stage || 'lead',
+        score: r.score || 88,
+        avatar: r.avatar || 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=150&auto=format&fit=crop&q=80',
+        expectedSalary: r.expectedSalary || 'Negotiable',
+        passport: r.passport || 'Verified'
+      }))
+    });
   } catch (error) {
     res.status(500).json({ success: false, message: 'Failed to fetch candidates' });
   }
@@ -759,21 +1007,88 @@ app.get('/api/candidates', async (req, res) => {
 app.post('/api/candidates', async (req, res) => {
   try {
     const { id, name, email, phone, nationality, currentEmployer, currentRole, currentSalary, expectedSalary, score, stage, skills, source, passport, aiSummary, experience } = req.body;
-    const candId = id || `REV-CAN-${Math.floor(1000 + Math.random() * 9000)}`;
-    const skillsStr = JSON.stringify(Array.isArray(skills) ? skills : []);
     const db = await getDb();
 
-    await db.run(`
-      INSERT INTO candidates (id, name, email, phone, nationality, currentEmployer, currentRole, currentSalary, expectedSalary, score, stage, skills, source, passport, aiSummary, experience)
-      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-    `, [
-      candId, name, email, phone, nationality, currentEmployer, currentRole, currentSalary, expectedSalary,
-      score || 85, stage || 'new', skillsStr, source || 'Website', passport, aiSummary, experience
-    ]);
+    // Check if candidate exists by id or email
+    let existing = null;
+    if (id) {
+      existing = await db.get('SELECT * FROM candidates WHERE id = ?', [id]);
+    }
+    if (!existing && email) {
+      existing = await db.get('SELECT * FROM candidates WHERE LOWER(email) = LOWER(?)', [email]);
+    }
+
+    const candId = existing?.id || id || `REV-CAN-${Math.floor(1000 + Math.random() * 9000)}`;
+    const skillsStr = JSON.stringify(Array.isArray(skills) ? skills : (existing?.skills ? (typeof existing.skills === 'string' ? JSON.parse(existing.skills || '[]') : existing.skills) : ['General Talent']));
+
+    if (existing) {
+      await db.run(`
+        UPDATE candidates SET
+          name = COALESCE(?, name),
+          email = COALESCE(?, email),
+          phone = COALESCE(?, phone),
+          nationality = COALESCE(?, nationality),
+          currentEmployer = COALESCE(?, currentEmployer),
+          currentRole = COALESCE(?, currentRole),
+          currentSalary = COALESCE(?, currentSalary),
+          expectedSalary = COALESCE(?, expectedSalary),
+          score = COALESCE(?, score),
+          stage = COALESCE(?, stage),
+          skills = COALESCE(?, skills),
+          source = COALESCE(?, source),
+          passport = COALESCE(?, passport),
+          aiSummary = COALESCE(?, aiSummary),
+          experience = COALESCE(?, experience)
+        WHERE id = ?
+      `, [
+        name || null, email || null, phone || null, nationality || null, currentEmployer || null,
+        currentRole || null, currentSalary || null, expectedSalary || null, score || null, stage || null,
+        skillsStr, source || null, passport || null, aiSummary || null, experience || null,
+        candId
+      ]);
+    } else {
+      await db.run(`
+        INSERT INTO candidates (id, name, email, phone, nationality, currentEmployer, currentRole, currentSalary, expectedSalary, score, stage, skills, source, passport, aiSummary, experience)
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+      `, [
+        candId, name || 'New Candidate', email || '', phone || '', nationality || 'UAE',
+        currentEmployer || 'Revival International Talent Pool', currentRole || 'Executive Candidate',
+        currentSalary || 'Confidential', expectedSalary || 'Market Standard',
+        score || 88, stage || 'lead', skillsStr, source || 'Website Registration',
+        passport || 'Standard (Verified)', aiSummary || 'Candidate registered via Revival International Portal.',
+        experience || '3-5 Years'
+      ]);
+    }
+
+    // Mirror to leads table so it also appears in CRM Consulting Bookings & Inquiries
+    if (name || email) {
+      const leadMessage = aiSummary || (source ? `Registration / Application: ${source}` : 'Online Candidate Registration');
+      const serviceTitle = source && source.includes('Applied') ? 'Job Application' : 'Candidate Registration';
+      const existingLead = email ? await db.get('SELECT * FROM leads WHERE LOWER(email) = LOWER(?) AND serviceTitle = ?', [email, serviceTitle]) : null;
+
+      if (!existingLead) {
+        const leadId = `LEAD-${Math.floor(1000 + Math.random() * 9000)}`;
+        await db.run(`
+          INSERT INTO leads (id, name, email, phone, company, message, serviceId, serviceTitle, status)
+          VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+        `, [
+          leadId,
+          name || 'Online Candidate',
+          email || '',
+          phone || '',
+          nationality || 'Individual Candidate',
+          leadMessage,
+          'intl-recruitment',
+          serviceTitle,
+          'New'
+        ]);
+      }
+    }
 
     const cand = await db.get('SELECT * FROM candidates WHERE id = ?', [candId]);
     res.json({ success: true, data: { ...cand, skills: parseArray(cand.skills) } });
   } catch (error) {
+    console.error('Failed to save candidate:', error);
     res.status(500).json({ success: false, message: 'Failed to save candidate' });
   }
 });
@@ -2741,25 +3056,142 @@ app.post('/api/resume/analyze', (req, res) => {
   });
 });
 
-app.post('/api/ai/chat', (req, res) => {
-  const { message } = req.body;
-  const query = (message || '').toLowerCase();
+// AI Advisor Chat Engine (Production Multi-Provider & Contextual RAG)
+app.post('/api/ai/chat', async (req, res) => {
+  try {
+    const { message, conversationHistory = [], context = {} } = req.body || {};
 
-  let reply = "Welcome to Revival International! I am your AI Career & Visa Assistant. How can I assist you with job applications, GCC work visas, international education, or executive recruitment in Dubai?";
+    if (!message || typeof message !== 'string' || !message.trim()) {
+      return res.status(400).json({
+        success: false,
+        reply: 'Please provide a valid question or message.',
+        suggestedQuestions: ['International Admissions', 'Dubai Jobs', 'GCC Work Visas', 'IELTS Preparation']
+      });
+    }
 
-  if (query.includes('education') || query.includes('admission') || query.includes('college') || query.includes('ielts') || query.includes('det') || query.includes('oet')) {
-    reply = "Revival International provides comprehensive International Consulting and Admission Assistance for universities worldwide, school student career guidance, and test preparation for DET, OET, and IELTS. You can explore our new Education services or submit an inquiry through our Contact page!";
-  } else if (query.includes('visa') || query.includes('work permit')) {
-    reply = "In the UAE and Saudi Arabia, work visas are sponsored directly by the hiring employer. Essential requirements include an attested degree certificate, medical fitness clearance, and a valid employment contract. You can test your profile in our interactive Visa Eligibility Checker on this site!";
-  } else if (query.includes('job') || query.includes('apply') || query.includes('vacancy')) {
-    reply = "We currently have active vacancies across Dubai, Abu Dhabi, Saudi Arabia, Qatar, Singapore, and Europe in Construction, Oil & Gas, Healthcare, Hospitality, IT, and Aviation. Visit our Jobs section to apply directly with your CV!";
-  } else if (query.includes('salary') || query.includes('pay')) {
-    reply = "Salaries in the UAE and Saudi Arabia are generally 100% tax-free! Packages usually include housing allowance, medical insurance, annual flight tickets, and end-of-service gratuity.";
-  } else if (query.includes('verification') || query.includes('background')) {
-    reply = "Revival International provides 6-Point Background Verification including Education Attestation, Employment History Audit, Police Clearance, and Reference Verification. You can initiate a check in our Verification section.";
+    const sanitizedMessage = message.trim().slice(0, 2000);
+    const sanitizedHistory = Array.isArray(conversationHistory) 
+      ? conversationHistory.slice(-10).map(m => ({
+          sender: m.sender === 'user' ? 'user' : 'bot',
+          text: String(m.text || '').slice(0, 1500),
+          detectedService: m.detectedService || null
+        }))
+      : [];
+
+    const result = await handleAIAdvisorQuery({
+      message: sanitizedMessage,
+      conversationHistory: sanitizedHistory,
+      context
+    });
+
+    res.json(result);
+  } catch (err) {
+    console.error('Revival AI Advisor Chat Error:', err);
+    res.status(500).json({
+      success: false,
+      reply: 'Our Revival AI Advisor is momentarily synchronizing with our global knowledge base. You can also connect directly with our admissions and recruitment consultants on WhatsApp at +91 9003475405.',
+      suggestedQuestions: [
+        'Connect on WhatsApp (+91 9003475405)',
+        'What services does Revival International offer?',
+        'Book an Advisory Consultation'
+      ],
+      offerConsultation: true
+    });
   }
+});
 
-  res.json({ success: true, reply });
+// AI Advisor Lead & Consultation Capture
+app.post('/api/ai/lead', async (req, res) => {
+  try {
+    const {
+      name, email, phone,
+      serviceId, serviceTitle,
+      countryInterest, preferredContactMethod,
+      requirements, conversationSummary
+    } = req.body || {};
+
+    if (!name || typeof name !== 'string' || name.trim().length < 2) {
+      return res.status(400).json({ success: false, message: 'Please provide your full name.' });
+    }
+
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!email || !emailRegex.test(email.trim())) {
+      return res.status(400).json({ success: false, message: 'Please provide a valid email address.' });
+    }
+
+    const cleanPhone = (phone || '').replace(/[^0-9+]/g, '');
+    if (!cleanPhone || cleanPhone.length < 7) {
+      return res.status(400).json({ success: false, message: 'Please provide a valid phone or WhatsApp number with country code.' });
+    }
+
+    const db = await getDb();
+    const leadId = 'LEAD-AI-' + Date.now().toString().slice(-6);
+    const refCode = 'REV-AI-' + Math.floor(1000 + Math.random() * 9000);
+
+    const sId = serviceId ? String(serviceId).trim() : 'intl-consult';
+    const sTitle = serviceTitle ? String(serviceTitle).trim() : 'International Consulting & Advisory';
+    const destination = countryInterest ? String(countryInterest).trim() : 'Global / Undecided';
+    const contactMethod = preferredContactMethod ? String(preferredContactMethod).trim() : 'WhatsApp';
+
+    const fullMessage = [
+      `[Source: Revival AI Advisor Consultation Booking]`,
+      `Target Destination: ${destination}`,
+      `Preferred Contact Method: ${contactMethod}`,
+      requirements ? `Requirements: ${requirements.trim()}` : '',
+      conversationSummary ? `\n--- AI Conversation Summary ---\n${conversationSummary.trim()}` : ''
+    ].filter(Boolean).join('\n');
+
+    await db.run(
+      `INSERT INTO leads (
+        id, name, email, company, phone, message, serviceId, serviceTitle,
+        referenceNumber, countryInterest, assistanceType, intakeTerm, degreeLevel,
+        preferredContactMethod, priority, status, utmSource, createdAt
+      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, datetime('now'))`,
+      [
+        leadId,
+        name.trim(),
+        email.trim(),
+        'Individual Applicant',
+        phone.trim(),
+        fullMessage,
+        sId,
+        sTitle,
+        refCode,
+        destination,
+        'AI Advisor Consultation',
+        'Fall 2026',
+        'Undergraduate/Postgraduate',
+        contactMethod,
+        'High',
+        'New Enquiry',
+        'Revival AI Advisor'
+      ]
+    );
+
+    await logAuditTrail(
+      db,
+      leadId,
+      'Revival AI Advisor',
+      'CREATE_LEAD',
+      `New consultation inquiry logged via AI Advisor for ${name.trim()} (${sTitle})`,
+      null,
+      { leadId, refCode, email: email.trim(), serviceTitle: sTitle }
+    );
+
+    res.json({
+      success: true,
+      leadId,
+      referenceNumber: refCode,
+      message: 'Your consultation inquiry has been securely registered with The Revival International.',
+      whatsappLink: `https://wa.me/919003475405?text=${encodeURIComponent(`Hello The Revival International, I booked an advisory consultation via Revival AI Advisor. My reference is ${refCode} (${name.trim()}).`)}`
+    });
+  } catch (err) {
+    console.error('Error logging AI Advisor lead:', err);
+    res.status(500).json({
+      success: false,
+      message: 'Failed to record consultation. Please connect directly on WhatsApp at +91 9003475405.'
+    });
+  }
 });
 
 app.post('/api/payments/checkout', (req, res) => {
