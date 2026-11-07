@@ -554,6 +554,100 @@ const initDb = async (db) => {
       createdAt DATETIME DEFAULT CURRENT_TIMESTAMP
     );
 
+    CREATE TABLE IF NOT EXISTS users (
+      id TEXT PRIMARY KEY,
+      email TEXT UNIQUE NOT NULL,
+      name TEXT NOT NULL,
+      avatar TEXT,
+      role TEXT DEFAULT 'candidate',
+      authProvider TEXT DEFAULT 'local',
+      googleSub TEXT UNIQUE,
+      emailVerified INTEGER DEFAULT 0,
+      status TEXT DEFAULT 'active',
+      createdAt DATETIME DEFAULT CURRENT_TIMESTAMP,
+      lastLoginAt DATETIME
+    );
+
+    CREATE TABLE IF NOT EXISTS candidate_profiles (
+      id TEXT PRIMARY KEY,
+      userId TEXT NOT NULL,
+      email TEXT NOT NULL,
+      name TEXT NOT NULL,
+      phone TEXT,
+      avatar TEXT,
+      nationality TEXT DEFAULT 'UAE',
+      currentRole TEXT DEFAULT 'Executive Candidate',
+      currentEmployer TEXT,
+      experience TEXT DEFAULT '3-5 Years',
+      education TEXT DEFAULT 'Bachelor Degree / Professional Diploma',
+      expectedSalary TEXT DEFAULT 'Market Standard',
+      skills TEXT,
+      resumeName TEXT,
+      resumeUrl TEXT,
+      profileCompletion INTEGER DEFAULT 60,
+      stage TEXT DEFAULT 'lead',
+      score INTEGER DEFAULT 88,
+      savedJobs TEXT,
+      createdAt DATETIME DEFAULT CURRENT_TIMESTAMP,
+      updatedAt DATETIME DEFAULT CURRENT_TIMESTAMP,
+      FOREIGN KEY (userId) REFERENCES users(id) ON DELETE CASCADE
+    );
+
+    CREATE TABLE IF NOT EXISTS google_auth_accounts (
+      id TEXT PRIMARY KEY,
+      userId TEXT NOT NULL,
+      googleSub TEXT UNIQUE NOT NULL,
+      email TEXT NOT NULL,
+      name TEXT,
+      picture TEXT,
+      accessToken TEXT,
+      idToken TEXT,
+      lastAuthenticatedAt DATETIME DEFAULT CURRENT_TIMESTAMP,
+      FOREIGN KEY (userId) REFERENCES users(id) ON DELETE CASCADE
+    );
+
+    CREATE TABLE IF NOT EXISTS candidate_applications (
+      id TEXT PRIMARY KEY,
+      candidateId TEXT NOT NULL,
+      userId TEXT NOT NULL,
+      jobId TEXT NOT NULL,
+      jobTitle TEXT NOT NULL,
+      company TEXT NOT NULL,
+      location TEXT,
+      appliedDate TEXT NOT NULL,
+      status TEXT DEFAULT 'Under Review',
+      stage TEXT DEFAULT 'Applied',
+      notes TEXT,
+      createdAt DATETIME DEFAULT CURRENT_TIMESTAMP,
+      FOREIGN KEY (candidateId) REFERENCES candidate_profiles(id) ON DELETE CASCADE,
+      FOREIGN KEY (userId) REFERENCES users(id) ON DELETE CASCADE
+    );
+
+    CREATE TABLE IF NOT EXISTS candidate_documents (
+      id TEXT PRIMARY KEY,
+      candidateId TEXT NOT NULL,
+      userId TEXT NOT NULL,
+      documentType TEXT NOT NULL,
+      fileName TEXT NOT NULL,
+      fileUrl TEXT,
+      uploadDate DATETIME DEFAULT CURRENT_TIMESTAMP,
+      FOREIGN KEY (candidateId) REFERENCES candidate_profiles(id) ON DELETE CASCADE,
+      FOREIGN KEY (userId) REFERENCES users(id) ON DELETE CASCADE
+    );
+
+    CREATE TABLE IF NOT EXISTS candidate_notifications (
+      id TEXT PRIMARY KEY,
+      candidateId TEXT NOT NULL,
+      userId TEXT NOT NULL,
+      title TEXT NOT NULL,
+      message TEXT NOT NULL,
+      type TEXT DEFAULT 'system',
+      isRead INTEGER DEFAULT 0,
+      createdAt DATETIME DEFAULT CURRENT_TIMESTAMP,
+      FOREIGN KEY (candidateId) REFERENCES candidate_profiles(id) ON DELETE CASCADE,
+      FOREIGN KEY (userId) REFERENCES users(id) ON DELETE CASCADE
+    );
+
     CREATE TABLE IF NOT EXISTS clients (
       id TEXT PRIMARY KEY,
       company TEXT NOT NULL,

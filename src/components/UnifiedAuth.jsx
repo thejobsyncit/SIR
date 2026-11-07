@@ -55,7 +55,6 @@ export const UnifiedAuth = ({ defaultMode = 'login', defaultRole = 'candidate', 
   const [error, setError] = useState('');
 
   // Google OAuth 2.0 & Google Identity Services (GIS) State
-  const googleBtnRef = useRef(null);
   const [googleClientId, setGoogleClientId] = useState(() => {
     return import.meta.env.VITE_GOOGLE_CLIENT_ID || localStorage.getItem('sir_google_client_id') || '';
   });
@@ -113,6 +112,15 @@ export const UnifiedAuth = ({ defaultMode = 'login', defaultRole = 'candidate', 
     }
   };
 
+  // Validate Google Client ID format
+  const isValidGoogleClientId = (id) => {
+    if (!id || typeof id !== 'string') return false;
+    const clean = id.trim();
+    if (!clean.endsWith('.apps.googleusercontent.com')) return false;
+    if (clean.includes('your-google-client-id') || clean.includes('example123') || clean.length < 30) return false;
+    return true;
+  };
+
   // Dynamic GIS script loader helper
   const loadGoogleGsi = () => {
     return new Promise((resolve) => {
@@ -144,7 +152,7 @@ export const UnifiedAuth = ({ defaultMode = 'login', defaultRole = 'candidate', 
       fetch('/api/config/auth')
         .then((res) => res.json())
         .then((data) => {
-          if (data?.googleClientId) {
+          if (data?.googleClientId && isValidGoogleClientId(data.googleClientId)) {
             setGoogleClientId(data.googleClientId);
           }
         })
@@ -152,7 +160,7 @@ export const UnifiedAuth = ({ defaultMode = 'login', defaultRole = 'candidate', 
     }
   }, [googleClientId]);
 
-  // Google Credential Response Callback (Official Google GIS One-Tap & Rendered Button)
+  // Google Credential Response Callback (Official Google GIS One-Tap)
   const handleGoogleCredentialResponse = async (response) => {
     if (!response || !response.credential) return;
     try {
@@ -183,7 +191,7 @@ export const UnifiedAuth = ({ defaultMode = 'login', defaultRole = 'candidate', 
       }
 
       const displayName = result.user?.name || profile.name || 'Google User';
-      setGoogleSuccess(`Signed in successfully as ${displayName}! Redirecting...`);
+      setGoogleSuccess(`Signed in successfully as ${displayName}! Redirecting to your dashboard...`);
       setGoogleLoading(false);
 
       setTimeout(() => {
@@ -204,10 +212,10 @@ export const UnifiedAuth = ({ defaultMode = 'login', defaultRole = 'candidate', 
     }
   };
 
-  // Initialize Native Google Identity Services if Client ID is configured
+  // Initialize Native Google Identity Services if valid Client ID is configured
   useEffect(() => {
     let isMounted = true;
-    if (googleClientId) {
+    if (isValidGoogleClientId(googleClientId)) {
       loadGoogleGsi().then((googleObj) => {
         if (!isMounted || !googleObj?.accounts?.id) return;
         try {
@@ -217,19 +225,6 @@ export const UnifiedAuth = ({ defaultMode = 'login', defaultRole = 'candidate', 
             auto_select: false,
             cancel_on_tap_outside: true
           });
-
-          if (googleBtnRef.current) {
-            googleBtnRef.current.innerHTML = '';
-            googleObj.accounts.id.renderButton(googleBtnRef.current, {
-              type: 'standard',
-              theme: 'outline',
-              size: 'large',
-              text: authMode === 'login' ? 'signin_with' : 'signup_with',
-              shape: 'rectangular',
-              logo_alignment: 'left',
-              width: 320
-            });
-          }
         } catch (err) {
           console.warn('Google Identity Services Init Notice:', err);
         }
@@ -238,14 +233,14 @@ export const UnifiedAuth = ({ defaultMode = 'login', defaultRole = 'candidate', 
     return () => {
       isMounted = false;
     };
-  }, [googleClientId, authMode]);
+  }, [googleClientId]);
 
   // Trigger Real Google OAuth 2.0 Account Chooser Popup (prompt='select_account')
   const triggerRealGoogleOAuth = async (clientIdToUse) => {
     const activeClientId = (clientIdToUse || googleClientId || '').trim();
-    if (!activeClientId) {
+    if (!isValidGoogleClientId(activeClientId)) {
       setGoogleLoading(false);
-      setTempClientId('');
+      setTempClientId(activeClientId.endsWith('.apps.googleusercontent.com') ? activeClientId : '');
       setShowClientIdConfig(true);
       return;
     }
@@ -271,6 +266,8 @@ export const UnifiedAuth = ({ defaultMode = 'login', defaultRole = 'candidate', 
             setGoogleLoading(false);
             if (tokenResponse.error === 'popup_closed_by_user') {
               setGoogleError('Google sign-in popup was closed before completing authentication.');
+            } else if (tokenResponse.error === 'invalid_client') {
+              setGoogleError('The Google OAuth Client ID is invalid or not registered in Google Cloud Console. Click "Google OAuth Configuration" below to update.');
             } else {
               setGoogleError(tokenResponse.error_description || tokenResponse.error || 'Google authentication was cancelled.');
             }
@@ -305,7 +302,7 @@ export const UnifiedAuth = ({ defaultMode = 'login', defaultRole = 'candidate', 
                 }
 
                 const displayName = result.user?.name || userInfo.name || 'Google User';
-                setGoogleSuccess(`Signed in successfully as ${displayName}! Redirecting...`);
+                setGoogleSuccess(`Signed in successfully as ${displayName}! Redirecting to your dashboard...`);
                 setGoogleLoading(false);
 
                 setTimeout(() => {
@@ -357,6 +354,10 @@ export const UnifiedAuth = ({ defaultMode = 'login', defaultRole = 'candidate', 
   const handleSaveClientId = async (idToSave) => {
     const clean = (idToSave || tempClientId).trim();
     if (!clean) return;
+    if (!clean.endsWith('.apps.googleusercontent.com')) {
+      setGoogleError('Invalid Client ID format. Must end with .apps.googleusercontent.com');
+      return;
+    }
     localStorage.setItem('sir_google_client_id', clean);
     setGoogleClientId(clean);
     setShowClientIdConfig(false);
@@ -384,9 +385,9 @@ export const UnifiedAuth = ({ defaultMode = 'login', defaultRole = 'candidate', 
     setGoogleError('');
     setGoogleSuccess('');
 
-    const activeId = googleClientId || localStorage.getItem('sir_google_client_id') || '';
-    if (!activeId) {
-      setTempClientId('');
+    const activeId = (googleClientId || localStorage.getItem('sir_google_client_id') || '').trim();
+    if (!isValidGoogleClientId(activeId)) {
+      setTempClientId(activeId.endsWith('.apps.googleusercontent.com') ? activeId : '');
       setShowClientIdConfig(true);
       return;
     }
@@ -589,11 +590,8 @@ export const UnifiedAuth = ({ defaultMode = 'login', defaultRole = 'candidate', 
           </div>
         )}
 
-        {/* 1-CLICK GOOGLE AUTHENTICATION BUTTON */}
+        {/* 1-CLICK UNIFIED GOOGLE AUTHENTICATION BUTTON */}
         <div className="space-y-3 mb-5">
-          {/* Native Google Identity Services Button Container (if initialized) */}
-          <div ref={googleBtnRef} className="w-full empty:hidden flex justify-center mb-2"></div>
-
           <button
             type="button"
             onClick={handleTriggerGoogleAuth}
@@ -614,7 +612,7 @@ export const UnifiedAuth = ({ defaultMode = 'login', defaultRole = 'candidate', 
                   <path fill="#FBBC05" d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.06H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.94l2.85-2.22.81-.63z" />
                   <path fill="#EA4335" d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.06l3.66 2.84c.87-2.6 3.3-4.52 6.16-4.52z" />
                 </svg>
-                <span>{authMode === 'login' ? 'Sign in with Google' : 'Continue with Google (Gmail Verified)'}</span>
+                <span>{authMode === 'login' ? 'Sign in with Google' : 'Sign up with Google'}</span>
               </>
             )}
           </button>

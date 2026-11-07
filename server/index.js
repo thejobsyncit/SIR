@@ -620,19 +620,43 @@ app.post('/api/auth/verify-otp', (req, res) => {
 
 // --- GOOGLE OAUTH 2.0 & IDENTITY SERVICES (GIS) API ENDPOINTS ---
 app.get('/api/config/auth', (req, res) => {
-  const googleClientId = process.env.VITE_GOOGLE_CLIENT_ID || process.env.GOOGLE_CLIENT_ID || '';
+  let googleClientId = (process.env.VITE_GOOGLE_CLIENT_ID || process.env.GOOGLE_CLIENT_ID || '').trim();
+  // Filter out dummy/placeholder values
+  if (googleClientId.includes('your-google-client-id') || googleClientId.includes('example123')) {
+    googleClientId = '';
+  }
   res.json({
     success: true,
-    googleClientId: googleClientId.trim()
+    googleClientId: googleClientId
   });
 });
 
-app.post('/api/config/auth', (req, res) => {
+app.post('/api/config/auth', async (req, res) => {
   const { googleClientId } = req.body;
   if (googleClientId && typeof googleClientId === 'string') {
     const cleanId = googleClientId.trim();
+    if (!cleanId.endsWith('.apps.googleusercontent.com')) {
+      return res.status(400).json({
+        success: false,
+        message: 'Invalid Google Client ID format. Must end with .apps.googleusercontent.com'
+      });
+    }
     process.env.VITE_GOOGLE_CLIENT_ID = cleanId;
     process.env.GOOGLE_CLIENT_ID = cleanId;
+
+    // Persist to .env file
+    try {
+      const envPath = path.join(__dirname, '..', '.env');
+      if (fs.existsSync(envPath)) {
+        let envContent = fs.readFileSync(envPath, 'utf8');
+        envContent = envContent.replace(/^VITE_GOOGLE_CLIENT_ID=.*$/m, `VITE_GOOGLE_CLIENT_ID=${cleanId}`);
+        envContent = envContent.replace(/^GOOGLE_CLIENT_ID=.*$/m, `GOOGLE_CLIENT_ID=${cleanId}`);
+        fs.writeFileSync(envPath, envContent, 'utf8');
+      }
+    } catch (e) {
+      console.warn('Failed to persist Google Client ID to .env:', e.message);
+    }
+
     return res.json({ success: true, googleClientId: cleanId, message: 'Google Client ID updated successfully.' });
   }
   res.status(400).json({ success: false, message: 'Invalid Google Client ID' });
@@ -653,7 +677,7 @@ app.post('/api/auth/google', async (req, res) => {
         if (gResponse.ok) {
           const tokenData = await gResponse.json();
           googleUser = {
-            googleId: tokenData.sub,
+            googleSub: tokenData.sub,
             email: (tokenData.email || '').toLowerCase().trim(),
             name: tokenData.name || tokenData.given_name || 'Google User',
             avatar: tokenData.picture || '',
@@ -676,7 +700,7 @@ app.post('/api/auth/google', async (req, res) => {
         if (userinfoRes.ok) {
           const uData = await userinfoRes.json();
           googleUser = {
-            googleId: uData.sub,
+            googleSub: uData.sub,
             email: (uData.email || '').toLowerCase().trim(),
             name: uData.name || uData.given_name || 'Google User',
             avatar: uData.picture || '',
@@ -696,7 +720,7 @@ app.post('/api/auth/google', async (req, res) => {
       const cleanEmail = (profile.email || '').toLowerCase().trim();
       if (emailPattern.test(cleanEmail)) {
         googleUser = {
-          googleId: profile.sub || profile.id || profile.googleId || '',
+          googleSub: profile.sub || profile.id || profile.googleId || '',
           email: cleanEmail,
           name: profile.name || profile.given_name || cleanEmail.split('@')[0],
           avatar: profile.picture || profile.avatar || '',
@@ -714,72 +738,147 @@ app.post('/api/auth/google', async (req, res) => {
 
     const db = await getDb();
     const cleanEmail = googleUser.email;
-    const googleId = googleUser.googleId || '';
+    const googleSub = googleUser.googleSub || '';
 
-    // Check if candidate already exists by Google ID or Email (Prevent duplicate accounts!)
-    let existingCandidate = null;
-    if (googleId) {
-      existingCandidate = await db.get('SELECT * FROM candidates WHERE googleId = ?', [googleId]);
+    // Step 1: Check whether this user already exists in `users` by Google `sub` or email
+    let userRecord = null;
+    if (googleSub) {
+      userRecord = await db.get('SELECT * FROM users WHERE googleSub = ?', [googleSub]);
     }
-    if (!existingCandidate) {
-      existingCandidate = await db.get('SELECT * FROM candidates WHERE LOWER(email) = LOWER(?)', [cleanEmail]);
+    if (!userRecord) {
+      userRecord = await db.get('SELECT * FROM users WHERE LOWER(email) = LOWER(?)', [cleanEmail]);
     }
 
-    let candidateId = existingCandidate?.id;
-    const finalAvatar = googleUser.avatar || existingCandidate?.avatar || `https://api.dicebear.com/7.x/initials/svg?seed=${encodeURIComponent(googleUser.name)}`;
-    const finalName = existingCandidate?.name && existingCandidate.name !== 'New Candidate' ? existingCandidate.name : googleUser.name;
+    let userId = userRecord?.id;
+    let candidateProfile = null;
+    let candidateId = null;
 
-    if (existingCandidate) {
-      // Update existing record
+    const finalName = googleUser.name || userRecord?.name || cleanEmail.split('@')[0];
+    const finalAvatar = googleUser.avatar || userRecord?.avatar || `https://api.dicebear.com/7.x/initials/svg?seed=${encodeURIComponent(finalName)}`;
+
+    if (userRecord) {
+      // Existing user: Update user record
+      userId = userRecord.id;
       await db.run(`
-        UPDATE candidates SET
+        UPDATE users SET
           name = COALESCE(?, name),
           avatar = COALESCE(?, avatar),
-          googleId = COALESCE(?, googleId),
-          authProvider = 'google',
-          googleVerified = 1
+          googleSub = COALESCE(?, googleSub),
+          emailVerified = 1,
+          lastLoginAt = CURRENT_TIMESTAMP
         WHERE id = ?
-      `, [
-        finalName,
-        finalAvatar,
-        googleId || null,
-        candidateId
-      ]);
+      `, [finalName, finalAvatar, googleSub || null, userId]);
+
+      // Retrieve existing candidate profile
+      candidateProfile = await db.get('SELECT * FROM candidate_profiles WHERE userId = ?', [userId]);
+      if (!candidateProfile) {
+        candidateProfile = await db.get('SELECT * FROM candidate_profiles WHERE LOWER(email) = LOWER(?)', [cleanEmail]);
+      }
+
+      if (candidateProfile) {
+        candidateId = candidateProfile.id;
+        await db.run(`
+          UPDATE candidate_profiles SET
+            name = COALESCE(?, name),
+            avatar = COALESCE(?, avatar),
+            updatedAt = CURRENT_TIMESTAMP
+          WHERE id = ?
+        `, [finalName, finalAvatar, candidateId]);
+      }
     } else {
-      // Create new candidate in SQLite database
-      candidateId = `REV-CAN-${Math.floor(10000 + Math.random() * 90000)}`;
-      const defaultSkills = JSON.stringify(['International Mobility', 'Executive Candidate', 'Global Mandates']);
+      // New User: Create User record with unique ID
+      userId = `USR-${Date.now().toString(36).toUpperCase()}-${Math.floor(100 + Math.random() * 900)}`;
       await db.run(`
-        INSERT INTO candidates (
-          id, name, email, phone, nationality, currentEmployer, currentRole,
-          currentSalary, expectedSalary, score, stage, skills, source, passport,
-          aiSummary, experience, googleId, avatar, authProvider, googleVerified
-        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-      `, [
-        candidateId,
-        finalName,
-        cleanEmail,
-        '',
-        'UAE',
-        'Revival International Talent Pool',
-        'Executive Candidate',
-        'Confidential',
-        'Market Standard',
-        92,
-        'lead',
-        defaultSkills,
-        'Google Authentication (Gmail Verified)',
-        'Standard (Verified)',
-        `Candidate verified via Google OAuth 2.0 (${cleanEmail}).`,
-        '3-5 Years',
-        googleId,
-        finalAvatar,
-        'google',
-        1
-      ]);
+        INSERT INTO users (id, email, name, avatar, role, authProvider, googleSub, emailVerified, status, lastLoginAt)
+        VALUES (?, ?, ?, ?, 'candidate', 'google', ?, 1, 'active', CURRENT_TIMESTAMP)
+      `, [userId, cleanEmail, finalName, finalAvatar, googleSub || null]);
     }
 
-    // Mirror to leads table for CRM visibility if not exists
+    // Step 2: Ensure Candidate Profile exists (Create individual candidate profile if new)
+    if (!candidateProfile) {
+      // Generate unique Candidate ID: RI-CAND-001, RI-CAND-002, etc.
+      const countRow = await db.get('SELECT COUNT(*) as count FROM candidate_profiles');
+      const nextSeq = (countRow?.count || 0) + 1;
+      candidateId = `RI-CAND-${String(nextSeq).padStart(3, '0')}`;
+
+      // Check for collision and adjust if needed
+      const existingCand = await db.get('SELECT id FROM candidate_profiles WHERE id = ?', [candidateId]);
+      if (existingCand) {
+        candidateId = `RI-CAND-${String(nextSeq).padStart(3, '0')}-${Math.floor(10 + Math.random() * 90)}`;
+      }
+
+      const defaultSkills = JSON.stringify(['International Mobility', 'Executive Candidate', 'Global Mandates']);
+      await db.run(`
+        INSERT INTO candidate_profiles (
+          id, userId, email, name, phone, avatar, nationality, currentRole,
+          currentEmployer, experience, education, expectedSalary, skills,
+          savedJobs, profileCompletion, stage, score
+        ) VALUES (?, ?, ?, ?, '', ?, 'UAE', 'Executive Candidate', 'Revival International Talent Pool', '3-5 Years', 'Bachelor Degree / Professional Diploma', 'Market Standard', ?, '[]', 60, 'lead', 88)
+      `, [candidateId, userId, cleanEmail, finalName, finalAvatar, defaultSkills]);
+
+      candidateProfile = await db.get('SELECT * FROM candidate_profiles WHERE id = ?', [candidateId]);
+
+      // Add a Welcome Notification for the new candidate
+      const notifId = `RI-NOTIF-${Math.floor(10000 + Math.random() * 90000)}`;
+      await db.run(`
+        INSERT INTO candidate_notifications (id, candidateId, userId, title, message, type, isRead)
+        VALUES (?, ?, ?, ?, ?, 'system', 0)
+      `, [
+        notifId,
+        candidateId,
+        userId,
+        'Welcome to The Revival International',
+        `Welcome ${finalName}! Your candidate account (${candidateId}) is active. Browse verified global vacancies and track applications in real time.`
+      ]);
+    } else {
+      candidateId = candidateProfile.id;
+    }
+
+    // Step 3: Record/Update Google Auth Account
+    if (googleSub) {
+      const existingGoogleAuth = await db.get('SELECT id FROM google_auth_accounts WHERE googleSub = ?', [googleSub]);
+      if (existingGoogleAuth) {
+        await db.run(`
+          UPDATE google_auth_accounts SET
+            email = ?, name = ?, picture = ?, accessToken = COALESCE(?, accessToken), idToken = COALESCE(?, idToken), lastAuthenticatedAt = CURRENT_TIMESTAMP
+          WHERE googleSub = ?
+        `, [cleanEmail, finalName, finalAvatar, accessToken || null, tokenToVerify || null, googleSub]);
+      } else {
+        const gAuthId = `GAUTH-${Date.now().toString(36).toUpperCase()}-${Math.floor(100 + Math.random() * 900)}`;
+        await db.run(`
+          INSERT INTO google_auth_accounts (id, userId, googleSub, email, name, picture, accessToken, idToken)
+          VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+        `, [gAuthId, userId, googleSub, cleanEmail, finalName, finalAvatar, accessToken || null, tokenToVerify || null]);
+      }
+    }
+
+    // Step 4: Mirror to legacy `candidates` table so Recruiter CRM / ERP dashboard remains 100% operational
+    try {
+      let legacyCand = await db.get('SELECT * FROM candidates WHERE id = ? OR LOWER(email) = LOWER(?)', [candidateId, cleanEmail]);
+      if (legacyCand) {
+        await db.run(`
+          UPDATE candidates SET
+            name = COALESCE(?, name),
+            avatar = COALESCE(?, avatar),
+            googleId = COALESCE(?, googleId),
+            authProvider = 'google',
+            googleVerified = 1
+          WHERE id = ?
+        `, [finalName, finalAvatar, googleSub || null, legacyCand.id]);
+      } else {
+        await db.run(`
+          INSERT INTO candidates (
+            id, name, email, phone, nationality, currentEmployer, currentRole,
+            currentSalary, expectedSalary, score, stage, skills, source, passport,
+            aiSummary, experience, googleId, avatar, authProvider, googleVerified
+          ) VALUES (?, ?, ?, ?, 'UAE', 'Revival International Talent Pool', 'Executive Candidate', 'Confidential', 'Market Standard', 92, 'lead', ?, 'Google Authentication (Gmail Verified)', 'Standard (Verified)', 'Candidate verified via Google OAuth 2.0 OpenID Connect.', '3-5 Years', ?, ?, 'google', 1)
+        `, [candidateId, finalName, cleanEmail, candidateProfile?.phone || '', candidateProfile?.skills || '[]', googleSub || null, finalAvatar]);
+      }
+    } catch (legErr) {
+      console.warn('Legacy candidate sync notice:', legErr.message);
+    }
+
+    // Step 5: Mirror to leads table for CRM visibility if not exists
     try {
       const existingLead = await db.get(
         'SELECT * FROM leads WHERE LOWER(email) = LOWER(?) AND serviceTitle = ?',
@@ -794,7 +893,7 @@ app.post('/api/auth/google', async (req, res) => {
           leadId,
           finalName,
           cleanEmail,
-          '',
+          candidateProfile?.phone || '',
           'Individual Candidate (Google Verified)',
           `Candidate registered via Google OAuth 2.0 (${cleanEmail})`,
           'intl-recruitment',
@@ -806,35 +905,259 @@ app.post('/api/auth/google', async (req, res) => {
       console.warn('Lead mirror warning:', leadErr.message);
     }
 
-    // Retrieve fresh candidate record from database
-    const savedCandidate = await db.get('SELECT * FROM candidates WHERE id = ?', [candidateId]);
-    const sessionToken = `revival_jwt_gis_${Buffer.from(`${cleanEmail}:${Date.now()}`).toString('base64')}`;
+    // Step 6: Load candidate applications and saved jobs for THIS candidate
+    const applications = await db.all('SELECT * FROM candidate_applications WHERE candidateId = ? ORDER BY appliedDate DESC', [candidateId]);
+    const notifications = await db.all('SELECT * FROM candidate_notifications WHERE candidateId = ? ORDER BY createdAt DESC', [candidateId]);
+
+    const sessionToken = `revival_jwt_gis_${Buffer.from(`${cleanEmail}:${userId}:${Date.now()}`).toString('base64')}`;
 
     res.json({
       success: true,
       message: 'Successfully authenticated with Google',
       token: sessionToken,
       user: {
-        candidateId: candidateId,
         id: candidateId,
-        name: savedCandidate?.name || finalName,
+        candidateId: candidateId,
+        userId: userId,
+        name: finalName,
         email: cleanEmail,
-        phone: savedCandidate?.phone || '',
-        avatar: savedCandidate?.avatar || finalAvatar,
+        phone: candidateProfile?.phone || '',
+        avatar: finalAvatar,
         role: 'candidate',
         isAdmin: cleanEmail === 'thejobsyncit@gmail.com',
         isRegistered: true,
         authProvider: 'google',
         googleVerified: true,
-        googleId: googleId,
-        stage: savedCandidate?.stage || 'lead',
-        skills: parseArray(savedCandidate?.skills || '[]'),
+        googleSub: googleSub,
+        title: candidateProfile?.currentRole || 'Executive Candidate',
+        experience: candidateProfile?.experience || '3-5 Years',
+        qualification: candidateProfile?.education || 'Bachelor Degree / Professional Diploma',
+        expectedSalary: candidateProfile?.expectedSalary || 'Market Standard',
+        skills: parseArray(candidateProfile?.skills || '[]'),
+        savedJobs: parseArray(candidateProfile?.savedJobs || '[]'),
+        profileCompletion: candidateProfile?.profileCompletion || 65,
+        stage: candidateProfile?.stage || 'lead',
+        score: candidateProfile?.score || 88,
+        resumeName: candidateProfile?.resumeName || '',
+        resumeUrl: candidateProfile?.resumeUrl || '',
+        applications: applications || [],
+        notifications: notifications || [],
         loginTime: new Date().toISOString()
       }
     });
   } catch (error) {
     console.error('Google Auth backend error:', error);
     res.status(500).json({ success: false, message: 'Google authentication server error' });
+  }
+});
+
+// --- INDIVIDUAL CANDIDATE DASHBOARD API ENDPOINTS ---
+
+// GET Candidate Profile
+app.get('/api/candidate/profile', async (req, res) => {
+  try {
+    const { candidateId, email, userId } = req.query;
+    const db = await getDb();
+    let profile = null;
+    if (candidateId) {
+      profile = await db.get('SELECT * FROM candidate_profiles WHERE id = ?', [candidateId]);
+    } else if (userId) {
+      profile = await db.get('SELECT * FROM candidate_profiles WHERE userId = ?', [userId]);
+    } else if (email) {
+      profile = await db.get('SELECT * FROM candidate_profiles WHERE LOWER(email) = LOWER(?)', [email.trim()]);
+    }
+
+    if (!profile) {
+      return res.status(404).json({ success: false, message: 'Candidate profile not found' });
+    }
+
+    res.json({
+      success: true,
+      data: {
+        ...profile,
+        skills: parseArray(profile.skills),
+        savedJobs: parseArray(profile.savedJobs)
+      }
+    });
+  } catch (error) {
+    console.error('Failed to fetch candidate profile:', error);
+    res.status(500).json({ success: false, message: 'Server error' });
+  }
+});
+
+// UPDATE Candidate Profile
+app.put('/api/candidate/profile', async (req, res) => {
+  try {
+    const { candidateId, name, phone, nationality, currentRole, currentEmployer, experience, education, expectedSalary, skills, resumeName, resumeUrl, avatar } = req.body;
+    if (!candidateId) {
+      return res.status(400).json({ success: false, message: 'Candidate ID is required' });
+    }
+
+    const db = await getDb();
+    const existing = await db.get('SELECT * FROM candidate_profiles WHERE id = ?', [candidateId]);
+    if (!existing) {
+      return res.status(404).json({ success: false, message: 'Candidate not found' });
+    }
+
+    const skillsStr = skills ? JSON.stringify(Array.isArray(skills) ? skills : [skills]) : existing.skills;
+
+    await db.run(`
+      UPDATE candidate_profiles SET
+        name = COALESCE(?, name),
+        phone = COALESCE(?, phone),
+        avatar = COALESCE(?, avatar),
+        nationality = COALESCE(?, nationality),
+        currentRole = COALESCE(?, currentRole),
+        currentEmployer = COALESCE(?, currentEmployer),
+        experience = COALESCE(?, experience),
+        education = COALESCE(?, education),
+        expectedSalary = COALESCE(?, expectedSalary),
+        skills = COALESCE(?, skills),
+        resumeName = COALESCE(?, resumeName),
+        resumeUrl = COALESCE(?, resumeUrl),
+        updatedAt = CURRENT_TIMESTAMP
+      WHERE id = ?
+    `, [name, phone, avatar, nationality, currentRole, currentEmployer, experience, education, expectedSalary, skillsStr, resumeName, resumeUrl, candidateId]);
+
+    const updated = await db.get('SELECT * FROM candidate_profiles WHERE id = ?', [candidateId]);
+    res.json({
+      success: true,
+      data: {
+        ...updated,
+        skills: parseArray(updated.skills),
+        savedJobs: parseArray(updated.savedJobs)
+      }
+    });
+  } catch (error) {
+    console.error('Failed to update candidate profile:', error);
+    res.status(500).json({ success: false, message: 'Server error' });
+  }
+});
+
+// GET Candidate Applications (strictly scoped to candidateId)
+app.get('/api/candidate/applications', async (req, res) => {
+  try {
+    const { candidateId } = req.query;
+    if (!candidateId) {
+      return res.status(400).json({ success: false, message: 'Candidate ID is required' });
+    }
+    const db = await getDb();
+    const rows = await db.all('SELECT * FROM candidate_applications WHERE candidateId = ? ORDER BY appliedDate DESC', [candidateId]);
+    res.json({ success: true, data: rows || [] });
+  } catch (error) {
+    console.error('Failed to fetch candidate applications:', error);
+    res.status(500).json({ success: false, message: 'Server error' });
+  }
+});
+
+// SUBMIT Candidate Application (strictly associated with candidateId)
+app.post('/api/candidate/applications', async (req, res) => {
+  try {
+    const { candidateId, userId, jobId, jobTitle, company, location } = req.body;
+    if (!candidateId || !jobId) {
+      return res.status(400).json({ success: false, message: 'Candidate ID and Job ID are required' });
+    }
+
+    const db = await getDb();
+
+    // Check if already applied for this job
+    const existing = await db.get('SELECT id FROM candidate_applications WHERE candidateId = ? AND jobId = ?', [candidateId, jobId]);
+    if (existing) {
+      return res.json({ success: true, message: 'Already applied for this vacancy', data: existing });
+    }
+
+    const appId = `RI-APP-${Math.floor(10000 + Math.random() * 90000)}`;
+    const appliedDate = new Date().toISOString();
+
+    await db.run(`
+      INSERT INTO candidate_applications (id, candidateId, userId, jobId, jobTitle, company, location, appliedDate, status, stage)
+      VALUES (?, ?, ?, ?, ?, ?, ?, ?, 'Under Review', 'Applied')
+    `, [appId, candidateId, userId || '', jobId, jobTitle || 'International Vacancy', company || 'Partner Enterprise', location || 'GCC', appliedDate]);
+
+    // Send application confirmation notification
+    const notifId = `RI-NOTIF-${Math.floor(10000 + Math.random() * 90000)}`;
+    await db.run(`
+      INSERT INTO candidate_notifications (id, candidateId, userId, title, message, type, isRead)
+      VALUES (?, ?, ?, ?, ?, 'application', 0)
+    `, [
+      notifId,
+      candidateId,
+      userId || '',
+      'Application Submitted',
+      `Your application for "${jobTitle}" at ${company} was successfully submitted and is under review.`
+    ]);
+
+    const created = await db.get('SELECT * FROM candidate_applications WHERE id = ?', [appId]);
+    res.json({ success: true, message: 'Application submitted successfully', data: created });
+  } catch (error) {
+    console.error('Failed to submit application:', error);
+    res.status(500).json({ success: false, message: 'Server error' });
+  }
+});
+
+// GET & TOGGLE Saved Jobs (strictly scoped to candidateId)
+app.get('/api/candidate/saved-jobs', async (req, res) => {
+  try {
+    const { candidateId } = req.query;
+    if (!candidateId) {
+      return res.status(400).json({ success: false, message: 'Candidate ID is required' });
+    }
+    const db = await getDb();
+    const profile = await db.get('SELECT savedJobs FROM candidate_profiles WHERE id = ?', [candidateId]);
+    res.json({ success: true, data: parseArray(profile?.savedJobs || '[]') });
+  } catch (error) {
+    console.error('Failed to fetch saved jobs:', error);
+    res.status(500).json({ success: false, message: 'Server error' });
+  }
+});
+
+app.post('/api/candidate/saved-jobs', async (req, res) => {
+  try {
+    const { candidateId, jobId } = req.body;
+    if (!candidateId || !jobId) {
+      return res.status(400).json({ success: false, message: 'Candidate ID and Job ID are required' });
+    }
+    const db = await getDb();
+    const profile = await db.get('SELECT savedJobs FROM candidate_profiles WHERE id = ?', [candidateId]);
+    let currentSaved = parseArray(profile?.savedJobs || '[]');
+    if (currentSaved.includes(jobId)) {
+      currentSaved = currentSaved.filter(id => id !== jobId);
+    } else {
+      currentSaved.push(jobId);
+    }
+    await db.run('UPDATE candidate_profiles SET savedJobs = ? WHERE id = ?', [JSON.stringify(currentSaved), candidateId]);
+    res.json({ success: true, data: currentSaved });
+  } catch (error) {
+    console.error('Failed to update saved jobs:', error);
+    res.status(500).json({ success: false, message: 'Server error' });
+  }
+});
+
+// GET Candidate Notifications
+app.get('/api/candidate/notifications', async (req, res) => {
+  try {
+    const { candidateId } = req.query;
+    if (!candidateId) {
+      return res.status(400).json({ success: false, message: 'Candidate ID is required' });
+    }
+    const db = await getDb();
+    const rows = await db.all('SELECT * FROM candidate_notifications WHERE candidateId = ? ORDER BY createdAt DESC', [candidateId]);
+    res.json({ success: true, data: rows || [] });
+  } catch (error) {
+    console.error('Failed to fetch candidate notifications:', error);
+    res.status(500).json({ success: false, message: 'Server error' });
+  }
+});
+
+app.put('/api/candidate/notifications/:id/read', async (req, res) => {
+  try {
+    const { id } = req.params;
+    const db = await getDb();
+    await db.run('UPDATE candidate_notifications SET isRead = 1 WHERE id = ?', [id]);
+    res.json({ success: true });
+  } catch (error) {
+    console.error('Failed to mark notification read:', error);
+    res.status(500).json({ success: false, message: 'Server error' });
   }
 });
 

@@ -141,7 +141,7 @@ export const Navbar = () => {
           </div>
 
           {/* Desktop Nav Items */}
-          <div className="hidden min-[960px]:flex items-center space-x-0.5 xl:space-x-1 2xl:space-x-1.5 shrink-0">
+          <div className="hidden nav:flex items-center space-x-0.5 xl:space-x-1 2xl:space-x-1.5 shrink-0">
             {navItems.map((item) => (
               <div
                 key={item.id}
@@ -450,7 +450,7 @@ export const Navbar = () => {
             </div>
 
             {/* Mobile Menu Button */}
-            <div className="min-[960px]:hidden flex items-center">
+            <div className="nav:hidden flex items-center">
               <button
                 onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
                 className="p-2 rounded-lg bg-slate-100 dark:bg-navy-800 border border-slate-300 dark:border-navy-700 text-slate-900 dark:text-white shadow-sm active:scale-95 transition"
@@ -464,7 +464,7 @@ export const Navbar = () => {
 
         {/* Mobile Menu Drawer - Premium Glassmorphism */}
         {mobileMenuOpen && (
-          <div className="min-[960px]:hidden mt-3 pt-4 border-t border-slate-200/50 dark:border-navy-700/50 flex flex-col gap-2.5 animate-in slide-in-from-top-4 duration-300">
+          <div className="nav:hidden mt-3 pt-4 border-t border-slate-200/50 dark:border-navy-700/50 flex flex-col gap-2.5 animate-in slide-in-from-top-4 duration-300">
 
             {/* Dedicated Academic Advisory Mobile Card */}
             <div className="p-3 bg-gold-500/10 border border-gold-500/30 rounded-xl space-y-2">

@@ -108,22 +108,8 @@ export const AppProvider = ({ children }) => {
       }
     } catch { }
   };
-  const [savedJobs, setSavedJobs] = useState(() => {
-    try {
-      const saved = localStorage.getItem('sir_saved_jobs');
-      return saved ? JSON.parse(saved) : [];
-    } catch {
-      return [];
-    }
-  });
-  const [applications, setApplications] = useState(() => {
-    try {
-      const saved = localStorage.getItem('sir_job_applications');
-      return saved ? JSON.parse(saved) : [];
-    } catch {
-      return [];
-    }
-  });
+  const [savedJobs, setSavedJobs] = useState([]);
+  const [applications, setApplications] = useState([]);
 
   // Auth State Management & Candidate Profile Database Persistence
   const getCandidateDB = () => {
@@ -164,6 +150,68 @@ export const AppProvider = ({ children }) => {
       return null;
     }
   });
+
+  // Candidate Data Isolation: Load candidate-specific applications and saved jobs
+  useEffect(() => {
+    if (user && user.candidateId) {
+      const cid = user.candidateId;
+      // Load saved jobs for this candidate
+      try {
+        const saved = localStorage.getItem(`sir_saved_jobs_${cid}`) || localStorage.getItem(`sir_saved_jobs_${user.email}`);
+        if (saved) {
+          setSavedJobs(JSON.parse(saved));
+        } else if (user.savedJobs && Array.isArray(user.savedJobs)) {
+          setSavedJobs(user.savedJobs);
+        } else {
+          setSavedJobs([]);
+        }
+      } catch {
+        setSavedJobs([]);
+      }
+
+      // Load applications for this candidate
+      try {
+        const apps = localStorage.getItem(`sir_applications_${cid}`) || localStorage.getItem(`sir_applications_${user.email}`);
+        if (apps) {
+          setApplications(JSON.parse(apps));
+        } else if (user.applications && Array.isArray(user.applications)) {
+          setApplications(user.applications);
+        } else {
+          setApplications([]);
+        }
+      } catch {
+        setApplications([]);
+      }
+
+      // Sync from backend candidate APIs for complete data isolation
+      fetch(`/api/candidate/applications?candidateId=${encodeURIComponent(cid)}`)
+        .then(r => r.json())
+        .then(d => {
+          if (d?.success && Array.isArray(d?.data)) {
+            setApplications(d.data);
+            try {
+              localStorage.setItem(`sir_applications_${cid}`, JSON.stringify(d.data));
+            } catch {}
+          }
+        })
+        .catch(() => {});
+
+      fetch(`/api/candidate/saved-jobs?candidateId=${encodeURIComponent(cid)}`)
+        .then(r => r.json())
+        .then(d => {
+          if (d?.success && Array.isArray(d?.data)) {
+            setSavedJobs(d.data);
+            try {
+              localStorage.setItem(`sir_saved_jobs_${cid}`, JSON.stringify(d.data));
+            } catch {}
+          }
+        })
+        .catch(() => {});
+    } else {
+      setSavedJobs([]);
+      setApplications([]);
+    }
+  }, [user?.candidateId, user?.email]);
 
   const saveUserSession = (userData) => {
     setUser(userData);
@@ -272,7 +320,7 @@ export const AppProvider = ({ children }) => {
             email: normalizedEmail,
             name: googleUser.name,
             picture: googleUser.avatar,
-            sub: googleUser.googleId
+            sub: googleUser.googleId || googleUser.googleSub
           }
         })
       });
@@ -293,25 +341,38 @@ export const AppProvider = ({ children }) => {
     const db = getCandidateDB();
     const existing = db[normalizedEmail] || {};
 
+    const candidateId = backendUser?.candidateId || existing.candidateId || ('RI-CAND-' + Math.floor(100 + Math.random() * 900));
+    const userId = backendUser?.userId || existing.userId || (`USR-${Date.now().toString(36).toUpperCase()}`);
+
     const candidateUser = {
       ...existing,
+      id: candidateId,
+      candidateId: candidateId,
+      userId: userId,
       name: backendUser?.name || googleUser.name || existing.name || normalizedEmail.split('@')[0],
       email: normalizedEmail,
       phone: backendUser?.phone || googleUser.phone || existing.phone || '',
       password: existing.password || 'GoogleOAuth2Verified',
       avatar: backendUser?.avatar || googleUser.avatar || existing.avatar || `https://api.dicebear.com/7.x/initials/svg?seed=${encodeURIComponent(googleUser.name || normalizedEmail)}`,
-      googleId: backendUser?.googleId || googleUser.googleId || existing.googleId || '',
+      googleSub: backendUser?.googleSub || googleUser.googleSub || googleUser.googleId || existing.googleSub || '',
+      googleId: backendUser?.googleSub || googleUser.googleSub || googleUser.googleId || existing.googleId || '',
       role: 'candidate',
       isAdmin: normalizedEmail === 'thejobsyncit@gmail.com',
       isRegistered: true,
       authProvider: 'google',
       googleVerified: true,
-      candidateId: backendUser?.candidateId || existing.candidateId || ('REV-CAN-' + Math.floor(10000 + Math.random() * 90000)),
       preferredCountry: existing.preferredCountry || 'UAE',
-      title: existing.title || (normalizedEmail === 'thejobsyncit@gmail.com' ? 'Super Admin' : 'Executive Candidate'),
-      experience: existing.experience || '',
-      expectedSalary: existing.expectedSalary || '',
+      title: backendUser?.title || existing.title || (normalizedEmail === 'thejobsyncit@gmail.com' ? 'Super Admin' : 'Executive Candidate'),
+      experience: backendUser?.experience || existing.experience || '3-5 Years',
+      qualification: backendUser?.qualification || existing.qualification || 'Bachelor Degree / Professional Diploma',
+      expectedSalary: backendUser?.expectedSalary || existing.expectedSalary || 'Market Standard',
       skills: backendUser?.skills && backendUser.skills.length > 0 ? backendUser.skills : (existing.skills && existing.skills.length > 0 ? existing.skills : ['Executive Candidate', 'International Mobility']),
+      savedJobs: backendUser?.savedJobs || existing.savedJobs || [],
+      applications: backendUser?.applications || existing.applications || [],
+      notifications: backendUser?.notifications || existing.notifications || [],
+      profileCompletion: backendUser?.profileCompletion || existing.profileCompletion || 65,
+      stage: backendUser?.stage || existing.stage || 'lead',
+      score: backendUser?.score || existing.score || 88,
       registeredAt: existing.registeredAt || new Date().toISOString(),
       loginTime: new Date().toISOString(),
       token: backendToken || existing.token || `revival_jwt_gis_${Date.now()}`
@@ -320,6 +381,22 @@ export const AppProvider = ({ children }) => {
     saveCandidateToDB(candidateUser);
     saveUserSession(candidateUser);
     setUser(candidateUser);
+
+    // Populate candidate-specific applications & saved jobs
+    if (backendUser?.applications && Array.isArray(backendUser.applications)) {
+      setApplications(backendUser.applications);
+      try {
+        localStorage.setItem(`sir_applications_${candidateId}`, JSON.stringify(backendUser.applications));
+      } catch {}
+    }
+
+    if (backendUser?.savedJobs && Array.isArray(backendUser.savedJobs)) {
+      setSavedJobs(backendUser.savedJobs);
+      try {
+        localStorage.setItem(`sir_saved_jobs_${candidateId}`, JSON.stringify(backendUser.savedJobs));
+      } catch {}
+    }
+
     setActiveTab('candidates');
 
     if (crm && crm.addCandidate) {
@@ -359,25 +436,30 @@ export const AppProvider = ({ children }) => {
       };
     }
 
+    const candidateId = existing.candidateId || ('RI-CAND-' + Math.floor(100 + Math.random() * 900));
+    const userId = existing.userId || (`USR-${Date.now().toString(36).toUpperCase()}`);
+
     const candidateUser = {
       ...existing,
+      id: candidateId,
+      candidateId: candidateId,
+      userId: userId,
       name: data.fullName || existing.name || '',
       email: normalizedEmail,
       password: data.password,
       phone: data.phone || existing.phone || '',
       dob: existing.dob || '',
       gender: existing.gender || '',
-      title: data.title || existing.title || '',
+      title: data.title || existing.title || 'Executive Candidate',
       location: data.location || existing.location || '',
-      preferredCountry: data.preferredCountry || existing.preferredCountry || '',
-      experience: data.experience || existing.experience || '',
-      qualification: data.qualification || existing.qualification || '',
-      skills: existing.skills && existing.skills.length > 0 ? existing.skills : (data.industry ? [data.industry] : []),
-      expectedSalary: data.expectedSalary || existing.expectedSalary || '',
-      avatar: existing.avatar || '',
+      preferredCountry: data.preferredCountry || existing.preferredCountry || 'UAE',
+      experience: data.experience || existing.experience || '3-5 Years',
+      qualification: data.qualification || existing.qualification || 'Bachelor Degree / Professional Diploma',
+      skills: existing.skills && existing.skills.length > 0 ? existing.skills : (data.industry ? [data.industry] : ['Executive Management']),
+      expectedSalary: data.expectedSalary || existing.expectedSalary || 'Market Standard',
+      avatar: existing.avatar || `https://api.dicebear.com/7.x/initials/svg?seed=${encodeURIComponent(data.fullName || normalizedEmail)}`,
       role: 'candidate',
       isRegistered: true,
-      candidateId: existing.candidateId || ('REV-CAN-' + Math.floor(10000 + Math.random() * 90000)),
       resumeUploaded: !!data.resumeName || existing.resumeUploaded || false,
       resumeName: data.resumeName || existing.resumeName || '',
       mohreAttested: existing.mohreAttested || false,
@@ -387,15 +469,8 @@ export const AppProvider = ({ children }) => {
 
     saveCandidateToDB(candidateUser);
     saveUserSession(candidateUser);
-    const pendingAcademy = typeof getPendingStudentAcademyEnquiry === 'function' ? getPendingStudentAcademyEnquiry() : null;
-      const pendingCareer = typeof getPendingCareerEnquiry === 'function' ? getPendingCareerEnquiry() : null;
-      const targetTab = (pendingAcademy && pendingAcademy.route)
-        ? pendingAcademy.route
-        : ((pendingCareer && pendingCareer.route) ? pendingCareer.route : 'candidates');
-      setActiveTab(targetTab);
-      if (typeof window !== 'undefined' && targetTab !== 'candidates') {
-        window.location.hash = targetTab;
-      }
+    setUser(candidateUser);
+    setActiveTab('candidates');
 
     // Post to backend Candidates API to persist into SQLite database & CRM leads
     try {
@@ -448,6 +523,18 @@ export const AppProvider = ({ children }) => {
       saveCandidateToDB(updated);
       return updated;
     });
+
+    // Also sync to backend candidate profile API
+    if (user?.candidateId) {
+      fetch('/api/candidate/profile', {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          candidateId: user.candidateId,
+          ...profileData
+        })
+      }).catch(err => console.warn('Candidate profile sync notice:', err));
+    }
   };
 
   const loginEmployer = (companyEmail, accountId, password) => {
@@ -468,64 +555,113 @@ export const AppProvider = ({ children }) => {
 
   const logout = () => {
     saveUserSession(null);
+    setSavedJobs([]);
+    setApplications([]);
+    sessionStorage.removeItem('sir_user_session');
+    localStorage.removeItem('sir_user_session');
+    navigateTo('home');
+    if (typeof window !== 'undefined') {
+      window.location.hash = '';
+    }
   };
 
-  const toggleSaveJob = (jobId) => {
+  const toggleSaveJob = async (jobId) => {
+    if (!jobId) return;
+    const cid = user?.candidateId || user?.email;
     setSavedJobs(prev => {
       const next = prev.includes(jobId) ? prev.filter(id => id !== jobId) : [...prev, jobId];
-      try {
-        localStorage.setItem('sir_saved_jobs', JSON.stringify(next));
-      } catch {}
+      if (cid) {
+        try {
+          localStorage.setItem(`sir_saved_jobs_${cid}`, JSON.stringify(next));
+        } catch {}
+      }
       return next;
     });
+
+    if (user?.candidateId) {
+      try {
+        await fetch('/api/candidate/saved-jobs', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ candidateId: user.candidateId, jobId })
+        });
+      } catch {}
+    }
   };
 
   const applyForJob = async (job) => {
     if (!job || !job.id) return;
+    const cid = user?.candidateId || 'RI-CAND-001';
+    const uid = user?.userId || '';
+
     const newApp = {
-      id: 'APP-' + Math.floor(1000 + Math.random() * 9000),
+      id: `RI-APP-${Math.floor(10000 + Math.random() * 90000)}`,
+      candidateId: cid,
+      userId: uid,
       jobId: job.id,
       jobTitle: job.title,
       company: job.company,
-      country: job.country,
-      appliedDate: new Date().toISOString().split('T')[0],
-      status: 'Under AI Resume Screening',
-      step: 1
+      location: job.location || job.country || 'GCC',
+      appliedDate: new Date().toISOString(),
+      status: 'Under Review',
+      stage: 'Applied'
     };
 
-    // Post to backend Candidates API as a new application and CRM lead
+    setApplications(prev => {
+      if (prev.some(a => a.jobId === job.id)) return prev;
+      const next = [newApp, ...prev];
+      if (cid) {
+        try {
+          localStorage.setItem(`sir_applications_${cid}`, JSON.stringify(next));
+        } catch {}
+      }
+      return next;
+    });
+
+    // Sync to backend candidate_applications table
+    if (user?.candidateId) {
+      try {
+        await fetch('/api/candidate/applications', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            candidateId: user.candidateId,
+            userId: uid,
+            jobId: job.id,
+            jobTitle: job.title,
+            company: job.company,
+            location: job.location || job.country
+          })
+        });
+      } catch (err) {
+        console.warn('Failed to sync application to candidate_applications:', err);
+      }
+    }
+
+    // Also mirror to legacy /api/candidates for CRM recruiters
     try {
       await fetch('/api/candidates', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          id: user?.candidateId || ('REV-CAN-' + Math.floor(1000 + Math.random() * 9000)),
+          id: cid,
           name: user ? user.name : 'Unknown Candidate',
           email: user ? user.email : '',
           phone: user ? user.phone : '',
           nationality: user?.preferredCountry || job.country || 'UAE',
-          currentEmployer: user?.companyName || 'Talent Applicant',
+          currentEmployer: 'Revival International Candidate',
           currentRole: job.title,
           expectedSalary: job.salary || 'Standard',
           source: `Applied for: ${job.title} (${job.company})`,
           stage: 'applied',
           score: 90,
-          skills: user?.skills && user.skills.length > 0 ? user.skills : (job.skills || [job.category || 'Executive']),
-          aiSummary: `Candidate applied for ${job.title} at ${job.company} (${job.location || job.country}). Resume: ${user?.resumeName || 'Attached'}`
+          skills: user?.skills && user.skills.length > 0 ? user.skills : (job.skills || ['Executive Candidate']),
+          aiSummary: `Candidate applied for ${job.title} at ${job.company}. Resume: ${user?.resumeName || 'Attached'}`
         })
       });
     } catch (err) {
-      console.error('Failed to sync application to CRM:', err);
+      console.warn('Failed to sync application to CRM:', err);
     }
-
-    setApplications(prev => {
-      if (prev.some(a => a.jobId === job.id)) return prev;
-      const updated = [newApp, ...prev];
-      try {
-        localStorage.setItem('sir_job_applications', JSON.stringify(updated));
-      } catch { }
-      return updated;
-    });
   };
 
   const updateApplicationStatus = (appId, newStatus, step, interviewDetails = null, notShortlistedDetails = null) => {
