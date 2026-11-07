@@ -24,6 +24,39 @@ import { CrmSuperAdmin } from './pages/CrmSuperAdmin';
 import { CrmConsultingBookings } from './pages/CrmConsultingBookings';
 import { CrmCareerGuidance } from './pages/CrmCareerGuidance';
 import { CrmStudentAcademy } from './pages/CrmStudentAcademy';
+import { CrmVacancyManagement } from './pages/CrmVacancyManagement';
+import { CrmSearchFilters } from './pages/CrmSearchFilters';
+import { CrmCandidateNotesTags } from './pages/CrmCandidateNotesTags';
+import { CrmCandidateCommunication } from './pages/CrmCandidateCommunication';
+import { CrmOffersJoining } from './pages/CrmOffersJoining';
+import { CrmTeamCollaboration } from './pages/CrmTeamCollaboration';
+import { CrmPlacementCoordinatorDashboard } from './pages/CrmPlacementCoordinatorDashboard';
+import { CrmPlacementStudents } from './pages/placement/CrmPlacementStudents';
+import { CrmPlacementEligibility } from './pages/placement/CrmPlacementEligibility';
+import { CrmPlacementCompanies } from './pages/placement/CrmPlacementCompanies';
+import { CrmPlacementDrives } from './pages/placement/CrmPlacementDrives';
+import { CrmPlacementRegistration } from './pages/placement/CrmPlacementRegistration';
+import { CrmPlacementApplications } from './pages/placement/CrmPlacementApplications';
+import { CrmPlacementEvents } from './pages/placement/CrmPlacementEvents';
+import { CrmPlacementOffers } from './pages/placement/CrmPlacementOffers';
+import { CrmPlacementAnnouncements } from './pages/placement/CrmPlacementAnnouncements';
+import { CrmPlacementReports } from './pages/placement/CrmPlacementReports';
+import { CrmPlacementApprovals } from './pages/placement/CrmPlacementApprovals';
+
+import { CrmInterviewerDashboard } from './pages/CrmInterviewerDashboard';
+import { CrmInterviewerAssigned } from './pages/interviewer/CrmInterviewerAssigned';
+import { CrmInterviewerProfiles } from './pages/interviewer/CrmInterviewerProfiles';
+import { CrmInterviewerSchedule } from './pages/interviewer/CrmInterviewerSchedule';
+import { CrmInterviewerEvaluation } from './pages/interviewer/CrmInterviewerEvaluation';
+import { CrmInterviewerFeedback } from './pages/interviewer/CrmInterviewerFeedback';
+import { CrmInterviewerDecision } from './pages/interviewer/CrmInterviewerDecision';
+import { CrmInterviewerStatus } from './pages/interviewer/CrmInterviewerStatus';
+import { CrmInterviewerReminders } from './pages/interviewer/CrmInterviewerReminders';
+import { CrmInterviewerContext } from './pages/interviewer/CrmInterviewerContext';
+import { CrmInterviewerAvailability } from './pages/interviewer/CrmInterviewerAvailability';
+import { CrmInterviewerPermissions } from './pages/interviewer/CrmInterviewerPermissions';
+
+import { CrmHrLeadDashboard } from './pages/CrmHrLeadDashboard';
 
 import { Search, Sparkles, X, Send, Bot, Loader2 } from 'lucide-react';
 
@@ -97,6 +130,51 @@ const CrmAppContent = () => {
     }
 
     switch (activeModule) {
+      // Placement Coordinator Suite (12 Dedicated Pages)
+      case 'plc-overview': return <CrmPlacementCoordinatorDashboard />;
+      case 'plc-students': return <CrmPlacementStudents />;
+      case 'plc-eligibility': return <CrmPlacementEligibility />;
+      case 'plc-companies': return <CrmPlacementCompanies />;
+      case 'plc-drives': return <CrmPlacementDrives />;
+      case 'plc-registration': return <CrmPlacementRegistration />;
+      case 'plc-applications': return <CrmPlacementApplications />;
+      case 'plc-events': return <CrmPlacementEvents />;
+      case 'plc-offers': return <CrmPlacementOffers />;
+      case 'plc-announcements': return <CrmPlacementAnnouncements />;
+      case 'plc-reports': return <CrmPlacementReports />;
+      case 'plc-approvals': return <CrmPlacementApprovals />;
+
+      // Interviewer Suite (12 Dedicated Pages)
+      case 'int-overview': return <CrmInterviewerDashboard />;
+      case 'int-assigned': return <CrmInterviewerAssigned />;
+      case 'int-profiles': return <CrmInterviewerProfiles />;
+      case 'int-schedule': return <CrmInterviewerSchedule />;
+      case 'int-evaluation': return <CrmInterviewerEvaluation />;
+      case 'int-feedback': return <CrmInterviewerFeedback />;
+      case 'int-decision': return <CrmInterviewerDecision />;
+      case 'int-status': return <CrmInterviewerStatus />;
+      case 'int-reminders': return <CrmInterviewerReminders />;
+      case 'int-context': return <CrmInterviewerContext />;
+      case 'int-calendar': return <CrmInterviewerAvailability />;
+      case 'int-permissions': return <CrmInterviewerPermissions />;
+
+      // HR Lead Suite (Centralized Workspace)
+      case 'hr-overview':
+      case 'hr-attendance':
+      case 'hr-leave':
+      case 'hr-employees':
+      case 'hr-performance':
+      case 'hr-recruitment':
+      case 'hr-payroll':
+      case 'hr-announcements':
+      case 'hr-shifts':
+      case 'hr-documents':
+      case 'hr-grievances':
+      case 'hr-approvals':
+      case 'hr-reports':
+        return <CrmHrLeadDashboard initialSection={activeModule} />;
+
+      // Standard & Recruiter Modules
       case 'consulting': return <CrmConsultingBookings />;
       case 'career-guidance': return <CrmCareerGuidance />;
       case 'student-academy': return <CrmStudentAcademy />;
@@ -116,6 +194,12 @@ const CrmAppContent = () => {
       case 'automation': return <CrmAutomation />;
       case 'super-admin': return <CrmSuperAdmin />;
       case 'settings': return <CrmSettings />;
+      case 'vacancies': return <CrmVacancyManagement />;
+      case 'search-filters': return <CrmSearchFilters />;
+      case 'notes-tags': return <CrmCandidateNotesTags />;
+      case 'communication': return <CrmCandidateCommunication />;
+      case 'offers': return <CrmOffersJoining />;
+      case 'collaboration': return <CrmTeamCollaboration />;
       case 'dashboard':
       default:
         return <CrmDashboard />;

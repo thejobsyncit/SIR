@@ -4,7 +4,10 @@ import {
   LayoutDashboard, Users, GitMerge, Home, Globe, Building2, UserCheck, 
   Calendar, FileText, ShieldCheck, CreditCard, BarChart3, Sparkles, Zap, 
   Settings, Lock, LogOut, Award, ChevronRight, ChevronDown, CalendarCheck,
-  GraduationCap, Compass, School, Languages, Plane
+  GraduationCap, Compass, School, Languages, Plane,
+  Briefcase, Search, Tag, MessageSquare, Users2,
+  CheckCircle2, Bell, CheckSquare, Clock, AlertCircle, BookOpen,
+  TrendingUp, UserPlus
 } from 'lucide-react';
 
 export const CONSULTING_SUB_SERVICES = [
@@ -125,7 +128,86 @@ export const CrmSidebar = ({ collapsed, setCollapsed }) => {
     { id: 'settings', label: 'Admin Settings', icon: Settings }
   ];
 
-  const permittedItems = menuItems.filter(item => hasPermission(item.id));
+  const isRecruiterRole = currentRole === 'Recruiter' || currentRole === 'Domestic Recruiter' || currentRole === 'International Recruiter';
+  const isPlacementRole = currentRole === 'Placement Coordinator';
+  const isInterviewerRole = currentRole === 'Interviewer';
+  const isHrLeadRole = currentRole === 'HR Lead';
+
+  // 12 Recruiter Dashboard features as defined in Page 1 of the Recruitment Requirements PDF
+  const recruiterMenuItems = [
+    { id: 'dashboard', label: 'Dashboard overview', icon: LayoutDashboard, tag: '1' },
+    { id: 'vacancies', label: 'Job / vacancy management', icon: Briefcase, tag: '2' },
+    { id: 'candidates', label: 'Candidate management', icon: Users, tag: '3' },
+    { id: 'search-filters', label: 'Search and filters', icon: Search, tag: '4' },
+    { id: 'pipeline', label: 'Application pipeline', icon: GitMerge, tag: '5' },
+    { id: 'documentation', label: 'Resume upload and storage', icon: FileText, tag: '6' },
+    { id: 'notes-tags', label: 'Candidate notes and tags', icon: Tag, tag: '7' },
+    { id: 'interviews', label: 'Interview scheduling', icon: Calendar, tag: '8' },
+    { id: 'communication', label: 'Candidate communication', icon: MessageSquare, tag: '9' },
+    { id: 'offers', label: 'Offers and joining', icon: Award, tag: '10' },
+    { id: 'reports', label: 'Reports and analytics', icon: BarChart3, tag: '11' },
+    { id: 'collaboration', label: 'Team collaboration', icon: Users2, tag: '12' }
+  ];
+
+  // 12 Placement Coordinator Dashboard features as defined in Page 2 of the Recruitment Requirements PDF
+  const placementMenuItems = [
+    { id: 'plc-overview', label: 'Dashboard overview', icon: LayoutDashboard, tag: '1' },
+    { id: 'plc-students', label: 'Student profile management', icon: GraduationCap, tag: '2' },
+    { id: 'plc-eligibility', label: 'Eligibility management', icon: CheckCircle2, tag: '3' },
+    { id: 'plc-companies', label: 'Company management', icon: Building2, tag: '4' },
+    { id: 'plc-drives', label: 'Placement drive management', icon: Briefcase, tag: '5' },
+    { id: 'plc-registration', label: 'Student registration', icon: UserCheck, tag: '6' },
+    { id: 'plc-applications', label: 'Application tracking', icon: GitMerge, tag: '7' },
+    { id: 'plc-events', label: 'Interview & event coordination', icon: Calendar, tag: '8' },
+    { id: 'plc-offers', label: 'Offer & placement records', icon: Award, tag: '9' },
+    { id: 'plc-announcements', label: 'Announcements & notifications', icon: Bell, tag: '10' },
+    { id: 'plc-reports', label: 'Reports and exports', icon: BarChart3, tag: '11' },
+    { id: 'plc-approvals', label: 'Access and approvals', icon: ShieldCheck, tag: '12' }
+  ];
+
+  // 12 Interviewer Dashboard features as defined in Page 3 of the Recruitment Requirements PDF
+  const interviewerMenuItems = [
+    { id: 'int-overview', label: 'Dashboard overview', icon: LayoutDashboard, tag: '1' },
+    { id: 'int-assigned', label: 'Assigned candidate list', icon: Users, tag: '2' },
+    { id: 'int-profiles', label: 'Candidate interview profile', icon: FileText, tag: '3' },
+    { id: 'int-schedule', label: 'Interview schedule and details', icon: Calendar, tag: '4' },
+    { id: 'int-evaluation', label: 'Interview evaluation form', icon: CheckSquare, tag: '5' },
+    { id: 'int-feedback', label: 'Structured feedback', icon: MessageSquare, tag: '6' },
+    { id: 'int-decision', label: 'Decision submission', icon: Award, tag: '7' },
+    { id: 'int-status', label: 'Interview status', icon: Clock, tag: '8' },
+    { id: 'int-reminders', label: 'Feedback reminders', icon: AlertCircle, tag: '9' },
+    { id: 'int-context', label: 'Previous-round context', icon: BookOpen, tag: '10' },
+    { id: 'int-calendar', label: 'Availability / calendar', icon: CalendarCheck, tag: '11' },
+    { id: 'int-permissions', label: 'Confidentiality & permissions', icon: Lock, tag: '12' }
+  ];
+
+  // 13 HR Lead Dashboard features as defined in the HR Lead Feature Plan
+  const hrLeadMenuItems = [
+    { id: 'hr-overview', label: 'Dashboard overview', icon: LayoutDashboard, tag: '1' },
+    { id: 'hr-attendance', label: 'Attendance management', icon: Clock, tag: '2' },
+    { id: 'hr-leave', label: 'Leave management', icon: Calendar, tag: '3' },
+    { id: 'hr-employees', label: 'Employee management', icon: Users, tag: '4' },
+    { id: 'hr-performance', label: 'Employee performance', icon: TrendingUp, tag: '5' },
+    { id: 'hr-recruitment', label: 'Recruitment & onboarding', icon: UserPlus, tag: '6' },
+    { id: 'hr-payroll', label: 'Payroll management', icon: CreditCard, tag: '7' },
+    { id: 'hr-announcements', label: 'Announcements & alerts', icon: Bell, tag: '8' },
+    { id: 'hr-shifts', label: 'Shift management', icon: CalendarCheck, tag: '9' },
+    { id: 'hr-documents', label: 'Document repository', icon: FileText, tag: '10' },
+    { id: 'hr-grievances', label: 'Grievance management', icon: AlertCircle, tag: '11' },
+    { id: 'hr-approvals', label: 'Central approval center', icon: CheckSquare, tag: '12' },
+    { id: 'hr-reports', label: 'Workforce analytics', icon: BarChart3, tag: '13' }
+  ];
+
+  let permittedItems = menuItems.filter(item => hasPermission(item.id));
+  if (isRecruiterRole) {
+    permittedItems = recruiterMenuItems;
+  } else if (isPlacementRole) {
+    permittedItems = placementMenuItems;
+  } else if (isInterviewerRole) {
+    permittedItems = interviewerMenuItems;
+  } else if (isHrLeadRole) {
+    permittedItems = hrLeadMenuItems;
+  }
 
   // Role-based filtering for Consulting & Bookings sub-services
   const permittedSubServices = CONSULTING_SUB_SERVICES.filter(srv => {
@@ -144,7 +226,7 @@ export const CrmSidebar = ({ collapsed, setCollapsed }) => {
         />
       )}
 
-      <aside className={`bg-white dark:bg-[#070c1e] border-r border-slate-200 dark:border-slate-800/80 text-slate-700 dark:text-slate-300 flex flex-col justify-between transition-all duration-300 z-50 fixed inset-y-0 left-0 lg:static lg:h-full lg:max-h-full min-h-0 overflow-hidden shrink-0 transform ${collapsed ? '-translate-x-full lg:translate-x-0 lg:w-20' : 'translate-x-0 w-64'}`}>
+      <aside className={`bg-white dark:bg-[#070c1e] border-r border-slate-200 dark:border-slate-800/80 text-slate-700 dark:text-slate-300 flex flex-col justify-between transition-all duration-300 z-50 fixed inset-y-0 left-0 lg:static lg:h-full lg:max-h-full min-h-0 overflow-hidden shrink-0 transform ${collapsed ? '-translate-x-full lg:translate-x-0 lg:w-20' : 'translate-x-0 w-72'}`}>
       
       {/* Top Brand Logo */}
       <div className="p-4 border-b border-slate-200 dark:border-navy-800 flex items-center justify-between shrink-0">
@@ -161,9 +243,48 @@ export const CrmSidebar = ({ collapsed, setCollapsed }) => {
 
       {/* Nav Menu */}
       <div className="flex-1 min-h-0 overflow-y-auto overscroll-y-contain crm-sidebar-scroll py-4 px-3 space-y-1 text-xs font-semibold">
+        {isRecruiterRole && !collapsed && (
+          <div className="px-2 pt-0.5 pb-2">
+            <div className="flex items-center justify-between px-1 text-[10px] font-extrabold tracking-wider uppercase text-gold-600 dark:text-gold-400">
+              <span>Recruiter Features</span>
+              <span className="font-mono bg-gold-500/15 text-gold-700 dark:text-gold-300 px-1.5 py-0.5 rounded text-[9px] border border-gold-500/30">12 Features</span>
+            </div>
+          </div>
+        )}
+
+        {isPlacementRole && !collapsed && (
+          <div className="px-2 pt-0.5 pb-2">
+            <div className="flex items-center justify-between px-1 text-[10px] font-extrabold tracking-wider uppercase text-gold-600 dark:text-gold-400">
+              <span>Placement Features</span>
+              <span className="font-mono bg-gold-500/15 text-gold-700 dark:text-gold-300 px-1.5 py-0.5 rounded text-[9px] border border-gold-500/30">12 Features</span>
+            </div>
+          </div>
+        )}
+
+        {isInterviewerRole && !collapsed && (
+          <div className="px-2 pt-0.5 pb-2">
+            <div className="flex items-center justify-between px-1 text-[10px] font-extrabold tracking-wider uppercase text-gold-600 dark:text-gold-400">
+              <span>Interviewer Features</span>
+              <span className="font-mono bg-gold-500/15 text-gold-700 dark:text-gold-300 px-1.5 py-0.5 rounded text-[9px] border border-gold-500/30">12 Features</span>
+            </div>
+          </div>
+        )}
+
+        {isHrLeadRole && !collapsed && (
+          <div className="px-2 pt-0.5 pb-2">
+            <div className="flex items-center justify-between px-1 text-[10px] font-extrabold tracking-wider uppercase text-gold-600 dark:text-gold-400">
+              <span>HR Lead Workspace</span>
+              <span className="font-mono bg-gold-500/15 text-gold-700 dark:text-gold-300 px-1.5 py-0.5 rounded text-[9px] border border-gold-500/30">13 Modules</span>
+            </div>
+          </div>
+        )}
         {permittedItems.map((item) => {
           const Icon = item.icon;
-          const isActive = activeModule === item.id;
+          const isActive = activeModule === item.id || 
+            (item.id === 'dashboard' && (activeModule === 'dashboard' || activeModule === 'plc-overview' || activeModule === 'int-overview' || activeModule === 'hr-overview')) ||
+            (item.id === 'plc-overview' && (activeModule === 'dashboard' || activeModule === 'plc-overview')) ||
+            (item.id === 'int-overview' && (activeModule === 'dashboard' || activeModule === 'int-overview')) ||
+            (item.id === 'hr-overview' && (activeModule === 'dashboard' || activeModule === 'hr-overview'));
 
           if (item.id === 'consulting') {
             const isConsultingActive = activeModule === 'consulting';
@@ -279,13 +400,26 @@ export const CrmSidebar = ({ collapsed, setCollapsed }) => {
               }}
               className={`w-full flex items-center space-x-3 px-3 py-2.5 rounded-xl transition duration-200 ${
                 isActive
-                  ? 'bg-gold-500/20 text-gold-600 dark:text-gold-400 border border-gold-500/40 font-bold shadow-sm'
+                  ? 'bg-amber-100/70 dark:bg-gold-500/20 text-amber-900 dark:text-gold-300 font-bold border border-amber-300/60 dark:border-gold-500/30 shadow-sm'
                   : 'hover:bg-slate-100 dark:hover:bg-navy-900 hover:text-slate-900 dark:hover:text-white text-slate-800 dark:text-slate-100 font-bold'
               }`}
               title={item.label}
             >
-              <Icon className={`w-4 h-4 shrink-0 ${isActive ? 'text-gold-500' : 'text-slate-600 dark:text-slate-200'}`} />
+              <Icon className={`w-4 h-4 shrink-0 ${
+                isActive 
+                  ? 'text-amber-700 dark:text-gold-400' 
+                  : 'text-slate-600 dark:text-slate-200'
+              }`} />
               {!collapsed && <span className="truncate flex-1 text-left">{item.label}</span>}
+              {!collapsed && item.tag && (
+                <span className={`px-1.5 py-0.5 rounded text-[9px] font-mono font-extrabold shrink-0 ${
+                  isActive 
+                    ? 'bg-gold-500 text-navy-950 shadow-xs' 
+                    : 'bg-slate-100 dark:bg-navy-800 text-slate-500 dark:text-slate-400'
+                }`}>
+                  #{item.tag}
+                </span>
+              )}
               {!collapsed && item.id === 'super-admin' && Array.isArray(leads) && leads.filter(l => l && l.status === 'New').length > 0 && (
                 <span className="px-1.5 py-0.5 text-[9px] font-extrabold rounded-full bg-emerald-500 text-white animate-pulse">
                   {leads.filter(l => l && l.status === 'New').length}

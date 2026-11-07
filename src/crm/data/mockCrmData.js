@@ -4,7 +4,8 @@ export const CRM_ROLES = [
   'HR Lead',
   'Recruiter',
   'Placement Coordinator',
-  'HR Operations'
+  'HR Operations',
+  'Interviewer'
 ];
 
 export const ROLE_PERMISSIONS = {
@@ -13,24 +14,47 @@ export const ROLE_PERMISSIONS = {
     'dashboard', 'consulting', 'career-guidance', 'student-academy', 
     'candidates', 'pipeline', 'domestic', 'international', 'clients', 
     'workspace', 'interviews', 'documentation', 'visa', 'verification', 
-    'accounts', 'reports', 'ai-suite', 'calendar', 'settings'
+    'accounts', 'reports', 'ai-suite', 'calendar', 'settings',
+    'vacancies', 'search-filters', 'notes-tags', 'communication', 'offers', 'collaboration',
+    'plc-overview', 'plc-students', 'plc-eligibility', 'plc-companies', 'plc-drives', 
+    'plc-registration', 'plc-applications', 'plc-events', 'plc-offers', 'plc-announcements', 
+    'plc-reports', 'plc-approvals',
+    'int-overview', 'int-assigned', 'int-profiles', 'int-schedule', 'int-evaluation', 
+    'int-feedback', 'int-decision', 'int-status', 'int-reminders', 'int-context', 
+    'int-calendar', 'int-permissions',
+    'hr-overview', 'hr-attendance', 'hr-leave', 'hr-employees', 'hr-performance', 
+    'hr-recruitment', 'hr-payroll', 'hr-announcements', 'hr-shifts', 'hr-documents', 
+    'hr-grievances', 'hr-approvals', 'hr-reports'
   ],
   'HR Lead': [
     'dashboard', 'consulting', 'career-guidance', 'student-academy', 
     'candidates', 'pipeline', 'workspace', 'interviews', 'reports', 
-    'calendar'
+    'calendar', 'vacancies', 'offers', 'collaboration',
+    'hr-overview', 'hr-attendance', 'hr-leave', 'hr-employees', 'hr-performance', 
+    'hr-recruitment', 'hr-payroll', 'hr-announcements', 'hr-shifts', 'hr-documents', 
+    'hr-grievances', 'hr-approvals', 'hr-reports'
   ],
   'Recruiter': [
-    'dashboard', 'candidates', 'pipeline', 'workspace', 'interviews', 
-    'documentation', 'calendar'
+    'dashboard', 'vacancies', 'candidates', 'search-filters', 'pipeline', 
+    'documentation', 'notes-tags', 'interviews', 'communication', 'offers', 
+    'reports', 'collaboration', 'workspace', 'domestic', 'international', 
+    'clients', 'calendar'
   ],
   'Placement Coordinator': [
-    'dashboard', 'candidates', 'pipeline', 'clients', 'interviews', 
-    'workspace', 'calendar'
+    'dashboard', 'plc-overview', 'plc-students', 'plc-eligibility', 'plc-companies', 
+    'plc-drives', 'plc-registration', 'plc-applications', 'plc-events', 'plc-offers', 
+    'plc-announcements', 'plc-reports', 'plc-approvals',
+    'candidates', 'pipeline', 'clients', 'interviews', 'workspace', 'calendar'
   ],
   'HR Operations': [
     'dashboard', 'consulting', 'career-guidance', 'student-academy', 
     'candidates', 'documentation', 'calendar'
+  ],
+  'Interviewer': [
+    'dashboard', 'int-overview', 'int-assigned', 'int-profiles', 'int-schedule', 
+    'int-evaluation', 'int-feedback', 'int-decision', 'int-status', 'int-reminders', 
+    'int-context', 'int-calendar', 'int-permissions',
+    'candidates', 'interviews', 'calendar'
   ],
   // Legacy aliases for backward compatibility
   'HR & Talent Manager': ['dashboard', 'consulting', 'career-guidance', 'student-academy', 'candidates', 'pipeline', 'domestic', 'international', 'clients', 'workspace', 'interviews', 'documentation', 'reports', 'calendar'],

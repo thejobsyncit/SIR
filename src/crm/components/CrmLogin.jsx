@@ -52,7 +52,8 @@ export const CrmLogin = () => {
       { name: 'Priya Sharma', email: 'priya.lead@revivalinternational.com', password: 'Password123!', role: 'HR Lead', phone: '+91 98400 11003', department: 'Human Resources' },
       { name: 'Kishore Kumar', email: 'kishore.recruiter@revivalinternational.com', password: 'Password123!', role: 'Recruiter', phone: '+91 98400 11004', department: 'Recruitment & ATS' },
       { name: 'Sreeja Nair', email: 'sreeja.jasync@gmail.com', password: 'Password123!', role: 'Placement Coordinator', phone: '+91 9876543211', department: 'Placement & Client Relations' },
-      { name: 'Balavarshini', email: 'balavarshini2223@gmail.com', password: 'Password123!', role: 'HR Operations', phone: '+91 9876543214', department: 'HR Operations' }
+      { name: 'Balavarshini', email: 'balavarshini2223@gmail.com', password: 'Password123!', role: 'HR Operations', phone: '+91 9876543214', department: 'HR Operations' },
+      { name: 'Dr. Rajesh Kannan', email: 'rajesh.interviewer@revivalinternational.com', password: 'Password123!', role: 'Interviewer', phone: '+91 98400 11999', department: 'Technical Assessment Panel' }
     ];
 
     let users = [...defaultAccounts];

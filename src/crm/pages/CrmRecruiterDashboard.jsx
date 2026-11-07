@@ -119,38 +119,40 @@ export const CrmRecruiterDashboard = () => {
 
   return (
     <div className="space-y-6">
-      {/* Recruiter Header */}
-      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 bg-gradient-to-r from-navy-950 via-slate-900 to-navy-900 p-6 rounded-3xl border border-gold-500/30 shadow-lg text-white">
+      {/* Recruiter Header (Super Admin Style) */}
+      <div className="bg-white dark:bg-navy-900 border border-slate-200/90 dark:border-navy-800 p-6 rounded-3xl shadow-sm flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
         <div>
-          <div className="flex items-center gap-2 mb-1">
-            <span className="px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-blue-500 text-white uppercase tracking-wider">
-              Talent Sourcing Console
+          <div className="flex items-center gap-2 mb-2">
+            <span className="bg-amber-100 dark:bg-amber-950/40 text-amber-800 dark:text-gold-400 px-3 py-1 rounded-lg text-[10px] font-black uppercase tracking-wider">
+              Recruiter Suite • Feature #1
             </span>
-            <span className="text-xs text-slate-400 font-mono">RECRUITER-ATS</span>
+            <span className="text-[10px] font-mono text-slate-400 uppercase tracking-wider">
+              TALENT SOURCING & APPLICANT PIPELINE
+            </span>
           </div>
-          <h1 className="font-serif text-2xl sm:text-3xl font-extrabold text-white">
+          <h1 className="font-serif text-2xl sm:text-3xl font-bold text-slate-900 dark:text-white">
             Recruiter & ATS Candidate Dashboard
           </h1>
-          <p className="text-slate-300 text-xs mt-1">
+          <p className="text-slate-500 text-xs mt-1">
             Assigned candidate pool, AI resume scoring, interview coordination, and pipeline stage progression.
           </p>
         </div>
 
         {/* Tab Controls */}
-        <div className="flex flex-wrap gap-1.5 bg-white/10 p-1.5 rounded-2xl border border-white/10 text-xs">
+        <div className="flex flex-wrap gap-1.5 bg-slate-50 dark:bg-navy-950 p-1.5 rounded-2xl border border-slate-200/80 dark:border-navy-800 text-xs shadow-xs">
           {[
-            { id: 'overview', label: 'Recruitment Overview' },
-            { id: 'candidates', label: 'Assigned Candidates' },
-            { id: 'ats', label: 'ATS Resume Scoring' },
-            { id: 'jobs', label: 'Assigned Openings' }
+            { id: 'overview', label: 'Overview' },
+            { id: 'candidates', label: 'Candidates' },
+            { id: 'ats', label: 'ATS Scoring' },
+            { id: 'jobs', label: 'Openings' }
           ].map(tab => (
             <button
               key={tab.id}
               onClick={() => setActiveTab(tab.id)}
               className={`px-3 py-1.5 rounded-xl font-bold transition cursor-pointer ${
                 activeTab === tab.id 
-                  ? 'bg-gold-500 text-navy-950 shadow-sm' 
-                  : 'text-slate-300 hover:text-white hover:bg-white/5'
+                  ? 'bg-gold-500 text-navy-950 shadow-xs' 
+                  : 'text-slate-600 dark:text-slate-300 hover:bg-slate-200/60 dark:hover:bg-navy-800'
               }`}
             >
               {tab.label}
@@ -195,7 +197,12 @@ export const CrmRecruiterDashboard = () => {
                 <Briefcase className="w-4 h-4 text-gold-500" />
                 <span>Assigned Open Mandates & Vacancies</span>
               </h3>
-              <span className="text-xs font-mono font-bold text-slate-400">{jobOpenings.length} Active Positions</span>
+              <button
+                onClick={() => setActiveModule('vacancies')}
+                className="text-xs font-bold text-gold-600 dark:text-gold-400 hover:underline cursor-pointer"
+              >
+                Vacancy Manager →
+              </button>
             </div>
 
             <div className="space-y-3">

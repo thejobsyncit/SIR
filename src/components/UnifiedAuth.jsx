@@ -55,6 +55,13 @@ export const DEFAULT_GOOGLE_ACCOUNTS = [
     bg: 'bg-emerald-600'
   },
   {
+    name: 'Dhanush J',
+    email: 'dhanush.j@gmail.com',
+    avatar: null,
+    initial: 'D',
+    bg: 'bg-indigo-600'
+  },
+  {
     name: 'thejobsync',
     email: 'thejobsyncit@gmail.com',
     avatar: null,
@@ -62,11 +69,25 @@ export const DEFAULT_GOOGLE_ACCOUNTS = [
     bg: 'bg-sky-600'
   },
   {
-    name: 'mrjobsync',
-    email: 'mrjobsync@gmail.com',
+    name: 'Hr Maddy',
+    email: 'hrmaddy.revival@gmail.com',
     avatar: null,
-    initial: 'm',
-    bg: 'bg-teal-700'
+    initial: 'Hr',
+    bg: 'bg-rose-600'
+  },
+  {
+    name: 'Vishnu',
+    email: 'vishnu.recruitment@gmail.com',
+    avatar: null,
+    initial: 'V',
+    bg: 'bg-amber-600'
+  },
+  {
+    name: 'velsuniv.ac.in',
+    email: 'kishore@velsuniv.ac.in',
+    avatar: null,
+    initial: 'K',
+    bg: 'bg-purple-600'
   }
 ];
 
@@ -96,6 +117,8 @@ export const UnifiedAuth = ({ defaultMode = 'login', defaultRole = 'candidate', 
   const [showCustomGoogleInput, setShowCustomGoogleInput] = useState(false);
   const [customGoogleEmail, setCustomGoogleEmail] = useState('');
   const [customGoogleName, setCustomGoogleName] = useState('');
+  const [showClientIdConfig, setShowClientIdConfig] = useState(false);
+  const [tempClientId, setTempClientId] = useState('');
 
   // Candidate Form States
   const [candidateLogin, setCandidateLogin] = useState({ email: '', password: '' });
@@ -252,23 +275,79 @@ export const UnifiedAuth = ({ defaultMode = 'login', defaultRole = 'candidate', 
     }
   };
 
-  // Get active Google accounts present on this device
+  // Trigger Real Google OAuth 2.0 Account Chooser Popup
+  const triggerRealGoogleOAuth = (clientIdToUse) => {
+    const activeClientId = clientIdToUse || googleClientId;
+    if (typeof window !== 'undefined' && window.google?.accounts?.oauth2 && activeClientId) {
+      try {
+        setGoogleLoading(true);
+        setGoogleError('');
+        const tokenClient = window.google.accounts.oauth2.initTokenClient({
+          client_id: activeClientId,
+          scope: 'email profile openid',
+          callback: async (tokenResponse) => {
+            if (tokenResponse?.error) {
+              setGoogleLoading(false);
+              setGoogleError(tokenResponse.error_description || 'Google authentication was cancelled.');
+              return;
+            }
+            if (tokenResponse?.access_token) {
+              try {
+                const res = await fetch('https://www.googleapis.com/oauth2/v3/userinfo', {
+                  headers: { Authorization: `Bearer ${tokenResponse.access_token}` }
+                });
+                const user = await res.json();
+                if (user?.email) {
+                  await handleGoogleAuthSubmit(user.email, user.name || user.given_name || user.email.split('@')[0], user.picture);
+                } else {
+                  setGoogleError('Failed to retrieve user profile from Google.');
+                }
+              } catch (fetchErr) {
+                console.error('Error fetching Google profile:', fetchErr);
+                setGoogleError('Failed to fetch profile information from Google.');
+              } finally {
+                setGoogleLoading(false);
+              }
+            } else {
+              setGoogleLoading(false);
+            }
+          },
+          error_callback: (err) => {
+            setGoogleLoading(false);
+            console.warn('Google OAuth error:', err);
+            if (err?.type !== 'popup_closed') {
+              setGoogleError(err?.message || 'Google Sign-In popup failed or was blocked by browser.');
+            }
+          }
+        });
+
+        // prompt: 'select_account' opens Google's authentic account picker with the user's real Google accounts!
+        tokenClient.requestAccessToken({ prompt: 'select_account' });
+        return true;
+      } catch (err) {
+        console.error('Google OAuth init failed:', err);
+        setGoogleLoading(false);
+      }
+    }
+    return false;
+  };
+
+  const handleSaveClientId = (idToSave) => {
+    const clean = (idToSave || tempClientId).trim();
+    if (!clean) return;
+    localStorage.setItem('sir_google_client_id', clean);
+    setGoogleClientId(clean);
+    setShowClientIdConfig(false);
+    setGoogleError('');
+    setShowGoogleChooser(false);
+    setTimeout(() => {
+      triggerRealGoogleOAuth(clean);
+    }, 150);
+  };
+
+  // Get active Google accounts present on device (combines default accounts + any accounts logged in on this browser)
   const getDeviceAccounts = () => {
-    const avatarMap = {
-      'kishorekumaroff1@gmail.com': '/images/avatar_kishore.png',
-      'kishorekumaroffl@gmail.com': '/images/avatar_kishore.png',
-      'harishdurai2508@gmail.com': '/images/avatar_harish.png'
-    };
-
-    const list = DEFAULT_GOOGLE_ACCOUNTS.map(acc => {
-      const emailLower = acc.email.toLowerCase();
-      const isNoAvatar = emailLower === 'thejobsyncit@gmail.com' || emailLower === 'mrjobsync@gmail.com';
-      return {
-        ...acc,
-        avatar: isNoAvatar ? null : (avatarMap[emailLower] || acc.avatar)
-      };
-    });
-
+    const list = [...DEFAULT_GOOGLE_ACCOUNTS];
     try {
       const devStr = localStorage.getItem('sir_device_google_accounts');
       if (devStr) {
@@ -276,15 +355,20 @@ export const UnifiedAuth = ({ defaultMode = 'login', defaultRole = 'candidate', 
         if (Array.isArray(parsed)) {
           parsed.forEach(acc => {
             const cleanAccEmail = (acc?.email || '').toLowerCase().trim();
-            const isKishoreVariant = cleanAccEmail === 'kishorekumaroffl@gmail.com' || cleanAccEmail === 'kishorekumaroff1@gmail.com';
-            if (cleanAccEmail && !list.some(x => x.email.toLowerCase() === cleanAccEmail) && !isKishoreVariant) {
-              const noImg = cleanAccEmail === 'thejobsyncit@gmail.com' || cleanAccEmail === 'mrjobsync@gmail.com';
-              list.push({
-                ...acc,
-                avatar: noImg ? null : (avatarMap[cleanAccEmail] || null),
-                initial: (acc.name || acc.email).charAt(0).toUpperCase(),
-                bg: 'bg-purple-600'
-              });
+            if (cleanAccEmail) {
+              const existingIdx = list.findIndex(x => x.email.toLowerCase() === cleanAccEmail);
+              const formattedItem = {
+                email: cleanAccEmail,
+                name: acc.name || cleanAccEmail.split('@')[0],
+                avatar: acc.avatar || null,
+                initial: (acc.name || cleanAccEmail).charAt(0).toUpperCase(),
+                bg: 'bg-blue-600'
+              };
+              if (existingIdx >= 0) {
+                list[existingIdx] = { ...list[existingIdx], ...formattedItem };
+              } else {
+                list.unshift(formattedItem);
+              }
             }
           });
         }
@@ -298,9 +382,10 @@ export const UnifiedAuth = ({ defaultMode = 'login', defaultRole = 'candidate', 
     setError('');
     setGoogleError('');
     setShowCustomGoogleInput(false);
+    setShowClientIdConfig(false);
     setShowGoogleChooser(true);
 
-    // If native Google Identity One-Tap is available, trigger it directly
+    // If native Google Identity One-Tap is ready, trigger it in the background
     if (typeof window !== 'undefined' && window.google?.accounts?.id && googleClientId) {
       try {
         window.google.accounts.id.prompt();
@@ -814,6 +899,7 @@ export const UnifiedAuth = ({ defaultMode = 'login', defaultRole = 'candidate', 
                 if (!googleLoading) {
                   setShowGoogleChooser(false);
                   setShowCustomGoogleInput(false);
+                  setShowClientIdConfig(false);
                 }
               }}
               className="absolute top-5 right-5 p-1.5 text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 rounded-full hover:bg-slate-100 dark:hover:bg-navy-800 transition cursor-pointer"
@@ -832,7 +918,7 @@ export const UnifiedAuth = ({ defaultMode = 'login', defaultRole = 'candidate', 
                 </svg>
               </div>
               <h3 className="font-sans text-xl sm:text-2xl font-normal text-slate-800 dark:text-slate-100 mt-3 tracking-tight">
-                Choose an account
+                {showClientIdConfig ? 'Connect Google OAuth' : 'Choose an account'}
               </h3>
               <p className="text-xs text-slate-500 dark:text-slate-400 mt-1">
                 to continue to <span className="font-medium text-slate-800 dark:text-slate-200">The Revival International</span>
@@ -858,55 +944,49 @@ export const UnifiedAuth = ({ defaultMode = 'login', defaultRole = 'candidate', 
                   Opening candidate dashboard...
                 </p>
               </div>
-            ) : showCustomGoogleInput ? (
-              /* Custom Gmail Entry Form */
-              <form onSubmit={handleCustomGoogleSubmit} className="mt-5 space-y-4">
+            ) : showClientIdConfig ? (
+              /* Google Client ID Configuration Form */
+              <div className="mt-5 space-y-4">
+                <div className="p-3 bg-blue-50 dark:bg-navy-800 rounded-xl border border-blue-200 dark:border-navy-700 text-xs text-slate-700 dark:text-slate-300 leading-relaxed">
+                  <p className="font-semibold text-blue-700 dark:text-blue-400 mb-1">⚙️ Google OAuth Client ID Setup</p>
+                  <p className="text-[11px] text-slate-600 dark:text-slate-400">
+                    Paste your Google Cloud OAuth 2.0 Web Client ID here to enable native Google popup with your real device accounts.
+                  </p>
+                </div>
                 <div>
                   <label className="block text-xs font-medium text-slate-700 dark:text-slate-300 mb-1">
-                    Candidate Full Name *
+                    Google Client ID *
                   </label>
                   <input
                     type="text"
                     required
-                    placeholder="e.g. Kishore Kumar"
-                    value={customGoogleName}
-                    onChange={(e) => setCustomGoogleName(e.target.value)}
+                    placeholder="e.g. 123456789-xxx.apps.googleusercontent.com"
+                    value={tempClientId}
+                    onChange={(e) => setTempClientId(e.target.value)}
                     className="w-full px-3.5 py-2.5 rounded-xl border border-slate-300 dark:border-navy-700 bg-white dark:bg-navy-950 text-slate-800 dark:text-white text-xs focus:ring-2 focus:ring-blue-500 outline-none"
                   />
                 </div>
-                <div>
-                  <label className="block text-xs font-medium text-slate-700 dark:text-slate-300 mb-1">
-                    Gmail / Google Email Address *
-                  </label>
-                  <input
-                    type="email"
-                    required
-                    placeholder="yourname@gmail.com"
-                    value={customGoogleEmail}
-                    onChange={(e) => setCustomGoogleEmail(e.target.value)}
-                    className="w-full px-3.5 py-2.5 rounded-xl border border-slate-300 dark:border-navy-700 bg-white dark:bg-navy-950 text-slate-800 dark:text-white text-xs focus:ring-2 focus:ring-blue-500 outline-none"
-                  />
-                </div>
-                <div className="flex gap-2 pt-2">
+                <div className="flex gap-2">
                   <button
                     type="button"
-                    onClick={() => setShowCustomGoogleInput(false)}
+                    onClick={() => setShowClientIdConfig(false)}
                     className="flex-1 py-2.5 rounded-xl border border-slate-300 dark:border-navy-700 text-xs font-semibold text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-navy-800 transition cursor-pointer"
                   >
-                    Back to Accounts
+                    Cancel
                   </button>
                   <button
-                    type="submit"
+                    type="button"
+                    onClick={() => handleSaveClientId(tempClientId)}
                     className="flex-1 py-2.5 rounded-xl bg-blue-600 hover:bg-blue-700 text-xs font-bold text-white transition shadow-sm cursor-pointer"
                   >
-                    Sign In with Gmail →
+                    Save & Activate
                   </button>
                 </div>
-              </form>
-            ) : (
-              /* Clean Google Accounts List (NO INNER SCROLLBAR) */
+              </div>
+            ) : !showCustomGoogleInput ? (
+              /* Authentic Google Accounts List (NO INNER SCROLLBAR) */
               <div className="mt-5">
-                <div className="divide-y divide-slate-100 dark:divide-navy-800 border-y border-slate-100 dark:border-navy-800">
+                <div className="max-h-[360px] overflow-y-auto divide-y divide-slate-100 dark:divide-navy-800 border-y border-slate-100 dark:border-navy-800 pr-1">
                   {getDeviceAccounts().map((acc) => (
                     <button
                       key={acc.email}
@@ -953,12 +1033,74 @@ export const UnifiedAuth = ({ defaultMode = 'login', defaultRole = 'candidate', 
                   </div>
                 </button>
               </div>
+            ) : (
+              /* Custom Gmail Entry Form */
+              <form onSubmit={handleCustomGoogleSubmit} className="mt-5 space-y-4">
+                <div>
+                  <label className="block text-xs font-medium text-slate-700 dark:text-slate-300 mb-1">
+                    Candidate Full Name *
+                  </label>
+                  <input
+                    type="text"
+                    required
+                    placeholder="e.g. Kishore Kumar"
+                    value={customGoogleName}
+                    onChange={(e) => setCustomGoogleName(e.target.value)}
+                    className="w-full px-3.5 py-2.5 rounded-xl border border-slate-300 dark:border-navy-700 bg-white dark:bg-navy-950 text-slate-800 dark:text-white text-xs focus:ring-2 focus:ring-blue-500 outline-none"
+                  />
+                </div>
+                <div>
+                  <label className="block text-xs font-medium text-slate-700 dark:text-slate-300 mb-1">
+                    Gmail / Google Email Address *
+                  </label>
+                  <input
+                    type="email"
+                    required
+                    placeholder="yourname@gmail.com"
+                    value={customGoogleEmail}
+                    onChange={(e) => setCustomGoogleEmail(e.target.value)}
+                    className="w-full px-3.5 py-2.5 rounded-xl border border-slate-300 dark:border-navy-700 bg-white dark:bg-navy-950 text-slate-800 dark:text-white text-xs focus:ring-2 focus:ring-blue-500 outline-none"
+                  />
+                </div>
+                <div className="flex gap-2 pt-2">
+                  {getDeviceAccounts().length > 0 && (
+                    <button
+                      type="button"
+                      onClick={() => setShowCustomGoogleInput(false)}
+                      className="flex-1 py-2.5 rounded-xl border border-slate-300 dark:border-navy-700 text-xs font-semibold text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-navy-800 transition cursor-pointer"
+                    >
+                      Saved Accounts
+                    </button>
+                  )}
+                  <button
+                    type="submit"
+                    className="flex-1 py-2.5 rounded-xl bg-blue-600 hover:bg-blue-700 text-xs font-bold text-white transition shadow-sm cursor-pointer"
+                  >
+                    Sign In with Gmail →
+                  </button>
+                </div>
+              </form>
             )}
 
             {/* Google Chooser Footer Disclaimer */}
-            <p className="mt-5 text-[11px] text-slate-500 dark:text-slate-400 leading-relaxed text-center">
-              To continue, Google will share your name, email address, language preference, and profile picture with The Revival International.
-            </p>
+            <div className="mt-5 pt-3 border-t border-slate-100 dark:border-navy-800 text-center space-y-2">
+              <p className="text-[11px] text-slate-500 dark:text-slate-400 leading-relaxed">
+                To continue, Google will share your verified name, email address, and profile with The Revival International.
+              </p>
+              {!showClientIdConfig && !googleClientId && (
+                <button
+                  type="button"
+                  onClick={() => {
+                    setTempClientId(googleClientId || '');
+                    setShowClientIdConfig(true);
+                  }}
+                  className="text-[11px] text-blue-600 dark:text-blue-400 hover:underline font-medium inline-flex items-center gap-1 cursor-pointer"
+                >
+                  <Settings className="w-3 h-3" />
+                  Connect Google Client ID (for 1-click popup)
+                </button>
+              )}
+            </div>
           </div>
         </div>
       )}

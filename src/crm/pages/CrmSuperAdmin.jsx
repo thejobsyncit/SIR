@@ -44,6 +44,7 @@ export const CrmSuperAdmin = () => {
       case 'Recruiter': return 'Talent Acquisition';
       case 'Placement Coordinator': return 'Placement & Industry Relations';
       case 'HR Operations': return 'HR & Student Operations';
+      case 'Interviewer': return 'Technical Assessment Panel';
       default: return 'Corporate Operations';
     }
   };
