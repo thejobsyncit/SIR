@@ -108,22 +108,18 @@ export const AppProvider = ({ children }) => {
       }
     } catch { }
   };
-  const [savedJobs, setSavedJobs] = useState(['job-101']);
+  const [savedJobs, setSavedJobs] = useState(() => {
+    try {
+      const saved = localStorage.getItem('sir_saved_jobs');
+      return saved ? JSON.parse(saved) : [];
+    } catch {
+      return [];
+    }
+  });
   const [applications, setApplications] = useState(() => {
     try {
       const saved = localStorage.getItem('sir_job_applications');
-      return saved ? JSON.parse(saved) : [
-        {
-          id: 'APP-9982',
-          jobId: 'job-101',
-          jobTitle: 'Senior Civil Project Manager',
-          company: 'Al Habtoor Contracting LLC',
-          country: 'UAE',
-          appliedDate: '2026-08-01',
-          status: 'Interview Scheduled',
-          step: 3
-        }
-      ];
+      return saved ? JSON.parse(saved) : [];
     } catch {
       return [];
     }
@@ -288,10 +284,11 @@ export const AppProvider = ({ children }) => {
       authProvider: 'google',
       googleVerified: true,
       candidateId: existing.candidateId || ('REV-CAN-' + Math.floor(10000 + Math.random() * 90000)),
-      preferredCountry: existing.preferredCountry || 'UAE',
-      title: existing.title || (normalizedEmail === 'thejobsyncit@gmail.com' ? 'Super Admin & Executive Candidate' : 'Executive Candidate'),
-      experience: existing.experience || '3-5 Years',
-      skills: existing.skills && existing.skills.length > 0 ? existing.skills : ['General Talent'],
+      preferredCountry: existing.preferredCountry || '',
+      title: existing.title || (normalizedEmail === 'thejobsyncit@gmail.com' ? 'Super Admin' : ''),
+      experience: existing.experience || '',
+      expectedSalary: existing.expectedSalary || '',
+      skills: existing.skills && existing.skills.length > 0 ? existing.skills : [],
       registeredAt: existing.registeredAt || new Date().toISOString(),
       loginTime: new Date().toISOString()
     };
@@ -370,13 +367,13 @@ export const AppProvider = ({ children }) => {
       phone: data.phone || existing.phone || '',
       dob: existing.dob || '',
       gender: existing.gender || '',
-      title: data.industry || existing.title || 'Executive Candidate',
-      location: existing.location || '',
-      preferredCountry: data.preferredCountry || existing.preferredCountry || 'UAE',
-      experience: existing.experience || '3-5 Years',
-      qualification: existing.qualification || '',
-      skills: existing.skills && existing.skills.length > 0 ? existing.skills : [data.industry || 'General Talent'],
-      expectedSalary: existing.expectedSalary || 'Market Standard',
+      title: data.title || existing.title || '',
+      location: data.location || existing.location || '',
+      preferredCountry: data.preferredCountry || existing.preferredCountry || '',
+      experience: data.experience || existing.experience || '',
+      qualification: data.qualification || existing.qualification || '',
+      skills: existing.skills && existing.skills.length > 0 ? existing.skills : (data.industry ? [data.industry] : []),
+      expectedSalary: data.expectedSalary || existing.expectedSalary || '',
       avatar: existing.avatar || '',
       role: 'candidate',
       isRegistered: true,
@@ -474,9 +471,13 @@ export const AppProvider = ({ children }) => {
   };
 
   const toggleSaveJob = (jobId) => {
-    setSavedJobs(prev =>
-      prev.includes(jobId) ? prev.filter(id => id !== jobId) : [...prev, jobId]
-    );
+    setSavedJobs(prev => {
+      const next = prev.includes(jobId) ? prev.filter(id => id !== jobId) : [...prev, jobId];
+      try {
+        localStorage.setItem('sir_saved_jobs', JSON.stringify(next));
+      } catch {}
+      return next;
+    });
   };
 
   const applyForJob = async (job) => {

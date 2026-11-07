@@ -16,7 +16,7 @@ export const ContactUsPage = () => {
   const [submitError, setSubmitError] = useState(null);
   const [formErrors, setFormErrors] = useState({});
   const [phone, setPhone] = useState('');
-  const [openFaqIndex, setOpenFaqIndex] = useState(0);
+  const [openFaqIndex, setOpenFaqIndex] = useState(null);
 
   const contactFaqs = [
     {
@@ -58,7 +58,11 @@ export const ContactUsPage = () => {
   });
 
   const handleInputChange = (field, value) => {
-    setFormData(prev => ({ ...prev, [field]: value }));
+    let finalValue = value;
+    if (field === 'name') {
+      finalValue = value.replace(/[^a-zA-Z\s]/g, '');
+    }
+    setFormData(prev => ({ ...prev, [field]: finalValue }));
     if (formErrors[field]) {
       setFormErrors(prev => ({ ...prev, [field]: null }));
     }
@@ -77,8 +81,11 @@ export const ContactUsPage = () => {
 
   const validate = () => {
     const errors = {};
-    if (!formData.name || formData.name.trim().length < 2) {
+    const trimmedName = (formData.name || '').trim();
+    if (!trimmedName || trimmedName.length < 2) {
       errors.name = 'Please provide your full name (minimum 2 characters).';
+    } else if (!/^[a-zA-Z\s]+$/.test(trimmedName)) {
+      errors.name = 'Full name must contain alphabetic characters only. Numbers and special characters are not allowed.';
     }
     const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
     if (!formData.email || !emailRegex.test(formData.email.trim())) {

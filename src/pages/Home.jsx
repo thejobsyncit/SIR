@@ -17,7 +17,7 @@ export const Home = () => {
   const [searchKeyword, setSearchKeyword] = useState('');
   const [searchCountry, setSearchCountry] = useState('All');
   const [activeFaqCategory, setActiveFaqCategory] = useState('General');
-  const [openFaq, setOpenFaq] = useState(0);
+  const [openFaq, setOpenFaq] = useState(null);
 
   const stats = [
     { value: '50,000+', label: 'Candidates Placed', icon: Users },

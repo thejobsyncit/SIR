@@ -98,9 +98,13 @@ export const ServiceEnquiryModal = ({ isOpen, onClose, service, onNavigateToJobs
 
   const handleInputChange = (e) => {
     const { name, value, type, checked } = e.target;
+    let finalValue = type === 'checkbox' ? checked : value;
+    if (name === 'name' && typeof value === 'string') {
+      finalValue = value.replace(/[^a-zA-Z\s]/g, '');
+    }
     setFormData(prev => ({
       ...prev,
-      [name]: type === 'checkbox' ? checked : value
+      [name]: finalValue
     }));
     if (formErrors[name]) {
       setFormErrors(prev => ({ ...prev, [name]: null }));
@@ -167,8 +171,11 @@ export const ServiceEnquiryModal = ({ isOpen, onClose, service, onNavigateToJobs
   // Client Validation
   const validate = () => {
     const errors = {};
-    if (!formData.name || formData.name.trim().length < 2) {
+    const trimmedName = (formData.name || '').trim();
+    if (!trimmedName || trimmedName.length < 2) {
       errors.name = 'Full name is required (minimum 2 characters).';
+    } else if (!/^[a-zA-Z\s]+$/.test(trimmedName)) {
+      errors.name = 'Full name must contain alphabetic characters only. Numbers and special characters are not allowed.';
     }
     const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
     if (!formData.email || !emailRegex.test(formData.email.trim())) {

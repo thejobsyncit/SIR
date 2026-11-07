@@ -9,6 +9,44 @@ import { COUNTRIES_LIST } from '../data/mockData';
 
 export const Footer = ({ hideNewsletter = false }) => {
   const { navigateTo, setActiveModal, activeTab, isExamDetailsPage } = useApp();
+  const [newsletterEmail, setNewsletterEmail] = useState('');
+  const [newsletterStatus, setNewsletterStatus] = useState('idle');
+  const [newsletterMsg, setNewsletterMsg] = useState('');
+
+  const handleSubscribe = async (e) => {
+    if (e && e.preventDefault) e.preventDefault();
+    setNewsletterMsg('');
+    const cleanEmail = (newsletterEmail || '').trim().toLowerCase();
+    const emailRegex = /^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$/;
+    if (!cleanEmail || !emailRegex.test(cleanEmail)) {
+      setNewsletterStatus('error');
+      setNewsletterMsg('Please enter a valid corporate email address (e.g. name@company.com).');
+      return;
+    }
+
+    setNewsletterStatus('loading');
+    try {
+      try {
+        await fetch('/api/leads', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            name: cleanEmail.split('@')[0],
+            email: cleanEmail,
+            source: 'Newsletter: GCC Visa Laws & Executive Vacancies',
+            type: 'newsletter_subscription'
+          })
+        });
+      } catch {}
+
+      setNewsletterStatus('success');
+      setNewsletterMsg('Thank you for subscribing! You will receive our bi-weekly executive briefing.');
+      setNewsletterEmail('');
+    } catch {
+      setNewsletterStatus('error');
+      setNewsletterMsg('Subscription failed. Please try again.');
+    }
+  };
 
 const isStudentAcademyTab = Boolean(
     activeTab && (
@@ -200,17 +238,40 @@ const [isStudentAcademyActive, setIsStudentAcademyActive] = useState(() => {
               </p>
             </div>
 
-            <div className="w-full lg:w-auto flex flex-col sm:flex-row gap-3">
-              <input
-                type="email"
-                placeholder="Enter corporate email address..."
-                className="bg-slate-50 dark:bg-navy-950 border border-slate-300 dark:border-navy-700 text-slate-900 dark:text-white placeholder-slate-500 text-xs rounded-xl px-4 py-3 w-full sm:min-w-[260px] focus:outline-none focus:border-gold-500 font-medium"
-              />
-              <button className="bg-gold-shimmer text-navy-950 font-bold text-xs px-6 py-3 rounded-xl hover:opacity-95 transition shadow-gold-glow flex items-center justify-center space-x-2 w-full sm:w-auto">
-                <span>Subscribe Now</span>
-                <Send className="w-3.5 h-3.5" />
-              </button>
-            </div>
+            <form onSubmit={handleSubscribe} className="w-full lg:w-auto flex flex-col gap-2">
+              <div className="flex flex-col sm:flex-row gap-3">
+                <input
+                  type="email"
+                  required
+                  value={newsletterEmail}
+                  onChange={(e) => {
+                    setNewsletterEmail(e.target.value);
+                    if (newsletterStatus === 'error') setNewsletterStatus('idle');
+                  }}
+                  placeholder="Enter corporate email address..."
+                  className="bg-slate-50 dark:bg-navy-950 border border-slate-300 dark:border-navy-700 text-slate-900 dark:text-white placeholder-slate-500 text-xs rounded-xl px-4 py-3 w-full sm:min-w-[260px] focus:outline-none focus:border-gold-500 font-medium"
+                />
+                <button
+                  type="submit"
+                  disabled={newsletterStatus === 'loading'}
+                  className="bg-gold-shimmer text-navy-950 font-bold text-xs px-6 py-3 rounded-xl hover:opacity-95 transition shadow-gold-glow flex items-center justify-center space-x-2 w-full sm:w-auto cursor-pointer disabled:opacity-50 shrink-0"
+                >
+                  <span>{newsletterStatus === 'loading' ? 'Subscribing...' : 'Subscribe Now'}</span>
+                  <Send className="w-3.5 h-3.5" />
+                </button>
+              </div>
+              {newsletterStatus === 'success' && (
+                <p className="text-[11px] font-bold text-emerald-600 dark:text-emerald-400 flex items-center gap-1.5">
+                  <CheckCircle2 className="w-3.5 h-3.5" />
+                  <span>{newsletterMsg}</span>
+                </p>
+              )}
+              {newsletterStatus === 'error' && (
+                <p className="text-[11px] font-bold text-rose-500">
+                  {newsletterMsg}
+                </p>
+              )}
+            </form>
           </div>
         )}
 

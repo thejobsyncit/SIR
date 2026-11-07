@@ -33,6 +33,7 @@ export const Navbar = () => {
   const menuTimeoutRef = useRef(null);
   const userMenuRef = useRef(null);
   const [userMenuOpen, setUserMenuOpen] = useState(false);
+  const [showSignOutModal, setShowSignOutModal] = useState(false);
 
   useEffect(() => {
     const handleClickOutside = (event) => {
@@ -413,8 +414,8 @@ export const Navbar = () => {
                         <button
                           type="button"
                           onClick={() => {
-                            logout();
                             setUserMenuOpen(false);
+                            setShowSignOutModal(true);
                           }}
                           className="w-full px-3 py-2.5 rounded-xl text-left font-semibold text-rose-600 dark:text-rose-400 hover:bg-rose-500/10 transition flex items-center gap-2.5 cursor-pointer group"
                         >
@@ -580,7 +581,7 @@ export const Navbar = () => {
                     </button>
                   </div>
                   <button
-                    onClick={() => { logout(); setMobileMenuOpen(false); }}
+                    onClick={() => { setShowSignOutModal(true); setMobileMenuOpen(false); }}
                     className="w-full py-2.5 bg-[#F8E7EB] hover:bg-[#F2D6DC] dark:bg-rose-500/20 text-[#B83250] dark:text-rose-300 border border-[#F0C9D2] dark:border-rose-500/40 font-semibold rounded-xl text-xs transition cursor-pointer"
                   >
                     Logout
@@ -591,6 +592,40 @@ export const Navbar = () => {
           </div>
         )}
       </nav>
+
+      {/* Global Sign Out Confirmation Modal */}
+      {showSignOutModal && (
+        <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-navy-950/70 backdrop-blur-sm animate-in fade-in duration-200">
+          <div className="bg-white dark:bg-navy-900 border border-slate-200 dark:border-navy-700 rounded-3xl p-6 sm:p-8 max-w-md w-full shadow-2xl text-center space-y-4">
+            <div className="w-14 h-14 mx-auto rounded-2xl bg-rose-500/10 text-rose-500 flex items-center justify-center border border-rose-500/20">
+              <LogOut className="w-7 h-7" />
+            </div>
+            <h3 className="font-serif text-xl font-bold text-navy-900 dark:text-white">Sign Out Confirmation</h3>
+            <p className="text-xs text-slate-600 dark:text-slate-300 leading-relaxed">
+              Are you sure you want to sign out of your account? Your active session will be ended.
+            </p>
+            <div className="flex gap-3 pt-2">
+              <button
+                type="button"
+                onClick={() => setShowSignOutModal(false)}
+                className="flex-1 py-2.5 px-4 rounded-xl border border-slate-300 dark:border-navy-700 text-xs font-bold text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-navy-800 transition cursor-pointer"
+              >
+                Cancel
+              </button>
+              <button
+                type="button"
+                onClick={() => {
+                  setShowSignOutModal(false);
+                  logout();
+                }}
+                className="flex-1 py-2.5 px-4 rounded-xl bg-rose-600 hover:bg-rose-700 text-xs font-bold text-white transition shadow-sm cursor-pointer"
+              >
+                Yes, Sign Out
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </header>
   );
 };

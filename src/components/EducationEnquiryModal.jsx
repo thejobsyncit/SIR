@@ -179,10 +179,8 @@ export const EducationEnquiryModal = ({
     const trimmedName = (data.name || '').trim();
     if (!trimmedName || trimmedName.length < 2) {
       errors.name = 'Please provide your full name (minimum 2 characters).';
-    } else if (/^\d+$/.test(trimmedName)) {
-      errors.name = 'Full name cannot consist only of numbers.';
-    } else if (!/^[a-zA-Z\u00C0-\u024F\u1E00-\u1EFF\s.'\-(),]+$/.test(trimmedName)) {
-      errors.name = 'Full name cannot contain numbers or unsupported special characters.';
+    } else if (!/^[a-zA-Z\s]+$/.test(trimmedName)) {
+      errors.name = 'Full name must contain alphabetic characters only. Numbers and special characters are not allowed.';
     }
 
     const trimmedEmail = (data.email || '').trim();
@@ -665,7 +663,8 @@ export const EducationEnquiryModal = ({
                     placeholder="e.g. Naveen Kumar"
                     defaultValue={user?.fullName || user?.name || ''}
                     onFocus={() => trackEnquiryStart('education_modal', isCareerGuidance ? 'school-career' : activeService.id, isCareerGuidance ? 'Career Guidance' : activeService.title)}
-                    onChange={() => {
+                    onChange={(e) => {
+                      e.target.value = e.target.value.replace(/[^a-zA-Z\s]/g, '');
                       if (formErrors.name) setFormErrors(prev => ({ ...prev, name: null }));
                     }}
                     className={`w-full bg-[#F8FAFC] dark:bg-navy-950 border text-[#0B1B33] dark:text-slate-200 text-xs rounded-xl px-3.5 py-2.5 focus:bg-white dark:focus:bg-navy-900 focus:outline-none focus:ring-2 focus:ring-gold-500 transition ${formErrors.name ? 'border-rose-500' : 'border-[#DCE3EC] dark:border-navy-700'

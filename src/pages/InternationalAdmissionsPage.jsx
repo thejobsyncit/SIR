@@ -16,7 +16,7 @@ export const InternationalAdmissionsPage = () => {
   const [selectedDestinationKey, setSelectedDestinationKey] = useState('uk');
   const [formPreselectedDestination, setFormPreselectedDestination] = useState('United Kingdom');
   const [selectedIntakeTimeline, setSelectedIntakeTimeline] = useState('fall');
-  const [openFaqIndex, setOpenFaqIndex] = useState(0);
+  const [openFaqIndex, setOpenFaqIndex] = useState(null);
 
   useEffect(() => {
     trackServiceView('intl-adm', 'International Admissions', 'Admissions');

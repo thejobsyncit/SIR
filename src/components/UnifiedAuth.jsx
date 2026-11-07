@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { useApp } from '../context/AppContext';
 import { BrandLogoIcon } from './BrandLogoIcon';
-import { Briefcase, ArrowRight, User, Lock, Mail, Phone, Sparkles, CheckCircle2, X, Settings, ExternalLink } from 'lucide-react';
+import { Briefcase, ArrowRight, User, Lock, Mail, Phone, Sparkles, CheckCircle2, X, Settings, ExternalLink, Eye, EyeOff } from 'lucide-react';
 
 export const COUNTRY_PHONE_CONFIG = [
   { code: '+91', country: 'India', flag: '🇮🇳', digits: 10, placeholder: '9876543210' },
@@ -39,57 +39,7 @@ export const COUNTRY_PHONE_CONFIG = [
   { code: '+82', country: 'South Korea', flag: '🇰🇷', digits: 10, placeholder: '10 1234 5678' }
 ];
 
-export const DEFAULT_GOOGLE_ACCOUNTS = [
-  {
-    name: 'Kishore Kumar',
-    email: 'kishorekumaroff1@gmail.com',
-    avatar: '/images/avatar_kishore.png',
-    initial: 'K',
-    bg: 'bg-blue-600'
-  },
-  {
-    name: 'Harish Durai',
-    email: 'harishdurai2508@gmail.com',
-    avatar: '/images/avatar_harish.png',
-    initial: 'H',
-    bg: 'bg-emerald-600'
-  },
-  {
-    name: 'Dhanush J',
-    email: 'dhanush.j@gmail.com',
-    avatar: null,
-    initial: 'D',
-    bg: 'bg-indigo-600'
-  },
-  {
-    name: 'thejobsync',
-    email: 'thejobsyncit@gmail.com',
-    avatar: null,
-    initial: 'T',
-    bg: 'bg-sky-600'
-  },
-  {
-    name: 'Hr Maddy',
-    email: 'hrmaddy.revival@gmail.com',
-    avatar: null,
-    initial: 'Hr',
-    bg: 'bg-rose-600'
-  },
-  {
-    name: 'Vishnu',
-    email: 'vishnu.recruitment@gmail.com',
-    avatar: null,
-    initial: 'V',
-    bg: 'bg-amber-600'
-  },
-  {
-    name: 'velsuniv.ac.in',
-    email: 'kishore@velsuniv.ac.in',
-    avatar: null,
-    initial: 'K',
-    bg: 'bg-purple-600'
-  }
-];
+export const DEFAULT_GOOGLE_ACCOUNTS = [];
 
 export const UnifiedAuth = ({ defaultMode = 'login', defaultRole = 'candidate', onSuccess }) => {
   const { 
@@ -122,6 +72,9 @@ export const UnifiedAuth = ({ defaultMode = 'login', defaultRole = 'candidate', 
 
   // Candidate Form States
   const [candidateLogin, setCandidateLogin] = useState({ email: '', password: '' });
+  const [showLoginPassword, setShowLoginPassword] = useState(false);
+  const [showRegPassword, setShowRegPassword] = useState(false);
+  const [showRegConfirmPassword, setShowRegConfirmPassword] = useState(false);
   const [isCustomCountryCode, setIsCustomCountryCode] = useState(false);
   const [candidateReg, setCandidateReg] = useState({
     fullName: '',
@@ -381,8 +334,20 @@ export const UnifiedAuth = ({ defaultMode = 'login', defaultRole = 'candidate', 
   const handleTriggerGoogleAuth = () => {
     setError('');
     setGoogleError('');
-    setShowCustomGoogleInput(false);
     setShowClientIdConfig(false);
+
+    // If client ID is present and GIS OAuth is loaded, launch the real Google popup!
+    if (googleClientId && typeof window !== 'undefined' && window.google?.accounts?.oauth2) {
+      const launched = triggerRealGoogleOAuth(googleClientId);
+      if (launched) return;
+    }
+
+    const devAccounts = getDeviceAccounts();
+    if (devAccounts.length === 0) {
+      setShowCustomGoogleInput(true);
+    } else {
+      setShowCustomGoogleInput(false);
+    }
     setShowGoogleChooser(true);
 
     // If native Google Identity One-Tap is ready, trigger it in the background
@@ -450,9 +415,14 @@ export const UnifiedAuth = ({ defaultMode = 'login', defaultRole = 'candidate', 
     e.preventDefault();
     setError('');
 
-    // 1. Full Name check
-    if (!candidateReg.fullName.trim()) {
-      setError('Full name is required.');
+    // 1. Full Name check (Alphabetic characters only, min 2 chars)
+    const trimmedFullName = candidateReg.fullName.trim();
+    if (!trimmedFullName || trimmedFullName.length < 2) {
+      setError('Please provide your full name (minimum 2 characters).');
+      return;
+    }
+    if (!/^[a-zA-Z\s]+$/.test(trimmedFullName)) {
+      setError('Full Name must contain alphabetic characters only. Numbers and special characters are not allowed.');
       return;
     }
 
@@ -635,13 +605,21 @@ export const UnifiedAuth = ({ defaultMode = 'login', defaultRole = 'candidate', 
               <div className="relative">
                 <Lock className="w-4 h-4 text-slate-500 dark:text-slate-400 absolute left-3 top-3" />
                 <input
-                  type="password"
+                  type={showLoginPassword ? "text" : "password"}
                   required
                   value={candidateLogin.password}
                   onChange={(e) => setCandidateLogin({ ...candidateLogin, password: e.target.value })}
                   placeholder="••••••••"
-                  className="w-full pl-9 pr-3 py-2.5 bg-slate-50 dark:bg-navy-900 border border-slate-200 dark:border-navy-700 rounded-xl focus:outline-none focus:border-gold-500 text-slate-900 dark:text-white"
+                  className="w-full pl-9 pr-10 py-2.5 bg-slate-50 dark:bg-navy-900 border border-slate-200 dark:border-navy-700 rounded-xl focus:outline-none focus:border-gold-500 text-slate-900 dark:text-white"
                 />
+                <button
+                  type="button"
+                  onClick={() => setShowLoginPassword(!showLoginPassword)}
+                  className="absolute right-3 top-3 text-slate-400 hover:text-gold-500 transition cursor-pointer"
+                  title={showLoginPassword ? "Hide password" : "Show password"}
+                >
+                  {showLoginPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                </button>
               </div>
             </div>
 
@@ -666,12 +644,15 @@ export const UnifiedAuth = ({ defaultMode = 'login', defaultRole = 'candidate', 
         ) : (
           <form onSubmit={handleCandidateRegSubmit} className="space-y-4 text-xs">
             <div>
-              <label className="block text-slate-700 dark:text-slate-300 font-semibold mb-1">Full Name *</label>
+              <label className="block text-slate-700 dark:text-slate-300 font-semibold mb-1">Full Name * (Letters only)</label>
               <input
                 type="text"
                 required
                 value={candidateReg.fullName}
-                onChange={(e) => setCandidateReg({ ...candidateReg, fullName: e.target.value })}
+                onChange={(e) => {
+                  const lettersOnly = e.target.value.replace(/[^a-zA-Z\s]/g, '');
+                  setCandidateReg({ ...candidateReg, fullName: lettersOnly });
+                }}
                 placeholder="John Doe"
                 className="w-full px-3 py-2.5 bg-slate-50 dark:bg-navy-900 border border-slate-200 dark:border-navy-700 rounded-xl focus:outline-none focus:border-gold-500 text-slate-900 dark:text-white"
               />
@@ -823,13 +804,21 @@ export const UnifiedAuth = ({ defaultMode = 'login', defaultRole = 'candidate', 
                 <div className="relative">
                   <Lock className="w-4 h-4 text-slate-500 dark:text-slate-400 absolute left-3 top-3" />
                   <input
-                    type="password"
+                    type={showRegPassword ? "text" : "password"}
                     required
                     value={candidateReg.password}
                     onChange={(e) => setCandidateReg({ ...candidateReg, password: e.target.value })}
                     placeholder="••••••••"
-                    className="w-full pl-9 pr-3 py-2.5 bg-slate-50 dark:bg-navy-900 border border-slate-200 dark:border-navy-700 rounded-xl focus:outline-none focus:border-gold-500 text-slate-900 dark:text-white"
+                    className="w-full pl-9 pr-10 py-2.5 bg-slate-50 dark:bg-navy-900 border border-slate-200 dark:border-navy-700 rounded-xl focus:outline-none focus:border-gold-500 text-slate-900 dark:text-white"
                   />
+                  <button
+                    type="button"
+                    onClick={() => setShowRegPassword(!showRegPassword)}
+                    className="absolute right-3 top-3 text-slate-400 hover:text-gold-500 transition cursor-pointer"
+                    title={showRegPassword ? "Hide password" : "Show password"}
+                  >
+                    {showRegPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                  </button>
                 </div>
               </div>
               <div>
@@ -837,13 +826,21 @@ export const UnifiedAuth = ({ defaultMode = 'login', defaultRole = 'candidate', 
                 <div className="relative">
                   <Lock className="w-4 h-4 text-slate-500 dark:text-slate-400 absolute left-3 top-3" />
                   <input
-                    type="password"
+                    type={showRegConfirmPassword ? "text" : "password"}
                     required
                     value={candidateReg.confirmPassword}
                     onChange={(e) => setCandidateReg({ ...candidateReg, confirmPassword: e.target.value })}
                     placeholder="••••••••"
-                    className="w-full pl-9 pr-3 py-2.5 bg-slate-50 dark:bg-navy-900 border border-slate-200 dark:border-navy-700 rounded-xl focus:outline-none focus:border-gold-500 text-slate-900 dark:text-white"
+                    className="w-full pl-9 pr-10 py-2.5 bg-slate-50 dark:bg-navy-900 border border-slate-200 dark:border-navy-700 rounded-xl focus:outline-none focus:border-gold-500 text-slate-900 dark:text-white"
                   />
+                  <button
+                    type="button"
+                    onClick={() => setShowRegConfirmPassword(!showRegConfirmPassword)}
+                    className="absolute right-3 top-3 text-slate-400 hover:text-gold-500 transition cursor-pointer"
+                    title={showRegConfirmPassword ? "Hide password" : "Show password"}
+                  >
+                    {showRegConfirmPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                  </button>
                 </div>
               </div>
             </div>

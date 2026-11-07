@@ -15,7 +15,7 @@ import {
 export const InternationalConsultingPage = () => {
   const { navigateTo } = useApp();
   const [selectedDestinationForForm, setSelectedDestinationForForm] = useState('United Kingdom');
-  const [openFaqIndex, setOpenFaqIndex] = useState(0);
+  const [openFaqIndex, setOpenFaqIndex] = useState(null);
 
   useEffect(() => {
     trackServiceView('intl-consult', 'International Consulting', 'Consulting');

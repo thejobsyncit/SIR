@@ -70,7 +70,7 @@ export const EducationServiceDetail = ({ serviceId }) => {
   const [selectedSubProgram, setSelectedSubProgram] = useState(null);
   const [selectedLevel, setSelectedLevel] = useState(null);
   const [selectedCourseObj, setSelectedCourseObj] = useState(null);
-  const [openFaqIndex, setOpenFaqIndex] = useState(0);
+  const [openFaqIndex, setOpenFaqIndex] = useState(null);
 
   const IconComponent = iconMap[service.icon] || GraduationCap;
 

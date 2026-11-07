@@ -14,7 +14,7 @@ import {
 
 export const CollegeAdmissionsPage = () => {
   const { navigateTo } = useApp();
-  const [openFaqIndex, setOpenFaqIndex] = useState(0);
+  const [openFaqIndex, setOpenFaqIndex] = useState(null);
   const [prefillData, setPrefillData] = useState(null);
 
   // Interactive Eligibility Assessment State

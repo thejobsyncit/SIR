@@ -15,7 +15,7 @@ import {
 export const SeminarsAndLanguagePage = () => {
   const { navigateTo } = useApp();
   const [formPreselectedProgram, setFormPreselectedProgram] = useState('IELTS Preparation');
-  const [openFaqIndex, setOpenFaqIndex] = useState(0);
+  const [openFaqIndex, setOpenFaqIndex] = useState(null);
 
   useEffect(() => {
     window.scrollTo(0, 0);

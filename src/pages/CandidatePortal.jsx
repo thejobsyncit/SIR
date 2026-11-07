@@ -5,7 +5,8 @@ import { JOBS_LIST } from '../data/mockData';
 import { 
   User, FileText, Sparkles, CheckCircle2, Clock, Calendar as CalendarIcon, Bookmark, Bell, 
   Upload, Shield, ArrowRight, ArrowLeft, LogOut, Edit3, Camera, AlertCircle, Award, 
-  Briefcase, MapPin, DollarSign, Check, X, Plus, Star, ChevronRight, Zap, Globe, Trash2, Video, Mic, MicOff, VideoOff, Search, Eye
+  Briefcase, MapPin, DollarSign, Check, X, Plus, Star, ChevronRight, Zap, Globe, Trash2, Video, Mic, MicOff, VideoOff, Search, Eye,
+  Building2, Send
 } from 'lucide-react';
 import ScrollReveal from '../components/ScrollReveal';
 import { SEO } from '../components/SEO';
@@ -27,6 +28,8 @@ export const CandidatePortal = () => {
   const { user, updateUserProfile, applications, savedJobs, toggleSaveJob, applyForJob, postedJobs, setActiveModal, navigateTo, logout } = useApp();
   const [activeTab, setActiveTab] = useState('dashboard'); // 'dashboard' | 'browse-jobs' | 'edit-profile' | 'applications' | 'saved' | 'interviews'
   const [editSuccess, setEditSuccess] = useState(false);
+  const [profileFormError, setProfileFormError] = useState('');
+  const [showSignOutModal, setShowSignOutModal] = useState(false);
   const [jobSearch, setJobSearch] = useState('');
   const [jobCountryFilter, setJobCountryFilter] = useState('All');
   const [applySuccessMsg, setApplySuccessMsg] = useState('');
@@ -281,16 +284,51 @@ export const CandidatePortal = () => {
 
   const handleSaveProfile = (e) => {
     if (e && e.preventDefault) e.preventDefault();
+    setProfileFormError('');
+
+    // 1. Mandatory Full Name Validation (Alphabetic only, min 2 chars)
+    const cleanName = (profileForm.name || '').trim();
+    if (!cleanName || cleanName.length < 2) {
+      setProfileFormError('Full Name is mandatory and must be at least 2 characters.');
+      return;
+    }
+    if (!/^[a-zA-Z\s]+$/.test(cleanName)) {
+      setProfileFormError('Full Name must contain alphabetic characters only. Numbers and special characters are not allowed.');
+      return;
+    }
+
+    // 2. Mandatory Email Address Validation (Valid format)
+    const cleanEmail = (profileForm.email || '').trim().toLowerCase();
+    const emailRegex = /^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$/;
+    if (!cleanEmail) {
+      setProfileFormError('Email Address is mandatory.');
+      return;
+    }
+    if (!emailRegex.test(cleanEmail)) {
+      setProfileFormError('Please enter a valid email address (e.g. name@gmail.com).');
+      return;
+    }
+
+    // 3. Mandatory Phone Number Validation
+    const cleanDigits = (phoneDigits || '').replace(/\D/g, '');
+    if (!cleanDigits) {
+      setProfileFormError(`Phone number is mandatory. Please enter ${activeCountryObj.maxDigits} digits.`);
+      return;
+    }
+    if (cleanDigits.length !== activeCountryObj.maxDigits) {
+      setProfileFormError(`Phone number must be exactly ${activeCountryObj.maxDigits} digits for ${activeCountryObj.country}. Current: ${cleanDigits.length} digits.`);
+      return;
+    }
 
     const skillsArray = profileForm.skillsInput
       ? profileForm.skillsInput.split(',').map(s => s.trim()).filter(Boolean)
       : [];
 
-    const formattedPhone = phoneDigits ? `${selectedCountryCode} ${phoneDigits}` : '';
+    const formattedPhone = `${selectedCountryCode} ${cleanDigits}`;
 
     const updatedData = {
-      name: profileForm.name.trim(),
-      email: profileForm.email.trim(),
+      name: cleanName,
+      email: cleanEmail,
       phone: formattedPhone,
       dob: profileForm.dob.trim(),
       gender: profileForm.gender.trim(),
@@ -414,8 +452,8 @@ export const CandidatePortal = () => {
           </button>
           
           <button 
-            onClick={logout}
-            className="px-3 py-2.5 bg-rose-500/10 text-rose-600 dark:bg-rose-500/20 dark:text-rose-300 hover:bg-rose-500 hover:text-slate-900 dark:text-white border border-rose-500/30 font-bold text-xs rounded-xl transition flex items-center justify-center space-x-1.5"
+            onClick={() => setShowSignOutModal(true)}
+            className="px-3 py-2.5 bg-rose-500/10 text-rose-600 dark:bg-rose-500/20 dark:text-rose-300 hover:bg-rose-500 hover:text-slate-900 dark:text-white border border-rose-500/30 font-bold text-xs rounded-xl transition flex items-center justify-center space-x-1.5 cursor-pointer"
             title="Sign Out of Candidate Account"
           >
             <LogOut className="w-4 h-4" />
@@ -775,6 +813,13 @@ export const CandidatePortal = () => {
             </div>
           )}
 
+          {profileFormError && (
+            <div className="p-4 bg-rose-500/15 border border-rose-500/30 rounded-2xl text-rose-600 dark:text-rose-400 font-bold flex items-center gap-2">
+              <AlertCircle className="w-5 h-5 shrink-0" />
+              <span>{profileFormError}</span>
+            </div>
+          )}
+
           <form onSubmit={handleSaveProfile} className="space-y-6">
             
             {/* Custom Local File Photo Upload */}
@@ -825,20 +870,31 @@ export const CandidatePortal = () => {
             {/* Basic Info Fields */}
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <div>
-                <label className="block font-bold text-slate-700 dark:text-slate-200 mb-1">Full Name</label>
+                <label className="block font-bold text-slate-700 dark:text-slate-200 mb-1">
+                  Full Name <span className="text-rose-500">*</span> (Letters only)
+                </label>
                 <input 
                   type="text" 
+                  required
                   value={profileForm.name}
-                  onChange={(e) => setProfileForm({ ...profileForm, name: e.target.value })}
+                  onChange={(e) => {
+                    const lettersOnly = e.target.value.replace(/[^a-zA-Z\s]/g, '');
+                    setProfileForm({ ...profileForm, name: lettersOnly });
+                  }}
+                  placeholder="e.g. John Doe"
                   className="w-full bg-slate-50 dark:bg-navy-950 border border-slate-300 dark:border-navy-700 rounded-xl p-3 text-navy-900 dark:text-white focus:outline-none focus:border-gold-500 font-medium"
                 />
               </div>
               <div>
-                <label className="block font-bold text-slate-700 dark:text-slate-200 mb-1">Email Address</label>
+                <label className="block font-bold text-slate-700 dark:text-slate-200 mb-1">
+                  Email Address <span className="text-rose-500">*</span>
+                </label>
                 <input 
                   type="email" 
+                  required
                   value={profileForm.email}
                   onChange={(e) => setProfileForm({ ...profileForm, email: e.target.value })}
+                  placeholder="e.g. name@example.com"
                   className="w-full bg-slate-50 dark:bg-navy-950 border border-slate-300 dark:border-navy-700 rounded-xl p-3 text-navy-900 dark:text-white focus:outline-none focus:border-gold-500 font-medium"
                 />
               </div>
@@ -846,7 +902,9 @@ export const CandidatePortal = () => {
 
             {/* Country Code & Phone Number Field */}
             <div>
-              <label className="block font-bold text-slate-700 dark:text-slate-200 mb-1">Phone Number (With International Country Code)</label>
+              <label className="block font-bold text-slate-700 dark:text-slate-200 mb-1">
+                Phone Number (With International Country Code) <span className="text-rose-500">*</span>
+              </label>
               <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
                 <div>
                   <select
@@ -1402,12 +1460,106 @@ export const CandidatePortal = () => {
 
       {/* SAVED JOBS TAB */}
       {activeTab === 'saved' && (
-        <div className="glass-card bg-white dark:bg-navy-900 border border-slate-200 dark:border-navy-800 p-6 rounded-2xl text-xs space-y-3">
-          <h3 className="font-serif text-lg font-bold text-navy-900 dark:text-white">Saved Job Bookmarks ({savedJobs.length})</h3>
-          <p className="text-slate-500">You have {savedJobs.length} bookmarked opportunities. Review and apply anytime.</p>
-          <button onClick={() => navigateTo('jobs')} className="py-2.5 px-6 bg-gold-shimmer text-navy-950 font-bold rounded-xl shadow-gold-glow">
-            Browse More Jobs →
-          </button>
+        <div className="space-y-6 text-xs">
+          <div className="glass-card bg-white dark:bg-navy-900 border border-slate-200 dark:border-navy-800 p-6 rounded-2xl flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 shadow-sm">
+            <div>
+              <h3 className="font-serif text-lg font-bold text-navy-900 dark:text-white flex items-center gap-2">
+                <Bookmark className="w-5 h-5 text-gold-500" />
+                Saved Job Bookmarks ({savedJobs.length})
+              </h3>
+              <p className="text-slate-500 mt-1">Review, apply, or manage your bookmarked international opportunities.</p>
+            </div>
+            <button
+              onClick={() => setActiveTab('browse-jobs')}
+              className="py-2.5 px-5 bg-gold-shimmer text-navy-950 font-bold rounded-xl shadow-gold-glow flex items-center gap-1.5 cursor-pointer shrink-0 hover:opacity-95 transition"
+            >
+              <Briefcase className="w-4 h-4" />
+              <span>Browse Vacancies</span>
+            </button>
+          </div>
+
+          {allJobs.filter(j => savedJobs.includes(j.id)).length > 0 ? (
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              {allJobs.filter(j => savedJobs.includes(j.id)).map((job) => (
+                <div
+                  key={job.id}
+                  className="glass-card bg-white dark:bg-navy-900 border border-slate-200 dark:border-navy-800 rounded-2xl p-5 shadow-sm hover:shadow-md transition flex flex-col justify-between space-y-4"
+                >
+                  <div className="space-y-2">
+                    <div className="flex justify-between items-start">
+                      <span className="text-[10px] font-bold text-gold-600 dark:text-gold-400 bg-gold-500/10 px-2.5 py-0.5 rounded-full border border-gold-500/20">
+                        {job.category || 'Executive'}
+                      </span>
+                      <button
+                        onClick={() => toggleSaveJob(job.id)}
+                        className="text-rose-500 hover:text-rose-600 p-1.5 rounded-lg hover:bg-rose-50 dark:hover:bg-rose-950/30 transition cursor-pointer"
+                        title="Remove from saved jobs"
+                      >
+                        <Trash2 className="w-4 h-4" />
+                      </button>
+                    </div>
+
+                    <h4 className="font-serif text-base font-bold text-navy-900 dark:text-white leading-snug">
+                      {job.title}
+                    </h4>
+                    <p className="text-slate-600 dark:text-slate-300 font-semibold flex items-center gap-1.5">
+                      <Building2 className="w-3.5 h-3.5 text-gold-500" />
+                      <span>{job.company}</span>
+                    </p>
+
+                    <div className="flex flex-wrap gap-2 text-[11px] text-slate-500 dark:text-slate-400 pt-1">
+                      <span className="flex items-center gap-1">
+                        <MapPin className="w-3 h-3 text-gold-500" />
+                        {job.country || job.location || 'UAE'}
+                      </span>
+                      {job.salary && (
+                        <span className="flex items-center gap-1 font-bold text-emerald-600 dark:text-emerald-400">
+                          {job.salary}
+                        </span>
+                      )}
+                      {job.experience && (
+                        <span className="flex items-center gap-1">
+                          Exp: {job.experience}
+                        </span>
+                      )}
+                    </div>
+                  </div>
+
+                  <div className="pt-3 border-t border-slate-100 dark:border-navy-800 flex gap-2">
+                    <button
+                      onClick={() => handleApply(job)}
+                      className="flex-1 py-2.5 px-3 bg-gold-500 hover:bg-gold-600 text-slate-900 dark:text-white font-bold rounded-xl text-xs transition flex items-center justify-center gap-1.5 cursor-pointer shadow-sm"
+                    >
+                      <Send className="w-3.5 h-3.5" />
+                      <span>Apply Now</span>
+                    </button>
+                    <button
+                      onClick={() => toggleSaveJob(job.id)}
+                      className="py-2.5 px-4 border border-slate-200 dark:border-navy-700 hover:bg-slate-50 dark:hover:bg-navy-800 text-slate-600 dark:text-slate-300 font-bold rounded-xl text-xs transition cursor-pointer"
+                    >
+                      Remove
+                    </button>
+                  </div>
+                </div>
+              ))}
+            </div>
+          ) : (
+            <div className="glass-card bg-white dark:bg-navy-900 border border-slate-200 dark:border-navy-800 p-10 rounded-3xl text-center space-y-3">
+              <div className="w-14 h-14 mx-auto rounded-2xl bg-gold-500/10 text-gold-500 flex items-center justify-center">
+                <Bookmark className="w-7 h-7" />
+              </div>
+              <h4 className="font-serif text-lg font-bold text-navy-900 dark:text-white">No Saved Jobs Yet</h4>
+              <p className="text-slate-500 max-w-md mx-auto text-xs leading-relaxed">
+                You haven't bookmarked any jobs yet. Browse available vacancies and bookmark jobs you are interested in to review and apply anytime.
+              </p>
+              <button
+                onClick={() => setActiveTab('browse-jobs')}
+                className="py-2.5 px-6 bg-gold-shimmer text-navy-950 font-bold rounded-xl shadow-gold-glow cursor-pointer text-xs"
+              >
+                Browse Open Vacancies →
+              </button>
+            </div>
+          )}
         </div>
       )}
 
@@ -1486,6 +1638,40 @@ export const CandidatePortal = () => {
               </button>
             </div>
           )}
+        </div>
+      )}
+
+      {/* Sign Out Confirmation Modal */}
+      {showSignOutModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-navy-950/70 backdrop-blur-sm animate-in fade-in duration-200">
+          <div className="bg-white dark:bg-navy-900 border border-slate-200 dark:border-navy-700 rounded-3xl p-6 sm:p-8 max-w-md w-full shadow-2xl text-center space-y-4">
+            <div className="w-14 h-14 mx-auto rounded-2xl bg-rose-500/10 text-rose-500 flex items-center justify-center border border-rose-500/20">
+              <LogOut className="w-7 h-7" />
+            </div>
+            <h3 className="font-serif text-xl font-bold text-navy-900 dark:text-white">Sign Out Confirmation</h3>
+            <p className="text-xs text-slate-600 dark:text-slate-300 leading-relaxed">
+              Are you sure you want to sign out of your candidate account? Your active session will be closed safely.
+            </p>
+            <div className="flex gap-3 pt-2">
+              <button
+                type="button"
+                onClick={() => setShowSignOutModal(false)}
+                className="flex-1 py-2.5 px-4 rounded-xl border border-slate-300 dark:border-navy-700 text-xs font-bold text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-navy-800 transition cursor-pointer"
+              >
+                Cancel
+              </button>
+              <button
+                type="button"
+                onClick={() => {
+                  setShowSignOutModal(false);
+                  logout();
+                }}
+                className="flex-1 py-2.5 px-4 rounded-xl bg-rose-600 hover:bg-rose-700 text-xs font-bold text-white transition shadow-sm cursor-pointer"
+              >
+                Yes, Sign Out
+              </button>
+            </div>
+          </div>
         </div>
       )}
 
