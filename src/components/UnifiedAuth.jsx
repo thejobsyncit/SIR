@@ -63,6 +63,7 @@ export const UnifiedAuth = ({ defaultMode = 'login', defaultRole = 'candidate', 
   const [googleSuccess, setGoogleSuccess] = useState('');
   const [showClientIdConfig, setShowClientIdConfig] = useState(false);
   const [tempClientId, setTempClientId] = useState('');
+  const [modalError, setModalError] = useState('');
 
   // Candidate Form States
   const [candidateLogin, setCandidateLogin] = useState({ email: '', password: '' });
@@ -352,12 +353,22 @@ export const UnifiedAuth = ({ defaultMode = 'login', defaultRole = 'candidate', 
   };
 
   const handleSaveClientId = async (idToSave) => {
-    const clean = (idToSave || tempClientId).trim();
-    if (!clean) return;
-    if (!clean.endsWith('.apps.googleusercontent.com')) {
-      setGoogleError('Invalid Client ID format. Must end with .apps.googleusercontent.com');
+    let raw = (idToSave || tempClientId || '').trim();
+    if (!raw) {
+      setModalError('Please enter your Google Client ID.');
       return;
     }
+    // Clean up if quotes or URL query params are included
+    let clean = raw.replace(/^['"]|['"]$/g, '').trim();
+    if (clean.includes('client_id=')) {
+      clean = clean.split('client_id=')[1].split('&')[0];
+    }
+    if (!clean.endsWith('.apps.googleusercontent.com')) {
+      setModalError('Invalid Client ID format. Must end with .apps.googleusercontent.com');
+      return;
+    }
+
+    setModalError('');
     localStorage.setItem('sir_google_client_id', clean);
     setGoogleClientId(clean);
     setShowClientIdConfig(false);
@@ -1020,9 +1031,15 @@ export const UnifiedAuth = ({ defaultMode = 'login', defaultRole = 'candidate', 
                   required
                   placeholder="e.g. 1084249123456-xxx.apps.googleusercontent.com"
                   value={tempClientId}
-                  onChange={(e) => setTempClientId(e.target.value)}
+                  onChange={(e) => {
+                    setTempClientId(e.target.value);
+                    if (modalError) setModalError('');
+                  }}
                   className="w-full px-3.5 py-2.5 rounded-xl border border-slate-300 dark:border-navy-700 bg-white dark:bg-navy-950 text-slate-800 dark:text-white text-xs focus:ring-2 focus:ring-blue-500 outline-none"
                 />
+                {modalError && (
+                  <p className="mt-1.5 text-[11px] font-semibold text-rose-500">{modalError}</p>
+                )}
               </div>
 
               <div className="flex gap-2 pt-2">
