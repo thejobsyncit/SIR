@@ -4,7 +4,7 @@ import { EducationSEO } from '../components/EducationSEO';
 import { SeminarsLanguageForm } from '../components/SeminarsLanguageForm';
 import ScrollReveal from '../components/ScrollReveal';
 import { trackServiceView, trackCtaClick } from '../services/analytics';
-import { 
+import {
   Globe, Compass, CheckCircle2, ChevronDown, ChevronUp, ArrowRight, ArrowLeft,
   Calendar, ShieldCheck, Award, FileText, Users, DollarSign, Clock, HelpCircle,
   Sparkles, GraduationCap, Building2, ExternalLink, MapPin, Check, BookOpen, Send,
@@ -350,18 +350,18 @@ export const SeminarsAndLanguagePage = () => {
         <div className="absolute -top-32 -right-32 w-96 h-96 rounded-full bg-[#C6A45C]/10 blur-3xl pointer-events-none" />
 
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 relative z-10">
-          
+
           {/* Breadcrumb Navigation */}
           <nav aria-label="Breadcrumb" className="flex items-center gap-2 text-xs text-gray-500 mb-6 font-medium">
-            <button 
-              onClick={() => navigateTo('home')} 
+            <button
+              onClick={() => navigateTo('home')}
               className="hover:text-[#102A43] transition-colors cursor-pointer"
             >
               Home
             </button>
             <ChevronRight className="w-3 h-3 text-gray-400" />
-            <button 
-              onClick={() => navigateTo('services')} 
+            <button
+              onClick={() => navigateTo('services')}
               className="hover:text-[#102A43] transition-colors cursor-pointer"
             >
               Services
@@ -373,10 +373,10 @@ export const SeminarsAndLanguagePage = () => {
           </nav>
 
           <div className="grid grid-cols-1 lg:grid-cols-12 gap-12 lg:gap-8 items-center">
-            
+
             {/* Left Column: Heading, Subheading, Description, CTAs */}
             <div className="lg:col-span-7 space-y-6 text-left">
-              
+
               <div className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-[#102A43]/5 border border-[#102A43]/15 text-[#102A43] text-xs font-bold tracking-widest uppercase shadow-xs">
                 <Sparkles className="w-3.5 h-3.5 text-[#C6A45C]" />
                 <span>MASTER &amp; CERTIFICATION</span>
@@ -472,7 +472,7 @@ export const SeminarsAndLanguagePage = () => {
       {/* SECTION 2: LANGUAGE TEST PREPARATION PROGRAMS */}
       <section id="language-test-preparation" className="py-20 bg-white scroll-mt-20">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          
+
           <div className="text-center max-w-3xl mx-auto mb-16">
             <h2 className="text-3xl sm:text-4xl font-serif font-bold text-[#102A43] tracking-tight">
               Language Test Preparation Programs
@@ -543,7 +543,7 @@ export const SeminarsAndLanguagePage = () => {
       {/* SECTION 3: EXECUTIVE SEMINARS & LEADERSHIP DEVELOPMENT */}
       <section id="executive-seminars" className="py-20 bg-[#F7F9FC] border-y border-gray-200/70 scroll-mt-20">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          
+
           <div className="text-center max-w-3xl mx-auto mb-16">
             <h2 className="text-3xl sm:text-4xl font-serif font-bold text-[#102A43] tracking-tight">
               Executive Seminars &amp; Leadership Development
@@ -614,7 +614,7 @@ export const SeminarsAndLanguagePage = () => {
       {/* SECTION 4: TRAINING METHODOLOGY */}
       <section className="py-20 bg-white">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          
+
           <div className="text-center max-w-3xl mx-auto mb-16">
             <h2 className="text-3xl sm:text-4xl font-serif font-bold text-[#102A43] tracking-tight">
               Our Training Methodology
@@ -659,7 +659,7 @@ export const SeminarsAndLanguagePage = () => {
       {/* SECTION 5: WHO CAN BENEFIT? */}
       <section className="py-20 bg-[#F7F9FC] border-y border-gray-200/70">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          
+
           <div className="text-center max-w-3xl mx-auto mb-16">
             <h2 className="text-3xl sm:text-4xl font-serif font-bold text-[#102A43] tracking-tight">
               Who Can Benefit?
@@ -705,7 +705,7 @@ export const SeminarsAndLanguagePage = () => {
       {/* SECTION 6: TRAINING FORMATS */}
       <section className="py-20 bg-white">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          
+
           <div className="text-center max-w-3xl mx-auto mb-16">
             <h2 className="text-3xl sm:text-4xl font-serif font-bold text-[#102A43] tracking-tight">
               Flexible Training Formats
@@ -761,7 +761,7 @@ export const SeminarsAndLanguagePage = () => {
       {/* SECTION 7: CONSULTATION FORM */}
       <section id="seminars-language-consultation" className="py-20 bg-[#F7F9FC] border-t border-gray-200 scroll-mt-20">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          
+
           <div className="text-center max-w-3xl mx-auto mb-12">
             <h2 className="text-3xl sm:text-4xl font-serif font-bold text-[#102A43] tracking-tight">
               Seminars &amp; Language Consultation
@@ -772,7 +772,7 @@ export const SeminarsAndLanguagePage = () => {
             </p>
           </div>
 
-          <SeminarsLanguageForm 
+          <SeminarsLanguageForm
             preselectedProgram={formPreselectedProgram}
             onProgramChange={(prog) => setFormPreselectedProgram(prog)}
           />
@@ -783,7 +783,7 @@ export const SeminarsAndLanguagePage = () => {
       {/* SECTION 8: FAQ SECTION */}
       <section className="py-20 bg-white">
         <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8">
-          
+
           <div className="text-center max-w-3xl mx-auto mb-16">
             <h2 className="text-3xl sm:text-4xl font-serif font-bold text-[#102A43] tracking-tight">
               Frequently Asked Questions

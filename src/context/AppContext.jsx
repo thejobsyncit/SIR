@@ -255,7 +255,37 @@ export const AppProvider = ({ children }) => {
   };
 
   const loginWithGoogle = async (googleUser) => {
-    const normalizedEmail = (googleUser.email || '').toLowerCase().trim();
+    let normalizedEmail = (googleUser?.email || googleUser?.profile?.email || '').toLowerCase().trim();
+
+    let backendUser = null;
+    let backendToken = null;
+
+    // 1. Authenticate & Verify on backend (/api/auth/google) to sync with SQLite database
+    try {
+      const res = await fetch('/api/auth/google', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          idToken: googleUser.idToken || googleUser.credential,
+          accessToken: googleUser.accessToken,
+          profile: googleUser.profile || {
+            email: normalizedEmail,
+            name: googleUser.name,
+            picture: googleUser.avatar,
+            sub: googleUser.googleId
+          }
+        })
+      });
+      const data = await res.json();
+      if (data?.success && data?.user) {
+        backendUser = data.user;
+        backendToken = data.token;
+        if (backendUser.email) normalizedEmail = backendUser.email.toLowerCase().trim();
+      }
+    } catch (apiErr) {
+      console.warn('Backend /api/auth/google verification notice:', apiErr.message);
+    }
+
     if (!normalizedEmail) {
       return { success: false, message: 'Valid Google email is required.' };
     }
@@ -263,64 +293,34 @@ export const AppProvider = ({ children }) => {
     const db = getCandidateDB();
     const existing = db[normalizedEmail] || {};
 
-    const KNOWN_AVATARS = {
-      'kishorekumaroff1@gmail.com': '/images/avatar_kishore.png',
-      'kishorekumaroffl@gmail.com': '/images/avatar_kishore.png',
-      'harishdurai2508@gmail.com': '/images/avatar_harish.png'
-    };
-
-    const isNoPhotoAccount = normalizedEmail === 'thejobsyncit@gmail.com' || normalizedEmail === 'mrjobsync@gmail.com';
-
     const candidateUser = {
       ...existing,
-      name: googleUser.name || existing.name || normalizedEmail.split('@')[0],
+      name: backendUser?.name || googleUser.name || existing.name || normalizedEmail.split('@')[0],
       email: normalizedEmail,
-      phone: googleUser.phone || existing.phone || '',
+      phone: backendUser?.phone || googleUser.phone || existing.phone || '',
       password: existing.password || 'GoogleOAuth2Verified',
-      avatar: isNoPhotoAccount ? (existing.avatar || '') : (KNOWN_AVATARS[normalizedEmail] || googleUser.avatar || existing.avatar || ''),
+      avatar: backendUser?.avatar || googleUser.avatar || existing.avatar || `https://api.dicebear.com/7.x/initials/svg?seed=${encodeURIComponent(googleUser.name || normalizedEmail)}`,
+      googleId: backendUser?.googleId || googleUser.googleId || existing.googleId || '',
       role: 'candidate',
       isAdmin: normalizedEmail === 'thejobsyncit@gmail.com',
       isRegistered: true,
       authProvider: 'google',
       googleVerified: true,
-      candidateId: existing.candidateId || ('REV-CAN-' + Math.floor(10000 + Math.random() * 90000)),
-      preferredCountry: existing.preferredCountry || '',
-      title: existing.title || (normalizedEmail === 'thejobsyncit@gmail.com' ? 'Super Admin' : ''),
+      candidateId: backendUser?.candidateId || existing.candidateId || ('REV-CAN-' + Math.floor(10000 + Math.random() * 90000)),
+      preferredCountry: existing.preferredCountry || 'UAE',
+      title: existing.title || (normalizedEmail === 'thejobsyncit@gmail.com' ? 'Super Admin' : 'Executive Candidate'),
       experience: existing.experience || '',
       expectedSalary: existing.expectedSalary || '',
-      skills: existing.skills && existing.skills.length > 0 ? existing.skills : [],
+      skills: backendUser?.skills && backendUser.skills.length > 0 ? backendUser.skills : (existing.skills && existing.skills.length > 0 ? existing.skills : ['Executive Candidate', 'International Mobility']),
       registeredAt: existing.registeredAt || new Date().toISOString(),
-      loginTime: new Date().toISOString()
+      loginTime: new Date().toISOString(),
+      token: backendToken || existing.token || `revival_jwt_gis_${Date.now()}`
     };
 
     saveCandidateToDB(candidateUser);
     saveUserSession(candidateUser);
+    setUser(candidateUser);
     setActiveTab('candidates');
-
-    // Sync to backend SQLite database & CRM leads
-    try {
-      await fetch('/api/candidates', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          id: candidateUser.candidateId,
-          name: candidateUser.name,
-          email: candidateUser.email,
-          phone: candidateUser.phone,
-          nationality: candidateUser.preferredCountry,
-          currentEmployer: 'Google Verified Candidate',
-          currentRole: candidateUser.title,
-          expectedSalary: 'Market Standard',
-          stage: 'lead',
-          score: 92,
-          skills: candidateUser.skills,
-          source: 'Google Authentication (Gmail)',
-          aiSummary: `Candidate verified via Google Authentication (${candidateUser.email}).`
-        })
-      });
-    } catch (err) {
-      console.error('Failed to sync Google candidate to backend:', err);
-    }
 
     if (crm && crm.addCandidate) {
       crm.addCandidate({

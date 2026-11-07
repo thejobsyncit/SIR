@@ -916,6 +916,13 @@ const initDb = async (db) => {
     { name: 'updatedAt', type: 'DATETIME' }
   ]);
 
+  await ensureColumns('candidates', [
+    { name: 'googleId', type: 'TEXT' },
+    { name: 'avatar', type: 'TEXT' },
+    { name: 'authProvider', type: "TEXT DEFAULT 'local'" },
+    { name: 'googleVerified', type: "INTEGER DEFAULT 0" }
+  ]);
+
   // Safe migration: Ensure student_academy_enquiries table has exam enquiry fields
   await ensureColumns('student_academy_enquiries', [
     { name: 'qualification', type: 'TEXT' },
