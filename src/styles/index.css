@@ -58,6 +58,28 @@
   }
 }
 
+/* Bulletproof Navbar Visibility - Active from 860px and up (all laptops and desktops) */
+@media screen and (min-width: 860px) {
+  .desktop-nav-links {
+    display: flex !important;
+  }
+  .mobile-nav-toggle {
+    display: none !important;
+  }
+  .mobile-nav-drawer {
+    display: none !important;
+  }
+}
+
+@media screen and (max-width: 859px) {
+  .desktop-nav-links {
+    display: none !important;
+  }
+  .mobile-nav-toggle {
+    display: flex !important;
+  }
+}
+
 /* Custom Animations */
 @keyframes float {
   0%, 100% { transform: translateY(0px); }
