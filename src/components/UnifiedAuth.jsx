@@ -41,6 +41,13 @@ export const COUNTRY_PHONE_CONFIG = [
 
 const DEFAULT_GOOGLE_ACCOUNTS = [
   {
+    name: 'Harish Durai',
+    email: 'harishdurai2508@gmail.com',
+    avatar: 'https://images.unsplash.com/photo-1506744038136-46273834b3fb?auto=format&fit=crop&w=256&q=80',
+    initial: 'H',
+    bg: 'bg-emerald-600'
+  },
+  {
     name: 'Kishore Kumar',
     email: 'kishorekumaroffl@gmail.com',
     avatar: 'https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?auto=format&fit=crop&w=256&q=80',
@@ -414,6 +421,9 @@ export const UnifiedAuth = ({ defaultMode = 'login', defaultRole = 'candidate', 
           parsed.forEach(acc => {
             if (acc && acc.email) {
               const cleanAccEmail = acc.email.toLowerCase().trim();
+              if (cleanAccEmail.includes('candidate.revival') || cleanAccEmail === 'kishore@gmail.com' || cleanAccEmail.includes('example.com')) {
+                return; // Ignore obsolete mock accounts
+              }
               const existingIdx = list.findIndex(x => x.email.toLowerCase() === cleanAccEmail);
               const formattedItem = {
                 email: cleanAccEmail,
@@ -1067,157 +1077,173 @@ export const UnifiedAuth = ({ defaultMode = 'login', defaultRole = 'candidate', 
 
       </div>
 
-      {/* AUTHENTIC GOOGLE ACCOUNT CHOOSER (Matches GitHub / Google native popup) */}
+      {/* AUTHENTIC GOOGLE ACCOUNT CHOOSER (Matches Image 2 Dark Theme Popup) */}
       {showGoogleChooser && (
-        <div className="fixed inset-0 z-[110] bg-slate-900/60 backdrop-blur-sm flex items-center justify-center p-4">
-          <div className="w-full max-w-[440px] bg-white dark:bg-navy-900 rounded-3xl p-6 sm:p-7 shadow-2xl border border-slate-200 dark:border-navy-700 relative animate-in fade-in zoom-in-95 duration-200">
-            {/* Close Button */}
-            <button
-              type="button"
-              onClick={() => {
-                setShowGoogleChooser(false);
-                setShowCustomGoogleInput(false);
-              }}
-              className="absolute top-5 right-5 p-1.5 text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 rounded-full hover:bg-slate-100 dark:hover:bg-navy-800 transition cursor-pointer"
-            >
-              <X className="w-5 h-5" />
-            </button>
-
-            {/* Google Header */}
-            <div className="text-center">
-              <div className="w-12 h-12 rounded-2xl bg-slate-50 dark:bg-navy-800 border border-slate-200/80 dark:border-navy-700 flex items-center justify-center mx-auto mb-3 shadow-sm">
-                <svg className="w-6 h-6" viewBox="0 0 24 24">
+        <div className="fixed inset-0 z-[120] bg-black/75 backdrop-blur-sm flex items-center justify-center p-3 sm:p-4">
+          <div className="w-full max-w-[780px] bg-[#131314] text-[#e3e3e3] rounded-[28px] border border-[#3c4043] shadow-2xl p-6 sm:p-8 md:p-10 relative overflow-hidden font-sans animate-in fade-in zoom-in-95 duration-200">
+            {/* Top Bar: Google G Logo + Sign in with Google */}
+            <div className="flex items-center justify-between pb-6 border-b border-[#282a2d]">
+              <div className="flex items-center gap-2.5">
+                <svg className="w-5 h-5 shrink-0" viewBox="0 0 24 24">
                   <path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z" />
                   <path fill="#34A853" d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z" />
                   <path fill="#FBBC05" d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.06H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.94l2.85-2.22.81-.63z" />
                   <path fill="#EA4335" d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.06l3.66 2.84c.87-2.6 3.3-4.52 6.16-4.52z" />
                 </svg>
+                <span className="text-[15px] font-medium text-[#e3e3e3] tracking-normal">Sign in with Google</span>
               </div>
-              <h3 className="font-sans text-xl font-bold text-slate-800 dark:text-slate-100">
-                Choose an account
-              </h3>
-              <p className="text-xs text-slate-500 dark:text-slate-400 mt-1">
-                to continue to <span className="font-semibold text-slate-700 dark:text-slate-300">The Revival International</span>
-              </p>
+              <button
+                type="button"
+                onClick={() => {
+                  setShowGoogleChooser(false);
+                  setShowCustomGoogleInput(false);
+                }}
+                className="p-1.5 text-[#9aa0a6] hover:text-[#e3e3e3] rounded-full hover:bg-[#202124] transition cursor-pointer"
+              >
+                <X className="w-5 h-5" />
+              </button>
             </div>
 
-            {/* Error in modal if any */}
-            {googleError && (
-              <div className="mt-3 p-2.5 bg-rose-50 dark:bg-rose-900/30 border border-rose-200 dark:border-rose-800 rounded-xl text-rose-600 dark:text-rose-400 text-xs">
-                {googleError}
-              </div>
-            )}
+            {/* Two-Column Grid Body matching Image 2 */}
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-8 md:gap-10 pt-7 pb-4 items-start">
+              {/* LEFT COLUMN: Watermark Brand & Large "Choose an account" */}
+              <div className="flex flex-col justify-between">
+                <div>
+                  <div className="w-12 h-12 rounded-2xl bg-[#1e1f20] border border-[#3c4043] flex items-center justify-center mb-6 shadow-inner text-amber-400 font-serif font-black text-xl">
+                    RI
+                  </div>
+                  <h2 className="text-[32px] sm:text-[34px] font-normal text-[#e3e3e3] tracking-tight leading-tight">
+                    Choose an account
+                  </h2>
+                  <p className="text-[15px] text-[#c4c7c5] mt-3 font-normal">
+                    to continue to <span className="font-medium text-white">The Revival International</span>
+                  </p>
+                </div>
 
-            {!showCustomGoogleInput ? (
-              <div className="mt-5 space-y-1">
-                {/* Account Rows */}
-                {getDeviceAccounts().map((acc, idx) => (
-                  <button
-                    key={acc.email + idx}
-                    type="button"
-                    onClick={() => handleSelectGoogleAccount(acc)}
-                    className="w-full p-3 flex items-center gap-3.5 hover:bg-slate-100/80 dark:hover:bg-navy-800 transition rounded-2xl text-left cursor-pointer group border border-transparent hover:border-slate-200 dark:hover:border-navy-700"
-                  >
-                    <div className="relative">
-                      {acc.avatar ? (
+                {googleError && (
+                  <div className="mt-4 p-3 bg-red-950/40 border border-red-800/60 rounded-xl text-red-300 text-xs">
+                    {googleError}
+                  </div>
+                )}
+              </div>
+
+              {/* RIGHT COLUMN: Account Selection or Custom Gmail Form */}
+              <div>
+                {!showCustomGoogleInput ? (
+                  <div className="space-y-1">
+                    {getDeviceAccounts().map((acc, idx) => (
+                      <button
+                        key={acc.email + idx}
+                        type="button"
+                        onClick={() => handleSelectGoogleAccount(acc)}
+                        className="w-full py-3 px-3.5 flex items-center gap-4 hover:bg-[#1f2022] active:bg-[#282a2d] transition rounded-2xl text-left cursor-pointer group"
+                      >
                         <img
                           src={acc.avatar}
                           alt={acc.name}
-                          className="w-10 h-10 rounded-full object-cover ring-2 ring-slate-200 dark:ring-navy-700 group-hover:ring-blue-500 transition"
+                          className="w-10 h-10 rounded-full object-cover shrink-0 ring-1 ring-[#3c4043]"
                         />
-                      ) : (
-                        <div className={`w-10 h-10 rounded-full ${acc.bg || 'bg-blue-600'} text-white font-bold flex items-center justify-center text-sm shadow-inner`}>
-                          {acc.initial || acc.name.charAt(0)}
+                        <div className="min-w-0 flex-1">
+                          <p className="text-[15px] font-medium text-[#e3e3e3] group-hover:text-white transition truncate">
+                            {acc.name}
+                          </p>
+                          <p className="text-[13px] text-[#9aa0a6] truncate font-normal">
+                            {acc.email}
+                          </p>
                         </div>
-                      )}
-                    </div>
-                    <div className="min-w-0 flex-1">
-                      <p className="text-sm font-semibold text-slate-800 dark:text-slate-100 group-hover:text-blue-600 dark:group-hover:text-blue-400 transition truncate">
-                        {acc.name}
-                      </p>
-                      <p className="text-xs text-slate-500 dark:text-slate-400 truncate font-mono">
-                        {acc.email}
-                      </p>
-                    </div>
-                    <ChevronRight className="w-4 h-4 text-slate-400 group-hover:text-blue-600 dark:group-hover:text-blue-400 group-hover:translate-x-0.5 transition shrink-0" />
-                  </button>
-                ))}
+                      </button>
+                    ))}
 
-                <div className="pt-2 border-t border-slate-100 dark:border-navy-800 mt-2">
-                  <button
-                    type="button"
-                    onClick={() => {
-                      setGoogleError('');
-                      setShowCustomGoogleInput(true);
-                    }}
-                    className="w-full p-3 flex items-center gap-3.5 hover:bg-slate-100/80 dark:hover:bg-navy-800 transition rounded-2xl text-left cursor-pointer group text-slate-700 dark:text-slate-300"
-                  >
-                    <div className="w-10 h-10 rounded-full bg-slate-100 dark:bg-navy-800 border border-dashed border-slate-300 dark:border-navy-700 flex items-center justify-center text-slate-500 shrink-0 group-hover:border-blue-500 group-hover:text-blue-500 transition">
-                      <UserPlus className="w-4 h-4" />
+                    {/* Divider */}
+                    <div className="border-t border-[#3c4043] my-2" />
+
+                    {/* Use another account button */}
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setGoogleError('');
+                        setShowCustomGoogleInput(true);
+                      }}
+                      className="w-full py-3 px-3.5 flex items-center gap-4 hover:bg-[#1f2022] active:bg-[#282a2d] transition rounded-2xl text-left cursor-pointer group"
+                    >
+                      <div className="w-10 h-10 rounded-full border border-[#5f6368] flex items-center justify-center text-[#e3e3e3] shrink-0 group-hover:border-[#8ab4f8] group-hover:text-[#8ab4f8] transition">
+                        <User className="w-5 h-5" />
+                      </div>
+                      <div className="min-w-0 flex-1">
+                        <p className="text-[15px] font-medium text-[#e3e3e3] group-hover:text-[#8ab4f8] transition">
+                          Use another account
+                        </p>
+                      </div>
+                    </button>
+
+                    {/* Disclaimer */}
+                    <p className="text-[12px] text-[#9aa0a6] mt-6 leading-relaxed">
+                      Before using this app, you can review The Revival International's{' '}
+                      <span className="text-[#8ab4f8] hover:underline cursor-pointer">Privacy Policy</span> and{' '}
+                      <span className="text-[#8ab4f8] hover:underline cursor-pointer">Terms of Service</span>.
+                    </p>
+                  </div>
+                ) : (
+                  /* Custom Google / Gmail form in dark mode */
+                  <form onSubmit={handleCustomGoogleSubmit} className="space-y-4">
+                    <p className="text-xs text-[#8ab4f8] font-semibold">Sign in with any Google / Gmail account:</p>
+                    <div>
+                      <label className="block text-xs font-medium text-[#c4c7c5] mb-1.5">
+                        Full Name *
+                      </label>
+                      <input
+                        type="text"
+                        required
+                        placeholder="e.g. Harish Durai"
+                        value={customGoogleName}
+                        onChange={(e) => setCustomGoogleName(e.target.value)}
+                        className="w-full px-3.5 py-2.5 rounded-xl border border-[#3c4043] bg-[#1e1f20] text-white text-xs focus:border-[#8ab4f8] focus:ring-1 focus:ring-[#8ab4f8] outline-none"
+                      />
                     </div>
-                    <div className="min-w-0 flex-1">
-                      <p className="text-xs font-semibold group-hover:text-blue-600 dark:group-hover:text-blue-400 transition">
-                        Use another account
-                      </p>
-                      <p className="text-[11px] text-slate-400 dark:text-slate-500">
-                        Sign in with any Gmail address
-                      </p>
+                    <div>
+                      <label className="block text-xs font-medium text-[#c4c7c5] mb-1.5">
+                        Gmail Address *
+                      </label>
+                      <input
+                        type="email"
+                        required
+                        placeholder="yourname@gmail.com"
+                        value={customGoogleEmail}
+                        onChange={(e) => setCustomGoogleEmail(e.target.value)}
+                        className="w-full px-3.5 py-2.5 rounded-xl border border-[#3c4043] bg-[#1e1f20] text-white text-xs focus:border-[#8ab4f8] focus:ring-1 focus:ring-[#8ab4f8] outline-none"
+                      />
                     </div>
-                  </button>
-                </div>
+                    <div className="flex gap-2.5 pt-2">
+                      <button
+                        type="button"
+                        onClick={() => setShowCustomGoogleInput(false)}
+                        className="flex-1 py-2.5 rounded-full border border-[#5f6368] text-xs font-medium text-[#e3e3e3] hover:bg-[#202124] transition cursor-pointer"
+                      >
+                        ← Back
+                      </button>
+                      <button
+                        type="submit"
+                        className="flex-1 py-2.5 rounded-full bg-[#8ab4f8] hover:bg-[#a8c7fa] text-xs font-semibold text-[#001d35] transition shadow-sm cursor-pointer"
+                      >
+                        Sign in with Google →
+                      </button>
+                    </div>
+                  </form>
+                )}
               </div>
-            ) : (
-              /* Custom Gmail Entry Form */
-              <form onSubmit={handleCustomGoogleSubmit} className="mt-5 space-y-4">
-                <div>
-                  <label className="block text-xs font-medium text-slate-700 dark:text-slate-300 mb-1">
-                    Candidate Full Name *
-                  </label>
-                  <input
-                    type="text"
-                    required
-                    placeholder="e.g. Kishore Kumar"
-                    value={customGoogleName}
-                    onChange={(e) => setCustomGoogleName(e.target.value)}
-                    className="w-full px-3.5 py-2.5 rounded-xl border border-slate-300 dark:border-navy-700 bg-white dark:bg-navy-950 text-slate-800 dark:text-white text-xs focus:ring-2 focus:ring-blue-500 outline-none"
-                  />
-                </div>
-                <div>
-                  <label className="block text-xs font-medium text-slate-700 dark:text-slate-300 mb-1">
-                    Gmail / Google Email Address *
-                  </label>
-                  <input
-                    type="email"
-                    required
-                    placeholder="yourname@gmail.com"
-                    value={customGoogleEmail}
-                    onChange={(e) => setCustomGoogleEmail(e.target.value)}
-                    className="w-full px-3.5 py-2.5 rounded-xl border border-slate-300 dark:border-navy-700 bg-white dark:bg-navy-950 text-slate-800 dark:text-white text-xs focus:ring-2 focus:ring-blue-500 outline-none"
-                  />
-                </div>
-                <div className="flex gap-2 pt-2">
-                  <button
-                    type="button"
-                    onClick={() => setShowCustomGoogleInput(false)}
-                    className="flex-1 py-2.5 rounded-xl border border-slate-300 dark:border-navy-700 text-xs font-semibold text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-navy-800 transition cursor-pointer"
-                  >
-                    ← Back to Accounts
-                  </button>
-                  <button
-                    type="submit"
-                    className="flex-1 py-2.5 rounded-xl bg-blue-600 hover:bg-blue-700 text-xs font-bold text-white transition shadow-sm cursor-pointer"
-                  >
-                    Sign in with Google →
-                  </button>
-                </div>
-              </form>
-            )}
+            </div>
 
-            {/* Google Chooser Footer Disclaimer */}
-            <div className="mt-5 pt-3 border-t border-slate-100 dark:border-navy-800 text-center space-y-2">
-              <p className="text-[11px] text-slate-500 dark:text-slate-400 leading-relaxed">
-                Before using this app, you can review The Revival International's Privacy Policy and Terms of Service.
-              </p>
+            {/* Bottom Footer Row matching Image 2 */}
+            <div className="flex items-center justify-between pt-6 border-t border-[#282a2d] text-[12px] text-[#9aa0a6] mt-4">
+              <div className="flex items-center gap-1 hover:text-[#e3e3e3] cursor-pointer transition">
+                <span>English (United Kingdom)</span>
+                <span className="text-[9px]">▼</span>
+              </div>
+              <div className="flex items-center gap-6">
+                <span className="hover:text-[#e3e3e3] cursor-pointer transition">Help</span>
+                <span className="hover:text-[#e3e3e3] cursor-pointer transition">Privacy</span>
+                <span className="hover:text-[#e3e3e3] cursor-pointer transition">Terms</span>
+              </div>
             </div>
           </div>
         </div>
