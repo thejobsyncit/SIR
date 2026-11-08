@@ -42,16 +42,9 @@ export const COUNTRY_PHONE_CONFIG = [
 
 const DEFAULT_GOOGLE_ACCOUNTS = [
   {
-    name: 'Harish Durai',
-    email: 'harishdurai2508@gmail.com',
-    avatar: 'https://images.unsplash.com/photo-1506744038136-46273834b3fb?auto=format&fit=crop&w=256&q=80',
-    initial: 'H',
-    bg: 'bg-emerald-600'
-  },
-  {
     name: 'Kishore Kumar',
     email: 'kishorekumaroffl@gmail.com',
-    avatar: 'https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?auto=format&fit=crop&w=256&q=80',
+    avatar: '/images/avatar_kishore.jpg',
     initial: 'K',
     bg: 'bg-blue-600'
   }
@@ -258,6 +251,20 @@ export const UnifiedAuth = ({ defaultMode = 'login', defaultRole = 'candidate', 
     };
   }, [googleClientId]);
 
+  // Clean obsolete or mock accounts from localStorage
+  useEffect(() => {
+    try {
+      const saved = localStorage.getItem('sir_device_google_accounts');
+      if (saved) {
+        const parsed = JSON.parse(saved);
+        if (Array.isArray(parsed)) {
+          const filtered = parsed.filter(a => a && a.email && !a.email.includes('harish') && !a.email.includes('candidate.revival') && a.email !== 'kishore@gmail.com');
+          localStorage.setItem('sir_device_google_accounts', JSON.stringify(filtered));
+        }
+      }
+    } catch {}
+  }, []);
+
   // Trigger Real Google OAuth 2.0 Account Chooser Popup (prompt='select_account')
   const triggerRealGoogleOAuth = async (clientIdToUse) => {
     const activeClientId = (clientIdToUse || googleClientId || '').trim();
@@ -422,7 +429,12 @@ export const UnifiedAuth = ({ defaultMode = 'login', defaultRole = 'candidate', 
           parsed.forEach(acc => {
             if (acc && acc.email) {
               const cleanAccEmail = acc.email.toLowerCase().trim();
-              if (cleanAccEmail.includes('candidate.revival') || cleanAccEmail === 'kishore@gmail.com' || cleanAccEmail.includes('example.com')) {
+              if (
+                cleanAccEmail.includes('candidate.revival') || 
+                cleanAccEmail === 'kishore@gmail.com' || 
+                cleanAccEmail.includes('example.com') ||
+                cleanAccEmail.includes('harish')
+              ) {
                 return;
               }
               const existingIdx = list.findIndex(x => x.email.toLowerCase() === cleanAccEmail);
@@ -1140,8 +1152,12 @@ export const UnifiedAuth = ({ defaultMode = 'login', defaultRole = 'candidate', 
                         className="w-full py-3 px-3.5 flex items-center gap-4 hover:bg-[#1f2022] active:bg-[#282a2d] transition rounded-2xl text-left cursor-pointer group"
                       >
                         <img
-                          src={acc.avatar}
+                          src={acc.avatar || '/images/avatar_kishore.jpg'}
                           alt={acc.name}
+                          onError={(e) => {
+                            e.currentTarget.onerror = null;
+                            e.currentTarget.src = '/images/avatar_kishore.jpg';
+                          }}
                           className="w-10 h-10 rounded-full object-cover shrink-0 ring-1 ring-[#3c4043]"
                         />
                         <div className="min-w-0 flex-1">
