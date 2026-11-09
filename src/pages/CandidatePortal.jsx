@@ -506,125 +506,255 @@ export const CandidatePortal = () => {
 
       {/* DASHBOARD OVERVIEW TAB */}
       {activeTab === 'dashboard' && (
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 text-xs">
+        <div className="space-y-6 text-xs font-sans">
           
-          {/* Candidate Detailed Info Card */}
-          <div className="glass-card bg-white dark:bg-navy-900 border border-slate-200 dark:border-navy-800 p-6 rounded-2xl space-y-4 shadow-luxury">
-            <div className="flex justify-between items-center border-b border-slate-200 dark:border-navy-800 pb-3">
-              <h3 className="font-serif text-lg font-bold text-navy-900 dark:text-white flex items-center gap-2">
-                <User className="w-5 h-5 text-gold-500" />
-                Authentic Executive Profile
-              </h3>
-            </div>
-
-            <div className="flex items-center space-x-3.5 bg-slate-50 dark:bg-navy-950 p-3 rounded-xl border border-slate-200 dark:border-navy-800">
-              {user.avatar ? (
-                <img src={user.avatar} alt="Candidate Avatar" className="w-14 h-14 rounded-2xl object-cover border-2 border-gold-500 shadow-gold-glow shrink-0" />
-              ) : (
-                <div className="w-14 h-14 rounded-2xl bg-slate-50 dark:bg-navy-900 text-gold-400 font-serif font-extrabold text-xl flex items-center justify-center border-2 border-gold-500 shadow-gold-glow shrink-0">
-                  {user.name ? user.name.charAt(0).toUpperCase() : 'C'}
+          {/* Executive KPI Metric Cards */}
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+            <div className="glass-card bg-white dark:bg-navy-900 border border-slate-200 dark:border-navy-800 rounded-3xl p-5 shadow-luxury flex flex-col justify-between space-y-2 hover:border-gold-500/40 transition">
+              <div className="flex items-center justify-between">
+                <span className="text-[11px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider">Total Applied</span>
+                <div className="w-8 h-8 rounded-xl bg-gold-500/15 text-gold-500 flex items-center justify-center">
+                  <Briefcase className="w-4 h-4" />
                 </div>
-              )}
-              <div className="space-y-0.5 overflow-hidden">
-                <h4 className="font-serif text-base font-bold text-navy-900 dark:text-white truncate">{user.name || 'Executive Candidate'}</h4>
-                <p className="text-xs text-gold-500 font-bold truncate">{user.title || 'Candidate Designation'}</p>
-                <span className="inline-block bg-emerald-500/20 text-emerald-600 dark:text-emerald-400 text-[10px] font-extrabold px-2 py-0.5 rounded">
-                  Score: {profileScore}% Calculated
-                </span>
+              </div>
+              <div className="flex items-baseline gap-2">
+                <span className="text-3xl font-extrabold text-navy-900 dark:text-white font-serif">{applications.length}</span>
+                <span className="text-[10px] text-slate-500 font-semibold">Active Mandates</span>
               </div>
             </div>
 
-            <div className="space-y-2.5 text-slate-700 dark:text-slate-300">
-              <p><strong className="text-navy-900 dark:text-white">Full Name:</strong> {user.name || <span className="text-slate-500 dark:text-slate-400 italic">Not set</span>}</p>
-              <p><strong className="text-navy-900 dark:text-white">Email:</strong> {user.email || <span className="text-slate-500 dark:text-slate-400 italic">Not set</span>}</p>
-              <p><strong className="text-navy-900 dark:text-white">Phone:</strong> {user.phone ? user.phone : <span className="text-rose-400 italic">Not provided</span>}</p>
-              <p><strong className="text-navy-900 dark:text-white">Date of Birth:</strong> {user.dob ? user.dob : <span className="text-rose-400 italic">Not provided</span>}</p>
-              <p><strong className="text-navy-900 dark:text-white">Gender:</strong> {user.gender ? user.gender : <span className="text-rose-400 italic">Not provided</span>}</p>
-              <p><strong className="text-navy-900 dark:text-white">Designation:</strong> {user.title ? user.title : <span className="text-rose-400 italic">Not provided</span>}</p>
-              <p><strong className="text-navy-900 dark:text-white">Location:</strong> {user.location ? user.location : <span className="text-rose-400 italic">Not provided</span>}</p>
-              <p><strong className="text-navy-900 dark:text-white">Target Country:</strong> {user.preferredCountry ? user.preferredCountry : <span className="text-rose-400 italic">Not specified</span>}</p>
-              <p><strong className="text-navy-900 dark:text-white">Experience:</strong> {user.experience ? user.experience : <span className="text-rose-400 italic">Not provided</span>}</p>
-              <p><strong className="text-navy-900 dark:text-white">Education:</strong> {user.qualification ? user.qualification : <span className="text-rose-400 italic">Not provided</span>}</p>
-              <p><strong className="text-navy-900 dark:text-white">Expected Salary:</strong> {user.expectedSalary ? user.expectedSalary : <span className="text-slate-500 dark:text-slate-400 italic">Negotiable</span>}</p>
+            <div className="glass-card bg-white dark:bg-navy-900 border border-slate-200 dark:border-navy-800 rounded-3xl p-5 shadow-luxury flex flex-col justify-between space-y-2 hover:border-emerald-500/40 transition">
+              <div className="flex items-center justify-between">
+                <span className="text-[11px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider">ATS Score</span>
+                <div className="w-8 h-8 rounded-xl bg-emerald-500/15 text-emerald-500 flex items-center justify-center">
+                  <Sparkles className="w-4 h-4" />
+                </div>
+              </div>
+              <div className="flex items-baseline gap-2">
+                <span className="text-3xl font-extrabold text-emerald-600 dark:text-emerald-400 font-serif">{user.atsScore || profileScore}%</span>
+                <span className="text-[10px] text-emerald-600 dark:text-emerald-400 font-bold bg-emerald-500/10 px-1.5 py-0.5 rounded">Verified</span>
+              </div>
             </div>
 
-            <div className="pt-2 border-t border-slate-200 dark:border-navy-800 space-y-2">
-              <span className="font-bold text-navy-900 dark:text-white block">Key Technical Skills:</span>
-              <div className="flex flex-wrap gap-1">
-                {user.skills && Array.isArray(user.skills) && user.skills.length > 0 ? (
-                  user.skills.map((sk, idx) => (
-                    <span key={idx} className="bg-gold-500/15 text-gold-700 dark:text-gold-400 border border-slate-200 dark:border-gold-500/30 text-[10px] font-bold px-2 py-0.5 rounded">
-                      {sk}
-                    </span>
-                  ))
-                ) : (
-                  <span className="text-rose-400 italic text-[11px]">No technical skills added yet</span>
-                )}
+            <div className="glass-card bg-white dark:bg-navy-900 border border-slate-200 dark:border-navy-800 rounded-3xl p-5 shadow-luxury flex flex-col justify-between space-y-2 hover:border-amber-500/40 transition">
+              <div className="flex items-center justify-between">
+                <span className="text-[11px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider">In Review</span>
+                <div className="w-8 h-8 rounded-xl bg-amber-500/15 text-amber-500 flex items-center justify-center">
+                  <Clock className="w-4 h-4" />
+                </div>
+              </div>
+              <div className="flex items-baseline gap-2">
+                <span className="text-3xl font-extrabold text-amber-600 dark:text-amber-400 font-serif">
+                  {applications.filter(a => a.status === 'Interview Scheduled' || a.status === 'Under AI Resume Screening').length}
+                </span>
+                <span className="text-[10px] text-slate-500 font-semibold">Recruiter Queue</span>
+              </div>
+            </div>
+
+            <div className="glass-card bg-white dark:bg-navy-900 border border-slate-200 dark:border-navy-800 rounded-3xl p-5 shadow-luxury flex flex-col justify-between space-y-2 hover:border-gold-500/40 transition">
+              <div className="flex items-center justify-between">
+                <span className="text-[11px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider">Interview Status</span>
+                <div className="w-8 h-8 rounded-xl bg-gold-500/15 text-gold-500 flex items-center justify-center">
+                  <Video className="w-4 h-4" />
+                </div>
+              </div>
+              <div className="flex items-baseline gap-2">
+                <span className="text-3xl font-extrabold text-navy-900 dark:text-white font-serif">
+                  {applications.filter(a => a.status === 'Interview Scheduled').length > 0 ? '1' : '0'}
+                </span>
+                <span className={`text-[10px] font-bold px-1.5 py-0.5 rounded ${applications.filter(a => a.status === 'Interview Scheduled').length > 0 ? 'bg-emerald-500/15 text-emerald-500' : 'bg-slate-100 dark:bg-navy-800 text-slate-500'}`}>
+                  {applications.filter(a => a.status === 'Interview Scheduled').length > 0 ? 'Scheduled' : 'Pending'}
+                </span>
               </div>
             </div>
           </div>
 
-          {/* Active Application Tracker & Resume Status */}
-          <div className="lg:col-span-2 space-y-6">
+          <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
             
-            {/* Active CV Status */}
-            <div className="glass-card bg-white dark:bg-navy-900 border border-slate-200 dark:border-navy-800 p-6 rounded-2xl space-y-4">
-              <div className="flex justify-between items-center">
+            {/* Candidate Detailed Info Card */}
+            <div className="glass-card bg-white dark:bg-navy-900 border border-slate-200 dark:border-navy-800 p-6 rounded-3xl space-y-4 shadow-luxury">
+              <div className="flex justify-between items-center border-b border-slate-200 dark:border-navy-800 pb-3">
                 <h3 className="font-serif text-lg font-bold text-navy-900 dark:text-white flex items-center gap-2">
-                  <FileText className="w-5 h-5 text-gold-500" />
-                  Active ATS Resume & Documents
+                  <User className="w-5 h-5 text-gold-500" />
+                  Authentic Executive Profile
                 </h3>
-                <button 
-                  onClick={() => setActiveModal('ai-resume')}
-                  className="px-3 py-1.5 bg-gold-shimmer text-navy-950 font-bold rounded-lg text-xs hover:opacity-95"
+                <button
+                  onClick={() => setActiveTab('edit-profile')}
+                  className="text-gold-500 hover:underline font-bold text-[11px] flex items-center gap-1"
                 >
-                  Analyze CV Score
+                  <Edit3 className="w-3 h-3" />
+                  <span>Edit</span>
                 </button>
               </div>
 
-              <div className="p-4 bg-slate-50 dark:bg-navy-950 rounded-xl space-y-2 border border-slate-200 dark:border-navy-800">
-                <div className="flex justify-between items-center">
-                  <span className="font-bold text-navy-900 dark:text-white text-sm">{user.resumeName || 'No CV Uploaded'}</span>
-                  <span className={`font-bold px-2 py-0.5 rounded text-[10px] ${user.resumeUploaded ? 'bg-emerald-500/20 text-emerald-500' : 'bg-amber-500/20 text-amber-500'}`}>
-                    {user.resumeUploaded ? 'Verified PDF' : 'Pending Resume'}
+              <div className="flex items-center space-x-3.5 bg-slate-50 dark:bg-navy-950 p-3.5 rounded-2xl border border-slate-200 dark:border-navy-800">
+                {user.avatar ? (
+                  <img src={user.avatar} alt="Candidate Avatar" className="w-14 h-14 rounded-2xl object-cover border-2 border-gold-500 shadow-gold-glow shrink-0" />
+                ) : (
+                  <div className="w-14 h-14 rounded-2xl bg-slate-50 dark:bg-navy-900 text-gold-400 font-serif font-extrabold text-xl flex items-center justify-center border-2 border-gold-500 shadow-gold-glow shrink-0">
+                    {user.name ? user.name.charAt(0).toUpperCase() : 'C'}
+                  </div>
+                )}
+                <div className="space-y-0.5 overflow-hidden">
+                  <h4 className="font-serif text-base font-bold text-navy-900 dark:text-white truncate">{user.name || 'Executive Candidate'}</h4>
+                  <p className="text-xs text-gold-500 font-bold truncate">{user.title || 'Candidate Designation'}</p>
+                  <span className="inline-block bg-emerald-500/20 text-emerald-600 dark:text-emerald-400 text-[10px] font-extrabold px-2 py-0.5 rounded-full">
+                    Score: {user.atsScore || profileScore}% Calculated
                   </span>
                 </div>
-                <p className="text-slate-500">Uploaded format compliant with MOHRE and GCC ATS Applicant Tracking Systems.</p>
+              </div>
+
+              <div className="space-y-2.5 text-slate-700 dark:text-slate-300">
+                <p><strong className="text-navy-900 dark:text-white">Full Name:</strong> {user.name || <span className="text-slate-500 dark:text-slate-400 italic">Not set</span>}</p>
+                <p><strong className="text-navy-900 dark:text-white">Email:</strong> {user.email || <span className="text-slate-500 dark:text-slate-400 italic">Not set</span>}</p>
+                <p><strong className="text-navy-900 dark:text-white">Phone:</strong> {user.phone ? user.phone : <span className="text-rose-400 italic">Not provided</span>}</p>
+                <p><strong className="text-navy-900 dark:text-white">Designation:</strong> {user.title ? user.title : <span className="text-rose-400 italic">Not provided</span>}</p>
+                <p><strong className="text-navy-900 dark:text-white">Location:</strong> {user.location ? user.location : <span className="text-slate-500 dark:text-slate-400 italic">Dubai / International</span>}</p>
+                <p><strong className="text-navy-900 dark:text-white">Target Country:</strong> {user.preferredCountry ? user.preferredCountry : <span className="text-rose-400 italic">UAE / Saudi Arabia</span>}</p>
+                <p><strong className="text-navy-900 dark:text-white">Experience:</strong> {user.experience ? user.experience : <span className="text-slate-500 italic">Executive Experience</span>}</p>
+                <p><strong className="text-navy-900 dark:text-white">Education:</strong> {user.qualification ? user.qualification : <span className="text-slate-500 italic">Professional Degree</span>}</p>
+                <p><strong className="text-navy-900 dark:text-white">Expected Salary:</strong> {user.expectedSalary ? user.expectedSalary : <span className="text-slate-500 dark:text-slate-400 italic">Negotiable</span>}</p>
+              </div>
+
+              <div className="pt-2 border-t border-slate-200 dark:border-navy-800 space-y-2">
+                <span className="font-bold text-navy-900 dark:text-white block">Key Technical Skills:</span>
+                <div className="flex flex-wrap gap-1">
+                  {user.skills && Array.isArray(user.skills) && user.skills.length > 0 ? (
+                    user.skills.map((sk, idx) => (
+                      <span key={idx} className="bg-gold-500/15 text-gold-700 dark:text-gold-400 border border-slate-200 dark:border-gold-500/30 text-[10px] font-bold px-2 py-0.5 rounded-lg">
+                        {sk}
+                      </span>
+                    ))
+                  ) : (
+                    <span className="text-rose-400 italic text-[11px]">No technical skills added yet</span>
+                  )}
+                </div>
               </div>
             </div>
 
-            {/* Application Tracker */}
-            <div className="glass-card bg-white dark:bg-navy-900 border border-slate-200 dark:border-navy-800 p-6 rounded-2xl space-y-4">
-              <h3 className="font-serif text-lg font-bold text-navy-900 dark:text-white flex items-center gap-2">
-                <Clock className="w-5 h-5 text-gold-500" />
-                Real-Time Application Status Tracker
-              </h3>
-
-              {applications.map((app) => (
-                <div key={app.id} className="p-4 bg-slate-50 dark:bg-navy-950 border border-slate-200 dark:border-navy-800 rounded-xl space-y-3">
-                  <div className="flex justify-between items-start">
-                    <div>
-                      <h4 className="font-bold text-navy-900 dark:text-white text-sm">{app.jobTitle}</h4>
-                      <p className="text-slate-600 dark:text-slate-400 font-medium">{app.company} • {app.country}</p>
-                    </div>
-                    <span className="bg-gold-500/20 text-gold-500 font-bold px-2.5 py-1 rounded text-[11px]">
-                      {app.status}
-                    </span>
+            {/* Active Application Tracker & Resume Status */}
+            <div className="lg:col-span-2 space-y-6">
+              
+              {/* Active CV Status Card */}
+              <div className="glass-card bg-white dark:bg-navy-900 border border-slate-200 dark:border-navy-800 p-6 rounded-3xl space-y-4 shadow-luxury">
+                <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3">
+                  <div>
+                    <h3 className="font-serif text-lg font-bold text-navy-900 dark:text-white flex items-center gap-2">
+                      <FileText className="w-5 h-5 text-gold-500" />
+                      Active ATS Resume & Documents
+                    </h3>
+                    <p className="text-xs text-slate-500 dark:text-slate-400">
+                      MOHRE & GCC ATS Applicant Tracking Compliance
+                    </p>
                   </div>
-
-                  {/* Progress Steps */}
-                  <div className="grid grid-cols-6 gap-1 pt-2 text-[10px] text-center font-bold">
-                    <div className="p-1 bg-emerald-500 text-slate-900 dark:text-white rounded">1. Applied</div>
-                    <div className="p-1 bg-emerald-500 text-slate-900 dark:text-white rounded">2. Screened</div>
-                    <div className="p-1 bg-gold-500 text-navy-950 rounded animate-pulse">3. Interview</div>
-                    <div className="p-1 bg-slate-200 dark:bg-navy-800 text-slate-500 dark:text-slate-400 rounded">4. Offer</div>
-                    <div className="p-1 bg-slate-200 dark:bg-navy-800 text-slate-500 dark:text-slate-400 rounded">5. Visa</div>
-                    <div className="p-1 bg-slate-200 dark:bg-navy-800 text-slate-500 dark:text-slate-400 rounded">6. Placed</div>
+                  <div className="flex items-center gap-2">
+                    <button 
+                      onClick={() => setActiveModal('ai-resume')}
+                      className="px-3.5 py-2 bg-gradient-to-r from-gold-500 to-amber-400 text-navy-950 font-extrabold rounded-xl text-xs shadow-gold-glow hover:opacity-95 transition flex items-center gap-1.5 cursor-pointer"
+                    >
+                      <Sparkles className="w-3.5 h-3.5" />
+                      <span>Scan CV with Revival AI</span>
+                    </button>
+                    <button 
+                      onClick={() => setActiveModal('resume-builder')}
+                      className="px-3 py-2 bg-slate-100 hover:bg-slate-200 dark:bg-navy-800 dark:hover:bg-navy-700 text-navy-900 dark:text-white font-bold rounded-xl text-xs transition flex items-center gap-1 cursor-pointer"
+                    >
+                      <FileText className="w-3.5 h-3.5 text-gold-500" />
+                      <span>Build PDF CV</span>
+                    </button>
                   </div>
                 </div>
-              ))}
-            </div>
 
+                <div className="p-4 bg-slate-50 dark:bg-navy-950 rounded-2xl space-y-3 border border-slate-200 dark:border-navy-800 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+                  <div className="space-y-1">
+                    <div className="flex items-center gap-2">
+                      <span className="font-bold text-navy-900 dark:text-white text-sm">{user.resumeName || 'Executive_Candidate_CV.pdf'}</span>
+                      <span className={`font-bold px-2 py-0.5 rounded-full text-[10px] ${user.resumeUploaded ? 'bg-emerald-500/20 text-emerald-500' : 'bg-amber-500/20 text-amber-500'}`}>
+                        {user.resumeUploaded ? 'MOHRE Verified PDF' : 'Ready for ATS Scan'}
+                      </span>
+                    </div>
+                    <p className="text-[11px] text-slate-500">
+                      Structured for Taleo, Workday & GCC headhunter automated screening.
+                    </p>
+                  </div>
+
+                  <div className="flex items-center gap-3 shrink-0">
+                    <div className="text-right">
+                      <span className="text-[10px] font-bold text-slate-500 uppercase block">ATS Score</span>
+                      <span className="text-xl font-extrabold text-gold-500 font-serif">{user.atsScore || profileScore}% Match</span>
+                    </div>
+                    <div className="w-12 h-12 rounded-2xl bg-gold-500/15 border border-gold-500/30 flex items-center justify-center font-extrabold text-gold-500 text-sm shadow-gold-glow">
+                      {user.atsScore || profileScore}%
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              {/* Application Tracker */}
+              <div className="glass-card bg-white dark:bg-navy-900 border border-slate-200 dark:border-navy-800 p-6 rounded-3xl space-y-4 shadow-luxury">
+                <div className="flex justify-between items-center">
+                  <h3 className="font-serif text-lg font-bold text-navy-900 dark:text-white flex items-center gap-2">
+                    <Clock className="w-5 h-5 text-gold-500" />
+                    Real-Time Application Status Tracker
+                  </h3>
+                  {applications.length > 0 && (
+                    <span className="text-xs text-slate-500 font-bold">
+                      {applications.length} Active {applications.length === 1 ? 'Application' : 'Applications'}
+                    </span>
+                  )}
+                </div>
+
+                {applications.length === 0 ? (
+                  <div className="p-8 text-center bg-slate-50 dark:bg-navy-950 rounded-2xl border border-slate-200 dark:border-navy-800 space-y-3">
+                    <Briefcase className="w-10 h-10 text-gold-500/60 mx-auto" />
+                    <div>
+                      <h4 className="font-bold text-navy-900 dark:text-white text-sm">No Applications Submitted Yet</h4>
+                      <p className="text-xs text-slate-500 max-w-md mx-auto mt-1">
+                        Use our Revival AI Resume Analyzer to match your profile with open tier-1 GCC vacancies in Dubai, Riyadh & Doha.
+                      </p>
+                    </div>
+                    <button
+                      onClick={() => setActiveTab('browse-jobs')}
+                      className="px-4 py-2 bg-gradient-to-r from-gold-500 to-amber-400 text-navy-950 font-extrabold text-xs rounded-xl shadow-gold-glow hover:opacity-95 transition"
+                    >
+                      Browse {allJobs.length} Verified Overseas Vacancies →
+                    </button>
+                  </div>
+                ) : (
+                  <div className="space-y-3">
+                    {applications.map((app) => (
+                      <div 
+                        key={app.id} 
+                        onClick={() => setScreeningModalApp(app)}
+                        className="p-4 bg-slate-50 dark:bg-navy-950 border border-slate-200 dark:border-navy-800 rounded-2xl space-y-3 hover:border-gold-500/40 transition cursor-pointer shadow-sm"
+                        title="Click to view AI ATS Screening Report"
+                      >
+                        <div className="flex justify-between items-start">
+                          <div>
+                            <h4 className="font-bold text-navy-900 dark:text-white text-sm hover:text-gold-500 transition">{app.jobTitle}</h4>
+                            <p className="text-slate-600 dark:text-slate-400 font-medium text-xs">{app.company} • {app.country}</p>
+                          </div>
+                          <span className="bg-gold-500/20 text-gold-600 dark:text-gold-400 border border-gold-500/30 font-bold px-2.5 py-1 rounded-full text-[10px]">
+                            {app.status}
+                          </span>
+                        </div>
+
+                        {/* Progress Steps */}
+                        <div className="grid grid-cols-6 gap-1 pt-1 text-[9px] text-center font-bold">
+                          <div className="p-1 bg-emerald-500 text-white rounded-lg">1. Applied</div>
+                          <div className={`p-1 rounded-lg ${app.status !== 'Pending Review' ? 'bg-emerald-500 text-white' : 'bg-gold-500 text-navy-950 animate-pulse'}`}>2. Screened</div>
+                          <div className={`p-1 rounded-lg ${app.status === 'Interview Scheduled' || app.status === 'Placed' ? 'bg-emerald-500 text-white' : 'bg-slate-200 dark:bg-navy-800 text-slate-500'}`}>3. Interview</div>
+                          <div className="p-1 bg-slate-200 dark:bg-navy-800 text-slate-500 rounded-lg">4. Offer</div>
+                          <div className="p-1 bg-slate-200 dark:bg-navy-800 text-slate-500 rounded-lg">5. Visa</div>
+                          <div className="p-1 bg-slate-200 dark:bg-navy-800 text-slate-500 rounded-lg">6. Placed</div>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
+
+            </div>
           </div>
         </div>
       )}

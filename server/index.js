@@ -10,6 +10,7 @@ import { COURSES_CATALOGUE } from '../src/data/coursesCatalogueData.js';
 import nodemailer from 'nodemailer';
 import dotenv from 'dotenv';
 import { handleAIAdvisorQuery, REVIVAL_KNOWLEDGE_BASE } from './services/aiAdvisorEngine.js';
+import { analyzeCandidateResume, extractTextFromPdfBuffer, sanitizeResumeText } from './services/resumeAnalyzerEngine.js';
 
 dotenv.config();
 
@@ -3955,36 +3956,78 @@ app.post('/api/visa/check', (req, res) => {
   });
 });
 
-app.post('/api/resume/analyze', (req, res) => {
-  const { resumeText, targetRole, industry } = req.body;
-  const wordCount = (resumeText || '').split(/\s+/).filter(Boolean).length;
-  const role = targetRole || 'Senior Executive';
+// --- REVIVAL AI RESUME ANALYZER & GCC ATS SCORING ENGINE ---
+const handleResumeAnalyzeRequest = (req, res) => {
+  try {
+    let { resumeText, targetRole, industry, fileData, filename, fileName } = req.body || {};
+    const attachedName = filename || fileName || '';
 
-  const baseScore = Math.min(94, Math.max(58, 65 + Math.floor(wordCount / 20)));
-  const keywordsFound = ['Leadership', 'Budget Management', 'Process Optimization', 'MOHRE Compliance', 'Stakeholder Management', 'Team Leadership'].slice(0, 4);
-  const keywordsMissing = ['P&L Management', 'Cross-cultural Communication', 'Digital Transformation', 'Bilingual English/Arabic'];
-
-  res.json({
-    success: true,
-    data: {
-      atsScore: baseScore,
-      targetRole: role,
-      industry: industry || 'Executive Management',
-      matchLevel: baseScore >= 80 ? 'Excellent Match' : 'Strong Candidate',
-      strengths: [
-        'Clear chronological progression across executive mandates.',
-        'Strong quantified achievements in workforce leadership.',
-        'Document structure is easily parsable by Taleo, Workday, and GCC ATS platforms.'
-      ],
-      improvements: [
-        'Incorporate industry-specific GCC labor law keywords to maximize recruiter filtering.',
-        'Expand on revenue figures and cost-savings percentages in previous appointments.'
-      ],
-      keywordsFound,
-      keywordsMissing
+    // If fileData (base64) was provided, extract text from it
+    if (fileData && typeof fileData === 'string') {
+      try {
+        const cleanBase64 = fileData.replace(/^data:[^;]+;base64,/, '');
+        const buffer = Buffer.from(cleanBase64, 'base64');
+        if (attachedName.toLowerCase().endsWith('.pdf')) {
+          const extracted = extractTextFromPdfBuffer(buffer);
+          if (extracted && extracted.length > 20) {
+            resumeText = (resumeText ? resumeText + '\n' : '') + extracted;
+          }
+        } else {
+          const textContent = buffer.toString('utf-8');
+          if (textContent && textContent.length > 15) {
+            resumeText = (resumeText ? resumeText + '\n' : '') + textContent;
+          }
+        }
+      } catch (parseErr) {
+        console.warn('Document buffer extraction notice:', parseErr.message);
+      }
     }
-  });
-});
+
+    const analysis = analyzeCandidateResume({
+      resumeText: resumeText || '',
+      targetRole: targetRole || '',
+      industry: industry || '',
+      attachedFileName: attachedName
+    });
+
+    return res.json({
+      success: true,
+      atsScore: analysis.atsScore,
+      grade: analysis.grade,
+      matchLevel: analysis.matchLevel,
+      targetRole: analysis.targetRole,
+      industry: analysis.industry,
+      candidateName: analysis.candidateName,
+      contactInfo: analysis.contactInfo,
+      wordCount: analysis.wordCount,
+      scoreBreakdown: analysis.scoreBreakdown,
+      extractedSkills: analysis.extractedSkills,
+      missingKeywords: analysis.missingKeywords,
+      actionVerbsFound: analysis.actionVerbsFound,
+      metricsIdentified: analysis.metricsIdentified,
+      sectionsDetected: analysis.sectionsDetected,
+      strengths: analysis.strengths,
+      improvements: analysis.improvements,
+      summary: analysis.summary,
+      scannedAt: analysis.scannedAt,
+      data: {
+        ...analysis,
+        keywordsFound: analysis.extractedSkills,
+        keywordsMissing: analysis.missingKeywords
+      }
+    });
+  } catch (err) {
+    console.error('Resume Analysis Error:', err);
+    return res.status(500).json({
+      success: false,
+      message: 'Failed to analyze resume document.',
+      error: err.message
+    });
+  }
+};
+
+app.post('/api/resume/analyze', handleResumeAnalyzeRequest);
+app.post('/api/ai/analyze-resume', handleResumeAnalyzeRequest);
 
 // AI Advisor Chat Engine (Production Multi-Provider & Contextual RAG)
 app.post('/api/ai/chat', async (req, res) => {
