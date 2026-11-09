@@ -247,7 +247,7 @@ export const CrmSidebar = ({ collapsed, setCollapsed }) => {
         />
       )}
 
-      <aside className={`bg-white dark:bg-[#070c1e] border-r border-slate-200 dark:border-slate-800/80 text-slate-700 dark:text-slate-300 flex flex-col justify-between transition-all duration-300 z-50 fixed inset-y-0 left-0 lg:static lg:h-full lg:max-h-full min-h-0 overflow-hidden shrink-0 transform ${collapsed ? '-translate-x-full lg:translate-x-0 lg:w-20' : 'translate-x-0 w-72'}`}>
+      <aside className={`bg-white dark:bg-[#070c1e] border-r border-slate-200 dark:border-slate-800/80 text-slate-700 dark:text-slate-300 flex flex-col h-full max-h-screen max-h-[100dvh] transition-all duration-300 z-50 fixed inset-y-0 left-0 lg:static lg:h-full lg:max-h-full min-h-0 overflow-hidden shrink-0 transform ${collapsed ? '-translate-x-full lg:translate-x-0 lg:w-20' : 'translate-x-0 w-72'}`}>
       
       {/* Top Brand Logo */}
       <div className="p-4 border-b border-slate-200 dark:border-navy-800 flex items-center justify-between shrink-0">
@@ -263,7 +263,7 @@ export const CrmSidebar = ({ collapsed, setCollapsed }) => {
       </div>
 
       {/* Nav Menu */}
-      <div className="flex-1 min-h-0 overflow-y-auto overscroll-y-contain crm-sidebar-scroll py-4 px-3 space-y-1 text-xs font-semibold">
+      <div className="flex-1 min-h-0 overflow-y-auto overscroll-y-contain crm-sidebar-scroll py-2 px-3 space-y-0.5 text-xs font-semibold">
         {isRecruiterRole && !collapsed && (
           <div className="px-2 pt-0.5 pb-2">
             <div className="flex items-center justify-between px-1 text-[10px] font-extrabold tracking-wider uppercase text-gold-600 dark:text-gold-400">
@@ -451,90 +451,81 @@ export const CrmSidebar = ({ collapsed, setCollapsed }) => {
         })}
       </div>
 
-      {/* PINNED BOTTOM USER PROFILE & LOGOUT FOOTER (High-End Executive Glass Card & 100% Solid Visible Logout) */}
-      <div className="shrink-0 border-t border-slate-200 dark:border-slate-800/90 bg-white/95 dark:bg-[#070c1e]/95 p-3 z-20 shadow-md backdrop-blur-md">
+      {/* PINNED BOTTOM USER PROFILE & LOGOUT FOOTER (Ultra-Compact, 100% Guaranteed Visible on All Screens) */}
+      <div className="shrink-0 border-t border-slate-200 dark:border-slate-800/90 bg-white/95 dark:bg-[#070c1e]/95 p-2 z-20 shadow-md">
         {!collapsed ? (
-          <div className="rounded-2xl p-3 bg-slate-50/95 dark:bg-gradient-to-b dark:from-[#0d1636] dark:to-[#080d24] border border-slate-200/90 dark:border-gold-500/25 shadow-sm space-y-3">
+          <div className="rounded-xl p-2 bg-slate-50 dark:bg-gradient-to-b dark:from-[#0d1636] dark:to-[#080d24] border border-slate-200/90 dark:border-gold-500/25 shadow-sm space-y-2">
             
-            {/* Top Row: User Avatar + Name & Emp ID */}
-            <div className="flex items-center space-x-3">
-              {/* Avatar with Ring & Live Indicator */}
+            {/* Row 1: Avatar + Name + Emp ID Badge + Role & Email */}
+            <div className="flex items-center space-x-2.5">
+              {/* Avatar with Status */}
               <div className="relative shrink-0">
                 <img 
                   src={user?.avatar || 'https://images.unsplash.com/photo-1573496359142-b8d87734a5a2?w=150&auto=format&fit=crop&q=80'} 
                   alt={formatUserName(user?.name)} 
-                  className="w-10 h-10 rounded-full border-2 border-gold-500 object-cover shadow-sm ring-2 ring-gold-500/30" 
+                  className="w-8 h-8 rounded-full border-2 border-gold-500 object-cover shadow-xs ring-1 ring-gold-500/40" 
                 />
-                <span className="absolute bottom-0 right-0 w-2.5 h-2.5 bg-emerald-500 border-2 border-white dark:border-[#070c1e] rounded-full shadow-xs" title="Online & Active" />
+                <span className="absolute bottom-0 right-0 w-2 h-2 bg-emerald-500 border border-white dark:border-[#070c1e] rounded-full shadow-xs" title="Online" />
               </div>
               
-              {/* User Identity Details */}
+              {/* Name & Emp ID */}
               <div className="flex-1 min-w-0">
                 <div className="flex items-center justify-between gap-1">
-                  <h4 className="font-bold text-slate-900 dark:text-white text-xs truncate tracking-tight" title={formatUserName(user?.name)}>
+                  <h4 className="font-bold text-slate-900 dark:text-white text-xs truncate leading-tight" title={formatUserName(user?.name)}>
                     {formatUserName(user?.name)}
                   </h4>
-                  <span className="font-mono text-[9px] font-black px-1.5 py-0.5 rounded-md bg-gold-500/20 text-gold-700 dark:text-gold-300 border border-gold-500/40 shrink-0 uppercase tracking-wider" title={'Employee ID: ' + getEmpId(user?.id)}>
+                  <span className="font-mono text-[9px] font-black px-1.5 py-0.2 rounded bg-gold-500/20 text-gold-700 dark:text-gold-300 border border-gold-500/35 shrink-0 uppercase tracking-wider" title={'Employee ID: ' + getEmpId(user?.id)}>
                     {getEmpId(user?.id)}
                   </span>
                 </div>
                 
-                {/* Role Pill & Active Status */}
-                <div className="flex items-center justify-between text-[10px] mt-1">
+                {/* Role & Email Inline */}
+                <div className="flex items-center justify-between text-[10px] mt-0.5 text-slate-500 dark:text-slate-400">
                   <span className="font-semibold text-amber-700 dark:text-gold-400 flex items-center gap-1 truncate">
-                    <ShieldCheck className="w-3 h-3 text-gold-500 shrink-0" />
+                    <ShieldCheck className="w-2.5 h-2.5 text-gold-500 shrink-0" />
                     <span className="truncate">{currentRole || user?.role || 'Super Admin'}</span>
                   </span>
-                  <span className="text-[9px] font-bold text-emerald-600 dark:text-emerald-400 flex items-center gap-1 shrink-0">
-                    <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
-                    Active
+                  <span className="text-[9px] text-slate-400 dark:text-slate-400 truncate max-w-[110px]" title={user?.email || 'thejobsyncit@gmail.com'}>
+                    {user?.email || 'thejobsyncit@gmail.com'}
                   </span>
                 </div>
               </div>
             </div>
 
-            {/* Email Address Line */}
-            <div className="flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-white/80 dark:bg-navy-950/70 border border-slate-200/70 dark:border-slate-800/80 text-[10px] text-slate-600 dark:text-slate-300 font-medium">
-              <Mail className="w-3 h-3 text-slate-400 dark:text-gold-400/80 shrink-0" />
-              <span className="truncate flex-1" title={user?.email || 'thejobsyncit@gmail.com'}>
-                {user?.email || 'thejobsyncit@gmail.com'}
-              </span>
-            </div>
-
-            {/* HIGH-CONTRAST, 100% VISIBLE EXECUTIVE LOGOUT BUTTON */}
+            {/* Row 2: 100% VISIBLE, HIGH-CONTRAST VIBRANT RED LOGOUT BUTTON */}
             <button
               type="button"
               onClick={() => {
                 if (window.innerWidth < 1024) setCollapsed(true);
                 logout();
               }}
-              className="w-full flex items-center justify-center space-x-2 px-3 py-2.5 rounded-xl font-bold text-xs tracking-wide text-white bg-gradient-to-r from-red-600 via-rose-600 to-red-600 hover:from-red-500 hover:to-rose-500 border border-rose-400/40 shadow-md shadow-rose-950/40 hover:shadow-rose-600/30 transition-all duration-200 cursor-pointer group active:scale-[0.99]"
+              className="w-full flex items-center justify-center space-x-2 py-2 px-3 rounded-lg font-bold text-xs tracking-wide text-white bg-gradient-to-r from-red-600 via-rose-600 to-red-600 hover:from-red-500 hover:to-rose-500 border border-rose-400/40 shadow-sm shadow-rose-950/40 hover:shadow-rose-600/30 transition-all duration-200 cursor-pointer group active:scale-[0.99]"
               title="Logout / Sign Out of Portal"
             >
-              <LogOut className="w-4 h-4 text-white shrink-0 group-hover:-translate-x-1 transition-transform duration-200" />
+              <LogOut className="w-3.5 h-3.5 text-white shrink-0 group-hover:-translate-x-1 transition-transform duration-200" />
               <span>Logout / Sign Out</span>
             </button>
 
           </div>
         ) : (
           /* Collapsed View (Narrow Sidebar) */
-          <div className="flex flex-col items-center space-y-2.5 py-1">
+          <div className="flex flex-col items-center space-y-2 py-1">
             <div className="relative">
               <img 
                 src={user?.avatar || 'https://images.unsplash.com/photo-1573496359142-b8d87734a5a2?w=150&auto=format&fit=crop&q=80'} 
                 alt={formatUserName(user?.name)} 
-                className="w-9 h-9 rounded-full border-2 border-gold-500 object-cover shadow-sm ring-1 ring-gold-500/40" 
+                className="w-8 h-8 rounded-full border-2 border-gold-500 object-cover shadow-sm ring-1 ring-gold-500/40" 
                 title={formatUserName(user?.name) + ' (' + getEmpId(user?.id) + ' - ' + (currentRole || 'Super Admin') + ')'} 
               />
-              <span className="absolute bottom-0 right-0 w-2.5 h-2.5 bg-emerald-500 border border-white dark:border-navy-900 rounded-full" />
+              <span className="absolute bottom-0 right-0 w-2 h-2 bg-emerald-500 border border-white dark:border-navy-900 rounded-full" />
             </div>
             <button
               type="button"
               onClick={logout}
-              className="w-9 h-9 rounded-xl flex items-center justify-center text-white bg-gradient-to-r from-red-600 to-rose-600 hover:from-red-500 hover:to-rose-500 shadow-md transition-all duration-200 cursor-pointer group hover:scale-105"
+              className="w-8 h-8 rounded-lg flex items-center justify-center text-white bg-gradient-to-r from-red-600 to-rose-600 hover:from-red-500 hover:to-rose-500 shadow-md transition-all duration-200 cursor-pointer group hover:scale-105"
               title={'Logout / Sign Out (' + formatUserName(user?.name) + ')'}
             >
-              <LogOut className="w-4 h-4 text-white group-hover:-translate-x-0.5 transition-transform" />
+              <LogOut className="w-3.5 h-3.5 text-white group-hover:-translate-x-0.5 transition-transform" />
             </button>
           </div>
         )}
