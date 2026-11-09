@@ -7,7 +7,7 @@ import { CRM_ROLES } from '../data/mockCrmData';
 
 export const CrmHeader = ({ collapsed, setCollapsed }) => {
   const { 
-    currentRole, switchRole, 
+    user, currentRole, switchRole, 
     darkMode, toggleDarkMode,
     setCommandPaletteOpen, 
     setAiDrawerOpen, 
