@@ -545,6 +545,7 @@ export const CrmSuperAdmin = () => {
     const matchesService = 
       leadServiceFilter === 'all' || 
       (leadServiceFilter === 'intl-consult' && (lead.serviceId === 'intl-consult' || (lead.serviceTitle || '').toLowerCase().includes('consulting'))) ||
+      ((leadServiceFilter === 'school-academy' || leadServiceFilter === 'student-academy') && (lead.serviceId === 'school-academy' || lead.serviceId === 'student-academy' || (lead.serviceTitle || '').toLowerCase().includes('academy') || (lead.company || '').toLowerCase().includes('academy') || (lead.referenceNumber || '').startsWith('REV-ACA'))) ||
       lead.serviceId === leadServiceFilter ||
       (lead.serviceTitle || '').toLowerCase().includes(leadServiceFilter.toLowerCase());
 
@@ -836,7 +837,7 @@ export const CrmSuperAdmin = () => {
             { 
               id: 'inquiries', 
               label: `Inquiries & Leads (${leads.length})`,
-              badge: leads.filter(l => l.status === 'New').length
+              badge: leads.filter(l => l.status === 'New' || l.status === 'New Enquiry').length
             },
             { id: 'employees', label: `Employees (${employees.length})` },
             { id: 'attendance', label: 'Attendance' },
@@ -897,9 +898,9 @@ export const CrmSuperAdmin = () => {
               </div>
               <p className="font-serif text-3xl font-bold text-slate-900 dark:text-white flex items-center gap-2">
                 {leads.length}
-                {leads.filter(l => l.status === 'New').length > 0 && (
+                {leads.filter(l => l.status === 'New' || l.status === 'New Enquiry').length > 0 && (
                   <span className="text-[10px] font-sans px-2 py-0.5 rounded-full bg-emerald-100 text-emerald-800 dark:bg-emerald-500/20 dark:text-emerald-400 font-extrabold animate-pulse">
-                    {leads.filter(l => l.status === 'New').length} New
+                    {leads.filter(l => l.status === 'New' || l.status === 'New Enquiry').length} New
                   </span>
                 )}
               </p>

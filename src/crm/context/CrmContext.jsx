@@ -138,18 +138,49 @@ export const CrmProvider = ({ children }) => {
       const res = await fetch(url);
       const data = await res.json();
       const localLeads = getLocalFallbackLeads();
+
+      // Read local Student Academy enquiries as well to guarantee 100% visibility
+      let localAcademyLeads = [];
+      try {
+        const rawAcademy = localStorage.getItem('revival_academy_enquiries');
+        if (rawAcademy) {
+          const parsedAcademy = JSON.parse(rawAcademy);
+          if (Array.isArray(parsedAcademy)) {
+            localAcademyLeads = parsedAcademy.map((enq, idx) => ({
+              id: enq.id || `LEAD-ACA-${enq.referenceNumber || idx}`,
+              referenceNumber: enq.referenceNumber || `REV-ACA-2026-${idx}`,
+              name: enq.studentName || enq.name || 'Student Applicant',
+              email: enq.email || enq.studentEmail,
+              phone: enq.phone || enq.studentPhone,
+              company: 'Student Academy',
+              serviceId: 'school-academy',
+              serviceTitle: 'Student Academy',
+              assistanceType: enq.examName || enq.courseName || 'Student Academy Coaching',
+              degreeLevel: enq.qualification || 'Student',
+              countryInterest: enq.targetCountry || enq.preferredLocation || 'Global',
+              status: enq.status || 'New',
+              priority: 'Medium',
+              message: enq.questions || enq.message || `Exam Enquiry: ${enq.examName || 'Competitive Exam'}`,
+              createdAt: enq.createdAt || new Date().toISOString()
+            }));
+          }
+        }
+      } catch (_) {}
+
+      const combinedLocal = [...localLeads, ...localAcademyLeads];
+
       if (data && data.success && Array.isArray(data.data)) {
         const serverIds = new Set(data.data.map(l => l.id));
         const serverRefs = new Set(data.data.map(l => l.referenceNumber).filter(Boolean));
-        const extraLocal = localLeads.filter(l => !serverIds.has(l.id) && (!l.referenceNumber || !serverRefs.has(l.referenceNumber)));
+        const extraLocal = combinedLocal.filter(l => !serverIds.has(l.id) && (!l.referenceNumber || !serverRefs.has(l.referenceNumber)));
         setLeads([...extraLocal, ...data.data]);
-      } else if (localLeads.length > 0) {
-        setLeads(localLeads);
+      } else if (combinedLocal.length > 0) {
+        setLeads(combinedLocal);
       }
     } catch (err) {
       console.error('Failed to load leads from backend:', err);
       const localLeads = getLocalFallbackLeads();
-      if (localLeads.length > 0) setLeads(localLeads);
+      setLeads(localLeads);
     } finally {
       setLoadingLeads(false);
     }
@@ -257,6 +288,14 @@ export const CrmProvider = ({ children }) => {
     fetchConsultingMetrics();
     fetchLeadMetrics();
     fetchFollowUpsSummary();
+
+    const handleLeadSubmitted = () => {
+      fetchLeads();
+      fetchConsultingMetrics();
+      fetchLeadMetrics();
+    };
+    window.addEventListener('lead-submitted', handleLeadSubmitted);
+
     // Periodically sync new inquiries, follow-ups, and metrics every 15 seconds
     const interval = setInterval(() => {
       fetchCandidates();
@@ -266,7 +305,10 @@ export const CrmProvider = ({ children }) => {
       fetchLeadMetrics();
       fetchFollowUpsSummary();
     }, 15000);
-    return () => clearInterval(interval);
+    return () => {
+      clearInterval(interval);
+      window.removeEventListener('lead-submitted', handleLeadSubmitted);
+    };
   }, []);
 
   useEffect(() => {

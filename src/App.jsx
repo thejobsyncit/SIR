@@ -25,6 +25,7 @@ import { InternationalConsultingPage } from './pages/InternationalConsultingPage
 import { InternationalAdmissionsPage } from './pages/InternationalAdmissionsPage';
 import { CollegeAdmissionsPage } from './pages/CollegeAdmissionsPage';
 import { SeminarsAndLanguagePage } from './pages/SeminarsAndLanguagePage';
+import { SocialMediaPage } from './pages/SocialMediaPage';
 import { getEducationServiceById, getEducationServiceBySlug } from './data/educationServicesData';
 import { NotFound } from './pages/NotFound';
 import { UnifiedAuthModal } from './components/UnifiedAuthModal';
@@ -202,6 +203,21 @@ export function App() {
         return <BackgroundVerificationPage />;
       case 'contact':
         return <ContactUsPage />;
+      case 'social':
+      case 'social-media':
+        return <SocialMediaPage initialChannel="linkedin" />;
+      case 'social-linkedin':
+      case 'linkedin':
+        return <SocialMediaPage initialChannel="linkedin" />;
+      case 'social-instagram':
+      case 'instagram':
+        return <SocialMediaPage initialChannel="instagram" />;
+      case 'social-twitter':
+      case 'twitter':
+        return <SocialMediaPage initialChannel="twitter" />;
+      case 'social-facebook':
+      case 'facebook':
+        return <SocialMediaPage initialChannel="facebook" />;
       case 'home':
       case '':
       case undefined:
@@ -216,7 +232,7 @@ export function App() {
     <div className="min-h-screen flex flex-col justify-between selection:bg-gold-500 selection:text-white">
       <Navbar />
       
-      <main className="flex-grow">
+      <main className="flex-grow pb-16 sm:pb-24">
         {renderCurrentPage()}
       </main>
 

@@ -48,8 +48,26 @@ export const CandidateAuth = () => {
       setError('Please fill in all required fields.');
       return;
     }
-    const emailRegex = /^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+.[a-zA-Z]{2,}$/;
-    if (!emailRegex.test(regData.email.trim())) {
+    const cleanFullName = regData.fullName.trim();
+    if (cleanFullName.length < 2) {
+      setError('Please provide your full name (minimum 2 characters).');
+      return;
+    }
+    if (cleanFullName.length > 50) {
+      setError('Full Name cannot exceed 50 characters.');
+      return;
+    }
+    if (!/^[a-zA-Z\s\.\'-]+$/.test(cleanFullName)) {
+      setError('Full Name must contain alphabetic characters only.');
+      return;
+    }
+    const cleanEmail = regData.email.trim().toLowerCase();
+    if (cleanEmail.length > 80) {
+      setError('Email address cannot exceed 80 characters.');
+      return;
+    }
+    const emailRegex = /^[a-zA-Z0-9]+([._%+-][a-zA-Z0-9]+)*@[a-zA-Z0-9]+([.-][a-zA-Z0-9]+)*\.[a-zA-Z]{2,10}$/;
+    if (!emailRegex.test(cleanEmail) || cleanEmail.includes('..')) {
       setError('Please provide a valid email address (e.g. name@gmail.com).');
       return;
     }
@@ -245,25 +263,31 @@ export const CandidateAuth = () => {
             <form onSubmit={handleRegisterSubmit} className="space-y-3 text-xs">
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                 <div className="space-y-1">
-                  <label className="text-slate-700 dark:text-slate-300 font-semibold">Full Name *</label>
+                  <label className="text-slate-700 dark:text-slate-300 font-semibold">
+                    Full Name * <span className="text-[10px] text-slate-400 font-normal">(max 50 chars)</span>
+                  </label>
                   <input
                     type="text"
                     required
+                    maxLength={50}
                     placeholder="e.g. John Doe (Letters only)"
                     value={regData.fullName}
-                    onChange={(e) => setRegData({ ...regData, fullName: e.target.value.replace(/[^a-zA-Z\s\.\'-]/g, '') })}
+                    onChange={(e) => setRegData({ ...regData, fullName: e.target.value.replace(/[^a-zA-Z\s\.\'-]/g, '').slice(0, 50) })}
                     className="w-full bg-white dark:bg-navy-950 border border-slate-300 dark:border-navy-700 rounded-xl px-3 py-2 text-slate-900 dark:text-white placeholder-slate-400 dark:placeholder-slate-500 focus:outline-none focus:border-gold-500"
                   />
                 </div>
 
                 <div className="space-y-1">
-                  <label className="text-slate-700 dark:text-slate-300 font-semibold">Email Address *</label>
+                  <label className="text-slate-700 dark:text-slate-300 font-semibold">
+                    Email Address * <span className="text-[10px] text-slate-400 font-normal">(max 80 chars)</span>
+                  </label>
                   <input
                     type="email"
                     required
+                    maxLength={80}
                     placeholder="john@example.com"
                     value={regData.email}
-                    onChange={(e) => setRegData({ ...regData, email: e.target.value })}
+                    onChange={(e) => setRegData({ ...regData, email: e.target.value.slice(0, 80) })}
                     className="w-full bg-white dark:bg-navy-950 border border-slate-300 dark:border-navy-700 rounded-xl px-3 py-2 text-slate-900 dark:text-white placeholder-slate-400 dark:placeholder-slate-500 focus:outline-none focus:border-gold-500"
                   />
                 </div>

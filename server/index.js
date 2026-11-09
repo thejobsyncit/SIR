@@ -4554,7 +4554,7 @@ app.post('/api/student-academy/enquiries', async (req, res) => {
         'school-academy',
         'Student Academy',
         refNum,
-        'New Enquiry',
+        'New',
         finalExam,
         finalQual,
         finalStudyLoc,
@@ -4567,10 +4567,33 @@ app.post('/api/student-academy/enquiries', async (req, res) => {
       ]
     );
 
+    const createdLeadRecord = {
+      id: leadId,
+      name: trimmedName,
+      email: trimmedEmail.toLowerCase(),
+      company: 'Student Academy',
+      phone: rawPhone,
+      message: `Exam Enquiry: ${finalExam}. Qualification: ${finalQual}. Preferred Coaching Mode: ${finalLearningMode}. Target Country: ${finalStudyLoc}. Message: ${finalQuestions ? finalQuestions.trim() : 'None'}`,
+      serviceId: 'school-academy',
+      serviceTitle: 'Student Academy',
+      referenceNumber: refNum,
+      status: 'New',
+      assistanceType: finalExam,
+      degreeLevel: finalQual,
+      workLocation: finalStudyLoc,
+      organizationName: finalExam,
+      assignedEmployee: advisor,
+      priority: 'Medium',
+      consultationMode: finalLearningMode,
+      countryInterest: finalStudyLoc,
+      createdAt: new Date().toISOString()
+    };
+
     res.json({
       success: true,
       referenceNumber: refNum,
-      message: 'Student Academy enquiry registered successfully.'
+      message: 'Student Academy enquiry registered successfully.',
+      data: createdLeadRecord
     });
   } catch (err) {
     console.error('Error in student academy enquiry submission:', err);

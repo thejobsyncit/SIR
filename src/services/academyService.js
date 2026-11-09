@@ -5,6 +5,7 @@
 
 import { supabase } from '../supabase';
 import { trackCtaClick } from './analytics';
+import { saveLocalFallbackLead } from './leadSubmissionService';
 
 const API_BASE_URL = import.meta.env.VITE_API_URL || '';
 
@@ -107,11 +108,35 @@ export const submitAcademyCourseEnquiry = async (enquiryData) => {
     console.warn('Local API dual-sync notice:', apiErr.message);
   }
 
-  // Fallback: If backend is running purely client-side without internet, store in localStorage
+  // Fallback & CRM Synchronization: Store in both academy enquiries and unified CRM leads
   try {
     const existing = JSON.parse(localStorage.getItem('revival_academy_enquiries') || '[]');
     existing.unshift(payload);
     localStorage.setItem('revival_academy_enquiries', JSON.stringify(existing.slice(0, 50)));
+
+    // Mirror to unified leads storage so Super Admin panel displays it immediately
+    const leadRecord = {
+      id: `LEAD-${Date.now()}-${Math.floor(100 + Math.random() * 900)}`,
+      referenceNumber,
+      name: payload.studentName,
+      email: payload.email,
+      phone: payload.phone,
+      company: 'Student Academy',
+      serviceId: 'school-academy',
+      serviceTitle: 'Student Academy',
+      assistanceType: payload.courseName || payload.examName || 'Student Academy Coaching',
+      degreeLevel: payload.qualification || 'Student',
+      countryInterest: payload.targetCountry || payload.preferredLocation || 'Global',
+      preferredDestination: payload.targetCountry || payload.preferredLocation || 'Global',
+      status: 'New',
+      priority: 'Medium',
+      message: payload.questions || payload.message || `Course Enquiry: ${payload.courseName}`,
+      createdAt: payload.createdAt || new Date().toISOString()
+    };
+    saveLocalFallbackLead(leadRecord);
+    if (typeof window !== 'undefined') {
+      window.dispatchEvent(new CustomEvent('lead-submitted', { detail: leadRecord }));
+    }
   } catch (_) {}
 
   // Track analytics
@@ -198,11 +223,35 @@ export const submitExamEnquiry = async (enquiryData) => {
     console.warn('Local API dual-sync notice for exam enquiry:', apiErr.message);
   }
 
-  // 2. Fallback in localStorage
+  // 2. Fallback in localStorage & CRM synchronization
   try {
     const existing = JSON.parse(localStorage.getItem('revival_academy_enquiries') || '[]');
     existing.unshift(payload);
     localStorage.setItem('revival_academy_enquiries', JSON.stringify(existing.slice(0, 50)));
+
+    // Mirror to unified leads storage so Super Admin panel displays it immediately
+    const leadRecord = {
+      id: `LEAD-${Date.now()}-${Math.floor(100 + Math.random() * 900)}`,
+      referenceNumber: payload.referenceNumber,
+      name: payload.studentName,
+      email: payload.email,
+      phone: payload.phone,
+      company: 'Student Academy',
+      serviceId: 'school-academy',
+      serviceTitle: 'Student Academy',
+      assistanceType: payload.examName || payload.courseName || 'Competitive Exam Coaching',
+      degreeLevel: payload.qualification || 'Student',
+      countryInterest: payload.targetCountry || payload.preferredLocation || 'Global',
+      preferredDestination: payload.targetCountry || payload.preferredLocation || 'Global',
+      status: 'New',
+      priority: 'Medium',
+      message: payload.questions || payload.message || `Exam Enquiry: ${payload.examName}`,
+      createdAt: payload.createdAt || new Date().toISOString()
+    };
+    saveLocalFallbackLead(leadRecord);
+    if (typeof window !== 'undefined') {
+      window.dispatchEvent(new CustomEvent('lead-submitted', { detail: leadRecord }));
+    }
   } catch (_) {}
 
   // 3. Track analytics

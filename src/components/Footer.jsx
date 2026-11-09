@@ -216,7 +216,7 @@ const [isStudentAcademyActive, setIsStudentAcademyActive] = useState(() => {
   };
 
   return (
-    <footer className={`bg-white dark:bg-navy-950 text-slate-600 dark:text-slate-300 ${shouldHideNewsletter ? 'pt-12 sm:pt-14' : 'pt-16'} pb-8 border-t border-slate-200 dark:border-navy-800 relative overflow-hidden`}>
+    <footer className={`bg-white dark:bg-navy-950 text-slate-600 dark:text-slate-300 ${shouldHideNewsletter ? 'pt-12 sm:pt-14' : 'pt-16'} pb-36 sm:pb-44 lg:pb-48 border-t border-slate-200 dark:border-navy-800 relative overflow-hidden`}>
       {/* Glow Effect */}
       <div className="absolute top-0 left-1/4 w-96 h-96 bg-gold-500/5 rounded-full blur-3xl pointer-events-none"></div>
 
@@ -308,16 +308,40 @@ const [isStudentAcademyActive, setIsStudentAcademyActive] = useState(() => {
 
             {/* Social Icons */}
             <div className="flex space-x-3 pt-2">
-              <a href="#" className="w-8 h-8 rounded-lg bg-slate-50 dark:bg-navy-900 border border-slate-200 dark:border-navy-800 flex items-center justify-center text-slate-500 dark:text-slate-400 hover:text-gold-400 hover:border-gold-500 transition">
+              <a
+                href="#social-linkedin"
+                onClick={(e) => { e.preventDefault(); navigateTo('social-linkedin'); }}
+                title="The Revival International on LinkedIn"
+                aria-label="The Revival International on LinkedIn"
+                className="w-8 h-8 rounded-lg bg-slate-50 dark:bg-navy-900 border border-slate-200 dark:border-navy-800 flex items-center justify-center text-slate-500 dark:text-slate-400 hover:text-gold-400 hover:border-gold-500 transition cursor-pointer"
+              >
                 <Linkedin className="w-4 h-4" />
               </a>
-              <a href="#" className="w-8 h-8 rounded-lg bg-slate-50 dark:bg-navy-900 border border-slate-200 dark:border-navy-800 flex items-center justify-center text-slate-500 dark:text-slate-400 hover:text-gold-400 hover:border-gold-500 transition">
+              <a
+                href="#social-twitter"
+                onClick={(e) => { e.preventDefault(); navigateTo('social-twitter'); }}
+                title="The Revival International on Twitter (X)"
+                aria-label="The Revival International on Twitter (X)"
+                className="w-8 h-8 rounded-lg bg-slate-50 dark:bg-navy-900 border border-slate-200 dark:border-navy-800 flex items-center justify-center text-slate-500 dark:text-slate-400 hover:text-gold-400 hover:border-gold-500 transition cursor-pointer"
+              >
                 <Twitter className="w-4 h-4" />
               </a>
-              <a href="#" className="w-8 h-8 rounded-lg bg-slate-50 dark:bg-navy-900 border border-slate-200 dark:border-navy-800 flex items-center justify-center text-slate-500 dark:text-slate-400 hover:text-gold-400 hover:border-gold-500 transition">
+              <a
+                href="#social-facebook"
+                onClick={(e) => { e.preventDefault(); navigateTo('social-facebook'); }}
+                title="The Revival International on Facebook"
+                aria-label="The Revival International on Facebook"
+                className="w-8 h-8 rounded-lg bg-slate-50 dark:bg-navy-900 border border-slate-200 dark:border-navy-800 flex items-center justify-center text-slate-500 dark:text-slate-400 hover:text-gold-400 hover:border-gold-500 transition cursor-pointer"
+              >
                 <Facebook className="w-4 h-4" />
               </a>
-              <a href="#" className="w-8 h-8 rounded-lg bg-slate-50 dark:bg-navy-900 border border-slate-200 dark:border-navy-800 flex items-center justify-center text-slate-500 dark:text-slate-400 hover:text-gold-400 hover:border-gold-500 transition">
+              <a
+                href="#social-instagram"
+                onClick={(e) => { e.preventDefault(); navigateTo('social-instagram'); }}
+                title="The Revival International on Instagram"
+                aria-label="The Revival International on Instagram"
+                className="w-8 h-8 rounded-lg bg-slate-50 dark:bg-navy-900 border border-slate-200 dark:border-navy-800 flex items-center justify-center text-slate-500 dark:text-slate-400 hover:text-gold-400 hover:border-gold-500 transition cursor-pointer"
+              >
                 <Instagram className="w-4 h-4" />
               </a>
             </div>

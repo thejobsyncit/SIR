@@ -163,6 +163,7 @@ export const AIChatbotDrawer = () => {
   });
   const [bookingLoading, setBookingLoading] = useState(false);
   const [bookingSuccess, setBookingSuccess] = useState(null);
+  const [isFloatingCompact, setIsFloatingCompact] = useState(false);
 
   const messagesEndRef = useRef(null);
   const inputRef = useRef(null);
@@ -403,30 +404,47 @@ export const AIChatbotDrawer = () => {
     <>
       {/* Floating Trigger Button (Bottom Left) */}
       {!isOpen && (
-        <button
-          onClick={() => {
-            setIsOpen(true);
-            setIsMinimized(false);
-          }}
-          aria-label="Open Revival AI Advisor"
-          className="fixed bottom-[80px] sm:bottom-[86px] left-4 sm:left-6 z-40 bg-white dark:bg-[#0B1B33] text-[#0B1B33] dark:text-white p-3.5 rounded-full shadow-2xl border-2 border-[#C6A45C] hover:scale-105 active:scale-95 transition-all duration-300 flex items-center space-x-2.5 group cursor-pointer focus:outline-none focus:ring-2 focus:ring-[#C6A45C]"
-        >
-          <div className="relative">
-            <div className="w-7 h-7 rounded-full bg-white border border-[#C6A45C] flex items-center justify-center shadow-sm p-0.5 overflow-hidden">
-              <img src="/images/logo.png" alt="Revival" className="w-full h-full object-contain" />
+        <div className="fixed bottom-[80px] sm:bottom-[86px] left-4 sm:left-6 z-40 flex items-center group">
+          <button
+            onClick={() => {
+              setIsOpen(true);
+              setIsMinimized(false);
+            }}
+            aria-label="Open Revival AI Advisor"
+            className="bg-white/95 dark:bg-[#0B1B33]/95 backdrop-blur-md text-[#0B1B33] dark:text-white p-3 sm:p-3.5 rounded-full shadow-2xl border-2 border-[#C6A45C] hover:scale-105 active:scale-95 transition-all duration-300 flex items-center space-x-2.5 cursor-pointer focus:outline-none focus:ring-2 focus:ring-[#C6A45C]"
+          >
+            <div className="relative">
+              <div className="w-7 h-7 rounded-full bg-white border border-[#C6A45C] flex items-center justify-center shadow-sm p-0.5 overflow-hidden">
+                <img src="/images/logo.png" alt="Revival" className="w-full h-full object-contain" />
+              </div>
+              <span className="absolute -top-0.5 -right-0.5 w-2.5 h-2.5 bg-emerald-500 rounded-full ring-2 ring-white dark:ring-navy-900 animate-pulse" />
             </div>
-            <span className="absolute -top-0.5 -right-0.5 w-2.5 h-2.5 bg-emerald-500 rounded-full ring-2 ring-white dark:ring-navy-900 animate-pulse" />
-          </div>
-          <div className="hidden sm:flex flex-col text-left pr-1">
-            <span className="font-serif font-bold text-xs text-[#0B1B33] dark:text-white group-hover:text-amber-700 dark:group-hover:text-gold-400 transition-colors">
-              Revival AI Advisor
-            </span>
-            <span className="text-[10px] text-emerald-600 dark:text-emerald-400 font-semibold tracking-wide flex items-center gap-1">
-              <span className="w-1.5 h-1.5 bg-emerald-500 rounded-full"></span>
-              24/7 Online Support
-            </span>
-          </div>
-        </button>
+            {!isFloatingCompact && (
+              <div className="hidden sm:flex flex-col text-left pr-1">
+                <span className="font-serif font-bold text-xs text-[#0B1B33] dark:text-white group-hover:text-amber-700 dark:group-hover:text-gold-400 transition-colors">
+                  Revival AI Advisor
+                </span>
+                <span className="text-[10px] text-emerald-600 dark:text-emerald-400 font-semibold tracking-wide flex items-center gap-1">
+                  <span className="w-1.5 h-1.5 bg-emerald-500 rounded-full"></span>
+                  24/7 Online Support
+                </span>
+              </div>
+            )}
+          </button>
+
+          {/* Discreet minimize toggle to ensure underlying wording is never obstructed */}
+          <button
+            type="button"
+            onClick={(e) => {
+              e.stopPropagation();
+              setIsFloatingCompact(!isFloatingCompact);
+            }}
+            title={isFloatingCompact ? "Expand AI Advisor box" : "Minimize to circle icon to view text underneath"}
+            className="hidden sm:flex ml-1 w-5 h-5 rounded-full bg-slate-200/80 dark:bg-navy-800/80 hover:bg-slate-300 dark:hover:bg-navy-700 text-slate-600 dark:text-slate-300 items-center justify-center text-[10px] shadow-sm opacity-0 group-hover:opacity-100 transition-opacity"
+          >
+            {isFloatingCompact ? '+' : '–'}
+          </button>
+        </div>
       )}
 
       {/* Chat Drawer / Window */}

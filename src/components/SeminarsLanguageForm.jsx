@@ -53,19 +53,19 @@ export const SeminarsLanguageForm = ({
   }, [preselectedProgram]);
 
   const countryCodes = [
-    { code: '+971', label: 'UAE (+971)' },
-    { code: '+966', label: 'Saudi Arabia (+966)' },
-    { code: '+974', label: 'Qatar (+974)' },
-    { code: '+968', label: 'Oman (+968)' },
-    { code: '+965', label: 'Kuwait (+965)' },
-    { code: '+973', label: 'Bahrain (+973)' },
-    { code: '+44', label: 'UK (+44)' },
-    { code: '+1', label: 'USA / Canada (+1)' },
-    { code: '+91', label: 'India (+91)' },
-    { code: '+61', label: 'Australia (+61)' },
-    { code: '+49', label: 'Germany (+49)' },
-    { code: '+65', label: 'Singapore (+65)' },
-    { code: '+60', label: 'Malaysia (+60)' }
+    { code: '+91', label: 'India (+91)', digits: 10, country: 'India' },
+    { code: '+971', label: 'UAE (+971)', digits: 9, country: 'UAE' },
+    { code: '+966', label: 'Saudi Arabia (+966)', digits: 9, country: 'Saudi Arabia' },
+    { code: '+974', label: 'Qatar (+974)', digits: 8, country: 'Qatar' },
+    { code: '+968', label: 'Oman (+968)', digits: 8, country: 'Oman' },
+    { code: '+965', label: 'Kuwait (+965)', digits: 8, country: 'Kuwait' },
+    { code: '+973', label: 'Bahrain (+973)', digits: 8, country: 'Bahrain' },
+    { code: '+44', label: 'UK (+44)', digits: 10, country: 'UK' },
+    { code: '+1', label: 'USA / Canada (+1)', digits: 10, country: 'USA / Canada' },
+    { code: '+61', label: 'Australia (+61)', digits: 9, country: 'Australia' },
+    { code: '+49', label: 'Germany (+49)', digits: 10, country: 'Germany' },
+    { code: '+65', label: 'Singapore (+65)', digits: 8, country: 'Singapore' },
+    { code: '+60', label: 'Malaysia (+60)', digits: 9, country: 'Malaysia' }
   ];
 
   const applicantTypeOptions = [
@@ -100,8 +100,28 @@ export const SeminarsLanguageForm = ({
 
   const handleChange = (e) => {
     const { name, value, type, checked } = e.target;
-    const val = type === 'checkbox' ? checked : value;
+    let val = type === 'checkbox' ? checked : value;
     
+    // Strict alphabetic enforcement for Full Name
+    if (name === 'name' && typeof val === 'string') {
+      val = val.replace(/[^a-zA-Z\s\.\'-]/g, '').slice(0, 50);
+    }
+
+    // Dynamic phone digit adjustment when country code changes
+    if (name === 'countryCode') {
+      const targetCfg = countryCodes.find(c => c.code === value);
+      const maxD = targetCfg ? targetCfg.digits : 10;
+      setFormData(prev => ({ 
+        ...prev, 
+        countryCode: value, 
+        phone: (prev.phone || '').slice(0, maxD) 
+      }));
+      if (formErrors.phone) {
+        setFormErrors(prev => ({ ...prev, phone: null }));
+      }
+      return;
+    }
+
     setFormData(prev => ({ ...prev, [name]: val }));
     
     if (formErrors[name]) {
@@ -114,7 +134,9 @@ export const SeminarsLanguageForm = ({
   };
 
   const handlePhoneChange = (e) => {
-    const digitsOnly = e.target.value.replace(/\D/g, '').slice(0, 15);
+    const activeCfg = countryCodes.find(c => c.code === formData.countryCode);
+    const maxDigits = activeCfg ? activeCfg.digits : 10;
+    const digitsOnly = e.target.value.replace(/\D/g, '').slice(0, maxDigits);
     setFormData(prev => ({ ...prev, phone: digitsOnly }));
     if (formErrors.phone) {
       setFormErrors(prev => ({ ...prev, phone: null }));
@@ -125,16 +147,31 @@ export const SeminarsLanguageForm = ({
     const errors = {};
 
     if (stepNumber === 1) {
-      if (!formData.name || formData.name.trim().length < 2) {
+      const trimmedName = (formData.name || '').trim();
+      if (!trimmedName || trimmedName.length < 2) {
         errors.name = 'Full name is required (minimum 2 characters).';
+      } else if (trimmedName.length > 50) {
+        errors.name = 'Full name cannot exceed 50 characters.';
+      } else if (!/^[a-zA-Z\s\.\'-]+$/.test(trimmedName)) {
+        errors.name = 'Full name must contain alphabetic characters only (letters and spaces).';
       }
-      const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-      if (!formData.email || !emailRegex.test(formData.email.trim())) {
-        errors.email = 'Please provide a valid email address.';
+
+      const cleanEmail = (formData.email || '').trim().toLowerCase();
+      const emailRegex = /^[a-zA-Z0-9]+([._%+-][a-zA-Z0-9]+)*@[a-zA-Z0-9]+([.-][a-zA-Z0-9]+)*\.[a-zA-Z]{2,10}$/;
+      if (!cleanEmail || !emailRegex.test(cleanEmail) || cleanEmail.includes('..') || cleanEmail.length > 80) {
+        errors.email = 'Please provide a valid email address format (e.g. name@domain.com).';
       }
-      if (!formData.phone || formData.phone.length < 7) {
-        errors.phone = 'Valid phone number is required (at least 7 digits).';
+
+      const activeCfg = countryCodes.find(c => c.code === formData.countryCode);
+      const expectedDigits = activeCfg ? activeCfg.digits : 10;
+      const countryLabel = activeCfg ? activeCfg.country : 'selected country';
+      const currentDigits = (formData.phone || '').replace(/\D/g, '');
+      if (!currentDigits) {
+        errors.phone = `Phone number is required for ${countryLabel} (${formData.countryCode}).`;
+      } else if (currentDigits.length !== expectedDigits) {
+        errors.phone = `Phone number for ${countryLabel} (${formData.countryCode}) must be exactly ${expectedDigits} digits (currently ${currentDigits.length}).`;
       }
+
       if (!formData.applicantType) {
         errors.applicantType = 'Please select your applicant type.';
       }
@@ -503,7 +540,7 @@ ${formData.additionalQuestions.trim() || 'No additional questions specified.'}`,
             {/* Full Name */}
             <div>
               <label htmlFor="name" className="block text-xs font-bold uppercase tracking-wider text-gray-700 mb-1.5">
-                Full Name <span className="text-red-500">*</span>
+                Full Name <span className="text-red-500">*</span> <span className="text-[10px] text-gray-500 font-normal lowercase">(letters only, max 50 chars)</span>
               </label>
               <div className="relative">
                 <User className="w-4 h-4 text-gray-400 absolute left-3.5 top-1/2 -translate-y-1/2 pointer-events-none" />
@@ -511,7 +548,8 @@ ${formData.additionalQuestions.trim() || 'No additional questions specified.'}`,
                   id="name"
                   type="text"
                   name="name"
-                  placeholder="e.g. Dr. Ayesha Siddiqua / David Miller"
+                  maxLength={50}
+                  placeholder="e.g. Dr. Ayesha Siddiqua / David Miller (letters only)"
                   value={formData.name}
                   onChange={handleChange}
                   className={`w-full pl-10 pr-4 py-2.5 text-sm rounded-xl border ${
@@ -526,7 +564,7 @@ ${formData.additionalQuestions.trim() || 'No additional questions specified.'}`,
             {/* Email Address */}
             <div>
               <label htmlFor="email" className="block text-xs font-bold uppercase tracking-wider text-gray-700 mb-1.5">
-                Email Address <span className="text-red-500">*</span>
+                Email Address <span className="text-red-500">*</span> <span className="text-[10px] text-gray-500 font-normal lowercase">(valid email format, max 80 chars)</span>
               </label>
               <div className="relative">
                 <Mail className="w-4 h-4 text-gray-400 absolute left-3.5 top-1/2 -translate-y-1/2 pointer-events-none" />
@@ -534,6 +572,7 @@ ${formData.additionalQuestions.trim() || 'No additional questions specified.'}`,
                   id="email"
                   type="email"
                   name="email"
+                  maxLength={80}
                   placeholder="name@example.com"
                   value={formData.email}
                   onChange={handleChange}
@@ -550,6 +589,9 @@ ${formData.additionalQuestions.trim() || 'No additional questions specified.'}`,
             <div>
               <label htmlFor="phone" className="block text-xs font-bold uppercase tracking-wider text-gray-700 mb-1.5">
                 Phone Number (with Country Code) <span className="text-red-500">*</span>
+                <span className="text-[10px] text-gray-500 font-normal lowercase ml-1">
+                  ({countryCodes.find(c => c.code === formData.countryCode)?.digits || 10} digits required for {countryCodes.find(c => c.code === formData.countryCode)?.label})
+                </span>
               </label>
               <div className="flex gap-2">
                 <div className="w-2/5 min-w-[120px]">
@@ -570,7 +612,8 @@ ${formData.additionalQuestions.trim() || 'No additional questions specified.'}`,
                     id="phone"
                     type="tel"
                     name="phone"
-                    placeholder="50 123 4567"
+                    maxLength={countryCodes.find(c => c.code === formData.countryCode)?.digits || 10}
+                    placeholder={`e.g. ${'9'.repeat(countryCodes.find(c => c.code === formData.countryCode)?.digits || 10)}`}
                     value={formData.phone}
                     onChange={handlePhoneChange}
                     className={`w-full pl-10 pr-4 py-2.5 text-sm rounded-xl border ${

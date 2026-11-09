@@ -90,10 +90,22 @@ export const UnifiedAuth = ({ defaultMode = 'login', defaultRole = 'candidate', 
     setError('');
   };
 
-  // Strict Email Validation Regex
+  // Strict Email Validation Regex (RFC 5322 standard, disallowing fake/incomplete addresses)
   const isValidEmail = (emailStr) => {
-    const re = /^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$/;
-    return re.test(String(emailStr).trim().toLowerCase());
+    if (!emailStr || typeof emailStr !== 'string') return false;
+    const clean = emailStr.trim().toLowerCase();
+    if (clean.length < 6 || clean.length > 80) return false;
+    if (clean.includes('..') || clean.includes('@@')) return false;
+    const emailRegex = /^[a-zA-Z0-9]+([._%+-][a-zA-Z0-9]+)*@[a-zA-Z0-9]+([.-][a-zA-Z0-9]+)*\.[a-zA-Z]{2,10}$/;
+    if (!emailRegex.test(clean)) return false;
+    const [localPart, domainPart] = clean.split('@');
+    if (!localPart || !domainPart || localPart.length > 64) return false;
+    const domainParts = domainPart.split('.');
+    if (domainParts.length < 2) return false;
+    if (domainParts.some(p => p.length === 0 || p.length > 63)) return false;
+    const disallowed = ['test.com', 'example.com', 'fake.com', 'temp.com', 'mailinator.com', 'demo.com', 'asdf.com', 'sample.com'];
+    if (disallowed.includes(domainPart)) return false;
+    return true;
   };
 
   // Decode JWT credential from Google Identity Services
@@ -462,21 +474,29 @@ export const UnifiedAuth = ({ defaultMode = 'login', defaultRole = 'candidate', 
     e.preventDefault();
     setError('');
 
-    // 1. Full Name check (Alphabetic characters only, min 2 chars)
+    // 1. Full Name check (Alphabetic characters only, min 2 chars, max 50 chars)
     const trimmedFullName = candidateReg.fullName.trim();
     if (!trimmedFullName || trimmedFullName.length < 2) {
       setError('Please provide your full name (minimum 2 characters).');
       return;
     }
-    if (!/^[a-zA-Z\s]+$/.test(trimmedFullName)) {
+    if (trimmedFullName.length > 50) {
+      setError('Full Name cannot exceed 50 characters.');
+      return;
+    }
+    if (!/^[a-zA-Z\s\.\'-]+$/.test(trimmedFullName)) {
       setError('Full Name must contain alphabetic characters only. Numbers and special characters are not allowed.');
       return;
     }
 
-    // 2. Strict Email check
+    // 2. Strict Email check (Valid format, max 80 chars)
     const cleanEmail = candidateReg.email.trim();
+    if (cleanEmail.length > 80) {
+      setError('Email address cannot exceed 80 characters.');
+      return;
+    }
     if (!cleanEmail || !isValidEmail(cleanEmail)) {
-      setError('Please provide a valid email address (e.g. yourname@gmail.com).');
+      setError('Please provide a valid, active email address format (e.g. yourname@domain.com).');
       return;
     }
 
@@ -716,13 +736,16 @@ export const UnifiedAuth = ({ defaultMode = 'login', defaultRole = 'candidate', 
         ) : (
           <form onSubmit={handleCandidateRegSubmit} className="space-y-4 text-xs">
             <div>
-              <label className="block text-slate-700 dark:text-slate-300 font-semibold mb-1">Full Name * (Letters only)</label>
+              <label className="block text-slate-700 dark:text-slate-300 font-semibold mb-1">
+                Full Name * <span className="text-[10px] text-slate-400 font-normal">(Letters only, max 50 chars)</span>
+              </label>
               <input
                 type="text"
                 required
+                maxLength={50}
                 value={candidateReg.fullName}
                 onChange={(e) => {
-                  const lettersOnly = e.target.value.replace(/[^a-zA-Z\s]/g, '');
+                  const lettersOnly = e.target.value.replace(/[^a-zA-Z\s\.\'-]/g, '').slice(0, 50);
                   setCandidateReg({ ...candidateReg, fullName: lettersOnly });
                 }}
                 placeholder="John Doe"
@@ -732,15 +755,18 @@ export const UnifiedAuth = ({ defaultMode = 'login', defaultRole = 'candidate', 
 
             {/* Gmail / Email Input */}
             <div>
-              <label className="block text-slate-700 dark:text-slate-300 font-semibold mb-1">Gmail / Email *</label>
+              <label className="block text-slate-700 dark:text-slate-300 font-semibold mb-1">
+                Email Address * <span className="text-[10px] text-slate-400 font-normal">(Valid format, max 80 chars)</span>
+              </label>
               <div className="relative">
                 <Mail className="w-4 h-4 text-slate-500 dark:text-slate-400 absolute left-3 top-3" />
                 <input
                   type="email"
                   required
+                  maxLength={80}
                   value={candidateReg.email}
-                  onChange={(e) => setCandidateReg({ ...candidateReg, email: e.target.value })}
-                  placeholder="john@gmail.com"
+                  onChange={(e) => setCandidateReg({ ...candidateReg, email: e.target.value.slice(0, 80) })}
+                  placeholder="john@example.com"
                   className="w-full pl-9 pr-3 py-2.5 bg-slate-50 dark:bg-navy-900 border border-slate-200 dark:border-navy-700 rounded-xl focus:outline-none focus:border-gold-500 text-slate-900 dark:text-white"
                 />
               </div>
