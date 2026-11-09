@@ -340,3 +340,4 @@ export const SocialMediaPage = ({ initialChannel = 'linkedin' }) => {
     </div>
   );
 };
+
