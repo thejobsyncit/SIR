@@ -409,7 +409,7 @@ export const AIChatbotDrawer = () => {
             setIsMinimized(false);
           }}
           aria-label="Open Revival AI Advisor"
-          className="fixed bottom-14 left-4 sm:left-6 z-40 bg-white dark:bg-[#0B1B33] text-[#0B1B33] dark:text-white p-3.5 rounded-full shadow-2xl border-2 border-[#C6A45C] hover:scale-105 active:scale-95 transition-all duration-300 flex items-center space-x-2.5 group cursor-pointer focus:outline-none focus:ring-2 focus:ring-[#C6A45C]"
+          className="fixed bottom-[80px] sm:bottom-[86px] left-4 sm:left-6 z-40 bg-white dark:bg-[#0B1B33] text-[#0B1B33] dark:text-white p-3.5 rounded-full shadow-2xl border-2 border-[#C6A45C] hover:scale-105 active:scale-95 transition-all duration-300 flex items-center space-x-2.5 group cursor-pointer focus:outline-none focus:ring-2 focus:ring-[#C6A45C]"
         >
           <div className="relative">
             <div className="w-7 h-7 rounded-full bg-white border border-[#C6A45C] flex items-center justify-center shadow-sm p-0.5 overflow-hidden">
@@ -433,8 +433,8 @@ export const AIChatbotDrawer = () => {
       {isOpen && (
         <div
           className={`fixed z-50 bg-white dark:bg-[#0B1B33] border border-slate-200 dark:border-[#C6A45C]/40 rounded-2xl shadow-2xl flex flex-col overflow-hidden transition-all duration-300 ease-out font-sans ${isMinimized
-              ? 'bottom-14 left-4 sm:left-6 w-80 h-14'
-              : 'bottom-14 left-4 right-4 sm:right-auto sm:left-6 w-auto sm:w-[420px] h-[580px] max-h-[85vh]'
+              ? 'bottom-[80px] sm:bottom-[86px] left-4 sm:left-6 w-80 h-14'
+              : 'bottom-[80px] sm:bottom-[86px] left-4 right-4 sm:right-auto sm:left-6 w-auto sm:w-[420px] h-[580px] max-h-[80vh]'
             }`}
           style={{ boxShadow: '0 20px 40px -15px rgba(11, 27, 51, 0.25)' }}
         >

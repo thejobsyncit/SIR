@@ -10,7 +10,7 @@ export const FloatingWhatsApp = () => {
       rel="noopener noreferrer"
       onClick={() => trackContactClick('whatsapp', 'India / Global Consultation Desk')}
       aria-label="Contact Revival International on WhatsApp"
-      className="fixed bottom-14 right-4 sm:right-6 z-40 bg-emerald-500 hover:bg-emerald-600 text-white p-3.5 rounded-full shadow-2xl hover:scale-105 active:scale-95 transition-all duration-300 flex items-center space-x-2 group cursor-pointer"
+      className="fixed bottom-[80px] sm:bottom-[86px] right-4 sm:right-6 z-40 bg-emerald-500 hover:bg-emerald-600 text-white p-3.5 rounded-full shadow-2xl hover:scale-105 active:scale-95 transition-all duration-300 flex items-center space-x-2 group cursor-pointer"
     >
       <div className="relative">
         <MessageSquare className="w-5 h-5 fill-current text-white" />

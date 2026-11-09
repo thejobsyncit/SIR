@@ -31,7 +31,7 @@ export const CookieConsent = () => {
     <div 
       role="region"
       aria-label="Cookie Preferences"
-      className="fixed bottom-32 right-4 sm:right-6 z-50 max-w-sm sm:max-w-md glass-card bg-white/95 dark:bg-navy-950/95 text-slate-900 dark:text-white border border-slate-200 dark:border-gold-500/40 rounded-2xl p-4 shadow-luxury animate-in fade-in slide-in-from-bottom-4 duration-300 text-xs"
+      className="fixed bottom-[150px] sm:bottom-[156px] right-4 sm:right-6 z-50 max-w-sm sm:max-w-md glass-card bg-white/95 dark:bg-navy-950/95 text-slate-900 dark:text-white border border-slate-200 dark:border-gold-500/40 rounded-2xl p-4 shadow-luxury animate-in fade-in slide-in-from-bottom-4 duration-300 text-xs"
     >
       <div className="flex items-start space-x-3">
         <div className="w-8 h-8 rounded-xl bg-gold-500/15 text-gold-500 flex items-center justify-center shrink-0 border border-gold-500/30">
