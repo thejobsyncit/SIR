@@ -57,7 +57,7 @@ export const UnifiedAuth = ({ defaultMode = 'login', defaultRole = 'candidate', 
 
   // Google OAuth 2.0 & Google Identity Services (GIS) State
   const [googleClientId, setGoogleClientId] = useState(() => {
-    return import.meta.env.VITE_GOOGLE_CLIENT_ID || localStorage.getItem('sir_google_client_id') || '';
+    return import.meta.env.VITE_GOOGLE_CLIENT_ID || localStorage.getItem('sir_google_client_id') || '667233488295-vi442pug1eqttt418c8sbfnksbf3qc20.apps.googleusercontent.com';
   });
   const [googleLoading, setGoogleLoading] = useState(false);
   const [googleError, setGoogleError] = useState('');
@@ -148,19 +148,20 @@ export const UnifiedAuth = ({ defaultMode = 'login', defaultRole = 'candidate', 
     });
   };
 
-  // Sync Google Client ID from backend /api/config/auth if not present
+  // Sync Google Client ID from backend /api/config/auth
   useEffect(() => {
-    if (!googleClientId) {
-      fetch('/api/config/auth')
-        .then((res) => res.json())
-        .then((data) => {
-          if (data?.googleClientId && isValidGoogleClientId(data.googleClientId)) {
-            setGoogleClientId(data.googleClientId);
-          }
-        })
-        .catch(() => {});
-    }
-  }, [googleClientId]);
+    fetch('/api/config/auth')
+      .then((res) => res.json())
+      .then((data) => {
+        if (data?.googleClientId && isValidGoogleClientId(data.googleClientId)) {
+          setGoogleClientId(data.googleClientId);
+          try {
+            localStorage.setItem('sir_google_client_id', data.googleClientId);
+          } catch {}
+        }
+      })
+      .catch(() => {});
+  }, []);
 
   // Google Credential Response Callback (Official Google GIS One-Tap)
   const handleGoogleCredentialResponse = async (response) => {
