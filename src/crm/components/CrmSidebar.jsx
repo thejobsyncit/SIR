@@ -428,6 +428,26 @@ export const CrmSidebar = ({ collapsed, setCollapsed }) => {
             </button>
           );
         })}
+
+        {/* Dedicated In-Menu Logout Button (Directly below Admin Settings) */}
+        <div className="pt-2 mt-2 border-t border-slate-200 dark:border-slate-800/80">
+          <button
+            type="button"
+            onClick={() => {
+              if (window.innerWidth < 1024) setCollapsed(true);
+              logout();
+            }}
+            className="w-full flex items-center space-x-3 px-3 py-2.5 rounded-xl transition duration-200 text-rose-600 dark:text-rose-400 hover:bg-rose-50 dark:hover:bg-rose-950/40 hover:text-rose-700 dark:hover:text-rose-300 font-bold border border-rose-200/60 dark:border-rose-900/40 hover:border-rose-400 dark:hover:border-rose-700/60 group cursor-pointer shadow-xs"
+            title="Logout / Sign Out"
+          >
+            <LogOut className="w-4 h-4 shrink-0 text-rose-500 group-hover:scale-110 transition-transform" />
+            {!collapsed && (
+              <span className="truncate flex-1 text-left font-bold tracking-wide">
+                Logout / Sign Out
+              </span>
+            )}
+          </button>
+        </div>
       </div>
 
       {/* User Profile & Logout */}
@@ -438,19 +458,30 @@ export const CrmSidebar = ({ collapsed, setCollapsed }) => {
               <img 
                 src={user?.avatar || 'https://images.unsplash.com/photo-1573496359142-b8d87734a5a2?w=150&auto=format&fit=crop&q=80'} 
                 alt="User Avatar" 
-                className="w-8 h-8 rounded-full border border-gold-500 object-cover" 
+                className="w-8 h-8 rounded-full border border-gold-500 object-cover shrink-0" 
               />
               <div className="truncate">
                 <p className="font-bold text-slate-900 dark:text-white truncate">{user?.name || 'Super Admin'}</p>
                 <p className="text-[10px] text-gold-600 dark:text-gold-400 font-semibold truncate">{currentRole || 'Super Admin'}</p>
               </div>
             </div>
-            <button onClick={logout} className="p-1.5 rounded-lg text-slate-400 hover:text-rose-500 hover:bg-slate-200 dark:hover:bg-navy-800 transition cursor-pointer" title="Logout">
-              <LogOut className="w-4 h-4" />
+            <button 
+              type="button"
+              onClick={logout} 
+              className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg text-rose-600 dark:text-rose-400 bg-rose-50/70 dark:bg-rose-950/40 hover:bg-rose-100 dark:hover:bg-rose-900/60 border border-rose-200 dark:border-rose-900/50 hover:border-rose-300 transition cursor-pointer font-bold text-xs shrink-0" 
+              title="Logout"
+            >
+              <LogOut className="w-3.5 h-3.5" />
+              <span>Logout</span>
             </button>
           </div>
         ) : (
-          <button onClick={logout} className="w-full flex justify-center p-2 text-slate-400 hover:text-rose-500 cursor-pointer">
+          <button 
+            type="button"
+            onClick={logout} 
+            className="w-full flex justify-center p-2 text-rose-500 hover:bg-rose-50 dark:hover:bg-rose-950/40 rounded-lg cursor-pointer transition" 
+            title="Logout"
+          >
             <LogOut className="w-5 h-5" />
           </button>
         )}
