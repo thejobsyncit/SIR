@@ -267,6 +267,7 @@ const CrmAppContent = () => {
       case 'hr-documents':
       case 'hr-grievances':
       case 'hr-approvals':
+      case 'hr-tasks':
       case 'hr-reports':
         return <CrmHrLeadDashboard initialSection={activeModule} />;
 

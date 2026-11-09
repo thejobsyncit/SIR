@@ -110,6 +110,7 @@ export const CrmSidebar = ({ collapsed, setCollapsed }) => {
   // Main CRM Sidebar Navigation Items (Standalone Career Guidance and Student Academy moved inside Consulting & Bookings)
   const menuItems = [
     { id: 'dashboard', label: 'Dashboard', icon: LayoutDashboard },
+    { id: 'hr-tasks', label: 'HR Task Assignment', icon: CheckSquare, tag: 'Task' },
     { id: 'consulting', label: 'Consulting & Bookings', icon: CalendarCheck },
     { id: 'candidates', label: 'Candidates', icon: Users },
     { id: 'pipeline', label: 'Recruitment Pipeline', icon: GitMerge },
@@ -184,6 +185,7 @@ export const CrmSidebar = ({ collapsed, setCollapsed }) => {
   // 13 HR Lead Dashboard features as defined in the HR Lead Feature Plan
   const hrLeadMenuItems = [
     { id: 'hr-overview', label: 'Dashboard overview', icon: LayoutDashboard, tag: '1' },
+    { id: 'hr-tasks', label: 'HR Task Assignment', icon: CheckSquare, tag: 'Flowchart' },
     { id: 'hr-attendance', label: 'Attendance management', icon: Clock, tag: '2' },
     { id: 'hr-leave', label: 'Leave management', icon: Calendar, tag: '3' },
     { id: 'hr-employees', label: 'Employee management', icon: Users, tag: '4' },
@@ -247,7 +249,7 @@ export const CrmSidebar = ({ collapsed, setCollapsed }) => {
         />
       )}
 
-      <aside className={`bg-white dark:bg-[#070c1e] border-r border-slate-200 dark:border-slate-800/80 text-slate-700 dark:text-slate-300 flex flex-col h-full max-h-screen max-h-[100dvh] transition-all duration-300 z-50 fixed inset-y-0 left-0 lg:static lg:h-full lg:max-h-full min-h-0 overflow-hidden shrink-0 transform ${collapsed ? '-translate-x-full lg:translate-x-0 lg:w-20' : 'translate-x-0 w-72'}`}>
+      <aside className={`bg-white dark:bg-[#070c1e] border-r border-slate-200 dark:border-slate-800/80 text-slate-700 dark:text-slate-300 flex flex-col h-full min-h-0 overflow-hidden shrink-0 z-50 fixed inset-y-0 left-0 lg:static lg:h-full lg:max-h-full transition-all duration-300 transform ${collapsed ? '-translate-x-full lg:translate-x-0 lg:w-20' : 'translate-x-0 w-72'}`}>
       
       {/* Top Brand Logo */}
       <div className="p-4 border-b border-slate-200 dark:border-navy-800 flex items-center justify-between shrink-0">
@@ -451,26 +453,24 @@ export const CrmSidebar = ({ collapsed, setCollapsed }) => {
         })}
       </div>
 
-      {/* PINNED BOTTOM USER PROFILE & LOGOUT FOOTER (Ultra-Compact, 100% Guaranteed Visible on All Screens) */}
+      {/* PINNED BOTTOM USER PROFILE & LOGOUT FOOTER (Ultra-Compact Single Row, 100% Guaranteed Visible on All Screens) */}
       <div className="shrink-0 border-t border-slate-200 dark:border-slate-800/90 bg-white/95 dark:bg-[#070c1e]/95 p-2 z-20 shadow-md">
         {!collapsed ? (
-          <div className="rounded-xl p-2 bg-slate-50 dark:bg-gradient-to-b dark:from-[#0d1636] dark:to-[#080d24] border border-slate-200/90 dark:border-gold-500/25 shadow-sm space-y-2">
+          <div className="rounded-xl p-2 bg-slate-50 dark:bg-[#0a1128] border border-slate-200 dark:border-gold-500/30 shadow-xs flex items-center justify-between gap-2">
             
-            {/* Row 1: Avatar + Name + Emp ID Badge + Role & Email */}
-            <div className="flex items-center space-x-2.5">
-              {/* Avatar with Status */}
+            {/* Left: Avatar + Name + Emp ID + Role */}
+            <div className="flex items-center space-x-2 min-w-0 flex-1">
               <div className="relative shrink-0">
                 <img 
                   src={user?.avatar || 'https://images.unsplash.com/photo-1573496359142-b8d87734a5a2?w=150&auto=format&fit=crop&q=80'} 
                   alt={formatUserName(user?.name)} 
                   className="w-8 h-8 rounded-full border-2 border-gold-500 object-cover shadow-xs ring-1 ring-gold-500/40" 
                 />
-                <span className="absolute bottom-0 right-0 w-2 h-2 bg-emerald-500 border border-white dark:border-[#070c1e] rounded-full shadow-xs" title="Online" />
+                <span className="absolute bottom-0 right-0 w-2 h-2 bg-emerald-500 border border-white dark:border-[#070c1e] rounded-full shadow-xs" title="Online & Active" />
               </div>
               
-              {/* Name & Emp ID */}
-              <div className="flex-1 min-w-0">
-                <div className="flex items-center justify-between gap-1">
+              <div className="min-w-0 flex-1">
+                <div className="flex items-center gap-1">
                   <h4 className="font-bold text-slate-900 dark:text-white text-xs truncate leading-tight" title={formatUserName(user?.name)}>
                     {formatUserName(user?.name)}
                   </h4>
@@ -479,31 +479,25 @@ export const CrmSidebar = ({ collapsed, setCollapsed }) => {
                   </span>
                 </div>
                 
-                {/* Role & Email Inline */}
-                <div className="flex items-center justify-between text-[10px] mt-0.5 text-slate-500 dark:text-slate-400">
-                  <span className="font-semibold text-amber-700 dark:text-gold-400 flex items-center gap-1 truncate">
-                    <ShieldCheck className="w-2.5 h-2.5 text-gold-500 shrink-0" />
-                    <span className="truncate">{currentRole || user?.role || 'Super Admin'}</span>
-                  </span>
-                  <span className="text-[9px] text-slate-400 dark:text-slate-400 truncate max-w-[110px]" title={user?.email || 'thejobsyncit@gmail.com'}>
-                    {user?.email || 'thejobsyncit@gmail.com'}
-                  </span>
+                <div className="flex items-center space-x-1 text-[10px] text-amber-700 dark:text-gold-400 font-semibold truncate mt-0.5">
+                  <ShieldCheck className="w-2.5 h-2.5 text-gold-500 shrink-0" />
+                  <span className="truncate">{currentRole || user?.role || 'Super Admin'}</span>
                 </div>
               </div>
             </div>
 
-            {/* Row 2: 100% VISIBLE, HIGH-CONTRAST VIBRANT RED LOGOUT BUTTON */}
+            {/* Right: SOLID VIBRANT RED LOGOUT BUTTON (Placed on the exact same visible row!) */}
             <button
               type="button"
               onClick={() => {
                 if (window.innerWidth < 1024) setCollapsed(true);
                 logout();
               }}
-              className="w-full flex items-center justify-center space-x-2 py-2 px-3 rounded-lg font-bold text-xs tracking-wide text-white bg-gradient-to-r from-red-600 via-rose-600 to-red-600 hover:from-red-500 hover:to-rose-500 border border-rose-400/40 shadow-sm shadow-rose-950/40 hover:shadow-rose-600/30 transition-all duration-200 cursor-pointer group active:scale-[0.99]"
-              title="Logout / Sign Out of Portal"
+              className="shrink-0 flex items-center space-x-1 px-2.5 py-1.5 rounded-lg font-bold text-xs text-white bg-gradient-to-r from-red-600 to-rose-600 hover:from-red-500 hover:to-rose-500 border border-rose-400/40 shadow-sm shadow-rose-950/30 hover:scale-[1.02] active:scale-[0.98] transition cursor-pointer"
+              title="Logout / Sign Out"
             >
-              <LogOut className="w-3.5 h-3.5 text-white shrink-0 group-hover:-translate-x-1 transition-transform duration-200" />
-              <span>Logout / Sign Out</span>
+              <LogOut className="w-3.5 h-3.5 text-white shrink-0" />
+              <span>Logout</span>
             </button>
 
           </div>

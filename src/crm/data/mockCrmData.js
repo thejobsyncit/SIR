@@ -24,7 +24,7 @@ export const ROLE_PERMISSIONS = {
     'int-calendar', 'int-permissions',
     'hr-overview', 'hr-attendance', 'hr-leave', 'hr-employees', 'hr-performance', 
     'hr-recruitment', 'hr-payroll', 'hr-announcements', 'hr-shifts', 'hr-documents', 
-    'hr-grievances', 'hr-approvals', 'hr-reports'
+    'hr-grievances', 'hr-approvals', 'hr-reports', 'hr-tasks'
   ],
   'HR Lead': [
     'dashboard', 'consulting', 'career-guidance', 'student-academy', 
@@ -47,7 +47,7 @@ export const ROLE_PERMISSIONS = {
     'candidates', 'pipeline', 'clients', 'interviews', 'workspace', 'calendar'
   ],
   'HR Operations': [
-    'dashboard', 'consulting', 'career-guidance', 'student-academy', 
+    'dashboard', 'hr-tasks', 'consulting', 'career-guidance', 'student-academy', 
     'candidates', 'documentation', 'calendar'
   ],
   'Interviewer': [

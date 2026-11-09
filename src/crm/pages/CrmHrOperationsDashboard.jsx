@@ -24,6 +24,7 @@ import {
   User
 } from 'lucide-react';
 import { useCrm } from '../context/CrmContext';
+import CrmHrTaskAssignment from '../components/CrmHrTaskAssignment';
 
 export const CrmHrOperationsDashboard = () => {
   const { currentEmployee, currentRole } = useCrm();
@@ -586,6 +587,11 @@ export const CrmHrOperationsDashboard = () => {
 
       {/* TAB 2: ASSIGNED DAILY TASKS */}
       {activeTab === 'tasks' && (
+        <div className="space-y-6">
+          <CrmHrTaskAssignment />
+        </div>
+      )}
+      {false && activeTab === 'tasks' && (
         <div className="bg-white dark:bg-navy-900 rounded-xl border border-slate-200 dark:border-navy-700 p-5 shadow-sm space-y-4">
           <div className="flex items-center justify-between">
             <div>

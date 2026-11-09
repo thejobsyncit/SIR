@@ -9,6 +9,7 @@ import {
   Check, XCircle, Send, Sparkles, Building2, MapPin, Layers
 } from 'lucide-react';
 import ScrollReveal from '../../components/ScrollReveal';
+import CrmHrTaskAssignment from '../components/CrmHrTaskAssignment';
 
 export const CrmHrLeadDashboard = ({ initialSection }) => {
   const { candidates = [], setActiveModule } = useCrm();
@@ -16,6 +17,7 @@ export const CrmHrLeadDashboard = ({ initialSection }) => {
   // Helper to map route ID (e.g. 'hr-attendance') to internal tab id
   const getTabFromSection = (sec) => {
     switch (sec) {
+      case 'hr-tasks': return 'tasks';
       case 'hr-attendance': return 'attendance';
       case 'hr-leave': return 'leave';
       case 'hr-employees': return 'employees';
@@ -484,6 +486,7 @@ export const CrmHrLeadDashboard = ({ initialSection }) => {
         <div className="bg-white dark:bg-navy-900 border border-slate-200/90 dark:border-navy-800 rounded-2xl p-2 shadow-xs flex flex-wrap gap-1.5 overflow-x-auto">
           {[
             { id: 'overview', label: '#1 Overview', icon: LayoutDashboard },
+            { id: 'tasks', label: 'HR Task Assignment', icon: CheckSquare },
             { id: 'attendance', label: '#2 Attendance', icon: Clock },
             { id: 'leave', label: '#3 Leave Management', icon: Calendar },
             { id: 'employees', label: '#4 Employee Directory', icon: Users },
@@ -519,6 +522,12 @@ export const CrmHrLeadDashboard = ({ initialSection }) => {
         {/* ========================================================
             TAB 1: DASHBOARD OVERVIEW (Feature 1)
         ======================================================== */}
+        {activeTab === 'tasks' && (
+          <div className="space-y-6 animate-in fade-in duration-200">
+            <CrmHrTaskAssignment />
+          </div>
+        )}
+
         {activeTab === 'overview' && (
           <div className="space-y-6 animate-in fade-in duration-200">
             {/* Quick Action Reminders & Life Events Bar */}
