@@ -7,7 +7,7 @@ import {
   GraduationCap, Compass, School, Languages, Plane,
   Briefcase, Search, Tag, MessageSquare, Users2,
   CheckCircle2, Bell, CheckSquare, Clock, AlertCircle, BookOpen,
-  TrendingUp, UserPlus
+  TrendingUp, UserPlus, Mail
 } from 'lucide-react';
 
 export const CONSULTING_SUB_SERVICES = [
@@ -241,8 +241,9 @@ export const CrmSidebar = ({ collapsed, setCollapsed }) => {
         </div>
       </div>
 
-      {/* Nav Menu */}
-      <div className="flex-1 min-h-0 overflow-y-auto overscroll-y-contain crm-sidebar-scroll py-4 px-3 space-y-1 text-xs font-semibold">
+      {/* Nav Menu & User Section */}
+      <div className="flex-1 min-h-0 overflow-y-auto overscroll-y-contain crm-sidebar-scroll py-4 px-3 flex flex-col justify-between text-xs font-semibold">
+        <div className="space-y-1">
         {isRecruiterRole && !collapsed && (
           <div className="px-2 pt-0.5 pb-2">
             <div className="flex items-center justify-between px-1 text-[10px] font-extrabold tracking-wider uppercase text-gold-600 dark:text-gold-400">
@@ -428,63 +429,88 @@ export const CrmSidebar = ({ collapsed, setCollapsed }) => {
             </button>
           );
         })}
-
-        {/* Dedicated In-Menu Logout Button (Directly below Admin Settings) */}
-        <div className="pt-2 mt-2 border-t border-slate-200 dark:border-slate-800/80">
-          <button
-            type="button"
-            onClick={() => {
-              if (window.innerWidth < 1024) setCollapsed(true);
-              logout();
-            }}
-            className="w-full flex items-center space-x-3 px-3 py-2.5 rounded-xl transition duration-200 text-rose-600 dark:text-rose-400 hover:bg-rose-50 dark:hover:bg-rose-950/40 hover:text-rose-700 dark:hover:text-rose-300 font-bold border border-rose-200/60 dark:border-rose-900/40 hover:border-rose-400 dark:hover:border-rose-700/60 group cursor-pointer shadow-xs"
-            title="Logout / Sign Out"
-          >
-            <LogOut className="w-4 h-4 shrink-0 text-rose-500 group-hover:scale-110 transition-transform" />
-            {!collapsed && (
-              <span className="truncate flex-1 text-left font-bold tracking-wide">
-                Logout / Sign Out
-              </span>
-            )}
-          </button>
         </div>
-      </div>
 
-      {/* User Profile & Logout */}
-      <div className="p-3 border-t border-slate-200 dark:border-navy-800 bg-slate-50 dark:bg-navy-900/50 shrink-0">
-        {!collapsed ? (
-          <div className="flex justify-between items-center text-xs">
-            <div className="flex items-center space-x-2.5 truncate">
-              <img 
-                src={user?.avatar || 'https://images.unsplash.com/photo-1573496359142-b8d87734a5a2?w=150&auto=format&fit=crop&q=80'} 
-                alt="User Avatar" 
-                className="w-8 h-8 rounded-full border border-gold-500 object-cover shrink-0" 
-              />
-              <div className="truncate">
-                <p className="font-bold text-slate-900 dark:text-white truncate">{user?.name || 'Super Admin'}</p>
-                <p className="text-[10px] text-gold-600 dark:text-gold-400 font-semibold truncate">{currentRole || 'Super Admin'}</p>
+        {/* User Profile & Logout Section (Directly below Admin Settings / End of Menu) */}
+        <div className="mt-auto pt-3 pb-1 border-t border-slate-200 dark:border-slate-800/80">
+          {!collapsed ? (
+            <div className="p-3 rounded-2xl bg-gradient-to-b from-slate-50 to-slate-100/90 dark:from-[#0d142c] dark:to-[#090e23] border border-slate-200 dark:border-slate-800 shadow-sm space-y-2.5">
+              
+              {/* Profile Header: Avatar + Info */}
+              <div className="flex items-start space-x-3">
+                <div className="relative shrink-0 mt-0.5">
+                  <img 
+                    src={user?.avatar || 'https://images.unsplash.com/photo-1573496359142-b8d87734a5a2?w=150&auto=format&fit=crop&q=80'} 
+                    alt={user?.name || 'Dhanalakshimi'} 
+                    className="w-10 h-10 rounded-full border-2 border-gold-500/70 object-cover shadow-sm ring-2 ring-gold-500/20" 
+                  />
+                  <span className="absolute bottom-0 right-0 w-3 h-3 bg-emerald-500 border-2 border-white dark:border-navy-900 rounded-full shadow-xs" title="Online & Authenticated" />
+                </div>
+                
+                <div className="flex-1 min-w-0">
+                  <div className="flex items-center justify-between gap-1">
+                    <p className="font-serif font-bold text-slate-900 dark:text-white text-xs truncate leading-tight">
+                      {user?.name || 'Dhanalakshimi'}
+                    </p>
+                    <span className="font-mono text-[9px] font-extrabold px-1.5 py-0.5 rounded bg-gold-500/15 text-gold-700 dark:text-gold-300 border border-gold-500/30 shrink-0">
+                      ID: {user?.id ? (user.id.toLowerCase() === 'emp-1' ? 'EMP-001' : user.id.toUpperCase()) : 'EMP-001'}
+                    </span>
+                  </div>
+                  
+                  <div className="flex items-center gap-1 mt-1">
+                    <span className="text-[10px] text-gold-600 dark:text-gold-400 font-extrabold flex items-center gap-1 bg-gold-500/10 px-1.5 py-0.5 rounded border border-gold-500/20 truncate">
+                      <ShieldCheck className="w-3 h-3 text-gold-500 shrink-0" />
+                      <span className="truncate">{currentRole || user?.role || 'Super Admin'}</span>
+                    </span>
+                  </div>
+
+                  <p className="text-[10px] text-slate-500 dark:text-slate-400 truncate mt-1 font-medium flex items-center gap-1" title={user?.email || 'dhana.jasync@gmail.com'}>
+                    <Mail className="w-2.5 h-2.5 text-slate-400 shrink-0" />
+                    <span className="truncate">{user?.email || 'dhana.jasync@gmail.com'}</span>
+                  </p>
+                </div>
               </div>
+
+              {/* Dedicated Logout Action Button */}
+              <button
+                type="button"
+                onClick={() => {
+                  if (window.innerWidth < 1024) setCollapsed(true);
+                  logout();
+                }}
+                className="w-full flex items-center justify-center space-x-2 px-3 py-2 rounded-xl transition duration-200 text-rose-600 dark:text-rose-400 hover:bg-rose-600 hover:text-white dark:hover:bg-rose-600 dark:hover:text-white font-bold bg-rose-50 dark:bg-rose-950/40 border border-rose-200 dark:border-rose-900/50 hover:border-rose-600 shadow-xs group cursor-pointer text-xs"
+                title="Logout / Sign Out"
+              >
+                <LogOut className="w-3.5 h-3.5 shrink-0 group-hover:-translate-x-0.5 transition-transform" />
+                <span>Logout / Sign Out</span>
+              </button>
+
             </div>
-            <button 
-              type="button"
-              onClick={logout} 
-              className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg text-rose-600 dark:text-rose-400 bg-rose-50/70 dark:bg-rose-950/40 hover:bg-rose-100 dark:hover:bg-rose-900/60 border border-rose-200 dark:border-rose-900/50 hover:border-rose-300 transition cursor-pointer font-bold text-xs shrink-0" 
-              title="Logout"
-            >
-              <LogOut className="w-3.5 h-3.5" />
-              <span>Logout</span>
-            </button>
-          </div>
-        ) : (
-          <button 
-            type="button"
-            onClick={logout} 
-            className="w-full flex justify-center p-2 text-rose-500 hover:bg-rose-50 dark:hover:bg-rose-950/40 rounded-lg cursor-pointer transition" 
-            title="Logout"
-          >
-            <LogOut className="w-5 h-5" />
-          </button>
-        )}
+          ) : (
+            /* Collapsed Sidebar View */
+            <div className="space-y-2 py-1">
+              <div className="flex justify-center">
+                <div className="relative">
+                  <img 
+                    src={user?.avatar || 'https://images.unsplash.com/photo-1573496359142-b8d87734a5a2?w=150&auto=format&fit=crop&q=80'} 
+                    alt={user?.name || 'Dhanalakshimi'} 
+                    className="w-9 h-9 rounded-full border border-gold-500 object-cover" 
+                    title={`${user?.name || 'Dhanalakshimi'} (ID: ${user?.id ? (user.id.toLowerCase() === 'emp-1' ? 'EMP-001' : user.id.toUpperCase()) : 'EMP-001'} - ${currentRole || 'Super Admin'})`}
+                  />
+                  <span className="absolute bottom-0 right-0 w-2.5 h-2.5 bg-emerald-500 border border-white dark:border-navy-900 rounded-full" />
+                </div>
+              </div>
+              <button
+                type="button"
+                onClick={logout}
+                className="w-full flex justify-center p-2 rounded-xl text-rose-500 hover:bg-rose-50 dark:hover:bg-rose-950/40 transition cursor-pointer"
+                title={`Logout ${user?.name || 'Dhanalakshimi'}`}
+              >
+                <LogOut className="w-4 h-4" />
+              </button>
+            </div>
+          )}
+        </div>
       </div>
 
       </aside>
