@@ -22,6 +22,28 @@ export const CrmHeader = ({ collapsed, setCollapsed }) => {
   } = useCrm();
 
   const [quickMenuOpen, setQuickMenuOpen] = useState(false);
+  const [profileMenuOpen, setProfileMenuOpen] = useState(false);
+
+  const formatUserName = (rawName) => {
+    if (!rawName) return 'The Job Sync IT';
+    const trimmed = rawName.trim();
+    if (trimmed.toLowerCase() === 'thejobsyncit' || trimmed.toLowerCase() === 'the job sync it') {
+      return 'The Job Sync IT';
+    }
+    if (trimmed === trimmed.toUpperCase() && trimmed.length > 3) {
+      return trimmed.split(' ').map(w => w.charAt(0) + w.slice(1).toLowerCase()).join(' ');
+    }
+    return trimmed;
+  };
+
+  const getEmpId = (rawId) => {
+    if (!rawId) return 'EMP-923';
+    const idStr = String(rawId).trim().toUpperCase();
+    if (idStr === 'EMP-1' || idStr === 'USR-1') return 'EMP-923';
+    if (idStr.startsWith('USR-')) return 'EMP-' + idStr.substring(4);
+    if (!idStr.startsWith('EMP-')) return 'EMP-' + idStr;
+    return idStr;
+  };
 
   return (
     <header className="bg-white dark:bg-[#070c1e]/90 backdrop-blur-xl text-slate-900 dark:text-white border-b border-slate-200 dark:border-slate-800/80 px-6 py-3 flex justify-between items-center z-20 font-sans shadow-sm shrink-0">
@@ -171,18 +193,111 @@ export const CrmHeader = ({ collapsed, setCollapsed }) => {
           )}
         </div>
 
-        {/* Quick Header Logout Button */}
-        <button 
-          type="button"
-          onClick={logout}
-          className="flex items-center space-x-1.5 px-3 py-1.5 rounded-xl bg-rose-500/10 hover:bg-rose-500/20 text-rose-600 dark:text-rose-400 border border-rose-500/20 hover:border-rose-500/40 transition cursor-pointer font-bold text-xs"
-          title="Sign Out / Logout"
-        >
-          <LogOut className="w-3.5 h-3.5" />
-          <span className="hidden sm:inline">Logout</span>
-        </button>
+        {/* EXECUTIVE HEADER USER PROFILE & LOGOUT SECTION (Name, Email ID, ID No, Avatar, & Logout) */}
+        <div className="relative flex items-center space-x-2 pl-2 border-l border-slate-200 dark:border-navy-700">
+          
+          {/* Profile Identity Pill (Clickable for Detailed Menu) */}
+          <div 
+            onClick={() => setProfileMenuOpen(!profileMenuOpen)}
+            className="flex items-center space-x-2.5 py-1 px-2.5 rounded-xl bg-slate-100/90 hover:bg-slate-200/80 dark:bg-navy-900 dark:hover:bg-navy-800 border border-slate-200 dark:border-gold-500/30 transition duration-150 cursor-pointer shadow-xs group"
+            title="View Executive User Profile & Credentials"
+          >
+            {/* Avatar with Status Ring */}
+            <div className="relative shrink-0">
+              <img 
+                src={user?.avatar || 'https://images.unsplash.com/photo-1573496359142-b8d87734a5a2?w=150&auto=format&fit=crop&q=80'} 
+                alt={formatUserName(user?.name)} 
+                className="w-8 h-8 rounded-full border-2 border-gold-500 object-cover shadow-xs ring-1 ring-gold-500/40" 
+              />
+              <span className="absolute bottom-0 right-0 w-2 h-2 bg-emerald-500 border border-white dark:border-[#070c1e] rounded-full shadow-xs" title="Online" />
+            </div>
 
-      </div>
+            {/* Profile Credentials: Name + ID No + Email */}
+            <div className="hidden sm:flex flex-col justify-center text-left min-w-0">
+              <div className="flex items-center gap-1.5">
+                <span className="font-bold text-slate-900 dark:text-white text-xs truncate max-w-[120px] leading-tight group-hover:text-gold-600 dark:group-hover:text-gold-400 transition" title={formatUserName(user?.name)}>
+                  {formatUserName(user?.name)}
+                </span>
+                <span className="font-mono text-[9px] font-black px-1.5 py-0.2 rounded bg-gold-500/20 text-gold-700 dark:text-gold-300 border border-gold-500/35 uppercase tracking-wider shrink-0" title={'Employee ID: ' + getEmpId(user?.id)}>
+                  {getEmpId(user?.id)}
+                </span>
+              </div>
+              <span className="text-[10px] text-slate-500 dark:text-slate-400 truncate max-w-[150px] leading-tight" title={user?.email || 'thejobsyncit@gmail.com'}>
+                {user?.email || 'thejobsyncit@gmail.com'}
+              </span>
+            </div>
+          </div>
+
+          {/* Quick 1-Click Vibrant Red Logout Button */}
+          <button 
+            type="button"
+            onClick={logout}
+            className="flex items-center space-x-1.5 px-3 py-2 rounded-xl font-bold text-xs text-white bg-gradient-to-r from-red-600 via-rose-600 to-red-600 hover:from-red-500 hover:to-rose-500 border border-rose-400/40 shadow-sm shadow-rose-950/30 hover:scale-[1.02] active:scale-[0.98] transition cursor-pointer shrink-0"
+            title="Sign Out / Logout of Portal"
+          >
+            <LogOut className="w-3.5 h-3.5 text-white shrink-0" />
+            <span className="hidden md:inline">Logout</span>
+          </button>
+
+          {/* Profile Dropdown Drawer (Shows when clicking profile pill) */}
+          {profileMenuOpen && (
+            <div className="absolute right-0 top-full mt-2 w-72 glass-card bg-white dark:bg-navy-950 border border-gold-500/35 rounded-2xl p-4 shadow-luxury text-xs z-50 animate-in fade-in space-y-3">
+              <div className="flex items-center space-x-3 pb-3 border-b border-slate-100 dark:border-navy-800">
+                <img 
+                  src={user?.avatar || 'https://images.unsplash.com/photo-1573496359142-b8d87734a5a2?w=150&auto=format&fit=crop&q=80'} 
+                  alt={formatUserName(user?.name)} 
+                  className="w-11 h-11 rounded-full border-2 border-gold-500 object-cover shadow-sm ring-2 ring-gold-500/30" 
+                />
+                <div className="min-w-0 flex-1">
+                  <div className="flex items-center justify-between gap-1">
+                    <h4 className="font-bold text-slate-900 dark:text-white text-xs truncate">
+                      {formatUserName(user?.name)}
+                    </h4>
+                    <span className="font-mono text-[9px] font-black px-1.5 py-0.2 rounded bg-gold-500/20 text-gold-700 dark:text-gold-300 border border-gold-500/35">
+                      {getEmpId(user?.id)}
+                    </span>
+                  </div>
+                  <div className="text-[10px] text-amber-700 dark:text-gold-400 font-semibold flex items-center gap-1 mt-0.5">
+                    <ShieldCheck className="w-3 h-3 text-gold-500" />
+                    <span>{currentRole || user?.role || 'Super Admin'}</span>
+                  </div>
+                  <div className="text-[10px] text-slate-500 dark:text-slate-400 truncate mt-0.5">
+                    {user?.email || 'thejobsyncit@gmail.com'}
+                  </div>
+                </div>
+              </div>
+
+              {/* Account Status Meta */}
+              <div className="space-y-1.5 text-[11px] p-2.5 rounded-xl bg-slate-50 dark:bg-navy-900 border border-slate-200 dark:border-navy-800 font-medium">
+                <div className="flex justify-between items-center text-slate-600 dark:text-slate-300">
+                  <span>Department:</span>
+                  <span className="font-semibold text-slate-900 dark:text-white">{user?.department || 'Executive HQ'}</span>
+                </div>
+                <div className="flex justify-between items-center text-slate-600 dark:text-slate-300">
+                  <span>Session Status:</span>
+                  <span className="font-bold text-emerald-600 dark:text-emerald-400 flex items-center gap-1">
+                    <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
+                    Active & Authenticated
+                  </span>
+                </div>
+              </div>
+
+              {/* Full Logout Button in Dropdown */}
+              <button
+                type="button"
+                onClick={() => {
+                  setProfileMenuOpen(false);
+                  logout();
+                }}
+                className="w-full flex items-center justify-center space-x-2 py-2 px-3 rounded-xl font-bold text-xs text-white bg-gradient-to-r from-red-600 to-rose-600 hover:from-red-500 hover:to-rose-500 shadow-md transition cursor-pointer"
+              >
+                <LogOut className="w-3.5 h-3.5 text-white" />
+                <span>Logout / Sign Out</span>
+              </button>
+            </div>
+          )}
+
+        </div></div>
 
       {/* Session Timeout Warning Modal */}
       {showIdleModal && (
