@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { useCrm } from '../context/CrmContext';
 import { 
-  Search, Bell, Sparkles, UserCheck, ShieldCheck, Menu, Moon, Sun, Lock, Plus, X, Clock, AlertTriangle, LogOut 
+  Search, Bell, Sparkles, UserCheck, ShieldCheck, Menu, Moon, Sun, Lock, Plus, X, Clock, AlertTriangle, LogOut, ChevronDown 
 } from 'lucide-react';
 import { CRM_ROLES } from '../data/mockCrmData';
 
@@ -193,111 +193,151 @@ export const CrmHeader = ({ collapsed, setCollapsed }) => {
           )}
         </div>
 
-        {/* EXECUTIVE HEADER USER PROFILE & LOGOUT SECTION (Name, Email ID, ID No, Avatar, & Logout) */}
-        <div className="relative flex items-center space-x-2 pl-2 border-l border-slate-200 dark:border-navy-700">
+        {/* EXECUTIVE VIP USER PROFILE & LOGOUT CAPSULE ("vera mari" Unified Luxury Design) */}
+        <div className="relative flex items-center">
           
-          {/* Profile Identity Pill (Clickable for Detailed Menu) */}
-          <div 
-            onClick={() => setProfileMenuOpen(!profileMenuOpen)}
-            className="flex items-center space-x-2.5 py-1 px-2.5 rounded-xl bg-slate-100/90 hover:bg-slate-200/80 dark:bg-navy-900 dark:hover:bg-navy-800 border border-slate-200 dark:border-gold-500/30 transition duration-150 cursor-pointer shadow-xs group"
-            title="View Executive User Profile & Credentials"
-          >
-            {/* Avatar with Status Ring */}
-            <div className="relative shrink-0">
-              <img 
-                src={user?.avatar || 'https://images.unsplash.com/photo-1573496359142-b8d87734a5a2?w=150&auto=format&fit=crop&q=80'} 
-                alt={formatUserName(user?.name)} 
-                className="w-8 h-8 rounded-full border-2 border-gold-500 object-cover shadow-xs ring-1 ring-gold-500/40" 
-              />
-              <span className="absolute bottom-0 right-0 w-2 h-2 bg-emerald-500 border border-white dark:border-[#070c1e] rounded-full shadow-xs" title="Online" />
+          {/* Unified Luxury Glass Capsule Container */}
+          <div className="flex items-center p-1 pl-2 pr-1 rounded-2xl bg-gradient-to-r from-slate-50 via-white to-amber-50/20 dark:from-[#080d24] dark:via-[#0c1436] dark:to-[#080d24] border border-slate-200/90 dark:border-gold-500/35 shadow-sm hover:shadow-md transition-all duration-200">
+            
+            {/* Left Interactive Identity Area (Click to toggle detailed executive card) */}
+            <div 
+              onClick={() => setProfileMenuOpen(!profileMenuOpen)}
+              className="flex items-center space-x-2.5 pr-2 cursor-pointer group"
+              title="Click to view executive profile & session credentials"
+            >
+              {/* Avatar with Double Metallic Gold Ring & Glowing Online Dot */}
+              <div className="relative shrink-0">
+                <div className="p-0.5 rounded-full bg-gradient-to-tr from-amber-400 via-gold-500 to-yellow-300 shadow-xs">
+                  <img 
+                    src={user?.avatar || 'https://images.unsplash.com/photo-1573496359142-b8d87734a5a2?w=150&auto=format&fit=crop&q=80'} 
+                    alt={formatUserName(user?.name)} 
+                    className="w-8 h-8 rounded-full object-cover border border-white dark:border-[#080d24]" 
+                  />
+                </div>
+                <span className="absolute bottom-0 right-0 w-2.5 h-2.5 bg-emerald-500 border-2 border-white dark:border-[#080d24] rounded-full shadow-[0_0_6px_rgba(16,185,129,0.9)]" title="Online & Active" />
+              </div>
+
+              {/* Name, ID Badge & Email/Role Stack */}
+              <div className="hidden sm:flex flex-col justify-center text-left min-w-0">
+                <div className="flex items-center gap-1.5">
+                  <span className="font-extrabold text-slate-900 dark:text-white text-xs truncate max-w-[130px] leading-tight tracking-tight group-hover:text-gold-600 dark:group-hover:text-gold-400 transition" title={formatUserName(user?.name)}>
+                    {formatUserName(user?.name)}
+                  </span>
+                  <span className="inline-flex items-center font-mono text-[9px] font-black px-1.5 py-0.2 rounded-md bg-gradient-to-r from-amber-500/20 to-gold-500/20 text-amber-800 dark:text-gold-300 border border-gold-500/40 uppercase tracking-wider shrink-0 shadow-2xs" title={'Employee ID: ' + getEmpId(user?.id)}>
+                    {getEmpId(user?.id)}
+                  </span>
+                </div>
+                
+                <div className="flex items-center gap-1.5 text-[10px] text-slate-500 dark:text-slate-400 mt-0.5 leading-tight">
+                  <span className="font-semibold text-amber-700 dark:text-gold-400 flex items-center gap-0.5 shrink-0">
+                    <ShieldCheck className="w-2.5 h-2.5 text-gold-500" />
+                    <span>{currentRole || user?.role || 'Super Admin'}</span>
+                  </span>
+                  <span className="text-slate-300 dark:text-slate-600">•</span>
+                  <span className="truncate max-w-[135px]" title={user?.email || 'thejobsyncit@gmail.com'}>
+                    {user?.email || 'thejobsyncit@gmail.com'}
+                  </span>
+                </div>
+              </div>
+
+              {/* Dropdown Chevron Indicator */}
+              <ChevronDown className={`w-3.5 h-3.5 text-slate-400 group-hover:text-gold-500 transition-transform duration-200 hidden sm:block ${profileMenuOpen ? 'rotate-180 text-gold-500' : ''}`} />
             </div>
 
-            {/* Profile Credentials: Name + ID No + Email */}
-            <div className="hidden sm:flex flex-col justify-center text-left min-w-0">
-              <div className="flex items-center gap-1.5">
-                <span className="font-bold text-slate-900 dark:text-white text-xs truncate max-w-[120px] leading-tight group-hover:text-gold-600 dark:group-hover:text-gold-400 transition" title={formatUserName(user?.name)}>
-                  {formatUserName(user?.name)}
-                </span>
-                <span className="font-mono text-[9px] font-black px-1.5 py-0.2 rounded bg-gold-500/20 text-gold-700 dark:text-gold-300 border border-gold-500/35 uppercase tracking-wider shrink-0" title={'Employee ID: ' + getEmpId(user?.id)}>
-                  {getEmpId(user?.id)}
-                </span>
-              </div>
-              <span className="text-[10px] text-slate-500 dark:text-slate-400 truncate max-w-[150px] leading-tight" title={user?.email || 'thejobsyncit@gmail.com'}>
-                {user?.email || 'thejobsyncit@gmail.com'}
-              </span>
-            </div>
+            {/* Subtle Vertical Divider */}
+            <div className="h-7 w-px bg-slate-200 dark:bg-gold-500/25 shrink-0 mx-1" />
+
+            {/* Seamless Embedded Vibrant Red Logout Button */}
+            <button 
+              type="button"
+              onClick={logout}
+              className="flex items-center space-x-1.5 px-3 py-1.5 rounded-xl font-bold text-xs text-white bg-gradient-to-r from-red-600 via-rose-600 to-red-600 hover:from-red-500 hover:to-rose-500 shadow-sm shadow-rose-950/30 hover:shadow-rose-600/30 hover:scale-[1.02] active:scale-[0.98] transition-all duration-200 cursor-pointer shrink-0"
+              title="Sign Out / Logout of Portal"
+            >
+              <LogOut className="w-3.5 h-3.5 text-white shrink-0" />
+              <span>Logout</span>
+            </button>
+
           </div>
 
-          {/* Quick 1-Click Vibrant Red Logout Button */}
-          <button 
-            type="button"
-            onClick={logout}
-            className="flex items-center space-x-1.5 px-3 py-2 rounded-xl font-bold text-xs text-white bg-gradient-to-r from-red-600 via-rose-600 to-red-600 hover:from-red-500 hover:to-rose-500 border border-rose-400/40 shadow-sm shadow-rose-950/30 hover:scale-[1.02] active:scale-[0.98] transition cursor-pointer shrink-0"
-            title="Sign Out / Logout of Portal"
-          >
-            <LogOut className="w-3.5 h-3.5 text-white shrink-0" />
-            <span className="hidden md:inline">Logout</span>
-          </button>
-
-          {/* Profile Dropdown Drawer (Shows when clicking profile pill) */}
+          {/* Luxury Dropdown Profile Card */}
           {profileMenuOpen && (
-            <div className="absolute right-0 top-full mt-2 w-72 glass-card bg-white dark:bg-navy-950 border border-gold-500/35 rounded-2xl p-4 shadow-luxury text-xs z-50 animate-in fade-in space-y-3">
-              <div className="flex items-center space-x-3 pb-3 border-b border-slate-100 dark:border-navy-800">
-                <img 
-                  src={user?.avatar || 'https://images.unsplash.com/photo-1573496359142-b8d87734a5a2?w=150&auto=format&fit=crop&q=80'} 
-                  alt={formatUserName(user?.name)} 
-                  className="w-11 h-11 rounded-full border-2 border-gold-500 object-cover shadow-sm ring-2 ring-gold-500/30" 
-                />
+            <div className="absolute right-0 top-full mt-2 w-80 glass-card bg-white dark:bg-navy-950 border border-gold-500/35 rounded-2xl p-4 shadow-luxury text-xs z-50 animate-in fade-in space-y-3.5">
+              
+              {/* Header Badge */}
+              <div className="flex items-center justify-between pb-2 border-b border-slate-100 dark:border-navy-800">
+                <span className="text-[10px] font-extrabold uppercase tracking-wider text-gold-600 dark:text-gold-400">
+                  Revival Enterprise CRM • Profile
+                </span>
+                <span className="text-[10px] bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 font-bold px-2 py-0.5 rounded-full border border-emerald-500/20">
+                  Online
+                </span>
+              </div>
+
+              {/* User Identity Details */}
+              <div className="flex items-center space-x-3">
+                <div className="relative shrink-0">
+                  <div className="p-0.5 rounded-full bg-gradient-to-tr from-amber-400 via-gold-500 to-yellow-300 shadow-sm">
+                    <img 
+                      src={user?.avatar || 'https://images.unsplash.com/photo-1573496359142-b8d87734a5a2?w=150&auto=format&fit=crop&q=80'} 
+                      alt={formatUserName(user?.name)} 
+                      className="w-12 h-12 rounded-full object-cover border-2 border-white dark:border-navy-950" 
+                    />
+                  </div>
+                  <span className="absolute bottom-0 right-0 w-3 h-3 bg-emerald-500 border-2 border-white dark:border-navy-950 rounded-full" />
+                </div>
+                
                 <div className="min-w-0 flex-1">
                   <div className="flex items-center justify-between gap-1">
-                    <h4 className="font-bold text-slate-900 dark:text-white text-xs truncate">
+                    <h4 className="font-bold text-slate-900 dark:text-white text-sm truncate">
                       {formatUserName(user?.name)}
                     </h4>
-                    <span className="font-mono text-[9px] font-black px-1.5 py-0.2 rounded bg-gold-500/20 text-gold-700 dark:text-gold-300 border border-gold-500/35">
+                    <span className="font-mono text-[9px] font-black px-1.5 py-0.2 rounded bg-gold-500/20 text-gold-700 dark:text-gold-300 border border-gold-500/35 shrink-0">
                       {getEmpId(user?.id)}
                     </span>
                   </div>
-                  <div className="text-[10px] text-amber-700 dark:text-gold-400 font-semibold flex items-center gap-1 mt-0.5">
-                    <ShieldCheck className="w-3 h-3 text-gold-500" />
+                  <div className="text-[11px] text-amber-700 dark:text-gold-400 font-bold flex items-center gap-1 mt-0.5">
+                    <ShieldCheck className="w-3 h-3 text-gold-500 shrink-0" />
                     <span>{currentRole || user?.role || 'Super Admin'}</span>
                   </div>
-                  <div className="text-[10px] text-slate-500 dark:text-slate-400 truncate mt-0.5">
+                  <div className="text-[10px] text-slate-500 dark:text-slate-400 truncate mt-0.5" title={user?.email || 'thejobsyncit@gmail.com'}>
                     {user?.email || 'thejobsyncit@gmail.com'}
                   </div>
                 </div>
               </div>
 
-              {/* Account Status Meta */}
+              {/* Account Meta & Security status */}
               <div className="space-y-1.5 text-[11px] p-2.5 rounded-xl bg-slate-50 dark:bg-navy-900 border border-slate-200 dark:border-navy-800 font-medium">
                 <div className="flex justify-between items-center text-slate-600 dark:text-slate-300">
                   <span>Department:</span>
-                  <span className="font-semibold text-slate-900 dark:text-white">{user?.department || 'Executive HQ'}</span>
+                  <span className="font-semibold text-slate-900 dark:text-white">{user?.department || 'Executive Operations HQ'}</span>
                 </div>
                 <div className="flex justify-between items-center text-slate-600 dark:text-slate-300">
-                  <span>Session Status:</span>
+                  <span>Security Level:</span>
                   <span className="font-bold text-emerald-600 dark:text-emerald-400 flex items-center gap-1">
                     <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
-                    Active & Authenticated
+                    256-Bit SSL • Authenticated
                   </span>
                 </div>
               </div>
 
-              {/* Full Logout Button in Dropdown */}
+              {/* Full Logout Button in Drawer */}
               <button
                 type="button"
                 onClick={() => {
                   setProfileMenuOpen(false);
                   logout();
                 }}
-                className="w-full flex items-center justify-center space-x-2 py-2 px-3 rounded-xl font-bold text-xs text-white bg-gradient-to-r from-red-600 to-rose-600 hover:from-red-500 hover:to-rose-500 shadow-md transition cursor-pointer"
+                className="w-full flex items-center justify-center space-x-2 py-2 px-3 rounded-xl font-bold text-xs text-white bg-gradient-to-r from-red-600 via-rose-600 to-red-600 hover:from-red-500 hover:to-rose-500 shadow-md transition cursor-pointer"
               >
                 <LogOut className="w-3.5 h-3.5 text-white" />
-                <span>Logout / Sign Out</span>
+                <span>Logout / Sign Out of Portal</span>
               </button>
             </div>
           )}
 
-        </div></div>
+        </div>
+        </div>
 
       {/* Session Timeout Warning Modal */}
       {showIdleModal && (
