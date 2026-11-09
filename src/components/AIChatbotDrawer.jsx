@@ -404,7 +404,7 @@ export const AIChatbotDrawer = () => {
     <>
       {/* Floating Trigger Button (Bottom Left) */}
       {!isOpen && (
-        <div className="fixed bottom-[80px] sm:bottom-[86px] left-4 sm:left-6 z-40 flex items-center group">
+        <div className="fixed bottom-4 sm:bottom-5 left-4 sm:left-6 z-40 flex items-center group">
           <button
             onClick={() => {
               setIsOpen(true);
@@ -451,8 +451,8 @@ export const AIChatbotDrawer = () => {
       {isOpen && (
         <div
           className={`fixed z-50 bg-white dark:bg-[#0B1B33] border border-slate-200 dark:border-[#C6A45C]/40 rounded-2xl shadow-2xl flex flex-col overflow-hidden transition-all duration-300 ease-out font-sans ${isMinimized
-              ? 'bottom-[80px] sm:bottom-[86px] left-4 sm:left-6 w-80 h-14'
-              : 'bottom-[80px] sm:bottom-[86px] left-4 right-4 sm:right-auto sm:left-6 w-auto sm:w-[420px] h-[580px] max-h-[80vh]'
+              ? 'bottom-4 sm:bottom-5 left-4 sm:left-6 w-80 h-14'
+              : 'bottom-4 sm:bottom-5 left-4 right-4 sm:right-auto sm:left-6 w-auto sm:w-[420px] h-[580px] max-h-[80vh]'
             }`}
           style={{ boxShadow: '0 20px 40px -15px rgba(11, 27, 51, 0.25)' }}
         >

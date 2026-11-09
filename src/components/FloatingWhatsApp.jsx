@@ -6,7 +6,7 @@ export const FloatingWhatsApp = () => {
   const [isCompact, setIsCompact] = useState(false);
 
   return (
-    <div className="fixed bottom-[80px] sm:bottom-[86px] right-4 sm:right-6 z-40 flex items-center group">
+    <div className="fixed bottom-4 sm:bottom-5 right-4 sm:right-6 z-40 flex items-center group">
       <a
         href="https://wa.me/919003475405?text=Hello%20The%20Revival%20International,%20I%20would%20like%20to%20inquire%20about%20your%20services."
         target="_blank"
