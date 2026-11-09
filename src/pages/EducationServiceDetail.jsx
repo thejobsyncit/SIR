@@ -40,6 +40,46 @@ export const EducationServiceDetail = ({ serviceId }) => {
   const cleanId = (serviceId || '').split('?')[0];
   const service = getEducationServiceById(cleanId) || getEducationServiceBySlug(cleanId) || EDUCATION_SERVICES_DETAILED[0];
 
+  const isCareerGuidance = 
+    service?.id === 'school-career' || 
+    service?.slug === 'school-student-career-guidance' ||
+    cleanId === 'school-career' || 
+    cleanId === 'career-guidance';
+
+  const [modalOpen, setModalOpen] = useState(false);
+  const [modalServiceId, setModalServiceId] = useState(service?.id || '');
+  const [selectedSubProgram, setSelectedSubProgram] = useState(null);
+  const [selectedLevel, setSelectedLevel] = useState(null);
+  const [selectedCourseObj, setSelectedCourseObj] = useState(null);
+  const [openFaqIndex, setOpenFaqIndex] = useState(null);
+
+  useEffect(() => {
+    if (service && service.id) {
+      setModalServiceId(service.id);
+      trackServiceView(service.id, service.title, service.category || 'Education');
+    }
+  }, [service?.id]);
+
+  // Restore pending Career Guidance enquiry after successful login or registration
+  useEffect(() => {
+    if (isCareerGuidance && user && user.email) {
+      const pending = getPendingCareerEnquiry();
+      if (pending && (pending.courseId || pending.courseName || pending.abbreviation)) {
+        const validatedCourse = validatePendingCourse(pending);
+        if (validatedCourse) {
+          const streamPart = validatedCourse.streamName 
+            ? ` [${validatedCourse.streamName}]` 
+            : (validatedCourse.department ? ` [${validatedCourse.department}]` : '');
+          setSelectedSubProgram(`${validatedCourse.abbreviation ? validatedCourse.abbreviation + ' - ' : ''}${validatedCourse.name}${streamPart}`);
+          setSelectedLevel(validatedCourse.level === 'PG' ? 'Postgraduate (Master Degree / MBA)' : 'Undergraduate (Bachelor Degree)');
+          setSelectedCourseObj(validatedCourse);
+          setModalOpen(true);
+        }
+        clearPendingCareerEnquiry();
+      }
+    }
+  }, [isCareerGuidance, user]);
+
   if (service.id === 'intl-consult' || cleanId === 'intl-consult' || cleanId === 'international-consulting') {
     return <InternationalConsultingPage />;
   }
@@ -65,27 +105,7 @@ export const EducationServiceDetail = ({ serviceId }) => {
     return <SeminarsAndLanguagePage />;
   }
 
-  const [modalOpen, setModalOpen] = useState(false);
-  const [modalServiceId, setModalServiceId] = useState(service.id);
-  const [selectedSubProgram, setSelectedSubProgram] = useState(null);
-  const [selectedLevel, setSelectedLevel] = useState(null);
-  const [selectedCourseObj, setSelectedCourseObj] = useState(null);
-  const [openFaqIndex, setOpenFaqIndex] = useState(null);
-
   const IconComponent = iconMap[service.icon] || GraduationCap;
-
-  const isCareerGuidance = 
-    service.id === 'school-career' || 
-    service.slug === 'school-student-career-guidance' ||
-    cleanId === 'school-career' || 
-    cleanId === 'career-guidance';
-
-  useEffect(() => {
-    if (service && service.id) {
-      setModalServiceId(service.id);
-      trackServiceView(service.id, service.title, service.category || 'Education');
-    }
-  }, [service?.id]);
 
   
   // Handle course inquiry with authentication guard
@@ -107,26 +127,6 @@ export const EducationServiceDetail = ({ serviceId }) => {
     setSelectedCourseObj(course);
     setModalOpen(true);
   };
-
-  // Restore pending Career Guidance enquiry after successful login or registration
-  useEffect(() => {
-    if (isCareerGuidance && user && user.email) {
-      const pending = getPendingCareerEnquiry();
-      if (pending && (pending.courseId || pending.courseName || pending.abbreviation)) {
-        const validatedCourse = validatePendingCourse(pending);
-        if (validatedCourse) {
-          const streamPart = validatedCourse.streamName 
-            ? ` [${validatedCourse.streamName}]` 
-            : (validatedCourse.department ? ` [${validatedCourse.department}]` : '');
-          setSelectedSubProgram(`${validatedCourse.abbreviation ? validatedCourse.abbreviation + ' - ' : ''}${validatedCourse.name}${streamPart}`);
-          setSelectedLevel(validatedCourse.level === 'PG' ? 'Postgraduate (Master Degree / MBA)' : 'Undergraduate (Bachelor Degree)');
-          setSelectedCourseObj(validatedCourse);
-          setModalOpen(true);
-        }
-        clearPendingCareerEnquiry();
-      }
-    }
-  }, [isCareerGuidance, user]);
 
   const toggleFaq = (index) => {
     setOpenFaqIndex(openFaqIndex === index ? -1 : index);

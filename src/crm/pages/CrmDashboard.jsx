@@ -36,6 +36,14 @@ export const CrmDashboard = () => {
 
   // Admin/Super Admin preview tab for inspecting other role dashboards
   const [adminRoleView, setAdminRoleView] = useState('master');
+  const [dateRange, setDateRange] = useState('all');
+  const [loadingMetrics, setLoadingMetrics] = useState(false);
+
+  useEffect(() => {
+    if (fetchConsultingMetrics) fetchConsultingMetrics();
+    if (fetchLeadMetrics) fetchLeadMetrics(dateRange);
+    if (fetchFollowUpsSummary) fetchFollowUpsSummary();
+  }, [dateRange]);
 
   // Direct role routing for non-admin roles
   if (currentRole === 'HR Lead') {
@@ -82,15 +90,6 @@ export const CrmDashboard = () => {
       </div>
     );
   }
-
-  const [dateRange, setDateRange] = useState('all');
-  const [loadingMetrics, setLoadingMetrics] = useState(false);
-
-  useEffect(() => {
-    if (fetchConsultingMetrics) fetchConsultingMetrics();
-    if (fetchLeadMetrics) fetchLeadMetrics(dateRange);
-    if (fetchFollowUpsSummary) fetchFollowUpsSummary();
-  }, [dateRange]);
 
   const handleRangeChange = async (range) => {
     setDateRange(range);

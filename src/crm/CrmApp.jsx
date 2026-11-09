@@ -61,7 +61,7 @@ import { CrmHrLeadDashboard } from './pages/CrmHrLeadDashboard';
 import { Search, Sparkles, X, Send, Bot, Loader2, Copy, Check, RotateCcw } from 'lucide-react';
 
 const CrmAppContent = () => {
-  const { isAuthenticated, activeModule, setActiveModule, commandPaletteOpen, setCommandPaletteOpen, aiDrawerOpen, setAiDrawerOpen, hasPermission } = useCrm();
+  const { isAuthenticated, currentRole, activeModule, setActiveModule, commandPaletteOpen, setCommandPaletteOpen, aiDrawerOpen, setAiDrawerOpen, hasPermission } = useCrm();
   const [collapsed, setCollapsed] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
 
@@ -311,7 +311,9 @@ const CrmAppContent = () => {
         <CrmSidebar collapsed={collapsed} setCollapsed={setCollapsed} />
 
         <main className="flex-1 min-w-0 min-h-0 overflow-y-auto overscroll-y-contain crm-main-scroll p-6 bg-slate-50 dark:bg-transparent">
-          {renderModule()}
+          <div key={`${activeModule}-${currentRole}`} className="w-full">
+            {renderModule()}
+          </div>
         </main>
       </div>
 

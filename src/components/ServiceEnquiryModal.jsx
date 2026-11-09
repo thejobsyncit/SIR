@@ -21,9 +21,7 @@ const serviceIcons = {
 };
 
 export const ServiceEnquiryModal = ({ isOpen, onClose, service, onNavigateToJobs }) => {
-  if (!isOpen || !service) return null;
-
-  const ServiceIcon = serviceIcons[service.id] || Briefcase;
+  const ServiceIcon = service?.id ? (serviceIcons[service.id] || Briefcase) : Briefcase;
 
   // Form State
   const [formData, setFormData] = useState({
@@ -95,6 +93,8 @@ export const ServiceEnquiryModal = ({ isOpen, onClose, service, onNavigateToJobs
       document.body.style.overflow = 'unset';
     };
   }, [isOpen, isSubmitting, onClose]);
+
+  if (!isOpen || !service) return null;
 
   const handleInputChange = (e) => {
     const { name, value, type, checked } = e.target;

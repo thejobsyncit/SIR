@@ -67,7 +67,7 @@ export const EducationEnquiryModal = ({
   const [activeCourse, setActiveCourse] = useState(() => {
     return parseCourseInfo(selectedCourse, preselectedSubProgram, preselectedLevel);
   });
-  const appContext = typeof useApp === 'function' ? useApp() : null;
+  const appContext = useApp();
   const user = appContext?.user || null;
   const [phone, setPhone] = useState(() => user?.phone || '');
 
