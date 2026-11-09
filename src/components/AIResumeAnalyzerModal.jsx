@@ -49,8 +49,6 @@ export const AIResumeAnalyzerModal = () => {
   const [fileBase64, setFileBase64] = useState('');
   const [isDragging, setIsDragging] = useState(false);
 
-  if (activeModal !== 'ai-resume') return null;
-
   // Strict Validation: Ensure document is a Candidate Resume/CV
   const validateResumeDocument = (fileName = '', text = '') => {
     const lowerName = fileName.toLowerCase();
@@ -322,6 +320,8 @@ export const AIResumeAnalyzerModal = () => {
   const handlePrintReport = () => {
     window.print();
   };
+
+  if (activeModal !== 'ai-resume') return null;
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-5 bg-slate-950/80 backdrop-blur-md animate-in fade-in duration-200">
