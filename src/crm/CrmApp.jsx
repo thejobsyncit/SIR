@@ -1,5 +1,5 @@
-import React, { useState, useEffect, useRef } from 'react';
-import { useCrm, CrmProvider } from './context/CrmContext';
+import React, { useState, useEffect, useRef, useContext } from 'react';
+import { useCrm, CrmProvider, CrmContext, DEFAULT_CRM_CONTEXT_VALUE } from './context/CrmContext';
 import { CrmLogin } from './components/CrmLogin';
 import { CrmSidebar } from './components/CrmSidebar';
 import { CrmHeader } from './components/CrmHeader';
@@ -271,10 +271,7 @@ const CrmAppContent = () => {
       case 'hr-reports':
         return <CrmHrLeadDashboard initialSection={activeModule} />;
       case 'hr-tasks':
-        if (currentRole === 'HR Operations') {
-          return <CrmHrTaskAssignment />;
-        }
-        return <CrmHrLeadDashboard initialSection="tasks" />;
+        return <CrmHrTaskAssignment />;
 
       // Standard & Recruiter Modules
       case 'consulting': return <CrmConsultingBookings />;
@@ -520,6 +517,14 @@ const CrmAppContent = () => {
   );
 };
 
-export const CrmApp = () => (
-  <CrmAppContent />
-);
+export const CrmApp = () => {
+  const ctx = useContext(CrmContext);
+  if (!ctx || !ctx.setActiveModule || ctx === DEFAULT_CRM_CONTEXT_VALUE) {
+    return (
+      <CrmProvider>
+        <CrmAppContent />
+      </CrmProvider>
+    );
+  }
+  return <CrmAppContent />;
+};

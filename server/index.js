@@ -2062,8 +2062,9 @@ const recentInquirySubmissions = new Map();
 app.post('/api/hr-operations/assign', async (req, res) => {
   try {
     const userRole = req.headers['x-user-role'] || req.body.userRole || req.body.role;
-    // Security check: HR Operations employees cannot assign enquiries
-    if (userRole === 'HR Operations') {
+    const authorizedRoles = ['HR Lead', 'Super Admin', 'Admin'];
+    // Security check: Only HR Lead, Super Admin, and Admin are authorized to assign enquiries
+    if (userRole && !authorizedRoles.includes(userRole)) {
       return res.status(403).json({
         success: false,
         message: 'Access Denied: Only HR Lead, Super Admin, and Admin are authorized to assign enquiries.'
@@ -2105,14 +2106,26 @@ app.post('/api/hr-operations/assign', async (req, res) => {
     let canonicalId = employeeId || 'REV-EMP-006';
     let canonicalEmail = employeeEmail || '';
     
-    // Check if Balavarshini
     const nameClean = (canonicalName || '').toLowerCase().replace(/[^a-z]/g, '');
-    const isBala = nameClean.includes('bala') || (canonicalEmail && canonicalEmail.toLowerCase().includes('bala')) || (canonicalId && (canonicalId.includes('102') || canonicalId.includes('201') || canonicalId.includes('006')));
-    
-    if (isBala) {
+    const cleanEmail = (canonicalEmail || '').toLowerCase();
+    const cleanId = canonicalId || '';
+
+    if (nameClean.includes('fatima') || cleanEmail.includes('fatima') || ['REV-EMP-107', 'INTL-HR-101', 'emp-fatima'].includes(cleanId)) {
+      canonicalName = 'Fatima';
+      canonicalId = 'REV-EMP-107';
+      canonicalEmail = 'fatima.intl@revivalinternational.com';
+    } else if (nameClean.includes('bala') || cleanEmail.includes('bala') || ['REV-EMP-006', 'INTL-HR-102', 'emp-6'].includes(cleanId)) {
       canonicalName = 'Balavarshini S.';
       canonicalId = 'REV-EMP-006';
-      canonicalEmail = 'balavarshini2223@gmail.com';
+      canonicalEmail = 'balavarshini.s@revivalinternational.com';
+    } else if (nameClean.includes('divya') || nameClean.includes('diviya') || cleanEmail.includes('divya') || cleanEmail.includes('diviya') || ['REV-EMP-102', 'ENQ-HR-201', 'emp-divya', 'emp-diviya'].includes(cleanId)) {
+      canonicalName = 'Divya R.';
+      canonicalId = 'REV-EMP-102';
+      canonicalEmail = 'divya.enq@revivalinternational.com';
+    } else if (nameClean.includes('praveen') || cleanEmail.includes('praveen') || ['REV-EMP-108', 'ENQ-HR-202', 'emp-praveen'].includes(cleanId)) {
+      canonicalName = 'Praveen Kumar';
+      canonicalId = 'REV-EMP-108';
+      canonicalEmail = 'praveen.enq@revivalinternational.com';
     }
 
     let updatedCount = 0;
@@ -2243,7 +2256,8 @@ app.get('/api/hr-operations/my-enquiries', async (req, res) => {
     const operationTeam = req.headers['x-operation-team'] || req.query.operationTeam;
 
     const nameClean = (reqEmployeeName || '').toLowerCase().replace(/[^a-z]/g, '');
-    const isBala = nameClean.includes('bala') || (reqEmployeeEmail && reqEmployeeEmail.toLowerCase().includes('bala')) || (reqEmployeeId && (reqEmployeeId.includes('102') || reqEmployeeId.includes('201') || reqEmployeeId.includes('006')));
+    const cleanEmail = (reqEmployeeEmail || '').toLowerCase();
+    const cleanId = reqEmployeeId || '';
 
     let query = `
       SELECT * FROM leads 
@@ -2251,12 +2265,34 @@ app.get('/api/hr-operations/my-enquiries', async (req, res) => {
     `;
     const params = [];
 
-    if (isBala) {
+    if (nameClean.includes('fatima') || cleanEmail.includes('fatima') || ['REV-EMP-107', 'INTL-HR-101', 'emp-fatima'].includes(cleanId)) {
+      query += ` AND (
+        LOWER(assignedEmployee) LIKE '%fatima%' OR 
+        assignedEmployeeId IN ('REV-EMP-107', 'INTL-HR-101', 'emp-fatima') OR
+        LOWER(COALESCE(assignedEmployeeEmail, '')) LIKE '%fatima%' OR
+        id IN (SELECT enquiryId FROM hr_task_assignments WHERE LOWER(assignedEmployeeName) LIKE '%fatima%' OR assignedEmployeeId IN ('REV-EMP-107', 'INTL-HR-101', 'emp-fatima'))
+      )`;
+    } else if (nameClean.includes('bala') || cleanEmail.includes('bala') || ['REV-EMP-006', 'INTL-HR-102', 'emp-6'].includes(cleanId)) {
       query += ` AND (
         LOWER(assignedEmployee) LIKE '%bala%' OR 
-        assignedEmployeeId IN ('REV-EMP-006', 'INTL-HR-102', 'ENQ-HR-201', 'emp-6', 'emp-bala') OR
+        assignedEmployeeId IN ('REV-EMP-006', 'INTL-HR-102', 'emp-6') OR
         LOWER(COALESCE(assignedEmployeeEmail, '')) LIKE '%bala%' OR
-        id IN (SELECT enquiryId FROM hr_task_assignments WHERE LOWER(assignedEmployeeName) LIKE '%bala%' OR assignedEmployeeId IN ('REV-EMP-006', 'INTL-HR-102', 'ENQ-HR-201', 'emp-6', 'emp-bala'))
+        id IN (SELECT enquiryId FROM hr_task_assignments WHERE LOWER(assignedEmployeeName) LIKE '%bala%' OR assignedEmployeeId IN ('REV-EMP-006', 'INTL-HR-102', 'emp-6'))
+      )`;
+    } else if (nameClean.includes('divya') || nameClean.includes('diviya') || cleanEmail.includes('divya') || cleanEmail.includes('diviya') || ['REV-EMP-102', 'ENQ-HR-201', 'emp-divya', 'emp-diviya'].includes(cleanId)) {
+      query += ` AND (
+        LOWER(assignedEmployee) LIKE '%divya%' OR 
+        LOWER(assignedEmployee) LIKE '%diviya%' OR 
+        assignedEmployeeId IN ('REV-EMP-102', 'ENQ-HR-201', 'emp-divya', 'emp-diviya') OR
+        LOWER(COALESCE(assignedEmployeeEmail, '')) LIKE '%divya%' OR
+        id IN (SELECT enquiryId FROM hr_task_assignments WHERE LOWER(assignedEmployeeName) LIKE '%divya%' OR LOWER(assignedEmployeeName) LIKE '%diviya%' OR assignedEmployeeId IN ('REV-EMP-102', 'ENQ-HR-201', 'emp-divya', 'emp-diviya'))
+      )`;
+    } else if (nameClean.includes('praveen') || cleanEmail.includes('praveen') || ['REV-EMP-108', 'ENQ-HR-202', 'emp-praveen'].includes(cleanId)) {
+      query += ` AND (
+        LOWER(assignedEmployee) LIKE '%praveen%' OR 
+        assignedEmployeeId IN ('REV-EMP-108', 'ENQ-HR-202', 'emp-praveen') OR
+        LOWER(COALESCE(assignedEmployeeEmail, '')) LIKE '%praveen%' OR
+        id IN (SELECT enquiryId FROM hr_task_assignments WHERE LOWER(assignedEmployeeName) LIKE '%praveen%' OR assignedEmployeeId IN ('REV-EMP-108', 'ENQ-HR-202', 'emp-praveen'))
       )`;
     } else {
       query += ` AND (
@@ -2380,14 +2416,37 @@ app.get(['/api/leads', '/api/consulting/enquiries', '/api/career-guidance/enquir
       }
 
       const nameClean = (reqEmployeeName || '').toLowerCase().replace(/[^a-z]/g, '');
-      const isBala = nameClean.includes('bala') || (reqEmployeeEmail && reqEmployeeEmail.toLowerCase().includes('bala')) || (reqEmployeeId && (reqEmployeeId.includes('102') || reqEmployeeId.includes('201') || reqEmployeeId.includes('006')));
+      const cleanEmail = (reqEmployeeEmail || '').toLowerCase();
+      const cleanId = reqEmployeeId || '';
 
-      if (isBala) {
+      if (nameClean.includes('fatima') || cleanEmail.includes('fatima') || ['REV-EMP-107', 'INTL-HR-101', 'emp-fatima'].includes(cleanId)) {
+        query += ` AND (
+          LOWER(assignedEmployee) LIKE '%fatima%' OR 
+          assignedEmployeeId IN ('REV-EMP-107', 'INTL-HR-101', 'emp-fatima') OR
+          LOWER(COALESCE(assignedEmployeeEmail, '')) LIKE '%fatima%' OR
+          id IN (SELECT enquiryId FROM hr_task_assignments WHERE LOWER(assignedEmployeeName) LIKE '%fatima%' OR assignedEmployeeId IN ('REV-EMP-107', 'INTL-HR-101', 'emp-fatima'))
+        )`;
+      } else if (nameClean.includes('bala') || cleanEmail.includes('bala') || ['REV-EMP-006', 'INTL-HR-102', 'emp-6'].includes(cleanId)) {
         query += ` AND (
           LOWER(assignedEmployee) LIKE '%bala%' OR 
-          assignedEmployeeId IN ('REV-EMP-006', 'INTL-HR-102', 'ENQ-HR-201', 'emp-6', 'emp-bala') OR
+          assignedEmployeeId IN ('REV-EMP-006', 'INTL-HR-102', 'emp-6') OR
           LOWER(COALESCE(assignedEmployeeEmail, '')) LIKE '%bala%' OR
-          id IN (SELECT enquiryId FROM hr_task_assignments WHERE LOWER(assignedEmployeeName) LIKE '%bala%' OR assignedEmployeeId IN ('REV-EMP-006', 'INTL-HR-102', 'ENQ-HR-201', 'emp-6', 'emp-bala'))
+          id IN (SELECT enquiryId FROM hr_task_assignments WHERE LOWER(assignedEmployeeName) LIKE '%bala%' OR assignedEmployeeId IN ('REV-EMP-006', 'INTL-HR-102', 'emp-6'))
+        )`;
+      } else if (nameClean.includes('divya') || nameClean.includes('diviya') || cleanEmail.includes('divya') || cleanEmail.includes('diviya') || ['REV-EMP-102', 'ENQ-HR-201', 'emp-divya', 'emp-diviya'].includes(cleanId)) {
+        query += ` AND (
+          LOWER(assignedEmployee) LIKE '%divya%' OR 
+          LOWER(assignedEmployee) LIKE '%diviya%' OR 
+          assignedEmployeeId IN ('REV-EMP-102', 'ENQ-HR-201', 'emp-divya', 'emp-diviya') OR
+          LOWER(COALESCE(assignedEmployeeEmail, '')) LIKE '%divya%' OR
+          id IN (SELECT enquiryId FROM hr_task_assignments WHERE LOWER(assignedEmployeeName) LIKE '%divya%' OR LOWER(assignedEmployeeName) LIKE '%diviya%' OR assignedEmployeeId IN ('REV-EMP-102', 'ENQ-HR-201', 'emp-divya', 'emp-diviya'))
+        )`;
+      } else if (nameClean.includes('praveen') || cleanEmail.includes('praveen') || ['REV-EMP-108', 'ENQ-HR-202', 'emp-praveen'].includes(cleanId)) {
+        query += ` AND (
+          LOWER(assignedEmployee) LIKE '%praveen%' OR 
+          assignedEmployeeId IN ('REV-EMP-108', 'ENQ-HR-202', 'emp-praveen') OR
+          LOWER(COALESCE(assignedEmployeeEmail, '')) LIKE '%praveen%' OR
+          id IN (SELECT enquiryId FROM hr_task_assignments WHERE LOWER(assignedEmployeeName) LIKE '%praveen%' OR assignedEmployeeId IN ('REV-EMP-108', 'ENQ-HR-202', 'emp-praveen'))
         )`;
       } else {
         const empLower = (reqEmployeeName || '').toLowerCase().trim();

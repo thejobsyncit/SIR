@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import {
   PhoneCall,
+  Phone,
   Mail,
   MessageSquare,
   Clock,
@@ -52,19 +53,57 @@ export const CrmHrOperationsDashboard = () => {
   const [refreshing, setRefreshing] = useState(false);
   const [syncNotice, setSyncNotice] = useState('');
 
-  // Canonical employee identity for Balavarshini / HR Operations
+  // Canonical employee identity for HR Operations
   const activeEmployee = useMemo(() => {
+    const empName = currentEmployee?.name || user?.name || 'Balavarshini S.';
+    const empId = currentEmployee?.employeeId || currentEmployee?.id || user?.employeeId || user?.id || (
+      empName === 'Fatima' ? 'REV-EMP-107' :
+      empName.includes('Divya') ? 'REV-EMP-102' :
+      empName.includes('Praveen') ? 'REV-EMP-108' : 'REV-EMP-006'
+    );
+    const empTeamMemberId = currentEmployee?.teamMemberId || user?.teamMemberId || (
+      empName === 'Fatima' ? 'INTL-HR-101' :
+      empName.includes('Divya') ? 'ENQ-HR-201' :
+      empName.includes('Praveen') ? 'ENQ-HR-202' : 'INTL-HR-102'
+    );
+    const empEmail = currentEmployee?.email || user?.email || (
+      empName === 'Fatima' ? 'fatima.intl@revivalinternational.com' :
+      empName.includes('Divya') ? 'divya.enq@revivalinternational.com' :
+      empName.includes('Praveen') ? 'praveen.enq@revivalinternational.com' : 'balavarshini.s@revivalinternational.com'
+    );
+    const empWorkEmail = currentEmployee?.workEmail || user?.workEmail || empEmail;
+    const empDesignation = currentEmployee?.designation || user?.designation || (
+      empName === 'Fatima' ? 'International HR Operations Specialist' :
+      empName.includes('Balavarshini') ? 'Lead HR Operations Specialist' : 'HR Operations Specialist'
+    );
+    const empTeam = currentEmployee?.operationTeam || user?.operationTeam || (
+      (empName === 'Fatima' || empName.includes('Balavarshini')) ? 'International HR Operations' : 'Enquiry HR Operations'
+    );
+
     return {
-      name: currentEmployee?.name || user?.name || 'Balavarshini S.',
-      id: currentEmployee?.employeeId || currentEmployee?.id || user?.employeeId || user?.id || 'REV-EMP-006',
-      teamMemberId: currentEmployee?.teamMemberId || user?.teamMemberId || 'INTL-HR-102',
-      email: currentEmployee?.email || user?.email || 'balavarshini2223@gmail.com',
-      workEmail: currentEmployee?.workEmail || user?.workEmail || 'balavarshini.s@revivalcrm.com',
-      role: currentRole || 'HR Operations',
-      department: currentEmployee?.department || user?.department || 'HR Operations',
-      team: currentEmployee?.operationTeam || user?.operationTeam || 'International HR Operations, Enquiry HR Operations'
+      name: empName,
+      id: empId,
+      teamMemberId: empTeamMemberId,
+      email: empEmail,
+      workEmail: empWorkEmail,
+      role: currentRole || user?.role || 'HR Operations',
+      department: currentEmployee?.department || user?.department || empTeam,
+      designation: empDesignation,
+      team: empTeam
     };
   }, [currentEmployee, user, currentRole]);
+
+  // Restrict operation branch based on team membership
+  const isEnquiryTeam = activeEmployee.team.includes('Enquiry') || activeEmployee.name.includes('Divya') || activeEmployee.name.includes('Praveen');
+  const isIntlTeam = activeEmployee.team.includes('International') || activeEmployee.name.includes('Fatima') || activeEmployee.name.includes('Bala');
+
+  useEffect(() => {
+    if (isEnquiryTeam && !isIntlTeam) {
+      setOperationBranch('enq-ops');
+    } else if (isIntlTeam && !isEnquiryTeam) {
+      setOperationBranch('intl-ops');
+    }
+  }, [isEnquiryTeam, isIntlTeam]);
 
   // Daily leads queue data (Live from SQLite Backend)
   const [dailyLeads, setDailyLeads] = useState([]);
@@ -185,7 +224,7 @@ export const CrmHrOperationsDashboard = () => {
   const attendanceRecord = {
     employeeName: activeEmployee.name,
     employeeId: activeEmployee.id,
-    designation: 'Lead HR Operations Specialist',
+    designation: activeEmployee.designation || 'HR Operations Specialist',
     checkInTime: '08:52 AM',
     expectedCheckIn: '09:00 AM',
     status: 'Present (On Time)',
@@ -446,46 +485,52 @@ export const CrmHrOperationsDashboard = () => {
 
       {/* Operation Team Branch Filter Selector */}
       <div className="bg-white dark:bg-navy-900 p-3 rounded-2xl border border-slate-200 dark:border-navy-800 shadow-sm flex flex-wrap items-center gap-2">
-        <span className="text-xs font-bold text-slate-500 px-2">Operation Team:</span>
-        <button
-          type="button"
-          onClick={() => setOperationBranch('all')}
-          className={`px-3 py-1.5 rounded-xl font-bold text-xs transition cursor-pointer ${
-            operationBranch === 'all'
-              ? 'bg-slate-900 dark:bg-white text-white dark:text-slate-900 shadow-xs'
-              : 'bg-slate-100 dark:bg-navy-800 text-slate-600 dark:text-slate-400 hover:bg-slate-200'
-          }`}
-        >
-          All Assigned Enquiries ({dailyLeads.length})
-        </button>
+        <span className="text-xs font-bold text-slate-500 px-2">Assigned Team:</span>
+        {(!isEnquiryTeam || isIntlTeam) && (
+          <button
+            type="button"
+            onClick={() => setOperationBranch('intl-ops')}
+            className={`flex items-center gap-1.5 px-3 py-1.5 rounded-xl font-bold text-xs transition cursor-pointer ${
+              operationBranch === 'intl-ops'
+                ? 'bg-blue-600 text-white shadow-xs'
+                : 'bg-blue-50 dark:bg-navy-800 text-blue-700 dark:text-blue-300 hover:bg-blue-100'
+            }`}
+          >
+            <Globe className="w-3.5 h-3.5" />
+            <span>Branch A: International HR Operations</span>
+            <span className="px-1.5 py-0.2 rounded-full text-[10px] bg-white/20 font-mono">{intlCount}</span>
+          </button>
+        )}
 
-        <button
-          type="button"
-          onClick={() => setOperationBranch('intl-ops')}
-          className={`flex items-center gap-1.5 px-3 py-1.5 rounded-xl font-bold text-xs transition cursor-pointer ${
-            operationBranch === 'intl-ops'
-              ? 'bg-blue-600 text-white shadow-xs'
-              : 'bg-blue-50 dark:bg-navy-800 text-blue-700 dark:text-blue-300 hover:bg-blue-100'
-          }`}
-        >
-          <Globe className="w-3.5 h-3.5" />
-          <span>Branch A: International HR Operations</span>
-          <span className="px-1.5 py-0.2 rounded-full text-[10px] bg-white/20 font-mono">{intlCount}</span>
-        </button>
+        {(!isIntlTeam || isEnquiryTeam) && (
+          <button
+            type="button"
+            onClick={() => setOperationBranch('enq-ops')}
+            className={`flex items-center gap-1.5 px-3 py-1.5 rounded-xl font-bold text-xs transition cursor-pointer ${
+              operationBranch === 'enq-ops'
+                ? 'bg-emerald-600 text-white shadow-xs'
+                : 'bg-emerald-50 dark:bg-navy-800 text-emerald-700 dark:text-emerald-300 hover:bg-emerald-100'
+            }`}
+          >
+            <GraduationCap className="w-3.5 h-3.5" />
+            <span>Branch B: Enquiry HR Operations</span>
+            <span className="px-1.5 py-0.2 rounded-full text-[10px] bg-white/20 font-mono">{enqCount}</span>
+          </button>
+        )}
 
-        <button
-          type="button"
-          onClick={() => setOperationBranch('enq-ops')}
-          className={`flex items-center gap-1.5 px-3 py-1.5 rounded-xl font-bold text-xs transition cursor-pointer ${
-            operationBranch === 'enq-ops'
-              ? 'bg-emerald-600 text-white shadow-xs'
-              : 'bg-emerald-50 dark:bg-navy-800 text-emerald-700 dark:text-emerald-300 hover:bg-emerald-100'
-          }`}
-        >
-          <GraduationCap className="w-3.5 h-3.5" />
-          <span>Branch B: Enquiry HR Operations</span>
-          <span className="px-1.5 py-0.2 rounded-full text-[10px] bg-white/20 font-mono">{enqCount}</span>
-        </button>
+        {isIntlTeam && isEnquiryTeam && (
+          <button
+            type="button"
+            onClick={() => setOperationBranch('all')}
+            className={`px-3 py-1.5 rounded-xl font-bold text-xs transition cursor-pointer ${
+              operationBranch === 'all'
+                ? 'bg-slate-900 dark:bg-white text-white dark:text-slate-900 shadow-xs'
+                : 'bg-slate-100 dark:bg-navy-800 text-slate-600 dark:text-slate-400 hover:bg-slate-200'
+            }`}
+          >
+            All Assigned Enquiries ({dailyLeads.length})
+          </button>
+        )}
       </div>
 
       {/* Navigation Tabs */}
@@ -597,18 +642,21 @@ export const CrmHrOperationsDashboard = () => {
                 <table className="w-full text-left border-collapse text-xs">
                   <thead>
                     <tr className="bg-slate-50 dark:bg-navy-800 text-slate-600 dark:text-slate-400 font-semibold border-b border-slate-200 dark:border-navy-700">
-                      <th className="py-3 px-4">Candidate & Reference</th>
-                      <th className="py-3 px-4">Enquiry Service & Team</th>
-                      <th className="py-3 px-4">Priority & Assigned</th>
-                      <th className="py-3 px-4">Status</th>
-                      <th className="py-3 px-4">HR Lead Instructions</th>
-                      <th className="py-3 px-4 text-right">Quick Operations</th>
+                      <th className="py-3 px-4 whitespace-nowrap">Reference ID</th>
+                      <th className="py-3 px-4 whitespace-nowrap">Candidate Name</th>
+                      <th className="py-3 px-4 whitespace-nowrap">Phone Number</th>
+                      <th className="py-3 px-4 whitespace-nowrap">Email Address</th>
+                      <th className="py-3 px-4 whitespace-nowrap">Enquiry Service & Team</th>
+                      <th className="py-3 px-4 whitespace-nowrap">Priority & Assigned Date</th>
+                      <th className="py-3 px-4 whitespace-nowrap">Status</th>
+                      <th className="py-3 px-4 min-w-[200px]">HR Lead Instructions</th>
+                      <th className="py-3 px-4 text-right whitespace-nowrap">Quick Operations</th>
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-slate-100 dark:divide-navy-800">
                     {filteredLeads.length === 0 ? (
                       <tr>
-                        <td colSpan="6" className="py-12 text-center text-slate-400 space-y-2">
+                        <td colSpan="9" className="py-12 text-center text-slate-400 space-y-2">
                           <AlertCircle className="w-8 h-8 mx-auto opacity-40 text-slate-400" />
                           <div className="font-bold text-sm text-slate-700 dark:text-slate-300">
                             No assigned enquiries found matching the criteria.
@@ -621,24 +669,45 @@ export const CrmHrOperationsDashboard = () => {
                     ) : (
                       filteredLeads.map((lead) => (
                         <tr key={lead.id} className="hover:bg-slate-50/70 dark:hover:bg-navy-800/50 transition">
-                          {/* Candidate & Reference */}
-                          <td className="py-3 px-4">
+                          {/* 1. Reference ID */}
+                          <td className="py-3 px-4 whitespace-nowrap font-mono text-xs font-bold text-gold-600 dark:text-gold-400">
+                            {lead.referenceNumber || (lead.id ? (lead.id.startsWith('#') ? lead.id : `#${lead.id}`) : '—')}
+                          </td>
+
+                          {/* 2. Candidate Name */}
+                          <td className="py-3 px-4 whitespace-nowrap">
                             <div className="font-bold text-slate-900 dark:text-white flex items-center gap-1.5">
-                              {lead.candidateName}
+                              <span>{lead.candidateName}</span>
                               {lead.isOverdue && (
                                 <span className="px-1.5 py-0.5 rounded bg-rose-100 text-rose-700 text-[10px] font-bold">
                                   Overdue
                                 </span>
                               )}
                             </div>
-                            <div className="font-mono text-[10px] text-gold-600 dark:text-gold-400 font-semibold mt-0.5">
-                              {lead.referenceNumber}
-                            </div>
-                            <div className="text-[11px] text-slate-500 flex items-center gap-2 mt-0.5">
-                              {lead.phone && <span>{lead.phone}</span>}
-                              {lead.phone && lead.email && <span>•</span>}
-                              {lead.email && <span className="truncate max-w-[150px]">{lead.email}</span>}
-                            </div>
+                          </td>
+
+                          {/* 3. Phone Number */}
+                          <td className="py-3 px-4 whitespace-nowrap font-mono text-xs">
+                            {lead.phone ? (
+                              <a href={`tel:${lead.phone}`} className="hover:text-emerald-500 text-slate-700 dark:text-slate-300 flex items-center gap-1.5 group">
+                                <Phone className="w-3.5 h-3.5 text-emerald-500 shrink-0 group-hover:scale-110 transition" />
+                                <span>{lead.phone}</span>
+                              </a>
+                            ) : (
+                              <span className="text-slate-400 italic text-[11px]">—</span>
+                            )}
+                          </td>
+
+                          {/* 4. Email Address */}
+                          <td className="py-3 px-4 font-mono text-xs">
+                            {lead.email ? (
+                              <a href={`mailto:${lead.email}`} className="hover:text-emerald-500 text-slate-700 dark:text-slate-300 flex items-center gap-1.5 truncate max-w-[200px] group" title={lead.email}>
+                                <Mail className="w-3.5 h-3.5 text-blue-500 shrink-0 group-hover:scale-110 transition" />
+                                <span className="truncate">{lead.email}</span>
+                              </a>
+                            ) : (
+                              <span className="text-slate-400 italic text-[11px]">—</span>
+                            )}
                           </td>
 
                           {/* Enquiry Service & Operation Team */}

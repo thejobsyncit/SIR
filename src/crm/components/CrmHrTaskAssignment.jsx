@@ -10,27 +10,23 @@ import {
 
 // Team members strictly classified by operation as defined in the flowchart
 export const INTL_HR_OPERATIONS_TEAM = [
-  { id: 'INTL-HR-101', employeeId: 'REV-EMP-107', name: 'Fatima Al Zahra', role: 'International HR Operations Specialist', email: 'fatima.zahra@revivalcrm.com', activeTasks: 3, avatar: 'https://images.unsplash.com/photo-1573496359142-b8d87734a5a2?w=150&auto=format&fit=crop&q=80' },
-  { id: 'INTL-HR-102', employeeId: 'REV-EMP-006', name: 'Balavarshini S.', role: 'Lead HR Operations Specialist', email: 'balavarshini.s@revivalcrm.com', loginEmail: 'balavarshini2223@gmail.com', activeTasks: 2, avatar: 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=150&auto=format&fit=crop&q=80' },
-  { id: 'INTL-HR-103', employeeId: 'REV-EMP-102', name: 'Diviya R.', role: 'Senior International Admissions Specialist', email: 'diviya.r@revivalcrm.com', activeTasks: 2, avatar: 'https://images.unsplash.com/photo-1517841905240-472988babdf9?w=150&auto=format&fit=crop&q=80' },
-  { id: 'INTL-HR-104', employeeId: 'REV-EMP-104', name: 'Kishore Kumar', role: 'International Operations Associate', email: 'kishore.k@revivalcrm.com', activeTasks: 1, avatar: 'https://images.unsplash.com/photo-1500648767791-00dcc994a43e?w=150&auto=format&fit=crop&q=80' }
+  { id: 'INTL-HR-101', employeeId: 'REV-EMP-107', name: 'Fatima', role: 'International HR Operations Specialist', email: 'fatima.intl@revivalinternational.com', loginEmail: 'fatima.intl@revivalinternational.com', activeTasks: 3, avatar: 'https://images.unsplash.com/photo-1573496359142-b8d87734a5a2?w=150&auto=format&fit=crop&q=80' },
+  { id: 'INTL-HR-102', employeeId: 'REV-EMP-006', name: 'Balavarshini S.', role: 'Lead HR Operations Specialist', email: 'balavarshini.s@revivalinternational.com', loginEmail: 'balavarshini2223@gmail.com', activeTasks: 2, avatar: 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=150&auto=format&fit=crop&q=80' }
 ];
 
 export const ENQUIRY_HR_OPERATIONS_TEAM = [
-  { id: 'ENQ-HR-201', employeeId: 'REV-EMP-006', name: 'Balavarshini S.', role: 'Lead HR Operations Specialist', email: 'balavarshini.s@revivalcrm.com', loginEmail: 'balavarshini2223@gmail.com', activeTasks: 4, avatar: 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=150&auto=format&fit=crop&q=80' },
-  { id: 'ENQ-HR-202', employeeId: 'REV-EMP-103', name: 'Chentamilselvi M.', role: 'HR Compliance & Verification Officer', email: 'chentamil.m@revivalcrm.com', activeTasks: 2, avatar: 'https://images.unsplash.com/photo-1544005313-94ddf0286df2?w=150&auto=format&fit=crop&q=80' },
-  { id: 'ENQ-HR-203', employeeId: 'REV-EMP-005', name: 'Sreeja Nair', role: 'Academic Guidance Counselor', email: 'sreeja.n@revivalcrm.com', activeTasks: 3, avatar: 'https://images.unsplash.com/photo-1567532939604-b6b5b0db2604?w=150&auto=format&fit=crop&q=80' },
-  { id: 'ENQ-HR-204', employeeId: 'REV-EMP-107', name: 'Fatima Al Zahra', role: 'International & Academic Operations', email: 'fatima.ops@revivalinternational.com', activeTasks: 2, avatar: 'https://images.unsplash.com/photo-1573496359142-b8d87734a5a2?w=150&auto=format&fit=crop&q=80' }
+  { id: 'ENQ-HR-201', employeeId: 'REV-EMP-102', name: 'Divya R.', role: 'HR Operations Specialist', email: 'divya.enq@revivalinternational.com', loginEmail: 'divya.enq@revivalinternational.com', activeTasks: 2, avatar: 'https://images.unsplash.com/photo-1517841905240-472988babdf9?w=150&auto=format&fit=crop&q=80' },
+  { id: 'ENQ-HR-202', employeeId: 'REV-EMP-108', name: 'Praveen Kumar', role: 'HR Operations Specialist', email: 'praveen.enq@revivalinternational.com', loginEmail: 'praveen.enq@revivalinternational.com', activeTasks: 1, avatar: 'https://images.unsplash.com/photo-1500648767791-00dcc994a43e?w=150&auto=format&fit=crop&q=80' }
 ];
 
 // Baseline enquiries with clear assignments to team members
 const INITIAL_BASELINE_ENQUIRIES = [
   // Branch A: International HR Operations (intl-adm, intl-consult)
   { id: 'LEAD-INT-101', referenceNumber: 'REV-INT-2026-001', name: 'Dr. Sarah Al-Mansoori', email: 'sarah.mansoori@gmail.com', phone: '+971 50 123 4567', serviceId: 'intl-consult', serviceTitle: 'International Consulting', country: 'United Arab Emirates', status: 'New', createdAt: '2026-11-08T10:30:00Z', notes: 'Consultation for Dubai Golden Visa executive portfolio.' },
-  { id: 'LEAD-INT-102', referenceNumber: 'REV-INT-2026-002', name: 'Alexander Wright', email: 'alex.wright@contractor.co.uk', phone: '+44 7911 123456', serviceId: 'intl-consult', serviceTitle: 'International Consulting', country: 'United Kingdom', status: 'Assigned', assignedEmployee: 'Balavarshini', priority: 'High', assignmentNotes: '📌 Review UK civil engineering degree attestation and Golden Visa sponsorship eligibility.', assignedDate: '2026-11-08T11:15:00Z', createdAt: '2026-11-08T11:15:00Z' },
-  { id: 'LEAD-INT-103', referenceNumber: 'REV-ADM-2026-003', name: 'Elena Rostova', email: 'elena.rostova@cloudtech.de', phone: '+49 151 2345678', serviceId: 'intl-adm', serviceTitle: 'International Admissions', country: 'Germany', status: 'Assigned', assignedEmployee: 'Balavarshini S.', priority: 'Normal', assignmentNotes: '📌 Verify German bachelor transcripts and coordinate Dubai campus MSc application.', assignedDate: '2026-11-08T14:20:00Z', createdAt: '2026-11-08T14:20:00Z' },
-  { id: 'LEAD-INT-104', referenceNumber: 'REV-INT-2026-004', name: 'Zubair Al Mansoor', email: 'zubair.mansoor@qatarcorp.qa', phone: '+974 55 123456', serviceId: 'intl-consult', serviceTitle: 'International Consulting', country: 'Qatar', status: 'Assigned', assignedEmployee: 'Fatima Al Zahra', priority: 'High', assignmentNotes: '📌 Urgent: Verify attested degree copies & police clearance for GCC residency.', assignedDate: '2026-11-07T09:00:00Z', createdAt: '2026-11-07T08:00:00Z' },
-  { id: 'LEAD-INT-105', referenceNumber: 'REV-ADM-2026-005', name: 'Karthik Subburaj', email: 'karthik.subburaj@gmail.com', phone: '+91 97890 87654', serviceId: 'intl-adm', serviceTitle: 'International Admissions', country: 'India', status: 'Assigned', assignedEmployee: 'Diviya R.', priority: 'Normal', assignmentNotes: '📌 Call candidate to review IELTS scorecard and Spring 2027 university intake deadlines.', assignedDate: '2026-11-07T11:30:00Z', createdAt: '2026-11-07T10:00:00Z' },
+  { id: 'LEAD-INT-102', referenceNumber: 'REV-INT-2026-002', name: 'Alexander Wright', email: 'alex.wright@contractor.co.uk', phone: '+44 7911 123456', serviceId: 'intl-consult', serviceTitle: 'International Consulting', country: 'United Kingdom', status: 'Assigned', assignedEmployee: 'Balavarshini S.', assignedEmployeeId: 'REV-EMP-006', assignedEmployeeEmail: 'balavarshini.s@revivalinternational.com', priority: 'High', assignmentNotes: '📌 Review UK civil engineering degree attestation and Golden Visa sponsorship eligibility.', assignedDate: '2026-11-08T11:15:00Z', createdAt: '2026-11-08T11:15:00Z' },
+  { id: 'LEAD-INT-103', referenceNumber: 'REV-ADM-2026-003', name: 'Elena Rostova', email: 'elena.rostova@cloudtech.de', phone: '+49 151 2345678', serviceId: 'intl-adm', serviceTitle: 'International Admissions', country: 'Germany', status: 'Assigned', assignedEmployee: 'Balavarshini S.', assignedEmployeeId: 'REV-EMP-006', assignedEmployeeEmail: 'balavarshini.s@revivalinternational.com', priority: 'Normal', assignmentNotes: '📌 Verify German bachelor transcripts and coordinate Dubai campus MSc application.', assignedDate: '2026-11-08T14:20:00Z', createdAt: '2026-11-08T14:20:00Z' },
+  { id: 'LEAD-INT-104', referenceNumber: 'REV-INT-2026-004', name: 'Zubair Al Mansoor', email: 'zubair.mansoor@qatarcorp.qa', phone: '+974 55 123456', serviceId: 'intl-consult', serviceTitle: 'International Consulting', country: 'Qatar', status: 'Assigned', assignedEmployee: 'Fatima', assignedEmployeeId: 'REV-EMP-107', assignedEmployeeEmail: 'fatima.intl@revivalinternational.com', priority: 'High', assignmentNotes: '📌 Urgent: Verify attested degree copies & police clearance for GCC residency.', assignedDate: '2026-11-07T09:00:00Z', createdAt: '2026-11-07T08:00:00Z' },
+  { id: 'LEAD-INT-105', referenceNumber: 'REV-ADM-2026-005', name: 'Karthik Subburaj', email: 'karthik.subburaj@gmail.com', phone: '+91 97890 87654', serviceId: 'intl-adm', serviceTitle: 'International Admissions', country: 'India', status: 'Assigned', assignedEmployee: 'Fatima', assignedEmployeeId: 'REV-EMP-107', assignedEmployeeEmail: 'fatima.intl@revivalinternational.com', priority: 'Normal', assignmentNotes: '📌 Call candidate to review IELTS scorecard and Spring 2027 university intake deadlines.', assignedDate: '2026-11-07T11:30:00Z', createdAt: '2026-11-07T10:00:00Z' },
   { id: 'LEAD-INT-106', referenceNumber: 'REV-INT-2026-006', name: 'Nadia El-Sayed', email: 'nadia.elsayed@cairoinvest.eg', phone: '+20 100 987 6543', serviceId: 'intl-consult', serviceTitle: 'International Consulting', country: 'Egypt', status: 'New', createdAt: '2026-11-06T15:45:00Z', notes: 'Medical consultancy licensing in Abu Dhabi Department of Health.' },
   { id: 'LEAD-INT-107', referenceNumber: 'REV-ADM-2026-007', name: 'Ahmed Bin Rashid', email: 'ahmed.rashid@emirates.ae', phone: '+971 52 334 5566', serviceId: 'intl-adm', serviceTitle: 'International Admissions', country: 'United Arab Emirates', status: 'New', createdAt: '2026-11-06T16:10:00Z', notes: 'Undergraduate business analytics admissions guidance.' },
   { id: 'LEAD-INT-108', referenceNumber: 'REV-INT-2026-008', name: 'Carlos Mendez', email: 'carlos.mendez@solarenergy.es', phone: '+34 612 345 678', serviceId: 'intl-consult', serviceTitle: 'International Consulting', country: 'Spain', status: 'New', createdAt: '2026-11-05T09:15:00Z', notes: 'Renewable energy engineering consultancy in Saudi NEOM sector.' },
@@ -41,36 +37,37 @@ const INITIAL_BASELINE_ENQUIRIES = [
   { id: 'LEAD-INT-113', referenceNumber: 'REV-ADM-2026-013', name: 'Rohan Deshmukh', email: 'rohan.deshmukh@gmail.com', phone: '+91 99201 33445', serviceId: 'intl-adm', serviceTitle: 'International Admissions', country: 'India', status: 'New', createdAt: '2026-11-03T16:00:00Z', notes: 'Aerospace engineering bachelor admissions in Canada & Australia.' },
   { id: 'LEAD-INT-114', referenceNumber: 'REV-INT-2026-014', name: 'Fatima Al-Kuwari', email: 'f.kuwari@dohabank.qa', phone: '+974 66 778899', serviceId: 'intl-consult', serviceTitle: 'International Consulting', country: 'Qatar', status: 'New', createdAt: '2026-11-03T17:15:00Z', notes: 'Family office wealth governance and European golden visa.' },
   { id: 'LEAD-INT-115', referenceNumber: 'REV-ADM-2026-015', name: 'Ananya Roy', email: 'ananya.roy@calcuttauniv.in', phone: '+91 98310 99887', serviceId: 'intl-adm', serviceTitle: 'International Admissions', country: 'India', status: 'New', createdAt: '2026-11-02T11:00:00Z', notes: 'Public Health policy masters program in London School of Hygiene.' },
-  { id: 'LEAD-INT-116', referenceNumber: 'REV-INT-2026-016', name: 'Saeed Al-Mutawa', email: 'saeed.mutawa@dubaiports.ae', phone: '+971 50 889 0011', serviceId: 'intl-consult', serviceTitle: 'International Consulting', country: 'United Arab Emirates', status: 'Completed', assignedEmployee: 'Fatima Al Zahra', priority: 'High', assignmentNotes: 'Verify port logistics consultancy credentials.', completionNote: 'Consultancy dossier verified and signed off with MOHRE compliance.', completedDate: '2026-11-06T14:00:00Z', createdAt: '2026-11-01T09:00:00Z' },
+  { id: 'LEAD-INT-116', referenceNumber: 'REV-INT-2026-016', name: 'Saeed Al-Mutawa', email: 'saeed.mutawa@dubaiports.ae', phone: '+971 50 889 0011', serviceId: 'intl-consult', serviceTitle: 'International Consulting', country: 'United Arab Emirates', status: 'Completed', assignedEmployee: 'Fatima', assignedEmployeeId: 'REV-EMP-107', assignedEmployeeEmail: 'fatima.intl@revivalinternational.com', priority: 'High', assignmentNotes: 'Verify port logistics consultancy credentials.', completionNote: 'Consultancy dossier verified and signed off with MOHRE compliance.', completedDate: '2026-11-06T14:00:00Z', createdAt: '2026-11-01T09:00:00Z' },
   { id: 'LEAD-INT-117', referenceNumber: 'REV-ADM-2026-017', name: 'Farhan Zaidi', email: 'farhan.zaidi@karachitech.pk', phone: '+92 300 1234567', serviceId: 'intl-adm', serviceTitle: 'International Admissions', country: 'Pakistan', status: 'New', createdAt: '2026-11-01T12:00:00Z', notes: 'Biomedical engineering masters application in Ireland.' },
   { id: 'LEAD-INT-118', referenceNumber: 'REV-INT-2026-018', name: 'Chloe Dubois', email: 'chloe.dubois@parisdesign.fr', phone: '+33 6 12 34 56 78', serviceId: 'intl-consult', serviceTitle: 'International Consulting', country: 'France', status: 'New', createdAt: '2026-10-31T14:30:00Z', notes: 'Luxury retail architecture consultancy licensing in Riyadh.' },
 
   // Branch B: Enquiry HR Operations (school-career, school-academy, college-adm)
-  { id: 'LEAD-ENQ-201', referenceNumber: 'REV-CAR-2026-001', name: 'Arunmozhi Varman', email: 'arunmozhi.v@gmail.com', phone: '+91 98401 22334', serviceId: 'school-career', serviceTitle: 'Career Guidance', country: 'India', status: 'Assigned', assignedEmployee: 'Fatima Al Zahra', priority: 'Normal', assignmentNotes: '📌 Grade 10 stream selection counseling (Bio-Math vs Computer Science).', assignedDate: '2026-11-08T09:30:00Z', createdAt: '2026-11-08T09:30:00Z' },
+  { id: 'LEAD-ENQ-201', referenceNumber: 'REV-CAR-2026-001', name: 'Arunmozhi Varman', email: 'arunmozhi.v@gmail.com', phone: '+91 98401 22334', serviceId: 'school-career', serviceTitle: 'Career Guidance', country: 'India', status: 'Assigned', assignedEmployee: 'Divya R.', assignedEmployeeId: 'REV-EMP-102', assignedEmployeeEmail: 'divya.enq@revivalinternational.com', priority: 'Normal', assignmentNotes: '📌 Grade 10 stream selection counseling (Bio-Math vs Computer Science).', assignedDate: '2026-11-08T09:30:00Z', createdAt: '2026-11-08T09:30:00Z' },
   { id: 'LEAD-ENQ-202', referenceNumber: 'REV-ACA-2026-002', name: 'Kavitha Ramachandran', email: 'kavitha.ram@yahoo.com', phone: '+91 94441 55667', serviceId: 'school-academy', serviceTitle: 'School Student Academy', country: 'India', status: 'New', createdAt: '2026-11-08T10:45:00Z', notes: 'NEET 2027 integrated coaching cohort enrollment enquiry.' },
-  { id: 'LEAD-ENQ-203', referenceNumber: 'REV-COL-2026-003', name: 'Pooja Ramakrishnan', email: 'pooja.ram@yahoo.com', phone: '+91 98401 23456', serviceId: 'college-adm', serviceTitle: 'College Admission Assistance', country: 'India', status: 'Assigned', assignedEmployee: 'Balavarshini S.', priority: 'High', assignmentNotes: '📌 Review board exam cut-off and coordinate university quota counseling with parents.', assignedDate: '2026-11-07T10:00:00Z', createdAt: '2026-11-07T08:30:00Z' },
+  { id: 'LEAD-ENQ-203', referenceNumber: 'REV-COL-2026-003', name: 'Pooja Ramakrishnan', email: 'pooja.ram@yahoo.com', phone: '+91 98401 23456', serviceId: 'college-adm', serviceTitle: 'College Admission Assistance', country: 'India', status: 'Assigned', assignedEmployee: 'Praveen Kumar', assignedEmployeeId: 'REV-EMP-108', assignedEmployeeEmail: 'praveen.enq@revivalinternational.com', priority: 'High', assignmentNotes: '📌 Review board exam cut-off and coordinate university quota counseling with parents.', assignedDate: '2026-11-07T10:00:00Z', createdAt: '2026-11-07T08:30:00Z' },
   { id: 'LEAD-ENQ-204', referenceNumber: 'REV-CAR-2026-004', name: 'Siddharth Iyer', email: 'siddharth.iyer@gmail.com', phone: '+91 98840 99881', serviceId: 'school-career', serviceTitle: 'Career Guidance', country: 'India', status: 'New', createdAt: '2026-11-07T14:00:00Z', notes: 'Comprehensive psychometric aptitude assessment and engineering roadmap.' },
   { id: 'LEAD-ENQ-205', referenceNumber: 'REV-ACA-2026-005', name: 'Naveen Kumar M.', email: 'naveen.m@rediffmail.com', phone: '+91 97909 11223', serviceId: 'school-academy', serviceTitle: 'School Student Academy', country: 'India', status: 'New', createdAt: '2026-11-06T11:20:00Z', notes: 'JEE Mains & Advanced foundation weekend academy for 11th standard.' },
   { id: 'LEAD-ENQ-206', referenceNumber: 'REV-COL-2026-006', name: 'Deepa Narayanan', email: 'deepa.narayanan@gmail.com', phone: '+91 98410 44556', serviceId: 'college-adm', serviceTitle: 'College Admission Assistance', country: 'India', status: 'New', createdAt: '2026-11-06T13:40:00Z', notes: 'B.Tech Artificial Intelligence & Data Science admission in Anna University affiliated colleges.' },
   { id: 'LEAD-ENQ-207', referenceNumber: 'REV-CAR-2026-007', name: 'Gautam Raghavan', email: 'gautam.r@outlook.com', phone: '+91 98402 77889', serviceId: 'school-career', serviceTitle: 'Career Guidance', country: 'India', status: 'New', createdAt: '2026-11-05T10:15:00Z', notes: 'Law entrance CLAT coaching and humanities stream planning.' },
   { id: 'LEAD-ENQ-208', referenceNumber: 'REV-ACA-2026-008', name: 'Shreya Venkatesh', email: 'shreya.v@gmail.com', phone: '+91 94450 33445', serviceId: 'school-academy', serviceTitle: 'School Student Academy', country: 'India', status: 'New', createdAt: '2026-11-05T15:00:00Z', notes: 'Olympiad mathematics & science training for 8th standard student.' },
   { id: 'LEAD-ENQ-209', referenceNumber: 'REV-COL-2026-009', name: 'Manish Tiwari', email: 'manish.tiwari@gmail.com', phone: '+91 97110 55667', serviceId: 'college-adm', serviceTitle: 'College Admission Assistance', country: 'India', status: 'New', createdAt: '2026-11-04T09:45:00Z', notes: 'B.Com / BBA Honours in top tier private management institutes.' },
-  { id: 'LEAD-ENQ-210', referenceNumber: 'REV-CAR-2026-010', name: 'Harini Sundar', email: 'harini.sundar@yahoo.co.in', phone: '+91 98841 22339', serviceId: 'school-career', serviceTitle: 'Career Guidance', country: 'India', status: 'Assigned', assignedEmployee: 'Chentamilselvi M.', priority: 'Normal', assignmentNotes: '📌 Administer career assessment test & draft recommendation dossier.', assignedDate: '2026-11-04T11:00:00Z', createdAt: '2026-11-04T10:00:00Z' },
+  { id: 'LEAD-ENQ-210', referenceNumber: 'REV-CAR-2026-010', name: 'Harini Sundar', email: 'harini.sundar@yahoo.co.in', phone: '+91 98841 22339', serviceId: 'school-career', serviceTitle: 'Career Guidance', country: 'India', status: 'Assigned', assignedEmployee: 'Divya R.', assignedEmployeeId: 'REV-EMP-102', assignedEmployeeEmail: 'divya.enq@revivalinternational.com', priority: 'Normal', assignmentNotes: '📌 Administer career assessment test & draft recommendation dossier.', assignedDate: '2026-11-04T11:00:00Z', createdAt: '2026-11-04T10:00:00Z' },
   { id: 'LEAD-ENQ-211', referenceNumber: 'REV-ACA-2026-011', name: 'Vigneshwaran P.', email: 'vignesh.p@gmail.com', phone: '+91 99400 88776', serviceId: 'school-academy', serviceTitle: 'School Student Academy', country: 'India', status: 'New', createdAt: '2026-11-03T14:15:00Z', notes: 'CUET preparation batch for Central University entrance.' },
   { id: 'LEAD-ENQ-212', referenceNumber: 'REV-COL-2026-012', name: 'Aakash Bhattacharya', email: 'aakash.b@gmail.com', phone: '+91 98301 44556', serviceId: 'college-adm', serviceTitle: 'College Admission Assistance', country: 'India', status: 'New', createdAt: '2026-11-03T16:30:00Z', notes: 'Direct lateral entry B.E. Mechanical Engineering admission assistance.' },
   { id: 'LEAD-ENQ-213', referenceNumber: 'REV-CAR-2026-013', name: 'Lavanya Chandran', email: 'lavanya.c@gmail.com', phone: '+91 98403 66778', serviceId: 'school-career', serviceTitle: 'Career Guidance', country: 'India', status: 'New', createdAt: '2026-11-02T10:30:00Z', notes: 'Design careers counseling (NID, NIFT, UCEED entrance guidance).' },
   { id: 'LEAD-ENQ-214', referenceNumber: 'REV-ACA-2026-014', name: 'Rithvik Sriram', email: 'rithvik.s@gmail.com', phone: '+91 94444 11223', serviceId: 'school-academy', serviceTitle: 'School Student Academy', country: 'India', status: 'New', createdAt: '2026-11-02T13:00:00Z', notes: 'CBSE 10th board crash course and science doubt clearance.' },
   { id: 'LEAD-ENQ-215', referenceNumber: 'REV-COL-2026-015', name: 'Sneha Patel', email: 'sneha.patel@gujarattech.in', phone: '+91 98250 99881', serviceId: 'college-adm', serviceTitle: 'College Admission Assistance', country: 'India', status: 'New', createdAt: '2026-11-01T15:20:00Z', notes: 'B.Pharm and allied healthcare courses admission counseling.' },
-  { id: 'LEAD-ENQ-216', referenceNumber: 'REV-CAR-2026-016', name: 'Rahul Varma', email: 'rahul.varma@gmail.com', phone: '+91 98400 77112', serviceId: 'school-career', serviceTitle: 'Career Guidance', country: 'India', status: 'Completed', assignedEmployee: 'Balavarshini S.', priority: 'Normal', assignmentNotes: 'Conduct stream selection aptitude test.', completionNote: 'Aptitude assessment completed. Recommended PCM with Computer Science stream.', completedDate: '2026-11-05T16:30:00Z', createdAt: '2026-10-31T09:00:00Z' },
+  { id: 'LEAD-ENQ-216', referenceNumber: 'REV-CAR-2026-016', name: 'Rahul Varma', email: 'rahul.varma@gmail.com', phone: '+91 98400 77112', serviceId: 'school-career', serviceTitle: 'Career Guidance', country: 'India', status: 'Completed', assignedEmployee: 'Praveen Kumar', assignedEmployeeId: 'REV-EMP-108', assignedEmployeeEmail: 'praveen.enq@revivalinternational.com', priority: 'Normal', assignmentNotes: 'Conduct stream selection aptitude test.', completionNote: 'Aptitude assessment completed. Recommended PCM with Computer Science stream.', completedDate: '2026-11-05T16:30:00Z', createdAt: '2026-10-31T09:00:00Z' },
   { id: 'LEAD-ENQ-217', referenceNumber: 'REV-ACA-2026-017', name: 'Tarun Prasanna', email: 'tarun.p@gmail.com', phone: '+91 97899 44332', serviceId: 'school-academy', serviceTitle: 'School Student Academy', country: 'India', status: 'New', createdAt: '2026-10-30T11:00:00Z', notes: 'Robotics and STEM school club weekend batch.' }
 ];
 
 export const CrmHrTaskAssignment = () => {
   const { currentRole, user } = useCrm();
 
-  // Strict role differentiation
-  const isHrLead = currentRole === 'HR Lead' || currentRole === 'Super Admin' || currentRole === 'Admin';
-  const isHrOperations = currentRole === 'HR Operations' || !isHrLead;
+  // Strict role differentiation: Task Assignment available to HR Lead, Super Admin, and Admin
+  const isAuthorizedToAssign = ['HR Lead', 'Super Admin', 'Admin'].includes(currentRole);
+  const isHrLead = isAuthorizedToAssign;
+  const isHrOperations = currentRole === 'HR Operations';
 
   // Active employee identity
   const currentEmployeeName = user?.name || (isHrOperations ? 'Balavarshini S.' : 'HR Lead');
@@ -152,7 +149,8 @@ export const CrmHrTaskAssignment = () => {
   // Multi-selection checkboxes (HR Lead only)
   const [selectedEnquiryIds, setSelectedEnquiryIds] = useState([]);
 
-  // Assignment Modal / Panel State (HR Lead only)
+  // Assignment Modal / Panel State (Available to HR Lead, Super Admin, Admin)
+  const [isAssignModalOpen, setIsAssignModalOpen] = useState(false);
   const [selectedMemberId, setSelectedMemberId] = useState('');
   const [selectedPriority, setSelectedPriority] = useState('High');
   const [assignmentInstructions, setAssignmentInstructions] = useState('');
@@ -211,38 +209,52 @@ export const CrmHrTaskAssignment = () => {
 
   // Check if an enquiry is assigned to the current employee
   const isAssignedToCurrentUser = (item) => {
-    if (!item.assignedEmployee && !item.assignedEmployeeId) return false;
+    if (!item.assignedEmployee && !item.assignedEmployeeId && !item.assignedEmployeeEmail) return false;
     
     const assignedLower = String(item.assignedEmployee || '').toLowerCase().trim();
-    const currentLower = String(currentEmployeeName || '').toLowerCase().trim();
+    const currentLower = String(currentEmployeeName || user?.name || '').toLowerCase().trim();
     const assignedClean = assignedLower.replace(/[^a-z]/g, '');
     const currentClean = currentLower.replace(/[^a-z]/g, '');
 
-    // Check if both relate to Balavarshini
-    if (assignedClean.includes('bala') && (currentClean.includes('bala') || isHrOperations)) return true;
+    // Canonical specialist checks for Fatima, Balavarshini S., Divya R., Praveen Kumar
+    const isCurrentBala = currentClean.includes('bala') || (user?.email && user.email.toLowerCase().includes('bala')) || currentEmployeeId === 'REV-EMP-006' || currentEmployeeId === 'INTL-HR-102';
+    const isCurrentFatima = currentClean.includes('fatima') || (user?.email && user.email.toLowerCase().includes('fatima')) || currentEmployeeId === 'REV-EMP-107' || currentEmployeeId === 'INTL-HR-101';
+    const isCurrentDivya = currentClean.includes('divya') || currentClean.includes('diviya') || (user?.email && (user.email.toLowerCase().includes('divya') || user.email.toLowerCase().includes('diviya'))) || currentEmployeeId === 'REV-EMP-102' || currentEmployeeId === 'ENQ-HR-201';
+    const isCurrentPraveen = currentClean.includes('praveen') || (user?.email && user.email.toLowerCase().includes('praveen')) || currentEmployeeId === 'REV-EMP-108' || currentEmployeeId === 'ENQ-HR-202';
 
-    // Direct, clean, or substring match (e.g. "Balavarshini" matches "Balavarshini S.")
+    if (isCurrentBala) {
+      if (assignedClean.includes('bala')) return true;
+      if (['REV-EMP-006', 'INTL-HR-102', 'emp-6', 'emp-bala'].includes(item.assignedEmployeeId)) return true;
+      if (item.assignedEmployeeEmail && item.assignedEmployeeEmail.toLowerCase().includes('bala')) return true;
+      return false;
+    }
+
+    if (isCurrentFatima) {
+      if (assignedClean.includes('fatima')) return true;
+      if (['REV-EMP-107', 'INTL-HR-101', 'emp-fatima'].includes(item.assignedEmployeeId)) return true;
+      if (item.assignedEmployeeEmail && item.assignedEmployeeEmail.toLowerCase().includes('fatima')) return true;
+      return false;
+    }
+
+    if (isCurrentDivya) {
+      if (assignedClean.includes('divya') || assignedClean.includes('diviya')) return true;
+      if (['REV-EMP-102', 'ENQ-HR-201', 'emp-divya', 'emp-diviya'].includes(item.assignedEmployeeId)) return true;
+      if (item.assignedEmployeeEmail && (item.assignedEmployeeEmail.toLowerCase().includes('divya') || item.assignedEmployeeEmail.toLowerCase().includes('diviya'))) return true;
+      return false;
+    }
+
+    if (isCurrentPraveen) {
+      if (assignedClean.includes('praveen')) return true;
+      if (['REV-EMP-108', 'ENQ-HR-202', 'emp-praveen'].includes(item.assignedEmployeeId)) return true;
+      if (item.assignedEmployeeEmail && item.assignedEmployeeEmail.toLowerCase().includes('praveen')) return true;
+      return false;
+    }
+
+    // Generic direct/clean matching for other roles / specialists
     if (assignedLower === currentLower) return true;
     if (assignedClean && currentClean && (assignedClean.includes(currentClean) || currentClean.includes(assignedClean))) return true;
-    
-    // First name match
-    const currentFirst = currentLower.split(' ')[0];
-    const assignedFirst = assignedLower.split(' ')[0];
-    if (currentFirst && assignedFirst && currentFirst.length >= 3 && currentFirst === assignedFirst) return true;
-
-    // Match by ID
-    if (item.assignedEmployeeId) {
-      if (currentEmployeeId && item.assignedEmployeeId === currentEmployeeId) return true;
-      if (user?.id && item.assignedEmployeeId === user.id) return true;
-      if (['REV-EMP-006', 'INTL-HR-102', 'ENQ-HR-201', 'emp-6', 'emp-bala'].includes(item.assignedEmployeeId) && (currentClean.includes('bala') || isHrOperations)) return true;
-    }
-
-    // Match by Email
-    if (item.assignedEmployeeEmail) {
-      const emailA = item.assignedEmployeeEmail.toLowerCase();
-      if (user?.email && emailA === user.email.toLowerCase()) return true;
-      if (emailA.includes('bala') && (currentClean.includes('bala') || isHrOperations)) return true;
-    }
+    if (item.assignedEmployeeId && currentEmployeeId && item.assignedEmployeeId === currentEmployeeId) return true;
+    if (item.assignedEmployeeEmail && user?.email && item.assignedEmployeeEmail.toLowerCase() === user.email.toLowerCase()) return true;
 
     return false;
   };
@@ -385,6 +397,7 @@ export const CrmHrTaskAssignment = () => {
 
     saveTasks(updated);
     setAssigningLoading(false);
+    setIsAssignModalOpen(false);
     setSuccessBanner(`✓ Successfully assigned ${selectedEnquiryIds.length} enquiries to ${assignedMember.name} (${assignedMember.role}) with specific instructions!`);
     setSelectedEnquiryIds([]);
     setAssignmentInstructions('');
@@ -693,6 +706,26 @@ export const CrmHrTaskAssignment = () => {
           </span>
         </button>
 
+        {/* 1. NEW: Task Assign button for authorized roles (HR Lead, Super Admin, Admin) */}
+        {isAuthorizedToAssign && operationTab !== 'tracker' && (
+          <button
+            type="button"
+            onClick={() => setIsAssignModalOpen(true)}
+            className={`flex items-center space-x-2 px-4 py-2.5 rounded-xl font-bold text-xs transition-all duration-200 cursor-pointer shadow-md ${
+              selectedEnquiryIds.length > 0
+                ? 'bg-gradient-to-r from-gold-500 via-amber-500 to-yellow-500 hover:from-gold-600 hover:to-amber-600 text-navy-950 ring-2 ring-gold-400/60 shadow-gold-500/30 scale-[1.02]'
+                : 'bg-gradient-to-r from-amber-500 to-gold-500 hover:from-amber-600 hover:to-gold-600 text-navy-950 shadow-sm border border-gold-400/40'
+            }`}
+            title="Open Task Assignment Dialog"
+          >
+            <UserCheck className="w-4 h-4 shrink-0 text-navy-950" />
+            <span className="tracking-wide">Task Assign</span>
+            <span className="px-2 py-0.5 rounded-full text-[10px] font-mono bg-navy-950 text-gold-400 font-extrabold shadow-xs">
+              {selectedEnquiryIds.length}
+            </span>
+          </button>
+        )}
+
         {/* Branch C: Live Task Completion Tracker */}
         <button
           type="button"
@@ -711,12 +744,12 @@ export const CrmHrTaskAssignment = () => {
         </button>
       </div>
 
-      {/* VIEW FOR BRANCH A & B: ENQUIRIES LIST (15 records per page) */}
+      {/* VIEW FOR BRANCH A & B: ENQUIRIES LIST (15 records per page, Full Width) */}
       {operationTab !== 'tracker' && (
-        <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
+        <div className="w-full space-y-4">
           
-          {/* ENQUIRIES LIST TABLE (Full width 12 cols for HR Operations; 8 cols for HR Lead) */}
-          <div className={isHrLead ? 'lg:col-span-8 space-y-4' : 'lg:col-span-12 space-y-4'}>
+          {/* ENQUIRIES LIST TABLE (Full width for all roles) */}
+          <div className="w-full space-y-4">
             
             {/* Branch Summary & Filter Toolbar */}
             <div className="bg-white dark:bg-navy-900 p-4 rounded-2xl border border-slate-200 dark:border-navy-800 shadow-sm space-y-3">
@@ -859,22 +892,24 @@ export const CrmHrTaskAssignment = () => {
                           />
                         </th>
                       )}
-                      <th className="p-3">Reference & Candidate</th>
-                      <th className="p-3">Enquiry Service</th>
-                      <th className="p-3">Priority & Assigned</th>
-                      <th className="p-3">Status</th>
-                      {isHrLead ? (
-                        <th className="p-3">Assigned To</th>
-                      ) : (
-                        <th className="p-3">HR Lead Instructions</th>
+                      <th className="p-3 whitespace-nowrap">Reference ID</th>
+                      <th className="p-3 whitespace-nowrap">Candidate Name</th>
+                      <th className="p-3 whitespace-nowrap">Phone Number</th>
+                      <th className="p-3 whitespace-nowrap">Email Address</th>
+                      <th className="p-3 whitespace-nowrap">Enquiry Service</th>
+                      <th className="p-3 whitespace-nowrap">Priority & Assigned Date</th>
+                      <th className="p-3 whitespace-nowrap">Status</th>
+                      <th className="p-3 min-w-[200px]">HR Lead Instructions</th>
+                      {isHrLead && (
+                        <th className="p-3 whitespace-nowrap">Assigned To</th>
                       )}
-                      <th className="p-3 text-right">Actions</th>
+                      <th className="p-3 text-right whitespace-nowrap">Actions</th>
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-slate-100 dark:divide-navy-800">
                     {paginatedEnquiries.length === 0 ? (
                       <tr>
-                        <td colSpan={isHrLead ? 7 : 6} className="p-10 text-center text-slate-400 space-y-2">
+                        <td colSpan={isHrLead ? 11 : 9} className="p-10 text-center text-slate-400 space-y-2">
                           <AlertCircle className="w-8 h-8 mx-auto opacity-40 text-slate-400" />
                           <div className="font-bold text-sm text-slate-700 dark:text-slate-300">
                             {isHrOperations 
@@ -912,26 +947,47 @@ export const CrmHrTaskAssignment = () => {
                               </td>
                             )}
 
-                            {/* Candidate Details */}
-                            <td className="p-3">
-                              <div className="font-bold text-slate-900 dark:text-white flex items-center gap-1.5">
-                                <span>{enq.name}</span>
+                            {/* 1. Reference ID */}
+                            <td className="p-3 whitespace-nowrap">
+                              <span className="font-mono text-xs font-bold text-gold-600 dark:text-gold-400">
+                                {enq.referenceNumber || (enq.id ? (enq.id.startsWith('#') ? enq.id : `#${enq.id}`) : '—')}
+                              </span>
+                            </td>
+
+                            {/* 2. Candidate Name */}
+                            <td className="p-3 whitespace-nowrap">
+                              <div className="font-bold text-slate-900 dark:text-white text-xs">
+                                {enq.name || 'Candidate'}
                               </div>
-                              <div className="font-mono text-[10px] text-gold-600 dark:text-gold-400 mt-0.5">
-                                {enq.referenceNumber || `#${enq.id}`}
-                              </div>
-                              <div className="text-[11px] text-slate-500 dark:text-slate-400 flex items-center gap-2 mt-0.5">
-                                {enq.phone && (
-                                  <a href={`tel:${enq.phone}`} className="hover:text-gold-500 flex items-center gap-0.5">
-                                    <Phone className="w-3 h-3 inline" /> {enq.phone}
-                                  </a>
-                                )}
-                                {enq.email && (
-                                  <a href={`mailto:${enq.email}`} className="hover:text-gold-500 truncate max-w-[140px] flex items-center gap-0.5">
-                                    <Mail className="w-3 h-3 inline" /> {enq.email}
-                                  </a>
-                                )}
-                              </div>
+                              {enq.country && (
+                                <div className="text-[10px] text-slate-400 font-medium">
+                                  {enq.country}
+                                </div>
+                              )}
+                            </td>
+
+                            {/* 3. Phone Number */}
+                            <td className="p-3 whitespace-nowrap font-mono text-xs">
+                              {enq.phone ? (
+                                <a href={`tel:${enq.phone}`} className="hover:text-gold-500 text-slate-700 dark:text-slate-300 flex items-center gap-1.5 group">
+                                  <Phone className="w-3.5 h-3.5 text-emerald-500 shrink-0 group-hover:scale-110 transition" />
+                                  <span>{enq.phone}</span>
+                                </a>
+                              ) : (
+                                <span className="text-slate-400 italic text-[11px]">—</span>
+                              )}
+                            </td>
+
+                            {/* 4. Email Address */}
+                            <td className="p-3 font-mono text-xs">
+                              {enq.email ? (
+                                <a href={`mailto:${enq.email}`} className="hover:text-gold-500 text-slate-700 dark:text-slate-300 flex items-center gap-1.5 truncate max-w-[210px] group" title={enq.email}>
+                                  <Mail className="w-3.5 h-3.5 text-blue-500 shrink-0 group-hover:scale-110 transition" />
+                                  <span className="truncate">{enq.email}</span>
+                                </a>
+                              ) : (
+                                <span className="text-slate-400 italic text-[11px]">—</span>
+                              )}
                             </td>
 
                             {/* Service / Source */}
@@ -977,9 +1033,17 @@ export const CrmHrTaskAssignment = () => {
                               </span>
                             </td>
 
-                            {/* Assigned To (HR Lead) OR Instructions (HR Operations) */}
-                            {isHrLead ? (
-                              <td className="p-3">
+                            {/* 8. HR Lead Instructions */}
+                            <td className="p-3 max-w-[240px]">
+                              <div className="p-2 rounded-lg bg-amber-50 dark:bg-navy-950/80 border border-amber-200/80 dark:border-navy-700 text-[11px] text-slate-700 dark:text-slate-300 leading-tight">
+                                <span className="font-bold text-amber-700 dark:text-gold-400">📌 </span>
+                                <span className="line-clamp-2">{enq.assignmentNotes || enq.notes || 'Follow up with candidate regarding enquiry details.'}</span>
+                              </div>
+                            </td>
+
+                            {/* 9. Assigned To (Rendered for HR Lead) */}
+                            {isHrLead && (
+                              <td className="p-3 whitespace-nowrap">
                                 {enq.assignedEmployee ? (
                                   <div className="flex items-center space-x-1.5">
                                     <div className="w-5 h-5 rounded-full bg-gold-500/20 text-gold-600 dark:text-gold-400 flex items-center justify-center font-bold text-[10px]">
@@ -992,13 +1056,6 @@ export const CrmHrTaskAssignment = () => {
                                 ) : (
                                   <span className="text-slate-400 italic text-[11px]">Unassigned</span>
                                 )}
-                              </td>
-                            ) : (
-                              <td className="p-3 max-w-[220px]">
-                                <div className="p-2 rounded-lg bg-amber-50 dark:bg-navy-950/80 border border-amber-200/80 dark:border-navy-700 text-[11px] text-slate-700 dark:text-slate-300 leading-tight">
-                                  <span className="font-bold text-amber-700 dark:text-gold-400">📌 Instruction: </span>
-                                  <span>{enq.assignmentNotes || enq.notes || 'Follow up with candidate regarding enquiry details.'}</span>
-                                </div>
                               </td>
                             )}
 
@@ -1092,203 +1149,233 @@ export const CrmHrTaskAssignment = () => {
             </div>
 
           </div>
+        </div>
+      )}
 
-          {/* RIGHT 4 COLS: ASSIGN TO OPERATION TEAM PANEL (Strictly for HR Lead only) */}
-          {isHrLead && (
-            <div className="lg:col-span-4 space-y-4">
-              <div className={`rounded-2xl p-5 border shadow-luxury space-y-4 ${
-                operationTab === 'intl-ops'
-                  ? 'bg-white dark:bg-navy-900 border-blue-500/40 ring-1 ring-blue-500/20'
-                  : 'bg-white dark:bg-navy-900 border-emerald-500/40 ring-1 ring-emerald-500/20'
-              }`}>
-                
-                <div className="space-y-1">
-                  <div className="flex items-center space-x-2">
-                    <span className={`px-2 py-0.5 rounded text-[9px] font-extrabold uppercase tracking-wide text-white ${
-                      operationTab === 'intl-ops' ? 'bg-blue-600' : 'bg-emerald-600'
-                    }`}>
-                      Flowchart Action
-                    </span>
-                    <span className="text-[11px] text-slate-400 font-semibold">
-                      {operationTab === 'intl-ops' ? 'Branch A' : 'Branch B'}
-                    </span>
-                  </div>
-                  <h3 className="font-serif text-base font-bold text-slate-900 dark:text-white">
-                    Assign to {operationTab === 'intl-ops' ? 'International HR Operations' : 'Enquiry HR Operations'}
-                  </h3>
-                  <p className="text-[11px] text-slate-500 dark:text-slate-400">
-                    {operationTab === 'intl-ops'
-                      ? 'Show only International HR Operations team members, select an HR member, point out instructions, and click Send / Assign.'
-                      : 'Show only Enquiry HR Operations team members, select an HR member, point out instructions, and click Send / Assign.'}
-                  </p>
-                </div>
-
-                {/* Selected Enquiry Counter Alert */}
-                <div className={`p-3 rounded-xl border flex items-center justify-between text-xs font-bold ${
-                  selectedEnquiryIds.length > 0 
-                    ? 'bg-gold-500/15 text-gold-700 dark:text-gold-300 border-gold-500/30' 
-                    : 'bg-slate-50 dark:bg-navy-950 text-slate-500 border-slate-200 dark:border-navy-800'
-                }`}>
-                  <span>Selected for Assignment:</span>
-                  <span className="font-mono text-sm px-2 py-0.5 rounded-lg bg-navy-950 text-gold-400">
-                    {selectedEnquiryIds.length} enquiries
+      {/* TASK ASSIGNMENT MODAL / POP-UP PANEL (Available to HR Lead, Super Admin, Admin) */}
+      {isAssignModalOpen && isAuthorizedToAssign && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-navy-950/80 backdrop-blur-sm animate-in fade-in duration-200">
+          <div className={`bg-white dark:bg-navy-900 border rounded-3xl max-w-xl w-full p-6 sm:p-7 shadow-2xl space-y-4 max-h-[92vh] overflow-y-auto relative ${
+            operationTab === 'intl-ops'
+              ? 'border-blue-500/40 ring-1 ring-blue-500/20'
+              : 'border-emerald-500/40 ring-1 ring-emerald-500/20'
+          }`}>
+            
+            {/* Modal Header */}
+            <div className="flex items-start justify-between border-b border-slate-100 dark:border-navy-800 pb-3">
+              <div className="space-y-1">
+                <div className="flex items-center space-x-2">
+                  <span className={`px-2 py-0.5 rounded text-[9px] font-extrabold uppercase tracking-wide text-white ${
+                    operationTab === 'intl-ops' ? 'bg-blue-600' : 'bg-emerald-600'
+                  }`}>
+                    Flowchart Action
+                  </span>
+                  <span className="text-[11px] text-slate-400 font-semibold">
+                    {operationTab === 'intl-ops' ? 'Branch A' : 'Branch B'}
                   </span>
                 </div>
-
-                <form onSubmit={handleAssignSubmit} className="space-y-3.5">
-                  {/* 1. Team Member Dropdown (Only Team for this Branch) */}
-                  <div className="space-y-1">
-                    <label className="text-xs font-bold text-slate-900 dark:text-white flex items-center justify-between">
-                      <span>Select HR Specialist:</span>
-                      <span className="text-[10px] text-slate-400 font-normal">
-                        ({activeTeamList.length} members in branch)
-                      </span>
-                    </label>
-                    <select
-                      value={selectedMemberId}
-                      onChange={(e) => setSelectedMemberId(e.target.value)}
-                      required
-                      className="w-full px-3 py-2 text-xs bg-slate-50 dark:bg-navy-950 border border-slate-300 dark:border-navy-700 rounded-xl text-slate-900 dark:text-white font-semibold focus:outline-none focus:border-gold-500 cursor-pointer"
-                    >
-                      <option value="">-- Choose Branch Specialist --</option>
-                      {activeTeamList.map((member) => (
-                        <option key={member.id} value={member.id}>
-                          {member.name} — {member.role} ({member.activeTasks} active)
-                        </option>
-                      ))}
-                    </select>
-                  </div>
-
-                  {/* 2. Priority Selection */}
-                  <div className="space-y-1">
-                    <label className="text-xs font-bold text-slate-900 dark:text-white">
-                      Task Priority Level:
-                    </label>
-                    <div className="grid grid-cols-3 gap-2">
-                      {['Normal', 'High', 'Urgent'].map((pri) => (
-                        <button
-                          key={pri}
-                          type="button"
-                          onClick={() => setSelectedPriority(pri)}
-                          className={`py-1.5 px-2 rounded-lg text-xs font-bold transition cursor-pointer border ${
-                            selectedPriority === pri
-                              ? pri === 'Urgent'
-                                ? 'bg-red-600 text-white border-red-500 shadow-xs'
-                                : pri === 'High'
-                                ? 'bg-amber-500 text-navy-950 border-amber-400 shadow-xs'
-                                : 'bg-blue-600 text-white border-blue-500 shadow-xs'
-                              : 'bg-slate-50 dark:bg-navy-950 text-slate-600 dark:text-slate-400 border-slate-200 dark:border-navy-800'
-                          }`}
-                        >
-                          {pri}
-                        </button>
-                      ))}
-                    </div>
-                  </div>
-
-                  {/* 3. Pointed-out Specific Instructions */}
-                  <div className="space-y-1.5">
-                    <div className="flex items-center justify-between">
-                      <label className="text-xs font-bold text-slate-900 dark:text-white flex items-center gap-1">
-                        <span>📌 Point-out Instructions to HR Specialist:</span>
-                      </label>
-                      <span className="text-[10px] text-gold-600 dark:text-gold-400 font-bold">Point out notes</span>
-                    </div>
-                    <textarea
-                      rows={4}
-                      value={assignmentInstructions}
-                      onChange={(e) => setAssignmentInstructions(e.target.value)}
-                      placeholder="Point out specific instructions for this specialist (e.g. Call candidate today by 3 PM, verify IELTS score, prepare document checklist...)"
-                      className="w-full p-2.5 text-xs bg-slate-50 dark:bg-navy-950 border border-slate-300 dark:border-navy-700 rounded-xl text-slate-900 dark:text-white focus:outline-none focus:border-gold-500 resize-none"
-                    />
-
-                    {/* Quick presets */}
-                    <div className="space-y-1 pt-1">
-                      <div className="text-[10px] font-extrabold uppercase tracking-wider text-slate-400">Quick Presets:</div>
-                      <div className="flex flex-wrap gap-1.5">
-                        {operationTab === 'intl-ops' ? (
-                          <>
-                            <button
-                              type="button"
-                              onClick={() => setPresetInstruction('Call on IELTS deadline and prepare university application dossier.')}
-                              className="px-2 py-1 rounded text-[10px] bg-slate-100 dark:bg-navy-950 hover:bg-gold-500 hover:text-navy-950 text-slate-700 dark:text-slate-300 transition cursor-pointer border border-slate-200 dark:border-navy-800"
-                            >
-                              📞 Call on IELTS Deadline
-                            </button>
-                            <button
-                              type="button"
-                              onClick={() => setPresetInstruction('Verify attested degree certificates and police clearance certificate.')}
-                              className="px-2 py-1 rounded text-[10px] bg-slate-100 dark:bg-navy-950 hover:bg-gold-500 hover:text-navy-950 text-slate-700 dark:text-slate-300 transition cursor-pointer border border-slate-200 dark:border-navy-800"
-                            >
-                              📝 Degree &amp; Police Clearance
-                            </button>
-                            <button
-                              type="button"
-                              onClick={() => setPresetInstruction('Coordinate 1-on-1 Zoom counseling session with senior admissions counselor.')}
-                              className="px-2 py-1 rounded text-[10px] bg-slate-100 dark:bg-navy-950 hover:bg-gold-500 hover:text-navy-950 text-slate-700 dark:text-slate-300 transition cursor-pointer border border-slate-200 dark:border-navy-800"
-                            >
-                              💻 Zoom Counseling
-                            </button>
-                          </>
-                        ) : (
-                          <>
-                            <button
-                              type="button"
-                              onClick={() => setPresetInstruction('Administer 45-minute psychometric aptitude assessment test for stream guidance.')}
-                              className="px-2 py-1 rounded text-[10px] bg-slate-100 dark:bg-navy-950 hover:bg-emerald-500 hover:text-navy-950 text-slate-700 dark:text-slate-300 transition cursor-pointer border border-slate-200 dark:border-navy-800"
-                            >
-                              🎯 Aptitude Assessment
-                            </button>
-                            <button
-                              type="button"
-                              onClick={() => setPresetInstruction('Verify board cut-off and check private university quota seats.')}
-                              className="px-2 py-1 rounded text-[10px] bg-slate-100 dark:bg-navy-950 hover:bg-emerald-500 hover:text-navy-950 text-slate-700 dark:text-slate-300 transition cursor-pointer border border-slate-200 dark:border-navy-800"
-                            >
-                              🎓 College Quota Check
-                            </button>
-                            <button
-                              type="button"
-                              onClick={() => setPresetInstruction('Enroll candidate in NEET/JEE weekend academy foundation batch.')}
-                              className="px-2 py-1 rounded text-[10px] bg-slate-100 dark:bg-navy-950 hover:bg-emerald-500 hover:text-navy-950 text-slate-700 dark:text-slate-300 transition cursor-pointer border border-slate-200 dark:border-navy-800"
-                            >
-                              🏫 Academy Enrollment
-                            </button>
-                          </>
-                        )}
-                      </div>
-                    </div>
-                  </div>
-
-                  {/* 4. Click Send / Assign */}
-                  <button
-                    type="submit"
-                    disabled={assigningLoading || selectedEnquiryIds.length === 0}
-                    className={`w-full py-3 px-4 rounded-xl font-bold text-xs tracking-wide text-white transition-all duration-200 flex items-center justify-center space-x-2 shadow-lg cursor-pointer ${
-                      operationTab === 'intl-ops'
-                        ? 'bg-gradient-to-r from-blue-600 via-indigo-600 to-blue-700 hover:from-blue-500 hover:to-indigo-500 disabled:opacity-50'
-                        : 'bg-gradient-to-r from-emerald-600 via-teal-600 to-emerald-700 hover:from-emerald-500 hover:to-teal-500 disabled:opacity-50'
-                    }`}
-                  >
-                    <Send className="w-4 h-4" />
-                    <span>
-                      {assigningLoading ? 'Assigning...' : `Click Send / Assign (${selectedEnquiryIds.length})`}
-                    </span>
-                  </button>
-                </form>
-
-                {/* Flowchart step indicator */}
-                <div className="pt-2 border-t border-slate-100 dark:border-navy-800/80 text-[11px] text-slate-400 space-y-1">
-                  <div className="flex items-center gap-1.5 text-emerald-600 dark:text-emerald-400 font-bold">
-                    <Check className="w-3.5 h-3.5" />
-                    <span>Enquiries assigned &amp; updated in CRM</span>
-                  </div>
-                  <div>Enquiries are linked to the selected HR specialist with your custom pointed instructions.</div>
-                </div>
-
+                <h3 className="font-serif text-xl font-bold text-slate-900 dark:text-white">
+                  Assign to {operationTab === 'intl-ops' ? 'International HR Operations' : 'Enquiry HR Operations'}
+                </h3>
+                <p className="text-[11px] text-slate-500 dark:text-slate-400">
+                  {operationTab === 'intl-ops'
+                    ? 'Show only International HR Operations team members, select an HR member, point out instructions, and click Send / Assign.'
+                    : 'Show only Enquiry HR Operations team members, select an HR member, point out instructions, and click Send / Assign.'}
+                </p>
               </div>
-            </div>
-          )}
 
+              <button
+                type="button"
+                onClick={() => setIsAssignModalOpen(false)}
+                className="p-1.5 rounded-xl text-slate-400 hover:text-slate-700 dark:hover:text-white hover:bg-slate-100 dark:hover:bg-navy-800 transition cursor-pointer"
+                title="Close"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+
+            {/* Selected Enquiry Counter Alert */}
+            {selectedEnquiryIds.length === 0 ? (
+              <div className="p-3.5 rounded-2xl bg-amber-500/10 border border-amber-500/30 text-amber-700 dark:text-amber-300 text-xs flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
+                <div className="flex items-center gap-2">
+                  <AlertCircle className="w-5 h-5 text-amber-500 shrink-0" />
+                  <div>
+                    <p className="font-bold">No enquiries currently selected</p>
+                    <p className="text-[11px] text-slate-500 dark:text-slate-400">Select enquiries using table checkboxes, or click below to select all on this page.</p>
+                  </div>
+                </div>
+                <button
+                  type="button"
+                  onClick={handleSelectAllCurrentPage}
+                  className="px-3 py-1.5 rounded-xl bg-amber-500 hover:bg-amber-600 text-navy-950 font-bold text-xs shrink-0 cursor-pointer shadow-xs transition"
+                >
+                  Select Page ({paginatedEnquiries.length})
+                </button>
+              </div>
+            ) : (
+              <div className="p-3.5 rounded-2xl bg-gold-500/15 text-gold-700 dark:text-gold-300 border border-gold-500/30 flex items-center justify-between text-xs font-bold">
+                <div className="flex items-center gap-2">
+                  <CheckCircle2 className="w-4 h-4 text-gold-500 shrink-0" />
+                  <span>Selected for Assignment:</span>
+                  <span className="font-mono text-sm px-2.5 py-0.5 rounded-lg bg-navy-950 text-gold-400 font-extrabold">
+                    {selectedEnquiryIds.length} {selectedEnquiryIds.length === 1 ? 'enquiry' : 'enquiries'}
+                  </span>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => setSelectedEnquiryIds([])}
+                  className="text-red-500 hover:text-red-600 text-xs font-semibold cursor-pointer underline"
+                >
+                  Clear Selection
+                </button>
+              </div>
+            )}
+
+            {/* Assignment Form */}
+            <form onSubmit={handleAssignSubmit} className="space-y-4">
+              {/* 1. Team Member Dropdown (Only Team for this Branch) */}
+              <div className="space-y-1">
+                <label className="text-xs font-bold text-slate-900 dark:text-white flex items-center justify-between">
+                  <span>Select HR Specialist:</span>
+                  <span className="text-[10px] text-slate-400 font-normal">
+                    ({activeTeamList.length} members in branch)
+                  </span>
+                </label>
+                <select
+                  value={selectedMemberId}
+                  onChange={(e) => setSelectedMemberId(e.target.value)}
+                  required
+                  className="w-full px-3 py-2 text-xs bg-slate-50 dark:bg-navy-950 border border-slate-300 dark:border-navy-700 rounded-xl text-slate-900 dark:text-white font-semibold focus:outline-none focus:border-gold-500 cursor-pointer"
+                >
+                  <option value="">-- Choose Branch Specialist --</option>
+                  {activeTeamList.map((member) => (
+                    <option key={member.id} value={member.id}>
+                      {member.name} — {member.role}
+                    </option>
+                  ))}
+                </select>
+              </div>
+
+              {/* 2. Priority Selection */}
+              <div className="space-y-1">
+                <label className="text-xs font-bold text-slate-900 dark:text-white">
+                  Task Priority Level:
+                </label>
+                <div className="grid grid-cols-3 gap-2">
+                  {['Normal', 'High', 'Urgent'].map((pri) => (
+                    <button
+                      key={pri}
+                      type="button"
+                      onClick={() => setSelectedPriority(pri)}
+                      className={`py-1.5 px-2 rounded-lg text-xs font-bold transition cursor-pointer border ${
+                        selectedPriority === pri
+                          ? pri === 'Urgent'
+                            ? 'bg-red-600 text-white border-red-500 shadow-xs'
+                            : pri === 'High'
+                            ? 'bg-amber-500 text-navy-950 border-amber-400 shadow-xs'
+                            : 'bg-blue-600 text-white border-blue-500 shadow-xs'
+                          : 'bg-slate-50 dark:bg-navy-950 text-slate-600 dark:text-slate-400 border-slate-200 dark:border-navy-800'
+                      }`}
+                    >
+                      {pri}
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              {/* 3. Pointed-out Specific Instructions */}
+              <div className="space-y-1.5">
+                <div className="flex items-center justify-between">
+                  <label className="text-xs font-bold text-slate-900 dark:text-white flex items-center gap-1">
+                    <span>📌 Point-out Instructions to HR Specialist:</span>
+                  </label>
+                  <span className="text-[10px] text-gold-600 dark:text-gold-400 font-bold">Point out notes</span>
+                </div>
+                <textarea
+                  rows={4}
+                  value={assignmentInstructions}
+                  onChange={(e) => setAssignmentInstructions(e.target.value)}
+                  placeholder="Point out specific instructions for this specialist (e.g. Call candidate today by 3 PM, verify IELTS score, prepare document checklist...)"
+                  className="w-full p-2.5 text-xs bg-slate-50 dark:bg-navy-950 border border-slate-300 dark:border-navy-700 rounded-xl text-slate-900 dark:text-white focus:outline-none focus:border-gold-500 resize-none"
+                />
+
+                {/* Quick presets (Only for Branch A: International HR Operations) */}
+                {operationTab === 'intl-ops' && (
+                  <div className="space-y-1 pt-1">
+                    <div className="text-[10px] font-extrabold uppercase tracking-wider text-slate-400">Quick Presets:</div>
+                    <div className="flex flex-wrap gap-1.5">
+                      <button
+                        type="button"
+                        onClick={() => setPresetInstruction('Call on IELTS deadline and prepare university application dossier.')}
+                        className="px-2 py-1 rounded text-[10px] bg-slate-100 dark:bg-navy-950 hover:bg-gold-500 hover:text-navy-950 text-slate-700 dark:text-slate-300 transition cursor-pointer border border-slate-200 dark:border-navy-800"
+                      >
+                        📞 Call on IELTS Deadline
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => setPresetInstruction('Verify attested degree certificates and police clearance certificate.')}
+                        className="px-2 py-1 rounded text-[10px] bg-slate-100 dark:bg-navy-950 hover:bg-gold-500 hover:text-navy-950 text-slate-700 dark:text-slate-300 transition cursor-pointer border border-slate-200 dark:border-navy-800"
+                      >
+                        📝 Degree &amp; Police Clearance
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => setPresetInstruction('Coordinate 1-on-1 Zoom counseling session with senior admissions counselor.')}
+                        className="px-2 py-1 rounded text-[10px] bg-slate-100 dark:bg-navy-950 hover:bg-gold-500 hover:text-navy-950 text-slate-700 dark:text-slate-300 transition cursor-pointer border border-slate-200 dark:border-navy-800"
+                      >
+                        💻 Zoom Counseling
+                      </button>
+                    </div>
+                  </div>
+                )}
+              </div>
+
+              {/* 4. Click Send / Assign */}
+              <div className="flex items-center gap-3 pt-2">
+                <button
+                  type="button"
+                  onClick={() => setIsAssignModalOpen(false)}
+                  className="w-1/3 py-3 px-4 rounded-xl font-bold text-xs border border-slate-200 dark:border-navy-700 text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-navy-800 transition cursor-pointer"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="submit"
+                  disabled={assigningLoading || selectedEnquiryIds.length === 0 || !selectedMemberId}
+                  className={`w-2/3 py-3 px-4 rounded-xl font-bold text-xs tracking-wide text-white transition-all duration-200 flex items-center justify-center space-x-2 shadow-lg cursor-pointer ${
+                    selectedEnquiryIds.length === 0 || !selectedMemberId
+                      ? 'opacity-50 cursor-not-allowed bg-slate-400 dark:bg-navy-700 text-slate-200'
+                      : operationTab === 'intl-ops'
+                      ? 'bg-gradient-to-r from-blue-600 via-indigo-600 to-blue-700 hover:from-blue-500 hover:to-indigo-500 shadow-blue-500/20'
+                      : 'bg-gradient-to-r from-emerald-600 via-teal-600 to-emerald-700 hover:from-emerald-500 hover:to-teal-500 shadow-emerald-500/20'
+                  }`}
+                >
+                  <Send className="w-4 h-4" />
+                  <span>
+                    {assigningLoading
+                      ? 'Assigning...'
+                      : selectedEnquiryIds.length === 0
+                      ? 'Select Enquiries First'
+                      : !selectedMemberId
+                      ? 'Choose Specialist'
+                      : `Click Send / Assign (${selectedEnquiryIds.length})`}
+                  </span>
+                </button>
+              </div>
+            </form>
+
+            {/* Flowchart step indicator (Only for International HR Operations) */}
+            {operationTab === 'intl-ops' && (
+              <div className="pt-2 border-t border-slate-100 dark:border-navy-800/80 text-[11px] text-slate-400 space-y-1">
+                <div className="flex items-center gap-1.5 text-emerald-600 dark:text-emerald-400 font-bold">
+                  <Check className="w-3.5 h-3.5" />
+                  <span>Enquiries assigned &amp; updated in CRM</span>
+                </div>
+                <div>Enquiries are linked to the selected HR specialist with your custom pointed instructions.</div>
+              </div>
+            )}
+
+          </div>
         </div>
       )}
 

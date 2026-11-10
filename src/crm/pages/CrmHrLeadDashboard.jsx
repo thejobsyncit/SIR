@@ -12,11 +12,15 @@ import ScrollReveal from '../../components/ScrollReveal';
 import CrmHrTaskAssignment from '../components/CrmHrTaskAssignment';
 
 export const CrmHrLeadDashboard = ({ initialSection }) => {
-  const { candidates = [], setActiveModule } = useCrm();
+  const { candidates = [], setActiveModule, currentRole } = useCrm();
+
+  // Role check: Hide top HR module horizontal navigation bar for HR Lead, Admin, and Super Admin
+  const hideTopHrNavBar = ['HR Lead', 'Admin', 'Super Admin'].includes(currentRole);
 
   // Helper to map route ID (e.g. 'hr-attendance') to internal tab id
   const getTabFromSection = (sec) => {
     switch (sec) {
+      case 'tasks':
       case 'hr-tasks': return 'tasks';
       case 'hr-attendance': return 'attendance';
       case 'hr-leave': return 'leave';
@@ -363,161 +367,168 @@ export const CrmHrLeadDashboard = ({ initialSection }) => {
     <ScrollReveal>
       <div className="space-y-6 text-xs font-sans pb-10">
         
-        {/* TOP COMMAND BANNER (SUPER ADMIN LUXURY GOLD PALETTE) */}
-        <div className="bg-white dark:bg-navy-900 border border-slate-200/90 dark:border-navy-800 p-6 rounded-3xl shadow-sm flex flex-col lg:flex-row justify-between items-start lg:items-center gap-4">
-          <div>
-            <div className="flex items-center gap-2 mb-2">
-              <span className="bg-amber-100 dark:bg-amber-950/40 text-amber-800 dark:text-gold-400 px-3 py-1 rounded-lg text-[10px] font-black uppercase tracking-wider">
-                HR Lead Executive HQ • Central Console
-              </span>
-              <span className="text-[10px] font-mono text-slate-400 uppercase tracking-wider">
-                WORKFORCE GOVERNANCE & OPERATIONS
-              </span>
+        {/* WORKFORCE HEADER, TOAST, 6 KPI CARDS & TABS: Rendered ONLY on Employee/Workforce dashboards, NOT on Task Assignment */}
+        {activeTab !== 'tasks' && (
+          <>
+            {/* TOP COMMAND BANNER (SUPER ADMIN LUXURY GOLD PALETTE) */}
+            <div className="bg-white dark:bg-navy-900 border border-slate-200/90 dark:border-navy-800 p-6 rounded-3xl shadow-sm flex flex-col lg:flex-row justify-between items-start lg:items-center gap-4">
+              <div>
+                <div className="flex items-center gap-2 mb-2">
+                  <span className="bg-amber-100 dark:bg-amber-950/40 text-amber-800 dark:text-gold-400 px-3 py-1 rounded-lg text-[10px] font-black uppercase tracking-wider">
+                    HR Lead Executive HQ • Central Console
+                  </span>
+                  <span className="text-[10px] font-mono text-slate-400 uppercase tracking-wider">
+                    WORKFORCE GOVERNANCE & OPERATIONS
+                  </span>
+                </div>
+                <h1 className="font-serif text-2xl sm:text-3xl font-bold text-slate-900 dark:text-white">
+                  HR Lead Operations & Workforce Management Console
+                </h1>
+                <p className="text-slate-500 text-xs mt-1 max-w-2xl">
+                  Centralized workspace to monitor employees, approve workforce requests, track real-time attendance, and manage end-to-end HR operations.
+                </p>
+              </div>
+
+              <div className="flex flex-wrap items-center gap-2.5">
+                <button
+                  onClick={() => setMaskSalary(!maskSalary)}
+                  className="px-3.5 py-2 rounded-2xl bg-slate-100 dark:bg-navy-800 text-slate-700 dark:text-slate-200 font-bold border border-slate-200 dark:border-navy-700 hover:bg-slate-200 transition flex items-center gap-1.5 cursor-pointer text-xs"
+                  title="Toggle salary encryption view"
+                >
+                  {maskSalary ? <Eye className="w-4 h-4 text-amber-600" /> : <EyeOff className="w-4 h-4 text-slate-400" />}
+                  <span>{maskSalary ? 'Unmask CTC' : 'Mask CTC'}</span>
+                </button>
+
+                <button
+                  onClick={() => setIsAddEmployeeOpen(true)}
+                  className="px-4 py-2 bg-gold-500 hover:bg-gold-600 text-navy-950 font-bold rounded-2xl shadow-sm transition flex items-center gap-1.5 cursor-pointer text-xs"
+                >
+                  <UserPlus className="w-4 h-4" />
+                  <span>Add Employee</span>
+                </button>
+
+                <span className="px-3 py-1.5 rounded-full text-[11px] font-bold bg-emerald-50 dark:bg-emerald-950/40 border border-emerald-200 text-emerald-700 dark:text-emerald-300">
+                  ● 42 Present Today
+                </span>
+              </div>
             </div>
-            <h1 className="font-serif text-2xl sm:text-3xl font-bold text-slate-900 dark:text-white">
-              HR Lead Operations & Workforce Management Console
-            </h1>
-            <p className="text-slate-500 text-xs mt-1 max-w-2xl">
-              Centralized workspace to monitor employees, approve workforce requests, track real-time attendance, and manage end-to-end HR operations.
-            </p>
-          </div>
 
-          <div className="flex flex-wrap items-center gap-2.5">
-            <button
-              onClick={() => setMaskSalary(!maskSalary)}
-              className="px-3.5 py-2 rounded-2xl bg-slate-100 dark:bg-navy-800 text-slate-700 dark:text-slate-200 font-bold border border-slate-200 dark:border-navy-700 hover:bg-slate-200 transition flex items-center gap-1.5 cursor-pointer text-xs"
-              title="Toggle salary encryption view"
-            >
-              {maskSalary ? <Eye className="w-4 h-4 text-amber-600" /> : <EyeOff className="w-4 h-4 text-slate-400" />}
-              <span>{maskSalary ? 'Unmask CTC' : 'Mask CTC'}</span>
-            </button>
+            {toastMsg && (
+              <div className="p-3.5 bg-emerald-500/15 border border-emerald-500/30 text-emerald-800 dark:text-emerald-300 rounded-2xl text-xs font-bold animate-in fade-in flex items-center gap-2">
+                <CheckCircle2 className="w-4 h-4 text-emerald-600 shrink-0" />
+                <span>{toastMsg}</span>
+              </div>
+            )}
 
-            <button
-              onClick={() => setIsAddEmployeeOpen(true)}
-              className="px-4 py-2 bg-gold-500 hover:bg-gold-600 text-navy-950 font-bold rounded-2xl shadow-sm transition flex items-center gap-1.5 cursor-pointer text-xs"
-            >
-              <UserPlus className="w-4 h-4" />
-              <span>Add Employee</span>
-            </button>
+            {/* 6 TOP EXECUTIVE KPI CARDS (From Image 1: 1. Dashboard Overview) */}
+            <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3.5">
+              <div className="bg-white dark:bg-navy-900 border border-slate-200/80 dark:border-navy-800 rounded-3xl p-4 shadow-xs">
+                <div className="flex justify-between items-start">
+                  <span className="text-[10px] font-extrabold uppercase tracking-wider text-slate-500">Total Employees</span>
+                  <div className="w-7 h-7 rounded-xl bg-blue-50 text-blue-600 flex items-center justify-center border border-blue-100">
+                    <Users className="w-3.5 h-3.5" />
+                  </div>
+                </div>
+                <p className="text-3xl font-serif font-black text-slate-900 dark:text-white mt-2.5">{totalEmployeesCount}</p>
+                <span className="text-[10px] text-blue-600 font-semibold mt-1 block">↗ 100% On-roll Staff</span>
+              </div>
 
-            <span className="px-3 py-1.5 rounded-full text-[11px] font-bold bg-emerald-50 dark:bg-emerald-950/40 border border-emerald-200 text-emerald-700 dark:text-emerald-300">
-              ● 42 Present Today
-            </span>
-          </div>
-        </div>
+              <div className="bg-white dark:bg-navy-900 border border-slate-200/80 dark:border-navy-800 rounded-3xl p-4 shadow-xs">
+                <div className="flex justify-between items-start">
+                  <span className="text-[10px] font-extrabold uppercase tracking-wider text-slate-500">Present Today</span>
+                  <div className="w-7 h-7 rounded-xl bg-emerald-50 text-emerald-600 flex items-center justify-center border border-emerald-100">
+                    <CheckCircle2 className="w-3.5 h-3.5" />
+                  </div>
+                </div>
+                <p className="text-3xl font-serif font-black text-emerald-600 mt-2.5">{presentTodayCount}</p>
+                <span className="text-[10px] text-emerald-600 font-semibold mt-1 block">↗ 87.5% Attendance</span>
+              </div>
 
-        {toastMsg && (
-          <div className="p-3.5 bg-emerald-500/15 border border-emerald-500/30 text-emerald-800 dark:text-emerald-300 rounded-2xl text-xs font-bold animate-in fade-in flex items-center gap-2">
-            <CheckCircle2 className="w-4 h-4 text-emerald-600 shrink-0" />
-            <span>{toastMsg}</span>
-          </div>
+              <div className="bg-white dark:bg-navy-900 border border-slate-200/80 dark:border-navy-800 rounded-3xl p-4 shadow-xs">
+                <div className="flex justify-between items-start">
+                  <span className="text-[10px] font-extrabold uppercase tracking-wider text-slate-500">Absent Today</span>
+                  <div className="w-7 h-7 rounded-xl bg-rose-50 text-rose-600 flex items-center justify-center border border-rose-100">
+                    <XCircle className="w-3.5 h-3.5" />
+                  </div>
+                </div>
+                <p className="text-3xl font-serif font-black text-rose-600 mt-2.5">{absentCount}</p>
+                <span className="text-[10px] text-rose-600 font-semibold mt-1 block">↗ 1 Uninformed Absence</span>
+              </div>
+
+              <div className="bg-white dark:bg-navy-900 border border-slate-200/80 dark:border-navy-800 rounded-3xl p-4 shadow-xs">
+                <div className="flex justify-between items-start">
+                  <span className="text-[10px] font-extrabold uppercase tracking-wider text-slate-500">On Leave</span>
+                  <div className="w-7 h-7 rounded-xl bg-amber-50 text-amber-600 flex items-center justify-center border border-amber-100">
+                    <Calendar className="w-3.5 h-3.5" />
+                  </div>
+                </div>
+                <p className="text-3xl font-serif font-black text-amber-600 dark:text-gold-400 mt-2.5">{onLeaveCount}</p>
+                <span className="text-[10px] text-amber-600 font-semibold mt-1 block">↗ Approved Leaves</span>
+              </div>
+
+              <div className="bg-white dark:bg-navy-900 border border-slate-200/80 dark:border-navy-800 rounded-3xl p-4 shadow-xs">
+                <div className="flex justify-between items-start">
+                  <span className="text-[10px] font-extrabold uppercase tracking-wider text-slate-500">New Joiners</span>
+                  <div className="w-7 h-7 rounded-xl bg-purple-50 text-purple-600 flex items-center justify-center border border-purple-100">
+                    <UserPlus className="w-3.5 h-3.5" />
+                  </div>
+                </div>
+                <p className="text-3xl font-serif font-black text-purple-600 mt-2.5">{newJoinersCount}</p>
+                <span className="text-[10px] text-purple-600 font-semibold mt-1 block">↗ This Month (Nov 2026)</span>
+              </div>
+
+              <div className="bg-white dark:bg-navy-900 border border-slate-200/80 dark:border-navy-800 rounded-3xl p-4 shadow-xs">
+                <div className="flex justify-between items-start">
+                  <span className="text-[10px] font-extrabold uppercase tracking-wider text-slate-500">Pending Approvals</span>
+                  <div className="w-7 h-7 rounded-xl bg-gold-500/20 text-gold-700 flex items-center justify-center border border-gold-500/30">
+                    <CheckSquare className="w-3.5 h-3.5" />
+                  </div>
+                </div>
+                <p className="text-3xl font-serif font-black text-slate-900 dark:text-white mt-2.5">{pendingApprovalsCount}</p>
+                <span className="text-[10px] text-gold-600 font-semibold mt-1 block">↗ Action Required</span>
+              </div>
+            </div>
+
+            {/* MASTER FEATURE TABS BAR (Hidden for HR Lead, Admin, and Super Admin) */}
+            {!hideTopHrNavBar && (
+              <div className="bg-white dark:bg-navy-900 border border-slate-200/90 dark:border-navy-800 rounded-2xl p-2 shadow-xs flex flex-wrap gap-1.5 overflow-x-auto">
+                {[
+                  { id: 'overview', label: '#1 Overview', icon: LayoutDashboard },
+                  { id: 'tasks', label: 'HR Task Assignment', icon: CheckSquare },
+                  { id: 'attendance', label: '#2 Attendance', icon: Clock },
+                  { id: 'leave', label: '#3 Leave Management', icon: Calendar },
+                  { id: 'employees', label: '#4 Employee Directory', icon: Users },
+                  { id: 'performance', label: '#5 Performance', icon: TrendingUp },
+                  { id: 'recruitment', label: '#6 Recruitment & Onboarding', icon: UserCheck },
+                  { id: 'payroll', label: '#7 Payroll', icon: CreditCard },
+                  { id: 'announcements', label: '#8 Notices & Life Events', icon: Bell },
+                  { id: 'shifts', label: 'Shift Roster', icon: CalendarCheck },
+                  { id: 'documents', label: 'Document Vault', icon: FileText },
+                  { id: 'grievances', label: 'Grievances', icon: ShieldAlert },
+                  { id: 'approvals', label: `Approvals (${pendingApprovalsCount})`, icon: CheckSquare },
+                  { id: 'reports', label: 'Workforce Analytics', icon: BarChart3 }
+                ].map(tab => {
+                  const TabIcon = tab.icon;
+                  const isTabActive = activeTab === tab.id;
+                  return (
+                    <button
+                      key={tab.id}
+                      onClick={() => setActiveTab(tab.id)}
+                      className={`flex items-center gap-1.5 px-3 py-1.5 rounded-xl font-bold text-[11px] transition cursor-pointer shrink-0 ${
+                        isTabActive
+                          ? 'bg-gold-500 text-navy-950 shadow-xs'
+                          : 'text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-navy-800'
+                      }`}
+                    >
+                      <TabIcon className="w-3.5 h-3.5" />
+                      <span>{tab.label}</span>
+                    </button>
+                  );
+                })}
+              </div>
+            )}
+          </>
         )}
-
-        {/* 6 TOP EXECUTIVE KPI CARDS (From Image 1: 1. Dashboard Overview) */}
-        <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3.5">
-          <div className="bg-white dark:bg-navy-900 border border-slate-200/80 dark:border-navy-800 rounded-3xl p-4 shadow-xs">
-            <div className="flex justify-between items-start">
-              <span className="text-[10px] font-extrabold uppercase tracking-wider text-slate-500">Total Employees</span>
-              <div className="w-7 h-7 rounded-xl bg-blue-50 text-blue-600 flex items-center justify-center border border-blue-100">
-                <Users className="w-3.5 h-3.5" />
-              </div>
-            </div>
-            <p className="text-3xl font-serif font-black text-slate-900 dark:text-white mt-2.5">{totalEmployeesCount}</p>
-            <span className="text-[10px] text-blue-600 font-semibold mt-1 block">↗ 100% On-roll Staff</span>
-          </div>
-
-          <div className="bg-white dark:bg-navy-900 border border-slate-200/80 dark:border-navy-800 rounded-3xl p-4 shadow-xs">
-            <div className="flex justify-between items-start">
-              <span className="text-[10px] font-extrabold uppercase tracking-wider text-slate-500">Present Today</span>
-              <div className="w-7 h-7 rounded-xl bg-emerald-50 text-emerald-600 flex items-center justify-center border border-emerald-100">
-                <CheckCircle2 className="w-3.5 h-3.5" />
-              </div>
-            </div>
-            <p className="text-3xl font-serif font-black text-emerald-600 mt-2.5">{presentTodayCount}</p>
-            <span className="text-[10px] text-emerald-600 font-semibold mt-1 block">↗ 87.5% Attendance</span>
-          </div>
-
-          <div className="bg-white dark:bg-navy-900 border border-slate-200/80 dark:border-navy-800 rounded-3xl p-4 shadow-xs">
-            <div className="flex justify-between items-start">
-              <span className="text-[10px] font-extrabold uppercase tracking-wider text-slate-500">Absent Today</span>
-              <div className="w-7 h-7 rounded-xl bg-rose-50 text-rose-600 flex items-center justify-center border border-rose-100">
-                <XCircle className="w-3.5 h-3.5" />
-              </div>
-            </div>
-            <p className="text-3xl font-serif font-black text-rose-600 mt-2.5">{absentCount}</p>
-            <span className="text-[10px] text-rose-600 font-semibold mt-1 block">↗ 1 Uninformed Absence</span>
-          </div>
-
-          <div className="bg-white dark:bg-navy-900 border border-slate-200/80 dark:border-navy-800 rounded-3xl p-4 shadow-xs">
-            <div className="flex justify-between items-start">
-              <span className="text-[10px] font-extrabold uppercase tracking-wider text-slate-500">On Leave</span>
-              <div className="w-7 h-7 rounded-xl bg-amber-50 text-amber-600 flex items-center justify-center border border-amber-100">
-                <Calendar className="w-3.5 h-3.5" />
-              </div>
-            </div>
-            <p className="text-3xl font-serif font-black text-amber-600 dark:text-gold-400 mt-2.5">{onLeaveCount}</p>
-            <span className="text-[10px] text-amber-600 font-semibold mt-1 block">↗ Approved Leaves</span>
-          </div>
-
-          <div className="bg-white dark:bg-navy-900 border border-slate-200/80 dark:border-navy-800 rounded-3xl p-4 shadow-xs">
-            <div className="flex justify-between items-start">
-              <span className="text-[10px] font-extrabold uppercase tracking-wider text-slate-500">New Joiners</span>
-              <div className="w-7 h-7 rounded-xl bg-purple-50 text-purple-600 flex items-center justify-center border border-purple-100">
-                <UserPlus className="w-3.5 h-3.5" />
-              </div>
-            </div>
-            <p className="text-3xl font-serif font-black text-purple-600 mt-2.5">{newJoinersCount}</p>
-            <span className="text-[10px] text-purple-600 font-semibold mt-1 block">↗ This Month (Nov 2026)</span>
-          </div>
-
-          <div className="bg-white dark:bg-navy-900 border border-slate-200/80 dark:border-navy-800 rounded-3xl p-4 shadow-xs">
-            <div className="flex justify-between items-start">
-              <span className="text-[10px] font-extrabold uppercase tracking-wider text-slate-500">Pending Approvals</span>
-              <div className="w-7 h-7 rounded-xl bg-gold-500/20 text-gold-700 flex items-center justify-center border border-gold-500/30">
-                <CheckSquare className="w-3.5 h-3.5" />
-              </div>
-            </div>
-            <p className="text-3xl font-serif font-black text-slate-900 dark:text-white mt-2.5">{pendingApprovalsCount}</p>
-            <span className="text-[10px] text-gold-600 font-semibold mt-1 block">↗ Action Required</span>
-          </div>
-        </div>
-
-        {/* MASTER FEATURE TABS BAR (All 8 Core + Advanced Modules from Document) */}
-        <div className="bg-white dark:bg-navy-900 border border-slate-200/90 dark:border-navy-800 rounded-2xl p-2 shadow-xs flex flex-wrap gap-1.5 overflow-x-auto">
-          {[
-            { id: 'overview', label: '#1 Overview', icon: LayoutDashboard },
-            { id: 'tasks', label: 'HR Task Assignment', icon: CheckSquare },
-            { id: 'attendance', label: '#2 Attendance', icon: Clock },
-            { id: 'leave', label: '#3 Leave Management', icon: Calendar },
-            { id: 'employees', label: '#4 Employee Directory', icon: Users },
-            { id: 'performance', label: '#5 Performance', icon: TrendingUp },
-            { id: 'recruitment', label: '#6 Recruitment & Onboarding', icon: UserCheck },
-            { id: 'payroll', label: '#7 Payroll', icon: CreditCard },
-            { id: 'announcements', label: '#8 Notices & Life Events', icon: Bell },
-            { id: 'shifts', label: 'Shift Roster', icon: CalendarCheck },
-            { id: 'documents', label: 'Document Vault', icon: FileText },
-            { id: 'grievances', label: 'Grievances', icon: ShieldAlert },
-            { id: 'approvals', label: `Approvals (${pendingApprovalsCount})`, icon: CheckSquare },
-            { id: 'reports', label: 'Workforce Analytics', icon: BarChart3 }
-          ].map(tab => {
-            const TabIcon = tab.icon;
-            const isTabActive = activeTab === tab.id;
-            return (
-              <button
-                key={tab.id}
-                onClick={() => setActiveTab(tab.id)}
-                className={`flex items-center gap-1.5 px-3 py-1.5 rounded-xl font-bold text-[11px] transition cursor-pointer shrink-0 ${
-                  isTabActive
-                    ? 'bg-gold-500 text-navy-950 shadow-xs'
-                    : 'text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-navy-800'
-                }`}
-              >
-                <TabIcon className="w-3.5 h-3.5" />
-                <span>{tab.label}</span>
-              </button>
-            );
-          })}
-        </div>
 
         {/* ========================================================
             TAB 1: DASHBOARD OVERVIEW (Feature 1)

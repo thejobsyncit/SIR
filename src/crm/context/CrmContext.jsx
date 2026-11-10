@@ -2,7 +2,102 @@ import React, { createContext, useContext, useState, useEffect, useMemo } from '
 import { CRM_ROLES, ROLE_PERMISSIONS, CRM_CANDIDATES, CRM_CLIENTS, CRM_INTERVIEWS, CRM_INVOICES, PIPELINE_STAGES, AUDIT_LOGS } from '../data/mockCrmData';
 import { getLocalFallbackLeads } from '../../services/leadSubmissionService';
 
-const CrmContext = createContext();
+export const DEFAULT_CRM_CONTEXT_VALUE = {
+  isAuthenticated: false,
+  user: null,
+  login: () => false,
+  logout: () => {},
+  accountLocked: false,
+  lockReason: '',
+  unlockAccount: () => {},
+  currentEmployee: null,
+  currentRole: 'Super Admin',
+  isSuperAdmin: true,
+  switchRole: () => {},
+  hasPermission: () => true,
+  darkMode: false,
+  toggleDarkMode: () => {},
+  activeModule: 'dashboard',
+  setActiveModule: () => {},
+  candidates: [],
+  fetchCandidates: () => {},
+  addCandidate: () => {},
+  updateCandidate: () => {},
+  deleteCandidate: () => {},
+  updateCandidateStage: () => {},
+  selectedCandidate: null,
+  setSelectedCandidate: () => {},
+  clients: [],
+  fetchClients: () => {},
+  addClient: () => {},
+  removeClient: () => {},
+  createOrganization: () => {},
+  updateOrganization: () => {},
+  addContactToOrganization: () => {},
+  interviews: [],
+  addInterview: () => {},
+  updateInterview: () => {},
+  deleteInterview: () => {},
+  calendarEvents: [],
+  addCalendarEvent: () => {},
+  removeCalendarEvent: () => {},
+  invoices: [],
+  addInvoice: () => {},
+  updateInvoice: () => {},
+  deleteInvoice: () => {},
+  recruiterTasks: [],
+  addRecruiterTask: () => {},
+  removeRecruiterTask: () => {},
+  toggleRecruiterTask: () => {},
+  recruiterNotes: '',
+  setRecruiterNotes: () => {},
+  auditLogs: [],
+  logAuditAction: () => {},
+  commandPaletteOpen: false,
+  setCommandPaletteOpen: () => {},
+  aiDrawerOpen: false,
+  setAiDrawerOpen: () => {},
+  notificationsOpen: false,
+  setNotificationsOpen: () => {},
+  notifications: [],
+  idleTimeSeconds: 0,
+  showIdleModal: false,
+  setShowIdleModal: () => {},
+  globalAddCandidateOpen: false,
+  setGlobalAddCandidateOpen: () => {},
+  globalAddClientOpen: false,
+  setGlobalAddClientOpen: () => {},
+  globalAddInterviewOpen: false,
+  setGlobalAddInterviewOpen: () => {},
+  globalAddInvoiceOpen: false,
+  setGlobalAddInvoiceOpen: () => {},
+  leads: [],
+  setLeads: () => {},
+  loadingLeads: false,
+  fetchLeads: () => {},
+  updateLead: () => {},
+  archiveLead: () => {},
+  deleteLead: () => {},
+  addLeadActivity: () => {},
+  scheduleLeadFollowUp: () => {},
+  updateFollowUpStatus: () => {},
+  followUps: [],
+  loadingFollowUps: false,
+  fetchFollowUps: () => {},
+  consultingMetrics: {},
+  fetchConsultingMetrics: () => {},
+  leadMetrics: {},
+  fetchLeadMetrics: () => {},
+  serviceBreakdown: {},
+  followUpsSummary: {},
+  fetchFollowUpsSummary: () => {},
+  selectedMetricsRange: '7d',
+  setSelectedMetricsRange: () => {},
+  consultingServiceFilter: 'all',
+  setConsultingServiceFilter: () => {}
+};
+
+export const CrmContext = createContext(DEFAULT_CRM_CONTEXT_VALUE);
 
 export const CrmProvider = ({ children }) => {
   // Session persistence: restore authenticated session from localStorage across page refresh
@@ -518,11 +613,26 @@ export const CrmProvider = ({ children }) => {
     let canonicalDept = registeredInfo?.department;
     let canonicalTeam = registeredInfo?.operationTeam;
 
-    if (emailLower.includes('balavarshini')) {
+    if (emailLower.includes('fatima') || registeredInfo?.name === 'Fatima') {
+      canonicalName = 'Fatima';
+      canonicalEmployeeId = 'REV-EMP-107';
+      canonicalDept = 'International HR Operations';
+      canonicalTeam = 'International HR Operations';
+    } else if (emailLower.includes('balavarshini') || registeredInfo?.name?.includes('Balavarshini')) {
       canonicalName = 'Balavarshini S.';
       canonicalEmployeeId = 'REV-EMP-006';
-      canonicalDept = 'HR Operations';
-      canonicalTeam = 'International HR Operations, Enquiry HR Operations';
+      canonicalDept = 'International HR Operations';
+      canonicalTeam = 'International HR Operations';
+    } else if (emailLower.includes('divya') || emailLower.includes('diviya') || registeredInfo?.name?.includes('Divya') || registeredInfo?.name?.includes('Diviya')) {
+      canonicalName = 'Divya R.';
+      canonicalEmployeeId = 'REV-EMP-102';
+      canonicalDept = 'Enquiry HR Operations';
+      canonicalTeam = 'Enquiry HR Operations';
+    } else if (emailLower.includes('praveen') || registeredInfo?.name?.includes('Praveen')) {
+      canonicalName = 'Praveen Kumar';
+      canonicalEmployeeId = 'REV-EMP-108';
+      canonicalDept = 'Enquiry HR Operations';
+      canonicalTeam = 'Enquiry HR Operations';
     } else if (emailLower.includes('priya')) {
       canonicalName = 'Priya Sharma';
       canonicalEmployeeId = 'REV-EMP-003';
@@ -540,17 +650,43 @@ export const CrmProvider = ({ children }) => {
       canonicalName = canonicalName.charAt(0).toUpperCase() + canonicalName.slice(1);
     }
 
+    const resolvedTeamMemberId = registeredInfo?.teamMemberId || (
+      canonicalName === 'Fatima' ? 'INTL-HR-101' :
+      canonicalName?.includes('Balavarshini') ? 'INTL-HR-102' :
+      canonicalName?.includes('Divya') ? 'ENQ-HR-201' :
+      canonicalName?.includes('Praveen') ? 'ENQ-HR-202' : undefined
+    );
+
+    const resolvedDesignation = registeredInfo?.designation || (
+      canonicalName === 'Fatima' ? 'International HR Operations Specialist' :
+      canonicalName?.includes('Balavarshini') ? 'Lead HR Operations Specialist' :
+      (canonicalName?.includes('Divya') || canonicalName?.includes('Praveen')) ? 'HR Operations Specialist' : undefined
+    );
+
+    const resolvedAvatar = registeredInfo?.avatar || (
+      canonicalName === 'Fatima' ? 'https://images.unsplash.com/photo-1573496359142-b8d87734a5a2?w=150&auto=format&fit=crop&q=80' :
+      canonicalName?.includes('Balavarshini') ? 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=150&auto=format&fit=crop&q=80' :
+      canonicalName?.includes('Divya') ? 'https://images.unsplash.com/photo-1517841905240-472988babdf9?w=150&auto=format&fit=crop&q=80' :
+      canonicalName?.includes('Praveen') ? 'https://images.unsplash.com/photo-1500648767791-00dcc994a43e?w=150&auto=format&fit=crop&q=80' :
+      'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=150&auto=format&fit=crop&q=80'
+    );
+
     const userData = {
       id: canonicalEmployeeId || ('usr-' + Math.floor(100 + Math.random() * 900)),
-      employeeId: canonicalEmployeeId || 'REV-EMP-006',
-      teamMemberId: emailLower.includes('balavarshini') ? 'INTL-HR-102' : undefined,
-      name: canonicalName || 'Balavarshini S.',
+      employeeId: canonicalEmployeeId || registeredInfo?.employeeId || 'REV-EMP-006',
+      teamMemberId: resolvedTeamMemberId,
+      name: canonicalName || registeredInfo?.name || 'HR Specialist',
       email,
-      workEmail: emailLower.includes('balavarshini') ? 'balavarshini.s@revivalcrm.com' : email,
+      workEmail: registeredInfo?.workEmail || email,
       role: assignedRole,
-      department: canonicalDept || (assignedRole === 'HR Operations' ? 'HR Operations' : 'Enterprise Talent'),
-      operationTeam: canonicalTeam || (assignedRole === 'HR Operations' ? 'International HR Operations, Enquiry HR Operations' : undefined),
-      avatar: registeredInfo?.avatar || 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=150&auto=format&fit=crop&q=80'
+      department: canonicalDept || registeredInfo?.department || (assignedRole === 'HR Operations' ? 'HR Operations' : 'Enterprise Talent'),
+      designation: resolvedDesignation,
+      operationTeam: canonicalTeam || registeredInfo?.operationTeam || (
+        assignedRole === 'HR Operations' ? (
+          (canonicalName === 'Fatima' || canonicalName?.includes('Balavarshini')) ? 'International HR Operations' : 'Enquiry HR Operations'
+        ) : undefined
+      ),
+      avatar: resolvedAvatar
     };
 
     setIsAuthenticated(true);
@@ -1041,13 +1177,25 @@ export const CrmProvider = ({ children }) => {
     return {
       id: user.id || user.employeeId || 'REV-EMP-006',
       employeeId: user.employeeId || user.id || 'REV-EMP-006',
-      teamMemberId: user.teamMemberId || 'INTL-HR-102',
+      teamMemberId: user.teamMemberId || (
+        user.name === 'Fatima' ? 'INTL-HR-101' :
+        user.name?.includes('Balavarshini') ? 'INTL-HR-102' :
+        user.name?.includes('Divya') ? 'ENQ-HR-201' :
+        user.name?.includes('Praveen') ? 'ENQ-HR-202' : 'INTL-HR-102'
+      ),
       name: user.name || (currentRole === 'HR Operations' ? 'Balavarshini S.' : 'HR Lead'),
-      email: user.email || 'balavarshini2223@gmail.com',
-      workEmail: user.workEmail || 'balavarshini.s@revivalcrm.com',
+      email: user.email || 'balavarshini.s@revivalinternational.com',
+      workEmail: user.workEmail || user.email || 'balavarshini.s@revivalinternational.com',
       role: currentRole || user.role,
       department: user.department || 'HR Operations',
-      operationTeam: user.operationTeam || 'International HR Operations, Enquiry HR Operations'
+      designation: user.designation || (
+        user.name === 'Fatima' ? 'International HR Operations Specialist' :
+        user.name?.includes('Balavarshini') ? 'Lead HR Operations Specialist' :
+        (user.name?.includes('Divya') || user.name?.includes('Praveen')) ? 'HR Operations Specialist' : 'HR Operations Specialist'
+      ),
+      operationTeam: user.operationTeam || (
+        (user.name === 'Fatima' || user.name?.includes('Balavarshini')) ? 'International HR Operations' : 'Enquiry HR Operations'
+      )
     };
   }, [user, currentRole]);
 
@@ -1156,4 +1304,7 @@ export const CrmProvider = ({ children }) => {
   );
 };
 
-export const useCrm = () => useContext(CrmContext);
+export const useCrm = () => {
+  const context = useContext(CrmContext);
+  return context || DEFAULT_CRM_CONTEXT_VALUE;
+};

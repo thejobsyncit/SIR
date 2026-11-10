@@ -49,7 +49,10 @@ export const DEFAULT_CRM_EMPLOYEES = [
   { id: 'emp-3', employeeId: 'REV-EMP-003', name: 'Priya Sharma', email: 'priya.lead@revivalinternational.com', phone: '+91 98400 11003', role: 'HR Lead', department: 'Human Resources', password: 'Password123!', status: 'Active', createdAt: '2026-11-01 09:00:00' },
   { id: 'emp-4', employeeId: 'REV-EMP-004', name: 'Kishore Kumar', email: 'kishore.recruiter@revivalinternational.com', phone: '+91 98400 11004', role: 'Recruiter', department: 'Talent Acquisition & ATS', password: 'Password123!', status: 'Active', createdAt: '2026-11-01 09:00:00' },
   { id: 'emp-5', employeeId: 'REV-EMP-005', name: 'Sreeja Nair', email: 'sreeja.jasync@gmail.com', phone: '+91 9876543211', role: 'Placement Coordinator', department: 'Placement & Industry Relations', password: 'Password123!', status: 'Active', createdAt: '2026-11-01 09:00:00' },
-  { id: 'emp-6', employeeId: 'REV-EMP-006', name: 'Balavarshini', email: 'balavarshini2223@gmail.com', phone: '+91 9876543214', role: 'HR Operations', department: 'HR & Student Operations', password: 'Password123!', status: 'Active', createdAt: '2026-11-01 09:00:00' }
+  { id: 'emp-6', employeeId: 'REV-EMP-006', name: 'Balavarshini S.', email: 'balavarshini.s@revivalinternational.com', phone: '+91 9876543214', role: 'HR Operations', department: 'International HR Operations', designation: 'Lead HR Operations Specialist', operationTeam: 'International HR Operations', password: 'Password123!', status: 'Active', createdAt: '2026-11-01 09:00:00' },
+  { id: 'emp-fatima', employeeId: 'REV-EMP-107', name: 'Fatima', email: 'fatima.intl@revivalinternational.com', phone: '+971 50 876 5432', role: 'HR Operations', department: 'International HR Operations', designation: 'International HR Operations Specialist', operationTeam: 'International HR Operations', password: 'Password123!', status: 'Active', createdAt: '2026-11-01 09:00:00' },
+  { id: 'emp-divya', employeeId: 'REV-EMP-102', name: 'Divya R.', email: 'divya.enq@revivalinternational.com', phone: '+91 98401 11202', role: 'HR Operations', department: 'Enquiry HR Operations', designation: 'HR Operations Specialist', operationTeam: 'Enquiry HR Operations', password: 'Password123!', status: 'Active', createdAt: '2026-11-01 09:00:00' },
+  { id: 'emp-praveen', employeeId: 'REV-EMP-108', name: 'Praveen Kumar', email: 'praveen.enq@revivalinternational.com', phone: '+91 98401 11208', role: 'HR Operations', department: 'Enquiry HR Operations', designation: 'HR Operations Specialist', operationTeam: 'Enquiry HR Operations', password: 'Password123!', status: 'Active', createdAt: '2026-11-01 09:00:00' }
 ];
 
 export const DEFAULT_CRM_CANDIDATES = [
@@ -899,25 +902,19 @@ const initDb = async (db) => {
     );
   `);
 
-  // Seed default employees for all 6 roles if table is empty
+  // Seed default employees for all roles if table is empty or ensure HR Operations specialists
   try {
-    const existingEmployees = await db.all('SELECT COUNT(*) as count FROM employees');
-    if (existingEmployees && existingEmployees[0] && existingEmployees[0].count === 0) {
-      const defaultEmps = [
-        { id: 'emp-1', employeeId: 'REV-EMP-001', name: 'Dhanalakshimi', email: 'thejobsyncit@gmail.com', phone: '+91 9003475405', role: 'Super Admin', department: 'Executive Management', password: 'Thejobsync@26', status: 'Active' },
-        { id: 'emp-2', employeeId: 'REV-EMP-002', name: 'Sarah Jenkins', email: 'sarah.admin@revivalinternational.com', phone: '+91 98400 11002', role: 'Admin', department: 'Administration', password: 'Password123!', status: 'Active' },
-        { id: 'emp-3', employeeId: 'REV-EMP-003', name: 'Priya Sharma', email: 'priya.lead@revivalinternational.com', phone: '+91 98400 11003', role: 'HR Lead', department: 'Human Resources', password: 'Password123!', status: 'Active' },
-        { id: 'emp-4', employeeId: 'REV-EMP-004', name: 'Kishore Kumar', email: 'kishore.recruiter@revivalinternational.com', phone: '+91 98400 11004', role: 'Recruiter', department: 'Recruitment & ATS', password: 'Password123!', status: 'Active' },
-        { id: 'emp-5', employeeId: 'REV-EMP-005', name: 'Sreeja Nair', email: 'sreeja.jasync@gmail.com', phone: '+91 9876543211', role: 'Placement Coordinator', department: 'Placement & Client Relations', password: 'Password123!', status: 'Active' },
-        { id: 'emp-6', employeeId: 'REV-EMP-006', name: 'Balavarshini', email: 'balavarshini2223@gmail.com', phone: '+91 9876543214', role: 'HR Operations', department: 'HR Operations', password: 'Password123!', status: 'Active' }
-      ];
-      for (const emp of defaultEmps) {
+    for (const emp of DEFAULT_CRM_EMPLOYEES) {
+      await db.run(
+        `INSERT OR IGNORE INTO employees (id, employeeId, name, email, phone, role, department, password, status) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+        [emp.id, emp.employeeId, emp.name, emp.email, emp.phone, emp.role, emp.department, emp.password, emp.status]
+      );
+      if (emp.role === 'HR Operations') {
         await db.run(
-          `INSERT OR IGNORE INTO employees (id, employeeId, name, email, phone, role, department, password, status) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`,
-          [emp.id, emp.employeeId, emp.name, emp.email, emp.phone, emp.role, emp.department, emp.password, emp.status]
-        );
+          `UPDATE employees SET name = ?, department = ?, designation = ?, operationTeam = ? WHERE employeeId = ?`,
+          [emp.name, emp.department, emp.designation, emp.operationTeam, emp.employeeId]
+        ).catch(() => {});
       }
-      console.log('✓ Seeded default employees across all 6 CRM roles.');
     }
   } catch (err) {
     console.warn('Employee table seeding notice:', err.message);
