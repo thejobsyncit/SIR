@@ -2058,6 +2058,241 @@ app.delete('/api/interviews/:id', requireSuperAdmin, async (req, res) => {
 const inquiryRateLimits = new Map();
 const recentInquirySubmissions = new Map();
 
+// HR Lead Central Task Assignment Endpoint
+app.post('/api/hr-operations/assign', async (req, res) => {
+  try {
+    const userRole = req.headers['x-user-role'] || req.body.userRole || req.body.role;
+    // Security check: HR Operations employees cannot assign enquiries
+    if (userRole === 'HR Operations') {
+      return res.status(403).json({
+        success: false,
+        message: 'Access Denied: Only HR Lead, Super Admin, and Admin are authorized to assign enquiries.'
+      });
+    }
+
+    const {
+      enquiryIds = [],
+      employeeId,
+      employeeName,
+      employeeEmail,
+      operationTeam,
+      priority = 'High',
+      instructions = '',
+      assignedBy = 'HR Lead',
+      assignedById = 'emp-3'
+    } = req.body;
+
+    if (!Array.isArray(enquiryIds) || enquiryIds.length === 0) {
+      return res.status(400).json({ success: false, message: 'Please provide at least one enquiry ID to assign.' });
+    }
+    if (!employeeName && !employeeId) {
+      return res.status(400).json({ success: false, message: 'Please provide an employee to assign enquiries to.' });
+    }
+
+    const db = await getDb();
+    
+    // Ensure leads table columns exist
+    await db.run('ALTER TABLE leads ADD COLUMN assignedEmployeeId TEXT').catch(() => {});
+    await db.run('ALTER TABLE leads ADD COLUMN assignedEmployeeEmail TEXT').catch(() => {});
+    await db.run('ALTER TABLE leads ADD COLUMN operationTeam TEXT').catch(() => {});
+    await db.run('ALTER TABLE leads ADD COLUMN assignedBy TEXT').catch(() => {});
+    await db.run('ALTER TABLE leads ADD COLUMN assignedAt DATETIME').catch(() => {});
+    await db.run('ALTER TABLE leads ADD COLUMN assignmentStatus TEXT').catch(() => {});
+    await db.run('ALTER TABLE leads ADD COLUMN assignmentNotes TEXT').catch(() => {});
+
+    // Resolve canonical employee identity
+    let canonicalName = employeeName || 'Balavarshini S.';
+    let canonicalId = employeeId || 'REV-EMP-006';
+    let canonicalEmail = employeeEmail || '';
+    
+    // Check if Balavarshini
+    const nameClean = (canonicalName || '').toLowerCase().replace(/[^a-z]/g, '');
+    const isBala = nameClean.includes('bala') || (canonicalEmail && canonicalEmail.toLowerCase().includes('bala')) || (canonicalId && (canonicalId.includes('102') || canonicalId.includes('201') || canonicalId.includes('006')));
+    
+    if (isBala) {
+      canonicalName = 'Balavarshini S.';
+      canonicalId = 'REV-EMP-006';
+      canonicalEmail = 'balavarshini2223@gmail.com';
+    }
+
+    let updatedCount = 0;
+    const now = new Date().toISOString();
+
+    for (const enqId of enquiryIds) {
+      // Fetch existing lead details to populate task assignment
+      const currentLead = await db.get('SELECT * FROM leads WHERE id = ? OR referenceNumber = ? LIMIT 1', [enqId, enqId]);
+      
+      const effectiveTeam = operationTeam || (
+        currentLead && ['intl-adm', 'intl-consult'].includes(currentLead.serviceId)
+          ? 'International HR Operations'
+          : 'Enquiry HR Operations'
+      );
+
+      const result = await db.run(
+        `UPDATE leads SET
+          assignedEmployee = ?,
+          assignedEmployeeId = ?,
+          assignedEmployeeEmail = ?,
+          operationTeam = ?,
+          priority = COALESCE(?, priority),
+          status = 'Assigned',
+          assignmentStatus = 'Assigned',
+          assignedAt = ?,
+          assignedBy = ?,
+          assignmentNotes = ?,
+          internalNotes = CASE
+            WHEN ? != '' THEN COALESCE(internalNotes, '') || char(10) || '📌 ' || ? || ' Assignment: ' || ?
+            ELSE internalNotes
+          END,
+          updatedAt = ?
+        WHERE id = ? OR referenceNumber = ?`,
+        [
+          canonicalName,
+          canonicalId,
+          canonicalEmail,
+          effectiveTeam,
+          priority,
+          now,
+          assignedBy,
+          instructions,
+          instructions,
+          assignedBy,
+          instructions,
+          now,
+          enqId,
+          enqId
+        ]
+      );
+
+      if (result && result.changes > 0) {
+        updatedCount += result.changes;
+
+        // Log into hr_task_assignments
+        const refNo = (currentLead && currentLead.referenceNumber) || enqId;
+        const sId = (currentLead && currentLead.serviceId) || 'intl-adm';
+        const sTitle = (currentLead && currentLead.serviceTitle) || 'Revival Inbound Enquiry';
+        const custName = (currentLead && currentLead.name) || 'Candidate';
+        const custEmail = (currentLead && currentLead.email) || '';
+        const custPhone = (currentLead && currentLead.phone) || '';
+
+        await db.run(
+          `INSERT OR REPLACE INTO hr_task_assignments (
+            id, enquiryId, referenceNumber, operationTeam, assignedEmployeeId,
+            assignedEmployeeName, assignedById, assignedByName, assignedAt,
+            assignmentStatus, taskStatus, priority, notes, serviceId, serviceTitle,
+            customerName, customerEmail, customerPhone, createdAt, updatedAt
+          ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, 'Assigned', 'To Do', ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+          [
+            `TASK-${enqId}`,
+            enqId,
+            refNo,
+            effectiveTeam,
+            canonicalId,
+            canonicalName,
+            assignedById,
+            assignedBy,
+            now,
+            priority,
+            instructions || 'Follow up with candidate regarding enquiry details.',
+            sId,
+            sTitle,
+            custName,
+            custEmail,
+            custPhone,
+            now,
+            now
+          ]
+        ).catch(() => {});
+
+        // Log in enquiry_activities
+        await db.run(
+          `INSERT INTO enquiry_activities (id, enquiryId, type, title, notes, createdBy, createdAt)
+           VALUES (?, ?, 'TASK_ASSIGNMENT', ?, ?, ?, ?)`,
+          [
+            `ACT-ASN-${Date.now()}-${Math.floor(Math.random() * 1000)}`,
+            enqId,
+            `Enquiry assigned to ${canonicalName} (${effectiveTeam})`,
+            instructions ? `Instructions: ${instructions}` : `Priority: ${priority}`,
+            assignedBy,
+            now
+          ]
+        ).catch(() => {});
+      }
+    }
+
+    res.json({
+      success: true,
+      count: updatedCount,
+      employeeName: canonicalName,
+      employeeId: canonicalId,
+      message: `Successfully assigned ${updatedCount} enquiries to ${canonicalName}.`
+    });
+  } catch (err) {
+    console.error('Error assigning enquiries:', err);
+    res.status(500).json({ success: false, message: 'Failed to assign enquiries: ' + err.message });
+  }
+});
+
+// Dedicated HR Operations Enquiries Endpoint
+app.get('/api/hr-operations/my-enquiries', async (req, res) => {
+  try {
+    const db = await getDb();
+    const reqEmployeeName = req.headers['x-employee-name'] || req.query.employeeName || 'Balavarshini';
+    const reqEmployeeId = req.headers['x-employee-id'] || req.query.employeeId || 'REV-EMP-006';
+    const reqEmployeeEmail = req.headers['x-employee-email'] || req.query.employeeEmail || '';
+    const operationTeam = req.headers['x-operation-team'] || req.query.operationTeam;
+
+    const nameClean = (reqEmployeeName || '').toLowerCase().replace(/[^a-z]/g, '');
+    const isBala = nameClean.includes('bala') || (reqEmployeeEmail && reqEmployeeEmail.toLowerCase().includes('bala')) || (reqEmployeeId && (reqEmployeeId.includes('102') || reqEmployeeId.includes('201') || reqEmployeeId.includes('006')));
+
+    let query = `
+      SELECT * FROM leads 
+      WHERE 1=1 
+    `;
+    const params = [];
+
+    if (isBala) {
+      query += ` AND (
+        LOWER(assignedEmployee) LIKE '%bala%' OR 
+        assignedEmployeeId IN ('REV-EMP-006', 'INTL-HR-102', 'ENQ-HR-201', 'emp-6', 'emp-bala') OR
+        LOWER(COALESCE(assignedEmployeeEmail, '')) LIKE '%bala%' OR
+        id IN (SELECT enquiryId FROM hr_task_assignments WHERE LOWER(assignedEmployeeName) LIKE '%bala%' OR assignedEmployeeId IN ('REV-EMP-006', 'INTL-HR-102', 'ENQ-HR-201', 'emp-6', 'emp-bala'))
+      )`;
+    } else {
+      query += ` AND (
+        LOWER(assignedEmployee) = ? OR 
+        LOWER(assignedEmployee) LIKE ? OR
+        assignedEmployeeId = ? OR
+        id IN (SELECT enquiryId FROM hr_task_assignments WHERE assignedEmployeeId = ? OR LOWER(assignedEmployeeName) LIKE ?)
+      )`;
+      const empLower = reqEmployeeName.toLowerCase().trim();
+      params.push(empLower, `%${empLower}%`, reqEmployeeId, reqEmployeeId, `%${empLower}%`);
+    }
+
+    if (operationTeam && operationTeam !== 'all') {
+      if (operationTeam === 'International HR Operations' || operationTeam === 'intl-ops') {
+        query += " AND (operationTeam = 'International HR Operations' OR serviceId IN ('intl-adm', 'intl-consult') OR referenceNumber LIKE 'REV-INT%' OR referenceNumber LIKE 'REV-ADM%' OR referenceNumber LIKE 'REV-IC%')";
+      } else if (operationTeam === 'Enquiry HR Operations' || operationTeam === 'enq-ops') {
+        query += " AND (operationTeam = 'Enquiry HR Operations' OR serviceId IN ('school-career', 'career-guidance', 'school-academy', 'student-academy', 'college-adm') OR referenceNumber LIKE 'REV-CAR%' OR referenceNumber LIKE 'REV-ACA%' OR referenceNumber LIKE 'REV-COL%' OR referenceNumber LIKE 'REV-CADM%')";
+      }
+    }
+
+    query += ' ORDER BY createdAt DESC';
+    const rows = await db.all(query, params);
+
+    res.json({
+      success: true,
+      data: rows,
+      leads: rows,
+      count: rows.length,
+      total: rows.length
+    });
+  } catch (err) {
+    console.error('Error fetching HR Operations enquiries:', err);
+    res.status(500).json({ success: false, message: 'Failed to fetch assigned enquiries: ' + err.message });
+  }
+});
+
 // API Routes - LEADS & CONSULTING ENQUIRIES
 app.get(['/api/leads', '/api/consulting/enquiries', '/api/career-guidance/enquiries'], async (req, res) => {
   try {
@@ -2132,12 +2367,53 @@ app.get(['/api/leads', '/api/consulting/enquiries', '/api/career-guidance/enquir
       params.push(dLike, dLike, dLike);
     }
 
-    if (assignedEmployee && assignedEmployee !== 'all') {
+    const reqUserRole = req.headers['x-user-role'] || req.query.userRole;
+    const reqEmployeeName = req.headers['x-employee-name'] || req.query.employeeName || assignedEmployee;
+    const reqEmployeeId = req.headers['x-employee-id'] || req.query.employeeId;
+    const reqEmployeeEmail = req.headers['x-employee-email'] || req.query.employeeEmail;
+    const operationTeam = req.headers['x-operation-team'] || req.query.operationTeam;
+
+    if (reqUserRole === 'HR Operations') {
+      if (!reqEmployeeName && !reqEmployeeId && !reqEmployeeEmail) {
+        // Enforce assignment-based access in backend: HR Operations must never see unassigned or other employees' leads
+        return res.json({ success: true, data: [], leads: [], count: 0, total: 0 });
+      }
+
+      const nameClean = (reqEmployeeName || '').toLowerCase().replace(/[^a-z]/g, '');
+      const isBala = nameClean.includes('bala') || (reqEmployeeEmail && reqEmployeeEmail.toLowerCase().includes('bala')) || (reqEmployeeId && (reqEmployeeId.includes('102') || reqEmployeeId.includes('201') || reqEmployeeId.includes('006')));
+
+      if (isBala) {
+        query += ` AND (
+          LOWER(assignedEmployee) LIKE '%bala%' OR 
+          assignedEmployeeId IN ('REV-EMP-006', 'INTL-HR-102', 'ENQ-HR-201', 'emp-6', 'emp-bala') OR
+          LOWER(COALESCE(assignedEmployeeEmail, '')) LIKE '%bala%' OR
+          id IN (SELECT enquiryId FROM hr_task_assignments WHERE LOWER(assignedEmployeeName) LIKE '%bala%' OR assignedEmployeeId IN ('REV-EMP-006', 'INTL-HR-102', 'ENQ-HR-201', 'emp-6', 'emp-bala'))
+        )`;
+      } else {
+        const empLower = (reqEmployeeName || '').toLowerCase().trim();
+        query += ` AND (
+          LOWER(assignedEmployee) = ? OR 
+          LOWER(assignedEmployee) LIKE ? OR
+          assignedEmployeeId = ? OR
+          id IN (SELECT enquiryId FROM hr_task_assignments WHERE assignedEmployeeId = ? OR LOWER(assignedEmployeeName) LIKE ?)
+        )`;
+        params.push(empLower, `%${empLower}%`, reqEmployeeId || '', reqEmployeeId || '', `%${empLower}%`);
+      }
+
+      if (operationTeam && operationTeam !== 'all') {
+        if (operationTeam === 'International HR Operations' || operationTeam === 'intl-ops') {
+          query += " AND (operationTeam = 'International HR Operations' OR serviceId IN ('intl-adm', 'intl-consult') OR referenceNumber LIKE 'REV-INT%' OR referenceNumber LIKE 'REV-ADM%' OR referenceNumber LIKE 'REV-IC%')";
+        } else if (operationTeam === 'Enquiry HR Operations' || operationTeam === 'enq-ops') {
+          query += " AND (operationTeam = 'Enquiry HR Operations' OR serviceId IN ('school-career', 'career-guidance', 'school-academy', 'student-academy', 'college-adm') OR referenceNumber LIKE 'REV-CAR%' OR referenceNumber LIKE 'REV-ACA%' OR referenceNumber LIKE 'REV-COL%' OR referenceNumber LIKE 'REV-CADM%')";
+        }
+      }
+    } else if (assignedEmployee && assignedEmployee !== 'all') {
       if (assignedEmployee === 'unassigned' || assignedEmployee === 'Unassigned') {
         query += ' AND (assignedEmployee IS NULL OR assignedEmployee = "")';
       } else {
-        query += ' AND assignedEmployee = ?';
-        params.push(assignedEmployee);
+        query += ' AND (LOWER(assignedEmployee) = ? OR LOWER(assignedEmployee) LIKE ?)';
+        const empLower = assignedEmployee.toLowerCase();
+        params.push(empLower, `%${empLower}%`);
       }
     }
 
@@ -2178,16 +2454,19 @@ app.get(['/api/leads', '/api/consulting/enquiries', '/api/career-guidance/enquir
     }
 
     let rows = await db.all(query, params);
-    if ((!rows || rows.length === 0) && !search && (!serviceId || serviceId === 'all') && (!status || status === 'all')) {
-      for (const dl of DEFAULT_CRM_LEADS) {
-        await db.run(`
-          INSERT INTO leads (id, name, email, phone, company, message, serviceId, serviceTitle, countryInterest, assistanceType, intakeTerm, status, assignedEmployee)
-          VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-        `, [
-          dl.id, dl.name, dl.email, dl.phone, dl.company, dl.message, dl.serviceId, dl.serviceTitle, dl.countryInterest, dl.assistanceType, dl.intakeTerm, dl.status, dl.assignedEmployee
-        ]);
+    if ((!rows || rows.length === 0) && !search && (!serviceId || serviceId === 'all') && (!status || status === 'all') && !reqUserRole && (!assignedEmployee || assignedEmployee === 'all')) {
+      const dbCount = await db.get('SELECT COUNT(*) as cnt FROM leads');
+      if (!dbCount || dbCount.cnt === 0) {
+        for (const dl of DEFAULT_CRM_LEADS) {
+          await db.run(`
+            INSERT OR IGNORE INTO leads (id, name, email, phone, company, message, serviceId, serviceTitle, countryInterest, assistanceType, intakeTerm, status, assignedEmployee)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+          `, [
+            dl.id, dl.name, dl.email, dl.phone, dl.company, dl.message, dl.serviceId, dl.serviceTitle, dl.countryInterest, dl.assistanceType, dl.intakeTerm, dl.status, dl.assignedEmployee
+          ]).catch(() => {});
+        }
+        rows = await db.all(query, params);
       }
-      rows = await db.all(query, params);
     }
 
     if (limit) {
@@ -2879,6 +3158,10 @@ app.patch(['/api/leads/:id', '/api/consulting/enquiries/:id', '/api/student-acad
       return res.status(404).json({ success: false, message: 'Enquiry not found' });
     }
 
+    // Security check: HR Operations employees cannot assign or reassign enquiries
+    const patchRole = req.headers['x-user-role'] || req.body.userRole;
+    const effectiveAssignedEmployee = patchRole === 'HR Operations' ? currentLead.assignedEmployee : assignedEmployee;
+
     // Update lead record with all tracked workflow attributes
     await db.run(
       `UPDATE leads SET
@@ -2933,7 +3216,7 @@ app.patch(['/api/leads/:id', '/api/consulting/enquiries/:id', '/api/student-acad
         email !== undefined ? email : null,
         phone !== undefined ? phone : null,
         status || null,
-        assignedEmployee !== undefined ? assignedEmployee : null,
+        effectiveAssignedEmployee !== undefined ? effectiveAssignedEmployee : null,
         priority || null,
         organizationId || null,
         organizationName || null,

@@ -52,7 +52,7 @@ export const CrmLogin = () => {
       { name: 'Priya Sharma', email: 'priya.lead@revivalinternational.com', password: 'Password123!', role: 'HR Lead', phone: '+91 98400 11003', department: 'Human Resources' },
       { name: 'Kishore Kumar', email: 'kishore.recruiter@revivalinternational.com', password: 'Password123!', role: 'Recruiter', phone: '+91 98400 11004', department: 'Recruitment & ATS' },
       { name: 'Sreeja Nair', email: 'sreeja.jasync@gmail.com', password: 'Password123!', role: 'Placement Coordinator', phone: '+91 9876543211', department: 'Placement & Client Relations' },
-      { name: 'Balavarshini', email: 'balavarshini2223@gmail.com', password: 'Password123!', role: 'HR Operations', phone: '+91 9876543214', department: 'HR Operations' },
+      { name: 'Balavarshini S.', email: 'balavarshini2223@gmail.com', password: 'Password123!', role: 'HR Operations', phone: '+91 9876543214', department: 'HR Operations', employeeId: 'REV-EMP-006', teamMemberId: 'INTL-HR-102', operationTeam: 'International HR Operations, Enquiry HR Operations' },
       { name: 'Dr. Rajesh Kannan', email: 'rajesh.interviewer@revivalinternational.com', password: 'Password123!', role: 'Interviewer', phone: '+91 98400 11999', department: 'Technical Assessment Panel' }
     ];
 
@@ -179,7 +179,14 @@ export const CrmLogin = () => {
     // MOCK OTP VERIFICATION FOR FRONTEND DEMO
     setTimeout(() => {
       if (enteredOtp === '1234') {
-        login(email, password, currentRole);
+        const cleanEmail = email.trim().toLowerCase();
+        let currentUsers = registeredUsers;
+        try {
+          const latestSaved = localStorage.getItem('sir_crm_registered_users');
+          if (latestSaved) currentUsers = JSON.parse(latestSaved);
+        } catch (err) {}
+        const userAccount = currentUsers.find(u => u.email && u.email.toLowerCase() === cleanEmail);
+        login(email, password, currentRole, userAccount);
       } else {
         setIsAuthenticating(false);
         setAuthErrorMsg('Invalid OTP code. For demo, use 1234.');

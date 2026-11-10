@@ -57,6 +57,7 @@ import { CrmInterviewerAvailability } from './pages/interviewer/CrmInterviewerAv
 import { CrmInterviewerPermissions } from './pages/interviewer/CrmInterviewerPermissions';
 
 import { CrmHrLeadDashboard } from './pages/CrmHrLeadDashboard';
+import { CrmHrTaskAssignment } from './components/CrmHrTaskAssignment';
 
 import { Search, Sparkles, X, Send, Bot, Loader2, Copy, Check, RotateCcw } from 'lucide-react';
 
@@ -267,9 +268,13 @@ const CrmAppContent = () => {
       case 'hr-documents':
       case 'hr-grievances':
       case 'hr-approvals':
-      case 'hr-tasks':
       case 'hr-reports':
         return <CrmHrLeadDashboard initialSection={activeModule} />;
+      case 'hr-tasks':
+        if (currentRole === 'HR Operations') {
+          return <CrmHrTaskAssignment />;
+        }
+        return <CrmHrLeadDashboard initialSection="tasks" />;
 
       // Standard & Recruiter Modules
       case 'consulting': return <CrmConsultingBookings />;

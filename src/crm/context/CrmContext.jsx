@@ -1,4 +1,4 @@
-import React, { createContext, useContext, useState, useEffect } from 'react';
+import React, { createContext, useContext, useState, useEffect, useMemo } from 'react';
 import { CRM_ROLES, ROLE_PERMISSIONS, CRM_CANDIDATES, CRM_CLIENTS, CRM_INTERVIEWS, CRM_INVOICES, PIPELINE_STAGES, AUDIT_LOGS } from '../data/mockCrmData';
 import { getLocalFallbackLeads } from '../../services/leadSubmissionService';
 
@@ -32,10 +32,20 @@ export const CrmProvider = ({ children }) => {
       if (saved) {
         const parsed = JSON.parse(saved);
         if (parsed && parsed.user && typeof parsed.user === 'object') {
-          return { ...DEFAULT_USER, ...parsed.user };
+          const restored = { ...DEFAULT_USER, ...parsed.user };
+          if (restored.email && restored.email.toLowerCase().includes('balavarshini')) {
+            restored.name = 'Balavarshini S.';
+            restored.employeeId = 'REV-EMP-006';
+            restored.teamMemberId = 'INTL-HR-102';
+            restored.workEmail = 'balavarshini.s@revivalcrm.com';
+            restored.role = 'HR Operations';
+            restored.department = 'HR Operations';
+            restored.operationTeam = 'International HR Operations, Enquiry HR Operations';
+          }
+          return restored;
         }
       }
-    } catch {}
+    } catch { }
     return DEFAULT_USER;
   });
 
@@ -46,7 +56,7 @@ export const CrmProvider = ({ children }) => {
         const parsed = JSON.parse(saved);
         if (parsed && parsed.currentRole) return parsed.currentRole;
       }
-    } catch {}
+    } catch { }
     return 'Super Admin';
   });
   const isSuperAdmin = currentRole === 'Super Admin' || user?.role === 'Super Admin';
@@ -165,7 +175,7 @@ export const CrmProvider = ({ children }) => {
             }));
           }
         }
-      } catch (_) {}
+      } catch (_) { }
 
       const combinedLocal = [...localLeads, ...localAcademyLeads];
 
@@ -231,7 +241,7 @@ export const CrmProvider = ({ children }) => {
             const merged = [...serverCandidates, ...localOnly];
             try {
               localStorage.setItem('crm_candidates', JSON.stringify(merged));
-            } catch {}
+            } catch { }
             return merged;
           });
         }
@@ -350,7 +360,7 @@ export const CrmProvider = ({ children }) => {
         const parsed = JSON.parse(saved);
         if (parsed && parsed.activeModule) return parsed.activeModule;
       }
-    } catch {}
+    } catch { }
     return 'dashboard';
   });
 
@@ -367,7 +377,7 @@ export const CrmProvider = ({ children }) => {
           }));
         }
       }
-    } catch {}
+    } catch { }
   };
 
   const [consultingServiceFilter, setConsultingServiceFilterState] = useState(() => {
@@ -377,7 +387,7 @@ export const CrmProvider = ({ children }) => {
         const parsed = JSON.parse(saved);
         if (parsed && parsed.consultingServiceFilter) return parsed.consultingServiceFilter;
       }
-    } catch {}
+    } catch { }
     return 'all';
   });
 
@@ -392,7 +402,7 @@ export const CrmProvider = ({ children }) => {
           consultingServiceFilter: filterVal
         }));
       }
-    } catch {}
+    } catch { }
   };
   const [commandPaletteOpen, setCommandPaletteOpen] = useState(false);
   const [aiDrawerOpen, setAiDrawerOpen] = useState(false);
@@ -444,7 +454,7 @@ export const CrmProvider = ({ children }) => {
             setShowIdleModal(false);
             try {
               localStorage.removeItem('sir_crm_session');
-            } catch (e) {}
+            } catch (e) { }
             return 0;
           }
           return prev + 1;
@@ -486,17 +496,61 @@ export const CrmProvider = ({ children }) => {
     return permissions.includes('all') || permissions.includes(moduleName);
   };
 
-  const login = (email, password, roleName) => {
+  const login = (email, password, roleName, customData) => {
     if (accountLocked) return false;
-    
+
     const assignedRole = roleName || currentRole;
+    const emailLower = (email || '').toLowerCase().trim();
+
+    let registeredInfo = customData;
+    if (!registeredInfo) {
+      try {
+        const rawUsers = localStorage.getItem('sir_crm_registered_users');
+        if (rawUsers) {
+          const list = JSON.parse(rawUsers);
+          registeredInfo = list.find(u => u.email && u.email.toLowerCase() === emailLower);
+        }
+      } catch (e) { }
+    }
+
+    let canonicalName = registeredInfo?.name;
+    let canonicalEmployeeId = registeredInfo?.employeeId || registeredInfo?.id;
+    let canonicalDept = registeredInfo?.department;
+    let canonicalTeam = registeredInfo?.operationTeam;
+
+    if (emailLower.includes('balavarshini')) {
+      canonicalName = 'Balavarshini S.';
+      canonicalEmployeeId = 'REV-EMP-006';
+      canonicalDept = 'HR Operations';
+      canonicalTeam = 'International HR Operations, Enquiry HR Operations';
+    } else if (emailLower.includes('priya')) {
+      canonicalName = 'Priya Sharma';
+      canonicalEmployeeId = 'REV-EMP-003';
+      canonicalDept = 'Human Resources';
+    } else if (emailLower.includes('thejobsyncit') || emailLower.includes('tariq')) {
+      canonicalName = 'Super Admin';
+      canonicalEmployeeId = 'REV-EMP-001';
+      canonicalDept = 'Executive Management';
+    } else if (emailLower.includes('sarah')) {
+      canonicalName = 'Sarah Jenkins';
+      canonicalEmployeeId = 'REV-EMP-002';
+      canonicalDept = 'Administration';
+    } else if (!canonicalName) {
+      canonicalName = email.split('@')[0].replace(/[0-9]/g, '').replace('.', ' ').trim();
+      canonicalName = canonicalName.charAt(0).toUpperCase() + canonicalName.slice(1);
+    }
+
     const userData = {
-      id: 'usr-' + Math.floor(100 + Math.random() * 900),
-      name: email.split('@')[0].toUpperCase().replace('.', ' '),
+      id: canonicalEmployeeId || ('usr-' + Math.floor(100 + Math.random() * 900)),
+      employeeId: canonicalEmployeeId || 'REV-EMP-006',
+      teamMemberId: emailLower.includes('balavarshini') ? 'INTL-HR-102' : undefined,
+      name: canonicalName || 'Balavarshini S.',
       email,
+      workEmail: emailLower.includes('balavarshini') ? 'balavarshini.s@revivalcrm.com' : email,
       role: assignedRole,
-      department: 'Enterprise Talent',
-      avatar: 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=150&auto=format&fit=crop&q=80'
+      department: canonicalDept || (assignedRole === 'HR Operations' ? 'HR Operations' : 'Enterprise Talent'),
+      operationTeam: canonicalTeam || (assignedRole === 'HR Operations' ? 'International HR Operations, Enquiry HR Operations' : undefined),
+      avatar: registeredInfo?.avatar || 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=150&auto=format&fit=crop&q=80'
     };
 
     setIsAuthenticated(true);
@@ -537,7 +591,7 @@ export const CrmProvider = ({ children }) => {
     setIsAuthenticated(false);
     try {
       localStorage.removeItem('sir_crm_session');
-    } catch (e) {}
+    } catch (e) { }
     logAuditAction(`User ${user.name} logged out.`);
   };
 
@@ -557,7 +611,7 @@ export const CrmProvider = ({ children }) => {
       const updated = [candidateToAdd, ...prev.filter(c => c.id !== candidateToAdd.id)];
       try {
         localStorage.setItem('crm_candidates', JSON.stringify(updated));
-      } catch {}
+      } catch { }
       return updated;
     });
     logAuditAction(`Added new candidate ${candidateToAdd.name} (${candidateToAdd.id}).`);
@@ -577,7 +631,7 @@ export const CrmProvider = ({ children }) => {
       const updated = prev.map(c => c.id === updatedCand.id ? updatedCand : c);
       try {
         localStorage.setItem('crm_candidates', JSON.stringify(updated));
-      } catch {}
+      } catch { }
       return updated;
     });
     logAuditAction(`Updated candidate profile ${updatedCand.id}.`);
@@ -587,7 +641,7 @@ export const CrmProvider = ({ children }) => {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(updatedCand)
       });
-    } catch (err) {}
+    } catch (err) { }
   };
 
   const deleteCandidate = async (candidateId, metadata = {}) => {
@@ -704,7 +758,21 @@ export const CrmProvider = ({ children }) => {
 
   const switchRole = (newRole) => {
     setCurrentRole(newRole);
-    const updatedUser = { ...user, role: newRole };
+    let updatedUser = { ...user, role: newRole };
+    if (newRole === 'HR Operations' && (!user.email || !user.email.toLowerCase().includes('balavarshini'))) {
+      updatedUser = {
+        ...updatedUser,
+        id: 'REV-EMP-006',
+        employeeId: 'REV-EMP-006',
+        teamMemberId: 'INTL-HR-102',
+        name: 'Balavarshini S.',
+        email: 'balavarshini2223@gmail.com',
+        workEmail: 'balavarshini.s@revivalcrm.com',
+        role: 'HR Operations',
+        department: 'HR Operations',
+        operationTeam: 'International HR Operations, Enquiry HR Operations'
+      };
+    }
     setUser(updatedUser);
     let nextMod = activeModule;
     if (newRole !== 'Super Admin' && activeModule === 'super-admin') {
@@ -721,7 +789,7 @@ export const CrmProvider = ({ children }) => {
         currentRole: newRole,
         activeModule: nextMod
       }));
-    } catch (e) {}
+    } catch (e) { }
     logAuditAction(`Switched active session view role to '${newRole}'.`);
   };
 
@@ -741,7 +809,7 @@ export const CrmProvider = ({ children }) => {
       const next = !prev;
       try {
         localStorage.setItem('sir_theme_mode', next ? 'dark' : 'light');
-      } catch (e) {}
+      } catch (e) { }
       return next;
     });
   };
@@ -949,7 +1017,7 @@ export const CrmProvider = ({ children }) => {
             localStorage.setItem('sir_offline_leads', JSON.stringify(filtered));
           }
         }
-      } catch (e) {}
+      } catch (e) { }
 
       logAuditAction(`Permanently deleted ${metadata.entityType || 'lead'} '${leadId}' (${metadata.name || metadata.referenceNumber || ''}).`);
       setLeads(prev => prev.filter(l => l.id !== leadId && l.referenceNumber !== leadId));
@@ -968,6 +1036,21 @@ export const CrmProvider = ({ children }) => {
     logAuditAction(`Permanently deleted invoice '${invoiceId}' (${metadata.client || ''}).`);
   };
 
+  const currentEmployee = useMemo(() => {
+    if (!user) return null;
+    return {
+      id: user.id || user.employeeId || 'REV-EMP-006',
+      employeeId: user.employeeId || user.id || 'REV-EMP-006',
+      teamMemberId: user.teamMemberId || 'INTL-HR-102',
+      name: user.name || (currentRole === 'HR Operations' ? 'Balavarshini S.' : 'HR Lead'),
+      email: user.email || 'balavarshini2223@gmail.com',
+      workEmail: user.workEmail || 'balavarshini.s@revivalcrm.com',
+      role: currentRole || user.role,
+      department: user.department || 'HR Operations',
+      operationTeam: user.operationTeam || 'International HR Operations, Enquiry HR Operations'
+    };
+  }, [user, currentRole]);
+
   return (
     <CrmContext.Provider
       value={{
@@ -981,6 +1064,7 @@ export const CrmProvider = ({ children }) => {
         lockoutTimeRemaining,
         activeDevices,
         user,
+        currentEmployee,
         currentRole,
         isSuperAdmin,
         switchRole,
