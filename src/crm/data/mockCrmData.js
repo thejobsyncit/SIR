@@ -32,7 +32,7 @@ export const ROLE_PERMISSIONS = {
     'calendar', 'vacancies', 'offers', 'collaboration',
     'hr-overview', 'hr-attendance', 'hr-leave', 'hr-employees', 'hr-performance', 
     'hr-recruitment', 'hr-payroll', 'hr-announcements', 'hr-shifts', 'hr-documents', 
-    'hr-grievances', 'hr-approvals', 'hr-reports'
+    'hr-grievances', 'hr-approvals', 'hr-reports', 'hr-tasks'
   ],
   'Recruiter': [
     'dashboard', 'vacancies', 'candidates', 'search-filters', 'pipeline', 
@@ -57,7 +57,7 @@ export const ROLE_PERMISSIONS = {
     'candidates', 'interviews', 'calendar'
   ],
   // Legacy aliases for backward compatibility
-  'HR & Talent Manager': ['dashboard', 'consulting', 'career-guidance', 'student-academy', 'candidates', 'pipeline', 'domestic', 'international', 'clients', 'workspace', 'interviews', 'documentation', 'reports', 'calendar'],
+  'HR & Talent Manager': ['dashboard', 'consulting', 'career-guidance', 'student-academy', 'candidates', 'pipeline', 'domestic', 'international', 'clients', 'workspace', 'interviews', 'documentation', 'reports', 'calendar', 'hr-tasks'],
   'Domestic Recruiter': ['dashboard', 'consulting', 'career-guidance', 'student-academy', 'candidates', 'pipeline', 'domestic', 'workspace', 'interviews', 'calendar'],
   'International Recruiter': ['dashboard', 'consulting', 'career-guidance', 'student-academy', 'candidates', 'pipeline', 'international', 'workspace', 'interviews', 'visa', 'calendar'],
   'Client Account Manager': ['dashboard', 'consulting', 'career-guidance', 'student-academy', 'clients', 'domestic', 'international', 'interviews', 'workspace'],

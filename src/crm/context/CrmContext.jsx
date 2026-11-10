@@ -479,6 +479,9 @@ export const CrmProvider = ({ children }) => {
     if (typeof moduleName === 'string' && moduleName.startsWith('consulting')) {
       moduleName = 'consulting';
     }
+    if (moduleName === 'hr-tasks') {
+      return currentRole === 'HR Lead' || currentRole === 'Super Admin' || currentRole === 'Admin' || currentRole === 'HR Operations' || currentRole === 'HR & Talent Manager';
+    }
     const permissions = (currentRole && ROLE_PERMISSIONS[currentRole]) || [];
     return permissions.includes('all') || permissions.includes(moduleName);
   };
