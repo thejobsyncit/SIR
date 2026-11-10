@@ -320,6 +320,12 @@ export const CandidatePortal = () => {
       return;
     }
 
+    // 4. Mandatory Educational Degree Attestation Checkbox Validation
+    if (!profileForm.mohreAttested) {
+      setProfileFormError('Educational Degree Attestation (MOHRE Verified) is mandatory. Please select the checkbox to proceed.');
+      return;
+    }
+
     const skillsArray = profileForm.skillsInput
       ? profileForm.skillsInput.split(',').map(s => s.trim()).filter(Boolean)
       : [];
@@ -1212,7 +1218,7 @@ export const CandidatePortal = () => {
                 className="w-4 h-4 text-gold-500 rounded focus:ring-gold-500"
               />
               <label htmlFor="mohreCheck" className="font-bold text-slate-800 dark:text-slate-200 cursor-pointer">
-                Educational Degree Attested by UAE / Saudi Embassy (MOHRE Verified)
+                Educational Degree Attested by UAE / Saudi Embassy (MOHRE Verified) <span className="text-rose-500">*</span>
               </label>
             </div>
 
@@ -1620,13 +1626,6 @@ export const CandidatePortal = () => {
                       <span className="text-[10px] font-bold text-gold-600 dark:text-gold-400 bg-gold-500/10 px-2.5 py-0.5 rounded-full border border-gold-500/20">
                         {job.category || 'Executive'}
                       </span>
-                      <button
-                        onClick={() => toggleSaveJob(job.id)}
-                        className="text-rose-500 hover:text-rose-600 p-1.5 rounded-lg hover:bg-rose-50 dark:hover:bg-rose-950/30 transition cursor-pointer"
-                        title="Remove from saved jobs"
-                      >
-                        <Trash2 className="w-4 h-4" />
-                      </button>
                     </div>
 
                     <h4 className="font-serif text-base font-bold text-navy-900 dark:text-white leading-snug">

@@ -271,12 +271,12 @@ export const CrmDashboard = () => {
 
       {/* PHASE 12: ADMIN DASHBOARD, LEAD MANAGEMENT & CUSTOMER TRACKING SYSTEM */}
       <ScrollReveal>
-      <div className="glass-card bg-white dark:bg-gradient-to-r dark:from-[#061126] dark:via-[#0a1936] dark:to-[#071329] border border-slate-200 dark:border-gold-500/35 p-6 rounded-3xl shadow-sm space-y-6">
+      <div className="glass-card bg-white dark:bg-gradient-to-r dark:from-[#061126] dark:via-[#0a1936] dark:to-[#071329] border border-slate-200 dark:border-gold-500/35 p-4 sm:p-6 rounded-2xl sm:rounded-3xl shadow-sm space-y-6 w-full max-w-full overflow-hidden box-border">
         
         {/* Header & Date Range Filter Bar */}
         <div className="flex flex-col lg:flex-row justify-between items-start lg:items-center gap-4 border-b border-slate-200 dark:border-navy-800 pb-5">
-          <div>
-            <div className="flex items-center gap-2">
+          <div className="min-w-0 max-w-full">
+            <div className="flex flex-wrap items-center gap-2">
               <span className="bg-gold-500/20 text-gold-700 dark:text-gold-400 text-[10px] font-bold px-2.5 py-0.5 rounded uppercase tracking-wider">
                 Phase 12 • Enterprise Lead Tracking & Metrics
               </span>
@@ -285,9 +285,9 @@ export const CrmDashboard = () => {
                 SQLite Live Sync
               </span>
             </div>
-            <h2 className="font-serif text-2xl font-bold text-slate-900 dark:text-white mt-1 flex items-center gap-2">
-              <Layers className="w-6 h-6 text-gold-500" />
-              Customer Enquiries & Lead Lifecycle Intelligence
+            <h2 className="font-serif text-xl sm:text-2xl font-bold text-slate-900 dark:text-white mt-1 flex flex-wrap items-center gap-2 break-words">
+              <Layers className="w-6 h-6 text-gold-500 shrink-0" />
+              <span>Customer Enquiries & Lead Lifecycle Intelligence</span>
             </h2>
             <p className="text-xs text-slate-600 dark:text-slate-300">
               Real-time audit across all 6 verified service catalogs, student advising funnels, follow-up queues, and conversion tracking.
@@ -295,7 +295,7 @@ export const CrmDashboard = () => {
           </div>
 
           {/* Date Range Selector */}
-          <div className="flex items-center gap-2 bg-slate-100 dark:bg-navy-950 p-1.5 rounded-2xl border border-slate-200 dark:border-navy-800 shrink-0">
+          <div className="w-full sm:w-auto flex flex-wrap items-center gap-1.5 sm:gap-2 bg-slate-100 dark:bg-navy-950 p-1.5 rounded-2xl border border-slate-200 dark:border-navy-800">
             <span className="text-[11px] font-bold text-slate-500 dark:text-slate-400 px-2 flex items-center gap-1">
               <Clock className="w-3.5 h-3.5" />
               Period:

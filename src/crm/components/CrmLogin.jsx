@@ -28,7 +28,12 @@ export const CrmLogin = () => {
   // Modals & Popups
   const [forgotModalOpen, setForgotModalOpen] = useState(false);
   const [forgotEmail, setForgotEmail] = useState('');
-  const [resetSent, setResetSent] = useState(false);
+  const [forgotStep, setForgotStep] = useState(1); // 1: Email, 2: OTP & New Password, 3: Success
+  const [forgotOtp, setForgotOtp] = useState('');
+  const [generatedOtp, setGeneratedOtp] = useState('');
+  const [forgotNewPassword, setForgotNewPassword] = useState('');
+  const [forgotConfirmPassword, setForgotConfirmPassword] = useState('');
+  const [forgotError, setForgotError] = useState('');
   const [devicesModalOpen, setDevicesModalOpen] = useState(false);
 
   // Super Admin / Account Registration Modal State
@@ -534,13 +539,47 @@ export const CrmLogin = () => {
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-navy-950/80 backdrop-blur-sm animate-in fade-in">
           <div className="glass-card bg-white dark:bg-navy-900 border border-slate-200 dark:border-gold-500/40 rounded-2xl max-w-md w-full p-6 shadow-luxury space-y-4">
             <div className="flex justify-between items-center border-b border-slate-200 dark:border-navy-800 pb-3">
-              <h3 className="font-serif text-lg font-bold text-slate-900 dark:text-white">Reset Corporate Account Password</h3>
-              <button onClick={() => setForgotModalOpen(false)} className="text-slate-500 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white cursor-pointer"><X className="w-5 h-5" /></button>
+              <h3 className="font-serif text-lg font-bold text-slate-900 dark:text-white">Reset Corporate Password</h3>
+              <button 
+                onClick={() => {
+                  setForgotModalOpen(false);
+                  setForgotStep(1);
+                  setForgotError('');
+                }} 
+                className="text-slate-500 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white cursor-pointer"
+              >
+                <X className="w-5 h-5" />
+              </button>
             </div>
 
-            {!resetSent ? (
-              <form onSubmit={(e) => { e.preventDefault(); setResetSent(true); }} className="space-y-3 text-xs">
-                <p className="text-slate-600 dark:text-slate-300 font-medium">Enter your registered corporate email to receive a password reset verification link and OTP.</p>
+            {forgotError && (
+              <div className="p-3 bg-rose-500/10 border border-rose-500/30 text-rose-600 dark:text-rose-400 rounded-xl text-xs font-bold flex items-center gap-2">
+                <AlertCircle className="w-4 h-4 shrink-0" />
+                <span>{forgotError}</span>
+              </div>
+            )}
+
+            {forgotStep === 1 && (
+              <form 
+                onSubmit={(e) => {
+                  e.preventDefault();
+                  setForgotError('');
+                  const clean = (forgotEmail || '').trim().toLowerCase();
+                  if (!clean || !clean.includes('@')) {
+                    setForgotError('Please enter a valid corporate email address.');
+                    return;
+                  }
+                  // Generate verifiable 6-digit OTP code
+                  const code = String(Math.floor(100000 + Math.random() * 900000));
+                  setGeneratedOtp(code);
+                  setForgotOtp('');
+                  setForgotStep(2);
+                }} 
+                className="space-y-3 text-xs"
+              >
+                <p className="text-slate-600 dark:text-slate-300 font-medium">
+                  Enter your registered corporate email to receive a password reset OTP verification code.
+                </p>
                 <div>
                   <label className="block font-extrabold text-slate-700 dark:text-slate-300 mb-1">Corporate Email</label>
                   <input 
@@ -553,16 +592,136 @@ export const CrmLogin = () => {
                   />
                 </div>
                 <button type="submit" className="w-full py-3 bg-gold-shimmer text-navy-950 font-extrabold rounded-xl shadow-gold-glow cursor-pointer">
-                  Send Password Reset OTP Code
+                  Send Password Reset OTP Code →
                 </button>
               </form>
-            ) : (
+            )}
+
+            {forgotStep === 2 && (
+              <form 
+                onSubmit={(e) => {
+                  e.preventDefault();
+                  setForgotError('');
+                  if (forgotOtp.trim() !== generatedOtp) {
+                    setForgotError('Invalid OTP Code. Please enter the 6-digit verification code shown below.');
+                    return;
+                  }
+                  if (!forgotNewPassword || forgotNewPassword.length < 6) {
+                    setForgotError('New Password must be at least 6 characters long.');
+                    return;
+                  }
+                  if (forgotNewPassword !== forgotConfirmPassword) {
+                    setForgotError('Passwords do not match. Please re-enter confirm password.');
+                    return;
+                  }
+
+                  // Update registered user password in state and localStorage
+                  const clean = forgotEmail.trim().toLowerCase();
+                  setRegisteredUsers(prev => {
+                    const updated = prev.map(u => {
+                      if (u.email.toLowerCase() === clean) {
+                        return { ...u, password: forgotNewPassword };
+                      }
+                      return u;
+                    });
+                    // If user was not in registeredUsers list, add them with the new password
+                    if (!updated.some(u => u.email.toLowerCase() === clean)) {
+                      updated.push({
+                        name: clean.split('@')[0],
+                        email: clean,
+                        password: forgotNewPassword,
+                        role: 'Super Admin',
+                        department: 'Corporate Headquarters'
+                      });
+                    }
+                    try {
+                      localStorage.setItem('sir_crm_registered_users', JSON.stringify(updated));
+                    } catch {}
+                    return updated;
+                  });
+
+                  // Populate login fields with the new credentials
+                  setEmail(forgotEmail);
+                  setPassword(forgotNewPassword);
+                  setForgotStep(3);
+                }}
+                className="space-y-3 text-xs"
+              >
+                {/* Instant Demo OTP Notification Banner */}
+                <div className="p-3 bg-emerald-50 dark:bg-emerald-950/40 border border-emerald-500/40 rounded-xl text-emerald-800 dark:text-emerald-300 space-y-1">
+                  <div className="flex justify-between items-center">
+                    <span className="font-extrabold text-[11px] uppercase tracking-wider">Verification Dispatched</span>
+                    <button 
+                      type="button" 
+                      onClick={() => setForgotOtp(generatedOtp)} 
+                      className="text-[10px] bg-emerald-600 text-white font-bold px-2 py-0.5 rounded hover:bg-emerald-700"
+                    >
+                      Auto-fill OTP
+                    </button>
+                  </div>
+                  <p className="font-mono text-sm font-bold text-center py-1 tracking-widest bg-white dark:bg-navy-950 rounded border border-emerald-200 dark:border-navy-800">
+                    OTP: {generatedOtp}
+                  </p>
+                </div>
+
+                <div>
+                  <label className="block font-extrabold text-slate-700 dark:text-slate-300 mb-1">Enter 6-Digit OTP</label>
+                  <input 
+                    type="text" 
+                    required
+                    maxLength={6}
+                    value={forgotOtp}
+                    onChange={(e) => setForgotOtp(e.target.value.replace(/\D/g, ''))}
+                    className="w-full bg-slate-100 dark:bg-navy-950 border border-slate-300 dark:border-navy-700 text-slate-900 dark:text-white rounded-xl p-2.5 font-mono text-center text-sm font-bold tracking-widest focus:outline-none focus:border-gold-500"
+                    placeholder="Enter 6-digit code"
+                  />
+                </div>
+
+                <div>
+                  <label className="block font-extrabold text-slate-700 dark:text-slate-300 mb-1">New Password *</label>
+                  <input 
+                    type="password" 
+                    required
+                    placeholder="Min 6 characters"
+                    value={forgotNewPassword}
+                    onChange={(e) => setForgotNewPassword(e.target.value)}
+                    className="w-full bg-slate-100 dark:bg-navy-950 border border-slate-300 dark:border-navy-700 text-slate-900 dark:text-white rounded-xl p-2.5 font-bold focus:outline-none focus:border-gold-500"
+                  />
+                </div>
+
+                <div>
+                  <label className="block font-extrabold text-slate-700 dark:text-slate-300 mb-1">Confirm New Password *</label>
+                  <input 
+                    type="password" 
+                    required
+                    placeholder="Repeat new password"
+                    value={forgotConfirmPassword}
+                    onChange={(e) => setForgotConfirmPassword(e.target.value)}
+                    className="w-full bg-slate-100 dark:bg-navy-950 border border-slate-300 dark:border-navy-700 text-slate-900 dark:text-white rounded-xl p-2.5 font-bold focus:outline-none focus:border-gold-500"
+                  />
+                </div>
+
+                <button type="submit" className="w-full py-3 bg-emerald-600 hover:bg-emerald-500 text-white font-extrabold rounded-xl shadow-md cursor-pointer transition">
+                  Confirm & Update Password
+                </button>
+              </form>
+            )}
+
+            {forgotStep === 3 && (
               <div className="space-y-3 text-xs text-center py-4">
                 <CheckCircle2 className="w-12 h-12 text-emerald-500 mx-auto" />
-                <h4 className="font-bold text-slate-900 dark:text-white text-sm">Reset Verification Dispatched</h4>
-                <p className="text-slate-600 dark:text-slate-300 font-medium">Check your inbox at <strong className="text-amber-800 dark:text-gold-400 font-bold">{forgotEmail}</strong> for the secure password reset link.</p>
-                <button onClick={() => { setForgotModalOpen(false); setResetSent(false); }} className="w-full py-2.5 bg-slate-100 dark:bg-navy-800 text-slate-800 dark:text-white font-bold rounded-xl border border-slate-300 dark:border-navy-700 cursor-pointer">
-                  Close & Return to Login
+                <h4 className="font-bold text-slate-900 dark:text-white text-sm">Password Successfully Reset!</h4>
+                <p className="text-slate-600 dark:text-slate-300 font-medium">
+                  Your corporate password for <strong className="text-gold-500">{forgotEmail}</strong> has been updated. Credentials have been pre-filled for instant login.
+                </p>
+                <button 
+                  onClick={() => {
+                    setForgotModalOpen(false);
+                    setForgotStep(1);
+                  }} 
+                  className="w-full py-2.5 bg-gold-shimmer text-navy-950 font-bold rounded-xl shadow-gold-glow cursor-pointer"
+                >
+                  Return to Login & Authenticate
                 </button>
               </div>
             )}

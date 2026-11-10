@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
-import { Download, Search, Globe, CheckCircle2, ShieldAlert, FileSpreadsheet, FileText } from 'lucide-react';
+import { Download, Search, Globe, CheckCircle2, ShieldAlert, FileSpreadsheet, FileText, RefreshCw } from 'lucide-react';
 import { VISA_MATRIX_FULL } from '../data/mockData';
+import jsPDF from 'jspdf';
 
 export const VisaMatrixTable = () => {
   const [searchTerm, setSearchTerm] = useState('');
@@ -13,6 +14,176 @@ export const VisaMatrixTable = () => {
     const matchesCountry = selectedCountry === 'All' || item.country === selectedCountry;
     return matchesSearch && matchesCountry;
   });
+
+  const [generatingPdf, setGeneratingPdf] = useState(false);
+
+  const handleDownloadPDF = () => {
+    setGeneratingPdf(true);
+    try {
+      // Landscape A4 (297mm width x 210mm height)
+      const doc = new jsPDF('landscape', 'mm', 'a4');
+      const pageWidth = 297;
+      const pageHeight = 210;
+      const margin = 10;
+      let startY = 14;
+
+      // Header Banner
+      doc.setFillColor(11, 27, 51); // Navy #0B1B33
+      doc.rect(margin, startY, pageWidth - (margin * 2), 16, 'F');
+
+      doc.setTextColor(255, 255, 255);
+      doc.setFont('helvetica', 'bold');
+      doc.setFontSize(13);
+      doc.text('THE REVIVAL INTERNATIONAL — COUNTRY-WISE VISA ELIGIBILITY MATRIX 2026', margin + 6, startY + 7);
+
+      doc.setFont('helvetica', 'normal');
+      doc.setFontSize(8);
+      doc.setTextColor(198, 164, 92); // Gold #C6A45C
+      doc.text('Official Work Permit, Embassy Attestation & Points Compliance Matrix Across 18 Global Jurisdictions', margin + 6, startY + 12);
+
+      startY += 21;
+
+      // Table Column Specifications (Total Width = 277mm)
+      const cols = [
+        { header: 'Country', width: 24 },
+        { header: 'Common Work Visa', width: 40 },
+        { header: 'Key Requirements', width: 66 },
+        { header: 'Age', width: 18 },
+        { header: 'Min Qualification', width: 38 },
+        { header: 'Exp.', width: 20 },
+        { header: 'Language', width: 25 },
+        { header: 'Processing', width: 24 },
+        { header: 'Avg Cost', width: 22 }
+      ];
+
+      // Draw Header Row
+      doc.setFillColor(241, 245, 249); // Slate-100
+      doc.rect(margin, startY, pageWidth - (margin * 2), 7, 'F');
+      doc.setDrawColor(203, 213, 225); // Slate-300
+      doc.line(margin, startY + 7, pageWidth - margin, startY + 7);
+
+      doc.setFont('helvetica', 'bold');
+      doc.setFontSize(7.5);
+      doc.setTextColor(15, 23, 42); // Slate-900
+
+      let currentX = margin;
+      cols.forEach(col => {
+        doc.text(col.header, currentX + 2, startY + 5);
+        currentX += col.width;
+      });
+
+      startY += 7;
+
+      // Render Rows
+      const dataToRender = filtered.length > 0 ? filtered : VISA_MATRIX_FULL;
+
+      dataToRender.forEach((item, rIdx) => {
+        const rowHeight = 9.5;
+        // Check for page break
+        if (startY + rowHeight > pageHeight - 12) {
+          doc.addPage('a4', 'landscape');
+          startY = 14;
+
+          // Repeat header row on new page
+          doc.setFillColor(241, 245, 249);
+          doc.rect(margin, startY, pageWidth - (margin * 2), 7, 'F');
+          doc.setDrawColor(203, 213, 225);
+          doc.line(margin, startY + 7, pageWidth - margin, startY + 7);
+          doc.setFont('helvetica', 'bold');
+          doc.setFontSize(7.5);
+          doc.setTextColor(15, 23, 42);
+
+          let curX = margin;
+          cols.forEach(c => {
+            doc.text(c.header, curX + 2, startY + 5);
+            curX += c.width;
+          });
+          startY += 7;
+        }
+
+        // Alternating row background
+        if (rIdx % 2 === 1) {
+          doc.setFillColor(248, 250, 252); // Slate-50
+          doc.rect(margin, startY, pageWidth - (margin * 2), rowHeight, 'F');
+        }
+
+        doc.setDrawColor(226, 232, 240); // Slate-200
+        doc.line(margin, startY + rowHeight, pageWidth - margin, startY + rowHeight);
+
+        // Cell Data
+        doc.setFont('helvetica', 'normal');
+        doc.setFontSize(6.8);
+        doc.setTextColor(30, 41, 59);
+
+        let cellX = margin;
+
+        // 1. Country (Bold)
+        doc.setFont('helvetica', 'bold');
+        doc.text(item.country, cellX + 2, startY + 6);
+        cellX += cols[0].width;
+
+        // 2. Visa Type
+        doc.setFont('helvetica', 'normal');
+        const visaLines = doc.splitTextToSize(item.visaType, cols[1].width - 4);
+        doc.text(visaLines[0] || '', cellX + 2, startY + 4.5);
+        if (visaLines[1]) doc.text(visaLines[1], cellX + 2, startY + 8);
+        cellX += cols[1].width;
+
+        // 3. Requirements
+        const reqLines = doc.splitTextToSize(item.requirements, cols[2].width - 4);
+        doc.text(reqLines[0] || '', cellX + 2, startY + 4.5);
+        if (reqLines[1]) doc.text(reqLines[1], cellX + 2, startY + 8);
+        cellX += cols[2].width;
+
+        // 4. Age
+        doc.text(item.age, cellX + 2, startY + 6);
+        cellX += cols[3].width;
+
+        // 5. Min Qualification
+        const qualLines = doc.splitTextToSize(item.minQualification, cols[4].width - 4);
+        doc.text(qualLines[0] || '', cellX + 2, startY + 4.5);
+        if (qualLines[1]) doc.text(qualLines[1], cellX + 2, startY + 8);
+        cellX += cols[4].width;
+
+        // 6. Experience
+        doc.text(item.experience, cellX + 2, startY + 6);
+        cellX += cols[5].width;
+
+        // 7. Language
+        doc.text(item.language, cellX + 2, startY + 6);
+        cellX += cols[6].width;
+
+        // 8. Processing
+        doc.text(item.processingTime, cellX + 2, startY + 6);
+        cellX += cols[7].width;
+
+        // 9. Cost
+        doc.text(item.avgCost, cellX + 2, startY + 6);
+
+        startY += rowHeight;
+      });
+
+      // Footer
+      const pageCount = doc.internal.getNumberOfPages();
+      for (let p = 1; p <= pageCount; p++) {
+        doc.setPage(p);
+        doc.setFontSize(6.5);
+        doc.setTextColor(100, 116, 139);
+        doc.text(
+          `Revival International Executive Recruitment & Advisory • ISO 9001:2025 Certified • Generated on ${new Date().toLocaleDateString('en-GB')} • Page ${p} of ${pageCount}`,
+          margin + 2,
+          pageHeight - 6
+        );
+      }
+
+      doc.save('Revival_Country_Wise_Visa_Eligibility_Matrix_2026.pdf');
+    } catch (err) {
+      console.error('PDF Matrix Generation Error:', err);
+      window.print();
+    } finally {
+      setGeneratingPdf(false);
+    }
+  };
 
   const handleExportCSV = () => {
     const headers = ['Country', 'Visa Type', 'Key Requirements', 'Age', 'Min Qualification', 'Experience', 'Language', 'Processing Time', 'Avg Cost'];
@@ -76,11 +247,12 @@ export const VisaMatrixTable = () => {
             <span>Export Excel / CSV</span>
           </button>
           <button 
-            onClick={() => window.print()}
-            className="px-4 py-2.5 bg-gold-shimmer text-navy-950 font-bold rounded-xl flex items-center space-x-1.5 shadow-gold-glow hover:opacity-95 transition"
+            onClick={handleDownloadPDF}
+            disabled={generatingPdf}
+            className="px-4 py-2.5 bg-gold-shimmer text-navy-950 font-bold rounded-xl flex items-center space-x-1.5 shadow-gold-glow hover:opacity-95 transition cursor-pointer disabled:opacity-60"
           >
-            <FileText className="w-4 h-4" />
-            <span>Download PDF Matrix</span>
+            {generatingPdf ? <RefreshCw className="w-4 h-4 animate-spin" /> : <FileText className="w-4 h-4" />}
+            <span>{generatingPdf ? 'Formatting Landscape PDF...' : 'Download PDF Matrix'}</span>
           </button>
         </div>
       </div>
