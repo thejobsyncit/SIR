@@ -179,10 +179,10 @@ STATUS: PAID & AUDITED (GRADE A)
         <div className="glass-card bg-white dark:bg-navy-900 border border-slate-200 dark:border-navy-800 p-5 rounded-2xl space-y-1 shadow-sm">
           <span className="text-[10px] font-bold text-slate-500 dark:text-slate-400 uppercase">Pending Accounts Receivable</span>
           <p className="font-serif text-2xl font-extrabold text-amber-600 dark:text-gold-400">
-            ${invoices.filter(i => i.status !== 'Paid').reduce((sum, i) => sum + i.totalUSD, 0).toLocaleString()} USD
+            ${(invoices || []).filter(i => i.status !== 'Paid').reduce((sum, i) => sum + Number(i?.totalUSD || 0), 0).toLocaleString()} USD
           </p>
           <p className="text-[10px] text-slate-500 dark:text-slate-400 font-semibold">
-            {invoices.filter(i => i.status !== 'Paid').length} Invoices Pending
+            {(invoices || []).filter(i => i.status !== 'Paid').length} Invoices Pending
           </p>
         </div>
 
@@ -229,9 +229,9 @@ STATUS: PAID & AUDITED (GRADE A)
             </div>
 
             <div className="p-3.5 bg-slate-100 dark:bg-navy-950 rounded-xl space-y-1.5 text-[11px]">
-              <div className="flex justify-between"><span className="text-slate-600 dark:text-slate-400">Base Placement Fee:</span> <strong className="text-slate-900 dark:text-white font-bold">${inv.amountUSD.toLocaleString()} USD</strong></div>
-              <div className="flex justify-between"><span className="text-slate-600 dark:text-slate-400">GCC VAT / GST (5%):</span> <strong className="text-purple-700 dark:text-purple-300 font-bold">${inv.vatAmountUSD.toLocaleString()} USD</strong></div>
-              <div className="flex justify-between border-t border-slate-200 dark:border-navy-800 pt-1 text-sm"><span className="font-bold text-slate-900 dark:text-white">Total Payable Amount:</span> <strong className="text-amber-600 dark:text-gold-400 font-extrabold">${inv.totalUSD.toLocaleString()} USD</strong></div>
+              <div className="flex justify-between"><span className="text-slate-600 dark:text-slate-400">Base Placement Fee:</span> <strong className="text-slate-900 dark:text-white font-bold">${Number(inv?.amountUSD || 0).toLocaleString()} USD</strong></div>
+              <div className="flex justify-between"><span className="text-slate-600 dark:text-slate-400">GCC VAT / GST (5%):</span> <strong className="text-purple-700 dark:text-purple-300 font-bold">${Number(inv?.vatAmountUSD || 0).toLocaleString()} USD</strong></div>
+              <div className="flex justify-between border-t border-slate-200 dark:border-navy-800 pt-1 text-sm"><span className="font-bold text-slate-900 dark:text-white">Total Payable Amount:</span> <strong className="text-amber-600 dark:text-gold-400 font-extrabold">${Number(inv?.totalUSD || 0).toLocaleString()} USD</strong></div>
             </div>
 
             <div className="flex justify-between text-[11px] text-slate-600 dark:text-slate-400">
@@ -315,7 +315,7 @@ STATUS: PAID & AUDITED (GRADE A)
                 <CreditCard className="w-12 h-12 text-gold-500 mx-auto" />
                 <h3 className="font-serif text-xl font-bold text-slate-900 dark:text-white">Enterprise Payment Gateway</h3>
                 <p className="text-xs text-slate-700 dark:text-slate-300">
-                  Settle Invoice <strong className="text-amber-800 dark:text-gold-400">{paymentGatewayOpen.id}</strong> for <strong className="text-slate-900 dark:text-white">{paymentGatewayOpen.client}</strong> (${paymentGatewayOpen.totalUSD.toLocaleString()} USD).
+                  Settle Invoice <strong className="text-amber-800 dark:text-gold-400">{paymentGatewayOpen.id}</strong> for <strong className="text-slate-900 dark:text-white">{paymentGatewayOpen.client}</strong> (${Number(paymentGatewayOpen?.totalUSD || 0).toLocaleString()} USD).
                 </p>
 
                 <div className="space-y-2 pt-2">

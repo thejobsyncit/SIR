@@ -42,10 +42,11 @@ export const CrmSettings = () => {
 
   const [restoreFileName, setRestoreFileName] = useState('');
 
-  const filteredLogs = auditLogs.filter(log => 
-    log.user.toLowerCase().includes(auditSearch.toLowerCase()) ||
-    log.action.toLowerCase().includes(auditSearch.toLowerCase()) ||
-    log.role.toLowerCase().includes(auditSearch.toLowerCase())
+  const query = (auditSearch || '').toLowerCase();
+  const filteredLogs = (auditLogs || []).filter(log => 
+    String(log?.user || '').toLowerCase().includes(query) ||
+    String(log?.action || '').toLowerCase().includes(query) ||
+    String(log?.role || '').toLowerCase().includes(query)
   );
 
   const showStatus = (msg) => {

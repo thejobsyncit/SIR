@@ -44,15 +44,192 @@ export const getDbPath = () => {
 };
 
 export const DEFAULT_CRM_EMPLOYEES = [
-  { id: 'emp-1', employeeId: 'REV-EMP-001', name: 'Dhanalakshimi', email: 'thejobsyncit@gmail.com', phone: '+91 9003475405', role: 'Super Admin', department: 'Executive Management', password: 'Thejobsync@26', status: 'Active', createdAt: '2026-11-01 09:00:00' },
-  { id: 'emp-2', employeeId: 'REV-EMP-002', name: 'Sarah Jenkins', email: 'sarah.admin@revivalinternational.com', phone: '+91 98400 11002', role: 'Admin', department: 'Operations Management', password: 'Password123!', status: 'Active', createdAt: '2026-11-01 09:00:00' },
-  { id: 'emp-3', employeeId: 'REV-EMP-003', name: 'Priya Sharma', email: 'priya.lead@revivalinternational.com', phone: '+91 98400 11003', role: 'HR Lead', department: 'Human Resources', password: 'Password123!', status: 'Active', createdAt: '2026-11-01 09:00:00' },
-  { id: 'emp-4', employeeId: 'REV-EMP-004', name: 'Kishore Kumar', email: 'kishore.recruiter@revivalinternational.com', phone: '+91 98400 11004', role: 'Recruiter', department: 'Talent Acquisition & ATS', password: 'Password123!', status: 'Active', createdAt: '2026-11-01 09:00:00' },
-  { id: 'emp-5', employeeId: 'REV-EMP-005', name: 'Sreeja Nair', email: 'sreeja.jasync@gmail.com', phone: '+91 9876543211', role: 'Placement Coordinator', department: 'Placement & Industry Relations', password: 'Password123!', status: 'Active', createdAt: '2026-11-01 09:00:00' },
-  { id: 'emp-6', employeeId: 'REV-EMP-006', name: 'Balavarshini S.', email: 'balavarshini.s@revivalinternational.com', phone: '+91 9876543214', role: 'HR Operations', department: 'International HR Operations', designation: 'Lead HR Operations Specialist', operationTeam: 'International HR Operations', password: 'Password123!', status: 'Active', createdAt: '2026-11-01 09:00:00' },
-  { id: 'emp-fatima', employeeId: 'REV-EMP-107', name: 'Fatima', email: 'fatima.intl@revivalinternational.com', phone: '+971 50 876 5432', role: 'HR Operations', department: 'International HR Operations', designation: 'International HR Operations Specialist', operationTeam: 'International HR Operations', password: 'Password123!', status: 'Active', createdAt: '2026-11-01 09:00:00' },
-  { id: 'emp-divya', employeeId: 'REV-EMP-102', name: 'Divya R.', email: 'divya.enq@revivalinternational.com', phone: '+91 98401 11202', role: 'HR Operations', department: 'Enquiry HR Operations', designation: 'HR Operations Specialist', operationTeam: 'Enquiry HR Operations', password: 'Password123!', status: 'Active', createdAt: '2026-11-01 09:00:00' },
-  { id: 'emp-praveen', employeeId: 'REV-EMP-108', name: 'Praveen Kumar', email: 'praveen.enq@revivalinternational.com', phone: '+91 98401 11208', role: 'HR Operations', department: 'Enquiry HR Operations', designation: 'HR Operations Specialist', operationTeam: 'Enquiry HR Operations', password: 'Password123!', status: 'Active', createdAt: '2026-11-01 09:00:00' }
+  { 
+    id: 'emp-1', 
+    employeeId: 'REV-EMP-001', 
+    name: 'Dhanalakshimi', 
+    email: 'thejobsyncit@gmail.com', 
+    altEmail: 'dhana.jasync@gmail.com',
+    phone: '+91 9003475405', 
+    role: 'Super Admin', 
+    department: 'Executive Management', 
+    designation: 'Managing Director & Super Admin',
+    reportingManager: 'Board of Directors',
+    joiningDate: '2023-01-15',
+    assignedBranch: 'Executive HQ, Dubai',
+    employmentStatus: 'Full-Time (Active)',
+    dateOfBirth: '1988-08-14',
+    address: 'Level 34, Rolex Tower, Financial Center Road, Business Bay, Dubai',
+    avatar: 'https://images.unsplash.com/photo-1573496359142-b8d87734a5a2?w=150&auto=format&fit=crop&q=80',
+    password: 'Thejobsync@26', 
+    status: 'Active', 
+    createdAt: '2026-11-01 09:00:00' 
+  },
+  { 
+    id: 'emp-2', 
+    employeeId: 'REV-EMP-002', 
+    name: 'Sarah Jenkins', 
+    email: 'sarah.admin@revivalinternational.com', 
+    phone: '+91 98400 11002', 
+    role: 'Admin', 
+    department: 'Operations Management', 
+    designation: 'Senior CRM Administrator',
+    reportingManager: 'Dhanalakshimi (Super Admin)',
+    joiningDate: '2023-04-10',
+    assignedBranch: 'Dubai Knowledge Park',
+    employmentStatus: 'Full-Time (Active)',
+    dateOfBirth: '1991-03-22',
+    address: 'Dubai Silicon Oasis, Dubai, UAE',
+    avatar: 'https://images.unsplash.com/photo-1580489944761-15a19d654956?w=150&auto=format&fit=crop&q=80',
+    password: 'Password123!', 
+    status: 'Active', 
+    createdAt: '2026-11-01 09:00:00' 
+  },
+  { 
+    id: 'emp-3', 
+    employeeId: 'REV-EMP-003', 
+    name: 'Priya Sharma', 
+    email: 'priya.lead@revivalinternational.com', 
+    phone: '+91 98400 11003', 
+    role: 'HR Lead', 
+    department: 'Human Resources', 
+    designation: 'Head of Global HR & Operations',
+    reportingManager: 'Dhanalakshimi (Super Admin)',
+    joiningDate: '2023-06-01',
+    assignedBranch: 'Central HR Executive Console, Dubai',
+    employmentStatus: 'Full-Time (Active)',
+    dateOfBirth: '1990-12-05',
+    address: 'Al Barsha 1, Dubai, UAE',
+    avatar: 'https://images.unsplash.com/photo-1573497019940-1c28c88b4f3e?w=150&auto=format&fit=crop&q=80',
+    password: 'Password123!', 
+    status: 'Active', 
+    createdAt: '2026-11-01 09:00:00' 
+  },
+  { 
+    id: 'emp-4', 
+    employeeId: 'REV-EMP-004', 
+    name: 'Kishore Kumar', 
+    email: 'kishore.recruiter@revivalinternational.com', 
+    phone: '+91 98400 11004', 
+    role: 'Recruiter', 
+    department: 'Talent Acquisition & ATS', 
+    designation: 'Lead Recruitment Specialist',
+    reportingManager: 'Priya Sharma (HR Lead)',
+    joiningDate: '2023-09-15',
+    assignedBranch: 'Talent Acquisition Division, Chennai',
+    employmentStatus: 'Full-Time (Active)',
+    dateOfBirth: '1993-07-19',
+    address: 'Anna Nagar, Chennai, India',
+    avatar: 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=150&auto=format&fit=crop&q=80',
+    password: 'Password123!', 
+    status: 'Active', 
+    createdAt: '2026-11-01 09:00:00' 
+  },
+  { 
+    id: 'emp-5', 
+    employeeId: 'REV-EMP-005', 
+    name: 'Sreeja Nair', 
+    email: 'sreeja.jasync@gmail.com', 
+    phone: '+91 9876543211', 
+    role: 'Placement Coordinator', 
+    department: 'Placement & Industry Relations', 
+    designation: 'Senior Placement Coordinator',
+    reportingManager: 'Priya Sharma (HR Lead)',
+    joiningDate: '2023-10-01',
+    assignedBranch: 'University Relations HQ, Dubai',
+    employmentStatus: 'Full-Time (Active)',
+    dateOfBirth: '1994-02-17',
+    address: 'Dubai Marina, Dubai, UAE',
+    avatar: 'https://images.unsplash.com/photo-1544005313-94ddf0286df2?w=150&auto=format&fit=crop&q=80',
+    password: 'Password123!', 
+    status: 'Active', 
+    createdAt: '2026-11-01 09:00:00' 
+  },
+  { 
+    id: 'emp-6', 
+    employeeId: 'REV-EMP-006', 
+    name: 'Balavarshini S.', 
+    email: 'balavarshini.s@revivalinternational.com', 
+    altEmail: 'balavarshini2223@gmail.com',
+    phone: '+91 9876543214', 
+    role: 'HR Operations', 
+    department: 'International HR Operations', 
+    designation: 'Lead HR Operations Specialist', 
+    operationTeam: 'International HR Operations', 
+    assignedBranch: 'Branch A: International HR Operations (International Admissions & Consulting)',
+    reportingManager: 'Priya Sharma (HR Lead)',
+    joiningDate: '2023-08-10',
+    employmentStatus: 'Full-Time (Active)',
+    dateOfBirth: '1996-11-14',
+    address: 'OMR IT Corridor, Chennai, India',
+    avatar: 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=150&auto=format&fit=crop&q=80',
+    password: 'Password123!', 
+    status: 'Active', 
+    createdAt: '2026-11-01 09:00:00' 
+  },
+  { 
+    id: 'emp-fatima', 
+    employeeId: 'REV-EMP-107', 
+    name: 'Fatima', 
+    email: 'fatima.intl@revivalinternational.com', 
+    phone: '+971 50 876 5432', 
+    role: 'HR Operations', 
+    department: 'International HR Operations', 
+    designation: 'International HR Operations Specialist', 
+    operationTeam: 'International HR Operations', 
+    assignedBranch: 'Branch A: International HR Operations (International Admissions & Consulting)',
+    reportingManager: 'Priya Sharma (HR Lead)',
+    joiningDate: '2024-03-15',
+    employmentStatus: 'Full-Time (Active)',
+    dateOfBirth: '1994-06-21',
+    address: 'Business Bay, Executive Towers, Dubai, UAE',
+    avatar: 'https://images.unsplash.com/photo-1573496359142-b8d87734a5a2?w=150&auto=format&fit=crop&q=80',
+    password: 'Password123!', 
+    status: 'Active', 
+    createdAt: '2026-11-01 09:00:00' 
+  },
+  { 
+    id: 'emp-divya', 
+    employeeId: 'REV-EMP-102', 
+    name: 'Divya R.', 
+    email: 'divya.enq@revivalinternational.com', 
+    phone: '+91 98401 11202', 
+    role: 'HR Operations', 
+    department: 'Enquiry HR Operations', 
+    designation: 'HR Operations Specialist', 
+    operationTeam: 'Enquiry HR Operations', 
+    assignedBranch: 'Branch B: Enquiry HR Operations (Career Guidance, Student Academy, College Admissions)',
+    reportingManager: 'Priya Sharma (HR Lead)',
+    joiningDate: '2024-01-22',
+    employmentStatus: 'Full-Time (Active)',
+    dateOfBirth: '1997-04-18',
+    address: 'T. Nagar, Chennai, India',
+    avatar: 'https://images.unsplash.com/photo-1517841905240-472988babdf9?w=150&auto=format&fit=crop&q=80',
+    password: 'Password123!', 
+    status: 'Active', 
+    createdAt: '2026-11-01 09:00:00' 
+  },
+  { 
+    id: 'emp-praveen', 
+    employeeId: 'REV-EMP-108', 
+    name: 'Praveen Kumar', 
+    email: 'praveen.enq@revivalinternational.com', 
+    phone: '+91 98401 11208', 
+    role: 'HR Operations', 
+    department: 'Enquiry HR Operations', 
+    designation: 'HR Operations Specialist', 
+    operationTeam: 'Enquiry HR Operations', 
+    assignedBranch: 'Branch B: Enquiry HR Operations (Career Guidance, Student Academy, College Admissions)',
+    reportingManager: 'Priya Sharma (HR Lead)',
+    joiningDate: '2024-05-02',
+    employmentStatus: 'Full-Time (Active)',
+    dateOfBirth: '1995-09-30',
+    address: 'Velachery Main Road, Chennai, India',
+    avatar: 'https://images.unsplash.com/photo-1500648767791-00dcc994a43e?w=150&auto=format&fit=crop&q=80',
+    password: 'Password123!', 
+    status: 'Active', 
+    createdAt: '2026-11-01 09:00:00' 
+  }
 ];
 
 export const DEFAULT_CRM_CANDIDATES = [
@@ -902,24 +1079,6 @@ const initDb = async (db) => {
     );
   `);
 
-  // Seed default employees for all roles if table is empty or ensure HR Operations specialists
-  try {
-    for (const emp of DEFAULT_CRM_EMPLOYEES) {
-      await db.run(
-        `INSERT OR IGNORE INTO employees (id, employeeId, name, email, phone, role, department, password, status) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`,
-        [emp.id, emp.employeeId, emp.name, emp.email, emp.phone, emp.role, emp.department, emp.password, emp.status]
-      );
-      if (emp.role === 'HR Operations') {
-        await db.run(
-          `UPDATE employees SET name = ?, department = ?, designation = ?, operationTeam = ? WHERE employeeId = ?`,
-          [emp.name, emp.department, emp.designation, emp.operationTeam, emp.employeeId]
-        ).catch(() => {});
-      }
-    }
-  } catch (err) {
-    console.warn('Employee table seeding notice:', err.message);
-  }
-
   const ensureColumns = async (tableName, columnDefs) => {
     try {
       const existingCols = await db.all(`PRAGMA table_info(${tableName})`);
@@ -934,6 +1093,54 @@ const initDb = async (db) => {
       console.warn(`Column check warning for table ${tableName}:`, err.message);
     }
   };
+
+  await ensureColumns('employees', [
+    { name: 'designation', type: 'TEXT' },
+    { name: 'operationTeam', type: 'TEXT' },
+    { name: 'activeWorkload', type: 'INTEGER DEFAULT 0' },
+    { name: 'avatar', type: 'TEXT' },
+    { name: 'dateOfBirth', type: 'TEXT' },
+    { name: 'address', type: 'TEXT' },
+    { name: 'reportingManager', type: 'TEXT' },
+    { name: 'joiningDate', type: 'TEXT' },
+    { name: 'assignedBranch', type: 'TEXT' },
+    { name: 'employmentStatus', type: "TEXT DEFAULT 'Full-Time (Active)'" },
+    { name: 'notificationPreferences', type: 'TEXT' },
+    { name: 'lastLogin', type: 'TEXT' },
+    { name: 'altEmail', type: 'TEXT' },
+    { name: 'shiftId', type: "TEXT DEFAULT 'SHIFT-GENERAL'" }
+  ]);
+
+  // Seed default employees for all roles if table is empty or ensure HR Operations specialists
+  try {
+    for (const emp of DEFAULT_CRM_EMPLOYEES) {
+      await db.run(
+        `INSERT OR IGNORE INTO employees (id, employeeId, name, email, phone, role, department, password, status, altEmail, shiftId) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+        [emp.id, emp.employeeId, emp.name, emp.email, emp.phone, emp.role, emp.department, emp.password, emp.status, emp.altEmail || null, emp.shiftId || 'SHIFT-GENERAL']
+      );
+      await db.run(
+        `UPDATE employees SET name = ?, department = ?, designation = ?, operationTeam = ?, assignedBranch = ?, reportingManager = ?, joiningDate = ?, employmentStatus = ?, dateOfBirth = ?, address = ?, avatar = ?, altEmail = COALESCE(?, altEmail), shiftId = COALESCE(shiftId, 'SHIFT-GENERAL') WHERE employeeId = ? OR id = ?`,
+        [
+          emp.name, 
+          emp.department, 
+          emp.designation || null, 
+          emp.operationTeam || null, 
+          emp.assignedBranch || null, 
+          emp.reportingManager || null, 
+          emp.joiningDate || null, 
+          emp.employmentStatus || 'Full-Time (Active)', 
+          emp.dateOfBirth || null, 
+          emp.address || null, 
+          emp.avatar || null, 
+          emp.altEmail || null,
+          emp.employeeId, 
+          emp.id
+        ]
+      ).catch(() => {});
+    }
+  } catch (err) {
+    console.warn('Employee table seeding notice:', err.message);
+  }
 
   await ensureColumns('leads', [
     { name: 'serviceId', type: 'TEXT' },
@@ -1147,6 +1354,243 @@ const initDb = async (db) => {
     }
   } catch (seedDeptErr) {
     console.warn('Career departments seed warning:', seedDeptErr.message);
+  }
+
+  // ---------------------------------------------------------------------------
+  // HR Operations Attendance, Breaks, Shifts, Regularizations & Notifications
+  // ---------------------------------------------------------------------------
+  await db.exec(`
+    CREATE TABLE IF NOT EXISTS shift_configs (
+      id TEXT PRIMARY KEY,
+      name TEXT NOT NULL,
+      startTime TEXT NOT NULL,
+      endTime TEXT NOT NULL,
+      graceMinutes INTEGER DEFAULT 15,
+      isOvernight INTEGER DEFAULT 0,
+      breakTrackingEnabled INTEGER DEFAULT 1,
+      overtimeEnabled INTEGER DEFAULT 1,
+      overtimeThresholdMinutes INTEGER DEFAULT 480,
+      absentCutoffHour INTEGER DEFAULT 14,
+      weeklyOffDays TEXT DEFAULT '[0,6]',
+      timezone TEXT DEFAULT 'Asia/Kolkata',
+      isActive INTEGER DEFAULT 1,
+      createdAt DATETIME DEFAULT CURRENT_TIMESTAMP
+    );
+
+    CREATE TABLE IF NOT EXISTS company_holidays (
+      id TEXT PRIMARY KEY,
+      holidayDate TEXT UNIQUE NOT NULL,
+      name TEXT NOT NULL,
+      type TEXT DEFAULT 'Public Holiday',
+      region TEXT DEFAULT 'Global',
+      createdAt DATETIME DEFAULT CURRENT_TIMESTAMP
+    );
+
+    CREATE TABLE IF NOT EXISTS employee_leave_requests (
+      id TEXT PRIMARY KEY,
+      employeeId TEXT NOT NULL,
+      employeeName TEXT NOT NULL,
+      leaveType TEXT NOT NULL,
+      startDate TEXT NOT NULL,
+      endDate TEXT NOT NULL,
+      days REAL DEFAULT 1,
+      reason TEXT,
+      status TEXT DEFAULT 'Pending',
+      reviewedBy TEXT,
+      reviewedAt TEXT,
+      createdAt DATETIME DEFAULT CURRENT_TIMESTAMP
+    );
+
+    CREATE TABLE IF NOT EXISTS attendance_records (
+      id TEXT PRIMARY KEY,
+      employeeId TEXT NOT NULL,
+      employeeName TEXT NOT NULL,
+      department TEXT,
+      operationTeam TEXT,
+      workDate TEXT NOT NULL,
+      shiftId TEXT NOT NULL,
+      shiftName TEXT NOT NULL,
+      shiftStart TEXT NOT NULL,
+      shiftEnd TEXT NOT NULL,
+      isOvernightShift INTEGER DEFAULT 0,
+      checkInAt TEXT,
+      checkOutAt TEXT,
+      status TEXT NOT NULL,
+      lateMinutes INTEGER DEFAULT 0,
+      totalBreakMinutes INTEGER DEFAULT 0,
+      grossMinutes INTEGER DEFAULT 0,
+      netWorkMinutes INTEGER DEFAULT 0,
+      overtimeMinutes INTEGER DEFAULT 0,
+      source TEXT DEFAULT 'Web Portal',
+      notes TEXT,
+      isLocked INTEGER DEFAULT 0,
+      createdAt DATETIME DEFAULT CURRENT_TIMESTAMP,
+      updatedAt DATETIME DEFAULT CURRENT_TIMESTAMP
+    );
+
+    CREATE UNIQUE INDEX IF NOT EXISTS idx_attendance_emp_date ON attendance_records(employeeId, workDate);
+
+    CREATE TABLE IF NOT EXISTS attendance_breaks (
+      id TEXT PRIMARY KEY,
+      attendanceId TEXT NOT NULL,
+      employeeId TEXT NOT NULL,
+      workDate TEXT NOT NULL,
+      breakStartAt TEXT NOT NULL,
+      breakEndAt TEXT,
+      durationMinutes INTEGER DEFAULT 0,
+      breakType TEXT DEFAULT 'General Break',
+      createdAt DATETIME DEFAULT CURRENT_TIMESTAMP
+    );
+
+    CREATE INDEX IF NOT EXISTS idx_breaks_attendance_id ON attendance_breaks(attendanceId);
+
+    CREATE TABLE IF NOT EXISTS attendance_regularizations (
+      id TEXT PRIMARY KEY,
+      employeeId TEXT NOT NULL,
+      employeeName TEXT NOT NULL,
+      department TEXT,
+      operationTeam TEXT,
+      attendanceDate TEXT NOT NULL,
+      correctionType TEXT NOT NULL,
+      existingCheckIn TEXT,
+      existingCheckOut TEXT,
+      existingStatus TEXT,
+      requestedCheckIn TEXT,
+      requestedCheckOut TEXT,
+      requestedStatus TEXT,
+      reason TEXT NOT NULL,
+      status TEXT DEFAULT 'Pending',
+      reviewerId TEXT,
+      reviewerName TEXT,
+      reviewerRole TEXT,
+      reviewerComments TEXT,
+      reviewedAt TEXT,
+      createdAt DATETIME DEFAULT CURRENT_TIMESTAMP,
+      updatedAt DATETIME DEFAULT CURRENT_TIMESTAMP
+    );
+
+    CREATE INDEX IF NOT EXISTS idx_reg_emp_date ON attendance_regularizations(employeeId, attendanceDate);
+
+    CREATE TABLE IF NOT EXISTS attendance_audit_logs (
+      id TEXT PRIMARY KEY,
+      attendanceId TEXT,
+      employeeId TEXT NOT NULL,
+      workDate TEXT NOT NULL,
+      action TEXT NOT NULL,
+      actorId TEXT NOT NULL,
+      actorName TEXT NOT NULL,
+      actorRole TEXT NOT NULL,
+      beforeState TEXT,
+      afterState TEXT,
+      details TEXT,
+      ipAddress TEXT,
+      createdAt DATETIME DEFAULT CURRENT_TIMESTAMP
+    );
+
+    CREATE INDEX IF NOT EXISTS idx_att_audit_emp_date ON attendance_audit_logs(employeeId, workDate);
+
+    CREATE TABLE IF NOT EXISTS employee_notifications (
+      id TEXT PRIMARY KEY,
+      employeeId TEXT NOT NULL,
+      type TEXT NOT NULL,
+      title TEXT NOT NULL,
+      message TEXT NOT NULL,
+      severity TEXT DEFAULT 'info',
+      relatedId TEXT,
+      isRead INTEGER DEFAULT 0,
+      createdAt DATETIME DEFAULT CURRENT_TIMESTAMP
+    );
+
+    CREATE INDEX IF NOT EXISTS idx_emp_notif_emp ON employee_notifications(employeeId, createdAt);
+  `);
+
+  // Seed Shift Policies (Policy data only — no fabricated employee attendance records)
+  try {
+    const seedShifts = [
+      {
+        id: 'SHIFT-GENERAL',
+        name: 'General Shift (09:00 AM - 06:00 PM)',
+        startTime: '09:00',
+        endTime: '18:00',
+        graceMinutes: 15,
+        isOvernight: 0,
+        breakTrackingEnabled: 1,
+        overtimeEnabled: 1,
+        overtimeThresholdMinutes: 480,
+        absentCutoffHour: 14,
+        weeklyOffDays: '[0,6]'
+      },
+      {
+        id: 'SHIFT-MORNING',
+        name: 'Morning Operations (08:00 AM - 04:30 PM)',
+        startTime: '08:00',
+        endTime: '16:30',
+        graceMinutes: 15,
+        isOvernight: 0,
+        breakTrackingEnabled: 1,
+        overtimeEnabled: 1,
+        overtimeThresholdMinutes: 480,
+        absentCutoffHour: 13,
+        weeklyOffDays: '[0,6]'
+      },
+      {
+        id: 'SHIFT-UK-ME',
+        name: 'UK & Middle East Desk (01:00 PM - 09:30 PM)',
+        startTime: '13:00',
+        endTime: '21:30',
+        graceMinutes: 15,
+        isOvernight: 0,
+        breakTrackingEnabled: 1,
+        overtimeEnabled: 1,
+        overtimeThresholdMinutes: 480,
+        absentCutoffHour: 17,
+        weeklyOffDays: '[0,6]'
+      },
+      {
+        id: 'SHIFT-NIGHT',
+        name: 'Overnight Global Desk (10:00 PM - 07:00 AM)',
+        startTime: '22:00',
+        endTime: '07:00',
+        graceMinutes: 15,
+        isOvernight: 1,
+        breakTrackingEnabled: 1,
+        overtimeEnabled: 1,
+        overtimeThresholdMinutes: 480,
+        absentCutoffHour: 23,
+        weeklyOffDays: '[0,6]'
+      }
+    ];
+
+    for (const sh of seedShifts) {
+      await db.run(
+        `INSERT OR IGNORE INTO shift_configs (id, name, startTime, endTime, graceMinutes, isOvernight, breakTrackingEnabled, overtimeEnabled, overtimeThresholdMinutes, absentCutoffHour, weeklyOffDays)
+         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+        [sh.id, sh.name, sh.startTime, sh.endTime, sh.graceMinutes, sh.isOvernight, sh.breakTrackingEnabled, sh.overtimeEnabled, sh.overtimeThresholdMinutes, sh.absentCutoffHour, sh.weeklyOffDays]
+      );
+    }
+
+    const currentYear = new Date().getFullYear();
+    const holidayYears = Array.from(new Set([2025, 2026, currentYear, currentYear + 1]));
+    for (const yr of holidayYears) {
+      const seedHolidays = [
+        { id: `HOL-${yr}-01-01`, date: `${yr}-01-01`, name: "New Year's Day", type: 'Public Holiday', region: 'Global' },
+        { id: `HOL-${yr}-01-26`, date: `${yr}-01-26`, name: 'Republic Day', type: 'National Holiday', region: 'India' },
+        { id: `HOL-${yr}-05-01`, date: `${yr}-05-01`, name: 'International Workers Day', type: 'Public Holiday', region: 'Global' },
+        { id: `HOL-${yr}-08-15`, date: `${yr}-08-15`, name: 'Independence Day', type: 'National Holiday', region: 'India' },
+        { id: `HOL-${yr}-10-02`, date: `${yr}-10-02`, name: 'Gandhi Jayanti', type: 'National Holiday', region: 'India' },
+        { id: `HOL-${yr}-11-08`, date: `${yr}-11-08`, name: 'Diwali / Deepavali', type: 'Festival Holiday', region: 'India' },
+        { id: `HOL-${yr}-12-02`, date: `${yr}-12-02`, name: 'UAE National Day', type: 'National Holiday', region: 'UAE' },
+        { id: `HOL-${yr}-12-25`, date: `${yr}-12-25`, name: 'Christmas Day', type: 'Public Holiday', region: 'Global' }
+      ];
+      for (const h of seedHolidays) {
+        await db.run(
+          `INSERT OR IGNORE INTO company_holidays (id, holidayDate, name, type, region) VALUES (?, ?, ?, ?, ?)`,
+          [h.id, h.date, h.name, h.type, h.region]
+        );
+      }
+    }
+  } catch (attSeedErr) {
+    console.warn('Attendance policy seed warning:', attSeedErr.message);
   }
 
   console.log('Database initialized successfully with SQLite.');

@@ -1,1062 +1,1660 @@
-import React, { useState, useEffect, useCallback, useMemo } from 'react';
+import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import {
-  PhoneCall,
-  Phone,
-  Mail,
-  MessageSquare,
-  Clock,
-  Calendar,
-  CheckCircle2,
-  AlertCircle,
-  FileText,
-  UserCheck,
-  Search,
-  Filter,
-  Plus,
-  ArrowUpRight,
-  ChevronRight,
-  TrendingUp,
+  Activity,
+  AlertTriangle,
+  ArrowRight,
   Briefcase,
-  Upload,
-  CheckSquare,
-  Square,
-  PhoneForwarded,
-  ShieldAlert,
-  User,
+  Calendar,
+  CalendarClock,
+  CheckCircle2,
+  ChevronRight,
+  Clock,
+  FileCheck2,
+  Filter,
+  Inbox,
+  ListTodo,
+  LogIn,
+  LogOut,
+  Mail,
+  Phone,
   RefreshCw,
-  Globe,
-  GraduationCap,
+  Search,
+  ShieldAlert,
   Sparkles,
-  Check,
-  Tag
+  Timer,
+  UserCheck,
+  X
 } from 'lucide-react';
 import { useCrm } from '../context/CrmContext';
 
-export const CrmHrOperationsDashboard = () => {
-  const { currentEmployee, currentRole, user } = useCrm();
+const COMPANY_TIMEZONE = 'Asia/Kolkata';
 
-  // Active Tab: 'daily-queue' | 'tasks' | 'documents' | 'attendance'
-  const [activeTab, setActiveTab] = useState('daily-queue');
-  const [searchQuery, setSearchQuery] = useState('');
-  const [serviceFilter, setServiceFilter] = useState('all');
-  const [statusFilter, setStatusFilter] = useState('all');
-  const [operationBranch, setOperationBranch] = useState('all'); // 'all' | 'intl-ops' | 'enq-ops'
+const FALLBACK_STATUS_OPTIONS = [
+  'Assigned',
+  'Pending',
+  'In Progress',
+  'Contacted',
+  'Awaiting Response',
+  'Follow-up Required',
+  'Completed'
+];
 
-  // Selected lead for call notes / follow-up modal
-  const [selectedLead, setSelectedLead] = useState(null);
-  const [callNoteText, setCallNoteText] = useState('');
-  const [nextFollowUpDate, setNextFollowUpDate] = useState('');
-  const [newStatus, setNewStatus] = useState('');
+const formatDateShort = (raw) => {
+  if (!raw) return '—';
+  const normalized =
+    typeof raw === 'string' && /^\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2}/.test(raw.trim())
+      ? `${raw.trim().replace(' ', 'T')}Z`
+      : raw;
+  const d = new Date(normalized);
+  if (Number.isNaN(d.getTime())) return String(raw);
+  return new Intl.DateTimeFormat('en-IN', {
+    timeZone: COMPANY_TIMEZONE,
+    day: '2-digit',
+    month: 'short',
+    year: 'numeric'
+  }).format(d);
+};
 
-  // Loading & refresh states
-  const [loadingLeads, setLoadingLeads] = useState(true);
+const formatDateTimeShort = (raw) => {
+  if (!raw) return '—';
+  const str = String(raw).trim();
+  // Local datetime-local input without offset (YYYY-MM-DDTHH:mm)
+  if (/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}$/.test(str)) {
+    const [datePart, timePart] = str.split('T');
+    const [y, m, day] = datePart.split('-').map(Number);
+    const [hh, mm] = timePart.split(':').map(Number);
+    const months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+    const ampm = hh >= 12 ? 'PM' : 'AM';
+    const h12 = hh % 12 === 0 ? 12 : hh % 12;
+    return `${String(day).padStart(2, '0')} ${months[m - 1] || ''} ${y}, ${String(h12).padStart(2, '0')}:${String(mm).padStart(2, '0')} ${ampm}`;
+  }
+  const normalized = /^\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2}/.test(str)
+    ? `${str.replace(' ', 'T')}Z`
+    : str;
+  const d = new Date(normalized);
+  if (Number.isNaN(d.getTime())) return str;
+  return new Intl.DateTimeFormat('en-IN', {
+    timeZone: COMPANY_TIMEZONE,
+    day: '2-digit',
+    month: 'short',
+    year: 'numeric',
+    hour: '2-digit',
+    minute: '2-digit',
+    hour12: true
+  }).format(d);
+};
+
+const getEnquiryStatusBadgeClass = (status) => {
+  switch (status) {
+    case 'Completed':
+    case 'Converted':
+    case 'Closed / Won':
+      return 'bg-emerald-50 text-emerald-700 border-emerald-200 dark:bg-emerald-500/10 dark:text-emerald-300 dark:border-emerald-500/30';
+    case 'In Progress':
+    case 'Processing':
+    case 'Contacted':
+    case 'Follow-up Required':
+      return 'bg-amber-50 text-amber-700 border-amber-200 dark:bg-amber-500/10 dark:text-amber-300 dark:border-amber-500/30';
+    case 'Assigned':
+    case 'Pending':
+    case 'Awaiting Response':
+    case 'New':
+      return 'bg-blue-50 text-blue-700 border-blue-200 dark:bg-blue-500/10 dark:text-blue-300 dark:border-blue-500/30';
+    case 'Cancelled':
+    case 'Closed / Lost':
+    case 'Archived':
+    case 'Rejected':
+      return 'bg-slate-100 text-slate-600 border-slate-200 dark:bg-slate-800 dark:text-slate-300 dark:border-slate-700';
+    default:
+      return 'bg-slate-100 text-slate-700 border-slate-200 dark:bg-slate-800 dark:text-slate-300 dark:border-slate-700';
+  }
+};
+
+const getAttendanceBadgeClass = (status) => {
+  switch (status) {
+    case 'Present':
+    case 'In Progress':
+      return 'bg-emerald-50 text-emerald-700 border-emerald-200 dark:bg-emerald-500/15 dark:text-emerald-300 dark:border-emerald-500/30';
+    case 'Late':
+    case 'Missing Checkout':
+      return 'bg-amber-50 text-amber-700 border-amber-200 dark:bg-amber-500/15 dark:text-amber-300 dark:border-amber-500/30';
+    case 'Absent':
+      return 'bg-rose-50 text-rose-700 border-rose-200 dark:bg-rose-500/15 dark:text-rose-300 dark:border-rose-500/30';
+    case 'On Leave':
+    case 'Holiday':
+    case 'Weekly Off':
+      return 'bg-indigo-50 text-indigo-700 border-indigo-200 dark:bg-indigo-500/15 dark:text-indigo-300 dark:border-indigo-500/30';
+    default:
+      return 'bg-slate-100 text-slate-700 border-slate-200 dark:bg-slate-800 dark:text-slate-300 dark:border-slate-700';
+  }
+};
+
+const getPriorityBadgeClass = (priority) => {
+  switch (priority) {
+    case 'Urgent':
+      return 'bg-rose-50 text-rose-700 border-rose-200 dark:bg-rose-500/10 dark:text-rose-300 dark:border-rose-500/30';
+    case 'High':
+      return 'bg-orange-50 text-orange-700 border-orange-200 dark:bg-orange-500/10 dark:text-orange-300 dark:border-orange-500/30';
+    default:
+      return 'bg-slate-100 text-slate-600 border-slate-200 dark:bg-slate-800 dark:text-slate-300 dark:border-slate-700';
+  }
+};
+
+const getFollowUpBucketBadge = (bucket) => {
+  switch (bucket) {
+    case 'overdue':
+      return {
+        label: 'Overdue',
+        classes: 'bg-rose-50 text-rose-700 border-rose-200 dark:bg-rose-500/15 dark:text-rose-300 dark:border-rose-500/30'
+      };
+    case 'today':
+      return {
+        label: 'Due Today',
+        classes: 'bg-amber-50 text-amber-700 border-amber-200 dark:bg-amber-500/15 dark:text-amber-300 dark:border-amber-500/30'
+      };
+    case 'completed':
+      return {
+        label: 'Completed',
+        classes: 'bg-emerald-50 text-emerald-700 border-emerald-200 dark:bg-emerald-500/15 dark:text-emerald-300 dark:border-emerald-500/30'
+      };
+    default:
+      return {
+        label: 'Upcoming',
+        classes: 'bg-blue-50 text-blue-700 border-blue-200 dark:bg-blue-500/15 dark:text-blue-300 dark:border-blue-500/30'
+      };
+  }
+};
+
+const CrmHrOperationsDashboard = () => {
+  const {
+    crmToken,
+    authTokenLoading,
+    currentRole,
+    currentEmployee,
+    switchRole,
+    setActiveModule,
+    logout
+  } = useCrm();
+
+  const workspaceRef = useRef(null);
+
+  const [dashboard, setDashboard] = useState(null);
+  const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
-  const [syncNotice, setSyncNotice] = useState('');
+  const [errorState, setErrorState] = useState(null);
+  const [actionFeedback, setActionFeedback] = useState(null);
+  const [mutatingId, setMutatingId] = useState(null);
 
-  // Canonical employee identity for HR Operations
-  const activeEmployee = useMemo(() => {
-    const empName = currentEmployee?.name || user?.name || 'Balavarshini S.';
-    const empId = currentEmployee?.employeeId || currentEmployee?.id || user?.employeeId || user?.id || (
-      empName === 'Fatima' ? 'REV-EMP-107' :
-      empName.includes('Divya') ? 'REV-EMP-102' :
-      empName.includes('Praveen') ? 'REV-EMP-108' : 'REV-EMP-006'
-    );
-    const empTeamMemberId = currentEmployee?.teamMemberId || user?.teamMemberId || (
-      empName === 'Fatima' ? 'INTL-HR-101' :
-      empName.includes('Divya') ? 'ENQ-HR-201' :
-      empName.includes('Praveen') ? 'ENQ-HR-202' : 'INTL-HR-102'
-    );
-    const empEmail = currentEmployee?.email || user?.email || (
-      empName === 'Fatima' ? 'fatima.intl@revivalinternational.com' :
-      empName.includes('Divya') ? 'divya.enq@revivalinternational.com' :
-      empName.includes('Praveen') ? 'praveen.enq@revivalinternational.com' : 'balavarshini.s@revivalinternational.com'
-    );
-    const empWorkEmail = currentEmployee?.workEmail || user?.workEmail || empEmail;
-    const empDesignation = currentEmployee?.designation || user?.designation || (
-      empName === 'Fatima' ? 'International HR Operations Specialist' :
-      empName.includes('Balavarshini') ? 'Lead HR Operations Specialist' : 'HR Operations Specialist'
-    );
-    const empTeam = currentEmployee?.operationTeam || user?.operationTeam || (
-      (empName === 'Fatima' || empName.includes('Balavarshini')) ? 'International HR Operations' : 'Enquiry HR Operations'
-    );
+  // Interactive workspace tabs & filters
+  const [activeCardId, setActiveCardId] = useState('myAssignedEnquiries');
+  const [activeTab, setActiveTab] = useState('enquiries'); // 'enquiries' | 'followups' | 'tasks'
+  const [enquiryQuickFilter, setEnquiryQuickFilter] = useState('all'); // 'all' | 'pending' | 'completed-month' | 'completed'
+  const [statusFilter, setStatusFilter] = useState('all');
+  const [teamFilter, setTeamFilter] = useState('all');
+  const [searchQuery, setSearchQuery] = useState('');
+  const [followUpBucketFilter, setFollowUpBucketFilter] = useState('all'); // 'all' | 'today' | 'overdue' | 'upcoming' | 'completed'
+  const [taskFilter, setTaskFilter] = useState('pending'); // 'pending' | 'completed' | 'all'
 
-    return {
-      name: empName,
-      id: empId,
-      teamMemberId: empTeamMemberId,
-      email: empEmail,
-      workEmail: empWorkEmail,
-      role: currentRole || user?.role || 'HR Operations',
-      department: currentEmployee?.department || user?.department || empTeam,
-      designation: empDesignation,
-      team: empTeam
-    };
-  }, [currentEmployee, user, currentRole]);
+  // Modals for enquiry status update & follow-up scheduling
+  const [statusModalEnquiry, setStatusModalEnquiry] = useState(null);
+  const [statusForm, setStatusForm] = useState({ status: 'In Progress', resolutionNotes: '', nextAction: '', nextActionDate: '' });
+  const [followUpModalEnquiry, setFollowUpModalEnquiry] = useState(null);
+  const [followUpForm, setFollowUpForm] = useState({ title: '', purpose: 'Call', dueDateTime: '' });
+  const [savingModal, setSavingModal] = useState(false);
 
-  // Restrict operation branch based on team membership
-  const isEnquiryTeam = activeEmployee.team.includes('Enquiry') || activeEmployee.name.includes('Divya') || activeEmployee.name.includes('Praveen');
-  const isIntlTeam = activeEmployee.team.includes('International') || activeEmployee.name.includes('Fatima') || activeEmployee.name.includes('Bala');
+  const isHrOpsSession = currentRole === 'HR Operations';
 
-  useEffect(() => {
-    if (isEnquiryTeam && !isIntlTeam) {
-      setOperationBranch('enq-ops');
-    } else if (isIntlTeam && !isEnquiryTeam) {
-      setOperationBranch('intl-ops');
+  const fetchDashboardSummary = useCallback(async (isManualRefresh = false) => {
+    if (!isHrOpsSession) {
+      setLoading(false);
+      setErrorState({
+        code: 'ROLE_PREVIEW',
+        message: 'You are viewing the HR Operations Dashboard from another active role session. Switch your active preview role to HR Operations to load employee-scoped records.'
+      });
+      return;
     }
-  }, [isEnquiryTeam, isIntlTeam]);
+    if (authTokenLoading) return;
+    if (!crmToken) {
+      setLoading(false);
+      setErrorState({
+        code: 401,
+        message: 'Your authenticated CRM session token is unavailable or has expired. Please sign in again to load your dashboard.'
+      });
+      return;
+    }
 
-  // Daily leads queue data (Live from SQLite Backend)
-  const [dailyLeads, setDailyLeads] = useState([]);
-
-  // Fetch enquiries assigned to active employee from backend
-  const fetchAssignedLeads = useCallback(async (isManualRefresh = false) => {
     if (isManualRefresh) setRefreshing(true);
-    else setLoadingLeads(true);
+    else setLoading((prev) => (dashboard ? false : prev));
+    setErrorState(null);
 
     try {
-      const queryParams = new URLSearchParams({
-        userRole: 'HR Operations',
-        employeeName: activeEmployee.name,
-        employeeId: activeEmployee.id,
-        employeeEmail: activeEmployee.email,
-        limit: '150'
-      });
-
-      if (operationBranch === 'intl-ops') {
-        queryParams.set('operationTeam', 'International HR Operations');
-      } else if (operationBranch === 'enq-ops') {
-        queryParams.set('operationTeam', 'Enquiry HR Operations');
-      }
-
-      const res = await fetch(`/api/leads?${queryParams.toString()}`, {
+      const res = await fetch('/api/hr-ops/dashboard/summary', {
         headers: {
-          'x-user-role': 'HR Operations',
-          'x-employee-name': activeEmployee.name,
-          'x-employee-id': activeEmployee.id,
-          'x-employee-email': activeEmployee.email,
-          'x-operation-team': operationBranch === 'intl-ops' ? 'International HR Operations' : (operationBranch === 'enq-ops' ? 'Enquiry HR Operations' : 'all')
+          Authorization: `Bearer ${crmToken}`
         }
       });
-
-      const json = await res.json();
-      const rawLeads = Array.isArray(json.data) ? json.data : (Array.isArray(json.leads) ? json.leads : []);
-
-      if (rawLeads.length > 0) {
-        const mapped = rawLeads.map(l => {
-          let parsedNotes = [];
-          if (l.internalNotes) {
-            parsedNotes = l.internalNotes.split('\n').filter(Boolean).map(n => ({
-              date: l.assignedAt ? new Date(l.assignedAt).toLocaleDateString() : 'Recent',
-              by: l.assignedBy || 'HR Lead',
-              text: n.replace(/^📌\s*/, '')
-            }));
-          } else if (l.assignmentNotes) {
-            parsedNotes = [{
-              date: l.assignedAt ? new Date(l.assignedAt).toLocaleDateString() : 'Recent',
-              by: l.assignedBy || 'HR Lead',
-              text: l.assignmentNotes
-            }];
-          }
-
-          const isOverdue = l.priority === 'Urgent' && l.status === 'Assigned';
-          const isIntl = ['intl-adm', 'intl-consult'].includes(l.serviceId) ||
-            (l.referenceNumber && (l.referenceNumber.startsWith('REV-ADM') || l.referenceNumber.startsWith('REV-IC') || l.referenceNumber.startsWith('REV-INT')));
-
-          return {
-            id: l.id,
-            referenceNumber: l.referenceNumber || `#${l.id}`,
-            candidateName: l.name || 'Prospective Applicant',
-            email: l.email || '—',
-            phone: l.phone || '—',
-            serviceId: l.serviceId || (isIntl ? 'intl-adm' : 'school-career'),
-            serviceName: l.serviceTitle || (l.serviceId === 'intl-adm' ? 'International Admissions' : l.serviceId === 'intl-consult' ? 'International Consulting' : 'Revival Academic Consultation'),
-            operationTeam: l.operationTeam || (isIntl ? 'International HR Operations' : 'Enquiry HR Operations'),
-            status: l.status || 'Assigned',
-            priority: l.priority || 'Normal',
-            assignedTo: l.assignedEmployee || activeEmployee.name,
-            assignedEmployeeId: l.assignedEmployeeId || activeEmployee.id,
-            assignedDate: l.assignedAt || l.createdAt || new Date().toISOString(),
-            lastContacted: l.lastContactedDate || (l.updatedAt ? new Date(l.updatedAt).toLocaleDateString() : 'Pending initial outreach'),
-            followUpDue: l.nextActionDate || (l.priority === 'Urgent' ? 'Today, 2:00 PM (Urgent)' : 'Today, 5:00 PM'),
-            isOverdue,
-            isToday: true,
-            assignmentNotes: l.assignmentNotes || (l.internalNotes ? l.internalNotes.split('\n')[0] : 'Follow up with candidate regarding enquiry details.'),
-            notes: parsedNotes,
-            documents: isIntl ? [
-              { name: 'Passport Copy', status: 'Verified' },
-              { name: 'Attested Degree / Transcripts', status: 'Pending Verification' },
-              { name: 'Police Clearance Certificate', status: 'Pending' }
-            ] : [
-              { name: 'Enrollment Application Form', status: 'Verified' },
-              { name: 'Student Academic Records', status: 'Pending' },
-              { name: 'Parent Consultation Consent', status: 'Verified' }
-            ]
-          };
+      const json = await res.json().catch(() => ({}));
+      if (res.status === 401) {
+        setErrorState({
+          code: 401,
+          message: json.message || 'Your session has expired. Please sign in again.'
         });
-
-        setDailyLeads(mapped);
-      } else {
-        setDailyLeads([]);
+        return;
       }
+      if (res.status === 403) {
+        setErrorState({
+          code: 403,
+          message: json.message || 'Access denied: Only active HR Operations employees can view this dashboard.'
+        });
+        return;
+      }
+      if (!res.ok || !json.success || !json.data) {
+        throw new Error(json.message || 'Unable to load Daily Operations Dashboard.');
+      }
+
+      setDashboard(json.data);
     } catch (err) {
-      console.warn('Failed to fetch assigned leads for HR Operations:', err);
+      setErrorState({
+        code: 500,
+        message: err.message || 'Failed to load Daily Operations Dashboard.'
+      });
     } finally {
-      setLoadingLeads(false);
+      setLoading(false);
       setRefreshing(false);
     }
-  }, [activeEmployee, operationBranch]);
+  }, [authTokenLoading, crmToken, isHrOpsSession]);
 
-  // Fetch leads on mount and when employee identity or branch filter changes
   useEffect(() => {
-    fetchAssignedLeads();
-  }, [fetchAssignedLeads]);
+    fetchDashboardSummary(false);
+  }, [fetchDashboardSummary]);
 
-  // Daily operations tasks
-  const [dailyTasks, setDailyTasks] = useState([
-    { id: 1, title: 'Call assigned candidate leads for International Admissions', priority: 'High', due: '12:00 PM', done: false },
-    { id: 2, title: 'Verify attested degree copies for UAE Golden Visa / Consulting portfolio', priority: 'High', due: '2:00 PM', done: false },
-    { id: 3, title: 'Follow-up overdue enquiries and update CRM dossier status', priority: 'High', due: '3:30 PM', done: false },
-    { id: 4, title: 'Dispatch daily status summary report to HR Lead Priya Sharma', priority: 'Medium', due: '5:00 PM', done: false },
-    { id: 5, title: 'Send reminder WhatsApp messages for evening consultation cohorts', priority: 'Medium', due: '6:00 PM', done: false }
-  ]);
-
-  // Operations attendance log
-  const attendanceRecord = {
-    employeeName: activeEmployee.name,
-    employeeId: activeEmployee.id,
-    designation: activeEmployee.designation || 'HR Operations Specialist',
-    checkInTime: '08:52 AM',
-    expectedCheckIn: '09:00 AM',
-    status: 'Present (On Time)',
-    workingHoursToday: '6h 18m',
-    monthlyAttendanceRate: '98.4%',
-    presentDays: 22,
-    lateDays: 1,
-    leavesTaken: 0,
-    leaveBalance: 14
+  const showToast = (type, message) => {
+    setActionFeedback({ type, message });
+    window.clearTimeout(window.__hrDashToastTimer);
+    window.__hrDashToastTimer = window.setTimeout(() => setActionFeedback(null), 4500);
   };
 
-  // Dynamically calculated KPIs based on assigned leads
-  const freshLeadsCount = dailyLeads.filter(l => l.status === 'Fresh' || l.status === 'New').length;
-  const assignedLeadsCount = dailyLeads.length;
-  const pendingLeadsCount = dailyLeads.filter(l => l.status === 'Pending' || l.status === 'Assigned' || l.status === 'In Progress').length;
-  const completedLeadsCount = dailyLeads.filter(l => l.status === 'Completed').length;
-  const overdueFollowUpsCount = dailyLeads.filter(l => l.isOverdue).length;
-  const todaysFollowUpsCount = dailyLeads.filter(l => l.isToday).length;
-  const totalTasksCount = dailyTasks.length;
-  const completedTasksCount = dailyTasks.filter(t => t.done).length;
-
-  // Toggle task completion
-  const handleToggleTask = (taskId) => {
-    setDailyTasks(prev => prev.map(t => t.id === taskId ? { ...t, done: !t.done } : t));
-  };
-
-  // Submit Call Note / Follow-up Update and persist to backend
-  const handleSaveLeadInteraction = async (e) => {
-    e.preventDefault();
-    if (!selectedLead) return;
-
-    const updatedStatus = newStatus || selectedLead.status;
-    const noteText = callNoteText.trim();
-    const nowStr = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
-
-    // 1. Optimistic local update
-    setDailyLeads(prev => prev.map(l => {
-      if (l.id === selectedLead.id) {
-        const updatedNotes = [...l.notes];
-        if (noteText) {
-          updatedNotes.unshift({
-            date: 'Today, ' + nowStr,
-            by: activeEmployee.name,
-            text: noteText
-          });
-        }
-        return {
-          ...l,
-          status: updatedStatus,
-          followUpDue: nextFollowUpDate || l.followUpDue,
-          isOverdue: false,
-          notes: updatedNotes,
-          lastContacted: 'Just now'
-        };
-      }
-      return l;
-    }));
-
-    // 2. Persist to SQLite backend
-    try {
-      await fetch(`/api/leads/${selectedLead.id}`, {
-        method: 'PATCH',
-        headers: {
-          'Content-Type': 'application/json',
-          'x-user-role': 'HR Operations',
-          'x-employee-name': activeEmployee.name,
-          'x-employee-id': activeEmployee.id
-        },
-        body: JSON.stringify({
-          status: updatedStatus,
-          nextActionDate: nextFollowUpDate || undefined,
-          internalNotes: noteText ? `[HR Ops Note by ${activeEmployee.name} at ${nowStr}]: ${noteText}` : undefined
-        })
-      });
-      setSyncNotice(`✓ Updated candidate ${selectedLead.candidateName} (Status: ${updatedStatus}) saved to CRM!`);
-      setTimeout(() => setSyncNotice(''), 5000);
-    } catch (err) {
-      console.error('Failed to persist lead status update:', err);
+  const scrollToWorkspace = () => {
+    if (workspaceRef.current) {
+      workspaceRef.current.scrollIntoView({ behavior: 'smooth', block: 'start' });
     }
-
-    setSelectedLead(null);
-    setCallNoteText('');
-    setNextFollowUpDate('');
-    setNewStatus('');
   };
 
-  // Quick Mark Completed
-  const handleMarkCompleted = async (lead) => {
+  const handleOpenCandidateProfile = (candidateKey) => {
+    if (!candidateKey) return;
+    const url = new URL(window.location.href);
+    url.searchParams.set('candidateKey', candidateKey);
+    window.history.replaceState({}, '', url.toString());
+    setActiveModule('candidates');
+  };
+
+  const handleSummaryCardClick = (cardKey) => {
+    setActiveCardId(cardKey);
+    switch (cardKey) {
+      case 'myAssignedEnquiries':
+        setActiveTab('enquiries');
+        setEnquiryQuickFilter('all');
+        setStatusFilter('all');
+        break;
+      case 'pendingEnquiries':
+        setActiveTab('enquiries');
+        setEnquiryQuickFilter('pending');
+        setStatusFilter('all');
+        break;
+      case 'followUpsDueToday':
+        setActiveTab('followups');
+        setFollowUpBucketFilter('today');
+        break;
+      case 'overdueFollowUps':
+        setActiveTab('followups');
+        setFollowUpBucketFilter('overdue');
+        break;
+      case 'completedEnquiriesThisMonth':
+        setActiveTab('enquiries');
+        setEnquiryQuickFilter('completed-month');
+        setStatusFilter('all');
+        break;
+      case 'pendingTasks':
+        setActiveTab('tasks');
+        setTaskFilter('pending');
+        break;
+      default:
+        break;
+    }
+    scrollToWorkspace();
+  };
+
+  const openStatusModal = (enq) => {
+    setStatusModalEnquiry(enq);
+    setStatusForm({
+      status: enq.status === 'New' || enq.status === 'Assigned' ? 'In Progress' : enq.status || 'In Progress',
+      resolutionNotes: '',
+      nextAction: enq.nextAction || '',
+      nextActionDate: enq.nextActionDate || ''
+    });
+  };
+
+  const handleSubmitStatusUpdate = async (e) => {
+    e.preventDefault();
+    if (!statusModalEnquiry || !crmToken) return;
+    setSavingModal(true);
     try {
-      await fetch(`/api/leads/${lead.id}`, {
+      const payload = {
+        status: statusForm.status,
+        resolutionNotes: statusForm.resolutionNotes?.trim() || undefined,
+        nextAction: statusForm.nextAction?.trim() || undefined,
+        nextActionDate: statusForm.nextActionDate?.trim() || undefined
+      };
+      const res = await fetch(`/api/hr-ops/enquiries/${encodeURIComponent(statusModalEnquiry.id)}/status`, {
         method: 'PATCH',
         headers: {
           'Content-Type': 'application/json',
-          'x-user-role': 'HR Operations',
-          'x-employee-name': activeEmployee.name
+          Authorization: `Bearer ${crmToken}`
+        },
+        body: JSON.stringify(payload)
+      });
+      const json = await res.json().catch(() => ({}));
+      if (!res.ok || !json.success) {
+        throw new Error(json.message || 'Failed to update enquiry status.');
+      }
+      setStatusModalEnquiry(null);
+      await fetchDashboardSummary(true);
+      showToast('success', `Enquiry ${statusModalEnquiry.referenceNumber} updated to ${statusForm.status}.`);
+    } catch (err) {
+      showToast('error', err.message || 'Could not update enquiry status.');
+    } finally {
+      setSavingModal(false);
+    }
+  };
+
+  const handleQuickCompleteEnquiry = async (enq) => {
+    if (!crmToken || !enq) return;
+    setMutatingId(enq.id);
+    try {
+      const res = await fetch(`/api/hr-ops/enquiries/${encodeURIComponent(enq.id)}/status`, {
+        method: 'PATCH',
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${crmToken}`
         },
         body: JSON.stringify({
           status: 'Completed',
-          internalNotes: `[HR Ops Task Completed by ${activeEmployee.name} on ${new Date().toLocaleDateString()}]`
+          resolutionNotes: 'Completed from Daily Operations Dashboard.'
         })
       });
-      setDailyLeads(prev => prev.map(l => l.id === lead.id ? { ...l, status: 'Completed', followUpDue: 'Completed', isOverdue: false } : l));
-      setSyncNotice(`✓ Enquiry ${lead.referenceNumber} marked Completed.`);
-      setTimeout(() => setSyncNotice(''), 4000);
+      const json = await res.json().catch(() => ({}));
+      if (!res.ok || !json.success) {
+        throw new Error(json.message || 'Failed to mark enquiry completed.');
+      }
+      await fetchDashboardSummary(true);
+      showToast('success', `${enq.referenceNumber} marked as Completed.`);
     } catch (err) {
-      console.error(err);
+      showToast('error', err.message || 'Unable to complete enquiry.');
+    } finally {
+      setMutatingId(null);
     }
   };
 
-  // Filtered Leads
-  const filteredLeads = dailyLeads.filter(l => {
-    const q = searchQuery.toLowerCase().trim();
-    const matchesSearch = !q ||
-      l.candidateName.toLowerCase().includes(q) ||
-      (l.phone && l.phone.includes(q)) ||
-      (l.email && l.email.toLowerCase().includes(q)) ||
-      (l.referenceNumber && l.referenceNumber.toLowerCase().includes(q));
+  const openFollowUpModal = (enq) => {
+    setFollowUpModalEnquiry(enq);
+    const defaultDate = new Date();
+    defaultDate.setHours(defaultDate.getHours() + 2, 0, 0, 0);
+    const localIso = `${defaultDate.getFullYear()}-${String(defaultDate.getMonth() + 1).padStart(2, '0')}-${String(defaultDate.getDate()).padStart(2, '0')}T${String(defaultDate.getHours()).padStart(2, '0')}:${String(defaultDate.getMinutes()).padStart(2, '0')}`;
+    setFollowUpForm({
+      title: `Follow up with ${enq.candidateName || 'Candidate'}`,
+      purpose: 'Call',
+      dueDateTime: localIso
+    });
+  };
 
-    const matchesService = serviceFilter === 'all' || l.serviceId === serviceFilter;
-    const matchesStatus = statusFilter === 'all' || l.status.toLowerCase() === statusFilter.toLowerCase();
-    
-    let matchesBranch = true;
-    if (operationBranch === 'intl-ops') {
-      matchesBranch = ['intl-adm', 'intl-consult'].includes(l.serviceId) ||
-        (l.referenceNumber && (l.referenceNumber.startsWith('REV-ADM') || l.referenceNumber.startsWith('REV-IC') || l.referenceNumber.startsWith('REV-INT')));
-    } else if (operationBranch === 'enq-ops') {
-      matchesBranch = ['school-career', 'career-guidance', 'school-academy', 'student-academy', 'college-adm'].includes(l.serviceId) ||
-        (l.referenceNumber && (l.referenceNumber.startsWith('REV-CAR') || l.referenceNumber.startsWith('REV-ACA') || l.referenceNumber.startsWith('REV-COL') || l.referenceNumber.startsWith('REV-CADM')));
+  const handleSubmitFollowUp = async (e) => {
+    e.preventDefault();
+    if (!followUpModalEnquiry || !crmToken) return;
+    if (!followUpForm.title.trim() || !followUpForm.dueDateTime.trim()) {
+      showToast('error', 'Follow-up title and due date/time are required.');
+      return;
     }
+    setSavingModal(true);
+    try {
+      const res = await fetch(`/api/hr-ops/enquiries/${encodeURIComponent(followUpModalEnquiry.id)}/follow-ups`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${crmToken}`
+        },
+        body: JSON.stringify({
+          title: followUpForm.title.trim(),
+          purpose: followUpForm.purpose || 'Call',
+          dueDateTime: followUpForm.dueDateTime
+        })
+      });
+      const json = await res.json().catch(() => ({}));
+      if (!res.ok || !json.success) {
+        throw new Error(json.message || 'Failed to schedule follow-up.');
+      }
+      setFollowUpModalEnquiry(null);
+      await fetchDashboardSummary(true);
+      showToast('success', 'Follow-up scheduled successfully.');
+    } catch (err) {
+      showToast('error', err.message || 'Could not schedule follow-up.');
+    } finally {
+      setSavingModal(false);
+    }
+  };
 
-    return matchesSearch && matchesService && matchesStatus && matchesBranch;
-  });
+  const handleCompleteFollowUp = async (fu) => {
+    if (!crmToken || !fu) return;
+    if (fu.source === 'lead_next_action') {
+      const linked = (dashboard?.assignedEnquiries || []).find((e) => e.id === fu.enquiryId);
+      if (linked) openStatusModal(linked);
+      return;
+    }
+    setMutatingId(fu.id);
+    try {
+      const res = await fetch(`/api/hr-ops/follow-ups/${encodeURIComponent(fu.id)}`, {
+        method: 'PATCH',
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${crmToken}`
+        },
+        body: JSON.stringify({
+          status: 'Completed',
+          completionNotes: 'Completed from Daily Operations Dashboard.'
+        })
+      });
+      const json = await res.json().catch(() => ({}));
+      if (!res.ok || !json.success) {
+        throw new Error(json.message || 'Failed to complete follow-up.');
+      }
+      await fetchDashboardSummary(true);
+      showToast('success', 'Follow-up marked as Completed.');
+    } catch (err) {
+      showToast('error', err.message || 'Could not update follow-up.');
+    } finally {
+      setMutatingId(null);
+    }
+  };
 
-  const intlCount = dailyLeads.filter(l => ['intl-adm', 'intl-consult'].includes(l.serviceId) || (l.referenceNumber && (l.referenceNumber.startsWith('REV-ADM') || l.referenceNumber.startsWith('REV-IC') || l.referenceNumber.startsWith('REV-INT')))).length;
-  const enqCount = dailyLeads.filter(l => ['school-career', 'career-guidance', 'school-academy', 'student-academy', 'college-adm'].includes(l.serviceId) || (l.referenceNumber && (l.referenceNumber.startsWith('REV-CAR') || l.referenceNumber.startsWith('REV-ACA') || l.referenceNumber.startsWith('REV-COL') || l.referenceNumber.startsWith('REV-CADM')))).length;
+  const handleToggleTaskStatus = async (task) => {
+    if (!crmToken || !task) return;
+    const linkedEnq = (dashboard?.assignedEnquiries || []).find(
+      (e) => e.id === task.enquiryId || (task.referenceNumber && e.referenceNumber === task.referenceNumber)
+    );
+    if (task.isCompleted && linkedEnq?.isResolved) {
+      showToast('error', 'Linked enquiry is resolved. Reopen the enquiry status to reopen this task.');
+      return;
+    }
+    const nextTaskStatus = task.isCompleted ? 'To Do' : 'Completed';
+    setMutatingId(task.id);
+    try {
+      const res = await fetch(`/api/hr-ops/tasks/${encodeURIComponent(task.id)}`, {
+        method: 'PATCH',
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${crmToken}`
+        },
+        body: JSON.stringify({ taskStatus: nextTaskStatus })
+      });
+      const json = await res.json().catch(() => ({}));
+      if (!res.ok || !json.success) {
+        throw new Error(json.message || 'Failed to update task status.');
+      }
+      if (json.data) {
+        setDashboard(json.data);
+      } else {
+        await fetchDashboardSummary(true);
+      }
+      showToast('success', `Task updated to ${nextTaskStatus}.`);
+    } catch (err) {
+      showToast('error', err.message || 'Could not update task.');
+    } finally {
+      setMutatingId(null);
+    }
+  };
 
-  return (
-    <div className="space-y-6">
-      {/* Header Banner */}
-      <div className="bg-gradient-to-r from-emerald-900 via-teal-900 to-slate-900 rounded-2xl p-6 text-white shadow-xl relative overflow-hidden">
-        <div className="absolute right-0 top-0 bottom-0 w-96 bg-[radial-gradient(ellipse_at_top_right,_var(--tw-gradient-stops))] from-emerald-500/20 via-transparent to-transparent pointer-events-none" />
-        <div className="relative z-10 flex flex-col md:flex-row md:items-center justify-between gap-4">
-          <div>
-            <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-emerald-500/20 text-emerald-300 border border-emerald-500/30 text-xs font-semibold mb-2">
-              <UserCheck className="w-3.5 h-3.5" />
-              HR Operations Control Hub • Assigned Enquiries Queue
-            </div>
-            <h1 className="text-2xl md:text-3xl font-bold font-serif tracking-tight">
-              Daily Operations & Enquiries Dashboard
-            </h1>
-            <p className="text-emerald-200/80 text-sm mt-1">
-              Logged in as <span className="font-semibold text-white">{activeEmployee.name}</span> ({activeEmployee.id}) • Assigned Operational Work Queue
-            </p>
-          </div>
+  const employeeInfo = dashboard?.employee || {
+    name: currentEmployee?.name || 'HR Operations',
+    designation: currentEmployee?.designation || currentRole || 'HR Operations',
+    operationTeam: currentEmployee?.operationTeam || null
+  };
 
-          <div className="flex items-center gap-3">
+  const shiftInfo = dashboard?.shift || null;
+  const attendanceToday = dashboard?.attendanceToday || null;
+  const metrics = dashboard?.metrics || {
+    myAssignedEnquiries: 0,
+    pendingEnquiries: 0,
+    followUpsDueToday: 0,
+    overdueFollowUps: 0,
+    completedEnquiriesThisMonth: 0,
+    pendingTasks: 0
+  };
+  const assignedEnquiries = dashboard?.assignedEnquiries || [];
+  const followUps = dashboard?.followUps || [];
+  const tasks = dashboard?.tasks || [];
+  const statusOptions = dashboard?.permittedEnquiryStatuses || FALLBACK_STATUS_OPTIONS;
+
+  const availableTeams = useMemo(() => {
+    const set = new Set();
+    assignedEnquiries.forEach((e) => {
+      if (e.operationTeam) set.add(e.operationTeam);
+    });
+    return Array.from(set);
+  }, [assignedEnquiries]);
+
+  const filteredEnquiries = useMemo(() => {
+    const q = searchQuery.trim().toLowerCase();
+    return assignedEnquiries.filter((enq) => {
+      if (enquiryQuickFilter === 'pending' && enq.isResolved) return false;
+      if (enquiryQuickFilter === 'completed' && !enq.isResolved) return false;
+      if (enquiryQuickFilter === 'completed-month' && !enq.isCompletedThisMonth) return false;
+      if (statusFilter !== 'all' && enq.status !== statusFilter) return false;
+      if (teamFilter !== 'all' && enq.operationTeam !== teamFilter) return false;
+      if (q) {
+        const hay = [
+          enq.candidateName,
+          enq.referenceNumber,
+          enq.candidateReferenceNumber,
+          enq.serviceTitle,
+          enq.phone,
+          enq.email,
+          enq.status,
+          enq.operationTeam
+        ]
+          .filter(Boolean)
+          .join(' ')
+          .toLowerCase();
+        if (!hay.includes(q)) return false;
+      }
+      return true;
+    });
+  }, [assignedEnquiries, enquiryQuickFilter, searchQuery, statusFilter, teamFilter]);
+
+  const filteredFollowUps = useMemo(() => {
+    const q = searchQuery.trim().toLowerCase();
+    return followUps.filter((fu) => {
+      if (followUpBucketFilter !== 'all' && fu.bucket !== followUpBucketFilter) return false;
+      if (q) {
+        const hay = [fu.title, fu.purpose, fu.candidateName, fu.enquiryReference, fu.status]
+          .filter(Boolean)
+          .join(' ')
+          .toLowerCase();
+        if (!hay.includes(q)) return false;
+      }
+      return true;
+    });
+  }, [followUps, followUpBucketFilter, searchQuery]);
+
+  const filteredTasks = useMemo(() => {
+    const q = searchQuery.trim().toLowerCase();
+    return tasks.filter((t) => {
+      if (taskFilter === 'pending' && t.isCompleted) return false;
+      if (taskFilter === 'completed' && !t.isCompleted) return false;
+      if (q) {
+        const hay = [t.customerName, t.referenceNumber, t.serviceTitle, t.notes, t.taskStatus]
+          .filter(Boolean)
+          .join(' ')
+          .toLowerCase();
+        if (!hay.includes(q)) return false;
+      }
+      return true;
+    });
+  }, [tasks, taskFilter, searchQuery]);
+
+  const summaryCards = [
+    {
+      key: 'myAssignedEnquiries',
+      label: 'My Assigned Enquiries',
+      value: metrics.myAssignedEnquiries,
+      hint: 'View assigned queue',
+      icon: Inbox,
+      accent: 'text-blue-600 dark:text-blue-400',
+      iconBg: 'bg-blue-50 dark:bg-blue-500/15 border-blue-200/70 dark:border-blue-500/30',
+      activeRing: 'ring-2 ring-blue-500 border-blue-400 dark:border-blue-500'
+    },
+    {
+      key: 'pendingEnquiries',
+      label: 'Pending Enquiries',
+      value: metrics.pendingEnquiries,
+      hint: 'Open items needing action',
+      icon: Clock,
+      accent: 'text-amber-600 dark:text-amber-400',
+      iconBg: 'bg-amber-50 dark:bg-amber-500/15 border-amber-200/70 dark:border-amber-500/30',
+      activeRing: 'ring-2 ring-amber-500 border-amber-400 dark:border-amber-500'
+    },
+    {
+      key: 'followUpsDueToday',
+      label: 'Follow-ups Due Today',
+      value: metrics.followUpsDueToday,
+      hint: 'Scheduled for today',
+      icon: CalendarClock,
+      accent: 'text-indigo-600 dark:text-indigo-400',
+      iconBg: 'bg-indigo-50 dark:bg-indigo-500/15 border-indigo-200/70 dark:border-indigo-500/30',
+      activeRing: 'ring-2 ring-indigo-500 border-indigo-400 dark:border-indigo-500'
+    },
+    {
+      key: 'overdueFollowUps',
+      label: 'Overdue Follow-ups',
+      value: metrics.overdueFollowUps,
+      hint: 'Past due follow-ups',
+      icon: AlertTriangle,
+      accent: 'text-rose-600 dark:text-rose-400',
+      iconBg: 'bg-rose-50 dark:bg-rose-500/15 border-rose-200/70 dark:border-rose-500/30',
+      activeRing: 'ring-2 ring-rose-500 border-rose-400 dark:border-rose-500'
+    },
+    {
+      key: 'completedEnquiriesThisMonth',
+      label: 'Completed Enquiries This Month',
+      value: metrics.completedEnquiriesThisMonth,
+      hint: 'Resolved this month',
+      icon: CheckCircle2,
+      accent: 'text-emerald-600 dark:text-emerald-400',
+      iconBg: 'bg-emerald-50 dark:bg-emerald-500/15 border-emerald-200/70 dark:border-emerald-500/30',
+      activeRing: 'ring-2 ring-emerald-500 border-emerald-400 dark:border-emerald-500'
+    },
+    {
+      key: 'pendingTasks',
+      label: 'Pending Tasks',
+      value: metrics.pendingTasks,
+      hint: 'Open assigned tasks',
+      icon: ListTodo,
+      accent: 'text-violet-600 dark:text-violet-400',
+      iconBg: 'bg-violet-50 dark:bg-violet-500/15 border-violet-200/70 dark:border-violet-500/30',
+      activeRing: 'ring-2 ring-violet-500 border-violet-400 dark:border-violet-500'
+    }
+  ];
+
+  // Role Preview / Auth / Fatal Error states
+  if (authTokenLoading || (loading && !dashboard && !errorState)) {
+    return (
+      <div className="space-y-6 animate-pulse" data-testid="hr-ops-dashboard-loading">
+        <div className="h-32 rounded-2xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800" />
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6 gap-4">
+          {Array.from({ length: 6 }).map((_, idx) => (
+            <div key={idx} className="h-28 rounded-2xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800" />
+          ))}
+        </div>
+        <div className="h-36 rounded-2xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800" />
+        <div className="h-72 rounded-2xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800" />
+      </div>
+    );
+  }
+
+  if (errorState && !dashboard) {
+    return (
+      <div className="rounded-2xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 p-8 text-center max-w-2xl mx-auto my-8 shadow-sm">
+        <div className="w-12 h-12 rounded-2xl mx-auto mb-4 flex items-center justify-center bg-rose-50 text-rose-600 dark:bg-rose-500/15 dark:text-rose-400">
+          <ShieldAlert className="w-6 h-6" />
+        </div>
+        <h2 className="text-lg font-bold text-slate-900 dark:text-white mb-2">
+          {errorState.code === 'ROLE_PREVIEW'
+            ? 'HR Operations Employee Session Required'
+            : errorState.code === 401
+              ? 'Authentication Required'
+              : 'Unable to Load Daily Operations Dashboard'}
+        </h2>
+        <p className="text-sm text-slate-600 dark:text-slate-400 mb-6">
+          {errorState.message}
+        </p>
+        <div className="flex flex-wrap items-center justify-center gap-3">
+          {errorState.code === 'ROLE_PREVIEW' && (
             <button
               type="button"
-              onClick={() => fetchAssignedLeads(true)}
-              disabled={refreshing}
-              className="flex items-center gap-2 px-3.5 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-bold transition shadow-sm cursor-pointer disabled:opacity-50"
-              title="Refresh assigned enquiries from database"
+              onClick={() => switchRole?.('HR Operations')}
+              className="px-4 py-2.5 rounded-xl text-sm font-semibold bg-amber-600 hover:bg-amber-700 text-white transition-colors"
             >
-              <RefreshCw className={`w-3.5 h-3.5 ${refreshing ? 'animate-spin' : ''}`} />
-              <span>{refreshing ? 'Syncing...' : 'Refresh Queue'}</span>
+              Switch Active Role to HR Operations
             </button>
-
-            <div className="px-4 py-2 rounded-xl bg-white/10 backdrop-blur-md border border-white/15 text-xs text-right">
-              <span className="text-emerald-300 block font-semibold">Today's Shift</span>
-              <span className="font-bold text-sm text-white">09:00 AM – 06:00 PM</span>
-            </div>
-          </div>
+          )}
+          {errorState.code === 401 ? (
+            <button
+              type="button"
+              onClick={() => logout?.()}
+              className="px-4 py-2.5 rounded-xl text-sm font-semibold bg-slate-900 hover:bg-slate-800 dark:bg-amber-500 dark:hover:bg-amber-600 dark:text-slate-950 text-white transition-colors"
+            >
+              Sign In Again
+            </button>
+          ) : (
+            <button
+              type="button"
+              onClick={() => fetchDashboardSummary(true)}
+              className="px-4 py-2.5 rounded-xl text-sm font-semibold border border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-200 hover:bg-slate-50 dark:hover:bg-slate-800 transition-colors"
+            >
+              Try Again
+            </button>
+          )}
         </div>
       </div>
+    );
+  }
 
-      {/* Sync Confirmation Banner */}
-      {syncNotice && (
-        <div className="p-3 bg-emerald-50 dark:bg-emerald-950/60 border border-emerald-300 dark:border-emerald-800 rounded-xl text-emerald-800 dark:text-emerald-300 text-xs font-semibold flex items-center justify-between animate-in fade-in">
-          <span>{syncNotice}</span>
-          <button onClick={() => setSyncNotice('')} className="text-emerald-600 hover:text-emerald-900 font-bold ml-2">✕</button>
+  return (
+    <div className="space-y-6 pb-8" data-testid="hr-ops-daily-dashboard">
+      {/* Feedback Toast */}
+      {actionFeedback && (
+        <div
+          role="status"
+          className={`flex items-center justify-between gap-3 px-4 py-3 rounded-xl border text-sm font-medium shadow-sm ${
+            actionFeedback.type === 'error'
+              ? 'bg-rose-50 border-rose-200 text-rose-800 dark:bg-rose-500/15 dark:border-rose-500/30 dark:text-rose-200'
+              : 'bg-emerald-50 border-emerald-200 text-emerald-800 dark:bg-emerald-500/15 dark:border-emerald-500/30 dark:text-emerald-200'
+          }`}
+        >
+          <span>{actionFeedback.message}</span>
+          <button
+            type="button"
+            onClick={() => setActionFeedback(null)}
+            className="p-1 rounded-lg hover:bg-black/5 dark:hover:bg-white/10"
+            aria-label="Dismiss notification"
+          >
+            <X className="w-4 h-4" />
+          </button>
         </div>
       )}
 
-      {/* 7 KPI Counters */}
-      <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-7 gap-3">
-        {/* 1. Today's Fresh Leads */}
-        <div className="bg-white dark:bg-navy-900 p-4 rounded-xl border border-slate-200 dark:border-navy-700 shadow-sm">
-          <div className="flex items-center justify-between text-slate-500 dark:text-slate-400 text-xs mb-1">
-            <span>Fresh Leads</span>
-            <span className="w-2 h-2 rounded-full bg-blue-500 animate-pulse" />
-          </div>
-          <div className="text-2xl font-bold text-slate-900 dark:text-white">{freshLeadsCount}</div>
-          <div className="text-[11px] text-blue-600 dark:text-blue-400 mt-1 font-medium">New intake today</div>
-        </div>
-
-        {/* 2. Assigned Leads */}
-        <div className="bg-white dark:bg-navy-900 p-4 rounded-xl border border-slate-200 dark:border-navy-700 shadow-sm">
-          <div className="flex items-center justify-between text-slate-500 dark:text-slate-400 text-xs mb-1">
-            <span>Assigned Leads</span>
-            <Briefcase className="w-3.5 h-3.5 text-slate-400" />
-          </div>
-          <div className="text-2xl font-bold text-slate-900 dark:text-white">{assignedLeadsCount}</div>
-          <div className="text-[11px] text-slate-500 mt-1">In your active queue</div>
-        </div>
-
-        {/* 3. Pending Leads */}
-        <div className="bg-white dark:bg-navy-900 p-4 rounded-xl border border-slate-200 dark:border-navy-700 shadow-sm">
-          <div className="flex items-center justify-between text-slate-500 dark:text-slate-400 text-xs mb-1">
-            <span>Pending Leads</span>
-            <Clock className="w-3.5 h-3.5 text-amber-500" />
-          </div>
-          <div className="text-2xl font-bold text-amber-600 dark:text-amber-400">{pendingLeadsCount}</div>
-          <div className="text-[11px] text-amber-600/80 mt-1 font-medium">Awaiting response</div>
-        </div>
-
-        {/* 4. Completed Leads */}
-        <div className="bg-white dark:bg-navy-900 p-4 rounded-xl border border-slate-200 dark:border-navy-700 shadow-sm">
-          <div className="flex items-center justify-between text-slate-500 dark:text-slate-400 text-xs mb-1">
-            <span>Completed</span>
-            <CheckCircle2 className="w-3.5 h-3.5 text-emerald-500" />
-          </div>
-          <div className="text-2xl font-bold text-emerald-600 dark:text-emerald-400">{completedLeadsCount}</div>
-          <div className="text-[11px] text-emerald-600/80 mt-1 font-medium">Successfully processed</div>
-        </div>
-
-        {/* 5. Overdue Follow-ups */}
-        <div className="bg-white dark:bg-navy-900 p-4 rounded-xl border border-rose-200 dark:border-rose-900/50 bg-rose-50/20 shadow-sm">
-          <div className="flex items-center justify-between text-rose-600 dark:text-rose-400 text-xs mb-1">
-            <span className="font-semibold">Overdue</span>
-            <AlertCircle className="w-3.5 h-3.5 text-rose-500" />
-          </div>
-          <div className="text-2xl font-bold text-rose-600 dark:text-rose-400">{overdueFollowUpsCount}</div>
-          <div className="text-[11px] text-rose-500 mt-1 font-semibold">Immediate action needed</div>
-        </div>
-
-        {/* 6. Today's Follow-ups */}
-        <div className="bg-white dark:bg-navy-900 p-4 rounded-xl border border-slate-200 dark:border-navy-700 shadow-sm">
-          <div className="flex items-center justify-between text-slate-500 dark:text-slate-400 text-xs mb-1">
-            <span>Today's Calls</span>
-            <Calendar className="w-3.5 h-3.5 text-teal-500" />
-          </div>
-          <div className="text-2xl font-bold text-teal-600 dark:text-teal-400">{todaysFollowUpsCount}</div>
-          <div className="text-[11px] text-slate-500 mt-1 font-medium">Scheduled for today</div>
-        </div>
-
-        {/* 7. Tasks Assigned */}
-        <div className="bg-white dark:bg-navy-900 p-4 rounded-xl border border-slate-200 dark:border-navy-700 shadow-sm">
-          <div className="flex items-center justify-between text-slate-500 dark:text-slate-400 text-xs mb-1">
-            <span>Daily Tasks</span>
-            <CheckSquare className="w-3.5 h-3.5 text-indigo-500" />
-          </div>
-          <div className="text-2xl font-bold text-indigo-600 dark:text-indigo-400">
-            {completedTasksCount}/{totalTasksCount}
-          </div>
-          <div className="text-[11px] text-slate-500 mt-1 font-medium">Tasks completed</div>
-        </div>
-      </div>
-
-      {/* Operation Team Branch Filter Selector */}
-      <div className="bg-white dark:bg-navy-900 p-3 rounded-2xl border border-slate-200 dark:border-navy-800 shadow-sm flex flex-wrap items-center gap-2">
-        <span className="text-xs font-bold text-slate-500 px-2">Assigned Team:</span>
-        {(!isEnquiryTeam || isIntlTeam) && (
-          <button
-            type="button"
-            onClick={() => setOperationBranch('intl-ops')}
-            className={`flex items-center gap-1.5 px-3 py-1.5 rounded-xl font-bold text-xs transition cursor-pointer ${
-              operationBranch === 'intl-ops'
-                ? 'bg-blue-600 text-white shadow-xs'
-                : 'bg-blue-50 dark:bg-navy-800 text-blue-700 dark:text-blue-300 hover:bg-blue-100'
-            }`}
-          >
-            <Globe className="w-3.5 h-3.5" />
-            <span>Branch A: International HR Operations</span>
-            <span className="px-1.5 py-0.2 rounded-full text-[10px] bg-white/20 font-mono">{intlCount}</span>
-          </button>
-        )}
-
-        {(!isIntlTeam || isEnquiryTeam) && (
-          <button
-            type="button"
-            onClick={() => setOperationBranch('enq-ops')}
-            className={`flex items-center gap-1.5 px-3 py-1.5 rounded-xl font-bold text-xs transition cursor-pointer ${
-              operationBranch === 'enq-ops'
-                ? 'bg-emerald-600 text-white shadow-xs'
-                : 'bg-emerald-50 dark:bg-navy-800 text-emerald-700 dark:text-emerald-300 hover:bg-emerald-100'
-            }`}
-          >
-            <GraduationCap className="w-3.5 h-3.5" />
-            <span>Branch B: Enquiry HR Operations</span>
-            <span className="px-1.5 py-0.2 rounded-full text-[10px] bg-white/20 font-mono">{enqCount}</span>
-          </button>
-        )}
-
-        {isIntlTeam && isEnquiryTeam && (
-          <button
-            type="button"
-            onClick={() => setOperationBranch('all')}
-            className={`px-3 py-1.5 rounded-xl font-bold text-xs transition cursor-pointer ${
-              operationBranch === 'all'
-                ? 'bg-slate-900 dark:bg-white text-white dark:text-slate-900 shadow-xs'
-                : 'bg-slate-100 dark:bg-navy-800 text-slate-600 dark:text-slate-400 hover:bg-slate-200'
-            }`}
-          >
-            All Assigned Enquiries ({dailyLeads.length})
-          </button>
-        )}
-      </div>
-
-      {/* Navigation Tabs */}
-      <div className="flex border-b border-slate-200 dark:border-navy-700 space-x-2">
-        <button
-          onClick={() => setActiveTab('daily-queue')}
-          className={`py-2.5 px-4 text-xs font-semibold rounded-t-lg transition border-b-2 cursor-pointer flex items-center gap-2 ${
-            activeTab === 'daily-queue'
-              ? 'border-emerald-600 text-emerald-700 dark:text-emerald-400 bg-emerald-50/50 dark:bg-emerald-950/20'
-              : 'border-transparent text-slate-600 dark:text-slate-400 hover:text-slate-900 hover:border-slate-300'
-          }`}
-        >
-          <PhoneForwarded className="w-4 h-4" />
-          Enquiry Calling Queue ({filteredLeads.length})
-        </button>
-
-        <button
-          onClick={() => setActiveTab('tasks')}
-          className={`py-2.5 px-4 text-xs font-semibold rounded-t-lg transition border-b-2 cursor-pointer flex items-center gap-2 ${
-            activeTab === 'tasks'
-              ? 'border-emerald-600 text-emerald-700 dark:text-emerald-400 bg-emerald-50/50 dark:bg-emerald-950/20'
-              : 'border-transparent text-slate-600 dark:text-slate-400 hover:text-slate-900 hover:border-slate-300'
-          }`}
-        >
-          <CheckSquare className="w-4 h-4" />
-          Assigned Tasks ({dailyTasks.length})
-        </button>
-
-        <button
-          onClick={() => setActiveTab('documents')}
-          className={`py-2.5 px-4 text-xs font-semibold rounded-t-lg transition border-b-2 cursor-pointer flex items-center gap-2 ${
-            activeTab === 'documents'
-              ? 'border-emerald-600 text-emerald-700 dark:text-emerald-400 bg-emerald-50/50 dark:bg-emerald-950/20'
-              : 'border-transparent text-slate-600 dark:text-slate-400 hover:text-slate-900 hover:border-slate-300'
-          }`}
-        >
-          <FileText className="w-4 h-4" />
-          Document Completion Tracking
-        </button>
-
-        <button
-          onClick={() => setActiveTab('attendance')}
-          className={`py-2.5 px-4 text-xs font-semibold rounded-t-lg transition border-b-2 cursor-pointer flex items-center gap-2 ${
-            activeTab === 'attendance'
-              ? 'border-emerald-600 text-emerald-700 dark:text-emerald-400 bg-emerald-50/50 dark:bg-emerald-950/20'
-              : 'border-transparent text-slate-600 dark:text-slate-400 hover:text-slate-900 hover:border-slate-300'
-          }`}
-        >
-          <Clock className="w-4 h-4" />
-          My Attendance & Shift
-        </button>
-      </div>
-
-      {/* TAB 1: DAILY ENQUIRIES CALLING QUEUE */}
-      {activeTab === 'daily-queue' && (
-        <div className="space-y-4">
-          {/* Filters Bar */}
-          <div className="bg-white dark:bg-navy-900 p-4 rounded-xl border border-slate-200 dark:border-navy-700 shadow-sm flex flex-col md:flex-row gap-3 items-center justify-between">
-            <div className="relative w-full md:w-80">
-              <Search className="w-4 h-4 absolute left-3 top-3 text-slate-400" />
-              <input
-                type="text"
-                placeholder="Search candidate, phone, email, ref #..."
-                value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
-                className="w-full pl-9 pr-4 py-2 text-xs rounded-lg border border-slate-200 dark:border-navy-700 bg-slate-50 dark:bg-navy-800 text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-emerald-500"
-              />
-            </div>
-
-            <div className="flex flex-wrap items-center gap-2 w-full md:w-auto">
-              <select
-                value={serviceFilter}
-                onChange={(e) => setServiceFilter(e.target.value)}
-                className="text-xs px-3 py-2 rounded-lg border border-slate-200 dark:border-navy-700 bg-slate-50 dark:bg-navy-800 text-slate-700 dark:text-slate-300 outline-none"
+      {/* 1. Dashboard Header */}
+      <header className="rounded-2xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 p-5 sm:p-6 shadow-sm">
+        <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4">
+          <div className="space-y-2 min-w-0">
+            <h1 className="text-2xl sm:text-3xl font-bold tracking-tight text-slate-900 dark:text-white">
+              Daily Operations Dashboard
+            </h1>
+            <div className="flex flex-wrap items-center gap-x-3 gap-y-1.5 text-sm">
+              <span className="inline-flex items-center gap-1.5 font-semibold text-slate-800 dark:text-slate-100">
+                <UserCheck className="w-4 h-4 text-amber-600 dark:text-amber-400 shrink-0" />
+                <span data-testid="hr-dashboard-employee-name">{employeeInfo.name}</span>
+              </span>
+              <span className="text-slate-300 dark:text-slate-700" aria-hidden="true">•</span>
+              <span
+                className="inline-flex items-center gap-1.5 text-slate-600 dark:text-slate-300 font-medium"
+                data-testid="hr-dashboard-employee-designation"
               >
-                <option value="all">All Revival Services</option>
-                <option value="intl-adm">International Admissions</option>
-                <option value="intl-consult">International Consulting</option>
-                <option value="school-career">School Student Career Guidance</option>
-                <option value="school-academy">Academy for School Students</option>
-                <option value="college-adm">College Admission Assistance</option>
-                <option value="exec-seminars-lang">Executive Seminars & Language Hub</option>
-              </select>
-
-              <select
-                value={statusFilter}
-                onChange={(e) => setStatusFilter(e.target.value)}
-                className="text-xs px-3 py-2 rounded-lg border border-slate-200 dark:border-navy-700 bg-slate-50 dark:bg-navy-800 text-slate-700 dark:text-slate-300 outline-none"
-              >
-                <option value="all">All Statuses</option>
-                <option value="Assigned">Assigned</option>
-                <option value="In Progress">In Progress</option>
-                <option value="Pending">Pending</option>
-                <option value="Completed">Completed</option>
-                <option value="Fresh">Fresh</option>
-              </select>
+                <Briefcase className="w-3.5 h-3.5 text-slate-400 shrink-0" />
+                <span>{employeeInfo.designation}</span>
+              </span>
+              {employeeInfo.operationTeam && (
+                <>
+                  <span className="text-slate-300 dark:text-slate-700" aria-hidden="true">•</span>
+                  <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-slate-100 text-slate-700 dark:bg-slate-800 dark:text-slate-300">
+                    {employeeInfo.operationTeam}
+                  </span>
+                </>
+              )}
             </div>
           </div>
 
-          {/* Leads Table */}
-          <div className="bg-white dark:bg-navy-900 rounded-xl border border-slate-200 dark:border-navy-700 shadow-sm overflow-hidden">
-            {loadingLeads ? (
-              <div className="p-12 text-center space-y-3">
-                <RefreshCw className="w-8 h-8 text-emerald-500 animate-spin mx-auto" />
-                <p className="text-xs font-semibold text-slate-500">Loading your assigned enquiries from CRM...</p>
-              </div>
-            ) : (
-              <div className="overflow-x-auto">
-                <table className="w-full text-left border-collapse text-xs">
-                  <thead>
-                    <tr className="bg-slate-50 dark:bg-navy-800 text-slate-600 dark:text-slate-400 font-semibold border-b border-slate-200 dark:border-navy-700">
-                      <th className="py-3 px-4 whitespace-nowrap">Reference ID</th>
-                      <th className="py-3 px-4 whitespace-nowrap">Candidate Name</th>
-                      <th className="py-3 px-4 whitespace-nowrap">Phone Number</th>
-                      <th className="py-3 px-4 whitespace-nowrap">Email Address</th>
-                      <th className="py-3 px-4 whitespace-nowrap">Enquiry Service & Team</th>
-                      <th className="py-3 px-4 whitespace-nowrap">Priority & Assigned Date</th>
-                      <th className="py-3 px-4 whitespace-nowrap">Status</th>
-                      <th className="py-3 px-4 min-w-[200px]">HR Lead Instructions</th>
-                      <th className="py-3 px-4 text-right whitespace-nowrap">Quick Operations</th>
-                    </tr>
-                  </thead>
-                  <tbody className="divide-y divide-slate-100 dark:divide-navy-800">
-                    {filteredLeads.length === 0 ? (
-                      <tr>
-                        <td colSpan="9" className="py-12 text-center text-slate-400 space-y-2">
-                          <AlertCircle className="w-8 h-8 mx-auto opacity-40 text-slate-400" />
-                          <div className="font-bold text-sm text-slate-700 dark:text-slate-300">
-                            No assigned enquiries found matching the criteria.
-                          </div>
-                          <p className="text-xs text-slate-500 max-w-md mx-auto">
-                            When the HR Lead or Super Admin assigns enquiries to you, they will appear in this work queue with pointed instructions and due dates.
-                          </p>
-                        </td>
-                      </tr>
-                    ) : (
-                      filteredLeads.map((lead) => (
-                        <tr key={lead.id} className="hover:bg-slate-50/70 dark:hover:bg-navy-800/50 transition">
-                          {/* 1. Reference ID */}
-                          <td className="py-3 px-4 whitespace-nowrap font-mono text-xs font-bold text-gold-600 dark:text-gold-400">
-                            {lead.referenceNumber || (lead.id ? (lead.id.startsWith('#') ? lead.id : `#${lead.id}`) : '—')}
-                          </td>
-
-                          {/* 2. Candidate Name */}
-                          <td className="py-3 px-4 whitespace-nowrap">
-                            <div className="font-bold text-slate-900 dark:text-white flex items-center gap-1.5">
-                              <span>{lead.candidateName}</span>
-                              {lead.isOverdue && (
-                                <span className="px-1.5 py-0.5 rounded bg-rose-100 text-rose-700 text-[10px] font-bold">
-                                  Overdue
-                                </span>
-                              )}
-                            </div>
-                          </td>
-
-                          {/* 3. Phone Number */}
-                          <td className="py-3 px-4 whitespace-nowrap font-mono text-xs">
-                            {lead.phone ? (
-                              <a href={`tel:${lead.phone}`} className="hover:text-emerald-500 text-slate-700 dark:text-slate-300 flex items-center gap-1.5 group">
-                                <Phone className="w-3.5 h-3.5 text-emerald-500 shrink-0 group-hover:scale-110 transition" />
-                                <span>{lead.phone}</span>
-                              </a>
-                            ) : (
-                              <span className="text-slate-400 italic text-[11px]">—</span>
-                            )}
-                          </td>
-
-                          {/* 4. Email Address */}
-                          <td className="py-3 px-4 font-mono text-xs">
-                            {lead.email ? (
-                              <a href={`mailto:${lead.email}`} className="hover:text-emerald-500 text-slate-700 dark:text-slate-300 flex items-center gap-1.5 truncate max-w-[200px] group" title={lead.email}>
-                                <Mail className="w-3.5 h-3.5 text-blue-500 shrink-0 group-hover:scale-110 transition" />
-                                <span className="truncate">{lead.email}</span>
-                              </a>
-                            ) : (
-                              <span className="text-slate-400 italic text-[11px]">—</span>
-                            )}
-                          </td>
-
-                          {/* Enquiry Service & Operation Team */}
-                          <td className="py-3 px-4">
-                            <div className="flex flex-col gap-1">
-                              <span className="px-2 py-0.5 rounded-md bg-emerald-50 dark:bg-emerald-950/40 text-emerald-700 dark:text-emerald-400 border border-emerald-200 dark:border-emerald-800 font-medium w-fit">
-                                {lead.serviceName}
-                              </span>
-                              <span className="text-[10px] text-slate-400 font-semibold">
-                                {lead.operationTeam || 'Operations Queue'}
-                              </span>
-                            </div>
-                          </td>
-
-                          {/* Priority & Assigned Date */}
-                          <td className="py-3 px-4">
-                            <div className="flex items-center gap-1.5">
-                              <span
-                                className={`px-2 py-0.5 rounded text-[10px] font-black uppercase font-mono ${
-                                  lead.priority === 'Urgent'
-                                    ? 'bg-rose-500 text-white'
-                                    : lead.priority === 'High'
-                                    ? 'bg-amber-500 text-navy-950 font-bold'
-                                    : 'bg-blue-100 text-blue-700 dark:bg-blue-950 dark:text-blue-300'
-                                }`}
-                              >
-                                {lead.priority || 'Normal'}
-                              </span>
-                            </div>
-                            <div className="text-[10px] text-slate-400 font-mono mt-1">
-                              Assigned: {lead.assignedDate ? new Date(lead.assignedDate).toLocaleDateString() : 'Recent'}
-                            </div>
-                          </td>
-
-                          {/* Status */}
-                          <td className="py-3 px-4">
-                            <span
-                              className={`px-2.5 py-0.5 rounded-full text-[10px] font-bold ${
-                                lead.status === 'Completed'
-                                  ? 'bg-emerald-100 text-emerald-800 dark:bg-emerald-900/50 dark:text-emerald-300 border border-emerald-300'
-                                  : lead.status === 'Pending'
-                                  ? 'bg-amber-100 text-amber-800 dark:bg-amber-900/50 dark:text-amber-300 border border-amber-300'
-                                  : lead.status === 'In Progress'
-                                  ? 'bg-purple-100 text-purple-800 dark:bg-purple-900/50 dark:text-purple-300 border border-purple-300'
-                                  : 'bg-blue-100 text-blue-800 dark:bg-blue-900/50 dark:text-blue-300 border border-blue-300'
-                              }`}
-                            >
-                              {lead.status}
-                            </span>
-                          </td>
-
-                          {/* HR Lead Instructions */}
-                          <td className="py-3 px-4 max-w-xs">
-                            <div className="p-2 rounded-lg bg-amber-50/80 dark:bg-navy-950/80 border border-amber-200/80 dark:border-navy-700 text-[11px] text-slate-700 dark:text-slate-300 leading-tight">
-                              <span className="font-bold text-amber-700 dark:text-gold-400">📌 Instruction: </span>
-                              <span>{lead.assignmentNotes || (lead.notes && lead.notes[0]?.text) || 'Follow up with candidate regarding enquiry.'}</span>
-                            </div>
-                          </td>
-
-                          {/* Quick Operations */}
-                          <td className="py-3 px-4 text-right">
-                            <div className="flex items-center justify-end gap-1.5">
-                              {/* Call Trigger */}
-                              {lead.phone && (
-                                <a
-                                  href={`tel:${lead.phone}`}
-                                  className="p-1.5 rounded-lg border border-slate-200 dark:border-navy-700 text-slate-600 hover:text-emerald-600 hover:bg-emerald-50 transition"
-                                  title="Call Candidate"
-                                >
-                                  <PhoneCall className="w-3.5 h-3.5" />
-                                </a>
-                              )}
-
-                              {/* WhatsApp / Message Trigger */}
-                              {lead.phone && (
-                                <a
-                                  href={`https://wa.me/${lead.phone.replace(/[^0-9]/g, '')}`}
-                                  target="_blank"
-                                  rel="noreferrer"
-                                  className="p-1.5 rounded-lg border border-slate-200 dark:border-navy-700 text-slate-600 hover:text-emerald-600 hover:bg-emerald-50 transition"
-                                  title="WhatsApp Candidate"
-                                >
-                                  <MessageSquare className="w-3.5 h-3.5" />
-                                </a>
-                              )}
-
-                              {/* Email Trigger */}
-                              {lead.email && (
-                                <a
-                                  href={`mailto:${lead.email}`}
-                                  className="p-1.5 rounded-lg border border-slate-200 dark:border-navy-700 text-slate-600 hover:text-blue-600 hover:bg-blue-50 transition"
-                                  title="Email Candidate"
-                                >
-                                  <Mail className="w-3.5 h-3.5" />
-                                </a>
-                              )}
-
-                              {/* Update Follow-up Modal Trigger */}
-                              <button
-                                type="button"
-                                onClick={() => {
-                                  setSelectedLead(lead);
-                                  setNewStatus(lead.status);
-                                }}
-                                className="px-2.5 py-1 rounded-lg bg-emerald-600 hover:bg-emerald-700 text-white font-semibold transition cursor-pointer text-[11px]"
-                              >
-                                Log Call / Status
-                              </button>
-
-                              {/* Quick Complete */}
-                              {lead.status !== 'Completed' && (
-                                <button
-                                  type="button"
-                                  onClick={() => handleMarkCompleted(lead)}
-                                  className="px-2 py-1 rounded-lg bg-slate-100 hover:bg-slate-200 dark:bg-navy-800 dark:hover:bg-navy-700 text-slate-700 dark:text-slate-200 font-bold text-[10px] transition cursor-pointer"
-                                  title="Mark as completed"
-                                >
-                                  Done
-                                </button>
-                              )}
-                            </div>
-                          </td>
-                        </tr>
-                      ))
-                    )}
-                  </tbody>
-                </table>
+          <div className="flex flex-wrap items-center gap-3">
+            {shiftInfo?.formattedTiming && (
+              <div
+                className="flex items-center gap-3 px-4 py-2.5 rounded-xl bg-amber-50/80 dark:bg-amber-500/10 border border-amber-200/80 dark:border-amber-500/30"
+                data-testid="hr-dashboard-shift-timing"
+              >
+                <div className="w-8 h-8 rounded-lg bg-amber-500/15 flex items-center justify-center text-amber-600 dark:text-amber-400 shrink-0">
+                  <Clock className="w-4 h-4" />
+                </div>
+                <div className="leading-tight">
+                  <p className="text-[11px] font-semibold uppercase tracking-wider text-amber-700 dark:text-amber-300">
+                    Today’s Shift
+                    {shiftInfo.name
+                      ? ` • ${shiftInfo.name.replace(/\s*\([^)]*\)\s*$/, '').trim()}`
+                      : ''}
+                  </p>
+                  <p className="text-sm font-bold text-slate-900 dark:text-white">
+                    {shiftInfo.formattedTiming}
+                  </p>
+                </div>
               </div>
             )}
+
+            <button
+              type="button"
+              onClick={() => fetchDashboardSummary(true)}
+              disabled={refreshing}
+              className="inline-flex items-center gap-2 px-3.5 py-2.5 rounded-xl text-sm font-semibold border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-700 dark:text-slate-200 hover:bg-slate-50 dark:hover:bg-slate-700/70 transition-colors disabled:opacity-60"
+            >
+              <RefreshCw className={`w-4 h-4 ${refreshing ? 'animate-spin' : ''}`} />
+              <span>{refreshing ? 'Refreshing...' : 'Refresh'}</span>
+            </button>
           </div>
         </div>
-      )}
+      </header>
 
-      {/* TAB 2: ASSIGNED DAILY TASKS */}
-      {activeTab === 'tasks' && (
-        <div className="bg-white dark:bg-navy-900 rounded-xl border border-slate-200 dark:border-navy-700 p-5 shadow-sm space-y-4">
-          <div className="flex items-center justify-between">
-            <div>
-              <h2 className="text-base font-bold text-slate-900 dark:text-white">Daily Operational Tasks</h2>
-              <p className="text-xs text-slate-500">Assigned by HR Lead Priya Sharma • Daily task checklists and completion tracking</p>
-            </div>
-            <div className="text-xs font-semibold px-3 py-1 bg-emerald-50 text-emerald-700 rounded-full border border-emerald-200">
-              {completedTasksCount} of {totalTasksCount} Completed ({Math.round((completedTasksCount / totalTasksCount) * 100)}%)
-            </div>
-          </div>
-
-          <div className="divide-y divide-slate-100 dark:divide-navy-800">
-            {dailyTasks.map((task) => (
-              <div
-                key={task.id}
-                onClick={() => handleToggleTask(task.id)}
-                className={`py-3 flex items-center justify-between cursor-pointer rounded-lg px-2 transition ${
-                  task.done ? 'bg-slate-50/50 dark:bg-navy-800/20 text-slate-400' : 'hover:bg-slate-50 dark:hover:bg-navy-800'
+      {/* 2. Summary Cards (6 Employee-Specific Live SQLite Metrics) */}
+      <section aria-label="Employee Operations Metrics">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6 gap-4">
+          {summaryCards.map((card) => {
+            const Icon = card.icon;
+            const isActive = activeCardId === card.key;
+            return (
+              <button
+                key={card.key}
+                type="button"
+                onClick={() => handleSummaryCardClick(card.key)}
+                data-testid={`kpi-card-${card.key}`}
+                className={`group text-left rounded-2xl p-4 bg-white dark:bg-slate-900 border transition-all duration-200 hover:-translate-y-0.5 hover:shadow-md focus:outline-none focus-visible:ring-2 focus-visible:ring-amber-500 ${
+                  isActive
+                    ? card.activeRing
+                    : 'border-slate-200 dark:border-slate-800 hover:border-slate-300 dark:hover:border-slate-700'
                 }`}
               >
-                <div className="flex items-center gap-3">
-                  {task.done ? (
-                    <CheckSquare className="w-5 h-5 text-emerald-600 shrink-0" />
-                  ) : (
-                    <Square className="w-5 h-5 text-slate-300 dark:text-navy-600 shrink-0" />
-                  )}
-                  <div>
-                    <p className={`text-xs font-semibold ${task.done ? 'line-through text-slate-400' : 'text-slate-800 dark:text-slate-100'}`}>
-                      {task.title}
-                    </p>
-                    <p className="text-[11px] text-slate-400">Due: {task.due}</p>
+                <div className="flex items-center justify-between gap-2 mb-3">
+                  <div className={`w-9 h-9 rounded-xl border flex items-center justify-center shrink-0 ${card.iconBg}`}>
+                    <Icon className={`w-4 h-4 ${card.accent}`} />
                   </div>
+                  <ChevronRight className="w-4 h-4 text-slate-400 group-hover:text-slate-700 dark:group-hover:text-slate-200 group-hover:translate-x-0.5 transition-transform" />
                 </div>
+                <div className="text-2xl font-bold text-slate-900 dark:text-white tabular-nums" data-testid={`kpi-value-${card.key}`}>
+                  {card.value}
+                </div>
+                <div className="text-xs font-semibold text-slate-700 dark:text-slate-200 mt-1 leading-snug">
+                  {card.label}
+                </div>
+                <div className="text-[11px] text-slate-500 dark:text-slate-400 mt-1">
+                  {card.hint}
+                </div>
+              </button>
+            );
+          })}
+        </div>
+      </section>
 
-                <div className="flex items-center gap-2">
-                  <span
-                    className={`px-2 py-0.5 rounded text-[10px] font-bold ${
-                      task.priority === 'High'
-                        ? 'bg-rose-100 text-rose-700 dark:bg-rose-900/40 dark:text-rose-300'
-                        : task.priority === 'Medium'
-                        ? 'bg-amber-100 text-amber-700 dark:bg-amber-900/40 dark:text-amber-300'
-                        : 'bg-slate-100 text-slate-600 dark:bg-navy-700 dark:text-slate-400'
+      {/* 3. Attendance Summary */}
+      <section
+        aria-label="Attendance Summary"
+        data-testid="hr-dashboard-attendance-summary"
+        className="rounded-2xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 p-5 shadow-sm"
+      >
+        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 mb-4">
+          <div className="flex items-center gap-3">
+            <div className="w-10 h-10 rounded-xl bg-emerald-50 dark:bg-emerald-500/15 border border-emerald-200/70 dark:border-emerald-500/30 flex items-center justify-center text-emerald-600 dark:text-emerald-400 shrink-0">
+              <Activity className="w-5 h-5" />
+            </div>
+            <div>
+              <div className="flex flex-wrap items-center gap-2">
+                <h2 className="text-base font-bold text-slate-900 dark:text-white">
+                  Attendance Summary
+                </h2>
+                {attendanceToday?.workDate && (
+                  <span className="text-xs text-slate-500 dark:text-slate-400 font-medium">
+                    ({formatDateShort(attendanceToday.workDate)})
+                  </span>
+                )}
+              </div>
+              <p className="text-xs text-slate-500 dark:text-slate-400">
+                Live daily attendance status and logged working time for your profile
+              </p>
+            </div>
+          </div>
+
+          <button
+            type="button"
+            onClick={() => setActiveModule?.('my-attendance')}
+            data-testid="link-open-my-attendance"
+            className="inline-flex items-center justify-center gap-2 px-4 py-2 rounded-xl text-sm font-semibold bg-slate-900 hover:bg-slate-800 text-white dark:bg-amber-500 dark:hover:bg-amber-600 dark:text-slate-950 transition-colors shrink-0"
+          >
+            <Calendar className="w-4 h-4" />
+            <span>Open My Attendance</span>
+            <ArrowRight className="w-4 h-4" />
+          </button>
+        </div>
+
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3.5">
+          {/* Today's Status */}
+          <div className="rounded-xl p-3.5 bg-slate-50 dark:bg-slate-800/60 border border-slate-200/80 dark:border-slate-700/70">
+            <div className="text-xs font-medium text-slate-500 dark:text-slate-400 mb-1.5">
+              Attendance Status
+            </div>
+            <div className="flex items-center gap-2">
+              <span
+                data-testid="attendance-summary-status"
+                className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-semibold border ${getAttendanceBadgeClass(
+                  attendanceToday?.status
+                )}`}
+              >
+                <span className="w-1.5 h-1.5 rounded-full bg-current" />
+                {attendanceToday?.status || 'Not Checked In'}
+              </span>
+              {attendanceToday?.isOnBreak && (
+                <span className="text-[11px] font-semibold px-2 py-0.5 rounded-full bg-amber-100 text-amber-800 dark:bg-amber-500/20 dark:text-amber-300">
+                  On Break
+                </span>
+              )}
+            </div>
+          </div>
+
+          {/* Check-In Time */}
+          <div className="rounded-xl p-3.5 bg-slate-50 dark:bg-slate-800/60 border border-slate-200/80 dark:border-slate-700/70">
+            <div className="flex items-center gap-1.5 text-xs font-medium text-slate-500 dark:text-slate-400 mb-1">
+              <LogIn className="w-3.5 h-3.5 text-emerald-500" />
+              <span>Check-In Time</span>
+            </div>
+            <div className="text-base font-bold text-slate-900 dark:text-white tabular-nums" data-testid="attendance-summary-checkin">
+              {attendanceToday?.checkInTime || '—'}
+            </div>
+          </div>
+
+          {/* Checkout Time */}
+          <div className="rounded-xl p-3.5 bg-slate-50 dark:bg-slate-800/60 border border-slate-200/80 dark:border-slate-700/70">
+            <div className="flex items-center gap-1.5 text-xs font-medium text-slate-500 dark:text-slate-400 mb-1">
+              <LogOut className="w-3.5 h-3.5 text-amber-500" />
+              <span>Checkout Time</span>
+            </div>
+            <div className="text-base font-bold text-slate-900 dark:text-white tabular-nums" data-testid="attendance-summary-checkout">
+              {attendanceToday?.checkOutTime || (attendanceToday?.isCheckedIn ? 'Active Shift' : '—')}
+            </div>
+          </div>
+
+          {/* Working Hours */}
+          <div className="rounded-xl p-3.5 bg-slate-50 dark:bg-slate-800/60 border border-slate-200/80 dark:border-slate-700/70">
+            <div className="flex items-center gap-1.5 text-xs font-medium text-slate-500 dark:text-slate-400 mb-1">
+              <Timer className="w-3.5 h-3.5 text-blue-500" />
+              <span>Working Hours</span>
+            </div>
+            <div className="text-base font-bold text-slate-900 dark:text-white tabular-nums" data-testid="attendance-summary-hours">
+              {attendanceToday?.workingHours || '0h 00m'}
+            </div>
+          </div>
+        </div>
+      </section>
+
+      {/* 4. Interactive Employee Workspace (Enquiries / Follow-ups / Tasks) */}
+      <section
+        ref={workspaceRef}
+        id="hr-ops-workspace"
+        className="rounded-2xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 shadow-sm overflow-hidden"
+      >
+        {/* Tab Bar + Search */}
+        <div className="p-4 sm:p-5 border-b border-slate-200 dark:border-slate-800 flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4">
+          <div className="flex flex-wrap items-center gap-2" role="tablist" aria-label="Operational queues">
+            <button
+              type="button"
+              role="tab"
+              aria-selected={activeTab === 'enquiries'}
+              onClick={() => setActiveTab('enquiries')}
+              data-testid="tab-enquiries"
+              className={`inline-flex items-center gap-2 px-3.5 py-2 rounded-xl text-sm font-semibold transition-colors ${
+                activeTab === 'enquiries'
+                  ? 'bg-slate-900 text-white dark:bg-amber-500 dark:text-slate-950'
+                  : 'bg-slate-100 text-slate-700 hover:bg-slate-200 dark:bg-slate-800 dark:text-slate-300 dark:hover:bg-slate-700'
+              }`}
+            >
+              <Inbox className="w-4 h-4" />
+              <span>Assigned Enquiries</span>
+              <span className="px-1.5 py-0.5 rounded-md text-xs bg-black/10 dark:bg-white/10">
+                {assignedEnquiries.length}
+              </span>
+            </button>
+
+            <button
+              type="button"
+              role="tab"
+              aria-selected={activeTab === 'followups'}
+              onClick={() => setActiveTab('followups')}
+              data-testid="tab-followups"
+              className={`inline-flex items-center gap-2 px-3.5 py-2 rounded-xl text-sm font-semibold transition-colors ${
+                activeTab === 'followups'
+                  ? 'bg-slate-900 text-white dark:bg-amber-500 dark:text-slate-950'
+                  : 'bg-slate-100 text-slate-700 hover:bg-slate-200 dark:bg-slate-800 dark:text-slate-300 dark:hover:bg-slate-700'
+              }`}
+            >
+              <CalendarClock className="w-4 h-4" />
+              <span>Follow-ups</span>
+              <span className="px-1.5 py-0.5 rounded-md text-xs bg-black/10 dark:bg-white/10">
+                {followUps.length}
+              </span>
+            </button>
+
+            <button
+              type="button"
+              role="tab"
+              aria-selected={activeTab === 'tasks'}
+              onClick={() => setActiveTab('tasks')}
+              data-testid="tab-tasks"
+              className={`inline-flex items-center gap-2 px-3.5 py-2 rounded-xl text-sm font-semibold transition-colors ${
+                activeTab === 'tasks'
+                  ? 'bg-slate-900 text-white dark:bg-amber-500 dark:text-slate-950'
+                  : 'bg-slate-100 text-slate-700 hover:bg-slate-200 dark:bg-slate-800 dark:text-slate-300 dark:hover:bg-slate-700'
+              }`}
+            >
+              <ListTodo className="w-4 h-4" />
+              <span>Assigned Tasks</span>
+              <span className="px-1.5 py-0.5 rounded-md text-xs bg-black/10 dark:bg-white/10">
+                {tasks.length}
+              </span>
+            </button>
+          </div>
+
+          <div className="flex flex-wrap items-center gap-2.5">
+            <div className="relative flex-1 sm:flex-initial min-w-[220px]">
+              <Search className="w-4 h-4 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2 pointer-events-none" />
+              <input
+                type="text"
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                placeholder="Search candidate, ref #, service..."
+                className="w-full pl-9 pr-8 py-2 rounded-xl text-sm border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 text-slate-900 dark:text-white placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-amber-500/40"
+              />
+              {searchQuery && (
+                <button
+                  type="button"
+                  onClick={() => setSearchQuery('')}
+                  className="absolute right-2.5 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 dark:hover:text-slate-200"
+                  aria-label="Clear search"
+                >
+                  <X className="w-3.5 h-3.5" />
+                </button>
+              )}
+            </div>
+
+            <button
+              type="button"
+              onClick={() => setActiveModule?.('hr-tasks')}
+              className="inline-flex items-center gap-1.5 px-3 py-2 rounded-xl text-xs font-semibold border border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-800 transition-colors"
+            >
+              <span>My Assigned Enquiries Page</span>
+              <ArrowRight className="w-3.5 h-3.5" />
+            </button>
+          </div>
+        </div>
+
+        {/* Sub-filters */}
+        <div className="px-4 sm:px-5 py-3 bg-slate-50/70 dark:bg-slate-800/30 border-b border-slate-200 dark:border-slate-800 flex flex-wrap items-center justify-between gap-3">
+          {activeTab === 'enquiries' && (
+            <>
+              <div className="flex flex-wrap items-center gap-1.5">
+                {[
+                  { id: 'all', label: 'All Enquiries' },
+                  { id: 'pending', label: `Pending (${metrics.pendingEnquiries})` },
+                  { id: 'completed-month', label: `Completed This Month (${metrics.completedEnquiriesThisMonth})` },
+                  { id: 'completed', label: 'All Completed' }
+                ].map((opt) => (
+                  <button
+                    key={opt.id}
+                    type="button"
+                    onClick={() => {
+                      setEnquiryQuickFilter(opt.id);
+                      setStatusFilter('all');
+                    }}
+                    className={`px-3 py-1.5 rounded-lg text-xs font-semibold transition-colors ${
+                      enquiryQuickFilter === opt.id
+                        ? 'bg-amber-500/15 text-amber-700 dark:text-amber-300 border border-amber-500/30'
+                        : 'text-slate-600 dark:text-slate-300 hover:bg-slate-200/60 dark:hover:bg-slate-800 border border-transparent'
                     }`}
                   >
-                    {task.priority} Priority
-                  </span>
-                </div>
+                    {opt.label}
+                  </button>
+                ))}
               </div>
-            ))}
-          </div>
-        </div>
-      )}
-
-      {/* TAB 3: DOCUMENT COMPLETION TRACKING */}
-      {activeTab === 'documents' && (
-        <div className="bg-white dark:bg-navy-900 rounded-xl border border-slate-200 dark:border-navy-700 p-5 shadow-sm space-y-4">
-          <div className="flex items-center justify-between">
-            <div>
-              <h2 className="text-base font-bold text-slate-900 dark:text-white">Required Document Compliance & Attestations</h2>
-              <p className="text-xs text-slate-500">Service-wise document checklists: UAE Golden Visa, Student Admissions & MOHRE contracts</p>
-            </div>
-          </div>
-
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-            {dailyLeads.slice(0, 9).map((lead) => (
-              <div key={lead.id} className="p-4 rounded-xl border border-slate-200 dark:border-navy-700 bg-slate-50/50 dark:bg-navy-800/40 space-y-3">
-                <div className="flex items-center justify-between">
-                  <h3 className="font-bold text-xs text-slate-900 dark:text-white">{lead.candidateName}</h3>
-                  <span className="text-[10px] px-2 py-0.5 rounded bg-emerald-100 dark:bg-emerald-950 text-emerald-700 dark:text-emerald-300 font-semibold truncate max-w-[120px]">
-                    {lead.serviceName}
-                  </span>
+              <div className="flex flex-wrap items-center gap-2">
+                <div className="flex items-center gap-1.5 text-xs text-slate-500 dark:text-slate-400">
+                  <Filter className="w-3.5 h-3.5" />
+                  <select
+                    aria-label="Filter by enquiry status"
+                    value={statusFilter}
+                    onChange={(e) => setStatusFilter(e.target.value)}
+                    className="px-2.5 py-1.5 rounded-lg text-xs font-medium border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-700 dark:text-slate-200 focus:outline-none"
+                  >
+                    <option value="all">All Statuses</option>
+                    {statusOptions.map((st) => (
+                      <option key={st} value={st}>{st}</option>
+                    ))}
+                  </select>
                 </div>
 
-                <div className="space-y-1.5 text-xs">
-                  {lead.documents && lead.documents.map((doc, idx) => (
-                    <div key={idx} className="flex items-center justify-between p-2 rounded-lg bg-white dark:bg-navy-900 border border-slate-200/70 dark:border-navy-700">
-                      <span className="text-slate-700 dark:text-slate-300 font-medium truncate max-w-[180px]">{doc.name}</span>
-                      <span
-                        className={`text-[10px] px-2 py-0.5 rounded font-semibold ${
-                          doc.status === 'Verified'
-                            ? 'bg-emerald-100 text-emerald-800 dark:bg-emerald-900/50 dark:text-emerald-300'
-                            : doc.status === 'Pending'
-                            ? 'bg-amber-100 text-amber-800 dark:bg-amber-900/50 dark:text-amber-300'
-                            : 'bg-rose-100 text-rose-800 dark:bg-rose-900/50 dark:text-rose-300'
-                        }`}
-                      >
-                        {doc.status}
-                      </span>
-                    </div>
-                  ))}
-                </div>
+                {availableTeams.length > 1 && (
+                  <select
+                    aria-label="Filter by operation team"
+                    value={teamFilter}
+                    onChange={(e) => setTeamFilter(e.target.value)}
+                    className="px-2.5 py-1.5 rounded-lg text-xs font-medium border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-700 dark:text-slate-200 focus:outline-none"
+                  >
+                    <option value="all">All Assigned Teams</option>
+                    {availableTeams.map((tm) => (
+                      <option key={tm} value={tm}>{tm}</option>
+                    ))}
+                  </select>
+                )}
+              </div>
+            </>
+          )}
 
-                <button className="w-full py-1.5 rounded-lg border border-dashed border-emerald-500 text-emerald-600 hover:bg-emerald-50 dark:hover:bg-emerald-950/20 text-xs font-semibold transition flex items-center justify-center gap-1.5">
-                  <Upload className="w-3.5 h-3.5" />
-                  Upload Attested Document
+          {activeTab === 'followups' && (
+            <div className="flex flex-wrap items-center gap-1.5">
+              {[
+                { id: 'all', label: `All (${followUps.length})` },
+                { id: 'overdue', label: `Overdue (${metrics.overdueFollowUps})` },
+                { id: 'today', label: `Due Today (${metrics.followUpsDueToday})` },
+                { id: 'upcoming', label: 'Upcoming' },
+                { id: 'completed', label: 'Completed' }
+              ].map((opt) => (
+                <button
+                  key={opt.id}
+                  type="button"
+                  onClick={() => setFollowUpBucketFilter(opt.id)}
+                  className={`px-3 py-1.5 rounded-lg text-xs font-semibold transition-colors ${
+                    followUpBucketFilter === opt.id
+                      ? 'bg-amber-500/15 text-amber-700 dark:text-amber-300 border border-amber-500/30'
+                      : 'text-slate-600 dark:text-slate-300 hover:bg-slate-200/60 dark:hover:bg-slate-800 border border-transparent'
+                  }`}
+                >
+                  {opt.label}
                 </button>
+              ))}
+            </div>
+          )}
+
+          {activeTab === 'tasks' && (
+            <div className="flex flex-wrap items-center gap-1.5">
+              {[
+                { id: 'pending', label: `Pending (${metrics.pendingTasks})` },
+                { id: 'completed', label: 'Completed' },
+                { id: 'all', label: `All Tasks (${tasks.length})` }
+              ].map((opt) => (
+                <button
+                  key={opt.id}
+                  type="button"
+                  onClick={() => setTaskFilter(opt.id)}
+                  className={`px-3 py-1.5 rounded-lg text-xs font-semibold transition-colors ${
+                    taskFilter === opt.id
+                      ? 'bg-amber-500/15 text-amber-700 dark:text-amber-300 border border-amber-500/30'
+                      : 'text-slate-600 dark:text-slate-300 hover:bg-slate-200/60 dark:hover:bg-slate-800 border border-transparent'
+                  }`}
+                >
+                  {opt.label}
+                </button>
+              ))}
+            </div>
+          )}
+        </div>
+
+        {/* Workspace Content */}
+        <div className="p-4 sm:p-5">
+          {activeTab === 'enquiries' && (
+            filteredEnquiries.length === 0 ? (
+              <div className="py-12 text-center">
+                <Inbox className="w-10 h-10 mx-auto text-slate-300 dark:text-slate-600 mb-3" />
+                <p className="text-sm font-semibold text-slate-700 dark:text-slate-200">
+                  No assigned enquiries match the selected filters
+                </p>
+                <p className="text-xs text-slate-500 dark:text-slate-400 mt-1">
+                  Try switching filters or clearing the search box.
+                </p>
               </div>
-            ))}
-          </div>
+            ) : (
+              <div className="space-y-3" data-testid="enquiries-list">
+                {filteredEnquiries.map((enq) => (
+                  <div
+                    key={enq.id}
+                    className="rounded-xl border border-slate-200 dark:border-slate-800 p-4 bg-white dark:bg-slate-900/80 hover:border-slate-300 dark:hover:border-slate-700 transition-colors"
+                  >
+                    <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4">
+                      <div className="space-y-1.5 min-w-0">
+                        <div className="flex flex-wrap items-center gap-2">
+                          <span className="font-mono text-xs font-semibold px-2 py-0.5 rounded-md bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300">
+                            {enq.referenceNumber}
+                          </span>
+                          <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-semibold border ${getEnquiryStatusBadgeClass(enq.status)}`}>
+                            {enq.status}
+                          </span>
+                          <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-[11px] font-semibold border ${getPriorityBadgeClass(enq.priority)}`}>
+                            {enq.priority || 'Normal'}
+                          </span>
+                          {enq.operationTeam && (
+                            <span className="text-xs font-medium text-slate-500 dark:text-slate-400">
+                              {enq.operationTeam}
+                            </span>
+                          )}
+                        </div>
+
+                        <div className="flex flex-wrap items-center gap-x-3 gap-y-1">
+                          {enq.candidateKey ? (
+                            <button
+                              type="button"
+                              onClick={() => handleOpenCandidateProfile(enq.candidateKey)}
+                              className="text-base font-bold text-slate-900 dark:text-white hover:text-amber-600 dark:hover:text-amber-400 transition-colors text-left"
+                            >
+                              {enq.candidateName}
+                            </button>
+                          ) : (
+                            <span className="text-base font-bold text-slate-900 dark:text-white">
+                              {enq.candidateName}
+                            </span>
+                          )}
+                          <span className="text-xs font-medium text-slate-500 dark:text-slate-400">
+                            {enq.serviceTitle}
+                          </span>
+                        </div>
+
+                        <div className="flex flex-wrap items-center gap-x-4 gap-y-1 text-xs text-slate-500 dark:text-slate-400">
+                          {enq.phone && (
+                            <span className="inline-flex items-center gap-1">
+                              <Phone className="w-3.5 h-3.5" />
+                              {enq.phone}
+                            </span>
+                          )}
+                          {enq.email && (
+                            <span className="inline-flex items-center gap-1">
+                              <Mail className="w-3.5 h-3.5" />
+                              {enq.email}
+                            </span>
+                          )}
+                          <span>Assigned: {formatDateShort(enq.assignedAt || enq.createdAt)}</span>
+                          {enq.nextAction && (
+                            <span className="text-indigo-600 dark:text-indigo-400 font-medium">
+                              Next: {enq.nextAction}
+                              {enq.nextActionDate ? ` (${formatDateShort(enq.nextActionDate)})` : ''}
+                            </span>
+                          )}
+                        </div>
+
+                        {(enq.assignmentNotes || enq.internalNotes) && (
+                          <p className="text-xs text-slate-600 dark:text-slate-300 bg-slate-50 dark:bg-slate-800/70 rounded-lg px-3 py-2 border border-slate-200/60 dark:border-slate-700/60 mt-1">
+                            {enq.assignmentNotes || enq.internalNotes}
+                          </p>
+                        )}
+                      </div>
+
+                      <div className="flex flex-wrap items-center gap-2 shrink-0">
+                        <button
+                          type="button"
+                          onClick={() => openStatusModal(enq)}
+                          className="px-3 py-1.5 rounded-lg text-xs font-semibold border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-700 dark:text-slate-200 hover:bg-slate-50 dark:hover:bg-slate-700 transition-colors"
+                        >
+                          Update Status
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => openFollowUpModal(enq)}
+                          className="px-3 py-1.5 rounded-lg text-xs font-semibold border border-indigo-200 dark:border-indigo-500/30 bg-indigo-50 dark:bg-indigo-500/10 text-indigo-700 dark:text-indigo-300 hover:bg-indigo-100 dark:hover:bg-indigo-500/20 transition-colors"
+                        >
+                          Schedule Follow-up
+                        </button>
+                        {!enq.isResolved && (
+                          <button
+                            type="button"
+                            disabled={mutatingId === enq.id}
+                            onClick={() => handleQuickCompleteEnquiry(enq)}
+                            className="inline-flex items-center gap-1 px-3 py-1.5 rounded-lg text-xs font-semibold bg-emerald-600 hover:bg-emerald-700 text-white transition-colors disabled:opacity-60"
+                          >
+                            <CheckCircle2 className="w-3.5 h-3.5" />
+                            <span>{mutatingId === enq.id ? 'Saving...' : 'Complete'}</span>
+                          </button>
+                        )}
+                      </div>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )
+          )}
+
+          {activeTab === 'followups' && (
+            filteredFollowUps.length === 0 ? (
+              <div className="py-12 text-center">
+                <CalendarClock className="w-10 h-10 mx-auto text-slate-300 dark:text-slate-600 mb-3" />
+                <p className="text-sm font-semibold text-slate-700 dark:text-slate-200">
+                  No follow-ups found for this filter
+                </p>
+                <p className="text-xs text-slate-500 dark:text-slate-400 mt-1">
+                  Schedule follow-ups directly from any assigned enquiry.
+                </p>
+              </div>
+            ) : (
+              <div className="space-y-3" data-testid="followups-list">
+                {filteredFollowUps.map((fu) => {
+                  const badge = getFollowUpBucketBadge(fu.bucket);
+                  const isCompleted = fu.bucket === 'completed';
+                  return (
+                    <div
+                      key={fu.id}
+                      className="rounded-xl border border-slate-200 dark:border-slate-800 p-4 bg-white dark:bg-slate-900/80 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4"
+                    >
+                      <div className="space-y-1.5 min-w-0">
+                        <div className="flex flex-wrap items-center gap-2">
+                          <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-semibold border ${badge.classes}`}>
+                            {badge.label}
+                          </span>
+                          <span className="font-mono text-xs font-semibold text-slate-500 dark:text-slate-400">
+                            {fu.enquiryReference}
+                          </span>
+                          <span className="text-xs px-2 py-0.5 rounded-md bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 font-medium">
+                            {fu.purpose}
+                          </span>
+                        </div>
+                        <div className="text-sm font-bold text-slate-900 dark:text-white">
+                          {fu.title}
+                        </div>
+                        <div className="flex flex-wrap items-center gap-x-3 gap-y-1 text-xs text-slate-500 dark:text-slate-400">
+                          {fu.candidateKey ? (
+                            <button
+                              type="button"
+                              onClick={() => handleOpenCandidateProfile(fu.candidateKey)}
+                              className="font-semibold text-amber-600 dark:text-amber-400 hover:underline"
+                            >
+                              {fu.candidateName}
+                            </button>
+                          ) : (
+                            <span className="font-semibold">{fu.candidateName}</span>
+                          )}
+                          <span>Due: {formatDateTimeShort(fu.dueDateTime)}</span>
+                        </div>
+                        {fu.completionNotes && (
+                          <p className="text-xs text-emerald-700 dark:text-emerald-300">
+                            Note: {fu.completionNotes}
+                          </p>
+                        )}
+                      </div>
+
+                      {!isCompleted && (
+                        <button
+                          type="button"
+                          disabled={mutatingId === fu.id}
+                          onClick={() => handleCompleteFollowUp(fu)}
+                          className="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-xl text-xs font-semibold bg-emerald-600 hover:bg-emerald-700 text-white transition-colors shrink-0 disabled:opacity-60"
+                        >
+                          <CheckCircle2 className="w-3.5 h-3.5" />
+                          <span>
+                            {mutatingId === fu.id
+                              ? 'Updating...'
+                              : fu.source === 'lead_next_action'
+                                ? 'Update Enquiry'
+                                : 'Mark Completed'}
+                          </span>
+                        </button>
+                      )}
+                    </div>
+                  );
+                })}
+              </div>
+            )
+          )}
+
+          {activeTab === 'tasks' && (
+            filteredTasks.length === 0 ? (
+              <div className="py-12 text-center">
+                <FileCheck2 className="w-10 h-10 mx-auto text-slate-300 dark:text-slate-600 mb-3" />
+                <p className="text-sm font-semibold text-slate-700 dark:text-slate-200">
+                  No assigned tasks in this view
+                </p>
+                <p className="text-xs text-slate-500 dark:text-slate-400 mt-1">
+                  Tasks assigned to you by HR Lead appear here automatically.
+                </p>
+              </div>
+            ) : (
+              <div className="space-y-3" data-testid="tasks-list">
+                {filteredTasks.map((t) => (
+                  <div
+                    key={t.id}
+                    className="rounded-xl border border-slate-200 dark:border-slate-800 p-4 bg-white dark:bg-slate-900/80 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4"
+                  >
+                    <div className="space-y-1.5 min-w-0">
+                      <div className="flex flex-wrap items-center gap-2">
+                        <span className="font-mono text-xs font-semibold px-2 py-0.5 rounded-md bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300">
+                          {t.referenceNumber}
+                        </span>
+                        <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-semibold border ${
+                          t.isCompleted
+                            ? 'bg-emerald-50 text-emerald-700 border-emerald-200 dark:bg-emerald-500/15 dark:text-emerald-300 dark:border-emerald-500/30'
+                            : 'bg-violet-50 text-violet-700 border-violet-200 dark:bg-violet-500/15 dark:text-violet-300 dark:border-violet-500/30'
+                        }`}>
+                          {t.taskStatus}
+                        </span>
+                        <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-[11px] font-semibold border ${getPriorityBadgeClass(t.priority)}`}>
+                          {t.priority}
+                        </span>
+                      </div>
+
+                      <div className="flex flex-wrap items-center gap-x-2.5 gap-y-1">
+                        {t.candidateKey ? (
+                          <button
+                            type="button"
+                            onClick={() => handleOpenCandidateProfile(t.candidateKey)}
+                            className="text-sm font-bold text-slate-900 dark:text-white hover:text-amber-600 dark:hover:text-amber-400"
+                          >
+                            {t.customerName}
+                          </button>
+                        ) : (
+                          <span className="text-sm font-bold text-slate-900 dark:text-white">
+                            {t.customerName}
+                          </span>
+                        )}
+                        <span className="text-xs text-slate-500 dark:text-slate-400">
+                          • {t.serviceTitle}
+                        </span>
+                      </div>
+
+                      <div className="flex flex-wrap items-center gap-x-4 gap-y-1 text-xs text-slate-500 dark:text-slate-400">
+                        <span>Assigned by: {t.assignedByName}</span>
+                        <span>Assigned: {formatDateShort(t.assignedAt)}</span>
+                        {t.dueDate && <span>Due: {formatDateShort(t.dueDate)}</span>}
+                      </div>
+
+                      {t.notes && (
+                        <p className="text-xs text-slate-600 dark:text-slate-300 mt-1">
+                          {t.notes}
+                        </p>
+                      )}
+                    </div>
+
+                    <button
+                      type="button"
+                      disabled={mutatingId === t.id}
+                      onClick={() => handleToggleTaskStatus(t)}
+                      className={`inline-flex items-center gap-1.5 px-3.5 py-2 rounded-xl text-xs font-semibold transition-colors shrink-0 disabled:opacity-60 ${
+                        t.isCompleted
+                          ? 'border border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-200 hover:bg-slate-50 dark:hover:bg-slate-800'
+                          : 'bg-emerald-600 hover:bg-emerald-700 text-white'
+                      }`}
+                    >
+                      {t.isCompleted ? <Sparkles className="w-3.5 h-3.5" /> : <CheckCircle2 className="w-3.5 h-3.5" />}
+                      <span>
+                        {mutatingId === t.id
+                          ? 'Saving...'
+                          : t.isCompleted
+                            ? 'Mark To Do'
+                            : 'Mark Completed'}
+                      </span>
+                    </button>
+                  </div>
+                ))}
+              </div>
+            )
+          )}
         </div>
-      )}
+      </section>
 
-      {/* TAB 4: PERMITTED ATTENDANCE INFO */}
-      {activeTab === 'attendance' && (
-        <div className="bg-white dark:bg-navy-900 rounded-xl border border-slate-200 dark:border-navy-700 p-6 shadow-sm space-y-6">
-          <div>
-            <h2 className="text-base font-bold text-slate-900 dark:text-white">My Attendance & Duty Records</h2>
-            <p className="text-xs text-slate-500">HR Operations self-service attendance, biometric shift logs and leave balances</p>
-          </div>
-
-          <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-            <div className="p-4 rounded-xl bg-slate-50 dark:bg-navy-800 border border-slate-200 dark:border-navy-700">
-              <span className="text-xs text-slate-500 block">Check-in Today</span>
-              <span className="text-lg font-bold text-emerald-600">{attendanceRecord.checkInTime}</span>
-              <span className="text-[11px] text-slate-400 block mt-0.5">{attendanceRecord.status}</span>
-            </div>
-
-            <div className="p-4 rounded-xl bg-slate-50 dark:bg-navy-800 border border-slate-200 dark:border-navy-700">
-              <span className="text-xs text-slate-500 block">Hours Logged Today</span>
-              <span className="text-lg font-bold text-slate-900 dark:text-white">{attendanceRecord.workingHoursToday}</span>
-              <span className="text-[11px] text-slate-400 block mt-0.5">Shift Target: 8h 00m</span>
-            </div>
-
-            <div className="p-4 rounded-xl bg-slate-50 dark:bg-navy-800 border border-slate-200 dark:border-navy-700">
-              <span className="text-xs text-slate-500 block">Monthly Attendance Rate</span>
-              <span className="text-lg font-bold text-blue-600">{attendanceRecord.monthlyAttendanceRate}</span>
-              <span className="text-[11px] text-slate-400 block mt-0.5">{attendanceRecord.presentDays} days present this month</span>
-            </div>
-
-            <div className="p-4 rounded-xl bg-slate-50 dark:bg-navy-800 border border-slate-200 dark:border-navy-700">
-              <span className="text-xs text-slate-500 block">Paid Leave Balance</span>
-              <span className="text-lg font-bold text-emerald-600">{attendanceRecord.leaveBalance} Days</span>
-              <span className="text-[11px] text-slate-400 block mt-0.5">0 leaves taken this cycle</span>
-            </div>
-          </div>
-        </div>
-      )}
-
-      {/* MODAL: Log Call & Follow-up Details */}
-      {selectedLead && (
-        <div className="fixed inset-0 z-50 bg-slate-900/70 backdrop-blur-sm flex items-center justify-center p-4">
-          <div className="bg-white dark:bg-navy-900 rounded-2xl max-w-lg w-full p-6 shadow-2xl border border-slate-200 dark:border-navy-700 space-y-4">
-            <div className="flex items-center justify-between pb-3 border-b border-slate-200 dark:border-navy-700">
+      {/* Update Enquiry Status Modal */}
+      {statusModalEnquiry && (
+        <div
+          className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-950/60 backdrop-blur-sm"
+          role="dialog"
+          aria-modal="true"
+          aria-labelledby="status-modal-title"
+        >
+          <div className="w-full max-w-md rounded-2xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 p-6 shadow-xl">
+            <div className="flex items-center justify-between gap-2 mb-4">
               <div>
-                <h3 className="font-bold text-base text-slate-900 dark:text-white">
-                  Log Interaction: {selectedLead.candidateName}
+                <h3 id="status-modal-title" className="text-lg font-bold text-slate-900 dark:text-white">
+                  Update Enquiry Status
                 </h3>
-                <p className="text-xs text-slate-500">{selectedLead.serviceName} • Ref: {selectedLead.referenceNumber}</p>
+                <p className="text-xs text-slate-500 dark:text-slate-400">
+                  {statusModalEnquiry.candidateName} ({statusModalEnquiry.referenceNumber})
+                </p>
               </div>
               <button
-                onClick={() => setSelectedLead(null)}
-                className="text-slate-400 hover:text-slate-600 text-lg font-bold cursor-pointer"
+                type="button"
+                onClick={() => setStatusModalEnquiry(null)}
+                className="p-1.5 rounded-lg text-slate-400 hover:text-slate-600 dark:hover:text-slate-200"
+                aria-label="Close modal"
               >
-                ✕
+                <X className="w-4 h-4" />
               </button>
             </div>
 
-            <form onSubmit={handleSaveLeadInteraction} className="space-y-4 text-xs">
+            <form onSubmit={handleSubmitStatusUpdate} className="space-y-4">
               <div>
-                <label className="font-semibold text-slate-700 dark:text-slate-300 block mb-1">
-                  Update Lead Status
+                <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1.5">
+                  Enquiry Status
                 </label>
                 <select
-                  value={newStatus}
-                  onChange={(e) => setNewStatus(e.target.value)}
-                  className="w-full px-3 py-2 rounded-lg border border-slate-300 dark:border-navy-700 bg-white dark:bg-navy-800 text-slate-900 dark:text-white"
+                  value={statusForm.status}
+                  onChange={(e) => setStatusForm((prev) => ({ ...prev, status: e.target.value }))}
+                  className="w-full px-3 py-2 rounded-xl text-sm border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-amber-500/40"
                 >
-                  <option value="Assigned">Assigned</option>
-                  <option value="In Progress">In Progress</option>
-                  <option value="Pending">Pending</option>
-                  <option value="Completed">Completed</option>
+                  {statusOptions.map((st) => (
+                    <option key={st} value={st}>{st}</option>
+                  ))}
                 </select>
               </div>
 
               <div>
-                <label className="font-semibold text-slate-700 dark:text-slate-300 block mb-1">
-                  Next Follow-up Date & Time
-                </label>
-                <input
-                  type="text"
-                  placeholder="e.g. Tomorrow, 11:00 AM or 12 Nov 2026"
-                  value={nextFollowUpDate}
-                  onChange={(e) => setNextFollowUpDate(e.target.value)}
-                  className="w-full px-3 py-2 rounded-lg border border-slate-300 dark:border-navy-700 bg-white dark:bg-navy-800 text-slate-900 dark:text-white"
-                />
-              </div>
-
-              <div>
-                <label className="font-semibold text-slate-700 dark:text-slate-300 block mb-1">
-                  Call Notes / Interaction Summary
+                <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1.5">
+                  Call / Progress Note
                 </label>
                 <textarea
-                  rows="3"
-                  required
-                  placeholder="Summarize candidate discussion, required documents, or next steps..."
-                  value={callNoteText}
-                  onChange={(e) => setCallNoteText(e.target.value)}
-                  className="w-full px-3 py-2 rounded-lg border border-slate-300 dark:border-navy-700 bg-white dark:bg-navy-800 text-slate-900 dark:text-white"
+                  rows={3}
+                  value={statusForm.resolutionNotes}
+                  onChange={(e) => setStatusForm((prev) => ({ ...prev, resolutionNotes: e.target.value }))}
+                  placeholder="Enter discussion outcome or status remarks..."
+                  className="w-full px-3 py-2 rounded-xl text-sm border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-amber-500/40"
                 />
               </div>
 
-              <div className="flex gap-2 justify-end pt-2">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                <div>
+                  <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1.5">
+                    Next Action
+                  </label>
+                  <input
+                    type="text"
+                    value={statusForm.nextAction}
+                    onChange={(e) => setStatusForm((prev) => ({ ...prev, nextAction: e.target.value }))}
+                    placeholder="e.g. Call back"
+                    className="w-full px-3 py-2 rounded-xl text-sm border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-amber-500/40"
+                  />
+                </div>
+                <div>
+                  <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1.5">
+                    Next Action Date
+                  </label>
+                  <input
+                    type="date"
+                    value={statusForm.nextActionDate ? String(statusForm.nextActionDate).slice(0, 10) : ''}
+                    onChange={(e) => setStatusForm((prev) => ({ ...prev, nextActionDate: e.target.value }))}
+                    className="w-full px-3 py-2 rounded-xl text-sm border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-amber-500/40"
+                  />
+                </div>
+              </div>
+
+              <div className="flex justify-end gap-2.5 pt-2">
                 <button
                   type="button"
-                  onClick={() => setSelectedLead(null)}
-                  className="px-4 py-2 rounded-lg border border-slate-200 dark:border-navy-700 text-slate-600 dark:text-slate-300 cursor-pointer"
+                  onClick={() => setStatusModalEnquiry(null)}
+                  className="px-4 py-2 rounded-xl text-sm font-semibold border border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-800"
                 >
                   Cancel
                 </button>
                 <button
                   type="submit"
-                  className="px-4 py-2 rounded-lg bg-emerald-600 hover:bg-emerald-700 text-white font-bold cursor-pointer"
+                  disabled={savingModal}
+                  className="px-4 py-2 rounded-xl text-sm font-semibold bg-amber-600 hover:bg-amber-700 text-white disabled:opacity-60"
                 >
-                  Save Call Record & Follow-up
+                  {savingModal ? 'Saving...' : 'Save Status'}
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* Schedule Follow-up Modal */}
+      {followUpModalEnquiry && (
+        <div
+          className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-950/60 backdrop-blur-sm"
+          role="dialog"
+          aria-modal="true"
+          aria-labelledby="followup-modal-title"
+        >
+          <div className="w-full max-w-md rounded-2xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 p-6 shadow-xl">
+            <div className="flex items-center justify-between gap-2 mb-4">
+              <div>
+                <h3 id="followup-modal-title" className="text-lg font-bold text-slate-900 dark:text-white">
+                  Schedule Follow-up
+                </h3>
+                <p className="text-xs text-slate-500 dark:text-slate-400">
+                  {followUpModalEnquiry.candidateName} ({followUpModalEnquiry.referenceNumber})
+                </p>
+              </div>
+              <button
+                type="button"
+                onClick={() => setFollowUpModalEnquiry(null)}
+                className="p-1.5 rounded-lg text-slate-400 hover:text-slate-600 dark:hover:text-slate-200"
+                aria-label="Close modal"
+              >
+                <X className="w-4 h-4" />
+              </button>
+            </div>
+
+            <form onSubmit={handleSubmitFollowUp} className="space-y-4">
+              <div>
+                <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1.5">
+                  Follow-up Title
+                </label>
+                <input
+                  type="text"
+                  required
+                  value={followUpForm.title}
+                  onChange={(e) => setFollowUpForm((prev) => ({ ...prev, title: e.target.value }))}
+                  placeholder="e.g. Confirm document submission"
+                  className="w-full px-3 py-2 rounded-xl text-sm border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-amber-500/40"
+                />
+              </div>
+
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                <div>
+                  <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1.5">
+                    Purpose
+                  </label>
+                  <select
+                    value={followUpForm.purpose}
+                    onChange={(e) => setFollowUpForm((prev) => ({ ...prev, purpose: e.target.value }))}
+                    className="w-full px-3 py-2 rounded-xl text-sm border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-amber-500/40"
+                  >
+                    <option value="Call">Call</option>
+                    <option value="Email">Email</option>
+                    <option value="Document Check">Document Check</option>
+                    <option value="Counselling">Counselling</option>
+                    <option value="Status Update">Status Update</option>
+                  </select>
+                </div>
+
+                <div>
+                  <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1.5">
+                    Due Date & Time
+                  </label>
+                  <input
+                    type="datetime-local"
+                    required
+                    value={followUpForm.dueDateTime}
+                    onChange={(e) => setFollowUpForm((prev) => ({ ...prev, dueDateTime: e.target.value }))}
+                    className="w-full px-3 py-2 rounded-xl text-sm border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-amber-500/40"
+                  />
+                </div>
+              </div>
+
+              <div className="flex justify-end gap-2.5 pt-2">
+                <button
+                  type="button"
+                  onClick={() => setFollowUpModalEnquiry(null)}
+                  className="px-4 py-2 rounded-xl text-sm font-semibold border border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-800"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="submit"
+                  disabled={savingModal}
+                  className="px-4 py-2 rounded-xl text-sm font-semibold bg-amber-600 hover:bg-amber-700 text-white disabled:opacity-60"
+                >
+                  {savingModal ? 'Scheduling...' : 'Schedule Follow-up'}
                 </button>
               </div>
             </form>
@@ -1066,3 +1664,6 @@ export const CrmHrOperationsDashboard = () => {
     </div>
   );
 };
+
+export { CrmHrOperationsDashboard };
+export default CrmHrOperationsDashboard;
