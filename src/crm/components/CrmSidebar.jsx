@@ -1,14 +1,23 @@
 import React, { useState, useEffect } from 'react';
 import { useCrm } from '../context/CrmContext';
-import { 
-  LayoutDashboard, Users, GitMerge, Home, Globe, Building2, UserCheck, 
-  Calendar, FileText, ShieldCheck, CreditCard, BarChart3, Sparkles, Zap, 
+import {
+  LayoutDashboard, Users, GitMerge, Home, Globe, Building2, UserCheck,
+  Calendar, FileText, ShieldCheck, CreditCard, BarChart3, Sparkles, Zap,
   Settings, Lock, LogOut, Award, ChevronRight, ChevronDown, CalendarCheck,
   GraduationCap, Compass, School, Languages, Plane,
   Briefcase, Search, Tag, MessageSquare, Users2,
   CheckCircle2, Bell, CheckSquare, Clock, AlertCircle, BookOpen,
-  TrendingUp, UserPlus, Mail
+  TrendingUp, UserPlus, Mail, User
 } from 'lucide-react';
+
+export const HR_OPERATIONS_MENU_ORDER = [
+  'dashboard',
+  'hr-tasks',
+  'candidates',
+  'my-attendance',
+  'documentation',
+  'my-profile'
+];
 
 export const CONSULTING_SUB_SERVICES = [
   { id: 'all', label: 'All Bookings', icon: CalendarCheck },
@@ -21,41 +30,48 @@ export const CONSULTING_SUB_SERVICES = [
 ];
 
 export const CrmSidebar = ({ collapsed, setCollapsed }) => {
-  const { 
-    activeModule, 
-    setActiveModule, 
-    hasPermission, 
-    logout, 
-    currentRole, 
-    user, 
+  const {
+    activeModule,
+    setActiveModule,
+    hasPermission,
+    logout,
+    requestLogout,
+    currentRole,
+    user,
     leads = [],
     consultingServiceFilter = 'all',
     setConsultingServiceFilter
   } = useCrm();
 
+  const isHrOperationsRole = currentRole === 'HR Operations';
+
   const [consultingOpen, setConsultingOpen] = useState(false);
 
-  // Automatically keep Consulting & Bookings submenu expanded when any child module or consulting is active
+  // Automatically keep Consulting & Bookings submenu expanded when any child module or consulting is active (except HR Operations)
   useEffect(() => {
+    if (isHrOperationsRole) {
+      setConsultingOpen(false);
+      return;
+    }
     if (activeModule === 'consulting' || activeModule === 'career-guidance' || activeModule === 'student-academy') {
       setConsultingOpen(true);
     }
-  }, [activeModule]);
+  }, [activeModule, isHrOperationsRole]);
 
   const getServiceCount = (srvId) => {
     if (!Array.isArray(leads)) return 0;
     if (srvId === 'all') {
-      return leads.filter(l => 
+      return leads.filter(l =>
         l && (
-          l.consultationDate || 
-          l.status === 'Consultation Scheduled' || 
+          l.consultationDate ||
+          l.status === 'Consultation Scheduled' ||
           (l.referenceNumber && (l.referenceNumber.startsWith('REV-CAR') || l.referenceNumber.startsWith('REV-ACA'))) ||
           (l.serviceId && (
-            l.serviceId.includes('consult') || 
-            l.serviceId.includes('adm') || 
-            l.serviceId.includes('academy') || 
-            l.serviceId.includes('career') || 
-            l.serviceId.includes('lang') || 
+            l.serviceId.includes('consult') ||
+            l.serviceId.includes('adm') ||
+            l.serviceId.includes('academy') ||
+            l.serviceId.includes('career') ||
+            l.serviceId.includes('lang') ||
             l.serviceId.includes('seminar')
           ))
         )
@@ -110,9 +126,25 @@ export const CrmSidebar = ({ collapsed, setCollapsed }) => {
   // Main CRM Sidebar Navigation Items (Standalone Career Guidance and Student Academy moved inside Consulting & Bookings)
   const menuItems = [
     { id: 'dashboard', label: 'Dashboard', icon: LayoutDashboard },
-    { id: 'hr-tasks', label: 'HR Task Assignment', icon: CheckSquare, tag: 'Task' },
+    {
+      id: 'hr-tasks',
+      label: isHrOperationsRole ? 'My Assigned Enquiries' : 'HR Task Assignment',
+      icon: CheckSquare,
+      ...(isHrOperationsRole ? {} : { tag: 'Task' })
+    },
     { id: 'attendance', label: 'Attendance Management', icon: Clock },
     { id: 'leave', label: 'Leave Management', icon: Calendar },
+    {
+      id: 'my-attendance',
+      label: 'My Attendance',
+      icon: CalendarCheck
+    },
+    {
+      id: 'my-profile',
+      label: 'My Profile',
+      icon: User,
+      ...(isHrOperationsRole ? {} : { tag: 'Profile' })
+    },
     { id: 'consulting', label: 'Consulting & Bookings', icon: CalendarCheck },
     { id: 'candidates', label: 'Candidates', icon: Users },
     { id: 'pipeline', label: 'Recruitment Pipeline', icon: GitMerge },
@@ -202,11 +234,17 @@ export const CrmSidebar = ({ collapsed, setCollapsed }) => {
     { id: 'hr-recruitment', label: 'Onboarding', icon: UserPlus, tag: '6' },
     { id: 'hr-announcements', label: 'Announcements & alerts', icon: Bell, tag: '7' },
     { id: 'hr-shifts', label: 'Shift management', icon: CalendarCheck, tag: '8' },
-    { id: 'hr-documents', label: 'Document repository', icon: FileText, tag: '9' }
+    { id: 'hr-documents', label: 'Document repository', icon: FileText, tag: '9' },
+    { id: 'my-profile', label: 'My Profile', icon: User, tag: 'Profile' }
   ];
 
   let permittedItems = menuItems.filter(item => hasPermission(item.id));
-  if (isRecruiterRole) {
+  if (isHrOperationsRole) {
+    const orderIndex = new Map(HR_OPERATIONS_MENU_ORDER.map((id, idx) => [id, idx]));
+    permittedItems = permittedItems
+      .filter(item => item.id !== 'consulting' && orderIndex.has(item.id))
+      .sort((a, b) => orderIndex.get(a.id) - orderIndex.get(b.id));
+  } else if (isRecruiterRole) {
     permittedItems = recruiterMenuItems;
   } else if (isPlacementRole) {
     permittedItems = placementMenuItems;
@@ -218,11 +256,13 @@ export const CrmSidebar = ({ collapsed, setCollapsed }) => {
   }
 
   // Role-based filtering for Consulting & Bookings sub-services
-  const permittedSubServices = CONSULTING_SUB_SERVICES.filter(srv => {
-    if (srv.id === 'career-guidance') return hasPermission('career-guidance');
-    if (srv.id === 'student-academy') return hasPermission('student-academy');
-    return true;
-  });
+  const permittedSubServices = isHrOperationsRole
+    ? []
+    : CONSULTING_SUB_SERVICES.filter(srv => {
+      if (srv.id === 'career-guidance') return hasPermission('career-guidance');
+      if (srv.id === 'student-academy') return hasPermission('student-academy');
+      return true;
+    });
 
   const formatUserName = (rawName) => {
     if (!rawName) return 'Dhanalakshimi';
@@ -236,311 +276,287 @@ export const CrmSidebar = ({ collapsed, setCollapsed }) => {
     return trimmed;
   };
 
-  const getEmpId = (rawId) => {
-    if (!rawId) return 'EMP-001';
-    const idStr = String(rawId).trim().toUpperCase();
-    if (idStr === 'EMP-1' || idStr === 'USR-1') return 'EMP-001';
-    if (idStr.startsWith('USR-')) return 'EMP-' + idStr.substring(4);
-    if (!idStr.startsWith('EMP-')) return 'EMP-' + idStr;
-    return idStr;
-  };
-
   return (
     <>
       {/* Mobile Backdrop */}
       {!collapsed && (
-        <div 
+        <div
           className="fixed inset-0 bg-navy-950/50 backdrop-blur-sm z-40 lg:hidden"
           onClick={() => setCollapsed(true)}
         />
       )}
 
       <aside className={`bg-white dark:bg-[#070c1e] border-r border-slate-200 dark:border-slate-800/80 text-slate-700 dark:text-slate-300 flex flex-col h-full min-h-0 overflow-hidden shrink-0 z-50 fixed inset-y-0 left-0 lg:static lg:h-full lg:max-h-full transition-all duration-300 transform ${collapsed ? '-translate-x-full lg:translate-x-0 lg:w-20' : 'translate-x-0 w-72'}`}>
-      
-      {/* Top Brand Logo */}
-      <div className="p-4 border-b border-slate-200 dark:border-navy-800 flex items-center justify-between shrink-0">
-        <div className="flex items-center space-x-3 cursor-pointer" onClick={() => setActiveModule('dashboard')}>
-          <img src="/images/logo.png" alt="The Revival International" className="w-9 h-9 object-contain shrink-0 drop-shadow-sm" />
-          {!collapsed && (
-            <div>
-              <h2 className="font-serif text-base font-bold text-slate-900 dark:text-white tracking-tight leading-none">The Revival CRM</h2>
-              <span className="text-[9px] uppercase tracking-widest text-gold-600 dark:text-gold-400 font-bold">Enterprise Edition</span>
+
+        {/* Top Brand Logo */}
+        <div className="p-4 border-b border-slate-200 dark:border-navy-800 flex items-center justify-between shrink-0">
+          <div className="flex items-center space-x-3 cursor-pointer" onClick={() => setActiveModule('dashboard')}>
+            <img src="/images/logo.png" alt="The Revival International" className="w-9 h-9 object-contain shrink-0 drop-shadow-sm" />
+            {!collapsed && (
+              <div>
+                <h2 className="font-serif text-base font-bold text-slate-900 dark:text-white tracking-tight leading-none">The Revival CRM</h2>
+                <span className="text-[9px] uppercase tracking-widest text-gold-600 dark:text-gold-400 font-bold">Enterprise Edition</span>
+              </div>
+            )}
+          </div>
+        </div>
+
+        {/* Nav Menu */}
+        <div className="flex-1 min-h-0 overflow-y-auto overscroll-y-contain crm-sidebar-scroll py-2 px-3 space-y-0.5 text-xs font-semibold">
+          {isRecruiterRole && !collapsed && (
+            <div className="px-2 pt-0.5 pb-2">
+              <div className="flex items-center justify-between px-1 text-[10px] font-extrabold tracking-wider uppercase text-gold-600 dark:text-gold-400">
+                <span>Recruiter Features</span>
+                <span className="font-mono bg-gold-500/15 text-gold-700 dark:text-gold-300 px-1.5 py-0.5 rounded text-[9px] border border-gold-500/30">9 Features</span>
+              </div>
+            </div>
+          )}
+
+          {isPlacementRole && !collapsed && (
+            <div className="px-2 pt-0.5 pb-2">
+              <div className="flex items-center justify-between px-1 text-[10px] font-extrabold tracking-wider uppercase text-gold-600 dark:text-gold-400">
+                <span>Placement Features</span>
+                <span className="font-mono bg-gold-500/15 text-gold-700 dark:text-gold-300 px-1.5 py-0.5 rounded text-[9px] border border-gold-500/30">11 Features</span>
+              </div>
+            </div>
+          )}
+
+          {isHrLeadRole && !collapsed && (
+            <div className="px-2 pt-0.5 pb-2">
+              <div className="flex items-center justify-between px-1 text-[10px] font-extrabold tracking-wider uppercase text-gold-600 dark:text-gold-400">
+                <span>HR Lead Workspace</span>
+                <span className="font-mono bg-gold-500/15 text-gold-700 dark:text-gold-300 px-1.5 py-0.5 rounded text-[9px] border border-gold-500/30">10 Modules</span>
+              </div>
+            </div>
+          )}
+          {permittedItems.map((item) => {
+            const Icon = item.icon;
+            const isActive = activeModule === item.id ||
+              (item.id === 'dashboard' && (activeModule === 'dashboard' || activeModule === 'plc-overview' || activeModule === 'int-overview' || activeModule === 'hr-overview')) ||
+              (item.id === 'plc-overview' && (activeModule === 'dashboard' || activeModule === 'plc-overview')) ||
+              (item.id === 'int-overview' && (activeModule === 'dashboard' || activeModule === 'int-overview')) ||
+              (item.id === 'hr-overview' && (activeModule === 'dashboard' || activeModule === 'hr-overview'));
+
+            if (item.id === 'consulting' && !isHrOperationsRole) {
+              const isConsultingActive = activeModule === 'consulting';
+              const isParentActive = isConsultingActive || activeModule === 'career-guidance' || activeModule === 'student-academy';
+              const totalCount = getServiceCount('all');
+
+              return (
+                <div key="consulting-section" className="space-y-1">
+                  <button
+                    type="button"
+                    onClick={() => {
+                      if (collapsed) {
+                        setCollapsed(false);
+                        setConsultingOpen(true);
+                        setActiveModule('consulting');
+                        if (setConsultingServiceFilter) setConsultingServiceFilter('all');
+                      } else {
+                        setConsultingOpen(prev => !prev);
+                        if (!isParentActive) {
+                          setActiveModule('consulting');
+                          if (setConsultingServiceFilter) setConsultingServiceFilter('all');
+                        }
+                      }
+                    }}
+                    className={`w-full flex items-center justify-between px-3 py-2.5 rounded-xl transition duration-200 group cursor-pointer ${isConsultingActive && consultingServiceFilter === 'all'
+                        ? 'bg-gold-500/20 text-gold-600 dark:text-gold-400 border border-gold-500/40 font-bold shadow-sm'
+                        : isParentActive
+                          ? 'bg-gold-500/10 text-gold-600 dark:text-gold-400 font-bold'
+                          : 'hover:bg-slate-100 dark:hover:bg-navy-900 hover:text-slate-900 dark:hover:text-white text-slate-800 dark:text-slate-100 font-bold'
+                      }`}
+                    title={item.label}
+                  >
+                    <div className="flex items-center space-x-3 truncate">
+                      <Icon className={`w-4 h-4 shrink-0 ${isParentActive ? 'text-gold-500' : 'text-slate-600 dark:text-slate-200'}`} />
+                      {!collapsed && <span className="truncate flex-1 text-left">{item.label}</span>}
+                    </div>
+                    {!collapsed && (
+                      <div className="flex items-center space-x-1.5 shrink-0">
+                        {totalCount > 0 && (
+                          <span className="px-1.5 py-0.5 text-[9px] font-extrabold rounded-full bg-amber-500 text-navy-950 font-mono shadow-xs">
+                            {totalCount}
+                          </span>
+                        )}
+                        <ChevronDown className={`w-3.5 h-3.5 text-slate-400 transition-transform duration-200 ${consultingOpen ? 'transform rotate-180 text-gold-500' : ''}`} />
+                      </div>
+                    )}
+                  </button>
+
+                  {/* Individual Consulting & Booking Services list */}
+                  {!collapsed && consultingOpen && (
+                    <div className="ml-4 pl-2.5 border-l-2 border-gold-500/30 space-y-0.5 py-1 animate-in fade-in duration-200">
+                      {permittedSubServices.map(srv => {
+                        const SrvIcon = srv.icon;
+                        const isSrvActive = srv.id === 'career-guidance'
+                          ? activeModule === 'career-guidance'
+                          : srv.id === 'student-academy'
+                            ? activeModule === 'student-academy'
+                            : isConsultingActive && (consultingServiceFilter === srv.id || (!consultingServiceFilter && srv.id === 'all'));
+                        const srvCount = getServiceCount(srv.id);
+
+                        return (
+                          <button
+                            key={srv.id}
+                            type="button"
+                            onClick={() => {
+                              if (srv.id === 'career-guidance') {
+                                setActiveModule('career-guidance');
+                              } else if (srv.id === 'student-academy') {
+                                setActiveModule('student-academy');
+                              } else {
+                                setActiveModule('consulting');
+                                if (setConsultingServiceFilter) setConsultingServiceFilter(srv.id);
+                              }
+                              if (window.innerWidth < 1024) setCollapsed(true);
+                            }}
+                            className={`w-full flex items-center justify-between px-2.5 py-1.5 rounded-lg text-[11px] transition duration-150 cursor-pointer ${isSrvActive
+                                ? 'bg-gold-500/25 text-gold-600 dark:text-gold-300 font-extrabold border border-gold-500/40 shadow-xs'
+                                : 'text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-navy-900/80 hover:text-slate-900 dark:hover:text-white font-medium'
+                              }`}
+                            title={srv.label}
+                          >
+                            <div className="flex items-center space-x-2 truncate">
+                              <SrvIcon className={`w-3.5 h-3.5 shrink-0 ${isSrvActive ? 'text-gold-500' : 'text-slate-400 dark:text-slate-400'}`} />
+                              <span className="truncate">{srv.label}</span>
+                            </div>
+                            {srvCount > 0 && (
+                              <span className={`px-1.5 py-0.2 rounded-full text-[9px] font-mono font-bold shrink-0 ${isSrvActive
+                                  ? 'bg-gold-500 text-navy-950'
+                                  : 'bg-slate-200 dark:bg-navy-800 text-slate-700 dark:text-slate-300'
+                                }`}>
+                                {srvCount}
+                              </span>
+                            )}
+                          </button>
+                        );
+                      })}
+                    </div>
+                  )}
+                </div>
+              );
+            }
+
+            return (
+              <button
+                key={item.id}
+                onClick={() => {
+                  setActiveModule(item.id);
+                  setConsultingOpen(false);
+                  if (window.innerWidth < 1024) setCollapsed(true);
+                }}
+                className={`w-full flex items-center space-x-3 px-3 py-2.5 rounded-xl transition duration-200 ${isActive
+                    ? 'bg-amber-100/70 dark:bg-gold-500/20 text-amber-900 dark:text-gold-300 font-bold border border-amber-300/60 dark:border-gold-500/30 shadow-sm'
+                    : 'hover:bg-slate-100 dark:hover:bg-navy-900 hover:text-slate-900 dark:hover:text-white text-slate-800 dark:text-slate-100 font-bold'
+                  }`}
+                title={item.label}
+              >
+                <Icon className={`w-4 h-4 shrink-0 ${isActive
+                    ? 'text-amber-700 dark:text-gold-400'
+                    : 'text-slate-600 dark:text-slate-200'
+                  }`} />
+                {!collapsed && <span className="truncate flex-1 text-left">{item.label}</span>}
+                {!collapsed && item.tag && (
+                  <span className={`px-1.5 py-0.5 rounded text-[9px] font-mono font-extrabold shrink-0 ${isActive
+                      ? 'bg-gold-500 text-navy-950 shadow-xs'
+                      : 'bg-slate-100 dark:bg-navy-800 text-slate-500 dark:text-slate-400'
+                    }`}>
+                    #{item.tag}
+                  </span>
+                )}
+                {!collapsed && item.id === 'super-admin' && Array.isArray(leads) && leads.filter(l => l && l.status === 'New').length > 0 && (
+                  <span className="px-1.5 py-0.5 text-[9px] font-extrabold rounded-full bg-emerald-500 text-white animate-pulse">
+                    {leads.filter(l => l && l.status === 'New').length}
+                  </span>
+                )}
+              </button>
+            );
+          })}
+        </div>
+
+        {/* PINNED BOTTOM USER PROFILE & LOGOUT FOOTER (Ultra-Compact Single Row, 100% Guaranteed Visible on All Screens) */}
+        <div className="shrink-0 border-t border-slate-200 dark:border-slate-800/90 bg-white/95 dark:bg-[#070c1e]/95 p-2 z-20 shadow-md">
+          {!collapsed ? (
+            <div className="rounded-xl p-2 bg-slate-50 dark:bg-[#0a1128] border border-slate-200 dark:border-gold-500/30 shadow-xs flex items-center justify-between gap-2">
+
+              {/* Left: Avatar + Name + Emp ID + Role (Clickable to My Profile) */}
+              <div
+                onClick={() => {
+                  setActiveModule('my-profile');
+                  if (window.innerWidth < 1024) setCollapsed(true);
+                }}
+                className="flex items-center space-x-2 min-w-0 flex-1 cursor-pointer hover:opacity-90 transition rounded-lg p-1 -m-1"
+                title="View & Edit My Profile"
+              >
+                <div className="relative shrink-0">
+                  <img
+                    src={user?.avatar || 'https://images.unsplash.com/photo-1573496359142-b8d87734a5a2?w=150&auto=format&fit=crop&q=80'}
+                    alt={formatUserName(user?.name)}
+                    className="w-8 h-8 rounded-full border-2 border-gold-500 object-cover shadow-xs ring-1 ring-gold-500/40"
+                  />
+                  <span className="absolute bottom-0 right-0 w-2 h-2 bg-emerald-500 border border-white dark:border-[#070c1e] rounded-full shadow-xs" title="Online & Active" />
+                </div>
+
+                <div className="min-w-0 flex-1">
+                  <h4
+                    className="font-bold text-slate-900 dark:text-white text-xs truncate leading-tight tracking-tight"
+                    title={formatUserName(user?.name)}
+                  >
+                    {formatUserName(user?.name)}
+                  </h4>
+
+                  <div
+                    className="flex items-center space-x-1 text-[10px] text-amber-700 dark:text-gold-400 font-semibold truncate mt-0.5"
+                    title={currentRole || user?.designation || user?.role || 'HR Operations'}
+                  >
+                    <ShieldCheck className="w-2.5 h-2.5 text-gold-500 shrink-0" />
+                    <span className="truncate">{currentRole || user?.designation || user?.role || 'HR Operations'}</span>
+                  </div>
+                </div>
+              </div>
+
+              {/* Right: SOLID VIBRANT RED LOGOUT BUTTON (Placed on the exact same visible row!) */}
+              <button
+                type="button"
+                onClick={() => {
+                  if (window.innerWidth < 1024) setCollapsed(true);
+                  (requestLogout || logout)();
+                }}
+                className="shrink-0 flex items-center space-x-1 px-2.5 py-1.5 rounded-lg font-bold text-xs text-white bg-gradient-to-r from-red-600 to-rose-600 hover:from-red-500 hover:to-rose-500 border border-rose-400/40 shadow-sm shadow-rose-950/30 hover:scale-[1.02] active:scale-[0.98] transition cursor-pointer"
+                title="Logout / Sign Out"
+              >
+                <LogOut className="w-3.5 h-3.5 text-white shrink-0" />
+                <span>Logout</span>
+              </button>
+
+            </div>
+          ) : (
+            /* Collapsed View (Narrow Sidebar) */
+            <div className="flex flex-col items-center space-y-2 py-1">
+              <div
+                onClick={() => setActiveModule('my-profile')}
+                className="relative cursor-pointer hover:scale-105 transition"
+                title={'View My Profile (' + formatUserName(user?.name) + ')'}
+              >
+                <img
+                  src={user?.avatar || 'https://images.unsplash.com/photo-1573496359142-b8d87734a5a2?w=150&auto=format&fit=crop&q=80'}
+                  alt={formatUserName(user?.name)}
+                  className="w-8 h-8 rounded-full border-2 border-gold-500 object-cover shadow-sm ring-1 ring-gold-500/40"
+                />
+                <span className="absolute bottom-0 right-0 w-2 h-2 bg-emerald-500 border border-white dark:border-navy-900 rounded-full" />
+              </div>
+              <button
+                type="button"
+                onClick={requestLogout || logout}
+                className="w-8 h-8 rounded-lg flex items-center justify-center text-white bg-gradient-to-r from-red-600 to-rose-600 hover:from-red-500 hover:to-rose-500 shadow-md transition-all duration-200 cursor-pointer group hover:scale-105"
+                title={'Logout / Sign Out (' + formatUserName(user?.name) + ')'}
+              >
+                <LogOut className="w-3.5 h-3.5 text-white group-hover:-translate-x-0.5 transition-transform" />
+              </button>
             </div>
           )}
         </div>
-      </div>
-
-      {/* Nav Menu */}
-      <div className="flex-1 min-h-0 overflow-y-auto overscroll-y-contain crm-sidebar-scroll py-2 px-3 space-y-0.5 text-xs font-semibold">
-        {isRecruiterRole && !collapsed && (
-          <div className="px-2 pt-0.5 pb-2">
-            <div className="flex items-center justify-between px-1 text-[10px] font-extrabold tracking-wider uppercase text-gold-600 dark:text-gold-400">
-              <span>Recruiter Features</span>
-              <span className="font-mono bg-gold-500/15 text-gold-700 dark:text-gold-300 px-1.5 py-0.5 rounded text-[9px] border border-gold-500/30">9 Features</span>
-            </div>
-          </div>
-        )}
-
-        {isPlacementRole && !collapsed && (
-          <div className="px-2 pt-0.5 pb-2">
-            <div className="flex items-center justify-between px-1 text-[10px] font-extrabold tracking-wider uppercase text-gold-600 dark:text-gold-400">
-              <span>Placement Features</span>
-              <span className="font-mono bg-gold-500/15 text-gold-700 dark:text-gold-300 px-1.5 py-0.5 rounded text-[9px] border border-gold-500/30">11 Features</span>
-            </div>
-          </div>
-        )}
-
-        
-
-        {(currentRole === 'Super Admin' || currentRole === 'Admin') && !collapsed && (
-          <div className="px-2 pt-0.5 pb-2">
-            <div className="flex items-center justify-between px-1 text-[10px] font-extrabold tracking-wider uppercase text-gold-600 dark:text-gold-400">
-              <span>{currentRole === 'Super Admin' ? 'Executive Command' : 'Admin Operations'}</span>
-              <span className="font-mono bg-gold-500/15 text-gold-700 dark:text-gold-300 px-1.5 py-0.5 rounded text-[9px] border border-gold-500/30">Full Suite</span>
-            </div>
-          </div>
-        )}
-
-        {isHrOpsRole && !collapsed && (
-          <div className="px-2 pt-0.5 pb-2">
-            <div className="flex items-center justify-between px-1 text-[10px] font-extrabold tracking-wider uppercase text-gold-600 dark:text-gold-400">
-              <span>HR Operations Suite</span>
-              <span className="font-mono bg-gold-500/15 text-gold-700 dark:text-gold-300 px-1.5 py-0.5 rounded text-[9px] border border-gold-500/30">6 Workflows</span>
-            </div>
-          </div>
-        )}
-
-        {isHrLeadRole && !collapsed && (
-          <div className="px-2 pt-0.5 pb-2">
-            <div className="flex items-center justify-between px-1 text-[10px] font-extrabold tracking-wider uppercase text-gold-600 dark:text-gold-400">
-              <span>HR Lead Workspace</span>
-              <span className="font-mono bg-gold-500/15 text-gold-700 dark:text-gold-300 px-1.5 py-0.5 rounded text-[9px] border border-gold-500/30">10 Modules</span>
-            </div>
-          </div>
-        )}
-        {permittedItems.map((item) => {
-          const Icon = item.icon;
-          const isActive = activeModule === item.id || 
-            (item.id === 'dashboard' && (activeModule === 'dashboard' || activeModule === 'plc-overview' || activeModule === 'int-overview' || activeModule === 'hr-overview')) ||
-            (item.id === 'plc-overview' && (activeModule === 'dashboard' || activeModule === 'plc-overview')) ||
-            (item.id === 'int-overview' && (activeModule === 'dashboard' || activeModule === 'int-overview')) ||
-            (item.id === 'hr-overview' && (activeModule === 'dashboard' || activeModule === 'hr-overview'));
-
-          if (item.id === 'consulting') {
-            const isConsultingActive = activeModule === 'consulting';
-            const isParentActive = isConsultingActive || activeModule === 'career-guidance' || activeModule === 'student-academy';
-            const totalCount = getServiceCount('all');
-
-            return (
-              <div key="consulting-section" className="space-y-1">
-                <button
-                  type="button"
-                  onClick={() => {
-                    if (collapsed) {
-                      setCollapsed(false);
-                      setConsultingOpen(true);
-                      setActiveModule('consulting');
-                      if (setConsultingServiceFilter) setConsultingServiceFilter('all');
-                    } else {
-                      setConsultingOpen(prev => !prev);
-                      if (!isParentActive) {
-                        setActiveModule('consulting');
-                        if (setConsultingServiceFilter) setConsultingServiceFilter('all');
-                      }
-                    }
-                  }}
-                  className={`w-full flex items-center justify-between px-3 py-2.5 rounded-xl transition duration-200 group cursor-pointer ${
-                    isConsultingActive && consultingServiceFilter === 'all'
-                      ? 'bg-gold-500/20 text-gold-600 dark:text-gold-400 border border-gold-500/40 font-bold shadow-sm'
-                      : isParentActive
-                      ? 'bg-gold-500/10 text-gold-600 dark:text-gold-400 font-bold'
-                      : 'hover:bg-slate-100 dark:hover:bg-navy-900 hover:text-slate-900 dark:hover:text-white text-slate-800 dark:text-slate-100 font-bold'
-                  }`}
-                  title={item.label}
-                >
-                  <div className="flex items-center space-x-3 truncate">
-                    <Icon className={`w-4 h-4 shrink-0 ${isParentActive ? 'text-gold-500' : 'text-slate-600 dark:text-slate-200'}`} />
-                    {!collapsed && <span className="truncate flex-1 text-left">{item.label}</span>}
-                  </div>
-                  {!collapsed && (
-                    <div className="flex items-center space-x-1.5 shrink-0">
-                      {totalCount > 0 && (
-                        <span className="px-1.5 py-0.5 text-[9px] font-extrabold rounded-full bg-amber-500 text-navy-950 font-mono shadow-xs">
-                          {totalCount}
-                        </span>
-                      )}
-                      <ChevronDown className={`w-3.5 h-3.5 text-slate-400 transition-transform duration-200 ${consultingOpen ? 'transform rotate-180 text-gold-500' : ''}`} />
-                    </div>
-                  )}
-                </button>
-
-                {/* Individual Consulting & Booking Services list */}
-                {!collapsed && consultingOpen && (
-                  <div className="ml-4 pl-2.5 border-l-2 border-gold-500/30 space-y-0.5 py-1 animate-in fade-in duration-200">
-                    {permittedSubServices.map(srv => {
-                      const SrvIcon = srv.icon;
-                      const isSrvActive = srv.id === 'career-guidance'
-                        ? activeModule === 'career-guidance'
-                        : srv.id === 'student-academy'
-                        ? activeModule === 'student-academy'
-                        : isConsultingActive && (consultingServiceFilter === srv.id || (!consultingServiceFilter && srv.id === 'all'));
-                      const srvCount = getServiceCount(srv.id);
-
-                      return (
-                        <button
-                          key={srv.id}
-                          type="button"
-                          onClick={() => {
-                            if (srv.id === 'career-guidance') {
-                              setActiveModule('career-guidance');
-                            } else if (srv.id === 'student-academy') {
-                              setActiveModule('student-academy');
-                            } else {
-                              setActiveModule('consulting');
-                              if (setConsultingServiceFilter) setConsultingServiceFilter(srv.id);
-                            }
-                            if (window.innerWidth < 1024) setCollapsed(true);
-                          }}
-                          className={`w-full flex items-center justify-between px-2.5 py-1.5 rounded-lg text-[11px] transition duration-150 cursor-pointer ${
-                            isSrvActive
-                              ? 'bg-gold-500/25 text-gold-600 dark:text-gold-300 font-extrabold border border-gold-500/40 shadow-xs'
-                              : 'text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-navy-900/80 hover:text-slate-900 dark:hover:text-white font-medium'
-                          }`}
-                          title={srv.label}
-                        >
-                          <div className="flex items-center space-x-2 truncate">
-                            <SrvIcon className={`w-3.5 h-3.5 shrink-0 ${isSrvActive ? 'text-gold-500' : 'text-slate-400 dark:text-slate-400'}`} />
-                            <span className="truncate">{srv.label}</span>
-                          </div>
-                          {srvCount > 0 && (
-                            <span className={`px-1.5 py-0.2 rounded-full text-[9px] font-mono font-bold shrink-0 ${
-                              isSrvActive
-                                ? 'bg-gold-500 text-navy-950'
-                                : 'bg-slate-200 dark:bg-navy-800 text-slate-700 dark:text-slate-300'
-                            }`}>
-                              {srvCount}
-                            </span>
-                          )}
-                        </button>
-                      );
-                    })}
-                  </div>
-                )}
-              </div>
-            );
-          }
-
-          return (
-            <button
-              key={item.id}
-              onClick={() => {
-                setActiveModule(item.id);
-                setConsultingOpen(false);
-                if (window.innerWidth < 1024) setCollapsed(true);
-              }}
-              className={`w-full flex items-center space-x-3 px-3 py-2.5 rounded-xl transition duration-200 ${
-                isActive
-                  ? 'bg-amber-100/70 dark:bg-gold-500/20 text-amber-900 dark:text-gold-300 font-bold border border-amber-300/60 dark:border-gold-500/30 shadow-sm'
-                  : 'hover:bg-slate-100 dark:hover:bg-navy-900 hover:text-slate-900 dark:hover:text-white text-slate-800 dark:text-slate-100 font-bold'
-              }`}
-              title={item.label}
-            >
-              <Icon className={`w-4 h-4 shrink-0 ${
-                isActive 
-                  ? 'text-amber-700 dark:text-gold-400' 
-                  : 'text-slate-600 dark:text-slate-200'
-              }`} />
-              {!collapsed && <span className="truncate flex-1 text-left">{item.label}</span>}
-              {!collapsed && item.tag && (
-                <span className={`px-1.5 py-0.5 rounded text-[9px] font-mono font-extrabold shrink-0 ${
-                  isActive 
-                    ? 'bg-gold-500 text-navy-950 shadow-xs' 
-                    : 'bg-slate-100 dark:bg-navy-800 text-slate-500 dark:text-slate-400'
-                }`}>
-                  #{item.tag}
-                </span>
-              )}
-              {!collapsed && item.id === 'super-admin' && Array.isArray(leads) && leads.filter(l => l && l.status === 'New').length > 0 && (
-                <span className="px-1.5 py-0.5 text-[9px] font-extrabold rounded-full bg-emerald-500 text-white animate-pulse">
-                  {leads.filter(l => l && l.status === 'New').length}
-                </span>
-              )}
-            </button>
-          );
-        })}
-      </div>
-
-      {/* PINNED BOTTOM USER PROFILE & LOGOUT FOOTER (Ultra-Compact Single Row, 100% Guaranteed Visible on All Screens) */}
-      <div className="shrink-0 border-t border-slate-200 dark:border-slate-800/90 bg-white/95 dark:bg-[#070c1e]/95 p-2 z-20 shadow-md">
-        {!collapsed ? (
-          <div className="rounded-xl p-2 bg-slate-50 dark:bg-[#0a1128] border border-slate-200 dark:border-gold-500/30 shadow-xs flex items-center justify-between gap-2">
-            
-            {/* Left: Avatar + Name + Emp ID + Role */}
-            <div className="flex items-center space-x-2 min-w-0 flex-1">
-              <div className="relative shrink-0">
-                <img 
-                  src={user?.avatar || 'https://images.unsplash.com/photo-1573496359142-b8d87734a5a2?w=150&auto=format&fit=crop&q=80'} 
-                  alt={formatUserName(user?.name)} 
-                  className="w-8 h-8 rounded-full border-2 border-gold-500 object-cover shadow-xs ring-1 ring-gold-500/40" 
-                />
-                <span className="absolute bottom-0 right-0 w-2 h-2 bg-emerald-500 border border-white dark:border-[#070c1e] rounded-full shadow-xs" title="Online & Active" />
-              </div>
-              
-              <div className="min-w-0 flex-1">
-                <div className="flex items-center justify-between gap-1">
-                  <h4 className="font-bold text-slate-900 dark:text-white text-xs truncate leading-tight" title={formatUserName(user?.name)}>
-                    {formatUserName(user?.name)}
-                  </h4>
-                </div>
-                
-                <div className="flex items-center space-x-1.5 text-[10px] text-amber-700 dark:text-gold-400 font-semibold truncate mt-0.5">
-                  <span className="font-mono text-[9px] font-bold px-1 rounded bg-gold-500/20 text-gold-700 dark:text-gold-300 border border-gold-500/35 shrink-0 uppercase tracking-wider" title={'Employee ID: ' + getEmpId(user?.id)}>
-                    {getEmpId(user?.id)}
-                  </span>
-                  <ShieldCheck className="w-2.5 h-2.5 text-gold-500 shrink-0" />
-                  <span className="truncate">{currentRole || user?.role || 'Super Admin'}</span>
-                </div>
-              </div>
-            </div>
-
-            {/* Right: SOLID VIBRANT RED LOGOUT BUTTON (Placed on the exact same visible row!) */}
-            <button
-              type="button"
-              onClick={() => {
-                if (window.innerWidth < 1024) setCollapsed(true);
-                logout();
-              }}
-              className="shrink-0 flex items-center space-x-1 px-2.5 py-1.5 rounded-lg font-bold text-xs text-white bg-gradient-to-r from-red-600 to-rose-600 hover:from-red-500 hover:to-rose-500 border border-rose-400/40 shadow-sm shadow-rose-950/30 hover:scale-[1.02] active:scale-[0.98] transition cursor-pointer"
-              title="Logout / Sign Out"
-            >
-              <LogOut className="w-3.5 h-3.5 text-white shrink-0" />
-              <span>Logout</span>
-            </button>
-
-          </div>
-        ) : (
-          /* Collapsed View (Narrow Sidebar) */
-          <div className="flex flex-col items-center space-y-2 py-1">
-            <div className="relative">
-              <img 
-                src={user?.avatar || 'https://images.unsplash.com/photo-1573496359142-b8d87734a5a2?w=150&auto=format&fit=crop&q=80'} 
-                alt={formatUserName(user?.name)} 
-                className="w-8 h-8 rounded-full border-2 border-gold-500 object-cover shadow-sm ring-1 ring-gold-500/40" 
-                title={formatUserName(user?.name) + ' (' + getEmpId(user?.id) + ' - ' + (currentRole || 'Super Admin') + ')'} 
-              />
-              <span className="absolute bottom-0 right-0 w-2 h-2 bg-emerald-500 border border-white dark:border-navy-900 rounded-full" />
-            </div>
-            <button
-              type="button"
-              onClick={logout}
-              className="w-8 h-8 rounded-lg flex items-center justify-center text-white bg-gradient-to-r from-red-600 to-rose-600 hover:from-red-500 hover:to-rose-500 shadow-md transition-all duration-200 cursor-pointer group hover:scale-105"
-              title={'Logout / Sign Out (' + formatUserName(user?.name) + ')'}
-            >
-              <LogOut className="w-3.5 h-3.5 text-white group-hover:-translate-x-0.5 transition-transform" />
-            </button>
-          </div>
-        )}
-      </div>
 
       </aside>
     </>

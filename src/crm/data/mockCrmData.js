@@ -23,14 +23,14 @@ export const ROLE_PERMISSIONS = {
     'int-calendar', 'int-permissions',
     'hr-overview', 'hr-attendance', 'hr-leave', 'hr-employees', 'hr-performance', 
     'hr-recruitment', 'hr-payroll', 'hr-announcements', 'hr-shifts', 'hr-documents', 
-    'hr-grievances', 'hr-approvals', 'hr-reports', 'hr-tasks'
+    'hr-grievances', 'hr-approvals', 'hr-reports', 'hr-tasks', 'my-profile'
   ],
   'HR Lead': [
     'dashboard', 'consulting', 'career-guidance', 'student-academy', 
     'candidates', 'pipeline', 'workspace', 'interviews', 
     'calendar', 'vacancies', 'offers',
     'hr-overview', 'hr-attendance', 'hr-leave', 'hr-employees', 'hr-performance', 
-    'hr-recruitment', 'hr-announcements', 'hr-shifts', 'hr-documents', 'hr-tasks'
+    'hr-recruitment', 'hr-announcements', 'hr-shifts', 'hr-documents', 'hr-tasks', 'my-profile'
   ],
   'Recruiter': [
     'dashboard', 'vacancies', 'candidates', 'search-filters', 'pipeline', 
@@ -45,8 +45,8 @@ export const ROLE_PERMISSIONS = {
     'candidates', 'pipeline', 'clients', 'interviews', 'workspace', 'calendar'
   ],
   'HR Operations': [
-    'dashboard', 'hr-tasks', 'documentation', 'verification', 'consulting', 'career-guidance', 'student-academy', 
-    'candidates', 'calendar'
+    'dashboard', 'hr-tasks', 'my-attendance', 'my-profile',
+    'candidates', 'documentation', 'verification', 'calendar'
   ],
   'Interviewer': [
     'dashboard', 'int-overview', 'int-assigned', 'int-profiles', 'int-schedule', 

@@ -6,6 +6,8 @@ import os from 'os';
 import { fileURLToPath } from 'url';
 import { getDb, closeDb, checkDbHealth, logAuditTrail, DEFAULT_CRM_EMPLOYEES, DEFAULT_CRM_CANDIDATES, DEFAULT_CRM_LEADS } from './database.js';
 import { registerClientPortalRoutes } from './clientPortalRoutes.js';
+import { registerAttendanceRoutes } from './routes/attendanceRoutes.js';
+import { registerHrCandidateRoutes } from './routes/hrCandidateRoutes.js';
 import { COURSES_CATALOGUE } from '../src/data/coursesCatalogueData.js';
 import nodemailer from 'nodemailer';
 import dotenv from 'dotenv';
@@ -71,7 +73,7 @@ app.use(cors({
   },
   credentials: true,
   methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
-  allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With', 'X-Forwarded-For', 'X-CRM-Role', 'X-CRM-User', 'X-CRM-User-Id', 'X-Client-Token']
+  allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With', 'X-Forwarded-For', 'X-CRM-Role', 'X-CRM-User', 'X-CRM-User-Id', 'X-Client-Token', 'X-Employee-Id', 'X-Employee-Email', 'X-Employee-Name', 'X-Employee-Role', 'X-User-Role', 'X-User-Id', 'X-User-Name']
 }));
 
 app.use(express.json({ limit: '10mb' }));
@@ -152,6 +154,18 @@ app.get('/api/health', async (req, res) => {
     });
   }
 });
+
+const getClientIp = (req) => {
+  return req.headers['x-forwarded-for']?.split(',')[0]?.trim() || req.socket?.remoteAddress || req.ip || '127.0.0.1';
+};
+
+const getCrmContext = (req) => {
+  return {
+    crmUser: req.headers['x-employee-name'] || req.headers['x-user-name'] || 'System',
+    crmRole: req.headers['x-user-role'] || req.headers['x-employee-role'] || 'HR Operations',
+    crmUserId: req.headers['x-employee-id'] || req.headers['x-user-id'] || 'EMP-SYS'
+  };
+};
 
 // Client-Side Error Telemetry & Monitoring Endpoint
 const clientErrorThrottler = new Map();
@@ -1531,6 +1545,252 @@ app.delete('/api/employees/:id', async (req, res) => {
   } catch (error) {
     console.error('Failed to delete employee:', error);
     res.status(500).json({ success: false, message: 'Failed to delete employee' });
+  }
+});
+
+// GET /api/employees/me/profile - Fetch authenticated employee profile with live task statistics
+app.get('/api/employees/me/profile', async (req, res) => {
+  try {
+    const db = await getDb();
+    const employeeId = req.headers['x-employee-id'] || req.query.employeeId;
+    const employeeEmail = req.headers['x-employee-email'] || req.query.employeeEmail;
+    const employeeName = req.headers['x-employee-name'] || req.query.employeeName;
+
+    let employee = null;
+    if (employeeId) {
+      employee = await db.get('SELECT * FROM employees WHERE employeeId = ? OR id = ?', [employeeId, employeeId]);
+    }
+    if (!employee && employeeEmail) {
+      employee = await db.get('SELECT * FROM employees WHERE LOWER(email) = ?', [employeeEmail.toLowerCase().trim()]);
+    }
+    if (!employee && employeeName) {
+      employee = await db.get('SELECT * FROM employees WHERE LOWER(name) = ? OR LOWER(name) LIKE ?', [employeeName.toLowerCase().trim(), `%${employeeName.toLowerCase().trim()}%`]);
+    }
+
+    if (!employee) {
+      employee = DEFAULT_CRM_EMPLOYEES.find(e => e.role === 'HR Operations') || DEFAULT_CRM_EMPLOYEES[0];
+    }
+
+    const { password, ...safeEmployee } = employee;
+
+    // Calculate real-time task statistics for this employee from leads & hr_task_assignments
+    const empName = safeEmployee.name;
+    const empId = safeEmployee.employeeId;
+    const empEmail = safeEmployee.email;
+
+    const nameClean = (empName || '').toLowerCase().replace(/[^a-z]/g, '');
+    const cleanEmail = (empEmail || '').toLowerCase();
+    const cleanId = empId || '';
+
+    let whereClause = '';
+    const params = [];
+
+    if (nameClean.includes('fatima') || cleanEmail.includes('fatima') || ['REV-EMP-107', 'INTL-HR-101', 'emp-fatima'].includes(cleanId)) {
+      whereClause = `(
+        LOWER(assignedEmployee) LIKE '%fatima%' OR 
+        assignedEmployeeId IN ('REV-EMP-107', 'INTL-HR-101', 'emp-fatima') OR
+        LOWER(COALESCE(assignedEmployeeEmail, '')) LIKE '%fatima%' OR
+        id IN (SELECT enquiryId FROM hr_task_assignments WHERE LOWER(assignedEmployeeName) LIKE '%fatima%' OR assignedEmployeeId IN ('REV-EMP-107', 'INTL-HR-101', 'emp-fatima'))
+      )`;
+    } else if (nameClean.includes('bala') || cleanEmail.includes('bala') || ['REV-EMP-006', 'INTL-HR-102', 'emp-6'].includes(cleanId)) {
+      whereClause = `(
+        LOWER(assignedEmployee) LIKE '%bala%' OR 
+        assignedEmployeeId IN ('REV-EMP-006', 'INTL-HR-102', 'emp-6') OR
+        LOWER(COALESCE(assignedEmployeeEmail, '')) LIKE '%bala%' OR
+        id IN (SELECT enquiryId FROM hr_task_assignments WHERE LOWER(assignedEmployeeName) LIKE '%bala%' OR assignedEmployeeId IN ('REV-EMP-006', 'INTL-HR-102', 'emp-6'))
+      )`;
+    } else if (nameClean.includes('divya') || nameClean.includes('diviya') || cleanEmail.includes('divya') || cleanEmail.includes('diviya') || ['REV-EMP-102', 'ENQ-HR-201', 'emp-divya', 'emp-diviya'].includes(cleanId)) {
+      whereClause = `(
+        LOWER(assignedEmployee) LIKE '%divya%' OR 
+        LOWER(assignedEmployee) LIKE '%diviya%' OR 
+        assignedEmployeeId IN ('REV-EMP-102', 'ENQ-HR-201', 'emp-divya', 'emp-diviya') OR
+        LOWER(COALESCE(assignedEmployeeEmail, '')) LIKE '%divya%' OR
+        id IN (SELECT enquiryId FROM hr_task_assignments WHERE LOWER(assignedEmployeeName) LIKE '%divya%' OR LOWER(assignedEmployeeName) LIKE '%diviya%' OR assignedEmployeeId IN ('REV-EMP-102', 'ENQ-HR-201', 'emp-divya', 'emp-diviya'))
+      )`;
+    } else if (nameClean.includes('praveen') || cleanEmail.includes('praveen') || ['REV-EMP-108', 'ENQ-HR-202', 'emp-praveen'].includes(cleanId)) {
+      whereClause = `(
+        LOWER(assignedEmployee) LIKE '%praveen%' OR 
+        assignedEmployeeId IN ('REV-EMP-108', 'ENQ-HR-202', 'emp-praveen') OR
+        LOWER(COALESCE(assignedEmployeeEmail, '')) LIKE '%praveen%' OR
+        id IN (SELECT enquiryId FROM hr_task_assignments WHERE LOWER(assignedEmployeeName) LIKE '%praveen%' OR assignedEmployeeId IN ('REV-EMP-108', 'ENQ-HR-202', 'emp-praveen'))
+      )`;
+    } else {
+      whereClause = `(
+        LOWER(assignedEmployee) = ? OR 
+        LOWER(assignedEmployee) LIKE ? OR
+        assignedEmployeeId = ? OR
+        id IN (SELECT enquiryId FROM hr_task_assignments WHERE assignedEmployeeId = ? OR LOWER(assignedEmployeeName) LIKE ?)
+      )`;
+      const empLower = empName.toLowerCase().trim();
+      params.push(empLower, `%${empLower}%`, empId, empId, `%${empLower}%`);
+    }
+
+    const assignedLeads = await db.all(`SELECT * FROM leads WHERE ${whereClause}`, params);
+
+    const totalTasks = assignedLeads.length;
+    const pendingTasks = assignedLeads.filter(l => ['New', 'Assigned', 'Pending'].includes(l.status)).length;
+    const inProgressTasks = assignedLeads.filter(l => ['In Progress', 'In-Progress', 'Contacted', 'Consultation Scheduled', 'Document Verification'].includes(l.status)).length;
+    const completedTasks = assignedLeads.filter(l => ['Completed', 'Closed', 'Resolved', 'Enrolled'].includes(l.status)).length;
+    const overdueTasks = assignedLeads.filter(l => l.isOverdue === 1 || l.isOverdue === true || (l.status !== 'Completed' && l.status !== 'Closed' && l.nextActionDate && new Date(l.nextActionDate) < new Date())).length;
+
+    let notifPrefs = {};
+    if (safeEmployee.notificationPreferences) {
+      try { notifPrefs = JSON.parse(safeEmployee.notificationPreferences); } catch (_) {}
+    } else {
+      notifPrefs = {
+        emailTaskAssignments: true,
+        urgentFollowUpAlerts: true,
+        dailyMorningSummary: true,
+        systemAnnouncements: false
+      };
+    }
+
+    res.json({
+      success: true,
+      data: {
+        ...safeEmployee,
+        notificationPreferences: notifPrefs,
+        stats: {
+          totalTasks,
+          pendingTasks,
+          inProgressTasks,
+          completedTasks,
+          overdueTasks
+        }
+      }
+    });
+  } catch (error) {
+    console.error('Failed to get employee profile:', error);
+    res.status(500).json({ success: false, message: 'Failed to fetch employee profile' });
+  }
+});
+
+// PATCH & PUT /api/employees/me/profile - Update permitted personal information only
+const updateEmployeeProfileHandler = async (req, res) => {
+  try {
+    const db = await getDb();
+    const employeeId = req.headers['x-employee-id'] || req.body.employeeId || req.query.employeeId;
+    const employeeEmail = req.headers['x-employee-email'] || req.body.email;
+
+    if (!employeeId && !employeeEmail) {
+      return res.status(400).json({ success: false, message: 'Employee identifier is required' });
+    }
+
+    const employee = await db.get(
+      'SELECT * FROM employees WHERE employeeId = ? OR id = ? OR LOWER(email) = ?',
+      [employeeId || '', employeeId || '', (employeeEmail || '').toLowerCase().trim()]
+    );
+
+    if (!employee) {
+      return res.status(404).json({ success: false, message: 'Employee record not found in CRM.' });
+    }
+
+    // Security & Authorization: Only permitted fields can be modified by the employee
+    const { phone, avatar, dateOfBirth, address, notificationPreferences } = req.body;
+
+    const updatedPhone = phone !== undefined ? String(phone).trim() : employee.phone;
+    const updatedAvatar = avatar !== undefined ? String(avatar).trim() : employee.avatar;
+    const updatedDob = dateOfBirth !== undefined ? String(dateOfBirth).trim() : employee.dateOfBirth;
+    const updatedAddress = address !== undefined ? String(address).trim() : employee.address;
+    const updatedNotif = notificationPreferences !== undefined 
+      ? (typeof notificationPreferences === 'object' ? JSON.stringify(notificationPreferences) : String(notificationPreferences))
+      : employee.notificationPreferences;
+
+    await db.run(`
+      UPDATE employees 
+      SET phone = ?, avatar = ?, dateOfBirth = ?, address = ?, notificationPreferences = ?, updatedAt = CURRENT_TIMESTAMP
+      WHERE id = ?
+    `, [updatedPhone, updatedAvatar, updatedDob, updatedAddress, updatedNotif, employee.id]);
+
+    const updated = await db.get('SELECT * FROM employees WHERE id = ?', [employee.id]);
+    const { password, ...safeUpdated } = updated;
+
+    let parsedNotifs = {};
+    if (safeUpdated.notificationPreferences) {
+      try { parsedNotifs = JSON.parse(safeUpdated.notificationPreferences); } catch (_) {}
+    }
+
+    const clientIp = getClientIp(req);
+    const { crmUser, crmRole, crmUserId } = getCrmContext(req);
+    await logAuditTrail(db, {
+      userId: crmUserId || employee.employeeId,
+      userName: crmUser || employee.name,
+      role: crmRole || employee.role,
+      action: 'UPDATE_MY_PROFILE',
+      entityType: 'Employee',
+      entityId: employee.id,
+      details: { phone: updatedPhone, dateOfBirth: updatedDob, address: updatedAddress },
+      ip: clientIp
+    });
+
+    res.json({
+      success: true,
+      message: 'Profile updated successfully!',
+      data: {
+        ...safeUpdated,
+        notificationPreferences: parsedNotifs
+      }
+    });
+  } catch (error) {
+    console.error('Failed to update employee profile:', error);
+    res.status(500).json({ success: false, message: 'Failed to update profile' });
+  }
+};
+
+app.patch('/api/employees/me/profile', updateEmployeeProfileHandler);
+app.put('/api/employees/me/profile', updateEmployeeProfileHandler);
+
+// POST /api/employees/me/change-password - Change employee password with authorization
+app.post('/api/employees/me/change-password', async (req, res) => {
+  try {
+    const db = await getDb();
+    const employeeId = req.headers['x-employee-id'] || req.body.employeeId;
+    const employeeEmail = req.headers['x-employee-email'] || req.body.email;
+    const { currentPassword, newPassword, confirmPassword } = req.body;
+
+    if (!currentPassword || !newPassword || !confirmPassword) {
+      return res.status(400).json({ success: false, message: 'Current password, new password, and confirmation are required.' });
+    }
+
+    if (newPassword !== confirmPassword) {
+      return res.status(400).json({ success: false, message: 'New password and confirmation do not match.' });
+    }
+
+    if (newPassword.length < 8) {
+      return res.status(400).json({ success: false, message: 'Password must be at least 8 characters long.' });
+    }
+
+    const employee = await db.get(
+      'SELECT * FROM employees WHERE employeeId = ? OR id = ? OR LOWER(email) = ?',
+      [employeeId || '', employeeId || '', (employeeEmail || '').toLowerCase().trim()]
+    );
+
+    if (!employee) {
+      return res.status(404).json({ success: false, message: 'Employee not found.' });
+    }
+
+    if (employee.password !== currentPassword) {
+      return res.status(401).json({ success: false, message: 'Incorrect current password. Please check your credentials.' });
+    }
+
+    await db.run('UPDATE employees SET password = ?, updatedAt = CURRENT_TIMESTAMP WHERE id = ?', [newPassword, employee.id]);
+
+    const clientIp = getClientIp(req);
+    await logAuditTrail(db, {
+      userId: employee.employeeId,
+      userName: employee.name,
+      role: employee.role,
+      action: 'CHANGE_PASSWORD',
+      entityType: 'Employee',
+      entityId: employee.id,
+      details: { message: 'Password changed successfully by employee' },
+      ip: clientIp
+    });
+
+    res.json({ success: true, message: 'Password changed successfully!' });
+  } catch (error) {
+    console.error('Failed to change password:', error);
+    res.status(500).json({ success: false, message: 'Failed to change password' });
   }
 });
 
@@ -4665,6 +4925,8 @@ app.get('/api/student-academy/stats', async (req, res) => {
 
 // Register Dedicated Client Portal & Admin/Staff Client Management Routes
 registerClientPortalRoutes(app, uploadsDir);
+registerAttendanceRoutes(app, { getDb, getClientIp });
+registerHrCandidateRoutes(app, { getDb, getClientIp, logAuditTrail });
 
 // Serve Vite frontend production bundle if dist directory exists (non-Vercel standalone mode)
 const distPath = path.join(__dirname, '..', 'dist');

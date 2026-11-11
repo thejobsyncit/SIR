@@ -6,7 +6,15 @@ import { useCrm } from '../crm/context/CrmContext';
 import { trackPageView, trackFunnelStep } from '../services/analytics';
 import { getAttributionData } from '../utils/attribution';
 
-const AppContext = createContext();
+// Keep a single AppContext instance across Vite Fast Refresh so mounted consumers
+// stay subscribed to the active AppProvider instead of receiving undefined.
+const AppContext =
+  (typeof import.meta !== 'undefined' && import.meta.hot && typeof globalThis !== 'undefined' && globalThis.__SIR_APP_CONTEXT__) ||
+  (() => {
+    const ctx = createContext(undefined);
+    if (typeof globalThis !== 'undefined') globalThis.__SIR_APP_CONTEXT__ = ctx;
+    return ctx;
+  })();
 
 export const AppProvider = ({ children }) => {
   const crm = useCrm();
@@ -934,4 +942,4 @@ export const AppProvider = ({ children }) => {
   );
 };
 
-export const useApp = () => useContext(AppContext);
+export const useApp = () => useContext(AppContext) || {};

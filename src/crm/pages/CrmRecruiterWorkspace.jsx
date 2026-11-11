@@ -24,7 +24,8 @@ export const CrmRecruiterWorkspace = () => {
     setNewTaskText('');
   };
 
-  const recruiterCandidates = candidates.filter(c => c.assignedRecruiter === user.name || c.assignedRecruiter === 'Fatima Al-Zahra');
+  const recruiterName = user?.name || 'Recruiter';
+  const recruiterCandidates = candidates.filter(c => c.assignedRecruiter === recruiterName || c.assignedRecruiter === 'Fatima Al-Zahra');
 
   return (
     <ScrollReveal>
@@ -35,7 +36,7 @@ export const CrmRecruiterWorkspace = () => {
         <div>
           <span className="bg-gold-500/20 text-gold-700 dark:text-gold-400 text-[10px] font-bold px-2.5 py-1 rounded uppercase">Personal Productivity Desk</span>
           <h1 className="font-serif text-2xl font-bold text-slate-900 dark:text-white mt-1">Recruiter Personal Workspace</h1>
-          <p className="text-slate-600 dark:text-slate-400">Welcome back, <strong className="text-slate-900 dark:text-white font-bold">{user.name}</strong>. Manage your daily tasks, target achievements & candidate pipelines.</p>
+          <p className="text-slate-600 dark:text-slate-400">Welcome back, <strong className="text-slate-900 dark:text-white font-bold">{recruiterName}</strong>. Manage your daily tasks, target achievements & candidate pipelines.</p>
         </div>
 
         <div className="flex items-center space-x-3">

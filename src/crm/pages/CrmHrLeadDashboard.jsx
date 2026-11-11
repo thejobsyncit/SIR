@@ -160,7 +160,7 @@ export const INITIAL_PERFORMANCE_REVIEWS = [
 ];
 
 export const CrmHrLeadDashboard = ({ initialSection }) => {
-  const { candidates = [], setActiveModule } = useCrm();
+  const { candidates = [], setActiveModule, currentRole, crmToken } = useCrm();
 
   // Helper to map route ID (e.g. 'hr-attendance') to internal tab id
   const getTabFromSection = (sec) => {
@@ -200,6 +200,65 @@ export const CrmHrLeadDashboard = ({ initialSection }) => {
   const showToast = (msg) => {
     setToastMsg(msg);
     setTimeout(() => setToastMsg(''), 4000);
+  };
+
+  // Real SQLite Attendance Regularizations & HR Operations Team Attendance
+  const [hrRegularizations, setHrRegularizations] = useState([]);
+  const [hrTeamAttendance, setHrTeamAttendance] = useState([]);
+  const [regCommentMap, setRegCommentMap] = useState({});
+  const [reviewingRegId, setReviewingRegId] = useState('');
+
+  const loadHrAttendanceData = async () => {
+    if (!crmToken || !['HR Lead', 'Admin', 'Super Admin'].includes(currentRole)) return;
+    try {
+      const [regRes, teamRes] = await Promise.all([
+        fetch('/api/hr/attendance/regularizations', {
+          headers: { Authorization: `Bearer ${crmToken}` }
+        }),
+        fetch('/api/hr/attendance/team', {
+          headers: { Authorization: `Bearer ${crmToken}` }
+        })
+      ]);
+      const regJson = await regRes.json();
+      const teamJson = await teamRes.json();
+      if (regJson?.success && Array.isArray(regJson.data)) {
+        setHrRegularizations(regJson.data);
+      }
+      if (teamJson?.success && Array.isArray(teamJson.data?.team)) {
+        setHrTeamAttendance(teamJson.data.team);
+      }
+    } catch (_) {}
+  };
+
+  useEffect(() => {
+    loadHrAttendanceData();
+  }, [crmToken, currentRole, activeTab]);
+
+  const handleReviewRegularization = async (regId, decision) => {
+    if (!crmToken) return;
+    setReviewingRegId(regId);
+    try {
+      const comments = regCommentMap[regId] || '';
+      const res = await fetch(`/api/hr/attendance/regularizations/${regId}/review`, {
+        method: 'PATCH',
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${crmToken}`
+        },
+        body: JSON.stringify({ decision, comments })
+      });
+      const json = await res.json();
+      if (!res.ok || !json.success) {
+        showToast(json.message || 'Review failed.');
+      } else {
+        showToast(json.message || `Regularization ${decision}.`);
+        await loadHrAttendanceData();
+      }
+    } catch (err) {
+      showToast(err.message || 'Unable to process regularization review.');
+    } finally {
+      setReviewingRegId('');
+    }
   };
 
   // Payroll Management States & Helpers
@@ -1368,6 +1427,78 @@ export const CrmHrLeadDashboard = ({ initialSection }) => {
         ======================================================== */}
         {activeTab === 'attendance' && (
           <div className="space-y-6 animate-in fade-in duration-200">
+            {/* Live Database HR Operations Team Attendance */}
+            <div className="bg-white dark:bg-navy-900 border border-slate-200/90 dark:border-navy-800 rounded-3xl p-5 shadow-xs space-y-4">
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+                <div>
+                  <h3 className="font-serif font-bold text-base text-slate-900 dark:text-white">
+                    Live HR Operations Attendance (SQLite Database)
+                  </h3>
+                  <p className="text-xs text-slate-500 dark:text-slate-400">
+                    Real-time check-ins, breaks, missing checkouts, and monthly summaries synced from My Attendance.
+                  </p>
+                </div>
+                <button
+                  type="button"
+                  onClick={loadHrAttendanceData}
+                  className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-slate-100 dark:bg-navy-800 text-xs font-semibold text-slate-700 dark:text-slate-200 hover:bg-slate-200"
+                >
+                  <RefreshCw className="w-3.5 h-3.5" />
+                  Sync Live Data
+                </button>
+              </div>
+              {hrTeamAttendance.length === 0 ? (
+                <p className="text-xs text-slate-400 py-3">
+                  No live SQLite attendance feed loaded yet. Sign in with HR Lead / Admin password to sync live records.
+                </p>
+              ) : (
+                <div className="overflow-x-auto">
+                  <table className="w-full text-left text-xs">
+                    <thead>
+                      <tr className="border-b border-slate-200 dark:border-navy-800 text-slate-400 uppercase text-[11px]">
+                        <th className="py-2 pr-3">Employee</th>
+                        <th className="py-2 px-3">Team</th>
+                        <th className="py-2 px-3">Today Status</th>
+                        <th className="py-2 px-3">Check-In</th>
+                        <th className="py-2 px-3">Check-Out</th>
+                        <th className="py-2 px-3">Month Hours</th>
+                        <th className="py-2 pl-3">Attendance %</th>
+                      </tr>
+                    </thead>
+                    <tbody className="divide-y divide-slate-100 dark:divide-navy-800">
+                      {hrTeamAttendance.map((item) => (
+                        <tr key={item.employee.employeeId}>
+                          <td className="py-2.5 pr-3 font-semibold text-slate-900 dark:text-white">
+                            {item.employee.name}
+                          </td>
+                          <td className="py-2.5 px-3 text-slate-500 dark:text-slate-400">
+                            {item.employee.operationTeam || item.employee.department}
+                          </td>
+                          <td className="py-2.5 px-3">
+                            <span className="px-2 py-0.5 rounded-full text-[11px] font-bold bg-slate-100 dark:bg-navy-800 text-slate-800 dark:text-slate-200">
+                              {item.today?.status || 'Not Checked In'}
+                            </span>
+                          </td>
+                          <td className="py-2.5 px-3 text-slate-700 dark:text-slate-300">
+                            {item.today?.checkInFormatted || '—'}
+                          </td>
+                          <td className="py-2.5 px-3 text-slate-700 dark:text-slate-300">
+                            {item.today?.checkOutFormatted || '—'}
+                          </td>
+                          <td className="py-2.5 px-3 font-semibold text-slate-800 dark:text-slate-200">
+                            {item.workingHours?.monthlyTotalFormatted || '0h 00m'}
+                          </td>
+                          <td className="py-2.5 pl-3 font-bold text-emerald-600 dark:text-emerald-400">
+                            {item.summary?.attendancePercentage ?? 100}%
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              )}
+            </div>
+
             {/* Top Toolbar */}
             <div className="bg-white dark:bg-navy-900 border border-slate-200/90 dark:border-navy-800 rounded-3xl p-5 shadow-xs flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
               <div>
@@ -2465,6 +2596,100 @@ export const CrmHrLeadDashboard = ({ initialSection }) => {
         ======================================================== */}
         {false && activeTab === 'approvals' && (
           <div className="space-y-6 animate-in fade-in duration-200">
+            {/* Live Database Attendance Regularization Approvals */}
+            <div className="bg-white dark:bg-navy-900 border border-slate-200/90 dark:border-navy-800 rounded-3xl p-6 shadow-xs space-y-4">
+              <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3 border-b border-slate-100 dark:border-navy-800 pb-4">
+                <div>
+                  <h3 className="font-serif font-bold text-base text-slate-900 dark:text-white">
+                    Attendance Regularization Requests (Live Database)
+                  </h3>
+                  <p className="text-xs text-slate-500 dark:text-slate-400">
+                    Review and approve/reject HR Operations employee check-in, check-out, and status corrections.
+                  </p>
+                </div>
+                <span className="px-3 py-1 rounded-full text-xs font-bold bg-amber-100 text-amber-800 dark:bg-amber-500/20 dark:text-amber-300">
+                  {hrRegularizations.filter((r) => r.status === 'Pending').length} Pending
+                </span>
+              </div>
+
+              {hrRegularizations.length === 0 ? (
+                <p className="text-xs text-slate-400 py-4">
+                  No attendance regularization requests found in database.
+                </p>
+              ) : (
+                <div className="space-y-3">
+                  {hrRegularizations.map((reg) => (
+                    <div
+                      key={reg.id}
+                      className="rounded-2xl border border-slate-200 dark:border-navy-800 bg-slate-50/70 dark:bg-navy-950 p-4 space-y-3"
+                    >
+                      <div className="flex flex-wrap items-center justify-between gap-2">
+                        <div>
+                          <p className="text-sm font-bold text-slate-900 dark:text-white">
+                            {reg.employeeName} ({reg.employeeId}) • {reg.attendanceDate}
+                          </p>
+                          <p className="text-xs text-slate-500 dark:text-slate-400">
+                            {reg.correctionType} • Current: {reg.existingCheckIn || '—'} / {reg.existingCheckOut || '—'} ({reg.existingStatus}) → Requested: {reg.requestedCheckIn || '—'} / {reg.requestedCheckOut || '—'}
+                          </p>
+                        </div>
+                        <span
+                          className={`px-2.5 py-0.5 rounded-full text-xs font-bold ${
+                            reg.status === 'Approved'
+                              ? 'bg-emerald-100 text-emerald-800 dark:bg-emerald-500/20 dark:text-emerald-300'
+                              : reg.status === 'Rejected'
+                                ? 'bg-rose-100 text-rose-800 dark:bg-rose-500/20 dark:text-rose-300'
+                                : 'bg-amber-100 text-amber-800 dark:bg-amber-500/20 dark:text-amber-300'
+                          }`}
+                        >
+                          {reg.status}
+                        </span>
+                      </div>
+
+                      <p className="text-xs text-slate-700 dark:text-slate-300">
+                        <span className="font-semibold">Reason:</span> {reg.reason}
+                      </p>
+
+                      {reg.status === 'Pending' ? (
+                        <div className="flex flex-col sm:flex-row gap-2 pt-1">
+                          <input
+                            type="text"
+                            placeholder="Reviewer comment (optional)..."
+                            value={regCommentMap[reg.id] || ''}
+                            onChange={(e) =>
+                              setRegCommentMap((prev) => ({ ...prev, [reg.id]: e.target.value }))
+                            }
+                            className="flex-1 px-3 py-1.5 rounded-xl border border-slate-200 dark:border-navy-700 bg-white dark:bg-navy-900 text-xs text-slate-900 dark:text-white"
+                          />
+                          <div className="flex items-center gap-2">
+                            <button
+                              type="button"
+                              disabled={reviewingRegId === reg.id}
+                              onClick={() => handleReviewRegularization(reg.id, 'Approved')}
+                              className="px-3.5 py-1.5 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold disabled:opacity-50"
+                            >
+                              Approve
+                            </button>
+                            <button
+                              type="button"
+                              disabled={reviewingRegId === reg.id}
+                              onClick={() => handleReviewRegularization(reg.id, 'Rejected')}
+                              className="px-3.5 py-1.5 rounded-xl bg-rose-600 hover:bg-rose-700 text-white text-xs font-bold disabled:opacity-50"
+                            >
+                              Reject
+                            </button>
+                          </div>
+                        </div>
+                      ) : (
+                        <p className="text-xs text-slate-500 dark:text-slate-400">
+                          Reviewed by {reg.reviewerName || 'HR Lead'}: {reg.reviewerComments || 'No comment'}
+                        </p>
+                      )}
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+
             <div className="bg-white dark:bg-navy-900 border border-slate-200/90 dark:border-navy-800 rounded-3xl p-6 shadow-xs space-y-5">
               <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3 border-b border-slate-100 dark:border-navy-800 pb-4">
                 <div>

@@ -9,10 +9,10 @@ import ScrollReveal from '../../components/ScrollReveal';
 
 export const CrmLogin = () => {
   const { 
-    login, recordFailedLogin, failedLoginAttempts, 
-    accountLocked, lockoutTimeRemaining, 
-    activeDevices, logoutEverywhere, 
-    currentRole, switchRole 
+    login, recordFailedLogin = () => {}, failedLoginAttempts = 0, 
+    accountLocked = false, lockoutTimeRemaining = 0, 
+    activeDevices = [], logoutEverywhere = () => {}, 
+    currentRole, switchRole = () => {} 
   } = useCrm();
 
   // Inputs start completely empty - NO dummy pre-filled text
@@ -353,7 +353,7 @@ export const CrmLogin = () => {
             className="hover:text-gold-400 underline flex items-center gap-1 cursor-pointer"
           >
             <Laptop className="w-3.5 h-3.5 text-gold-400" />
-            Active Session Devices ({activeDevices.length})
+            Active Session Devices ({(activeDevices || []).length})
           </button>
           <span className="text-emerald-400 font-extrabold flex items-center gap-1">
             <CheckCircle2 className="w-3.5 h-3.5 text-emerald-400" />
@@ -666,7 +666,7 @@ export const CrmLogin = () => {
             </div>
 
             <div className="space-y-2 text-xs">
-              {activeDevices.map(d => (
+              {(activeDevices || []).map(d => (
                 <div key={d.id} className="p-3 bg-slate-100 dark:bg-navy-950 rounded-xl border border-slate-200 dark:border-navy-800 flex justify-between items-center">
                   <div>
                     <p className="font-bold text-slate-900 dark:text-white flex items-center gap-1">

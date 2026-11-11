@@ -59,11 +59,16 @@ import { CrmInterviewerPermissions } from './pages/interviewer/CrmInterviewerPer
 import { CrmHrLeadDashboard } from './pages/CrmHrLeadDashboard';
 import { CrmAttendanceManagement } from './pages/CrmAttendanceManagement';
 import { CrmLeaveManagement } from './pages/CrmLeaveManagement';
+import { CrmHrTaskAssignment } from './components/CrmHrTaskAssignment';
+import { CrmMyProfile } from './pages/CrmMyProfile';
+import { CrmMyAttendance } from './pages/CrmMyAttendance';
+import { CrmHrOpsCandidateDirectory } from './pages/CrmHrOpsCandidateDirectory';
+import { HrLogoutConfirmModal } from './components/HrLogoutConfirmModal';
 
 import { Search, Sparkles, X, Send, Bot, Loader2, Copy, Check, RotateCcw } from 'lucide-react';
 
 const CrmAppContent = () => {
-  const { isAuthenticated, currentRole, activeModule, setActiveModule, commandPaletteOpen, setCommandPaletteOpen, aiDrawerOpen, setAiDrawerOpen, hasPermission } = useCrm();
+  const { isAuthenticated, currentRole, activeModule, setActiveModule, commandPaletteOpen, setCommandPaletteOpen, aiDrawerOpen, setAiDrawerOpen, hasPermission, logoutConfirmOpen, isLoggingOut, closeLogoutConfirm, confirmLogout } = useCrm();
   const [collapsed, setCollapsed] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
 
@@ -201,7 +206,7 @@ const CrmAppContent = () => {
           return;
         }
       }
-    } catch (_) {}
+    } catch (_) { }
 
     // 3. Robust Contextual Fallback
     setTimeout(() => {
@@ -276,7 +281,11 @@ const CrmAppContent = () => {
         if (currentRole === 'HR Operations') {
           return <CrmHrOperationsDashboard initialSection="tasks" />;
         }
-        return <CrmHrLeadDashboard initialSection="hr-tasks" />;
+        return <CrmHrTaskAssignment />;
+      case 'my-attendance':
+        return <CrmMyAttendance />;
+      case 'my-profile':
+        return <CrmMyProfile />;
 
       // Dedicated Attendance & Leave Management (Super Admin Edit vs Admin View Only)
       case 'attendance':
@@ -288,7 +297,8 @@ const CrmAppContent = () => {
       case 'consulting': return <CrmConsultingBookings />;
       case 'career-guidance': return <CrmCareerGuidance />;
       case 'student-academy': return <CrmStudentAcademy />;
-      case 'candidates': return <CrmCandidates />;
+      case 'candidates':
+        return currentRole === 'HR Operations' ? <CrmHrOpsCandidateDirectory /> : <CrmCandidates />;
       case 'pipeline': return <CrmPipeline />;
       case 'domestic': return <CrmDomesticRecruitment />;
       case 'international': return <CrmInternationalRecruitment />;
@@ -318,7 +328,7 @@ const CrmAppContent = () => {
 
   return (
     <div className="h-screen h-[100dvh] max-h-screen bg-slate-50 dark:bg-[#040714] text-slate-900 dark:text-white flex flex-col font-sans selection:bg-gold-500 selection:text-navy-950 overflow-hidden">
-      
+
       <CrmHeader collapsed={collapsed} setCollapsed={setCollapsed} />
 
       <div className="flex-1 min-h-0 flex overflow-hidden">
@@ -337,7 +347,7 @@ const CrmAppContent = () => {
           <div className="glass-card bg-white dark:bg-navy-900 border border-slate-200 dark:border-gold-500/40 rounded-2xl max-w-xl w-full p-4 shadow-luxury space-y-3">
             <div className="flex items-center space-x-2 border-b border-slate-200 dark:border-navy-800 pb-2">
               <Search className="w-4 h-4 text-gold-500" />
-              <input 
+              <input
                 autoFocus
                 type="text"
                 placeholder="Search candidates, clients, passport numbers, invoices..."
@@ -349,21 +359,21 @@ const CrmAppContent = () => {
             </div>
 
             <div className="space-y-2 text-xs max-h-60 overflow-y-auto">
-              <div 
+              <div
                 onClick={() => { setActiveModule('candidates'); setCommandPaletteOpen(false); }}
                 className="p-2.5 bg-slate-100 dark:bg-navy-950 rounded-xl hover:bg-slate-200 dark:hover:bg-navy-800 cursor-pointer flex justify-between items-center border border-slate-200 dark:border-navy-800 font-semibold"
               >
                 <span className="text-slate-900 dark:text-white">👤 Alexander Wright (Candidate #REV-CAN-1001)</span>
                 <span className="text-[10px] text-amber-700 dark:text-gold-400 font-bold">Candidates</span>
               </div>
-              <div 
+              <div
                 onClick={() => { setActiveModule('clients'); setCommandPaletteOpen(false); }}
                 className="p-2.5 bg-slate-100 dark:bg-navy-950 rounded-xl hover:bg-slate-200 dark:hover:bg-navy-800 cursor-pointer flex justify-between items-center border border-slate-200 dark:border-navy-800 font-semibold"
               >
                 <span className="text-slate-900 dark:text-white">🏢 Al Habtoor Contracting LLC (Client #CLI-501)</span>
                 <span className="text-[10px] text-amber-700 dark:text-gold-400 font-bold">Clients</span>
               </div>
-              <div 
+              <div
                 onClick={() => { setActiveModule('visa'); setCommandPaletteOpen(false); }}
                 className="p-2.5 bg-slate-100 dark:bg-navy-950 rounded-xl hover:bg-slate-200 dark:hover:bg-navy-800 cursor-pointer flex justify-between items-center border border-slate-200 dark:border-navy-800 font-semibold"
               >
@@ -379,7 +389,7 @@ const CrmAppContent = () => {
       {aiDrawerOpen && (
         <div className="fixed inset-0 z-50 flex items-center justify-end p-4 bg-navy-950/80 backdrop-blur-sm animate-in fade-in">
           <div className="glass-card bg-white dark:bg-navy-900 border border-slate-200 dark:border-gold-500/40 rounded-2xl max-w-md w-full h-[90vh] p-6 shadow-luxury flex flex-col justify-between space-y-4">
-            
+
             {/* Header */}
             <div className="flex justify-between items-center border-b border-slate-200 dark:border-navy-800 pb-3 shrink-0">
               <div className="flex items-center space-x-2">
@@ -388,17 +398,17 @@ const CrmAppContent = () => {
                 <span className="text-[10px] bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 px-2 py-0.5 rounded-full font-bold border border-emerald-500/20">Online</span>
               </div>
               <div className="flex items-center gap-1">
-                <button 
-                  type="button" 
-                  onClick={handleResetChat} 
-                  title="Reset conversation" 
+                <button
+                  type="button"
+                  onClick={handleResetChat}
+                  title="Reset conversation"
                   className="text-slate-400 hover:text-slate-700 dark:hover:text-slate-200 p-1.5 rounded-lg hover:bg-slate-100 dark:hover:bg-navy-800 transition cursor-pointer"
                 >
                   <RotateCcw className="w-4 h-4" />
                 </button>
-                <button 
-                  type="button" 
-                  onClick={() => setAiDrawerOpen(false)} 
+                <button
+                  type="button"
+                  onClick={() => setAiDrawerOpen(false)}
                   className="text-slate-400 hover:text-slate-700 dark:hover:text-slate-200 p-1.5 rounded-lg hover:bg-slate-100 dark:hover:bg-navy-800 transition cursor-pointer"
                 >
                   <X className="w-5 h-5" />
@@ -407,46 +417,46 @@ const CrmAppContent = () => {
             </div>
 
             {/* Quick Suggestion Chips (Without Ugly Windows Horizontal Scrollbar) */}
-            <div 
+            <div
               style={{ scrollbarWidth: 'none', msOverflowStyle: 'none' }}
               className="flex gap-1.5 overflow-x-auto pb-1 text-[10px] font-bold shrink-0 [&::-webkit-scrollbar]:hidden"
             >
-              <button 
+              <button
                 type="button"
                 onClick={() => handleSendAiPrompt(null, 'Parse Resume for Dr. Sarah')}
                 className="px-2.5 py-1.5 bg-slate-100 dark:bg-navy-950 text-slate-800 dark:text-gold-400 border border-slate-200 dark:border-navy-800 rounded-lg whitespace-nowrap hover:bg-gold-500 hover:text-navy-950 transition cursor-pointer shadow-xs shrink-0"
               >
                 📄 Parse Resume
               </button>
-              <button 
+              <button
                 type="button"
                 onClick={() => handleSendAiPrompt(null, 'Match GCC Open Mandates')}
                 className="px-2.5 py-1.5 bg-slate-100 dark:bg-navy-950 text-slate-800 dark:text-gold-400 border border-slate-200 dark:border-navy-800 rounded-lg whitespace-nowrap hover:bg-gold-500 hover:text-navy-950 transition cursor-pointer shadow-xs shrink-0"
               >
                 ⚡ Match Mandates
               </button>
-              <button 
+              <button
                 type="button"
                 onClick={() => handleSendAiPrompt(null, 'Generate Panel Interview Questions')}
                 className="px-2.5 py-1.5 bg-slate-100 dark:bg-navy-950 text-slate-800 dark:text-gold-400 border border-slate-200 dark:border-navy-800 rounded-lg whitespace-nowrap hover:bg-gold-500 hover:text-navy-950 transition cursor-pointer shadow-xs shrink-0"
               >
                 🎯 Interview Questions
               </button>
-              <button 
+              <button
                 type="button"
                 onClick={() => handleSendAiPrompt(null, 'Draft Executive Submission Summary')}
                 className="px-2.5 py-1.5 bg-slate-100 dark:bg-navy-950 text-slate-800 dark:text-gold-400 border border-slate-200 dark:border-navy-800 rounded-lg whitespace-nowrap hover:bg-gold-500 hover:text-navy-950 transition cursor-pointer shadow-xs shrink-0"
               >
                 📝 Draft Summary
               </button>
-              <button 
+              <button
                 type="button"
                 onClick={() => handleSendAiPrompt(null, 'GCC Visa & MOHRE Regulations')}
                 className="px-2.5 py-1.5 bg-slate-100 dark:bg-navy-950 text-slate-800 dark:text-gold-400 border border-slate-200 dark:border-navy-800 rounded-lg whitespace-nowrap hover:bg-gold-500 hover:text-navy-950 transition cursor-pointer shadow-xs shrink-0"
               >
                 🌐 Visa Check
               </button>
-              <button 
+              <button
                 type="button"
                 onClick={() => handleSendAiPrompt(null, 'GCC Salary Benchmarks 2026')}
                 className="px-2.5 py-1.5 bg-slate-100 dark:bg-navy-950 text-slate-800 dark:text-gold-400 border border-slate-200 dark:border-navy-800 rounded-lg whitespace-nowrap hover:bg-gold-500 hover:text-navy-950 transition cursor-pointer shadow-xs shrink-0"
@@ -458,13 +468,12 @@ const CrmAppContent = () => {
             {/* Messages Feed */}
             <div className="flex-1 overflow-y-auto space-y-3 text-xs pr-1 flex flex-col">
               {chatMessages.map(msg => (
-                <div 
+                <div
                   key={msg.id}
-                  className={`p-3.5 rounded-2xl leading-relaxed whitespace-pre-wrap ${
-                    msg.sender === 'user'
+                  className={`p-3.5 rounded-2xl leading-relaxed whitespace-pre-wrap ${msg.sender === 'user'
                       ? 'bg-gold-500 text-navy-950 font-bold self-end max-w-[85%] shadow-sm'
                       : 'bg-slate-100 dark:bg-navy-950 text-slate-900 dark:text-slate-200 font-medium self-start max-w-[92%] border border-slate-200 dark:border-navy-800 shadow-xs'
-                  }`}
+                    }`}
                 >
                   <div>{msg.text}</div>
                   {msg.sender === 'assistant' && (
@@ -504,14 +513,14 @@ const CrmAppContent = () => {
 
             {/* Input Form */}
             <form onSubmit={(e) => handleSendAiPrompt(e)} className="pt-2 border-t border-slate-200 dark:border-navy-800 flex items-center gap-2 shrink-0">
-              <input 
-                type="text" 
-                placeholder="Ask AI Copilot..." 
+              <input
+                type="text"
+                placeholder="Ask AI Copilot..."
                 value={aiInputText}
                 onChange={e => setAiInputText(e.target.value)}
-                className="flex-1 bg-slate-100 dark:bg-navy-950 border border-slate-200 dark:border-navy-700 text-slate-900 dark:text-white rounded-xl p-2.5 text-xs font-semibold focus:outline-none focus:border-gold-500" 
+                className="flex-1 bg-slate-100 dark:bg-navy-950 border border-slate-200 dark:border-navy-700 text-slate-900 dark:text-white rounded-xl p-2.5 text-xs font-semibold focus:outline-none focus:border-gold-500"
               />
-              <button 
+              <button
                 type="submit"
                 disabled={isAiThinking || !aiInputText.trim()}
                 className="p-2.5 bg-gold-500 hover:opacity-95 text-navy-950 font-bold rounded-xl shadow-gold-glow disabled:opacity-50 transition cursor-pointer"
@@ -523,6 +532,14 @@ const CrmAppContent = () => {
           </div>
         </div>
       )}
+
+      {/* HR Operations Logout Confirmation Dialog */}
+      <HrLogoutConfirmModal
+        isOpen={Boolean(logoutConfirmOpen && currentRole === 'HR Operations')}
+        isLoggingOut={isLoggingOut}
+        onCancel={closeLogoutConfirm}
+        onConfirm={confirmLogout}
+      />
 
     </div>
   );
