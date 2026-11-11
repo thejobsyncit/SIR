@@ -31,7 +31,7 @@ export const CrmProvider = ({ children }) => {
       const saved = localStorage.getItem('sir_crm_session');
       if (saved) {
         const parsed = JSON.parse(saved);
-        if (parsed && parsed.user && typeof parsed.user === 'object') {
+        if (parsed && parsed.user && typeof parsed.user === 'object' && parsed.user.role !== 'Interviewer') {
           return { ...DEFAULT_USER, ...parsed.user };
         }
       }
@@ -44,7 +44,7 @@ export const CrmProvider = ({ children }) => {
       const saved = localStorage.getItem('sir_crm_session');
       if (saved) {
         const parsed = JSON.parse(saved);
-        if (parsed && parsed.currentRole) return parsed.currentRole;
+        if (parsed && parsed.currentRole && parsed.currentRole !== 'Interviewer') return parsed.currentRole;
       }
     } catch {}
     return 'Super Admin';
@@ -246,7 +246,16 @@ export const CrmProvider = ({ children }) => {
       const res = await fetch('/api/clients');
       const data = await res.json();
       if (data && data.success && Array.isArray(data.data)) {
-        setClients(data.data);
+        setClients(prev => {
+          const backendIds = new Set(data.data.map(c => c.id));
+          const backendNames = new Set(data.data.map(c => (c.company || '').toLowerCase().trim()));
+          const localOnly = prev.filter(c => !backendIds.has(c.id) && !backendNames.has((c.company || '').toLowerCase().trim()));
+          const merged = [...data.data, ...localOnly];
+          try {
+            localStorage.setItem('crm_clients', JSON.stringify(merged));
+          } catch {}
+          return merged;
+        });
       }
     } catch (err) {
       console.error('Failed to fetch clients from backend:', err);
@@ -704,13 +713,24 @@ export const CrmProvider = ({ children }) => {
 
   const switchRole = (newRole) => {
     setCurrentRole(newRole);
-    const updatedUser = { ...user, role: newRole };
+
+    // Realistic corporate profile personas for authentic role-testing
+    const ROLE_PERSONAS = {
+      'Super Admin': { id: 'EMP-1001', name: 'The Job Sync IT', email: 'thejobsyncit@gmail.com', avatar: 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=150&auto=format&fit=crop&q=80' },
+      'Admin': { id: 'EMP-1002', name: 'Tariq Al Mansoor', email: 'tariq.admin@revivalinternational.com', avatar: 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=150&auto=format&fit=crop&q=80' },
+      'HR Lead': { id: 'EMP-1003', name: 'Sarah Al Zaabi', email: 'sarah.hr@revivalinternational.com', avatar: 'https://images.unsplash.com/photo-1573496359142-b8d87734a5a2?w=150&auto=format&fit=crop&q=80' },
+      'Recruiter': { id: 'EMP-1004', name: 'Sreeja Recruiter', email: 'sreeja.jasync@gmail.com', avatar: 'https://images.unsplash.com/photo-1580489944761-15a19d654956?w=150&auto=format&fit=crop&q=80' },
+      'Placement Coordinator': { id: 'EMP-1005', name: 'Dhanalakshimi', email: 'dhana.jasync@gmail.com', avatar: 'https://images.unsplash.com/photo-1567532939604-b6b5b0db2604?w=150&auto=format&fit=crop&q=80' },
+      'HR Operations': { id: 'EMP-1006', name: 'Balavarshini S.', email: 'balavarshini.ops@revivalinternational.com', avatar: 'https://images.unsplash.com/photo-1544005313-94ddf0286df2?w=150&auto=format&fit=crop&q=80' }
+    };
+
+    const persona = ROLE_PERSONAS[newRole] || { id: 'EMP-001', name: newRole, email: `${newRole.toLowerCase().replace(/\s+/g, '.')}@revivalinternational.com` };
+    const updatedUser = { ...user, ...persona, role: newRole };
     setUser(updatedUser);
-    let nextMod = activeModule;
-    if (newRole !== 'Super Admin' && activeModule === 'super-admin') {
-      nextMod = 'dashboard';
-      setActiveModule('dashboard');
-    }
+
+    // Always reset to 'dashboard' so the new role immediately lands on its dedicated suite
+    setActiveModule('dashboard');
+
     try {
       const raw = localStorage.getItem('sir_crm_session');
       const prev = raw ? JSON.parse(raw) : {};
@@ -719,7 +739,7 @@ export const CrmProvider = ({ children }) => {
         isAuthenticated: true,
         user: updatedUser,
         currentRole: newRole,
-        activeModule: nextMod
+        activeModule: 'dashboard'
       }));
     } catch (e) {}
     logAuditAction(`Switched active session view role to '${newRole}'.`);
@@ -755,6 +775,22 @@ export const CrmProvider = ({ children }) => {
   }, [darkMode]);
 
   const createOrganization = async (orgData) => {
+    const localId = `ORG-${Date.now().toString().slice(-6)}-${Math.floor(100 + Math.random() * 900)}`;
+    const newOrgRecord = {
+      id: localId,
+      ...orgData,
+      createdAt: new Date().toISOString().replace('T', ' ').substring(0, 19)
+    };
+
+    // Immediately persist locally to state & localStorage
+    setClients(prev => {
+      const updated = [newOrgRecord, ...prev.filter(c => c.id !== localId && (c.company || '').toLowerCase().trim() !== (orgData.company || '').toLowerCase().trim())];
+      try {
+        localStorage.setItem('crm_clients', JSON.stringify(updated));
+      } catch {}
+      return updated;
+    });
+
     try {
       const res = await fetch('/api/clients', {
         method: 'POST',
@@ -762,17 +798,25 @@ export const CrmProvider = ({ children }) => {
         body: JSON.stringify(orgData)
       });
       const data = await res.json();
-      if (!res.ok || !data.success) {
-        throw new Error(data.message || 'Failed to create organization');
+      if (res.ok && data.success && data.data) {
+        logAuditAction(`Registered organization account '${orgData.company}' (${data.data?.id || localId}).`);
+        setClients(prev => {
+          const updated = prev.map(c => c.id === localId ? { ...c, ...data.data } : c);
+          try {
+            localStorage.setItem('crm_clients', JSON.stringify(updated));
+          } catch {}
+          return updated;
+        });
+        await fetchConsultingMetrics();
+        return data.data;
       }
-      logAuditAction(`Registered organization account '${orgData.company}' (${data.data?.id || 'ID'}).`);
-      await fetchClients();
-      await fetchConsultingMetrics();
-      return data.data;
     } catch (err) {
-      console.error('Error in createOrganization:', err);
-      throw err;
+      console.warn('Network sync warning in createOrganization (saved in localStorage):', err);
     }
+
+    logAuditAction(`Registered organization account '${orgData.company}' (${localId}).`);
+    await fetchConsultingMetrics();
+    return newOrgRecord;
   };
 
   const updateOrganization = async (orgId, updates) => {

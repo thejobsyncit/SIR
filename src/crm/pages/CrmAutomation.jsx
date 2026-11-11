@@ -1,14 +1,33 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import ScrollReveal from '../../components/ScrollReveal';
 import { Zap, Bell, Mail, MessageSquare, CheckCircle2, Plus, X, Clock, Play } from 'lucide-react';
 
 export const CrmAutomation = () => {
-  const [automations, setAutomations] = useState([
+  // Automation Rules & Workflows State (Issue 6) - With LocalStorage Persistence
+  const STORAGE_KEY_AUTOMATIONS = 'sir_crm_automations_rules_v1';
+  const DEFAULT_AUTOMATIONS = [
     { id: 1, title: 'Automated Interview Reminder via WhatsApp & Email', trigger: '24 Hours Before Interview Date', action: 'Send Personal Meeting Link to Candidate & Client Panel', status: 'Active', executions: 342 },
     { id: 2, title: 'Passport & Visa Expiry Warning System', trigger: '60 Days Prior to Expiration', action: 'Alert Candidate & Assigned Documentation Executive', status: 'Active', executions: 184 },
     { id: 3, title: 'Payment Due Follow-Up Automation', trigger: '3 Days After Invoice Due Date', action: 'Send Statement to Client Accounts Department', status: 'Active', executions: 92 },
     { id: 4, title: 'Candidate Birthday & Joining Anniversary Wishes', trigger: 'Candidate Birthday Date', action: 'Dispatch Personal Greetings via WhatsApp API', status: 'Active', executions: 512 }
-  ]);
+  ];
+
+  const [automations, setAutomations] = useState(() => {
+    try {
+      const saved = localStorage.getItem(STORAGE_KEY_AUTOMATIONS);
+      if (saved) {
+        const parsed = JSON.parse(saved);
+        if (Array.isArray(parsed) && parsed.length > 0) return parsed;
+      }
+    } catch {}
+    return DEFAULT_AUTOMATIONS;
+  });
+
+  useEffect(() => {
+    try {
+      localStorage.setItem(STORAGE_KEY_AUTOMATIONS, JSON.stringify(automations));
+    } catch {}
+  }, [automations]);
 
   const [modalOpen, setModalOpen] = useState(false);
   const [newRule, setNewRule] = useState({
@@ -18,7 +37,11 @@ export const CrmAutomation = () => {
   });
 
   const toggleAutomation = (id) => {
-    setAutomations(prev => prev.map(a => a.id === id ? { ...a, status: a.status === 'Active' ? 'Inactive' : 'Active' } : a));
+    setAutomations(prev => {
+      const updated = prev.map(a => a.id === id ? { ...a, status: a.status === 'Active' ? 'Inactive' : 'Active' } : a);
+      try { localStorage.setItem(STORAGE_KEY_AUTOMATIONS, JSON.stringify(updated)); } catch {}
+      return updated;
+    });
   };
 
   const handleCreateRule = (e) => {
@@ -31,7 +54,11 @@ export const CrmAutomation = () => {
       status: 'Active',
       executions: 0
     };
-    setAutomations([ruleObj, ...automations]);
+    setAutomations(prev => {
+      const updated = [ruleObj, ...prev];
+      try { localStorage.setItem(STORAGE_KEY_AUTOMATIONS, JSON.stringify(updated)); } catch {}
+      return updated;
+    });
     setModalOpen(false);
   };
 

@@ -26,11 +26,17 @@ import {
 import { useCrm } from '../context/CrmContext';
 import CrmHrTaskAssignment from '../components/CrmHrTaskAssignment';
 
-export const CrmHrOperationsDashboard = () => {
+export const CrmHrOperationsDashboard = ({ initialSection }) => {
   const { currentEmployee, currentRole } = useCrm();
 
   // Active Tab
-  const [activeTab, setActiveTab] = useState('daily-queue'); // 'daily-queue' | 'enquiries' | 'documents' | 'tasks' | 'attendance'
+  const [activeTab, setActiveTab] = useState(() => initialSection === 'tasks' ? 'tasks' : 'daily-queue');
+
+  useEffect(() => {
+    if (initialSection) {
+      setActiveTab(initialSection === 'hr-tasks' ? 'tasks' : initialSection);
+    }
+  }, [initialSection]); // 'daily-queue' | 'enquiries' | 'documents' | 'tasks' | 'attendance'
   const [searchQuery, setSearchQuery] = useState('');
   const [serviceFilter, setServiceFilter] = useState('all');
   const [statusFilter, setStatusFilter] = useState('all');
@@ -51,7 +57,7 @@ export const CrmHrOperationsDashboard = () => {
       serviceId: 'intl-consult',
       serviceName: 'International Consulting',
       status: 'Assigned',
-      assignedTo: 'Fatima Al Zahra (HR Operations)',
+      assignedTo: 'Balavarshini S. (HR Operations)',
       lastContacted: '2 hours ago',
       followUpDue: 'Today, 4:30 PM',
       isOverdue: false,
@@ -73,7 +79,7 @@ export const CrmHrOperationsDashboard = () => {
       serviceId: 'college-adm',
       serviceName: 'College Admission Assistance',
       status: 'Pending',
-      assignedTo: 'Fatima Al Zahra (HR Operations)',
+      assignedTo: 'Balavarshini S. (HR Operations)',
       lastContacted: 'Yesterday',
       followUpDue: 'Yesterday (Overdue)',
       isOverdue: true,
@@ -95,7 +101,7 @@ export const CrmHrOperationsDashboard = () => {
       serviceId: 'intl-adm',
       serviceName: 'International Admissions',
       status: 'Assigned',
-      assignedTo: 'Fatima Al Zahra (HR Operations)',
+      assignedTo: 'Balavarshini S. (HR Operations)',
       lastContacted: 'Today, 11:15 AM',
       followUpDue: 'Today, 5:30 PM',
       isOverdue: false,
@@ -117,7 +123,7 @@ export const CrmHrOperationsDashboard = () => {
       serviceId: 'school-career',
       serviceName: 'School Student Career Guidance',
       status: 'Fresh',
-      assignedTo: 'Fatima Al Zahra (HR Operations)',
+      assignedTo: 'Balavarshini S. (HR Operations)',
       lastContacted: 'Never',
       followUpDue: 'Today, 3:00 PM',
       isOverdue: false,
@@ -135,7 +141,7 @@ export const CrmHrOperationsDashboard = () => {
       serviceId: 'school-academy',
       serviceName: 'Academy for School Students',
       status: 'Completed',
-      assignedTo: 'Fatima Al Zahra (HR Operations)',
+      assignedTo: 'Balavarshini S. (HR Operations)',
       lastContacted: '03 Nov 2026',
       followUpDue: 'Completed',
       isOverdue: false,
@@ -156,7 +162,7 @@ export const CrmHrOperationsDashboard = () => {
       serviceId: 'exec-seminars-lang',
       serviceName: 'Executive Seminars & Language Hub',
       status: 'Assigned',
-      assignedTo: 'Fatima Al Zahra (HR Operations)',
+      assignedTo: 'Balavarshini S. (HR Operations)',
       lastContacted: '2 days ago',
       followUpDue: '04 Nov 2026 (Overdue)',
       isOverdue: true,
@@ -183,7 +189,7 @@ export const CrmHrOperationsDashboard = () => {
 
   // Operations attendance log
   const attendanceRecord = {
-    employeeName: currentEmployee?.name || 'Fatima Al Zahra',
+    employeeName: currentEmployee?.name || 'Balavarshini S.',
     employeeId: currentEmployee?.employeeId || 'EMP-7014',
     designation: 'HR Operations Specialist',
     checkInTime: '08:52 AM',

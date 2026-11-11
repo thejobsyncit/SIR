@@ -56,7 +56,7 @@ export const CrmSuperAdmin = () => {
     { id: 'emp-2', employeeId: 'EMP-1003', name: 'Sarah Al Zaabi', role: 'HR Lead', department: 'Human Resources', email: 'sarah.hr@revivalinternational.com', phone: '+971 50 234 5678', password: 'Password123!', status: 'Active' },
     { id: 'emp-3', employeeId: 'EMP-1004', name: 'Sreeja Recruiter', role: 'Recruiter', department: 'Talent Acquisition', email: 'sreeja.jasync@gmail.com', phone: '+91 9876543211', password: 'Password123!', status: 'Active' },
     { id: 'emp-4', employeeId: 'EMP-1005', name: 'Dhanalakshimi', role: 'Placement Coordinator', department: 'Placement & Industry Relations', email: 'dhana.jasync@gmail.com', phone: '+91 9876543210', password: 'Password123!', status: 'Active' },
-    { id: 'emp-5', employeeId: 'EMP-1006', name: 'Fatima Al Zahra', role: 'HR Operations', department: 'HR & Student Operations', email: 'fatima.ops@revivalinternational.com', phone: '+971 50 456 7890', password: 'Password123!', status: 'Active' }
+    { id: 'emp-5', employeeId: 'EMP-1006', name: 'Balavarshini S.', role: 'HR Operations', department: 'HR & Student Operations', email: 'balavarshini2223@gmail.com', phone: '+91 9876543214', password: 'Password123!', status: 'Active' }
   ];
 
   const [employees, setEmployees] = useState(() => {
@@ -129,24 +129,61 @@ export const CrmSuperAdmin = () => {
     adminKey: 'REV-SUPER-2026'
   });
 
-  // Master Data State
-  const [masterSectors, setMasterSectors] = useState([
+  // Master Data State (Issues 4 & 7) - With LocalStorage Persistence
+  const STORAGE_KEY_MASTER_SECTORS = 'sir_crm_master_sectors_v1';
+  const STORAGE_KEY_MASTER_VISAS = 'sir_crm_master_visas_v1';
+
+  const DEFAULT_MASTER_SECTORS = [
     'Healthcare & Nursing Services',
     'Civil Engineering & Infrastructure',
     'IT Software & Cloud Engineering',
     'Oil, Gas & Energy Operations',
     'Hospitality & Culinary Services'
-  ]);
-  const [newSectorInput, setNewSectorInput] = useState('');
+  ];
 
-  const [masterVisas, setMasterVisas] = useState([
+  const DEFAULT_MASTER_VISAS = [
     'UK Tier 2 Skilled Worker Visa',
     'Singapore MOM IPA Work Pass',
     'Saudi Arabia Prometric & Visa Stamping',
     'UAE Employment Residence Permit',
     'Qatar Work & Business Visa'
-  ]);
+  ];
+
+  const [masterSectors, setMasterSectors] = useState(() => {
+    try {
+      const saved = localStorage.getItem(STORAGE_KEY_MASTER_SECTORS);
+      if (saved) {
+        const parsed = JSON.parse(saved);
+        if (Array.isArray(parsed) && parsed.length > 0) return parsed;
+      }
+    } catch {}
+    return DEFAULT_MASTER_SECTORS;
+  });
+  const [newSectorInput, setNewSectorInput] = useState('');
+
+  const [masterVisas, setMasterVisas] = useState(() => {
+    try {
+      const saved = localStorage.getItem(STORAGE_KEY_MASTER_VISAS);
+      if (saved) {
+        const parsed = JSON.parse(saved);
+        if (Array.isArray(parsed) && parsed.length > 0) return parsed;
+      }
+    } catch {}
+    return DEFAULT_MASTER_VISAS;
+  });
   const [newVisaInput, setNewVisaInput] = useState('');
+
+  useEffect(() => {
+    try {
+      localStorage.setItem(STORAGE_KEY_MASTER_SECTORS, JSON.stringify(masterSectors));
+    } catch {}
+  }, [masterSectors]);
+
+  useEffect(() => {
+    try {
+      localStorage.setItem(STORAGE_KEY_MASTER_VISAS, JSON.stringify(masterVisas));
+    } catch {}
+  }, [masterVisas]);
 
   const [newEmployee, setNewEmployee] = useState({
     name: '',
@@ -772,25 +809,49 @@ export const CrmSuperAdmin = () => {
 
   const handleAddMasterSector = (e) => {
     e.preventDefault();
-    if (!newSectorInput.trim()) return;
-    setMasterSectors([...masterSectors, newSectorInput.trim()]);
-    setStatusMsg(`✓ Added '${newSectorInput.trim()}' to Master Industry Sectors!`);
+    const trimmed = newSectorInput.trim();
+    if (!trimmed) return;
+    if (masterSectors.includes(trimmed)) {
+      setStatusMsg(`⚠️ Industry sector '${trimmed}' already exists.`);
+      setTimeout(() => setStatusMsg(''), 4000);
+      return;
+    }
+    const updated = [...masterSectors, trimmed];
+    setMasterSectors(updated);
+    try {
+      localStorage.setItem(STORAGE_KEY_MASTER_SECTORS, JSON.stringify(updated));
+    } catch {}
+    setStatusMsg(`✓ Added '${trimmed}' to Master Industry Sectors!`);
     setNewSectorInput('');
     setTimeout(() => setStatusMsg(''), 4000);
   };
 
   const handleAddMasterVisa = (e) => {
     e.preventDefault();
-    if (!newVisaInput.trim()) return;
-    setMasterVisas([...masterVisas, newVisaInput.trim()]);
-    setStatusMsg(`✓ Added '${newVisaInput.trim()}' to Master Visa Protocols!`);
+    const trimmed = newVisaInput.trim();
+    if (!trimmed) return;
+    if (masterVisas.includes(trimmed)) {
+      setStatusMsg(`⚠️ Visa protocol '${trimmed}' already exists.`);
+      setTimeout(() => setStatusMsg(''), 4000);
+      return;
+    }
+    const updated = [...masterVisas, trimmed];
+    setMasterVisas(updated);
+    try {
+      localStorage.setItem(STORAGE_KEY_MASTER_VISAS, JSON.stringify(updated));
+    } catch {}
+    setStatusMsg(`✓ Added '${trimmed}' to Master Visa Protocols!`);
     setNewVisaInput('');
     setTimeout(() => setStatusMsg(''), 4000);
   };
 
   const handleRemoveMasterSector = (sector) => {
     if (window.confirm(`Are you sure you want to remove '${sector}'?`)) {
-      setMasterSectors(prev => prev.filter(s => s !== sector));
+      const updated = masterSectors.filter(s => s !== sector);
+      setMasterSectors(updated);
+      try {
+        localStorage.setItem(STORAGE_KEY_MASTER_SECTORS, JSON.stringify(updated));
+      } catch {}
       setStatusMsg(`✓ Removed '${sector}' from Master Industry Sectors.`);
       setTimeout(() => setStatusMsg(''), 4000);
     }
@@ -798,7 +859,11 @@ export const CrmSuperAdmin = () => {
 
   const handleRemoveMasterVisa = (visa) => {
     if (window.confirm(`Are you sure you want to remove '${visa}'?`)) {
-      setMasterVisas(prev => prev.filter(v => v !== visa));
+      const updated = masterVisas.filter(v => v !== visa);
+      setMasterVisas(updated);
+      try {
+        localStorage.setItem(STORAGE_KEY_MASTER_VISAS, JSON.stringify(updated));
+      } catch {}
       setStatusMsg(`✓ Removed '${visa}' from Master Visa Protocols.`);
       setTimeout(() => setStatusMsg(''), 4000);
     }

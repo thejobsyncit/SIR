@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import ScrollReveal from '../../components/ScrollReveal';
 import { 
   FileText, ShieldAlert, Download, Eye, AlertTriangle, Upload, 
@@ -6,12 +6,31 @@ import {
 } from 'lucide-react';
 
 export const CrmDocumentation = () => {
-  const [documents, setDocuments] = useState([
+  // Documentation Vault State (Issue 5) - With LocalStorage Persistence
+  const STORAGE_KEY_DOCUMENTS = 'sir_crm_documents_vault_v1';
+  const DEFAULT_DOCUMENTS = [
     { id: 'DOC-101', candidate: 'Alexander Wright', docName: 'UK_Passport_Scan.pdf', type: 'Passport', expiry: '2031-10-15', status: 'Valid', version: 'v2.1', size: '2.4 MB' },
     { id: 'DOC-102', candidate: 'Elena Rostova', docName: 'MOM_Work_Pass_IPA.pdf', type: 'Visa Approval', expiry: '2026-09-01', status: 'Expiring Soon', version: 'v1.0', size: '1.8 MB' },
     { id: 'DOC-103', candidate: 'Dr. Sarah Al-Mansoori', docName: 'Saudi_Prometric_License.pdf', type: 'Medical License', expiry: '2028-04-20', status: 'Valid', version: 'v1.2', size: '3.1 MB' },
     { id: 'DOC-104', candidate: 'Rajesh Subramanian', docName: 'Degree_Attestation_IIT.pdf', type: 'Degree', expiry: '2035-12-31', status: 'Attested', version: 'v1.0', size: '4.2 MB' }
-  ]);
+  ];
+
+  const [documents, setDocuments] = useState(() => {
+    try {
+      const saved = localStorage.getItem(STORAGE_KEY_DOCUMENTS);
+      if (saved) {
+        const parsed = JSON.parse(saved);
+        if (Array.isArray(parsed) && parsed.length > 0) return parsed;
+      }
+    } catch {}
+    return DEFAULT_DOCUMENTS;
+  });
+
+  useEffect(() => {
+    try {
+      localStorage.setItem(STORAGE_KEY_DOCUMENTS, JSON.stringify(documents));
+    } catch {}
+  }, [documents]);
 
   const [previewDoc, setPreviewDoc] = useState(null);
   const [uploadModalOpen, setUploadModalOpen] = useState(false);
@@ -48,7 +67,13 @@ export const CrmDocumentation = () => {
       version: 'v1.0',
       size: newDoc.size || '1.5 MB'
     };
-    setDocuments([docObj, ...documents]);
+    setDocuments(prev => {
+      const updated = [docObj, ...prev];
+      try {
+        localStorage.setItem(STORAGE_KEY_DOCUMENTS, JSON.stringify(updated));
+      } catch {}
+      return updated;
+    });
     setUploadModalOpen(false);
     setNotificationMsg(`✓ Successfully encrypted and uploaded '${docObj.docName}' to AWS S3 Compliance Vault!`);
     setTimeout(() => setNotificationMsg(''), 4000);
@@ -96,7 +121,11 @@ DISTRIBUTED UNDER The Revival International ENTERPRISE COMPLIANCE GOVERNANCE.
 
   const handleDispatchRenewal = () => {
     setNotificationMsg("✓ Renewal alert email & SMS dispatched to candidate Elena Rostova for Singapore MOM IPA Visa Approval (Expires in 28 days). Renewal case logged!");
-    setDocuments(documents.map(d => d.id === 'DOC-102' ? { ...d, status: 'Renewal Dispatched' } : d));
+    setDocuments(prev => {
+      const updated = prev.map(d => d.id === 'DOC-102' ? { ...d, status: 'Renewal Dispatched' } : d);
+      try { localStorage.setItem(STORAGE_KEY_DOCUMENTS, JSON.stringify(updated)); } catch {}
+      return updated;
+    });
     setTimeout(() => setNotificationMsg(''), 5000);
   };
 

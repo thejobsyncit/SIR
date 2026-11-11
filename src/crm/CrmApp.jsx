@@ -57,6 +57,8 @@ import { CrmInterviewerAvailability } from './pages/interviewer/CrmInterviewerAv
 import { CrmInterviewerPermissions } from './pages/interviewer/CrmInterviewerPermissions';
 
 import { CrmHrLeadDashboard } from './pages/CrmHrLeadDashboard';
+import { CrmAttendanceManagement } from './pages/CrmAttendanceManagement';
+import { CrmLeaveManagement } from './pages/CrmLeaveManagement';
 
 import { Search, Sparkles, X, Send, Bot, Loader2, Copy, Check, RotateCcw } from 'lucide-react';
 
@@ -229,7 +231,7 @@ const CrmAppContent = () => {
       // Placement Coordinator Suite (12 Dedicated Pages)
       case 'plc-overview': return <CrmPlacementCoordinatorDashboard />;
       case 'plc-students': return <CrmPlacementStudents />;
-      case 'plc-eligibility': return <CrmPlacementEligibility />;
+      case 'plc-eligibility': return <CrmPlacementCoordinatorDashboard initialSection="overview" />;
       case 'plc-companies': return <CrmPlacementCompanies />;
       case 'plc-drives': return <CrmPlacementDrives />;
       case 'plc-registration': return <CrmPlacementRegistration />;
@@ -267,9 +269,20 @@ const CrmAppContent = () => {
       case 'hr-documents':
       case 'hr-grievances':
       case 'hr-approvals':
-      case 'hr-tasks':
       case 'hr-reports':
         return <CrmHrLeadDashboard initialSection={activeModule} />;
+
+      case 'hr-tasks':
+        if (currentRole === 'HR Operations') {
+          return <CrmHrOperationsDashboard initialSection="tasks" />;
+        }
+        return <CrmHrLeadDashboard initialSection="hr-tasks" />;
+
+      // Dedicated Attendance & Leave Management (Super Admin Edit vs Admin View Only)
+      case 'attendance':
+        return <CrmAttendanceManagement isSuperAdmin={currentRole === 'Super Admin'} currentRole={currentRole} />;
+      case 'leave':
+        return <CrmLeaveManagement isSuperAdmin={currentRole === 'Super Admin'} currentRole={currentRole} />;
 
       // Standard & Recruiter Modules
       case 'consulting': return <CrmConsultingBookings />;
@@ -293,10 +306,10 @@ const CrmAppContent = () => {
       case 'settings': return <CrmSettings />;
       case 'vacancies': return <CrmVacancyManagement />;
       case 'search-filters': return <CrmSearchFilters />;
-      case 'notes-tags': return <CrmCandidateNotesTags />;
-      case 'communication': return <CrmCandidateCommunication />;
+      case 'notes-tags': return <CrmDashboard />;
+      case 'communication': return <CrmDashboard />;
       case 'offers': return <CrmOffersJoining />;
-      case 'collaboration': return <CrmTeamCollaboration />;
+      case 'collaboration': return <CrmDashboard />;
       case 'dashboard':
       default:
         return <CrmDashboard />;

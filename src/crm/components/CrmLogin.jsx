@@ -20,8 +20,7 @@ export const CrmLogin = () => {
   const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
   const [rememberMe, setRememberMe] = useState(true);
-  const [step, setStep] = useState(1); // 1: Password -> 2: Email 2FA OTP
-  const [otp, setOtp] = useState(['', '', '', '']);
+  // Direct login without 2FA OTP step
   const [isAuthenticating, setIsAuthenticating] = useState(false);
   const [authErrorMsg, setAuthErrorMsg] = useState('');
   
@@ -57,8 +56,7 @@ export const CrmLogin = () => {
       { name: 'Priya Sharma', email: 'priya.lead@revivalinternational.com', password: 'Password123!', role: 'HR Lead', phone: '+91 98400 11003', department: 'Human Resources' },
       { name: 'Kishore Kumar', email: 'kishore.recruiter@revivalinternational.com', password: 'Password123!', role: 'Recruiter', phone: '+91 98400 11004', department: 'Recruitment & ATS' },
       { name: 'Sreeja Nair', email: 'sreeja.jasync@gmail.com', password: 'Password123!', role: 'Placement Coordinator', phone: '+91 9876543211', department: 'Placement & Client Relations' },
-      { name: 'Balavarshini', email: 'balavarshini2223@gmail.com', password: 'Password123!', role: 'HR Operations', phone: '+91 9876543214', department: 'HR Operations' },
-      { name: 'Dr. Rajesh Kannan', email: 'rajesh.interviewer@revivalinternational.com', password: 'Password123!', role: 'Interviewer', phone: '+91 98400 11999', department: 'Technical Assessment Panel' }
+      { name: 'Balavarshini', email: 'balavarshini2223@gmail.com', password: 'Password123!', role: 'HR Operations', phone: '+91 9876543214', department: 'HR Operations' }
     ];
 
     let users = [...defaultAccounts];
@@ -67,7 +65,7 @@ export const CrmLogin = () => {
       try { 
         const parsed = JSON.parse(saved);
         if (Array.isArray(parsed) && parsed.length > 0) {
-          users = parsed;
+          users = parsed.filter(u => u.role !== 'Interviewer');
           // Merge defaultAccounts and ensure credentials are up to date
           defaultAccounts.forEach(def => {
             const idx = users.findIndex(u => u.email.toLowerCase() === def.email.toLowerCase());
@@ -155,41 +153,13 @@ export const CrmLogin = () => {
       return;
     }
 
-    // Account verified! Send OTP to the user's email
+    // Account verified! Direct Instant Authentication (No OTP)
     setIsAuthenticating(true);
-    
-    // MOCK OTP DISPATCH FOR FRONTEND DEMO
+    switchRole(userAccount.role || 'Super Admin');
     setTimeout(() => {
       setIsAuthenticating(false);
-      const mockOtp = "1234";
-      setOtp(mockOtp.split(''));
-      setAuthErrorMsg(`[DEV MODE] OTP Generated: ${mockOtp}`);
-      switchRole(userAccount.role || 'Super Admin');
-      setStep(2);
-    }, 1500);
-  };
-
-  const handleOtpSubmit = async (e) => {
-    e.preventDefault();
-    setAuthErrorMsg('');
-    const enteredOtp = otp.join('');
-    
-    if (enteredOtp.length !== 4) {
-      setAuthErrorMsg('Please enter the full 4-digit OTP.');
-      return;
-    }
-
-    setIsAuthenticating(true);
-    
-    // MOCK OTP VERIFICATION FOR FRONTEND DEMO
-    setTimeout(() => {
-      if (enteredOtp === '1234') {
-        login(email, password, currentRole);
-      } else {
-        setIsAuthenticating(false);
-        setAuthErrorMsg('Invalid OTP code. For demo, use 1234.');
-      }
-    }, 1500);
+      login(userAccount.email, userAccount.password, userAccount.role || 'Super Admin');
+    }, 300);
   };
 
   const handleRegisterSuperAdmin = (e) => {
@@ -265,9 +235,7 @@ export const CrmLogin = () => {
           </button>
         </div>
 
-        {step === 1 ? (
-          /* Step 1: Email & Password Entry */
-          <form onSubmit={handlePasswordSubmit} className="space-y-4 text-xs">
+        <form onSubmit={handlePasswordSubmit} className="space-y-4 text-xs">
             
             {authErrorMsg && (
               <div className="p-3 bg-rose-950/80 border border-rose-500/60 text-rose-200 font-bold rounded-xl text-xs flex items-center gap-2">
@@ -364,7 +332,7 @@ export const CrmLogin = () => {
               className="w-full py-3.5 bg-gold-shimmer text-navy-950 font-extrabold text-xs rounded-xl shadow-gold-glow hover:opacity-95 transition flex items-center justify-center space-x-2 cursor-pointer"
             >
               {isAuthenticating ? <RefreshCw className="w-4 h-4 animate-spin" /> : <ShieldCheck className="w-4 h-4" />}
-              <span>{isAuthenticating ? 'Authenticating...' : 'Authenticate & Request 2FA OTP →'}</span>
+              <span>{isAuthenticating ? 'Signing In & Launching CRM...' : 'Sign In to Enterprise CRM →'}</span>
             </button>
 
             <div className="pt-2 text-center">
@@ -377,50 +345,6 @@ export const CrmLogin = () => {
               </button>
             </div>
           </form>
-        ) : (
-          /* Step 2: 2FA OTP Verification */
-          <form onSubmit={handleOtpSubmit} className="space-y-4 text-xs animate-in fade-in">
-            <div className="text-center space-y-1">
-              <KeyRound className="w-8 h-8 text-gold-500 mx-auto" />
-              <h4 className="font-serif text-base font-bold text-white">Two-Factor Authentication (2FA)</h4>
-              <p className="text-xs text-slate-300 font-medium">Enter the 4-digit code dispatched to <strong className="text-white font-bold">{email}</strong></p>
-            </div>
-
-            <div className="flex justify-center gap-3 py-2">
-              {otp.map((digit, idx) => (
-                <input
-                  key={idx}
-                  type="text"
-                  maxLength={1}
-                  value={digit}
-                  onChange={(e) => {
-                    const newOtp = [...otp];
-                    newOtp[idx] = e.target.value;
-                    setOtp(newOtp);
-                  }}
-                  className="w-12 h-12 text-center bg-navy-950 border-2 border-gold-500/70 text-white font-mono text-xl font-bold rounded-xl focus:border-gold-400"
-                />
-              ))}
-            </div>
-
-            <button 
-              type="submit"
-              disabled={isAuthenticating}
-              className="w-full py-3.5 bg-gold-shimmer text-navy-950 font-extrabold text-xs rounded-xl shadow-gold-glow hover:opacity-95 transition flex items-center justify-center space-x-2 cursor-pointer"
-            >
-              {isAuthenticating ? <RefreshCw className="w-4 h-4 animate-spin" /> : <ShieldCheck className="w-4 h-4" />}
-              <span>{isAuthenticating ? 'Launching CRM...' : 'Verify 2FA OTP & Launch CRM'}</span>
-            </button>
-
-            <button 
-              type="button" 
-              onClick={() => setStep(1)}
-              className="w-full text-center text-slate-300 hover:text-white text-xs font-bold cursor-pointer"
-            >
-              ← Back to Password Entry
-            </button>
-          </form>
-        )}
 
         {/* Security & Active Devices Bar */}
         <div className="pt-4 border-t border-navy-800 text-[11px] text-slate-300 flex justify-between items-center font-bold">
@@ -507,7 +431,7 @@ export const CrmLogin = () => {
               </div>
 
               <div className="p-2.5 bg-amber-500/10 border border-amber-500/30 rounded-xl text-[11px] text-amber-700 dark:text-gold-300 font-semibold leading-relaxed">
-                ℹ️ <strong>Security Access Control:</strong> Only <strong>Super Admin</strong> registration is allowed here. Staff accounts (<em>Admin, Recruiter, Interviewer, Client Coordinator</em>) must be created by Super Admin inside CRM User Management.
+                ℹ️ <strong>Security Access Control:</strong> Only <strong>Super Admin</strong> registration is allowed here. Staff accounts (<em>Admin, Recruiter, Placement Coordinator, HR Operations</em>) must be created by Super Admin inside CRM User Management.
               </div>
 
               <div>

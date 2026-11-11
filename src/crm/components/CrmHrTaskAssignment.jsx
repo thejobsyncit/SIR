@@ -10,10 +10,10 @@ import {
 
 // Team members strictly classified by operation as defined in the flowchart
 export const INTL_HR_OPERATIONS_TEAM = [
-  { id: 'INTL-HR-101', name: 'Fatima Al Zahra', role: 'International HR Operations Specialist', email: 'fatima.zahra@revivalcrm.com', activeTasks: 3, avatar: 'https://images.unsplash.com/photo-1573496359142-b8d87734a5a2?w=150&auto=format&fit=crop&q=80' },
-  { id: 'INTL-HR-102', name: 'John Reynolds', role: 'Senior International Consultant', email: 'john.reynolds@revivalcrm.com', activeTasks: 2, avatar: 'https://images.unsplash.com/photo-1500648767791-00dcc994a43e?w=150&auto=format&fit=crop&q=80' },
-  { id: 'INTL-HR-103', name: 'Ayesha Siddiqua', role: 'GCC Admissions Coordinator', email: 'ayesha.s@revivalcrm.com', activeTasks: 4, avatar: 'https://images.unsplash.com/photo-1580489944761-15a19d654956?w=150&auto=format&fit=crop&q=80' },
-  { id: 'INTL-HR-104', name: 'Tariq Mansoor', role: 'Middle East Operations Executive', email: 'tariq.mansoor@revivalcrm.com', activeTasks: 1, avatar: 'https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?w=150&auto=format&fit=crop&q=80' }
+  { id: 'INTL-HR-101', name: 'Kavitha Sundaram', role: 'International HR Operations Specialist', email: 'kavitha.s@revivalcrm.com', activeTasks: 3, avatar: 'https://images.unsplash.com/photo-1573496359142-b8d87734a5a2?w=150&auto=format&fit=crop&q=80' },
+  { id: 'INTL-HR-102', name: 'Arjun Venkatesh', role: 'Senior International Consultant', email: 'arjun.v@revivalcrm.com', activeTasks: 2, avatar: 'https://images.unsplash.com/photo-1500648767791-00dcc994a43e?w=150&auto=format&fit=crop&q=80' },
+  { id: 'INTL-HR-103', name: 'Meenakshi Sundaram', role: 'GCC Admissions Coordinator', email: 'meenakshi.s@revivalcrm.com', activeTasks: 4, avatar: 'https://images.unsplash.com/photo-1580489944761-15a19d654956?w=150&auto=format&fit=crop&q=80' },
+  { id: 'INTL-HR-104', name: 'Dr. Vigneshwaran K.', role: 'Middle East Operations Executive', email: 'vigneshwaran.k@revivalcrm.com', activeTasks: 1, avatar: 'https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?w=150&auto=format&fit=crop&q=80' }
 ];
 
 export const ENQUIRY_HR_OPERATIONS_TEAM = [
@@ -26,24 +26,24 @@ export const ENQUIRY_HR_OPERATIONS_TEAM = [
 // Default baseline enquiries to ensure 15 records per page pagination works immediately
 const INITIAL_BASELINE_ENQUIRIES = [
   // Branch A: International HR Operations (intl-adm, intl-consult)
-  { id: 'LEAD-INT-101', referenceNumber: 'REV-INT-2026-001', name: 'Dr. Sarah Al-Mansoori', email: 'sarah.mansoori@gmail.com', phone: '+971 50 123 4567', serviceId: 'intl-consult', serviceTitle: 'International Consulting', country: 'United Arab Emirates', status: 'New', createdAt: '2026-11-08T10:30:00Z', notes: 'Consultation for Dubai Golden Visa executive portfolio.' },
-  { id: 'LEAD-INT-102', referenceNumber: 'REV-INT-2026-002', name: 'Alexander Wright', email: 'alex.wright@contractor.co.uk', phone: '+44 7911 123456', serviceId: 'intl-consult', serviceTitle: 'International Consulting', country: 'United Kingdom', status: 'New', createdAt: '2026-11-08T11:15:00Z', notes: 'Senior civil project manager exploring GCC corporate mandates.' },
-  { id: 'LEAD-INT-103', referenceNumber: 'REV-ADM-2026-003', name: 'Elena Rostova', email: 'elena.rostova@cloudtech.de', phone: '+49 151 2345678', serviceId: 'intl-adm', serviceTitle: 'International Admissions', country: 'Germany', status: 'New', createdAt: '2026-11-08T14:20:00Z', notes: 'MSc Computer Science application for University of Birmingham Dubai campus.' },
-  { id: 'LEAD-INT-104', referenceNumber: 'REV-INT-2026-004', name: 'Zubair Al Mansoor', email: 'zubair.mansoor@qatarcorp.qa', phone: '+974 55 123456', serviceId: 'intl-consult', serviceTitle: 'International Consulting', country: 'Qatar', status: 'Assigned', assignedEmployee: 'Fatima Al Zahra', priority: 'High', assignmentNotes: '📌 Urgent: Verify attested degree copies & police clearance for GCC residency.', assignedDate: '2026-11-07T09:00:00Z', createdAt: '2026-11-07T08:00:00Z' },
-  { id: 'LEAD-INT-105', referenceNumber: 'REV-ADM-2026-005', name: 'Karthik Subburaj', email: 'karthik.subburaj@gmail.com', phone: '+91 97890 87654', serviceId: 'intl-adm', serviceTitle: 'International Admissions', country: 'India', status: 'Assigned', assignedEmployee: 'John Reynolds', priority: 'Normal', assignmentNotes: '📌 Call candidate to review IELTS scorecard and Spring 2027 university intake deadlines.', assignedDate: '2026-11-07T11:30:00Z', createdAt: '2026-11-07T10:00:00Z' },
-  { id: 'LEAD-INT-106', referenceNumber: 'REV-INT-2026-006', name: 'Nadia El-Sayed', email: 'nadia.elsayed@cairoinvest.eg', phone: '+20 100 987 6543', serviceId: 'intl-consult', serviceTitle: 'International Consulting', country: 'Egypt', status: 'New', createdAt: '2026-11-06T15:45:00Z', notes: 'Medical consultancy licensing in Abu Dhabi Department of Health.' },
-  { id: 'LEAD-INT-107', referenceNumber: 'REV-ADM-2026-007', name: 'Ahmed Bin Rashid', email: 'ahmed.rashid@emirates.ae', phone: '+971 52 334 5566', serviceId: 'intl-adm', serviceTitle: 'International Admissions', country: 'United Arab Emirates', status: 'New', createdAt: '2026-11-06T16:10:00Z', notes: 'Undergraduate business analytics admissions guidance.' },
-  { id: 'LEAD-INT-108', referenceNumber: 'REV-INT-2026-008', name: 'Carlos Mendez', email: 'carlos.mendez@solarenergy.es', phone: '+34 612 345 678', serviceId: 'intl-consult', serviceTitle: 'International Consulting', country: 'Spain', status: 'New', createdAt: '2026-11-05T09:15:00Z', notes: 'Renewable energy engineering consultancy in Saudi NEOM sector.' },
+  { id: 'LEAD-INT-101', referenceNumber: 'REV-INT-2026-001', name: 'Dr. Saranya Alagappan', email: 'saranya.a@gmail.com', phone: '+91 98401 12345', serviceId: 'intl-consult', serviceTitle: 'International Consulting', country: 'United Arab Emirates', status: 'New', createdAt: '2026-11-08T10:30:00Z', notes: 'Consultation for Dubai Golden Visa executive portfolio.' },
+  { id: 'LEAD-INT-102', referenceNumber: 'REV-INT-2026-002', name: 'Arunachalam V.', email: 'arunachalam.v@gmail.com', phone: '+91 98402 23456', serviceId: 'intl-consult', serviceTitle: 'International Consulting', country: 'United Kingdom', status: 'New', createdAt: '2026-11-08T11:15:00Z', notes: 'Senior civil project manager exploring GCC corporate mandates.' },
+  { id: 'LEAD-INT-103', referenceNumber: 'REV-ADM-2026-003', name: 'Elavarasi R.', email: 'elavarasi.r@cloudtech.in', phone: '+91 98403 34567', serviceId: 'intl-adm', serviceTitle: 'International Admissions', country: 'Germany', status: 'New', createdAt: '2026-11-08T14:20:00Z', notes: 'MSc Computer Science application for University of Birmingham Dubai campus.' },
+  { id: 'LEAD-INT-104', referenceNumber: 'REV-INT-2026-004', name: 'Zubair Ahmed Khan', email: 'zubair.ahmed@gmail.com', phone: '+91 98404 45678', serviceId: 'intl-consult', serviceTitle: 'International Consulting', country: 'Qatar', status: 'Assigned', assignedEmployee: 'Kavitha Sundaram', priority: 'High', assignmentNotes: '📌 Urgent: Verify attested degree copies & police clearance for GCC residency.', assignedDate: '2026-11-07T09:00:00Z', createdAt: '2026-11-07T08:00:00Z' },
+  { id: 'LEAD-INT-105', referenceNumber: 'REV-ADM-2026-005', name: 'Karthik Subburaj', email: 'karthik.subburaj@gmail.com', phone: '+91 97890 87654', serviceId: 'intl-adm', serviceTitle: 'International Admissions', country: 'India', status: 'Assigned', assignedEmployee: 'Arjun Venkatesh', priority: 'Normal', assignmentNotes: '📌 Call candidate to review IELTS scorecard and Spring 2027 university intake deadlines.', assignedDate: '2026-11-07T11:30:00Z', createdAt: '2026-11-07T10:00:00Z' },
+  { id: 'LEAD-INT-106', referenceNumber: 'REV-INT-2026-006', name: 'Nandhini Soundararajan', email: 'nandhini.s@gmail.com', phone: '+91 98405 56789', serviceId: 'intl-consult', serviceTitle: 'International Consulting', country: 'Saudi Arabia', status: 'New', createdAt: '2026-11-06T15:45:00Z', notes: 'Medical consultancy licensing in Abu Dhabi Department of Health.' },
+  { id: 'LEAD-INT-107', referenceNumber: 'REV-ADM-2026-007', name: 'Ahmed Farooq M.', email: 'ahmed.farooq@gmail.com', phone: '+91 98406 67890', serviceId: 'intl-adm', serviceTitle: 'International Admissions', country: 'United Arab Emirates', status: 'New', createdAt: '2026-11-06T16:10:00Z', notes: 'Undergraduate business analytics admissions guidance.' },
+  { id: 'LEAD-INT-108', referenceNumber: 'REV-INT-2026-008', name: 'Chandrasekar M.', email: 'chandru.m@gmail.com', phone: '+91 98407 78901', serviceId: 'intl-consult', serviceTitle: 'International Consulting', country: 'Oman', status: 'New', createdAt: '2026-11-05T09:15:00Z', notes: 'Renewable energy engineering consultancy in Saudi NEOM sector.' },
   { id: 'LEAD-INT-109', referenceNumber: 'REV-ADM-2026-009', name: 'Priya Sundaram', email: 'priya.sundaram@gmail.com', phone: '+91 98401 55667', serviceId: 'intl-adm', serviceTitle: 'International Admissions', country: 'India', status: 'New', createdAt: '2026-11-05T11:40:00Z', notes: 'MBBS international pathway counseling for European medical universities.' },
-  { id: 'LEAD-INT-110', referenceNumber: 'REV-INT-2026-010', name: 'Hassan Al-Nuaimi', email: 'hassan.nuaimi@omanpetro.om', phone: '+968 9123 4567', serviceId: 'intl-consult', serviceTitle: 'International Consulting', country: 'Oman', status: 'New', createdAt: '2026-11-05T13:00:00Z', notes: 'Petrochemical plant senior project director executive relocation.' },
-  { id: 'LEAD-INT-111', referenceNumber: 'REV-ADM-2026-011', name: 'Mei-Ling Chen', email: 'meiling.chen@taipeitech.tw', phone: '+886 912 345 678', serviceId: 'intl-adm', serviceTitle: 'International Admissions', country: 'Taiwan', status: 'New', createdAt: '2026-11-04T10:20:00Z', notes: 'Artificial Intelligence postgraduate research program admission.' },
-  { id: 'LEAD-INT-112', referenceNumber: 'REV-INT-2026-012', name: 'Marcus Sterling', email: 'marcus.sterling@londonfin.co.uk', phone: '+44 7890 654321', serviceId: 'intl-consult', serviceTitle: 'International Consulting', country: 'United Kingdom', status: 'New', createdAt: '2026-11-04T12:30:00Z', notes: 'DIFC financial regulatory advisory and dual residency consultation.' },
+  { id: 'LEAD-INT-110', referenceNumber: 'REV-INT-2026-010', name: 'Harish Narayanan', email: 'harish.narayan@gmail.com', phone: '+91 98408 89012', serviceId: 'intl-consult', serviceTitle: 'International Consulting', country: 'Kuwait', status: 'New', createdAt: '2026-11-05T13:00:00Z', notes: 'Petrochemical plant senior project director executive relocation.' },
+  { id: 'LEAD-INT-111', referenceNumber: 'REV-ADM-2026-011', name: 'Meenakshi Sridharan', email: 'meenakshi.sri@gmail.com', phone: '+91 98409 90123', serviceId: 'intl-adm', serviceTitle: 'International Admissions', country: 'Singapore', status: 'New', createdAt: '2026-11-04T10:20:00Z', notes: 'Artificial Intelligence postgraduate research program admission.' },
+  { id: 'LEAD-INT-112', referenceNumber: 'REV-INT-2026-012', name: 'Mukundhan S.', email: 'mukundhan.s@gmail.com', phone: '+91 98410 01234', serviceId: 'intl-consult', serviceTitle: 'International Consulting', country: 'United Kingdom', status: 'New', createdAt: '2026-11-04T12:30:00Z', notes: 'DIFC financial regulatory advisory and dual residency consultation.' },
   { id: 'LEAD-INT-113', referenceNumber: 'REV-ADM-2026-013', name: 'Rohan Deshmukh', email: 'rohan.deshmukh@gmail.com', phone: '+91 99201 33445', serviceId: 'intl-adm', serviceTitle: 'International Admissions', country: 'India', status: 'New', createdAt: '2026-11-03T16:00:00Z', notes: 'Aerospace engineering bachelor admissions in Canada & Australia.' },
-  { id: 'LEAD-INT-114', referenceNumber: 'REV-INT-2026-014', name: 'Fatima Al-Kuwari', email: 'f.kuwari@dohabank.qa', phone: '+974 66 778899', serviceId: 'intl-consult', serviceTitle: 'International Consulting', country: 'Qatar', status: 'New', createdAt: '2026-11-03T17:15:00Z', notes: 'Family office wealth governance and European golden visa.' },
+  { id: 'LEAD-INT-114', referenceNumber: 'REV-INT-2026-014', name: 'Fathima Banu', email: 'fathima.banu@gmail.com', phone: '+91 98411 12345', serviceId: 'intl-consult', serviceTitle: 'International Consulting', country: 'Qatar', status: 'New', createdAt: '2026-11-03T17:15:00Z', notes: 'Family office wealth governance and European golden visa.' },
   { id: 'LEAD-INT-115', referenceNumber: 'REV-ADM-2026-015', name: 'Ananya Roy', email: 'ananya.roy@calcuttauniv.in', phone: '+91 98310 99887', serviceId: 'intl-adm', serviceTitle: 'International Admissions', country: 'India', status: 'New', createdAt: '2026-11-02T11:00:00Z', notes: 'Public Health policy masters program in London School of Hygiene.' },
-  { id: 'LEAD-INT-116', referenceNumber: 'REV-INT-2026-016', name: 'Saeed Al-Mutawa', email: 'saeed.mutawa@dubaiports.ae', phone: '+971 50 889 0011', serviceId: 'intl-consult', serviceTitle: 'International Consulting', country: 'United Arab Emirates', status: 'Completed', assignedEmployee: 'Fatima Al Zahra', priority: 'High', assignmentNotes: 'Verify port logistics consultancy credentials.', completionNote: 'Consultancy dossier verified and signed off with MOHRE compliance.', completedDate: '2026-11-06T14:00:00Z', createdAt: '2026-11-01T09:00:00Z' },
-  { id: 'LEAD-INT-117', referenceNumber: 'REV-ADM-2026-017', name: 'Farhan Zaidi', email: 'farhan.zaidi@karachitech.pk', phone: '+92 300 1234567', serviceId: 'intl-adm', serviceTitle: 'International Admissions', country: 'Pakistan', status: 'New', createdAt: '2026-11-01T12:00:00Z', notes: 'Biomedical engineering masters application in Ireland.' },
-  { id: 'LEAD-INT-118', referenceNumber: 'REV-INT-2026-018', name: 'Chloe Dubois', email: 'chloe.dubois@parisdesign.fr', phone: '+33 6 12 34 56 78', serviceId: 'intl-consult', serviceTitle: 'International Consulting', country: 'France', status: 'New', createdAt: '2026-10-31T14:30:00Z', notes: 'Luxury retail architecture consultancy licensing in Riyadh.' },
+  { id: 'LEAD-INT-116', referenceNumber: 'REV-INT-2026-016', name: 'Sai Prashanth K.', email: 'sai.prashanth@gmail.com', phone: '+91 98412 23456', serviceId: 'intl-consult', serviceTitle: 'International Consulting', country: 'United Arab Emirates', status: 'Completed', assignedEmployee: 'Kavitha Sundaram', priority: 'High', assignmentNotes: 'Verify port logistics consultancy credentials.', completionNote: 'Consultancy dossier verified and signed off with MOHRE compliance.', completedDate: '2026-11-06T14:00:00Z', createdAt: '2026-11-01T09:00:00Z' },
+  { id: 'LEAD-INT-117', referenceNumber: 'REV-ADM-2026-017', name: 'Farhan Siddiqui', email: 'farhan.s@gmail.com', phone: '+91 98413 34567', serviceId: 'intl-adm', serviceTitle: 'International Admissions', country: 'Ireland', status: 'New', createdAt: '2026-11-01T12:00:00Z', notes: 'Biomedical engineering masters application in Ireland.' },
+  { id: 'LEAD-INT-118', referenceNumber: 'REV-INT-2026-018', name: 'Charulatha D.', email: 'charulatha.d@gmail.com', phone: '+33 6 12 34 56 78', serviceId: 'intl-consult', serviceTitle: 'International Consulting', country: 'France', status: 'New', createdAt: '2026-10-31T14:30:00Z', notes: 'Luxury retail architecture consultancy licensing in Riyadh.' },
 
   // Branch B: Enquiry HR Operations (school-career, school-academy, college-adm)
   { id: 'LEAD-ENQ-201', referenceNumber: 'REV-CAR-2026-001', name: 'Arunmozhi Varman', email: 'arunmozhi.v@gmail.com', phone: '+91 98401 22334', serviceId: 'school-career', serviceTitle: 'Career Guidance', country: 'India', status: 'New', createdAt: '2026-11-08T09:30:00Z', notes: 'Grade 10 stream selection counseling (Bio-Math vs Computer Science).' },
@@ -72,15 +72,59 @@ export const CrmHrTaskAssignment = () => {
   const isHrLead = currentRole === 'HR Lead' || currentRole === 'Super Admin' || currentRole === 'Admin' || currentRole === 'HR Operations';
   
   // Storage key for persisting assignment state across refresh
-  const STORAGE_KEY = 'revival_hr_task_assignments_v1';
+  const STORAGE_KEY = 'revival_hr_task_assignments_v2';
+
+  // Indian names sanitizer to dynamically clean any cached / legacy local data
+  const sanitizeIndianNames = (items) => {
+    const NAME_MAP = {
+      'Fatima Al Zahra': 'Kavitha Sundaram',
+      'John Reynolds': 'Arjun Venkatesh',
+      'Ayesha Siddiqua': 'Meenakshi Sundaram',
+      'Tariq Mansoor': 'Dr. Vigneshwaran K.',
+      'Dr. Sarah Al-Mansoori': 'Dr. Saranya Alagappan',
+      'Alexander Wright': 'Arunachalam V.',
+      'Elena Rostova': 'Elavarasi R.',
+      'Zubair Al Mansoor': 'Zubair Ahmed Khan',
+      'Nadia El-Sayed': 'Nandhini Soundararajan',
+      'Ahmed Bin Rashid': 'Ahmed Farooq M.',
+      'Carlos Mendez': 'Chandrasekar M.',
+      'Hassan Al-Nuaimi': 'Harish Narayanan',
+      'Mei-Ling Chen': 'Meenakshi Sridharan',
+      'Marcus Sterling': 'Mukundhan S.',
+      'Fatima Al-Kuwari': 'Fathima Banu',
+      'Saeed Al-Mutawa': 'Sai Prashanth K.',
+      'Farhan Zaidi': 'Farhan Siddiqui',
+      'Chloe Dubois': 'Charulatha D.'
+    };
+
+    return items.map(item => {
+      let updated = { ...item };
+      if (NAME_MAP[updated.assignedEmployee]) {
+        updated.assignedEmployee = NAME_MAP[updated.assignedEmployee];
+      }
+      if (NAME_MAP[updated.name]) {
+        updated.name = NAME_MAP[updated.name];
+      }
+      return updated;
+    });
+  };
 
   // Load custom stored leads or initialize with baseline
   const [taskData, setTaskData] = useState(() => {
     try {
-      const saved = localStorage.getItem(STORAGE_KEY);
-      if (saved) {
-        const parsed = JSON.parse(saved);
-        if (Array.isArray(parsed) && parsed.length > 0) return parsed;
+      const savedV2 = localStorage.getItem('revival_hr_task_assignments_v2');
+      if (savedV2) {
+        const parsed = JSON.parse(savedV2);
+        if (Array.isArray(parsed) && parsed.length > 0) return sanitizeIndianNames(parsed);
+      }
+      const savedV1 = localStorage.getItem('revival_hr_task_assignments_v1');
+      if (savedV1) {
+        const parsed = JSON.parse(savedV1);
+        if (Array.isArray(parsed) && parsed.length > 0) {
+          const sanitized = sanitizeIndianNames(parsed);
+          localStorage.setItem('revival_hr_task_assignments_v2', JSON.stringify(sanitized));
+          return sanitized;
+        }
       }
     } catch (e) {}
     return INITIAL_BASELINE_ENQUIRIES;
