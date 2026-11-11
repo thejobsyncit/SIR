@@ -981,18 +981,26 @@ export const CrmSuperAdmin = () => {
                 <table className="w-full text-left text-xs border-collapse">
                   <thead>
                     <tr className="bg-slate-50 dark:bg-navy-950 text-slate-600 dark:text-slate-400 font-serif uppercase tracking-wider text-[10px] border-b border-slate-200 dark:border-navy-800">
-                      <th className="p-2.5 font-bold">CLIENT / INQUIRER</th>
-                      <th className="p-2.5 font-bold">SERVICE REQUESTED</th>
-                      <th className="p-2.5 font-bold">CONTACT</th>
-                      <th className="p-2.5 font-bold">DATE</th>
-                      <th className="p-2.5 font-bold">STATUS</th>
-                      <th className="p-2.5 font-bold text-right">ACTION</th>
+                      <th className="p-2.5 font-bold whitespace-nowrap">Reference ID</th>
+                      <th className="p-2.5 font-bold whitespace-nowrap">Candidate Name</th>
+                      <th className="p-2.5 font-bold whitespace-nowrap">Phone Number</th>
+                      <th className="p-2.5 font-bold whitespace-nowrap">Email Address</th>
+                      <th className="p-2.5 font-bold whitespace-nowrap">Service Requested</th>
+                      <th className="p-2.5 font-bold whitespace-nowrap">Date</th>
+                      <th className="p-2.5 font-bold whitespace-nowrap">Status</th>
+                      <th className="p-2.5 font-bold text-right whitespace-nowrap">Action</th>
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-slate-100 dark:divide-navy-800 text-slate-800 dark:text-slate-300">
                     {leads.slice(0, 5).map(lead => (
                       <tr key={lead.id} className="hover:bg-slate-50 dark:hover:bg-navy-950/60 transition">
-                        <td className="p-2.5 font-bold text-slate-900 dark:text-white">
+                        {/* 1. Reference ID */}
+                        <td className="p-2.5 whitespace-nowrap font-mono text-[11px] font-bold text-gold-600 dark:text-gold-400">
+                          {lead.referenceNumber || (lead.id ? (lead.id.startsWith('#') ? lead.id : `#${lead.id.slice(0, 8)}`) : '—')}
+                        </td>
+
+                        {/* 2. Candidate Name */}
+                        <td className="p-2.5 font-bold text-slate-900 dark:text-white whitespace-nowrap">
                           <div className="flex items-center gap-2">
                             <div className="w-6 h-6 rounded-full bg-gold-500/20 text-gold-600 dark:text-gold-400 flex items-center justify-center font-bold text-[10px] shrink-0">
                               {(lead.name || 'U').charAt(0).toUpperCase()}
@@ -1000,14 +1008,38 @@ export const CrmSuperAdmin = () => {
                             <span className="truncate max-w-[120px]">{lead.name}</span>
                           </div>
                         </td>
-                        <td className="p-2.5">
-                          <span className="bg-blue-100 dark:bg-blue-500/20 text-blue-900 dark:text-blue-300 font-extrabold px-2 py-0.5 rounded-full text-[10px] border border-blue-300 dark:border-blue-500/30 truncate max-w-[150px] inline-block">
-                            {lead.serviceTitle || lead.serviceId || 'General Inquiry'}
-                          </span>
+
+                        {/* 3. Phone Number */}
+                        <td className="p-2.5 whitespace-nowrap font-mono text-[11px]">
+                          {lead.phone ? (
+                            <a
+                              href={`https://wa.me/${cleanPhoneForWa(lead.phone)}`}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              className="text-slate-700 dark:text-slate-300 hover:text-emerald-500 flex items-center gap-1.5 transition group"
+                            >
+                              <Phone className="w-3 h-3 text-emerald-500 shrink-0 group-hover:scale-110 transition" />
+                              <span>{lead.phone}</span>
+                            </a>
+                          ) : (
+                            <span className="text-slate-400 italic text-[10px]">—</span>
+                          )}
                         </td>
+
+                        {/* 4. Email Address */}
                         <td className="p-2.5 font-mono text-[11px]">
-                          <div className="font-bold text-slate-900 dark:text-slate-200 truncate max-w-[140px]">{lead.email}</div>
-                          <div className="text-[10px] text-emerald-600 dark:text-emerald-400 font-bold">{lead.phone}</div>
+                          {lead.email ? (
+                            <a
+                              href={`mailto:${lead.email}`}
+                              className="text-slate-700 dark:text-slate-300 hover:text-gold-500 flex items-center gap-1.5 truncate max-w-[160px] transition group"
+                              title={lead.email}
+                            >
+                              <Mail className="w-3 h-3 text-blue-500 shrink-0 group-hover:scale-110 transition" />
+                              <span className="truncate">{lead.email}</span>
+                            </a>
+                          ) : (
+                            <span className="text-slate-400 italic text-[10px]">—</span>
+                          )}
                         </td>
                         <td className="p-2.5 text-slate-500 dark:text-slate-400 text-[10px] whitespace-nowrap">
                           {formatLeadDate(lead.createdAt)}
@@ -1371,40 +1403,77 @@ export const CrmSuperAdmin = () => {
                     <table className="w-full text-left text-xs border-collapse">
                       <thead>
                         <tr className="bg-slate-100 dark:bg-navy-950 text-slate-900 dark:text-gold-400 font-serif uppercase tracking-wider text-[10px] border-b border-slate-200 dark:border-navy-800">
-                          <th className="p-3 font-extrabold">APPLICANT & REF #</th>
-                          <th className="p-3 font-extrabold">SERVICE & TRACK</th>
-                          <th className="p-3 font-extrabold">DESTINATION / INTAKE</th>
-                          <th className="p-3 font-extrabold">CONTACT INFO</th>
-                          <th className="p-3 font-extrabold">ASSIGNED CONSULTANT</th>
-                          <th className="p-3 font-extrabold">STATUS & PRIORITY</th>
-                          <th className="p-3 font-extrabold text-right">ACTIONS</th>
+                          <th className="p-3 font-extrabold whitespace-nowrap">Reference ID</th>
+                          <th className="p-3 font-extrabold whitespace-nowrap">Candidate Name</th>
+                          <th className="p-3 font-extrabold whitespace-nowrap">Phone Number</th>
+                          <th className="p-3 font-extrabold whitespace-nowrap">Email Address</th>
+                          <th className="p-3 font-extrabold whitespace-nowrap">SERVICE & TRACK</th>
+                          <th className="p-3 font-extrabold whitespace-nowrap">DESTINATION / INTAKE</th>
+                          <th className="p-3 font-extrabold whitespace-nowrap">ASSIGNED CONSULTANT</th>
+                          <th className="p-3 font-extrabold whitespace-nowrap">STATUS & PRIORITY</th>
+                          <th className="p-3 font-extrabold text-right whitespace-nowrap">ACTIONS</th>
                         </tr>
                       </thead>
                       <tbody className="divide-y divide-slate-200 dark:divide-navy-800 text-slate-800 dark:text-slate-300">
                         {paginatedLeads.map(lead => (
                           <tr key={lead.id} className={`hover:bg-slate-50 dark:hover:bg-navy-950/60 transition group ${lead.isArchived ? 'opacity-60 bg-slate-50/50 dark:bg-navy-950/30' : ''}`}>
-                            <td className="p-3">
+                            {/* 1. Reference ID */}
+                            <td className="p-3 whitespace-nowrap font-mono text-xs font-bold text-gold-600 dark:text-gold-400">
+                              {lead.referenceNumber || (lead.id ? (lead.id.startsWith('#') ? lead.id : `#${lead.id.slice(0, 8)}`) : '—')}
+                            </td>
+
+                            {/* 2. Candidate Name */}
+                            <td className="p-3 whitespace-nowrap">
                               <div className="flex items-center space-x-2.5">
                                 <div className="w-8 h-8 rounded-full bg-gold-500/20 text-gold-700 dark:text-gold-400 font-bold flex items-center justify-center border border-gold-500/30 text-xs shrink-0">
                                   {(lead.name || 'U').charAt(0).toUpperCase()}
                                 </div>
                                 <div className="min-w-0">
                                   <div className="flex items-center gap-1.5">
-                                    <p className="font-bold text-slate-900 dark:text-white truncate">{lead.name}</p>
+                                    <p className="font-bold text-slate-900 dark:text-white text-xs">{lead.name}</p>
                                     {lead.isArchived ? (
                                       <span className="text-[9px] bg-slate-200 dark:bg-navy-800 text-slate-600 dark:text-slate-400 px-1.5 py-0.2 rounded font-extrabold">Archived</span>
                                     ) : null}
                                   </div>
-                                  {lead.referenceNumber && (
-                                    <span className="font-mono text-[9px] text-gold-600 dark:text-gold-400 font-bold block truncate">
-                                      {lead.referenceNumber}
-                                    </span>
-                                  )}
                                   <p className="text-[10px] text-slate-500 dark:text-slate-400 truncate max-w-[140px]">
                                     {lead.organizationName || lead.company || 'Individual / Student'}
                                   </p>
                                 </div>
                               </div>
+                            </td>
+
+                            {/* 3. Phone Number */}
+                            <td className="p-3 whitespace-nowrap font-mono text-xs">
+                              {lead.phone ? (
+                                <a 
+                                  href={`https://wa.me/${cleanPhoneForWa(lead.phone)}`} 
+                                  target="_blank" 
+                                  rel="noopener noreferrer"
+                                  className="font-semibold text-slate-700 dark:text-slate-300 hover:text-emerald-500 flex items-center gap-1.5 transition group"
+                                  title={`WhatsApp / Call ${lead.phone}`}
+                                >
+                                  <Phone className="w-3.5 h-3.5 text-emerald-500 shrink-0 group-hover:scale-110 transition" />
+                                  <span>{lead.phone}</span>
+                                </a>
+                              ) : (
+                                <span className="text-slate-400 italic text-[11px]">—</span>
+                              )}
+                            </td>
+
+                            {/* 4. Email Address */}
+                            <td className="p-3 font-mono text-xs">
+                              {lead.email ? (
+                                <a 
+                                  href={`mailto:${lead.email}`} 
+                                  className="font-semibold text-slate-700 dark:text-slate-300 hover:text-gold-500 flex items-center gap-1.5 truncate max-w-[190px] transition group"
+                                  title={`Email ${lead.email}`}
+                                >
+                                  <Mail className="w-3.5 h-3.5 text-blue-500 shrink-0 group-hover:scale-110 transition" />
+                                  <span className="truncate">{lead.email}</span>
+                                </a>
+                              ) : (
+                                <span className="text-slate-400 italic text-[11px]">—</span>
+                              )}
                             </td>
 
                             <td className="p-3">
@@ -1436,27 +1505,6 @@ export const CrmSuperAdmin = () => {
                                   {[lead.intakeTerm, lead.degreeLevel].filter(Boolean).join(' • ') || 'Immediate'}
                                 </p>
                               </div>
-                            </td>
-
-                            <td className="p-3 font-mono">
-                              <a 
-                                href={`mailto:${lead.email}`} 
-                                className="font-bold text-slate-900 dark:text-slate-200 hover:text-gold-600 dark:hover:text-gold-400 flex items-center gap-1 truncate max-w-[160px]"
-                                title={`Email ${lead.email}`}
-                              >
-                                <Mail className="w-3 h-3 text-slate-400 shrink-0" />
-                                <span className="truncate">{lead.email}</span>
-                              </a>
-                              <a 
-                                href={`https://wa.me/${cleanPhoneForWa(lead.phone)}`} 
-                                target="_blank" 
-                                rel="noopener noreferrer"
-                                className="text-[10px] font-bold text-emerald-600 dark:text-emerald-400 hover:underline flex items-center gap-1 mt-0.5"
-                                title={`WhatsApp ${lead.phone}`}
-                              >
-                                <Phone className="w-3 h-3 shrink-0" />
-                                <span>{lead.phone}</span>
-                              </a>
                             </td>
 
                             <td className="p-3">

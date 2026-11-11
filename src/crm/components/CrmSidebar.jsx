@@ -107,10 +107,17 @@ export const CrmSidebar = ({ collapsed, setCollapsed }) => {
     }).length;
   };
 
+  const isHrOperationsRole = currentRole === 'HR Operations';
+
   // Main CRM Sidebar Navigation Items (Standalone Career Guidance and Student Academy moved inside Consulting & Bookings)
   const menuItems = [
     { id: 'dashboard', label: 'Dashboard', icon: LayoutDashboard },
-    { id: 'hr-tasks', label: 'HR Task Assignment', icon: CheckSquare, tag: 'Task' },
+    { 
+      id: 'hr-tasks', 
+      label: isHrOperationsRole ? 'My Assigned Enquiries' : 'HR Task Assignment', 
+      icon: CheckSquare, 
+      tag: isHrOperationsRole ? 'Assigned' : 'Task' 
+    },
     { id: 'consulting', label: 'Consulting & Bookings', icon: CalendarCheck },
     { id: 'candidates', label: 'Candidates', icon: Users },
     { id: 'pipeline', label: 'Recruitment Pipeline', icon: GitMerge },

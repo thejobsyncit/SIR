@@ -1,5 +1,5 @@
-import React, { useState, useEffect, useRef } from 'react';
-import { useCrm, CrmProvider } from './context/CrmContext';
+import React, { useState, useEffect, useRef, useContext } from 'react';
+import { useCrm, CrmProvider, CrmContext, DEFAULT_CRM_CONTEXT_VALUE } from './context/CrmContext';
 import { CrmLogin } from './components/CrmLogin';
 import { CrmSidebar } from './components/CrmSidebar';
 import { CrmHeader } from './components/CrmHeader';
@@ -57,6 +57,7 @@ import { CrmInterviewerAvailability } from './pages/interviewer/CrmInterviewerAv
 import { CrmInterviewerPermissions } from './pages/interviewer/CrmInterviewerPermissions';
 
 import { CrmHrLeadDashboard } from './pages/CrmHrLeadDashboard';
+import { CrmHrTaskAssignment } from './components/CrmHrTaskAssignment';
 
 import { Search, Sparkles, X, Send, Bot, Loader2, Copy, Check, RotateCcw } from 'lucide-react';
 
@@ -267,9 +268,10 @@ const CrmAppContent = () => {
       case 'hr-documents':
       case 'hr-grievances':
       case 'hr-approvals':
-      case 'hr-tasks':
       case 'hr-reports':
         return <CrmHrLeadDashboard initialSection={activeModule} />;
+      case 'hr-tasks':
+        return <CrmHrTaskAssignment />;
 
       // Standard & Recruiter Modules
       case 'consulting': return <CrmConsultingBookings />;
@@ -515,6 +517,14 @@ const CrmAppContent = () => {
   );
 };
 
-export const CrmApp = () => (
-  <CrmAppContent />
-);
+export const CrmApp = () => {
+  const ctx = useContext(CrmContext);
+  if (!ctx || !ctx.setActiveModule || ctx === DEFAULT_CRM_CONTEXT_VALUE) {
+    return (
+      <CrmProvider>
+        <CrmAppContent />
+      </CrmProvider>
+    );
+  }
+  return <CrmAppContent />;
+};
