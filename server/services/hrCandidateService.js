@@ -1569,6 +1569,38 @@ export const updateHrFollowUp = async (db, employee, followUpId, payload, logAud
     [nextStatus, completionNotes || existing.completionNotes || null, completedAt, existing.id]
   );
 
+  // Sync leads.nextAction / nextActionDate with remaining pending follow-ups so completed items do not resurrect
+  const nextPending = await db.get(
+    `SELECT * FROM follow_ups WHERE enquiryId = ? AND status = 'Pending' ORDER BY dueDateTime ASC LIMIT 1`,
+    [enquiry.id]
+  );
+  if (nextPending) {
+    await db.run(
+      'UPDATE leads SET nextAction = ?, nextActionDate = ?, lastFollowUpDate = COALESCE(lastFollowUpDate, CURRENT_TIMESTAMP), updatedAt = CURRENT_TIMESTAMP WHERE id = ?',
+      [`${nextPending.purpose || 'Follow-up'}: ${nextPending.title}`, nextPending.dueDateTime, enquiry.id]
+    );
+  } else if (nextStatus === 'Completed' || nextStatus === 'Cancelled') {
+    const matchesLeadNextAction =
+      cleanStr(enquiry.nextActionDate) === cleanStr(existing.dueDateTime) ||
+      cleanStr(enquiry.nextAction).includes(cleanStr(existing.title));
+    if (matchesLeadNextAction) {
+      await db.run(
+        `UPDATE leads
+         SET nextAction = NULL,
+             nextActionDate = NULL,
+             lastFollowUpDate = CASE WHEN ? = 'Completed' THEN CURRENT_TIMESTAMP ELSE lastFollowUpDate END,
+             updatedAt = CURRENT_TIMESTAMP
+         WHERE id = ?`,
+        [nextStatus, enquiry.id]
+      );
+    } else if (nextStatus === 'Completed') {
+      await db.run(
+        'UPDATE leads SET lastFollowUpDate = CURRENT_TIMESTAMP, updatedAt = CURRENT_TIMESTAMP WHERE id = ?',
+        [enquiry.id]
+      );
+    }
+  }
+
   await db.run(
     `INSERT INTO enquiry_activities (id, enquiryId, organizationId, type, title, notes, createdBy)
      VALUES (?, ?, ?, ?, ?, ?, ?)`,

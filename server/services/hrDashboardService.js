@@ -315,6 +315,7 @@ export const getHrOperationsDashboardSummary = async (db, employee) => {
   // Filter follow-ups belonging to the authenticated employee's enquiries or directly assigned to them
   const seenFollowUpIds = new Set();
   const pendingFollowUpEnquiryIds = new Set();
+  const resolvedFollowUpSignatures = new Set();
   const followUpsList = [];
 
   for (const fu of allFollowUps || []) {
@@ -335,8 +336,12 @@ export const getHrOperationsDashboardSummary = async (db, employee) => {
       bucket = 'today';
     }
 
-    if (!isDone && linkedEnq) {
-      pendingFollowUpEnquiryIds.add(linkedEnq.id);
+    if (linkedEnq) {
+      if (!isDone) {
+        pendingFollowUpEnquiryIds.add(linkedEnq.id);
+      } else if (dueDateStr) {
+        resolvedFollowUpSignatures.add(`${linkedEnq.id}::${dueDateStr}`);
+      }
     }
 
     followUpsList.push({
@@ -363,7 +368,7 @@ export const getHrOperationsDashboardSummary = async (db, employee) => {
     const rawNext = cleanStr(enq.nextActionDate);
     if (!/^\d{4}-\d{2}-\d{2}/.test(rawNext)) continue;
     const dueDateStr = toCompanyDateStr(rawNext);
-    if (!dueDateStr) continue;
+    if (!dueDateStr || resolvedFollowUpSignatures.has(`${enq.id}::${dueDateStr}`)) continue;
     const bucket = dueDateStr < todayDateStr ? 'overdue' : dueDateStr === todayDateStr ? 'today' : 'upcoming';
     followUpsList.push({
       id: `LEAD-NEXT-${enq.id}`,
@@ -435,11 +440,7 @@ export const getHrOperationsDashboardSummary = async (db, employee) => {
   const pendingEnquiries = assignedEnquiries.filter((e) => !e.isResolved).length;
   const followUpsDueToday = followUpsList.filter((f) => f.bucket === 'today').length;
   const overdueFollowUps = followUpsList.filter((f) => f.bucket === 'overdue').length;
-  const completedEnquiriesThisMonth = assignedEnquiries.filter((e) => {
-    if (!e.isCompletedMetric) return false;
-    const compDateStr = toCompanyDateStr(e.completedAt || e.updatedAt || e.createdAt);
-    return compDateStr ? compDateStr.startsWith(currentMonthStr) : false;
-  }).length;
+  const completedEnquiriesThisMonth = assignedEnquiries.filter((e) => e.isCompletedThisMonth).length;
   const pendingTasks = tasksList.filter((t) => !t.isCompleted).length;
 
   return {
