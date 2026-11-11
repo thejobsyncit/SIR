@@ -7,6 +7,156 @@ import {
 import { CRM_ROLES } from '../data/mockCrmData';
 import ScrollReveal from '../../components/ScrollReveal';
 
+// Master Default Corporate Accounts with full role, department, team & credential metadata
+export const DEFAULT_CRM_ACCOUNTS = [
+  { 
+    name: 'Super Admin', 
+    email: 'thejobsyncit@gmail.com', 
+    altEmail: 'thejobsyncit@gmail.com', 
+    password: 'Thejobsync@26', 
+    role: 'Super Admin', 
+    phone: '+91 9003475405', 
+    department: 'Executive Management',
+    employeeId: 'REV-EMP-001'
+  },
+  { 
+    name: 'Tariq Mansoor', 
+    email: 'tariq.admin@revivalinternational.com', 
+    altEmail: 'tariq@revivalinternational.com', 
+    password: 'Super@Secret2026!', 
+    role: 'Super Admin', 
+    phone: '+971 50 123 4567',
+    department: 'Executive Management',
+    employeeId: 'REV-EMP-001'
+  },
+  { 
+    name: 'Dhanalakshimi', 
+    email: 'dhana.jasync@gmail.com', 
+    altEmail: 'dhanalakshimi@revivalinternational.com', 
+    password: 'Password123!', 
+    role: 'Super Admin', 
+    phone: '+91 9876543210', 
+    department: 'India Operations HQ',
+    employeeId: 'REV-EMP-000'
+  },
+  { 
+    name: 'Sarah Jenkins', 
+    email: 'sarah.admin@revivalinternational.com', 
+    password: 'Password123!', 
+    role: 'Admin', 
+    phone: '+91 98400 11002', 
+    department: 'Administration',
+    employeeId: 'REV-EMP-002'
+  },
+  { 
+    name: 'Priya Sharma', 
+    email: 'priya.lead@revivalinternational.com', 
+    password: 'Password123!', 
+    role: 'HR Lead', 
+    phone: '+91 98400 11003', 
+    department: 'Human Resources',
+    employeeId: 'REV-EMP-003'
+  },
+  { 
+    name: 'Sarah Al Zaabi', 
+    email: 'sarah.hr@revivalinternational.com', 
+    password: 'Password123!', 
+    role: 'HR Lead', 
+    phone: '+971 50 234 5678', 
+    department: 'Human Resources',
+    employeeId: 'REV-EMP-003'
+  },
+  { 
+    name: 'Kishore Kumar', 
+    email: 'kishore.recruiter@revivalinternational.com', 
+    password: 'Password123!', 
+    role: 'Recruiter', 
+    phone: '+91 98400 11004', 
+    department: 'Recruitment & ATS',
+    employeeId: 'REV-EMP-004'
+  },
+  { 
+    name: 'Sreeja Nair', 
+    email: 'sreeja.jasync@gmail.com', 
+    altEmail: 'sreeja.placement@revivalinternational.com', 
+    password: 'Password123!', 
+    role: 'Placement Coordinator', 
+    phone: '+91 9876543211', 
+    department: 'Placement & Industry Relations',
+    employeeId: 'REV-EMP-005'
+  },
+  { 
+    name: 'Balavarshini S.', 
+    email: 'balavarshini.s@revivalinternational.com', 
+    altEmail: 'balavarshini2223@gmail.com', 
+    password: 'Password123!', 
+    role: 'HR Operations', 
+    phone: '+91 9876543214', 
+    department: 'International HR Operations',
+    operationTeam: 'International HR Operations',
+    designation: 'Lead HR Operations Specialist',
+    employeeId: 'REV-EMP-006'
+  },
+  { 
+    name: 'Balavarshini S.', 
+    email: 'balavarshini2223@gmail.com', 
+    altEmail: 'balavarshini.s@revivalinternational.com', 
+    password: 'Password123!', 
+    role: 'HR Operations', 
+    phone: '+91 9876543214', 
+    department: 'International HR Operations',
+    operationTeam: 'International HR Operations',
+    designation: 'Lead HR Operations Specialist',
+    employeeId: 'REV-EMP-006'
+  },
+  { 
+    name: 'Fatima', 
+    email: 'fatima.intl@revivalinternational.com', 
+    altEmail: 'fatima.ops@revivalinternational.com', 
+    password: 'Password123!', 
+    role: 'HR Operations', 
+    phone: '+971 50 876 5432', 
+    department: 'International HR Operations',
+    operationTeam: 'International HR Operations',
+    designation: 'International HR Operations Specialist',
+    employeeId: 'REV-EMP-107'
+  },
+  { 
+    name: 'Fatima', 
+    email: 'fatima.ops@revivalinternational.com', 
+    altEmail: 'fatima.intl@revivalinternational.com', 
+    password: 'Password123!', 
+    role: 'HR Operations', 
+    phone: '+971 50 876 5432', 
+    department: 'International HR Operations',
+    operationTeam: 'International HR Operations',
+    designation: 'International HR Operations Specialist',
+    employeeId: 'REV-EMP-107'
+  },
+  { 
+    name: 'Divya R.', 
+    email: 'divya.enq@revivalinternational.com', 
+    password: 'Password123!', 
+    role: 'HR Operations', 
+    phone: '+91 98401 11202', 
+    department: 'Enquiry HR Operations',
+    operationTeam: 'Enquiry HR Operations',
+    designation: 'HR Operations Specialist',
+    employeeId: 'REV-EMP-102'
+  },
+  { 
+    name: 'Praveen Kumar', 
+    email: 'praveen.enq@revivalinternational.com', 
+    password: 'Password123!', 
+    role: 'HR Operations', 
+    phone: '+91 98401 11208', 
+    department: 'Enquiry HR Operations',
+    operationTeam: 'Enquiry HR Operations',
+    designation: 'HR Operations Specialist',
+    employeeId: 'REV-EMP-108'
+  }
+];
+
 export const CrmLogin = () => {
   const { 
     login, recordFailedLogin = () => {}, failedLoginAttempts = 0, 
@@ -46,33 +196,30 @@ export const CrmLogin = () => {
   });
   const [registerSuccessMsg, setRegisterSuccessMsg] = useState('');
 
+  // Helper to match email or altEmail
+  const matchesUser = (u, target) => {
+    if (!u || !target) return false;
+    const uEm = (u.email || '').toLowerCase().trim();
+    const uAlt = (u.altEmail || '').toLowerCase().trim();
+    return uEm === target || uAlt === target;
+  };
+
   // Persistent Registered Accounts DB (Created via Super Admin Employee Directory)
   const [registeredUsers, setRegisteredUsers] = useState(() => {
-    const defaultAccounts = [
-      { name: 'Super Admin', email: 'thejobsyncit@gmail.com', password: 'Thejobsync@26', role: 'Super Admin', phone: '+91 9003475405', department: 'Executive Management' },
-      { name: 'Super Admin', email: 'tariq.admin@revivalinternational.com', password: 'Super@Secret2026!', role: 'Super Admin', department: 'Executive Management' },
-      { name: 'Dhanalakshimi', email: 'dhana.jasync@gmail.com', password: 'Password123!', role: 'Super Admin', phone: '+91 9876543210', department: 'India Operations HQ' },
-      { name: 'Sarah Jenkins', email: 'sarah.admin@revivalinternational.com', password: 'Password123!', role: 'Admin', phone: '+91 98400 11002', department: 'Administration' },
-      { name: 'Priya Sharma', email: 'priya.lead@revivalinternational.com', password: 'Password123!', role: 'HR Lead', phone: '+91 98400 11003', department: 'Human Resources' },
-      { name: 'Kishore Kumar', email: 'kishore.recruiter@revivalinternational.com', password: 'Password123!', role: 'Recruiter', phone: '+91 98400 11004', department: 'Recruitment & ATS' },
-      { name: 'Sreeja Nair', email: 'sreeja.jasync@gmail.com', password: 'Password123!', role: 'Placement Coordinator', phone: '+91 9876543211', department: 'Placement & Client Relations' },
-      { name: 'Balavarshini', email: 'balavarshini2223@gmail.com', password: 'Password123!', role: 'HR Operations', phone: '+91 9876543214', department: 'HR Operations' }
-    ];
-
-    let users = [...defaultAccounts];
+    let users = [...DEFAULT_CRM_ACCOUNTS];
     const saved = localStorage.getItem('sir_crm_registered_users');
     if (saved) {
       try { 
         const parsed = JSON.parse(saved);
         if (Array.isArray(parsed) && parsed.length > 0) {
           users = parsed.filter(u => u.role !== 'Interviewer');
-          // Merge defaultAccounts and ensure credentials are up to date
-          defaultAccounts.forEach(def => {
-            const idx = users.findIndex(u => u.email.toLowerCase() === def.email.toLowerCase());
+          // Merge DEFAULT_CRM_ACCOUNTS and ensure credentials are up to date
+          DEFAULT_CRM_ACCOUNTS.forEach(def => {
+            const idx = users.findIndex(u => matchesUser(u, def.email.toLowerCase()));
             if (idx === -1) {
               users.unshift(def);
             } else {
-              users[idx] = { ...users[idx], password: def.password, role: def.role, name: def.name };
+              users[idx] = { ...users[idx], ...def };
             }
           });
         }
@@ -131,17 +278,84 @@ export const CrmLogin = () => {
       return;
     }
 
-    // Reload latest registered users from localStorage to catch any recently created accounts
-    let currentUsers = registeredUsers;
-    const latestSaved = localStorage.getItem('sir_crm_registered_users');
-    if (latestSaved) {
-      try { currentUsers = JSON.parse(latestSaved); } catch (err) {}
+    // Direct Instant HR Operations Authentication for Balavarshini S.
+    if ((cleanEmail === 'balavarshini.s@revivalinternational.com' || cleanEmail === 'balavarshini2223@gmail.com') && password === 'Password123!') {
+      setIsAuthenticating(true);
+      switchRole('HR Operations');
+      setTimeout(() => {
+        setIsAuthenticating(false);
+        login('balavarshini.s@revivalinternational.com', 'Password123!', 'HR Operations', {
+          name: 'Balavarshini S.',
+          email: 'balavarshini.s@revivalinternational.com',
+          altEmail: 'balavarshini2223@gmail.com',
+          role: 'HR Operations',
+          employeeId: 'REV-EMP-006',
+          department: 'International HR Operations',
+          operationTeam: 'International HR Operations',
+          designation: 'Lead HR Operations Specialist'
+        });
+      }, 300);
+      return;
     }
 
-    // STRICT CHECK: Verify if account was created via Super Admin
-    const userAccount = currentUsers.find(
-      u => u.email.toLowerCase() === cleanEmail
-    );
+    // Reload latest registered users from localStorage to catch any recently created accounts
+    let currentUsers = [...DEFAULT_CRM_ACCOUNTS];
+    const latestSaved = localStorage.getItem('sir_crm_registered_users');
+    if (latestSaved) {
+      try {
+        const parsed = JSON.parse(latestSaved);
+        if (Array.isArray(parsed) && parsed.length > 0) {
+          parsed.forEach(p => {
+            const idx = currentUsers.findIndex(u => matchesUser(u, (p.email || '').toLowerCase().trim()));
+            if (idx === -1) {
+              currentUsers.push(p);
+            } else {
+              currentUsers[idx] = { ...currentUsers[idx], ...p };
+            }
+          });
+        }
+      } catch (err) {}
+    }
+
+    // STRICT CHECK: Verify if account was created via Super Admin or directory
+    let userAccount = currentUsers.find(u => matchesUser(u, cleanEmail));
+
+    // Try backend authentication endpoint if user account not found or password mismatch locally
+    if (!userAccount || userAccount.password !== password) {
+      try {
+        const endpoints = ['/api/crm/auth/login', 'http://localhost:5000/api/crm/auth/login'];
+        for (const ep of endpoints) {
+          try {
+            const res = await fetch(ep, {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({ email: cleanEmail, password })
+            });
+            if (res.ok) {
+              const data = await res.json();
+              if (data && data.success && data.employee) {
+                userAccount = {
+                  name: data.employee.name,
+                  email: data.employee.email,
+                  altEmail: data.employee.altEmail,
+                  role: data.employee.role,
+                  password: password,
+                  employeeId: data.employee.employeeId || data.employee.id,
+                  department: data.employee.department,
+                  operationTeam: data.employee.operationTeam,
+                  phone: data.employee.phone,
+                  token: data.token
+                };
+                currentUsers = [userAccount, ...currentUsers.filter(u => !matchesUser(u, cleanEmail))];
+                localStorage.setItem('sir_crm_registered_users', JSON.stringify(currentUsers));
+                setRegisteredUsers(currentUsers);
+                break;
+              }
+            }
+          } catch (_) {}
+        }
+      } catch (_) {}
+    }
 
     if (!userAccount) {
       setAuthErrorMsg(`❌ Access Denied: '${email}' is not created by Super Admin! Please contact your Super Admin to create your Employee Account first.`);
@@ -158,7 +372,7 @@ export const CrmLogin = () => {
     switchRole(userAccount.role || 'Super Admin');
     setTimeout(() => {
       setIsAuthenticating(false);
-      login(userAccount.email, userAccount.password, userAccount.role || 'Super Admin');
+      login(userAccount.email, userAccount.password, userAccount.role || 'Super Admin', userAccount);
     }, 300);
   };
 
@@ -245,18 +459,30 @@ export const CrmLogin = () => {
             )}
 
             <div>
-              <div className="flex justify-between items-center mb-1.5">
+              <div className="flex justify-between items-center mb-1.5 flex-wrap gap-2">
                 <label className="block font-extrabold text-white text-xs">Corporate Email Address</label>
-                <button
-                  type="button"
-                  onClick={() => {
-                    setEmail('tariq.admin@revivalinternational.com');
-                    setPassword('Super@Secret2026!');
-                  }}
-                  className="text-[10px] text-gold-400 hover:text-gold-300 font-extrabold underline cursor-pointer"
-                >
-                  ⚡ Fill Super Admin Demo
-                </button>
+                <div className="flex items-center gap-2">
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setEmail('balavarshini.s@revivalinternational.com');
+                      setPassword('Password123!');
+                    }}
+                    className="text-[10px] text-emerald-400 hover:text-emerald-300 font-extrabold underline cursor-pointer"
+                  >
+                    ⚡ Fill HR Ops Demo
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setEmail('tariq.admin@revivalinternational.com');
+                      setPassword('Super@Secret2026!');
+                    }}
+                    className="text-[10px] text-gold-400 hover:text-gold-300 font-extrabold underline cursor-pointer"
+                  >
+                    ⚡ Fill Super Admin Demo
+                  </button>
+                </div>
               </div>
               <div className="relative">
                 <Mail className="w-4 h-4 text-gold-400 absolute left-3.5 top-3.5" />

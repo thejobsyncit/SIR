@@ -49,14 +49,18 @@ export const CrmSuperAdmin = () => {
     }
   };
 
-  // Pre-seeded Employee Accounts matching the exact 6 corporate roles
+  // Pre-seeded Employee Accounts matching the exact corporate roles
   const initialEmployees = [
     { id: 'emp-0', employeeId: 'EMP-1001', name: 'Super Admin', role: 'Super Admin', department: 'Executive Management', email: 'thejobsyncit@gmail.com', phone: '+91 9003475405', password: 'Thejobsync@26', status: 'Active' },
-    { id: 'emp-1', employeeId: 'EMP-1002', name: 'Tariq Al Mansoor', role: 'Admin', department: 'Operations Management', email: 'tariq.admin@revivalinternational.com', phone: '+971 50 123 4567', password: 'Password123!', status: 'Active' },
-    { id: 'emp-2', employeeId: 'EMP-1003', name: 'Sarah Al Zaabi', role: 'HR Lead', department: 'Human Resources', email: 'sarah.hr@revivalinternational.com', phone: '+971 50 234 5678', password: 'Password123!', status: 'Active' },
-    { id: 'emp-3', employeeId: 'EMP-1004', name: 'Sreeja Recruiter', role: 'Recruiter', department: 'Talent Acquisition', email: 'sreeja.jasync@gmail.com', phone: '+91 9876543211', password: 'Password123!', status: 'Active' },
-    { id: 'emp-4', employeeId: 'EMP-1005', name: 'Dhanalakshimi', role: 'Placement Coordinator', department: 'Placement & Industry Relations', email: 'dhana.jasync@gmail.com', phone: '+91 9876543210', password: 'Password123!', status: 'Active' },
-    { id: 'emp-5', employeeId: 'EMP-1006', name: 'Balavarshini S.', role: 'HR Operations', department: 'HR & Student Operations', email: 'balavarshini2223@gmail.com', phone: '+91 9876543214', password: 'Password123!', status: 'Active' }
+    { id: 'emp-1', employeeId: 'EMP-1002', name: 'Tariq Al Mansoor', role: 'Super Admin', department: 'Executive Management', email: 'tariq.admin@revivalinternational.com', phone: '+971 50 123 4567', password: 'Super@Secret2026!', status: 'Active' },
+    { id: 'emp-2', employeeId: 'EMP-1003', name: 'Sarah Jenkins', role: 'Admin', department: 'Operations Management', email: 'sarah.admin@revivalinternational.com', phone: '+91 98400 11002', password: 'Password123!', status: 'Active' },
+    { id: 'emp-3', employeeId: 'EMP-1004', name: 'Priya Sharma', role: 'HR Lead', department: 'Human Resources', email: 'priya.lead@revivalinternational.com', phone: '+91 98400 11003', password: 'Password123!', status: 'Active' },
+    { id: 'emp-4', employeeId: 'EMP-1005', name: 'Kishore Kumar', role: 'Recruiter', department: 'Talent Acquisition', email: 'kishore.recruiter@revivalinternational.com', phone: '+91 98400 11004', password: 'Password123!', status: 'Active' },
+    { id: 'emp-5', employeeId: 'EMP-1006', name: 'Sreeja Nair', role: 'Placement Coordinator', department: 'Placement & Industry Relations', email: 'sreeja.jasync@gmail.com', altEmail: 'sreeja.placement@revivalinternational.com', phone: '+91 9876543211', password: 'Password123!', status: 'Active' },
+    { id: 'emp-6', employeeId: 'REV-EMP-006', name: 'Balavarshini S.', role: 'HR Operations', department: 'International HR Operations', email: 'balavarshini.s@revivalinternational.com', altEmail: 'balavarshini2223@gmail.com', phone: '+91 9876543214', password: 'Password123!', status: 'Active' },
+    { id: 'emp-7', employeeId: 'REV-EMP-107', name: 'Fatima', role: 'HR Operations', department: 'International HR Operations', email: 'fatima.intl@revivalinternational.com', altEmail: 'fatima.ops@revivalinternational.com', phone: '+971 50 876 5432', password: 'Password123!', status: 'Active' },
+    { id: 'emp-8', employeeId: 'REV-EMP-102', name: 'Divya R.', role: 'HR Operations', department: 'Enquiry HR Operations', email: 'divya.enq@revivalinternational.com', phone: '+91 98401 11202', password: 'Password123!', status: 'Active' },
+    { id: 'emp-9', employeeId: 'REV-EMP-108', name: 'Praveen Kumar', role: 'HR Operations', department: 'Enquiry HR Operations', email: 'praveen.enq@revivalinternational.com', phone: '+91 98401 11208', password: 'Password123!', status: 'Active' }
   ];
 
   const [employees, setEmployees] = useState(() => {
