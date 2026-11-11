@@ -821,13 +821,13 @@ app.post('/api/auth/google', async (req, res) => {
         candidateId = `RI-CAND-${String(nextSeq).padStart(3, '0')}-${Math.floor(10 + Math.random() * 90)}`;
       }
 
-      const defaultSkills = JSON.stringify(['International Mobility', 'Executive Candidate', 'Global Mandates']);
+      const defaultSkills = JSON.stringify([]);
       await db.run(`
         INSERT INTO candidate_profiles (
           id, userId, email, name, phone, avatar, nationality, currentRole,
           currentEmployer, experience, education, expectedSalary, skills,
           savedJobs, profileCompletion, stage, score
-        ) VALUES (?, ?, ?, ?, '', ?, 'UAE', 'Executive Candidate', 'Revival International Talent Pool', '3-5 Years', 'Bachelor Degree / Professional Diploma', 'Market Standard', ?, '[]', 60, 'lead', 88)
+        ) VALUES (?, ?, ?, ?, '', ?, '', '', '', '', '', '', ?, '[]', 20, 'lead', 50)
       `, [candidateId, userId, cleanEmail, finalName, finalAvatar, defaultSkills]);
 
       candidateProfile = await db.get('SELECT * FROM candidate_profiles WHERE id = ?', [candidateId]);
@@ -935,7 +935,7 @@ app.post('/api/auth/google', async (req, res) => {
         userId: userId,
         name: finalName,
         email: cleanEmail,
-        phone: candidateProfile?.phone || '',
+        phone: (candidateProfile?.phone || '').includes('http') ? '' : (candidateProfile?.phone || ''),
         avatar: finalAvatar,
         role: 'candidate',
         isAdmin: cleanEmail === 'thejobsyncit@gmail.com',
@@ -943,10 +943,10 @@ app.post('/api/auth/google', async (req, res) => {
         authProvider: 'google',
         googleVerified: true,
         googleSub: googleSub,
-        title: candidateProfile?.currentRole || 'Executive Candidate',
-        experience: candidateProfile?.experience || '3-5 Years',
-        qualification: candidateProfile?.education || 'Bachelor Degree / Professional Diploma',
-        expectedSalary: candidateProfile?.expectedSalary || 'Market Standard',
+        title: candidateProfile?.currentRole || '',
+        experience: candidateProfile?.experience || '',
+        qualification: candidateProfile?.education || '',
+        expectedSalary: candidateProfile?.expectedSalary || '',
         skills: parseArray(candidateProfile?.skills || '[]'),
         savedJobs: parseArray(candidateProfile?.savedJobs || '[]'),
         profileCompletion: candidateProfile?.profileCompletion || 65,
@@ -4548,12 +4548,26 @@ app.post('/api/visa/check', (req, res) => {
     score: finalScore,
     status: eligibilityStatus,
     targetCountry: targetCountryData.country,
+    countryData: { country: targetCountryData.country, name: targetCountryData.country },
     visaName: targetCountryData.commonVisa,
     processingTime: targetCountryData.processingTime,
     estimatedCost: targetCountryData.avgCost,
     sponsorship: targetCountryData.sponsorship,
     reasons,
-    documentChecklist: targetCountryData.documentChecklist
+    documentChecklist: targetCountryData.documentChecklist || [],
+    checklist: targetCountryData.documentChecklist || [
+      'Valid Passport (6+ Months Validity)',
+      'Attested Degree Certificates & Transcripts',
+      'Police Clearance Certificate (PCC)',
+      'Medical Fitness Assessment Report',
+      'Employment Offer Letter & Job Contract',
+      'Passport Sized Photographs (White Background)'
+    ],
+    recommendedJobs: [
+      { id: 'REC-JOB-01', title: 'Senior Project Manager', company: 'Emaar Group', salary: 'AED 28,000 / mo' },
+      { id: 'REC-JOB-02', title: 'Site Mechanical Engineer', company: 'Al Habtoor Contracting', salary: 'AED 18,500 / mo' },
+      { id: 'REC-JOB-03', title: 'Financial Controller', company: 'Emirates NBD', salary: 'AED 32,000 / mo' }
+    ]
   });
 });
 

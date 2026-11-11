@@ -19,9 +19,11 @@ export const VisaEligibilityPage = () => {
   
   const [loading, setLoading] = useState(false);
   const [result, setResult] = useState(null);
+  const [formError, setFormError] = useState('');
 
   const handleEvaluate = async (e) => {
     e.preventDefault();
+    setFormError('');
     setLoading(true);
 
     let calculatedAge = 0;
@@ -34,7 +36,7 @@ export const VisaEligibilityPage = () => {
       }
     } else {
       setLoading(false);
-      alert('Please select your Date of Birth.');
+      setFormError('Please select your Date of Birth to evaluate visa eligibility.');
       return;
     }
 
@@ -42,23 +44,9 @@ export const VisaEligibilityPage = () => {
       setResult({
         score: 0,
         status: 'Not Eligible',
+        targetCountry: country,
         countryData: { country },
-        reasons: ['Age is below 18 years. You are not eligible for a work visa.'],
-        processingTime: 'N/A',
-        estimatedCost: 'N/A',
-        checklist: [],
-        recommendedJobs: []
-      });
-      setLoading(false);
-      return;
-    }
-
-    if (calculatedAge > 35) {
-      setResult({
-        score: 0,
-        status: 'Not Eligible',
-        countryData: { country },
-        reasons: ['Age exceeds 35 years. You are not eligible.'],
+        reasons: ['Age is below 18 years. You are not eligible for an independent work visa.'],
         processingTime: 'N/A',
         estimatedCost: 'N/A',
         checklist: [],
@@ -270,10 +258,17 @@ export const VisaEligibilityPage = () => {
               </select>
             </div>
 
+            {formError && (
+              <div className="p-3 bg-rose-500/10 border border-rose-500/30 text-rose-600 dark:text-rose-400 rounded-xl text-xs font-bold flex items-center gap-2">
+                <AlertTriangle className="w-4 h-4 shrink-0" />
+                <span>{formError}</span>
+              </div>
+            )}
+
             <button 
               type="submit" 
               disabled={loading}
-              className="w-full py-3.5 bg-gold-shimmer text-navy-950 font-bold text-xs rounded-xl shadow-gold-glow hover:opacity-95 transition flex items-center justify-center space-x-2"
+              className="w-full py-3.5 bg-gold-shimmer text-navy-950 font-bold text-xs rounded-xl shadow-gold-glow hover:opacity-95 transition flex items-center justify-center space-x-2 cursor-pointer"
             >
               {loading ? (
                 <>
@@ -308,7 +303,7 @@ export const VisaEligibilityPage = () => {
                   <div>
                     <p className="text-xs font-bold uppercase text-gold-600 dark:text-gold-400 tracking-wider">Visa Eligibility Index</p>
                     <h3 className="font-serif text-2xl sm:text-3xl font-extrabold text-slate-900 dark:text-white mt-1">{result.status}</h3>
-                    <p className="text-xs text-slate-700 dark:text-slate-300 mt-1">Target Country: <strong className="text-gold-600 dark:text-gold-400 font-bold">{result.countryData ? result.countryData.country : country}</strong></p>
+                    <p className="text-xs text-slate-700 dark:text-slate-300 mt-1">Target Country: <strong className="text-gold-600 dark:text-gold-400 font-bold">{result.countryData?.country || result.targetCountry || country}</strong></p>
                   </div>
                   <div className="w-20 h-20 rounded-full border-4 border-gold-500 bg-gold-500/10 dark:bg-navy-900 flex flex-col items-center justify-center font-extrabold text-gold-600 dark:text-gold-400 text-2xl shadow-gold-glow shrink-0">
                     <span>{result.score}%</span>
@@ -347,40 +342,44 @@ export const VisaEligibilityPage = () => {
               </div>
 
               {/* Document Checklist */}
-              <div className="glass-card bg-white dark:bg-navy-900 border border-slate-200 dark:border-navy-800 p-6 rounded-2xl space-y-3 text-xs shadow-glass">
-                <h4 className="font-serif font-bold text-navy-900 dark:text-white text-base flex items-center gap-2">
-                  <FileText className="w-4 h-4 text-gold-500" />
-                  Mandatory Document Checklist for {result.countryData.country} Visa:
-                </h4>
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
-                  {result.checklist.map((doc, idx) => (
-                    <div key={idx} className="p-2.5 bg-slate-50 dark:bg-navy-950 border border-slate-200 dark:border-navy-800 rounded-xl flex items-center gap-2 text-slate-800 dark:text-slate-200 font-semibold">
-                      <CheckCircle2 className="w-4 h-4 text-emerald-500 shrink-0" />
-                      <span>{doc}</span>
-                    </div>
-                  ))}
+              {((result.checklist && result.checklist.length > 0) || (result.documentChecklist && result.documentChecklist.length > 0)) && (
+                <div className="glass-card bg-white dark:bg-navy-900 border border-slate-200 dark:border-navy-800 p-6 rounded-2xl space-y-3 text-xs shadow-glass">
+                  <h4 className="font-serif font-bold text-navy-900 dark:text-white text-base flex items-center gap-2">
+                    <FileText className="w-4 h-4 text-gold-500" />
+                    Mandatory Document Checklist for {result.countryData?.country || result.targetCountry || country} Visa:
+                  </h4>
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                    {(result.checklist || result.documentChecklist || []).map((doc, idx) => (
+                      <div key={idx} className="p-2.5 bg-slate-50 dark:bg-navy-950 border border-slate-200 dark:border-navy-800 rounded-xl flex items-center gap-2 text-slate-800 dark:text-slate-200 font-semibold">
+                        <CheckCircle2 className="w-4 h-4 text-emerald-500 shrink-0" />
+                        <span>{doc}</span>
+                      </div>
+                    ))}
+                  </div>
                 </div>
-              </div>
+              )}
 
               {/* Recommended Matching Jobs */}
-              <div className="glass-card bg-white dark:bg-navy-900 border border-slate-200 dark:border-navy-800 p-6 rounded-2xl space-y-3 text-xs">
-                <h4 className="font-serif font-bold text-navy-900 dark:text-white text-base">
-                  Recommended Vacancies in {result.countryData.country}:
-                </h4>
-                <div className="space-y-2">
-                  {result.recommendedJobs.map((j) => (
-                    <div key={j.id} className="p-3 bg-slate-50 dark:bg-navy-950 rounded-xl border flex justify-between items-center">
-                      <div>
-                        <p className="font-bold text-navy-900 dark:text-white">{j.title}</p>
-                        <p className="text-[11px] text-slate-700 dark:text-slate-300 font-semibold">{j.company} • {j.salary}</p>
+              {result.recommendedJobs && result.recommendedJobs.length > 0 && (
+                <div className="glass-card bg-white dark:bg-navy-900 border border-slate-200 dark:border-navy-800 p-6 rounded-2xl space-y-3 text-xs">
+                  <h4 className="font-serif font-bold text-navy-900 dark:text-white text-base">
+                    Recommended Vacancies in {result.countryData?.country || result.targetCountry || country}:
+                  </h4>
+                  <div className="space-y-2">
+                    {result.recommendedJobs.map((j) => (
+                      <div key={j.id} className="p-3 bg-slate-50 dark:bg-navy-950 rounded-xl border border-slate-200 dark:border-navy-800 flex justify-between items-center">
+                        <div>
+                          <p className="font-bold text-navy-900 dark:text-white">{j.title}</p>
+                          <p className="text-[11px] text-slate-700 dark:text-slate-300 font-semibold">{j.company} • {j.salary}</p>
+                        </div>
+                        <button onClick={() => navigateTo('jobs')} className="px-3 py-1.5 bg-gold-500 text-navy-950 font-bold rounded-lg hover:bg-gold-600 transition cursor-pointer">
+                          Apply Now
+                        </button>
                       </div>
-                      <button onClick={() => navigateTo('jobs')} className="px-3 py-1.5 bg-slate-50 dark:bg-navy-900 text-gold-400 font-bold rounded-lg hover:bg-gold-500 hover:text-slate-900 dark:text-white transition">
-                        Apply
-                      </button>
-                    </div>
-                  ))}
+                    ))}
+                  </div>
                 </div>
-              </div>
+              )}
 
             </div>
           )}

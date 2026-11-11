@@ -36,12 +36,14 @@ export const BackgroundVerificationPage = () => {
     }
   };
 
-  const handleTrack = () => {
-    if (!trackId) return;
+  const handleTrack = (customId) => {
+    const id = (typeof customId === 'string' && customId) ? customId : trackId;
+    if (!id) return;
+    setTrackId(id);
     setTrackedStatus({
-      caseId: trackId,
-      candidate: 'Alexander Wright',
-      type: '6-Point Comprehensive Audit',
+      caseId: id,
+      candidate: submittedCase?.candidateName || candidateName || 'Candidate Record',
+      type: submittedCase?.verificationType || verificationType || '6-Point Comprehensive Audit',
       status: 'In Progress - Embassy Degree Attestation',
       progress: 65,
       steps: [
@@ -53,6 +55,11 @@ export const BackgroundVerificationPage = () => {
         { name: 'Executive Reference Audit', status: 'Completed' }
       ]
     });
+
+    setTimeout(() => {
+      const el = document.getElementById('live-case-tracker-tool');
+      if (el) el.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+    }, 50);
   };
 
   return (
@@ -194,8 +201,9 @@ export const BackgroundVerificationPage = () => {
               <p className="text-xs text-emerald-400 font-bold">Estimated Turnaround: {submittedCase.estimatedCompletionDays} Business Days</p>
 
               <button 
-                onClick={() => { setTrackId(submittedCase.caseId); handleTrack(); }}
-                className="w-full py-2 bg-gold-shimmer text-navy-950 font-bold rounded-xl"
+                type="button"
+                onClick={() => handleTrack(submittedCase.caseId)}
+                className="w-full py-2.5 bg-gold-shimmer text-navy-950 font-bold rounded-xl shadow-gold-glow hover:opacity-95 transition cursor-pointer"
               >
                 Track Case Progress Live →
               </button>
@@ -204,7 +212,7 @@ export const BackgroundVerificationPage = () => {
         </div>
 
         {/* Live Case Tracking Tool */}
-        <div className="glass-card bg-white dark:bg-navy-900 border border-slate-200 dark:border-navy-800 p-6 sm:p-8 rounded-3xl space-y-4 shadow-luxury text-xs">
+        <div id="live-case-tracker-tool" className="glass-card bg-white dark:bg-navy-900 border border-slate-200 dark:border-navy-800 p-6 sm:p-8 rounded-3xl space-y-4 shadow-luxury text-xs">
           <div className="flex items-center space-x-2 border-b border-slate-200 dark:border-navy-800 pb-3">
             <Search className="w-5 h-5 text-gold-500" />
             <h3 className="font-serif text-lg font-bold text-navy-900 dark:text-white">Live Verification Tracking</h3>
