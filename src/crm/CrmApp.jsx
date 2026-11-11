@@ -57,6 +57,7 @@ import { CrmInterviewerAvailability } from './pages/interviewer/CrmInterviewerAv
 import { CrmInterviewerPermissions } from './pages/interviewer/CrmInterviewerPermissions';
 
 import { CrmHrLeadDashboard } from './pages/CrmHrLeadDashboard';
+import { CrmHrOperationsDashboard } from './pages/CrmHrOperationsDashboard';
 import { CrmAttendanceManagement } from './pages/CrmAttendanceManagement';
 import { CrmLeaveManagement } from './pages/CrmLeaveManagement';
 import { CrmHrTaskAssignment } from './components/CrmHrTaskAssignment';
