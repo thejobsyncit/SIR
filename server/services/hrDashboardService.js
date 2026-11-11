@@ -266,6 +266,11 @@ export const getHrOperationsDashboardSummary = async (db, employee) => {
     for (const enq of cand.enquiries) {
       if (!enq.isAssignedToMe) continue;
       if (!myEnquiryMap.has(enq.id)) {
+        const isCompletedMetric = RESOLVED_STATUS_SET.has(enq.status);
+        const compDateStr = isCompletedMetric
+          ? toCompanyDateStr(enq.completedAt || enq.updatedAt || enq.createdAt)
+          : null;
+        const isCompletedThisMonth = Boolean(compDateStr && compDateStr.startsWith(currentMonthStr));
         myEnquiryMap.set(enq.id, {
           id: enq.id,
           referenceNumber: enq.referenceNumber || enq.id,
@@ -290,7 +295,8 @@ export const getHrOperationsDashboardSummary = async (db, employee) => {
           nextAction: enq.nextAction || null,
           nextActionDate: enq.nextActionDate || null,
           isResolved: CLOSED_OR_CANCELLED_STATUSES.has(enq.status),
-          isCompletedMetric: RESOLVED_STATUS_SET.has(enq.status)
+          isCompletedMetric,
+          isCompletedThisMonth
         });
       }
     }

@@ -59,7 +59,6 @@ export const CrmHrLeadDashboard = ({ initialSection }) => {
     setTimeout(() => setToastMsg(''), 4000);
   };
 
-<<<<<<< HEAD
   // Real SQLite Attendance Regularizations & HR Operations Team Attendance
   const [hrRegularizations, setHrRegularizations] = useState([]);
   const [hrTeamAttendance, setHrTeamAttendance] = useState([]);
@@ -116,7 +115,9 @@ export const CrmHrLeadDashboard = ({ initialSection }) => {
       showToast(err.message || 'Unable to process regularization review.');
     } finally {
       setReviewingRegId('');
-=======
+    }
+  };
+
   // Payroll Management States & Helpers
   const [generatingPdfId, setGeneratingPdfId] = useState(null);
   const [previewEmployee, setPreviewEmployee] = useState(null);
@@ -621,7 +622,6 @@ export const CrmHrLeadDashboard = ({ initialSection }) => {
       showToast(`✓ Monthly Payroll Register PDF downloaded for all ${employees.length} employees`);
     } catch (err) {
       showToast(`⚠️ Error: ${err.message}`);
->>>>>>> 4f03f08938b75da91e0e03dc4c53b73a44ab9d34
     }
   };
 
