@@ -3928,7 +3928,7 @@ app.post('/api/visa/check', (req, res) => {
   }
 
   let langScore = 0;
-  if (langStr.includes('ielts') || langStr.includes('fluent') || langStr.includes('native') || langStr.includes('b2') || langStr.includes('c1') || langStr.includes('oet') || langStr.includes('det')) {
+  if (langStr.includes('ielts') || langStr.includes('fluent') || langStr.includes('native') || langStr.includes('advance') || langStr.includes('b2') || langStr.includes('c1') || langStr.includes('oet') || langStr.includes('det')) {
     langScore = 15;
     reasons.push('Verified language proficiency satisfies visa criteria and employer communication standards.');
   } else {

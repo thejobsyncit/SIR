@@ -15,7 +15,8 @@ export const VisaEligibilityPage = () => {
   const [qualification, setQualification] = useState("Bachelor's Degree");
   const [experience, setExperience] = useState('5');
   const [dob, setDob] = useState(null);
-  const [language, setLanguage] = useState('English');
+  const [selectedLanguage, setSelectedLanguage] = useState('English');
+  const [proficiencyLevel, setProficiencyLevel] = useState('Fluent');
   
   const [loading, setLoading] = useState(false);
   const [result, setResult] = useState(null);
@@ -60,7 +61,7 @@ export const VisaEligibilityPage = () => {
       const res = await fetch('/api/visa/check', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ country, qualification, experience, age: calculatedAge, language })
+        body: JSON.stringify({ country, qualification, experience, age: calculatedAge, language: `${proficiencyLevel} ${selectedLanguage}` })
       });
       if (res.ok) {
         const data = await res.json();
@@ -75,7 +76,7 @@ export const VisaEligibilityPage = () => {
       const ageVal = calculatedAge;
       const expVal = parseInt(experience) || 2;
       const qualStr = (qualification || '').toLowerCase();
-      const langStr = (language || '').toLowerCase();
+      const langStr = `${proficiencyLevel} ${selectedLanguage}`.toLowerCase();
       
       let baseScore = 20;
       const reasons = [];
@@ -104,7 +105,7 @@ export const VisaEligibilityPage = () => {
       let expScore = expVal >= 10 ? 25 : expVal >= 5 ? 20 : expVal >= 3 ? 14 : 8;
       reasons.push(`${experience} years experience added to professional profile rating.`);
 
-      let langScore = langStr.includes('english') || langStr.includes('arabic') || langStr.includes('german') ? 20 : 10;
+      let langScore = langStr.includes('native') || langStr.includes('fluent') || langStr.includes('advance') || langStr.includes('english') || langStr.includes('arabic') || langStr.includes('german') || langStr.includes('french') || langStr.includes('ielts') ? 20 : 10;
 
       let score = Math.max(10, Math.min(100, baseScore + ageScore + qualScore + expScore + langScore));
       let status = score >= 85 ? 'Highly Eligible' : score >= 70 ? 'Eligible (Standard Pathway)' : score >= 50 ? 'Conditional Eligibility' : 'Low Eligibility';
@@ -245,17 +246,42 @@ export const VisaEligibilityPage = () => {
               </div>
             </div>
 
-            <div>
-              <label className="block font-bold text-slate-700 dark:text-slate-200 mb-1">Language Proficiency</label>
-              <select 
-                value={language} 
-                onChange={(e) => setLanguage(e.target.value)}
-                className="w-full bg-slate-50 dark:bg-navy-950 border border-slate-300 dark:border-navy-700 rounded-xl p-2.5 text-navy-900 dark:text-white"
-              >
-                <option value="English">Fluent English</option>
-                <option value="Arabic">Fluent Arabic & English</option>
-                <option value="German">German B1 / B2</option>
-              </select>
+            <div className="space-y-3">
+              <div>
+                <label className="block font-bold text-slate-700 dark:text-slate-200 mb-1">Language</label>
+                <select 
+                  value={selectedLanguage} 
+                  onChange={(e) => setSelectedLanguage(e.target.value)}
+                  className="w-full bg-slate-50 dark:bg-navy-950 border border-slate-300 dark:border-navy-700 rounded-xl p-2.5 text-navy-900 dark:text-white font-medium focus:ring-2 focus:ring-gold-500 focus:border-transparent transition-all"
+                >
+                  <option value="English">English</option>
+                  <option value="Arabic">Arabic</option>
+                  <option value="German">German</option>
+                  <option value="French">French</option>
+                  <option value="Spanish">Spanish</option>
+                  <option value="Hindi">Hindi</option>
+                  <option value="Mandarin">Mandarin (Chinese)</option>
+                  <option value="Japanese">Japanese</option>
+                  <option value="Russian">Russian</option>
+                  <option value="Italian">Italian</option>
+                  <option value="Urdu">Urdu</option>
+                </select>
+              </div>
+
+              <div>
+                <label className="block font-bold text-slate-700 dark:text-slate-200 mb-1">Proficiency Level</label>
+                <select 
+                  value={proficiencyLevel} 
+                  onChange={(e) => setProficiencyLevel(e.target.value)}
+                  className="w-full bg-slate-50 dark:bg-navy-950 border border-slate-300 dark:border-navy-700 rounded-xl p-2.5 text-navy-900 dark:text-white font-medium focus:ring-2 focus:ring-gold-500 focus:border-transparent transition-all"
+                >
+                  <option value="Native">Native (Mother Tongue / Bilingual)</option>
+                  <option value="Fluent">Fluent (Professional Working)</option>
+                  <option value="Advance">Advance (IELTS 7.5+ / CEFR C1)</option>
+                  <option value="Intermediate">Intermediate (CEFR B1 / B2)</option>
+                  <option value="Basic">Basic (Elementary A1 / A2)</option>
+                </select>
+              </div>
             </div>
 
             {formError && (

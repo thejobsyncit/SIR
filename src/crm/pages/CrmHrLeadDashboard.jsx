@@ -1185,7 +1185,7 @@ export const CrmHrLeadDashboard = ({ initialSection }) => {
             { id: 'leave', label: '#3 Leave Management', icon: Calendar },
             { id: 'employees', label: '#4 Employee Directory', icon: Users },
             { id: 'performance', label: '#5 Performance', icon: TrendingUp },
-            { id: 'recruitment', label: '#6 Recruitment & Onboarding', icon: UserCheck },
+            { id: 'recruitment', label: '#6 Onboarding', icon: UserCheck },
             { id: 'announcements', label: '#7 Notices & Life Events', icon: Bell },
             { id: 'shifts', label: '#8 Shift Roster', icon: CalendarCheck },
             { id: 'documents', label: '#9 Document Vault', icon: FileText }
@@ -1728,7 +1728,7 @@ export const CrmHrLeadDashboard = ({ initialSection }) => {
         )}
 
         {/* ========================================================
-            TAB 6: RECRUITMENT & ONBOARDING (Feature 6)
+            TAB 6: ONBOARDING (Feature 6)
         ======================================================== */}
         {activeTab === 'recruitment' && (
           <div className="space-y-6 animate-in fade-in duration-200">

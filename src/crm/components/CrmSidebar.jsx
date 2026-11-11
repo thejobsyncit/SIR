@@ -168,7 +168,7 @@ export const CrmSidebar = ({ collapsed, setCollapsed }) => {
     { id: 'plc-drives', label: 'Placement drive management', icon: Briefcase, tag: '4' },
     { id: 'plc-registration', label: 'Student registration', icon: UserCheck, tag: '5' },
     { id: 'plc-applications', label: 'Application tracking', icon: GitMerge, tag: '6' },
-    { id: 'plc-events', label: 'Interview & event coordination', icon: Calendar, tag: '7' },
+    { id: 'plc-events', label: 'Recruitment & placement coordination', icon: Calendar, tag: '7' },
     { id: 'plc-offers', label: 'Offer & placement records', icon: Award, tag: '8' },
     { id: 'plc-announcements', label: 'Announcements & notifications', icon: Bell, tag: '9' },
     { id: 'plc-reports', label: 'Reports and exports', icon: BarChart3, tag: '10' },
@@ -199,7 +199,7 @@ export const CrmSidebar = ({ collapsed, setCollapsed }) => {
     { id: 'hr-leave', label: 'Leave management', icon: Calendar, tag: '3' },
     { id: 'hr-employees', label: 'Employee management', icon: Users, tag: '4' },
     { id: 'hr-performance', label: 'Employee performance', icon: TrendingUp, tag: '5' },
-    { id: 'hr-recruitment', label: 'Recruitment & onboarding', icon: UserPlus, tag: '6' },
+    { id: 'hr-recruitment', label: 'Onboarding', icon: UserPlus, tag: '6' },
     { id: 'hr-announcements', label: 'Announcements & alerts', icon: Bell, tag: '7' },
     { id: 'hr-shifts', label: 'Shift management', icon: CalendarCheck, tag: '8' },
     { id: 'hr-documents', label: 'Document repository', icon: FileText, tag: '9' }

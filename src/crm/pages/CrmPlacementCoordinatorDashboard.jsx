@@ -330,7 +330,7 @@ export const CrmPlacementCoordinatorDashboard = ({ initialSection }) => {
             { id: 'drives', label: '#4 Drives', icon: Briefcase },
             { id: 'registration', label: '#5 Registration', icon: UserCheck },
             { id: 'applications', label: '#6 Applications', icon: GitMerge },
-            { id: 'events', label: '#7 Events', icon: Calendar },
+            { id: 'events', label: '#7 Recruitment & Placement', icon: Calendar },
             { id: 'offers', label: '#8 Offers', icon: Award },
             { id: 'announcements', label: '#9 Notices', icon: Bell },
             { id: 'reports', label: '#10 Reports', icon: BarChart3 },
