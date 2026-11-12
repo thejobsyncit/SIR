@@ -139,12 +139,6 @@ export const CrmSidebar = ({ collapsed, setCollapsed }) => {
       label: 'My Attendance',
       icon: CalendarCheck
     },
-    {
-      id: 'my-profile',
-      label: 'My Profile',
-      icon: User,
-      ...(isHrOperationsRole ? {} : { tag: 'Profile' })
-    },
     { id: 'consulting', label: 'Consulting & Bookings', icon: CalendarCheck },
     { id: 'candidates', label: 'Candidates', icon: Users },
     { id: 'pipeline', label: 'Recruitment Pipeline', icon: GitMerge },
@@ -160,7 +154,13 @@ export const CrmSidebar = ({ collapsed, setCollapsed }) => {
     { id: 'ai-suite', label: 'AI Features Suite', icon: Sparkles },
     { id: 'automation', label: 'Automations', icon: Zap },
     { id: 'super-admin', label: 'Super Admin Panel', icon: ShieldCheck },
-    { id: 'settings', label: 'Admin Settings', icon: Settings }
+    { id: 'settings', label: 'Admin Settings', icon: Settings },
+    {
+      id: 'my-profile',
+      label: 'My Profile',
+      icon: User,
+      ...(isHrOperationsRole ? {} : { tag: 'Profile' })
+    }
   ];
 
   const isRecruiterRole = currentRole === 'Recruiter' || currentRole === 'Domestic Recruiter' || currentRole === 'International Recruiter';
@@ -176,7 +176,8 @@ export const CrmSidebar = ({ collapsed, setCollapsed }) => {
     { id: 'documentation', label: 'Document Verification & KYC', icon: FileText, tag: '2' },
     { id: 'verification', label: 'Background Verification (BGV)', icon: ShieldCheck, tag: '3' },
     { id: 'consulting', label: 'Inquiries & Admissions', icon: Calendar, tag: '4' },
-    { id: 'candidates', label: 'Candidate Dossiers', icon: Users, tag: '5' }
+    { id: 'candidates', label: 'Candidate Dossiers', icon: Users, tag: '5' },
+    { id: 'my-profile', label: 'My Profile', icon: User }
   ];
 
   // 9 Recruiter Dashboard features (Removed Notes & Tags, Communication, Team Collaboration)
@@ -189,7 +190,8 @@ export const CrmSidebar = ({ collapsed, setCollapsed }) => {
     { id: 'documentation', label: 'Resume upload and storage', icon: FileText, tag: '6' },
     { id: 'interviews', label: 'Interview scheduling', icon: Calendar, tag: '7' },
     { id: 'offers', label: 'Offers and joining', icon: Award, tag: '8' },
-    { id: 'reports', label: 'Reports and analytics', icon: BarChart3, tag: '9' }
+    { id: 'reports', label: 'Reports and analytics', icon: BarChart3, tag: '9' },
+    { id: 'my-profile', label: 'My Profile', icon: User, tag: 'Profile' }
   ];
 
   // 11 Placement Coordinator Dashboard features as defined in Page 2 of the Recruitment Requirements PDF
@@ -204,7 +206,8 @@ export const CrmSidebar = ({ collapsed, setCollapsed }) => {
     { id: 'plc-offers', label: 'Offer & placement records', icon: Award, tag: '8' },
     { id: 'plc-announcements', label: 'Announcements & notifications', icon: Bell, tag: '9' },
     { id: 'plc-reports', label: 'Reports and exports', icon: BarChart3, tag: '10' },
-    { id: 'plc-approvals', label: 'Access and approvals', icon: ShieldCheck, tag: '11' }
+    { id: 'plc-approvals', label: 'Access and approvals', icon: ShieldCheck, tag: '11' },
+    { id: 'my-profile', label: 'My Profile', icon: User, tag: 'Profile' }
   ];
 
   // 12 Interviewer Dashboard features as defined in Page 3 of the Recruitment Requirements PDF
@@ -220,7 +223,8 @@ export const CrmSidebar = ({ collapsed, setCollapsed }) => {
     { id: 'int-reminders', label: 'Feedback reminders', icon: AlertCircle, tag: '9' },
     { id: 'int-context', label: 'Previous-round context', icon: BookOpen, tag: '10' },
     { id: 'int-calendar', label: 'Availability / calendar', icon: CalendarCheck, tag: '11' },
-    { id: 'int-permissions', label: 'Confidentiality & permissions', icon: Lock, tag: '12' }
+    { id: 'int-permissions', label: 'Confidentiality & permissions', icon: Lock, tag: '12' },
+    { id: 'my-profile', label: 'My Profile', icon: User, tag: 'Profile' }
   ];
 
   // 10 HR Lead Dashboard features (Removed Payroll, Grievances, Approvals, Analytics)
@@ -248,12 +252,23 @@ export const CrmSidebar = ({ collapsed, setCollapsed }) => {
     permittedItems = recruiterMenuItems;
   } else if (isPlacementRole) {
     permittedItems = placementMenuItems;
-  
   } else if (isHrLeadRole) {
     permittedItems = hrLeadMenuItems;
   } else if (isHrOpsRole) {
     permittedItems = hrOpsMenuItems;
   }
+
+  // Universal Guarantee: 'my-profile' is strictly positioned at the very last of the sidebar across all roles
+  const profileItem = permittedItems.find(item => item.id === 'my-profile') || {
+    id: 'my-profile',
+    label: 'My Profile',
+    icon: User,
+    ...(isHrOperationsRole ? {} : { tag: 'Profile' })
+  };
+  permittedItems = [
+    ...permittedItems.filter(item => item.id !== 'my-profile'),
+    profileItem
+  ];
 
   // Role-based filtering for Consulting & Bookings sub-services
   const permittedSubServices = isHrOperationsRole
