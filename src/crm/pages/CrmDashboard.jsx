@@ -215,34 +215,6 @@ export const CrmDashboard = () => {
           </span>
         </div>
       </div>
-
-      {/* Quick Inspection Switcher for Super Admin / Admin */}
-      {(currentRole === 'Super Admin' || currentRole === 'Admin') && (
-        <div className="bg-white dark:bg-navy-900 border border-slate-200 dark:border-navy-700 p-3.5 rounded-2xl shadow-sm flex flex-wrap items-center justify-between gap-2">
-          <div className="flex items-center gap-2">
-            <Layers className="w-4 h-4 text-amber-500" />
-            <span className="text-xs font-bold text-slate-800 dark:text-slate-200">
-              Role-Based Dashboard Preview (Super Admin / Admin Tool):
-            </span>
-          </div>
-          <div className="flex flex-wrap items-center gap-2">
-            {[
-              { id: 'HR Lead', label: 'HR Lead Dashboard', color: 'border-blue-200 text-blue-700 bg-blue-50 dark:bg-blue-950/40 dark:text-blue-300' },
-              { id: 'Recruiter', label: 'Recruiter Dashboard', color: 'border-purple-200 text-purple-700 bg-purple-50 dark:bg-purple-950/40 dark:text-purple-300' },
-              { id: 'Placement Coordinator', label: 'Placement Coordinator', color: 'border-amber-200 text-amber-700 bg-amber-50 dark:bg-amber-950/40 dark:text-amber-300' },
-              { id: 'HR Operations', label: 'HR Operations', color: 'border-emerald-200 text-emerald-700 bg-emerald-50 dark:bg-emerald-950/40 dark:text-emerald-300' }
-            ].map(r => (
-              <button
-                key={r.id}
-                onClick={() => setAdminRoleView(r.id)}
-                className={`text-xs px-3 py-1.5 rounded-xl border ${r.color} font-semibold transition hover:scale-[1.02] cursor-pointer`}
-              >
-                Inspect {r.label} →
-              </button>
-            ))}
-          </div>
-        </div>
-      )}
       </ScrollReveal>
 
       {/* KPI Widgets Grid */}

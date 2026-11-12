@@ -1310,6 +1310,8 @@ const initDb = async (db) => {
     { name: 'organizationId', type: 'TEXT' },
     { name: 'organizationName', type: 'TEXT' },
     { name: 'assignedEmployee', type: 'TEXT' },
+    { name: 'assignedEmployeeId', type: 'TEXT' },
+    { name: 'assignedEmployeeEmail', type: 'TEXT' },
     { name: 'priority', type: "TEXT DEFAULT 'Medium'" },
     { name: 'nextAction', type: 'TEXT' },
     { name: 'nextActionDate', type: 'TEXT' },

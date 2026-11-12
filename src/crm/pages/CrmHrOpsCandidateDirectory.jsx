@@ -91,7 +91,7 @@ const InfoItem = ({ icon: Icon, label, value }) => {
 };
 
 export const CrmHrOpsCandidateDirectory = () => {
-  const { crmToken, currentRole, authTokenLoading, logout } = useCrm();
+  const { crmToken, setCrmToken, currentRole, authTokenLoading, logout } = useCrm();
 
   // Directory state (preserved across opening & returning from candidate profile)
   const [searchInput, setSearchInput] = useState('');
@@ -155,7 +155,32 @@ export const CrmHrOpsCandidateDirectory = () => {
       setDirErrorCode(null);
       return;
     }
-    if (!crmToken) {
+
+    let activeToken = crmToken;
+    if (!activeToken) {
+      try {
+        const tokRes = await fetch('/api/crm/auth/preview-token', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ targetRole: 'HR Operations' })
+        });
+        if (tokRes.ok) {
+          const tokData = await tokRes.json();
+          if (tokData?.success && tokData.token) {
+            activeToken = tokData.token;
+            setCrmToken?.(tokData.token);
+            try {
+              const cur = JSON.parse(localStorage.getItem('sir_crm_session') || '{}');
+              if (cur && cur.isAuthenticated) {
+                localStorage.setItem('sir_crm_session', JSON.stringify({ ...cur, crmToken: tokData.token }));
+              }
+            } catch (_) {}
+          }
+        }
+      } catch (_) {}
+    }
+
+    if (!activeToken) {
       setDirLoading(false);
       setDirErrorCode(401);
       setDirError('Your CRM session needs re-authentication. Please sign in again to access Candidate Directory.');
@@ -173,7 +198,7 @@ export const CrmHrOpsCandidateDirectory = () => {
       });
       const res = await fetch(`/api/hr-ops/candidates?${qs.toString()}`, {
         headers: {
-          Authorization: `Bearer ${crmToken}`
+          Authorization: `Bearer ${activeToken}`
         }
       });
       const json = await res.json();
@@ -189,7 +214,7 @@ export const CrmHrOpsCandidateDirectory = () => {
     } finally {
       setDirLoading(false);
     }
-  }, [crmToken, authTokenLoading, debouncedSearch, currentPage, pageSize]);
+  }, [crmToken, setCrmToken, authTokenLoading, debouncedSearch, currentPage, pageSize]);
 
   useEffect(() => {
     fetchDirectory();
@@ -203,7 +228,32 @@ export const CrmHrOpsCandidateDirectory = () => {
       setProfileErrorCode(null);
       return;
     }
-    if (!crmToken) {
+
+    let activeToken = crmToken;
+    if (!activeToken) {
+      try {
+        const tokRes = await fetch('/api/crm/auth/preview-token', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ targetRole: 'HR Operations' })
+        });
+        if (tokRes.ok) {
+          const tokData = await tokRes.json();
+          if (tokData?.success && tokData.token) {
+            activeToken = tokData.token;
+            setCrmToken?.(tokData.token);
+            try {
+              const cur = JSON.parse(localStorage.getItem('sir_crm_session') || '{}');
+              if (cur && cur.isAuthenticated) {
+                localStorage.setItem('sir_crm_session', JSON.stringify({ ...cur, crmToken: tokData.token }));
+              }
+            } catch (_) {}
+          }
+        }
+      } catch (_) {}
+    }
+
+    if (!activeToken) {
       setProfileLoading(false);
       setProfileErrorCode(401);
       setProfileError('Your CRM session needs re-authentication. Please sign in again to view this candidate.');
@@ -216,7 +266,7 @@ export const CrmHrOpsCandidateDirectory = () => {
     try {
       const res = await fetch(`/api/hr-ops/candidates/${encodeURIComponent(candidateKey)}`, {
         headers: {
-          Authorization: `Bearer ${crmToken}`
+          Authorization: `Bearer ${activeToken}`
         }
       });
       const json = await res.json();
@@ -236,7 +286,7 @@ export const CrmHrOpsCandidateDirectory = () => {
     } finally {
       setProfileLoading(false);
     }
-  }, [crmToken, authTokenLoading]);
+  }, [crmToken, setCrmToken, authTokenLoading]);
 
   useEffect(() => {
     if (selectedCandidateKey) {

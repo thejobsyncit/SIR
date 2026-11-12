@@ -1,60 +1,66 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { useCrm } from '../context/CrmContext';
 import { 
-  Search, Bell, Sparkles, UserCheck, ShieldCheck, Menu, Moon, Sun, Lock, Plus, X, Clock, AlertTriangle, LogOut, ChevronDown,
-  Building2, Users, Briefcase, GraduationCap, Layers, Check
+  Search, Bell, Sparkles, UserCheck, ShieldCheck, Menu, Moon, Sun, Lock, Plus, X, Clock, AlertTriangle, LogOut, ChevronDown, Check, Sliders, Users, Target, Briefcase, CheckSquare, Layers, Shield
 } from 'lucide-react';
 import { CRM_ROLES } from '../data/mockCrmData';
 
-const ROLE_DEFINITIONS = [
+// Rich metadata for the custom enterprise role switcher
+const ROLE_DETAILS = [
   {
-    name: 'Super Admin',
-    badge: 'Executive',
-    description: 'Full System Control & Governance',
+    role: 'Super Admin',
+    badge: 'Executive Command',
+    desc: 'Full enterprise governance, workforce & master financials',
     icon: ShieldCheck,
-    iconColor: 'text-amber-600 dark:text-amber-400',
-    iconBg: 'bg-amber-100 dark:bg-amber-950/60',
+    color: 'text-amber-600 dark:text-amber-400',
+    bg: 'bg-amber-100 dark:bg-amber-500/20 border-amber-300 dark:border-amber-500/30',
+    dot: 'bg-amber-500'
   },
   {
-    name: 'Admin',
-    badge: 'Management',
-    description: 'Executive Operations & Oversight',
-    icon: Building2,
-    iconColor: 'text-blue-600 dark:text-blue-400',
-    iconBg: 'bg-blue-100 dark:bg-blue-950/60',
+    role: 'Admin',
+    badge: 'Administration',
+    desc: 'System settings, user accounts & portal security',
+    icon: Sliders,
+    color: 'text-blue-600 dark:text-blue-400',
+    bg: 'bg-blue-100 dark:bg-blue-500/20 border-blue-300 dark:border-blue-500/30',
+    dot: 'bg-blue-500'
   },
   {
-    name: 'HR Lead',
-    badge: 'Leadership',
-    description: 'People Strategy & Team Management',
+    role: 'HR Lead',
+    badge: 'Workforce & Talent',
+    desc: 'Team attendance, leaves, shifts & onboarding',
     icon: Users,
-    iconColor: 'text-purple-600 dark:text-purple-400',
-    iconBg: 'bg-purple-100 dark:bg-purple-950/60',
+    color: 'text-emerald-600 dark:text-emerald-400',
+    bg: 'bg-emerald-100 dark:bg-emerald-500/20 border-emerald-300 dark:border-emerald-500/30',
+    dot: 'bg-emerald-500'
   },
   {
-    name: 'Recruiter',
-    badge: 'Sourcing',
-    description: 'Talent Sourcing & Candidate Pipeline',
+    role: 'Recruiter',
+    badge: 'ATS & Sourcing',
+    desc: 'Candidates, vacancies, pipeline & interviews',
+    icon: Target,
+    color: 'text-purple-600 dark:text-purple-400',
+    bg: 'bg-purple-100 dark:bg-purple-500/20 border-purple-300 dark:border-purple-500/30',
+    dot: 'bg-purple-500'
+  },
+  {
+    role: 'Placement Coordinator',
+    badge: 'Campus & Drives',
+    desc: 'Student dossiers, college drives & placements',
     icon: Briefcase,
-    iconColor: 'text-cyan-600 dark:text-cyan-400',
-    iconBg: 'bg-cyan-100 dark:bg-cyan-950/60',
+    color: 'text-indigo-600 dark:text-indigo-400',
+    bg: 'bg-indigo-100 dark:bg-indigo-500/20 border-indigo-300 dark:border-indigo-500/30',
+    dot: 'bg-indigo-500'
   },
   {
-    name: 'Placement Coordinator',
-    badge: 'Campus',
-    description: 'Campus Drives, Colleges & Students',
-    icon: GraduationCap,
-    iconColor: 'text-emerald-600 dark:text-emerald-400',
-    iconBg: 'bg-emerald-100 dark:bg-emerald-950/60',
-  },
-  {
-    name: 'HR Operations',
-    badge: 'Operations',
-    description: 'Daily Onboarding, Attendance & Records',
-    icon: Layers,
-    iconColor: 'text-rose-600 dark:text-rose-400',
-    iconBg: 'bg-rose-100 dark:bg-rose-950/60',
-  },
+    role: 'HR Operations',
+    badge: 'Daily Enquiries & KYC',
+    desc: 'Assigned tasks, document check & candidate directory',
+    icon: CheckSquare,
+    color: 'text-teal-600 dark:text-teal-400',
+    bg: 'bg-teal-100 dark:bg-teal-500/20 border-teal-300 dark:border-teal-500/30',
+    dot: 'bg-teal-500'
+  }
 ];
 
 export const CrmHeader = ({ collapsed, setCollapsed }) => {
@@ -74,49 +80,42 @@ export const CrmHeader = ({ collapsed, setCollapsed }) => {
   } = useCrm();
 
   const [quickMenuOpen, setQuickMenuOpen] = useState(false);
-  const [roleDropdownOpen, setRoleDropdownOpen] = useState(false);
+  const [roleMenuOpen, setRoleMenuOpen] = useState(false);
   const roleDropdownRef = useRef(null);
 
+  // Close role dropdown when clicking outside
   useEffect(() => {
-    const handleClickOutside = (event) => {
-      if (roleDropdownRef.current && !roleDropdownRef.current.contains(event.target)) {
-        setRoleDropdownOpen(false);
+    const handleOutsideClick = (e) => {
+      if (roleDropdownRef.current && !roleDropdownRef.current.contains(e.target)) {
+        setRoleMenuOpen(false);
       }
     };
-    const handleKeyDown = (event) => {
-      if (event.key === 'Escape') {
-        setRoleDropdownOpen(false);
-      }
-    };
-
-    if (roleDropdownOpen) {
-      document.addEventListener('mousedown', handleClickOutside);
-      document.addEventListener('keydown', handleKeyDown);
+    if (roleMenuOpen) {
+      document.addEventListener('mousedown', handleOutsideClick);
     }
     return () => {
-      document.removeEventListener('mousedown', handleClickOutside);
-      document.removeEventListener('keydown', handleKeyDown);
+      document.removeEventListener('mousedown', handleOutsideClick);
     };
-  }, [roleDropdownOpen]);
+  }, [roleMenuOpen]);
 
-  const activeRoleConfig = ROLE_DEFINITIONS.find((r) => r.name === currentRole) || {
-    name: currentRole || 'Super Admin',
-    badge: 'Active Role',
-    description: 'Enterprise Role Access',
-    icon: UserCheck,
-    iconColor: 'text-amber-600 dark:text-amber-400',
-    iconBg: 'bg-amber-100 dark:bg-amber-950/60',
+  const activeRoleMeta = ROLE_DETAILS.find(r => r.role === currentRole) || ROLE_DETAILS[0];
+  const ActiveRoleIcon = activeRoleMeta.icon;
+
+  const handleSelectRole = (roleName) => {
+    if (switchRole && roleName !== currentRole) {
+      switchRole(roleName);
+    }
+    setRoleMenuOpen(false);
   };
-  const ActiveRoleIcon = activeRoleConfig.icon;
 
   return (
-    <header className="bg-white dark:bg-[#070c1e]/90 backdrop-blur-xl text-slate-900 dark:text-white border-b border-slate-200 dark:border-slate-800/80 px-4 sm:px-6 py-3 flex justify-between items-center z-30 font-sans shadow-sm shrink-0">
+    <header className="bg-white dark:bg-[#070c1e]/90 backdrop-blur-xl text-slate-900 dark:text-white border-b border-slate-200 dark:border-slate-800/80 px-4 sm:px-6 py-2.5 flex justify-between items-center z-20 font-sans shadow-sm shrink-0">
       
       {/* Left Search & Sidebar Toggle */}
       <div className="flex items-center space-x-3 sm:space-x-4">
         <button 
           onClick={() => setCollapsed(!collapsed)}
-          className="p-2 rounded-xl bg-slate-100 dark:bg-navy-900 border border-slate-200 dark:border-navy-800 text-slate-600 dark:text-slate-300 hover:text-gold-500 transition"
+          className="p-2 rounded-xl bg-slate-100 dark:bg-navy-900 border border-slate-200 dark:border-navy-800 text-slate-600 dark:text-slate-300 hover:text-gold-500 transition cursor-pointer"
           title="Toggle Navigation Menu"
         >
           <Menu className="w-4 h-4" />
@@ -125,7 +124,7 @@ export const CrmHeader = ({ collapsed, setCollapsed }) => {
         {/* Command Palette Trigger */}
         <button
           onClick={() => setCommandPaletteOpen(true)}
-          className="hidden sm:flex items-center space-x-3 bg-slate-100 dark:bg-navy-900 border border-slate-300 dark:border-navy-700 hover:border-gold-500 text-slate-800 dark:text-slate-200 font-semibold px-4 py-2 rounded-xl text-xs min-w-[240px] md:min-w-[280px] transition"
+          className="hidden sm:flex items-center space-x-3 bg-slate-100 dark:bg-navy-900 border border-slate-300 dark:border-navy-700 hover:border-gold-500 text-slate-800 dark:text-slate-200 font-semibold px-4 py-2 rounded-xl text-xs min-w-[260px] md:min-w-[300px] transition cursor-pointer"
         >
           <Search className="w-3.5 h-3.5 text-gold-500" />
           <span>Global Search (Candidates, Clients, Passports)...</span>
@@ -139,11 +138,8 @@ export const CrmHeader = ({ collapsed, setCollapsed }) => {
         {/* Quick Create Action Menu */}
         <div className="relative">
           <button
-            onClick={() => {
-              setQuickMenuOpen(!quickMenuOpen);
-              if (roleDropdownOpen) setRoleDropdownOpen(false);
-            }}
-            className="flex items-center space-x-1.5 bg-gold-500 text-navy-950 hover:bg-gold-400 px-3 sm:px-3.5 py-2 rounded-xl font-bold transition shadow-sm"
+            onClick={() => setQuickMenuOpen(!quickMenuOpen)}
+            className="flex items-center space-x-1.5 bg-gold-500 text-navy-950 hover:bg-gold-400 px-3 py-2 rounded-xl font-bold transition shadow-sm cursor-pointer"
           >
             <Plus className="w-4 h-4" />
             <span className="hidden md:inline">Quick Create</span>
@@ -157,7 +153,7 @@ export const CrmHeader = ({ collapsed, setCollapsed }) => {
                   setGlobalAddCandidateOpen(true);
                   setQuickMenuOpen(false); 
                 }}
-                className="w-full text-left p-2 hover:bg-slate-100 dark:hover:bg-navy-800 rounded-xl text-slate-800 dark:text-slate-200 hover:text-gold-500 transition"
+                className="w-full text-left p-2 hover:bg-slate-100 dark:hover:bg-navy-800 rounded-xl text-slate-800 dark:text-slate-200 hover:text-gold-500 transition cursor-pointer"
               >
                 👤 Add Candidate
               </button>
@@ -167,7 +163,7 @@ export const CrmHeader = ({ collapsed, setCollapsed }) => {
                   setGlobalAddClientOpen(true);
                   setQuickMenuOpen(false); 
                 }}
-                className="w-full text-left p-2 hover:bg-slate-100 dark:hover:bg-navy-800 rounded-xl text-slate-800 dark:text-slate-200 hover:text-gold-500 transition"
+                className="w-full text-left p-2 hover:bg-slate-100 dark:hover:bg-navy-800 rounded-xl text-slate-800 dark:text-slate-200 hover:text-gold-500 transition cursor-pointer"
               >
                 🏢 Register Client
               </button>
@@ -177,7 +173,7 @@ export const CrmHeader = ({ collapsed, setCollapsed }) => {
                   setGlobalAddInterviewOpen(true);
                   setQuickMenuOpen(false); 
                 }}
-                className="w-full text-left p-2 hover:bg-slate-100 dark:hover:bg-navy-800 rounded-xl text-slate-800 dark:text-slate-200 hover:text-gold-500 transition"
+                className="w-full text-left p-2 hover:bg-slate-100 dark:hover:bg-navy-800 rounded-xl text-slate-800 dark:text-slate-200 hover:text-gold-500 transition cursor-pointer"
               >
                 📅 Schedule Interview
               </button>
@@ -187,7 +183,7 @@ export const CrmHeader = ({ collapsed, setCollapsed }) => {
                   setGlobalAddInvoiceOpen(true);
                   setQuickMenuOpen(false); 
                 }}
-                className="w-full text-left p-2 hover:bg-slate-100 dark:hover:bg-navy-800 rounded-xl text-slate-800 dark:text-slate-200 hover:text-gold-500 transition"
+                className="w-full text-left p-2 hover:bg-slate-100 dark:hover:bg-navy-800 rounded-xl text-slate-800 dark:text-slate-200 hover:text-gold-500 transition cursor-pointer"
               >
                 📄 Generate Invoice
               </button>
@@ -195,138 +191,92 @@ export const CrmHeader = ({ collapsed, setCollapsed }) => {
           )}
         </div>
 
-        {/* Enterprise Role Selector Dropdown */}
+        {/* CUSTOM ENTERPRISE ROLE SELECTOR DROPDOWN (Replaces ugly native browser select) */}
         <div className="relative" ref={roleDropdownRef}>
           <button
             type="button"
-            onClick={() => {
-              setRoleDropdownOpen(!roleDropdownOpen);
-              if (quickMenuOpen) setQuickMenuOpen(false);
-            }}
-            aria-expanded={roleDropdownOpen}
-            aria-haspopup="listbox"
-            title="Switch Active CRM Role"
-            className="group flex items-center space-x-2 bg-slate-100 hover:bg-slate-200/80 dark:bg-navy-900 dark:hover:bg-navy-800 border border-slate-200 dark:border-navy-700 hover:border-gold-500/50 dark:hover:border-gold-500/50 px-3 py-1.5 sm:px-3.5 sm:py-2 rounded-xl transition-all duration-150 shadow-xs focus:outline-none focus:ring-2 focus:ring-gold-500/30"
+            onClick={() => setRoleMenuOpen(prev => !prev)}
+            className="flex items-center space-x-2 bg-gradient-to-r from-amber-50 to-amber-100/80 dark:from-navy-900 dark:to-navy-900/90 hover:from-amber-100 hover:to-amber-200 dark:hover:from-navy-800 dark:hover:to-navy-800/90 border border-amber-300 dark:border-gold-500/40 px-3 py-1.5 rounded-xl transition duration-200 shadow-xs cursor-pointer group"
+            title="Switch Active Workspace Role"
           >
-            {/* Active Role Icon */}
-            <div className={`w-5 h-5 rounded-md flex items-center justify-center shrink-0 ${activeRoleConfig.iconBg} ${activeRoleConfig.iconColor}`}>
-              <ActiveRoleIcon className="w-3.5 h-3.5" />
+            <div className={`p-1 rounded-lg ${activeRoleMeta.bg} shrink-0`}>
+              <ActiveRoleIcon className={`w-3.5 h-3.5 ${activeRoleMeta.color}`} />
             </div>
-
-            {/* Role: Label (hidden on small mobile screens to keep header tidy) */}
-            <span className="hidden sm:inline text-[11px] text-slate-500 dark:text-slate-400 font-extrabold uppercase tracking-wider whitespace-nowrap">
-              Role:
-            </span>
-
-            {/* Active Role Name */}
-            <span className="text-[13px] sm:text-[14px] font-bold text-slate-900 dark:text-white tracking-tight whitespace-nowrap">
+            <div className="text-left hidden sm:block">
+              <div className="text-[10px] uppercase tracking-wider font-extrabold text-slate-500 dark:text-slate-400 leading-none">Role</div>
+              <div className="text-xs font-bold text-amber-950 dark:text-gold-300 leading-tight flex items-center gap-1.5">
+                <span>{currentRole}</span>
+              </div>
+            </div>
+            <span className="sm:hidden text-xs font-bold text-amber-950 dark:text-gold-300">
               {currentRole}
             </span>
-
-            {/* Animated Chevron */}
-            <ChevronDown 
-              className={`w-3.5 h-3.5 text-slate-500 dark:text-slate-400 transition-transform duration-200 shrink-0 ${
-                roleDropdownOpen ? 'rotate-180 text-gold-600 dark:text-gold-400' : 'group-hover:text-slate-800 dark:group-hover:text-slate-200'
-              }`} 
-            />
+            <ChevronDown className={`w-3.5 h-3.5 text-amber-700 dark:text-gold-400 transition-transform duration-200 ${roleMenuOpen ? 'rotate-180' : ''}`} />
           </button>
 
-          {/* Premium Enterprise Dropdown Panel */}
-          {roleDropdownOpen && (
-            <div 
-              role="listbox"
-              aria-label="Select Active CRM Role"
-              className="absolute right-0 top-full mt-2 w-80 sm:w-88 max-w-[calc(100vw-2rem)] bg-white dark:bg-[#070c1e] border border-slate-200 dark:border-slate-800/90 rounded-2xl shadow-2xl shadow-slate-900/15 dark:shadow-black/70 p-2 z-50 animate-in fade-in zoom-in-95 duration-150 origin-top-right focus:outline-none"
-            >
-              {/* Dropdown Header */}
-              <div className="flex items-center justify-between px-3 py-2 border-b border-slate-100 dark:border-slate-800/80 mb-1.5">
-                <div className="flex items-center space-x-2">
-                  <UserCheck className="w-4 h-4 text-gold-500" />
-                  <span className="text-[11px] font-black uppercase tracking-wider text-slate-500 dark:text-slate-400">
-                    Switch Active Role
-                  </span>
+          {/* Luxury Dropdown Menu */}
+          {roleMenuOpen && (
+            <div className="absolute right-0 top-full mt-2 w-80 max-w-[95vw] bg-white dark:bg-[#0c142b] border border-amber-200 dark:border-gold-500/30 rounded-2xl p-2.5 shadow-2xl z-50 animate-in fade-in zoom-in-95 duration-150">
+              
+              <div className="px-3 py-2 border-b border-slate-100 dark:border-navy-800/80 flex items-center justify-between mb-1">
+                <div>
+                  <h4 className="text-xs font-extrabold text-slate-900 dark:text-white uppercase tracking-wider">
+                    Switch Workspace Role
+                  </h4>
+                  <p className="text-[10px] text-slate-500 dark:text-slate-400">
+                    Preview and operate under all enterprise roles
+                  </p>
                 </div>
-                <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-slate-100 dark:bg-navy-900 text-slate-600 dark:text-slate-400 border border-slate-200 dark:border-navy-700">
-                  {CRM_ROLES.length} Roles
+                <span className="text-[10px] font-mono px-2 py-0.5 rounded-full bg-gold-500/15 text-gold-700 dark:text-gold-300 border border-gold-500/30 font-bold">
+                  6 Roles
                 </span>
               </div>
 
-              {/* Roles List */}
-              <div className="space-y-1.5 max-h-[420px] overflow-y-auto pr-0.5">
-                {ROLE_DEFINITIONS.map((role) => {
-                  const isSelected = currentRole === role.name;
-                  const RoleIcon = role.icon;
+              <div className="space-y-1 max-h-[360px] overflow-y-auto crm-sidebar-scroll py-1">
+                {ROLE_DETAILS.map((r) => {
+                  const RoleIcon = r.icon;
+                  const isSelected = r.role === currentRole;
 
                   return (
                     <button
-                      key={role.name}
+                      key={r.role}
                       type="button"
-                      role="option"
-                      aria-selected={isSelected}
-                      onClick={() => {
-                        if (switchRole) {
-                          switchRole(role.name);
-                        }
-                        setRoleDropdownOpen(false);
-                      }}
-                      className={`w-full text-left flex items-center px-3.5 py-2.5 rounded-xl transition-all duration-150 group border ${
+                      onClick={() => handleSelectRole(r.role)}
+                      className={`w-full text-left p-2 rounded-xl transition duration-150 flex items-center justify-between gap-2.5 cursor-pointer group ${
                         isSelected
-                          ? 'bg-sky-50 dark:bg-sky-950/60 border-sky-300 dark:border-sky-700/80 text-sky-950 dark:text-sky-100 font-bold shadow-xs'
-                          : 'bg-white dark:bg-[#070c1e] border-transparent hover:bg-slate-50 dark:hover:bg-slate-800/60 hover:border-slate-200 dark:hover:border-slate-800 text-slate-800 dark:text-slate-200'
+                          ? 'bg-amber-100/80 dark:bg-gold-500/20 border border-amber-300/80 dark:border-gold-500/40 shadow-xs'
+                          : 'hover:bg-slate-100 dark:hover:bg-navy-800/70 border border-transparent text-slate-700 dark:text-slate-300'
                       }`}
                     >
-                      {/* Role Icon */}
-                      <div
-                        className={`w-9 h-9 rounded-xl flex items-center justify-center shrink-0 mr-3 transition-colors ${
-                          isSelected
-                            ? 'bg-sky-500 text-white shadow-sm shadow-sky-500/30'
-                            : `${role.iconBg} ${role.iconColor}`
-                        }`}
-                      >
-                        <RoleIcon className="w-4 h-4" />
+                      <div className="flex items-center space-x-2.5 min-w-0 flex-1">
+                        <div className={`p-2 rounded-xl ${r.bg} shrink-0`}>
+                          <RoleIcon className={`w-4 h-4 ${r.color}`} />
+                        </div>
+                        <div className="min-w-0 flex-1">
+                          <div className="flex items-center gap-1.5">
+                            <span className={`text-xs font-bold truncate ${isSelected ? 'text-amber-950 dark:text-gold-300' : 'text-slate-900 dark:text-white'}`}>
+                              {r.role}
+                            </span>
+                            <span className="text-[9px] px-1.5 py-0.2 rounded font-semibold bg-slate-200/80 dark:bg-navy-800 text-slate-600 dark:text-slate-300 shrink-0">
+                              {r.badge}
+                            </span>
+                          </div>
+                          <p className="text-[10px] text-slate-500 dark:text-slate-400 truncate mt-0.5">
+                            {r.desc}
+                          </p>
+                        </div>
                       </div>
 
-                      {/* Role Label & Description */}
-                      <div className="flex-1 min-w-0 pr-2">
-                        <div className="flex items-center space-x-2">
-                          <span className={`text-[14.5px] leading-snug font-bold truncate ${
-                            isSelected ? 'text-sky-950 dark:text-sky-100' : 'text-slate-900 dark:text-white'
-                          }`}>
-                            {role.name}
-                          </span>
-                          <span className={`text-[9.5px] uppercase font-bold tracking-wider px-1.5 py-0.2 rounded ${
-                            isSelected
-                              ? 'bg-sky-200/70 dark:bg-sky-900/60 text-sky-800 dark:text-sky-200'
-                              : 'bg-slate-100 dark:bg-navy-900 text-slate-500 dark:text-slate-400'
-                          }`}>
-                            {role.badge}
-                          </span>
+                      {isSelected && (
+                        <div className="w-5 h-5 rounded-full bg-emerald-500 text-white flex items-center justify-center shrink-0 shadow-xs">
+                          <Check className="w-3 h-3 stroke-[3]" />
                         </div>
-                        <p className={`text-[11.5px] leading-tight truncate mt-0.5 ${
-                          isSelected ? 'text-sky-700 dark:text-sky-300 font-medium' : 'text-slate-500 dark:text-slate-400 font-normal'
-                        }`}>
-                          {role.description}
-                        </p>
-                      </div>
-
-                      {/* Selected Checkmark or Hover Dot */}
-                      {isSelected ? (
-                        <div className="w-5 h-5 rounded-full bg-sky-600 dark:bg-sky-500 text-white flex items-center justify-center shrink-0 shadow-xs">
-                          <Check className="w-3.5 h-3.5 stroke-[2.8]" />
-                        </div>
-                      ) : (
-                        <div className="w-2 h-2 rounded-full bg-transparent group-hover:bg-slate-300 dark:group-hover:bg-slate-700 shrink-0 mr-1.5 transition-colors" />
                       )}
                     </button>
                   );
                 })}
               </div>
 
-              {/* Dropdown Footer */}
-              <div className="mt-2 pt-2 border-t border-slate-100 dark:border-slate-800/80 px-3 py-1 flex items-center justify-between text-[10px] text-slate-400 dark:text-slate-500">
-                <span>Instant Live Role Synchronization</span>
-                <span className="font-semibold text-gold-500">Ready</span>
-              </div>
             </div>
           )}
         </div>
@@ -334,7 +284,7 @@ export const CrmHeader = ({ collapsed, setCollapsed }) => {
         {/* Dark / Light Mode Switcher */}
         <button 
           onClick={toggleDarkMode}
-          className="p-2 rounded-xl bg-slate-100 dark:bg-navy-900 border border-slate-200 dark:border-navy-800 text-slate-700 dark:text-slate-300 hover:text-gold-500 transition"
+          className="p-2 rounded-xl bg-slate-100 dark:bg-navy-900 border border-slate-200 dark:border-navy-800 text-slate-700 dark:text-slate-300 hover:text-gold-500 transition cursor-pointer"
           title="Toggle Theme"
         >
           {darkMode ? <Sun className="w-4 h-4 text-gold-400" /> : <Moon className="w-4 h-4 text-slate-600" />}
@@ -343,7 +293,7 @@ export const CrmHeader = ({ collapsed, setCollapsed }) => {
         {/* AI Assistant Drawer Trigger */}
         <button 
           onClick={() => setAiDrawerOpen(true)}
-          className="flex items-center space-x-1.5 bg-gold-500/20 text-gold-600 dark:text-gold-400 border border-gold-500/40 hover:bg-gold-500 hover:text-navy-950 px-3 py-2 rounded-xl font-bold transition shadow-sm"
+          className="flex items-center space-x-1.5 bg-gold-500/20 text-gold-600 dark:text-gold-400 border border-gold-500/40 hover:bg-gold-500 hover:text-navy-950 px-3 py-2 rounded-xl font-bold transition shadow-sm cursor-pointer"
         >
           <Sparkles className="w-3.5 h-3.5" />
           <span className="hidden sm:inline">AI Copilot</span>
@@ -353,7 +303,7 @@ export const CrmHeader = ({ collapsed, setCollapsed }) => {
         <div className="relative">
           <button 
             onClick={() => setNotificationsOpen(!notificationsOpen)}
-            className="p-2 rounded-xl bg-slate-100 dark:bg-navy-900 border border-slate-200 dark:border-navy-800 text-slate-700 dark:text-slate-300 hover:text-gold-500 relative transition"
+            className="p-2 rounded-xl bg-slate-100 dark:bg-navy-900 border border-slate-200 dark:border-navy-800 text-slate-700 dark:text-slate-300 hover:text-gold-500 relative transition cursor-pointer"
           >
             <Bell className="w-4 h-4" />
             <span className="absolute -top-1 -right-1 w-2.5 h-2.5 bg-gold-500 rounded-full animate-ping"></span>
