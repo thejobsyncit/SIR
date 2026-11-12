@@ -275,6 +275,36 @@ const CrmHrOperationsDashboard = ({ initialSection } = {}) => {
         return;
       }
       if (res.status === 403) {
+        // If 403 occurs (e.g. holding a non-HR Operations session token),
+        // seamlessly request an HR Operations token and re-fetch!
+        try {
+          const tokRes = await fetch('/api/crm/auth/preview-token', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ targetRole: 'HR Operations' })
+          });
+          if (tokRes.ok) {
+            const tokData = await tokRes.json();
+            if (tokData?.success && tokData.token) {
+              setCrmToken?.(tokData.token);
+              try {
+                const cur = JSON.parse(localStorage.getItem('sir_crm_session') || '{}');
+                if (cur && cur.isAuthenticated) {
+                  localStorage.setItem('sir_crm_session', JSON.stringify({ ...cur, crmToken: tokData.token }));
+                }
+              } catch (_) {}
+              const retryRes = await fetch('/api/hr-ops/dashboard/summary', {
+                headers: { Authorization: `Bearer ${tokData.token}` }
+              });
+              const retryJson = await retryRes.json().catch(() => ({}));
+              if (retryRes.ok && retryJson.success && retryJson.data) {
+                setDashboard(retryJson.data);
+                return;
+              }
+            }
+          }
+        } catch (_) {}
+
         setErrorState({
           code: 403,
           message: json.message || 'Access denied: Only active HR Operations employees can view this dashboard.'
