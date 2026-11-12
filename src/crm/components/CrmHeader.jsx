@@ -139,14 +139,14 @@ export const CrmHeader = ({ collapsed, setCollapsed }) => {
         <div className="relative">
           <button
             onClick={() => setQuickMenuOpen(!quickMenuOpen)}
-            className="flex items-center space-x-2 bg-gradient-to-r from-amber-500 to-amber-600 hover:from-amber-400 hover:to-amber-500 text-navy-950 px-4 py-2 rounded-xl font-black transition shadow-sm cursor-pointer border border-amber-400"
+            className="flex items-center space-x-1.5 bg-gradient-to-r from-amber-500 to-amber-600 hover:from-amber-400 hover:to-amber-500 text-navy-950 px-3 py-1.5 rounded-xl font-bold text-xs transition shadow-xs cursor-pointer border border-amber-400"
           >
-            <Plus className="w-4 h-4 stroke-[3]" />
+            <Plus className="w-3.5 h-3.5 stroke-[2.5]" />
             <span className="hidden md:inline">Quick Create</span>
           </button>
 
           {quickMenuOpen && (
-            <div className="absolute right-0 top-full mt-2 w-56 glass-card bg-white dark:bg-navy-950 border-2 border-amber-300 dark:border-gold-500/30 rounded-2xl p-2 shadow-xl space-y-1 z-50 text-xs sm:text-sm font-bold animate-in fade-in">
+            <div className="absolute right-0 top-full mt-2 w-52 glass-card bg-white dark:bg-navy-950 border-2 border-amber-300 dark:border-gold-500/30 rounded-2xl p-2 shadow-xl space-y-1 z-50 text-xs font-bold animate-in fade-in">
               <button 
                 onClick={() => { 
                   setActiveModule('candidates'); 
@@ -191,48 +191,48 @@ export const CrmHeader = ({ collapsed, setCollapsed }) => {
           )}
         </div>
 
-        {/* CUSTOM ENTERPRISE ROLE SELECTOR DROPDOWN (Larger text, high contrast in Light Mode) */}
+        {/* CUSTOM ENTERPRISE ROLE SELECTOR DROPDOWN (Balanced Size & No Screen Overflow) */}
         <div className="relative" ref={roleDropdownRef}>
           <button
             type="button"
             onClick={() => setRoleMenuOpen(prev => !prev)}
-            className="flex items-center space-x-2.5 bg-amber-50 dark:bg-navy-900 hover:bg-amber-100/90 dark:hover:bg-navy-800 border-2 border-amber-300 dark:border-gold-500/40 px-3.5 py-2 rounded-xl transition duration-200 shadow-xs cursor-pointer group"
+            className="flex items-center space-x-2 bg-amber-50 dark:bg-navy-900 hover:bg-amber-100/90 dark:hover:bg-navy-800 border-2 border-amber-300 dark:border-gold-500/40 px-2.5 py-1.5 rounded-xl transition duration-200 shadow-xs cursor-pointer group"
             title="Switch Active Workspace Role"
           >
             <div className={`p-1.5 rounded-lg ${activeRoleMeta.bg} shrink-0`}>
-              <ActiveRoleIcon className={`w-4 h-4 ${activeRoleMeta.color}`} />
+              <ActiveRoleIcon className={`w-3.5 h-3.5 ${activeRoleMeta.color}`} />
             </div>
             <div className="text-left hidden sm:block">
-              <div className="text-[11px] uppercase tracking-wider font-black text-amber-900 dark:text-gold-400 leading-none">Role</div>
-              <div className="text-sm font-black text-slate-950 dark:text-gold-200 leading-tight flex items-center gap-1.5">
+              <div className="text-[10px] uppercase tracking-wider font-extrabold text-amber-900 dark:text-gold-400 leading-none">Role</div>
+              <div className="text-xs sm:text-[13px] font-bold text-slate-950 dark:text-gold-200 leading-tight flex items-center gap-1.5">
                 <span>{currentRole}</span>
               </div>
             </div>
-            <span className="sm:hidden text-sm font-black text-slate-950 dark:text-gold-200">
+            <span className="sm:hidden text-xs font-bold text-slate-950 dark:text-gold-200">
               {currentRole}
             </span>
-            <ChevronDown className={`w-4 h-4 text-amber-800 dark:text-gold-400 transition-transform duration-200 ${roleMenuOpen ? 'rotate-180' : ''}`} />
+            <ChevronDown className={`w-3.5 h-3.5 text-amber-800 dark:text-gold-400 transition-transform duration-200 ${roleMenuOpen ? 'rotate-180' : ''}`} />
           </button>
 
           {/* Luxury Dropdown Menu */}
           {roleMenuOpen && (
-            <div className="absolute right-0 top-full mt-2 w-88 max-w-[95vw] bg-white dark:bg-[#0c142b] border-2 border-amber-300 dark:border-gold-500/30 rounded-2xl p-3 shadow-2xl z-50 animate-in fade-in zoom-in-95 duration-150">
+            <div className="absolute right-0 top-full mt-1.5 w-80 max-w-[92vw] bg-white dark:bg-[#0c142b] border-2 border-amber-300 dark:border-gold-500/30 rounded-2xl p-2.5 shadow-2xl z-50 animate-in fade-in zoom-in-95 duration-150">
               
-              <div className="px-3 py-2 border-b border-slate-200 dark:border-navy-800/80 flex items-center justify-between mb-1.5">
+              <div className="px-2.5 py-1.5 border-b border-slate-200 dark:border-navy-800/80 flex items-center justify-between mb-1">
                 <div>
-                  <h4 className="text-xs sm:text-sm font-black text-slate-950 dark:text-white uppercase tracking-wider">
+                  <h4 className="text-xs font-bold text-slate-950 dark:text-white uppercase tracking-wider">
                     Switch Workspace Role
                   </h4>
-                  <p className="text-xs font-semibold text-slate-600 dark:text-slate-400">
-                    Preview and operate under all enterprise roles
+                  <p className="text-[11px] text-slate-600 dark:text-slate-400">
+                    Preview and operate under enterprise roles
                   </p>
                 </div>
-                <span className="text-xs font-mono px-2.5 py-0.5 rounded-full bg-amber-100 text-amber-900 dark:bg-gold-500/20 dark:text-gold-300 border border-amber-300 dark:border-gold-500/40 font-extrabold">
+                <span className="text-[10px] font-mono px-2 py-0.5 rounded-full bg-amber-100 text-amber-900 dark:bg-gold-500/20 dark:text-gold-300 border border-amber-300 dark:border-gold-500/40 font-bold">
                   6 Roles
                 </span>
               </div>
 
-              <div className="space-y-1.5 max-h-[380px] overflow-y-auto crm-sidebar-scroll py-1">
+              <div className="space-y-1 max-h-[290px] overflow-y-auto crm-sidebar-scroll py-0.5">
                 {ROLE_DETAILS.map((r) => {
                   const RoleIcon = r.icon;
                   const isSelected = r.role === currentRole;
@@ -242,34 +242,34 @@ export const CrmHeader = ({ collapsed, setCollapsed }) => {
                       key={r.role}
                       type="button"
                       onClick={() => handleSelectRole(r.role)}
-                      className={`w-full text-left p-2.5 rounded-xl transition duration-150 flex items-center justify-between gap-3 cursor-pointer group ${
+                      className={`w-full text-left p-2 rounded-xl transition duration-150 flex items-center justify-between gap-2.5 cursor-pointer group ${
                         isSelected
                           ? 'bg-amber-100 dark:bg-gold-500/25 border-2 border-amber-400 dark:border-gold-500/50 shadow-xs'
                           : 'hover:bg-slate-100 dark:hover:bg-navy-800/70 border border-transparent text-slate-800 dark:text-slate-200'
                       }`}
                     >
-                      <div className="flex items-center space-x-3 min-w-0 flex-1">
-                        <div className={`p-2.5 rounded-xl ${r.bg} shrink-0`}>
-                          <RoleIcon className={`w-4.5 h-4.5 ${r.color}`} />
+                      <div className="flex items-center space-x-2.5 min-w-0 flex-1">
+                        <div className={`p-1.5 rounded-lg ${r.bg} shrink-0`}>
+                          <RoleIcon className={`w-3.5 h-3.5 ${r.color}`} />
                         </div>
                         <div className="min-w-0 flex-1">
-                          <div className="flex items-center gap-2">
-                            <span className={`text-sm font-black truncate ${isSelected ? 'text-amber-950 dark:text-gold-200' : 'text-slate-950 dark:text-white'}`}>
+                          <div className="flex items-center gap-1.5">
+                            <span className={`text-xs sm:text-[13px] font-bold truncate ${isSelected ? 'text-amber-950 dark:text-gold-200' : 'text-slate-950 dark:text-white'}`}>
                               {r.role}
                             </span>
-                            <span className="text-[10px] px-2 py-0.5 rounded-full font-bold bg-slate-200 dark:bg-navy-800 text-slate-800 dark:text-slate-200 shrink-0 border border-slate-300 dark:border-navy-700">
+                            <span className="text-[9px] px-1.5 py-0.2 rounded-full font-semibold bg-slate-200 dark:bg-navy-800 text-slate-700 dark:text-slate-300 shrink-0 border border-slate-300 dark:border-navy-700">
                               {r.badge}
                             </span>
                           </div>
-                          <p className="text-xs font-medium text-slate-600 dark:text-slate-300 truncate mt-0.5">
+                          <p className="text-[10px] text-slate-500 dark:text-slate-400 truncate mt-0.5">
                             {r.desc}
                           </p>
                         </div>
                       </div>
 
                       {isSelected && (
-                        <div className="w-5.5 h-5.5 rounded-full bg-emerald-600 text-white flex items-center justify-center shrink-0 shadow-xs">
-                          <Check className="w-3.5 h-3.5 stroke-[3]" />
+                        <div className="w-4.5 h-4.5 rounded-full bg-emerald-600 text-white flex items-center justify-center shrink-0 shadow-xs">
+                          <Check className="w-3 h-3 stroke-[3]" />
                         </div>
                       )}
                     </button>
@@ -284,18 +284,18 @@ export const CrmHeader = ({ collapsed, setCollapsed }) => {
         {/* Dark / Light Mode Switcher */}
         <button 
           onClick={toggleDarkMode}
-          className="p-2.5 rounded-xl bg-slate-100 dark:bg-navy-900 border-2 border-slate-200 dark:border-navy-800 text-slate-800 dark:text-slate-200 hover:text-amber-700 dark:hover:text-gold-400 transition cursor-pointer"
+          className="p-2 rounded-xl bg-slate-100 dark:bg-navy-900 border-2 border-slate-200 dark:border-navy-800 text-slate-800 dark:text-slate-200 hover:text-amber-700 dark:hover:text-gold-400 transition cursor-pointer"
           title="Toggle Theme"
         >
-          {darkMode ? <Sun className="w-4.5 h-4.5 text-gold-400" /> : <Moon className="w-4.5 h-4.5 text-slate-700" />}
+          {darkMode ? <Sun className="w-4 h-4 text-gold-400" /> : <Moon className="w-4 h-4 text-slate-700" />}
         </button>
 
         {/* AI Assistant Drawer Trigger */}
         <button 
           onClick={() => setAiDrawerOpen(true)}
-          className="flex items-center space-x-2 bg-gold-500/20 text-amber-900 dark:text-gold-400 border-2 border-amber-400 dark:border-gold-500/40 hover:bg-gold-500 hover:text-navy-950 px-3.5 py-2 rounded-xl font-black transition shadow-xs cursor-pointer"
+          className="flex items-center space-x-1.5 bg-gold-500/20 text-amber-900 dark:text-gold-400 border-2 border-amber-400 dark:border-gold-500/40 hover:bg-gold-500 hover:text-navy-950 px-3 py-1.5 rounded-xl text-xs font-bold transition shadow-xs cursor-pointer"
         >
-          <Sparkles className="w-4 h-4 text-amber-700 dark:text-gold-400" />
+          <Sparkles className="w-3.5 h-3.5 text-amber-700 dark:text-gold-400" />
           <span className="hidden sm:inline">AI Copilot</span>
         </button>
 

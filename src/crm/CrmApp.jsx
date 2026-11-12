@@ -280,7 +280,7 @@ const CrmAppContent = () => {
 
       case 'hr-tasks':
         if (currentRole === 'HR Operations') {
-          return <CrmHrOperationsDashboard initialSection="tasks" />;
+          return <CrmHrOperationsDashboard initialSection="enquiries" />;
         }
         return <CrmHrTaskAssignment />;
       case 'my-attendance':

@@ -1113,29 +1113,29 @@ export const CrmHrLeadDashboard = ({ initialSection }) => {
         {/* TOP COMMAND BANNER (SUPER ADMIN LUXURY GOLD PALETTE) */}
         <div className="bg-white dark:bg-navy-900 border-2 border-slate-200 dark:border-navy-800 p-6 rounded-3xl shadow-sm flex flex-col lg:flex-row justify-between items-start lg:items-center gap-4">
           <div>
-            <div className="flex items-center gap-2 mb-2">
-              <span className="bg-amber-100 dark:bg-amber-950/40 text-amber-900 dark:text-gold-400 px-3 py-1 rounded-lg text-xs font-black uppercase tracking-wider border border-amber-300/80 dark:border-gold-500/30">
+            <div className="flex items-center gap-2 mb-1.5">
+              <span className="bg-amber-100 dark:bg-amber-950/40 text-amber-900 dark:text-gold-400 px-2.5 py-0.5 rounded-lg text-[10px] font-bold uppercase tracking-wider border border-amber-300/80 dark:border-gold-500/30">
                 HR Lead Executive HQ • Central Console
               </span>
-              <span className="text-xs font-black text-slate-700 dark:text-slate-300 uppercase tracking-wider">
+              <span className="text-[10px] font-bold text-slate-600 dark:text-slate-400 uppercase tracking-wider">
                 WORKFORCE GOVERNANCE & OPERATIONS
               </span>
             </div>
-            <h1 className="font-serif text-2xl sm:text-3xl lg:text-4xl font-black text-slate-950 dark:text-white">
+            <h1 className="font-serif text-xl sm:text-2xl font-bold text-slate-950 dark:text-white">
               HR Lead Operations & Workforce Management Console
             </h1>
-            <p className="text-slate-800 dark:text-slate-200 text-sm sm:text-base font-semibold mt-1.5 max-w-3xl">
+            <p className="text-slate-700 dark:text-slate-300 text-xs sm:text-sm font-medium mt-1 max-w-3xl">
               Centralized workspace to monitor employees, approve workforce requests, track real-time attendance, and manage end-to-end HR operations.
             </p>
           </div>
 
-          <div className="flex flex-wrap items-center gap-2.5">
+          <div className="flex flex-wrap items-center gap-2">
             <button
               onClick={() => setMaskSalary(!maskSalary)}
-              className="px-4 py-2 rounded-2xl bg-slate-100 dark:bg-navy-800 text-slate-900 dark:text-slate-100 font-extrabold border-2 border-slate-300 dark:border-navy-700 hover:bg-slate-200 transition flex items-center gap-2 cursor-pointer text-xs sm:text-sm shadow-xs"
+              className="px-3 py-1.5 rounded-xl bg-slate-100 dark:bg-navy-800 text-slate-900 dark:text-slate-100 font-bold border border-slate-300 dark:border-navy-700 hover:bg-slate-200 transition flex items-center gap-1.5 cursor-pointer text-xs shadow-xs"
               title="Toggle salary encryption view"
             >
-              {maskSalary ? <Eye className="w-4 h-4 text-amber-700" /> : <EyeOff className="w-4 h-4 text-slate-500" />}
+              {maskSalary ? <Eye className="w-3.5 h-3.5 text-amber-700" /> : <EyeOff className="w-3.5 h-3.5 text-slate-500" />}
               <span>{maskSalary ? 'Unmask CTC' : 'Mask CTC'}</span>
             </button>
 
@@ -1146,73 +1146,73 @@ export const CrmHrLeadDashboard = ({ initialSection }) => {
                   setAddEmpErrors({});
                   setIsAddEmployeeOpen(true);
                 }}
-                className="px-4 py-2 bg-gradient-to-r from-amber-500 to-amber-600 hover:from-amber-400 hover:to-amber-500 text-navy-950 font-black rounded-2xl shadow-sm transition flex items-center gap-2 cursor-pointer text-xs sm:text-sm border border-amber-400"
+                className="px-3 py-1.5 bg-gradient-to-r from-amber-500 to-amber-600 hover:from-amber-400 hover:to-amber-500 text-navy-950 font-bold rounded-xl shadow-xs transition flex items-center gap-1.5 cursor-pointer text-xs border border-amber-400"
               >
-                <UserPlus className="w-4 h-4 stroke-[2.5]" />
+                <UserPlus className="w-3.5 h-3.5 stroke-[2.5]" />
                 <span>Add Employee</span>
               </button>
             )}
 
-            <span className="px-3.5 py-2 rounded-full text-xs sm:text-sm font-black bg-emerald-100 dark:bg-emerald-950/40 border-2 border-emerald-300 dark:border-emerald-700 text-emerald-900 dark:text-emerald-300 shadow-xs">
+            <span className="px-3 py-1.5 rounded-full text-xs font-bold bg-emerald-100 dark:bg-emerald-950/40 border border-emerald-300 dark:border-emerald-700 text-emerald-900 dark:text-emerald-300 shadow-xs">
               ● 42 Present Today
             </span>
           </div>
         </div>
 
         {toastMsg && (
-          <div className="p-3.5 bg-emerald-500/15 border-2 border-emerald-500/30 text-emerald-900 dark:text-emerald-200 rounded-2xl text-xs sm:text-sm font-black animate-in fade-in flex items-center gap-2 shadow-xs">
-            <CheckCircle2 className="w-4 h-4 text-emerald-700 shrink-0" />
+          <div className="p-3 bg-emerald-500/15 border border-emerald-500/30 text-emerald-900 dark:text-emerald-200 rounded-xl text-xs font-bold animate-in fade-in flex items-center gap-2 shadow-xs">
+            <CheckCircle2 className="w-3.5 h-3.5 text-emerald-700 shrink-0" />
             <span>{toastMsg}</span>
           </div>
         )}
 
         {/* 6 TOP EXECUTIVE KPI CARDS (From Image 1: 1. Dashboard Overview) */}
-        <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3.5">
-          <div className="bg-white dark:bg-navy-900 border-2 border-slate-200 dark:border-navy-800 rounded-3xl p-4.5 shadow-xs">
+        <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3">
+          <div className="bg-white dark:bg-navy-900 border-2 border-slate-200 dark:border-navy-800 rounded-2xl p-3.5 sm:p-4 shadow-xs">
             <div className="flex justify-between items-start">
-              <span className="text-xs font-black uppercase tracking-wider text-slate-800 dark:text-slate-200">Total Employees</span>
-              <div className="w-7.5 h-7.5 rounded-xl bg-blue-100 text-blue-800 flex items-center justify-center border border-blue-200">
-                <Users className="w-4 h-4" />
+              <span className="text-xs font-bold uppercase tracking-wider text-slate-800 dark:text-slate-200">Total Employees</span>
+              <div className="w-7 h-7 rounded-lg bg-blue-100 text-blue-800 flex items-center justify-center border border-blue-200">
+                <Users className="w-3.5 h-3.5" />
               </div>
             </div>
-            <p className="text-3xl sm:text-4xl font-serif font-black text-slate-950 dark:text-white mt-2">{totalEmployeesCount}</p>
-            <span className="text-xs sm:text-sm text-blue-800 dark:text-blue-300 font-extrabold mt-1 block">↗ 100% On-roll Staff</span>
+            <p className="text-2xl sm:text-3xl font-extrabold font-mono text-slate-950 dark:text-white mt-1.5">{totalEmployeesCount}</p>
+            <span className="text-xs text-blue-800 dark:text-blue-300 font-semibold mt-0.5 block">↗ 100% On-roll Staff</span>
           </div>
 
-          <div className="bg-white dark:bg-navy-900 border-2 border-slate-200 dark:border-navy-800 rounded-3xl p-4.5 shadow-xs">
+          <div className="bg-white dark:bg-navy-900 border-2 border-slate-200 dark:border-navy-800 rounded-2xl p-3.5 sm:p-4 shadow-xs">
             <div className="flex justify-between items-start">
-              <span className="text-xs font-black uppercase tracking-wider text-slate-800 dark:text-slate-200">Present Today</span>
-              <div className="w-7.5 h-7.5 rounded-xl bg-emerald-100 text-emerald-800 flex items-center justify-center border border-emerald-200">
-                <CheckCircle2 className="w-4 h-4" />
+              <span className="text-xs font-bold uppercase tracking-wider text-slate-800 dark:text-slate-200">Present Today</span>
+              <div className="w-7 h-7 rounded-lg bg-emerald-100 text-emerald-800 flex items-center justify-center border border-emerald-200">
+                <CheckCircle2 className="w-3.5 h-3.5" />
               </div>
             </div>
-            <p className="text-3xl sm:text-4xl font-serif font-black text-emerald-700 dark:text-emerald-400 mt-2">{presentTodayCount}</p>
-            <span className="text-xs sm:text-sm text-emerald-800 dark:text-emerald-300 font-extrabold mt-1 block">↗ 87.5% Attendance</span>
+            <p className="text-2xl sm:text-3xl font-extrabold font-mono text-emerald-700 dark:text-emerald-400 mt-1.5">{presentTodayCount}</p>
+            <span className="text-xs text-emerald-800 dark:text-emerald-300 font-semibold mt-0.5 block">↗ 87.5% Attendance</span>
           </div>
 
-          <div className="bg-white dark:bg-navy-900 border-2 border-slate-200 dark:border-navy-800 rounded-3xl p-4.5 shadow-xs">
+          <div className="bg-white dark:bg-navy-900 border-2 border-slate-200 dark:border-navy-800 rounded-2xl p-3.5 sm:p-4 shadow-xs">
             <div className="flex justify-between items-start">
-              <span className="text-xs font-black uppercase tracking-wider text-slate-800 dark:text-slate-200">Absent Today</span>
-              <div className="w-7.5 h-7.5 rounded-xl bg-rose-100 text-rose-800 flex items-center justify-center border border-rose-200">
-                <XCircle className="w-4 h-4" />
+              <span className="text-xs font-bold uppercase tracking-wider text-slate-800 dark:text-slate-200">Absent Today</span>
+              <div className="w-7 h-7 rounded-lg bg-rose-100 text-rose-800 flex items-center justify-center border border-rose-200">
+                <XCircle className="w-3.5 h-3.5" />
               </div>
             </div>
-            <p className="text-3xl sm:text-4xl font-serif font-black text-rose-700 dark:text-rose-400 mt-2">{absentCount}</p>
-            <span className="text-xs sm:text-sm text-rose-800 dark:text-rose-300 font-extrabold mt-1 block">↗ 1 Uninformed Absence</span>
+            <p className="text-2xl sm:text-3xl font-extrabold font-mono text-rose-700 dark:text-rose-400 mt-1.5">{absentCount}</p>
+            <span className="text-xs text-rose-800 dark:text-rose-300 font-semibold mt-0.5 block">↗ 1 Uninformed Absence</span>
           </div>
 
-          <div className="bg-white dark:bg-navy-900 border-2 border-slate-200 dark:border-navy-800 rounded-3xl p-4.5 shadow-xs">
+          <div className="bg-white dark:bg-navy-900 border-2 border-slate-200 dark:border-navy-800 rounded-2xl p-3.5 sm:p-4 shadow-xs">
             <div className="flex justify-between items-start">
-              <span className="text-xs font-black uppercase tracking-wider text-slate-800 dark:text-slate-200">On Leave</span>
-              <div className="w-7.5 h-7.5 rounded-xl bg-amber-100 text-amber-800 flex items-center justify-center border border-amber-200">
-                <Calendar className="w-4 h-4" />
+              <span className="text-xs font-bold uppercase tracking-wider text-slate-800 dark:text-slate-200">On Leave</span>
+              <div className="w-7 h-7 rounded-lg bg-amber-100 text-amber-800 flex items-center justify-center border border-amber-200">
+                <Calendar className="w-3.5 h-3.5" />
               </div>
             </div>
-            <p className="text-3xl sm:text-4xl font-serif font-black text-amber-700 dark:text-gold-400 mt-2">{onLeaveCount}</p>
-            <span className="text-xs sm:text-sm text-amber-800 dark:text-amber-300 font-extrabold mt-1 block">↗ Approved Leaves</span>
+            <p className="text-2xl sm:text-3xl font-extrabold font-mono text-amber-700 dark:text-gold-400 mt-1.5">{onLeaveCount}</p>
+            <span className="text-xs text-amber-800 dark:text-amber-300 font-semibold mt-0.5 block">↗ Approved Leaves</span>
           </div>
 
-          <div className="bg-white dark:bg-navy-900 border-2 border-slate-200 dark:border-navy-800 rounded-3xl p-4.5 shadow-xs">
+          <div className="bg-white dark:bg-navy-900 border-2 border-slate-200 dark:border-navy-800 rounded-2xl p-3.5 sm:p-4 shadow-xs">
             <div className="flex justify-between items-start">
               <span className="text-xs font-black uppercase tracking-wider text-slate-800 dark:text-slate-200">New Joiners</span>
               <div className="w-7.5 h-7.5 rounded-xl bg-purple-100 text-purple-800 flex items-center justify-center border border-purple-200">

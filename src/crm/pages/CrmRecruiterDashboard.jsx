@@ -122,18 +122,18 @@ export const CrmRecruiterDashboard = () => {
       {/* Recruiter Header (Super Admin Style) */}
       <div className="bg-white dark:bg-navy-900 border-2 border-slate-300 dark:border-navy-800 p-6 rounded-3xl shadow-sm flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
         <div>
-          <div className="flex items-center gap-2 mb-2">
-            <span className="bg-amber-100 dark:bg-amber-950/40 text-amber-900 dark:text-gold-300 px-3 py-1 rounded-lg text-xs font-black uppercase tracking-wider">
+          <div className="flex items-center gap-2 mb-1.5">
+            <span className="bg-amber-100 dark:bg-amber-950/40 text-amber-900 dark:text-gold-300 px-2.5 py-0.5 rounded-lg text-[10px] font-bold uppercase tracking-wider">
               Recruiter Suite
             </span>
-            <span className="text-xs font-mono font-bold text-slate-700 dark:text-slate-300 uppercase tracking-wider">
+            <span className="text-[10px] font-mono font-bold text-slate-600 dark:text-slate-400 uppercase tracking-wider">
               TALENT SOURCING & APPLICANT PIPELINE
             </span>
           </div>
-          <h1 className="font-serif text-2xl sm:text-3xl lg:text-4xl font-black text-slate-950 dark:text-white">
+          <h1 className="font-serif text-xl sm:text-2xl font-bold text-slate-950 dark:text-white">
             Recruiter & ATS Candidate Dashboard
           </h1>
-          <p className="text-slate-700 dark:text-slate-300 text-sm sm:text-base font-semibold mt-1">
+          <p className="text-slate-600 dark:text-slate-300 text-xs sm:text-sm font-medium mt-1">
             Assigned candidate pool, AI resume scoring, interview coordination, and pipeline stage progression.
           </p>
         </div>

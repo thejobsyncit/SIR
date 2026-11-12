@@ -186,13 +186,18 @@ const CrmHrOperationsDashboard = ({ initialSection } = {}) => {
   const [actionFeedback, setActionFeedback] = useState(null);
   const [mutatingId, setMutatingId] = useState(null);
 
+  // Determine whether this view is the dedicated "My Assigned Enquiries" page
+  const isEnquiriesPage = initialSection === 'tasks' || initialSection === 'hr-tasks' || initialSection === 'enquiries';
+
   // Interactive workspace tabs & filters
   const [activeCardId, setActiveCardId] = useState('myAssignedEnquiries');
-  const [activeTab, setActiveTab] = useState(() => (initialSection === 'tasks' || initialSection === 'hr-tasks') ? 'tasks' : 'enquiries'); // 'enquiries' | 'followups' | 'tasks'
+  const [activeTab, setActiveTab] = useState(() => (initialSection === 'tasks') ? 'tasks' : 'enquiries'); // 'enquiries' | 'followups' | 'tasks'
 
   useEffect(() => {
-    if (initialSection === 'tasks' || initialSection === 'hr-tasks') {
+    if (initialSection === 'tasks') {
       setActiveTab('tasks');
+    } else if (initialSection === 'enquiries' || initialSection === 'hr-tasks') {
+      setActiveTab('enquiries');
     }
   }, [initialSection]);
   const [enquiryQuickFilter, setEnquiryQuickFilter] = useState('all'); // 'all' | 'pending' | 'completed-month' | 'completed'
@@ -726,6 +731,10 @@ const CrmHrOperationsDashboard = ({ initialSection } = {}) => {
     }
   ];
 
+  const enquiriesSummaryCards = summaryCards.filter((card) =>
+    ['myAssignedEnquiries', 'pendingEnquiries', 'followUpsDueToday', 'completedEnquiriesThisMonth'].includes(card.key)
+  );
+
   // Role Preview / Auth / Fatal Error states
   if (authTokenLoading || (loading && !dashboard && !errorState)) {
     return (
@@ -848,30 +857,34 @@ const CrmHrOperationsDashboard = ({ initialSection } = {}) => {
         </div>
       )}
 
-      {/* 1. Dashboard Header */}
-      <header className="rounded-2xl bg-white dark:bg-slate-900 border-2 border-slate-200 dark:border-slate-800 p-5 sm:p-6 shadow-sm">
-        <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4">
-          <div className="space-y-2 min-w-0">
-            <h1 className="text-2xl sm:text-3xl lg:text-4xl font-black tracking-tight text-slate-950 dark:text-white">
-              Daily Operations Dashboard
+      {/* 1. Dashboard / Assigned Enquiries Header */}
+      <header className="rounded-2xl bg-white dark:bg-slate-900 border-2 border-slate-200 dark:border-slate-800 p-4 sm:p-5 shadow-xs">
+        <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-3 sm:gap-4">
+          <div className="space-y-1 sm:space-y-1.5 min-w-0">
+            <div className="flex items-center gap-2">
+              <span className="text-[10px] font-bold uppercase tracking-wider px-2.5 py-0.5 rounded-md bg-amber-100 text-amber-900 dark:bg-gold-500/20 dark:text-gold-300 border border-amber-300 dark:border-gold-500/30">
+                {isEnquiriesPage ? 'Enquiries Desk • Active Pipeline' : 'Operations Desk • Daily Workspace'}
+              </span>
+            </div>
+            <h1 className="text-xl sm:text-2xl font-bold tracking-tight text-slate-950 dark:text-white">
+              {isEnquiriesPage ? 'My Assigned Enquiries & Active Pipeline' : 'Daily Operations Work Queue & Console'}
             </h1>
-            <div className="flex flex-wrap items-center gap-x-3 gap-y-1.5 text-sm sm:text-base">
-              <span className="inline-flex items-center gap-1.5 font-extrabold text-slate-950 dark:text-slate-100">
-                <UserCheck className="w-4.5 h-4.5 text-amber-700 dark:text-amber-400 shrink-0" />
+            <p className="text-xs sm:text-sm text-slate-600 dark:text-slate-300 font-medium">
+              {isEnquiriesPage
+                ? 'Review assigned candidate and student enquiries, schedule follow-ups, and update pipeline status.'
+                : 'Centralized workforce workspace for shift tracking, attendance logs, and operational workflow.'}
+            </p>
+            <div className="flex flex-wrap items-center gap-x-3 gap-y-1 text-xs text-slate-600 dark:text-slate-400 pt-0.5">
+              <span className="inline-flex items-center gap-1 font-semibold text-slate-900 dark:text-slate-200">
+                <UserCheck className="w-3.5 h-3.5 text-amber-600 shrink-0" />
                 <span data-testid="hr-dashboard-employee-name">{employeeInfo.name}</span>
               </span>
-              <span className="text-slate-400 dark:text-slate-600" aria-hidden="true">•</span>
-              <span
-                className="inline-flex items-center gap-1.5 text-slate-800 dark:text-slate-200 font-bold"
-                data-testid="hr-dashboard-employee-designation"
-              >
-                <Briefcase className="w-4 h-4 text-slate-600 dark:text-slate-400 shrink-0" />
-                <span>{employeeInfo.designation}</span>
-              </span>
+              <span>•</span>
+              <span data-testid="hr-dashboard-employee-designation">{employeeInfo.designation}</span>
               {employeeInfo.operationTeam && (
                 <>
-                  <span className="text-slate-400 dark:text-slate-600" aria-hidden="true">•</span>
-                  <span className="inline-flex items-center px-3 py-0.5 rounded-full text-xs font-black bg-amber-100 text-amber-900 border border-amber-300 dark:bg-slate-800 dark:text-slate-300 dark:border-slate-700">
+                  <span>•</span>
+                  <span className="px-2 py-0.2 rounded-full text-[10px] font-bold bg-amber-100 text-amber-900 border border-amber-300 dark:bg-slate-800 dark:text-slate-300">
                     {employeeInfo.operationTeam}
                   </span>
                 </>
@@ -879,23 +892,23 @@ const CrmHrOperationsDashboard = ({ initialSection } = {}) => {
             </div>
           </div>
 
-          <div className="flex flex-wrap items-center gap-3">
-            {shiftInfo?.formattedTiming && (
+          <div className="flex flex-wrap items-center gap-2.5">
+            {!isEnquiriesPage && shiftInfo?.formattedTiming && (
               <div
-                className="flex items-center gap-3 px-4 py-2.5 rounded-xl bg-amber-50 dark:bg-amber-500/10 border-2 border-amber-300 dark:border-amber-500/30"
+                className="flex items-center gap-2 px-3 py-1.5 rounded-xl bg-amber-50 dark:bg-amber-500/10 border border-amber-300 dark:border-amber-500/30"
                 data-testid="hr-dashboard-shift-timing"
               >
-                <div className="w-8 h-8 rounded-lg bg-amber-500/20 flex items-center justify-center text-amber-700 dark:text-amber-400 shrink-0 font-bold">
-                  <Clock className="w-4.5 h-4.5" />
+                <div className="w-6 h-6 rounded-md bg-amber-500/20 flex items-center justify-center text-amber-700 dark:text-amber-400 shrink-0 font-bold">
+                  <Clock className="w-3.5 h-3.5" />
                 </div>
                 <div className="leading-tight">
-                  <p className="text-xs font-black uppercase tracking-wider text-amber-900 dark:text-amber-300">
+                  <p className="text-[10px] font-bold uppercase tracking-wider text-amber-900 dark:text-amber-300">
                     Today’s Shift
                     {shiftInfo.name
                       ? ` • ${shiftInfo.name.replace(/\s*\([^)]*\)\s*$/, '').trim()}`
                       : ''}
                   </p>
-                  <p className="text-sm sm:text-base font-black text-slate-950 dark:text-white">
+                  <p className="text-xs font-bold text-slate-950 dark:text-white">
                     {shiftInfo.formattedTiming}
                   </p>
                 </div>
@@ -906,19 +919,23 @@ const CrmHrOperationsDashboard = ({ initialSection } = {}) => {
               type="button"
               onClick={() => fetchDashboardSummary(true)}
               disabled={refreshing}
-              className="inline-flex items-center gap-2 px-4 py-2.5 rounded-xl text-sm font-extrabold border-2 border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-900 dark:text-slate-100 hover:bg-slate-100 dark:hover:bg-slate-700/70 transition-colors disabled:opacity-60 cursor-pointer shadow-xs"
+              className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-bold border-2 border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-900 dark:text-slate-100 hover:bg-slate-100 dark:hover:bg-slate-700/70 transition-colors disabled:opacity-60 cursor-pointer shadow-xs"
             >
-              <RefreshCw className={`w-4 h-4 ${refreshing ? 'animate-spin' : ''}`} />
+              <RefreshCw className={`w-3.5 h-3.5 ${refreshing ? 'animate-spin' : ''}`} />
               <span>{refreshing ? 'Refreshing...' : 'Refresh'}</span>
             </button>
           </div>
         </div>
       </header>
 
-      {/* 2. Summary Cards (6 Employee-Specific Live SQLite Metrics) */}
+      {/* 2. Summary Cards */}
       <section aria-label="Employee Operations Metrics">
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6 gap-4">
-          {summaryCards.map((card) => {
+        <div className={`grid gap-3 sm:gap-3.5 ${
+          isEnquiriesPage
+            ? 'grid-cols-2 lg:grid-cols-4'
+            : 'grid-cols-2 sm:grid-cols-3 xl:grid-cols-6'
+        }`}>
+          {(isEnquiriesPage ? enquiriesSummaryCards : summaryCards).map((card) => {
             const Icon = card.icon;
             const isActive = activeCardId === card.key;
             return (
@@ -927,25 +944,25 @@ const CrmHrOperationsDashboard = ({ initialSection } = {}) => {
                 type="button"
                 onClick={() => handleSummaryCardClick(card.key)}
                 data-testid={`kpi-card-${card.key}`}
-                className={`group text-left rounded-2xl p-4.5 bg-white dark:bg-slate-900 border-2 transition-all duration-200 hover:-translate-y-0.5 hover:shadow-md focus:outline-none focus-visible:ring-2 focus-visible:ring-amber-500 ${
+                className={`group text-left rounded-xl p-3.5 sm:p-4 bg-white dark:bg-slate-900 border-2 transition-all duration-200 hover:-translate-y-0.5 hover:shadow-xs focus:outline-none focus-visible:ring-2 focus-visible:ring-amber-500 ${
                   isActive
                     ? card.activeRing
                     : 'border-slate-200 dark:border-slate-800 hover:border-slate-400 dark:hover:border-slate-600'
                 }`}
               >
-                <div className="flex items-center justify-between gap-2 mb-3">
-                  <div className={`w-9 h-9 rounded-xl border-2 flex items-center justify-center shrink-0 ${card.iconBg}`}>
-                    <Icon className={`w-4.5 h-4.5 ${card.accent}`} />
+                <div className="flex items-center justify-between gap-2 mb-2">
+                  <div className={`w-7.5 h-7.5 rounded-lg border flex items-center justify-center shrink-0 ${card.iconBg}`}>
+                    <Icon className={`w-3.5 h-3.5 ${card.accent}`} />
                   </div>
-                  <ChevronRight className="w-4 h-4 text-slate-500 group-hover:text-slate-900 dark:group-hover:text-slate-200 group-hover:translate-x-0.5 transition-transform" />
+                  <ChevronRight className="w-3.5 h-3.5 text-slate-500 group-hover:text-slate-900 dark:group-hover:text-slate-200 group-hover:translate-x-0.5 transition-transform" />
                 </div>
-                <div className="text-2xl sm:text-3xl font-black text-slate-950 dark:text-white tabular-nums" data-testid={`kpi-value-${card.key}`}>
+                <div className="text-xl sm:text-2xl font-extrabold text-slate-950 dark:text-white tabular-nums" data-testid={`kpi-value-${card.key}`}>
                   {card.value}
                 </div>
-                <div className="text-xs sm:text-sm font-bold text-slate-900 dark:text-slate-100 mt-1 leading-snug">
+                <div className="text-xs font-semibold text-slate-900 dark:text-slate-100 mt-0.5 leading-snug">
                   {card.label}
                 </div>
-                <div className="text-xs font-semibold text-slate-600 dark:text-slate-400 mt-1">
+                <div className="text-[11px] font-medium text-slate-500 dark:text-slate-400 mt-0.5">
                   {card.hint}
                 </div>
               </button>
@@ -954,104 +971,106 @@ const CrmHrOperationsDashboard = ({ initialSection } = {}) => {
         </div>
       </section>
 
-      {/* 3. Attendance Summary */}
-      <section
-        aria-label="Attendance Summary"
-        data-testid="hr-dashboard-attendance-summary"
-        className="rounded-2xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 p-5 shadow-sm"
-      >
-        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 mb-4">
-          <div className="flex items-center gap-3">
-            <div className="w-10 h-10 rounded-xl bg-emerald-50 dark:bg-emerald-500/15 border border-emerald-200/70 dark:border-emerald-500/30 flex items-center justify-center text-emerald-600 dark:text-emerald-400 shrink-0">
-              <Activity className="w-5 h-5" />
+      {/* 3. Attendance Summary (Shown on Operations Work Queue only) */}
+      {!isEnquiriesPage && (
+        <section
+          aria-label="Attendance Summary"
+          data-testid="hr-dashboard-attendance-summary"
+          className="rounded-2xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 p-4 sm:p-5 shadow-xs"
+        >
+          <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 mb-3.5">
+            <div className="flex items-center gap-3">
+              <div className="w-9 h-9 rounded-xl bg-emerald-50 dark:bg-emerald-500/15 border border-emerald-200/70 dark:border-emerald-500/30 flex items-center justify-center text-emerald-600 dark:text-emerald-400 shrink-0">
+                <Activity className="w-4.5 h-4.5" />
+              </div>
+              <div>
+                <div className="flex flex-wrap items-center gap-2">
+                  <h2 className="text-sm sm:text-base font-bold text-slate-900 dark:text-white">
+                    Attendance Summary
+                  </h2>
+                  {attendanceToday?.workDate && (
+                    <span className="text-xs text-slate-500 dark:text-slate-400 font-medium">
+                      ({formatDateShort(attendanceToday.workDate)})
+                    </span>
+                  )}
+                </div>
+                <p className="text-xs text-slate-500 dark:text-slate-400">
+                  Live daily attendance status and logged working time for your profile
+                </p>
+              </div>
             </div>
-            <div>
-              <div className="flex flex-wrap items-center gap-2">
-                <h2 className="text-base font-bold text-slate-900 dark:text-white">
-                  Attendance Summary
-                </h2>
-                {attendanceToday?.workDate && (
-                  <span className="text-xs text-slate-500 dark:text-slate-400 font-medium">
-                    ({formatDateShort(attendanceToday.workDate)})
+
+            <button
+              type="button"
+              onClick={() => setActiveModule?.('my-attendance')}
+              data-testid="link-open-my-attendance"
+              className="inline-flex items-center justify-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-semibold bg-slate-900 hover:bg-slate-800 text-white dark:bg-amber-500 dark:hover:bg-amber-600 dark:text-slate-950 transition-colors shrink-0"
+            >
+              <Calendar className="w-3.5 h-3.5" />
+              <span>Open My Attendance</span>
+              <ArrowRight className="w-3.5 h-3.5" />
+            </button>
+          </div>
+
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
+            {/* Today's Status */}
+            <div className="rounded-xl p-3 bg-slate-50 dark:bg-slate-800/60 border border-slate-200/80 dark:border-slate-700/70">
+              <div className="text-xs font-medium text-slate-500 dark:text-slate-400 mb-1">
+                Attendance Status
+              </div>
+              <div className="flex items-center gap-2">
+                <span
+                  data-testid="attendance-summary-status"
+                  className={`inline-flex items-center gap-1.5 px-2 py-0.5 rounded-full text-xs font-semibold border ${getAttendanceBadgeClass(
+                    attendanceToday?.status
+                  )}`}
+                >
+                  <span className="w-1.5 h-1.5 rounded-full bg-current" />
+                  {attendanceToday?.status || 'Not Checked In'}
+                </span>
+                {attendanceToday?.isOnBreak && (
+                  <span className="text-[10px] font-semibold px-1.5 py-0.2 rounded-full bg-amber-100 text-amber-800 dark:bg-amber-500/20 dark:text-amber-300">
+                    On Break
                   </span>
                 )}
               </div>
-              <p className="text-xs text-slate-500 dark:text-slate-400">
-                Live daily attendance status and logged working time for your profile
-              </p>
+            </div>
+
+            {/* Check-In Time */}
+            <div className="rounded-xl p-3 bg-slate-50 dark:bg-slate-800/60 border border-slate-200/80 dark:border-slate-700/70">
+              <div className="flex items-center gap-1.5 text-xs font-medium text-slate-500 dark:text-slate-400 mb-1">
+                <LogIn className="w-3.5 h-3.5 text-emerald-500" />
+                <span>Check-In Time</span>
+              </div>
+              <div className="text-sm sm:text-base font-bold text-slate-900 dark:text-white tabular-nums" data-testid="attendance-summary-checkin">
+                {attendanceToday?.checkInTime || '—'}
+              </div>
+            </div>
+
+            {/* Checkout Time */}
+            <div className="rounded-xl p-3 bg-slate-50 dark:bg-slate-800/60 border border-slate-200/80 dark:border-slate-700/70">
+              <div className="flex items-center gap-1.5 text-xs font-medium text-slate-500 dark:text-slate-400 mb-1">
+                <LogOut className="w-3.5 h-3.5 text-amber-500" />
+                <span>Checkout Time</span>
+              </div>
+              <div className="text-sm sm:text-base font-bold text-slate-900 dark:text-white tabular-nums" data-testid="attendance-summary-checkout">
+                {attendanceToday?.checkOutTime || (attendanceToday?.isCheckedIn ? 'Active Shift' : '—')}
+              </div>
+            </div>
+
+            {/* Working Hours */}
+            <div className="rounded-xl p-3 bg-slate-50 dark:bg-slate-800/60 border border-slate-200/80 dark:border-slate-700/70">
+              <div className="flex items-center gap-1.5 text-xs font-medium text-slate-500 dark:text-slate-400 mb-1">
+                <Timer className="w-3.5 h-3.5 text-blue-500" />
+                <span>Working Hours</span>
+              </div>
+              <div className="text-sm sm:text-base font-bold text-slate-900 dark:text-white tabular-nums" data-testid="attendance-summary-hours">
+                {attendanceToday?.workingHours || '0h 00m'}
+              </div>
             </div>
           </div>
-
-          <button
-            type="button"
-            onClick={() => setActiveModule?.('my-attendance')}
-            data-testid="link-open-my-attendance"
-            className="inline-flex items-center justify-center gap-2 px-4 py-2 rounded-xl text-sm font-semibold bg-slate-900 hover:bg-slate-800 text-white dark:bg-amber-500 dark:hover:bg-amber-600 dark:text-slate-950 transition-colors shrink-0"
-          >
-            <Calendar className="w-4 h-4" />
-            <span>Open My Attendance</span>
-            <ArrowRight className="w-4 h-4" />
-          </button>
-        </div>
-
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3.5">
-          {/* Today's Status */}
-          <div className="rounded-xl p-3.5 bg-slate-50 dark:bg-slate-800/60 border border-slate-200/80 dark:border-slate-700/70">
-            <div className="text-xs font-medium text-slate-500 dark:text-slate-400 mb-1.5">
-              Attendance Status
-            </div>
-            <div className="flex items-center gap-2">
-              <span
-                data-testid="attendance-summary-status"
-                className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-semibold border ${getAttendanceBadgeClass(
-                  attendanceToday?.status
-                )}`}
-              >
-                <span className="w-1.5 h-1.5 rounded-full bg-current" />
-                {attendanceToday?.status || 'Not Checked In'}
-              </span>
-              {attendanceToday?.isOnBreak && (
-                <span className="text-[11px] font-semibold px-2 py-0.5 rounded-full bg-amber-100 text-amber-800 dark:bg-amber-500/20 dark:text-amber-300">
-                  On Break
-                </span>
-              )}
-            </div>
-          </div>
-
-          {/* Check-In Time */}
-          <div className="rounded-xl p-3.5 bg-slate-50 dark:bg-slate-800/60 border border-slate-200/80 dark:border-slate-700/70">
-            <div className="flex items-center gap-1.5 text-xs font-medium text-slate-500 dark:text-slate-400 mb-1">
-              <LogIn className="w-3.5 h-3.5 text-emerald-500" />
-              <span>Check-In Time</span>
-            </div>
-            <div className="text-base font-bold text-slate-900 dark:text-white tabular-nums" data-testid="attendance-summary-checkin">
-              {attendanceToday?.checkInTime || '—'}
-            </div>
-          </div>
-
-          {/* Checkout Time */}
-          <div className="rounded-xl p-3.5 bg-slate-50 dark:bg-slate-800/60 border border-slate-200/80 dark:border-slate-700/70">
-            <div className="flex items-center gap-1.5 text-xs font-medium text-slate-500 dark:text-slate-400 mb-1">
-              <LogOut className="w-3.5 h-3.5 text-amber-500" />
-              <span>Checkout Time</span>
-            </div>
-            <div className="text-base font-bold text-slate-900 dark:text-white tabular-nums" data-testid="attendance-summary-checkout">
-              {attendanceToday?.checkOutTime || (attendanceToday?.isCheckedIn ? 'Active Shift' : '—')}
-            </div>
-          </div>
-
-          {/* Working Hours */}
-          <div className="rounded-xl p-3.5 bg-slate-50 dark:bg-slate-800/60 border border-slate-200/80 dark:border-slate-700/70">
-            <div className="flex items-center gap-1.5 text-xs font-medium text-slate-500 dark:text-slate-400 mb-1">
-              <Timer className="w-3.5 h-3.5 text-blue-500" />
-              <span>Working Hours</span>
-            </div>
-            <div className="text-base font-bold text-slate-900 dark:text-white tabular-nums" data-testid="attendance-summary-hours">
-              {attendanceToday?.workingHours || '0h 00m'}
-            </div>
-          </div>
-        </div>
-      </section>
+        </section>
+      )}
 
       {/* 4. Interactive Employee Workspace (Enquiries / Follow-ups / Tasks) */}
       <section
@@ -1068,15 +1087,15 @@ const CrmHrOperationsDashboard = ({ initialSection } = {}) => {
               aria-selected={activeTab === 'enquiries'}
               onClick={() => setActiveTab('enquiries')}
               data-testid="tab-enquiries"
-              className={`inline-flex items-center gap-2 px-3.5 py-2 rounded-xl text-sm font-semibold transition-colors ${
+              className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs sm:text-[13px] font-semibold transition-colors ${
                 activeTab === 'enquiries'
                   ? 'bg-slate-900 text-white dark:bg-amber-500 dark:text-slate-950'
                   : 'bg-slate-100 text-slate-700 hover:bg-slate-200 dark:bg-slate-800 dark:text-slate-300 dark:hover:bg-slate-700'
               }`}
             >
-              <Inbox className="w-4 h-4" />
+              <Inbox className="w-3.5 h-3.5" />
               <span>Assigned Enquiries</span>
-              <span className="px-1.5 py-0.5 rounded-md text-xs bg-black/10 dark:bg-white/10">
+              <span className="px-1.5 py-0.2 rounded-md text-[10px] font-bold bg-black/10 dark:bg-white/10 font-mono">
                 {assignedEnquiries.length}
               </span>
             </button>
@@ -1087,15 +1106,15 @@ const CrmHrOperationsDashboard = ({ initialSection } = {}) => {
               aria-selected={activeTab === 'followups'}
               onClick={() => setActiveTab('followups')}
               data-testid="tab-followups"
-              className={`inline-flex items-center gap-2 px-3.5 py-2 rounded-xl text-sm font-semibold transition-colors ${
+              className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs sm:text-[13px] font-semibold transition-colors ${
                 activeTab === 'followups'
                   ? 'bg-slate-900 text-white dark:bg-amber-500 dark:text-slate-950'
                   : 'bg-slate-100 text-slate-700 hover:bg-slate-200 dark:bg-slate-800 dark:text-slate-300 dark:hover:bg-slate-700'
               }`}
             >
-              <CalendarClock className="w-4 h-4" />
+              <CalendarClock className="w-3.5 h-3.5" />
               <span>Follow-ups</span>
-              <span className="px-1.5 py-0.5 rounded-md text-xs bg-black/10 dark:bg-white/10">
+              <span className="px-1.5 py-0.2 rounded-md text-[10px] font-bold bg-black/10 dark:bg-white/10 font-mono">
                 {followUps.length}
               </span>
             </button>
@@ -1106,50 +1125,52 @@ const CrmHrOperationsDashboard = ({ initialSection } = {}) => {
               aria-selected={activeTab === 'tasks'}
               onClick={() => setActiveTab('tasks')}
               data-testid="tab-tasks"
-              className={`inline-flex items-center gap-2 px-3.5 py-2 rounded-xl text-sm font-semibold transition-colors ${
+              className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs sm:text-[13px] font-semibold transition-colors ${
                 activeTab === 'tasks'
                   ? 'bg-slate-900 text-white dark:bg-amber-500 dark:text-slate-950'
                   : 'bg-slate-100 text-slate-700 hover:bg-slate-200 dark:bg-slate-800 dark:text-slate-300 dark:hover:bg-slate-700'
               }`}
             >
-              <ListTodo className="w-4 h-4" />
+              <ListTodo className="w-3.5 h-3.5" />
               <span>Assigned Tasks</span>
-              <span className="px-1.5 py-0.5 rounded-md text-xs bg-black/10 dark:bg-white/10">
+              <span className="px-1.5 py-0.2 rounded-md text-[10px] font-bold bg-black/10 dark:bg-white/10 font-mono">
                 {tasks.length}
               </span>
             </button>
           </div>
 
-          <div className="flex flex-wrap items-center gap-2.5">
-            <div className="relative flex-1 sm:flex-initial min-w-[220px]">
-              <Search className="w-4 h-4 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2 pointer-events-none" />
+          <div className="flex flex-wrap items-center gap-2">
+            <div className="relative flex-1 sm:flex-initial min-w-[200px]">
+              <Search className="w-3.5 h-3.5 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2 pointer-events-none" />
               <input
                 type="text"
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
                 placeholder="Search candidate, ref #, service..."
-                className="w-full pl-9 pr-8 py-2 rounded-xl text-sm border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 text-slate-900 dark:text-white placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-amber-500/40"
+                className="w-full pl-8 pr-7 py-1.5 rounded-xl text-xs border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 text-slate-900 dark:text-white placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-amber-500/40"
               />
               {searchQuery && (
                 <button
                   type="button"
                   onClick={() => setSearchQuery('')}
-                  className="absolute right-2.5 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 dark:hover:text-slate-200"
+                  className="absolute right-2 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 dark:hover:text-slate-200"
                   aria-label="Clear search"
                 >
-                  <X className="w-3.5 h-3.5" />
+                  <X className="w-3 h-3" />
                 </button>
               )}
             </div>
 
-            <button
-              type="button"
-              onClick={() => setActiveModule?.('hr-tasks')}
-              className="inline-flex items-center gap-1.5 px-3 py-2 rounded-xl text-xs font-semibold border border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-800 transition-colors"
-            >
-              <span>My Assigned Enquiries Page</span>
-              <ArrowRight className="w-3.5 h-3.5" />
-            </button>
+            {!isEnquiriesPage && (
+              <button
+                type="button"
+                onClick={() => setActiveModule?.('hr-tasks')}
+                className="inline-flex items-center gap-1 px-2.5 py-1.5 rounded-xl text-xs font-semibold border border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-800 transition-colors"
+              >
+                <span>Enquiries Desk</span>
+                <ArrowRight className="w-3 h-3" />
+              </button>
+            )}
           </div>
         </div>
 
