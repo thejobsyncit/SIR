@@ -72,12 +72,12 @@ export const CrmPlacementEvents = () => {
           <div>
             <div className="flex items-center gap-2 mb-2">
               <span className="bg-amber-100 dark:bg-amber-950/40 text-amber-800 dark:text-gold-400 px-3 py-1 rounded-lg text-[10px] font-black uppercase tracking-wider">
-                Placement Suite • Feature #7
+                Placement Suite • Feature #8
               </span>
               <span className="text-[10px] font-mono text-slate-400">VENUE & PANELS</span>
             </div>
             <h1 className="font-serif text-2xl sm:text-3xl font-bold text-slate-900 dark:text-white">
-              Recruitment & Placement Coordination
+              Interview & Event Coordination
             </h1>
             <p className="text-slate-500 text-xs mt-1">
               Manage schedules, venues, interview panels, attendance and student notifications.

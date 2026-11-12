@@ -45,27 +45,6 @@ export const getDbPath = () => {
 
 export const DEFAULT_CRM_EMPLOYEES = [
   { 
-    id: 'emp-tariq', 
-    employeeId: 'REV-EMP-000', 
-    name: 'Tariq Mansoor', 
-    email: 'tariq.admin@revivalinternational.com', 
-    altEmail: 'tariq@revivalinternational.com',
-    phone: '+971 50 123 4567', 
-    role: 'Super Admin', 
-    department: 'Executive Management', 
-    designation: 'Executive Managing Director',
-    reportingManager: 'Board of Directors',
-    joiningDate: '2022-01-15',
-    assignedBranch: 'Executive HQ, Dubai',
-    employmentStatus: 'Full-Time (Active)',
-    dateOfBirth: '1985-05-12',
-    address: 'Level 42, Marina Plaza, Dubai Marina, Dubai, UAE',
-    avatar: 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=150&auto=format&fit=crop&q=80',
-    password: 'Super@Secret2026!', 
-    status: 'Active', 
-    createdAt: '2026-11-01 09:00:00' 
-  },
-  { 
     id: 'emp-1', 
     employeeId: 'REV-EMP-001', 
     name: 'Dhanalakshimi', 
@@ -1273,11 +1252,8 @@ const initDb = async (db) => {
         [emp.id, emp.employeeId, emp.name, emp.email, emp.phone, emp.role, emp.department, emp.password, emp.status, emp.altEmail || null, emp.shiftId || 'SHIFT-GENERAL']
       );
       await db.run(
-        `UPDATE employees SET email = ?, altEmail = ?, password = ?, name = ?, department = ?, designation = ?, operationTeam = ?, assignedBranch = ?, reportingManager = ?, joiningDate = ?, employmentStatus = ?, dateOfBirth = ?, address = ?, avatar = ?, shiftId = COALESCE(shiftId, 'SHIFT-GENERAL') WHERE employeeId = ? OR id = ?`,
+        `UPDATE employees SET name = ?, department = ?, designation = ?, operationTeam = ?, assignedBranch = ?, reportingManager = ?, joiningDate = ?, employmentStatus = ?, dateOfBirth = ?, address = ?, avatar = ?, altEmail = COALESCE(?, altEmail), shiftId = COALESCE(shiftId, 'SHIFT-GENERAL') WHERE employeeId = ? OR id = ?`,
         [
-          emp.email,
-          emp.altEmail || null,
-          emp.password,
           emp.name, 
           emp.department, 
           emp.designation || null, 
@@ -1289,6 +1265,7 @@ const initDb = async (db) => {
           emp.dateOfBirth || null, 
           emp.address || null, 
           emp.avatar || null, 
+          emp.altEmail || null,
           emp.employeeId, 
           emp.id
         ]

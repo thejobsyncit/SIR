@@ -1,5 +1,5 @@
-import React, { useState, useEffect, useRef } from 'react';
-import { useCrm, CrmProvider } from './context/CrmContext';
+import React, { useState, useEffect, useRef, useContext } from 'react';
+import { useCrm, CrmProvider, CrmContext, DEFAULT_CRM_CONTEXT_VALUE } from './context/CrmContext';
 import { CrmLogin } from './components/CrmLogin';
 import { CrmSidebar } from './components/CrmSidebar';
 import { CrmHeader } from './components/CrmHeader';
@@ -57,9 +57,6 @@ import { CrmInterviewerAvailability } from './pages/interviewer/CrmInterviewerAv
 import { CrmInterviewerPermissions } from './pages/interviewer/CrmInterviewerPermissions';
 
 import { CrmHrLeadDashboard } from './pages/CrmHrLeadDashboard';
-import { CrmHrOperationsDashboard } from './pages/CrmHrOperationsDashboard';
-import { CrmAttendanceManagement } from './pages/CrmAttendanceManagement';
-import { CrmLeaveManagement } from './pages/CrmLeaveManagement';
 import { CrmHrTaskAssignment } from './components/CrmHrTaskAssignment';
 import { CrmMyProfile } from './pages/CrmMyProfile';
 import { CrmMyAttendance } from './pages/CrmMyAttendance';
@@ -237,7 +234,7 @@ const CrmAppContent = () => {
       // Placement Coordinator Suite (12 Dedicated Pages)
       case 'plc-overview': return <CrmPlacementCoordinatorDashboard />;
       case 'plc-students': return <CrmPlacementStudents />;
-      case 'plc-eligibility': return <CrmPlacementCoordinatorDashboard initialSection="overview" />;
+      case 'plc-eligibility': return <CrmPlacementEligibility />;
       case 'plc-companies': return <CrmPlacementCompanies />;
       case 'plc-drives': return <CrmPlacementDrives />;
       case 'plc-registration': return <CrmPlacementRegistration />;
@@ -277,22 +274,12 @@ const CrmAppContent = () => {
       case 'hr-approvals':
       case 'hr-reports':
         return <CrmHrLeadDashboard initialSection={activeModule} />;
-
       case 'hr-tasks':
-        if (currentRole === 'HR Operations') {
-          return <CrmHrOperationsDashboard initialSection="enquiries" />;
-        }
         return <CrmHrTaskAssignment />;
       case 'my-attendance':
         return <CrmMyAttendance />;
       case 'my-profile':
         return <CrmMyProfile />;
-
-      // Dedicated Attendance & Leave Management (Super Admin Edit vs Admin View Only)
-      case 'attendance':
-        return <CrmAttendanceManagement isSuperAdmin={currentRole === 'Super Admin'} currentRole={currentRole} />;
-      case 'leave':
-        return <CrmLeaveManagement isSuperAdmin={currentRole === 'Super Admin'} currentRole={currentRole} />;
 
       // Standard & Recruiter Modules
       case 'consulting': return <CrmConsultingBookings />;
@@ -317,10 +304,10 @@ const CrmAppContent = () => {
       case 'settings': return <CrmSettings />;
       case 'vacancies': return <CrmVacancyManagement />;
       case 'search-filters': return <CrmSearchFilters />;
-      case 'notes-tags': return <CrmDashboard />;
-      case 'communication': return <CrmDashboard />;
+      case 'notes-tags': return <CrmCandidateNotesTags />;
+      case 'communication': return <CrmCandidateCommunication />;
       case 'offers': return <CrmOffersJoining />;
-      case 'collaboration': return <CrmDashboard />;
+      case 'collaboration': return <CrmTeamCollaboration />;
       case 'dashboard':
       default:
         return <CrmDashboard />;
@@ -546,6 +533,14 @@ const CrmAppContent = () => {
   );
 };
 
-export const CrmApp = () => (
-  <CrmAppContent />
-);
+export const CrmApp = () => {
+  const ctx = useContext(CrmContext);
+  if (!ctx || !ctx.setActiveModule || ctx === DEFAULT_CRM_CONTEXT_VALUE) {
+    return (
+      <CrmProvider>
+        <CrmAppContent />
+      </CrmProvider>
+    );
+  }
+  return <CrmAppContent />;
+};

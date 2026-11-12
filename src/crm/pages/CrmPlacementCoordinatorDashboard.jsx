@@ -15,7 +15,7 @@ export const CrmPlacementCoordinatorDashboard = ({ initialSection }) => {
   const getTabFromModule = (mod) => {
     switch (mod) {
       case 'plc-students': return 'students';
-      case 'plc-eligibility': return 'overview';
+      case 'plc-eligibility': return 'eligibility';
       case 'plc-companies': return 'companies';
       case 'plc-drives': return 'drives';
       case 'plc-registration': return 'registration';
@@ -282,32 +282,32 @@ export const CrmPlacementCoordinatorDashboard = ({ initialSection }) => {
 
   return (
     <ScrollReveal>
-      <div className="space-y-6 font-sans">
+      <div className="space-y-6 text-xs font-sans">
         
         {/* Banner Header (Super Admin Style) */}
-        <div className="bg-white dark:bg-navy-900 border-2 border-slate-300 dark:border-navy-800 p-6 rounded-3xl shadow-sm flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+        <div className="bg-white dark:bg-navy-900 border border-slate-200/90 dark:border-navy-800 p-6 rounded-3xl shadow-sm flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
           <div>
-            <div className="flex items-center gap-2 mb-1.5">
-              <span className="bg-amber-100 dark:bg-amber-950/40 text-amber-900 dark:text-gold-300 px-2.5 py-0.5 rounded-lg text-[10px] font-bold uppercase tracking-wider">
-                Placement Suite
+            <div className="flex items-center gap-2 mb-2">
+              <span className="bg-amber-100 dark:bg-amber-950/40 text-amber-800 dark:text-gold-400 px-3 py-1 rounded-lg text-[10px] font-black uppercase tracking-wider">
+                Placement Suite • Feature #1
               </span>
-              <span className="text-[10px] font-mono font-bold text-slate-600 dark:text-slate-400 uppercase tracking-wider">CAMPUS DRIVES & TALENT DISPATCH</span>
+              <span className="text-[10px] font-mono text-slate-400 uppercase tracking-wider">CAMPUS DRIVES & TALENT DISPATCH</span>
             </div>
-            <h1 className="font-serif text-xl sm:text-2xl font-bold text-slate-950 dark:text-white">
+            <h1 className="font-serif text-2xl sm:text-3xl font-bold text-slate-900 dark:text-white">
               Placement Coordinator Command Center
             </h1>
-            <p className="text-slate-600 dark:text-slate-300 text-xs sm:text-sm font-medium mt-1">
+            <p className="text-slate-500 text-xs mt-1">
               Student profile verification, company eligibility, placement drives, application tracking, offers, and analytics.
             </p>
           </div>
 
           <div className="flex items-center gap-3">
-            <span className="px-3.5 py-2 rounded-full text-xs font-black bg-emerald-50 dark:bg-emerald-950/40 border-2 border-emerald-300 text-emerald-800 dark:text-emerald-300">
+            <span className="px-3 py-1.5 rounded-full text-[11px] font-bold bg-emerald-50 dark:bg-emerald-950/40 border border-emerald-200 text-emerald-700 dark:text-emerald-300">
               ● Drive Engine Active
             </span>
             <button
               onClick={() => setActiveTab('drives')}
-              className="flex items-center gap-2 px-4 py-2.5 bg-amber-400 hover:bg-amber-500 text-slate-950 font-black rounded-2xl shadow-sm transition cursor-pointer text-xs sm:text-sm border border-amber-500"
+              className="flex items-center gap-2 px-4 py-2 bg-gold-500 hover:bg-gold-600 text-navy-950 font-bold rounded-2xl shadow-sm transition cursor-pointer text-xs"
             >
               <Plus className="w-4 h-4" />
               <span>Create Drive</span>
@@ -321,33 +321,34 @@ export const CrmPlacementCoordinatorDashboard = ({ initialSection }) => {
           </div>
         )}
 
-        {/* 11-FEATURE PILL NAVIGATION BAR */}
-        <div className="flex flex-wrap gap-1.5 bg-slate-100 dark:bg-navy-950 border-2 border-slate-300 dark:border-navy-800 p-2 rounded-2xl shadow-xs overflow-x-auto">
+        {/* 12-FEATURE PILL NAVIGATION BAR */}
+        <div className="flex flex-wrap gap-1.5 bg-white dark:bg-navy-900 border border-slate-200/90 dark:border-navy-800 p-2 rounded-2xl shadow-xs overflow-x-auto">
           {[
-            { id: 'overview', label: 'Overview', icon: LayoutDashboard },
-            { id: 'students', label: 'Students', icon: GraduationCap },
-            { id: 'companies', label: 'Companies', icon: Building2 },
-            { id: 'drives', label: 'Drives', icon: Briefcase },
-            { id: 'registration', label: 'Registration', icon: UserCheck },
-            { id: 'applications', label: 'Applications', icon: GitMerge },
-            { id: 'events', label: 'Recruitment & Placement', icon: Calendar },
-            { id: 'offers', label: 'Offers', icon: Award },
-            { id: 'announcements', label: 'Notices', icon: Bell },
-            { id: 'reports', label: 'Reports', icon: BarChart3 },
-            { id: 'approvals', label: 'Approvals', icon: ShieldCheck }
+            { id: 'overview', label: '#1 Overview', icon: LayoutDashboard },
+            { id: 'students', label: '#2 Students', icon: GraduationCap },
+            { id: 'eligibility', label: '#3 Eligibility', icon: CheckCircle2 },
+            { id: 'companies', label: '#4 Companies', icon: Building2 },
+            { id: 'drives', label: '#5 Drives', icon: Briefcase },
+            { id: 'registration', label: '#6 Registration', icon: UserCheck },
+            { id: 'applications', label: '#7 Applications', icon: GitMerge },
+            { id: 'events', label: '#8 Events', icon: Calendar },
+            { id: 'offers', label: '#9 Offers', icon: Award },
+            { id: 'announcements', label: '#10 Notices', icon: Bell },
+            { id: 'reports', label: '#11 Reports', icon: BarChart3 },
+            { id: 'approvals', label: '#12 Approvals', icon: ShieldCheck }
           ].map(tab => {
             const TabIcon = tab.icon;
             return (
               <button
                 key={tab.id}
                 onClick={() => setActiveTab(tab.id)}
-                className={`flex items-center gap-2 px-3.5 py-2 rounded-xl font-black text-xs sm:text-sm transition cursor-pointer shrink-0 ${
+                className={`flex items-center gap-1.5 px-3 py-1.5 rounded-xl font-bold text-[11px] transition cursor-pointer shrink-0 ${
                   activeTab === tab.id
-                    ? 'bg-amber-400 text-slate-950 shadow-xs border border-amber-500'
-                    : 'text-slate-700 dark:text-slate-300 hover:bg-slate-200/60 dark:hover:bg-navy-800'
+                    ? 'bg-gold-500 text-navy-950 shadow-xs'
+                    : 'text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-navy-800'
                 }`}
               >
-                <TabIcon className="w-4 h-4" />
+                <TabIcon className="w-3.5 h-3.5" />
                 <span>{tab.label}</span>
               </button>
             );
@@ -358,16 +359,16 @@ export const CrmPlacementCoordinatorDashboard = ({ initialSection }) => {
         {(activeTab === 'overview' || activeTab === 'reports') && (
           <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3">
             {[
-              { label: 'Registered Students', val: totalRegisteredStudents, color: 'text-blue-800 dark:text-blue-300', bg: 'bg-blue-50/80 dark:bg-blue-500/10 border-2 border-blue-200 dark:border-blue-500/20' },
-              { label: 'Eligible Students', val: eligibleStudents, color: 'text-teal-800 dark:text-teal-300', bg: 'bg-teal-50/80 dark:bg-teal-500/10 border-2 border-teal-200 dark:border-teal-500/20' },
-              { label: 'Active Drives', val: activeDrivesCount, color: 'text-purple-800 dark:text-purple-300', bg: 'bg-purple-50/80 dark:bg-purple-500/10 border-2 border-purple-200 dark:border-purple-500/20' },
-              { label: 'Total Applications', val: totalApplications, color: 'text-indigo-800 dark:text-indigo-300', bg: 'bg-indigo-50/80 dark:bg-indigo-500/10 border-2 border-indigo-200 dark:border-indigo-500/20' },
-              { label: 'Offers Issued', val: totalOffersCount, color: 'text-amber-800 dark:text-amber-300', bg: 'bg-amber-50/80 dark:bg-amber-500/10 border-2 border-amber-200 dark:border-amber-500/20' },
-              { label: 'Placed Students', val: placedStudentsCount, color: 'text-emerald-800 dark:text-emerald-300', bg: 'bg-emerald-50/80 dark:bg-emerald-500/10 border-2 border-emerald-200 dark:border-emerald-500/20' }
+              { label: 'Registered Students', val: totalRegisteredStudents, color: 'text-blue-600 dark:text-blue-400', bg: 'bg-blue-50 dark:bg-blue-500/10 border-blue-200 dark:border-blue-500/20' },
+              { label: 'Eligible Students', val: eligibleStudents, color: 'text-teal-600 dark:text-teal-400', bg: 'bg-teal-50 dark:bg-teal-500/10 border-teal-200 dark:border-teal-500/20' },
+              { label: 'Active Drives', val: activeDrivesCount, color: 'text-purple-600 dark:text-purple-400', bg: 'bg-purple-50 dark:bg-purple-500/10 border-purple-200 dark:border-purple-500/20' },
+              { label: 'Total Applications', val: totalApplications, color: 'text-indigo-600 dark:text-indigo-400', bg: 'bg-indigo-50 dark:bg-indigo-500/10 border-indigo-200 dark:border-indigo-500/20' },
+              { label: 'Offers Issued', val: totalOffersCount, color: 'text-amber-600 dark:text-amber-400', bg: 'bg-amber-50 dark:bg-amber-500/10 border-amber-200 dark:border-amber-500/20' },
+              { label: 'Placed Students', val: placedStudentsCount, color: 'text-emerald-600 dark:text-emerald-400', bg: 'bg-emerald-50 dark:bg-emerald-500/10 border-emerald-200 dark:border-emerald-500/20' }
             ].map((kpi, idx) => (
-              <div key={idx} className={`p-4 rounded-2xl ${kpi.bg} text-center shadow-sm`}>
-                <span className="text-xs font-black text-slate-800 dark:text-slate-200 block truncate uppercase">{kpi.label}</span>
-                <span className={`text-3xl font-black font-mono mt-1 block ${kpi.color}`}>{kpi.val}</span>
+              <div key={idx} className={`p-4 rounded-2xl border ${kpi.bg} text-center shadow-sm`}>
+                <span className="text-[10px] font-bold text-slate-500 dark:text-slate-400 block truncate">{kpi.label}</span>
+                <span className={`text-2xl font-black font-mono mt-1 block ${kpi.color}`}>{kpi.val}</span>
               </div>
             ))}
           </div>
@@ -504,7 +505,37 @@ export const CrmPlacementCoordinatorDashboard = ({ initialSection }) => {
           </div>
         )}
 
+        {/* TAB 3: ELIGIBILITY MANAGEMENT */}
+        {activeTab === 'eligibility' && (
+          <div className="bg-white dark:bg-navy-900 border border-slate-200 dark:border-navy-800 p-6 rounded-3xl shadow-sm space-y-4 animate-in fade-in">
+            <div className="flex justify-between items-center border-b border-slate-100 dark:border-navy-800 pb-3">
+              <div>
+                <h3 className="font-serif text-sm font-bold text-slate-900 dark:text-white flex items-center gap-2">
+                  <CheckCircle2 className="w-4 h-4 text-emerald-500" />
+                  <span>Company Eligibility Management</span>
+                </h3>
+                <p className="text-slate-500 text-xs">Set company-specific criteria such as degree, branch, CGPA, backlogs and graduation year.</p>
+              </div>
+            </div>
 
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+              {eligibilityCriteria.map((c, idx) => (
+                <div key={idx} className="p-4 bg-slate-50 dark:bg-navy-950 rounded-2xl border border-slate-200 dark:border-navy-800 space-y-2">
+                  <h4 className="font-bold text-slate-900 dark:text-white text-xs">{c.company}</h4>
+                  <p className="text-teal-600 font-bold text-[11px]">{c.role}</p>
+
+                  <div className="space-y-1 text-[11px] text-slate-600 dark:text-slate-400 pt-1 font-mono">
+                    <p>Degree: <strong className="text-slate-800 dark:text-slate-200">{c.degree} ({c.branch.join(', ')})</strong></p>
+                    <p>Min CGPA: <strong className="text-teal-600">{c.minCgpa}</strong></p>
+                    <p>Max Backlogs: <strong className="text-slate-800 dark:text-slate-200">{c.maxBacklogs}</strong></p>
+                    <p>Graduation: <strong className="text-slate-800 dark:text-slate-200">{c.gradYear}</strong></p>
+                    <p className="text-emerald-600 font-bold">{c.package}</p>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
 
         {/* TAB 5: PLACEMENT DRIVE MANAGEMENT */}
         {activeTab === 'drives' && (

@@ -2,165 +2,16 @@ import React, { useState } from 'react';
 import { useCrm } from '../context/CrmContext';
 import { 
   Lock, Mail, Eye, EyeOff, ShieldCheck, KeyRound, Sparkles, 
-  CheckCircle2, UserCheck, AlertTriangle, AlertCircle, RefreshCw, X 
+  CheckCircle2, UserCheck, AlertTriangle, RefreshCw, Laptop, Smartphone, Monitor, ShieldAlert, X, UserPlus, Check 
 } from 'lucide-react';
 import { CRM_ROLES } from '../data/mockCrmData';
 import ScrollReveal from '../../components/ScrollReveal';
-
-// Master Default Corporate Accounts with full role, department, team & credential metadata
-export const DEFAULT_CRM_ACCOUNTS = [
-  { 
-    name: 'Super Admin', 
-    email: 'thejobsyncit@gmail.com', 
-    altEmail: 'thejobsyncit@gmail.com', 
-    password: 'Thejobsync@26', 
-    role: 'Super Admin', 
-    phone: '+91 9003475405', 
-    department: 'Executive Management',
-    employeeId: 'REV-EMP-001'
-  },
-  { 
-    name: 'Tariq Mansoor', 
-    email: 'tariq.admin@revivalinternational.com', 
-    altEmail: 'tariq@revivalinternational.com', 
-    password: 'Super@Secret2026!', 
-    role: 'Super Admin', 
-    phone: '+971 50 123 4567',
-    department: 'Executive Management',
-    employeeId: 'REV-EMP-001'
-  },
-  { 
-    name: 'Dhanalakshimi', 
-    email: 'dhana.jasync@gmail.com', 
-    altEmail: 'dhanalakshimi@revivalinternational.com', 
-    password: 'Password123!', 
-    role: 'Super Admin', 
-    phone: '+91 9876543210', 
-    department: 'India Operations HQ',
-    employeeId: 'REV-EMP-000'
-  },
-  { 
-    name: 'Sarah Jenkins', 
-    email: 'sarah.admin@revivalinternational.com', 
-    password: 'Password123!', 
-    role: 'Admin', 
-    phone: '+91 98400 11002', 
-    department: 'Administration',
-    employeeId: 'REV-EMP-002'
-  },
-  { 
-    name: 'Priya Sharma', 
-    email: 'priya.lead@revivalinternational.com', 
-    password: 'Password123!', 
-    role: 'HR Lead', 
-    phone: '+91 98400 11003', 
-    department: 'Human Resources',
-    employeeId: 'REV-EMP-003'
-  },
-  { 
-    name: 'Sarah Al Zaabi', 
-    email: 'sarah.hr@revivalinternational.com', 
-    password: 'Password123!', 
-    role: 'HR Lead', 
-    phone: '+971 50 234 5678', 
-    department: 'Human Resources',
-    employeeId: 'REV-EMP-003'
-  },
-  { 
-    name: 'Kishore Kumar', 
-    email: 'kishore.recruiter@revivalinternational.com', 
-    password: 'Password123!', 
-    role: 'Recruiter', 
-    phone: '+91 98400 11004', 
-    department: 'Recruitment & ATS',
-    employeeId: 'REV-EMP-004'
-  },
-  { 
-    name: 'Sreeja Nair', 
-    email: 'sreeja.jasync@gmail.com', 
-    altEmail: 'sreeja.placement@revivalinternational.com', 
-    password: 'Password123!', 
-    role: 'Placement Coordinator', 
-    phone: '+91 9876543211', 
-    department: 'Placement & Industry Relations',
-    employeeId: 'REV-EMP-005'
-  },
-  { 
-    name: 'Balavarshini S.', 
-    email: 'balavarshini.s@revivalinternational.com', 
-    altEmail: 'balavarshini2223@gmail.com', 
-    password: 'Password123!', 
-    role: 'HR Operations', 
-    phone: '+91 9876543214', 
-    department: 'International HR Operations',
-    operationTeam: 'International HR Operations',
-    designation: 'Lead HR Operations Specialist',
-    employeeId: 'REV-EMP-006'
-  },
-  { 
-    name: 'Balavarshini S.', 
-    email: 'balavarshini2223@gmail.com', 
-    altEmail: 'balavarshini.s@revivalinternational.com', 
-    password: 'Password123!', 
-    role: 'HR Operations', 
-    phone: '+91 9876543214', 
-    department: 'International HR Operations',
-    operationTeam: 'International HR Operations',
-    designation: 'Lead HR Operations Specialist',
-    employeeId: 'REV-EMP-006'
-  },
-  { 
-    name: 'Fatima', 
-    email: 'fatima.intl@revivalinternational.com', 
-    altEmail: 'fatima.ops@revivalinternational.com', 
-    password: 'Password123!', 
-    role: 'HR Operations', 
-    phone: '+971 50 876 5432', 
-    department: 'International HR Operations',
-    operationTeam: 'International HR Operations',
-    designation: 'International HR Operations Specialist',
-    employeeId: 'REV-EMP-107'
-  },
-  { 
-    name: 'Fatima', 
-    email: 'fatima.ops@revivalinternational.com', 
-    altEmail: 'fatima.intl@revivalinternational.com', 
-    password: 'Password123!', 
-    role: 'HR Operations', 
-    phone: '+971 50 876 5432', 
-    department: 'International HR Operations',
-    operationTeam: 'International HR Operations',
-    designation: 'International HR Operations Specialist',
-    employeeId: 'REV-EMP-107'
-  },
-  { 
-    name: 'Divya R.', 
-    email: 'divya.enq@revivalinternational.com', 
-    password: 'Password123!', 
-    role: 'HR Operations', 
-    phone: '+91 98401 11202', 
-    department: 'Enquiry HR Operations',
-    operationTeam: 'Enquiry HR Operations',
-    designation: 'HR Operations Specialist',
-    employeeId: 'REV-EMP-102'
-  },
-  { 
-    name: 'Praveen Kumar', 
-    email: 'praveen.enq@revivalinternational.com', 
-    password: 'Password123!', 
-    role: 'HR Operations', 
-    phone: '+91 98401 11208', 
-    department: 'Enquiry HR Operations',
-    operationTeam: 'Enquiry HR Operations',
-    designation: 'HR Operations Specialist',
-    employeeId: 'REV-EMP-108'
-  }
-];
 
 export const CrmLogin = () => {
   const { 
     login, recordFailedLogin = () => {}, failedLoginAttempts = 0, 
     accountLocked = false, lockoutTimeRemaining = 0, 
+    activeDevices = [], logoutEverywhere = () => {}, 
     currentRole, switchRole = () => {} 
   } = useCrm();
 
@@ -169,42 +20,65 @@ export const CrmLogin = () => {
   const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
   const [rememberMe, setRememberMe] = useState(true);
-  // Direct login without 2FA OTP step
+  const [step, setStep] = useState(1); // 1: Password -> 2: Email 2FA OTP
+  const [otp, setOtp] = useState(['', '', '', '']);
   const [isAuthenticating, setIsAuthenticating] = useState(false);
   const [authErrorMsg, setAuthErrorMsg] = useState('');
   
-  // Modals & Popups (Direct Reset - Zero OTP)
+  // Modals & Popups
   const [forgotModalOpen, setForgotModalOpen] = useState(false);
   const [forgotEmail, setForgotEmail] = useState('');
+  const [forgotStep, setForgotStep] = useState(1); // 1: Email, 2: OTP & New Password, 3: Success
+  const [forgotOtp, setForgotOtp] = useState('');
+  const [generatedOtp, setGeneratedOtp] = useState('');
   const [forgotNewPassword, setForgotNewPassword] = useState('');
   const [forgotConfirmPassword, setForgotConfirmPassword] = useState('');
   const [forgotError, setForgotError] = useState('');
-  const [forgotSuccess, setForgotSuccess] = useState('');
+  const [devicesModalOpen, setDevicesModalOpen] = useState(false);
 
-  // Helper to match email or altEmail
-  const matchesUser = (u, target) => {
-    if (!u || !target) return false;
-    const uEm = (u.email || '').toLowerCase().trim();
-    const uAlt = (u.altEmail || '').toLowerCase().trim();
-    return uEm === target || uAlt === target;
-  };
+  // Super Admin / Account Registration Modal State
+  const [registerModalOpen, setRegisterModalOpen] = useState(false);
+  const [regData, setRegData] = useState({
+    name: '',
+    email: '',
+    role: 'Super Admin',
+    password: '',
+    adminKey: 'REV-SUPER-2026'
+  });
+  const [registerSuccessMsg, setRegisterSuccessMsg] = useState('');
 
   // Persistent Registered Accounts DB (Created via Super Admin Employee Directory)
   const [registeredUsers, setRegisteredUsers] = useState(() => {
-    let users = [...DEFAULT_CRM_ACCOUNTS];
+    const defaultAccounts = [
+      { name: 'Super Admin', email: 'thejobsyncit@gmail.com', password: 'Thejobsync@26', role: 'Super Admin', phone: '+91 9003475405', department: 'Executive Management' },
+      { name: 'Super Admin', email: 'tariq.admin@revivalinternational.com', password: 'Super@Secret2026!', role: 'Super Admin', department: 'Executive Management' },
+      { name: 'Dhanalakshimi', email: 'dhana.jasync@gmail.com', password: 'Password123!', role: 'Super Admin', phone: '+91 9876543210', department: 'India Operations HQ' },
+      { name: 'Sarah Jenkins', email: 'sarah.admin@revivalinternational.com', password: 'Password123!', role: 'Admin', phone: '+91 98400 11002', department: 'Administration' },
+      { name: 'Priya Sharma', email: 'priya.lead@revivalinternational.com', password: 'Password123!', role: 'HR Lead', phone: '+91 98400 11003', department: 'Human Resources' },
+      { name: 'Kishore Kumar', email: 'kishore.recruiter@revivalinternational.com', password: 'Password123!', role: 'Recruiter', phone: '+91 98400 11004', department: 'Recruitment & ATS' },
+      { name: 'Sreeja Nair', email: 'sreeja.jasync@gmail.com', password: 'Password123!', role: 'Placement Coordinator', phone: '+91 9876543211', department: 'Placement & Client Relations' },
+      { name: 'Fatima', email: 'fatima.intl@revivalinternational.com', password: 'Password123!', role: 'HR Operations', phone: '+971 50 876 5432', department: 'International HR Operations', designation: 'International HR Operations Specialist', employeeId: 'REV-EMP-107', teamMemberId: 'INTL-HR-101', operationTeam: 'International HR Operations' },
+      { name: 'Balavarshini S.', email: 'balavarshini.s@revivalinternational.com', password: 'Password123!', role: 'HR Operations', phone: '+91 9876543214', department: 'International HR Operations', designation: 'Lead HR Operations Specialist', employeeId: 'REV-EMP-006', teamMemberId: 'INTL-HR-102', operationTeam: 'International HR Operations' },
+      { name: 'Balavarshini S.', email: 'balavarshini2223@gmail.com', password: 'Password123!', role: 'HR Operations', phone: '+91 9876543214', department: 'International HR Operations', designation: 'Lead HR Operations Specialist', employeeId: 'REV-EMP-006', teamMemberId: 'INTL-HR-102', operationTeam: 'International HR Operations' },
+      { name: 'Divya R.', email: 'divya.enq@revivalinternational.com', password: 'Password123!', role: 'HR Operations', phone: '+91 98401 11202', department: 'Enquiry HR Operations', designation: 'HR Operations Specialist', employeeId: 'REV-EMP-102', teamMemberId: 'ENQ-HR-201', operationTeam: 'Enquiry HR Operations' },
+      { name: 'Praveen Kumar', email: 'praveen.enq@revivalinternational.com', password: 'Password123!', role: 'HR Operations', phone: '+91 98401 11208', department: 'Enquiry HR Operations', designation: 'HR Operations Specialist', employeeId: 'REV-EMP-108', teamMemberId: 'ENQ-HR-202', operationTeam: 'Enquiry HR Operations' },
+      { name: 'Dr. Rajesh Kannan', email: 'rajesh.interviewer@revivalinternational.com', password: 'Password123!', role: 'Interviewer', phone: '+91 98400 11999', department: 'Technical Assessment Panel' }
+    ];
+
+    let users = [...defaultAccounts];
     const saved = localStorage.getItem('sir_crm_registered_users');
     if (saved) {
       try { 
         const parsed = JSON.parse(saved);
         if (Array.isArray(parsed) && parsed.length > 0) {
-          users = parsed.filter(u => u.role !== 'Interviewer');
-          // Merge DEFAULT_CRM_ACCOUNTS and ensure credentials are up to date
-          DEFAULT_CRM_ACCOUNTS.forEach(def => {
-            const idx = users.findIndex(u => matchesUser(u, def.email.toLowerCase()));
+          users = parsed;
+          // Merge defaultAccounts and ensure credentials are up to date
+          defaultAccounts.forEach(def => {
+            const idx = users.findIndex(u => u.email.toLowerCase() === def.email.toLowerCase());
             if (idx === -1) {
               users.unshift(def);
             } else {
-              users[idx] = { ...users[idx], ...def };
+              users[idx] = { ...users[idx], password: def.password, role: def.role, name: def.name };
             }
           });
         }
@@ -241,152 +115,127 @@ export const CrmLogin = () => {
 
     const cleanEmail = email.trim().toLowerCase();
 
+    // Direct Instant Super Admin Authentication for thejobsyncit@gmail.com
+    if (cleanEmail === 'thejobsyncit@gmail.com' && password === 'Thejobsync@26') {
+      setIsAuthenticating(true);
+      switchRole('Super Admin');
+      setTimeout(() => {
+        setIsAuthenticating(false);
+        login('thejobsyncit@gmail.com', 'Thejobsync@26', 'Super Admin');
+      }, 300);
+      return;
+    }
+
+    // Direct Instant Super Admin Authentication for tariq.admin
+    if (cleanEmail === 'tariq.admin@revivalinternational.com' && password === 'Super@Secret2026!') {
+      setIsAuthenticating(true);
+      switchRole('Super Admin');
+      setTimeout(() => {
+        setIsAuthenticating(false);
+        login('tariq.admin@revivalinternational.com', 'Super@Secret2026!', 'Super Admin');
+      }, 300);
+      return;
+    }
+
     // Reload latest registered users from localStorage to catch any recently created accounts
-    let currentUsers = [...DEFAULT_CRM_ACCOUNTS];
+    let currentUsers = registeredUsers;
     const latestSaved = localStorage.getItem('sir_crm_registered_users');
     if (latestSaved) {
-      try {
-        const parsed = JSON.parse(latestSaved);
-        if (Array.isArray(parsed) && parsed.length > 0) {
-          parsed.forEach(p => {
-            const idx = currentUsers.findIndex(u => matchesUser(u, (p.email || '').toLowerCase().trim()));
-            if (idx === -1) {
-              currentUsers.push(p);
-            } else {
-              currentUsers[idx] = { ...currentUsers[idx], ...p };
-            }
-          });
-        }
-      } catch (err) {}
+      try { currentUsers = JSON.parse(latestSaved); } catch (err) {}
     }
 
-    let userAccount = currentUsers.find(u => matchesUser(u, cleanEmail));
+    // STRICT CHECK: Verify if account was created via Super Admin
+    const userAccount = currentUsers.find(
+      u => u.email.toLowerCase() === cleanEmail
+    );
 
-    // Try backend authentication endpoint if user account not found or password mismatch locally
-    if (!userAccount || userAccount.password !== password) {
-      const endpoints = ['/api/crm/auth/login', 'http://localhost:5000/api/crm/auth/login'];
-      for (const ep of endpoints) {
-        try {
-          const res = await fetch(ep, {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ email: cleanEmail, password })
-          });
-          if (res.ok) {
-            const data = await res.json();
-            if (data && data.success && data.employee) {
-              userAccount = {
-                name: data.employee.name,
-                email: data.employee.email,
-                altEmail: data.employee.altEmail,
-                role: data.employee.role,
-                password: password,
-                employeeId: data.employee.employeeId || data.employee.id,
-                department: data.employee.department,
-                operationTeam: data.employee.operationTeam,
-                phone: data.employee.phone,
-                token: data.token
-              };
-              currentUsers = [userAccount, ...currentUsers.filter(u => !matchesUser(u, cleanEmail))];
-              localStorage.setItem('sir_crm_registered_users', JSON.stringify(currentUsers));
-              setRegisteredUsers(currentUsers);
-              break;
-            }
-          }
-        } catch (_) {}
-      }
+    if (!userAccount) {
+      setAuthErrorMsg(`❌ Access Denied: '${email}' is not created by Super Admin! Please contact your Super Admin to create your Employee Account first.`);
+      return;
     }
 
-    // Account validation & Direct Entry for Any Added/Demo Account (No OTP!)
-    if (userAccount) {
-      if (userAccount.password && userAccount.password !== password) {
-        setAuthErrorMsg(`❌ Incorrect password for registered account '${email}'. Please verify your password.`);
-        return;
-      }
-    } else {
-      // Auto-provision demo account so user can enter directly without roadblocks! ("demo laa venum naa add panra email id pota ulla pogura mari irrundha podhum")
-      const roleToAssign = 'Super Admin';
-      const defaultName = cleanEmail.split('@')[0].replace(/[._-]/g, ' ').replace(/\b\w/g, c => c.toUpperCase());
-      userAccount = {
-        id: `emp-${Date.now()}`,
-        employeeId: `EMP-${Math.floor(1000 + Math.random() * 9000)}`,
-        name: defaultName,
-        email: cleanEmail,
-        password: password,
-        role: roleToAssign,
-        department: 'Executive Management',
-        status: 'Active'
-      };
-      currentUsers = [userAccount, ...currentUsers];
-      localStorage.setItem('sir_crm_registered_users', JSON.stringify(currentUsers));
-      setRegisteredUsers(currentUsers);
+    if (userAccount.password !== password) {
+      setAuthErrorMsg(`❌ Incorrect password for registered account '${email}'. Please check your password.`);
+      return;
     }
 
-    // Direct Instant Authentication (Zero OTP!)
+    // Account verified! Send OTP to the user's email
     setIsAuthenticating(true);
+    
+    // MOCK OTP DISPATCH FOR FRONTEND DEMO
     setTimeout(() => {
       setIsAuthenticating(false);
-      login(userAccount.email, password, userAccount.role || 'Super Admin', userAccount);
-    }, 200);
+      const mockOtp = "1234";
+      setOtp(mockOtp.split(''));
+      setAuthErrorMsg(`[DEV MODE] OTP Generated: ${mockOtp}`);
+      switchRole(userAccount.role || 'Super Admin');
+      setStep(2);
+    }, 1500);
   };
 
-  const handleDirectResetPassword = async (e) => {
+  const handleOtpSubmit = async (e) => {
     e.preventDefault();
-    setForgotError('');
-    const clean = (forgotEmail || '').trim().toLowerCase();
-    if (!clean || !clean.includes('@')) {
-      setForgotError('Please enter a valid corporate email address.');
-      return;
-    }
-    if (!forgotNewPassword || forgotNewPassword.length < 6) {
-      setForgotError('New Password must be at least 6 characters long.');
-      return;
-    }
-    if (forgotNewPassword !== forgotConfirmPassword) {
-      setForgotError('Passwords do not match. Please re-enter confirm password.');
+    setAuthErrorMsg('');
+    const enteredOtp = otp.join('');
+    
+    if (enteredOtp.length !== 4) {
+      setAuthErrorMsg('Please enter the full 4-digit OTP.');
       return;
     }
 
-    // Update registered users in state and localStorage
-    setRegisteredUsers(prev => {
-      const updated = prev.map(u => {
-        if (matchesUser(u, clean)) {
-          return { ...u, password: forgotNewPassword };
-        }
-        return u;
-      });
-      if (!updated.some(u => matchesUser(u, clean))) {
-        updated.push({
-          id: `emp-${Date.now()}`,
-          name: clean.split('@')[0],
-          email: clean,
-          password: forgotNewPassword,
-          role: 'Super Admin',
-          department: 'Executive Management'
-        });
+    setIsAuthenticating(true);
+    
+    // MOCK OTP VERIFICATION FOR FRONTEND DEMO
+    setTimeout(() => {
+      if (enteredOtp === '1234') {
+        const cleanEmail = email.trim().toLowerCase();
+        let currentUsers = registeredUsers;
+        try {
+          const latestSaved = localStorage.getItem('sir_crm_registered_users');
+          if (latestSaved) currentUsers = JSON.parse(latestSaved);
+        } catch (err) {}
+        const userAccount = currentUsers.find(u => u.email && u.email.toLowerCase() === cleanEmail);
+        login(email, password, currentRole, userAccount);
+      } else {
+        setIsAuthenticating(false);
+        setAuthErrorMsg('Invalid OTP code. For demo, use 1234.');
       }
-      try {
-        localStorage.setItem('sir_crm_registered_users', JSON.stringify(updated));
-      } catch {}
-      return updated;
-    });
+    }, 1500);
+  };
 
-    // Also sync password to backend
-    const endpoints = ['/api/crm/auth/reset-password', 'http://localhost:5000/api/crm/auth/reset-password'];
-    for (const ep of endpoints) {
-      try {
-        await fetch(ep, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ email: clean, newPassword: forgotNewPassword })
-        });
-        break;
-      } catch (_) {}
+  const handleRegisterSuperAdmin = (e) => {
+    e.preventDefault();
+    setAuthErrorMsg('');
+
+    if (!regData.email || !regData.password) {
+      alert('Please fill in both Email ID and Password.');
+      return;
     }
 
-    setEmail(clean);
-    setPassword(forgotNewPassword);
-    setForgotSuccess(`✓ Password successfully updated for ${clean}! Credentials pre-filled.`);
+    setIsAuthenticating(true);
+
+    const newUser = {
+      name: regData.name.trim() || 'Super Admin User',
+      email: regData.email.trim().toLowerCase(),
+      role: 'Super Admin',
+      password: regData.password
+    };
+
+    const updatedList = [newUser, ...registeredUsers.filter(u => u.email.toLowerCase() !== newUser.email)];
+    setRegisteredUsers(updatedList);
+    localStorage.setItem('sir_crm_registered_users', JSON.stringify(updatedList));
+
+    setEmail(newUser.email);
+    setPassword(newUser.password);
+    switchRole(newUser.role);
+
+    setRegisterSuccessMsg(`✓ Super Admin Mail ID '${newUser.email}' created & registered successfully! Authenticating...`);
+
+    setTimeout(() => {
+      login(newUser.email, newUser.password, newUser.role);
+      setIsAuthenticating(false);
+      setRegisterModalOpen(false);
+    }, 1000);
   };
 
   return (
@@ -411,7 +260,25 @@ export const CrmLogin = () => {
           </p>
         </div>
 
-        <form onSubmit={handlePasswordSubmit} className="space-y-4 text-xs">
+        {/* Register Account Quick Callout Button */}
+        <div className="p-3.5 bg-navy-950 border-2 border-gold-500/50 rounded-2xl flex justify-between items-center text-xs shadow-sm">
+          <div>
+            <span className="text-white font-extrabold text-xs block">Need a Corporate Mail ID?</span>
+            <span className="text-[11px] text-slate-200 font-semibold">Register new Super Admin account to login</span>
+          </div>
+          <button 
+            type="button"
+            onClick={() => setRegisterModalOpen(true)}
+            className="py-2.5 px-3.5 bg-gold-500 hover:bg-gold-400 text-navy-950 font-extrabold text-xs rounded-xl shadow-gold-glow flex items-center gap-1.5 transition cursor-pointer shrink-0"
+          >
+            <UserPlus className="w-4 h-4" />
+            <span>+ Create Account</span>
+          </button>
+        </div>
+
+        {step === 1 ? (
+          /* Step 1: Email & Password Entry */
+          <form onSubmit={handlePasswordSubmit} className="space-y-4 text-xs">
             
             {authErrorMsg && (
               <div className="p-3 bg-rose-950/80 border border-rose-500/60 text-rose-200 font-bold rounded-xl text-xs flex items-center gap-2">
@@ -421,7 +288,19 @@ export const CrmLogin = () => {
             )}
 
             <div>
-              <label className="block font-extrabold text-white text-xs mb-1.5">Corporate Email Address</label>
+              <div className="flex justify-between items-center mb-1.5">
+                <label className="block font-extrabold text-white text-xs">Corporate Email Address</label>
+                <button
+                  type="button"
+                  onClick={() => {
+                    setEmail('tariq.admin@revivalinternational.com');
+                    setPassword('Super@Secret2026!');
+                  }}
+                  className="text-[10px] text-gold-400 hover:text-gold-300 font-extrabold underline cursor-pointer"
+                >
+                  ⚡ Fill Super Admin Demo
+                </button>
+              </div>
               <div className="relative">
                 <Mail className="w-4 h-4 text-gold-400 absolute left-3.5 top-3.5" />
                 <input 
@@ -496,22 +375,177 @@ export const CrmLogin = () => {
               className="w-full py-3.5 bg-gold-shimmer text-navy-950 font-extrabold text-xs rounded-xl shadow-gold-glow hover:opacity-95 transition flex items-center justify-center space-x-2 cursor-pointer"
             >
               {isAuthenticating ? <RefreshCw className="w-4 h-4 animate-spin" /> : <ShieldCheck className="w-4 h-4" />}
-              <span>{isAuthenticating ? 'Signing In & Launching CRM...' : 'Sign In to Enterprise CRM →'}</span>
+              <span>{isAuthenticating ? 'Authenticating...' : 'Authenticate & Request 2FA OTP →'}</span>
+            </button>
+
+            <div className="pt-2 text-center">
+              <button
+                type="button"
+                onClick={() => setRegisterModalOpen(true)}
+                className="text-xs text-gold-400 hover:text-gold-300 font-extrabold underline cursor-pointer"
+              >
+                + Register New Corporate / Super Admin Mail ID →
+              </button>
+            </div>
+          </form>
+        ) : (
+          /* Step 2: 2FA OTP Verification */
+          <form onSubmit={handleOtpSubmit} className="space-y-4 text-xs animate-in fade-in">
+            <div className="text-center space-y-1">
+              <KeyRound className="w-8 h-8 text-gold-500 mx-auto" />
+              <h4 className="font-serif text-base font-bold text-white">Two-Factor Authentication (2FA)</h4>
+              <p className="text-xs text-slate-300 font-medium">Enter the 4-digit code dispatched to <strong className="text-white font-bold">{email}</strong></p>
+            </div>
+
+            <div className="flex justify-center gap-3 py-2">
+              {otp.map((digit, idx) => (
+                <input
+                  key={idx}
+                  type="text"
+                  maxLength={1}
+                  value={digit}
+                  onChange={(e) => {
+                    const newOtp = [...otp];
+                    newOtp[idx] = e.target.value;
+                    setOtp(newOtp);
+                  }}
+                  className="w-12 h-12 text-center bg-navy-950 border-2 border-gold-500/70 text-white font-mono text-xl font-bold rounded-xl focus:border-gold-400"
+                />
+              ))}
+            </div>
+
+            <button 
+              type="submit"
+              disabled={isAuthenticating}
+              className="w-full py-3.5 bg-gold-shimmer text-navy-950 font-extrabold text-xs rounded-xl shadow-gold-glow hover:opacity-95 transition flex items-center justify-center space-x-2 cursor-pointer"
+            >
+              {isAuthenticating ? <RefreshCw className="w-4 h-4 animate-spin" /> : <ShieldCheck className="w-4 h-4" />}
+              <span>{isAuthenticating ? 'Launching CRM...' : 'Verify 2FA OTP & Launch CRM'}</span>
+            </button>
+
+            <button 
+              type="button" 
+              onClick={() => setStep(1)}
+              className="w-full text-center text-slate-300 hover:text-white text-xs font-bold cursor-pointer"
+            >
+              ← Back to Password Entry
             </button>
           </form>
+        )}
 
-        {/* Security Badge */}
-        <div className="pt-4 border-t border-navy-800 text-[11px] text-slate-300 flex justify-center items-center font-bold">
-          <span className="text-emerald-400 font-extrabold flex items-center gap-1.5">
+        {/* Security & Active Devices Bar */}
+        <div className="pt-4 border-t border-navy-800 text-[11px] text-slate-300 flex justify-between items-center font-bold">
+          <button 
+            onClick={() => setDevicesModalOpen(true)}
+            className="hover:text-gold-400 underline flex items-center gap-1 cursor-pointer"
+          >
+            <Laptop className="w-3.5 h-3.5 text-gold-400" />
+            Active Session Devices ({(activeDevices || []).length})
+          </button>
+          <span className="text-emerald-400 font-extrabold flex items-center gap-1">
             <CheckCircle2 className="w-3.5 h-3.5 text-emerald-400" />
-            256-bit SSL Encrypted Gateway
+            256-bit SSL Encrypted
           </span>
         </div>
 
       </div>
       </ScrollReveal>
 
-      {/* Forgot Password Modal (Zero OTP) */}
+      {/* Register New Super Admin Modal */}
+      {registerModalOpen && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-navy-950/80 backdrop-blur-sm animate-in fade-in">
+          <div className="glass-card bg-white dark:bg-navy-900 border border-slate-200 dark:border-gold-500/40 rounded-2xl max-w-md w-full p-6 shadow-luxury space-y-4">
+            <div className="flex justify-between items-center border-b border-slate-200 dark:border-navy-800 pb-3">
+              <h3 className="font-serif text-lg font-bold text-slate-900 dark:text-white flex items-center gap-2">
+                <UserPlus className="w-5 h-5 text-gold-500" />
+                Register New Super Admin Mail ID
+              </h3>
+              <button onClick={() => setRegisterModalOpen(false)} className="text-slate-500 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white p-1 cursor-pointer"><X className="w-5 h-5" /></button>
+            </div>
+
+            {registerSuccessMsg && (
+              <div className="p-3 bg-emerald-100 dark:bg-emerald-500/20 border border-emerald-300 dark:border-emerald-500/40 text-emerald-900 dark:text-emerald-300 font-bold rounded-xl text-xs flex items-center gap-2">
+                <Check className="w-4 h-4 text-emerald-600 dark:text-emerald-400 shrink-0" />
+                <span>{registerSuccessMsg}</span>
+              </div>
+            )}
+
+            <form onSubmit={handleRegisterSuperAdmin} className="space-y-3 text-xs">
+              <div>
+                <label className="block font-extrabold text-slate-700 dark:text-slate-300 mb-1">Full Name</label>
+                <input 
+                  type="text" 
+                  required 
+                  value={regData.name} 
+                  onChange={e => setRegData({...regData, name: e.target.value})} 
+                  className="w-full bg-slate-100 dark:bg-navy-950 border border-slate-300 dark:border-navy-700 text-slate-900 dark:text-white rounded-xl p-2.5 font-bold focus:outline-none focus:border-gold-500"
+                  placeholder="e.g. Tariq Al-Mansoori"
+                />
+              </div>
+
+              <div>
+                <label className="block font-extrabold text-slate-700 dark:text-slate-300 mb-1">New Corporate Email ID</label>
+                <input 
+                  type="email" 
+                  required 
+                  value={regData.email} 
+                  onChange={e => setRegData({...regData, email: e.target.value})} 
+                  className="w-full bg-slate-100 dark:bg-navy-950 border border-slate-300 dark:border-navy-700 text-slate-900 dark:text-white rounded-xl p-2.5 font-bold focus:outline-none focus:border-gold-500"
+                  placeholder="admin.name@revivalinternational.com"
+                />
+              </div>
+
+              <div className="grid grid-cols-2 gap-2">
+                <div>
+                  <label className="block font-extrabold text-slate-700 dark:text-slate-300 mb-1">Assigned Role</label>
+                  <div className="w-full bg-slate-100 dark:bg-navy-950 border border-gold-500/50 text-gold-600 dark:text-gold-400 rounded-xl p-2.5 font-extrabold flex items-center gap-1.5 text-xs">
+                    <ShieldCheck className="w-4 h-4 text-gold-500 shrink-0" />
+                    <span>Super Admin</span>
+                  </div>
+                </div>
+
+                <div>
+                  <label className="block font-extrabold text-slate-700 dark:text-slate-300 mb-1">Corporate Password</label>
+                  <input 
+                    type="password" 
+                    required 
+                    value={regData.password} 
+                    onChange={e => setRegData({...regData, password: e.target.value})} 
+                    className="w-full bg-slate-100 dark:bg-navy-950 border border-slate-300 dark:border-navy-700 text-slate-900 dark:text-white rounded-xl p-2.5 font-bold focus:outline-none focus:border-gold-500"
+                    placeholder="Enter password"
+                  />
+                </div>
+              </div>
+
+              <div className="p-2.5 bg-amber-500/10 border border-amber-500/30 rounded-xl text-[11px] text-amber-700 dark:text-gold-300 font-semibold leading-relaxed">
+                ℹ️ <strong>Security Access Control:</strong> Only <strong>Super Admin</strong> registration is allowed here. Staff accounts (<em>Admin, Recruiter, Interviewer, Client Coordinator</em>) must be created by Super Admin inside CRM User Management.
+              </div>
+
+              <div>
+                <label className="block font-extrabold text-slate-700 dark:text-slate-300 mb-1">Super Admin Passcode Authorization Key</label>
+                <input 
+                  type="text" 
+                  required 
+                  value={regData.adminKey} 
+                  onChange={e => setRegData({...regData, adminKey: e.target.value})} 
+                  className="w-full bg-slate-100 dark:bg-navy-950 border border-slate-300 dark:border-navy-700 text-amber-800 dark:text-gold-400 rounded-xl p-2.5 font-mono font-bold focus:outline-none focus:border-gold-500"
+                />
+              </div>
+
+              <button 
+                type="submit" 
+                disabled={isAuthenticating}
+                className="w-full py-3 bg-gold-shimmer text-navy-950 font-extrabold rounded-xl shadow-gold-glow hover:opacity-95 transition cursor-pointer flex items-center justify-center space-x-2"
+              >
+                {isAuthenticating ? <RefreshCw className="w-4 h-4 animate-spin" /> : <UserPlus className="w-4 h-4" />}
+                <span>{isAuthenticating ? 'Creating Super Admin Account...' : 'Create Super Admin Account & Login'}</span>
+              </button>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* Forgot Password Modal */}
       {forgotModalOpen && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-navy-950/80 backdrop-blur-sm animate-in fade-in">
           <div className="glass-card bg-white dark:bg-navy-900 border border-slate-200 dark:border-gold-500/40 rounded-2xl max-w-md w-full p-6 shadow-luxury space-y-4">
@@ -520,8 +554,8 @@ export const CrmLogin = () => {
               <button 
                 onClick={() => {
                   setForgotModalOpen(false);
+                  setForgotStep(1);
                   setForgotError('');
-                  setForgotSuccess('');
                 }} 
                 className="text-slate-500 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white cursor-pointer"
               >
@@ -536,30 +570,29 @@ export const CrmLogin = () => {
               </div>
             )}
 
-            {forgotSuccess ? (
-              <div className="space-y-4 py-2 text-center">
-                <div className="p-3 bg-emerald-500/10 border border-emerald-500/30 text-emerald-700 dark:text-emerald-300 rounded-xl text-xs font-bold flex items-center justify-center gap-2">
-                  <CheckCircle2 className="w-5 h-5 text-emerald-500 shrink-0" />
-                  <span>{forgotSuccess}</span>
-                </div>
-                <button
-                  type="button"
-                  onClick={() => {
-                    setForgotModalOpen(false);
-                    setForgotSuccess('');
-                  }}
-                  className="w-full py-3 bg-gold-shimmer text-navy-950 font-extrabold rounded-xl text-xs shadow-gold-glow cursor-pointer"
-                >
-                  Proceed to Sign In →
-                </button>
-              </div>
-            ) : (
-              <form onSubmit={handleDirectResetPassword} className="space-y-3 text-xs">
+            {forgotStep === 1 && (
+              <form 
+                onSubmit={(e) => {
+                  e.preventDefault();
+                  setForgotError('');
+                  const clean = (forgotEmail || '').trim().toLowerCase();
+                  if (!clean || !clean.includes('@')) {
+                    setForgotError('Please enter a valid corporate email address.');
+                    return;
+                  }
+                  // Generate verifiable 6-digit OTP code
+                  const code = String(Math.floor(100000 + Math.random() * 900000));
+                  setGeneratedOtp(code);
+                  setForgotOtp('');
+                  setForgotStep(2);
+                }} 
+                className="space-y-3 text-xs"
+              >
                 <p className="text-slate-600 dark:text-slate-300 font-medium">
-                  Enter your registered corporate email address and chosen new password below.
+                  Enter your registered corporate email to receive a password reset OTP verification code.
                 </p>
                 <div>
-                  <label className="block font-extrabold text-slate-700 dark:text-slate-300 mb-1">Corporate Email Address</label>
+                  <label className="block font-extrabold text-slate-700 dark:text-slate-300 mb-1">Corporate Email</label>
                   <input 
                     type="email" 
                     required
@@ -569,33 +602,177 @@ export const CrmLogin = () => {
                     placeholder="email@revivalinternational.com"
                   />
                 </div>
+                <button type="submit" className="w-full py-3 bg-gold-shimmer text-navy-950 font-extrabold rounded-xl shadow-gold-glow cursor-pointer">
+                  Send Password Reset OTP Code →
+                </button>
+              </form>
+            )}
+
+            {forgotStep === 2 && (
+              <form 
+                onSubmit={(e) => {
+                  e.preventDefault();
+                  setForgotError('');
+                  if (forgotOtp.trim() !== generatedOtp) {
+                    setForgotError('Invalid OTP Code. Please enter the 6-digit verification code shown below.');
+                    return;
+                  }
+                  if (!forgotNewPassword || forgotNewPassword.length < 6) {
+                    setForgotError('New Password must be at least 6 characters long.');
+                    return;
+                  }
+                  if (forgotNewPassword !== forgotConfirmPassword) {
+                    setForgotError('Passwords do not match. Please re-enter confirm password.');
+                    return;
+                  }
+
+                  // Update registered user password in state and localStorage
+                  const clean = forgotEmail.trim().toLowerCase();
+                  setRegisteredUsers(prev => {
+                    const updated = prev.map(u => {
+                      if (u.email.toLowerCase() === clean) {
+                        return { ...u, password: forgotNewPassword };
+                      }
+                      return u;
+                    });
+                    // If user was not in registeredUsers list, add them with the new password
+                    if (!updated.some(u => u.email.toLowerCase() === clean)) {
+                      updated.push({
+                        name: clean.split('@')[0],
+                        email: clean,
+                        password: forgotNewPassword,
+                        role: 'Super Admin',
+                        department: 'Corporate Headquarters'
+                      });
+                    }
+                    try {
+                      localStorage.setItem('sir_crm_registered_users', JSON.stringify(updated));
+                    } catch {}
+                    return updated;
+                  });
+
+                  // Populate login fields with the new credentials
+                  setEmail(forgotEmail);
+                  setPassword(forgotNewPassword);
+                  setForgotStep(3);
+                }}
+                className="space-y-3 text-xs"
+              >
+                {/* Instant Demo OTP Notification Banner */}
+                <div className="p-3 bg-emerald-50 dark:bg-emerald-950/40 border border-emerald-500/40 rounded-xl text-emerald-800 dark:text-emerald-300 space-y-1">
+                  <div className="flex justify-between items-center">
+                    <span className="font-extrabold text-[11px] uppercase tracking-wider">Verification Dispatched</span>
+                    <button 
+                      type="button" 
+                      onClick={() => setForgotOtp(generatedOtp)} 
+                      className="text-[10px] bg-emerald-600 text-white font-bold px-2 py-0.5 rounded hover:bg-emerald-700"
+                    >
+                      Auto-fill OTP
+                    </button>
+                  </div>
+                  <p className="font-mono text-sm font-bold text-center py-1 tracking-widest bg-white dark:bg-navy-950 rounded border border-emerald-200 dark:border-navy-800">
+                    OTP: {generatedOtp}
+                  </p>
+                </div>
+
                 <div>
-                  <label className="block font-extrabold text-slate-700 dark:text-slate-300 mb-1">New Password (Min 6 chars) *</label>
+                  <label className="block font-extrabold text-slate-700 dark:text-slate-300 mb-1">Enter 6-Digit OTP</label>
+                  <input 
+                    type="text" 
+                    required
+                    maxLength={6}
+                    value={forgotOtp}
+                    onChange={(e) => setForgotOtp(e.target.value.replace(/\D/g, ''))}
+                    className="w-full bg-slate-100 dark:bg-navy-950 border border-slate-300 dark:border-navy-700 text-slate-900 dark:text-white rounded-xl p-2.5 font-mono text-center text-sm font-bold tracking-widest focus:outline-none focus:border-gold-500"
+                    placeholder="Enter 6-digit code"
+                  />
+                </div>
+
+                <div>
+                  <label className="block font-extrabold text-slate-700 dark:text-slate-300 mb-1">New Password *</label>
                   <input 
                     type="password" 
                     required
+                    placeholder="Min 6 characters"
                     value={forgotNewPassword}
                     onChange={(e) => setForgotNewPassword(e.target.value)}
-                    placeholder="Enter new password"
                     className="w-full bg-slate-100 dark:bg-navy-950 border border-slate-300 dark:border-navy-700 text-slate-900 dark:text-white rounded-xl p-2.5 font-bold focus:outline-none focus:border-gold-500"
                   />
                 </div>
+
                 <div>
                   <label className="block font-extrabold text-slate-700 dark:text-slate-300 mb-1">Confirm New Password *</label>
                   <input 
                     type="password" 
                     required
+                    placeholder="Repeat new password"
                     value={forgotConfirmPassword}
                     onChange={(e) => setForgotConfirmPassword(e.target.value)}
-                    placeholder="Re-enter new password"
                     className="w-full bg-slate-100 dark:bg-navy-950 border border-slate-300 dark:border-navy-700 text-slate-900 dark:text-white rounded-xl p-2.5 font-bold focus:outline-none focus:border-gold-500"
                   />
                 </div>
-                <button type="submit" className="w-full py-3 bg-gold-shimmer text-navy-950 font-extrabold rounded-xl shadow-gold-glow cursor-pointer transition">
-                  Update Password & Pre-fill Login →
+
+                <button type="submit" className="w-full py-3 bg-emerald-600 hover:bg-emerald-500 text-white font-extrabold rounded-xl shadow-md cursor-pointer transition">
+                  Confirm & Update Password
                 </button>
               </form>
             )}
+
+            {forgotStep === 3 && (
+              <div className="space-y-3 text-xs text-center py-4">
+                <CheckCircle2 className="w-12 h-12 text-emerald-500 mx-auto" />
+                <h4 className="font-bold text-slate-900 dark:text-white text-sm">Password Successfully Reset!</h4>
+                <p className="text-slate-600 dark:text-slate-300 font-medium">
+                  Your corporate password for <strong className="text-gold-500">{forgotEmail}</strong> has been updated. Credentials have been pre-filled for instant login.
+                </p>
+                <button 
+                  onClick={() => {
+                    setForgotModalOpen(false);
+                    setForgotStep(1);
+                  }} 
+                  className="w-full py-2.5 bg-gold-shimmer text-navy-950 font-bold rounded-xl shadow-gold-glow cursor-pointer"
+                >
+                  Return to Login & Authenticate
+                </button>
+              </div>
+            )}
+          </div>
+        </div>
+      )}
+
+      {/* Active Devices Modal */}
+      {devicesModalOpen && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-navy-950/80 backdrop-blur-sm animate-in fade-in">
+          <div className="glass-card bg-white dark:bg-navy-900 border border-slate-200 dark:border-gold-500/40 rounded-2xl max-w-md w-full p-6 shadow-luxury space-y-4">
+            <div className="flex justify-between items-center border-b border-slate-200 dark:border-navy-800 pb-3">
+              <h3 className="font-serif text-lg font-bold text-slate-900 dark:text-white flex items-center gap-2">
+                <Laptop className="w-5 h-5 text-gold-500" />
+                Active Session Devices & History
+              </h3>
+              <button onClick={() => setDevicesModalOpen(false)} className="text-slate-500 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white cursor-pointer"><X className="w-5 h-5" /></button>
+            </div>
+
+            <div className="space-y-2 text-xs">
+              {(activeDevices || []).map(d => (
+                <div key={d.id} className="p-3 bg-slate-100 dark:bg-navy-950 rounded-xl border border-slate-200 dark:border-navy-800 flex justify-between items-center">
+                  <div>
+                    <p className="font-bold text-slate-900 dark:text-white flex items-center gap-1">
+                      {d.device}
+                      {d.current && <span className="bg-emerald-100 dark:bg-emerald-500/20 text-emerald-800 dark:text-emerald-400 text-[9px] px-1.5 py-0.5 rounded font-extrabold border border-emerald-300 dark:border-emerald-500/40">Current</span>}
+                    </p>
+                    <p className="text-[10px] text-slate-600 dark:text-slate-400 font-medium">IP: {d.ip} • {d.location}</p>
+                  </div>
+                  <span className="text-[10px] text-slate-500 font-bold">{d.lastActive}</span>
+                </div>
+              ))}
+            </div>
+
+            <button 
+              onClick={logoutEverywhere}
+              className="w-full py-2.5 bg-rose-100 dark:bg-rose-600/20 text-rose-800 dark:text-rose-300 hover:bg-rose-600 hover:text-white border border-rose-300 dark:border-rose-500/40 font-bold rounded-xl transition cursor-pointer text-xs"
+            >
+              Logout Everywhere (Revoke All Sessions)
+            </button>
           </div>
         </div>
       )}
