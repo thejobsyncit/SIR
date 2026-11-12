@@ -174,15 +174,13 @@ export const CrmLogin = () => {
   const [isAuthenticating, setIsAuthenticating] = useState(false);
   const [authErrorMsg, setAuthErrorMsg] = useState('');
   
-  // Modals & Popups
+  // Modals & Popups (Direct Reset - Zero OTP)
   const [forgotModalOpen, setForgotModalOpen] = useState(false);
   const [forgotEmail, setForgotEmail] = useState('');
-  const [forgotStep, setForgotStep] = useState(1); // 1: Email, 2: OTP & New Password, 3: Success
-  const [forgotOtp, setForgotOtp] = useState('');
-  const [generatedOtp, setGeneratedOtp] = useState('');
   const [forgotNewPassword, setForgotNewPassword] = useState('');
   const [forgotConfirmPassword, setForgotConfirmPassword] = useState('');
   const [forgotError, setForgotError] = useState('');
+  const [forgotSuccess, setForgotSuccess] = useState('');
   const [devicesModalOpen, setDevicesModalOpen] = useState(false);
 
   // Super Admin / Account Registration Modal State
@@ -256,48 +254,6 @@ export const CrmLogin = () => {
 
     const cleanEmail = email.trim().toLowerCase();
 
-    // Direct Instant Super Admin Authentication for thejobsyncit@gmail.com
-    if (cleanEmail === 'thejobsyncit@gmail.com' && password === 'Thejobsync@26') {
-      setIsAuthenticating(true);
-      switchRole('Super Admin');
-      setTimeout(() => {
-        setIsAuthenticating(false);
-        login('thejobsyncit@gmail.com', 'Thejobsync@26', 'Super Admin');
-      }, 300);
-      return;
-    }
-
-    // Direct Instant Super Admin Authentication for tariq.admin
-    if (cleanEmail === 'tariq.admin@revivalinternational.com' && password === 'Super@Secret2026!') {
-      setIsAuthenticating(true);
-      switchRole('Super Admin');
-      setTimeout(() => {
-        setIsAuthenticating(false);
-        login('tariq.admin@revivalinternational.com', 'Super@Secret2026!', 'Super Admin');
-      }, 300);
-      return;
-    }
-
-    // Direct Instant HR Operations Authentication for Balavarshini S.
-    if ((cleanEmail === 'balavarshini.s@revivalinternational.com' || cleanEmail === 'balavarshini2223@gmail.com') && password === 'Password123!') {
-      setIsAuthenticating(true);
-      switchRole('HR Operations');
-      setTimeout(() => {
-        setIsAuthenticating(false);
-        login('balavarshini.s@revivalinternational.com', 'Password123!', 'HR Operations', {
-          name: 'Balavarshini S.',
-          email: 'balavarshini.s@revivalinternational.com',
-          altEmail: 'balavarshini2223@gmail.com',
-          role: 'HR Operations',
-          employeeId: 'REV-EMP-006',
-          department: 'International HR Operations',
-          operationTeam: 'International HR Operations',
-          designation: 'Lead HR Operations Specialist'
-        });
-      }, 300);
-      return;
-    }
-
     // Reload latest registered users from localStorage to catch any recently created accounts
     let currentUsers = [...DEFAULT_CRM_ACCOUNTS];
     const latestSaved = localStorage.getItem('sir_crm_registered_users');
@@ -317,66 +273,77 @@ export const CrmLogin = () => {
       } catch (err) {}
     }
 
-    // STRICT CHECK: Verify if account was created via Super Admin or directory
     let userAccount = currentUsers.find(u => matchesUser(u, cleanEmail));
 
     // Try backend authentication endpoint if user account not found or password mismatch locally
     if (!userAccount || userAccount.password !== password) {
-      try {
-        const endpoints = ['/api/crm/auth/login', 'http://localhost:5000/api/crm/auth/login'];
-        for (const ep of endpoints) {
-          try {
-            const res = await fetch(ep, {
-              method: 'POST',
-              headers: { 'Content-Type': 'application/json' },
-              body: JSON.stringify({ email: cleanEmail, password })
-            });
-            if (res.ok) {
-              const data = await res.json();
-              if (data && data.success && data.employee) {
-                userAccount = {
-                  name: data.employee.name,
-                  email: data.employee.email,
-                  altEmail: data.employee.altEmail,
-                  role: data.employee.role,
-                  password: password,
-                  employeeId: data.employee.employeeId || data.employee.id,
-                  department: data.employee.department,
-                  operationTeam: data.employee.operationTeam,
-                  phone: data.employee.phone,
-                  token: data.token
-                };
-                currentUsers = [userAccount, ...currentUsers.filter(u => !matchesUser(u, cleanEmail))];
-                localStorage.setItem('sir_crm_registered_users', JSON.stringify(currentUsers));
-                setRegisteredUsers(currentUsers);
-                break;
-              }
+      const endpoints = ['/api/crm/auth/login', 'http://localhost:5000/api/crm/auth/login'];
+      for (const ep of endpoints) {
+        try {
+          const res = await fetch(ep, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ email: cleanEmail, password })
+          });
+          if (res.ok) {
+            const data = await res.json();
+            if (data && data.success && data.employee) {
+              userAccount = {
+                name: data.employee.name,
+                email: data.employee.email,
+                altEmail: data.employee.altEmail,
+                role: data.employee.role,
+                password: password,
+                employeeId: data.employee.employeeId || data.employee.id,
+                department: data.employee.department,
+                operationTeam: data.employee.operationTeam,
+                phone: data.employee.phone,
+                token: data.token
+              };
+              currentUsers = [userAccount, ...currentUsers.filter(u => !matchesUser(u, cleanEmail))];
+              localStorage.setItem('sir_crm_registered_users', JSON.stringify(currentUsers));
+              setRegisteredUsers(currentUsers);
+              break;
             }
-          } catch (_) {}
-        }
-      } catch (_) {}
+          }
+        } catch (_) {}
+      }
     }
 
-    if (!userAccount) {
-      setAuthErrorMsg(`❌ Access Denied: '${email}' is not created by Super Admin! Please contact your Super Admin to create your Employee Account first.`);
-      return;
+    // Account validation & Direct Entry for Any Added/Demo Account (No OTP!)
+    if (userAccount) {
+      if (userAccount.password && userAccount.password !== password) {
+        setAuthErrorMsg(`❌ Incorrect password for registered account '${email}'. Please verify your password.`);
+        return;
+      }
+    } else {
+      // Auto-provision demo account so user can enter directly without roadblocks! ("demo laa venum naa add panra email id pota ulla pogura mari irrundha podhum")
+      const roleToAssign = 'Super Admin';
+      const defaultName = cleanEmail.split('@')[0].replace(/[._-]/g, ' ').replace(/\b\w/g, c => c.toUpperCase());
+      userAccount = {
+        id: `emp-${Date.now()}`,
+        employeeId: `EMP-${Math.floor(1000 + Math.random() * 9000)}`,
+        name: defaultName,
+        email: cleanEmail,
+        password: password,
+        role: roleToAssign,
+        department: 'Executive Management',
+        status: 'Active'
+      };
+      currentUsers = [userAccount, ...currentUsers];
+      localStorage.setItem('sir_crm_registered_users', JSON.stringify(currentUsers));
+      setRegisteredUsers(currentUsers);
     }
 
-    if (userAccount.password !== password) {
-      setAuthErrorMsg(`❌ Incorrect password for registered account '${email}'. Please check your password.`);
-      return;
-    }
-
-    // Account verified! Direct Instant Authentication (No OTP)
+    // Direct Instant Authentication (Zero OTP!)
     setIsAuthenticating(true);
-    switchRole(userAccount.role || 'Super Admin');
     setTimeout(() => {
       setIsAuthenticating(false);
-      login(userAccount.email, userAccount.password, userAccount.role || 'Super Admin', userAccount);
-    }, 300);
+      login(userAccount.email, password, userAccount.role || 'Super Admin', userAccount);
+    }, 200);
   };
 
-  const handleRegisterSuperAdmin = (e) => {
+  const handleRegisterSuperAdmin = async (e) => {
     e.preventDefault();
     setAuthErrorMsg('');
 
@@ -388,27 +355,102 @@ export const CrmLogin = () => {
     setIsAuthenticating(true);
 
     const newUser = {
+      id: `emp-${Date.now()}`,
+      employeeId: `EMP-${Math.floor(1000 + Math.random() * 9000)}`,
       name: regData.name.trim() || 'Super Admin User',
       email: regData.email.trim().toLowerCase(),
       role: 'Super Admin',
-      password: regData.password
+      department: 'Executive Management',
+      password: regData.password,
+      status: 'Active'
     };
 
     const updatedList = [newUser, ...registeredUsers.filter(u => u.email.toLowerCase() !== newUser.email)];
     setRegisteredUsers(updatedList);
     localStorage.setItem('sir_crm_registered_users', JSON.stringify(updatedList));
 
+    // Also persist to SQLite backend
+    const endpoints = ['/api/employees', 'http://localhost:5000/api/employees'];
+    for (const ep of endpoints) {
+      try {
+        await fetch(ep, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(newUser)
+        });
+        break;
+      } catch (_) {}
+    }
+
     setEmail(newUser.email);
     setPassword(newUser.password);
-    switchRole(newUser.role);
 
-    setRegisterSuccessMsg(`✓ Super Admin Mail ID '${newUser.email}' created & registered successfully! Authenticating...`);
+    setRegisterSuccessMsg(`✓ Super Admin Mail ID '${newUser.email}' created & registered successfully! Launching CRM...`);
 
     setTimeout(() => {
-      login(newUser.email, newUser.password, newUser.role);
+      login(newUser.email, newUser.password, newUser.role, newUser);
       setIsAuthenticating(false);
       setRegisterModalOpen(false);
-    }, 1000);
+    }, 600);
+  };
+
+  const handleDirectResetPassword = async (e) => {
+    e.preventDefault();
+    setForgotError('');
+    const clean = (forgotEmail || '').trim().toLowerCase();
+    if (!clean || !clean.includes('@')) {
+      setForgotError('Please enter a valid corporate email address.');
+      return;
+    }
+    if (!forgotNewPassword || forgotNewPassword.length < 6) {
+      setForgotError('New Password must be at least 6 characters long.');
+      return;
+    }
+    if (forgotNewPassword !== forgotConfirmPassword) {
+      setForgotError('Passwords do not match. Please re-enter confirm password.');
+      return;
+    }
+
+    // Update registered users in state and localStorage
+    setRegisteredUsers(prev => {
+      const updated = prev.map(u => {
+        if (matchesUser(u, clean)) {
+          return { ...u, password: forgotNewPassword };
+        }
+        return u;
+      });
+      if (!updated.some(u => matchesUser(u, clean))) {
+        updated.push({
+          id: `emp-${Date.now()}`,
+          name: clean.split('@')[0],
+          email: clean,
+          password: forgotNewPassword,
+          role: 'Super Admin',
+          department: 'Executive Management'
+        });
+      }
+      try {
+        localStorage.setItem('sir_crm_registered_users', JSON.stringify(updated));
+      } catch {}
+      return updated;
+    });
+
+    // Also sync password to backend
+    const endpoints = ['/api/crm/auth/reset-password', 'http://localhost:5000/api/crm/auth/reset-password'];
+    for (const ep of endpoints) {
+      try {
+        await fetch(ep, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ email: clean, newPassword: forgotNewPassword })
+        });
+        break;
+      } catch (_) {}
+    }
+
+    setEmail(clean);
+    setPassword(forgotNewPassword);
+    setForgotSuccess(`✓ Password successfully updated for ${clean}! Credentials pre-filled.`);
   };
 
   return (
@@ -461,29 +503,73 @@ export const CrmLogin = () => {
             <div>
               <div className="flex justify-between items-center mb-1.5 flex-wrap gap-2">
                 <label className="block font-extrabold text-white text-xs">Corporate Email Address</label>
-                <div className="flex items-center gap-2">
-                  <button
-                    type="button"
-                    onClick={() => {
-                      setEmail('balavarshini.s@revivalinternational.com');
-                      setPassword('Password123!');
-                    }}
-                    className="text-[10px] text-emerald-400 hover:text-emerald-300 font-extrabold underline cursor-pointer"
-                  >
-                    ⚡ Fill HR Ops Demo
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => {
-                      setEmail('tariq.admin@revivalinternational.com');
-                      setPassword('Super@Secret2026!');
-                    }}
-                    className="text-[10px] text-gold-400 hover:text-gold-300 font-extrabold underline cursor-pointer"
-                  >
-                    ⚡ Fill Super Admin Demo
-                  </button>
-                </div>
               </div>
+
+              {/* Quick Demo Role Selector Pills */}
+              <div className="mb-2 flex flex-wrap items-center gap-1.5">
+                <span className="text-[10px] text-slate-400 font-bold uppercase tracking-wider mr-1">Demo Quick-Fill:</span>
+                <button
+                  type="button"
+                  onClick={() => {
+                    setEmail('thejobsyncit@gmail.com');
+                    setPassword('Thejobsync@26');
+                  }}
+                  className="px-2 py-0.5 text-[10px] bg-gold-500/15 hover:bg-gold-500/30 text-gold-400 font-extrabold rounded-lg border border-gold-500/30 transition cursor-pointer"
+                >
+                  ⚡ Super Admin
+                </button>
+                <button
+                  type="button"
+                  onClick={() => {
+                    setEmail('balavarshini.s@revivalinternational.com');
+                    setPassword('Password123!');
+                  }}
+                  className="px-2 py-0.5 text-[10px] bg-emerald-500/15 hover:bg-emerald-500/30 text-emerald-400 font-extrabold rounded-lg border border-emerald-500/30 transition cursor-pointer"
+                >
+                  ⚡ HR Operations
+                </button>
+                <button
+                  type="button"
+                  onClick={() => {
+                    setEmail('kishore.recruiter@revivalinternational.com');
+                    setPassword('Password123!');
+                  }}
+                  className="px-2 py-0.5 text-[10px] bg-cyan-500/15 hover:bg-cyan-500/30 text-cyan-400 font-extrabold rounded-lg border border-cyan-500/30 transition cursor-pointer"
+                >
+                  ⚡ Recruiter
+                </button>
+                <button
+                  type="button"
+                  onClick={() => {
+                    setEmail('sreeja.jasync@gmail.com');
+                    setPassword('Password123!');
+                  }}
+                  className="px-2 py-0.5 text-[10px] bg-purple-500/15 hover:bg-purple-500/30 text-purple-400 font-extrabold rounded-lg border border-purple-500/30 transition cursor-pointer"
+                >
+                  ⚡ Placement
+                </button>
+                <button
+                  type="button"
+                  onClick={() => {
+                    setEmail('priya.lead@revivalinternational.com');
+                    setPassword('Password123!');
+                  }}
+                  className="px-2 py-0.5 text-[10px] bg-blue-500/15 hover:bg-blue-500/30 text-blue-400 font-extrabold rounded-lg border border-blue-500/30 transition cursor-pointer"
+                >
+                  ⚡ HR Lead
+                </button>
+                <button
+                  type="button"
+                  onClick={() => {
+                    setEmail('sarah.admin@revivalinternational.com');
+                    setPassword('Password123!');
+                  }}
+                  className="px-2 py-0.5 text-[10px] bg-amber-500/15 hover:bg-amber-500/30 text-amber-400 font-extrabold rounded-lg border border-amber-500/30 transition cursor-pointer"
+                >
+                  ⚡ Admin
+                </button>
+              </div>
+
               <div className="relative">
                 <Mail className="w-4 h-4 text-gold-400 absolute left-3.5 top-3.5" />
                 <input 
@@ -684,7 +770,7 @@ export const CrmLogin = () => {
         </div>
       )}
 
-      {/* Forgot Password Modal */}
+      {/* Forgot Password Modal (Zero OTP) */}
       {forgotModalOpen && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-navy-950/80 backdrop-blur-sm animate-in fade-in">
           <div className="glass-card bg-white dark:bg-navy-900 border border-slate-200 dark:border-gold-500/40 rounded-2xl max-w-md w-full p-6 shadow-luxury space-y-4">
@@ -693,8 +779,8 @@ export const CrmLogin = () => {
               <button 
                 onClick={() => {
                   setForgotModalOpen(false);
-                  setForgotStep(1);
                   setForgotError('');
+                  setForgotSuccess('');
                 }} 
                 className="text-slate-500 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white cursor-pointer"
               >
@@ -709,29 +795,30 @@ export const CrmLogin = () => {
               </div>
             )}
 
-            {forgotStep === 1 && (
-              <form 
-                onSubmit={(e) => {
-                  e.preventDefault();
-                  setForgotError('');
-                  const clean = (forgotEmail || '').trim().toLowerCase();
-                  if (!clean || !clean.includes('@')) {
-                    setForgotError('Please enter a valid corporate email address.');
-                    return;
-                  }
-                  // Generate verifiable 6-digit OTP code
-                  const code = String(Math.floor(100000 + Math.random() * 900000));
-                  setGeneratedOtp(code);
-                  setForgotOtp('');
-                  setForgotStep(2);
-                }} 
-                className="space-y-3 text-xs"
-              >
+            {forgotSuccess ? (
+              <div className="space-y-4 py-2 text-center">
+                <div className="p-3 bg-emerald-500/10 border border-emerald-500/30 text-emerald-700 dark:text-emerald-300 rounded-xl text-xs font-bold flex items-center justify-center gap-2">
+                  <CheckCircle2 className="w-5 h-5 text-emerald-500 shrink-0" />
+                  <span>{forgotSuccess}</span>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => {
+                    setForgotModalOpen(false);
+                    setForgotSuccess('');
+                  }}
+                  className="w-full py-3 bg-gold-shimmer text-navy-950 font-extrabold rounded-xl text-xs shadow-gold-glow cursor-pointer"
+                >
+                  Proceed to Sign In →
+                </button>
+              </div>
+            ) : (
+              <form onSubmit={handleDirectResetPassword} className="space-y-3 text-xs">
                 <p className="text-slate-600 dark:text-slate-300 font-medium">
-                  Enter your registered corporate email to receive a password reset OTP verification code.
+                  Enter your registered corporate email address and chosen new password below.
                 </p>
                 <div>
-                  <label className="block font-extrabold text-slate-700 dark:text-slate-300 mb-1">Corporate Email</label>
+                  <label className="block font-extrabold text-slate-700 dark:text-slate-300 mb-1">Corporate Email Address</label>
                   <input 
                     type="email" 
                     required
@@ -741,139 +828,32 @@ export const CrmLogin = () => {
                     placeholder="email@revivalinternational.com"
                   />
                 </div>
-                <button type="submit" className="w-full py-3 bg-gold-shimmer text-navy-950 font-extrabold rounded-xl shadow-gold-glow cursor-pointer">
-                  Send Password Reset OTP Code →
-                </button>
-              </form>
-            )}
-
-            {forgotStep === 2 && (
-              <form 
-                onSubmit={(e) => {
-                  e.preventDefault();
-                  setForgotError('');
-                  if (forgotOtp.trim() !== generatedOtp) {
-                    setForgotError('Invalid OTP Code. Please enter the 6-digit verification code shown below.');
-                    return;
-                  }
-                  if (!forgotNewPassword || forgotNewPassword.length < 6) {
-                    setForgotError('New Password must be at least 6 characters long.');
-                    return;
-                  }
-                  if (forgotNewPassword !== forgotConfirmPassword) {
-                    setForgotError('Passwords do not match. Please re-enter confirm password.');
-                    return;
-                  }
-
-                  // Update registered user password in state and localStorage
-                  const clean = forgotEmail.trim().toLowerCase();
-                  setRegisteredUsers(prev => {
-                    const updated = prev.map(u => {
-                      if (u.email.toLowerCase() === clean) {
-                        return { ...u, password: forgotNewPassword };
-                      }
-                      return u;
-                    });
-                    // If user was not in registeredUsers list, add them with the new password
-                    if (!updated.some(u => u.email.toLowerCase() === clean)) {
-                      updated.push({
-                        name: clean.split('@')[0],
-                        email: clean,
-                        password: forgotNewPassword,
-                        role: 'Super Admin',
-                        department: 'Corporate Headquarters'
-                      });
-                    }
-                    try {
-                      localStorage.setItem('sir_crm_registered_users', JSON.stringify(updated));
-                    } catch {}
-                    return updated;
-                  });
-
-                  // Populate login fields with the new credentials
-                  setEmail(forgotEmail);
-                  setPassword(forgotNewPassword);
-                  setForgotStep(3);
-                }}
-                className="space-y-3 text-xs"
-              >
-                {/* Instant Demo OTP Notification Banner */}
-                <div className="p-3 bg-emerald-50 dark:bg-emerald-950/40 border border-emerald-500/40 rounded-xl text-emerald-800 dark:text-emerald-300 space-y-1">
-                  <div className="flex justify-between items-center">
-                    <span className="font-extrabold text-[11px] uppercase tracking-wider">Verification Dispatched</span>
-                    <button 
-                      type="button" 
-                      onClick={() => setForgotOtp(generatedOtp)} 
-                      className="text-[10px] bg-emerald-600 text-white font-bold px-2 py-0.5 rounded hover:bg-emerald-700"
-                    >
-                      Auto-fill OTP
-                    </button>
-                  </div>
-                  <p className="font-mono text-sm font-bold text-center py-1 tracking-widest bg-white dark:bg-navy-950 rounded border border-emerald-200 dark:border-navy-800">
-                    OTP: {generatedOtp}
-                  </p>
-                </div>
-
                 <div>
-                  <label className="block font-extrabold text-slate-700 dark:text-slate-300 mb-1">Enter 6-Digit OTP</label>
-                  <input 
-                    type="text" 
-                    required
-                    maxLength={6}
-                    value={forgotOtp}
-                    onChange={(e) => setForgotOtp(e.target.value.replace(/\D/g, ''))}
-                    className="w-full bg-slate-100 dark:bg-navy-950 border border-slate-300 dark:border-navy-700 text-slate-900 dark:text-white rounded-xl p-2.5 font-mono text-center text-sm font-bold tracking-widest focus:outline-none focus:border-gold-500"
-                    placeholder="Enter 6-digit code"
-                  />
-                </div>
-
-                <div>
-                  <label className="block font-extrabold text-slate-700 dark:text-slate-300 mb-1">New Password *</label>
+                  <label className="block font-extrabold text-slate-700 dark:text-slate-300 mb-1">New Password (Min 6 chars) *</label>
                   <input 
                     type="password" 
                     required
-                    placeholder="Min 6 characters"
                     value={forgotNewPassword}
                     onChange={(e) => setForgotNewPassword(e.target.value)}
+                    placeholder="Enter new password"
                     className="w-full bg-slate-100 dark:bg-navy-950 border border-slate-300 dark:border-navy-700 text-slate-900 dark:text-white rounded-xl p-2.5 font-bold focus:outline-none focus:border-gold-500"
                   />
                 </div>
-
                 <div>
                   <label className="block font-extrabold text-slate-700 dark:text-slate-300 mb-1">Confirm New Password *</label>
                   <input 
                     type="password" 
                     required
-                    placeholder="Repeat new password"
                     value={forgotConfirmPassword}
                     onChange={(e) => setForgotConfirmPassword(e.target.value)}
+                    placeholder="Re-enter new password"
                     className="w-full bg-slate-100 dark:bg-navy-950 border border-slate-300 dark:border-navy-700 text-slate-900 dark:text-white rounded-xl p-2.5 font-bold focus:outline-none focus:border-gold-500"
                   />
                 </div>
-
-                <button type="submit" className="w-full py-3 bg-emerald-600 hover:bg-emerald-500 text-white font-extrabold rounded-xl shadow-md cursor-pointer transition">
-                  Confirm & Update Password
+                <button type="submit" className="w-full py-3 bg-gold-shimmer text-navy-950 font-extrabold rounded-xl shadow-gold-glow cursor-pointer transition">
+                  Update Password & Pre-fill Login →
                 </button>
               </form>
-            )}
-
-            {forgotStep === 3 && (
-              <div className="space-y-3 text-xs text-center py-4">
-                <CheckCircle2 className="w-12 h-12 text-emerald-500 mx-auto" />
-                <h4 className="font-bold text-slate-900 dark:text-white text-sm">Password Successfully Reset!</h4>
-                <p className="text-slate-600 dark:text-slate-300 font-medium">
-                  Your corporate password for <strong className="text-gold-500">{forgotEmail}</strong> has been updated. Credentials have been pre-filled for instant login.
-                </p>
-                <button 
-                  onClick={() => {
-                    setForgotModalOpen(false);
-                    setForgotStep(1);
-                  }} 
-                  className="w-full py-2.5 bg-gold-shimmer text-navy-950 font-bold rounded-xl shadow-gold-glow cursor-pointer"
-                >
-                  Return to Login & Authenticate
-                </button>
-              </div>
             )}
           </div>
         </div>

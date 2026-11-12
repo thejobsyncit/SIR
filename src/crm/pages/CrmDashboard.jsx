@@ -58,6 +58,9 @@ export const CrmDashboard = () => {
   if (currentRole === 'HR Operations') {
     return <CrmHrOperationsDashboard />;
   }
+  if (currentRole === 'Interviewer') {
+    return <CrmInterviewerDashboard />;
+  }
   
 
   // If Super Admin or Admin chose to inspect a role dashboard

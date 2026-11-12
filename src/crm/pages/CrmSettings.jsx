@@ -263,13 +263,17 @@ CREATE TABLE IF NOT EXISTS public.system_audit_logs (
               users = [newUser, ...users.filter(u => u.email !== email)];
               localStorage.setItem('sir_crm_registered_users', JSON.stringify(users));
 
-              try {
-                await fetch('http://localhost:5000/api/employees', {
-                  method: 'POST',
-                  headers: { 'Content-Type': 'application/json' },
-                  body: JSON.stringify(newUser)
-                });
-              } catch (err) {}
+              const endpoints = ['/api/employees', 'http://localhost:5000/api/employees'];
+              for (const ep of endpoints) {
+                try {
+                  const res = await fetch(ep, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(newUser)
+                  });
+                  if (res.ok) break;
+                } catch (err) {}
+              }
 
               logAuditAction(`Super Admin created new user account '${email}' assigned as '${role}'.`);
               showStatus(`✓ System Account '${email}' created & registered under role '${role}'!`);

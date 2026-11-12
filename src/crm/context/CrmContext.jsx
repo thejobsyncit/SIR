@@ -736,41 +736,43 @@ export const CrmProvider = ({ children }) => {
     let canonicalDept = registeredInfo?.department;
     let canonicalTeam = registeredInfo?.operationTeam;
 
-    if (emailLower.includes('fatima') || registeredInfo?.name === 'Fatima') {
-      canonicalName = 'Fatima';
-      canonicalEmployeeId = 'REV-EMP-107';
-      canonicalDept = 'International HR Operations';
-      canonicalTeam = 'International HR Operations';
-    } else if (emailLower.includes('balavarshini') || registeredInfo?.name?.includes('Balavarshini')) {
-      canonicalName = 'Balavarshini S.';
-      canonicalEmployeeId = 'REV-EMP-006';
-      canonicalDept = 'International HR Operations';
-      canonicalTeam = 'International HR Operations';
-    } else if (emailLower.includes('divya') || emailLower.includes('diviya') || registeredInfo?.name?.includes('Divya') || registeredInfo?.name?.includes('Diviya')) {
-      canonicalName = 'Divya R.';
-      canonicalEmployeeId = 'REV-EMP-102';
-      canonicalDept = 'Enquiry HR Operations';
-      canonicalTeam = 'Enquiry HR Operations';
-    } else if (emailLower.includes('praveen') || registeredInfo?.name?.includes('Praveen')) {
-      canonicalName = 'Praveen Kumar';
-      canonicalEmployeeId = 'REV-EMP-108';
-      canonicalDept = 'Enquiry HR Operations';
-      canonicalTeam = 'Enquiry HR Operations';
-    } else if (emailLower.includes('priya')) {
-      canonicalName = 'Priya Sharma';
-      canonicalEmployeeId = 'REV-EMP-003';
-      canonicalDept = 'Human Resources';
-    } else if (emailLower.includes('thejobsyncit') || emailLower.includes('tariq')) {
-      canonicalName = 'Super Admin';
-      canonicalEmployeeId = 'REV-EMP-001';
-      canonicalDept = 'Executive Management';
-    } else if (emailLower.includes('sarah')) {
-      canonicalName = 'Sarah Jenkins';
-      canonicalEmployeeId = 'REV-EMP-002';
-      canonicalDept = 'Administration';
-    } else if (!canonicalName) {
-      canonicalName = email.split('@')[0].replace(/[0-9]/g, '').replace('.', ' ').trim();
-      canonicalName = canonicalName.charAt(0).toUpperCase() + canonicalName.slice(1);
+    if (!canonicalName) {
+      if (emailLower.includes('fatima')) {
+        canonicalName = 'Fatima';
+        canonicalEmployeeId = 'REV-EMP-107';
+        canonicalDept = 'International HR Operations';
+        canonicalTeam = 'International HR Operations';
+      } else if (emailLower.includes('balavarshini')) {
+        canonicalName = 'Balavarshini S.';
+        canonicalEmployeeId = 'REV-EMP-006';
+        canonicalDept = 'International HR Operations';
+        canonicalTeam = 'International HR Operations';
+      } else if (emailLower.includes('divya') || emailLower.includes('diviya')) {
+        canonicalName = 'Divya R.';
+        canonicalEmployeeId = 'REV-EMP-102';
+        canonicalDept = 'Enquiry HR Operations';
+        canonicalTeam = 'Enquiry HR Operations';
+      } else if (emailLower.includes('praveen')) {
+        canonicalName = 'Praveen Kumar';
+        canonicalEmployeeId = 'REV-EMP-108';
+        canonicalDept = 'Enquiry HR Operations';
+        canonicalTeam = 'Enquiry HR Operations';
+      } else if (emailLower.includes('priya')) {
+        canonicalName = 'Priya Sharma';
+        canonicalEmployeeId = 'REV-EMP-003';
+        canonicalDept = 'Human Resources';
+      } else if (emailLower.includes('thejobsyncit') || emailLower.includes('tariq')) {
+        canonicalName = 'Super Admin';
+        canonicalEmployeeId = 'REV-EMP-001';
+        canonicalDept = 'Executive Management';
+      } else if (emailLower.includes('sarah')) {
+        canonicalName = 'Sarah Jenkins';
+        canonicalEmployeeId = 'REV-EMP-002';
+        canonicalDept = 'Administration';
+      } else {
+        canonicalName = email.split('@')[0].replace(/[0-9]/g, '').replace('.', ' ').trim();
+        canonicalName = canonicalName.charAt(0).toUpperCase() + canonicalName.slice(1);
+      }
     }
 
     const resolvedTeamMemberId = registeredInfo?.teamMemberId || (
@@ -818,13 +820,9 @@ export const CrmProvider = ({ children }) => {
     setCurrentRole(assignedRole);
     setUser(userData);
 
-    // Ensure active module is allowed for assigned role
-    const perms = ROLE_PERMISSIONS[assignedRole] || [];
-    let nextModule = activeModule;
-    if (assignedRole !== 'Super Admin' && !perms.includes('all') && !perms.includes(activeModule)) {
-      nextModule = perms[0] || 'workspace';
-      setActiveModuleState(nextModule);
-    }
+    // Land directly on role dashboard upon login
+    const nextModule = 'dashboard';
+    setActiveModuleState(nextModule);
 
     try {
       localStorage.setItem('sir_crm_session', JSON.stringify({
@@ -843,35 +841,51 @@ export const CrmProvider = ({ children }) => {
     setSuperAdminToken('');
     if (typeof fetch !== 'undefined' && email && password) {
       setAuthTokenLoading(true);
-      fetch('/api/crm/auth/login', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ email, password })
-      })
-        .then((res) => res.json())
-        .then((data) => {
-          if (data?.success && data.token) {
-            setCrmToken(data.token);
-            const isAdminAccount = data.employee?.role === 'Super Admin';
-            if (isAdminAccount) {
-              setSuperAdminToken(data.token);
-            }
-            try {
-              const cur = JSON.parse(localStorage.getItem('sir_crm_session') || '{}');
-              if (cur && cur.isAuthenticated) {
-                localStorage.setItem('sir_crm_session', JSON.stringify({
-                  ...cur,
-                  crmToken: data.token,
-                  ...(isAdminAccount ? { superAdminToken: data.token } : {})
-                }));
+      const loginPayload = {
+        email,
+        password,
+        role: assignedRole,
+        name: userData.name,
+        department: userData.department,
+        employeeId: userData.employeeId,
+        operationTeam: userData.operationTeam,
+        designation: userData.designation
+      };
+      const tryFetchLogin = async () => {
+        const endpoints = ['/api/crm/auth/login', 'http://localhost:5000/api/crm/auth/login'];
+        for (const ep of endpoints) {
+          try {
+            const res = await fetch(ep, {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify(loginPayload)
+            });
+            if (res.ok) {
+              const data = await res.json();
+              if (data?.success && data.token) {
+                setCrmToken(data.token);
+                const isAdminAccount = data.employee?.role === 'Super Admin' || assignedRole === 'Super Admin';
+                if (isAdminAccount) {
+                  setSuperAdminToken(data.token);
+                }
+                try {
+                  const cur = JSON.parse(localStorage.getItem('sir_crm_session') || '{}');
+                  if (cur && cur.isAuthenticated) {
+                    localStorage.setItem('sir_crm_session', JSON.stringify({
+                      ...cur,
+                      crmToken: data.token,
+                      ...(isAdminAccount ? { superAdminToken: data.token } : {})
+                    }));
+                  }
+                } catch { }
+                break;
               }
-            } catch { }
-          }
-        })
-        .catch(() => { })
-        .finally(() => {
-          setAuthTokenLoading(false);
-        });
+            }
+          } catch (_) { }
+        }
+        setAuthTokenLoading(false);
+      };
+      tryFetchLogin();
     } else {
       setAuthTokenLoading(false);
     }

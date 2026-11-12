@@ -89,18 +89,22 @@ export const CrmSuperAdmin = () => {
   // Load from SQLite database on mount if available
   useEffect(() => {
     const fetchDbEmployees = async () => {
-      try {
-        const res = await fetch('http://localhost:5000/api/employees');
-        if (res.ok) {
-          const json = await res.json();
-          const list = Array.isArray(json) ? json : (json.data || []);
-          if (Array.isArray(list) && list.length > 0) {
-            setEmployees(list);
-            syncToLocalStorage(list);
+      const endpoints = ['/api/employees', 'http://localhost:5000/api/employees'];
+      for (const ep of endpoints) {
+        try {
+          const res = await fetch(ep);
+          if (res.ok) {
+            const json = await res.json();
+            const list = Array.isArray(json) ? json : (json.data || []);
+            if (Array.isArray(list) && list.length > 0) {
+              setEmployees(list);
+              syncToLocalStorage(list);
+              break;
+            }
           }
+        } catch (err) {
+          // Fallback to next endpoint or local state
         }
-      } catch (err) {
-        // Fallback to local state
       }
     };
     fetchDbEmployees();
@@ -685,11 +689,13 @@ export const CrmSuperAdmin = () => {
     setEmployees(updated);
     syncToLocalStorage(updated);
 
-    try {
-      await fetch(`http://localhost:5000/api/employees/${emp.id}/toggle-status`, {
-        method: 'PATCH'
-      });
-    } catch (err) {}
+    const endpoints = [`/api/employees/${emp.id}/toggle-status`, `http://localhost:5000/api/employees/${emp.id}/toggle-status`];
+    for (const ep of endpoints) {
+      try {
+        const res = await fetch(ep, { method: 'PATCH' });
+        if (res.ok) break;
+      } catch (err) {}
+    }
 
     logAuditAction(`Super Admin changed status of employee '${emp.name}' to ${nextStatus}.`);
     setStatusMsg(`✓ Employee '${emp.name}' account status updated to ${nextStatus}.`);
@@ -732,20 +738,25 @@ export const CrmSuperAdmin = () => {
       setEmployees(updated);
       syncToLocalStorage(updated);
 
-      try {
-        await fetch(`http://localhost:5000/api/employees/${editingEmployeeId}`, {
-          method: 'PUT',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            name: newEmployee.name.trim() || newEmployee.email.split('@')[0],
-            email: newEmployee.email.trim().toLowerCase(),
-            password: newEmployee.password,
-            phone: newEmployee.phone.trim() || '+91 9800000000',
-            role: newEmployee.role,
-            department: departmentToSet
-          })
-        });
-      } catch (err) {}
+      const putPayload = {
+        name: newEmployee.name.trim() || newEmployee.email.split('@')[0],
+        email: newEmployee.email.trim().toLowerCase(),
+        password: newEmployee.password,
+        phone: newEmployee.phone.trim() || '+91 9800000000',
+        role: newEmployee.role,
+        department: departmentToSet
+      };
+      const endpoints = [`/api/employees/${editingEmployeeId}`, `http://localhost:5000/api/employees/${editingEmployeeId}`];
+      for (const ep of endpoints) {
+        try {
+          const res = await fetch(ep, {
+            method: 'PUT',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(putPayload)
+          });
+          if (res.ok) break;
+        } catch (err) {}
+      }
 
       logAuditAction(`Super Admin updated employee account '${newEmployee.email}'.`);
       setStatusMsg(`✓ Employee Account '${newEmployee.name || newEmployee.email}' updated successfully!`);
@@ -774,13 +785,17 @@ export const CrmSuperAdmin = () => {
       setEmployees(updated);
       syncToLocalStorage(updated);
 
-      try {
-        await fetch('http://localhost:5000/api/employees', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify(createdEmp)
-        });
-      } catch (err) {}
+      const endpoints = ['/api/employees', 'http://localhost:5000/api/employees'];
+      for (const ep of endpoints) {
+        try {
+          const res = await fetch(ep, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(createdEmp)
+          });
+          if (res.ok) break;
+        } catch (err) {}
+      }
 
       logAuditAction(`Super Admin created employee account '${createdEmp.email}'.`);
       setStatusMsg(`✓ Employee Account '${createdEmp.name}' created successfully!`);
