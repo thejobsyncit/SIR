@@ -167,8 +167,6 @@ export const CrmClients = () => {
 
     try {
       await createOrganization(newOrg);
-      setStatusNotice(`✓ Organization '${newOrg.company}' registered and saved successfully!`);
-      setTimeout(() => setStatusNotice(''), 4000);
       setModalOpen(false);
       setNewOrg({
         company: '',

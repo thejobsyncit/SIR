@@ -3,29 +3,11 @@ import ScrollReveal from '../../components/ScrollReveal';
 import { Home, MapPin, Building2, Calendar, CheckCircle2, Plus, Search, Filter, X } from 'lucide-react';
 
 export const CrmDomesticRecruitment = () => {
-  const STORAGE_KEY_DOMESTIC = 'sir_crm_domestic_mandates_v1';
-  const DEFAULT_DOMESTIC_ORDERS = [
+  const [domesticOrders, setDomesticOrders] = useState([
     { id: 'DOM-101', client: 'Al Habtoor Contracting LLC', position: 'Senior MEP Engineer', city: 'Dubai', state: 'Emirate of Dubai', salary: 'AED 28,000', followup: '2026-08-05', interviewStatus: 'Scheduled', offerStatus: 'Pending Final Interview', joining: '2026-08-20' },
     { id: 'DOM-102', client: 'Emirates Global Aluminium', position: 'Maintenance Supervisor', city: 'Abu Dhabi', state: 'Emirate of Abu Dhabi', salary: 'AED 22,000', followup: '2026-08-04', interviewStatus: 'Passed', offerStatus: 'Offer Released', joining: '2026-08-15' },
     { id: 'DOM-103', client: 'Sharjah National Oil Company', position: 'HSE Safety Auditor', city: 'Sharjah', state: 'Emirate of Sharjah', salary: 'AED 19,500', followup: '2026-08-06', interviewStatus: 'Screening', offerStatus: 'Under Review', joining: '2026-09-01' }
-  ];
-
-  const [domesticOrders, setDomesticOrders] = useState(() => {
-    try {
-      const saved = localStorage.getItem(STORAGE_KEY_DOMESTIC);
-      if (saved) {
-        const parsed = JSON.parse(saved);
-        if (Array.isArray(parsed) && parsed.length > 0) return parsed;
-      }
-    } catch {}
-    return DEFAULT_DOMESTIC_ORDERS;
-  });
-
-  useEffect(() => {
-    try {
-      localStorage.setItem(STORAGE_KEY_DOMESTIC, JSON.stringify(domesticOrders));
-    } catch {}
-  }, [domesticOrders]);
+  ]);
 
   const [modalOpen, setModalOpen] = useState(false);
   const [newOrder, setNewOrder] = useState({
@@ -90,11 +72,7 @@ export const CrmDomesticRecruitment = () => {
         interviewStatus: 'Screening',
         offerStatus: 'Draft'
       };
-      setDomesticOrders(prev => {
-        const updated = [orderObj, ...prev];
-        try { localStorage.setItem(STORAGE_KEY_DOMESTIC, JSON.stringify(updated)); } catch {}
-        return updated;
-      });
+      setDomesticOrders([orderObj, ...domesticOrders]);
       setModalOpen(false);
     } catch {
       const fallbackObj = {
@@ -104,11 +82,7 @@ export const CrmDomesticRecruitment = () => {
         interviewStatus: 'Screening',
         offerStatus: 'Draft'
       };
-      setDomesticOrders(prev => {
-        const updated = [fallbackObj, ...prev];
-        try { localStorage.setItem(STORAGE_KEY_DOMESTIC, JSON.stringify(updated)); } catch {}
-        return updated;
-      });
+      setDomesticOrders([fallbackObj, ...domesticOrders]);
       setModalOpen(false);
     }
   };

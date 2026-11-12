@@ -165,7 +165,7 @@ const getFollowUpBucketBadge = (bucket) => {
   }
 };
 
-const CrmHrOperationsDashboard = ({ initialSection } = {}) => {
+const CrmHrOperationsDashboard = () => {
   const {
     crmToken,
     authTokenLoading,
@@ -187,13 +187,7 @@ const CrmHrOperationsDashboard = ({ initialSection } = {}) => {
 
   // Interactive workspace tabs & filters
   const [activeCardId, setActiveCardId] = useState('myAssignedEnquiries');
-  const [activeTab, setActiveTab] = useState(() => (initialSection === 'tasks' || initialSection === 'hr-tasks') ? 'tasks' : 'enquiries'); // 'enquiries' | 'followups' | 'tasks'
-
-  useEffect(() => {
-    if (initialSection === 'tasks' || initialSection === 'hr-tasks') {
-      setActiveTab('tasks');
-    }
-  }, [initialSection]);
+  const [activeTab, setActiveTab] = useState('enquiries'); // 'enquiries' | 'followups' | 'tasks'
   const [enquiryQuickFilter, setEnquiryQuickFilter] = useState('all'); // 'all' | 'pending' | 'completed-month' | 'completed'
   const [statusFilter, setStatusFilter] = useState('all');
   const [teamFilter, setTeamFilter] = useState('all');

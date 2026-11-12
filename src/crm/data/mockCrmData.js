@@ -4,18 +4,19 @@ export const CRM_ROLES = [
   'HR Lead',
   'Recruiter',
   'Placement Coordinator',
-  'HR Operations'
+  'HR Operations',
+  'Interviewer'
 ];
 
 export const ROLE_PERMISSIONS = {
   'Super Admin': ['all'],
   'Admin': [
-    'dashboard', 'attendance', 'leave', 'consulting', 'career-guidance', 'student-academy', 
+    'dashboard', 'consulting', 'career-guidance', 'student-academy', 
     'candidates', 'pipeline', 'domestic', 'international', 'clients', 
     'workspace', 'interviews', 'documentation', 'visa', 'verification', 
     'accounts', 'reports', 'ai-suite', 'calendar', 'settings',
-    'vacancies', 'search-filters', 'offers',
-    'plc-overview', 'plc-students', 'plc-companies', 'plc-drives', 
+    'vacancies', 'search-filters', 'notes-tags', 'communication', 'offers', 'collaboration',
+    'plc-overview', 'plc-students', 'plc-eligibility', 'plc-companies', 'plc-drives', 
     'plc-registration', 'plc-applications', 'plc-events', 'plc-offers', 'plc-announcements', 
     'plc-reports', 'plc-approvals',
     'int-overview', 'int-assigned', 'int-profiles', 'int-schedule', 'int-evaluation', 
@@ -27,26 +28,27 @@ export const ROLE_PERMISSIONS = {
   ],
   'HR Lead': [
     'dashboard', 'consulting', 'career-guidance', 'student-academy', 
-    'candidates', 'pipeline', 'workspace', 'interviews', 
-    'calendar', 'vacancies', 'offers',
+    'candidates', 'pipeline', 'workspace', 'interviews', 'reports', 
+    'calendar', 'vacancies', 'offers', 'collaboration',
     'hr-overview', 'hr-attendance', 'hr-leave', 'hr-employees', 'hr-performance', 
-    'hr-recruitment', 'hr-announcements', 'hr-shifts', 'hr-documents', 'hr-tasks', 'my-profile'
+    'hr-recruitment', 'hr-payroll', 'hr-announcements', 'hr-shifts', 'hr-documents', 
+    'hr-grievances', 'hr-approvals', 'hr-reports', 'hr-tasks', 'my-profile'
   ],
   'Recruiter': [
     'dashboard', 'vacancies', 'candidates', 'search-filters', 'pipeline', 
-    'documentation', 'interviews', 'offers', 
-    'reports', 'workspace', 'domestic', 'international', 
+    'documentation', 'notes-tags', 'interviews', 'communication', 'offers', 
+    'reports', 'collaboration', 'workspace', 'domestic', 'international', 
     'clients', 'calendar'
   ],
   'Placement Coordinator': [
-    'dashboard', 'plc-overview', 'plc-students',  'plc-companies', 
+    'dashboard', 'plc-overview', 'plc-students', 'plc-eligibility', 'plc-companies', 
     'plc-drives', 'plc-registration', 'plc-applications', 'plc-events', 'plc-offers', 
     'plc-announcements', 'plc-reports', 'plc-approvals',
     'candidates', 'pipeline', 'clients', 'interviews', 'workspace', 'calendar'
   ],
   'HR Operations': [
     'dashboard', 'hr-tasks', 'my-attendance', 'my-profile',
-    'candidates', 'documentation', 'verification', 'calendar'
+    'candidates', 'documentation', 'calendar'
   ],
   'Interviewer': [
     'dashboard', 'int-overview', 'int-assigned', 'int-profiles', 'int-schedule', 

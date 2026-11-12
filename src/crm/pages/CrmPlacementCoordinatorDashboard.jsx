@@ -15,7 +15,7 @@ export const CrmPlacementCoordinatorDashboard = ({ initialSection }) => {
   const getTabFromModule = (mod) => {
     switch (mod) {
       case 'plc-students': return 'students';
-      case 'plc-eligibility': return 'overview';
+      case 'plc-eligibility': return 'eligibility';
       case 'plc-companies': return 'companies';
       case 'plc-drives': return 'drives';
       case 'plc-registration': return 'registration';
@@ -321,20 +321,21 @@ export const CrmPlacementCoordinatorDashboard = ({ initialSection }) => {
           </div>
         )}
 
-        {/* 11-FEATURE PILL NAVIGATION BAR */}
+        {/* 12-FEATURE PILL NAVIGATION BAR */}
         <div className="flex flex-wrap gap-1.5 bg-white dark:bg-navy-900 border border-slate-200/90 dark:border-navy-800 p-2 rounded-2xl shadow-xs overflow-x-auto">
           {[
             { id: 'overview', label: '#1 Overview', icon: LayoutDashboard },
             { id: 'students', label: '#2 Students', icon: GraduationCap },
-            { id: 'companies', label: '#3 Companies', icon: Building2 },
-            { id: 'drives', label: '#4 Drives', icon: Briefcase },
-            { id: 'registration', label: '#5 Registration', icon: UserCheck },
-            { id: 'applications', label: '#6 Applications', icon: GitMerge },
-            { id: 'events', label: '#7 Recruitment & Placement', icon: Calendar },
-            { id: 'offers', label: '#8 Offers', icon: Award },
-            { id: 'announcements', label: '#9 Notices', icon: Bell },
-            { id: 'reports', label: '#10 Reports', icon: BarChart3 },
-            { id: 'approvals', label: '#11 Approvals', icon: ShieldCheck }
+            { id: 'eligibility', label: '#3 Eligibility', icon: CheckCircle2 },
+            { id: 'companies', label: '#4 Companies', icon: Building2 },
+            { id: 'drives', label: '#5 Drives', icon: Briefcase },
+            { id: 'registration', label: '#6 Registration', icon: UserCheck },
+            { id: 'applications', label: '#7 Applications', icon: GitMerge },
+            { id: 'events', label: '#8 Events', icon: Calendar },
+            { id: 'offers', label: '#9 Offers', icon: Award },
+            { id: 'announcements', label: '#10 Notices', icon: Bell },
+            { id: 'reports', label: '#11 Reports', icon: BarChart3 },
+            { id: 'approvals', label: '#12 Approvals', icon: ShieldCheck }
           ].map(tab => {
             const TabIcon = tab.icon;
             return (
@@ -504,7 +505,37 @@ export const CrmPlacementCoordinatorDashboard = ({ initialSection }) => {
           </div>
         )}
 
+        {/* TAB 3: ELIGIBILITY MANAGEMENT */}
+        {activeTab === 'eligibility' && (
+          <div className="bg-white dark:bg-navy-900 border border-slate-200 dark:border-navy-800 p-6 rounded-3xl shadow-sm space-y-4 animate-in fade-in">
+            <div className="flex justify-between items-center border-b border-slate-100 dark:border-navy-800 pb-3">
+              <div>
+                <h3 className="font-serif text-sm font-bold text-slate-900 dark:text-white flex items-center gap-2">
+                  <CheckCircle2 className="w-4 h-4 text-emerald-500" />
+                  <span>Company Eligibility Management</span>
+                </h3>
+                <p className="text-slate-500 text-xs">Set company-specific criteria such as degree, branch, CGPA, backlogs and graduation year.</p>
+              </div>
+            </div>
 
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+              {eligibilityCriteria.map((c, idx) => (
+                <div key={idx} className="p-4 bg-slate-50 dark:bg-navy-950 rounded-2xl border border-slate-200 dark:border-navy-800 space-y-2">
+                  <h4 className="font-bold text-slate-900 dark:text-white text-xs">{c.company}</h4>
+                  <p className="text-teal-600 font-bold text-[11px]">{c.role}</p>
+
+                  <div className="space-y-1 text-[11px] text-slate-600 dark:text-slate-400 pt-1 font-mono">
+                    <p>Degree: <strong className="text-slate-800 dark:text-slate-200">{c.degree} ({c.branch.join(', ')})</strong></p>
+                    <p>Min CGPA: <strong className="text-teal-600">{c.minCgpa}</strong></p>
+                    <p>Max Backlogs: <strong className="text-slate-800 dark:text-slate-200">{c.maxBacklogs}</strong></p>
+                    <p>Graduation: <strong className="text-slate-800 dark:text-slate-200">{c.gradYear}</strong></p>
+                    <p className="text-emerald-600 font-bold">{c.package}</p>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
 
         {/* TAB 5: PLACEMENT DRIVE MANAGEMENT */}
         {activeTab === 'drives' && (

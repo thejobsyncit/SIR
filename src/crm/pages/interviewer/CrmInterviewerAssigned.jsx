@@ -2,7 +2,8 @@ import React, { useState } from 'react';
 import { useCrm } from '../../context/CrmContext';
 import { 
   Users, Calendar, Clock, Video, CheckCircle2, 
-  ExternalLink, Search, Filter, AlertCircle, FileText, ArrowRight 
+  ExternalLink, Search, Filter, AlertCircle, FileText, ArrowRight,
+  Phone, Mail
 } from 'lucide-react';
 import ScrollReveal from '../../../components/ScrollReveal';
 
@@ -16,6 +17,8 @@ export const CrmInterviewerAssigned = () => {
     {
       id: 'CAN-801',
       name: 'Rohan Deshmukh',
+      phone: '+91 99201 33445',
+      email: 'rohan.deshmukh@gmail.com',
       role: 'Senior Cloud Infrastructure Architect',
       department: 'Enterprise Cloud Practice',
       round: 'Round 2: System Design & Kubernetes',
@@ -30,6 +33,8 @@ export const CrmInterviewerAssigned = () => {
     {
       id: 'CAN-802',
       name: 'Priyanka Venkatesh',
+      phone: '+91 94450 33445',
+      email: 'priyanka.v@digitaleng.com',
       role: 'Full Stack React / Node Lead',
       department: 'Digital Engineering',
       round: 'Round 1: Core Coding & Architecture',
@@ -44,6 +49,8 @@ export const CrmInterviewerAssigned = () => {
     {
       id: 'CAN-803',
       name: 'Mohammed Tariq',
+      phone: '+91 97110 55667',
+      email: 'mohammed.tariq@wipro.com',
       role: 'DevOps & CI/CD Specialist',
       department: 'Platform Reliability',
       round: 'Round 2: Terraform & Cloud Security',
@@ -58,6 +65,8 @@ export const CrmInterviewerAssigned = () => {
     {
       id: 'CAN-804',
       name: 'Ananya Sundaram',
+      phone: '+91 98401 55667',
+      email: 'ananya.sundaram@ltinfra.com',
       role: 'Civil Project Planning Lead',
       department: 'Infrastructure Projects (Dubai)',
       round: 'Technical Evaluation Round',
@@ -79,7 +88,9 @@ export const CrmInterviewerAssigned = () => {
   const filtered = assignedCandidates.filter(c => {
     const matchQuery = c.name.toLowerCase().includes(searchQuery.toLowerCase()) || 
                        c.role.toLowerCase().includes(searchQuery.toLowerCase()) ||
-                       c.id.toLowerCase().includes(searchQuery.toLowerCase());
+                       c.id.toLowerCase().includes(searchQuery.toLowerCase()) ||
+                       (c.phone && c.phone.includes(searchQuery)) ||
+                       (c.email && c.email.toLowerCase().includes(searchQuery.toLowerCase()));
     const matchRound = filterRound === 'All' || c.round.includes(filterRound);
     return matchQuery && matchRound;
   });
@@ -199,21 +210,53 @@ export const CrmInterviewerAssigned = () => {
             <table className="w-full text-left text-xs border-collapse">
               <thead>
                 <tr className="bg-slate-50 dark:bg-navy-950 text-slate-700 dark:text-slate-300 uppercase tracking-wider text-[10px] border-b border-slate-200 dark:border-navy-800 font-serif">
-                  <th className="p-4 font-bold">Candidate Details</th>
-                  <th className="p-4 font-bold">Target Position & Practice</th>
-                  <th className="p-4 font-bold">Assigned Round</th>
-                  <th className="p-4 font-bold">Date & Time Slot</th>
-                  <th className="p-4 font-bold text-center">Status</th>
-                  <th className="p-4 font-bold text-right">Interviewer Actions</th>
+                  <th className="p-4 font-bold whitespace-nowrap">Reference ID</th>
+                  <th className="p-4 font-bold whitespace-nowrap">Candidate Name</th>
+                  <th className="p-4 font-bold whitespace-nowrap">Phone Number</th>
+                  <th className="p-4 font-bold whitespace-nowrap">Email Address</th>
+                  <th className="p-4 font-bold whitespace-nowrap">Target Position & Practice</th>
+                  <th className="p-4 font-bold whitespace-nowrap">Assigned Round</th>
+                  <th className="p-4 font-bold whitespace-nowrap">Date & Time Slot</th>
+                  <th className="p-4 font-bold text-center whitespace-nowrap">Status</th>
+                  <th className="p-4 font-bold text-right whitespace-nowrap">Interviewer Actions</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-slate-200 dark:divide-navy-800 text-slate-700 dark:text-slate-300">
                 {filtered.map(c => (
                   <tr key={c.id} className="hover:bg-slate-50 dark:hover:bg-navy-950/60 transition">
-                    <td className="p-4">
+                    {/* 1. Reference ID */}
+                    <td className="p-4 whitespace-nowrap font-mono text-xs font-bold text-gold-600 dark:text-gold-400">
+                      {c.id}
+                    </td>
+
+                    {/* 2. Candidate Name */}
+                    <td className="p-4 whitespace-nowrap">
                       <p className="font-bold text-slate-900 dark:text-white text-xs">{c.name}</p>
-                      <span className="text-[10px] text-slate-400 font-mono">{c.id} • {c.experience} Exp</span>
-                      <p className="text-[10px] text-slate-500 mt-0.5">{c.currentCompany}</p>
+                      <span className="text-[10px] text-slate-400">{c.experience} Exp • {c.currentCompany}</span>
+                    </td>
+
+                    {/* 3. Phone Number */}
+                    <td className="p-4 whitespace-nowrap font-mono text-xs">
+                      {c.phone ? (
+                        <a href={`tel:${c.phone}`} className="hover:text-emerald-500 text-slate-700 dark:text-slate-300 flex items-center gap-1.5 group">
+                          <Phone className="w-3.5 h-3.5 text-emerald-500 shrink-0 group-hover:scale-110 transition" />
+                          <span>{c.phone}</span>
+                        </a>
+                      ) : (
+                        <span className="text-slate-400 italic text-[11px]">—</span>
+                      )}
+                    </td>
+
+                    {/* 4. Email Address */}
+                    <td className="p-4 font-mono text-xs">
+                      {c.email ? (
+                        <a href={`mailto:${c.email}`} className="hover:text-gold-500 text-slate-700 dark:text-slate-300 flex items-center gap-1.5 truncate max-w-[190px] group" title={c.email}>
+                          <Mail className="w-3.5 h-3.5 text-blue-500 shrink-0 group-hover:scale-110 transition" />
+                          <span className="truncate">{c.email}</span>
+                        </a>
+                      ) : (
+                        <span className="text-slate-400 italic text-[11px]">—</span>
+                      )}
                     </td>
                     <td className="p-4">
                       <p className="font-semibold text-slate-800 dark:text-slate-200">{c.role}</p>
