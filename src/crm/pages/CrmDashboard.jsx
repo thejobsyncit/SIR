@@ -201,16 +201,22 @@ export const CrmDashboard = () => {
       
       {/* Header Banner */}
       <ScrollReveal>
-      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 bg-white dark:bg-gradient-to-r dark:from-[#101b38] dark:via-[#0b1328] dark:to-[#060a17] p-6 rounded-3xl border border-slate-200 dark:border-gold-500/40 shadow-sm">
+      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 bg-white dark:bg-gradient-to-r dark:from-[#101b38] dark:via-[#0b1328] dark:to-[#060a17] p-6 rounded-3xl border-2 border-slate-200 dark:border-gold-500/40 shadow-sm">
         <div>
-          <span className="bg-gold-500/20 text-gold-700 dark:text-gold-400 text-[10px] font-bold px-2.5 py-1 rounded uppercase tracking-wider">Enterprise Command Center</span>
-          <h1 className="font-serif text-2xl font-bold text-slate-900 dark:text-white mt-1">Executive Performance Dashboard</h1>
-          <p className="text-xs text-slate-600 dark:text-slate-300">Viewing real-time metrics under active role: <strong className="text-amber-700 dark:text-gold-400 font-bold">{currentRole}</strong></p>
+          <span className="bg-amber-100 dark:bg-gold-500/20 text-amber-900 dark:text-gold-400 text-xs font-black px-3 py-1 rounded-lg uppercase tracking-wider border border-amber-300 dark:border-gold-500/30">
+            Enterprise Command Center
+          </span>
+          <h1 className="font-serif text-2xl sm:text-3xl lg:text-4xl font-black text-slate-950 dark:text-white mt-1.5">
+            Executive Performance Dashboard
+          </h1>
+          <p className="text-sm sm:text-base text-slate-800 dark:text-slate-200 font-semibold mt-1">
+            Viewing real-time metrics under active role: <strong className="text-amber-800 dark:text-gold-400 font-black">{currentRole}</strong>
+          </p>
         </div>
 
-        <div className="flex items-center space-x-2 text-xs font-bold">
-          <span className="bg-emerald-100 dark:bg-emerald-500/10 text-emerald-800 dark:text-emerald-400 border border-emerald-300 dark:border-emerald-500/30 px-3 py-1.5 rounded-xl flex items-center gap-1.5 shadow-xs">
-            <span className="w-2 h-2 bg-emerald-600 dark:bg-emerald-400 rounded-full animate-ping"></span>
+        <div className="flex items-center space-x-2 text-xs sm:text-sm font-black">
+          <span className="bg-emerald-100 dark:bg-emerald-500/15 text-emerald-900 dark:text-emerald-300 border-2 border-emerald-300 dark:border-emerald-500/40 px-3.5 py-2 rounded-xl flex items-center gap-2 shadow-xs">
+            <span className="w-2.5 h-2.5 bg-emerald-600 dark:bg-emerald-400 rounded-full animate-ping"></span>
             Real-Time Sync Active
           </span>
         </div>
@@ -223,16 +229,16 @@ export const CrmDashboard = () => {
         {widgets.map((w, idx) => {
           const Icon = w.icon;
           return (
-            <div key={idx} className={`glass-card p-5 rounded-2xl space-y-2.5 border transition-all duration-300 hover:scale-[1.02] shadow-sm ${w.cardStyle}`}>
+            <div key={idx} className={`glass-card p-5.5 rounded-2xl space-y-3 border-2 transition-all duration-300 hover:scale-[1.02] shadow-sm ${w.cardStyle}`}>
               <div className="flex justify-between items-center">
-                <span className="text-[11px] font-extrabold text-slate-900 dark:text-slate-100 uppercase tracking-wider">{w.label}</span>
-                <div className={`p-2 rounded-xl border ${w.badgeBg}`}>
-                  <Icon className={`w-4 h-4 ${w.color}`} />
+                <span className="text-xs sm:text-sm font-black text-slate-950 dark:text-slate-100 uppercase tracking-wider">{w.label}</span>
+                <div className={`p-2 rounded-xl border-2 ${w.badgeBg}`}>
+                  <Icon className={`w-4.5 h-4.5 ${w.color}`} />
                 </div>
               </div>
-              <div className={`font-serif text-3xl font-extrabold tracking-tight ${w.valColor}`}>{w.val}</div>
-              <p className="text-[11px] text-slate-800 dark:text-slate-200 flex items-center gap-1 font-bold">
-                <ArrowUpRight className="w-3.5 h-3.5 text-emerald-600 dark:text-emerald-400" />
+              <div className={`font-serif text-3xl sm:text-4xl font-black tracking-tight ${w.valColor}`}>{w.val}</div>
+              <p className="text-xs sm:text-sm text-slate-800 dark:text-slate-200 flex items-center gap-1.5 font-bold">
+                <ArrowUpRight className="w-4 h-4 text-emerald-700 dark:text-emerald-400 stroke-[2.5]" />
                 <span>{w.change}</span>
               </p>
             </div>

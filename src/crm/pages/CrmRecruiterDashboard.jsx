@@ -120,26 +120,26 @@ export const CrmRecruiterDashboard = () => {
   return (
     <div className="space-y-6">
       {/* Recruiter Header (Super Admin Style) */}
-      <div className="bg-white dark:bg-navy-900 border border-slate-200/90 dark:border-navy-800 p-6 rounded-3xl shadow-sm flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+      <div className="bg-white dark:bg-navy-900 border-2 border-slate-300 dark:border-navy-800 p-6 rounded-3xl shadow-sm flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
         <div>
           <div className="flex items-center gap-2 mb-2">
-            <span className="bg-amber-100 dark:bg-amber-950/40 text-amber-800 dark:text-gold-400 px-3 py-1 rounded-lg text-[10px] font-black uppercase tracking-wider">
-              Recruiter Suite • Feature #1
+            <span className="bg-amber-100 dark:bg-amber-950/40 text-amber-900 dark:text-gold-300 px-3 py-1 rounded-lg text-xs font-black uppercase tracking-wider">
+              Recruiter Suite
             </span>
-            <span className="text-[10px] font-mono text-slate-400 uppercase tracking-wider">
+            <span className="text-xs font-mono font-bold text-slate-700 dark:text-slate-300 uppercase tracking-wider">
               TALENT SOURCING & APPLICANT PIPELINE
             </span>
           </div>
-          <h1 className="font-serif text-2xl sm:text-3xl font-bold text-slate-900 dark:text-white">
+          <h1 className="font-serif text-2xl sm:text-3xl lg:text-4xl font-black text-slate-950 dark:text-white">
             Recruiter & ATS Candidate Dashboard
           </h1>
-          <p className="text-slate-500 text-xs mt-1">
+          <p className="text-slate-700 dark:text-slate-300 text-sm sm:text-base font-semibold mt-1">
             Assigned candidate pool, AI resume scoring, interview coordination, and pipeline stage progression.
           </p>
         </div>
 
         {/* Tab Controls */}
-        <div className="flex flex-wrap gap-1.5 bg-slate-50 dark:bg-navy-950 p-1.5 rounded-2xl border border-slate-200/80 dark:border-navy-800 text-xs shadow-xs">
+        <div className="flex flex-wrap gap-1.5 bg-slate-100 dark:bg-navy-950 p-1.5 rounded-2xl border-2 border-slate-300 dark:border-navy-800 text-sm shadow-xs">
           {[
             { id: 'overview', label: 'Overview' },
             { id: 'candidates', label: 'Candidates' },
@@ -149,10 +149,10 @@ export const CrmRecruiterDashboard = () => {
             <button
               key={tab.id}
               onClick={() => setActiveTab(tab.id)}
-              className={`px-3 py-1.5 rounded-xl font-bold transition cursor-pointer ${
+              className={`px-4 py-2 rounded-xl text-xs sm:text-sm font-black transition cursor-pointer ${
                 activeTab === tab.id 
-                  ? 'bg-gold-500 text-navy-950 shadow-xs' 
-                  : 'text-slate-600 dark:text-slate-300 hover:bg-slate-200/60 dark:hover:bg-navy-800'
+                  ? 'bg-amber-400 text-slate-950 shadow-xs border border-amber-500' 
+                  : 'text-slate-700 dark:text-slate-300 hover:bg-slate-200/60 dark:hover:bg-navy-800'
               }`}
             >
               {tab.label}
@@ -170,19 +170,19 @@ export const CrmRecruiterDashboard = () => {
       {/* 9 OVERVIEW COUNTER CARDS */}
       <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-9 gap-3">
         {[
-          { label: 'Assigned', val: assignedCandidates, color: 'text-blue-600 dark:text-blue-400', bg: 'bg-blue-50 dark:bg-blue-500/10 border-blue-200 dark:border-blue-500/20' },
-          { label: 'Total Pool', val: totalCandidates, color: 'text-slate-700 dark:text-slate-300', bg: 'bg-slate-50 dark:bg-slate-800/40 border-slate-200 dark:border-slate-700' },
-          { label: 'New', val: newCandidates, color: 'text-emerald-600 dark:text-emerald-400', bg: 'bg-emerald-50 dark:bg-emerald-500/10 border-emerald-200 dark:border-emerald-500/20' },
-          { label: 'Shortlisted', val: shortlistedCandidates, color: 'text-cyan-600 dark:text-cyan-400', bg: 'bg-cyan-50 dark:bg-cyan-500/10 border-cyan-200 dark:border-cyan-500/20' },
-          { label: 'Interview Sched.', val: interviewScheduled, color: 'text-purple-600 dark:text-purple-400', bg: 'bg-purple-50 dark:bg-purple-500/10 border-purple-200 dark:border-purple-500/20' },
-          { label: 'Interview Done', val: interviewCompleted, color: 'text-indigo-600 dark:text-indigo-400', bg: 'bg-indigo-50 dark:bg-indigo-500/10 border-indigo-200 dark:border-indigo-500/20' },
-          { label: 'Selected', val: selectedCandidates, color: 'text-gold-600 dark:text-gold-400', bg: 'bg-gold-50 dark:bg-gold-500/10 border-gold-200 dark:border-gold-500/20' },
-          { label: 'Rejected', val: rejectedCandidates, color: 'text-rose-600 dark:text-rose-400', bg: 'bg-rose-50 dark:bg-rose-500/10 border-rose-200 dark:border-rose-500/20' },
-          { label: 'Follow-ups', val: pendingFollowUps, color: 'text-amber-600 dark:text-amber-400', bg: 'bg-amber-50 dark:bg-amber-500/10 border-amber-200 dark:border-amber-500/20' }
+          { label: 'Assigned', val: assignedCandidates, color: 'text-blue-800 dark:text-blue-300', bg: 'bg-blue-50/80 dark:bg-blue-500/10 border-2 border-blue-200 dark:border-blue-500/20' },
+          { label: 'Total Pool', val: totalCandidates, color: 'text-slate-900 dark:text-slate-200', bg: 'bg-slate-100 dark:bg-slate-800/40 border-2 border-slate-300 dark:border-slate-700' },
+          { label: 'New', val: newCandidates, color: 'text-emerald-800 dark:text-emerald-300', bg: 'bg-emerald-50/80 dark:bg-emerald-500/10 border-2 border-emerald-200 dark:border-emerald-500/20' },
+          { label: 'Shortlisted', val: shortlistedCandidates, color: 'text-cyan-800 dark:text-cyan-300', bg: 'bg-cyan-50/80 dark:bg-cyan-500/10 border-2 border-cyan-200 dark:border-cyan-500/20' },
+          { label: 'Interview Sched.', val: interviewScheduled, color: 'text-purple-800 dark:text-purple-300', bg: 'bg-purple-50/80 dark:bg-purple-500/10 border-2 border-purple-200 dark:border-purple-500/20' },
+          { label: 'Interview Done', val: interviewCompleted, color: 'text-indigo-800 dark:text-indigo-300', bg: 'bg-indigo-50/80 dark:bg-indigo-500/10 border-2 border-indigo-200 dark:border-indigo-500/20' },
+          { label: 'Selected', val: selectedCandidates, color: 'text-amber-800 dark:text-gold-300', bg: 'bg-amber-50/80 dark:bg-gold-500/10 border-2 border-amber-200 dark:border-gold-500/20' },
+          { label: 'Rejected', val: rejectedCandidates, color: 'text-rose-800 dark:text-rose-300', bg: 'bg-rose-50/80 dark:bg-rose-500/10 border-2 border-rose-200 dark:border-rose-500/20' },
+          { label: 'Follow-ups', val: pendingFollowUps, color: 'text-amber-900 dark:text-amber-300', bg: 'bg-amber-100/60 dark:bg-amber-500/10 border-2 border-amber-300 dark:border-amber-500/20' }
         ].map((item, idx) => (
-          <div key={idx} className={`p-3.5 rounded-2xl border ${item.bg} text-center shadow-sm`}>
-            <span className="text-[10px] font-bold text-slate-500 dark:text-slate-400 block truncate">{item.label}</span>
-            <span className={`text-xl font-extrabold font-mono mt-1 block ${item.color}`}>{item.val}</span>
+          <div key={idx} className={`p-3.5 rounded-2xl ${item.bg} text-center shadow-sm`}>
+            <span className="text-xs font-black text-slate-800 dark:text-slate-200 block truncate uppercase">{item.label}</span>
+            <span className={`text-2xl font-black font-mono mt-1 block ${item.color}`}>{item.val}</span>
           </div>
         ))}
       </div>

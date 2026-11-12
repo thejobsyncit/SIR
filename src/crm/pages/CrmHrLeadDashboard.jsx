@@ -1111,20 +1111,20 @@ export const CrmHrLeadDashboard = ({ initialSection }) => {
       <div className="space-y-6 text-xs font-sans pb-10">
         
         {/* TOP COMMAND BANNER (SUPER ADMIN LUXURY GOLD PALETTE) */}
-        <div className="bg-white dark:bg-navy-900 border border-slate-200/90 dark:border-navy-800 p-6 rounded-3xl shadow-sm flex flex-col lg:flex-row justify-between items-start lg:items-center gap-4">
+        <div className="bg-white dark:bg-navy-900 border-2 border-slate-200 dark:border-navy-800 p-6 rounded-3xl shadow-sm flex flex-col lg:flex-row justify-between items-start lg:items-center gap-4">
           <div>
             <div className="flex items-center gap-2 mb-2">
-              <span className="bg-amber-100 dark:bg-amber-950/40 text-amber-800 dark:text-gold-400 px-3 py-1 rounded-lg text-[10px] font-black uppercase tracking-wider">
+              <span className="bg-amber-100 dark:bg-amber-950/40 text-amber-900 dark:text-gold-400 px-3 py-1 rounded-lg text-xs font-black uppercase tracking-wider border border-amber-300/80 dark:border-gold-500/30">
                 HR Lead Executive HQ • Central Console
               </span>
-              <span className="text-[10px] font-mono text-slate-400 uppercase tracking-wider">
+              <span className="text-xs font-black text-slate-700 dark:text-slate-300 uppercase tracking-wider">
                 WORKFORCE GOVERNANCE & OPERATIONS
               </span>
             </div>
-            <h1 className="font-serif text-2xl sm:text-3xl font-bold text-slate-900 dark:text-white">
+            <h1 className="font-serif text-2xl sm:text-3xl lg:text-4xl font-black text-slate-950 dark:text-white">
               HR Lead Operations & Workforce Management Console
             </h1>
-            <p className="text-slate-500 text-xs mt-1 max-w-2xl">
+            <p className="text-slate-800 dark:text-slate-200 text-sm sm:text-base font-semibold mt-1.5 max-w-3xl">
               Centralized workspace to monitor employees, approve workforce requests, track real-time attendance, and manage end-to-end HR operations.
             </p>
           </div>
@@ -1132,10 +1132,10 @@ export const CrmHrLeadDashboard = ({ initialSection }) => {
           <div className="flex flex-wrap items-center gap-2.5">
             <button
               onClick={() => setMaskSalary(!maskSalary)}
-              className="px-3.5 py-2 rounded-2xl bg-slate-100 dark:bg-navy-800 text-slate-700 dark:text-slate-200 font-bold border border-slate-200 dark:border-navy-700 hover:bg-slate-200 transition flex items-center gap-1.5 cursor-pointer text-xs"
+              className="px-4 py-2 rounded-2xl bg-slate-100 dark:bg-navy-800 text-slate-900 dark:text-slate-100 font-extrabold border-2 border-slate-300 dark:border-navy-700 hover:bg-slate-200 transition flex items-center gap-2 cursor-pointer text-xs sm:text-sm shadow-xs"
               title="Toggle salary encryption view"
             >
-              {maskSalary ? <Eye className="w-4 h-4 text-amber-600" /> : <EyeOff className="w-4 h-4 text-slate-400" />}
+              {maskSalary ? <Eye className="w-4 h-4 text-amber-700" /> : <EyeOff className="w-4 h-4 text-slate-500" />}
               <span>{maskSalary ? 'Unmask CTC' : 'Mask CTC'}</span>
             </button>
 
@@ -1146,108 +1146,108 @@ export const CrmHrLeadDashboard = ({ initialSection }) => {
                   setAddEmpErrors({});
                   setIsAddEmployeeOpen(true);
                 }}
-                className="px-4 py-2 bg-gold-500 hover:bg-gold-600 text-navy-950 font-bold rounded-2xl shadow-sm transition flex items-center gap-1.5 cursor-pointer text-xs"
+                className="px-4 py-2 bg-gradient-to-r from-amber-500 to-amber-600 hover:from-amber-400 hover:to-amber-500 text-navy-950 font-black rounded-2xl shadow-sm transition flex items-center gap-2 cursor-pointer text-xs sm:text-sm border border-amber-400"
               >
-                <UserPlus className="w-4 h-4" />
+                <UserPlus className="w-4 h-4 stroke-[2.5]" />
                 <span>Add Employee</span>
               </button>
             )}
 
-            <span className="px-3 py-1.5 rounded-full text-[11px] font-bold bg-emerald-50 dark:bg-emerald-950/40 border border-emerald-200 text-emerald-700 dark:text-emerald-300">
+            <span className="px-3.5 py-2 rounded-full text-xs sm:text-sm font-black bg-emerald-100 dark:bg-emerald-950/40 border-2 border-emerald-300 dark:border-emerald-700 text-emerald-900 dark:text-emerald-300 shadow-xs">
               ● 42 Present Today
             </span>
           </div>
         </div>
 
         {toastMsg && (
-          <div className="p-3.5 bg-emerald-500/15 border border-emerald-500/30 text-emerald-800 dark:text-emerald-300 rounded-2xl text-xs font-bold animate-in fade-in flex items-center gap-2">
-            <CheckCircle2 className="w-4 h-4 text-emerald-600 shrink-0" />
+          <div className="p-3.5 bg-emerald-500/15 border-2 border-emerald-500/30 text-emerald-900 dark:text-emerald-200 rounded-2xl text-xs sm:text-sm font-black animate-in fade-in flex items-center gap-2 shadow-xs">
+            <CheckCircle2 className="w-4 h-4 text-emerald-700 shrink-0" />
             <span>{toastMsg}</span>
           </div>
         )}
 
         {/* 6 TOP EXECUTIVE KPI CARDS (From Image 1: 1. Dashboard Overview) */}
         <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3.5">
-          <div className="bg-white dark:bg-navy-900 border border-slate-200/80 dark:border-navy-800 rounded-3xl p-4 shadow-xs">
+          <div className="bg-white dark:bg-navy-900 border-2 border-slate-200 dark:border-navy-800 rounded-3xl p-4.5 shadow-xs">
             <div className="flex justify-between items-start">
-              <span className="text-[10px] font-extrabold uppercase tracking-wider text-slate-500">Total Employees</span>
-              <div className="w-7 h-7 rounded-xl bg-blue-50 text-blue-600 flex items-center justify-center border border-blue-100">
-                <Users className="w-3.5 h-3.5" />
+              <span className="text-xs font-black uppercase tracking-wider text-slate-800 dark:text-slate-200">Total Employees</span>
+              <div className="w-7.5 h-7.5 rounded-xl bg-blue-100 text-blue-800 flex items-center justify-center border border-blue-200">
+                <Users className="w-4 h-4" />
               </div>
             </div>
-            <p className="text-3xl font-serif font-black text-slate-900 dark:text-white mt-2.5">{totalEmployeesCount}</p>
-            <span className="text-[10px] text-blue-600 font-semibold mt-1 block">↗ 100% On-roll Staff</span>
+            <p className="text-3xl sm:text-4xl font-serif font-black text-slate-950 dark:text-white mt-2">{totalEmployeesCount}</p>
+            <span className="text-xs sm:text-sm text-blue-800 dark:text-blue-300 font-extrabold mt-1 block">↗ 100% On-roll Staff</span>
           </div>
 
-          <div className="bg-white dark:bg-navy-900 border border-slate-200/80 dark:border-navy-800 rounded-3xl p-4 shadow-xs">
+          <div className="bg-white dark:bg-navy-900 border-2 border-slate-200 dark:border-navy-800 rounded-3xl p-4.5 shadow-xs">
             <div className="flex justify-between items-start">
-              <span className="text-[10px] font-extrabold uppercase tracking-wider text-slate-500">Present Today</span>
-              <div className="w-7 h-7 rounded-xl bg-emerald-50 text-emerald-600 flex items-center justify-center border border-emerald-100">
-                <CheckCircle2 className="w-3.5 h-3.5" />
+              <span className="text-xs font-black uppercase tracking-wider text-slate-800 dark:text-slate-200">Present Today</span>
+              <div className="w-7.5 h-7.5 rounded-xl bg-emerald-100 text-emerald-800 flex items-center justify-center border border-emerald-200">
+                <CheckCircle2 className="w-4 h-4" />
               </div>
             </div>
-            <p className="text-3xl font-serif font-black text-emerald-600 mt-2.5">{presentTodayCount}</p>
-            <span className="text-[10px] text-emerald-600 font-semibold mt-1 block">↗ 87.5% Attendance</span>
+            <p className="text-3xl sm:text-4xl font-serif font-black text-emerald-700 dark:text-emerald-400 mt-2">{presentTodayCount}</p>
+            <span className="text-xs sm:text-sm text-emerald-800 dark:text-emerald-300 font-extrabold mt-1 block">↗ 87.5% Attendance</span>
           </div>
 
-          <div className="bg-white dark:bg-navy-900 border border-slate-200/80 dark:border-navy-800 rounded-3xl p-4 shadow-xs">
+          <div className="bg-white dark:bg-navy-900 border-2 border-slate-200 dark:border-navy-800 rounded-3xl p-4.5 shadow-xs">
             <div className="flex justify-between items-start">
-              <span className="text-[10px] font-extrabold uppercase tracking-wider text-slate-500">Absent Today</span>
-              <div className="w-7 h-7 rounded-xl bg-rose-50 text-rose-600 flex items-center justify-center border border-rose-100">
-                <XCircle className="w-3.5 h-3.5" />
+              <span className="text-xs font-black uppercase tracking-wider text-slate-800 dark:text-slate-200">Absent Today</span>
+              <div className="w-7.5 h-7.5 rounded-xl bg-rose-100 text-rose-800 flex items-center justify-center border border-rose-200">
+                <XCircle className="w-4 h-4" />
               </div>
             </div>
-            <p className="text-3xl font-serif font-black text-rose-600 mt-2.5">{absentCount}</p>
-            <span className="text-[10px] text-rose-600 font-semibold mt-1 block">↗ 1 Uninformed Absence</span>
+            <p className="text-3xl sm:text-4xl font-serif font-black text-rose-700 dark:text-rose-400 mt-2">{absentCount}</p>
+            <span className="text-xs sm:text-sm text-rose-800 dark:text-rose-300 font-extrabold mt-1 block">↗ 1 Uninformed Absence</span>
           </div>
 
-          <div className="bg-white dark:bg-navy-900 border border-slate-200/80 dark:border-navy-800 rounded-3xl p-4 shadow-xs">
+          <div className="bg-white dark:bg-navy-900 border-2 border-slate-200 dark:border-navy-800 rounded-3xl p-4.5 shadow-xs">
             <div className="flex justify-between items-start">
-              <span className="text-[10px] font-extrabold uppercase tracking-wider text-slate-500">On Leave</span>
-              <div className="w-7 h-7 rounded-xl bg-amber-50 text-amber-600 flex items-center justify-center border border-amber-100">
-                <Calendar className="w-3.5 h-3.5" />
+              <span className="text-xs font-black uppercase tracking-wider text-slate-800 dark:text-slate-200">On Leave</span>
+              <div className="w-7.5 h-7.5 rounded-xl bg-amber-100 text-amber-800 flex items-center justify-center border border-amber-200">
+                <Calendar className="w-4 h-4" />
               </div>
             </div>
-            <p className="text-3xl font-serif font-black text-amber-600 dark:text-gold-400 mt-2.5">{onLeaveCount}</p>
-            <span className="text-[10px] text-amber-600 font-semibold mt-1 block">↗ Approved Leaves</span>
+            <p className="text-3xl sm:text-4xl font-serif font-black text-amber-700 dark:text-gold-400 mt-2">{onLeaveCount}</p>
+            <span className="text-xs sm:text-sm text-amber-800 dark:text-amber-300 font-extrabold mt-1 block">↗ Approved Leaves</span>
           </div>
 
-          <div className="bg-white dark:bg-navy-900 border border-slate-200/80 dark:border-navy-800 rounded-3xl p-4 shadow-xs">
+          <div className="bg-white dark:bg-navy-900 border-2 border-slate-200 dark:border-navy-800 rounded-3xl p-4.5 shadow-xs">
             <div className="flex justify-between items-start">
-              <span className="text-[10px] font-extrabold uppercase tracking-wider text-slate-500">New Joiners</span>
-              <div className="w-7 h-7 rounded-xl bg-purple-50 text-purple-600 flex items-center justify-center border border-purple-100">
-                <UserPlus className="w-3.5 h-3.5" />
+              <span className="text-xs font-black uppercase tracking-wider text-slate-800 dark:text-slate-200">New Joiners</span>
+              <div className="w-7.5 h-7.5 rounded-xl bg-purple-100 text-purple-800 flex items-center justify-center border border-purple-200">
+                <UserPlus className="w-4 h-4" />
               </div>
             </div>
-            <p className="text-3xl font-serif font-black text-purple-600 mt-2.5">{newJoinersCount}</p>
-            <span className="text-[10px] text-purple-600 font-semibold mt-1 block">↗ This Month (Nov 2026)</span>
+            <p className="text-3xl sm:text-4xl font-serif font-black text-purple-700 dark:text-purple-300 mt-2">{newJoinersCount}</p>
+            <span className="text-xs sm:text-sm text-purple-800 dark:text-purple-300 font-extrabold mt-1 block">↗ This Month (Nov 2026)</span>
           </div>
 
-          <div className="bg-white dark:bg-navy-900 border border-slate-200/80 dark:border-navy-800 rounded-3xl p-4 shadow-xs">
+          <div className="bg-white dark:bg-navy-900 border-2 border-slate-200 dark:border-navy-800 rounded-3xl p-4.5 shadow-xs">
             <div className="flex justify-between items-start">
-              <span className="text-[10px] font-extrabold uppercase tracking-wider text-slate-500">Pending Leaves</span>
-              <div className="w-7 h-7 rounded-xl bg-gold-500/20 text-gold-700 flex items-center justify-center border border-gold-500/30">
-                <Calendar className="w-3.5 h-3.5" />
+              <span className="text-xs font-black uppercase tracking-wider text-slate-800 dark:text-slate-200">Pending Leaves</span>
+              <div className="w-7.5 h-7.5 rounded-xl bg-amber-100 dark:bg-gold-500/20 text-amber-900 dark:text-gold-400 flex items-center justify-center border border-amber-200 dark:border-gold-500/30">
+                <Calendar className="w-4 h-4" />
               </div>
             </div>
-            <p className="text-3xl font-serif font-black text-slate-900 dark:text-white mt-2.5">{leaveRequests.filter(l => l.status.includes('Pending')).length}</p>
-            <span className="text-[10px] text-gold-600 font-semibold mt-1 block">↗ Review Required</span>
+            <p className="text-3xl sm:text-4xl font-serif font-black text-slate-950 dark:text-white mt-2">{leaveRequests.filter(l => l.status.includes('Pending')).length}</p>
+            <span className="text-xs sm:text-sm text-amber-900 dark:text-gold-300 font-extrabold mt-1 block">↗ Review Required</span>
           </div>
         </div>
 
-        {/* MASTER FEATURE TABS BAR (Active Core Modules - Removed Payroll, Grievances, Approvals, Analytics) */}
-        <div className="bg-white dark:bg-navy-900 border border-slate-200/90 dark:border-navy-800 rounded-2xl p-2 shadow-xs flex flex-wrap gap-1.5 overflow-x-auto">
+        {/* MASTER FEATURE TABS BAR (Active Core Modules - Clean, High Contrast Labels) */}
+        <div className="bg-white dark:bg-navy-900 border-2 border-slate-200 dark:border-navy-800 rounded-2xl p-2.5 shadow-xs flex flex-wrap gap-2 overflow-x-auto">
           {[
-            { id: 'overview', label: '#1 Overview', icon: LayoutDashboard },
+            { id: 'overview', label: 'Overview', icon: LayoutDashboard },
             { id: 'tasks', label: 'HR Task Assignment', icon: CheckSquare },
-            { id: 'attendance', label: '#2 Attendance', icon: Clock },
-            { id: 'leave', label: '#3 Leave Management', icon: Calendar },
-            { id: 'employees', label: '#4 Employee Directory', icon: Users },
-            { id: 'performance', label: '#5 Performance', icon: TrendingUp },
-            { id: 'recruitment', label: '#6 Onboarding', icon: UserCheck },
-            { id: 'announcements', label: '#7 Notices & Life Events', icon: Bell },
-            { id: 'shifts', label: '#8 Shift Roster', icon: CalendarCheck },
-            { id: 'documents', label: '#9 Document Vault', icon: FileText }
+            { id: 'attendance', label: 'Attendance Oversight', icon: Clock },
+            { id: 'leave', label: 'Leave Management', icon: Calendar },
+            { id: 'employees', label: 'Employee Directory', icon: Users },
+            { id: 'performance', label: 'Performance Reviews', icon: TrendingUp },
+            { id: 'recruitment', label: 'Onboarding & Hiring', icon: UserCheck },
+            { id: 'announcements', label: 'Company Notices', icon: Bell },
+            { id: 'shifts', label: 'Shift Roster', icon: CalendarCheck },
+            { id: 'documents', label: 'Document Vault', icon: FileText }
           ].map(tab => {
             const TabIcon = tab.icon;
             const isTabActive = activeTab === tab.id;
@@ -1255,13 +1255,13 @@ export const CrmHrLeadDashboard = ({ initialSection }) => {
               <button
                 key={tab.id}
                 onClick={() => setActiveTab(tab.id)}
-                className={`flex items-center gap-1.5 px-3 py-1.5 rounded-xl font-bold text-[11px] transition cursor-pointer shrink-0 ${
+                className={`flex items-center gap-2 px-4 py-2 rounded-xl font-black text-xs sm:text-sm transition cursor-pointer shrink-0 ${
                   isTabActive
-                    ? 'bg-gold-500 text-navy-950 shadow-xs'
-                    : 'text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-navy-800'
+                    ? 'bg-gradient-to-r from-amber-500 to-amber-600 text-navy-950 shadow-sm border border-amber-400'
+                    : 'text-slate-800 dark:text-slate-200 hover:text-slate-950 dark:hover:text-white hover:bg-slate-100 dark:hover:bg-navy-800 border border-transparent hover:border-slate-300 dark:hover:border-navy-700'
                 }`}
               >
-                <TabIcon className="w-3.5 h-3.5" />
+                <TabIcon className="w-4 h-4 shrink-0" />
                 <span>{tab.label}</span>
               </button>
             );
@@ -1864,20 +1864,22 @@ export const CrmHrLeadDashboard = ({ initialSection }) => {
         {activeTab === 'recruitment' && (
           <div className="space-y-6 animate-in fade-in duration-200">
             {/* Onboarding Checklist Card */}
-            <div className="bg-white dark:bg-navy-900 border border-slate-200/90 dark:border-navy-800 rounded-3xl p-6 shadow-xs space-y-4">
-              <div className="flex justify-between items-center">
+            <div className="bg-white dark:bg-navy-900 border-2 border-slate-200 dark:border-navy-800 rounded-3xl p-6 sm:p-7 shadow-xs space-y-4">
+              <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-2 border-b border-slate-200 dark:border-navy-800 pb-3">
                 <div>
-                  <h3 className="font-serif font-bold text-base text-slate-900 dark:text-white">
+                  <h3 className="font-serif font-black text-lg sm:text-xl text-slate-950 dark:text-white">
                     New Employee Onboarding Milestones Checklist
                   </h3>
-                  <p className="text-[11px] text-slate-500">Mandatory verification and provisioning track for this month's 3 new joiners</p>
+                  <p className="text-xs sm:text-sm font-semibold text-slate-800 dark:text-slate-300 mt-0.5">
+                    Mandatory verification and provisioning track for this month's 3 new joiners
+                  </p>
                 </div>
-                <span className="text-[10px] font-mono text-emerald-600 font-bold bg-emerald-50 px-2.5 py-1 rounded-full border border-emerald-200">
+                <span className="text-xs sm:text-sm font-black font-mono text-emerald-900 dark:text-emerald-300 bg-emerald-100 dark:bg-emerald-950/40 px-3 py-1 rounded-full border-2 border-emerald-300 dark:border-emerald-700 shadow-xs">
                   80% Completed
                 </span>
               </div>
 
-              <div className="space-y-2.5 pt-2">
+              <div className="space-y-3 pt-2">
                 {[
                   { title: 'Identity & Address Proof Verification (Aadhaar / Passport / MOFA)', done: true },
                   { title: 'Signed Offer Letter, Employment Contract & NDA Executed', done: true },
@@ -1885,14 +1887,14 @@ export const CrmHrLeadDashboard = ({ initialSection }) => {
                   { title: 'HR Handbook Orientation, POSH Policy Briefing & Code of Conduct', done: true },
                   { title: 'Department Lead Introduction & 30-Day Mentorship Assignment', done: false }
                 ].map((chk, i) => (
-                  <div key={i} className="p-3 bg-slate-50 dark:bg-navy-950 rounded-2xl flex items-center justify-between border border-slate-100 dark:border-navy-800">
-                    <div className="flex items-center gap-3">
-                      <div className={`w-5 h-5 rounded-lg flex items-center justify-center ${chk.done ? 'bg-emerald-600 text-white' : 'bg-slate-200 dark:bg-navy-800 text-slate-400'}`}>
-                        {chk.done ? <Check className="w-3.5 h-3.5" /> : null}
+                  <div key={i} className="p-3.5 bg-slate-50 dark:bg-navy-950 rounded-2xl flex items-center justify-between border-2 border-slate-200/90 dark:border-navy-800 gap-3">
+                    <div className="flex items-center gap-3.5">
+                      <div className={`w-6 h-6 rounded-lg flex items-center justify-center shrink-0 ${chk.done ? 'bg-emerald-600 text-white shadow-xs' : 'bg-slate-200 dark:bg-navy-800 text-slate-400'}`}>
+                        {chk.done ? <Check className="w-4 h-4 stroke-[3]" /> : null}
                       </div>
-                      <span className={`text-xs ${chk.done ? 'font-bold text-slate-800 dark:text-slate-200' : 'text-slate-500'}`}>{chk.title}</span>
+                      <span className={`text-xs sm:text-sm ${chk.done ? 'font-bold text-slate-950 dark:text-slate-100' : 'font-medium text-slate-700 dark:text-slate-400'}`}>{chk.title}</span>
                     </div>
-                    <span className={`text-[10px] font-mono font-bold ${chk.done ? 'text-emerald-600' : 'text-amber-600'}`}>
+                    <span className={`text-xs font-black font-mono px-2.5 py-1 rounded-full shrink-0 ${chk.done ? 'bg-emerald-100 text-emerald-900 border border-emerald-300 dark:bg-emerald-950/40 dark:text-emerald-300 dark:border-emerald-700' : 'bg-amber-100 text-amber-900 border border-amber-300 dark:bg-amber-950/40 dark:text-amber-300 dark:border-amber-700'}`}>
                       {chk.done ? '✓ Verified' : 'Pending Induction'}
                     </span>
                   </div>
@@ -1901,8 +1903,8 @@ export const CrmHrLeadDashboard = ({ initialSection }) => {
             </div>
 
             {/* Active Hiring Requisitions */}
-            <div className="bg-white dark:bg-navy-900 border border-slate-200/90 dark:border-navy-800 rounded-3xl p-6 shadow-xs space-y-4">
-              <h3 className="font-serif font-bold text-base text-slate-900 dark:text-white">
+            <div className="bg-white dark:bg-navy-900 border-2 border-slate-200 dark:border-navy-800 rounded-3xl p-6 sm:p-7 shadow-xs space-y-4">
+              <h3 className="font-serif font-black text-lg sm:text-xl text-slate-950 dark:text-white border-b border-slate-200 dark:border-navy-800 pb-3">
                 Active Hiring Requisitions & Pipeline Status
               </h3>
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -1912,20 +1914,20 @@ export const CrmHrLeadDashboard = ({ initialSection }) => {
                   { role: 'Consultant Cardiologist', openings: 2, company: 'Saudi German Hospital', applicants: 14, interviewed: 6, offered: 1 },
                   { role: 'Full Stack React / Node Lead', openings: 2, company: 'Revival Digital Labs', applicants: 62, interviewed: 14, offered: 2 }
                 ].map((job, idx) => (
-                  <div key={idx} className="p-4 bg-slate-50 dark:bg-navy-950 rounded-2xl border border-slate-200/60 dark:border-navy-800 space-y-2">
-                    <div className="flex justify-between items-start">
+                  <div key={idx} className="p-4 bg-slate-50 dark:bg-navy-950 rounded-2xl border-2 border-slate-200/90 dark:border-navy-800 space-y-2.5">
+                    <div className="flex justify-between items-start gap-2">
                       <div>
-                        <h4 className="font-serif font-bold text-slate-900 dark:text-white text-xs">{job.role}</h4>
-                        <span className="text-[10px] text-slate-400">{job.company}</span>
+                        <h4 className="font-serif font-bold text-slate-950 dark:text-white text-sm sm:text-base">{job.role}</h4>
+                        <span className="text-xs font-semibold text-slate-700 dark:text-slate-300">{job.company}</span>
                       </div>
-                      <span className="px-2 py-0.5 rounded text-[10px] font-bold bg-amber-50 text-amber-700 border border-amber-200">
+                      <span className="px-2.5 py-1 rounded-full text-xs font-black bg-amber-100 text-amber-900 border border-amber-300 dark:bg-amber-950/40 dark:text-gold-300 dark:border-gold-500/30 shrink-0">
                         {job.openings} Openings
                       </span>
                     </div>
-                    <div className="flex items-center justify-between text-[10px] font-mono text-slate-500 pt-1">
+                    <div className="flex items-center justify-between text-xs font-mono font-bold text-slate-800 dark:text-slate-200 pt-1 border-t border-slate-200 dark:border-navy-800">
                       <span>Applicants: {job.applicants}</span>
                       <span>Interviewed: {job.interviewed}</span>
-                      <span className="font-bold text-emerald-600">Offered: {job.offered}</span>
+                      <span className="font-black text-emerald-700 dark:text-emerald-400">Offered: {job.offered}</span>
                     </div>
                   </div>
                 ))}

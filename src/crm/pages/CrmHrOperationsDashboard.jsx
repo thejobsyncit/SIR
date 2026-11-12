@@ -849,29 +849,29 @@ const CrmHrOperationsDashboard = ({ initialSection } = {}) => {
       )}
 
       {/* 1. Dashboard Header */}
-      <header className="rounded-2xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 p-5 sm:p-6 shadow-sm">
+      <header className="rounded-2xl bg-white dark:bg-slate-900 border-2 border-slate-200 dark:border-slate-800 p-5 sm:p-6 shadow-sm">
         <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4">
           <div className="space-y-2 min-w-0">
-            <h1 className="text-2xl sm:text-3xl font-bold tracking-tight text-slate-900 dark:text-white">
+            <h1 className="text-2xl sm:text-3xl lg:text-4xl font-black tracking-tight text-slate-950 dark:text-white">
               Daily Operations Dashboard
             </h1>
-            <div className="flex flex-wrap items-center gap-x-3 gap-y-1.5 text-sm">
-              <span className="inline-flex items-center gap-1.5 font-semibold text-slate-800 dark:text-slate-100">
-                <UserCheck className="w-4 h-4 text-amber-600 dark:text-amber-400 shrink-0" />
+            <div className="flex flex-wrap items-center gap-x-3 gap-y-1.5 text-sm sm:text-base">
+              <span className="inline-flex items-center gap-1.5 font-extrabold text-slate-950 dark:text-slate-100">
+                <UserCheck className="w-4.5 h-4.5 text-amber-700 dark:text-amber-400 shrink-0" />
                 <span data-testid="hr-dashboard-employee-name">{employeeInfo.name}</span>
               </span>
-              <span className="text-slate-300 dark:text-slate-700" aria-hidden="true">•</span>
+              <span className="text-slate-400 dark:text-slate-600" aria-hidden="true">•</span>
               <span
-                className="inline-flex items-center gap-1.5 text-slate-600 dark:text-slate-300 font-medium"
+                className="inline-flex items-center gap-1.5 text-slate-800 dark:text-slate-200 font-bold"
                 data-testid="hr-dashboard-employee-designation"
               >
-                <Briefcase className="w-3.5 h-3.5 text-slate-400 shrink-0" />
+                <Briefcase className="w-4 h-4 text-slate-600 dark:text-slate-400 shrink-0" />
                 <span>{employeeInfo.designation}</span>
               </span>
               {employeeInfo.operationTeam && (
                 <>
-                  <span className="text-slate-300 dark:text-slate-700" aria-hidden="true">•</span>
-                  <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-slate-100 text-slate-700 dark:bg-slate-800 dark:text-slate-300">
+                  <span className="text-slate-400 dark:text-slate-600" aria-hidden="true">•</span>
+                  <span className="inline-flex items-center px-3 py-0.5 rounded-full text-xs font-black bg-amber-100 text-amber-900 border border-amber-300 dark:bg-slate-800 dark:text-slate-300 dark:border-slate-700">
                     {employeeInfo.operationTeam}
                   </span>
                 </>
@@ -882,20 +882,20 @@ const CrmHrOperationsDashboard = ({ initialSection } = {}) => {
           <div className="flex flex-wrap items-center gap-3">
             {shiftInfo?.formattedTiming && (
               <div
-                className="flex items-center gap-3 px-4 py-2.5 rounded-xl bg-amber-50/80 dark:bg-amber-500/10 border border-amber-200/80 dark:border-amber-500/30"
+                className="flex items-center gap-3 px-4 py-2.5 rounded-xl bg-amber-50 dark:bg-amber-500/10 border-2 border-amber-300 dark:border-amber-500/30"
                 data-testid="hr-dashboard-shift-timing"
               >
-                <div className="w-8 h-8 rounded-lg bg-amber-500/15 flex items-center justify-center text-amber-600 dark:text-amber-400 shrink-0">
-                  <Clock className="w-4 h-4" />
+                <div className="w-8 h-8 rounded-lg bg-amber-500/20 flex items-center justify-center text-amber-700 dark:text-amber-400 shrink-0 font-bold">
+                  <Clock className="w-4.5 h-4.5" />
                 </div>
                 <div className="leading-tight">
-                  <p className="text-[11px] font-semibold uppercase tracking-wider text-amber-700 dark:text-amber-300">
+                  <p className="text-xs font-black uppercase tracking-wider text-amber-900 dark:text-amber-300">
                     Today’s Shift
                     {shiftInfo.name
                       ? ` • ${shiftInfo.name.replace(/\s*\([^)]*\)\s*$/, '').trim()}`
                       : ''}
                   </p>
-                  <p className="text-sm font-bold text-slate-900 dark:text-white">
+                  <p className="text-sm sm:text-base font-black text-slate-950 dark:text-white">
                     {shiftInfo.formattedTiming}
                   </p>
                 </div>
@@ -906,7 +906,7 @@ const CrmHrOperationsDashboard = ({ initialSection } = {}) => {
               type="button"
               onClick={() => fetchDashboardSummary(true)}
               disabled={refreshing}
-              className="inline-flex items-center gap-2 px-3.5 py-2.5 rounded-xl text-sm font-semibold border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-700 dark:text-slate-200 hover:bg-slate-50 dark:hover:bg-slate-700/70 transition-colors disabled:opacity-60"
+              className="inline-flex items-center gap-2 px-4 py-2.5 rounded-xl text-sm font-extrabold border-2 border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-900 dark:text-slate-100 hover:bg-slate-100 dark:hover:bg-slate-700/70 transition-colors disabled:opacity-60 cursor-pointer shadow-xs"
             >
               <RefreshCw className={`w-4 h-4 ${refreshing ? 'animate-spin' : ''}`} />
               <span>{refreshing ? 'Refreshing...' : 'Refresh'}</span>
@@ -927,25 +927,25 @@ const CrmHrOperationsDashboard = ({ initialSection } = {}) => {
                 type="button"
                 onClick={() => handleSummaryCardClick(card.key)}
                 data-testid={`kpi-card-${card.key}`}
-                className={`group text-left rounded-2xl p-4 bg-white dark:bg-slate-900 border transition-all duration-200 hover:-translate-y-0.5 hover:shadow-md focus:outline-none focus-visible:ring-2 focus-visible:ring-amber-500 ${
+                className={`group text-left rounded-2xl p-4.5 bg-white dark:bg-slate-900 border-2 transition-all duration-200 hover:-translate-y-0.5 hover:shadow-md focus:outline-none focus-visible:ring-2 focus-visible:ring-amber-500 ${
                   isActive
                     ? card.activeRing
-                    : 'border-slate-200 dark:border-slate-800 hover:border-slate-300 dark:hover:border-slate-700'
+                    : 'border-slate-200 dark:border-slate-800 hover:border-slate-400 dark:hover:border-slate-600'
                 }`}
               >
                 <div className="flex items-center justify-between gap-2 mb-3">
-                  <div className={`w-9 h-9 rounded-xl border flex items-center justify-center shrink-0 ${card.iconBg}`}>
-                    <Icon className={`w-4 h-4 ${card.accent}`} />
+                  <div className={`w-9 h-9 rounded-xl border-2 flex items-center justify-center shrink-0 ${card.iconBg}`}>
+                    <Icon className={`w-4.5 h-4.5 ${card.accent}`} />
                   </div>
-                  <ChevronRight className="w-4 h-4 text-slate-400 group-hover:text-slate-700 dark:group-hover:text-slate-200 group-hover:translate-x-0.5 transition-transform" />
+                  <ChevronRight className="w-4 h-4 text-slate-500 group-hover:text-slate-900 dark:group-hover:text-slate-200 group-hover:translate-x-0.5 transition-transform" />
                 </div>
-                <div className="text-2xl font-bold text-slate-900 dark:text-white tabular-nums" data-testid={`kpi-value-${card.key}`}>
+                <div className="text-2xl sm:text-3xl font-black text-slate-950 dark:text-white tabular-nums" data-testid={`kpi-value-${card.key}`}>
                   {card.value}
                 </div>
-                <div className="text-xs font-semibold text-slate-700 dark:text-slate-200 mt-1 leading-snug">
+                <div className="text-xs sm:text-sm font-bold text-slate-900 dark:text-slate-100 mt-1 leading-snug">
                   {card.label}
                 </div>
-                <div className="text-[11px] text-slate-500 dark:text-slate-400 mt-1">
+                <div className="text-xs font-semibold text-slate-600 dark:text-slate-400 mt-1">
                   {card.hint}
                 </div>
               </button>
