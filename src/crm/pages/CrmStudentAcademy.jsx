@@ -912,10 +912,10 @@ export const CrmStudentAcademy = () => {
           <table className="w-full text-left text-xs">
             <thead>
               <tr className="border-b border-slate-200 dark:border-navy-800 bg-slate-50/75 dark:bg-navy-950/50 text-[11px] font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400">
-                <th className="py-3.5 px-4 min-w-[140px] whitespace-nowrap">Reference ID</th>
-                <th className="py-3.5 px-4 min-w-[150px] whitespace-nowrap">Candidate Name</th>
-                <th className="py-3.5 px-4 min-w-[160px] whitespace-nowrap">Phone Number</th>
-                <th className="py-3.5 px-4 min-w-[200px] whitespace-nowrap">Email Address</th>
+                <th className="py-3.5 px-4 min-w-[140px]">Reference Code</th>
+                <th className="py-3.5 px-4 min-w-[150px]">Student Name</th>
+                <th className="py-3.5 px-4 min-w-[200px]">Email Address</th>
+                <th className="py-3.5 px-4 min-w-[160px]">Mobile Number</th>
                 <th 
                   className="py-3.5 px-4 min-w-[120px] cursor-pointer select-none hover:text-slate-700 dark:hover:text-slate-200 transition"
                   onClick={() => setDateSortOrder(prev => prev === 'desc' ? 'asc' : 'desc')}
@@ -983,21 +983,35 @@ export const CrmStudentAcademy = () => {
                         )}
                       </td>
 
-                      {/* 2. Candidate Name */}
+                      {/* Student Name */}
                       <td className="py-3.5 px-4 align-top min-w-[150px]">
                         <div className="font-bold text-slate-900 dark:text-white text-xs whitespace-normal break-words">
-                          {b.name || 'Anonymous Candidate'}
+                          {b.name || 'Anonymous Student'}
                         </div>
                       </td>
 
-                      {/* 3. Phone Number */}
+                      {/* Email Address */}
+                      <td className="py-3.5 px-4 align-top min-w-[200px] max-w-[260px]">
+                        {b.email ? (
+                          <a
+                            href={`mailto:${b.email}`}
+                            className="text-xs font-medium text-slate-700 dark:text-slate-300 hover:text-indigo-600 dark:hover:text-indigo-400 flex items-start gap-1.5 whitespace-normal break-all group/mail"
+                            title={b.email}
+                          >
+                            <Mail className="w-3.5 h-3.5 text-slate-400 group-hover/mail:text-indigo-500 shrink-0 mt-0.5" />
+                            <span className="leading-snug">{b.email}</span>
+                          </a>
+                        ) : (
+                          <span className="text-slate-400 italic text-[11px]">Not provided</span>
+                        )}
+                      </td>
+
+                      {/* Mobile Number */}
                       <td className="py-3.5 px-4 align-top min-w-[160px]">
                         {b.phone ? (
                           <div className="flex items-center gap-2 font-mono text-xs text-slate-800 dark:text-slate-200">
-                            <Phone className="w-3.5 h-3.5 text-emerald-500 shrink-0" />
-                            <a href={`tel:${cleanPhone}`} className="font-semibold whitespace-nowrap hover:text-emerald-500 transition">
-                              {b.phone}
-                            </a>
+                            <Phone className="w-3.5 h-3.5 text-slate-400 shrink-0" />
+                            <span className="font-semibold whitespace-nowrap">{b.phone}</span>
                             {waLink && (
                               <a
                                 href={waLink}
@@ -1010,22 +1024,6 @@ export const CrmStudentAcademy = () => {
                               </a>
                             )}
                           </div>
-                        ) : (
-                          <span className="text-slate-400 italic text-[11px]">Not provided</span>
-                        )}
-                      </td>
-
-                      {/* 4. Email Address */}
-                      <td className="py-3.5 px-4 align-top min-w-[200px] max-w-[260px]">
-                        {b.email ? (
-                          <a
-                            href={`mailto:${b.email}`}
-                            className="text-xs font-medium text-slate-700 dark:text-slate-300 hover:text-indigo-600 dark:hover:text-indigo-400 flex items-start gap-1.5 whitespace-normal break-all group/mail"
-                            title={b.email}
-                          >
-                            <Mail className="w-3.5 h-3.5 text-blue-500 group-hover/mail:text-indigo-500 shrink-0 mt-0.5" />
-                            <span className="leading-snug">{b.email}</span>
-                          </a>
                         ) : (
                           <span className="text-slate-400 italic text-[11px]">Not provided</span>
                         )}

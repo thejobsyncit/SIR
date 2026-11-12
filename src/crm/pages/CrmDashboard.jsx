@@ -58,9 +58,7 @@ export const CrmDashboard = () => {
   if (currentRole === 'HR Operations') {
     return <CrmHrOperationsDashboard />;
   }
-  if (currentRole === 'Interviewer') {
-    return <CrmInterviewerDashboard />;
-  }
+  
 
   // If Super Admin or Admin chose to inspect a role dashboard
   if ((currentRole === 'Super Admin' || currentRole === 'Admin') && adminRoleView !== 'master') {
@@ -86,7 +84,7 @@ export const CrmDashboard = () => {
         {adminRoleView === 'Recruiter' && <CrmRecruiterDashboard />}
         {adminRoleView === 'Placement Coordinator' && <CrmPlacementCoordinatorDashboard />}
         {adminRoleView === 'HR Operations' && <CrmHrOperationsDashboard />}
-        {adminRoleView === 'Interviewer' && <CrmInterviewerDashboard />}
+        
       </div>
     );
   }
@@ -229,8 +227,7 @@ export const CrmDashboard = () => {
               { id: 'HR Lead', label: 'HR Lead Dashboard', color: 'border-blue-200 text-blue-700 bg-blue-50 dark:bg-blue-950/40 dark:text-blue-300' },
               { id: 'Recruiter', label: 'Recruiter Dashboard', color: 'border-purple-200 text-purple-700 bg-purple-50 dark:bg-purple-950/40 dark:text-purple-300' },
               { id: 'Placement Coordinator', label: 'Placement Coordinator', color: 'border-amber-200 text-amber-700 bg-amber-50 dark:bg-amber-950/40 dark:text-amber-300' },
-              { id: 'HR Operations', label: 'HR Operations', color: 'border-emerald-200 text-emerald-700 bg-emerald-50 dark:bg-emerald-950/40 dark:text-emerald-300' },
-              { id: 'Interviewer', label: 'Interviewer Dashboard', color: 'border-cyan-200 text-cyan-700 bg-cyan-50 dark:bg-cyan-950/40 dark:text-cyan-300' }
+              { id: 'HR Operations', label: 'HR Operations', color: 'border-emerald-200 text-emerald-700 bg-emerald-50 dark:bg-emerald-950/40 dark:text-emerald-300' }
             ].map(r => (
               <button
                 key={r.id}

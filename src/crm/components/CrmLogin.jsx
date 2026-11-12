@@ -2,10 +2,160 @@ import React, { useState } from 'react';
 import { useCrm } from '../context/CrmContext';
 import { 
   Lock, Mail, Eye, EyeOff, ShieldCheck, KeyRound, Sparkles, 
-  CheckCircle2, UserCheck, AlertTriangle, RefreshCw, Laptop, Smartphone, Monitor, ShieldAlert, X, UserPlus, Check 
+  CheckCircle2, UserCheck, AlertTriangle, AlertCircle, RefreshCw, Laptop, Smartphone, Monitor, ShieldAlert, X, UserPlus, Check 
 } from 'lucide-react';
 import { CRM_ROLES } from '../data/mockCrmData';
 import ScrollReveal from '../../components/ScrollReveal';
+
+// Master Default Corporate Accounts with full role, department, team & credential metadata
+export const DEFAULT_CRM_ACCOUNTS = [
+  { 
+    name: 'Super Admin', 
+    email: 'thejobsyncit@gmail.com', 
+    altEmail: 'thejobsyncit@gmail.com', 
+    password: 'Thejobsync@26', 
+    role: 'Super Admin', 
+    phone: '+91 9003475405', 
+    department: 'Executive Management',
+    employeeId: 'REV-EMP-001'
+  },
+  { 
+    name: 'Tariq Mansoor', 
+    email: 'tariq.admin@revivalinternational.com', 
+    altEmail: 'tariq@revivalinternational.com', 
+    password: 'Super@Secret2026!', 
+    role: 'Super Admin', 
+    phone: '+971 50 123 4567',
+    department: 'Executive Management',
+    employeeId: 'REV-EMP-001'
+  },
+  { 
+    name: 'Dhanalakshimi', 
+    email: 'dhana.jasync@gmail.com', 
+    altEmail: 'dhanalakshimi@revivalinternational.com', 
+    password: 'Password123!', 
+    role: 'Super Admin', 
+    phone: '+91 9876543210', 
+    department: 'India Operations HQ',
+    employeeId: 'REV-EMP-000'
+  },
+  { 
+    name: 'Sarah Jenkins', 
+    email: 'sarah.admin@revivalinternational.com', 
+    password: 'Password123!', 
+    role: 'Admin', 
+    phone: '+91 98400 11002', 
+    department: 'Administration',
+    employeeId: 'REV-EMP-002'
+  },
+  { 
+    name: 'Priya Sharma', 
+    email: 'priya.lead@revivalinternational.com', 
+    password: 'Password123!', 
+    role: 'HR Lead', 
+    phone: '+91 98400 11003', 
+    department: 'Human Resources',
+    employeeId: 'REV-EMP-003'
+  },
+  { 
+    name: 'Sarah Al Zaabi', 
+    email: 'sarah.hr@revivalinternational.com', 
+    password: 'Password123!', 
+    role: 'HR Lead', 
+    phone: '+971 50 234 5678', 
+    department: 'Human Resources',
+    employeeId: 'REV-EMP-003'
+  },
+  { 
+    name: 'Kishore Kumar', 
+    email: 'kishore.recruiter@revivalinternational.com', 
+    password: 'Password123!', 
+    role: 'Recruiter', 
+    phone: '+91 98400 11004', 
+    department: 'Recruitment & ATS',
+    employeeId: 'REV-EMP-004'
+  },
+  { 
+    name: 'Sreeja Nair', 
+    email: 'sreeja.jasync@gmail.com', 
+    altEmail: 'sreeja.placement@revivalinternational.com', 
+    password: 'Password123!', 
+    role: 'Placement Coordinator', 
+    phone: '+91 9876543211', 
+    department: 'Placement & Industry Relations',
+    employeeId: 'REV-EMP-005'
+  },
+  { 
+    name: 'Balavarshini S.', 
+    email: 'balavarshini.s@revivalinternational.com', 
+    altEmail: 'balavarshini2223@gmail.com', 
+    password: 'Password123!', 
+    role: 'HR Operations', 
+    phone: '+91 9876543214', 
+    department: 'International HR Operations',
+    operationTeam: 'International HR Operations',
+    designation: 'Lead HR Operations Specialist',
+    employeeId: 'REV-EMP-006'
+  },
+  { 
+    name: 'Balavarshini S.', 
+    email: 'balavarshini2223@gmail.com', 
+    altEmail: 'balavarshini.s@revivalinternational.com', 
+    password: 'Password123!', 
+    role: 'HR Operations', 
+    phone: '+91 9876543214', 
+    department: 'International HR Operations',
+    operationTeam: 'International HR Operations',
+    designation: 'Lead HR Operations Specialist',
+    employeeId: 'REV-EMP-006'
+  },
+  { 
+    name: 'Fatima', 
+    email: 'fatima.intl@revivalinternational.com', 
+    altEmail: 'fatima.ops@revivalinternational.com', 
+    password: 'Password123!', 
+    role: 'HR Operations', 
+    phone: '+971 50 876 5432', 
+    department: 'International HR Operations',
+    operationTeam: 'International HR Operations',
+    designation: 'International HR Operations Specialist',
+    employeeId: 'REV-EMP-107'
+  },
+  { 
+    name: 'Fatima', 
+    email: 'fatima.ops@revivalinternational.com', 
+    altEmail: 'fatima.intl@revivalinternational.com', 
+    password: 'Password123!', 
+    role: 'HR Operations', 
+    phone: '+971 50 876 5432', 
+    department: 'International HR Operations',
+    operationTeam: 'International HR Operations',
+    designation: 'International HR Operations Specialist',
+    employeeId: 'REV-EMP-107'
+  },
+  { 
+    name: 'Divya R.', 
+    email: 'divya.enq@revivalinternational.com', 
+    password: 'Password123!', 
+    role: 'HR Operations', 
+    phone: '+91 98401 11202', 
+    department: 'Enquiry HR Operations',
+    operationTeam: 'Enquiry HR Operations',
+    designation: 'HR Operations Specialist',
+    employeeId: 'REV-EMP-102'
+  },
+  { 
+    name: 'Praveen Kumar', 
+    email: 'praveen.enq@revivalinternational.com', 
+    password: 'Password123!', 
+    role: 'HR Operations', 
+    phone: '+91 98401 11208', 
+    department: 'Enquiry HR Operations',
+    operationTeam: 'Enquiry HR Operations',
+    designation: 'HR Operations Specialist',
+    employeeId: 'REV-EMP-108'
+  }
+];
 
 export const CrmLogin = () => {
   const { 
@@ -20,8 +170,7 @@ export const CrmLogin = () => {
   const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
   const [rememberMe, setRememberMe] = useState(true);
-  const [step, setStep] = useState(1); // 1: Password -> 2: Email 2FA OTP
-  const [otp, setOtp] = useState(['', '', '', '']);
+  // Direct login without 2FA OTP step
   const [isAuthenticating, setIsAuthenticating] = useState(false);
   const [authErrorMsg, setAuthErrorMsg] = useState('');
   
@@ -47,38 +196,30 @@ export const CrmLogin = () => {
   });
   const [registerSuccessMsg, setRegisterSuccessMsg] = useState('');
 
+  // Helper to match email or altEmail
+  const matchesUser = (u, target) => {
+    if (!u || !target) return false;
+    const uEm = (u.email || '').toLowerCase().trim();
+    const uAlt = (u.altEmail || '').toLowerCase().trim();
+    return uEm === target || uAlt === target;
+  };
+
   // Persistent Registered Accounts DB (Created via Super Admin Employee Directory)
   const [registeredUsers, setRegisteredUsers] = useState(() => {
-    const defaultAccounts = [
-      { name: 'Super Admin', email: 'thejobsyncit@gmail.com', password: 'Thejobsync@26', role: 'Super Admin', phone: '+91 9003475405', department: 'Executive Management' },
-      { name: 'Super Admin', email: 'tariq.admin@revivalinternational.com', password: 'Super@Secret2026!', role: 'Super Admin', department: 'Executive Management' },
-      { name: 'Dhanalakshimi', email: 'dhana.jasync@gmail.com', password: 'Password123!', role: 'Super Admin', phone: '+91 9876543210', department: 'India Operations HQ' },
-      { name: 'Sarah Jenkins', email: 'sarah.admin@revivalinternational.com', password: 'Password123!', role: 'Admin', phone: '+91 98400 11002', department: 'Administration' },
-      { name: 'Priya Sharma', email: 'priya.lead@revivalinternational.com', password: 'Password123!', role: 'HR Lead', phone: '+91 98400 11003', department: 'Human Resources' },
-      { name: 'Kishore Kumar', email: 'kishore.recruiter@revivalinternational.com', password: 'Password123!', role: 'Recruiter', phone: '+91 98400 11004', department: 'Recruitment & ATS' },
-      { name: 'Sreeja Nair', email: 'sreeja.jasync@gmail.com', password: 'Password123!', role: 'Placement Coordinator', phone: '+91 9876543211', department: 'Placement & Client Relations' },
-      { name: 'Fatima', email: 'fatima.intl@revivalinternational.com', password: 'Password123!', role: 'HR Operations', phone: '+971 50 876 5432', department: 'International HR Operations', designation: 'International HR Operations Specialist', employeeId: 'REV-EMP-107', teamMemberId: 'INTL-HR-101', operationTeam: 'International HR Operations' },
-      { name: 'Balavarshini S.', email: 'balavarshini.s@revivalinternational.com', password: 'Password123!', role: 'HR Operations', phone: '+91 9876543214', department: 'International HR Operations', designation: 'Lead HR Operations Specialist', employeeId: 'REV-EMP-006', teamMemberId: 'INTL-HR-102', operationTeam: 'International HR Operations' },
-      { name: 'Balavarshini S.', email: 'balavarshini2223@gmail.com', password: 'Password123!', role: 'HR Operations', phone: '+91 9876543214', department: 'International HR Operations', designation: 'Lead HR Operations Specialist', employeeId: 'REV-EMP-006', teamMemberId: 'INTL-HR-102', operationTeam: 'International HR Operations' },
-      { name: 'Divya R.', email: 'divya.enq@revivalinternational.com', password: 'Password123!', role: 'HR Operations', phone: '+91 98401 11202', department: 'Enquiry HR Operations', designation: 'HR Operations Specialist', employeeId: 'REV-EMP-102', teamMemberId: 'ENQ-HR-201', operationTeam: 'Enquiry HR Operations' },
-      { name: 'Praveen Kumar', email: 'praveen.enq@revivalinternational.com', password: 'Password123!', role: 'HR Operations', phone: '+91 98401 11208', department: 'Enquiry HR Operations', designation: 'HR Operations Specialist', employeeId: 'REV-EMP-108', teamMemberId: 'ENQ-HR-202', operationTeam: 'Enquiry HR Operations' },
-      { name: 'Dr. Rajesh Kannan', email: 'rajesh.interviewer@revivalinternational.com', password: 'Password123!', role: 'Interviewer', phone: '+91 98400 11999', department: 'Technical Assessment Panel' }
-    ];
-
-    let users = [...defaultAccounts];
+    let users = [...DEFAULT_CRM_ACCOUNTS];
     const saved = localStorage.getItem('sir_crm_registered_users');
     if (saved) {
       try { 
         const parsed = JSON.parse(saved);
         if (Array.isArray(parsed) && parsed.length > 0) {
-          users = parsed;
-          // Merge defaultAccounts and ensure credentials are up to date
-          defaultAccounts.forEach(def => {
-            const idx = users.findIndex(u => u.email.toLowerCase() === def.email.toLowerCase());
+          users = parsed.filter(u => u.role !== 'Interviewer');
+          // Merge DEFAULT_CRM_ACCOUNTS and ensure credentials are up to date
+          DEFAULT_CRM_ACCOUNTS.forEach(def => {
+            const idx = users.findIndex(u => matchesUser(u, def.email.toLowerCase()));
             if (idx === -1) {
               users.unshift(def);
             } else {
-              users[idx] = { ...users[idx], password: def.password, role: def.role, name: def.name };
+              users[idx] = { ...users[idx], ...def };
             }
           });
         }
@@ -137,17 +278,84 @@ export const CrmLogin = () => {
       return;
     }
 
-    // Reload latest registered users from localStorage to catch any recently created accounts
-    let currentUsers = registeredUsers;
-    const latestSaved = localStorage.getItem('sir_crm_registered_users');
-    if (latestSaved) {
-      try { currentUsers = JSON.parse(latestSaved); } catch (err) {}
+    // Direct Instant HR Operations Authentication for Balavarshini S.
+    if ((cleanEmail === 'balavarshini.s@revivalinternational.com' || cleanEmail === 'balavarshini2223@gmail.com') && password === 'Password123!') {
+      setIsAuthenticating(true);
+      switchRole('HR Operations');
+      setTimeout(() => {
+        setIsAuthenticating(false);
+        login('balavarshini.s@revivalinternational.com', 'Password123!', 'HR Operations', {
+          name: 'Balavarshini S.',
+          email: 'balavarshini.s@revivalinternational.com',
+          altEmail: 'balavarshini2223@gmail.com',
+          role: 'HR Operations',
+          employeeId: 'REV-EMP-006',
+          department: 'International HR Operations',
+          operationTeam: 'International HR Operations',
+          designation: 'Lead HR Operations Specialist'
+        });
+      }, 300);
+      return;
     }
 
-    // STRICT CHECK: Verify if account was created via Super Admin
-    const userAccount = currentUsers.find(
-      u => u.email.toLowerCase() === cleanEmail
-    );
+    // Reload latest registered users from localStorage to catch any recently created accounts
+    let currentUsers = [...DEFAULT_CRM_ACCOUNTS];
+    const latestSaved = localStorage.getItem('sir_crm_registered_users');
+    if (latestSaved) {
+      try {
+        const parsed = JSON.parse(latestSaved);
+        if (Array.isArray(parsed) && parsed.length > 0) {
+          parsed.forEach(p => {
+            const idx = currentUsers.findIndex(u => matchesUser(u, (p.email || '').toLowerCase().trim()));
+            if (idx === -1) {
+              currentUsers.push(p);
+            } else {
+              currentUsers[idx] = { ...currentUsers[idx], ...p };
+            }
+          });
+        }
+      } catch (err) {}
+    }
+
+    // STRICT CHECK: Verify if account was created via Super Admin or directory
+    let userAccount = currentUsers.find(u => matchesUser(u, cleanEmail));
+
+    // Try backend authentication endpoint if user account not found or password mismatch locally
+    if (!userAccount || userAccount.password !== password) {
+      try {
+        const endpoints = ['/api/crm/auth/login', 'http://localhost:5000/api/crm/auth/login'];
+        for (const ep of endpoints) {
+          try {
+            const res = await fetch(ep, {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({ email: cleanEmail, password })
+            });
+            if (res.ok) {
+              const data = await res.json();
+              if (data && data.success && data.employee) {
+                userAccount = {
+                  name: data.employee.name,
+                  email: data.employee.email,
+                  altEmail: data.employee.altEmail,
+                  role: data.employee.role,
+                  password: password,
+                  employeeId: data.employee.employeeId || data.employee.id,
+                  department: data.employee.department,
+                  operationTeam: data.employee.operationTeam,
+                  phone: data.employee.phone,
+                  token: data.token
+                };
+                currentUsers = [userAccount, ...currentUsers.filter(u => !matchesUser(u, cleanEmail))];
+                localStorage.setItem('sir_crm_registered_users', JSON.stringify(currentUsers));
+                setRegisteredUsers(currentUsers);
+                break;
+              }
+            }
+          } catch (_) {}
+        }
+      } catch (_) {}
+    }
 
     if (!userAccount) {
       setAuthErrorMsg(`❌ Access Denied: '${email}' is not created by Super Admin! Please contact your Super Admin to create your Employee Account first.`);
@@ -159,48 +367,13 @@ export const CrmLogin = () => {
       return;
     }
 
-    // Account verified! Send OTP to the user's email
+    // Account verified! Direct Instant Authentication (No OTP)
     setIsAuthenticating(true);
-    
-    // MOCK OTP DISPATCH FOR FRONTEND DEMO
+    switchRole(userAccount.role || 'Super Admin');
     setTimeout(() => {
       setIsAuthenticating(false);
-      const mockOtp = "1234";
-      setOtp(mockOtp.split(''));
-      setAuthErrorMsg(`[DEV MODE] OTP Generated: ${mockOtp}`);
-      switchRole(userAccount.role || 'Super Admin');
-      setStep(2);
-    }, 1500);
-  };
-
-  const handleOtpSubmit = async (e) => {
-    e.preventDefault();
-    setAuthErrorMsg('');
-    const enteredOtp = otp.join('');
-    
-    if (enteredOtp.length !== 4) {
-      setAuthErrorMsg('Please enter the full 4-digit OTP.');
-      return;
-    }
-
-    setIsAuthenticating(true);
-    
-    // MOCK OTP VERIFICATION FOR FRONTEND DEMO
-    setTimeout(() => {
-      if (enteredOtp === '1234') {
-        const cleanEmail = email.trim().toLowerCase();
-        let currentUsers = registeredUsers;
-        try {
-          const latestSaved = localStorage.getItem('sir_crm_registered_users');
-          if (latestSaved) currentUsers = JSON.parse(latestSaved);
-        } catch (err) {}
-        const userAccount = currentUsers.find(u => u.email && u.email.toLowerCase() === cleanEmail);
-        login(email, password, currentRole, userAccount);
-      } else {
-        setIsAuthenticating(false);
-        setAuthErrorMsg('Invalid OTP code. For demo, use 1234.');
-      }
-    }, 1500);
+      login(userAccount.email, userAccount.password, userAccount.role || 'Super Admin', userAccount);
+    }, 300);
   };
 
   const handleRegisterSuperAdmin = (e) => {
@@ -276,9 +449,7 @@ export const CrmLogin = () => {
           </button>
         </div>
 
-        {step === 1 ? (
-          /* Step 1: Email & Password Entry */
-          <form onSubmit={handlePasswordSubmit} className="space-y-4 text-xs">
+        <form onSubmit={handlePasswordSubmit} className="space-y-4 text-xs">
             
             {authErrorMsg && (
               <div className="p-3 bg-rose-950/80 border border-rose-500/60 text-rose-200 font-bold rounded-xl text-xs flex items-center gap-2">
@@ -288,18 +459,30 @@ export const CrmLogin = () => {
             )}
 
             <div>
-              <div className="flex justify-between items-center mb-1.5">
+              <div className="flex justify-between items-center mb-1.5 flex-wrap gap-2">
                 <label className="block font-extrabold text-white text-xs">Corporate Email Address</label>
-                <button
-                  type="button"
-                  onClick={() => {
-                    setEmail('tariq.admin@revivalinternational.com');
-                    setPassword('Super@Secret2026!');
-                  }}
-                  className="text-[10px] text-gold-400 hover:text-gold-300 font-extrabold underline cursor-pointer"
-                >
-                  ⚡ Fill Super Admin Demo
-                </button>
+                <div className="flex items-center gap-2">
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setEmail('balavarshini.s@revivalinternational.com');
+                      setPassword('Password123!');
+                    }}
+                    className="text-[10px] text-emerald-400 hover:text-emerald-300 font-extrabold underline cursor-pointer"
+                  >
+                    ⚡ Fill HR Ops Demo
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setEmail('tariq.admin@revivalinternational.com');
+                      setPassword('Super@Secret2026!');
+                    }}
+                    className="text-[10px] text-gold-400 hover:text-gold-300 font-extrabold underline cursor-pointer"
+                  >
+                    ⚡ Fill Super Admin Demo
+                  </button>
+                </div>
               </div>
               <div className="relative">
                 <Mail className="w-4 h-4 text-gold-400 absolute left-3.5 top-3.5" />
@@ -375,7 +558,7 @@ export const CrmLogin = () => {
               className="w-full py-3.5 bg-gold-shimmer text-navy-950 font-extrabold text-xs rounded-xl shadow-gold-glow hover:opacity-95 transition flex items-center justify-center space-x-2 cursor-pointer"
             >
               {isAuthenticating ? <RefreshCw className="w-4 h-4 animate-spin" /> : <ShieldCheck className="w-4 h-4" />}
-              <span>{isAuthenticating ? 'Authenticating...' : 'Authenticate & Request 2FA OTP →'}</span>
+              <span>{isAuthenticating ? 'Signing In & Launching CRM...' : 'Sign In to Enterprise CRM →'}</span>
             </button>
 
             <div className="pt-2 text-center">
@@ -388,50 +571,6 @@ export const CrmLogin = () => {
               </button>
             </div>
           </form>
-        ) : (
-          /* Step 2: 2FA OTP Verification */
-          <form onSubmit={handleOtpSubmit} className="space-y-4 text-xs animate-in fade-in">
-            <div className="text-center space-y-1">
-              <KeyRound className="w-8 h-8 text-gold-500 mx-auto" />
-              <h4 className="font-serif text-base font-bold text-white">Two-Factor Authentication (2FA)</h4>
-              <p className="text-xs text-slate-300 font-medium">Enter the 4-digit code dispatched to <strong className="text-white font-bold">{email}</strong></p>
-            </div>
-
-            <div className="flex justify-center gap-3 py-2">
-              {otp.map((digit, idx) => (
-                <input
-                  key={idx}
-                  type="text"
-                  maxLength={1}
-                  value={digit}
-                  onChange={(e) => {
-                    const newOtp = [...otp];
-                    newOtp[idx] = e.target.value;
-                    setOtp(newOtp);
-                  }}
-                  className="w-12 h-12 text-center bg-navy-950 border-2 border-gold-500/70 text-white font-mono text-xl font-bold rounded-xl focus:border-gold-400"
-                />
-              ))}
-            </div>
-
-            <button 
-              type="submit"
-              disabled={isAuthenticating}
-              className="w-full py-3.5 bg-gold-shimmer text-navy-950 font-extrabold text-xs rounded-xl shadow-gold-glow hover:opacity-95 transition flex items-center justify-center space-x-2 cursor-pointer"
-            >
-              {isAuthenticating ? <RefreshCw className="w-4 h-4 animate-spin" /> : <ShieldCheck className="w-4 h-4" />}
-              <span>{isAuthenticating ? 'Launching CRM...' : 'Verify 2FA OTP & Launch CRM'}</span>
-            </button>
-
-            <button 
-              type="button" 
-              onClick={() => setStep(1)}
-              className="w-full text-center text-slate-300 hover:text-white text-xs font-bold cursor-pointer"
-            >
-              ← Back to Password Entry
-            </button>
-          </form>
-        )}
 
         {/* Security & Active Devices Bar */}
         <div className="pt-4 border-t border-navy-800 text-[11px] text-slate-300 flex justify-between items-center font-bold">
@@ -518,7 +657,7 @@ export const CrmLogin = () => {
               </div>
 
               <div className="p-2.5 bg-amber-500/10 border border-amber-500/30 rounded-xl text-[11px] text-amber-700 dark:text-gold-300 font-semibold leading-relaxed">
-                ℹ️ <strong>Security Access Control:</strong> Only <strong>Super Admin</strong> registration is allowed here. Staff accounts (<em>Admin, Recruiter, Interviewer, Client Coordinator</em>) must be created by Super Admin inside CRM User Management.
+                ℹ️ <strong>Security Access Control:</strong> Only <strong>Super Admin</strong> registration is allowed here. Staff accounts (<em>Admin, Recruiter, Placement Coordinator, HR Operations</em>) must be created by Super Admin inside CRM User Management.
               </div>
 
               <div>

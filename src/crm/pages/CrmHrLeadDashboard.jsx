@@ -12,16 +12,159 @@ import jsPDF from 'jspdf';
 import ScrollReveal from '../../components/ScrollReveal';
 import CrmHrTaskAssignment from '../components/CrmHrTaskAssignment';
 
+// Initial Workforce Directory Constants
+export const INITIAL_HR_EMPLOYEES = [
+  {
+    id: 'REV-EMP-101',
+    name: 'Balavarshini S.',
+    role: 'Lead HR Operations Specialist',
+    department: 'HR Operations',
+    email: 'balavarshini.s@revivalcrm.com',
+    phone: '+91 98401 11201',
+    joiningDate: '2023-04-15',
+    status: 'Active',
+    employmentType: 'Full-Time Permanent',
+    location: 'Chennai HQ',
+    avatarLetter: 'B',
+    salary: '₹68,000 / mo',
+    ctc: '₹8.16 LPA',
+    leaveBalance: { casual: 6, sick: 7, paid: 12 },
+    attendanceToday: { status: 'Present', checkIn: '08:52 AM', checkOut: '06:05 PM', late: false, hours: '9.2 hrs' }
+  },
+  {
+    id: 'REV-EMP-102',
+    name: 'Diviya R.',
+    role: 'Senior Talent Acquisition Specialist',
+    department: 'Talent Acquisition',
+    email: 'diviya.r@revivalcrm.com',
+    phone: '+91 98401 11202',
+    joiningDate: '2023-08-01',
+    status: 'Active',
+    employmentType: 'Full-Time Permanent',
+    location: 'Chennai HQ',
+    avatarLetter: 'D',
+    salary: '₹62,000 / mo',
+    ctc: '₹7.44 LPA',
+    leaveBalance: { casual: 5, sick: 8, paid: 14 },
+    attendanceToday: { status: 'Present', checkIn: '09:08 AM', checkOut: '06:15 PM', late: true, hours: '9.1 hrs' }
+  },
+  {
+    id: 'REV-EMP-103',
+    name: 'Chentamilselvi M.',
+    role: 'HR Compliance & Verification Officer',
+    department: 'HR Operations',
+    email: 'chentamil.m@revivalcrm.com',
+    phone: '+91 98401 11203',
+    joiningDate: '2024-01-10',
+    status: 'Active',
+    employmentType: 'Full-Time Permanent',
+    location: 'Chennai HQ',
+    avatarLetter: 'C',
+    salary: '₹55,000 / mo',
+    ctc: '₹6.60 LPA',
+    leaveBalance: { casual: 7, sick: 6, paid: 10 },
+    attendanceToday: { status: 'Present', checkIn: '08:58 AM', checkOut: '06:00 PM', late: false, hours: '9.0 hrs' }
+  },
+  {
+    id: 'REV-EMP-104',
+    name: 'Kishore Kumar',
+    role: 'Senior Recruitment Partner (GCC & Tech)',
+    department: 'Talent Acquisition',
+    email: 'kishore.k@revivalcrm.com',
+    phone: '+91 98401 11204',
+    joiningDate: '2022-11-15',
+    status: 'Active',
+    employmentType: 'Full-Time Permanent',
+    location: 'Bangalore Office',
+    avatarLetter: 'K',
+    salary: '₹85,000 / mo',
+    ctc: '₹10.20 LPA',
+    leaveBalance: { casual: 8, sick: 9, paid: 15 },
+    attendanceToday: { status: 'Present', checkIn: '08:45 AM', checkOut: '06:20 PM', late: false, hours: '9.5 hrs' }
+  },
+  {
+    id: 'REV-EMP-105',
+    name: 'Sreeja Nair',
+    role: 'Campus Placement & University Relations Head',
+    department: 'Placement Cell',
+    email: 'sreeja.n@revivalcrm.com',
+    phone: '+91 98401 11205',
+    joiningDate: '2023-02-01',
+    status: 'Active',
+    employmentType: 'Full-Time Permanent',
+    location: 'Chennai HQ',
+    avatarLetter: 'S',
+    salary: '₹75,000 / mo',
+    ctc: '₹9.00 LPA',
+    leaveBalance: { casual: 4, sick: 5, paid: 11 },
+    attendanceToday: { status: 'Present', checkIn: '09:14 AM', checkOut: '06:10 PM', late: true, hours: '8.9 hrs' }
+  },
+  {
+    id: 'REV-EMP-106',
+    name: 'Arjun Venkatesh',
+    role: 'Full Stack Cloud Engineer',
+    department: 'Engineering',
+    email: 'arjun.v@revivalcrm.com',
+    phone: '+91 98401 11206',
+    joiningDate: '2024-03-01',
+    status: 'Active',
+    employmentType: 'Full-Time Permanent',
+    location: 'Chennai HQ',
+    avatarLetter: 'A',
+    salary: '₹95,000 / mo',
+    ctc: '₹11.40 LPA',
+    leaveBalance: { casual: 6, sick: 6, paid: 9 },
+    attendanceToday: { status: 'On Leave', checkIn: '-', checkOut: '-', late: false, hours: '0 hrs' }
+  },
+  {
+    id: 'REV-EMP-107',
+    name: 'Meenakshi Sundaram',
+    role: 'Senior International Admissions Consultant',
+    department: 'Client Advisory',
+    email: 'meenakshi.s@revivalcrm.com',
+    phone: '+91 98401 11207',
+    joiningDate: '2024-06-15',
+    status: 'Probation',
+    employmentType: 'Probationary (6 Mos)',
+    location: 'Chennai HQ',
+    avatarLetter: 'M',
+    salary: '₹58,000 / mo',
+    ctc: '₹6.96 LPA',
+    leaveBalance: { casual: 4, sick: 4, paid: 6 },
+    attendanceToday: { status: 'Present', checkIn: '08:50 AM', checkOut: '06:05 PM', late: false, hours: '9.2 hrs' }
+  },
+  {
+    id: 'REV-EMP-108',
+    name: 'Dr. Vigneshwaran K.',
+    role: 'Executive Career Advisor & Principal Mentor',
+    department: 'Client Advisory',
+    email: 'vignesh.k@revivalcrm.com',
+    phone: '+91 98401 11208',
+    joiningDate: '2022-05-10',
+    status: 'Active',
+    employmentType: 'Full-Time Permanent',
+    location: 'Chennai HQ',
+    avatarLetter: 'V',
+    salary: '₹1,10,000 / mo',
+    ctc: '₹13.20 LPA',
+    leaveBalance: { casual: 9, sick: 10, paid: 16 },
+    attendanceToday: { status: 'Absent', checkIn: '-', checkOut: '-', late: false, hours: '0 hrs' }
+  }
+];
+
+export const INITIAL_PERFORMANCE_REVIEWS = [
+  { id: 'REV-P-1', employee: 'Balavarshini S.', rating: 4.8, targetScore: '114% Achieved', tasksDone: '38/40', feedback: 'Exceptional ownership of student counseling dossiers and verification compliance.', reviewer: 'Priya Lead' },
+  { id: 'REV-P-2', employee: 'Diviya R.', rating: 4.7, targetScore: '108% Achieved', tasksDone: '34/35', feedback: 'High candidate submission velocity for GCC civil engineering mandates.', reviewer: 'Priya Lead' },
+  { id: 'REV-P-3', employee: 'Kishore Kumar', rating: 4.9, targetScore: '122% Achieved', tasksDone: '46/48', feedback: 'Closed 6 high-value international cloud and healthcare requisitions ahead of SLA.', reviewer: 'Priya Lead' },
+  { id: 'REV-P-4', employee: 'Chentamilselvi M.', rating: 4.5, targetScore: '100% Achieved', tasksDone: '28/30', feedback: 'Clean background check records with zero documentation audit defects.', reviewer: 'Priya Lead' }
+];
+
 export const CrmHrLeadDashboard = ({ initialSection }) => {
   const { candidates = [], setActiveModule, currentRole, crmToken } = useCrm();
-
-  // Role check: Hide top HR module horizontal navigation bar for HR Lead, Admin, and Super Admin
-  const hideTopHrNavBar = ['HR Lead', 'Admin', 'Super Admin'].includes(currentRole);
 
   // Helper to map route ID (e.g. 'hr-attendance') to internal tab id
   const getTabFromSection = (sec) => {
     switch (sec) {
-      case 'tasks':
       case 'hr-tasks': return 'tasks';
       case 'hr-attendance': return 'attendance';
       case 'hr-leave': return 'leave';
@@ -625,148 +768,24 @@ export const CrmHrLeadDashboard = ({ initialSection }) => {
     }
   };
 
-  // 1. EMPLOYEES DATA (Feature 1, 4)
-  const [employees, setEmployees] = useState([
-    {
-      id: 'REV-EMP-101',
-      name: 'Balavarshini S.',
-      role: 'Lead HR Operations Specialist',
-      department: 'HR Operations',
-      email: 'balavarshini.s@revivalcrm.com',
-      phone: '+91 98401 11201',
-      joiningDate: '2023-04-15',
-      status: 'Active',
-      employmentType: 'Full-Time Permanent',
-      location: 'Chennai HQ',
-      avatarLetter: 'B',
-      salary: '₹68,000 / mo',
-      ctc: '₹8.16 LPA',
-      leaveBalance: { casual: 6, sick: 7, paid: 12 },
-      attendanceToday: { status: 'Present', checkIn: '08:52 AM', checkOut: '06:05 PM', late: false, hours: '9.2 hrs' }
-    },
-    {
-      id: 'REV-EMP-102',
-      name: 'Diviya R.',
-      role: 'Senior Talent Acquisition Specialist',
-      department: 'Talent Acquisition',
-      email: 'diviya.r@revivalcrm.com',
-      phone: '+91 98401 11202',
-      joiningDate: '2023-08-01',
-      status: 'Active',
-      employmentType: 'Full-Time Permanent',
-      location: 'Chennai HQ',
-      avatarLetter: 'D',
-      salary: '₹62,000 / mo',
-      ctc: '₹7.44 LPA',
-      leaveBalance: { casual: 5, sick: 8, paid: 14 },
-      attendanceToday: { status: 'Present', checkIn: '09:08 AM', checkOut: '06:15 PM', late: true, hours: '9.1 hrs' }
-    },
-    {
-      id: 'REV-EMP-103',
-      name: 'Chentamilselvi M.',
-      role: 'HR Compliance & Verification Officer',
-      department: 'HR Operations',
-      email: 'chentamil.m@revivalcrm.com',
-      phone: '+91 98401 11203',
-      joiningDate: '2024-01-10',
-      status: 'Active',
-      employmentType: 'Full-Time Permanent',
-      location: 'Chennai HQ',
-      avatarLetter: 'C',
-      salary: '₹55,000 / mo',
-      ctc: '₹6.60 LPA',
-      leaveBalance: { casual: 7, sick: 6, paid: 10 },
-      attendanceToday: { status: 'Present', checkIn: '08:58 AM', checkOut: '06:00 PM', late: false, hours: '9.0 hrs' }
-    },
-    {
-      id: 'REV-EMP-104',
-      name: 'Kishore Kumar',
-      role: 'Senior Recruitment Partner (GCC & Tech)',
-      department: 'Talent Acquisition',
-      email: 'kishore.k@revivalcrm.com',
-      phone: '+91 98401 11204',
-      joiningDate: '2022-11-15',
-      status: 'Active',
-      employmentType: 'Full-Time Permanent',
-      location: 'Bangalore Office',
-      avatarLetter: 'K',
-      salary: '₹85,000 / mo',
-      ctc: '₹10.20 LPA',
-      leaveBalance: { casual: 8, sick: 9, paid: 15 },
-      attendanceToday: { status: 'Present', checkIn: '08:45 AM', checkOut: '06:20 PM', late: false, hours: '9.5 hrs' }
-    },
-    {
-      id: 'REV-EMP-105',
-      name: 'Sreeja Nair',
-      role: 'Campus Placement & University Relations Head',
-      department: 'Placement Cell',
-      email: 'sreeja.n@revivalcrm.com',
-      phone: '+91 98401 11205',
-      joiningDate: '2023-02-01',
-      status: 'Active',
-      employmentType: 'Full-Time Permanent',
-      location: 'Chennai HQ',
-      avatarLetter: 'S',
-      salary: '₹75,000 / mo',
-      ctc: '₹9.00 LPA',
-      leaveBalance: { casual: 4, sick: 5, paid: 11 },
-      attendanceToday: { status: 'Present', checkIn: '09:14 AM', checkOut: '06:10 PM', late: true, hours: '8.9 hrs' }
-    },
-    {
-      id: 'REV-EMP-106',
-      name: 'Arjun Venkatesh',
-      role: 'Full Stack Cloud Engineer',
-      department: 'Engineering',
-      email: 'arjun.v@revivalcrm.com',
-      phone: '+91 98401 11206',
-      joiningDate: '2024-03-01',
-      status: 'Active',
-      employmentType: 'Full-Time Permanent',
-      location: 'Chennai HQ',
-      avatarLetter: 'A',
-      salary: '₹95,000 / mo',
-      ctc: '₹11.40 LPA',
-      leaveBalance: { casual: 6, sick: 6, paid: 9 },
-      attendanceToday: { status: 'On Leave', checkIn: '-', checkOut: '-', late: false, hours: '0 hrs' }
-    },
-    {
-      id: 'REV-EMP-107',
-      name: 'Meenakshi Sundaram',
-      role: 'Senior International Admissions Consultant',
-      department: 'Client Advisory',
-      email: 'meenakshi.s@revivalcrm.com',
-      phone: '+91 98401 11207',
-      joiningDate: '2024-06-15',
-      status: 'Probation',
-      employmentType: 'Probationary (6 Mos)',
-      location: 'Chennai HQ',
-      avatarLetter: 'M',
-      salary: '₹58,000 / mo',
-      ctc: '₹6.96 LPA',
-      leaveBalance: { casual: 4, sick: 4, paid: 6 },
-      attendanceToday: { status: 'Present', checkIn: '08:50 AM', checkOut: '06:05 PM', late: false, hours: '9.2 hrs' }
-    },
-    {
-      id: 'REV-EMP-108',
-      name: 'Dr. Vigneshwaran K.',
-      role: 'Executive Career Advisor & Principal Mentor',
-      department: 'Client Advisory',
-      email: 'vignesh.k@revivalcrm.com',
-      phone: '+91 98401 11208',
-      joiningDate: '2022-05-10',
-      status: 'Active',
-      employmentType: 'Full-Time Permanent',
-      location: 'Chennai HQ',
-      avatarLetter: 'V',
-      salary: '₹1,10,000 / mo',
-      ctc: '₹13.20 LPA',
-      leaveBalance: { casual: 9, sick: 10, paid: 16 },
-      attendanceToday: { status: 'Absent', checkIn: '-', checkOut: '-', late: false, hours: '0 hrs' }
-    }
-  ]);
+  // 1. EMPLOYEES DATA (Feature 1, 4) - With LocalStorage Persistence
+  const STORAGE_KEY_WORKFORCE = 'sir_crm_workforce_directory_v2';
+  const [employees, setEmployees] = useState(() => {
+    try {
+      const saved = localStorage.getItem(STORAGE_KEY_WORKFORCE);
+      if (saved) {
+        const parsed = JSON.parse(saved);
+        if (Array.isArray(parsed) && parsed.length > 0) return parsed;
+      }
+    } catch (e) {}
+    return INITIAL_HR_EMPLOYEES;
+  });
 
-  // Modal for New Employee
+  // Modal for New Employee with Validation State
   const [isAddEmployeeOpen, setIsAddEmployeeOpen] = useState(false);
+  const [addEmpErrors, setAddEmpErrors] = useState({});
+  const [selectedProfileEmployee, setSelectedProfileEmployee] = useState(null);
+
   const [newEmp, setNewEmp] = useState({
     name: '',
     role: '',
@@ -780,27 +799,83 @@ export const CrmHrLeadDashboard = ({ initialSection }) => {
 
   const handleAddEmployeeSubmit = (e) => {
     e.preventDefault();
-    if (!newEmp.name || !newEmp.email) return;
+    const errors = {};
+
+    // 1. Full Name Validation: letters, spaces, dots, hyphens only; min 3 chars
+    const nameTrim = (newEmp.name || '').trim();
+    if (!nameTrim || !/^[A-Za-z\s.'-]{3,60}$/.test(nameTrim)) {
+      errors.name = 'Please enter a valid full name (letters only, at least 3 characters).';
+    }
+
+    // 2. Email ID Validation: proper corporate email format
+    const emailTrim = (newEmp.email || '').trim().toLowerCase();
+    if (!emailTrim || !/^[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Za-z]{2,}$/.test(emailTrim)) {
+      errors.email = 'Please enter a valid corporate email address (e.g. employee@company.com).';
+    }
+
+    // 3. Contact Phone Number Validation: 10 to 15 digits
+    const digits = (newEmp.phone || '').replace(/[^0-9]/g, '');
+    if (!digits || digits.length < 10 || digits.length > 15) {
+      errors.phone = 'Please enter a valid contact phone number (10 to 15 digits).';
+    }
+
+    // 4. Monthly Salary Validation: positive number
+    const numSalary = Number(String(newEmp.salary || '').replace(/[^0-9.]/g, ''));
+    if (!numSalary || isNaN(numSalary) || numSalary <= 0) {
+      errors.salary = 'Please enter a valid positive monthly salary (e.g. 55000 or ₹55,000).';
+    }
+
+    if (Object.keys(errors).length > 0) {
+      setAddEmpErrors(errors);
+      return;
+    }
+
+    const formattedSalary = '₹' + numSalary.toLocaleString('en-IN') + ' / mo';
+    const annualCTCVal = (numSalary * 12) / 100000;
+    const formattedCtc = '₹' + annualCTCVal.toFixed(2) + ' LPA';
+
     const item = {
       id: `REV-EMP-${Math.floor(109 + Math.random() * 900)}`,
-      name: newEmp.name,
-      role: newEmp.role || 'HR Associate',
+      name: nameTrim,
+      role: (newEmp.role || '').trim() || 'HR Associate',
       department: newEmp.department,
-      email: newEmp.email,
-      phone: newEmp.phone || '+91 98401 00000',
+      email: emailTrim,
+      phone: newEmp.phone.trim(),
       joiningDate: new Date().toISOString().split('T')[0],
       status: 'Active',
       employmentType: newEmp.employmentType,
       location: 'Chennai HQ',
-      avatarLetter: newEmp.name.charAt(0).toUpperCase(),
-      salary: newEmp.salary,
-      ctc: newEmp.ctc,
+      avatarLetter: nameTrim.charAt(0).toUpperCase(),
+      salary: formattedSalary,
+      ctc: formattedCtc,
       leaveBalance: { casual: 8, sick: 8, paid: 12 },
       attendanceToday: { status: 'Present', checkIn: '09:00 AM', checkOut: 'In Office', late: false, hours: 'Active' }
     };
-    setEmployees([item, ...employees]);
+
+    const updated = [item, ...employees];
+    setEmployees(updated);
+    try {
+      localStorage.setItem(STORAGE_KEY_WORKFORCE, JSON.stringify(updated));
+
+      // Also sync to registered users
+      const regSaved = localStorage.getItem('sir_crm_registered_users');
+      let registered = regSaved ? JSON.parse(regSaved) : [];
+      if (!registered.some(u => u.email.toLowerCase() === item.email.toLowerCase())) {
+        registered.push({
+          name: item.name,
+          email: item.email,
+          role: item.role.includes('Super') ? 'Super Admin' : (item.role.includes('Admin') ? 'Admin' : 'HR Operations'),
+          password: 'Password123!',
+          phone: item.phone,
+          department: item.department
+        });
+        localStorage.setItem('sir_crm_registered_users', JSON.stringify(registered));
+      }
+    } catch (err) {}
+
     setIsAddEmployeeOpen(false);
     setNewEmp({ name: '', role: '', department: 'HR Operations', email: '', phone: '', salary: '₹55,000 / mo', ctc: '₹6.60 LPA', employmentType: 'Full-Time Permanent' });
+    setAddEmpErrors({});
     showToast(`✓ Employee ${item.name} (${item.id}) added to workforce directory.`);
   };
 
@@ -855,8 +930,9 @@ export const CrmHrLeadDashboard = ({ initialSection }) => {
     showToast(`✓ Leave request ${leaveId} has been marked as ${decision.toUpperCase()}.`);
   };
 
-  // 3. ANNOUNCEMENTS STATE (Feature 8)
-  const [announcements, setAnnouncements] = useState([
+  // 3. ANNOUNCEMENTS STATE (Feature 8) - With LocalStorage Persistence & Interactive Broadcast Compose Modal
+  const STORAGE_KEY_ANNOUNCEMENTS = 'sir_crm_announcements_v1';
+  const DEFAULT_ANNOUNCEMENTS = [
     {
       id: 'ANN-201',
       title: 'Revised Flexi-Hour & Remote Work Guidelines (Q4 2026)',
@@ -884,15 +960,115 @@ export const CrmHrLeadDashboard = ({ initialSection }) => {
       content: 'The company offices will remain closed on Dec 03 in observance of Karthigai Deepam festival.',
       pinned: false
     }
-  ]);
+  ];
 
-  // 4. PERFORMANCE REVIEWS STATE (Feature 5)
-  const [performanceReviews, setPerformanceReviews] = useState([
-    { id: 'REV-P-1', employee: 'Balavarshini S.', rating: 4.8, targetScore: '114% Achieved', tasksDone: '38/40', feedback: 'Exceptional ownership of student counseling dossiers and verification compliance.', reviewer: 'Priya Lead' },
-    { id: 'REV-P-2', employee: 'Diviya R.', rating: 4.7, targetScore: '108% Achieved', tasksDone: '34/35', feedback: 'High candidate submission velocity for GCC civil engineering mandates.', reviewer: 'Priya Lead' },
-    { id: 'REV-P-3', employee: 'Kishore Kumar', rating: 4.9, targetScore: '122% Achieved', tasksDone: '46/48', feedback: 'Closed 6 high-value international cloud and healthcare requisitions ahead of SLA.', reviewer: 'Priya Lead' },
-    { id: 'REV-P-4', employee: 'Chentamilselvi M.', rating: 4.5, targetScore: '100% Achieved', tasksDone: '28/30', feedback: 'Clean background check records with zero documentation audit defects.', reviewer: 'Priya Lead' }
-  ]);
+  const [announcements, setAnnouncements] = useState(() => {
+    try {
+      const saved = localStorage.getItem(STORAGE_KEY_ANNOUNCEMENTS);
+      if (saved) {
+        const parsed = JSON.parse(saved);
+        if (Array.isArray(parsed) && parsed.length > 0) return parsed;
+      }
+    } catch {}
+    return DEFAULT_ANNOUNCEMENTS;
+  });
+
+  useEffect(() => {
+    try {
+      localStorage.setItem(STORAGE_KEY_ANNOUNCEMENTS, JSON.stringify(announcements));
+    } catch {}
+  }, [announcements]);
+
+  const [broadcastModalOpen, setBroadcastModalOpen] = useState(false);
+  const [broadcastForm, setBroadcastForm] = useState({
+    title: '',
+    category: 'Policy Update',
+    content: '',
+    author: 'Super Admin',
+    pinned: false
+  });
+
+  const handleBroadcastNotice = (e) => {
+    e.preventDefault();
+    if (!broadcastForm.title.trim() || !broadcastForm.content.trim()) {
+      showToast('⚠️ Please provide both a title and notice content.');
+      return;
+    }
+    const newNotice = {
+      id: 'ANN-' + Date.now(),
+      title: broadcastForm.title.trim(),
+      category: broadcastForm.category,
+      postedDate: 'Just now',
+      author: broadcastForm.author.trim() || user?.name || 'Super Admin',
+      content: broadcastForm.content.trim(),
+      pinned: Boolean(broadcastForm.pinned)
+    };
+    setAnnouncements(prev => {
+      const updated = [newNotice, ...prev];
+      try {
+        localStorage.setItem(STORAGE_KEY_ANNOUNCEMENTS, JSON.stringify(updated));
+      } catch {}
+      return updated;
+    });
+    showToast(`✓ Broadcast notice "${newNotice.title}" published and saved.`);
+    setBroadcastModalOpen(false);
+    setBroadcastForm({
+      title: '',
+      category: 'Policy Update',
+      content: '',
+      author: user?.name || 'Super Admin',
+      pinned: false
+    });
+  };
+
+  // 4. PERFORMANCE REVIEWS STATE (Feature 5) - With LocalStorage Persistence
+  const STORAGE_KEY_PERFORMANCE = 'sir_crm_performance_reviews_v2';
+  const [performanceReviews, setPerformanceReviews] = useState(() => {
+    try {
+      const saved = localStorage.getItem(STORAGE_KEY_PERFORMANCE);
+      if (saved) {
+        const parsed = JSON.parse(saved);
+        if (Array.isArray(parsed) && parsed.length > 0) return parsed;
+      }
+    } catch (e) {}
+    return INITIAL_PERFORMANCE_REVIEWS;
+  });
+
+  const [isAddReviewOpen, setIsAddReviewOpen] = useState(false);
+  const [newReview, setNewReview] = useState({
+    employee: '',
+    rating: 4.8,
+    targetScore: '110% Achieved',
+    tasksDone: '40/40',
+    feedback: '',
+    reviewer: 'Priya Lead'
+  });
+  const [reviewError, setReviewError] = useState('');
+
+  const handleAddReviewSubmit = (e) => {
+    e.preventDefault();
+    if (!newReview.employee || !newReview.feedback) {
+      setReviewError('Please select an employee and enter review feedback.');
+      return;
+    }
+    const createdReview = {
+      id: `REV-P-${Math.floor(100 + Math.random() * 900)}`,
+      employee: newReview.employee,
+      rating: Number(newReview.rating) || 4.5,
+      targetScore: newReview.targetScore || '100% Achieved',
+      tasksDone: newReview.tasksDone || '35/35',
+      feedback: newReview.feedback.trim(),
+      reviewer: newReview.reviewer || 'Priya Lead'
+    };
+    const updated = [createdReview, ...performanceReviews];
+    setPerformanceReviews(updated);
+    try {
+      localStorage.setItem(STORAGE_KEY_PERFORMANCE, JSON.stringify(updated));
+    } catch (e) {}
+    setIsAddReviewOpen(false);
+    setReviewError('');
+    showToast(`✓ Performance review submitted for ${createdReview.employee}.`);
+  };
 
   // 5. EXPENSE CLAIMS STATE (Advanced Feature 5)
   const [expenseClaims, setExpenseClaims] = useState([
@@ -934,168 +1110,163 @@ export const CrmHrLeadDashboard = ({ initialSection }) => {
     <ScrollReveal>
       <div className="space-y-6 text-xs font-sans pb-10">
         
-        {/* WORKFORCE HEADER, TOAST, 6 KPI CARDS & TABS: Rendered ONLY on Employee/Workforce dashboards, NOT on Task Assignment */}
-        {activeTab !== 'tasks' && (
-          <>
-            {/* TOP COMMAND BANNER (SUPER ADMIN LUXURY GOLD PALETTE) */}
-            <div className="bg-white dark:bg-navy-900 border border-slate-200/90 dark:border-navy-800 p-6 rounded-3xl shadow-sm flex flex-col lg:flex-row justify-between items-start lg:items-center gap-4">
-              <div>
-                <div className="flex items-center gap-2 mb-2">
-                  <span className="bg-amber-100 dark:bg-amber-950/40 text-amber-800 dark:text-gold-400 px-3 py-1 rounded-lg text-[10px] font-black uppercase tracking-wider">
-                    HR Lead Executive HQ • Central Console
-                  </span>
-                  <span className="text-[10px] font-mono text-slate-400 uppercase tracking-wider">
-                    WORKFORCE GOVERNANCE & OPERATIONS
-                  </span>
-                </div>
-                <h1 className="font-serif text-2xl sm:text-3xl font-bold text-slate-900 dark:text-white">
-                  HR Lead Operations & Workforce Management Console
-                </h1>
-                <p className="text-slate-500 text-xs mt-1 max-w-2xl">
-                  Centralized workspace to monitor employees, approve workforce requests, track real-time attendance, and manage end-to-end HR operations.
-                </p>
-              </div>
-
-              <div className="flex flex-wrap items-center gap-2.5">
-                <button
-                  onClick={() => setMaskSalary(!maskSalary)}
-                  className="px-3.5 py-2 rounded-2xl bg-slate-100 dark:bg-navy-800 text-slate-700 dark:text-slate-200 font-bold border border-slate-200 dark:border-navy-700 hover:bg-slate-200 transition flex items-center gap-1.5 cursor-pointer text-xs"
-                  title="Toggle salary encryption view"
-                >
-                  {maskSalary ? <Eye className="w-4 h-4 text-amber-600" /> : <EyeOff className="w-4 h-4 text-slate-400" />}
-                  <span>{maskSalary ? 'Unmask CTC' : 'Mask CTC'}</span>
-                </button>
-
-                <button
-                  onClick={() => setIsAddEmployeeOpen(true)}
-                  className="px-4 py-2 bg-gold-500 hover:bg-gold-600 text-navy-950 font-bold rounded-2xl shadow-sm transition flex items-center gap-1.5 cursor-pointer text-xs"
-                >
-                  <UserPlus className="w-4 h-4" />
-                  <span>Add Employee</span>
-                </button>
-
-                <span className="px-3 py-1.5 rounded-full text-[11px] font-bold bg-emerald-50 dark:bg-emerald-950/40 border border-emerald-200 text-emerald-700 dark:text-emerald-300">
-                  ● 42 Present Today
-                </span>
-              </div>
+        {/* TOP COMMAND BANNER (SUPER ADMIN LUXURY GOLD PALETTE) */}
+        <div className="bg-white dark:bg-navy-900 border border-slate-200/90 dark:border-navy-800 p-6 rounded-3xl shadow-sm flex flex-col lg:flex-row justify-between items-start lg:items-center gap-4">
+          <div>
+            <div className="flex items-center gap-2 mb-2">
+              <span className="bg-amber-100 dark:bg-amber-950/40 text-amber-800 dark:text-gold-400 px-3 py-1 rounded-lg text-[10px] font-black uppercase tracking-wider">
+                HR Lead Executive HQ • Central Console
+              </span>
+              <span className="text-[10px] font-mono text-slate-400 uppercase tracking-wider">
+                WORKFORCE GOVERNANCE & OPERATIONS
+              </span>
             </div>
+            <h1 className="font-serif text-2xl sm:text-3xl font-bold text-slate-900 dark:text-white">
+              HR Lead Operations & Workforce Management Console
+            </h1>
+            <p className="text-slate-500 text-xs mt-1 max-w-2xl">
+              Centralized workspace to monitor employees, approve workforce requests, track real-time attendance, and manage end-to-end HR operations.
+            </p>
+          </div>
 
-            {toastMsg && (
-              <div className="p-3.5 bg-emerald-500/15 border border-emerald-500/30 text-emerald-800 dark:text-emerald-300 rounded-2xl text-xs font-bold animate-in fade-in flex items-center gap-2">
-                <CheckCircle2 className="w-4 h-4 text-emerald-600 shrink-0" />
-                <span>{toastMsg}</span>
-              </div>
+          <div className="flex flex-wrap items-center gap-2.5">
+            <button
+              onClick={() => setMaskSalary(!maskSalary)}
+              className="px-3.5 py-2 rounded-2xl bg-slate-100 dark:bg-navy-800 text-slate-700 dark:text-slate-200 font-bold border border-slate-200 dark:border-navy-700 hover:bg-slate-200 transition flex items-center gap-1.5 cursor-pointer text-xs"
+              title="Toggle salary encryption view"
+            >
+              {maskSalary ? <Eye className="w-4 h-4 text-amber-600" /> : <EyeOff className="w-4 h-4 text-slate-400" />}
+              <span>{maskSalary ? 'Unmask CTC' : 'Mask CTC'}</span>
+            </button>
+
+            {/* Bug 1: Only show in Employee Directory, unnecessary in HR Task Assignment */}
+            {activeTab === 'employees' && (
+              <button
+                onClick={() => {
+                  setAddEmpErrors({});
+                  setIsAddEmployeeOpen(true);
+                }}
+                className="px-4 py-2 bg-gold-500 hover:bg-gold-600 text-navy-950 font-bold rounded-2xl shadow-sm transition flex items-center gap-1.5 cursor-pointer text-xs"
+              >
+                <UserPlus className="w-4 h-4" />
+                <span>Add Employee</span>
+              </button>
             )}
 
-            {/* 6 TOP EXECUTIVE KPI CARDS (From Image 1: 1. Dashboard Overview) */}
-            <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3.5">
-              <div className="bg-white dark:bg-navy-900 border border-slate-200/80 dark:border-navy-800 rounded-3xl p-4 shadow-xs">
-                <div className="flex justify-between items-start">
-                  <span className="text-[10px] font-extrabold uppercase tracking-wider text-slate-500">Total Employees</span>
-                  <div className="w-7 h-7 rounded-xl bg-blue-50 text-blue-600 flex items-center justify-center border border-blue-100">
-                    <Users className="w-3.5 h-3.5" />
-                  </div>
-                </div>
-                <p className="text-3xl font-serif font-black text-slate-900 dark:text-white mt-2.5">{totalEmployeesCount}</p>
-                <span className="text-[10px] text-blue-600 font-semibold mt-1 block">↗ 100% On-roll Staff</span>
-              </div>
+            <span className="px-3 py-1.5 rounded-full text-[11px] font-bold bg-emerald-50 dark:bg-emerald-950/40 border border-emerald-200 text-emerald-700 dark:text-emerald-300">
+              ● 42 Present Today
+            </span>
+          </div>
+        </div>
 
-              <div className="bg-white dark:bg-navy-900 border border-slate-200/80 dark:border-navy-800 rounded-3xl p-4 shadow-xs">
-                <div className="flex justify-between items-start">
-                  <span className="text-[10px] font-extrabold uppercase tracking-wider text-slate-500">Present Today</span>
-                  <div className="w-7 h-7 rounded-xl bg-emerald-50 text-emerald-600 flex items-center justify-center border border-emerald-100">
-                    <CheckCircle2 className="w-3.5 h-3.5" />
-                  </div>
-                </div>
-                <p className="text-3xl font-serif font-black text-emerald-600 mt-2.5">{presentTodayCount}</p>
-                <span className="text-[10px] text-emerald-600 font-semibold mt-1 block">↗ 87.5% Attendance</span>
-              </div>
-
-              <div className="bg-white dark:bg-navy-900 border border-slate-200/80 dark:border-navy-800 rounded-3xl p-4 shadow-xs">
-                <div className="flex justify-between items-start">
-                  <span className="text-[10px] font-extrabold uppercase tracking-wider text-slate-500">Absent Today</span>
-                  <div className="w-7 h-7 rounded-xl bg-rose-50 text-rose-600 flex items-center justify-center border border-rose-100">
-                    <XCircle className="w-3.5 h-3.5" />
-                  </div>
-                </div>
-                <p className="text-3xl font-serif font-black text-rose-600 mt-2.5">{absentCount}</p>
-                <span className="text-[10px] text-rose-600 font-semibold mt-1 block">↗ 1 Uninformed Absence</span>
-              </div>
-
-              <div className="bg-white dark:bg-navy-900 border border-slate-200/80 dark:border-navy-800 rounded-3xl p-4 shadow-xs">
-                <div className="flex justify-between items-start">
-                  <span className="text-[10px] font-extrabold uppercase tracking-wider text-slate-500">On Leave</span>
-                  <div className="w-7 h-7 rounded-xl bg-amber-50 text-amber-600 flex items-center justify-center border border-amber-100">
-                    <Calendar className="w-3.5 h-3.5" />
-                  </div>
-                </div>
-                <p className="text-3xl font-serif font-black text-amber-600 dark:text-gold-400 mt-2.5">{onLeaveCount}</p>
-                <span className="text-[10px] text-amber-600 font-semibold mt-1 block">↗ Approved Leaves</span>
-              </div>
-
-              <div className="bg-white dark:bg-navy-900 border border-slate-200/80 dark:border-navy-800 rounded-3xl p-4 shadow-xs">
-                <div className="flex justify-between items-start">
-                  <span className="text-[10px] font-extrabold uppercase tracking-wider text-slate-500">New Joiners</span>
-                  <div className="w-7 h-7 rounded-xl bg-purple-50 text-purple-600 flex items-center justify-center border border-purple-100">
-                    <UserPlus className="w-3.5 h-3.5" />
-                  </div>
-                </div>
-                <p className="text-3xl font-serif font-black text-purple-600 mt-2.5">{newJoinersCount}</p>
-                <span className="text-[10px] text-purple-600 font-semibold mt-1 block">↗ This Month (Nov 2026)</span>
-              </div>
-
-              <div className="bg-white dark:bg-navy-900 border border-slate-200/80 dark:border-navy-800 rounded-3xl p-4 shadow-xs">
-                <div className="flex justify-between items-start">
-                  <span className="text-[10px] font-extrabold uppercase tracking-wider text-slate-500">Pending Approvals</span>
-                  <div className="w-7 h-7 rounded-xl bg-gold-500/20 text-gold-700 flex items-center justify-center border border-gold-500/30">
-                    <CheckSquare className="w-3.5 h-3.5" />
-                  </div>
-                </div>
-                <p className="text-3xl font-serif font-black text-slate-900 dark:text-white mt-2.5">{pendingApprovalsCount}</p>
-                <span className="text-[10px] text-gold-600 font-semibold mt-1 block">↗ Action Required</span>
-              </div>
-            </div>
-
-            {/* MASTER FEATURE TABS BAR (Hidden for HR Lead, Admin, and Super Admin) */}
-            {!hideTopHrNavBar && (
-              <div className="bg-white dark:bg-navy-900 border border-slate-200/90 dark:border-navy-800 rounded-2xl p-2 shadow-xs flex flex-wrap gap-1.5 overflow-x-auto">
-                {[
-                  { id: 'overview', label: '#1 Overview', icon: LayoutDashboard },
-                  { id: 'tasks', label: 'HR Task Assignment', icon: CheckSquare },
-                  { id: 'attendance', label: '#2 Attendance', icon: Clock },
-                  { id: 'leave', label: '#3 Leave Management', icon: Calendar },
-                  { id: 'employees', label: '#4 Employee Directory', icon: Users },
-                  { id: 'performance', label: '#5 Performance', icon: TrendingUp },
-                  { id: 'recruitment', label: '#6 Recruitment & Onboarding', icon: UserCheck },
-                  { id: 'payroll', label: '#7 Payroll', icon: CreditCard },
-                  { id: 'announcements', label: '#8 Notices & Life Events', icon: Bell },
-                  { id: 'shifts', label: 'Shift Roster', icon: CalendarCheck },
-                  { id: 'documents', label: 'Document Vault', icon: FileText },
-                  { id: 'grievances', label: 'Grievances', icon: ShieldAlert },
-                  { id: 'approvals', label: `Approvals (${pendingApprovalsCount})`, icon: CheckSquare },
-                  { id: 'reports', label: 'Workforce Analytics', icon: BarChart3 }
-                ].map(tab => {
-                  const TabIcon = tab.icon;
-                  const isTabActive = activeTab === tab.id;
-                  return (
-                    <button
-                      key={tab.id}
-                      onClick={() => setActiveTab(tab.id)}
-                      className={`flex items-center gap-1.5 px-3 py-1.5 rounded-xl font-bold text-[11px] transition cursor-pointer shrink-0 ${
-                        isTabActive
-                          ? 'bg-gold-500 text-navy-950 shadow-xs'
-                          : 'text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-navy-800'
-                      }`}
-                    >
-                      <TabIcon className="w-3.5 h-3.5" />
-                      <span>{tab.label}</span>
-                    </button>
-                  );
-                })}
-              </div>
-            )}
-          </>
+        {toastMsg && (
+          <div className="p-3.5 bg-emerald-500/15 border border-emerald-500/30 text-emerald-800 dark:text-emerald-300 rounded-2xl text-xs font-bold animate-in fade-in flex items-center gap-2">
+            <CheckCircle2 className="w-4 h-4 text-emerald-600 shrink-0" />
+            <span>{toastMsg}</span>
+          </div>
         )}
+
+        {/* 6 TOP EXECUTIVE KPI CARDS (From Image 1: 1. Dashboard Overview) */}
+        <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3.5">
+          <div className="bg-white dark:bg-navy-900 border border-slate-200/80 dark:border-navy-800 rounded-3xl p-4 shadow-xs">
+            <div className="flex justify-between items-start">
+              <span className="text-[10px] font-extrabold uppercase tracking-wider text-slate-500">Total Employees</span>
+              <div className="w-7 h-7 rounded-xl bg-blue-50 text-blue-600 flex items-center justify-center border border-blue-100">
+                <Users className="w-3.5 h-3.5" />
+              </div>
+            </div>
+            <p className="text-3xl font-serif font-black text-slate-900 dark:text-white mt-2.5">{totalEmployeesCount}</p>
+            <span className="text-[10px] text-blue-600 font-semibold mt-1 block">↗ 100% On-roll Staff</span>
+          </div>
+
+          <div className="bg-white dark:bg-navy-900 border border-slate-200/80 dark:border-navy-800 rounded-3xl p-4 shadow-xs">
+            <div className="flex justify-between items-start">
+              <span className="text-[10px] font-extrabold uppercase tracking-wider text-slate-500">Present Today</span>
+              <div className="w-7 h-7 rounded-xl bg-emerald-50 text-emerald-600 flex items-center justify-center border border-emerald-100">
+                <CheckCircle2 className="w-3.5 h-3.5" />
+              </div>
+            </div>
+            <p className="text-3xl font-serif font-black text-emerald-600 mt-2.5">{presentTodayCount}</p>
+            <span className="text-[10px] text-emerald-600 font-semibold mt-1 block">↗ 87.5% Attendance</span>
+          </div>
+
+          <div className="bg-white dark:bg-navy-900 border border-slate-200/80 dark:border-navy-800 rounded-3xl p-4 shadow-xs">
+            <div className="flex justify-between items-start">
+              <span className="text-[10px] font-extrabold uppercase tracking-wider text-slate-500">Absent Today</span>
+              <div className="w-7 h-7 rounded-xl bg-rose-50 text-rose-600 flex items-center justify-center border border-rose-100">
+                <XCircle className="w-3.5 h-3.5" />
+              </div>
+            </div>
+            <p className="text-3xl font-serif font-black text-rose-600 mt-2.5">{absentCount}</p>
+            <span className="text-[10px] text-rose-600 font-semibold mt-1 block">↗ 1 Uninformed Absence</span>
+          </div>
+
+          <div className="bg-white dark:bg-navy-900 border border-slate-200/80 dark:border-navy-800 rounded-3xl p-4 shadow-xs">
+            <div className="flex justify-between items-start">
+              <span className="text-[10px] font-extrabold uppercase tracking-wider text-slate-500">On Leave</span>
+              <div className="w-7 h-7 rounded-xl bg-amber-50 text-amber-600 flex items-center justify-center border border-amber-100">
+                <Calendar className="w-3.5 h-3.5" />
+              </div>
+            </div>
+            <p className="text-3xl font-serif font-black text-amber-600 dark:text-gold-400 mt-2.5">{onLeaveCount}</p>
+            <span className="text-[10px] text-amber-600 font-semibold mt-1 block">↗ Approved Leaves</span>
+          </div>
+
+          <div className="bg-white dark:bg-navy-900 border border-slate-200/80 dark:border-navy-800 rounded-3xl p-4 shadow-xs">
+            <div className="flex justify-between items-start">
+              <span className="text-[10px] font-extrabold uppercase tracking-wider text-slate-500">New Joiners</span>
+              <div className="w-7 h-7 rounded-xl bg-purple-50 text-purple-600 flex items-center justify-center border border-purple-100">
+                <UserPlus className="w-3.5 h-3.5" />
+              </div>
+            </div>
+            <p className="text-3xl font-serif font-black text-purple-600 mt-2.5">{newJoinersCount}</p>
+            <span className="text-[10px] text-purple-600 font-semibold mt-1 block">↗ This Month (Nov 2026)</span>
+          </div>
+
+          <div className="bg-white dark:bg-navy-900 border border-slate-200/80 dark:border-navy-800 rounded-3xl p-4 shadow-xs">
+            <div className="flex justify-between items-start">
+              <span className="text-[10px] font-extrabold uppercase tracking-wider text-slate-500">Pending Leaves</span>
+              <div className="w-7 h-7 rounded-xl bg-gold-500/20 text-gold-700 flex items-center justify-center border border-gold-500/30">
+                <Calendar className="w-3.5 h-3.5" />
+              </div>
+            </div>
+            <p className="text-3xl font-serif font-black text-slate-900 dark:text-white mt-2.5">{leaveRequests.filter(l => l.status.includes('Pending')).length}</p>
+            <span className="text-[10px] text-gold-600 font-semibold mt-1 block">↗ Review Required</span>
+          </div>
+        </div>
+
+        {/* MASTER FEATURE TABS BAR (Active Core Modules - Removed Payroll, Grievances, Approvals, Analytics) */}
+        <div className="bg-white dark:bg-navy-900 border border-slate-200/90 dark:border-navy-800 rounded-2xl p-2 shadow-xs flex flex-wrap gap-1.5 overflow-x-auto">
+          {[
+            { id: 'overview', label: '#1 Overview', icon: LayoutDashboard },
+            { id: 'tasks', label: 'HR Task Assignment', icon: CheckSquare },
+            { id: 'attendance', label: '#2 Attendance', icon: Clock },
+            { id: 'leave', label: '#3 Leave Management', icon: Calendar },
+            { id: 'employees', label: '#4 Employee Directory', icon: Users },
+            { id: 'performance', label: '#5 Performance', icon: TrendingUp },
+            { id: 'recruitment', label: '#6 Onboarding', icon: UserCheck },
+            { id: 'announcements', label: '#7 Notices & Life Events', icon: Bell },
+            { id: 'shifts', label: '#8 Shift Roster', icon: CalendarCheck },
+            { id: 'documents', label: '#9 Document Vault', icon: FileText }
+          ].map(tab => {
+            const TabIcon = tab.icon;
+            const isTabActive = activeTab === tab.id;
+            return (
+              <button
+                key={tab.id}
+                onClick={() => setActiveTab(tab.id)}
+                className={`flex items-center gap-1.5 px-3 py-1.5 rounded-xl font-bold text-[11px] transition cursor-pointer shrink-0 ${
+                  isTabActive
+                    ? 'bg-gold-500 text-navy-950 shadow-xs'
+                    : 'text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-navy-800'
+                }`}
+              >
+                <TabIcon className="w-3.5 h-3.5" />
+                <span>{tab.label}</span>
+              </button>
+            );
+          })}
+        </div>
 
         {/* ========================================================
             TAB 1: DASHBOARD OVERVIEW (Feature 1)
@@ -1149,18 +1320,18 @@ export const CrmHrLeadDashboard = ({ initialSection }) => {
               <div className="p-4 bg-emerald-50/60 dark:bg-navy-950 border border-emerald-200/70 dark:border-navy-800 rounded-3xl flex items-center justify-between">
                 <div className="flex items-center gap-3">
                   <div className="w-10 h-10 rounded-2xl bg-emerald-100 dark:bg-emerald-950/40 text-emerald-800 dark:text-emerald-300 flex items-center justify-center font-bold">
-                    <CheckSquare className="w-5 h-5 text-emerald-600" />
+                    <Calendar className="w-5 h-5 text-emerald-600" />
                   </div>
                   <div>
-                    <span className="text-[10px] font-black uppercase tracking-wider text-emerald-800 dark:text-emerald-300">Approvals In Queue</span>
-                    <p className="font-serif font-bold text-slate-900 dark:text-white text-xs">{pendingApprovalsCount} Actionable Requests</p>
+                    <span className="text-[10px] font-black uppercase tracking-wider text-emerald-800 dark:text-emerald-300">Pending Leave Requests</span>
+                    <p className="font-serif font-bold text-slate-900 dark:text-white text-xs">{leaveRequests.filter(l => l.status.includes('Pending')).length} Actionable Requests</p>
                   </div>
                 </div>
                 <button 
-                  onClick={() => setActiveTab('approvals')}
+                  onClick={() => setActiveTab('leave')}
                   className="px-2.5 py-1 rounded-xl bg-emerald-600 text-white font-bold text-[10px] shadow-xs cursor-pointer hover:bg-emerald-700"
                 >
-                  Review
+                  Review Leaves
                 </button>
               </div>
             </div>
@@ -1519,9 +1690,9 @@ export const CrmHrLeadDashboard = ({ initialSection }) => {
         ======================================================== */}
         {activeTab === 'employees' && (
           <div className="space-y-6 animate-in fade-in duration-200">
-            {/* Filter & Search Bar */}
-            <div className="bg-white dark:bg-navy-900 border border-slate-200/90 dark:border-navy-800 rounded-2xl p-4 shadow-xs flex flex-col sm:flex-row justify-between items-center gap-3">
-              <div className="relative w-full sm:w-72">
+            {/* Filter & Search Bar - Fixed Mobile Alignment (Bug 4) */}
+            <div className="bg-white dark:bg-navy-900 border border-slate-200/90 dark:border-navy-800 rounded-2xl p-4 shadow-xs flex flex-col md:flex-row justify-between items-stretch md:items-center gap-3">
+              <div className="relative w-full md:w-72">
                 <Search className="w-3.5 h-3.5 absolute left-3 top-3 text-slate-400" />
                 <input
                   type="text"
@@ -1532,24 +1703,29 @@ export const CrmHrLeadDashboard = ({ initialSection }) => {
                 />
               </div>
 
-              <div className="flex items-center gap-2 w-full sm:w-auto justify-end">
-                <span className="text-[10px] font-bold uppercase text-slate-400">Department:</span>
-                <select
-                  value={filterDept}
-                  onChange={e => setFilterDept(e.target.value)}
-                  className="bg-slate-50 dark:bg-navy-950 border border-slate-200 dark:border-navy-800 rounded-xl px-3 py-1.5 text-xs font-bold text-slate-800 dark:text-slate-200"
-                >
-                  <option value="All">All Departments</option>
-                  <option value="HR Operations">HR Operations</option>
-                  <option value="Talent Acquisition">Talent Acquisition</option>
-                  <option value="Placement Cell">Placement Cell</option>
-                  <option value="Engineering">Engineering</option>
-                  <option value="Client Advisory">Client Advisory</option>
-                </select>
+              <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-start sm:justify-end gap-2.5 w-full md:w-auto">
+                <div className="flex items-center gap-2">
+                  <span className="text-[10px] font-bold uppercase text-slate-400 shrink-0">Department:</span>
+                  <select
+                    value={filterDept}
+                    onChange={e => setFilterDept(e.target.value)}
+                    className="flex-1 sm:flex-initial bg-slate-50 dark:bg-navy-950 border border-slate-200 dark:border-navy-800 rounded-xl px-3 py-1.5 text-xs font-bold text-slate-800 dark:text-slate-200 focus:outline-none"
+                  >
+                    <option value="All">All Departments</option>
+                    <option value="HR Operations">HR Operations</option>
+                    <option value="Talent Acquisition">Talent Acquisition</option>
+                    <option value="Placement Cell">Placement Cell</option>
+                    <option value="Engineering">Engineering</option>
+                    <option value="Client Advisory">Client Advisory</option>
+                  </select>
+                </div>
 
                 <button
-                  onClick={() => setIsAddEmployeeOpen(true)}
-                  className="px-4 py-2 bg-gold-500 hover:bg-gold-600 text-navy-950 font-bold rounded-xl shadow-xs transition flex items-center gap-1.5 cursor-pointer text-xs shrink-0"
+                  onClick={() => {
+                    setAddEmpErrors({});
+                    setIsAddEmployeeOpen(true);
+                  }}
+                  className="px-4 py-2 bg-gold-500 hover:bg-gold-600 text-navy-950 font-bold rounded-xl shadow-xs transition flex items-center justify-center gap-1.5 cursor-pointer text-xs shrink-0"
                 >
                   <Plus className="w-3.5 h-3.5" />
                   New Employee
@@ -1603,7 +1779,7 @@ export const CrmHrLeadDashboard = ({ initialSection }) => {
                   <div className="pt-2 border-t border-slate-100 dark:border-navy-800 flex items-center justify-between">
                     <span className="text-[10px] text-slate-400 font-mono">{e.email}</span>
                     <button
-                      onClick={() => showToast(`✓ Full personnel file opened for ${e.name}`)}
+                      onClick={() => setSelectedProfileEmployee(e)}
                       className="text-xs text-amber-700 dark:text-gold-400 font-bold hover:underline cursor-pointer"
                     >
                       View Profile →
@@ -1629,7 +1805,18 @@ export const CrmHrLeadDashboard = ({ initialSection }) => {
                   <p className="text-[11px] text-slate-500">Objective task completion tracking, manager observations, and rating calibrations</p>
                 </div>
                 <button
-                  onClick={() => showToast('✓ Performance review calibration form opened.')}
+                  onClick={() => {
+                    setReviewError('');
+                    setNewReview({
+                      employee: employees[0]?.name || 'Balavarshini S.',
+                      rating: 4.8,
+                      targetScore: '110% Achieved',
+                      tasksDone: '40/42',
+                      feedback: 'Consistent delivery on core recruitment mandates with zero compliance escalations.',
+                      reviewer: 'Priya Lead'
+                    });
+                    setIsAddReviewOpen(true);
+                  }}
                   className="px-4 py-2 bg-gold-500 text-navy-950 font-bold rounded-2xl shadow-xs transition cursor-pointer text-xs"
                 >
                   + Add Review
@@ -1672,7 +1859,7 @@ export const CrmHrLeadDashboard = ({ initialSection }) => {
         )}
 
         {/* ========================================================
-            TAB 6: RECRUITMENT & ONBOARDING (Feature 6)
+            TAB 6: ONBOARDING (Feature 6)
         ======================================================== */}
         {activeTab === 'recruitment' && (
           <div className="space-y-6 animate-in fade-in duration-200">
@@ -1750,7 +1937,7 @@ export const CrmHrLeadDashboard = ({ initialSection }) => {
         {/* ========================================================
             TAB 7: PAYROLL MANAGEMENT (Feature 7)
         ======================================================== */}
-        {activeTab === 'payroll' && (
+        {false && activeTab === 'payroll' && (
           <div className="space-y-6 animate-in fade-in duration-200">
             {/* Payroll Summary Cards */}
             <div className="grid grid-cols-1 sm:grid-cols-4 gap-4">
@@ -2140,10 +2327,12 @@ export const CrmHrLeadDashboard = ({ initialSection }) => {
                   <p className="text-[11px] text-slate-500">Official circulars, holiday schedules, and employee handbook notifications</p>
                 </div>
                 <button
-                  onClick={() => showToast('✓ Broadcast compose dialog opened.')}
-                  className="px-4 py-2 bg-gold-500 text-navy-950 font-bold rounded-2xl shadow-xs transition cursor-pointer text-xs"
+                  type="button"
+                  onClick={() => setBroadcastModalOpen(true)}
+                  className="px-4 py-2 bg-gold-500 hover:bg-gold-400 text-navy-950 font-bold rounded-2xl shadow-xs transition cursor-pointer text-xs flex items-center gap-1.5"
                 >
-                  + Broadcast Notice
+                  <Plus className="w-4 h-4" />
+                  <span>+ Broadcast Notice</span>
                 </button>
               </div>
 
@@ -2172,6 +2361,127 @@ export const CrmHrLeadDashboard = ({ initialSection }) => {
                   </div>
                 ))}
               </div>
+            </div>
+          </div>
+        )}
+
+        {/* Broadcast Notice Modal (Issue 1) */}
+        {broadcastModalOpen && (
+          <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-navy-950/80 backdrop-blur-sm animate-in fade-in">
+            <div className="glass-card bg-white dark:bg-navy-900 border border-slate-200 dark:border-gold-500/40 rounded-3xl max-w-lg w-full p-6 sm:p-7 shadow-luxury space-y-4 animate-in zoom-in-95">
+              <div className="flex justify-between items-start border-b border-slate-200 dark:border-navy-800 pb-3">
+                <div>
+                  <div className="flex items-center gap-2">
+                    <span className="px-2 py-0.5 rounded text-[9px] font-bold bg-gold-500/20 text-gold-700 dark:text-gold-400 uppercase tracking-wider">
+                      Executive Broadcast
+                    </span>
+                  </div>
+                  <h3 className="font-serif text-lg font-bold text-slate-900 dark:text-white mt-1">
+                    Broadcast Company Circular / HR Notice
+                  </h3>
+                  <p className="text-[11px] text-slate-500 dark:text-slate-400">
+                    Publish an official notice to all employee portals, notice boards, and workforce dashboards.
+                  </p>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => setBroadcastModalOpen(false)}
+                  className="text-slate-400 hover:text-slate-600 dark:hover:text-white p-1 rounded-lg cursor-pointer"
+                >
+                  <X className="w-5 h-5" />
+                </button>
+              </div>
+
+              <form onSubmit={handleBroadcastNotice} className="space-y-3.5 text-xs">
+                <div>
+                  <label className="block text-[11px] font-bold text-slate-700 dark:text-slate-300 mb-1">
+                    Notice Title <span className="text-rose-500">*</span>
+                  </label>
+                  <input
+                    type="text"
+                    required
+                    value={broadcastForm.title}
+                    onChange={e => setBroadcastForm({ ...broadcastForm, title: e.target.value })}
+                    placeholder="e.g. Q4 Performance Reviews & Holiday Operating Hours..."
+                    className="w-full bg-slate-50 dark:bg-navy-950 border border-slate-200 dark:border-navy-700 rounded-xl p-2.5 font-medium text-slate-900 dark:text-white focus:outline-none focus:border-gold-500"
+                  />
+                </div>
+
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                  <div>
+                    <label className="block text-[11px] font-bold text-slate-700 dark:text-slate-300 mb-1">
+                      Category
+                    </label>
+                    <select
+                      value={broadcastForm.category}
+                      onChange={e => setBroadcastForm({ ...broadcastForm, category: e.target.value })}
+                      className="w-full bg-slate-50 dark:bg-navy-950 border border-slate-200 dark:border-navy-700 rounded-xl p-2.5 font-medium text-slate-900 dark:text-white focus:outline-none focus:border-gold-500"
+                    >
+                      <option value="Policy Update">Policy Update</option>
+                      <option value="Employee Wellness">Employee Wellness</option>
+                      <option value="Office Holiday">Office Holiday</option>
+                      <option value="Important Circular">Important Circular</option>
+                      <option value="Urgent Alert">Urgent Alert</option>
+                    </select>
+                  </div>
+
+                  <div>
+                    <label className="block text-[11px] font-bold text-slate-700 dark:text-slate-300 mb-1">
+                      Issued By / Author
+                    </label>
+                    <input
+                      type="text"
+                      value={broadcastForm.author}
+                      onChange={e => setBroadcastForm({ ...broadcastForm, author: e.target.value })}
+                      placeholder="e.g. Super Admin"
+                      className="w-full bg-slate-50 dark:bg-navy-950 border border-slate-200 dark:border-navy-700 rounded-xl p-2.5 font-medium text-slate-900 dark:text-white focus:outline-none focus:border-gold-500"
+                    />
+                  </div>
+                </div>
+
+                <div>
+                  <label className="block text-[11px] font-bold text-slate-700 dark:text-slate-300 mb-1">
+                    Notice Content & Details <span className="text-rose-500">*</span>
+                  </label>
+                  <textarea
+                    required
+                    rows={4}
+                    value={broadcastForm.content}
+                    onChange={e => setBroadcastForm({ ...broadcastForm, content: e.target.value })}
+                    placeholder="Enter the complete notification details, instructions, or policy statement..."
+                    className="w-full bg-slate-50 dark:bg-navy-950 border border-slate-200 dark:border-navy-700 rounded-xl p-2.5 font-medium text-slate-900 dark:text-white focus:outline-none focus:border-gold-500"
+                  />
+                </div>
+
+                <div className="flex items-center gap-2 p-2.5 bg-slate-50 dark:bg-navy-950 rounded-xl border border-slate-200 dark:border-navy-800">
+                  <input
+                    type="checkbox"
+                    id="pinnedNoticeCheck"
+                    checked={broadcastForm.pinned}
+                    onChange={e => setBroadcastForm({ ...broadcastForm, pinned: e.target.checked })}
+                    className="w-4 h-4 text-gold-500 rounded border-slate-300 focus:ring-gold-500 cursor-pointer"
+                  />
+                  <label htmlFor="pinnedNoticeCheck" className="text-xs font-semibold text-slate-700 dark:text-slate-300 cursor-pointer">
+                    📌 Pin this notice to the top of all employee feeds
+                  </label>
+                </div>
+
+                <div className="flex justify-end gap-2.5 pt-2 border-t border-slate-200 dark:border-navy-800">
+                  <button
+                    type="button"
+                    onClick={() => setBroadcastModalOpen(false)}
+                    className="px-4 py-2 bg-slate-100 dark:bg-navy-800 hover:bg-slate-200 text-slate-700 dark:text-slate-300 font-bold rounded-xl transition cursor-pointer"
+                  >
+                    Cancel
+                  </button>
+                  <button
+                    type="submit"
+                    className="px-5 py-2 bg-gold-500 hover:bg-gold-400 text-navy-950 font-bold rounded-xl shadow-gold-glow transition cursor-pointer flex items-center gap-1.5"
+                  >
+                    <span>Publish & Broadcast Notice →</span>
+                  </button>
+                </div>
+              </form>
             </div>
           </div>
         )}
@@ -2240,7 +2550,7 @@ export const CrmHrLeadDashboard = ({ initialSection }) => {
         {/* ========================================================
             TAB 11: GRIEVANCE MANAGEMENT (Advanced Feature 4)
         ======================================================== */}
-        {activeTab === 'grievances' && (
+        {false && activeTab === 'grievances' && (
           <div className="space-y-6 animate-in fade-in duration-200">
             <div className="bg-white dark:bg-navy-900 border border-slate-200/90 dark:border-navy-800 rounded-3xl p-6 shadow-xs space-y-4">
               <div className="flex justify-between items-center">
@@ -2284,7 +2594,7 @@ export const CrmHrLeadDashboard = ({ initialSection }) => {
         {/* ========================================================
             TAB 12: CENTRAL APPROVAL CENTER (Advanced Feature 6)
         ======================================================== */}
-        {activeTab === 'approvals' && (
+        {false && activeTab === 'approvals' && (
           <div className="space-y-6 animate-in fade-in duration-200">
             {/* Live Database Attendance Regularization Approvals */}
             <div className="bg-white dark:bg-navy-900 border border-slate-200/90 dark:border-navy-800 rounded-3xl p-6 shadow-xs space-y-4">
@@ -2445,7 +2755,7 @@ export const CrmHrLeadDashboard = ({ initialSection }) => {
         {/* ========================================================
             TAB 13: WORKFORCE REPORTS & ANALYTICS (Advanced Feature 7)
         ======================================================== */}
-        {activeTab === 'reports' && (
+        {false && activeTab === 'reports' && (
           <div className="space-y-6 animate-in fade-in duration-200">
             <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
               <div className="p-5 bg-white dark:bg-navy-900 border border-slate-200/90 dark:border-navy-800 rounded-3xl shadow-xs">
@@ -2503,15 +2813,21 @@ export const CrmHrLeadDashboard = ({ initialSection }) => {
 
               <form onSubmit={handleAddEmployeeSubmit} className="space-y-3.5">
                 <div>
-                  <label className="block text-[10px] font-bold uppercase text-slate-500 mb-1">Full Name</label>
+                  <label className="block text-[10px] font-bold uppercase text-slate-500 mb-1">Full Name *</label>
                   <input
                     type="text"
                     required
                     value={newEmp.name}
-                    onChange={e => setNewEmp({ ...newEmp, name: e.target.value })}
+                    onChange={e => {
+                      setNewEmp({ ...newEmp, name: e.target.value });
+                      if (addEmpErrors.name) setAddEmpErrors({ ...addEmpErrors, name: '' });
+                    }}
                     placeholder="e.g. Radhika Ramanathan"
-                    className="w-full bg-slate-50 dark:bg-navy-950 border border-slate-200 dark:border-navy-800 rounded-xl px-3 py-2 text-xs focus:ring-1 focus:ring-amber-400 focus:outline-none"
+                    className={`w-full bg-slate-50 dark:bg-navy-950 border ${addEmpErrors.name ? 'border-rose-500 focus:border-rose-500 ring-1 ring-rose-500' : 'border-slate-200 dark:border-navy-800'} rounded-xl px-3 py-2 text-xs focus:outline-none font-bold`}
                   />
+                  {addEmpErrors.name && (
+                    <p className="text-rose-500 text-[10px] font-bold mt-1">⚠️ {addEmpErrors.name}</p>
+                  )}
                 </div>
 
                 <div className="grid grid-cols-2 gap-3">
@@ -2520,7 +2836,7 @@ export const CrmHrLeadDashboard = ({ initialSection }) => {
                     <select
                       value={newEmp.department}
                       onChange={e => setNewEmp({ ...newEmp, department: e.target.value })}
-                      className="w-full bg-slate-50 dark:bg-navy-950 border border-slate-200 dark:border-navy-800 rounded-xl px-3 py-2 text-xs"
+                      className="w-full bg-slate-50 dark:bg-navy-950 border border-slate-200 dark:border-navy-800 rounded-xl px-3 py-2 text-xs font-bold"
                     >
                       <option>HR Operations</option>
                       <option>Talent Acquisition</option>
@@ -2538,46 +2854,66 @@ export const CrmHrLeadDashboard = ({ initialSection }) => {
                       value={newEmp.role}
                       onChange={e => setNewEmp({ ...newEmp, role: e.target.value })}
                       placeholder="e.g. HR Operations Associate"
-                      className="w-full bg-slate-50 dark:bg-navy-950 border border-slate-200 dark:border-navy-800 rounded-xl px-3 py-2 text-xs focus:ring-1 focus:ring-amber-400 focus:outline-none"
+                      className="w-full bg-slate-50 dark:bg-navy-950 border border-slate-200 dark:border-navy-800 rounded-xl px-3 py-2 text-xs focus:ring-1 focus:ring-amber-400 focus:outline-none font-bold"
                     />
                   </div>
                 </div>
 
                 <div className="grid grid-cols-2 gap-3">
                   <div>
-                    <label className="block text-[10px] font-bold uppercase text-slate-500 mb-1">Email Address</label>
+                    <label className="block text-[10px] font-bold uppercase text-slate-500 mb-1">Email ID *</label>
                     <input
                       type="email"
                       required
                       value={newEmp.email}
-                      onChange={e => setNewEmp({ ...newEmp, email: e.target.value })}
+                      onChange={e => {
+                        setNewEmp({ ...newEmp, email: e.target.value });
+                        if (addEmpErrors.email) setAddEmpErrors({ ...addEmpErrors, email: '' });
+                      }}
                       placeholder="radhika.r@revivalcrm.com"
-                      className="w-full bg-slate-50 dark:bg-navy-950 border border-slate-200 dark:border-navy-800 rounded-xl px-3 py-2 text-xs focus:ring-1 focus:ring-amber-400 focus:outline-none"
+                      className={`w-full bg-slate-50 dark:bg-navy-950 border ${addEmpErrors.email ? 'border-rose-500 focus:border-rose-500 ring-1 ring-rose-500' : 'border-slate-200 dark:border-navy-800'} rounded-xl px-3 py-2 text-xs focus:outline-none font-bold`}
                     />
+                    {addEmpErrors.email && (
+                      <p className="text-rose-500 text-[10px] font-bold mt-1">⚠️ {addEmpErrors.email}</p>
+                    )}
                   </div>
 
                   <div>
-                    <label className="block text-[10px] font-bold uppercase text-slate-500 mb-1">Contact Phone</label>
+                    <label className="block text-[10px] font-bold uppercase text-slate-500 mb-1">Contact Phone Number *</label>
                     <input
                       type="text"
+                      required
                       value={newEmp.phone}
-                      onChange={e => setNewEmp({ ...newEmp, phone: e.target.value })}
+                      onChange={e => {
+                        setNewEmp({ ...newEmp, phone: e.target.value });
+                        if (addEmpErrors.phone) setAddEmpErrors({ ...addEmpErrors, phone: '' });
+                      }}
                       placeholder="+91 98401 22334"
-                      className="w-full bg-slate-50 dark:bg-navy-950 border border-slate-200 dark:border-navy-800 rounded-xl px-3 py-2 text-xs focus:ring-1 focus:ring-amber-400 focus:outline-none"
+                      className={`w-full bg-slate-50 dark:bg-navy-950 border ${addEmpErrors.phone ? 'border-rose-500 focus:border-rose-500 ring-1 ring-rose-500' : 'border-slate-200 dark:border-navy-800'} rounded-xl px-3 py-2 text-xs focus:outline-none font-bold`}
                     />
+                    {addEmpErrors.phone && (
+                      <p className="text-rose-500 text-[10px] font-bold mt-1">⚠️ {addEmpErrors.phone}</p>
+                    )}
                   </div>
                 </div>
 
                 <div className="grid grid-cols-2 gap-3">
                   <div>
-                    <label className="block text-[10px] font-bold uppercase text-slate-500 mb-1">Monthly Salary</label>
+                    <label className="block text-[10px] font-bold uppercase text-slate-500 mb-1">Monthly Salary *</label>
                     <input
                       type="text"
+                      required
                       value={newEmp.salary}
-                      onChange={e => setNewEmp({ ...newEmp, salary: e.target.value })}
+                      onChange={e => {
+                        setNewEmp({ ...newEmp, salary: e.target.value });
+                        if (addEmpErrors.salary) setAddEmpErrors({ ...addEmpErrors, salary: '' });
+                      }}
                       placeholder="₹55,000 / mo"
-                      className="w-full bg-slate-50 dark:bg-navy-950 border border-slate-200 dark:border-navy-800 rounded-xl px-3 py-2 text-xs focus:ring-1 focus:ring-amber-400 focus:outline-none"
+                      className={`w-full bg-slate-50 dark:bg-navy-950 border ${addEmpErrors.salary ? 'border-rose-500 focus:border-rose-500 ring-1 ring-rose-500' : 'border-slate-200 dark:border-navy-800'} rounded-xl px-3 py-2 text-xs focus:outline-none font-bold`}
                     />
+                    {addEmpErrors.salary && (
+                      <p className="text-rose-500 text-[10px] font-bold mt-1">⚠️ {addEmpErrors.salary}</p>
+                    )}
                   </div>
 
                   <div>
@@ -2585,7 +2921,7 @@ export const CrmHrLeadDashboard = ({ initialSection }) => {
                     <select
                       value={newEmp.employmentType}
                       onChange={e => setNewEmp({ ...newEmp, employmentType: e.target.value })}
-                      className="w-full bg-slate-50 dark:bg-navy-950 border border-slate-200 dark:border-navy-800 rounded-xl px-3 py-2 text-xs"
+                      className="w-full bg-slate-50 dark:bg-navy-950 border border-slate-200 dark:border-navy-800 rounded-xl px-3 py-2 text-xs font-bold"
                     >
                       <option>Full-Time Permanent</option>
                       <option>Probationary (6 Mos)</option>
@@ -2597,7 +2933,10 @@ export const CrmHrLeadDashboard = ({ initialSection }) => {
                 <div className="flex justify-end gap-2 pt-3 border-t border-slate-200 dark:border-navy-800">
                   <button
                     type="button"
-                    onClick={() => setIsAddEmployeeOpen(false)}
+                    onClick={() => {
+                      setIsAddEmployeeOpen(false);
+                      setAddEmpErrors({});
+                    }}
                     className="px-4 py-2 bg-slate-100 dark:bg-navy-800 text-slate-600 dark:text-slate-300 font-bold rounded-xl cursor-pointer"
                   >
                     Cancel
@@ -2614,6 +2953,281 @@ export const CrmHrLeadDashboard = ({ initialSection }) => {
           </div>
         )}
 
+        {/* MODAL: VIEW FULL EMPLOYEE PROFILE (Bug 5) */}
+        {selectedProfileEmployee && (
+          <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-navy-950/70 backdrop-blur-xs animate-in fade-in">
+            <div className="bg-white dark:bg-navy-900 rounded-3xl p-6 border border-slate-200 dark:border-navy-800 shadow-2xl max-w-2xl w-full space-y-5 max-h-[90vh] overflow-y-auto">
+              
+              <div className="flex justify-between items-start border-b border-slate-200 dark:border-navy-800 pb-4">
+                <div className="flex items-center gap-3.5">
+                  <div className="w-14 h-14 rounded-2xl bg-amber-100 dark:bg-navy-800 text-amber-900 dark:text-gold-400 font-serif font-black text-2xl flex items-center justify-center border border-amber-300/60 dark:border-navy-700 shadow-sm">
+                    {selectedProfileEmployee.avatarLetter || selectedProfileEmployee.name.charAt(0)}
+                  </div>
+                  <div>
+                    <div className="flex items-center gap-2">
+                      <h3 className="font-serif font-bold text-xl text-slate-900 dark:text-white">
+                        {selectedProfileEmployee.name}
+                      </h3>
+                      <span className="px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-emerald-50 text-emerald-700 dark:bg-emerald-950/40 dark:text-emerald-300 border border-emerald-200 dark:border-emerald-800">
+                        ● {selectedProfileEmployee.status || 'Active'}
+                      </span>
+                    </div>
+                    <p className="text-xs text-amber-700 dark:text-gold-400 font-bold">
+                      {selectedProfileEmployee.role} • <span className="text-slate-400 font-mono">{selectedProfileEmployee.id}</span>
+                    </p>
+                  </div>
+                </div>
+
+                <button 
+                  onClick={() => setSelectedProfileEmployee(null)}
+                  className="w-8 h-8 rounded-full bg-slate-100 dark:bg-navy-800 hover:bg-slate-200 dark:hover:bg-navy-700 flex items-center justify-center text-slate-500 dark:text-slate-400 cursor-pointer transition"
+                >
+                  <X className="w-4 h-4" />
+                </button>
+              </div>
+
+              {/* Grid Metrics */}
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 text-xs">
+                <div className="p-3.5 bg-slate-50 dark:bg-navy-950 rounded-2xl border border-slate-200/80 dark:border-navy-800 space-y-2">
+                  <span className="text-[10px] font-black uppercase text-slate-400 tracking-wider">Corporate Position & Branch</span>
+                  <div className="space-y-1">
+                    <p className="text-slate-700 dark:text-slate-300"><strong className="text-slate-900 dark:text-white">Department:</strong> {selectedProfileEmployee.department}</p>
+                    <p className="text-slate-700 dark:text-slate-300"><strong className="text-slate-900 dark:text-white">Branch / HQ:</strong> {selectedProfileEmployee.location || 'Chennai HQ'}</p>
+                    <p className="text-slate-700 dark:text-slate-300"><strong className="text-slate-900 dark:text-white">Employment Type:</strong> {selectedProfileEmployee.employmentType || 'Full-Time Permanent'}</p>
+                    <p className="text-slate-700 dark:text-slate-300"><strong className="text-slate-900 dark:text-white">Joining Date:</strong> {selectedProfileEmployee.joiningDate}</p>
+                  </div>
+                </div>
+
+                <div className="p-3.5 bg-slate-50 dark:bg-navy-950 rounded-2xl border border-slate-200/80 dark:border-navy-800 space-y-2">
+                  <span className="text-[10px] font-black uppercase text-slate-400 tracking-wider">Contact & Authentication</span>
+                  <div className="space-y-1">
+                    <p className="text-slate-700 dark:text-slate-300 flex items-center gap-1.5">
+                      <Mail className="w-3.5 h-3.5 text-gold-500" />
+                      <a href={`mailto:${selectedProfileEmployee.email}`} className="hover:underline font-bold text-slate-900 dark:text-white">{selectedProfileEmployee.email}</a>
+                    </p>
+                    <p className="text-slate-700 dark:text-slate-300 flex items-center gap-1.5">
+                      <Phone className="w-3.5 h-3.5 text-emerald-500" />
+                      <span className="font-bold text-slate-900 dark:text-white">{selectedProfileEmployee.phone}</span>
+                    </p>
+                    <p className="text-slate-700 dark:text-slate-300"><strong className="text-slate-900 dark:text-white">Access Level:</strong> Staff Enterprise Gateway</p>
+                    <p className="text-slate-700 dark:text-slate-300"><strong className="text-slate-900 dark:text-white">ID Attestation:</strong> Verified (MOHRE & Govt UID)</p>
+                  </div>
+                </div>
+              </div>
+
+              {/* Compensation & Statutory Info */}
+              <div className="p-4 bg-emerald-500/10 border border-emerald-500/20 rounded-2xl flex flex-wrap justify-between items-center gap-3 text-xs">
+                <div>
+                  <span className="text-[10px] font-black uppercase text-emerald-700 dark:text-emerald-400 tracking-wider">Annual Compensation Structure</span>
+                  <div className="flex items-center gap-3 mt-1">
+                    <span className="text-lg font-serif font-black text-slate-900 dark:text-white">{selectedProfileEmployee.salary}</span>
+                    <span className="text-xs font-bold text-emerald-600 bg-emerald-100 dark:bg-emerald-950/60 px-2 py-0.5 rounded-lg border border-emerald-300 dark:border-emerald-800">
+                      CTC: {selectedProfileEmployee.ctc}
+                    </span>
+                  </div>
+                </div>
+                <div className="text-right text-[11px] text-slate-500">
+                  <p>Disbursement Mode: <strong>Direct Bank Deposit</strong></p>
+                  <p>Tax Deduction: <strong>TDS Slabs Compliant</strong></p>
+                </div>
+              </div>
+
+              {/* Attendance & Leave Quota Ledger */}
+              <div className="grid grid-cols-2 sm:grid-cols-4 gap-2.5 text-center text-xs">
+                <div className="p-3 bg-slate-50 dark:bg-navy-950 rounded-xl border border-slate-200/80 dark:border-navy-800">
+                  <span className="text-[10px] text-slate-400 font-bold block">Today's Punch</span>
+                  <span className="font-bold text-emerald-600">{selectedProfileEmployee.attendanceToday?.checkIn || '09:00 AM'}</span>
+                </div>
+                <div className="p-3 bg-slate-50 dark:bg-navy-950 rounded-xl border border-slate-200/80 dark:border-navy-800">
+                  <span className="text-[10px] text-slate-400 font-bold block">Casual Leaves</span>
+                  <span className="font-bold text-slate-900 dark:text-white">{selectedProfileEmployee.leaveBalance?.casual || 8} Days</span>
+                </div>
+                <div className="p-3 bg-slate-50 dark:bg-navy-950 rounded-xl border border-slate-200/80 dark:border-navy-800">
+                  <span className="text-[10px] text-slate-400 font-bold block">Sick Leaves</span>
+                  <span className="font-bold text-slate-900 dark:text-white">{selectedProfileEmployee.leaveBalance?.sick || 8} Days</span>
+                </div>
+                <div className="p-3 bg-slate-50 dark:bg-navy-950 rounded-xl border border-slate-200/80 dark:border-navy-800">
+                  <span className="text-[10px] text-slate-400 font-bold block">Paid Annual Leaves</span>
+                  <span className="font-bold text-slate-900 dark:text-white">{selectedProfileEmployee.leaveBalance?.paid || 14} Days</span>
+                </div>
+              </div>
+
+              <div className="flex justify-between items-center pt-3 border-t border-slate-200 dark:border-navy-800">
+                <button
+                  type="button"
+                  onClick={() => {
+                    const doc = new jsPDF();
+                    doc.setFont('helvetica', 'bold');
+                    doc.setFontSize(16);
+                    doc.text('THE REVIVAL INTERNATIONAL - EMPLOYEE DOSSIER', 14, 20);
+                    doc.setFontSize(10);
+                    doc.setFont('helvetica', 'normal');
+                    doc.text(`Generated: ${new Date().toLocaleDateString('en-GB')}`, 14, 26);
+                    doc.line(14, 30, 196, 30);
+                    
+                    doc.text(`Full Name: ${selectedProfileEmployee.name}`, 14, 40);
+                    doc.text(`Employee ID: ${selectedProfileEmployee.id}`, 14, 48);
+                    doc.text(`Designation: ${selectedProfileEmployee.role}`, 14, 56);
+                    doc.text(`Department: ${selectedProfileEmployee.department}`, 14, 64);
+                    doc.text(`Corporate Email: ${selectedProfileEmployee.email}`, 14, 72);
+                    doc.text(`Contact Phone: ${selectedProfileEmployee.phone}`, 14, 80);
+                    doc.text(`Employment Type: ${selectedProfileEmployee.employmentType}`, 14, 88);
+                    doc.text(`Date of Joining: ${selectedProfileEmployee.joiningDate}`, 14, 96);
+                    doc.text(`Gross Salary: ${selectedProfileEmployee.salary}`, 14, 104);
+                    doc.text(`Annual CTC: ${selectedProfileEmployee.ctc}`, 14, 112);
+                    
+                    doc.save(`Employee_Dossier_${selectedProfileEmployee.id}.pdf`);
+                    showToast(`✓ Downloaded personnel dossier for ${selectedProfileEmployee.name}`);
+                  }}
+                  className="px-4 py-2 bg-slate-100 dark:bg-navy-800 hover:bg-slate-200 dark:hover:bg-navy-700 text-slate-700 dark:text-slate-200 font-bold rounded-xl text-xs flex items-center gap-1.5 cursor-pointer transition"
+                >
+                  <Download className="w-3.5 h-3.5 text-gold-500" />
+                  <span>Download Dossier PDF</span>
+                </button>
+
+                <button
+                  type="button"
+                  onClick={() => setSelectedProfileEmployee(null)}
+                  className="px-5 py-2 bg-gold-500 hover:bg-gold-600 text-navy-950 font-bold rounded-xl text-xs cursor-pointer shadow-xs transition"
+                >
+                  Close Profile
+                </button>
+              </div>
+
+            </div>
+          </div>
+        )}
+
+        {/* MODAL: ADD PERFORMANCE REVIEW & KPI SCORECARD (Bug 6) */}
+        {isAddReviewOpen && (
+          <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-navy-950/70 backdrop-blur-xs animate-in fade-in">
+            <div className="bg-white dark:bg-navy-900 rounded-3xl p-6 border border-slate-200 dark:border-navy-800 shadow-2xl max-w-lg w-full space-y-4">
+              
+              <div className="flex justify-between items-center border-b border-slate-200 dark:border-navy-800 pb-3">
+                <div className="flex items-center gap-2">
+                  <Award className="w-5 h-5 text-gold-500" />
+                  <h3 className="font-serif font-bold text-lg text-slate-900 dark:text-white">
+                    Add Quarterly Performance Review
+                  </h3>
+                </div>
+                <button 
+                  onClick={() => setIsAddReviewOpen(false)}
+                  className="text-slate-400 hover:text-slate-600 text-lg cursor-pointer"
+                >
+                  ✕
+                </button>
+              </div>
+
+              {reviewError && (
+                <div className="p-3 bg-rose-500/10 border border-rose-500/30 text-rose-600 dark:text-rose-400 rounded-xl text-xs font-bold flex items-center gap-2">
+                  <AlertCircle className="w-4 h-4 shrink-0" />
+                  <span>{reviewError}</span>
+                </div>
+              )}
+
+              <form onSubmit={handleAddReviewSubmit} className="space-y-3.5 text-xs">
+                <div>
+                  <label className="block text-[10px] font-bold uppercase text-slate-500 mb-1">Select Employee *</label>
+                  <select
+                    value={newReview.employee}
+                    onChange={e => setNewReview({ ...newReview, employee: e.target.value })}
+                    className="w-full bg-slate-50 dark:bg-navy-950 border border-slate-200 dark:border-navy-800 rounded-xl px-3 py-2 text-xs font-bold text-slate-900 dark:text-white focus:outline-none"
+                    required
+                  >
+                    {employees.map(emp => (
+                      <option key={emp.id} value={emp.name}>
+                        {emp.name} — {emp.role} ({emp.department})
+                      </option>
+                    ))}
+                  </select>
+                </div>
+
+                <div className="grid grid-cols-2 gap-3">
+                  <div>
+                    <label className="block text-[10px] font-bold uppercase text-slate-500 mb-1">Target Score *</label>
+                    <input
+                      type="text"
+                      required
+                      value={newReview.targetScore}
+                      onChange={e => setNewReview({ ...newReview, targetScore: e.target.value })}
+                      placeholder="e.g. 115% Achieved"
+                      className="w-full bg-slate-50 dark:bg-navy-950 border border-slate-200 dark:border-navy-800 rounded-xl px-3 py-2 text-xs font-bold focus:outline-none"
+                    />
+                  </div>
+
+                  <div>
+                    <label className="block text-[10px] font-bold uppercase text-slate-500 mb-1">Rating (1.0 to 5.0) *</label>
+                    <input
+                      type="number"
+                      step="0.1"
+                      min="1.0"
+                      max="5.0"
+                      required
+                      value={newReview.rating}
+                      onChange={e => setNewReview({ ...newReview, rating: e.target.value })}
+                      className="w-full bg-slate-50 dark:bg-navy-950 border border-slate-200 dark:border-navy-800 rounded-xl px-3 py-2 text-xs font-bold focus:outline-none"
+                    />
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-2 gap-3">
+                  <div>
+                    <label className="block text-[10px] font-bold uppercase text-slate-500 mb-1">Tasks Done *</label>
+                    <input
+                      type="text"
+                      required
+                      value={newReview.tasksDone}
+                      onChange={e => setNewReview({ ...newReview, tasksDone: e.target.value })}
+                      placeholder="e.g. 42/45"
+                      className="w-full bg-slate-50 dark:bg-navy-950 border border-slate-200 dark:border-navy-800 rounded-xl px-3 py-2 text-xs font-bold focus:outline-none"
+                    />
+                  </div>
+
+                  <div>
+                    <label className="block text-[10px] font-bold uppercase text-slate-500 mb-1">Reviewer Name *</label>
+                    <input
+                      type="text"
+                      required
+                      value={newReview.reviewer}
+                      onChange={e => setNewReview({ ...newReview, reviewer: e.target.value })}
+                      placeholder="e.g. Priya Lead"
+                      className="w-full bg-slate-50 dark:bg-navy-950 border border-slate-200 dark:border-navy-800 rounded-xl px-3 py-2 text-xs font-bold focus:outline-none"
+                    />
+                  </div>
+                </div>
+
+                <div>
+                  <label className="block text-[10px] font-bold uppercase text-slate-500 mb-1">Manager Qualitative Feedback *</label>
+                  <textarea
+                    rows={3}
+                    required
+                    value={newReview.feedback}
+                    onChange={e => setNewReview({ ...newReview, feedback: e.target.value })}
+                    placeholder="Enter objective appraisal feedback, strengths, and goals..."
+                    className="w-full bg-slate-50 dark:bg-navy-950 border border-slate-200 dark:border-navy-800 rounded-xl px-3 py-2 text-xs font-medium focus:outline-none"
+                  />
+                </div>
+
+                <div className="flex justify-end gap-2 pt-3 border-t border-slate-200 dark:border-navy-800">
+                  <button
+                    type="button"
+                    onClick={() => setIsAddReviewOpen(false)}
+                    className="px-4 py-2 bg-slate-100 dark:bg-navy-800 text-slate-600 dark:text-slate-300 font-bold rounded-xl cursor-pointer"
+                  >
+                    Cancel
+                  </button>
+                  <button
+                    type="submit"
+                    className="px-5 py-2 bg-gold-500 hover:bg-gold-600 text-navy-950 font-bold rounded-xl shadow-xs transition cursor-pointer"
+                  >
+                    Submit Performance Review
+                  </button>
+                </div>
+              </form>
+
+            </div>
+          </div>
+        )}
       </div>
     </ScrollReveal>
   );

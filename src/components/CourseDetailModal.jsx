@@ -1,4 +1,4 @@
-import React, { useEffect, useState, useMemo } from 'react';
+import React, { useEffect, useState } from 'react';
 import { 
   X, CheckCircle2, ShieldCheck, GraduationCap, Award, BookOpen, 
   ArrowRight, Building2, Briefcase, FileText, ChevronRight, 
@@ -31,7 +31,7 @@ export const CourseDetailModal = ({ course, isOpen, onClose, onSelectCourse, onI
     setActiveTab('overview');
   }, [course?.id]);
 
-  const relatedCourses = useMemo(() => {
+  const relatedCourses = React.useMemo(() => {
     if (!course) return [];
     if (course.streamId) {
       const streamCourses = course.level === 'PG' ? getPgCoursesByStream(course.streamId) : getCoursesByStream(course.streamId);

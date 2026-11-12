@@ -132,6 +132,8 @@ export const CrmSidebar = ({ collapsed, setCollapsed }) => {
       icon: CheckSquare,
       ...(isHrOperationsRole ? {} : { tag: 'Task' })
     },
+    { id: 'attendance', label: 'Attendance Management', icon: Clock },
+    { id: 'leave', label: 'Leave Management', icon: Calendar },
     {
       id: 'my-attendance',
       label: 'My Attendance',
@@ -163,10 +165,21 @@ export const CrmSidebar = ({ collapsed, setCollapsed }) => {
 
   const isRecruiterRole = currentRole === 'Recruiter' || currentRole === 'Domestic Recruiter' || currentRole === 'International Recruiter';
   const isPlacementRole = currentRole === 'Placement Coordinator';
-  const isInterviewerRole = currentRole === 'Interviewer';
+  const isInterviewerRole = false;
   const isHrLeadRole = currentRole === 'HR Lead';
+  const isHrOpsRole = currentRole === 'HR Operations';
 
-  // 12 Recruiter Dashboard features as defined in Page 1 of the Recruitment Requirements PDF
+  // 6 HR Operations features tailored to daily task execution, enquiries & verification
+  const hrOpsMenuItems = [
+    { id: 'dashboard', label: 'Operations Work Queue', icon: LayoutDashboard, tag: '1' },
+    { id: 'hr-tasks', label: 'Assigned HR Tasks', icon: CheckSquare, tag: 'Flowchart' },
+    { id: 'documentation', label: 'Document Verification & KYC', icon: FileText, tag: '2' },
+    { id: 'verification', label: 'Background Verification (BGV)', icon: ShieldCheck, tag: '3' },
+    { id: 'consulting', label: 'Inquiries & Admissions', icon: Calendar, tag: '4' },
+    { id: 'candidates', label: 'Candidate Dossiers', icon: Users, tag: '5' }
+  ];
+
+  // 9 Recruiter Dashboard features (Removed Notes & Tags, Communication, Team Collaboration)
   const recruiterMenuItems = [
     { id: 'dashboard', label: 'Dashboard overview', icon: LayoutDashboard, tag: '1' },
     { id: 'vacancies', label: 'Job / vacancy management', icon: Briefcase, tag: '2' },
@@ -174,28 +187,24 @@ export const CrmSidebar = ({ collapsed, setCollapsed }) => {
     { id: 'search-filters', label: 'Search and filters', icon: Search, tag: '4' },
     { id: 'pipeline', label: 'Application pipeline', icon: GitMerge, tag: '5' },
     { id: 'documentation', label: 'Resume upload and storage', icon: FileText, tag: '6' },
-    { id: 'notes-tags', label: 'Candidate notes and tags', icon: Tag, tag: '7' },
-    { id: 'interviews', label: 'Interview scheduling', icon: Calendar, tag: '8' },
-    { id: 'communication', label: 'Candidate communication', icon: MessageSquare, tag: '9' },
-    { id: 'offers', label: 'Offers and joining', icon: Award, tag: '10' },
-    { id: 'reports', label: 'Reports and analytics', icon: BarChart3, tag: '11' },
-    { id: 'collaboration', label: 'Team collaboration', icon: Users2, tag: '12' }
+    { id: 'interviews', label: 'Interview scheduling', icon: Calendar, tag: '7' },
+    { id: 'offers', label: 'Offers and joining', icon: Award, tag: '8' },
+    { id: 'reports', label: 'Reports and analytics', icon: BarChart3, tag: '9' }
   ];
 
-  // 12 Placement Coordinator Dashboard features as defined in Page 2 of the Recruitment Requirements PDF
+  // 11 Placement Coordinator Dashboard features as defined in Page 2 of the Recruitment Requirements PDF
   const placementMenuItems = [
     { id: 'plc-overview', label: 'Dashboard overview', icon: LayoutDashboard, tag: '1' },
     { id: 'plc-students', label: 'Student profile management', icon: GraduationCap, tag: '2' },
-    { id: 'plc-eligibility', label: 'Eligibility management', icon: CheckCircle2, tag: '3' },
-    { id: 'plc-companies', label: 'Company management', icon: Building2, tag: '4' },
-    { id: 'plc-drives', label: 'Placement drive management', icon: Briefcase, tag: '5' },
-    { id: 'plc-registration', label: 'Student registration', icon: UserCheck, tag: '6' },
-    { id: 'plc-applications', label: 'Application tracking', icon: GitMerge, tag: '7' },
-    { id: 'plc-events', label: 'Interview & event coordination', icon: Calendar, tag: '8' },
-    { id: 'plc-offers', label: 'Offer & placement records', icon: Award, tag: '9' },
-    { id: 'plc-announcements', label: 'Announcements & notifications', icon: Bell, tag: '10' },
-    { id: 'plc-reports', label: 'Reports and exports', icon: BarChart3, tag: '11' },
-    { id: 'plc-approvals', label: 'Access and approvals', icon: ShieldCheck, tag: '12' }
+    { id: 'plc-companies', label: 'Company management', icon: Building2, tag: '3' },
+    { id: 'plc-drives', label: 'Placement drive management', icon: Briefcase, tag: '4' },
+    { id: 'plc-registration', label: 'Student registration', icon: UserCheck, tag: '5' },
+    { id: 'plc-applications', label: 'Application tracking', icon: GitMerge, tag: '6' },
+    { id: 'plc-events', label: 'Recruitment & placement coordination', icon: Calendar, tag: '7' },
+    { id: 'plc-offers', label: 'Offer & placement records', icon: Award, tag: '8' },
+    { id: 'plc-announcements', label: 'Announcements & notifications', icon: Bell, tag: '9' },
+    { id: 'plc-reports', label: 'Reports and exports', icon: BarChart3, tag: '10' },
+    { id: 'plc-approvals', label: 'Access and approvals', icon: ShieldCheck, tag: '11' }
   ];
 
   // 12 Interviewer Dashboard features as defined in Page 3 of the Recruitment Requirements PDF
@@ -214,7 +223,7 @@ export const CrmSidebar = ({ collapsed, setCollapsed }) => {
     { id: 'int-permissions', label: 'Confidentiality & permissions', icon: Lock, tag: '12' }
   ];
 
-  // 13 HR Lead Dashboard features as defined in the HR Lead Feature Plan
+  // 10 HR Lead Dashboard features (Removed Payroll, Grievances, Approvals, Analytics)
   const hrLeadMenuItems = [
     { id: 'hr-overview', label: 'Dashboard overview', icon: LayoutDashboard, tag: '1' },
     { id: 'hr-tasks', label: 'HR Task Assignment', icon: CheckSquare, tag: 'Flowchart' },
@@ -222,14 +231,10 @@ export const CrmSidebar = ({ collapsed, setCollapsed }) => {
     { id: 'hr-leave', label: 'Leave management', icon: Calendar, tag: '3' },
     { id: 'hr-employees', label: 'Employee management', icon: Users, tag: '4' },
     { id: 'hr-performance', label: 'Employee performance', icon: TrendingUp, tag: '5' },
-    { id: 'hr-recruitment', label: 'Recruitment & onboarding', icon: UserPlus, tag: '6' },
-    { id: 'hr-payroll', label: 'Payroll management', icon: CreditCard, tag: '7' },
-    { id: 'hr-announcements', label: 'Announcements & alerts', icon: Bell, tag: '8' },
-    { id: 'hr-shifts', label: 'Shift management', icon: CalendarCheck, tag: '9' },
-    { id: 'hr-documents', label: 'Document repository', icon: FileText, tag: '10' },
-    { id: 'hr-grievances', label: 'Grievance management', icon: AlertCircle, tag: '11' },
-    { id: 'hr-approvals', label: 'Central approval center', icon: CheckSquare, tag: '12' },
-    { id: 'hr-reports', label: 'Workforce analytics', icon: BarChart3, tag: '13' },
+    { id: 'hr-recruitment', label: 'Onboarding', icon: UserPlus, tag: '6' },
+    { id: 'hr-announcements', label: 'Announcements & alerts', icon: Bell, tag: '7' },
+    { id: 'hr-shifts', label: 'Shift management', icon: CalendarCheck, tag: '8' },
+    { id: 'hr-documents', label: 'Document repository', icon: FileText, tag: '9' },
     { id: 'my-profile', label: 'My Profile', icon: User, tag: 'Profile' }
   ];
 
@@ -243,10 +248,11 @@ export const CrmSidebar = ({ collapsed, setCollapsed }) => {
     permittedItems = recruiterMenuItems;
   } else if (isPlacementRole) {
     permittedItems = placementMenuItems;
-  } else if (isInterviewerRole) {
-    permittedItems = interviewerMenuItems;
+  
   } else if (isHrLeadRole) {
     permittedItems = hrLeadMenuItems;
+  } else if (isHrOpsRole) {
+    permittedItems = hrOpsMenuItems;
   }
 
   // Role-based filtering for Consulting & Bookings sub-services
@@ -301,7 +307,7 @@ export const CrmSidebar = ({ collapsed, setCollapsed }) => {
             <div className="px-2 pt-0.5 pb-2">
               <div className="flex items-center justify-between px-1 text-[10px] font-extrabold tracking-wider uppercase text-gold-600 dark:text-gold-400">
                 <span>Recruiter Features</span>
-                <span className="font-mono bg-gold-500/15 text-gold-700 dark:text-gold-300 px-1.5 py-0.5 rounded text-[9px] border border-gold-500/30">12 Features</span>
+                <span className="font-mono bg-gold-500/15 text-gold-700 dark:text-gold-300 px-1.5 py-0.5 rounded text-[9px] border border-gold-500/30">9 Features</span>
               </div>
             </div>
           )}
@@ -310,16 +316,7 @@ export const CrmSidebar = ({ collapsed, setCollapsed }) => {
             <div className="px-2 pt-0.5 pb-2">
               <div className="flex items-center justify-between px-1 text-[10px] font-extrabold tracking-wider uppercase text-gold-600 dark:text-gold-400">
                 <span>Placement Features</span>
-                <span className="font-mono bg-gold-500/15 text-gold-700 dark:text-gold-300 px-1.5 py-0.5 rounded text-[9px] border border-gold-500/30">12 Features</span>
-              </div>
-            </div>
-          )}
-
-          {isInterviewerRole && !collapsed && (
-            <div className="px-2 pt-0.5 pb-2">
-              <div className="flex items-center justify-between px-1 text-[10px] font-extrabold tracking-wider uppercase text-gold-600 dark:text-gold-400">
-                <span>Interviewer Features</span>
-                <span className="font-mono bg-gold-500/15 text-gold-700 dark:text-gold-300 px-1.5 py-0.5 rounded text-[9px] border border-gold-500/30">12 Features</span>
+                <span className="font-mono bg-gold-500/15 text-gold-700 dark:text-gold-300 px-1.5 py-0.5 rounded text-[9px] border border-gold-500/30">11 Features</span>
               </div>
             </div>
           )}
@@ -328,7 +325,7 @@ export const CrmSidebar = ({ collapsed, setCollapsed }) => {
             <div className="px-2 pt-0.5 pb-2">
               <div className="flex items-center justify-between px-1 text-[10px] font-extrabold tracking-wider uppercase text-gold-600 dark:text-gold-400">
                 <span>HR Lead Workspace</span>
-                <span className="font-mono bg-gold-500/15 text-gold-700 dark:text-gold-300 px-1.5 py-0.5 rounded text-[9px] border border-gold-500/30">13 Modules</span>
+                <span className="font-mono bg-gold-500/15 text-gold-700 dark:text-gold-300 px-1.5 py-0.5 rounded text-[9px] border border-gold-500/30">10 Modules</span>
               </div>
             </div>
           )}
