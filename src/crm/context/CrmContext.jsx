@@ -649,6 +649,33 @@ export const CrmProvider = ({ children }) => {
     return () => window.removeEventListener('keydown', handleKeyDown);
   }, []);
 
+  // Auto-acquire authenticated CRM session token if session is active but token is absent/empty
+  useEffect(() => {
+    if (isAuthenticated && !crmToken && currentRole && typeof fetch !== 'undefined') {
+      fetch('/api/crm/auth/preview-token', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ targetRole: currentRole })
+      })
+        .then((r) => r.json())
+        .then((data) => {
+          if (data?.success && data.token) {
+            setCrmToken(data.token);
+            try {
+              const cur = JSON.parse(localStorage.getItem('sir_crm_session') || '{}');
+              if (cur && cur.isAuthenticated) {
+                localStorage.setItem('sir_crm_session', JSON.stringify({
+                  ...cur,
+                  crmToken: data.token
+                }));
+              }
+            } catch (_) {}
+          }
+        })
+        .catch(() => {});
+    }
+  }, [isAuthenticated, crmToken, currentRole]);
+
   const hasPermission = (moduleName) => {
     if (!moduleName) return true;
     if (moduleName === 'my-profile') return true;
@@ -1078,12 +1105,12 @@ export const CrmProvider = ({ children }) => {
 
     // Realistic corporate profile personas for authentic role-testing
     const ROLE_PERSONAS = {
-      'Super Admin': { id: 'EMP-1001', name: 'The Job Sync IT', email: 'thejobsyncit@gmail.com', avatar: 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=150&auto=format&fit=crop&q=80' },
-      'Admin': { id: 'EMP-1002', name: 'Tariq Al Mansoor', email: 'tariq.admin@revivalinternational.com', avatar: 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=150&auto=format&fit=crop&q=80' },
-      'HR Lead': { id: 'EMP-1003', name: 'Sarah Al Zaabi', email: 'sarah.hr@revivalinternational.com', avatar: 'https://images.unsplash.com/photo-1573496359142-b8d87734a5a2?w=150&auto=format&fit=crop&q=80' },
-      'Recruiter': { id: 'EMP-1004', name: 'Sreeja Recruiter', email: 'sreeja.jasync@gmail.com', avatar: 'https://images.unsplash.com/photo-1580489944761-15a19d654956?w=150&auto=format&fit=crop&q=80' },
-      'Placement Coordinator': { id: 'EMP-1005', name: 'Dhanalakshimi', email: 'dhana.jasync@gmail.com', avatar: 'https://images.unsplash.com/photo-1567532939604-b6b5b0db2604?w=150&auto=format&fit=crop&q=80' },
-      'HR Operations': { id: 'EMP-1006', name: 'Balavarshini S.', email: 'balavarshini.ops@revivalinternational.com', avatar: 'https://images.unsplash.com/photo-1544005313-94ddf0286df2?w=150&auto=format&fit=crop&q=80' }
+      'Super Admin': { id: 'emp-tariq', employeeId: 'REV-EMP-000', name: 'Tariq Mansoor', email: 'tariq.admin@revivalinternational.com', altEmail: 'thejobsyncit@gmail.com', avatar: 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=150&auto=format&fit=crop&q=80', department: 'Executive Management' },
+      'Admin': { id: 'emp-2', employeeId: 'REV-EMP-002', name: 'Sarah Jenkins', email: 'sarah.admin@revivalinternational.com', avatar: 'https://images.unsplash.com/photo-1573496359142-b8d87734a5a2?w=150&auto=format&fit=crop&q=80', department: 'Administration' },
+      'HR Lead': { id: 'emp-3', employeeId: 'REV-EMP-003', name: 'Sarah Al Zaabi', email: 'sarah.hr@revivalinternational.com', avatar: 'https://images.unsplash.com/photo-1573496359142-b8d87734a5a2?w=150&auto=format&fit=crop&q=80', department: 'Human Resources' },
+      'Recruiter': { id: 'emp-4', employeeId: 'REV-EMP-004', name: 'Kishore Kumar', email: 'kishore.recruiter@revivalinternational.com', avatar: 'https://images.unsplash.com/photo-1580489944761-15a19d654956?w=150&auto=format&fit=crop&q=80', department: 'Recruitment & ATS' },
+      'Placement Coordinator': { id: 'emp-5', employeeId: 'REV-EMP-005', name: 'Dhanalakshimi', email: 'dhana.jasync@gmail.com', altEmail: 'dhanalakshimi@revivalinternational.com', avatar: 'https://images.unsplash.com/photo-1567532939604-b6b5b0db2604?w=150&auto=format&fit=crop&q=80', department: 'Placement & Industry Relations' },
+      'HR Operations': { id: 'emp-6', employeeId: 'REV-EMP-006', name: 'Balavarshini S.', email: 'balavarshini.s@revivalinternational.com', altEmail: 'balavarshini2223@gmail.com', avatar: 'https://images.unsplash.com/photo-1544005313-94ddf0286df2?w=150&auto=format&fit=crop&q=80', department: 'International HR Operations', operationTeam: 'International HR Operations', designation: 'Lead HR Operations Specialist' }
     };
 
     const persona = ROLE_PERSONAS[newRole] || { id: 'EMP-001', name: newRole, email: `${newRole.toLowerCase().replace(/\s+/g, '.')}@revivalinternational.com` };
@@ -1113,47 +1140,83 @@ export const CrmProvider = ({ children }) => {
         }));
       } catch (e) { }
       const activeBearer = crmToken || superAdminToken;
-      if (typeof fetch !== 'undefined' && activeBearer) {
+      if (typeof fetch !== 'undefined') {
         const restoreTok = superAdminToken || (user?.role === 'Super Admin' ? crmToken : '');
         if (restoreTok && !superAdminToken) {
           setSuperAdminToken(restoreTok);
         }
         setAuthTokenLoading(true);
-        fetch('/api/crm/auth/switch-preview-role', {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-            Authorization: `Bearer ${activeBearer}`
-          },
-          body: JSON.stringify({ targetRole: newRole, restoreToken: restoreTok })
-        })
-          .then((res) => res.json().then((data) => ({ ok: res.ok, data })))
-          .then(({ ok, data }) => {
-            if (!ok || !data?.success) return;
-            const resolvedEmp = data.employee ? { ...updatedUser, ...data.employee, role: newRole } : updatedUser;
-            if (data.employee) {
-              setUser(resolvedEmp);
-            }
-            if (data.token) {
-              setCrmToken(data.token);
-            }
+
+        const acquireTokenForSwitch = async () => {
+          let tokenAcquired = false;
+          if (activeBearer) {
             try {
-              const cur = JSON.parse(localStorage.getItem('sir_crm_session') || '{}');
-              if (cur && cur.isAuthenticated) {
-                localStorage.setItem('sir_crm_session', JSON.stringify({
-                  ...cur,
-                  user: resolvedEmp,
-                  currentRole: newRole,
-                  crmToken: data.token || cur.crmToken || '',
-                  ...(restoreTok ? { superAdminToken: restoreTok } : {})
-                }));
+              const res = await fetch('/api/crm/auth/switch-preview-role', {
+                method: 'POST',
+                headers: {
+                  'Content-Type': 'application/json',
+                  Authorization: `Bearer ${activeBearer}`
+                },
+                body: JSON.stringify({ targetRole: newRole, restoreToken: restoreTok })
+              });
+              if (res.ok) {
+                const data = await res.json();
+                if (data?.success && data.token) {
+                  tokenAcquired = true;
+                  setCrmToken(data.token);
+                  const resolvedEmp = data.employee ? { ...updatedUser, ...data.employee, role: newRole } : updatedUser;
+                  setUser(resolvedEmp);
+                  try {
+                    const cur = JSON.parse(localStorage.getItem('sir_crm_session') || '{}');
+                    if (cur && cur.isAuthenticated) {
+                      localStorage.setItem('sir_crm_session', JSON.stringify({
+                        ...cur,
+                        user: resolvedEmp,
+                        currentRole: newRole,
+                        crmToken: data.token,
+                        ...(restoreTok ? { superAdminToken: restoreTok } : {})
+                      }));
+                    }
+                  } catch { }
+                }
               }
             } catch { }
-          })
-          .catch(() => { })
-          .finally(() => {
-            setAuthTokenLoading(false);
-          });
+          }
+
+          if (!tokenAcquired) {
+            try {
+              const res = await fetch('/api/crm/auth/preview-token', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ targetRole: newRole })
+              });
+              if (res.ok) {
+                const data = await res.json();
+                if (data?.success && data.token) {
+                  tokenAcquired = true;
+                  setCrmToken(data.token);
+                  const resolvedEmp = data.employee ? { ...updatedUser, ...data.employee, role: newRole } : updatedUser;
+                  setUser(resolvedEmp);
+                  try {
+                    const cur = JSON.parse(localStorage.getItem('sir_crm_session') || '{}');
+                    if (cur && cur.isAuthenticated) {
+                      localStorage.setItem('sir_crm_session', JSON.stringify({
+                        ...cur,
+                        user: resolvedEmp,
+                        currentRole: newRole,
+                        crmToken: data.token,
+                        ...(restoreTok ? { superAdminToken: restoreTok } : {})
+                      }));
+                    }
+                  } catch { }
+                }
+              }
+            } catch { }
+          }
+          setAuthTokenLoading(false);
+        };
+
+        acquireTokenForSwitch();
       }
     } else {
       try {

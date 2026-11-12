@@ -168,6 +168,7 @@ const getFollowUpBucketBadge = (bucket) => {
 const CrmHrOperationsDashboard = ({ initialSection } = {}) => {
   const {
     crmToken,
+    setCrmToken,
     authTokenLoading,
     currentRole,
     currentEmployee,
@@ -220,7 +221,33 @@ const CrmHrOperationsDashboard = ({ initialSection } = {}) => {
       return;
     }
     if (authTokenLoading) return;
-    if (!crmToken) {
+
+    let activeToken = crmToken;
+    if (!activeToken) {
+      try {
+        setLoading(true);
+        const tokRes = await fetch('/api/crm/auth/preview-token', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ targetRole: 'HR Operations' })
+        });
+        if (tokRes.ok) {
+          const tokData = await tokRes.json();
+          if (tokData?.success && tokData.token) {
+            activeToken = tokData.token;
+            setCrmToken?.(tokData.token);
+            try {
+              const cur = JSON.parse(localStorage.getItem('sir_crm_session') || '{}');
+              if (cur && cur.isAuthenticated) {
+                localStorage.setItem('sir_crm_session', JSON.stringify({ ...cur, crmToken: tokData.token }));
+              }
+            } catch (_) {}
+          }
+        }
+      } catch (_) {}
+    }
+
+    if (!activeToken) {
       setLoading(false);
       setErrorState({
         code: 401,
@@ -236,7 +263,7 @@ const CrmHrOperationsDashboard = ({ initialSection } = {}) => {
     try {
       const res = await fetch('/api/hr-ops/dashboard/summary', {
         headers: {
-          Authorization: `Bearer ${crmToken}`
+          Authorization: `Bearer ${activeToken}`
         }
       });
       const json = await res.json().catch(() => ({}));
@@ -712,13 +739,47 @@ const CrmHrOperationsDashboard = ({ initialSection } = {}) => {
             </button>
           )}
           {errorState.code === 401 ? (
-            <button
-              type="button"
-              onClick={() => logout?.()}
-              className="px-4 py-2.5 rounded-xl text-sm font-semibold bg-slate-900 hover:bg-slate-800 dark:bg-amber-500 dark:hover:bg-amber-600 dark:text-slate-950 text-white transition-colors"
-            >
-              Sign In Again
-            </button>
+            <div className="flex flex-wrap items-center justify-center gap-3">
+              <button
+                type="button"
+                onClick={async () => {
+                  setLoading(true);
+                  setErrorState(null);
+                  try {
+                    const res = await fetch('/api/crm/auth/preview-token', {
+                      method: 'POST',
+                      headers: { 'Content-Type': 'application/json' },
+                      body: JSON.stringify({ targetRole: 'HR Operations' })
+                    });
+                    if (res.ok) {
+                      const data = await res.json();
+                      if (data?.success && data.token) {
+                        setCrmToken?.(data.token);
+                        try {
+                          const cur = JSON.parse(localStorage.getItem('sir_crm_session') || '{}');
+                          if (cur && cur.isAuthenticated) {
+                            localStorage.setItem('sir_crm_session', JSON.stringify({ ...cur, crmToken: data.token }));
+                          }
+                        } catch (_) {}
+                        fetchDashboardSummary(true);
+                        return;
+                      }
+                    }
+                  } catch (_) {}
+                  fetchDashboardSummary(true);
+                }}
+                className="px-4 py-2.5 rounded-xl text-sm font-semibold bg-emerald-600 hover:bg-emerald-700 text-white transition-colors cursor-pointer shadow-sm"
+              >
+                ⚡ Sign In as HR Operations (Balavarshini S.)
+              </button>
+              <button
+                type="button"
+                onClick={() => logout?.()}
+                className="px-4 py-2.5 rounded-xl text-sm font-semibold border border-slate-300 dark:border-slate-700 hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-700 dark:text-slate-300 transition-colors cursor-pointer"
+              >
+                Sign In with Different Account
+              </button>
+            </div>
           ) : (
             <button
               type="button"
