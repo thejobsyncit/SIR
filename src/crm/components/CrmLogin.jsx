@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { useCrm } from '../context/CrmContext';
 import { 
   Lock, Mail, Eye, EyeOff, ShieldCheck, KeyRound, Sparkles, 
-  CheckCircle2, UserCheck, AlertTriangle, AlertCircle, RefreshCw, Laptop, Smartphone, Monitor, ShieldAlert, X, UserPlus, Check 
+  CheckCircle2, UserCheck, AlertTriangle, AlertCircle, RefreshCw, Laptop, Smartphone, Monitor, ShieldAlert, X 
 } from 'lucide-react';
 import { CRM_ROLES } from '../data/mockCrmData';
 import ScrollReveal from '../../components/ScrollReveal';
@@ -183,17 +183,6 @@ export const CrmLogin = () => {
   const [forgotSuccess, setForgotSuccess] = useState('');
   const [devicesModalOpen, setDevicesModalOpen] = useState(false);
 
-  // Super Admin / Account Registration Modal State
-  const [registerModalOpen, setRegisterModalOpen] = useState(false);
-  const [regData, setRegData] = useState({
-    name: '',
-    email: '',
-    role: 'Super Admin',
-    password: '',
-    adminKey: 'REV-SUPER-2026'
-  });
-  const [registerSuccessMsg, setRegisterSuccessMsg] = useState('');
-
   // Helper to match email or altEmail
   const matchesUser = (u, target) => {
     if (!u || !target) return false;
@@ -343,57 +332,6 @@ export const CrmLogin = () => {
     }, 200);
   };
 
-  const handleRegisterSuperAdmin = async (e) => {
-    e.preventDefault();
-    setAuthErrorMsg('');
-
-    if (!regData.email || !regData.password) {
-      alert('Please fill in both Email ID and Password.');
-      return;
-    }
-
-    setIsAuthenticating(true);
-
-    const newUser = {
-      id: `emp-${Date.now()}`,
-      employeeId: `EMP-${Math.floor(1000 + Math.random() * 9000)}`,
-      name: regData.name.trim() || 'Super Admin User',
-      email: regData.email.trim().toLowerCase(),
-      role: 'Super Admin',
-      department: 'Executive Management',
-      password: regData.password,
-      status: 'Active'
-    };
-
-    const updatedList = [newUser, ...registeredUsers.filter(u => u.email.toLowerCase() !== newUser.email)];
-    setRegisteredUsers(updatedList);
-    localStorage.setItem('sir_crm_registered_users', JSON.stringify(updatedList));
-
-    // Also persist to SQLite backend
-    const endpoints = ['/api/employees', 'http://localhost:5000/api/employees'];
-    for (const ep of endpoints) {
-      try {
-        await fetch(ep, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify(newUser)
-        });
-        break;
-      } catch (_) {}
-    }
-
-    setEmail(newUser.email);
-    setPassword(newUser.password);
-
-    setRegisterSuccessMsg(`✓ Super Admin Mail ID '${newUser.email}' created & registered successfully! Launching CRM...`);
-
-    setTimeout(() => {
-      login(newUser.email, newUser.password, newUser.role, newUser);
-      setIsAuthenticating(false);
-      setRegisterModalOpen(false);
-    }, 600);
-  };
-
   const handleDirectResetPassword = async (e) => {
     e.preventDefault();
     setForgotError('');
@@ -475,22 +413,6 @@ export const CrmLogin = () => {
           </p>
         </div>
 
-        {/* Register Account Quick Callout Button */}
-        <div className="p-3.5 bg-navy-950 border-2 border-gold-500/50 rounded-2xl flex justify-between items-center text-xs shadow-sm">
-          <div>
-            <span className="text-white font-extrabold text-xs block">Need a Corporate Mail ID?</span>
-            <span className="text-[11px] text-slate-200 font-semibold">Register new Super Admin account to login</span>
-          </div>
-          <button 
-            type="button"
-            onClick={() => setRegisterModalOpen(true)}
-            className="py-2.5 px-3.5 bg-gold-500 hover:bg-gold-400 text-navy-950 font-extrabold text-xs rounded-xl shadow-gold-glow flex items-center gap-1.5 transition cursor-pointer shrink-0"
-          >
-            <UserPlus className="w-4 h-4" />
-            <span>+ Create Account</span>
-          </button>
-        </div>
-
         <form onSubmit={handlePasswordSubmit} className="space-y-4 text-xs">
             
             {authErrorMsg && (
@@ -501,75 +423,7 @@ export const CrmLogin = () => {
             )}
 
             <div>
-              <div className="flex justify-between items-center mb-1.5 flex-wrap gap-2">
-                <label className="block font-extrabold text-white text-xs">Corporate Email Address</label>
-              </div>
-
-              {/* Quick Demo Role Selector Pills */}
-              <div className="mb-2 flex flex-wrap items-center gap-1.5">
-                <span className="text-[10px] text-slate-400 font-bold uppercase tracking-wider mr-1">Demo Quick-Fill:</span>
-                <button
-                  type="button"
-                  onClick={() => {
-                    setEmail('thejobsyncit@gmail.com');
-                    setPassword('Thejobsync@26');
-                  }}
-                  className="px-2 py-0.5 text-[10px] bg-gold-500/15 hover:bg-gold-500/30 text-gold-400 font-extrabold rounded-lg border border-gold-500/30 transition cursor-pointer"
-                >
-                  ⚡ Super Admin
-                </button>
-                <button
-                  type="button"
-                  onClick={() => {
-                    setEmail('balavarshini.s@revivalinternational.com');
-                    setPassword('Password123!');
-                  }}
-                  className="px-2 py-0.5 text-[10px] bg-emerald-500/15 hover:bg-emerald-500/30 text-emerald-400 font-extrabold rounded-lg border border-emerald-500/30 transition cursor-pointer"
-                >
-                  ⚡ HR Operations
-                </button>
-                <button
-                  type="button"
-                  onClick={() => {
-                    setEmail('kishore.recruiter@revivalinternational.com');
-                    setPassword('Password123!');
-                  }}
-                  className="px-2 py-0.5 text-[10px] bg-cyan-500/15 hover:bg-cyan-500/30 text-cyan-400 font-extrabold rounded-lg border border-cyan-500/30 transition cursor-pointer"
-                >
-                  ⚡ Recruiter
-                </button>
-                <button
-                  type="button"
-                  onClick={() => {
-                    setEmail('sreeja.jasync@gmail.com');
-                    setPassword('Password123!');
-                  }}
-                  className="px-2 py-0.5 text-[10px] bg-purple-500/15 hover:bg-purple-500/30 text-purple-400 font-extrabold rounded-lg border border-purple-500/30 transition cursor-pointer"
-                >
-                  ⚡ Placement
-                </button>
-                <button
-                  type="button"
-                  onClick={() => {
-                    setEmail('priya.lead@revivalinternational.com');
-                    setPassword('Password123!');
-                  }}
-                  className="px-2 py-0.5 text-[10px] bg-blue-500/15 hover:bg-blue-500/30 text-blue-400 font-extrabold rounded-lg border border-blue-500/30 transition cursor-pointer"
-                >
-                  ⚡ HR Lead
-                </button>
-                <button
-                  type="button"
-                  onClick={() => {
-                    setEmail('sarah.admin@revivalinternational.com');
-                    setPassword('Password123!');
-                  }}
-                  className="px-2 py-0.5 text-[10px] bg-amber-500/15 hover:bg-amber-500/30 text-amber-400 font-extrabold rounded-lg border border-amber-500/30 transition cursor-pointer"
-                >
-                  ⚡ Admin
-                </button>
-              </div>
-
+              <label className="block font-extrabold text-white text-xs mb-1.5">Corporate Email Address</label>
               <div className="relative">
                 <Mail className="w-4 h-4 text-gold-400 absolute left-3.5 top-3.5" />
                 <input 
@@ -646,16 +500,6 @@ export const CrmLogin = () => {
               {isAuthenticating ? <RefreshCw className="w-4 h-4 animate-spin" /> : <ShieldCheck className="w-4 h-4" />}
               <span>{isAuthenticating ? 'Signing In & Launching CRM...' : 'Sign In to Enterprise CRM →'}</span>
             </button>
-
-            <div className="pt-2 text-center">
-              <button
-                type="button"
-                onClick={() => setRegisterModalOpen(true)}
-                className="text-xs text-gold-400 hover:text-gold-300 font-extrabold underline cursor-pointer"
-              >
-                + Register New Corporate / Super Admin Mail ID →
-              </button>
-            </div>
           </form>
 
         {/* Security & Active Devices Bar */}
@@ -675,100 +519,6 @@ export const CrmLogin = () => {
 
       </div>
       </ScrollReveal>
-
-      {/* Register New Super Admin Modal */}
-      {registerModalOpen && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-navy-950/80 backdrop-blur-sm animate-in fade-in">
-          <div className="glass-card bg-white dark:bg-navy-900 border border-slate-200 dark:border-gold-500/40 rounded-2xl max-w-md w-full p-6 shadow-luxury space-y-4">
-            <div className="flex justify-between items-center border-b border-slate-200 dark:border-navy-800 pb-3">
-              <h3 className="font-serif text-lg font-bold text-slate-900 dark:text-white flex items-center gap-2">
-                <UserPlus className="w-5 h-5 text-gold-500" />
-                Register New Super Admin Mail ID
-              </h3>
-              <button onClick={() => setRegisterModalOpen(false)} className="text-slate-500 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white p-1 cursor-pointer"><X className="w-5 h-5" /></button>
-            </div>
-
-            {registerSuccessMsg && (
-              <div className="p-3 bg-emerald-100 dark:bg-emerald-500/20 border border-emerald-300 dark:border-emerald-500/40 text-emerald-900 dark:text-emerald-300 font-bold rounded-xl text-xs flex items-center gap-2">
-                <Check className="w-4 h-4 text-emerald-600 dark:text-emerald-400 shrink-0" />
-                <span>{registerSuccessMsg}</span>
-              </div>
-            )}
-
-            <form onSubmit={handleRegisterSuperAdmin} className="space-y-3 text-xs">
-              <div>
-                <label className="block font-extrabold text-slate-700 dark:text-slate-300 mb-1">Full Name</label>
-                <input 
-                  type="text" 
-                  required 
-                  value={regData.name} 
-                  onChange={e => setRegData({...regData, name: e.target.value})} 
-                  className="w-full bg-slate-100 dark:bg-navy-950 border border-slate-300 dark:border-navy-700 text-slate-900 dark:text-white rounded-xl p-2.5 font-bold focus:outline-none focus:border-gold-500"
-                  placeholder="e.g. Tariq Al-Mansoori"
-                />
-              </div>
-
-              <div>
-                <label className="block font-extrabold text-slate-700 dark:text-slate-300 mb-1">New Corporate Email ID</label>
-                <input 
-                  type="email" 
-                  required 
-                  value={regData.email} 
-                  onChange={e => setRegData({...regData, email: e.target.value})} 
-                  className="w-full bg-slate-100 dark:bg-navy-950 border border-slate-300 dark:border-navy-700 text-slate-900 dark:text-white rounded-xl p-2.5 font-bold focus:outline-none focus:border-gold-500"
-                  placeholder="admin.name@revivalinternational.com"
-                />
-              </div>
-
-              <div className="grid grid-cols-2 gap-2">
-                <div>
-                  <label className="block font-extrabold text-slate-700 dark:text-slate-300 mb-1">Assigned Role</label>
-                  <div className="w-full bg-slate-100 dark:bg-navy-950 border border-gold-500/50 text-gold-600 dark:text-gold-400 rounded-xl p-2.5 font-extrabold flex items-center gap-1.5 text-xs">
-                    <ShieldCheck className="w-4 h-4 text-gold-500 shrink-0" />
-                    <span>Super Admin</span>
-                  </div>
-                </div>
-
-                <div>
-                  <label className="block font-extrabold text-slate-700 dark:text-slate-300 mb-1">Corporate Password</label>
-                  <input 
-                    type="password" 
-                    required 
-                    value={regData.password} 
-                    onChange={e => setRegData({...regData, password: e.target.value})} 
-                    className="w-full bg-slate-100 dark:bg-navy-950 border border-slate-300 dark:border-navy-700 text-slate-900 dark:text-white rounded-xl p-2.5 font-bold focus:outline-none focus:border-gold-500"
-                    placeholder="Enter password"
-                  />
-                </div>
-              </div>
-
-              <div className="p-2.5 bg-amber-500/10 border border-amber-500/30 rounded-xl text-[11px] text-amber-700 dark:text-gold-300 font-semibold leading-relaxed">
-                ℹ️ <strong>Security Access Control:</strong> Only <strong>Super Admin</strong> registration is allowed here. Staff accounts (<em>Admin, Recruiter, Placement Coordinator, HR Operations</em>) must be created by Super Admin inside CRM User Management.
-              </div>
-
-              <div>
-                <label className="block font-extrabold text-slate-700 dark:text-slate-300 mb-1">Super Admin Passcode Authorization Key</label>
-                <input 
-                  type="text" 
-                  required 
-                  value={regData.adminKey} 
-                  onChange={e => setRegData({...regData, adminKey: e.target.value})} 
-                  className="w-full bg-slate-100 dark:bg-navy-950 border border-slate-300 dark:border-navy-700 text-amber-800 dark:text-gold-400 rounded-xl p-2.5 font-mono font-bold focus:outline-none focus:border-gold-500"
-                />
-              </div>
-
-              <button 
-                type="submit" 
-                disabled={isAuthenticating}
-                className="w-full py-3 bg-gold-shimmer text-navy-950 font-extrabold rounded-xl shadow-gold-glow hover:opacity-95 transition cursor-pointer flex items-center justify-center space-x-2"
-              >
-                {isAuthenticating ? <RefreshCw className="w-4 h-4 animate-spin" /> : <UserPlus className="w-4 h-4" />}
-                <span>{isAuthenticating ? 'Creating Super Admin Account...' : 'Create Super Admin Account & Login'}</span>
-              </button>
-            </form>
-          </div>
-        </div>
-      )}
 
       {/* Forgot Password Modal (Zero OTP) */}
       {forgotModalOpen && (
