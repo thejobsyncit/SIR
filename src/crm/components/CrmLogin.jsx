@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { useCrm } from '../context/CrmContext';
 import { 
   Lock, Mail, Eye, EyeOff, ShieldCheck, KeyRound, Sparkles, 
-  CheckCircle2, UserCheck, AlertTriangle, AlertCircle, RefreshCw, Laptop, Smartphone, Monitor, ShieldAlert, X 
+  CheckCircle2, UserCheck, AlertTriangle, AlertCircle, RefreshCw, X 
 } from 'lucide-react';
 import { CRM_ROLES } from '../data/mockCrmData';
 import ScrollReveal from '../../components/ScrollReveal';
@@ -161,7 +161,6 @@ export const CrmLogin = () => {
   const { 
     login, recordFailedLogin = () => {}, failedLoginAttempts = 0, 
     accountLocked = false, lockoutTimeRemaining = 0, 
-    activeDevices = [], logoutEverywhere = () => {}, 
     currentRole, switchRole = () => {} 
   } = useCrm();
 
@@ -181,7 +180,6 @@ export const CrmLogin = () => {
   const [forgotConfirmPassword, setForgotConfirmPassword] = useState('');
   const [forgotError, setForgotError] = useState('');
   const [forgotSuccess, setForgotSuccess] = useState('');
-  const [devicesModalOpen, setDevicesModalOpen] = useState(false);
 
   // Helper to match email or altEmail
   const matchesUser = (u, target) => {
@@ -502,18 +500,11 @@ export const CrmLogin = () => {
             </button>
           </form>
 
-        {/* Security & Active Devices Bar */}
-        <div className="pt-4 border-t border-navy-800 text-[11px] text-slate-300 flex justify-between items-center font-bold">
-          <button 
-            onClick={() => setDevicesModalOpen(true)}
-            className="hover:text-gold-400 underline flex items-center gap-1 cursor-pointer"
-          >
-            <Laptop className="w-3.5 h-3.5 text-gold-400" />
-            Active Session Devices ({(activeDevices || []).length})
-          </button>
-          <span className="text-emerald-400 font-extrabold flex items-center gap-1">
+        {/* Security Badge */}
+        <div className="pt-4 border-t border-navy-800 text-[11px] text-slate-300 flex justify-center items-center font-bold">
+          <span className="text-emerald-400 font-extrabold flex items-center gap-1.5">
             <CheckCircle2 className="w-3.5 h-3.5 text-emerald-400" />
-            256-bit SSL Encrypted
+            256-bit SSL Encrypted Gateway
           </span>
         </div>
 
@@ -605,43 +596,6 @@ export const CrmLogin = () => {
                 </button>
               </form>
             )}
-          </div>
-        </div>
-      )}
-
-      {/* Active Devices Modal */}
-      {devicesModalOpen && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-navy-950/80 backdrop-blur-sm animate-in fade-in">
-          <div className="glass-card bg-white dark:bg-navy-900 border border-slate-200 dark:border-gold-500/40 rounded-2xl max-w-md w-full p-6 shadow-luxury space-y-4">
-            <div className="flex justify-between items-center border-b border-slate-200 dark:border-navy-800 pb-3">
-              <h3 className="font-serif text-lg font-bold text-slate-900 dark:text-white flex items-center gap-2">
-                <Laptop className="w-5 h-5 text-gold-500" />
-                Active Session Devices & History
-              </h3>
-              <button onClick={() => setDevicesModalOpen(false)} className="text-slate-500 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white cursor-pointer"><X className="w-5 h-5" /></button>
-            </div>
-
-            <div className="space-y-2 text-xs">
-              {(activeDevices || []).map(d => (
-                <div key={d.id} className="p-3 bg-slate-100 dark:bg-navy-950 rounded-xl border border-slate-200 dark:border-navy-800 flex justify-between items-center">
-                  <div>
-                    <p className="font-bold text-slate-900 dark:text-white flex items-center gap-1">
-                      {d.device}
-                      {d.current && <span className="bg-emerald-100 dark:bg-emerald-500/20 text-emerald-800 dark:text-emerald-400 text-[9px] px-1.5 py-0.5 rounded font-extrabold border border-emerald-300 dark:border-emerald-500/40">Current</span>}
-                    </p>
-                    <p className="text-[10px] text-slate-600 dark:text-slate-400 font-medium">IP: {d.ip} • {d.location}</p>
-                  </div>
-                  <span className="text-[10px] text-slate-500 font-bold">{d.lastActive}</span>
-                </div>
-              ))}
-            </div>
-
-            <button 
-              onClick={logoutEverywhere}
-              className="w-full py-2.5 bg-rose-100 dark:bg-rose-600/20 text-rose-800 dark:text-rose-300 hover:bg-rose-600 hover:text-white border border-rose-300 dark:border-rose-500/40 font-bold rounded-xl transition cursor-pointer text-xs"
-            >
-              Logout Everywhere (Revoke All Sessions)
-            </button>
           </div>
         </div>
       )}
