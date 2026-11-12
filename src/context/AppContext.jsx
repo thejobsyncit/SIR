@@ -459,6 +459,8 @@ export const AppProvider = ({ children }) => {
       phone: data.phone || existing.phone || '',
       dob: existing.dob || '',
       gender: existing.gender || '',
+      nationality: data.nationality || existing.nationality || '',
+      citizenship: data.citizenship || existing.citizenship || '',
       title: data.title || existing.title || 'Executive Candidate',
       location: data.location || existing.location || '',
       preferredCountry: data.preferredCountry || existing.preferredCountry || 'UAE',

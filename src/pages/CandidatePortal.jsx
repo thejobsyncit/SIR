@@ -6,7 +6,7 @@ import {
   User, FileText, Sparkles, CheckCircle2, Clock, Calendar as CalendarIcon, Bookmark, Bell, 
   Upload, Shield, ArrowRight, ArrowLeft, LogOut, Edit3, Camera, AlertCircle, Award, 
   Briefcase, MapPin, DollarSign, Check, X, Plus, Star, ChevronRight, Zap, Globe, Trash2, Video, Mic, MicOff, VideoOff, Search, Eye,
-  Building2, Send
+  Building2, Send, Paperclip, Download
 } from 'lucide-react';
 import ScrollReveal from '../components/ScrollReveal';
 import { SEO } from '../components/SEO';
@@ -150,6 +150,8 @@ export const CandidatePortal = () => {
     phone: user?.phone || '',
     dob: user?.dob || '',
     gender: user?.gender || '',
+    nationality: user?.nationality || '',
+    citizenship: user?.citizenship || '',
     title: user?.title || '',
     location: user?.location || '',
     preferredCountry: user?.preferredCountry || '',
@@ -157,6 +159,9 @@ export const CandidatePortal = () => {
     qualification: user?.qualification || '',
     expectedSalary: user?.expectedSalary || '',
     avatar: user?.avatar || '',
+    resumeName: user?.resumeName || '',
+    resumeUrl: user?.resumeUrl || '',
+    resumeSize: user?.resumeSize || '',
     mohreAttested: user?.mohreAttested || false,
     skillsInput: Array.isArray(user?.skills) ? user.skills.join(', ') : (user?.skills || '')
   });
@@ -174,6 +179,8 @@ export const CandidatePortal = () => {
         phone: user.phone || '',
         dob: user.dob || '',
         gender: user.gender || '',
+        nationality: user.nationality || '',
+        citizenship: user.citizenship || '',
         title: user.title || '',
         location: user.location || '',
         preferredCountry: user.preferredCountry || '',
@@ -181,6 +188,9 @@ export const CandidatePortal = () => {
         qualification: user.qualification || '',
         expectedSalary: user.expectedSalary || '',
         avatar: user.avatar || '',
+        resumeName: user.resumeName || '',
+        resumeUrl: user.resumeUrl || '',
+        resumeSize: user.resumeSize || '',
         mohreAttested: user.mohreAttested || false,
         skillsInput: Array.isArray(user.skills) ? user.skills.join(', ') : (user.skills || '')
       });
@@ -232,19 +242,57 @@ export const CandidatePortal = () => {
     setProfileForm(prev => ({ ...prev, avatar: '' }));
   };
 
+  // Handle CV / Resume Document Upload (.pdf, .doc, .docx)
+  const handleCvUpload = (e) => {
+    const file = e.target.files[0];
+    if (!file) return;
+
+    if (file.size > 10 * 1024 * 1024) {
+      setProfileFormError('CV file size exceeds 10MB limit. Please upload a smaller PDF or Word document.');
+      return;
+    }
+
+    const reader = new FileReader();
+    reader.onloadend = () => {
+      const sizeStr = (file.size / 1024) > 1024
+        ? `${(file.size / (1024 * 1024)).toFixed(2)} MB`
+        : `${Math.round(file.size / 1024)} KB`;
+
+      setProfileForm(prev => ({
+        ...prev,
+        resumeName: file.name,
+        resumeUrl: reader.result,
+        resumeSize: sizeStr
+      }));
+    };
+    reader.readAsDataURL(file);
+  };
+
+  const removeCvAttachment = () => {
+    setProfileForm(prev => ({
+      ...prev,
+      resumeName: '',
+      resumeUrl: '',
+      resumeSize: ''
+    }));
+  };
+
   // Calculate STRICT & AUTHENTIC Candidate Profile Score Percentage
   const calculateProfileScore = () => {
     let score = 0;
     if (user.name && user.name.trim() !== '') score += 10;
     if (user.email && user.email.trim() !== '') score += 10;
     if (user.phone && user.phone.trim() !== '') score += 10;
-    if (user.dob && user.dob.trim() !== '') score += 10;
-    if (user.gender && user.gender.trim() !== '') score += 10;
+    if (user.dob && user.dob.trim() !== '') score += 5;
+    if (user.gender && user.gender.trim() !== '') score += 5;
+    if (user.nationality && user.nationality.trim() !== '') score += 5;
+    if (user.citizenship && user.citizenship.trim() !== '') score += 5;
     if (user.title && user.title.trim() !== '') score += 10;
     if (user.location && user.location.trim() !== '') score += 10;
     if (user.preferredCountry && user.preferredCountry.trim() !== '') score += 10;
     if (user.qualification && user.qualification.trim() !== '') score += 10;
-    if (user.skills && Array.isArray(user.skills) && user.skills.length > 0) score += 10;
+    if (user.skills && Array.isArray(user.skills) && user.skills.length > 0) score += 5;
+    if (user.resumeName || user.resumeUploaded) score += 5;
     return Math.min(100, score);
   };
 
@@ -256,14 +304,23 @@ export const CandidatePortal = () => {
     if (!user.avatar || user.avatar.trim() === '') {
       suggestions.push({ id: 'avatar', title: 'Upload Profile Photo from Device (+10%)', targetTab: 'edit-profile', points: 10 });
     }
+    if (!user.resumeName && !user.resumeUploaded) {
+      suggestions.push({ id: 'cv', title: 'Attach CV / Resume (+5%)', targetTab: 'edit-profile', points: 5 });
+    }
+    if (!user.nationality || user.nationality.trim() === '') {
+      suggestions.push({ id: 'nationality', title: 'Add Nationality (+5%)', targetTab: 'edit-profile', points: 5 });
+    }
+    if (!user.citizenship || user.citizenship.trim() === '') {
+      suggestions.push({ id: 'citizenship', title: 'Add Citizenship (+5%)', targetTab: 'edit-profile', points: 5 });
+    }
     if (!user.phone || user.phone.trim() === '') {
       suggestions.push({ id: 'phone', title: 'Add Phone Number (+10%)', targetTab: 'edit-profile', points: 10 });
     }
     if (!user.dob || user.dob.trim() === '') {
-      suggestions.push({ id: 'dob', title: 'Add Date of Birth (+10%)', targetTab: 'edit-profile', points: 10 });
+      suggestions.push({ id: 'dob', title: 'Add Date of Birth (+5%)', targetTab: 'edit-profile', points: 5 });
     }
     if (!user.gender || user.gender.trim() === '') {
-      suggestions.push({ id: 'gender', title: 'Select Gender (+10%)', targetTab: 'edit-profile', points: 10 });
+      suggestions.push({ id: 'gender', title: 'Select Gender (+5%)', targetTab: 'edit-profile', points: 5 });
     }
     if (!user.title || user.title.trim() === '') {
       suggestions.push({ id: 'title', title: 'Add Professional Designation / Role (+10%)', targetTab: 'edit-profile', points: 10 });
@@ -275,7 +332,7 @@ export const CandidatePortal = () => {
       suggestions.push({ id: 'qualification', title: 'Add Educational Qualification (+10%)', targetTab: 'edit-profile', points: 10 });
     }
     if (!user.skills || (Array.isArray(user.skills) && user.skills.length === 0)) {
-      suggestions.push({ id: 'skills', title: 'Add Key Technical Skills (+10%)', targetTab: 'edit-profile', points: 10 });
+      suggestions.push({ id: 'skills', title: 'Add Key Technical Skills (+5%)', targetTab: 'edit-profile', points: 5 });
     }
     return suggestions;
   };
@@ -336,15 +393,21 @@ export const CandidatePortal = () => {
       name: cleanName,
       email: cleanEmail,
       phone: formattedPhone,
-      dob: profileForm.dob.trim(),
-      gender: profileForm.gender.trim(),
-      title: profileForm.title.trim(),
-      location: profileForm.location.trim(),
-      preferredCountry: profileForm.preferredCountry.trim(),
-      experience: profileForm.experience.trim(),
-      qualification: profileForm.qualification.trim(),
-      expectedSalary: profileForm.expectedSalary.trim(),
+      dob: (profileForm.dob || '').trim(),
+      gender: (profileForm.gender || '').trim(),
+      nationality: (profileForm.nationality || '').trim(),
+      citizenship: (profileForm.citizenship || '').trim(),
+      title: (profileForm.title || '').trim(),
+      location: (profileForm.location || '').trim(),
+      preferredCountry: (profileForm.preferredCountry || '').trim(),
+      experience: (profileForm.experience || '').trim(),
+      qualification: (profileForm.qualification || '').trim(),
+      expectedSalary: (profileForm.expectedSalary || '').trim(),
       avatar: profileForm.avatar,
+      resumeName: profileForm.resumeName,
+      resumeUrl: profileForm.resumeUrl,
+      resumeSize: profileForm.resumeSize,
+      resumeUploaded: !!profileForm.resumeName,
       mohreAttested: profileForm.mohreAttested,
       skills: skillsArray
     };
@@ -614,12 +677,15 @@ export const CandidatePortal = () => {
                 <p><strong className="text-navy-900 dark:text-white">Full Name:</strong> {user.name || <span className="text-slate-500 dark:text-slate-400 italic">Not set</span>}</p>
                 <p><strong className="text-navy-900 dark:text-white">Email:</strong> {user.email || <span className="text-slate-500 dark:text-slate-400 italic">Not set</span>}</p>
                 <p><strong className="text-navy-900 dark:text-white">Phone:</strong> {user.phone ? user.phone : <span className="text-rose-400 italic">Not provided</span>}</p>
+                <p><strong className="text-navy-900 dark:text-white">Nationality:</strong> {user.nationality ? <span className="font-semibold text-slate-900 dark:text-slate-100">{user.nationality}</span> : <span className="text-slate-400 italic">Not specified</span>}</p>
+                <p><strong className="text-navy-900 dark:text-white">Citizenship:</strong> {user.citizenship ? <span className="font-semibold text-slate-900 dark:text-slate-100">{user.citizenship}</span> : <span className="text-slate-400 italic">Not specified</span>}</p>
                 <p><strong className="text-navy-900 dark:text-white">Designation:</strong> {user.title ? user.title : <span className="text-rose-400 italic">Not provided</span>}</p>
                 <p><strong className="text-navy-900 dark:text-white">Location:</strong> {user.location ? user.location : <span className="text-slate-500 dark:text-slate-400 italic">Dubai / International</span>}</p>
                 <p><strong className="text-navy-900 dark:text-white">Target Country:</strong> {user.preferredCountry ? user.preferredCountry : <span className="text-rose-400 italic">UAE / Saudi Arabia</span>}</p>
                 <p><strong className="text-navy-900 dark:text-white">Experience:</strong> {user.experience ? user.experience : <span className="text-slate-500 italic">Executive Experience</span>}</p>
                 <p><strong className="text-navy-900 dark:text-white">Education:</strong> {user.qualification ? user.qualification : <span className="text-slate-500 italic">Professional Degree</span>}</p>
                 <p><strong className="text-navy-900 dark:text-white">Expected Salary:</strong> {user.expectedSalary ? user.expectedSalary : <span className="text-slate-500 dark:text-slate-400 italic">Negotiable</span>}</p>
+                <p><strong className="text-navy-900 dark:text-white">CV Attachment:</strong> {user.resumeName ? <span className="text-emerald-700 dark:text-emerald-400 font-bold flex items-center gap-1.5 mt-0.5"><Paperclip className="w-3.5 h-3.5 text-amber-500 shrink-0" /><span>{user.resumeName}</span></span> : <span className="text-amber-600 dark:text-amber-400 italic">No CV attached yet</span>}</p>
               </div>
 
               <div className="pt-2 border-t border-slate-200 dark:border-navy-800 space-y-2">
@@ -1003,6 +1069,102 @@ export const CandidatePortal = () => {
               </div>
             </div>
 
+            {/* CV / Resume File Attachment */}
+            <div className="space-y-3 p-5 bg-gradient-to-br from-slate-50 to-amber-50/30 dark:from-navy-950 dark:to-navy-900 rounded-2xl border-2 border-slate-200 dark:border-navy-800 hover:border-amber-400/50 transition">
+              <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-2">
+                <div>
+                  <label className="block font-bold text-slate-800 dark:text-slate-200 flex items-center gap-2 text-sm">
+                    <FileText className="w-4 h-4 text-amber-500" />
+                    <span>Attach CV / Resume (PDF, DOC, DOCX)</span>
+                  </label>
+                  <p className="text-[11px] text-slate-500 dark:text-slate-400 mt-0.5">
+                    Upload your updated CV for headhunter screening and automated ATS parsing.
+                  </p>
+                </div>
+                {profileForm.resumeName && (
+                  <span className="px-2.5 py-1 rounded-full text-[11px] font-black bg-emerald-100 dark:bg-emerald-950/60 text-emerald-800 dark:text-emerald-300 border border-emerald-300 shrink-0">
+                    ✓ Attached
+                  </span>
+                )}
+              </div>
+
+              <input 
+                type="file" 
+                id="cvDocumentUpload" 
+                accept=".pdf,.doc,.docx,application/pdf,application/msword,application/vnd.openxmlformats-officedocument.wordprocessingml.document" 
+                onChange={handleCvUpload} 
+                className="hidden" 
+              />
+
+              {profileForm.resumeName ? (
+                <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 p-3.5 bg-white dark:bg-navy-900 rounded-xl border border-amber-300 dark:border-navy-700 shadow-xs">
+                  <div className="flex items-center gap-3 min-w-0">
+                    <div className="w-10 h-10 rounded-xl bg-amber-100 dark:bg-amber-950/50 text-amber-700 dark:text-gold-400 flex items-center justify-center shrink-0">
+                      <Paperclip className="w-5 h-5" />
+                    </div>
+                    <div className="min-w-0">
+                      <h4 className="font-bold text-slate-900 dark:text-white text-xs sm:text-sm truncate" title={profileForm.resumeName}>
+                        {profileForm.resumeName}
+                      </h4>
+                      <p className="text-[11px] text-slate-500 dark:text-slate-400 flex items-center gap-2 mt-0.5">
+                        <span>{profileForm.resumeSize || 'Document'}</span>
+                        <span>•</span>
+                        <span className="text-emerald-600 dark:text-emerald-400 font-bold">Ready for Headhunters</span>
+                      </p>
+                    </div>
+                  </div>
+
+                  <div className="flex items-center gap-2 shrink-0">
+                    {profileForm.resumeUrl && (
+                      <a
+                        href={profileForm.resumeUrl}
+                        download={profileForm.resumeName || 'Candidate_CV.pdf'}
+                        className="px-3 py-1.5 bg-slate-100 hover:bg-slate-200 dark:bg-navy-800 dark:hover:bg-navy-700 text-slate-800 dark:text-slate-200 rounded-lg text-xs font-bold transition flex items-center gap-1 cursor-pointer"
+                        title="Download Attached CV"
+                      >
+                        <Download className="w-3.5 h-3.5" />
+                        <span>Download</span>
+                      </a>
+                    )}
+                    <label
+                      htmlFor="cvDocumentUpload"
+                      className="px-3 py-1.5 bg-amber-400 hover:bg-amber-500 text-slate-950 rounded-lg text-xs font-bold transition flex items-center gap-1 cursor-pointer"
+                    >
+                      <Upload className="w-3.5 h-3.5" />
+                      <span>Replace</span>
+                    </label>
+                    <button
+                      type="button"
+                      onClick={removeCvAttachment}
+                      className="px-2.5 py-1.5 bg-rose-50 hover:bg-rose-100 dark:bg-rose-950/40 text-rose-700 dark:text-rose-400 rounded-lg text-xs font-bold transition flex items-center gap-1 cursor-pointer"
+                      title="Remove CV"
+                    >
+                      <Trash2 className="w-3.5 h-3.5" />
+                    </button>
+                  </div>
+                </div>
+              ) : (
+                <div className="flex flex-col sm:flex-row items-center justify-between gap-3 p-4 bg-white/70 dark:bg-navy-900/60 rounded-xl border border-dashed border-slate-300 dark:border-navy-700">
+                  <div className="flex items-center gap-3">
+                    <div className="w-10 h-10 rounded-xl bg-slate-100 dark:bg-navy-800 text-slate-500 dark:text-slate-400 flex items-center justify-center shrink-0">
+                      <FileText className="w-5 h-5" />
+                    </div>
+                    <div>
+                      <p className="font-bold text-slate-800 dark:text-slate-200 text-xs">No CV Attached Yet</p>
+                      <p className="text-[11px] text-slate-500">Supported formats: PDF, DOC, DOCX (Max 10MB)</p>
+                    </div>
+                  </div>
+                  <label
+                    htmlFor="cvDocumentUpload"
+                    className="px-4 py-2 bg-gradient-to-r from-amber-400 to-amber-500 hover:from-amber-500 hover:to-amber-600 text-slate-950 font-black text-xs rounded-xl cursor-pointer transition flex items-center gap-1.5 shadow-xs shrink-0"
+                  >
+                    <Upload className="w-4 h-4" />
+                    <span>Attach CV from Device</span>
+                  </label>
+                </div>
+              )}
+            </div>
+
             {/* Basic Info Fields */}
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <div>
@@ -1119,6 +1281,90 @@ export const CandidatePortal = () => {
                   <option value="Female">Female</option>
                   <option value="Other">Other</option>
                 </select>
+              </div>
+            </div>
+
+            {/* Nationality & Citizenship Fields */}
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              <div>
+                <label className="block font-bold text-slate-700 dark:text-slate-200 mb-1 flex items-center gap-1.5">
+                  <Globe className="w-4 h-4 text-gold-500" />
+                  <span>Nationality</span>
+                </label>
+                <input 
+                  type="text" 
+                  list="nationality-suggestions"
+                  value={profileForm.nationality}
+                  onChange={(e) => setProfileForm({ ...profileForm, nationality: e.target.value })}
+                  placeholder="e.g. Indian, Emirati, British, etc."
+                  className="w-full bg-slate-50 dark:bg-navy-950 border border-slate-300 dark:border-navy-700 rounded-xl p-3 text-navy-900 dark:text-white focus:outline-none focus:border-gold-500 font-medium"
+                />
+                <datalist id="nationality-suggestions">
+                  <option value="Indian" />
+                  <option value="Emirati (UAE)" />
+                  <option value="Saudi" />
+                  <option value="Pakistani" />
+                  <option value="Filipino" />
+                  <option value="Egyptian" />
+                  <option value="British" />
+                  <option value="American" />
+                  <option value="Canadian" />
+                  <option value="Australian" />
+                  <option value="Qatari" />
+                  <option value="Omani" />
+                  <option value="Kuwaiti" />
+                  <option value="Bahraini" />
+                  <option value="Jordanian" />
+                  <option value="Lebanese" />
+                  <option value="South African" />
+                  <option value="Bangladeshi" />
+                  <option value="Sri Lankan" />
+                  <option value="Nepali" />
+                  <option value="German" />
+                  <option value="French" />
+                  <option value="Singaporean" />
+                  <option value="Malaysian" />
+                  <option value="Nigerian" />
+                  <option value="Kenyan" />
+                </datalist>
+              </div>
+
+              <div>
+                <label className="block font-bold text-slate-700 dark:text-slate-200 mb-1 flex items-center gap-1.5">
+                  <Shield className="w-4 h-4 text-gold-500" />
+                  <span>Citizenship</span>
+                </label>
+                <input 
+                  type="text" 
+                  list="citizenship-suggestions"
+                  value={profileForm.citizenship}
+                  onChange={(e) => setProfileForm({ ...profileForm, citizenship: e.target.value })}
+                  placeholder="e.g. India, United Arab Emirates, etc."
+                  className="w-full bg-slate-50 dark:bg-navy-950 border border-slate-300 dark:border-navy-700 rounded-xl p-3 text-navy-900 dark:text-white focus:outline-none focus:border-gold-500 font-medium"
+                />
+                <datalist id="citizenship-suggestions">
+                  <option value="India" />
+                  <option value="United Arab Emirates" />
+                  <option value="Saudi Arabia" />
+                  <option value="Qatar" />
+                  <option value="Oman" />
+                  <option value="Kuwait" />
+                  <option value="Bahrain" />
+                  <option value="Pakistan" />
+                  <option value="Philippines" />
+                  <option value="Egypt" />
+                  <option value="United Kingdom" />
+                  <option value="United States" />
+                  <option value="Canada" />
+                  <option value="Australia" />
+                  <option value="Singapore" />
+                  <option value="South Africa" />
+                  <option value="Bangladesh" />
+                  <option value="Sri Lanka" />
+                  <option value="Nepal" />
+                  <option value="Germany" />
+                  <option value="France" />
+                </datalist>
               </div>
             </div>
 

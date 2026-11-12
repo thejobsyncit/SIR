@@ -1379,6 +1379,13 @@ const initDb = async (db) => {
     { name: 'googleVerified', type: "INTEGER DEFAULT 0" }
   ]);
 
+  await ensureColumns('candidate_profiles', [
+    { name: 'citizenship', type: 'TEXT' },
+    { name: 'nationality', type: 'TEXT DEFAULT "UAE"' },
+    { name: 'resumeName', type: 'TEXT' },
+    { name: 'resumeUrl', type: 'TEXT' }
+  ]);
+
   // Safe migration: Ensure student_academy_enquiries table has exam enquiry fields
   await ensureColumns('student_academy_enquiries', [
     { name: 'qualification', type: 'TEXT' },

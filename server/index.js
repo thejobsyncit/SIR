@@ -1002,7 +1002,7 @@ app.get('/api/candidate/profile', async (req, res) => {
 // UPDATE Candidate Profile
 app.put('/api/candidate/profile', async (req, res) => {
   try {
-    const { candidateId, name, phone, nationality, currentRole, currentEmployer, experience, education, expectedSalary, skills, resumeName, resumeUrl, avatar } = req.body;
+    const { candidateId, name, phone, nationality, citizenship, currentRole, currentEmployer, experience, education, expectedSalary, skills, resumeName, resumeUrl, avatar } = req.body;
     if (!candidateId) {
       return res.status(400).json({ success: false, message: 'Candidate ID is required' });
     }
@@ -1021,6 +1021,7 @@ app.put('/api/candidate/profile', async (req, res) => {
         phone = COALESCE(?, phone),
         avatar = COALESCE(?, avatar),
         nationality = COALESCE(?, nationality),
+        citizenship = COALESCE(?, citizenship),
         currentRole = COALESCE(?, currentRole),
         currentEmployer = COALESCE(?, currentEmployer),
         experience = COALESCE(?, experience),
@@ -1031,7 +1032,7 @@ app.put('/api/candidate/profile', async (req, res) => {
         resumeUrl = COALESCE(?, resumeUrl),
         updatedAt = CURRENT_TIMESTAMP
       WHERE id = ?
-    `, [name, phone, avatar, nationality, currentRole, currentEmployer, experience, education, expectedSalary, skillsStr, resumeName, resumeUrl, candidateId]);
+    `, [name, phone, avatar, nationality, citizenship, currentRole, currentEmployer, experience, education, expectedSalary, skillsStr, resumeName, resumeUrl, candidateId]);
 
     const updated = await db.get('SELECT * FROM candidate_profiles WHERE id = ?', [candidateId]);
     res.json({
