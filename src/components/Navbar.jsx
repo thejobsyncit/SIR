@@ -91,8 +91,14 @@ export const Navbar = () => {
 
           {/* Quick AI Tools Button */}
           <button
-            onClick={() => setActiveModal('ai-resume')}
-            className="hidden sm:flex items-center space-x-1.5 bg-gold-500/20 text-gold-400 hover:bg-gold-500 hover:text-slate-900 dark:text-white px-2.5 py-1 rounded text-xs font-medium transition"
+            onClick={() => {
+              if (!user) {
+                openAuthModal('login', 'candidate');
+              } else {
+                setActiveModal('ai-resume');
+              }
+            }}
+            className="hidden sm:flex items-center space-x-1.5 bg-gold-500/20 text-gold-400 hover:bg-gold-500 hover:text-slate-900 dark:text-white px-2.5 py-1 rounded text-xs font-medium transition cursor-pointer"
           >
             <Sparkles className="w-3 h-3" />
             <span>{t('nav.aiResume')}</span>

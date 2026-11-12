@@ -8,7 +8,7 @@ import {
 import { COUNTRIES_LIST } from '../data/mockData';
 
 export const Footer = ({ hideNewsletter = false }) => {
-  const { navigateTo, setActiveModal, activeTab, isExamDetailsPage } = useApp();
+  const { navigateTo, setActiveModal, activeTab, isExamDetailsPage, user, openAuthModal } = useApp();
   const [newsletterEmail, setNewsletterEmail] = useState('');
   const [newsletterStatus, setNewsletterStatus] = useState('idle');
   const [newsletterMsg, setNewsletterMsg] = useState('');
@@ -375,7 +375,17 @@ const [isStudentAcademyActive, setIsStudentAcademyActive] = useState(() => {
               <NavLink tab="visa-eligibility" label="GCC Country Visa Matrix" />
               <NavLink tab="background-verification" label="Background Verification" />
               <NavLink tab="background-verification" label="Education Attestation" />
-              <NavLink isModal label="AI Resume Analyzer" onClick={() => setActiveModal('ai-resume')} />
+              <NavLink 
+                isModal 
+                label="AI Resume Analyzer" 
+                onClick={() => {
+                  if (!user) {
+                    openAuthModal('login', 'candidate');
+                  } else {
+                    setActiveModal('ai-resume');
+                  }
+                }} 
+              />
               <NavLink isModal label="Resume Builder Tool" onClick={() => setActiveModal('resume-builder')} />
               <NavLink isModal label="Online Payment Gateway" onClick={() => setActiveModal('payment')} />
             </ul>
