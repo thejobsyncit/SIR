@@ -418,6 +418,114 @@ export const DEFAULT_CRM_LEADS = [
   }
 ];
 
+export const DEFAULT_CRM_TASKS = [
+  {
+    id: 'TASK-OPS-001',
+    enquiryId: 'LEAD-9004',
+    referenceNumber: 'REV-CAR-2026-9004',
+    candidateKey: 'naveen-vignesh',
+    customerName: 'Naveen Vignesh',
+    customerEmail: 'naveen.v@outlook.com',
+    customerPhone: '+971 55 345 6789',
+    serviceTitle: 'School Student Career Guidance',
+    operationTeam: 'Enquiry HR Operations',
+    assignedEmployeeId: 'REV-EMP-006',
+    assignedEmployeeName: 'Balavarshini S.',
+    assignedEmployeeEmail: 'balavarshini.s@revivalinternational.com',
+    assignedById: 'REV-EMP-003',
+    assignedByName: 'Priya Sharma (HR Lead)',
+    priority: 'High',
+    dueDate: '2026-11-12',
+    taskStatus: 'To Do',
+    notes: 'Administer Grade 10 stream selection psychometric aptitude assessment.',
+    assignedAt: '2026-11-08 10:00:00'
+  },
+  {
+    id: 'TASK-OPS-002',
+    enquiryId: 'LEAD-ENQ-203',
+    referenceNumber: 'REV-COL-2026-003',
+    candidateKey: 'pooja-ramakrishnan',
+    customerName: 'Pooja Ramakrishnan',
+    customerEmail: 'pooja.ram@yahoo.com',
+    customerPhone: '+91 98401 23456',
+    serviceTitle: 'College Admission Assistance',
+    operationTeam: 'International HR Operations',
+    assignedEmployeeId: 'REV-EMP-006',
+    assignedEmployeeName: 'Balavarshini S.',
+    assignedEmployeeEmail: 'balavarshini.s@revivalinternational.com',
+    assignedById: 'REV-EMP-003',
+    assignedByName: 'Priya Sharma (HR Lead)',
+    priority: 'High',
+    dueDate: '2026-11-12',
+    taskStatus: 'In Progress',
+    notes: 'Review board exam cut-off and coordinate university quota counseling with parents.',
+    assignedAt: '2026-11-07 10:00:00'
+  },
+  {
+    id: 'TASK-OPS-003',
+    enquiryId: 'LEAD-INT-104',
+    referenceNumber: 'REV-INT-2026-004',
+    candidateKey: 'zubair-ahmed-khan',
+    customerName: 'Zubair Ahmed Khan',
+    customerEmail: 'zubair.ahmed@gmail.com',
+    customerPhone: '+91 98404 45678',
+    serviceTitle: 'International Consulting',
+    operationTeam: 'International HR Operations',
+    assignedEmployeeId: 'REV-EMP-006',
+    assignedEmployeeName: 'Balavarshini S.',
+    assignedEmployeeEmail: 'balavarshini.s@revivalinternational.com',
+    assignedById: 'REV-EMP-003',
+    assignedByName: 'Sarah Al Zaabi (HR Lead)',
+    priority: 'Urgent',
+    dueDate: '2026-11-13',
+    taskStatus: 'To Do',
+    notes: 'Urgent: Verify attested degree copies & police clearance for GCC residency.',
+    assignedAt: '2026-11-07 09:00:00'
+  },
+  {
+    id: 'TASK-OPS-004',
+    enquiryId: 'LEAD-INT-105',
+    referenceNumber: 'REV-ADM-2026-005',
+    candidateKey: 'karthik-subburaj',
+    customerName: 'Karthik Subburaj',
+    customerEmail: 'karthik.subburaj@gmail.com',
+    customerPhone: '+91 97890 87654',
+    serviceTitle: 'International Admissions',
+    operationTeam: 'International HR Operations',
+    assignedEmployeeId: 'REV-EMP-107',
+    assignedEmployeeName: 'Fatima',
+    assignedEmployeeEmail: 'fatima.intl@revivalinternational.com',
+    assignedById: 'REV-EMP-003',
+    assignedByName: 'Sarah Al Zaabi (HR Lead)',
+    priority: 'Normal',
+    dueDate: '2026-11-14',
+    taskStatus: 'To Do',
+    notes: 'Call candidate to review IELTS scorecard and Spring 2027 university intake deadlines.',
+    assignedAt: '2026-11-07 11:30:00'
+  },
+  {
+    id: 'TASK-OPS-005',
+    enquiryId: 'LEAD-ENQ-210',
+    referenceNumber: 'REV-CAR-2026-010',
+    candidateKey: 'harini-sundar',
+    customerName: 'Harini Sundar',
+    customerEmail: 'harini.sundar@yahoo.co.in',
+    customerPhone: '+91 98841 22339',
+    serviceTitle: 'School Student Career Guidance',
+    operationTeam: 'Enquiry HR Operations',
+    assignedEmployeeId: 'REV-EMP-102',
+    assignedEmployeeName: 'Divya R.',
+    assignedEmployeeEmail: 'divya.enq@revivalinternational.com',
+    assignedById: 'REV-EMP-003',
+    assignedByName: 'Priya Sharma (HR Lead)',
+    priority: 'Normal',
+    dueDate: '2026-11-15',
+    taskStatus: 'In Progress',
+    notes: 'Administer career assessment test & draft recommendation dossier.',
+    assignedAt: '2026-11-04 11:00:00'
+  }
+];
+
 /**
  * Pure-JS JSON / In-Memory Fallback Database Adapter for Serverless Environments
  * where native C++ sqlite3 bindings are unavailable.
@@ -918,6 +1026,31 @@ const initDb = async (db) => {
       createdAt DATETIME DEFAULT CURRENT_TIMESTAMP
     );
 
+    CREATE TABLE IF NOT EXISTS hr_task_assignments (
+      id TEXT PRIMARY KEY,
+      enquiryId TEXT,
+      referenceNumber TEXT,
+      candidateKey TEXT,
+      customerName TEXT,
+      customerEmail TEXT,
+      customerPhone TEXT,
+      serviceTitle TEXT,
+      operationTeam TEXT,
+      assignedEmployeeId TEXT,
+      assignedEmployeeName TEXT,
+      assignedEmployeeEmail TEXT,
+      assignedById TEXT,
+      assignedByName TEXT,
+      priority TEXT DEFAULT 'Normal',
+      dueDate TEXT,
+      taskStatus TEXT DEFAULT 'To Do',
+      notes TEXT,
+      assignedAt DATETIME DEFAULT CURRENT_TIMESTAMP,
+      completedAt DATETIME,
+      createdAt DATETIME DEFAULT CURRENT_TIMESTAMP,
+      updatedAt DATETIME DEFAULT CURRENT_TIMESTAMP
+    );
+
     CREATE TABLE IF NOT EXISTS student_academy_enquiries (
       id TEXT PRIMARY KEY,
       referenceNumber TEXT NOT NULL,
@@ -1154,6 +1287,8 @@ const initDb = async (db) => {
     { name: 'organizationId', type: 'TEXT' },
     { name: 'organizationName', type: 'TEXT' },
     { name: 'assignedEmployee', type: 'TEXT' },
+    { name: 'assignedEmployeeId', type: 'TEXT' },
+    { name: 'assignedEmployeeEmail', type: 'TEXT' },
     { name: 'priority', type: "TEXT DEFAULT 'Medium'" },
     { name: 'nextAction', type: 'TEXT' },
     { name: 'nextActionDate', type: 'TEXT' },
@@ -1219,6 +1354,13 @@ const initDb = async (db) => {
     { name: 'avatar', type: 'TEXT' },
     { name: 'authProvider', type: "TEXT DEFAULT 'local'" },
     { name: 'googleVerified', type: "INTEGER DEFAULT 0" }
+  ]);
+
+  await ensureColumns('candidate_profiles', [
+    { name: 'citizenship', type: 'TEXT' },
+    { name: 'nationality', type: 'TEXT DEFAULT "UAE"' },
+    { name: 'resumeName', type: 'TEXT' },
+    { name: 'resumeUrl', type: 'TEXT' }
   ]);
 
   // Safe migration: Ensure student_academy_enquiries table has exam enquiry fields
@@ -1354,6 +1496,31 @@ const initDb = async (db) => {
     }
   } catch (seedDeptErr) {
     console.warn('Career departments seed warning:', seedDeptErr.message);
+  }
+
+  // Seed default HR task assignments if none exist
+  try {
+    const taskCount = await db.get("SELECT COUNT(*) as count FROM hr_task_assignments");
+    if (!taskCount || taskCount.count === 0) {
+      for (const t of DEFAULT_CRM_TASKS) {
+        await db.run(
+          `INSERT OR IGNORE INTO hr_task_assignments (
+            id, enquiryId, referenceNumber, candidateKey, customerName, customerEmail, customerPhone,
+            serviceTitle, operationTeam, assignedEmployeeId, assignedEmployeeName, assignedEmployeeEmail,
+            assignedById, assignedByName, priority, dueDate, taskStatus, notes, assignedAt, createdAt, updatedAt
+          ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+          [
+            t.id, t.enquiryId, t.referenceNumber, t.candidateKey, t.customerName, t.customerEmail, t.customerPhone,
+            t.serviceTitle, t.operationTeam, t.assignedEmployeeId, t.assignedEmployeeName, t.assignedEmployeeEmail,
+            t.assignedById, t.assignedByName, t.priority, t.dueDate, t.taskStatus, t.notes, t.assignedAt,
+            t.assignedAt, t.assignedAt
+          ]
+        );
+      }
+      console.log('Seeded default HR task assignments into SQLite database.');
+    }
+  } catch (seedTaskErr) {
+    console.warn('HR task assignments seed warning:', seedTaskErr.message);
   }
 
   // ---------------------------------------------------------------------------

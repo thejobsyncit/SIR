@@ -206,8 +206,14 @@ export const JobsPage = () => {
         <div className="flex justify-between items-center text-xs text-slate-500 dark:text-slate-400 pt-2 border-t border-slate-200 dark:border-navy-800">
           <span>Found <strong>{jobs.length}</strong> {t('jobs.foundVacancies')}</span>
           <button 
-            onClick={() => setActiveModal('ai-resume')}
-            className="text-gold-400 font-bold hover:underline flex items-center gap-1"
+            onClick={() => {
+              if (!user) {
+                openAuthModal('login', 'candidate');
+              } else {
+                setActiveModal('ai-resume');
+              }
+            }}
+            className="text-gold-400 font-bold hover:underline flex items-center gap-1 cursor-pointer"
           >
             <Sparkles className="w-3.5 h-3.5" />
             <span>{t('jobs.matchAi')}</span>

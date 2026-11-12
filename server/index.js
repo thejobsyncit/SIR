@@ -1002,7 +1002,7 @@ app.get('/api/candidate/profile', async (req, res) => {
 // UPDATE Candidate Profile
 app.put('/api/candidate/profile', async (req, res) => {
   try {
-    const { candidateId, name, phone, nationality, currentRole, currentEmployer, experience, education, expectedSalary, skills, resumeName, resumeUrl, avatar } = req.body;
+    const { candidateId, name, phone, nationality, citizenship, currentRole, currentEmployer, experience, education, expectedSalary, skills, resumeName, resumeUrl, avatar } = req.body;
     if (!candidateId) {
       return res.status(400).json({ success: false, message: 'Candidate ID is required' });
     }
@@ -1021,6 +1021,7 @@ app.put('/api/candidate/profile', async (req, res) => {
         phone = COALESCE(?, phone),
         avatar = COALESCE(?, avatar),
         nationality = COALESCE(?, nationality),
+        citizenship = COALESCE(?, citizenship),
         currentRole = COALESCE(?, currentRole),
         currentEmployer = COALESCE(?, currentEmployer),
         experience = COALESCE(?, experience),
@@ -1031,7 +1032,7 @@ app.put('/api/candidate/profile', async (req, res) => {
         resumeUrl = COALESCE(?, resumeUrl),
         updatedAt = CURRENT_TIMESTAMP
       WHERE id = ?
-    `, [name, phone, avatar, nationality, currentRole, currentEmployer, experience, education, expectedSalary, skillsStr, resumeName, resumeUrl, candidateId]);
+    `, [name, phone, avatar, nationality, citizenship, currentRole, currentEmployer, experience, education, expectedSalary, skillsStr, resumeName, resumeUrl, candidateId]);
 
     const updated = await db.get('SELECT * FROM candidate_profiles WHERE id = ?', [candidateId]);
     res.json({
@@ -1587,42 +1588,37 @@ app.get('/api/employees/me/profile', async (req, res) => {
 
     if (nameClean.includes('fatima') || cleanEmail.includes('fatima') || ['REV-EMP-107', 'INTL-HR-101', 'emp-fatima'].includes(cleanId)) {
       whereClause = `(
-        LOWER(assignedEmployee) LIKE '%fatima%' OR 
-        assignedEmployeeId IN ('REV-EMP-107', 'INTL-HR-101', 'emp-fatima') OR
+        LOWER(COALESCE(assignedEmployee, '')) LIKE '%fatima%' OR 
         LOWER(COALESCE(assignedEmployeeEmail, '')) LIKE '%fatima%' OR
-        id IN (SELECT enquiryId FROM hr_task_assignments WHERE LOWER(assignedEmployeeName) LIKE '%fatima%' OR assignedEmployeeId IN ('REV-EMP-107', 'INTL-HR-101', 'emp-fatima'))
+        id IN (SELECT enquiryId FROM hr_task_assignments WHERE LOWER(COALESCE(assignedEmployeeName, '')) LIKE '%fatima%' OR assignedEmployeeId IN ('REV-EMP-107', 'INTL-HR-101', 'emp-fatima'))
       )`;
     } else if (nameClean.includes('bala') || cleanEmail.includes('bala') || ['REV-EMP-006', 'INTL-HR-102', 'emp-6'].includes(cleanId)) {
       whereClause = `(
-        LOWER(assignedEmployee) LIKE '%bala%' OR 
-        assignedEmployeeId IN ('REV-EMP-006', 'INTL-HR-102', 'emp-6') OR
+        LOWER(COALESCE(assignedEmployee, '')) LIKE '%bala%' OR 
         LOWER(COALESCE(assignedEmployeeEmail, '')) LIKE '%bala%' OR
-        id IN (SELECT enquiryId FROM hr_task_assignments WHERE LOWER(assignedEmployeeName) LIKE '%bala%' OR assignedEmployeeId IN ('REV-EMP-006', 'INTL-HR-102', 'emp-6'))
+        id IN (SELECT enquiryId FROM hr_task_assignments WHERE LOWER(COALESCE(assignedEmployeeName, '')) LIKE '%bala%' OR assignedEmployeeId IN ('REV-EMP-006', 'INTL-HR-102', 'emp-6'))
       )`;
     } else if (nameClean.includes('divya') || nameClean.includes('diviya') || cleanEmail.includes('divya') || cleanEmail.includes('diviya') || ['REV-EMP-102', 'ENQ-HR-201', 'emp-divya', 'emp-diviya'].includes(cleanId)) {
       whereClause = `(
-        LOWER(assignedEmployee) LIKE '%divya%' OR 
-        LOWER(assignedEmployee) LIKE '%diviya%' OR 
-        assignedEmployeeId IN ('REV-EMP-102', 'ENQ-HR-201', 'emp-divya', 'emp-diviya') OR
+        LOWER(COALESCE(assignedEmployee, '')) LIKE '%divya%' OR 
+        LOWER(COALESCE(assignedEmployee, '')) LIKE '%diviya%' OR 
         LOWER(COALESCE(assignedEmployeeEmail, '')) LIKE '%divya%' OR
-        id IN (SELECT enquiryId FROM hr_task_assignments WHERE LOWER(assignedEmployeeName) LIKE '%divya%' OR LOWER(assignedEmployeeName) LIKE '%diviya%' OR assignedEmployeeId IN ('REV-EMP-102', 'ENQ-HR-201', 'emp-divya', 'emp-diviya'))
+        id IN (SELECT enquiryId FROM hr_task_assignments WHERE LOWER(COALESCE(assignedEmployeeName, '')) LIKE '%divya%' OR LOWER(COALESCE(assignedEmployeeName, '')) LIKE '%diviya%' OR assignedEmployeeId IN ('REV-EMP-102', 'ENQ-HR-201', 'emp-divya', 'emp-diviya'))
       )`;
     } else if (nameClean.includes('praveen') || cleanEmail.includes('praveen') || ['REV-EMP-108', 'ENQ-HR-202', 'emp-praveen'].includes(cleanId)) {
       whereClause = `(
-        LOWER(assignedEmployee) LIKE '%praveen%' OR 
-        assignedEmployeeId IN ('REV-EMP-108', 'ENQ-HR-202', 'emp-praveen') OR
+        LOWER(COALESCE(assignedEmployee, '')) LIKE '%praveen%' OR 
         LOWER(COALESCE(assignedEmployeeEmail, '')) LIKE '%praveen%' OR
-        id IN (SELECT enquiryId FROM hr_task_assignments WHERE LOWER(assignedEmployeeName) LIKE '%praveen%' OR assignedEmployeeId IN ('REV-EMP-108', 'ENQ-HR-202', 'emp-praveen'))
+        id IN (SELECT enquiryId FROM hr_task_assignments WHERE LOWER(COALESCE(assignedEmployeeName, '')) LIKE '%praveen%' OR assignedEmployeeId IN ('REV-EMP-108', 'ENQ-HR-202', 'emp-praveen'))
       )`;
     } else {
       whereClause = `(
-        LOWER(assignedEmployee) = ? OR 
-        LOWER(assignedEmployee) LIKE ? OR
-        assignedEmployeeId = ? OR
-        id IN (SELECT enquiryId FROM hr_task_assignments WHERE assignedEmployeeId = ? OR LOWER(assignedEmployeeName) LIKE ?)
+        LOWER(COALESCE(assignedEmployee, '')) = ? OR 
+        LOWER(COALESCE(assignedEmployee, '')) LIKE ? OR
+        id IN (SELECT enquiryId FROM hr_task_assignments WHERE assignedEmployeeId = ? OR LOWER(COALESCE(assignedEmployeeName, '')) LIKE ?)
       )`;
       const empLower = empName.toLowerCase().trim();
-      params.push(empLower, `%${empLower}%`, empId, empId, `%${empLower}%`);
+      params.push(empLower, `%${empLower}%`, empId, `%${empLower}%`);
     }
 
     const assignedLeads = await db.all(`SELECT * FROM leads WHERE ${whereClause}`, params);

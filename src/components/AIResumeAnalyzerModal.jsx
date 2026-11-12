@@ -1,6 +1,6 @@
 import React, { useState, useRef } from 'react';
 import { useApp } from '../context/AppContext';
-import { Sparkles, FileText, CheckCircle2, AlertTriangle, X, Upload, ArrowRight, RefreshCw, Trash2, FileCheck, AlertCircle } from 'lucide-react';
+import { Sparkles, FileText, CheckCircle2, AlertTriangle, X, Upload, ArrowRight, RefreshCw, Trash2, FileCheck, AlertCircle, Lock } from 'lucide-react';
 
 // ==============================================================================
 // DETERMINISTIC ATS DOMAINS & SCORING ENGINE (ZERO RANDOMNESS)
@@ -211,7 +211,7 @@ function analyzeResumeDeterministic(resumeText = '', fileName = '', targetRole =
 }
 
 export const AIResumeAnalyzerModal = () => {
-  const { activeModal, setActiveModal, navigateTo } = useApp();
+  const { activeModal, setActiveModal, navigateTo, user, openAuthModal } = useApp();
   const [resumeText, setResumeText] = useState('');
   const [loading, setLoading] = useState(false);
   const [result, setResult] = useState(null);
@@ -431,7 +431,43 @@ export const AIResumeAnalyzerModal = () => {
           </button>
         </div>
 
-        {!result ? (
+        {!user ? (
+          <div className="py-8 px-4 text-center space-y-5">
+            <div className="w-16 h-16 rounded-3xl bg-amber-100 dark:bg-amber-950/60 border-2 border-amber-300 dark:border-amber-500/40 text-amber-600 dark:text-gold-400 flex items-center justify-center mx-auto shadow-md">
+              <Lock className="w-8 h-8" />
+            </div>
+
+            <div className="max-w-md mx-auto space-y-2">
+              <h4 className="font-serif text-xl sm:text-2xl font-bold text-slate-900 dark:text-white">
+                Authentication Required
+              </h4>
+              <p className="text-xs sm:text-sm text-slate-600 dark:text-slate-300 leading-relaxed font-medium">
+                The <strong>Revival AI Resume Analyzer</strong> is reserved for registered users. Please sign in or register your account to analyze and match your CV with top global employers.
+              </p>
+            </div>
+
+            <div className="flex flex-col sm:flex-row gap-3 justify-center pt-2 max-w-sm mx-auto">
+              <button
+                type="button"
+                onClick={() => {
+                  openAuthModal('login', 'candidate');
+                }}
+                className="w-full sm:w-auto px-6 py-2.5 rounded-xl bg-amber-400 hover:bg-amber-500 text-slate-950 font-black text-xs transition shadow-sm cursor-pointer"
+              >
+                Sign In to Account
+              </button>
+              <button
+                type="button"
+                onClick={() => {
+                  openAuthModal('register', 'candidate');
+                }}
+                className="w-full sm:w-auto px-6 py-2.5 rounded-xl bg-slate-100 hover:bg-slate-200 dark:bg-navy-800 dark:hover:bg-navy-700 text-slate-900 dark:text-white font-bold text-xs border border-slate-300 dark:border-navy-700 transition cursor-pointer"
+              >
+                Register Candidate Profile
+              </button>
+            </div>
+          </div>
+        ) : !result ? (
           <div className="space-y-4">
             <div className="p-4 rounded-xl bg-liteblue-50 dark:bg-navy-800 border border-liteblue-200 dark:border-navy-700 text-xs text-slate-800 dark:text-slate-200 font-medium">
               Paste your CV/Resume text below or click / drag and drop your PDF or DOCX file to evaluate your compatibility with top Dubai, Saudi Arabia & European employers.

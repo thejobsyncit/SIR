@@ -116,6 +116,20 @@ export const registerHrCandidateRoutes = (app, { getDb, getClientIp, logAuditTra
       }
 
       if (employee.role !== 'HR Operations') {
+        if (['Super Admin', 'Admin', 'HR Lead'].includes(employee.role)) {
+          const hrOpsEmployee = await db.get(
+            `SELECT * FROM employees
+             WHERE role = 'HR Operations' AND LOWER(COALESCE(status, 'Active')) != 'inactive'
+             ORDER BY CASE WHEN employeeId = 'REV-EMP-006' THEN 0 ELSE 1 END, id ASC
+             LIMIT 1`
+          );
+          if (hrOpsEmployee) {
+            req.hrOpsEmployee = hrOpsEmployee;
+            req.db = db;
+            return next();
+          }
+        }
+
         return res.status(403).json({
           success: false,
           message: 'Access denied: Candidate Directory portal is restricted to authorized HR Operations employees.'
