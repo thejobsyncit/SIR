@@ -1002,18 +1002,35 @@ app.get('/api/candidate/profile', async (req, res) => {
 // UPDATE Candidate Profile
 app.put('/api/candidate/profile', async (req, res) => {
   try {
-    const { candidateId, name, phone, nationality, citizenship, currentRole, currentEmployer, experience, education, expectedSalary, skills, resumeName, resumeUrl, avatar } = req.body;
-    if (!candidateId) {
-      return res.status(400).json({ success: false, message: 'Candidate ID is required' });
+    const {
+      candidateId, email, name, phone, nationality, citizenship,
+      currentRole, currentEmployer, experience, education, qualification,
+      expectedSalary, skills, resumeName, resumeUrl, resumeSize,
+      avatar, dob, gender, location, preferredCountry, mohreAttested, title
+    } = req.body;
+
+    if (!candidateId && !email) {
+      return res.status(400).json({ success: false, message: 'Candidate ID or Email is required' });
     }
 
     const db = await getDb();
-    const existing = await db.get('SELECT * FROM candidate_profiles WHERE id = ?', [candidateId]);
+    let existing = null;
+    if (candidateId) {
+      existing = await db.get('SELECT * FROM candidate_profiles WHERE id = ?', [candidateId]);
+    }
+    if (!existing && email) {
+      existing = await db.get('SELECT * FROM candidate_profiles WHERE LOWER(email) = LOWER(?)', [email.trim()]);
+    }
+
     if (!existing) {
       return res.status(404).json({ success: false, message: 'Candidate not found' });
     }
 
+    const targetCandId = existing.id;
+    const finalRole = currentRole || title || existing.currentRole || 'Executive Candidate';
+    const finalEducation = education || qualification || existing.education || 'Bachelor Degree / Professional Diploma';
     const skillsStr = skills ? JSON.stringify(Array.isArray(skills) ? skills : [skills]) : existing.skills;
+    const finalMohre = mohreAttested !== undefined ? (mohreAttested ? 1 : 0) : (existing.mohreAttested || 0);
 
     await db.run(`
       UPDATE candidate_profiles SET
@@ -1030,11 +1047,79 @@ app.put('/api/candidate/profile', async (req, res) => {
         skills = COALESCE(?, skills),
         resumeName = COALESCE(?, resumeName),
         resumeUrl = COALESCE(?, resumeUrl),
+        resumeSize = COALESCE(?, resumeSize),
+        dob = COALESCE(?, dob),
+        gender = COALESCE(?, gender),
+        location = COALESCE(?, location),
+        preferredCountry = COALESCE(?, preferredCountry),
+        mohreAttested = COALESCE(?, mohreAttested),
         updatedAt = CURRENT_TIMESTAMP
       WHERE id = ?
-    `, [name, phone, avatar, nationality, citizenship, currentRole, currentEmployer, experience, education, expectedSalary, skillsStr, resumeName, resumeUrl, candidateId]);
+    `, [
+      name || null, phone || null, avatar || null, nationality || null, citizenship || null,
+      finalRole, currentEmployer || null, experience || null, finalEducation,
+      expectedSalary || null, skillsStr, resumeName || null, resumeUrl || null, resumeSize || null,
+      dob || null, gender || null, location || null, preferredCountry || null, finalMohre,
+      targetCandId
+    ]);
 
-    const updated = await db.get('SELECT * FROM candidate_profiles WHERE id = ?', [candidateId]);
+    // Also sync to candidates table so Recruiter CRM immediately has the latest CV and profile details!
+    try {
+      const existingCand = await db.get('SELECT * FROM candidates WHERE id = ? OR LOWER(email) = LOWER(?)', [targetCandId, existing.email]);
+      if (existingCand) {
+        await db.run(`
+          UPDATE candidates SET
+            name = COALESCE(?, name),
+            phone = COALESCE(?, phone),
+            avatar = COALESCE(?, avatar),
+            nationality = COALESCE(?, nationality),
+            citizenship = COALESCE(?, citizenship),
+            currentRole = COALESCE(?, currentRole),
+            currentEmployer = COALESCE(?, currentEmployer),
+            experience = COALESCE(?, experience),
+            education = COALESCE(?, education),
+            expectedSalary = COALESCE(?, expectedSalary),
+            skills = COALESCE(?, skills),
+            resumeName = COALESCE(?, resumeName),
+            resumeUrl = COALESCE(?, resumeUrl),
+            resumeSize = COALESCE(?, resumeSize),
+            dob = COALESCE(?, dob),
+            gender = COALESCE(?, gender),
+            location = COALESCE(?, location),
+            preferredCountry = COALESCE(?, preferredCountry),
+            mohreAttested = COALESCE(?, mohreAttested)
+          WHERE id = ?
+        `, [
+          name || null, phone || null, avatar || null, nationality || null, citizenship || null,
+          finalRole, currentEmployer || null, experience || null, finalEducation,
+          expectedSalary || null, skillsStr, resumeName || null, resumeUrl || null, resumeSize || null,
+          dob || null, gender || null, location || null, preferredCountry || null, finalMohre,
+          existingCand.id
+        ]);
+      } else {
+        await db.run(`
+          INSERT INTO candidates (
+            id, name, email, phone, nationality, currentEmployer, currentRole,
+            currentSalary, expectedSalary, score, stage, skills, source, passport,
+            aiSummary, experience, avatar, resumeName, resumeUrl, resumeSize,
+            citizenship, dob, gender, location, preferredCountry, education, mohreAttested
+          ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, 90, 'lead', ?, 'Candidate Portal', 'Standard (Verified)', ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+        `, [
+          targetCandId, name || existing.name, existing.email, phone || existing.phone,
+          nationality || existing.nationality || 'UAE', currentEmployer || 'Revival International Talent Pool',
+          finalRole, 'Confidential', expectedSalary || 'Market Standard',
+          skillsStr, `Registered candidate (${existing.email}). CV: ${resumeName ? 'Uploaded' : 'Pending'}`,
+          experience || '3-5 Years', avatar || existing.avatar,
+          resumeName || null, resumeUrl || null, resumeSize || null,
+          citizenship || null, dob || null, gender || null, location || null,
+          preferredCountry || null, finalEducation, finalMohre
+        ]);
+      }
+    } catch (syncErr) {
+      console.warn('Sync to candidates table notice:', syncErr.message);
+    }
+
+    const updated = await db.get('SELECT * FROM candidate_profiles WHERE id = ?', [targetCandId]);
     res.json({
       success: true,
       data: {
@@ -1806,18 +1891,127 @@ app.get('/api/candidates', async (req, res) => {
       }
       rows = await db.all('SELECT * FROM candidates ORDER BY createdAt DESC');
     }
+
+    // Fetch candidate profiles to enrich
+    const profiles = await db.all('SELECT * FROM candidate_profiles').catch(() => []);
+    const profileMap = new Map();
+    for (const p of profiles) {
+      if (p.id) profileMap.set(p.id, p);
+      if (p.email) profileMap.set(p.email.toLowerCase().trim(), p);
+    }
+
+    // Fetch candidate applications
+    const applications = await db.all('SELECT * FROM candidate_applications ORDER BY appliedDate DESC').catch(() => []);
+    const appsMap = new Map();
+    for (const app of applications) {
+      const keys = [app.candidateId, app.userId].filter(Boolean);
+      for (const k of keys) {
+        if (!appsMap.has(k)) appsMap.set(k, []);
+        appsMap.get(k).push(app);
+      }
+    }
+
+    // Fetch candidate documents
+    const documents = await db.all('SELECT * FROM candidate_documents ORDER BY uploadDate DESC').catch(() => []);
+    const docsMap = new Map();
+    for (const doc of documents) {
+      const keys = [doc.candidateId, doc.userId].filter(Boolean);
+      for (const k of keys) {
+        if (!docsMap.has(k)) docsMap.set(k, []);
+        docsMap.get(k).push(doc);
+      }
+    }
+
+    const seenIds = new Set();
+    const candidateList = rows.map(r => {
+      seenIds.add(r.id);
+      const emailKey = r.email ? r.email.toLowerCase().trim() : '';
+      const prof = profileMap.get(r.id) || (emailKey ? profileMap.get(emailKey) : null);
+      const userApps = appsMap.get(r.id) || (prof?.userId ? appsMap.get(prof.userId) : []) || (prof?.id ? appsMap.get(prof.id) : []) || [];
+      const userDocs = docsMap.get(r.id) || (prof?.userId ? docsMap.get(prof.userId) : []) || (prof?.id ? docsMap.get(prof.id) : []) || [];
+
+      const resumeName = r.resumeName || prof?.resumeName || null;
+      const resumeUrl = r.resumeUrl || prof?.resumeUrl || null;
+      const resumeSize = r.resumeSize || prof?.resumeSize || null;
+      const citizenship = r.citizenship || prof?.citizenship || null;
+      const dob = r.dob || prof?.dob || null;
+      const gender = r.gender || prof?.gender || null;
+      const location = r.location || prof?.location || null;
+      const preferredCountry = r.preferredCountry || prof?.preferredCountry || null;
+      const education = r.education || prof?.education || 'Bachelor Degree / Professional Diploma';
+      const mohreAttested = (r.mohreAttested !== undefined && r.mohreAttested !== null) ? !!r.mohreAttested : (prof?.mohreAttested ? !!prof.mohreAttested : false);
+
+      return {
+        ...r,
+        skills: parseArray(r.skills || prof?.skills),
+        assignedRecruiter: r.assignedRecruiter || 'Dhanalakshimi (Lead Advisor)',
+        stage: r.stage || prof?.stage || 'lead',
+        score: r.score || prof?.score || 88,
+        avatar: r.avatar || prof?.avatar || 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=150&auto=format&fit=crop&q=80',
+        expectedSalary: r.expectedSalary || prof?.expectedSalary || 'Negotiable',
+        passport: r.passport || 'Verified',
+        resumeName,
+        resumeUrl,
+        resumeSize,
+        citizenship,
+        dob,
+        gender,
+        location,
+        preferredCountry,
+        education,
+        qualification: education,
+        mohreAttested,
+        applications: userApps,
+        documents: userDocs
+      };
+    });
+
+    // Also include any registered profiles from candidate_profiles not yet in candidates table
+    for (const prof of profiles) {
+      if (!seenIds.has(prof.id)) {
+        seenIds.add(prof.id);
+        const userApps = appsMap.get(prof.id) || (prof.userId ? appsMap.get(prof.userId) : []) || [];
+        const userDocs = docsMap.get(prof.id) || (prof.userId ? docsMap.get(prof.userId) : []) || [];
+        candidateList.push({
+          id: prof.id,
+          name: prof.name || 'Portal Candidate',
+          email: prof.email || '',
+          phone: prof.phone || '',
+          nationality: prof.nationality || 'UAE',
+          currentEmployer: prof.currentEmployer || 'Revival International Candidate',
+          currentRole: prof.currentRole || 'Executive Candidate',
+          currentSalary: 'Confidential',
+          expectedSalary: prof.expectedSalary || 'Market Standard',
+          score: prof.score || 88,
+          stage: prof.stage || 'lead',
+          skills: parseArray(prof.skills),
+          source: 'Candidate Portal Registration',
+          passport: 'Standard (Verified)',
+          aiSummary: `Portal registered candidate (${prof.email || ''}).`,
+          experience: prof.experience || '3-5 Years',
+          avatar: prof.avatar || 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=150&auto=format&fit=crop&q=80',
+          assignedRecruiter: 'Dhanalakshimi (Lead Advisor)',
+          createdAt: prof.createdAt || new Date().toISOString(),
+          resumeName: prof.resumeName || null,
+          resumeUrl: prof.resumeUrl || null,
+          resumeSize: prof.resumeSize || null,
+          citizenship: prof.citizenship || null,
+          dob: prof.dob || null,
+          gender: prof.gender || null,
+          location: prof.location || null,
+          preferredCountry: prof.preferredCountry || null,
+          education: prof.education || 'Bachelor Degree / Professional Diploma',
+          qualification: prof.education || 'Bachelor Degree / Professional Diploma',
+          mohreAttested: !!prof.mohreAttested,
+          applications: userApps,
+          documents: userDocs
+        });
+      }
+    }
+
     res.json({
       success: true,
-      data: rows.map(r => ({
-        ...r,
-        skills: parseArray(r.skills),
-        assignedRecruiter: r.assignedRecruiter || 'Dhanalakshimi (Lead Advisor)',
-        stage: r.stage || 'lead',
-        score: r.score || 88,
-        avatar: r.avatar || 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=150&auto=format&fit=crop&q=80',
-        expectedSalary: r.expectedSalary || 'Negotiable',
-        passport: r.passport || 'Verified'
-      }))
+      data: candidateList
     });
   } catch (error) {
     console.error('Failed to fetch candidates:', error);
@@ -1827,7 +2021,13 @@ app.get('/api/candidates', async (req, res) => {
 
 app.post('/api/candidates', async (req, res) => {
   try {
-    const { id, name, email, phone, nationality, currentEmployer, currentRole, currentSalary, expectedSalary, score, stage, skills, source, passport, aiSummary, experience } = req.body;
+    const {
+      id, name, email, phone, nationality, currentEmployer, currentRole,
+      currentSalary, expectedSalary, score, stage, skills, source, passport,
+      aiSummary, experience, resumeName, resumeUrl, resumeSize,
+      citizenship, dob, gender, location, preferredCountry, education, mohreAttested,
+      title, qualification, avatar
+    } = req.body;
     const db = await getDb();
 
     // Check if candidate exists by id or email
@@ -1840,7 +2040,10 @@ app.post('/api/candidates', async (req, res) => {
     }
 
     const candId = existing?.id || id || `REV-CAN-${Math.floor(1000 + Math.random() * 9000)}`;
+    const finalRole = currentRole || title || existing?.currentRole || 'Executive Candidate';
+    const finalEducation = education || qualification || existing?.education || 'Bachelor Degree / Professional Diploma';
     const skillsStr = JSON.stringify(Array.isArray(skills) ? skills : (existing?.skills ? (typeof existing.skills === 'string' ? JSON.parse(existing.skills || '[]') : existing.skills) : ['General Talent']));
+    const finalMohre = mohreAttested !== undefined ? (mohreAttested ? 1 : 0) : (existing?.mohreAttested || 0);
 
     if (existing) {
       await db.run(`
@@ -1859,26 +2062,83 @@ app.post('/api/candidates', async (req, res) => {
           source = COALESCE(?, source),
           passport = COALESCE(?, passport),
           aiSummary = COALESCE(?, aiSummary),
-          experience = COALESCE(?, experience)
+          experience = COALESCE(?, experience),
+          avatar = COALESCE(?, avatar),
+          resumeName = COALESCE(?, resumeName),
+          resumeUrl = COALESCE(?, resumeUrl),
+          resumeSize = COALESCE(?, resumeSize),
+          citizenship = COALESCE(?, citizenship),
+          dob = COALESCE(?, dob),
+          gender = COALESCE(?, gender),
+          location = COALESCE(?, location),
+          preferredCountry = COALESCE(?, preferredCountry),
+          education = COALESCE(?, education),
+          mohreAttested = COALESCE(?, mohreAttested)
         WHERE id = ?
       `, [
         name || null, email || null, phone || null, nationality || null, currentEmployer || null,
-        currentRole || null, currentSalary || null, expectedSalary || null, score || null, stage || null,
+        finalRole, currentSalary || null, expectedSalary || null, score || null, stage || null,
         skillsStr, source || null, passport || null, aiSummary || null, experience || null,
+        avatar || null, resumeName || null, resumeUrl || null, resumeSize || null,
+        citizenship || null, dob || null, gender || null, location || null, preferredCountry || null,
+        finalEducation, finalMohre,
         candId
       ]);
     } else {
       await db.run(`
-        INSERT INTO candidates (id, name, email, phone, nationality, currentEmployer, currentRole, currentSalary, expectedSalary, score, stage, skills, source, passport, aiSummary, experience)
-        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+        INSERT INTO candidates (
+          id, name, email, phone, nationality, currentEmployer, currentRole,
+          currentSalary, expectedSalary, score, stage, skills, source, passport,
+          aiSummary, experience, avatar, resumeName, resumeUrl, resumeSize,
+          citizenship, dob, gender, location, preferredCountry, education, mohreAttested
+        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
       `, [
         candId, name || 'New Candidate', email || '', phone || '', nationality || 'UAE',
-        currentEmployer || 'Revival International Talent Pool', currentRole || 'Executive Candidate',
+        currentEmployer || 'Revival International Talent Pool', finalRole,
         currentSalary || 'Confidential', expectedSalary || 'Market Standard',
         score || 88, stage || 'lead', skillsStr, source || 'Website Registration',
         passport || 'Standard (Verified)', aiSummary || 'Candidate registered via Revival International Portal.',
-        experience || '3-5 Years'
+        experience || '3-5 Years', avatar || null,
+        resumeName || null, resumeUrl || null, resumeSize || null,
+        citizenship || null, dob || null, gender || null, location || null, preferredCountry || null,
+        finalEducation, finalMohre
       ]);
+    }
+
+    // Mirror to candidate_profiles as well
+    try {
+      const existingProf = await db.get('SELECT * FROM candidate_profiles WHERE id = ? OR LOWER(email) = LOWER(?)', [candId, email]);
+      if (existingProf) {
+        await db.run(`
+          UPDATE candidate_profiles SET
+            name = COALESCE(?, name),
+            phone = COALESCE(?, phone),
+            nationality = COALESCE(?, nationality),
+            currentRole = COALESCE(?, currentRole),
+            currentEmployer = COALESCE(?, currentEmployer),
+            expectedSalary = COALESCE(?, expectedSalary),
+            skills = COALESCE(?, skills),
+            resumeName = COALESCE(?, resumeName),
+            resumeUrl = COALESCE(?, resumeUrl),
+            resumeSize = COALESCE(?, resumeSize),
+            citizenship = COALESCE(?, citizenship),
+            dob = COALESCE(?, dob),
+            gender = COALESCE(?, gender),
+            location = COALESCE(?, location),
+            preferredCountry = COALESCE(?, preferredCountry),
+            education = COALESCE(?, education),
+            mohreAttested = COALESCE(?, mohreAttested),
+            updatedAt = CURRENT_TIMESTAMP
+          WHERE id = ?
+        `, [
+          name || null, phone || null, nationality || null, finalRole, currentEmployer || null,
+          expectedSalary || null, skillsStr, resumeName || null, resumeUrl || null, resumeSize || null,
+          citizenship || null, dob || null, gender || null, location || null, preferredCountry || null,
+          finalEducation, finalMohre, existingProf.id
+        ]);
+      }
+    } catch (profSyncErr) {
+      console.warn('Sync to candidate_profiles notice:', profSyncErr.message);
     }
 
     // Mirror to leads table so it also appears in CRM Consulting Bookings & Inquiries

@@ -528,23 +528,59 @@ export const AppProvider = ({ children }) => {
   };
 
   const updateUserProfile = (profileData) => {
+    let updatedSnapshot = null;
     setUser(prev => {
       const updated = { ...prev, ...profileData };
+      updatedSnapshot = updated;
       saveUserSession(updated);
       saveCandidateToDB(updated);
       return updated;
     });
 
-    // Also sync to backend candidate profile API
-    if (user?.candidateId) {
+    const activeUser = updatedSnapshot || user;
+    const cid = activeUser?.candidateId || activeUser?.id;
+    const email = activeUser?.email;
+
+    if (cid || email) {
+      // Sync to backend candidate profile API
       fetch('/api/candidate/profile', {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          candidateId: user.candidateId,
+          candidateId: cid,
+          email: email,
           ...profileData
         })
       }).catch(err => console.warn('Candidate profile sync notice:', err));
+
+      // Also sync to CRM candidates API so Recruiter CRM immediately reflects latest CV & credentials
+      fetch('/api/candidates', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          id: cid,
+          email: email,
+          name: activeUser?.name,
+          phone: activeUser?.phone,
+          nationality: activeUser?.nationality || activeUser?.preferredCountry || 'UAE',
+          citizenship: activeUser?.citizenship,
+          currentRole: activeUser?.title || activeUser?.currentRole || 'Executive Candidate',
+          currentEmployer: activeUser?.currentEmployer || 'Revival International Candidate',
+          expectedSalary: activeUser?.expectedSalary || 'Market Standard',
+          experience: activeUser?.experience || '3-5 Years',
+          education: activeUser?.qualification || activeUser?.education || 'Bachelor Degree / Professional Diploma',
+          skills: activeUser?.skills || [],
+          resumeName: activeUser?.resumeName,
+          resumeUrl: activeUser?.resumeUrl,
+          resumeSize: activeUser?.resumeSize,
+          dob: activeUser?.dob,
+          gender: activeUser?.gender,
+          location: activeUser?.location,
+          preferredCountry: activeUser?.preferredCountry,
+          mohreAttested: activeUser?.mohreAttested,
+          avatar: activeUser?.avatar
+        })
+      }).catch(err => console.warn('CRM candidate mirror notice:', err));
     }
   };
 
@@ -659,7 +695,8 @@ export const AppProvider = ({ children }) => {
           name: user ? user.name : 'Unknown Candidate',
           email: user ? user.email : '',
           phone: user ? user.phone : '',
-          nationality: user?.preferredCountry || job.country || 'UAE',
+          nationality: user?.nationality || user?.preferredCountry || job.country || 'UAE',
+          citizenship: user?.citizenship,
           currentEmployer: 'Revival International Candidate',
           currentRole: job.title,
           expectedSalary: job.salary || 'Standard',
@@ -667,7 +704,17 @@ export const AppProvider = ({ children }) => {
           stage: 'applied',
           score: 90,
           skills: user?.skills && user.skills.length > 0 ? user.skills : (job.skills || ['Executive Candidate']),
-          aiSummary: `Candidate applied for ${job.title} at ${job.company}. Resume: ${user?.resumeName || 'Attached'}`
+          aiSummary: `Candidate applied for ${job.title} at ${job.company}. Resume: ${user?.resumeName || 'Attached'}`,
+          resumeName: user?.resumeName,
+          resumeUrl: user?.resumeUrl,
+          resumeSize: user?.resumeSize,
+          dob: user?.dob,
+          gender: user?.gender,
+          location: user?.location,
+          preferredCountry: user?.preferredCountry,
+          education: user?.qualification || user?.education,
+          mohreAttested: user?.mohreAttested,
+          avatar: user?.avatar
         })
       });
     } catch (err) {

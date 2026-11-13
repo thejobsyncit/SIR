@@ -1353,14 +1353,30 @@ const initDb = async (db) => {
     { name: 'googleId', type: 'TEXT' },
     { name: 'avatar', type: 'TEXT' },
     { name: 'authProvider', type: "TEXT DEFAULT 'local'" },
-    { name: 'googleVerified', type: "INTEGER DEFAULT 0" }
+    { name: 'googleVerified', type: "INTEGER DEFAULT 0" },
+    { name: 'resumeName', type: 'TEXT' },
+    { name: 'resumeUrl', type: 'TEXT' },
+    { name: 'resumeSize', type: 'TEXT' },
+    { name: 'citizenship', type: 'TEXT' },
+    { name: 'dob', type: 'TEXT' },
+    { name: 'gender', type: 'TEXT' },
+    { name: 'location', type: 'TEXT' },
+    { name: 'preferredCountry', type: 'TEXT' },
+    { name: 'education', type: 'TEXT' },
+    { name: 'mohreAttested', type: 'INTEGER DEFAULT 0' }
   ]);
 
   await ensureColumns('candidate_profiles', [
     { name: 'citizenship', type: 'TEXT' },
     { name: 'nationality', type: 'TEXT DEFAULT "UAE"' },
     { name: 'resumeName', type: 'TEXT' },
-    { name: 'resumeUrl', type: 'TEXT' }
+    { name: 'resumeUrl', type: 'TEXT' },
+    { name: 'resumeSize', type: 'TEXT' },
+    { name: 'dob', type: 'TEXT' },
+    { name: 'gender', type: 'TEXT' },
+    { name: 'location', type: 'TEXT' },
+    { name: 'preferredCountry', type: 'TEXT' },
+    { name: 'mohreAttested', type: 'INTEGER DEFAULT 0' }
   ]);
 
   // Safe migration: Ensure student_academy_enquiries table has exam enquiry fields
