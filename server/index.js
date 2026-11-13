@@ -1134,15 +1134,21 @@ app.put('/api/candidate/profile', async (req, res) => {
   }
 });
 
-// GET Candidate Applications (strictly scoped to candidateId)
+// GET Candidate Applications (strictly scoped to candidateId or email)
 app.get('/api/candidate/applications', async (req, res) => {
   try {
-    const { candidateId } = req.query;
-    if (!candidateId) {
-      return res.status(400).json({ success: false, message: 'Candidate ID is required' });
+    const { candidateId, email, userId } = req.query;
+    if (!candidateId && !email && !userId) {
+      return res.status(400).json({ success: false, message: 'Candidate identifier is required' });
     }
     const db = await getDb();
-    const rows = await db.all('SELECT * FROM candidate_applications WHERE candidateId = ? ORDER BY appliedDate DESC', [candidateId]);
+    const rows = await db.all(`
+      SELECT * FROM candidate_applications 
+      WHERE candidateId = ? 
+         OR userId = ? 
+         OR (applicantEmail IS NOT NULL AND LOWER(applicantEmail) = LOWER(?))
+      ORDER BY appliedDate DESC
+    `, [candidateId || '', userId || '', email || candidateId || '']);
     res.json({ success: true, data: rows || [] });
   } catch (error) {
     console.error('Failed to fetch candidate applications:', error);
@@ -1150,29 +1156,139 @@ app.get('/api/candidate/applications', async (req, res) => {
   }
 });
 
-// SUBMIT Candidate Application (strictly associated with candidateId)
+// SUBMIT Candidate Application (strictly associated with candidateId & resumes)
 app.post('/api/candidate/applications', async (req, res) => {
   try {
-    const { candidateId, userId, jobId, jobTitle, company, location } = req.body;
-    if (!candidateId || !jobId) {
-      return res.status(400).json({ success: false, message: 'Candidate ID and Job ID are required' });
+    const { 
+      candidateId, userId, jobId, jobTitle, company, location,
+      resumeName, resumeUrl, resumeSize, coverNote, noticePeriod, expectedSalary,
+      applicantName, applicantEmail, applicantPhone
+    } = req.body;
+    if (!candidateId && !applicantEmail) {
+      return res.status(400).json({ success: false, message: 'Candidate identifier is required' });
+    }
+    if (!jobId) {
+      return res.status(400).json({ success: false, message: 'Job ID is required' });
     }
 
     const db = await getDb();
 
-    // Check if already applied for this job
-    const existing = await db.get('SELECT id FROM candidate_applications WHERE candidateId = ? AND jobId = ?', [candidateId, jobId]);
-    if (existing) {
-      return res.json({ success: true, message: 'Already applied for this vacancy', data: existing });
+    // Resolve candidate profile and user ID to ensure foreign key integrity
+    let profile = null;
+    if (candidateId) {
+      profile = await db.get('SELECT * FROM candidate_profiles WHERE id = ?', [candidateId]);
+    }
+    if (!profile && applicantEmail) {
+      profile = await db.get('SELECT * FROM candidate_profiles WHERE LOWER(email) = LOWER(?)', [applicantEmail.trim()]);
     }
 
-    const appId = `RI-APP-${Math.floor(10000 + Math.random() * 90000)}`;
+    let effectiveCid = profile?.id || candidateId;
+    let effectiveUid = profile?.userId || userId;
+
+    if (!effectiveUid && applicantEmail) {
+      const userRow = await db.get('SELECT id FROM users WHERE LOWER(email) = LOWER(?)', [applicantEmail.trim()]);
+      if (userRow) effectiveUid = userRow.id;
+    }
+
+    if (!effectiveUid) {
+      const fallbackUser = await db.get('SELECT id FROM users LIMIT 1');
+      effectiveUid = fallbackUser?.id || 'USR-MW6CF773-428';
+    }
+
+    if (!profile) {
+      effectiveCid = effectiveCid || `RI-CAND-${Math.floor(100 + Math.random() * 900)}`;
+      const checkProf = await db.get('SELECT id FROM candidate_profiles WHERE id = ?', [effectiveCid]);
+      if (!checkProf) {
+        await db.run(`
+          INSERT INTO candidate_profiles (id, userId, name, email, phone, nationality)
+          VALUES (?, ?, ?, ?, ?, ?)
+        `, [effectiveCid, effectiveUid, applicantName || 'Candidate', applicantEmail || '', applicantPhone || '', 'UAE']);
+      }
+    }
+
+    // Check if already applied for this job
+    const existing = await db.get(
+      'SELECT id FROM candidate_applications WHERE (candidateId = ? OR (applicantEmail IS NOT NULL AND LOWER(applicantEmail) = LOWER(?))) AND jobId = ?', 
+      [effectiveCid, applicantEmail || '', jobId]
+    );
+
+    let appId;
     const appliedDate = new Date().toISOString();
 
-    await db.run(`
-      INSERT INTO candidate_applications (id, candidateId, userId, jobId, jobTitle, company, location, appliedDate, status, stage)
-      VALUES (?, ?, ?, ?, ?, ?, ?, ?, 'Under Review', 'Applied')
-    `, [appId, candidateId, userId || '', jobId, jobTitle || 'International Vacancy', company || 'Partner Enterprise', location || 'GCC', appliedDate]);
+    if (existing) {
+      appId = existing.id;
+      await db.run(`
+        UPDATE candidate_applications SET
+          candidateId = ?,
+          userId = ?,
+          jobTitle = COALESCE(?, jobTitle),
+          company = COALESCE(?, company),
+          location = COALESCE(?, location),
+          appliedDate = ?,
+          status = 'Under Review',
+          stage = 'Applied',
+          resumeName = COALESCE(?, resumeName),
+          resumeUrl = COALESCE(?, resumeUrl),
+          resumeSize = COALESCE(?, resumeSize),
+          coverNote = COALESCE(?, coverNote),
+          noticePeriod = COALESCE(?, noticePeriod),
+          expectedSalary = COALESCE(?, expectedSalary),
+          applicantName = COALESCE(?, applicantName),
+          applicantEmail = COALESCE(?, applicantEmail),
+          applicantPhone = COALESCE(?, applicantPhone)
+        WHERE id = ?
+      `, [
+        effectiveCid, effectiveUid,
+        jobTitle, company, location, appliedDate,
+        resumeName, resumeUrl, resumeSize, coverNote,
+        noticePeriod, expectedSalary, applicantName, applicantEmail, applicantPhone,
+        appId
+      ]);
+    } else {
+      appId = `RI-APP-${Math.floor(10000 + Math.random() * 90000)}`;
+      await db.run(`
+        INSERT INTO candidate_applications (
+          id, candidateId, userId, jobId, jobTitle, company, location, appliedDate,
+          status, stage, resumeName, resumeUrl, resumeSize, coverNote,
+          noticePeriod, expectedSalary, applicantName, applicantEmail, applicantPhone
+        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, 'Under Review', 'Applied', ?, ?, ?, ?, ?, ?, ?, ?, ?)
+      `, [
+        appId, effectiveCid, effectiveUid, jobId, jobTitle || 'International Vacancy', company || 'Partner Enterprise',
+        location || 'GCC', appliedDate, resumeName || null, resumeUrl || null, resumeSize || null,
+        coverNote || null, noticePeriod || 'Immediate', expectedSalary || 'Market Standard',
+        applicantName || 'Candidate', applicantEmail || '', applicantPhone || ''
+      ]);
+    }
+
+    // If resume is attached, synchronize to candidate_profiles and candidates
+    if (resumeName) {
+      try {
+        await db.run(`
+          UPDATE candidate_profiles SET
+            resumeName = COALESCE(?, resumeName),
+            resumeUrl = COALESCE(?, resumeUrl),
+            resumeSize = COALESCE(?, resumeSize)
+          WHERE id = ? OR userId = ? OR (email IS NOT NULL AND LOWER(email) = LOWER(?))
+        `, [resumeName, resumeUrl, resumeSize, effectiveCid, effectiveUid, applicantEmail || '']);
+
+        await db.run(`
+          UPDATE candidates SET
+            resumeName = COALESCE(?, resumeName),
+            resumeUrl = COALESCE(?, resumeUrl),
+            resumeSize = COALESCE(?, resumeSize)
+          WHERE id = ? OR (email IS NOT NULL AND LOWER(email) = LOWER(?))
+        `, [resumeName, resumeUrl, resumeSize, effectiveCid, applicantEmail || '']);
+
+        // Insert into candidate_documents if document doesn't already exist
+        const docId = `RI-DOC-${Math.floor(10000 + Math.random() * 90000)}`;
+        await db.run(`
+          INSERT INTO candidate_documents (id, candidateId, userId, documentType, fileName, fileUrl)
+          VALUES (?, ?, ?, 'Resume / CV', ?, ?)
+        `, [docId, effectiveCid, effectiveUid, resumeName, resumeUrl || '']);
+      } catch (syncErr) {
+        console.warn('Sync resume to profile warning:', syncErr.message);
+      }
+    }
 
     // Send application confirmation notification
     const notifId = `RI-NOTIF-${Math.floor(10000 + Math.random() * 90000)}`;
@@ -1181,14 +1297,14 @@ app.post('/api/candidate/applications', async (req, res) => {
       VALUES (?, ?, ?, ?, ?, 'application', 0)
     `, [
       notifId,
-      candidateId,
-      userId || '',
+      effectiveCid,
+      effectiveUid,
       'Application Submitted',
-      `Your application for "${jobTitle}" at ${company} was successfully submitted and is under review.`
+      `Your application for "${jobTitle}" at ${company} was successfully submitted with your attached CV and is under review.`
     ]);
 
     const created = await db.get('SELECT * FROM candidate_applications WHERE id = ?', [appId]);
-    res.json({ success: true, message: 'Application submitted successfully', data: created });
+    res.json({ success: true, message: 'Application submitted successfully with attached CV', data: created });
   } catch (error) {
     console.error('Failed to submit application:', error);
     res.status(500).json({ success: false, message: 'Server error' });
@@ -1904,7 +2020,11 @@ app.get('/api/candidates', async (req, res) => {
     const applications = await db.all('SELECT * FROM candidate_applications ORDER BY appliedDate DESC').catch(() => []);
     const appsMap = new Map();
     for (const app of applications) {
-      const keys = [app.candidateId, app.userId].filter(Boolean);
+      const keys = [
+        app.candidateId, 
+        app.userId,
+        app.applicantEmail ? app.applicantEmail.toLowerCase().trim() : null
+      ].filter(Boolean);
       for (const k of keys) {
         if (!appsMap.has(k)) appsMap.set(k, []);
         appsMap.get(k).push(app);
@@ -1927,12 +2047,14 @@ app.get('/api/candidates', async (req, res) => {
       seenIds.add(r.id);
       const emailKey = r.email ? r.email.toLowerCase().trim() : '';
       const prof = profileMap.get(r.id) || (emailKey ? profileMap.get(emailKey) : null);
-      const userApps = appsMap.get(r.id) || (prof?.userId ? appsMap.get(prof.userId) : []) || (prof?.id ? appsMap.get(prof.id) : []) || [];
-      const userDocs = docsMap.get(r.id) || (prof?.userId ? docsMap.get(prof.userId) : []) || (prof?.id ? docsMap.get(prof.id) : []) || [];
+      const userApps = appsMap.get(r.id) || (emailKey ? appsMap.get(emailKey) : []) || (prof?.userId ? appsMap.get(prof.userId) : []) || (prof?.id ? appsMap.get(prof.id) : []) || [];
+      const userDocs = docsMap.get(r.id) || (emailKey ? docsMap.get(emailKey) : []) || (prof?.userId ? docsMap.get(prof.userId) : []) || (prof?.id ? docsMap.get(prof.id) : []) || [];
 
-      const resumeName = r.resumeName || prof?.resumeName || null;
-      const resumeUrl = r.resumeUrl || prof?.resumeUrl || null;
-      const resumeSize = r.resumeSize || prof?.resumeSize || null;
+      // Check if any application has an attached resume
+      const appWithResume = userApps.find(a => a.resumeName || a.resumeUrl);
+      const resumeName = r.resumeName || prof?.resumeName || appWithResume?.resumeName || null;
+      const resumeUrl = r.resumeUrl || prof?.resumeUrl || appWithResume?.resumeUrl || null;
+      const resumeSize = r.resumeSize || prof?.resumeSize || appWithResume?.resumeSize || null;
       const citizenship = r.citizenship || prof?.citizenship || null;
       const dob = r.dob || prof?.dob || null;
       const gender = r.gender || prof?.gender || null;
@@ -1970,8 +2092,13 @@ app.get('/api/candidates', async (req, res) => {
     for (const prof of profiles) {
       if (!seenIds.has(prof.id)) {
         seenIds.add(prof.id);
-        const userApps = appsMap.get(prof.id) || (prof.userId ? appsMap.get(prof.userId) : []) || [];
-        const userDocs = docsMap.get(prof.id) || (prof.userId ? docsMap.get(prof.userId) : []) || [];
+        const profEmailKey = prof.email ? prof.email.toLowerCase().trim() : '';
+        const userApps = appsMap.get(prof.id) || (profEmailKey ? appsMap.get(profEmailKey) : []) || (prof.userId ? appsMap.get(prof.userId) : []) || [];
+        const userDocs = docsMap.get(prof.id) || (profEmailKey ? docsMap.get(profEmailKey) : []) || (prof.userId ? docsMap.get(prof.userId) : []) || [];
+        const appWithResume = userApps.find(a => a.resumeName || a.resumeUrl);
+        const resumeName = prof.resumeName || appWithResume?.resumeName || null;
+        const resumeUrl = prof.resumeUrl || appWithResume?.resumeUrl || null;
+        const resumeSize = prof.resumeSize || appWithResume?.resumeSize || null;
         candidateList.push({
           id: prof.id,
           name: prof.name || 'Portal Candidate',
@@ -1992,9 +2119,9 @@ app.get('/api/candidates', async (req, res) => {
           avatar: prof.avatar || 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=150&auto=format&fit=crop&q=80',
           assignedRecruiter: 'Dhanalakshimi (Lead Advisor)',
           createdAt: prof.createdAt || new Date().toISOString(),
-          resumeName: prof.resumeName || null,
-          resumeUrl: prof.resumeUrl || null,
-          resumeSize: prof.resumeSize || null,
+          resumeName,
+          resumeUrl,
+          resumeSize,
           citizenship: prof.citizenship || null,
           dob: prof.dob || null,
           gender: prof.gender || null,

@@ -6,7 +6,7 @@ import {
   Bookmark, Filter, X, Send, UserCheck, Trash2, AlertCircle, Download,
   ExternalLink, Mail, Phone, MapPin, Globe, Calendar, Briefcase,
   GraduationCap, ShieldCheck, Clock, Building, Award, Check, FileCheck,
-  ChevronDown, ChevronUp
+  ChevronDown, ChevronUp, Paperclip
 } from 'lucide-react';
 import { CrmAddCandidateModal } from '../components/CrmAddCandidateModal';
 import ScrollReveal from '../../components/ScrollReveal';
@@ -113,16 +113,33 @@ export const CrmCandidates = () => {
 
     // Check localStorage for applications
     try {
-      const appsStr = localStorage.getItem(`sir_applications_${viewCand.id}`);
-      if (appsStr) {
-        const localApps = JSON.parse(appsStr);
-        if (Array.isArray(localApps) && localApps.length > 0) {
-          const existingIds = new Set((enriched.applications || []).map(a => a.id || a.jobId));
-          const newApps = localApps.filter(a => !existingIds.has(a.id || a.jobId));
-          enriched.applications = [...(enriched.applications || []), ...newApps];
+      const keysToCheck = [
+        `sir_applications_${viewCand.id}`,
+        viewCand.email ? `sir_applications_${viewCand.email.toLowerCase().trim()}` : null
+      ].filter(Boolean);
+
+      for (const k of keysToCheck) {
+        const appsStr = localStorage.getItem(k);
+        if (appsStr) {
+          const localApps = JSON.parse(appsStr);
+          if (Array.isArray(localApps) && localApps.length > 0) {
+            const existingIds = new Set((enriched.applications || []).map(a => a.id || a.jobId));
+            const newApps = localApps.filter(a => !existingIds.has(a.id || a.jobId));
+            enriched.applications = [...(enriched.applications || []), ...newApps];
+          }
         }
       }
     } catch {}
+
+    // Check if any application attached a specific resume
+    const appWithCv = (enriched.applications || []).find(a => a.resumeName || a.resumeUrl);
+    if (appWithCv) {
+      if (!enriched.resumeName || enriched.resumeName.includes('Executive_CV.pdf')) {
+        enriched.resumeName = appWithCv.resumeName || enriched.resumeName;
+      }
+      if (!enriched.resumeUrl) enriched.resumeUrl = appWithCv.resumeUrl;
+      if (!enriched.resumeSize) enriched.resumeSize = appWithCv.resumeSize;
+    }
 
     // Ensure complete, verified fallback data for every candidate so resume is ALWAYS available
     const cleanName = (enriched.name || 'Executive Candidate').trim();
@@ -197,6 +214,34 @@ export const CrmCandidates = () => {
 
     // Open clean, formatted ATS Resume preview
     openCandidateResumeInNewTab(cand);
+  };
+
+  // Handle downloading job-specific applied CV
+  const handleDownloadAppCv = (app, cand) => {
+    const targetCand = {
+      ...cand,
+      currentRole: app.jobTitle || cand.currentRole,
+      currentEmployer: app.company || cand.currentEmployer,
+      resumeName: app.resumeName || cand.resumeName,
+      resumeUrl: app.resumeUrl || cand.resumeUrl,
+      resumeSize: app.resumeSize || cand.resumeSize,
+      expectedSalary: app.expectedSalary || cand.expectedSalary
+    };
+    handleDownloadCv(targetCand);
+  };
+
+  // Handle previewing job-specific applied CV
+  const handlePreviewAppCv = (app, cand) => {
+    const targetCand = {
+      ...cand,
+      currentRole: app.jobTitle || cand.currentRole,
+      currentEmployer: app.company || cand.currentEmployer,
+      resumeName: app.resumeName || cand.resumeName,
+      resumeUrl: app.resumeUrl || cand.resumeUrl,
+      resumeSize: app.resumeSize || cand.resumeSize,
+      expectedSalary: app.expectedSalary || cand.expectedSalary
+    };
+    handlePreviewCv(targetCand);
   };
 
   const filtered = candidates.filter(c => {
@@ -325,6 +370,12 @@ export const CrmCandidates = () => {
                     <FileText className="w-3 h-3 text-emerald-600 dark:text-emerald-400" />
                     <span>CV Attached</span>
                   </span>
+                  {Array.isArray(cand.applications) && cand.applications.length > 0 && (
+                    <span className="px-2 py-0.5 rounded-full bg-blue-500/15 text-blue-700 dark:text-blue-400 font-bold text-[9px] flex items-center gap-1 border border-blue-500/30" title="Applied Vacancies">
+                      <Briefcase className="w-3 h-3 text-blue-600 dark:text-blue-400" />
+                      <span>{cand.applications.length} Applied</span>
+                    </span>
+                  )}
                   <span className="w-7 h-7 rounded-full border border-gold-500 text-gold-600 dark:text-gold-400 font-extrabold text-[11px] flex items-center justify-center bg-gold-500/10" title="AI Profile Score">
                     {cand.score || 88}
                   </span>
@@ -703,26 +754,82 @@ export const CrmCandidates = () => {
                 <span>Applied Vacancies & Mandates ({activeCand.applications?.length || 0})</span>
               </h4>
               {Array.isArray(activeCand.applications) && activeCand.applications.length > 0 ? (
-                <div className="space-y-2 max-h-48 overflow-y-auto pr-1">
-                  {activeCand.applications.map((app, idx) => (
-                    <div 
-                      key={idx} 
-                      className="p-3 bg-slate-100 dark:bg-navy-950 border border-slate-200 dark:border-navy-800 rounded-xl flex flex-col sm:flex-row justify-between sm:items-center gap-2 text-xs"
-                    >
-                      <div>
-                        <p className="font-bold text-slate-900 dark:text-white">{app.jobTitle}</p>
-                        <p className="text-[11px] text-slate-500 dark:text-slate-400">{app.company} • {app.location || 'GCC'}</p>
+                <div className="space-y-3 max-h-72 overflow-y-auto pr-1">
+                  {activeCand.applications.map((app, idx) => {
+                    const appCvName = app.resumeName || activeCand.resumeName;
+                    const appCvSize = app.resumeSize || activeCand.resumeSize || '245 KB';
+                    return (
+                      <div 
+                        key={idx} 
+                        className="p-3.5 bg-slate-50 dark:bg-navy-950 border border-slate-200 dark:border-navy-800 rounded-2xl flex flex-col gap-2.5 text-xs shadow-xs"
+                      >
+                        <div className="flex flex-col sm:flex-row justify-between sm:items-center gap-2">
+                          <div>
+                            <p className="font-bold text-slate-900 dark:text-white text-sm">{app.jobTitle}</p>
+                            <p className="text-[11px] text-slate-500 dark:text-slate-400 font-semibold">{app.company} • {app.location || 'GCC'}</p>
+                          </div>
+                          <div className="flex items-center gap-2">
+                            <span className="text-[10px] text-slate-500 font-mono">
+                              {app.appliedDate ? new Date(app.appliedDate).toLocaleDateString() : 'Recent'}
+                            </span>
+                            <span className="px-2.5 py-0.5 rounded-full font-bold text-[10px] bg-gold-500/20 text-gold-700 dark:text-gold-400 uppercase">
+                              {app.status || 'Under Review'}
+                            </span>
+                          </div>
+                        </div>
+
+                        {/* Resume / CV Attached for this Specific Job Application */}
+                        <div className="bg-white dark:bg-navy-900 p-2.5 rounded-xl border border-slate-200/90 dark:border-navy-800 flex flex-col sm:flex-row justify-between sm:items-center gap-2">
+                          <div className="flex items-center gap-2.5 min-w-0">
+                            <div className="w-8 h-8 rounded-lg bg-gold-500/15 text-gold-600 dark:text-gold-400 flex items-center justify-center shrink-0">
+                              <FileText className="w-4 h-4" />
+                            </div>
+                            <div className="min-w-0">
+                              <span className="text-[9px] uppercase font-bold text-slate-400 block leading-tight">Applied Resume / CV</span>
+                              <p className="font-bold text-slate-900 dark:text-white truncate text-xs" title={appCvName}>
+                                {appCvName}
+                              </p>
+                              <span className="text-[10px] text-slate-500">{appCvSize} • ATS Certified</span>
+                            </div>
+                          </div>
+
+                          <div className="flex items-center gap-1.5 shrink-0">
+                            <button
+                              type="button"
+                              onClick={() => handlePreviewAppCv(app, activeCand)}
+                              className="px-2.5 py-1.5 rounded-lg bg-slate-100 hover:bg-slate-200 dark:bg-navy-800 dark:hover:bg-navy-700 text-slate-800 dark:text-slate-200 font-bold text-[11px] flex items-center gap-1 transition cursor-pointer"
+                              title="Preview Candidate CV in New Tab"
+                            >
+                              <Eye className="w-3.5 h-3.5 text-gold-500" />
+                              <span>Preview CV</span>
+                            </button>
+                            <button
+                              type="button"
+                              onClick={() => handleDownloadAppCv(app, activeCand)}
+                              className="px-2.5 py-1.5 rounded-lg bg-gold-500 hover:bg-gold-400 text-slate-950 font-bold text-[11px] flex items-center gap-1 transition shadow-gold-glow cursor-pointer"
+                              title="Download Candidate CV"
+                            >
+                              <Download className="w-3.5 h-3.5" />
+                              <span>Download CV</span>
+                            </button>
+                          </div>
+                        </div>
+
+                        {/* Candidate Application Notes / Terms */}
+                        {(app.coverNote || app.noticePeriod || app.expectedSalary) && (
+                          <div className="pt-1.5 border-t border-slate-200/60 dark:border-navy-800/60 flex flex-wrap items-center justify-between gap-2 text-[11px] text-slate-600 dark:text-slate-400">
+                            {app.coverNote && (
+                              <p className="italic font-medium">"{app.coverNote}"</p>
+                            )}
+                            <div className="flex items-center gap-3 font-semibold ml-auto text-[10px]">
+                              {app.noticePeriod && <span>⏱️ Notice: <strong>{app.noticePeriod}</strong></span>}
+                              {app.expectedSalary && <span>💰 Expected: <strong>{app.expectedSalary}</strong></span>}
+                            </div>
+                          </div>
+                        )}
                       </div>
-                      <div className="flex items-center gap-2">
-                        <span className="text-[10px] text-slate-500">
-                          {app.appliedDate ? new Date(app.appliedDate).toLocaleDateString() : 'Recent'}
-                        </span>
-                        <span className="px-2.5 py-0.5 rounded-full font-bold text-[10px] bg-gold-500/20 text-gold-700 dark:text-gold-400 uppercase">
-                          {app.status || 'Under Review'}
-                        </span>
-                      </div>
-                    </div>
-                  ))}
+                    );
+                  })}
                 </div>
               ) : (
                 <div className="p-3 bg-slate-100/60 dark:bg-navy-950/60 rounded-xl text-xs text-slate-500 italic border border-dashed border-slate-300 dark:border-navy-800">

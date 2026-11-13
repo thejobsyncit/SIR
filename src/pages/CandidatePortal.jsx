@@ -89,6 +89,120 @@ export const CandidatePortal = () => {
   const [jobSearch, setJobSearch] = useState('');
   const [jobCountryFilter, setJobCountryFilter] = useState('All');
   const [applySuccessMsg, setApplySuccessMsg] = useState('');
+  const [applyModalJob, setApplyModalJob] = useState(null);
+  const [applyCvChoice, setApplyCvChoice] = useState('profile'); // 'profile' | 'upload'
+  const [applyCustomCv, setApplyCustomCv] = useState({ name: '', size: '', url: '' });
+  const [applySaveToProfile, setApplySaveToProfile] = useState(true);
+  const [applyCoverNote, setApplyCoverNote] = useState('');
+  const [applyNoticePeriod, setApplyNoticePeriod] = useState('Immediate (Ready to Join)');
+  const [applyExpectedSalary, setApplyExpectedSalary] = useState('');
+  const [applyIsSubmitting, setApplyIsSubmitting] = useState(false);
+  const [applyModalError, setApplyModalError] = useState('');
+  const applyFileInputRef = useRef(null);
+
+  const openApplyModal = (job) => {
+    if (!user || (!user.email && !user.candidateId)) {
+      setActiveModal('register');
+      return;
+    }
+    setApplyModalJob(job);
+    const hasProfileCv = !!(user?.resumeName || profileForm.resumeName);
+    setApplyCvChoice(hasProfileCv ? 'profile' : 'upload');
+    setApplyCustomCv({ name: '', size: '', url: '' });
+    setApplyCoverNote('');
+    setApplyExpectedSalary(job.salary || user?.expectedSalary || 'Market Standard');
+    setApplyNoticePeriod('Immediate (Ready to Join)');
+    setApplyModalError('');
+    setApplySaveToProfile(true);
+  };
+
+  const handleApplyCvUpload = (e) => {
+    const file = e.target.files && e.target.files[0];
+    if (!file) return;
+
+    if (file.size > 10 * 1024 * 1024) {
+      setApplyModalError('File size exceeds 10MB limit. Please upload a smaller PDF/DOC file.');
+      return;
+    }
+
+    const formattedSize = file.size > 1024 * 1024 
+      ? `${(file.size / (1024 * 1024)).toFixed(1)} MB` 
+      : `${Math.round(file.size / 1024)} KB`;
+
+    const reader = new FileReader();
+    reader.onload = () => {
+      setApplyCustomCv({
+        name: file.name,
+        size: formattedSize,
+        url: reader.result
+      });
+      setApplyCvChoice('upload');
+      setApplyModalError('');
+    };
+    reader.onerror = () => {
+      setApplyModalError('Failed to read file. Please select a valid PDF/DOC resume.');
+    };
+    reader.readAsDataURL(file);
+  };
+
+  const handleConfirmApplication = async () => {
+    if (!applyModalJob) return;
+
+    let finalResumeName = '';
+    let finalResumeUrl = '';
+    let finalResumeSize = '';
+
+    if (applyCvChoice === 'profile') {
+      finalResumeName = user?.resumeName || profileForm.resumeName || '';
+      finalResumeUrl = user?.resumeUrl || profileForm.resumeUrl || '';
+      finalResumeSize = user?.resumeSize || profileForm.resumeSize || '245 KB';
+    } else {
+      finalResumeName = applyCustomCv.name;
+      finalResumeUrl = applyCustomCv.url;
+      finalResumeSize = applyCustomCv.size;
+    }
+
+    if (!finalResumeName || (!finalResumeUrl && applyCvChoice === 'upload')) {
+      setApplyModalError('Please upload or select your CV / Resume before submitting this application.');
+      return;
+    }
+
+    setApplyIsSubmitting(true);
+    setApplyModalError('');
+
+    try {
+      await applyForJob(applyModalJob, {
+        resumeName: finalResumeName,
+        resumeUrl: finalResumeUrl,
+        resumeSize: finalResumeSize,
+        coverNote: applyCoverNote,
+        noticePeriod: applyNoticePeriod,
+        expectedSalary: applyExpectedSalary,
+        saveToProfile: applySaveToProfile,
+        applicantName: user?.name || profileForm.name || 'Candidate',
+        applicantEmail: user?.email || profileForm.email || '',
+        applicantPhone: user?.phone || profileForm.phone || ''
+      });
+
+      if (applySaveToProfile && finalResumeName) {
+        setProfileForm(prev => ({
+          ...prev,
+          resumeName: finalResumeName,
+          resumeUrl: finalResumeUrl,
+          resumeSize: finalResumeSize
+        }));
+      }
+
+      setApplySuccessMsg(`✓ Application for "${applyModalJob.title}" at ${applyModalJob.company} submitted successfully with your attached CV! Real-time status updated under Applications tab.`);
+      setApplyModalJob(null);
+      setActiveTab('applications');
+    } catch (err) {
+      console.error('Application submit error:', err);
+      setApplyModalError('Failed to submit application. Please try again.');
+    } finally {
+      setApplyIsSubmitting(false);
+    }
+  };
 
   // Combine postedJobs and JOBS_LIST for candidate job center
   const allJobs = [...(postedJobs || [])];
@@ -1046,10 +1160,7 @@ export const CandidatePortal = () => {
                         </button>
                       ) : (
                         <button 
-                          onClick={() => {
-                            applyForJob(job);
-                            setApplySuccessMsg(`✓ Application for "${job.title}" submitted successfully! Real-time status updated under Applications tab.`);
-                          }}
+                          onClick={() => openApplyModal(job)}
                           className="w-full md:w-auto px-8 py-2.5 rounded-full border border-gold-500 text-slate-900 dark:text-white bg-gold-500 hover:bg-gold-400 font-bold text-[13px] flex items-center justify-center gap-1.5 transition shadow-gold-glow cursor-pointer"
                         >
                           <Zap className="w-4 h-4" />
@@ -1614,13 +1725,27 @@ export const CandidatePortal = () => {
                     <h4 className="font-bold text-[17px] text-navy-900 dark:text-white leading-tight">{app.jobTitle}</h4>
                     <p className="text-[13px] text-slate-500 font-semibold uppercase tracking-wider">{app.company}</p>
                     <div className="flex flex-wrap items-center gap-5 text-[13px] text-slate-500 font-medium pt-1">
-                      <div className="flex items-center gap-1.5"><MapPin className="w-4 h-4 text-slate-500 dark:text-slate-400" /> <span>{app.country || 'Location'}</span></div>
-                      <div className="flex items-center gap-1.5"><DollarSign className="w-4 h-4 text-slate-500 dark:text-slate-400" /> <span>Negotiable</span></div>
-                      <div className="flex items-center gap-1.5"><Briefcase className="w-4 h-4 text-slate-500 dark:text-slate-400" /> <span>Experienced</span></div>
+                      <div className="flex items-center gap-1.5"><MapPin className="w-4 h-4 text-slate-500 dark:text-slate-400" /> <span>{app.location || app.country || 'GCC'}</span></div>
+                      <div className="flex items-center gap-1.5"><DollarSign className="w-4 h-4 text-slate-500 dark:text-slate-400" /> <span>{app.expectedSalary || 'Market Standard'}</span></div>
+                      <div className="flex items-center gap-1.5"><Briefcase className="w-4 h-4 text-slate-500 dark:text-slate-400" /> <span>{app.noticePeriod || 'Immediate'}</span></div>
                     </div>
                     <div className="flex items-center gap-1.5 text-[13px] text-slate-500 pt-2 font-medium">
                       <Clock className="w-4 h-4 text-slate-500 dark:text-slate-400" />
-                      <span>Applied on {app.appliedDate || 'August 4, 2026'}</span>
+                      <span>Applied on {app.appliedDate ? new Date(app.appliedDate).toLocaleDateString() : 'Recent'}</span>
+                    </div>
+
+                    {/* Submitted CV details for this application */}
+                    <div className="flex flex-wrap items-center gap-2 pt-2 border-t border-slate-100 dark:border-navy-800 text-xs">
+                      <span className="px-2.5 py-1 rounded-lg bg-gold-500/10 text-gold-700 dark:text-gold-400 font-bold flex items-center gap-1.5 border border-gold-500/20">
+                        <Paperclip className="w-3.5 h-3.5 text-gold-500" />
+                        <span>Submitted CV: {app.resumeName || user?.resumeName || 'Executive_CV.pdf'}</span>
+                        <span className="text-slate-400 font-normal">({app.resumeSize || user?.resumeSize || '245 KB'})</span>
+                      </span>
+                      {app.coverNote && (
+                        <span className="text-[11px] text-slate-500 italic block">
+                          Pitch: "{app.coverNote}"
+                        </span>
+                      )}
                     </div>
                   </div>
                 </div>
@@ -1731,6 +1856,244 @@ export const CandidatePortal = () => {
                 className="w-full py-3 bg-gold-shimmer text-navy-950 font-extrabold text-xs rounded-xl shadow-gold-glow"
               >
                 Close Report
+              </button>
+            </div>
+
+          </div>
+        </div>
+      )}
+
+      {/* JOB APPLICATION MODAL (Prompt for CV / Resume Attachment) */}
+      {applyModalJob && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/80 dark:bg-navy-950/80 backdrop-blur-sm animate-in fade-in">
+          <div className="glass-card bg-white dark:bg-navy-900 border border-slate-200 dark:border-gold-500/40 p-6 sm:p-8 rounded-3xl max-w-2xl w-full space-y-6 shadow-luxury text-xs text-slate-900 dark:text-white max-h-[92vh] overflow-y-auto">
+            
+            {/* Modal Header */}
+            <div className="flex justify-between items-start border-b border-slate-200 dark:border-navy-800 pb-4">
+              <div>
+                <div className="flex items-center gap-2 mb-1">
+                  <span className="bg-gold-500/20 text-gold-500 text-[10px] font-extrabold px-2.5 py-0.5 rounded uppercase">Direct GCC Vacancy Application</span>
+                  <span className="text-[10px] font-mono text-slate-400">ID: {applyModalJob.id}</span>
+                </div>
+                <h3 className="font-serif text-2xl font-bold text-navy-900 dark:text-white">{applyModalJob.title}</h3>
+                <p className="text-slate-600 dark:text-slate-300 font-semibold mt-0.5">
+                  {applyModalJob.company} • {applyModalJob.location || applyModalJob.country || 'GCC'} • {applyModalJob.salary || 'Market Standard'}
+                </p>
+              </div>
+              <button 
+                type="button"
+                onClick={() => setApplyModalJob(null)} 
+                className="text-slate-400 hover:text-slate-900 dark:hover:text-white p-1 rounded-lg transition cursor-pointer"
+              >
+                <X className="w-6 h-6" />
+              </button>
+            </div>
+
+            {/* Candidate Identity Preview */}
+            <div className="p-3.5 bg-slate-50 dark:bg-navy-950 rounded-2xl border border-slate-200 dark:border-navy-800 flex flex-col sm:flex-row justify-between sm:items-center gap-2">
+              <div className="flex items-center gap-3">
+                <div className="w-10 h-10 rounded-full bg-gold-500/20 text-gold-600 dark:text-gold-400 flex items-center justify-center font-bold text-sm">
+                  {(user?.name || profileForm.name || 'C').charAt(0)}
+                </div>
+                <div>
+                  <p className="font-bold text-slate-900 dark:text-white">{user?.name || profileForm.name || 'Candidate'}</p>
+                  <p className="text-[11px] text-slate-500 font-mono">{user?.email || profileForm.email || 'Email Verified'}</p>
+                </div>
+              </div>
+              <div className="text-left sm:text-right text-[11px] text-slate-500">
+                <p>Phone: <strong className="text-slate-800 dark:text-slate-200">{user?.phone || profileForm.phone || '+971 50 123 4567'}</strong></p>
+                <p>Nationality: <strong className="text-slate-800 dark:text-slate-200">{user?.nationality || profileForm.nationality || 'UAE'}</strong></p>
+              </div>
+            </div>
+
+            {/* RESUME / CV ATTACHMENT SECTION (MANDATORY) */}
+            <div className="space-y-3">
+              <div className="flex justify-between items-center">
+                <h4 className="font-bold text-slate-900 dark:text-white text-xs uppercase tracking-wider flex items-center gap-1.5">
+                  <FileText className="w-4 h-4 text-gold-500" />
+                  <span>Attach Resume / CV for this Job <span className="text-rose-500">*</span></span>
+                </h4>
+                <span className="text-[11px] text-slate-500">Required by Recruiter</span>
+              </div>
+
+              {/* Option 1: Use Current Profile Resume */}
+              {(user?.resumeName || profileForm.resumeName) && (
+                <label 
+                  onClick={() => setApplyCvChoice('profile')}
+                  className={`p-3.5 rounded-2xl border-2 flex items-start gap-3 cursor-pointer transition ${applyCvChoice === 'profile' ? 'border-gold-500 bg-gold-500/10' : 'border-slate-200 dark:border-navy-800 bg-white dark:bg-navy-950 hover:border-slate-300'}`}
+                >
+                  <input 
+                    type="radio" 
+                    name="applyCvOption" 
+                    checked={applyCvChoice === 'profile'} 
+                    onChange={() => setApplyCvChoice('profile')}
+                    className="mt-1 text-gold-500 focus:ring-gold-500 cursor-pointer" 
+                  />
+                  <div className="flex-1 min-w-0">
+                    <div className="flex justify-between items-center">
+                      <p className="font-bold text-slate-900 dark:text-white text-xs">Use Saved Profile CV</p>
+                      <span className="text-[10px] text-emerald-600 dark:text-emerald-400 font-bold bg-emerald-500/10 px-2 py-0.5 rounded-full">
+                        ATS Verified
+                      </span>
+                    </div>
+                    <p className="font-mono text-xs text-gold-700 dark:text-gold-400 truncate mt-0.5">
+                      📄 {user?.resumeName || profileForm.resumeName}
+                    </p>
+                    <p className="text-[11px] text-slate-500 mt-0.5">
+                      {user?.resumeSize || profileForm.resumeSize || '245 KB'} • High-resolution dossier
+                    </p>
+                  </div>
+                </label>
+              )}
+
+              {/* Option 2: Upload a New / Specific Resume */}
+              <label 
+                onClick={() => setApplyCvChoice('upload')}
+                className={`p-3.5 rounded-2xl border-2 flex items-start gap-3 cursor-pointer transition ${applyCvChoice === 'upload' ? 'border-gold-500 bg-gold-500/10' : 'border-slate-200 dark:border-navy-800 bg-white dark:bg-navy-950 hover:border-slate-300'}`}
+              >
+                <input 
+                  type="radio" 
+                  name="applyCvOption" 
+                  checked={applyCvChoice === 'upload'} 
+                  onChange={() => setApplyCvChoice('upload')}
+                  className="mt-1 text-gold-500 focus:ring-gold-500 cursor-pointer" 
+                />
+                <div className="flex-1 space-y-2">
+                  <div className="flex justify-between items-center">
+                    <p className="font-bold text-slate-900 dark:text-white text-xs">
+                      {!(user?.resumeName || profileForm.resumeName) ? 'Upload CV / Resume to Apply' : 'Upload a Different CV for this Role'}
+                    </p>
+                    <span className="text-[10px] text-slate-400">PDF, DOC, DOCX (Max 10MB)</span>
+                  </div>
+
+                  {applyCustomCv.name ? (
+                    <div className="p-2.5 bg-emerald-500/15 border border-emerald-500/30 rounded-xl flex justify-between items-center">
+                      <div className="flex items-center gap-2 truncate">
+                        <CheckCircle2 className="w-4 h-4 text-emerald-600 dark:text-emerald-400 shrink-0" />
+                        <span className="font-mono text-emerald-800 dark:text-emerald-300 text-xs truncate">
+                          {applyCustomCv.name} ({applyCustomCv.size})
+                        </span>
+                      </div>
+                      <button
+                        type="button"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          applyFileInputRef.current?.click();
+                        }}
+                        className="text-[11px] text-gold-600 dark:text-gold-400 font-bold hover:underline shrink-0 ml-2 cursor-pointer"
+                      >
+                        Change
+                      </button>
+                    </div>
+                  ) : (
+                    <div 
+                      onClick={() => applyFileInputRef.current?.click()}
+                      className="p-4 border-2 border-dashed border-slate-300 dark:border-navy-700 rounded-xl text-center hover:border-gold-500 transition cursor-pointer bg-slate-50 dark:bg-navy-900/60"
+                    >
+                      <Upload className="w-6 h-6 text-gold-500 mx-auto mb-1.5" />
+                      <p className="font-bold text-slate-800 dark:text-slate-200 text-xs">Click here to browse your CV / Resume</p>
+                      <p className="text-[11px] text-slate-400 mt-0.5">Supports PDF or Word documents from your computer or phone</p>
+                    </div>
+                  )}
+
+                  <input 
+                    ref={applyFileInputRef}
+                    type="file" 
+                    accept=".pdf,.doc,.docx,application/pdf,application/msword,application/vnd.openxmlformats-officedocument.wordprocessingml.document" 
+                    onChange={handleApplyCvUpload} 
+                    className="hidden" 
+                  />
+
+                  {applyCustomCv.name && (
+                    <label className="flex items-center gap-2 pt-1 cursor-pointer">
+                      <input 
+                        type="checkbox"
+                        checked={applySaveToProfile}
+                        onChange={(e) => setApplySaveToProfile(e.target.checked)}
+                        className="rounded text-gold-500 focus:ring-gold-500 cursor-pointer"
+                      />
+                      <span className="text-[11px] text-slate-600 dark:text-slate-300">
+                        Also set this as my primary candidate profile resume
+                      </span>
+                    </label>
+                  )}
+                </div>
+              </label>
+            </div>
+
+            {/* APPLICATION PARAMETERS (SALARY & NOTICE PERIOD) */}
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+              <div>
+                <label className="block text-slate-700 dark:text-slate-300 font-bold text-[11px] mb-1">
+                  Expected Monthly Salary (Tax Free)
+                </label>
+                <input 
+                  type="text"
+                  value={applyExpectedSalary}
+                  onChange={(e) => setApplyExpectedSalary(e.target.value)}
+                  placeholder="e.g. AED 35,000 / month"
+                  className="w-full px-3 py-2 bg-slate-50 dark:bg-navy-950 border border-slate-200 dark:border-navy-700 rounded-xl text-xs font-semibold focus:outline-none focus:border-gold-500"
+                />
+              </div>
+
+              <div>
+                <label className="block text-slate-700 dark:text-slate-300 font-bold text-[11px] mb-1">
+                  Availability / Notice Period
+                </label>
+                <select 
+                  value={applyNoticePeriod}
+                  onChange={(e) => setApplyNoticePeriod(e.target.value)}
+                  className="w-full px-3 py-2 bg-slate-50 dark:bg-navy-950 border border-slate-200 dark:border-navy-700 rounded-xl text-xs font-semibold focus:outline-none focus:border-gold-500 cursor-pointer"
+                >
+                  <option value="Immediate (Ready to Join)">Immediate (Ready to Join)</option>
+                  <option value="15 Days Notice">15 Days Notice</option>
+                  <option value="30 Days Notice">30 Days Notice</option>
+                  <option value="60 Days Notice">60 Days Notice</option>
+                  <option value="90 Days Notice">90 Days Notice</option>
+                </select>
+              </div>
+            </div>
+
+            {/* COVER NOTE TO RECRUITER */}
+            <div>
+              <label className="block text-slate-700 dark:text-slate-300 font-bold text-[11px] mb-1">
+                Cover Note / Pitch to Recruiter (Optional)
+              </label>
+              <textarea 
+                rows="2"
+                value={applyCoverNote}
+                onChange={(e) => setApplyCoverNote(e.target.value)}
+                placeholder="Briefly highlight your relevant GCC project experience, certifications (e.g. FIDIC, PMP, IWCF) or key achievements..."
+                className="w-full px-3 py-2 bg-slate-50 dark:bg-navy-950 border border-slate-200 dark:border-navy-700 rounded-xl text-xs font-normal focus:outline-none focus:border-gold-500 resize-none"
+              />
+            </div>
+
+            {/* Error Message */}
+            {applyModalError && (
+              <div className="p-3 bg-rose-500/15 border border-rose-500/30 text-rose-600 dark:text-rose-400 rounded-xl text-xs font-bold flex items-center gap-2">
+                <AlertCircle className="w-4 h-4 shrink-0" />
+                <span>{applyModalError}</span>
+              </div>
+            )}
+
+            {/* Modal Actions */}
+            <div className="flex gap-3 pt-2 border-t border-slate-200 dark:border-navy-800">
+              <button
+                type="button"
+                onClick={() => setApplyModalJob(null)}
+                className="flex-1 py-3 px-4 bg-slate-100 hover:bg-slate-200 dark:bg-navy-800 dark:hover:bg-navy-700 text-slate-700 dark:text-slate-200 font-bold rounded-xl transition cursor-pointer"
+              >
+                Cancel
+              </button>
+
+              <button
+                type="button"
+                onClick={handleConfirmApplication}
+                disabled={applyIsSubmitting}
+                className="flex-2 py-3 px-6 bg-gold-500 hover:bg-gold-400 text-slate-950 font-bold rounded-xl transition shadow-gold-glow flex items-center justify-center gap-2 cursor-pointer disabled:opacity-50"
+              >
+                <Zap className="w-4 h-4" />
+                <span>{applyIsSubmitting ? 'Submitting Application...' : 'Submit Application with Attached CV →'}</span>
               </button>
             </div>
 
@@ -1996,7 +2359,7 @@ export const CandidatePortal = () => {
 
                   <div className="pt-3 border-t border-slate-100 dark:border-navy-800 flex gap-2">
                     <button
-                      onClick={() => handleApply(job)}
+                      onClick={() => openApplyModal(job)}
                       className="flex-1 py-2.5 px-3 bg-gold-500 hover:bg-gold-600 text-slate-900 dark:text-white font-bold rounded-xl text-xs transition flex items-center justify-center gap-1.5 cursor-pointer shadow-sm"
                     >
                       <Send className="w-3.5 h-3.5" />

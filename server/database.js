@@ -1379,6 +1379,19 @@ const initDb = async (db) => {
     { name: 'mohreAttested', type: 'INTEGER DEFAULT 0' }
   ]);
 
+  // Safe migration: Ensure candidate_applications table has resume and applicant detail fields
+  await ensureColumns('candidate_applications', [
+    { name: 'resumeName', type: 'TEXT' },
+    { name: 'resumeUrl', type: 'TEXT' },
+    { name: 'resumeSize', type: 'TEXT' },
+    { name: 'coverNote', type: 'TEXT' },
+    { name: 'noticePeriod', type: 'TEXT' },
+    { name: 'expectedSalary', type: 'TEXT' },
+    { name: 'applicantName', type: 'TEXT' },
+    { name: 'applicantEmail', type: 'TEXT' },
+    { name: 'applicantPhone', type: 'TEXT' }
+  ]);
+
   // Safe migration: Ensure student_academy_enquiries table has exam enquiry fields
   await ensureColumns('student_academy_enquiries', [
     { name: 'qualification', type: 'TEXT' },

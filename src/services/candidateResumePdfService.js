@@ -430,3 +430,4 @@ export const openCandidateResumeInNewTab = (cand) => {
   `);
   newWin.document.close();
 };
+

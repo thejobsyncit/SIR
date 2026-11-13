@@ -636,10 +636,20 @@ export const AppProvider = ({ children }) => {
     }
   };
 
-  const applyForJob = async (job) => {
+  const applyForJob = async (job, payload = {}) => {
     if (!job || !job.id) return;
-    const cid = user?.candidateId || 'RI-CAND-001';
+    const cid = user?.candidateId || user?.id || 'RI-CAND-001';
     const uid = user?.userId || '';
+    const userEmail = user?.email || payload.applicantEmail || '';
+
+    const resumeName = payload.resumeName || user?.resumeName || null;
+    const resumeUrl = payload.resumeUrl || user?.resumeUrl || null;
+    const resumeSize = payload.resumeSize || user?.resumeSize || null;
+    const coverNote = payload.coverNote || '';
+    const noticePeriod = payload.noticePeriod || 'Immediate';
+    const expectedSalary = payload.expectedSalary || job.salary || user?.expectedSalary || 'Market Standard';
+    const applicantName = user?.name || payload.applicantName || 'Candidate';
+    const applicantPhone = user?.phone || payload.applicantPhone || '';
 
     const newApp = {
       id: `RI-APP-${Math.floor(10000 + Math.random() * 90000)}`,
@@ -651,38 +661,67 @@ export const AppProvider = ({ children }) => {
       location: job.location || job.country || 'GCC',
       appliedDate: new Date().toISOString(),
       status: 'Under Review',
-      stage: 'Applied'
+      stage: 'Applied',
+      resumeName,
+      resumeUrl,
+      resumeSize,
+      coverNote,
+      noticePeriod,
+      expectedSalary,
+      applicantName,
+      applicantEmail: userEmail,
+      applicantPhone
     };
 
     setApplications(prev => {
-      if (prev.some(a => a.jobId === job.id)) return prev;
-      const next = [newApp, ...prev];
+      const filtered = prev.filter(a => a.jobId !== job.id);
+      const next = [newApp, ...filtered];
       if (cid) {
         try {
           localStorage.setItem(`sir_applications_${cid}`, JSON.stringify(next));
+          if (userEmail) {
+            localStorage.setItem(`sir_applications_${userEmail.toLowerCase().trim()}`, JSON.stringify(next));
+          }
         } catch {}
       }
       return next;
     });
 
+    // If new resume provided or requested to save to profile, update user profile state & local storage
+    if (resumeName && (!user?.resumeName || payload.saveToProfile)) {
+      updateUserProfile({
+        resumeName,
+        resumeUrl,
+        resumeSize,
+        resumeUploaded: true
+      });
+    }
+
     // Sync to backend candidate_applications table
-    if (user?.candidateId) {
-      try {
-        await fetch('/api/candidate/applications', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            candidateId: user.candidateId,
-            userId: uid,
-            jobId: job.id,
-            jobTitle: job.title,
-            company: job.company,
-            location: job.location || job.country
-          })
-        });
-      } catch (err) {
-        console.warn('Failed to sync application to candidate_applications:', err);
-      }
+    try {
+      await fetch('/api/candidate/applications', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          candidateId: cid,
+          userId: uid,
+          jobId: job.id,
+          jobTitle: job.title,
+          company: job.company,
+          location: job.location || job.country,
+          resumeName,
+          resumeUrl,
+          resumeSize,
+          coverNote,
+          noticePeriod,
+          expectedSalary,
+          applicantName,
+          applicantEmail: userEmail,
+          applicantPhone
+        })
+      });
+    } catch (err) {
+      console.warn('Failed to sync application to candidate_applications:', err);
     }
 
     // Also mirror to legacy /api/candidates for CRM recruiters
@@ -692,22 +731,22 @@ export const AppProvider = ({ children }) => {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           id: cid,
-          name: user ? user.name : 'Unknown Candidate',
-          email: user ? user.email : '',
-          phone: user ? user.phone : '',
+          name: applicantName,
+          email: userEmail,
+          phone: applicantPhone,
           nationality: user?.nationality || user?.preferredCountry || job.country || 'UAE',
           citizenship: user?.citizenship,
           currentEmployer: 'Revival International Candidate',
           currentRole: job.title,
-          expectedSalary: job.salary || 'Standard',
+          expectedSalary: expectedSalary,
           source: `Applied for: ${job.title} (${job.company})`,
           stage: 'applied',
           score: 90,
           skills: user?.skills && user.skills.length > 0 ? user.skills : (job.skills || ['Executive Candidate']),
-          aiSummary: `Candidate applied for ${job.title} at ${job.company}. Resume: ${user?.resumeName || 'Attached'}`,
-          resumeName: user?.resumeName,
-          resumeUrl: user?.resumeUrl,
-          resumeSize: user?.resumeSize,
+          aiSummary: `Candidate applied for ${job.title} at ${job.company}. Submitted CV: ${resumeName || 'Attached'}`,
+          resumeName,
+          resumeUrl,
+          resumeSize,
           dob: user?.dob,
           gender: user?.gender,
           location: user?.location,
