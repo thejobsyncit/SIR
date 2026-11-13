@@ -24,6 +24,62 @@ export const COUNTRY_CODES = [
   { code: '+49', country: 'Germany', flag: '🇩🇪', maxDigits: 11, placeholder: '151 12345678' }
 ];
 
+export const PRESET_NATIONALITIES = [
+  'Indian',
+  'Emirati (UAE)',
+  'Saudi',
+  'Qatari',
+  'Omani',
+  'Kuwaiti',
+  'Bahraini',
+  'Pakistani',
+  'Filipino',
+  'Egyptian',
+  'British',
+  'American',
+  'Canadian',
+  'Australian',
+  'Jordanian',
+  'Lebanese',
+  'South African',
+  'Bangladeshi',
+  'Sri Lankan',
+  'Nepali',
+  'German',
+  'French',
+  'Singaporean',
+  'Malaysian',
+  'Nigerian',
+  'Kenyan'
+];
+
+export const PRESET_CITIZENSHIPS = [
+  'India',
+  'United Arab Emirates',
+  'Saudi Arabia',
+  'Qatar',
+  'Oman',
+  'Kuwait',
+  'Bahrain',
+  'Pakistan',
+  'Philippines',
+  'Egypt',
+  'United Kingdom',
+  'United States',
+  'Canada',
+  'Australia',
+  'Singapore',
+  'South Africa',
+  'Bangladesh',
+  'Sri Lanka',
+  'Nepal',
+  'Germany',
+  'France',
+  'Malaysia',
+  'Nigeria',
+  'Kenya'
+];
+
 export const CandidatePortal = () => {
   const { user, updateUserProfile, applications, savedJobs, toggleSaveJob, applyForJob, postedJobs, setActiveModal, navigateTo, logout } = useApp();
   const [activeTab, setActiveTab] = useState('dashboard'); // 'dashboard' | 'browse-jobs' | 'edit-profile' | 'applications' | 'saved' | 'interviews'
@@ -166,6 +222,16 @@ export const CandidatePortal = () => {
     skillsInput: Array.isArray(user?.skills) ? user.skills.join(', ') : (user?.skills || '')
   });
 
+  const [selectedNationalityOption, setSelectedNationalityOption] = useState(() => {
+    if (!user?.nationality) return '';
+    return PRESET_NATIONALITIES.includes(user.nationality) ? user.nationality : 'Other';
+  });
+
+  const [selectedCitizenshipOption, setSelectedCitizenshipOption] = useState(() => {
+    if (!user?.citizenship) return '';
+    return PRESET_CITIZENSHIPS.includes(user.citizenship) ? user.citizenship : 'Other';
+  });
+
   // Sync profileForm whenever user changes in AppContext
   useEffect(() => {
     if (user) {
@@ -194,6 +260,13 @@ export const CandidatePortal = () => {
         mohreAttested: user.mohreAttested || false,
         skillsInput: Array.isArray(user.skills) ? user.skills.join(', ') : (user.skills || '')
       });
+
+      setSelectedNationalityOption(
+        user.nationality ? (PRESET_NATIONALITIES.includes(user.nationality) ? user.nationality : 'Other') : ''
+      );
+      setSelectedCitizenshipOption(
+        user.citizenship ? (PRESET_CITIZENSHIPS.includes(user.citizenship) ? user.citizenship : 'Other') : ''
+      );
     }
   }, [user]);
 
@@ -1287,84 +1360,105 @@ export const CandidatePortal = () => {
             {/* Nationality & Citizenship Fields */}
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <div>
-                <label className="block font-bold text-slate-700 dark:text-slate-200 mb-1 flex items-center gap-1.5">
-                  <Globe className="w-4 h-4 text-gold-500" />
-                  <span>Nationality</span>
+                <label className="block font-bold text-slate-700 dark:text-slate-200 mb-1 flex items-center justify-between">
+                  <span className="flex items-center gap-1.5">
+                    <Globe className="w-4 h-4 text-gold-500" />
+                    <span>Nationality</span>
+                  </span>
+                  {selectedNationalityOption === 'Other' && (
+                    <span className="text-[11px] font-semibold text-amber-600 dark:text-gold-400">
+                      Type Country Below
+                    </span>
+                  )}
                 </label>
-                <input 
-                  type="text" 
-                  list="nationality-suggestions"
-                  value={profileForm.nationality}
-                  onChange={(e) => setProfileForm({ ...profileForm, nationality: e.target.value })}
-                  placeholder="e.g. Indian, Emirati, British, etc."
-                  className="w-full bg-slate-50 dark:bg-navy-950 border border-slate-300 dark:border-navy-700 rounded-xl p-3 text-navy-900 dark:text-white focus:outline-none focus:border-gold-500 font-medium"
-                />
-                <datalist id="nationality-suggestions">
-                  <option value="Indian" />
-                  <option value="Emirati (UAE)" />
-                  <option value="Saudi" />
-                  <option value="Pakistani" />
-                  <option value="Filipino" />
-                  <option value="Egyptian" />
-                  <option value="British" />
-                  <option value="American" />
-                  <option value="Canadian" />
-                  <option value="Australian" />
-                  <option value="Qatari" />
-                  <option value="Omani" />
-                  <option value="Kuwaiti" />
-                  <option value="Bahraini" />
-                  <option value="Jordanian" />
-                  <option value="Lebanese" />
-                  <option value="South African" />
-                  <option value="Bangladeshi" />
-                  <option value="Sri Lankan" />
-                  <option value="Nepali" />
-                  <option value="German" />
-                  <option value="French" />
-                  <option value="Singaporean" />
-                  <option value="Malaysian" />
-                  <option value="Nigerian" />
-                  <option value="Kenyan" />
-                </datalist>
+                <select 
+                  id="candidate-nationality-select"
+                  value={selectedNationalityOption}
+                  onChange={(e) => {
+                    const val = e.target.value;
+                    setSelectedNationalityOption(val);
+                    if (val === 'Other') {
+                      if (PRESET_NATIONALITIES.includes(profileForm.nationality)) {
+                        setProfileForm(prev => ({ ...prev, nationality: '' }));
+                      }
+                    } else {
+                      setProfileForm(prev => ({ ...prev, nationality: val }));
+                    }
+                  }}
+                  className="w-full bg-slate-50 dark:bg-navy-950 border border-slate-300 dark:border-navy-700 rounded-xl p-3 text-navy-900 dark:text-white focus:outline-none focus:border-gold-500 font-medium cursor-pointer"
+                >
+                  <option value="">-- Select Nationality --</option>
+                  {PRESET_NATIONALITIES.map((nat) => (
+                    <option key={nat} value={nat}>{nat}</option>
+                  ))}
+                  <option value="Other">Other (Type Country / Nationality)</option>
+                </select>
+
+                {/* When 'Other' is selected, candidate can type country */}
+                {selectedNationalityOption === 'Other' && (
+                  <div className="mt-2 animate-in fade-in duration-150">
+                    <input 
+                      type="text" 
+                      id="candidate-nationality-custom-input"
+                      value={profileForm.nationality}
+                      onChange={(e) => setProfileForm(prev => ({ ...prev, nationality: e.target.value }))}
+                      placeholder="Type your country or nationality (e.g. Italian, Brazilian, Japanese, etc.)"
+                      className="w-full bg-white dark:bg-navy-900 border-2 border-gold-500/70 rounded-xl p-2.5 text-navy-900 dark:text-white focus:outline-none focus:border-gold-500 font-medium text-sm shadow-xs"
+                      autoFocus
+                    />
+                  </div>
+                )}
               </div>
 
               <div>
-                <label className="block font-bold text-slate-700 dark:text-slate-200 mb-1 flex items-center gap-1.5">
-                  <Shield className="w-4 h-4 text-gold-500" />
-                  <span>Citizenship</span>
+                <label className="block font-bold text-slate-700 dark:text-slate-200 mb-1 flex items-center justify-between">
+                  <span className="flex items-center gap-1.5">
+                    <Shield className="w-4 h-4 text-gold-500" />
+                    <span>Citizenship</span>
+                  </span>
+                  {selectedCitizenshipOption === 'Other' && (
+                    <span className="text-[11px] font-semibold text-amber-600 dark:text-gold-400">
+                      Type Country Below
+                    </span>
+                  )}
                 </label>
-                <input 
-                  type="text" 
-                  list="citizenship-suggestions"
-                  value={profileForm.citizenship}
-                  onChange={(e) => setProfileForm({ ...profileForm, citizenship: e.target.value })}
-                  placeholder="e.g. India, United Arab Emirates, etc."
-                  className="w-full bg-slate-50 dark:bg-navy-950 border border-slate-300 dark:border-navy-700 rounded-xl p-3 text-navy-900 dark:text-white focus:outline-none focus:border-gold-500 font-medium"
-                />
-                <datalist id="citizenship-suggestions">
-                  <option value="India" />
-                  <option value="United Arab Emirates" />
-                  <option value="Saudi Arabia" />
-                  <option value="Qatar" />
-                  <option value="Oman" />
-                  <option value="Kuwait" />
-                  <option value="Bahrain" />
-                  <option value="Pakistan" />
-                  <option value="Philippines" />
-                  <option value="Egypt" />
-                  <option value="United Kingdom" />
-                  <option value="United States" />
-                  <option value="Canada" />
-                  <option value="Australia" />
-                  <option value="Singapore" />
-                  <option value="South Africa" />
-                  <option value="Bangladesh" />
-                  <option value="Sri Lanka" />
-                  <option value="Nepal" />
-                  <option value="Germany" />
-                  <option value="France" />
-                </datalist>
+                <select 
+                  id="candidate-citizenship-select"
+                  value={selectedCitizenshipOption}
+                  onChange={(e) => {
+                    const val = e.target.value;
+                    setSelectedCitizenshipOption(val);
+                    if (val === 'Other') {
+                      if (PRESET_CITIZENSHIPS.includes(profileForm.citizenship)) {
+                        setProfileForm(prev => ({ ...prev, citizenship: '' }));
+                      }
+                    } else {
+                      setProfileForm(prev => ({ ...prev, citizenship: val }));
+                    }
+                  }}
+                  className="w-full bg-slate-50 dark:bg-navy-950 border border-slate-300 dark:border-navy-700 rounded-xl p-3 text-navy-900 dark:text-white focus:outline-none focus:border-gold-500 font-medium cursor-pointer"
+                >
+                  <option value="">-- Select Citizenship Country --</option>
+                  {PRESET_CITIZENSHIPS.map((cit) => (
+                    <option key={cit} value={cit}>{cit}</option>
+                  ))}
+                  <option value="Other">Other (Type Country)</option>
+                </select>
+
+                {/* When 'Other' is selected, candidate can type citizenship country */}
+                {selectedCitizenshipOption === 'Other' && (
+                  <div className="mt-2 animate-in fade-in duration-150">
+                    <input 
+                      type="text" 
+                      id="candidate-citizenship-custom-input"
+                      value={profileForm.citizenship}
+                      onChange={(e) => setProfileForm(prev => ({ ...prev, citizenship: e.target.value }))}
+                      placeholder="Type your citizenship country (e.g. Italy, Brazil, Japan, etc.)"
+                      className="w-full bg-white dark:bg-navy-900 border-2 border-gold-500/70 rounded-xl p-2.5 text-navy-900 dark:text-white focus:outline-none focus:border-gold-500 font-medium text-sm shadow-xs"
+                      autoFocus
+                    />
+                  </div>
+                )}
               </div>
             </div>
 
