@@ -3,7 +3,7 @@ import { useApp } from '../context/AppContext';
 import { UnifiedAuth } from '../components/UnifiedAuth';
 import { JOBS_LIST } from '../data/mockData';
 import { 
-  User, FileText, Sparkles, CheckCircle2, Clock, Calendar as CalendarIcon, Bookmark, Bell, 
+  User, FileText, Sparkles, CheckCircle2, Clock, Calendar, Calendar as CalendarIcon, Bookmark, Bell, 
   Upload, Shield, ArrowRight, ArrowLeft, LogOut, Edit3, Camera, AlertCircle, Award, 
   Briefcase, MapPin, DollarSign, Check, X, Plus, Star, ChevronRight, Zap, Globe, Trash2, Video, Mic, MicOff, VideoOff, Search, Eye,
   Building2, Send, Paperclip, Download
