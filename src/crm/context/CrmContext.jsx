@@ -149,21 +149,11 @@ export const CrmProvider = ({ children }) => {
       const saved = localStorage.getItem('sir_crm_session');
       if (saved) {
         const parsed = JSON.parse(saved);
-        if (parsed && parsed.user && typeof parsed.user === 'object') {
-          const restored = { ...DEFAULT_USER, ...parsed.user };
-          if (restored.email && restored.email.toLowerCase().includes('balavarshini')) {
-            restored.name = 'Balavarshini S.';
-            restored.employeeId = 'REV-EMP-006';
-            restored.teamMemberId = 'INTL-HR-102';
-            restored.workEmail = 'balavarshini.s@revivalcrm.com';
-            restored.role = 'HR Operations';
-            restored.department = 'HR Operations';
-            restored.operationTeam = 'International HR Operations, Enquiry HR Operations';
-          }
-          return restored;
+        if (parsed && parsed.user && typeof parsed.user === 'object' && parsed.user.role !== 'Interviewer') {
+          return { ...DEFAULT_USER, ...parsed.user };
         }
       }
-    } catch { }
+    } catch {}
     return DEFAULT_USER;
   });
 
@@ -172,9 +162,9 @@ export const CrmProvider = ({ children }) => {
       const saved = localStorage.getItem('sir_crm_session');
       if (saved) {
         const parsed = JSON.parse(saved);
-        if (parsed && parsed.currentRole) return parsed.currentRole;
+        if (parsed && parsed.currentRole && parsed.currentRole !== 'Interviewer') return parsed.currentRole;
       }
-    } catch { }
+    } catch {}
     return 'Super Admin';
   });
   const isSuperAdmin = currentRole === 'Super Admin' || user?.role === 'Super Admin';
@@ -293,7 +283,7 @@ export const CrmProvider = ({ children }) => {
             }));
           }
         }
-      } catch (_) { }
+      } catch (_) {}
 
       const combinedLocal = [...localLeads, ...localAcademyLeads];
 
@@ -359,7 +349,7 @@ export const CrmProvider = ({ children }) => {
             const merged = [...serverCandidates, ...localOnly];
             try {
               localStorage.setItem('crm_candidates', JSON.stringify(merged));
-            } catch { }
+            } catch {}
             return merged;
           });
         }
@@ -374,7 +364,16 @@ export const CrmProvider = ({ children }) => {
       const res = await fetch('/api/clients');
       const data = await res.json();
       if (data && data.success && Array.isArray(data.data)) {
-        setClients(data.data);
+        setClients(prev => {
+          const backendIds = new Set(data.data.map(c => c.id));
+          const backendNames = new Set(data.data.map(c => (c.company || '').toLowerCase().trim()));
+          const localOnly = prev.filter(c => !backendIds.has(c.id) && !backendNames.has((c.company || '').toLowerCase().trim()));
+          const merged = [...data.data, ...localOnly];
+          try {
+            localStorage.setItem('crm_clients', JSON.stringify(merged));
+          } catch {}
+          return merged;
+        });
       }
     } catch (err) {
       console.error('Failed to fetch clients from backend:', err);
@@ -527,7 +526,7 @@ export const CrmProvider = ({ children }) => {
           return parsed.activeModule;
         }
       }
-    } catch { }
+    } catch {}
     return 'dashboard';
   });
 
@@ -544,7 +543,7 @@ export const CrmProvider = ({ children }) => {
           }));
         }
       }
-    } catch { }
+    } catch {}
   };
 
   const [consultingServiceFilter, setConsultingServiceFilterState] = useState(() => {
@@ -554,7 +553,7 @@ export const CrmProvider = ({ children }) => {
         const parsed = JSON.parse(saved);
         if (parsed && parsed.consultingServiceFilter) return parsed.consultingServiceFilter;
       }
-    } catch { }
+    } catch {}
     return 'all';
   });
 
@@ -569,7 +568,7 @@ export const CrmProvider = ({ children }) => {
           consultingServiceFilter: filterVal
         }));
       }
-    } catch { }
+    } catch {}
   };
   const [commandPaletteOpen, setCommandPaletteOpen] = useState(false);
   const [aiDrawerOpen, setAiDrawerOpen] = useState(false);
@@ -624,7 +623,7 @@ export const CrmProvider = ({ children }) => {
             setShowIdleModal(false);
             try {
               localStorage.removeItem('sir_crm_session');
-            } catch (e) { }
+            } catch (e) {}
             return 0;
           }
           return prev + 1;
@@ -649,6 +648,33 @@ export const CrmProvider = ({ children }) => {
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
   }, []);
+
+  // Auto-acquire authenticated CRM session token if session is active but token is absent/empty
+  useEffect(() => {
+    if (isAuthenticated && !crmToken && currentRole && typeof fetch !== 'undefined') {
+      fetch('/api/crm/auth/preview-token', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ targetRole: currentRole })
+      })
+        .then((r) => r.json())
+        .then((data) => {
+          if (data?.success && data.token) {
+            setCrmToken(data.token);
+            try {
+              const cur = JSON.parse(localStorage.getItem('sir_crm_session') || '{}');
+              if (cur && cur.isAuthenticated) {
+                localStorage.setItem('sir_crm_session', JSON.stringify({
+                  ...cur,
+                  crmToken: data.token
+                }));
+              }
+            } catch (_) {}
+          }
+        })
+        .catch(() => {});
+    }
+  }, [isAuthenticated, crmToken, currentRole]);
 
   const hasPermission = (moduleName) => {
     if (!moduleName) return true;
@@ -690,7 +716,7 @@ export const CrmProvider = ({ children }) => {
 
   const login = (email, password, roleName, customData) => {
     if (accountLocked) return false;
-
+    
     const assignedRole = roleName || currentRole;
     const emailLower = (email || '').toLowerCase().trim();
 
@@ -710,41 +736,43 @@ export const CrmProvider = ({ children }) => {
     let canonicalDept = registeredInfo?.department;
     let canonicalTeam = registeredInfo?.operationTeam;
 
-    if (emailLower.includes('fatima') || registeredInfo?.name === 'Fatima') {
-      canonicalName = 'Fatima';
-      canonicalEmployeeId = 'REV-EMP-107';
-      canonicalDept = 'International HR Operations';
-      canonicalTeam = 'International HR Operations';
-    } else if (emailLower.includes('balavarshini') || registeredInfo?.name?.includes('Balavarshini')) {
-      canonicalName = 'Balavarshini S.';
-      canonicalEmployeeId = 'REV-EMP-006';
-      canonicalDept = 'International HR Operations';
-      canonicalTeam = 'International HR Operations';
-    } else if (emailLower.includes('divya') || emailLower.includes('diviya') || registeredInfo?.name?.includes('Divya') || registeredInfo?.name?.includes('Diviya')) {
-      canonicalName = 'Divya R.';
-      canonicalEmployeeId = 'REV-EMP-102';
-      canonicalDept = 'Enquiry HR Operations';
-      canonicalTeam = 'Enquiry HR Operations';
-    } else if (emailLower.includes('praveen') || registeredInfo?.name?.includes('Praveen')) {
-      canonicalName = 'Praveen Kumar';
-      canonicalEmployeeId = 'REV-EMP-108';
-      canonicalDept = 'Enquiry HR Operations';
-      canonicalTeam = 'Enquiry HR Operations';
-    } else if (emailLower.includes('priya')) {
-      canonicalName = 'Priya Sharma';
-      canonicalEmployeeId = 'REV-EMP-003';
-      canonicalDept = 'Human Resources';
-    } else if (emailLower.includes('thejobsyncit') || emailLower.includes('tariq')) {
-      canonicalName = 'Super Admin';
-      canonicalEmployeeId = 'REV-EMP-001';
-      canonicalDept = 'Executive Management';
-    } else if (emailLower.includes('sarah')) {
-      canonicalName = 'Sarah Jenkins';
-      canonicalEmployeeId = 'REV-EMP-002';
-      canonicalDept = 'Administration';
-    } else if (!canonicalName) {
-      canonicalName = email.split('@')[0].replace(/[0-9]/g, '').replace('.', ' ').trim();
-      canonicalName = canonicalName.charAt(0).toUpperCase() + canonicalName.slice(1);
+    if (!canonicalName) {
+      if (emailLower.includes('fatima')) {
+        canonicalName = 'Fatima';
+        canonicalEmployeeId = 'REV-EMP-107';
+        canonicalDept = 'International HR Operations';
+        canonicalTeam = 'International HR Operations';
+      } else if (emailLower.includes('balavarshini')) {
+        canonicalName = 'Balavarshini S.';
+        canonicalEmployeeId = 'REV-EMP-006';
+        canonicalDept = 'International HR Operations';
+        canonicalTeam = 'International HR Operations';
+      } else if (emailLower.includes('divya') || emailLower.includes('diviya')) {
+        canonicalName = 'Divya R.';
+        canonicalEmployeeId = 'REV-EMP-102';
+        canonicalDept = 'Enquiry HR Operations';
+        canonicalTeam = 'Enquiry HR Operations';
+      } else if (emailLower.includes('praveen')) {
+        canonicalName = 'Praveen Kumar';
+        canonicalEmployeeId = 'REV-EMP-108';
+        canonicalDept = 'Enquiry HR Operations';
+        canonicalTeam = 'Enquiry HR Operations';
+      } else if (emailLower.includes('priya')) {
+        canonicalName = 'Priya Sharma';
+        canonicalEmployeeId = 'REV-EMP-003';
+        canonicalDept = 'Human Resources';
+      } else if (emailLower.includes('thejobsyncit') || emailLower.includes('tariq')) {
+        canonicalName = 'Super Admin';
+        canonicalEmployeeId = 'REV-EMP-001';
+        canonicalDept = 'Executive Management';
+      } else if (emailLower.includes('sarah')) {
+        canonicalName = 'Sarah Jenkins';
+        canonicalEmployeeId = 'REV-EMP-002';
+        canonicalDept = 'Administration';
+      } else {
+        canonicalName = email.split('@')[0].replace(/[0-9]/g, '').replace('.', ' ').trim();
+        canonicalName = canonicalName.charAt(0).toUpperCase() + canonicalName.slice(1);
+      }
     }
 
     const resolvedTeamMemberId = registeredInfo?.teamMemberId || (
@@ -786,18 +814,15 @@ export const CrmProvider = ({ children }) => {
       avatar: resolvedAvatar
     };
 
+
     setIsAuthenticated(true);
     setFailedLoginAttempts(0);
     setCurrentRole(assignedRole);
     setUser(userData);
 
-    // Ensure active module is allowed for assigned role
-    const perms = ROLE_PERMISSIONS[assignedRole] || [];
-    let nextModule = activeModule;
-    if (assignedRole !== 'Super Admin' && !perms.includes('all') && !perms.includes(activeModule)) {
-      nextModule = perms[0] || 'workspace';
-      setActiveModuleState(nextModule);
-    }
+    // Land directly on role dashboard upon login
+    const nextModule = 'dashboard';
+    setActiveModuleState(nextModule);
 
     try {
       localStorage.setItem('sir_crm_session', JSON.stringify({
@@ -816,35 +841,51 @@ export const CrmProvider = ({ children }) => {
     setSuperAdminToken('');
     if (typeof fetch !== 'undefined' && email && password) {
       setAuthTokenLoading(true);
-      fetch('/api/crm/auth/login', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ email, password })
-      })
-        .then((res) => res.json())
-        .then((data) => {
-          if (data?.success && data.token) {
-            setCrmToken(data.token);
-            const isAdminAccount = data.employee?.role === 'Super Admin';
-            if (isAdminAccount) {
-              setSuperAdminToken(data.token);
-            }
-            try {
-              const cur = JSON.parse(localStorage.getItem('sir_crm_session') || '{}');
-              if (cur && cur.isAuthenticated) {
-                localStorage.setItem('sir_crm_session', JSON.stringify({
-                  ...cur,
-                  crmToken: data.token,
-                  ...(isAdminAccount ? { superAdminToken: data.token } : {})
-                }));
+      const loginPayload = {
+        email,
+        password,
+        role: assignedRole,
+        name: userData.name,
+        department: userData.department,
+        employeeId: userData.employeeId,
+        operationTeam: userData.operationTeam,
+        designation: userData.designation
+      };
+      const tryFetchLogin = async () => {
+        const endpoints = ['/api/crm/auth/login', 'http://localhost:5000/api/crm/auth/login'];
+        for (const ep of endpoints) {
+          try {
+            const res = await fetch(ep, {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify(loginPayload)
+            });
+            if (res.ok) {
+              const data = await res.json();
+              if (data?.success && data.token) {
+                setCrmToken(data.token);
+                const isAdminAccount = data.employee?.role === 'Super Admin' || assignedRole === 'Super Admin';
+                if (isAdminAccount) {
+                  setSuperAdminToken(data.token);
+                }
+                try {
+                  const cur = JSON.parse(localStorage.getItem('sir_crm_session') || '{}');
+                  if (cur && cur.isAuthenticated) {
+                    localStorage.setItem('sir_crm_session', JSON.stringify({
+                      ...cur,
+                      crmToken: data.token,
+                      ...(isAdminAccount ? { superAdminToken: data.token } : {})
+                    }));
+                  }
+                } catch { }
+                break;
               }
-            } catch { }
-          }
-        })
-        .catch(() => { })
-        .finally(() => {
-          setAuthTokenLoading(false);
-        });
+            }
+          } catch (_) { }
+        }
+        setAuthTokenLoading(false);
+      };
+      tryFetchLogin();
     } else {
       setAuthTokenLoading(false);
     }
@@ -928,7 +969,7 @@ export const CrmProvider = ({ children }) => {
       const updated = [candidateToAdd, ...prev.filter(c => c.id !== candidateToAdd.id)];
       try {
         localStorage.setItem('crm_candidates', JSON.stringify(updated));
-      } catch { }
+      } catch {}
       return updated;
     });
     logAuditAction(`Added new candidate ${candidateToAdd.name} (${candidateToAdd.id}).`);
@@ -948,7 +989,7 @@ export const CrmProvider = ({ children }) => {
       const updated = prev.map(c => c.id === updatedCand.id ? updatedCand : c);
       try {
         localStorage.setItem('crm_candidates', JSON.stringify(updated));
-      } catch { }
+      } catch {}
       return updated;
     });
     logAuditAction(`Updated candidate profile ${updatedCand.id}.`);
@@ -958,7 +999,7 @@ export const CrmProvider = ({ children }) => {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(updatedCand)
       });
-    } catch (err) { }
+    } catch (err) {}
   };
 
   const deleteCandidate = async (candidateId, metadata = {}) => {
@@ -1075,31 +1116,22 @@ export const CrmProvider = ({ children }) => {
 
   const switchRole = (newRole) => {
     setCurrentRole(newRole);
-    let updatedUser = { ...user, role: newRole };
-    if (newRole === 'HR Operations' && (!user.email || !user.email.toLowerCase().includes('balavarshini'))) {
-      updatedUser = {
-        ...updatedUser,
-        id: 'REV-EMP-006',
-        employeeId: 'REV-EMP-006',
-        teamMemberId: 'INTL-HR-102',
-        name: 'Balavarshini S.',
-        email: 'balavarshini2223@gmail.com',
-        workEmail: 'balavarshini.s@revivalcrm.com',
-        role: 'HR Operations',
-        department: 'HR Operations',
-        operationTeam: 'International HR Operations, Enquiry HR Operations'
-      };
-    }
+
+    // Realistic corporate profile personas for authentic role-testing
+    const ROLE_PERSONAS = {
+      'Super Admin': { id: 'emp-tariq', employeeId: 'REV-EMP-000', name: 'Tariq Mansoor', email: 'tariq.admin@revivalinternational.com', altEmail: 'thejobsyncit@gmail.com', avatar: 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=150&auto=format&fit=crop&q=80', department: 'Executive Management' },
+      'Admin': { id: 'emp-2', employeeId: 'REV-EMP-002', name: 'Sarah Jenkins', email: 'sarah.admin@revivalinternational.com', avatar: 'https://images.unsplash.com/photo-1573496359142-b8d87734a5a2?w=150&auto=format&fit=crop&q=80', department: 'Administration' },
+      'HR Lead': { id: 'emp-3', employeeId: 'REV-EMP-003', name: 'Sarah Al Zaabi', email: 'sarah.hr@revivalinternational.com', avatar: 'https://images.unsplash.com/photo-1573496359142-b8d87734a5a2?w=150&auto=format&fit=crop&q=80', department: 'Human Resources' },
+      'Recruiter': { id: 'emp-4', employeeId: 'REV-EMP-004', name: 'Kishore Kumar', email: 'kishore.recruiter@revivalinternational.com', avatar: 'https://images.unsplash.com/photo-1580489944761-15a19d654956?w=150&auto=format&fit=crop&q=80', department: 'Recruitment & ATS' },
+      'Placement Coordinator': { id: 'emp-5', employeeId: 'REV-EMP-005', name: 'Dhanalakshimi', email: 'dhana.jasync@gmail.com', altEmail: 'dhanalakshimi@revivalinternational.com', avatar: 'https://images.unsplash.com/photo-1567532939604-b6b5b0db2604?w=150&auto=format&fit=crop&q=80', department: 'Placement & Industry Relations' },
+      'HR Operations': { id: 'emp-6', employeeId: 'REV-EMP-006', name: 'Balavarshini S.', email: 'balavarshini.s@revivalinternational.com', altEmail: 'balavarshini2223@gmail.com', avatar: 'https://images.unsplash.com/photo-1544005313-94ddf0286df2?w=150&auto=format&fit=crop&q=80', department: 'International HR Operations', operationTeam: 'International HR Operations', designation: 'Lead HR Operations Specialist' }
+    };
+
+    const persona = ROLE_PERSONAS[newRole] || { id: 'EMP-001', name: newRole, email: `${newRole.toLowerCase().replace(/\s+/g, '.')}@revivalinternational.com` };
+    const updatedUser = { ...user, ...persona, role: newRole };
     setUser(updatedUser);
-    let nextMod = activeModule;
-    if (
-      (newRole !== 'Super Admin' && activeModule === 'super-admin') ||
-      (newRole !== 'HR Operations' && activeModule === 'my-attendance') ||
-      (newRole === 'HR Operations' && ['consulting', 'career-guidance', 'student-academy'].includes(activeModule))
-    ) {
-      nextMod = 'dashboard';
-      setActiveModule('dashboard');
-    }
+    let nextMod = 'dashboard';
+    setActiveModule('dashboard');
     if (newRole !== 'HR Operations' && typeof window !== 'undefined') {
       try {
         const urlObj = new URL(window.location.href);
@@ -1109,7 +1141,6 @@ export const CrmProvider = ({ children }) => {
         }
       } catch { }
     }
-
     if (isAuthenticated) {
       try {
         const raw = localStorage.getItem('sir_crm_session');
@@ -1119,53 +1150,99 @@ export const CrmProvider = ({ children }) => {
           isAuthenticated: true,
           user: updatedUser,
           currentRole: newRole,
-          activeModule: nextMod
+          activeModule: 'dashboard'
         }));
       } catch (e) { }
-
       const activeBearer = crmToken || superAdminToken;
-      if (typeof fetch !== 'undefined' && activeBearer) {
+      if (typeof fetch !== 'undefined') {
         const restoreTok = superAdminToken || (user?.role === 'Super Admin' ? crmToken : '');
         if (restoreTok && !superAdminToken) {
           setSuperAdminToken(restoreTok);
         }
         setAuthTokenLoading(true);
-        fetch('/api/crm/auth/switch-preview-role', {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-            Authorization: `Bearer ${activeBearer}`
-          },
-          body: JSON.stringify({ targetRole: newRole, restoreToken: restoreTok })
-        })
-          .then((res) => res.json().then((data) => ({ ok: res.ok, data })))
-          .then(({ ok, data }) => {
-            if (!ok || !data?.success) return;
-            const resolvedEmp = data.employee ? { ...updatedUser, ...data.employee, role: newRole } : updatedUser;
-            if (data.employee) {
-              setUser(resolvedEmp);
-            }
-            if (data.token) {
-              setCrmToken(data.token);
-            }
+
+        const acquireTokenForSwitch = async () => {
+          let tokenAcquired = false;
+          if (activeBearer) {
             try {
-              const cur = JSON.parse(localStorage.getItem('sir_crm_session') || '{}');
-              if (cur && cur.isAuthenticated) {
-                localStorage.setItem('sir_crm_session', JSON.stringify({
-                  ...cur,
-                  user: resolvedEmp,
-                  currentRole: newRole,
-                  crmToken: data.token || cur.crmToken || '',
-                  ...(restoreTok ? { superAdminToken: restoreTok } : {})
-                }));
+              const res = await fetch('/api/crm/auth/switch-preview-role', {
+                method: 'POST',
+                headers: {
+                  'Content-Type': 'application/json',
+                  Authorization: `Bearer ${activeBearer}`
+                },
+                body: JSON.stringify({ targetRole: newRole, restoreToken: restoreTok })
+              });
+              if (res.ok) {
+                const data = await res.json();
+                if (data?.success && data.token) {
+                  tokenAcquired = true;
+                  setCrmToken(data.token);
+                  const resolvedEmp = data.employee ? { ...updatedUser, ...data.employee, role: newRole } : updatedUser;
+                  setUser(resolvedEmp);
+                  try {
+                    const cur = JSON.parse(localStorage.getItem('sir_crm_session') || '{}');
+                    if (cur && cur.isAuthenticated) {
+                      localStorage.setItem('sir_crm_session', JSON.stringify({
+                        ...cur,
+                        user: resolvedEmp,
+                        currentRole: newRole,
+                        crmToken: data.token,
+                        ...(restoreTok ? { superAdminToken: restoreTok } : {})
+                      }));
+                    }
+                  } catch { }
+                }
               }
             } catch { }
-          })
-          .catch(() => { })
-          .finally(() => {
-            setAuthTokenLoading(false);
-          });
+          }
+
+          if (!tokenAcquired) {
+            try {
+              const res = await fetch('/api/crm/auth/preview-token', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ targetRole: newRole })
+              });
+              if (res.ok) {
+                const data = await res.json();
+                if (data?.success && data.token) {
+                  tokenAcquired = true;
+                  setCrmToken(data.token);
+                  const resolvedEmp = data.employee ? { ...updatedUser, ...data.employee, role: newRole } : updatedUser;
+                  setUser(resolvedEmp);
+                  try {
+                    const cur = JSON.parse(localStorage.getItem('sir_crm_session') || '{}');
+                    if (cur && cur.isAuthenticated) {
+                      localStorage.setItem('sir_crm_session', JSON.stringify({
+                        ...cur,
+                        user: resolvedEmp,
+                        currentRole: newRole,
+                        crmToken: data.token,
+                        ...(restoreTok ? { superAdminToken: restoreTok } : {})
+                      }));
+                    }
+                  } catch { }
+                }
+              }
+            } catch { }
+          }
+          setAuthTokenLoading(false);
+        };
+
+        acquireTokenForSwitch();
       }
+    } else {
+      try {
+        const raw = localStorage.getItem('sir_crm_session');
+        const prev = raw ? JSON.parse(raw) : {};
+        localStorage.setItem('sir_crm_session', JSON.stringify({
+          ...prev,
+          user: updatedUser,
+          currentRole: newRole,
+          activeModule: 'dashboard'
+        }));
+      } catch (e) { }
     }
     logAuditAction(`Switched active session view role to '${newRole}'.`);
   };
@@ -1186,7 +1263,7 @@ export const CrmProvider = ({ children }) => {
       const next = !prev;
       try {
         localStorage.setItem('sir_theme_mode', next ? 'dark' : 'light');
-      } catch (e) { }
+      } catch (e) {}
       return next;
     });
   };
@@ -1200,6 +1277,22 @@ export const CrmProvider = ({ children }) => {
   }, [darkMode]);
 
   const createOrganization = async (orgData) => {
+    const localId = `ORG-${Date.now().toString().slice(-6)}-${Math.floor(100 + Math.random() * 900)}`;
+    const newOrgRecord = {
+      id: localId,
+      ...orgData,
+      createdAt: new Date().toISOString().replace('T', ' ').substring(0, 19)
+    };
+
+    // Immediately persist locally to state & localStorage
+    setClients(prev => {
+      const updated = [newOrgRecord, ...prev.filter(c => c.id !== localId && (c.company || '').toLowerCase().trim() !== (orgData.company || '').toLowerCase().trim())];
+      try {
+        localStorage.setItem('crm_clients', JSON.stringify(updated));
+      } catch {}
+      return updated;
+    });
+
     try {
       const res = await fetch('/api/clients', {
         method: 'POST',
@@ -1207,17 +1300,25 @@ export const CrmProvider = ({ children }) => {
         body: JSON.stringify(orgData)
       });
       const data = await res.json();
-      if (!res.ok || !data.success) {
-        throw new Error(data.message || 'Failed to create organization');
+      if (res.ok && data.success && data.data) {
+        logAuditAction(`Registered organization account '${orgData.company}' (${data.data?.id || localId}).`);
+        setClients(prev => {
+          const updated = prev.map(c => c.id === localId ? { ...c, ...data.data } : c);
+          try {
+            localStorage.setItem('crm_clients', JSON.stringify(updated));
+          } catch {}
+          return updated;
+        });
+        await fetchConsultingMetrics();
+        return data.data;
       }
-      logAuditAction(`Registered organization account '${orgData.company}' (${data.data?.id || 'ID'}).`);
-      await fetchClients();
-      await fetchConsultingMetrics();
-      return data.data;
     } catch (err) {
-      console.error('Error in createOrganization:', err);
-      throw err;
+      console.warn('Network sync warning in createOrganization (saved in localStorage):', err);
     }
+
+    logAuditAction(`Registered organization account '${orgData.company}' (${localId}).`);
+    await fetchConsultingMetrics();
+    return newOrgRecord;
   };
 
   const updateOrganization = async (orgId, updates) => {
@@ -1394,7 +1495,7 @@ export const CrmProvider = ({ children }) => {
             localStorage.setItem('sir_offline_leads', JSON.stringify(filtered));
           }
         }
-      } catch (e) { }
+      } catch (e) {}
 
       logAuditAction(`Permanently deleted ${metadata.entityType || 'lead'} '${leadId}' (${metadata.name || metadata.referenceNumber || ''}).`);
       setLeads(prev => prev.filter(l => l.id !== leadId && l.referenceNumber !== leadId));
@@ -1555,7 +1656,4 @@ export const CrmProvider = ({ children }) => {
   );
 };
 
-export const useCrm = () => {
-  const context = useContext(CrmContext);
-  return context || DEFAULT_CRM_CONTEXT_VALUE;
-};
+export const useCrm = () => useContext(CrmContext);

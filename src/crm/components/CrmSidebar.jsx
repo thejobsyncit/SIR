@@ -7,7 +7,7 @@ import {
   GraduationCap, Compass, School, Languages, Plane,
   Briefcase, Search, Tag, MessageSquare, Users2,
   CheckCircle2, Bell, CheckSquare, Clock, AlertCircle, BookOpen,
-  TrendingUp, UserPlus, Mail, User
+  TrendingUp, UserPlus, Mail, User, FolderCheck
 } from 'lucide-react';
 
 export const HR_OPERATIONS_MENU_ORDER = [
@@ -16,6 +16,7 @@ export const HR_OPERATIONS_MENU_ORDER = [
   'candidates',
   'my-attendance',
   'documentation',
+  'verification',
   'my-profile'
 ];
 
@@ -44,6 +45,11 @@ export const CrmSidebar = ({ collapsed, setCollapsed }) => {
   } = useCrm();
 
   const isHrOperationsRole = currentRole === 'HR Operations';
+  const isRecruiterRole = currentRole === 'Recruiter' || currentRole === 'Domestic Recruiter' || currentRole === 'International Recruiter';
+  const isPlacementRole = currentRole === 'Placement Coordinator';
+  const isInterviewerRole = currentRole === 'Interviewer';
+  const isHrLeadRole = currentRole === 'HR Lead';
+  const isExecutiveRole = currentRole === 'Super Admin' || currentRole === 'Admin';
 
   const [consultingOpen, setConsultingOpen] = useState(false);
 
@@ -89,8 +95,6 @@ export const CrmSidebar = ({ collapsed, setCollapsed }) => {
           return sId === 'intl-consult' || sId.includes('intl-consult') || title.includes('international consulting') || title.includes('intl consulting');
         case 'college-adm':
           return sId === 'college-adm' || sId.includes('college') || title.includes('college admission') || title.includes('college');
-        case 'school-career':
-          return sId === 'school-career' || (sId.includes('career') && !sId.includes('career-guidance')) || title.includes('school student career');
         case 'career-guidance':
           return (
             sId === 'career-guidance' ||
@@ -113,8 +117,6 @@ export const CrmSidebar = ({ collapsed, setCollapsed }) => {
           );
         case 'intl-adm':
           return sId === 'intl-adm' || sId === 'intl-admissions' || (sId.includes('adm') && !sId.includes('college')) || (title.includes('international admission') || title.includes('intl admission'));
-        case 'school-academy':
-          return sId === 'school-academy' || sId.includes('academy') || title.includes('student academy') || title.includes('academy');
         case 'exec-seminars-lang':
           return sId === 'exec-seminars-lang' || sId.includes('seminar') || sId.includes('lang') || title.includes('seminar') || title.includes('language');
         default:
@@ -123,131 +125,129 @@ export const CrmSidebar = ({ collapsed, setCollapsed }) => {
     }).length;
   };
 
-  // Main CRM Sidebar Navigation Items (Standalone Career Guidance and Student Academy moved inside Consulting & Bookings)
-  const menuItems = [
-    { id: 'dashboard', label: 'Dashboard', icon: LayoutDashboard },
+  // Structured Sections for Super Admin / Admin
+  const executiveSections = [
     {
-      id: 'hr-tasks',
-      label: isHrOperationsRole ? 'My Assigned Enquiries' : 'HR Task Assignment',
-      icon: CheckSquare,
-      ...(isHrOperationsRole ? {} : { tag: 'Task' })
+      category: 'Command Center',
+      items: [
+        { id: 'dashboard', label: 'Executive Dashboard', icon: LayoutDashboard },
+        { id: 'hr-tasks', label: 'HR Task Assignment', icon: CheckSquare },
+        { id: 'consulting', label: 'Consulting & Bookings', icon: CalendarCheck }
+      ]
     },
     {
-      id: 'my-attendance',
-      label: 'My Attendance',
-      icon: CalendarCheck
+      category: 'Talent & Recruitment',
+      items: [
+        { id: 'candidates', label: 'Candidates', icon: Users },
+        { id: 'pipeline', label: 'Recruitment Pipeline', icon: GitMerge },
+        { id: 'workspace', label: 'Recruiter Workspace', icon: UserCheck },
+        { id: 'interviews', label: 'Interviews', icon: Calendar },
+        { id: 'domestic', label: 'Domestic Hiring', icon: Home },
+        { id: 'international', label: 'International Hiring', icon: Globe },
+        { id: 'clients', label: 'Client Accounts', icon: Building2 }
+      ]
     },
     {
-      id: 'my-profile',
-      label: 'My Profile',
-      icon: User,
-      ...(isHrOperationsRole ? {} : { tag: 'Profile' })
+      category: 'Operations & Compliance',
+      items: [
+        { id: 'attendance', label: 'Attendance Management', icon: Clock },
+        { id: 'leave', label: 'Leave Management', icon: Calendar },
+        { id: 'my-attendance', label: 'My Attendance', icon: CalendarCheck },
+        { id: 'documentation', label: 'Documentation', icon: FileText },
+        { id: 'visa', label: 'Visa Processing', icon: ShieldCheck },
+        { id: 'verification', label: 'Background Check', icon: ShieldCheck }
+      ]
     },
-    { id: 'consulting', label: 'Consulting & Bookings', icon: CalendarCheck },
-    { id: 'candidates', label: 'Candidates', icon: Users },
-    { id: 'pipeline', label: 'Recruitment Pipeline', icon: GitMerge },
-    { id: 'domestic', label: 'Domestic Hiring', icon: Home },
-    { id: 'international', label: 'International Hiring', icon: Globe },
-    { id: 'clients', label: 'Client Accounts', icon: Building2 },
-    { id: 'workspace', label: 'Recruiter Workspace', icon: UserCheck },
-    { id: 'interviews', label: 'Interviews', icon: Calendar },
-    { id: 'documentation', label: 'Documentation', icon: FileText },
-    { id: 'visa', label: 'Visa Processing', icon: ShieldCheck },
-    { id: 'verification', label: 'Background Check', icon: ShieldCheck },
-    { id: 'reports', label: 'Reports & Analytics', icon: BarChart3 },
-    { id: 'ai-suite', label: 'AI Features Suite', icon: Sparkles },
-    { id: 'automation', label: 'Automations', icon: Zap },
-    { id: 'super-admin', label: 'Super Admin Panel', icon: ShieldCheck },
-    { id: 'settings', label: 'Admin Settings', icon: Settings }
+    {
+      category: 'System & Analytics',
+      items: [
+        { id: 'reports', label: 'Reports & Analytics', icon: BarChart3 },
+        { id: 'ai-suite', label: 'AI Features Suite', icon: Sparkles },
+        { id: 'automation', label: 'Automations', icon: Zap },
+        { id: 'super-admin', label: 'Super Admin Panel', icon: ShieldCheck },
+        { id: 'settings', label: 'Admin Settings', icon: Settings }
+      ]
+    },
+    {
+      category: 'Account',
+      items: [
+        { id: 'my-profile', label: 'My Profile', icon: User }
+      ]
+    }
   ];
 
-  const isRecruiterRole = currentRole === 'Recruiter' || currentRole === 'Domestic Recruiter' || currentRole === 'International Recruiter';
-  const isPlacementRole = currentRole === 'Placement Coordinator';
-  const isInterviewerRole = currentRole === 'Interviewer';
-  const isHrLeadRole = currentRole === 'HR Lead';
+  // Tailored HR Operations menu (Clean, high contrast labels)
+  const hrOpsMenuItems = [
+    { id: 'dashboard', label: 'Operations Work Queue', icon: LayoutDashboard },
+    { id: 'hr-tasks', label: 'My Assigned Enquiries', icon: CheckSquare },
+    { id: 'candidates', label: 'Candidate Directory', icon: Users },
+    { id: 'my-attendance', label: 'My Attendance', icon: CalendarCheck },
+    { id: 'documentation', label: 'Document Verification & KYC', icon: FileText },
+    { id: 'verification', label: 'Background Verification (BGV)', icon: ShieldCheck },
+    { id: 'my-profile', label: 'My Profile', icon: User }
+  ];
 
-  // 12 Recruiter Dashboard features as defined in Page 1 of the Recruitment Requirements PDF
+  // Recruiter Dashboard features (Clean, professional labels)
   const recruiterMenuItems = [
-    { id: 'dashboard', label: 'Dashboard overview', icon: LayoutDashboard, tag: '1' },
-    { id: 'vacancies', label: 'Job / vacancy management', icon: Briefcase, tag: '2' },
-    { id: 'candidates', label: 'Candidate management', icon: Users, tag: '3' },
-    { id: 'search-filters', label: 'Search and filters', icon: Search, tag: '4' },
-    { id: 'pipeline', label: 'Application pipeline', icon: GitMerge, tag: '5' },
-    { id: 'documentation', label: 'Resume upload and storage', icon: FileText, tag: '6' },
-    { id: 'notes-tags', label: 'Candidate notes and tags', icon: Tag, tag: '7' },
-    { id: 'interviews', label: 'Interview scheduling', icon: Calendar, tag: '8' },
-    { id: 'communication', label: 'Candidate communication', icon: MessageSquare, tag: '9' },
-    { id: 'offers', label: 'Offers and joining', icon: Award, tag: '10' },
-    { id: 'reports', label: 'Reports and analytics', icon: BarChart3, tag: '11' },
-    { id: 'collaboration', label: 'Team collaboration', icon: Users2, tag: '12' }
+    { id: 'dashboard', label: 'Dashboard Overview', icon: LayoutDashboard },
+    { id: 'vacancies', label: 'Job & Vacancy Management', icon: Briefcase },
+    { id: 'candidates', label: 'Candidate Management', icon: Users },
+    { id: 'search-filters', label: 'Search & Talent Filters', icon: Search },
+    { id: 'pipeline', label: 'Application Pipeline', icon: GitMerge },
+    { id: 'documentation', label: 'Resume & Dossier Storage', icon: FileText },
+    { id: 'interviews', label: 'Interview Scheduling', icon: Calendar },
+    { id: 'offers', label: 'Offers & Joining', icon: Award },
+    { id: 'reports', label: 'Recruiter Analytics', icon: BarChart3 },
+    { id: 'my-profile', label: 'My Profile', icon: User }
   ];
 
-  // 12 Placement Coordinator Dashboard features as defined in Page 2 of the Recruitment Requirements PDF
+  // Placement Coordinator Dashboard features
   const placementMenuItems = [
-    { id: 'plc-overview', label: 'Dashboard overview', icon: LayoutDashboard, tag: '1' },
-    { id: 'plc-students', label: 'Student profile management', icon: GraduationCap, tag: '2' },
-    { id: 'plc-eligibility', label: 'Eligibility management', icon: CheckCircle2, tag: '3' },
-    { id: 'plc-companies', label: 'Company management', icon: Building2, tag: '4' },
-    { id: 'plc-drives', label: 'Placement drive management', icon: Briefcase, tag: '5' },
-    { id: 'plc-registration', label: 'Student registration', icon: UserCheck, tag: '6' },
-    { id: 'plc-applications', label: 'Application tracking', icon: GitMerge, tag: '7' },
-    { id: 'plc-events', label: 'Interview & event coordination', icon: Calendar, tag: '8' },
-    { id: 'plc-offers', label: 'Offer & placement records', icon: Award, tag: '9' },
-    { id: 'plc-announcements', label: 'Announcements & notifications', icon: Bell, tag: '10' },
-    { id: 'plc-reports', label: 'Reports and exports', icon: BarChart3, tag: '11' },
-    { id: 'plc-approvals', label: 'Access and approvals', icon: ShieldCheck, tag: '12' }
+    { id: 'plc-overview', label: 'Dashboard Overview', icon: LayoutDashboard },
+    { id: 'plc-students', label: 'Student Directory', icon: GraduationCap },
+    { id: 'plc-companies', label: 'Corporate Partners', icon: Building2 },
+    { id: 'plc-drives', label: 'Placement Drives', icon: Briefcase },
+    { id: 'plc-registration', label: 'Student Registration', icon: UserCheck },
+    { id: 'plc-applications', label: 'Application Tracking', icon: GitMerge },
+    { id: 'plc-events', label: 'Recruitment & Drive Meets', icon: Calendar },
+    { id: 'plc-offers', label: 'Offer & Placement Records', icon: Award },
+    { id: 'plc-announcements', label: 'Announcements & Alerts', icon: Bell },
+    { id: 'plc-reports', label: 'Reports & Exports', icon: BarChart3 },
+    { id: 'plc-approvals', label: 'Access & Approvals', icon: ShieldCheck },
+    { id: 'my-profile', label: 'My Profile', icon: User }
   ];
 
-  // 12 Interviewer Dashboard features as defined in Page 3 of the Recruitment Requirements PDF
+  // Interviewer Dashboard features
   const interviewerMenuItems = [
-    { id: 'int-overview', label: 'Dashboard overview', icon: LayoutDashboard, tag: '1' },
-    { id: 'int-assigned', label: 'Assigned candidate list', icon: Users, tag: '2' },
-    { id: 'int-profiles', label: 'Candidate interview profile', icon: FileText, tag: '3' },
-    { id: 'int-schedule', label: 'Interview schedule and details', icon: Calendar, tag: '4' },
-    { id: 'int-evaluation', label: 'Interview evaluation form', icon: CheckSquare, tag: '5' },
-    { id: 'int-feedback', label: 'Structured feedback', icon: MessageSquare, tag: '6' },
-    { id: 'int-decision', label: 'Decision submission', icon: Award, tag: '7' },
-    { id: 'int-status', label: 'Interview status', icon: Clock, tag: '8' },
-    { id: 'int-reminders', label: 'Feedback reminders', icon: AlertCircle, tag: '9' },
-    { id: 'int-context', label: 'Previous-round context', icon: BookOpen, tag: '10' },
-    { id: 'int-calendar', label: 'Availability / calendar', icon: CalendarCheck, tag: '11' },
-    { id: 'int-permissions', label: 'Confidentiality & permissions', icon: Lock, tag: '12' }
+    { id: 'int-overview', label: 'Dashboard Overview', icon: LayoutDashboard },
+    { id: 'int-assigned', label: 'Assigned Candidates', icon: Users },
+    { id: 'int-profiles', label: 'Candidate Profiles', icon: FileText },
+    { id: 'int-schedule', label: 'Interview Schedule', icon: Calendar },
+    { id: 'int-evaluation', label: 'Evaluation Forms', icon: CheckSquare },
+    { id: 'int-feedback', label: 'Structured Feedback', icon: MessageSquare },
+    { id: 'int-decision', label: 'Decision Submission', icon: Award },
+    { id: 'int-status', label: 'Interview Status', icon: Clock },
+    { id: 'int-reminders', label: 'Feedback Reminders', icon: AlertCircle },
+    { id: 'int-context', label: 'Previous Round Notes', icon: BookOpen },
+    { id: 'int-calendar', label: 'Availability Calendar', icon: CalendarCheck },
+    { id: 'int-permissions', label: 'Confidentiality & Access', icon: Lock },
+    { id: 'my-profile', label: 'My Profile', icon: User }
   ];
 
-  // 13 HR Lead Dashboard features as defined in the HR Lead Feature Plan
+  // HR Lead Dashboard features
   const hrLeadMenuItems = [
-    { id: 'hr-overview', label: 'Dashboard overview', icon: LayoutDashboard, tag: '1' },
-    { id: 'hr-tasks', label: 'HR Task Assignment', icon: CheckSquare, tag: 'Flowchart' },
-    { id: 'hr-attendance', label: 'Attendance management', icon: Clock, tag: '2' },
-    { id: 'hr-leave', label: 'Leave management', icon: Calendar, tag: '3' },
-    { id: 'hr-employees', label: 'Employee management', icon: Users, tag: '4' },
-    { id: 'hr-performance', label: 'Employee performance', icon: TrendingUp, tag: '5' },
-    { id: 'hr-recruitment', label: 'Recruitment & onboarding', icon: UserPlus, tag: '6' },
-    { id: 'hr-payroll', label: 'Payroll management', icon: CreditCard, tag: '7' },
-    { id: 'hr-announcements', label: 'Announcements & alerts', icon: Bell, tag: '8' },
-    { id: 'hr-shifts', label: 'Shift management', icon: CalendarCheck, tag: '9' },
-    { id: 'hr-documents', label: 'Document repository', icon: FileText, tag: '10' },
-    { id: 'hr-grievances', label: 'Grievance management', icon: AlertCircle, tag: '11' },
-    { id: 'hr-approvals', label: 'Central approval center', icon: CheckSquare, tag: '12' },
-    { id: 'hr-reports', label: 'Workforce analytics', icon: BarChart3, tag: '13' },
-    { id: 'my-profile', label: 'My Profile', icon: User, tag: 'Profile' }
+    { id: 'hr-overview', label: 'Dashboard Overview', icon: LayoutDashboard },
+    { id: 'hr-tasks', label: 'HR Task Assignment', icon: CheckSquare },
+    { id: 'hr-attendance', label: 'Attendance Oversight', icon: Clock },
+    { id: 'hr-leave', label: 'Leave Approvals', icon: Calendar },
+    { id: 'hr-employees', label: 'Workforce Directory', icon: Users },
+    { id: 'hr-performance', label: 'Performance Metrics', icon: TrendingUp },
+    { id: 'hr-recruitment', label: 'Onboarding & Hiring', icon: UserPlus },
+    { id: 'hr-announcements', label: 'Company Announcements', icon: Bell },
+    { id: 'hr-shifts', label: 'Shift Management', icon: CalendarCheck },
+    { id: 'hr-documents', label: 'Document Repository', icon: FileText },
+    { id: 'my-profile', label: 'My Profile', icon: User }
   ];
-
-  let permittedItems = menuItems.filter(item => hasPermission(item.id));
-  if (isHrOperationsRole) {
-    const orderIndex = new Map(HR_OPERATIONS_MENU_ORDER.map((id, idx) => [id, idx]));
-    permittedItems = permittedItems
-      .filter(item => item.id !== 'consulting' && orderIndex.has(item.id))
-      .sort((a, b) => orderIndex.get(a.id) - orderIndex.get(b.id));
-  } else if (isRecruiterRole) {
-    permittedItems = recruiterMenuItems;
-  } else if (isPlacementRole) {
-    permittedItems = placementMenuItems;
-  } else if (isInterviewerRole) {
-    permittedItems = interviewerMenuItems;
-  } else if (isHrLeadRole) {
-    permittedItems = hrLeadMenuItems;
-  }
 
   // Role-based filtering for Consulting & Bookings sub-services
   const permittedSubServices = isHrOperationsRole
@@ -270,263 +270,322 @@ export const CrmSidebar = ({ collapsed, setCollapsed }) => {
     return trimmed;
   };
 
+  // Helper to render an individual menu button with larger font and crisp contrast
+  const renderMenuItem = (item) => {
+    const Icon = item.icon;
+    const isActive = activeModule === item.id ||
+      (item.id === 'dashboard' && (activeModule === 'dashboard' || activeModule === 'plc-overview' || activeModule === 'int-overview' || activeModule === 'hr-overview')) ||
+      (item.id === 'plc-overview' && (activeModule === 'dashboard' || activeModule === 'plc-overview')) ||
+      (item.id === 'int-overview' && (activeModule === 'dashboard' || activeModule === 'int-overview')) ||
+      (item.id === 'hr-overview' && (activeModule === 'dashboard' || activeModule === 'hr-overview'));
+
+    // Special dropdown handling for Consulting & Bookings
+    if (item.id === 'consulting' && !isHrOperationsRole) {
+      const isConsultingActive = activeModule === 'consulting';
+      const isParentActive = isConsultingActive || activeModule === 'career-guidance' || activeModule === 'student-academy';
+      const totalCount = getServiceCount('all');
+
+      return (
+        <div key="consulting-section" className="space-y-1">
+          <button
+            type="button"
+            onClick={() => {
+              if (collapsed) {
+                setCollapsed(false);
+                setConsultingOpen(true);
+                setActiveModule('consulting');
+                if (setConsultingServiceFilter) setConsultingServiceFilter('all');
+              } else {
+                setConsultingOpen(prev => !prev);
+                if (!isParentActive) {
+                  setActiveModule('consulting');
+                  if (setConsultingServiceFilter) setConsultingServiceFilter('all');
+                }
+              }
+            }}
+            className={`w-full flex items-center justify-between px-3 py-2 rounded-xl transition duration-150 group cursor-pointer ${
+              isConsultingActive && consultingServiceFilter === 'all'
+                ? 'bg-amber-100 dark:bg-gold-500/25 text-slate-950 dark:text-gold-200 font-bold border-2 border-amber-400 dark:border-gold-500/40 shadow-xs'
+                : isParentActive
+                  ? 'bg-amber-50 dark:bg-gold-500/10 text-amber-950 dark:text-gold-300 font-semibold border border-amber-300/60 dark:border-gold-500/20'
+                  : 'hover:bg-slate-100 dark:hover:bg-navy-900/90 hover:text-slate-950 dark:hover:text-white text-slate-800 dark:text-slate-200 font-medium border border-transparent'
+            }`}
+            title={item.label}
+          >
+            <div className="flex items-center space-x-2.5 truncate">
+              <Icon className={`w-4 h-4 shrink-0 ${isParentActive ? 'text-amber-700 dark:text-gold-400' : 'text-slate-600 dark:text-slate-300'}`} />
+              {!collapsed && <span className="truncate flex-1 text-left text-xs sm:text-[13px] font-semibold">{item.label}</span>}
+            </div>
+            {!collapsed && (
+              <div className="flex items-center space-x-1 shrink-0">
+                {totalCount > 0 && (
+                  <span className="px-1.5 py-0.2 text-[10px] font-bold rounded-full bg-amber-500 text-navy-950 font-mono shadow-xs">
+                    {totalCount}
+                  </span>
+                )}
+                <ChevronDown className={`w-3.5 h-3.5 text-slate-500 dark:text-slate-400 transition-transform duration-200 ${consultingOpen ? 'rotate-180 text-amber-700 dark:text-gold-500' : ''}`} />
+              </div>
+            )}
+          </button>
+
+          {/* Consulting sub-services */}
+          {!collapsed && consultingOpen && (
+            <div className="ml-3 pl-3 border-l-2 border-amber-400/60 dark:border-gold-500/30 space-y-1 py-1 animate-in fade-in duration-150">
+              {permittedSubServices.map(srv => {
+                const SrvIcon = srv.icon;
+                const isSrvActive = srv.id === 'career-guidance'
+                  ? activeModule === 'career-guidance'
+                  : srv.id === 'student-academy'
+                    ? activeModule === 'student-academy'
+                    : isConsultingActive && (consultingServiceFilter === srv.id || (!consultingServiceFilter && srv.id === 'all'));
+                const srvCount = getServiceCount(srv.id);
+
+                return (
+                  <button
+                    key={srv.id}
+                    type="button"
+                    onClick={() => {
+                      if (srv.id === 'career-guidance') {
+                        setActiveModule('career-guidance');
+                      } else if (srv.id === 'student-academy') {
+                        setActiveModule('student-academy');
+                      } else {
+                        setActiveModule('consulting');
+                        if (setConsultingServiceFilter) setConsultingServiceFilter(srv.id);
+                      }
+                      if (window.innerWidth < 1024) setCollapsed(true);
+                    }}
+                    className={`w-full flex items-center justify-between px-3 py-2 rounded-lg text-xs sm:text-[13px] transition duration-150 cursor-pointer ${
+                      isSrvActive
+                        ? 'bg-amber-100 dark:bg-gold-500/25 text-slate-950 dark:text-gold-100 font-black border border-amber-300 dark:border-gold-500/40 shadow-xs'
+                        : 'text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-navy-900/80 hover:text-slate-950 dark:hover:text-white font-bold'
+                    }`}
+                    title={srv.label}
+                  >
+                    <div className="flex items-center space-x-2.5 truncate">
+                      <SrvIcon className={`w-4 h-4 shrink-0 ${isSrvActive ? 'text-amber-700 dark:text-gold-400' : 'text-slate-500 dark:text-slate-400'}`} />
+                      <span className="truncate">{srv.label}</span>
+                    </div>
+                    {srvCount > 0 && (
+                      <span className={`px-2 py-0.5 rounded-full text-xs font-mono font-bold shrink-0 ${
+                        isSrvActive
+                          ? 'bg-amber-500 text-navy-950'
+                          : 'bg-slate-200 dark:bg-navy-800 text-slate-800 dark:text-slate-200'
+                      }`}>
+                        {srvCount}
+                      </span>
+                    )}
+                  </button>
+                );
+              })}
+            </div>
+          )}
+        </div>
+      );
+    }
+
+    return (
+      <button
+        key={item.id}
+        onClick={() => {
+          setActiveModule(item.id);
+          setConsultingOpen(false);
+          if (window.innerWidth < 1024) setCollapsed(true);
+        }}
+        className={`w-full flex items-center space-x-2.5 px-3 py-2 rounded-xl transition duration-150 cursor-pointer ${
+          isActive
+            ? 'bg-amber-100 dark:bg-gold-500/25 text-slate-950 dark:text-gold-200 font-bold border-2 border-amber-400 dark:border-gold-500/40 shadow-xs'
+            : 'hover:bg-slate-100 dark:hover:bg-navy-900/90 hover:text-slate-950 dark:hover:text-white text-slate-800 dark:text-slate-200 font-semibold border border-transparent'
+        }`}
+        title={item.label}
+      >
+        <Icon className={`w-4 h-4 shrink-0 ${
+          isActive
+            ? 'text-amber-700 dark:text-gold-400'
+            : 'text-slate-600 dark:text-slate-300'
+        }`} />
+        {!collapsed && <span className="truncate flex-1 text-left text-xs sm:text-[13px] font-semibold">{item.label}</span>}
+        {!collapsed && item.id === 'super-admin' && Array.isArray(leads) && leads.filter(l => l && l.status === 'New').length > 0 && (
+          <span className="px-1.5 py-0.2 text-[10px] font-bold rounded-full bg-emerald-600 text-white animate-pulse shadow-xs">
+            {leads.filter(l => l && l.status === 'New').length}
+          </span>
+        )}
+      </button>
+    );
+  };
+
+  // Render role-specific navigation content
+  const renderNavContent = () => {
+    if (isExecutiveRole) {
+      return (
+        <div className="space-y-4">
+          {executiveSections.map((sec, idx) => {
+            const permittedInSec = sec.items.filter(item => hasPermission(item.id));
+            if (permittedInSec.length === 0) return null;
+
+            return (
+              <div key={sec.category || idx} className="space-y-1">
+                {!collapsed && (
+                  <div className="px-3 pt-2 pb-0.5">
+                    <span className="text-[10px] font-bold tracking-wider uppercase text-slate-500 dark:text-slate-400">
+                      {sec.category}
+                    </span>
+                  </div>
+                )}
+                <div className="space-y-1">
+                  {permittedInSec.map(item => renderMenuItem(item))}
+                </div>
+              </div>
+            );
+          })}
+        </div>
+      );
+    }
+
+    // Role-tailored lists
+    let currentList = [];
+    let roleSectionTitle = '';
+    let roleBadge = '';
+
+    if (isHrOperationsRole) {
+      currentList = hrOpsMenuItems;
+      roleSectionTitle = 'Operations Desk';
+      roleBadge = 'Daily Workspace';
+    } else if (isRecruiterRole) {
+      currentList = recruiterMenuItems;
+      roleSectionTitle = 'Recruiter Workspace';
+      roleBadge = 'ATS Pipeline';
+    } else if (isPlacementRole) {
+      currentList = placementMenuItems;
+      roleSectionTitle = 'Placement Desk';
+      roleBadge = 'Campus Drives';
+    } else if (isHrLeadRole) {
+      currentList = hrLeadMenuItems;
+      roleSectionTitle = 'HR Lead Suite';
+      roleBadge = 'Workforce';
+    } else if (isInterviewerRole) {
+      currentList = interviewerMenuItems;
+      roleSectionTitle = 'Interviewer Desk';
+      roleBadge = 'Panels & Meets';
+    }
+
+    // Universal guarantee: 'my-profile' is always strictly placed at the very end
+    const nonProfileItems = currentList.filter(item => item.id !== 'my-profile');
+    const profileItem = currentList.find(item => item.id === 'my-profile') || { id: 'my-profile', label: 'My Profile', icon: User };
+
+    return (
+      <div className="space-y-3">
+        {!collapsed && roleSectionTitle && (
+          <div className="px-2 pt-1 pb-1">
+            <div className="flex items-center justify-between px-1">
+              <span className="text-[10px] font-bold tracking-wider uppercase text-amber-900 dark:text-gold-400">
+                {roleSectionTitle}
+              </span>
+              <span className="font-mono bg-amber-100 text-amber-900 dark:bg-gold-500/20 dark:text-gold-300 px-1.5 py-0.2 rounded-full text-[10px] font-semibold border border-amber-300 dark:border-gold-500/30">
+                {roleBadge}
+              </span>
+            </div>
+          </div>
+        )}
+
+        <div className="space-y-1">
+          {nonProfileItems.map(item => renderMenuItem(item))}
+        </div>
+
+        {/* Separator before My Profile */}
+        <div className="pt-2 border-t-2 border-slate-200 dark:border-navy-800">
+          {!collapsed && (
+            <div className="px-3 pb-1">
+              <span className="text-[10px] font-bold tracking-wider uppercase text-slate-500 dark:text-slate-400">
+                Account
+              </span>
+            </div>
+          )}
+          {renderMenuItem(profileItem)}
+        </div>
+      </div>
+    );
+  };
+
   return (
     <>
       {/* Mobile Backdrop */}
       {!collapsed && (
         <div
-          className="fixed inset-0 bg-navy-950/50 backdrop-blur-sm z-40 lg:hidden"
+          className="fixed inset-0 bg-navy-950/60 backdrop-blur-sm z-40 lg:hidden"
           onClick={() => setCollapsed(true)}
         />
       )}
 
-      <aside className={`bg-white dark:bg-[#070c1e] border-r border-slate-200 dark:border-slate-800/80 text-slate-700 dark:text-slate-300 flex flex-col h-full min-h-0 overflow-hidden shrink-0 z-50 fixed inset-y-0 left-0 lg:static lg:h-full lg:max-h-full transition-all duration-300 transform ${collapsed ? '-translate-x-full lg:translate-x-0 lg:w-20' : 'translate-x-0 w-72'}`}>
+      <aside className={`bg-white dark:bg-[#070c1e] border-r-2 border-slate-200 dark:border-slate-800/80 text-slate-800 dark:text-slate-200 flex flex-col h-full min-h-0 overflow-hidden shrink-0 z-50 fixed inset-y-0 left-0 lg:static lg:h-full lg:max-h-full transition-all duration-300 transform ${collapsed ? '-translate-x-full lg:translate-x-0 lg:w-20' : 'translate-x-0 w-72'}`}>
 
         {/* Top Brand Logo */}
-        <div className="p-4 border-b border-slate-200 dark:border-navy-800 flex items-center justify-between shrink-0">
+        <div className="p-4 border-b-2 border-slate-200 dark:border-navy-800 flex items-center justify-between shrink-0">
           <div className="flex items-center space-x-3 cursor-pointer" onClick={() => setActiveModule('dashboard')}>
             <img src="/images/logo.png" alt="The Revival International" className="w-9 h-9 object-contain shrink-0 drop-shadow-sm" />
             {!collapsed && (
               <div>
-                <h2 className="font-serif text-base font-bold text-slate-900 dark:text-white tracking-tight leading-none">The Revival CRM</h2>
-                <span className="text-[9px] uppercase tracking-widest text-gold-600 dark:text-gold-400 font-bold">Enterprise Edition</span>
+                <h2 className="font-serif text-base sm:text-lg font-black text-slate-950 dark:text-white tracking-tight leading-none">The Revival CRM</h2>
+                <span className="text-[10px] uppercase tracking-widest text-amber-800 dark:text-gold-400 font-extrabold">Enterprise Edition</span>
               </div>
             )}
           </div>
         </div>
 
-        {/* Nav Menu */}
-        <div className="flex-1 min-h-0 overflow-y-auto overscroll-y-contain crm-sidebar-scroll py-2 px-3 space-y-0.5 text-xs font-semibold">
-          {isRecruiterRole && !collapsed && (
-            <div className="px-2 pt-0.5 pb-2">
-              <div className="flex items-center justify-between px-1 text-[10px] font-extrabold tracking-wider uppercase text-gold-600 dark:text-gold-400">
-                <span>Recruiter Features</span>
-                <span className="font-mono bg-gold-500/15 text-gold-700 dark:text-gold-300 px-1.5 py-0.5 rounded text-[9px] border border-gold-500/30">12 Features</span>
-              </div>
-            </div>
-          )}
-
-          {isPlacementRole && !collapsed && (
-            <div className="px-2 pt-0.5 pb-2">
-              <div className="flex items-center justify-between px-1 text-[10px] font-extrabold tracking-wider uppercase text-gold-600 dark:text-gold-400">
-                <span>Placement Features</span>
-                <span className="font-mono bg-gold-500/15 text-gold-700 dark:text-gold-300 px-1.5 py-0.5 rounded text-[9px] border border-gold-500/30">12 Features</span>
-              </div>
-            </div>
-          )}
-
-          {isInterviewerRole && !collapsed && (
-            <div className="px-2 pt-0.5 pb-2">
-              <div className="flex items-center justify-between px-1 text-[10px] font-extrabold tracking-wider uppercase text-gold-600 dark:text-gold-400">
-                <span>Interviewer Features</span>
-                <span className="font-mono bg-gold-500/15 text-gold-700 dark:text-gold-300 px-1.5 py-0.5 rounded text-[9px] border border-gold-500/30">12 Features</span>
-              </div>
-            </div>
-          )}
-
-          {isHrLeadRole && !collapsed && (
-            <div className="px-2 pt-0.5 pb-2">
-              <div className="flex items-center justify-between px-1 text-[10px] font-extrabold tracking-wider uppercase text-gold-600 dark:text-gold-400">
-                <span>HR Lead Workspace</span>
-                <span className="font-mono bg-gold-500/15 text-gold-700 dark:text-gold-300 px-1.5 py-0.5 rounded text-[9px] border border-gold-500/30">13 Modules</span>
-              </div>
-            </div>
-          )}
-          {permittedItems.map((item) => {
-            const Icon = item.icon;
-            const isActive = activeModule === item.id ||
-              (item.id === 'dashboard' && (activeModule === 'dashboard' || activeModule === 'plc-overview' || activeModule === 'int-overview' || activeModule === 'hr-overview')) ||
-              (item.id === 'plc-overview' && (activeModule === 'dashboard' || activeModule === 'plc-overview')) ||
-              (item.id === 'int-overview' && (activeModule === 'dashboard' || activeModule === 'int-overview')) ||
-              (item.id === 'hr-overview' && (activeModule === 'dashboard' || activeModule === 'hr-overview'));
-
-            if (item.id === 'consulting' && !isHrOperationsRole) {
-              const isConsultingActive = activeModule === 'consulting';
-              const isParentActive = isConsultingActive || activeModule === 'career-guidance' || activeModule === 'student-academy';
-              const totalCount = getServiceCount('all');
-
-              return (
-                <div key="consulting-section" className="space-y-1">
-                  <button
-                    type="button"
-                    onClick={() => {
-                      if (collapsed) {
-                        setCollapsed(false);
-                        setConsultingOpen(true);
-                        setActiveModule('consulting');
-                        if (setConsultingServiceFilter) setConsultingServiceFilter('all');
-                      } else {
-                        setConsultingOpen(prev => !prev);
-                        if (!isParentActive) {
-                          setActiveModule('consulting');
-                          if (setConsultingServiceFilter) setConsultingServiceFilter('all');
-                        }
-                      }
-                    }}
-                    className={`w-full flex items-center justify-between px-3 py-2.5 rounded-xl transition duration-200 group cursor-pointer ${isConsultingActive && consultingServiceFilter === 'all'
-                        ? 'bg-gold-500/20 text-gold-600 dark:text-gold-400 border border-gold-500/40 font-bold shadow-sm'
-                        : isParentActive
-                          ? 'bg-gold-500/10 text-gold-600 dark:text-gold-400 font-bold'
-                          : 'hover:bg-slate-100 dark:hover:bg-navy-900 hover:text-slate-900 dark:hover:text-white text-slate-800 dark:text-slate-100 font-bold'
-                      }`}
-                    title={item.label}
-                  >
-                    <div className="flex items-center space-x-3 truncate">
-                      <Icon className={`w-4 h-4 shrink-0 ${isParentActive ? 'text-gold-500' : 'text-slate-600 dark:text-slate-200'}`} />
-                      {!collapsed && <span className="truncate flex-1 text-left">{item.label}</span>}
-                    </div>
-                    {!collapsed && (
-                      <div className="flex items-center space-x-1.5 shrink-0">
-                        {totalCount > 0 && (
-                          <span className="px-1.5 py-0.5 text-[9px] font-extrabold rounded-full bg-amber-500 text-navy-950 font-mono shadow-xs">
-                            {totalCount}
-                          </span>
-                        )}
-                        <ChevronDown className={`w-3.5 h-3.5 text-slate-400 transition-transform duration-200 ${consultingOpen ? 'transform rotate-180 text-gold-500' : ''}`} />
-                      </div>
-                    )}
-                  </button>
-
-                  {/* Individual Consulting & Booking Services list */}
-                  {!collapsed && consultingOpen && (
-                    <div className="ml-4 pl-2.5 border-l-2 border-gold-500/30 space-y-0.5 py-1 animate-in fade-in duration-200">
-                      {permittedSubServices.map(srv => {
-                        const SrvIcon = srv.icon;
-                        const isSrvActive = srv.id === 'career-guidance'
-                          ? activeModule === 'career-guidance'
-                          : srv.id === 'student-academy'
-                            ? activeModule === 'student-academy'
-                            : isConsultingActive && (consultingServiceFilter === srv.id || (!consultingServiceFilter && srv.id === 'all'));
-                        const srvCount = getServiceCount(srv.id);
-
-                        return (
-                          <button
-                            key={srv.id}
-                            type="button"
-                            onClick={() => {
-                              if (srv.id === 'career-guidance') {
-                                setActiveModule('career-guidance');
-                              } else if (srv.id === 'student-academy') {
-                                setActiveModule('student-academy');
-                              } else {
-                                setActiveModule('consulting');
-                                if (setConsultingServiceFilter) setConsultingServiceFilter(srv.id);
-                              }
-                              if (window.innerWidth < 1024) setCollapsed(true);
-                            }}
-                            className={`w-full flex items-center justify-between px-2.5 py-1.5 rounded-lg text-[11px] transition duration-150 cursor-pointer ${isSrvActive
-                                ? 'bg-gold-500/25 text-gold-600 dark:text-gold-300 font-extrabold border border-gold-500/40 shadow-xs'
-                                : 'text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-navy-900/80 hover:text-slate-900 dark:hover:text-white font-medium'
-                              }`}
-                            title={srv.label}
-                          >
-                            <div className="flex items-center space-x-2 truncate">
-                              <SrvIcon className={`w-3.5 h-3.5 shrink-0 ${isSrvActive ? 'text-gold-500' : 'text-slate-400 dark:text-slate-400'}`} />
-                              <span className="truncate">{srv.label}</span>
-                            </div>
-                            {srvCount > 0 && (
-                              <span className={`px-1.5 py-0.2 rounded-full text-[9px] font-mono font-bold shrink-0 ${isSrvActive
-                                  ? 'bg-gold-500 text-navy-950'
-                                  : 'bg-slate-200 dark:bg-navy-800 text-slate-700 dark:text-slate-300'
-                                }`}>
-                                {srvCount}
-                              </span>
-                            )}
-                          </button>
-                        );
-                      })}
-                    </div>
-                  )}
-                </div>
-              );
-            }
-
-            return (
-              <button
-                key={item.id}
-                onClick={() => {
-                  setActiveModule(item.id);
-                  setConsultingOpen(false);
-                  if (window.innerWidth < 1024) setCollapsed(true);
-                }}
-                className={`w-full flex items-center space-x-3 px-3 py-2.5 rounded-xl transition duration-200 ${isActive
-                    ? 'bg-amber-100/70 dark:bg-gold-500/20 text-amber-900 dark:text-gold-300 font-bold border border-amber-300/60 dark:border-gold-500/30 shadow-sm'
-                    : 'hover:bg-slate-100 dark:hover:bg-navy-900 hover:text-slate-900 dark:hover:text-white text-slate-800 dark:text-slate-100 font-bold'
-                  }`}
-                title={item.label}
-              >
-                <Icon className={`w-4 h-4 shrink-0 ${isActive
-                    ? 'text-amber-700 dark:text-gold-400'
-                    : 'text-slate-600 dark:text-slate-200'
-                  }`} />
-                {!collapsed && <span className="truncate flex-1 text-left">{item.label}</span>}
-                {!collapsed && item.tag && (
-                  <span className={`px-1.5 py-0.5 rounded text-[9px] font-mono font-extrabold shrink-0 ${isActive
-                      ? 'bg-gold-500 text-navy-950 shadow-xs'
-                      : 'bg-slate-100 dark:bg-navy-800 text-slate-500 dark:text-slate-400'
-                    }`}>
-                    #{item.tag}
-                  </span>
-                )}
-                {!collapsed && item.id === 'super-admin' && Array.isArray(leads) && leads.filter(l => l && l.status === 'New').length > 0 && (
-                  <span className="px-1.5 py-0.5 text-[9px] font-extrabold rounded-full bg-emerald-500 text-white animate-pulse">
-                    {leads.filter(l => l && l.status === 'New').length}
-                  </span>
-                )}
-              </button>
-            );
-          })}
+        {/* Clean, Grouped Nav Menu */}
+        <div className="flex-1 min-h-0 overflow-y-auto overscroll-y-contain crm-sidebar-scroll py-3 px-3">
+          {renderNavContent()}
         </div>
 
-        {/* PINNED BOTTOM USER PROFILE & LOGOUT FOOTER (Ultra-Compact Single Row, 100% Guaranteed Visible on All Screens) */}
-        <div className="shrink-0 border-t border-slate-200 dark:border-slate-800/90 bg-white/95 dark:bg-[#070c1e]/95 p-2 z-20 shadow-md">
+        {/* PINNED BOTTOM USER PROFILE & LOGOUT FOOTER */}
+        <div className="shrink-0 border-t-2 border-slate-200 dark:border-slate-800/90 bg-white dark:bg-[#070c1e] p-2.5 z-20 shadow-md">
           {!collapsed ? (
-            <div className="rounded-xl p-2 bg-slate-50 dark:bg-[#0a1128] border border-slate-200 dark:border-gold-500/30 shadow-xs flex items-center justify-between gap-2">
+            <div className="rounded-xl p-2 bg-slate-100/80 dark:bg-[#0a1128] border border-slate-300/80 dark:border-gold-500/30 shadow-xs flex items-center justify-between gap-2">
 
-              {/* Left: Avatar + Name + Emp ID + Role (Clickable to My Profile) */}
+              {/* Left: Avatar + Name + Role (Clickable to My Profile) */}
               <div
                 onClick={() => {
                   setActiveModule('my-profile');
                   if (window.innerWidth < 1024) setCollapsed(true);
                 }}
-                className="flex items-center space-x-2 min-w-0 flex-1 cursor-pointer hover:opacity-90 transition rounded-lg p-1 -m-1"
+                className="flex items-center space-x-2.5 min-w-0 flex-1 cursor-pointer hover:opacity-90 transition rounded-lg p-1 -m-1"
                 title="View & Edit My Profile"
               >
                 <div className="relative shrink-0">
                   <img
                     src={user?.avatar || 'https://images.unsplash.com/photo-1573496359142-b8d87734a5a2?w=150&auto=format&fit=crop&q=80'}
                     alt={formatUserName(user?.name)}
-                    className="w-8 h-8 rounded-full border-2 border-gold-500 object-cover shadow-xs ring-1 ring-gold-500/40"
+                    className="w-9 h-9 rounded-full border-2 border-amber-500 object-cover shadow-xs ring-1 ring-gold-500/40"
                   />
-                  <span className="absolute bottom-0 right-0 w-2 h-2 bg-emerald-500 border border-white dark:border-[#070c1e] rounded-full shadow-xs" title="Online & Active" />
+                  <span className="absolute bottom-0 right-0 w-2.5 h-2.5 bg-emerald-500 border-2 border-white dark:border-[#070c1e] rounded-full shadow-xs" title="Online & Active" />
                 </div>
 
                 <div className="min-w-0 flex-1">
                   <h4
-                    className="font-bold text-slate-900 dark:text-white text-xs truncate leading-tight tracking-tight"
+                    className="font-black text-slate-950 dark:text-white text-xs sm:text-sm truncate leading-tight tracking-tight"
                     title={formatUserName(user?.name)}
                   >
                     {formatUserName(user?.name)}
                   </h4>
 
                   <div
-                    className="flex items-center space-x-1 text-[10px] text-amber-700 dark:text-gold-400 font-semibold truncate mt-0.5"
-                    title={currentRole || user?.designation || user?.role || 'HR Operations'}
+                    className="flex items-center space-x-1 text-xs text-amber-800 dark:text-gold-400 font-bold truncate mt-0.5"
+                    title={currentRole || user?.designation || user?.role || 'Super Admin'}
                   >
-                    <ShieldCheck className="w-2.5 h-2.5 text-gold-500 shrink-0" />
-                    <span className="truncate">{currentRole || user?.designation || user?.role || 'HR Operations'}</span>
+                    <ShieldCheck className="w-3 h-3 text-amber-700 dark:text-gold-500 shrink-0" />
+                    <span className="truncate">{currentRole || user?.designation || user?.role || 'Super Admin'}</span>
                   </div>
                 </div>
               </div>
 
-              {/* Right: SOLID VIBRANT RED LOGOUT BUTTON (Placed on the exact same visible row!) */}
+              {/* Right: VIBRANT RED LOGOUT BUTTON */}
               <button
                 type="button"
                 onClick={() => {
                   if (window.innerWidth < 1024) setCollapsed(true);
                   (requestLogout || logout)();
                 }}
-                className="shrink-0 flex items-center space-x-1 px-2.5 py-1.5 rounded-lg font-bold text-xs text-white bg-gradient-to-r from-red-600 to-rose-600 hover:from-red-500 hover:to-rose-500 border border-rose-400/40 shadow-sm shadow-rose-950/30 hover:scale-[1.02] active:scale-[0.98] transition cursor-pointer"
+                className="shrink-0 flex items-center space-x-1 px-3 py-1.5 rounded-lg font-black text-xs text-white bg-gradient-to-r from-red-600 to-rose-600 hover:from-red-500 hover:to-rose-500 border border-rose-400/40 shadow-sm shadow-rose-950/30 hover:scale-[1.02] active:scale-[0.98] transition cursor-pointer"
                 title="Logout / Sign Out"
               >
                 <LogOut className="w-3.5 h-3.5 text-white shrink-0" />

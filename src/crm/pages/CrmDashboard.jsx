@@ -61,6 +61,7 @@ export const CrmDashboard = () => {
   if (currentRole === 'Interviewer') {
     return <CrmInterviewerDashboard />;
   }
+  
 
   // If Super Admin or Admin chose to inspect a role dashboard
   if ((currentRole === 'Super Admin' || currentRole === 'Admin') && adminRoleView !== 'master') {
@@ -86,7 +87,7 @@ export const CrmDashboard = () => {
         {adminRoleView === 'Recruiter' && <CrmRecruiterDashboard />}
         {adminRoleView === 'Placement Coordinator' && <CrmPlacementCoordinatorDashboard />}
         {adminRoleView === 'HR Operations' && <CrmHrOperationsDashboard />}
-        {adminRoleView === 'Interviewer' && <CrmInterviewerDashboard />}
+        
       </div>
     );
   }
@@ -200,67 +201,44 @@ export const CrmDashboard = () => {
       
       {/* Header Banner */}
       <ScrollReveal>
-      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 bg-white dark:bg-gradient-to-r dark:from-[#101b38] dark:via-[#0b1328] dark:to-[#060a17] p-6 rounded-3xl border border-slate-200 dark:border-gold-500/40 shadow-sm">
+      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 bg-white dark:bg-gradient-to-r dark:from-[#101b38] dark:via-[#0b1328] dark:to-[#060a17] p-6 rounded-3xl border-2 border-slate-200 dark:border-gold-500/40 shadow-sm">
         <div>
-          <span className="bg-gold-500/20 text-gold-700 dark:text-gold-400 text-[10px] font-bold px-2.5 py-1 rounded uppercase tracking-wider">Enterprise Command Center</span>
-          <h1 className="font-serif text-2xl font-bold text-slate-900 dark:text-white mt-1">Executive Performance Dashboard</h1>
-          <p className="text-xs text-slate-600 dark:text-slate-300">Viewing real-time metrics under active role: <strong className="text-amber-700 dark:text-gold-400 font-bold">{currentRole}</strong></p>
+          <span className="bg-amber-100 dark:bg-gold-500/20 text-amber-900 dark:text-gold-400 text-[10px] font-bold px-2.5 py-0.5 rounded-lg uppercase tracking-wider border border-amber-300 dark:border-gold-500/30">
+            Enterprise Command Center
+          </span>
+          <h1 className="font-serif text-xl sm:text-2xl font-bold text-slate-950 dark:text-white mt-1">
+            Executive Performance Dashboard
+          </h1>
+          <p className="text-xs sm:text-sm text-slate-700 dark:text-slate-300 font-medium mt-0.5">
+            Viewing real-time metrics under active role: <strong className="text-amber-800 dark:text-gold-400 font-bold">{currentRole}</strong>
+          </p>
         </div>
 
         <div className="flex items-center space-x-2 text-xs font-bold">
-          <span className="bg-emerald-100 dark:bg-emerald-500/10 text-emerald-800 dark:text-emerald-400 border border-emerald-300 dark:border-emerald-500/30 px-3 py-1.5 rounded-xl flex items-center gap-1.5 shadow-xs">
+          <span className="bg-emerald-100 dark:bg-emerald-500/15 text-emerald-900 dark:text-emerald-300 border-2 border-emerald-300 dark:border-emerald-500/40 px-3 py-1.5 rounded-xl flex items-center gap-1.5 shadow-xs">
             <span className="w-2 h-2 bg-emerald-600 dark:bg-emerald-400 rounded-full animate-ping"></span>
             Real-Time Sync Active
           </span>
         </div>
       </div>
-
-      {/* Quick Inspection Switcher for Super Admin / Admin */}
-      {(currentRole === 'Super Admin' || currentRole === 'Admin') && (
-        <div className="bg-white dark:bg-navy-900 border border-slate-200 dark:border-navy-700 p-3.5 rounded-2xl shadow-sm flex flex-wrap items-center justify-between gap-2">
-          <div className="flex items-center gap-2">
-            <Layers className="w-4 h-4 text-amber-500" />
-            <span className="text-xs font-bold text-slate-800 dark:text-slate-200">
-              Role-Based Dashboard Preview (Super Admin / Admin Tool):
-            </span>
-          </div>
-          <div className="flex flex-wrap items-center gap-2">
-            {[
-              { id: 'HR Lead', label: 'HR Lead Dashboard', color: 'border-blue-200 text-blue-700 bg-blue-50 dark:bg-blue-950/40 dark:text-blue-300' },
-              { id: 'Recruiter', label: 'Recruiter Dashboard', color: 'border-purple-200 text-purple-700 bg-purple-50 dark:bg-purple-950/40 dark:text-purple-300' },
-              { id: 'Placement Coordinator', label: 'Placement Coordinator', color: 'border-amber-200 text-amber-700 bg-amber-50 dark:bg-amber-950/40 dark:text-amber-300' },
-              { id: 'HR Operations', label: 'HR Operations', color: 'border-emerald-200 text-emerald-700 bg-emerald-50 dark:bg-emerald-950/40 dark:text-emerald-300' },
-              { id: 'Interviewer', label: 'Interviewer Dashboard', color: 'border-cyan-200 text-cyan-700 bg-cyan-50 dark:bg-cyan-950/40 dark:text-cyan-300' }
-            ].map(r => (
-              <button
-                key={r.id}
-                onClick={() => setAdminRoleView(r.id)}
-                className={`text-xs px-3 py-1.5 rounded-xl border ${r.color} font-semibold transition hover:scale-[1.02] cursor-pointer`}
-              >
-                Inspect {r.label} →
-              </button>
-            ))}
-          </div>
-        </div>
-      )}
       </ScrollReveal>
 
       {/* KPI Widgets Grid */}
       <ScrollReveal>
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3.5">
         {widgets.map((w, idx) => {
           const Icon = w.icon;
           return (
-            <div key={idx} className={`glass-card p-5 rounded-2xl space-y-2.5 border transition-all duration-300 hover:scale-[1.02] shadow-sm ${w.cardStyle}`}>
+            <div key={idx} className={`glass-card p-4 sm:p-5 rounded-2xl space-y-2.5 border-2 transition-all duration-300 hover:scale-[1.01] shadow-xs ${w.cardStyle}`}>
               <div className="flex justify-between items-center">
-                <span className="text-[11px] font-extrabold text-slate-900 dark:text-slate-100 uppercase tracking-wider">{w.label}</span>
-                <div className={`p-2 rounded-xl border ${w.badgeBg}`}>
+                <span className="text-xs font-bold text-slate-950 dark:text-slate-100 uppercase tracking-wider">{w.label}</span>
+                <div className={`p-1.5 rounded-xl border ${w.badgeBg}`}>
                   <Icon className={`w-4 h-4 ${w.color}`} />
                 </div>
               </div>
-              <div className={`font-serif text-3xl font-extrabold tracking-tight ${w.valColor}`}>{w.val}</div>
-              <p className="text-[11px] text-slate-800 dark:text-slate-200 flex items-center gap-1 font-bold">
-                <ArrowUpRight className="w-3.5 h-3.5 text-emerald-600 dark:text-emerald-400" />
+              <div className={`text-2xl sm:text-3xl font-extrabold font-mono tracking-tight ${w.valColor}`}>{w.val}</div>
+              <p className="text-xs text-slate-700 dark:text-slate-300 flex items-center gap-1 font-semibold">
+                <ArrowUpRight className="w-3.5 h-3.5 text-emerald-700 dark:text-emerald-400 stroke-[2.5]" />
                 <span>{w.change}</span>
               </p>
             </div>
