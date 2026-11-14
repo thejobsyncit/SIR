@@ -222,46 +222,61 @@ export const AIResumeAnalyzerModal = () => {
   const [attachedFile, setAttachedFile] = useState(null);
   const [isDragging, setIsDragging] = useState(false);
 
-  // Strict Validation: Ensure document is a Candidate Resume/CV, not a bug report or random doc
-  const validateResumeDocument = (fileName = '', text = '') => {
-    const lowerName = fileName.toLowerCase();
-    const lowerText = text.toLowerCase();
+  // Helper to completely clear uploaded file and previous analysis state (Bug #3)
+  const resetAnalyzerState = () => {
+    setAttachedFile(null);
+    setResumeText('');
+    setResult(null);
+    setValidationError('');
+    if (fileInputRef.current) {
+      fileInputRef.current.value = '';
+    }
+  };
 
-    // 1. Explicit non-resume document keywords
-    const nonResumeKeywords = [
+  // Strict Validation: Ensure document is a genuine Candidate Resume/CV, NOT a dummy, test, or non-resume doc (Bug #2)
+  const validateResumeDocument = (fileName = '', text = '') => {
+    const lowerName = (fileName || '').toLowerCase().trim();
+    const lowerText = (text || '').toLowerCase().trim();
+
+    // 1. Explicit dummy, test, and non-resume file names or content
+    const dummyOrNonResumeKeywords = [
+      'dummy', 'test', 'sample', 'blank', 'temp', 'untitled', 'fake',
       'bug', 'bug-report', 'bug_report', 'testing-summary', 'test-summary',
       'test summary', 'testing summary', 'bug report', 'invoice', 'receipt',
       'purchase order', 'bank statement', 'bill', 'passport', 'license',
       'driving license', 'release notes', 'meeting minutes', 'user guide',
       'specification', 'specs', 'transcript', 'contract', 'agreement',
-      'audit log', 'error log', 'system log', 'log file'
+      'audit log', 'error log', 'system log', 'log file', 'presentation',
+      'assignment', 'homework', 'syllabus', 'memo', 'circular'
     ];
 
-    for (const kw of nonResumeKeywords) {
-      if (lowerName.includes(kw) || (lowerText.length > 0 && lowerText.includes(kw) && !lowerText.includes('resume') && !lowerText.includes('curriculum vitae'))) {
+    for (const kw of dummyOrNonResumeKeywords) {
+      if (lowerName.includes(kw)) {
         return {
           isValid: false,
-          message: `The uploaded file "${fileName || 'document'}" is detected as a non-resume document (${kw.replace(/[-_]/g, ' ')}). Revival AI ATS Engine strictly evaluates candidate Resumes & Curriculum Vitae (CVs).`
+          message: `The uploaded file "${fileName || 'document'}" is detected as a non-resume/dummy file (${kw.replace(/[-_]/g, ' ')}). Revival AI ATS Engine strictly evaluates genuine candidate Resumes & Curriculum Vitae (CVs).`
         };
       }
     }
 
-    // 2. Positive resume indicators check
-    const resumeIndicators = [
-      'resume', 'cv', 'curriculum', 'vitae', 'experience', 'education', 'skills',
-      'qualification', 'profile', 'work history', 'career', 'employment', 'competencies',
-      'certifications', 'degree', 'bachelor', 'master', 'engineer', 'manager', 'developer',
-      'consultant', 'specialist', 'director', 'officer', 'lead', 'executive',
-      'phone', 'email', 'address', 'summary', 'candidate'
-    ];
+    // 2. Positive resume indicators check - Real CV must contain genuine career/experience sections
+    const careerIndicators = ['experience', 'work history', 'employment', 'career', 'responsibilities', 'project', 'worked as', 'job role'];
+    const educationIndicators = ['education', 'degree', 'bachelor', 'master', 'diploma', 'university', 'college', 'academic', 'b.tech', 'b.e', 'b.sc', 'schooling', 'qualification'];
+    const skillsIndicators = ['skills', 'technologies', 'competencies', 'proficiencies', 'tools', 'certifications', 'expertise'];
+    const titleIndicators = ['resume', 'cv', 'curriculum vitae', 'curriculum-vitae', 'biodata', 'profile summary'];
 
-    const hasResumeIndicatorInName = resumeIndicators.some(k => lowerName.includes(k));
-    const hasResumeIndicatorInText = resumeIndicators.some(k => lowerText.includes(k));
+    const hasCareer = careerIndicators.some(k => lowerText.includes(k) || lowerName.includes(k));
+    const hasEducation = educationIndicators.some(k => lowerText.includes(k) || lowerName.includes(k));
+    const hasSkills = skillsIndicators.some(k => lowerText.includes(k) || lowerName.includes(k));
+    const hasCvInTitle = titleIndicators.some(k => lowerName.includes(k) || lowerText.includes(k));
 
-    if (!hasResumeIndicatorInName && !hasResumeIndicatorInText && (fileName.length > 0 || text.length > 0)) {
+    // Must satisfy at least 2 distinct resume dimensions or have explicit resume title + section
+    const matchingDimensions = [hasCareer, hasEducation, hasSkills].filter(Boolean).length;
+
+    if (!hasCvInTitle && matchingDimensions < 2) {
       return {
         isValid: false,
-        message: `The document "${fileName || 'uploaded text'}" does not contain standard candidate Resume/CV structure (e.g. Work Experience, Education, Skills, or Profile Summary).`
+        message: `The document "${fileName || 'uploaded text'}" does not contain standard candidate Resume/CV sections (e.g. Work Experience, Education, or Professional Skills). Please upload a genuine Resume/CV.`
       };
     }
 
@@ -286,7 +301,6 @@ export const AIResumeAnalyzerModal = () => {
       if (typeof content === 'string' && !content.includes('%PDF') && !content.includes('endobj') && content.trim().length > 0) {
         setResumeText(content.trim());
       } else {
-        const lowerName = file.name.toLowerCase();
         const cleanName = file.name.replace(/\.[^/.]+$/, "").replace(/[-_]/g, " ");
         
         // Extract any readable text snippets from PDF stream if available
@@ -298,13 +312,8 @@ export const AIResumeAnalyzerModal = () => {
           }
         }
 
-        const domainTag = lowerName.includes('customer') || lowerName.includes('support') || lowerName.includes('helpdesk')
-          ? 'IT Customer Service, Technical Support, Help Desk, Ticket Resolution, Active Directory, Client Care'
-          : lowerName.includes('engineer') || lowerName.includes('developer') || lowerName.includes('software')
-            ? 'Software Development, Web Applications, Cloud Infrastructure, Database Design, System Architecture'
-            : 'Professional Candidate Experience, Core Competencies, Academic Qualifications, Career Achievements';
-
-        setResumeText(`Candidate Profile: ${cleanName}\nFile Name: ${file.name}\nFile Size: ${formattedSize}\n\nCore Domain: ${domainTag}\n${extractedPdfText ? `Extracted Content: ${extractedPdfText}` : ''}`);
+        // Store real extracted text without injecting synthetic career/qualification claims
+        setResumeText(`Candidate Document: ${cleanName}\nFile Name: ${file.name}\nFile Size: ${formattedSize}${extractedPdfText ? `\nExtracted Content: ${extractedPdfText}` : ''}`);
       }
     };
     reader.readAsText(file);
@@ -423,7 +432,7 @@ export const AIResumeAnalyzerModal = () => {
           </div>
           <button 
             type="button"
-            onClick={() => setActiveModal(null)}
+            onClick={() => { resetAnalyzerState(); setActiveModal(null); }}
             className="p-1.5 rounded-xl text-slate-400 hover:text-slate-600 dark:text-slate-400 dark:hover:text-slate-300 transition-colors cursor-pointer"
             aria-label="Close modal"
           >
@@ -623,14 +632,14 @@ export const AIResumeAnalyzerModal = () => {
             {/* Actions */}
             <div className="flex gap-3 pt-2">
               <button 
-                onClick={() => { setResult(null); setValidationError(''); }}
-                className="flex-1 py-2.5 bg-slate-200 dark:bg-navy-800 text-navy-900 dark:text-white font-bold text-xs rounded-xl hover:bg-slate-300"
+                onClick={resetAnalyzerState}
+                className="flex-1 py-2.5 bg-slate-200 dark:bg-navy-800 text-navy-900 dark:text-white font-bold text-xs rounded-xl hover:bg-slate-300 cursor-pointer transition"
               >
                 Analyze Another CV
               </button>
               <button 
-                onClick={() => { setActiveModal(null); navigateTo('jobs'); }}
-                className="flex-1 py-2.5 bg-gold-shimmer text-navy-950 font-bold text-xs rounded-xl shadow-gold-glow hover:opacity-95 flex items-center justify-center space-x-1"
+                onClick={() => { resetAnalyzerState(); setActiveModal(null); navigateTo('jobs'); }}
+                className="flex-1 py-2.5 bg-gold-shimmer text-navy-950 font-bold text-xs rounded-xl shadow-gold-glow hover:opacity-95 flex items-center justify-center space-x-1 cursor-pointer transition"
               >
                 <span>View Matching Jobs</span>
                 <ArrowRight className="w-3.5 h-3.5" />

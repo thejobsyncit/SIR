@@ -327,7 +327,9 @@ export const CandidatePortal = () => {
     preferredCountry: user?.preferredCountry || '',
     experience: user?.experience || '',
     qualification: user?.qualification || '',
+    currentSalary: user?.currentSalary || '',
     expectedSalary: user?.expectedSalary || '',
+    noticePeriod: user?.noticePeriod || '',
     avatar: user?.avatar || '',
     resumeName: user?.resumeName || '',
     resumeUrl: user?.resumeUrl || '',
@@ -366,7 +368,9 @@ export const CandidatePortal = () => {
         preferredCountry: user.preferredCountry || '',
         experience: user.experience || '',
         qualification: user.qualification || '',
+        currentSalary: user.currentSalary || '',
         expectedSalary: user.expectedSalary || '',
+        noticePeriod: user.noticePeriod || '',
         avatar: user.avatar || '',
         resumeName: user.resumeName || '',
         resumeUrl: user.resumeUrl || '',
@@ -589,7 +593,9 @@ export const CandidatePortal = () => {
       preferredCountry: (profileForm.preferredCountry || '').trim(),
       experience: (profileForm.experience || '').trim(),
       qualification: (profileForm.qualification || '').trim(),
+      currentSalary: (profileForm.currentSalary || '').trim(),
       expectedSalary: (profileForm.expectedSalary || '').trim(),
+      noticePeriod: (profileForm.noticePeriod || '').trim(),
       avatar: profileForm.avatar,
       resumeName: profileForm.resumeName,
       resumeUrl: profileForm.resumeUrl,
@@ -754,9 +760,9 @@ export const CandidatePortal = () => {
         </button>
         <button 
           onClick={() => setActiveTab('interviews')} 
-          className={`pb-3 px-4 transition whitespace-nowrap ${activeTab === 'interviews' ? 'border-b-2 border-gold-500 text-gold-500 font-extrabold' : 'text-slate-700 dark:text-slate-300'}`}
+          className={`pb-3 px-4 transition whitespace-nowrap cursor-pointer ${activeTab === 'interviews' ? 'border-b-2 border-gold-500 text-gold-500 font-extrabold' : 'text-slate-700 dark:text-slate-300'}`}
         >
-          Interview Schedule (1)
+          Interview Schedule ({applications.filter(a => a && a.status === 'Interview Scheduled').length})
         </button>
       </div>
 
@@ -807,7 +813,11 @@ export const CandidatePortal = () => {
               </div>
             </div>
 
-            <div className="glass-card bg-white dark:bg-navy-900 border border-slate-200 dark:border-navy-800 rounded-3xl p-5 shadow-luxury flex flex-col justify-between space-y-2 hover:border-gold-500/40 transition">
+            <div 
+              onClick={() => setActiveTab('interviews')}
+              className="glass-card bg-white dark:bg-navy-900 border border-slate-200 dark:border-navy-800 rounded-3xl p-5 shadow-luxury flex flex-col justify-between space-y-2 hover:border-gold-500/40 transition cursor-pointer"
+              title="Click to view Interview Schedule"
+            >
               <div className="flex items-center justify-between">
                 <span className="text-[11px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider">Interview Status</span>
                 <div className="w-8 h-8 rounded-xl bg-gold-500/15 text-gold-500 flex items-center justify-center">
@@ -816,10 +826,10 @@ export const CandidatePortal = () => {
               </div>
               <div className="flex items-baseline gap-2">
                 <span className="text-3xl font-extrabold text-navy-900 dark:text-white font-serif">
-                  {applications.filter(a => a.status === 'Interview Scheduled').length > 0 ? '1' : '0'}
+                  {applications.filter(a => a && a.status === 'Interview Scheduled').length}
                 </span>
-                <span className={`text-[10px] font-bold px-1.5 py-0.5 rounded ${applications.filter(a => a.status === 'Interview Scheduled').length > 0 ? 'bg-emerald-500/15 text-emerald-500' : 'bg-slate-100 dark:bg-navy-800 text-slate-500'}`}>
-                  {applications.filter(a => a.status === 'Interview Scheduled').length > 0 ? 'Scheduled' : 'Pending'}
+                <span className={`text-[10px] font-bold px-1.5 py-0.5 rounded ${applications.filter(a => a && a.status === 'Interview Scheduled').length > 0 ? 'bg-emerald-500/15 text-emerald-500' : 'bg-slate-100 dark:bg-navy-800 text-slate-500'}`}>
+                  {applications.filter(a => a && a.status === 'Interview Scheduled').length > 0 ? 'Scheduled' : 'None Scheduled'}
                 </span>
               </div>
             </div>
@@ -866,12 +876,14 @@ export const CandidatePortal = () => {
                 <p><strong className="text-navy-900 dark:text-white">Phone:</strong> {user.phone ? user.phone : <span className="text-rose-400 italic">Not provided</span>}</p>
                 <p><strong className="text-navy-900 dark:text-white">Nationality:</strong> {user.nationality ? <span className="font-semibold text-slate-900 dark:text-slate-100">{user.nationality}</span> : <span className="text-slate-400 italic">Not specified</span>}</p>
                 <p><strong className="text-navy-900 dark:text-white">Citizenship:</strong> {user.citizenship ? <span className="font-semibold text-slate-900 dark:text-slate-100">{user.citizenship}</span> : <span className="text-slate-400 italic">Not specified</span>}</p>
-                <p><strong className="text-navy-900 dark:text-white">Designation:</strong> {user.title ? user.title : <span className="text-rose-400 italic">Not provided</span>}</p>
-                <p><strong className="text-navy-900 dark:text-white">Location:</strong> {user.location ? user.location : <span className="text-slate-500 dark:text-slate-400 italic">Dubai / International</span>}</p>
-                <p><strong className="text-navy-900 dark:text-white">Target Country:</strong> {user.preferredCountry ? user.preferredCountry : <span className="text-rose-400 italic">UAE / Saudi Arabia</span>}</p>
-                <p><strong className="text-navy-900 dark:text-white">Experience:</strong> {user.experience ? user.experience : <span className="text-slate-500 italic">Executive Experience</span>}</p>
-                <p><strong className="text-navy-900 dark:text-white">Education:</strong> {user.qualification ? user.qualification : <span className="text-slate-500 italic">Professional Degree</span>}</p>
-                <p><strong className="text-navy-900 dark:text-white">Expected Salary:</strong> {user.expectedSalary ? user.expectedSalary : <span className="text-slate-500 dark:text-slate-400 italic">Negotiable</span>}</p>
+                <p><strong className="text-navy-900 dark:text-white">Designation:</strong> {user.title ? user.title : <span className="text-slate-400 italic">Not specified</span>}</p>
+                <p><strong className="text-navy-900 dark:text-white">Location:</strong> {user.location ? user.location : <span className="text-slate-400 italic">Not specified</span>}</p>
+                <p><strong className="text-navy-900 dark:text-white">Target Country:</strong> {user.preferredCountry ? user.preferredCountry : <span className="text-slate-400 italic">Not specified</span>}</p>
+                <p><strong className="text-navy-900 dark:text-white">Experience:</strong> {user.experience ? user.experience : <span className="text-slate-400 italic">Not specified</span>}</p>
+                <p><strong className="text-navy-900 dark:text-white">Education:</strong> {user.qualification ? user.qualification : <span className="text-slate-400 italic">Not specified</span>}</p>
+                <p><strong className="text-navy-900 dark:text-white">Current Salary:</strong> {user.currentSalary ? user.currentSalary : <span className="text-slate-400 italic">Not specified</span>}</p>
+                <p><strong className="text-navy-900 dark:text-white">Expected Salary:</strong> {user.expectedSalary ? user.expectedSalary : <span className="text-slate-400 italic">Not specified</span>}</p>
+                <p><strong className="text-navy-900 dark:text-white">Notice Period:</strong> {user.noticePeriod ? user.noticePeriod : <span className="text-slate-400 italic">Not specified</span>}</p>
                 <p><strong className="text-navy-900 dark:text-white">CV Attachment:</strong> {user.resumeName ? <span className="text-emerald-700 dark:text-emerald-400 font-bold flex items-center gap-1.5 mt-0.5"><Paperclip className="w-3.5 h-3.5 text-amber-500 shrink-0" /><span>{user.resumeName}</span></span> : <span className="text-amber-600 dark:text-amber-400 italic">No CV attached yet</span>}</p>
               </div>
 
@@ -1147,7 +1159,7 @@ export const CandidatePortal = () => {
 
                         <div className="flex items-center gap-1.5 text-[13px] text-slate-500 dark:text-slate-400 pt-2 font-medium">
                           <Clock className="w-4 h-4 text-slate-500 dark:text-slate-400" />
-                          <span>Posted {job.postedDate || 'recently'}</span>
+                          <span>Posted on {job.postedDate && !job.postedDate.includes('ago') && job.postedDate.toLowerCase() !== 'just now' ? job.postedDate : '12 Nov 2026'}</span>
                         </div>
                       </div>
                     </div>
@@ -1638,15 +1650,39 @@ export const CandidatePortal = () => {
               </div>
             </div>
 
-            <div>
-              <label className="block font-bold text-slate-700 dark:text-slate-200 mb-1">Expected Monthly Salary (Tax Free)</label>
-              <input 
-                type="text" 
-                value={profileForm.expectedSalary}
-                onChange={(e) => setProfileForm({ ...profileForm, expectedSalary: e.target.value })}
-                placeholder="e.g. AED 25,000 / month"
-                className="w-full bg-slate-50 dark:bg-navy-950 border border-slate-300 dark:border-navy-700 rounded-xl p-3 text-navy-900 dark:text-white focus:outline-none focus:border-gold-500 font-medium"
-              />
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+              <div>
+                <label className="block font-bold text-slate-700 dark:text-slate-200 mb-1">Current Monthly Salary</label>
+                <input 
+                  type="text" 
+                  value={profileForm.currentSalary}
+                  onChange={(e) => setProfileForm({ ...profileForm, currentSalary: e.target.value })}
+                  placeholder="e.g. AED 18,000 / month (or leave blank)"
+                  className="w-full bg-slate-50 dark:bg-navy-950 border border-slate-300 dark:border-navy-700 rounded-xl p-3 text-navy-900 dark:text-white focus:outline-none focus:border-gold-500 font-medium"
+                />
+              </div>
+
+              <div>
+                <label className="block font-bold text-slate-700 dark:text-slate-200 mb-1">Expected Monthly Salary</label>
+                <input 
+                  type="text" 
+                  value={profileForm.expectedSalary}
+                  onChange={(e) => setProfileForm({ ...profileForm, expectedSalary: e.target.value })}
+                  placeholder="e.g. AED 25,000 / month"
+                  className="w-full bg-slate-50 dark:bg-navy-950 border border-slate-300 dark:border-navy-700 rounded-xl p-3 text-navy-900 dark:text-white focus:outline-none focus:border-gold-500 font-medium"
+                />
+              </div>
+
+              <div>
+                <label className="block font-bold text-slate-700 dark:text-slate-200 mb-1">Notice Period</label>
+                <input 
+                  type="text" 
+                  value={profileForm.noticePeriod}
+                  onChange={(e) => setProfileForm({ ...profileForm, noticePeriod: e.target.value })}
+                  placeholder="e.g. Immediate, 30 Days"
+                  className="w-full bg-slate-50 dark:bg-navy-950 border border-slate-300 dark:border-navy-700 rounded-xl p-3 text-navy-900 dark:text-white focus:outline-none focus:border-gold-500 font-medium"
+                />
+              </div>
             </div>
 
             <div>
@@ -2407,8 +2443,8 @@ export const CandidatePortal = () => {
             </div>
           </div>
 
-          {applications.filter(a => a.status === 'Interview Scheduled').length > 0 ? (
-            applications.filter(a => a.status === 'Interview Scheduled').map((app) => (
+          {applications.filter(a => a && a.status === 'Interview Scheduled').length > 0 ? (
+            applications.filter(a => a && a.status === 'Interview Scheduled').map((app) => (
               <div key={app.id} className="glass-card bg-white dark:bg-navy-900 border-2 border-emerald-500/40 p-6 rounded-2xl space-y-3 shadow-lg">
                 <div className="flex justify-between items-start">
                   <div>
@@ -2429,7 +2465,7 @@ export const CandidatePortal = () => {
                 <div className="p-3 bg-slate-50 dark:bg-navy-950 rounded-xl grid grid-cols-1 sm:grid-cols-3 gap-2 border border-slate-200 dark:border-navy-800 text-slate-800 dark:text-slate-200">
                   <div>
                     <span className="text-slate-500 dark:text-slate-400 text-[10px] uppercase font-bold block">Scheduled Time</span>
-                    <p className="font-bold text-navy-900 dark:text-white">{app.interviewDetails?.date || 'Today'} at {app.interviewDetails?.time || '14:00 GST'}</p>
+                    <p className="font-bold text-navy-900 dark:text-white">{app.interviewDetails?.date || 'Scheduled'} at {app.interviewDetails?.time || '14:00 GST'}</p>
                   </div>
                   <div>
                     <span className="text-slate-500 dark:text-slate-400 text-[10px] uppercase font-bold block">Meeting Format</span>
@@ -2437,37 +2473,28 @@ export const CandidatePortal = () => {
                   </div>
                   <div>
                     <span className="text-slate-500 dark:text-slate-400 text-[10px] uppercase font-bold block">Interviewer Panel</span>
-                    <p className="font-bold text-navy-900 dark:text-white">{app.interviewDetails?.interviewer || `${app.company} HR Panel`}</p>
+                    <p className="font-bold text-navy-900 dark:text-white">{app.interviewDetails?.interviewer || `${app.company || 'Employer'} HR Panel`}</p>
                   </div>
                 </div>
               </div>
             ))
           ) : (
-            <div className="glass-card bg-white dark:bg-navy-900 border border-slate-200 dark:border-navy-800 p-6 rounded-2xl text-xs space-y-3">
-              <div className="flex items-center space-x-3 text-gold-500 font-bold">
-                <Calendar className="w-5 h-5" />
-                <span className="text-sm">Upcoming Executive Video Panel Interview</span>
+            <div className="glass-card bg-white dark:bg-navy-900 border border-slate-200 dark:border-navy-800 p-8 rounded-3xl text-center space-y-3 shadow-luxury">
+              <div className="w-12 h-12 rounded-2xl bg-gold-500/10 text-gold-500 flex items-center justify-center mx-auto">
+                <Calendar className="w-6 h-6" />
               </div>
-              <p className="text-slate-800 dark:text-slate-200 font-medium">Scheduled Date: <strong>August 8, 2026 at 14:00 GST (Dubai Time)</strong></p>
-              <p className="text-slate-700 dark:text-slate-300 font-medium">Format: Executive Microsoft Teams Video Panel with HR Director & VP of Engineering.</p>
-              <button 
-                onClick={() => setInterviewModalApp({
-                  id: 'APP-9982',
-                  jobTitle: 'Senior Civil Project Manager',
-                  company: 'Al Habtoor Contracting LLC',
-                  interviewDetails: {
-                    date: 'August 8, 2026',
-                    time: '14:00 GST',
-                    mode: 'Microsoft Teams Video Call',
-                    interviewer: 'Al Habtoor HR Director & Technical Lead',
-                    notes: 'Please bring degree certificates and passport copies.'
-                  }
-                })} 
-                className="px-4 py-2 bg-slate-50 dark:bg-navy-900 text-slate-900 dark:text-white font-bold rounded-lg hover:bg-gold-500 hover:text-slate-900 dark:text-white transition flex items-center gap-1.5"
-              >
-                <Video className="w-4 h-4 text-gold-400" />
-                <span>Join MS Teams Meeting Link →</span>
-              </button>
+              <h4 className="font-serif text-lg font-bold text-navy-900 dark:text-white">No Interviews Scheduled</h4>
+              <p className="text-slate-600 dark:text-slate-400 text-xs max-w-md mx-auto leading-relaxed">
+                You currently have no active interview invitations. When our recruiters or partner employers shortlist your application for an executive video interview, your confirmed time, meeting details, and MS Teams link will be presented here.
+              </p>
+              <div className="pt-2">
+                <button 
+                  onClick={() => setActiveTab('browse-jobs')}
+                  className="px-5 py-2.5 bg-gold-500 hover:bg-gold-400 text-navy-950 font-bold text-xs rounded-xl shadow-md transition cursor-pointer"
+                >
+                  Browse Available Vacancies
+                </button>
+              </div>
             </div>
           )}
         </div>

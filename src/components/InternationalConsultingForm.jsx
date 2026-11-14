@@ -673,7 +673,7 @@ ${formData.additionalQuestions ? `Additional Questions:\n${formData.additionalQu
                     type="tel"
                     name="phone"
                     maxLength={countryCodes.find(c => c.code === formData.countryCode)?.digits || 10}
-                    placeholder={`e.g. ${'9'.repeat(countryCodes.find(c => c.code === formData.countryCode)?.digits || 10)}`}
+                    placeholder="Enter phone number"
                     value={formData.phone}
                     onChange={handlePhoneChange}
                     className={`w-full pl-10 pr-4 py-2.5 text-sm rounded-xl border ${

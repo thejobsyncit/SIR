@@ -16,6 +16,7 @@ export const VisaEligibilityPage = () => {
   const [experience, setExperience] = useState('5');
   const [dob, setDob] = useState(null);
   const [language, setLanguage] = useState('English');
+  const [proficiency, setProficiency] = useState('');
   
   const [loading, setLoading] = useState(false);
   const [result, setResult] = useState(null);
@@ -25,6 +26,8 @@ export const VisaEligibilityPage = () => {
     e.preventDefault();
     setFormError('');
     setLoading(true);
+
+    const languagePayload = proficiency ? `${language} (${proficiency})` : language;
 
     let calculatedAge = 0;
     if (dob) {
@@ -60,7 +63,7 @@ export const VisaEligibilityPage = () => {
       const res = await fetch('/api/visa/check', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ country, qualification, experience, age: calculatedAge, language })
+        body: JSON.stringify({ country, qualification, experience, age: calculatedAge, language: languagePayload })
       });
       if (res.ok) {
         const data = await res.json();
@@ -75,7 +78,7 @@ export const VisaEligibilityPage = () => {
       const ageVal = calculatedAge;
       const expVal = parseInt(experience) || 2;
       const qualStr = (qualification || '').toLowerCase();
-      const langStr = (language || '').toLowerCase();
+      const langStr = (languagePayload || '').toLowerCase();
       
       let baseScore = 20;
       const reasons = [];
@@ -104,7 +107,23 @@ export const VisaEligibilityPage = () => {
       let expScore = expVal >= 10 ? 25 : expVal >= 5 ? 20 : expVal >= 3 ? 14 : 8;
       reasons.push(`${experience} years experience added to professional profile rating.`);
 
-      let langScore = langStr.includes('english') || langStr.includes('arabic') || langStr.includes('german') ? 20 : 10;
+      let langScore = 15;
+      if (langStr.includes('native') || langStr.includes('fluent')) {
+        langScore = 20;
+        reasons.push(`${language}${proficiency ? ` (${proficiency})` : ''} provides maximum linguistic proficiency rating.`);
+      } else if (langStr.includes('advance')) {
+        langScore = 17;
+        reasons.push(`${language} (Advanced) fulfills professional visa communication requirements.`);
+      } else if (langStr.includes('speaking') || langStr.includes('conversational')) {
+        langScore = 14;
+        reasons.push(`${language} (Conversational Speaking) meets standard employer requirements.`);
+      } else if (langStr.includes('basic')) {
+        langScore = 10;
+        reasons.push(`${language} (Basic) acceptable with employer sponsorship.`);
+      } else {
+        langScore = 18;
+        reasons.push(`${language} language proficiency verified for visa eligibility.`);
+      }
 
       let score = Math.max(10, Math.min(100, baseScore + ageScore + qualScore + expScore + langScore));
       let status = score >= 85 ? 'Highly Eligible' : score >= 70 ? 'Eligible (Standard Pathway)' : score >= 50 ? 'Conditional Eligibility' : 'Low Eligibility';
@@ -245,17 +264,89 @@ export const VisaEligibilityPage = () => {
               </div>
             </div>
 
-            <div>
-              <label className="block font-bold text-slate-700 dark:text-slate-200 mb-1">Language Proficiency</label>
-              <select 
-                value={language} 
-                onChange={(e) => setLanguage(e.target.value)}
-                className="w-full bg-slate-50 dark:bg-navy-950 border border-slate-300 dark:border-navy-700 rounded-xl p-2.5 text-navy-900 dark:text-white"
-              >
-                <option value="English">Fluent English</option>
-                <option value="Arabic">Fluent Arabic & English</option>
-                <option value="German">German B1 / B2</option>
-              </select>
+            {/* Language & Proficiency (Executive Segmented Layout matching user design) */}
+            <div className="space-y-3">
+              <div>
+                <label className="block font-bold text-slate-700 dark:text-slate-200 mb-1">
+                  Language
+                </label>
+                <select 
+                  value={language} 
+                  onChange={(e) => setLanguage(e.target.value)}
+                  className="w-full bg-slate-50 dark:bg-navy-950 border border-slate-300 dark:border-navy-700 rounded-xl p-2.5 text-navy-900 dark:text-white font-semibold"
+                >
+                  <optgroup label="International & Global Languages">
+                    <option value="English">English</option>
+                    <option value="Arabic">Arabic</option>
+                    <option value="German">German</option>
+                    <option value="French">French</option>
+                    <option value="Spanish">Spanish</option>
+                    <option value="Italian">Italian</option>
+                    <option value="Mandarin Chinese">Mandarin Chinese</option>
+                    <option value="Russian">Russian</option>
+                    <option value="Japanese">Japanese</option>
+                    <option value="Turkish">Turkish</option>
+                  </optgroup>
+                  <optgroup label="Regional & South Asian Languages">
+                    <option value="Hindi">Hindi</option>
+                    <option value="Tamil">Tamil</option>
+                    <option value="Malayalam">Malayalam</option>
+                    <option value="Telugu">Telugu</option>
+                    <option value="Urdu">Urdu</option>
+                    <option value="Tagalog / Filipino">Tagalog / Filipino</option>
+                    <option value="Bengali">Bengali</option>
+                    <option value="Punjabi">Punjabi</option>
+                  </optgroup>
+                </select>
+              </div>
+
+              <div>
+                <div className="flex items-center justify-between mb-1.5">
+                  <label className="block font-bold text-slate-700 dark:text-slate-200">
+                    Language Proficiency <span className="font-normal text-slate-500 dark:text-slate-400">(Optional)</span>
+                  </label>
+                  {proficiency && (
+                    <button
+                      type="button"
+                      onClick={() => setProficiency('')}
+                      className="text-[11px] font-semibold text-slate-500 hover:text-gold-600 dark:hover:text-gold-400 cursor-pointer transition-colors"
+                    >
+                      Clear selection
+                    </button>
+                  )}
+                </div>
+
+                <div className="w-full bg-slate-100 dark:bg-navy-950 p-1 rounded-2xl border border-slate-200/80 dark:border-navy-800 grid grid-cols-5 gap-1 shadow-inner">
+                  {[
+                    { id: 'Basic', label: 'Basic', sub: 'A1–A2' },
+                    { id: 'Speaking', label: 'Speaking', sub: 'B1' },
+                    { id: 'Advanced', label: 'Advanced', sub: 'B2' },
+                    { id: 'Fluent', label: 'Fluent', sub: 'C1' },
+                    { id: 'Native', label: 'Native', sub: 'Bilingual' },
+                  ].map((lvl) => {
+                    const isSelected = proficiency === lvl.id;
+                    return (
+                      <button
+                        key={lvl.id}
+                        type="button"
+                        onClick={() => setProficiency(isSelected ? '' : lvl.id)}
+                        className={`py-2 px-1 rounded-xl text-center transition-all duration-200 flex flex-col items-center justify-center cursor-pointer ${
+                          isSelected
+                            ? 'bg-white dark:bg-navy-800 text-navy-950 dark:text-white shadow-sm ring-1 ring-slate-900/5 dark:ring-white/10'
+                            : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white hover:bg-white/50 dark:hover:bg-navy-900/50'
+                        }`}
+                      >
+                        <span className={`text-xs sm:text-sm leading-tight ${isSelected ? 'font-extrabold text-navy-900 dark:text-white' : 'font-bold text-slate-700 dark:text-slate-300'}`}>
+                          {lvl.label}
+                        </span>
+                        <span className={`text-[10px] sm:text-xs font-mono mt-0.5 leading-none ${isSelected ? 'font-semibold text-gold-600 dark:text-gold-400' : 'text-slate-400 dark:text-slate-500'}`}>
+                          {lvl.sub}
+                        </span>
+                      </button>
+                    );
+                  })}
+                </div>
+              </div>
             </div>
 
             {formError && (

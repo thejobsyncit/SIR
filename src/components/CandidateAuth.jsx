@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { useApp } from '../context/AppContext';
 import { User, Lock, Mail, Phone, Briefcase, Globe, FileUp, Sparkles, CheckCircle2, ShieldCheck, ArrowRight, UserPlus, KeyRound } from 'lucide-react';
+import { validateCandidateEmail } from '../utils/emailValidation';
 
 export const CandidateAuth = () => {
   const { loginCandidate, registerCandidate } = useApp();
@@ -61,14 +62,9 @@ export const CandidateAuth = () => {
       setError('Full Name must contain alphabetic characters only.');
       return;
     }
-    const cleanEmail = regData.email.trim().toLowerCase();
-    if (cleanEmail.length > 80) {
-      setError('Email address cannot exceed 80 characters.');
-      return;
-    }
-    const emailRegex = /^[a-zA-Z0-9]+([._%+-][a-zA-Z0-9]+)*@[a-zA-Z0-9]+([.-][a-zA-Z0-9]+)*\.[a-zA-Z]{2,10}$/;
-    if (!emailRegex.test(cleanEmail) || cleanEmail.includes('..')) {
-      setError('Please provide a valid email address (e.g. name@gmail.com).');
+    const emailValidation = validateCandidateEmail(regData.email);
+    if (!emailValidation.isValid) {
+      setError(emailValidation.message);
       return;
     }
     const digitsOnly = (regData.phone || '').replace(/\D/g, '');

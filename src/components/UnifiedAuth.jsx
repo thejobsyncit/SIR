@@ -3,6 +3,7 @@ import { createPortal } from 'react-dom';
 import { useApp } from '../context/AppContext';
 import { BrandLogoIcon } from './BrandLogoIcon';
 import { Briefcase, ArrowRight, User, Lock, Mail, Phone, Sparkles, CheckCircle2, X, Settings, ExternalLink, Eye, EyeOff, UserPlus, ChevronRight } from 'lucide-react';
+import { validateCandidateEmail } from '../utils/emailValidation';
 
 export const COUNTRY_PHONE_CONFIG = [
   { code: '+91', country: 'India', flag: '🇮🇳', digits: 10, placeholder: '9876543210' },
@@ -81,7 +82,8 @@ export const UnifiedAuth = ({ defaultMode = 'login', defaultRole = 'candidate', 
     industry: 'Engineering & Construction',
     password: '',
     confirmPassword: '',
-    resumeName: ''
+    resumeName: '',
+    consentAgreed: false
   });
 
   // Reset error when switching states
@@ -90,22 +92,9 @@ export const UnifiedAuth = ({ defaultMode = 'login', defaultRole = 'candidate', 
     setError('');
   };
 
-  // Strict Email Validation Regex (RFC 5322 standard, disallowing fake/incomplete addresses)
+  // Strict Enterprise Email Validation (Disallowing fake/disposable/dummy addresses - Bug #12)
   const isValidEmail = (emailStr) => {
-    if (!emailStr || typeof emailStr !== 'string') return false;
-    const clean = emailStr.trim().toLowerCase();
-    if (clean.length < 6 || clean.length > 80) return false;
-    if (clean.includes('..') || clean.includes('@@')) return false;
-    const emailRegex = /^[a-zA-Z0-9]+([._%+-][a-zA-Z0-9]+)*@[a-zA-Z0-9]+([.-][a-zA-Z0-9]+)*\.[a-zA-Z]{2,10}$/;
-    if (!emailRegex.test(clean)) return false;
-    const [localPart, domainPart] = clean.split('@');
-    if (!localPart || !domainPart || localPart.length > 64) return false;
-    const domainParts = domainPart.split('.');
-    if (domainParts.length < 2) return false;
-    if (domainParts.some(p => p.length === 0 || p.length > 63)) return false;
-    const disallowed = ['test.com', 'example.com', 'fake.com', 'temp.com', 'mailinator.com', 'demo.com', 'asdf.com', 'sample.com'];
-    if (disallowed.includes(domainPart)) return false;
-    return true;
+    return validateCandidateEmail(emailStr).isValid;
   };
 
   // Decode JWT credential from Google Identity Services
@@ -495,8 +484,9 @@ export const UnifiedAuth = ({ defaultMode = 'login', defaultRole = 'candidate', 
       setError('Email address cannot exceed 80 characters.');
       return;
     }
-    if (!cleanEmail || !isValidEmail(cleanEmail)) {
-      setError('Please provide a valid, active email address format (e.g. yourname@domain.com).');
+    const emailCheck = validateCandidateEmail(cleanEmail);
+    if (!emailCheck.isValid) {
+      setError(emailCheck.message);
       return;
     }
 
@@ -517,13 +507,27 @@ export const UnifiedAuth = ({ defaultMode = 'login', defaultRole = 'candidate', 
       }
     }
 
-    // 4. Password validation
-    if (!candidateReg.password || candidateReg.password.length < 6) {
-      setError('Password must be at least 6 characters.');
+    // 4. Password validation (Issue #4: Minimum 8 chars with complexity)
+    if (!candidateReg.password || candidateReg.password.length < 8) {
+      setError('Password must be at least 8 characters long.');
+      return;
+    }
+    const hasUpper = /[A-Z]/.test(candidateReg.password);
+    const hasLower = /[a-z]/.test(candidateReg.password);
+    const hasDigit = /\d/.test(candidateReg.password);
+    const hasSpecial = /[!@#$%^&*()_+\-=[\]{};':"\\|,.<>/?]/.test(candidateReg.password);
+    if (!hasUpper || !hasLower || !hasDigit || !hasSpecial) {
+      setError('Password must contain at least one uppercase letter, one lowercase letter, one number, and one special character.');
       return;
     }
     if (candidateReg.password !== candidateReg.confirmPassword) {
       setError('Passwords do not match.');
+      return;
+    }
+
+    // 5. Consent validation (Issue #4 & UAE PDPL / India DPDP Act)
+    if (!candidateReg.consentAgreed) {
+      setError('You must provide mandatory consent under the Privacy Policy & Candidate Consent Notice.');
       return;
     }
 
@@ -534,7 +538,9 @@ export const UnifiedAuth = ({ defaultMode = 'login', defaultRole = 'candidate', 
       phone: `${candidateReg.countryCode || '+91'} ${digitsOnly}`,
       preferredCountry: candidateReg.preferredCountry,
       industry: candidateReg.industry,
-      resumeName: candidateReg.resumeName || 'Uploaded_CV.pdf'
+      resumeName: candidateReg.resumeName || 'Uploaded_CV.pdf',
+      consentGivenAt: new Date().toISOString(),
+      consentVersion: 'v2.0-nov2026'
     });
 
     if (!result || !result.success) {
@@ -886,7 +892,7 @@ export const UnifiedAuth = ({ defaultMode = 'login', defaultRole = 'candidate', 
                             const digitsOnly = e.target.value.replace(/\D/g, '').slice(0, maxDigits);
                             setCandidateReg({ ...candidateReg, phone: digitsOnly });
                           }}
-                          placeholder={activeConfig ? `Enter ${activeConfig.digits} digits (e.g. ${activeConfig.placeholder})` : 'Enter mobile number (7-15 digits)'}
+                          placeholder="Enter phone number"
                           className="w-full pl-9 pr-3 py-2.5 bg-transparent focus:outline-none text-slate-900 dark:text-white font-medium text-xs tracking-wider font-mono placeholder:text-slate-400 placeholder:font-normal"
                         />
                       </div>
@@ -898,7 +904,7 @@ export const UnifiedAuth = ({ defaultMode = 'login', defaultRole = 'candidate', 
 
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
               <div>
-                <label className="block text-slate-700 dark:text-slate-300 font-semibold mb-1">Password (Min 6 chars) *</label>
+                <label className="block text-slate-700 dark:text-slate-300 font-semibold mb-1">Password (Min 8 chars, mixed & symbol) *</label>
                 <div className="relative">
                   <Lock className="w-4 h-4 text-slate-500 dark:text-slate-400 absolute left-3 top-3" />
                   <input
@@ -941,6 +947,38 @@ export const UnifiedAuth = ({ defaultMode = 'login', defaultRole = 'candidate', 
                   </button>
                 </div>
               </div>
+            </div>
+
+            {/* Mandatory Consent Checkbox (Issue #4 & UAE PDPL / India DPDP Act) */}
+            <div className="pt-2">
+              <label className="flex items-start space-x-2.5 cursor-pointer">
+                <input
+                  type="checkbox"
+                  required
+                  checked={candidateReg.consentAgreed}
+                  onChange={(e) => setCandidateReg({ ...candidateReg, consentAgreed: e.target.checked })}
+                  className="mt-0.5 rounded border-slate-300 text-gold-500 focus:ring-gold-500"
+                />
+                <span className="text-[11px] text-slate-600 dark:text-slate-400 leading-snug">
+                  I consent to Revival International processing my profile and contact details in accordance with the{' '}
+                  <button
+                    type="button"
+                    onClick={() => { setActiveModal(null); navigateTo('legal/privacy-policy'); }}
+                    className="text-gold-500 font-bold hover:underline"
+                  >
+                    Privacy Policy
+                  </button>{' '}
+                  and{' '}
+                  <button
+                    type="button"
+                    onClick={() => { setActiveModal(null); navigateTo('legal/candidate-consent'); }}
+                    className="text-gold-500 font-bold hover:underline"
+                  >
+                    Candidate Consent Notice
+                  </button>
+                  . I acknowledge that placement services are 100% free of charge.
+                </span>
+              </label>
             </div>
 
             <button

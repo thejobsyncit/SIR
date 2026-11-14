@@ -301,11 +301,25 @@ export const CrmPipeline = () => {
                     <span>{selectedRecruiterData.phone}</span>
                   </a>
                   <button
+                    type="button"
                     onClick={() => setViewRecruiterModal(selectedRecruiterData)}
-                    className="px-4 py-2 bg-gold-500 text-navy-950 font-bold rounded-xl shadow-gold-glow hover:opacity-90 transition flex items-center space-x-1"
+                    className="px-4 py-2 bg-gold-500 text-navy-950 font-bold rounded-xl shadow-gold-glow hover:bg-gold-400 transition flex items-center space-x-1 cursor-pointer z-10"
+                    title="View Full Profile for this recruiter"
                   >
                     <ExternalLink className="w-3.5 h-3.5" />
                     <span>Full Profile</span>
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setSelectedRecruiter(selectedRecruiterData.name);
+                      const el = document.getElementById('pipeline-kanban-board');
+                      if (el) el.scrollIntoView({ behavior: 'smooth' });
+                    }}
+                    className="px-3.5 py-2 bg-blue-600 hover:bg-blue-500 text-white font-bold rounded-xl shadow-md transition flex items-center space-x-1 cursor-pointer z-10"
+                    title="Scroll down to view this recruiter's live candidate pipeline"
+                  >
+                    <span>View Pipeline ({getRecruiterCandidatesCount(selectedRecruiterData.name)})</span>
                   </button>
                 </div>
 
@@ -359,8 +373,7 @@ export const CrmPipeline = () => {
       )}
 
       {/* 18-Stage Horizontal Kanban Board */}
-      <ScrollReveal>
-      <div className="overflow-x-auto pb-4">
+      <div id="pipeline-kanban-board" className="overflow-x-auto pb-4">
         <div className="flex gap-4 min-w-[3600px]">
           {PIPELINE_STAGES.map((stage, idx) => {
             const stageCandidates = filteredCandidates.filter(c => c.stage === stage.id);
@@ -408,6 +421,13 @@ export const CrmPipeline = () => {
 
                         <p className="text-[11px] text-slate-800 dark:text-slate-200 font-bold">{cand.currentEmployer}</p>
                         
+                        {cand.applications && cand.applications.length > 0 && (
+                          <div className="p-1.5 bg-blue-50 dark:bg-blue-950/40 rounded-lg border border-blue-200 dark:border-blue-900/40 text-[10px]">
+                            <span className="font-bold text-blue-700 dark:text-blue-300 block truncate">🎯 {cand.applications[0].jobTitle}</span>
+                            <span className="text-slate-500 dark:text-slate-400 text-[9px] truncate block">{cand.applications[0].company}</span>
+                          </div>
+                        )}
+                        
                         <div className="p-2 bg-slate-100 dark:bg-[#060a17] rounded-lg text-[10px] flex justify-between border border-slate-200 dark:border-slate-800">
                           <span className="text-slate-600 dark:text-slate-400 font-medium">Recruiter:</span>
                           <span className="text-slate-900 dark:text-white font-bold">{cand.assignedRecruiter}</span>
@@ -452,11 +472,9 @@ export const CrmPipeline = () => {
           })}
         </div>
       </div>
-      </ScrollReveal>
 
       {/* Recruiter Full Profile Modal */}
       {viewRecruiterModal && (
-        <ScrollReveal>
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-navy-950/80 backdrop-blur-sm animate-in fade-in">
           <div className="glass-card bg-white dark:bg-[#0c152a] border border-gold-500/50 rounded-2xl max-w-xl w-full p-6 shadow-2xl space-y-4 max-h-[90vh] overflow-y-auto text-slate-900 dark:text-white">
             
@@ -554,7 +572,6 @@ export const CrmPipeline = () => {
 
           </div>
         </div>
-        </ScrollReveal>
       )}
 
     </div>

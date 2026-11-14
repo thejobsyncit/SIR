@@ -627,7 +627,7 @@ ${formData.additionalRequirements.trim() || 'No additional questions specified.'
                     id="phone"
                     type="tel"
                     name="phone"
-                    placeholder="50 123 4567"
+                    placeholder="Enter phone number"
                     value={formData.phone}
                     onChange={handlePhoneChange}
                     className={`w-full pl-10 pr-4 py-2.5 text-sm rounded-xl border ${

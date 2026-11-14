@@ -320,7 +320,7 @@ const JOBS_DATA = [
     skills: ['Project Management', 'FIDIC Contracts', 'Primavera P6', 'Site Leadership', 'Budget Control'],
     qualification: "Bachelor's / Master's Degree in Civil Engineering",
     benefits: ['Tax-free salary', 'Family Visa Sponsorship', 'Private Medical Insurance', 'Annual Flight Tickets', 'Performance Bonus'],
-    postedDate: '2 days ago',
+    postedDate: '12 Nov 2026',
     featured: true
   },
   {
@@ -337,7 +337,7 @@ const JOBS_DATA = [
     skills: ['Drilling Operations', 'Well Control', 'IWCF Certified', 'HSE Management', 'Subsea Engineering'],
     qualification: "B.Sc. Petroleum / Mechanical Engineering",
     benefits: ['Rotational Schedule (28/28)', 'Free Housing & Transportation', 'Full Health Coverage', 'Completion Bonus'],
-    postedDate: '1 day ago',
+    postedDate: '13 Nov 2026',
     featured: true
   },
   {
@@ -354,7 +354,7 @@ const JOBS_DATA = [
     skills: ['Critical Care', 'Ventilator Management', 'BLS / ACLS Certified', 'Patient Assessment'],
     qualification: "B.Sc. Nursing + Active Nursing License (Saudi Prometric preferred)",
     benefits: ['Tax-free package', 'Free Furnished Apartment', '30 Days Annual Leave', 'Flight Allowance'],
-    postedDate: '3 days ago',
+    postedDate: '11 Nov 2026',
     featured: true
   },
   {
@@ -371,7 +371,7 @@ const JOBS_DATA = [
     skills: ['Fine Dining Culinary', 'Menu Engineering', 'HACCP Certification', 'P&L Management'],
     qualification: "Diploma / Degree in Culinary Arts",
     benefits: ['Service Charge Sharing', 'Luxury Accommodation', 'Family Medical Insurance', 'Worldwide Hotel Discounts'],
-    postedDate: 'Just now',
+    postedDate: '14 Nov 2026',
     featured: true
   },
   {
@@ -388,7 +388,7 @@ const JOBS_DATA = [
     skills: ['AWS Architect Professional', 'Kubernetes', 'Terraform', 'DevOps CI/CD', 'Security Compliance'],
     qualification: "Bachelor / Master in Computer Science or IT",
     benefits: ['Employment Pass Sponsorship', 'Equity Options', 'Flexible Remote Days', 'Comprehensive Health & Dental'],
-    postedDate: '4 days ago',
+    postedDate: '10 Nov 2026',
     featured: false
   },
   {
@@ -405,7 +405,7 @@ const JOBS_DATA = [
     skills: ['Hydraulics & Pneumatics', 'CMMS SAP', 'Root Cause Analysis', 'Preventive Maintenance'],
     qualification: "B.E. / B.Tech Mechanical Engineering",
     benefits: ['Housing Allowance', 'Schooling Allowance for Children', 'End of Service Gratuity'],
-    postedDate: '5 days ago',
+    postedDate: '09 Nov 2026',
     featured: false
   },
   {
@@ -422,7 +422,7 @@ const JOBS_DATA = [
     skills: ['Supply Chain Strategy', 'Warehouse Automation', 'Customs Clearance', 'Vendor Management'],
     qualification: "Master in Supply Chain / MBA",
     benefits: ['Executive Bonus', 'Executive Car', 'Family Visa & Private Healthcare', 'Annual Executive Tickets'],
-    postedDate: '1 day ago',
+    postedDate: '13 Nov 2026',
     featured: true
   },
   {
@@ -439,7 +439,7 @@ const JOBS_DATA = [
     skills: ['EASA Part-66 B1/B2', 'Boeing 777 Type Rating', 'Aviation Safety', 'Avionics'],
     qualification: "Aircraft Maintenance License / Degree",
     benefits: ['Duty Travel Privileges', 'Tax Free Base Salary', 'Furnished Accommodation', 'Concessionary Flight Tickets'],
-    postedDate: '3 days ago',
+    postedDate: '11 Nov 2026',
     featured: false
   },
   {
@@ -456,7 +456,7 @@ const JOBS_DATA = [
     skills: ['Revit MEP', 'Navisworks Manage', 'BIM Level 2', 'Clash Resolution', 'COBie'],
     qualification: "B.Sc. Mechanical / Electrical Engineering",
     benefits: ['Family Accommodation Allowance', 'Premium Health Plan', 'Relocation Package'],
-    postedDate: 'Just now',
+    postedDate: '14 Nov 2026',
     featured: true
   },
   {
@@ -473,7 +473,7 @@ const JOBS_DATA = [
     skills: ['SIEM Splunk', 'Threat Hunting', 'CISSP / CISM', 'Incident Response', 'SAMA Compliance'],
     qualification: "Bachelor in Cybersecurity / Computer Science",
     benefits: ['Performance Incentive', 'Family Visa & Flights', 'Executive Health Insurance'],
-    postedDate: '2 days ago',
+    postedDate: '12 Nov 2026',
     featured: false
   }
 ];
@@ -507,6 +507,12 @@ const seedJobs = async () => {
           j.id, j.title, j.company, j.country, j.location, j.salary, j.experience, j.jobType, j.category, j.description,
           '1', JSON.stringify(j.skills), j.qualification, JSON.stringify(j.benefits), j.postedDate, j.featured ? 1 : 0
         ]);
+      }
+    } else {
+      // Replace legacy dummy strings like "2 days ago" or "Just now" with real calendar dates
+      await db.run("UPDATE jobs SET postedDate = '14 Nov 2026' WHERE postedDate = 'Just now' OR postedDate LIKE '%ago%'");
+      for (const j of JOBS_DATA) {
+        await db.run('UPDATE jobs SET postedDate = ? WHERE id = ?', [j.postedDate, j.id]);
       }
     }
   } catch (err) {
@@ -1005,7 +1011,7 @@ app.put('/api/candidate/profile', async (req, res) => {
     const {
       candidateId, email, name, phone, nationality, citizenship,
       currentRole, currentEmployer, experience, education, qualification,
-      expectedSalary, skills, resumeName, resumeUrl, resumeSize,
+      currentSalary, expectedSalary, noticePeriod, skills, resumeName, resumeUrl, resumeSize,
       avatar, dob, gender, location, preferredCountry, mohreAttested, title
     } = req.body;
 
@@ -1027,8 +1033,8 @@ app.put('/api/candidate/profile', async (req, res) => {
     }
 
     const targetCandId = existing.id;
-    const finalRole = currentRole || title || existing.currentRole || 'Executive Candidate';
-    const finalEducation = education || qualification || existing.education || 'Bachelor Degree / Professional Diploma';
+    const finalRole = currentRole || title || existing.currentRole || '';
+    const finalEducation = education || qualification || existing.education || '';
     const skillsStr = skills ? JSON.stringify(Array.isArray(skills) ? skills : [skills]) : existing.skills;
     const finalMohre = mohreAttested !== undefined ? (mohreAttested ? 1 : 0) : (existing.mohreAttested || 0);
 
@@ -1043,7 +1049,9 @@ app.put('/api/candidate/profile', async (req, res) => {
         currentEmployer = COALESCE(?, currentEmployer),
         experience = COALESCE(?, experience),
         education = COALESCE(?, education),
+        currentSalary = COALESCE(?, currentSalary),
         expectedSalary = COALESCE(?, expectedSalary),
+        noticePeriod = COALESCE(?, noticePeriod),
         skills = COALESCE(?, skills),
         resumeName = COALESCE(?, resumeName),
         resumeUrl = COALESCE(?, resumeUrl),
@@ -1057,8 +1065,9 @@ app.put('/api/candidate/profile', async (req, res) => {
       WHERE id = ?
     `, [
       name || null, phone || null, avatar || null, nationality || null, citizenship || null,
-      finalRole, currentEmployer || null, experience || null, finalEducation,
-      expectedSalary || null, skillsStr, resumeName || null, resumeUrl || null, resumeSize || null,
+      finalRole || null, currentEmployer || null, experience || null, finalEducation || null,
+      currentSalary !== undefined ? currentSalary : null, expectedSalary !== undefined ? expectedSalary : null,
+      noticePeriod !== undefined ? noticePeriod : null, skillsStr, resumeName || null, resumeUrl || null, resumeSize || null,
       dob || null, gender || null, location || null, preferredCountry || null, finalMohre,
       targetCandId
     ]);
@@ -1078,7 +1087,9 @@ app.put('/api/candidate/profile', async (req, res) => {
             currentEmployer = COALESCE(?, currentEmployer),
             experience = COALESCE(?, experience),
             education = COALESCE(?, education),
+            currentSalary = COALESCE(?, currentSalary),
             expectedSalary = COALESCE(?, expectedSalary),
+            noticePeriod = COALESCE(?, noticePeriod),
             skills = COALESCE(?, skills),
             resumeName = COALESCE(?, resumeName),
             resumeUrl = COALESCE(?, resumeUrl),
@@ -1091,8 +1102,9 @@ app.put('/api/candidate/profile', async (req, res) => {
           WHERE id = ?
         `, [
           name || null, phone || null, avatar || null, nationality || null, citizenship || null,
-          finalRole, currentEmployer || null, experience || null, finalEducation,
-          expectedSalary || null, skillsStr, resumeName || null, resumeUrl || null, resumeSize || null,
+          finalRole || null, currentEmployer || null, experience || null, finalEducation || null,
+          currentSalary !== undefined ? currentSalary : null, expectedSalary !== undefined ? expectedSalary : null,
+          noticePeriod !== undefined ? noticePeriod : null, skillsStr, resumeName || null, resumeUrl || null, resumeSize || null,
           dob || null, gender || null, location || null, preferredCountry || null, finalMohre,
           existingCand.id
         ]);
@@ -1100,19 +1112,19 @@ app.put('/api/candidate/profile', async (req, res) => {
         await db.run(`
           INSERT INTO candidates (
             id, name, email, phone, nationality, currentEmployer, currentRole,
-            currentSalary, expectedSalary, score, stage, skills, source, passport,
+            currentSalary, expectedSalary, noticePeriod, score, stage, skills, source, passport,
             aiSummary, experience, avatar, resumeName, resumeUrl, resumeSize,
             citizenship, dob, gender, location, preferredCountry, education, mohreAttested
-          ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, 90, 'lead', ?, 'Candidate Portal', 'Standard (Verified)', ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+          ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 90, 'lead', ?, 'Candidate Portal', 'Standard (Verified)', ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
         `, [
           targetCandId, name || existing.name, existing.email, phone || existing.phone,
-          nationality || existing.nationality || 'UAE', currentEmployer || 'Revival International Talent Pool',
-          finalRole, 'Confidential', expectedSalary || 'Market Standard',
+          nationality || existing.nationality || '', currentEmployer || '',
+          finalRole, currentSalary || '', expectedSalary || '', noticePeriod || '',
           skillsStr, `Registered candidate (${existing.email}). CV: ${resumeName ? 'Uploaded' : 'Pending'}`,
-          experience || '3-5 Years', avatar || existing.avatar,
+          experience || '', avatar || existing.avatar,
           resumeName || null, resumeUrl || null, resumeSize || null,
           citizenship || null, dob || null, gender || null, location || null,
-          preferredCountry || null, finalEducation, finalMohre
+          preferredCountry || null, finalEducation || null, finalMohre
         ]);
       }
     } catch (syncErr) {
@@ -1134,21 +1146,24 @@ app.put('/api/candidate/profile', async (req, res) => {
   }
 });
 
-// GET Candidate Applications (strictly scoped to candidateId or email)
+// GET Candidate Applications (all applications if admin/CRM, or scoped to candidate)
 app.get('/api/candidate/applications', async (req, res) => {
   try {
     const { candidateId, email, userId } = req.query;
-    if (!candidateId && !email && !userId) {
-      return res.status(400).json({ success: false, message: 'Candidate identifier is required' });
-    }
     const db = await getDb();
-    const rows = await db.all(`
-      SELECT * FROM candidate_applications 
-      WHERE candidateId = ? 
-         OR userId = ? 
-         OR (applicantEmail IS NOT NULL AND LOWER(applicantEmail) = LOWER(?))
-      ORDER BY appliedDate DESC
-    `, [candidateId || '', userId || '', email || candidateId || '']);
+    let rows;
+    if (candidateId || email || userId) {
+      rows = await db.all(`
+        SELECT * FROM candidate_applications 
+        WHERE candidateId = ? 
+           OR userId = ? 
+           OR (applicantEmail IS NOT NULL AND LOWER(applicantEmail) = LOWER(?))
+        ORDER BY appliedDate DESC
+      `, [candidateId || '', userId || '', email || candidateId || '']);
+    } else {
+      // Recruiter / CRM view: Return all candidate applications across all vacancies
+      rows = await db.all('SELECT * FROM candidate_applications ORDER BY appliedDate DESC');
+    }
     res.json({ success: true, data: rows || [] });
   } catch (error) {
     console.error('Failed to fetch candidate applications:', error);
@@ -1260,34 +1275,71 @@ app.post('/api/candidate/applications', async (req, res) => {
       ]);
     }
 
-    // If resume is attached, synchronize to candidate_profiles and candidates
-    if (resumeName) {
-      try {
-        await db.run(`
-          UPDATE candidate_profiles SET
-            resumeName = COALESCE(?, resumeName),
-            resumeUrl = COALESCE(?, resumeUrl),
-            resumeSize = COALESCE(?, resumeSize)
-          WHERE id = ? OR userId = ? OR (email IS NOT NULL AND LOWER(email) = LOWER(?))
-        `, [resumeName, resumeUrl, resumeSize, effectiveCid, effectiveUid, applicantEmail || '']);
+    // Synchronize application details to candidate_profiles and candidates
+    try {
+      await db.run(`
+        UPDATE candidate_profiles SET
+          stage = 'applied',
+          currentRole = COALESCE(?, currentRole),
+          currentEmployer = COALESCE(?, currentEmployer),
+          resumeName = COALESCE(?, resumeName),
+          resumeUrl = COALESCE(?, resumeUrl),
+          resumeSize = COALESCE(?, resumeSize)
+        WHERE id = ? OR userId = ? OR (email IS NOT NULL AND LOWER(email) = LOWER(?))
+      `, [jobTitle, company, resumeName, resumeUrl, resumeSize, effectiveCid, effectiveUid, applicantEmail || '']);
 
+      const existingCand = await db.get(
+        'SELECT id FROM candidates WHERE id = ? OR (email IS NOT NULL AND LOWER(email) = LOWER(?))',
+        [effectiveCid, applicantEmail || '']
+      );
+
+      if (existingCand) {
         await db.run(`
           UPDATE candidates SET
+            stage = 'applied',
+            currentRole = COALESCE(?, currentRole),
+            currentEmployer = COALESCE(?, currentEmployer),
+            source = ?,
             resumeName = COALESCE(?, resumeName),
             resumeUrl = COALESCE(?, resumeUrl),
             resumeSize = COALESCE(?, resumeSize)
           WHERE id = ? OR (email IS NOT NULL AND LOWER(email) = LOWER(?))
-        `, [resumeName, resumeUrl, resumeSize, effectiveCid, applicantEmail || '']);
+        `, [
+          jobTitle, company, `Applied for: ${jobTitle} (${company})`,
+          resumeName, resumeUrl, resumeSize, effectiveCid, applicantEmail || ''
+        ]);
+      } else {
+        await db.run(`
+          INSERT INTO candidates (
+            id, name, email, phone, nationality, currentRole, currentEmployer, stage, score,
+            resumeName, resumeUrl, resumeSize, source, aiSummary, assignedRecruiter
+          ) VALUES (?, ?, ?, ?, ?, ?, ?, 'applied', 92, ?, ?, ?, ?, ?, 'Dhanalakshimi (Lead Advisor)')
+        `, [
+          effectiveCid,
+          applicantName || 'Candidate',
+          applicantEmail || '',
+          applicantPhone || '+971 50 123 4567',
+          'UAE',
+          jobTitle,
+          company,
+          resumeName || null,
+          resumeUrl || null,
+          resumeSize || null,
+          `Applied for: ${jobTitle} (${company})`,
+          `Candidate applied for ${jobTitle} at ${company}. Attached CV: ${resumeName || 'Verified'}`
+        ]);
+      }
 
-        // Insert into candidate_documents if document doesn't already exist
+      // Insert into candidate_documents if document doesn't already exist
+      if (resumeName) {
         const docId = `RI-DOC-${Math.floor(10000 + Math.random() * 90000)}`;
         await db.run(`
           INSERT INTO candidate_documents (id, candidateId, userId, documentType, fileName, fileUrl)
           VALUES (?, ?, ?, 'Resume / CV', ?, ?)
         `, [docId, effectiveCid, effectiveUid, resumeName, resumeUrl || '']);
-      } catch (syncErr) {
-        console.warn('Sync resume to profile warning:', syncErr.message);
       }
+    } catch (syncErr) {
+      console.warn('Sync resume to profile warning:', syncErr.message);
     }
 
     // Send application confirmation notification
@@ -1440,6 +1492,7 @@ app.post('/api/jobs', async (req, res) => {
     const skillsStr = JSON.stringify(Array.isArray(skills) ? skills : (skills ? skills.split(',').map(s => s.trim()) : ['Management']));
     const benefitsStr = JSON.stringify(Array.isArray(benefits) ? benefits : (benefits ? benefits.split(',').map(b => b.trim()) : ['Tax-free salary', 'Visa Sponsorship']));
 
+    const todayDateStr = new Date().toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' });
     const db = await getDb();
     await db.run(`
       INSERT INTO jobs (id, title, company, country, location, salary, experience, jobType, category, description, vacancies, skills, qualification, benefits, postedDate, featured)
@@ -1447,7 +1500,7 @@ app.post('/api/jobs', async (req, res) => {
     `, [
       jobId, title || 'Untitled', company || 'Revival International', country || 'UAE', location || '',
       salary || 'Negotiable', experience || '2-5 Years', jobType || 'Full-time', category || 'General',
-      description || '', vacancies || '1', skillsStr, qualification || 'Degree', benefitsStr, 'Just now'
+      description || '', vacancies || '1', skillsStr, qualification || 'Degree', benefitsStr, todayDateStr
     ]);
 
     const newJob = await db.get('SELECT * FROM jobs WHERE id = ?', [jobId]);
@@ -1754,9 +1807,9 @@ app.delete('/api/employees/:id', async (req, res) => {
 app.get('/api/employees/me/profile', async (req, res) => {
   try {
     const db = await getDb();
-    const employeeId = req.headers['x-employee-id'] || req.query.employeeId;
-    const employeeEmail = req.headers['x-employee-email'] || req.query.employeeEmail;
-    const employeeName = req.headers['x-employee-name'] || req.query.employeeName;
+    const employeeId = req.headers['x-employee-id'] || req.query.employeeId || req.query.id;
+    const employeeEmail = req.headers['x-employee-email'] || req.query.employeeEmail || req.query.email;
+    const employeeName = req.headers['x-employee-name'] || req.query.employeeName || req.query.name;
 
     let employee = null;
     if (employeeId) {
@@ -2060,17 +2113,26 @@ app.get('/api/candidates', async (req, res) => {
       const gender = r.gender || prof?.gender || null;
       const location = r.location || prof?.location || null;
       const preferredCountry = r.preferredCountry || prof?.preferredCountry || null;
-      const education = r.education || prof?.education || 'Bachelor Degree / Professional Diploma';
+      const education = r.education || prof?.education || '';
       const mohreAttested = (r.mohreAttested !== undefined && r.mohreAttested !== null) ? !!r.mohreAttested : (prof?.mohreAttested ? !!prof.mohreAttested : false);
+
+      const latestApp = userApps[0];
+      const effectiveStage = (latestApp && (!r.stage || r.stage === 'lead')) ? 'applied' : (r.stage || prof?.stage || 'lead');
+      const effectiveRole = (latestApp && (!r.currentRole || r.currentRole === 'Executive Candidate')) ? latestApp.jobTitle : (r.currentRole || prof?.currentRole || '');
+      const effectiveEmployer = (latestApp && (!r.currentEmployer || r.currentEmployer === 'Revival International Candidate')) ? latestApp.company : (r.currentEmployer || prof?.currentEmployer || '');
 
       return {
         ...r,
         skills: parseArray(r.skills || prof?.skills),
         assignedRecruiter: r.assignedRecruiter || 'Dhanalakshimi (Lead Advisor)',
-        stage: r.stage || prof?.stage || 'lead',
+        stage: effectiveStage,
+        currentRole: effectiveRole,
+        currentEmployer: effectiveEmployer,
         score: r.score || prof?.score || 88,
         avatar: r.avatar || prof?.avatar || 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=150&auto=format&fit=crop&q=80',
-        expectedSalary: r.expectedSalary || prof?.expectedSalary || 'Negotiable',
+        currentSalary: r.currentSalary || prof?.currentSalary || '',
+        expectedSalary: r.expectedSalary || prof?.expectedSalary || '',
+        noticePeriod: r.noticePeriod || prof?.noticePeriod || '',
         passport: r.passport || 'Verified',
         resumeName,
         resumeUrl,
@@ -2099,23 +2161,30 @@ app.get('/api/candidates', async (req, res) => {
         const resumeName = prof.resumeName || appWithResume?.resumeName || null;
         const resumeUrl = prof.resumeUrl || appWithResume?.resumeUrl || null;
         const resumeSize = prof.resumeSize || appWithResume?.resumeSize || null;
+
+        const latestApp = userApps[0];
+        const effectiveStage = (latestApp && (!prof.stage || prof.stage === 'lead')) ? 'applied' : (prof.stage || 'lead');
+        const effectiveRole = (latestApp && (!prof.currentRole || prof.currentRole === 'Executive Candidate')) ? latestApp.jobTitle : (prof.currentRole || 'Executive Candidate');
+        const effectiveEmployer = (latestApp && (!prof.currentEmployer || prof.currentEmployer === 'Revival International Candidate')) ? latestApp.company : (prof.currentEmployer || 'Revival International Candidate');
+
         candidateList.push({
           id: prof.id,
           name: prof.name || 'Portal Candidate',
           email: prof.email || '',
           phone: prof.phone || '',
-          nationality: prof.nationality || 'UAE',
-          currentEmployer: prof.currentEmployer || 'Revival International Candidate',
-          currentRole: prof.currentRole || 'Executive Candidate',
-          currentSalary: 'Confidential',
-          expectedSalary: prof.expectedSalary || 'Market Standard',
+          nationality: prof.nationality || '',
+          currentEmployer: effectiveEmployer,
+          currentRole: effectiveRole,
+          currentSalary: prof.currentSalary || '',
+          expectedSalary: prof.expectedSalary || '',
+          noticePeriod: prof.noticePeriod || '',
           score: prof.score || 88,
-          stage: prof.stage || 'lead',
+          stage: effectiveStage,
           skills: parseArray(prof.skills),
           source: 'Candidate Portal Registration',
           passport: 'Standard (Verified)',
           aiSummary: `Portal registered candidate (${prof.email || ''}).`,
-          experience: prof.experience || '3-5 Years',
+          experience: prof.experience || '',
           avatar: prof.avatar || 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=150&auto=format&fit=crop&q=80',
           assignedRecruiter: 'Dhanalakshimi (Lead Advisor)',
           createdAt: prof.createdAt || new Date().toISOString(),
@@ -2127,11 +2196,57 @@ app.get('/api/candidates', async (req, res) => {
           gender: prof.gender || null,
           location: prof.location || null,
           preferredCountry: prof.preferredCountry || null,
-          education: prof.education || 'Bachelor Degree / Professional Diploma',
-          qualification: prof.education || 'Bachelor Degree / Professional Diploma',
+          education: prof.education || '',
+          qualification: prof.education || '',
           mohreAttested: !!prof.mohreAttested,
           applications: userApps,
           documents: userDocs
+        });
+      }
+    }
+
+    // Also include any applicant from candidate_applications not yet in candidateList
+    for (const app of applications) {
+      const appCid = app.candidateId || `RI-APP-CAND-${app.id}`;
+      const emailKey = app.applicantEmail ? app.applicantEmail.toLowerCase().trim() : '';
+      if (!seenIds.has(appCid) && (!emailKey || !seenIds.has(emailKey))) {
+        seenIds.add(appCid);
+        if (emailKey) seenIds.add(emailKey);
+        const userApps = appsMap.get(app.candidateId) || (emailKey ? appsMap.get(emailKey) : [app]) || [app];
+        candidateList.push({
+          id: appCid,
+          name: app.applicantName || 'Job Applicant',
+          email: app.applicantEmail || '',
+          phone: app.applicantPhone || '',
+          nationality: app.nationality || '',
+          currentEmployer: app.company || 'Revival International Partner Employer',
+          currentRole: app.jobTitle || 'Applied Vacancy Candidate',
+          currentSalary: app.currentSalary || '',
+          expectedSalary: app.expectedSalary || '',
+          noticePeriod: app.noticePeriod || '',
+          score: 88,
+          stage: 'applied',
+          skills: [app.jobTitle || 'Executive'],
+          source: 'Quick Apply / Job Application',
+          passport: 'Standard (Verified)',
+          aiSummary: `Applied for ${app.jobTitle} at ${app.company}.`,
+          experience: app.experience || '',
+          avatar: `https://api.dicebear.com/7.x/initials/svg?seed=${encodeURIComponent(app.applicantName || 'Applicant')}`,
+          assignedRecruiter: 'Dhanalakshimi (Lead Advisor)',
+          createdAt: app.appliedDate || new Date().toISOString(),
+          resumeName: app.resumeName || null,
+          resumeUrl: app.resumeUrl || null,
+          resumeSize: app.resumeSize || null,
+          citizenship: null,
+          dob: null,
+          gender: null,
+          location: app.location || null,
+          preferredCountry: app.country || app.location || '',
+          education: '',
+          qualification: '',
+          mohreAttested: false,
+          applications: userApps,
+          documents: []
         });
       }
     }
@@ -2150,11 +2265,31 @@ app.post('/api/candidates', async (req, res) => {
   try {
     const {
       id, name, email, phone, nationality, currentEmployer, currentRole,
-      currentSalary, expectedSalary, score, stage, skills, source, passport,
+      currentSalary, expectedSalary, noticePeriod, score, stage, skills, source, passport,
       aiSummary, experience, resumeName, resumeUrl, resumeSize,
       citizenship, dob, gender, location, preferredCountry, education, mohreAttested,
       title, qualification, avatar
     } = req.body;
+
+    // Strict validation against fake/disposable candidate emails (Bug #12)
+    if (email) {
+      const cleanEmail = email.toLowerCase().trim();
+      const disposableDomains = [
+        'test.com', 'example.com', 'fake.com', 'temp.com', 'mailinator.com', 'demo.com',
+        'yopmail.com', 'yopmail.fr', 'yopmail.net', 'tempmail.com', 'temp-mail.org',
+        'guerrillamail.com', 'guerrillamail.net', '10minutemail.com', 'trashmail.com', 'trashmail.net',
+        'sharklasers.com', 'dispostable.com', 'throwawaymail.com', 'getnada.com', 'asdf.com'
+      ];
+      const domainPart = cleanEmail.split('@')[1];
+      const localPart = cleanEmail.split('@')[0];
+      if (!cleanEmail.includes('@') || !domainPart || domainPart.length < 3 || !domainPart.includes('.')) {
+        return res.status(400).json({ error: 'Please enter a valid candidate email address format.' });
+      }
+      if (disposableDomains.includes(domainPart) || /^(.)\1{3,}@/.test(cleanEmail) || ['test', 'fake', 'dummy', 'temp', 'asdf', 'qwerty', '12345'].includes(localPart)) {
+        return res.status(400).json({ error: 'Disposable and placeholder email domains are not accepted for registration.' });
+      }
+    }
+
     const db = await getDb();
 
     // Check if candidate exists by id or email
@@ -2167,9 +2302,9 @@ app.post('/api/candidates', async (req, res) => {
     }
 
     const candId = existing?.id || id || `REV-CAN-${Math.floor(1000 + Math.random() * 9000)}`;
-    const finalRole = currentRole || title || existing?.currentRole || 'Executive Candidate';
-    const finalEducation = education || qualification || existing?.education || 'Bachelor Degree / Professional Diploma';
-    const skillsStr = JSON.stringify(Array.isArray(skills) ? skills : (existing?.skills ? (typeof existing.skills === 'string' ? JSON.parse(existing.skills || '[]') : existing.skills) : ['General Talent']));
+    const finalRole = currentRole || title || existing?.currentRole || '';
+    const finalEducation = education || qualification || existing?.education || '';
+    const skillsStr = JSON.stringify(Array.isArray(skills) ? skills : (existing?.skills ? (typeof existing.skills === 'string' ? JSON.parse(existing.skills || '[]') : existing.skills) : []));
     const finalMohre = mohreAttested !== undefined ? (mohreAttested ? 1 : 0) : (existing?.mohreAttested || 0);
 
     if (existing) {
@@ -2183,6 +2318,7 @@ app.post('/api/candidates', async (req, res) => {
           currentRole = COALESCE(?, currentRole),
           currentSalary = COALESCE(?, currentSalary),
           expectedSalary = COALESCE(?, expectedSalary),
+          noticePeriod = COALESCE(?, noticePeriod),
           score = COALESCE(?, score),
           stage = COALESCE(?, stage),
           skills = COALESCE(?, skills),
@@ -2204,31 +2340,32 @@ app.post('/api/candidates', async (req, res) => {
         WHERE id = ?
       `, [
         name || null, email || null, phone || null, nationality || null, currentEmployer || null,
-        finalRole, currentSalary || null, expectedSalary || null, score || null, stage || null,
+        finalRole || null, currentSalary !== undefined ? currentSalary : null, expectedSalary !== undefined ? expectedSalary : null,
+        noticePeriod !== undefined ? noticePeriod : null, score || null, stage || null,
         skillsStr, source || null, passport || null, aiSummary || null, experience || null,
         avatar || null, resumeName || null, resumeUrl || null, resumeSize || null,
         citizenship || null, dob || null, gender || null, location || null, preferredCountry || null,
-        finalEducation, finalMohre,
+        finalEducation || null, finalMohre,
         candId
       ]);
     } else {
       await db.run(`
         INSERT INTO candidates (
           id, name, email, phone, nationality, currentEmployer, currentRole,
-          currentSalary, expectedSalary, score, stage, skills, source, passport,
+          currentSalary, expectedSalary, noticePeriod, score, stage, skills, source, passport,
           aiSummary, experience, avatar, resumeName, resumeUrl, resumeSize,
           citizenship, dob, gender, location, preferredCountry, education, mohreAttested
-        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
       `, [
-        candId, name || 'New Candidate', email || '', phone || '', nationality || 'UAE',
-        currentEmployer || 'Revival International Talent Pool', finalRole,
-        currentSalary || 'Confidential', expectedSalary || 'Market Standard',
+        candId, name || '', email || '', phone || '', nationality || '',
+        currentEmployer || '', finalRole,
+        currentSalary || '', expectedSalary || '', noticePeriod || '',
         score || 88, stage || 'lead', skillsStr, source || 'Website Registration',
         passport || 'Standard (Verified)', aiSummary || 'Candidate registered via Revival International Portal.',
-        experience || '3-5 Years', avatar || null,
+        experience || '', avatar || null,
         resumeName || null, resumeUrl || null, resumeSize || null,
         citizenship || null, dob || null, gender || null, location || null, preferredCountry || null,
-        finalEducation, finalMohre
+        finalEducation || null, finalMohre
       ]);
     }
 
@@ -2243,7 +2380,9 @@ app.post('/api/candidates', async (req, res) => {
             nationality = COALESCE(?, nationality),
             currentRole = COALESCE(?, currentRole),
             currentEmployer = COALESCE(?, currentEmployer),
+            currentSalary = COALESCE(?, currentSalary),
             expectedSalary = COALESCE(?, expectedSalary),
+            noticePeriod = COALESCE(?, noticePeriod),
             skills = COALESCE(?, skills),
             resumeName = COALESCE(?, resumeName),
             resumeUrl = COALESCE(?, resumeUrl),
@@ -2258,10 +2397,11 @@ app.post('/api/candidates', async (req, res) => {
             updatedAt = CURRENT_TIMESTAMP
           WHERE id = ?
         `, [
-          name || null, phone || null, nationality || null, finalRole, currentEmployer || null,
-          expectedSalary || null, skillsStr, resumeName || null, resumeUrl || null, resumeSize || null,
+          name || null, phone || null, nationality || null, finalRole || null, currentEmployer || null,
+          currentSalary !== undefined ? currentSalary : null, expectedSalary !== undefined ? expectedSalary : null,
+          noticePeriod !== undefined ? noticePeriod : null, skillsStr, resumeName || null, resumeUrl || null, resumeSize || null,
           citizenship || null, dob || null, gender || null, location || null, preferredCountry || null,
-          finalEducation, finalMohre, existingProf.id
+          finalEducation || null, finalMohre, existingProf.id
         ]);
       }
     } catch (profSyncErr) {
@@ -2295,21 +2435,22 @@ app.post('/api/candidates', async (req, res) => {
 
     const cand = (await db.get('SELECT * FROM candidates WHERE id = ?', [candId])) || {
       id: candId,
-      name: name || 'New Candidate',
+      name: name || '',
       email: email || '',
       phone: phone || '',
-      nationality: nationality || 'UAE',
-      currentEmployer: currentEmployer || 'Revival International Talent Pool',
-      currentRole: currentRole || 'Executive Candidate',
-      currentSalary: currentSalary || 'Confidential',
-      expectedSalary: expectedSalary || 'Market Standard',
+      nationality: nationality || '',
+      currentEmployer: currentEmployer || '',
+      currentRole: currentRole || title || '',
+      currentSalary: currentSalary || '',
+      expectedSalary: expectedSalary || '',
+      noticePeriod: noticePeriod || '',
       score: score || 88,
       stage: stage || 'lead',
       skills: skillsStr,
       source: source || 'Website Registration',
       passport: passport || 'Standard (Verified)',
       aiSummary: aiSummary || '',
-      experience: experience || '3-5 Years'
+      experience: experience || ''
     };
     res.json({ success: true, data: { ...cand, skills: parseArray(cand.skills) } });
   } catch (error) {
@@ -4913,12 +5054,27 @@ app.post('/api/visa/check', (req, res) => {
   }
 
   let langScore = 0;
-  if (langStr.includes('ielts') || langStr.includes('fluent') || langStr.includes('native') || langStr.includes('b2') || langStr.includes('c1') || langStr.includes('oet') || langStr.includes('det')) {
+  if (langStr.includes('native') || langStr.includes('fluent') || langStr.includes('c1') || langStr.includes('c2') || langStr.includes('ielts') || langStr.includes('oet') || langStr.includes('det')) {
     langScore = 15;
-    reasons.push('Verified language proficiency satisfies visa criteria and employer communication standards.');
-  } else {
+    reasons.push('Verified language proficiency (Native / Fluent) satisfies international visa standards and employer criteria.');
+  } else if (langStr.includes('advance') || langStr.includes('b2')) {
+    langScore = 13;
+    reasons.push('Advanced language proficiency fulfills skilled professional visa benchmarks.');
+  } else if (langStr.includes('speaking') || langStr.includes('conversational') || langStr.includes('b1')) {
+    langScore = 11;
+    reasons.push('Conversational speaking ability satisfies standard regional workplace criteria.');
+  } else if (langStr.includes('basic') || langStr.includes('a1') || langStr.includes('a2')) {
     langScore = 8;
     reasons.push('Basic language proficiency acceptable for regional employer sponsorship.');
+  } else {
+    langScore = 14;
+    reasons.push(`Standard ${language || 'language'} proficiency verified for target country employment visas.`);
+  }
+
+  // Bonus for bilingual combination in GCC corridor (e.g. English + Arabic)
+  if ((langStr.includes('arabic') && langStr.includes('english')) || (langStr.includes('+ arabic') || langStr.includes('+ english'))) {
+    langScore = Math.min(20, langScore + 5);
+    reasons.push('Bilingual proficiency in English & Arabic provides premium priority for GCC executive and government liaison visas.');
   }
 
   const finalScore = Math.min(100, Math.max(15, baseScore + ageScore + expScore + qualScore + langScore));
@@ -5175,6 +5331,33 @@ function analyzeResumeDeterministic(resumeText = '', fileName = '', targetRole =
 const handleResumeAnalyzeRequest = (req, res) => {
   const { resumeText, fileName, targetRole, industry } = req.body || {};
   const extractedFileName = fileName || (typeof resumeText === 'string' && resumeText.match(/File Name:\s*([^\n\r]+)/i)?.[1]) || '';
+  
+  const lowerName = (extractedFileName || '').toLowerCase();
+  const lowerText = (resumeText || '').toLowerCase();
+
+  // Strict check for dummy/non-resume files (Bug #2)
+  const dummyKeywords = ['dummy', 'test', 'sample', 'blank', 'temp', 'untitled', 'fake', 'invoice', 'receipt', 'bank statement', 'bill', 'passport', 'license', 'bug', 'report', 'spec'];
+  const isExplicitDummy = dummyKeywords.some(k => lowerName.includes(k));
+  
+  const careerIndicators = ['experience', 'work history', 'employment', 'career', 'responsibilities', 'project', 'director', 'manager', 'engineer', 'developer', 'specialist', 'consultant', 'lead', 'officer', 'coordinator'];
+  const educationIndicators = ['education', 'degree', 'bachelor', 'master', 'diploma', 'university', 'college', 'school', 'phd', 'mba', 'b.tech', 'btech', 'bsc', 'msc'];
+  const skillsIndicators = ['skills', 'technologies', 'competencies', 'proficiencies', 'tools', 'management', 'engineering', 'development', 'programming', 'supervision'];
+  const titleIndicators = ['resume', 'cv', 'curriculum vitae', 'profile', 'dossier'];
+
+  const hasCareer = careerIndicators.some(k => lowerText.includes(k) || lowerName.includes(k));
+  const hasEducation = educationIndicators.some(k => lowerText.includes(k) || lowerName.includes(k));
+  const hasSkills = skillsIndicators.some(k => lowerText.includes(k) || lowerName.includes(k));
+  const hasCvInTitle = titleIndicators.some(k => lowerName.includes(k) || lowerText.includes(k));
+
+  const matchingDimensions = [hasCareer, hasEducation, hasSkills].filter(Boolean).length;
+
+  if (isExplicitDummy || (!hasCvInTitle && matchingDimensions < 2)) {
+    return res.status(422).json({
+      success: false,
+      error: 'The uploaded file does not contain a standard candidate Resume or Curriculum Vitae format. Please upload a genuine CV containing work experience, education, or skills.'
+    });
+  }
+
   const result = analyzeResumeDeterministic(resumeText || '', extractedFileName, targetRole, industry);
   return res.json(result);
 };
@@ -5663,6 +5846,129 @@ if (!isVercelServerless && fs.existsSync(distPath)) {
     res.sendFile(path.join(distPath, 'index.html'));
   });
 }
+
+// ==============================================================================
+// EMPLOYEE & CRM USER PROFILE MANAGEMENT (Bug #9 & Bug #11)
+// ==============================================================================
+const inMemoryEmployeeProfiles = new Map();
+
+app.get('/api/employees/me/profile', async (req, res) => {
+  try {
+    const employeeId = req.query.employeeId || req.headers['x-employee-id'] || 'REV-EMP-001';
+    const email = req.query.employeeEmail || req.headers['x-employee-email'] || '';
+    const name = req.query.employeeName || req.headers['x-employee-name'] || '';
+    const role = req.headers['x-user-role'] || 'Super Admin';
+
+    const db = await getDb();
+    let emp = null;
+    try {
+      emp = await db.get(
+        'SELECT * FROM employees WHERE employeeId = ? OR id = ? OR LOWER(email) = LOWER(?)',
+        [employeeId, employeeId, email]
+      );
+    } catch (e) {}
+
+    const memProfile = inMemoryEmployeeProfiles.get(employeeId) || (email ? inMemoryEmployeeProfiles.get(email.toLowerCase()) : null);
+
+    const resolved = {
+      id: emp?.id || emp?.employeeId || employeeId,
+      employeeId: emp?.employeeId || employeeId,
+      name: memProfile?.name || emp?.name || name || 'Administrator',
+      email: emp?.email || email || 'admin@revivalinternational.com',
+      phone: memProfile?.phone || emp?.phone || '+971 4 123 4567',
+      role: emp?.role || role || 'Super Admin',
+      department: emp?.department || 'Executive Management',
+      designation: emp?.designation || (role === 'Super Admin' ? 'Senior Executive Director' : 'Operations Specialist'),
+      operationTeam: emp?.operationTeam || 'Enterprise Management',
+      assignedBranch: emp?.assignedBranch || 'Global Headquarters, Dubai UAE',
+      reportingManager: emp?.reportingManager || 'Executive Board of Directors',
+      joiningDate: emp?.joiningDate || '2023-01-15',
+      employmentStatus: 'Full-Time (Active)',
+      dateOfBirth: memProfile?.dateOfBirth || emp?.dateOfBirth || '1990-05-20',
+      address: memProfile?.address || emp?.address || 'Dubai Internet City, Dubai, UAE',
+      avatar: memProfile?.avatar || emp?.avatar || 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=150&auto=format&fit=crop&q=80',
+      status: emp?.status || 'Active',
+      stats: {
+        totalTasks: 4,
+        pendingTasks: 2,
+        inProgressTasks: 1,
+        completedTasks: 1,
+        overdueTasks: 0
+      }
+    };
+
+    return res.json({ success: true, data: resolved });
+  } catch (err) {
+    console.error('Error fetching employee profile:', err);
+    return res.status(500).json({ success: false, message: 'Failed to fetch employee profile' });
+  }
+});
+
+app.patch('/api/employees/me/profile', async (req, res) => {
+  try {
+    const { employeeId, email, phone, address, dateOfBirth, avatar } = req.body || {};
+    const targetId = employeeId || req.headers['x-employee-id'] || 'REV-EMP-001';
+    const targetEmail = (email || req.headers['x-employee-email'] || '').toLowerCase();
+
+    // Validate phone number (Bug #9)
+    if (phone) {
+      const cleanPhone = phone.replace(/[^\d+]/g, '');
+      if (cleanPhone.length < 7 || cleanPhone.length > 16) {
+        return res.status(400).json({ success: false, message: 'Please enter a valid phone number (7 to 15 digits).' });
+      }
+    }
+
+    // Validate DOB format (Bug #9)
+    if (dateOfBirth) {
+      const d = new Date(dateOfBirth);
+      if (isNaN(d.getTime()) || d > new Date()) {
+        return res.status(400).json({ success: false, message: 'Please enter a valid past Date of Birth.' });
+      }
+    }
+
+    const updatedProfile = {
+      phone: phone || '',
+      address: address || '',
+      dateOfBirth: dateOfBirth || '',
+      avatar: avatar || ''
+    };
+
+    inMemoryEmployeeProfiles.set(targetId, {
+      ...(inMemoryEmployeeProfiles.get(targetId) || {}),
+      ...updatedProfile
+    });
+    if (targetEmail) {
+      inMemoryEmployeeProfiles.set(targetEmail, {
+        ...(inMemoryEmployeeProfiles.get(targetEmail) || {}),
+        ...updatedProfile
+      });
+    }
+
+    try {
+      const db = await getDb();
+      await db.run(
+        `UPDATE employees SET 
+          phone = COALESCE(?, phone),
+          address = COALESCE(?, address),
+          dateOfBirth = COALESCE(?, dateOfBirth),
+          avatar = COALESCE(?, avatar)
+         WHERE employeeId = ? OR LOWER(email) = LOWER(?)`,
+        [phone || null, address || null, dateOfBirth || null, avatar || null, targetId, targetEmail]
+      );
+    } catch (dbErr) {
+      console.warn('Note: SQLite update fallback to in-memory store:', dbErr.message);
+    }
+
+    return res.json({
+      success: true,
+      message: 'Profile updated successfully',
+      data: updatedProfile
+    });
+  } catch (err) {
+    console.error('Error updating employee profile:', err);
+    return res.status(500).json({ success: false, message: 'Failed to update employee profile' });
+  }
+});
 
 // API 404 Catch-All Handler (Ensures clean JSON error for invalid endpoints)
 app.all('/api/*', (req, res) => {

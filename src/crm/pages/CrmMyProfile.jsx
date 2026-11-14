@@ -64,25 +64,17 @@ export const CrmMyProfile = () => {
   });
   const [notifSaving, setNotifSaving] = useState(false);
 
-  // Resolved identity
+  // Resolved identity dynamically based on authenticated user session (Bug #11)
   const activeEmployeeId = useMemo(() => {
-    return currentEmployee?.employeeId || currentEmployee?.id || user?.employeeId || user?.id || (
-      user?.name === 'Fatima' ? 'REV-EMP-107' :
-        user?.name?.includes('Divya') ? 'REV-EMP-102' :
-          user?.name?.includes('Praveen') ? 'REV-EMP-108' : 'REV-EMP-006'
-    );
+    return currentEmployee?.employeeId || currentEmployee?.id || user?.employeeId || user?.id || 'REV-EMP-001';
   }, [currentEmployee, user]);
 
   const activeEmployeeEmail = useMemo(() => {
-    return currentEmployee?.email || user?.email || (
-      user?.name === 'Fatima' ? 'fatima.intl@revivalinternational.com' :
-        user?.name?.includes('Divya') ? 'divya.enq@revivalinternational.com' :
-          user?.name?.includes('Praveen') ? 'praveen.enq@revivalinternational.com' : 'balavarshini.s@revivalinternational.com'
-    );
+    return currentEmployee?.email || user?.email || 'admin@revivalinternational.com';
   }, [currentEmployee, user]);
 
   const activeEmployeeName = useMemo(() => {
-    return currentEmployee?.name || user?.name || 'Balavarshini S.';
+    return currentEmployee?.name || user?.name || 'Administrator';
   }, [currentEmployee, user]);
 
   // Fetch full employee profile and real-time task metrics from backend
@@ -102,7 +94,7 @@ export const CrmMyProfile = () => {
           'x-employee-id': activeEmployeeId,
           'x-employee-email': activeEmployeeEmail,
           'x-employee-name': activeEmployeeName,
-          'x-user-role': currentRole || 'HR Operations'
+          'x-user-role': currentRole || user?.role || 'Super Admin'
         }
       });
 
@@ -119,26 +111,24 @@ export const CrmMyProfile = () => {
           avatar: json.data.avatar || ''
         });
       } else {
-        // Fallback to local user context if backend returns empty
+        // Fallback to active logged-in user session (Bug #11)
         const fallbackProfile = {
           id: activeEmployeeId,
           employeeId: activeEmployeeId,
           name: activeEmployeeName,
           email: activeEmployeeEmail,
-          phone: currentEmployee?.phone || user?.phone || '+91 9876543214',
-          role: currentRole || 'HR Operations',
-          department: currentEmployee?.department || user?.department || 'International HR Operations',
-          designation: currentEmployee?.designation || user?.designation || 'HR Operations Specialist',
-          operationTeam: currentEmployee?.operationTeam || user?.operationTeam || 'International HR Operations',
-          assignedBranch: (activeEmployeeName === 'Fatima' || activeEmployeeName.includes('Balavarshini'))
-            ? 'Branch A: International HR Operations (International Admissions & Consulting)'
-            : 'Branch B: Enquiry HR Operations (Career Guidance, Student Academy, College Admissions)',
-          reportingManager: 'Priya Sharma (HR Lead)',
-          joiningDate: '2023-08-10',
+          phone: currentEmployee?.phone || user?.phone || '+971 4 123 4567',
+          role: currentRole || user?.role || 'Super Admin',
+          department: currentEmployee?.department || user?.department || 'Executive Management',
+          designation: currentEmployee?.designation || user?.designation || (currentRole === 'Super Admin' ? 'Senior Executive Director' : 'Operations Specialist'),
+          operationTeam: currentEmployee?.operationTeam || user?.operationTeam || 'Enterprise Management',
+          assignedBranch: currentEmployee?.assignedBranch || user?.assignedBranch || 'Global Headquarters, Dubai UAE',
+          reportingManager: currentEmployee?.reportingManager || 'Executive Board of Directors',
+          joiningDate: currentEmployee?.joiningDate || user?.joiningDate || '2023-01-15',
           employmentStatus: 'Full-Time (Active)',
-          dateOfBirth: '1996-11-14',
-          address: 'OMR IT Corridor, Chennai, India',
-          avatar: user?.avatar || 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=150&auto=format&fit=crop&q=80',
+          dateOfBirth: currentEmployee?.dateOfBirth || user?.dateOfBirth || '1990-05-20',
+          address: currentEmployee?.address || user?.address || 'Dubai Internet City, Dubai, UAE',
+          avatar: currentEmployee?.avatar || user?.avatar || 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=150&auto=format&fit=crop&q=80',
           status: 'Active',
           stats: {
             totalTasks: 4,
@@ -195,6 +185,24 @@ export const CrmMyProfile = () => {
     e.preventDefault();
     setEditSaving(true);
     setEditError('');
+
+    // Client-side validation for Mobile Number & DOB (Bug #9)
+    if (editFormData.phone) {
+      const digits = editFormData.phone.replace(/\D/g, '');
+      if (digits.length < 7 || digits.length > 15) {
+        setEditError('Please enter a valid mobile number with 7 to 15 digits (e.g. +971 50 123 4567 or +91 98765 43210).');
+        setEditSaving(false);
+        return;
+      }
+    }
+    if (editFormData.dateOfBirth) {
+      const d = new Date(editFormData.dateOfBirth);
+      if (isNaN(d.getTime()) || d > new Date()) {
+        setEditError('Please enter a valid past Date of Birth.');
+        setEditSaving(false);
+        return;
+      }
+    }
 
     try {
       const payload = {
@@ -713,13 +721,6 @@ export const CrmMyProfile = () => {
                   <p className="text-xs text-slate-400">Verified identity & contact credentials</p>
                 </div>
               </div>
-
-              <button
-                onClick={handleOpenEditModal}
-                className="text-xs font-bold text-gold-600 dark:text-gold-400 hover:underline flex items-center gap-1 cursor-pointer"
-              >
-                <Edit3 className="w-3.5 h-3.5" /> Edit Details
-              </button>
             </div>
 
             <div className="space-y-4 text-xs">
@@ -1278,7 +1279,7 @@ export const CrmMyProfile = () => {
                   type="tel"
                   value={editFormData.phone}
                   onChange={(e) => setEditFormData(prev => ({ ...prev, phone: e.target.value }))}
-                  placeholder="+91 98765 43214"
+                  placeholder="+971 50 123 4567 or +91 98765 43210"
                   required
                   className="w-full px-3 py-2 rounded-xl bg-slate-50 dark:bg-navy-900 border border-slate-200 dark:border-navy-700 text-slate-900 dark:text-white text-xs focus:outline-none focus:border-gold-500 font-mono"
                 />
@@ -1292,6 +1293,7 @@ export const CrmMyProfile = () => {
                 </label>
                 <input
                   type="date"
+                  max={new Date().toISOString().split('T')[0]}
                   value={editFormData.dateOfBirth}
                   onChange={(e) => setEditFormData(prev => ({ ...prev, dateOfBirth: e.target.value }))}
                   className="w-full px-3 py-2 rounded-xl bg-slate-50 dark:bg-navy-900 border border-slate-200 dark:border-navy-700 text-slate-900 dark:text-white text-xs focus:outline-none focus:border-gold-500"

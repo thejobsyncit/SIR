@@ -483,7 +483,7 @@ export const ServiceEnquiryModal = ({ isOpen, onClose, service, onNavigateToJobs
                   name="phone"
                   value={formData.phone}
                   onChange={handleInputChange}
-                  placeholder="+971 50 123 4567"
+                  placeholder="Enter phone number"
                   className={`w-full bg-slate-50 dark:bg-navy-950 border px-3 py-2 rounded-xl focus:outline-none focus:ring-2 focus:ring-gold-500 ${
                     formErrors.phone ? 'border-rose-500' : 'border-slate-200 dark:border-navy-700'
                   }`}

@@ -609,7 +609,7 @@ export const JOBS_LIST = [
     skills: ['Project Management', 'FIDIC Contracts', 'Primavera P6', 'Site Leadership', 'Budget Control'],
     qualification: "Bachelor's / Master's Degree in Civil Engineering",
     benefits: ['Tax-free salary', 'Family Visa Sponsorship', 'Private Medical Insurance', 'Annual Flight Tickets', 'Performance Bonus'],
-    postedDate: '2 days ago',
+    postedDate: '12 Nov 2026',
     featured: true
   },
   {
@@ -626,7 +626,7 @@ export const JOBS_LIST = [
     skills: ['Drilling Operations', 'Well Control', 'IWCF Certified', 'HSE Management', 'Subsea Engineering'],
     qualification: "B.Sc. Petroleum / Mechanical Engineering",
     benefits: ['Rotational Schedule (28/28)', 'Free Housing & Transportation', 'Full Health Coverage', 'Completion Bonus'],
-    postedDate: '1 day ago',
+    postedDate: '13 Nov 2026',
     featured: true
   },
   {
@@ -643,7 +643,7 @@ export const JOBS_LIST = [
     skills: ['Critical Care', 'Ventilator Management', 'BLS / ACLS Certified', 'Patient Assessment'],
     qualification: "B.Sc. Nursing + Active Nursing License (Saudi Prometric preferred)",
     benefits: ['Tax-free package', 'Free Furnished Apartment', '30 Days Annual Leave', 'Flight Allowance'],
-    postedDate: '3 days ago',
+    postedDate: '11 Nov 2026',
     featured: true
   },
   {
@@ -660,7 +660,7 @@ export const JOBS_LIST = [
     skills: ['Fine Dining Culinary', 'Menu Engineering', 'HACCP Certification', 'P&L Management'],
     qualification: "Diploma / Degree in Culinary Arts",
     benefits: ['Service Charge Sharing', 'Luxury Accommodation', 'Family Medical Insurance', 'Worldwide Hotel Discounts'],
-    postedDate: 'Just now',
+    postedDate: '14 Nov 2026',
     featured: true
   },
   {
@@ -677,7 +677,7 @@ export const JOBS_LIST = [
     skills: ['AWS Architect Professional', 'Kubernetes', 'Terraform', 'DevOps CI/CD', 'Security Compliance'],
     qualification: "Bachelor / Master in Computer Science or IT",
     benefits: ['Employment Pass Sponsorship', 'Equity Options', 'Flexible Remote Days', 'Comprehensive Health & Dental'],
-    postedDate: '4 days ago',
+    postedDate: '10 Nov 2026',
     featured: false
   },
   {
@@ -694,7 +694,7 @@ export const JOBS_LIST = [
     skills: ['Hydraulics & Pneumatics', 'CMMS SAP', 'Root Cause Analysis', 'Preventive Maintenance'],
     qualification: "B.E. / B.Tech Mechanical Engineering",
     benefits: ['Housing Allowance', 'Schooling Allowance for Children', 'End of Service Gratuity'],
-    postedDate: '5 days ago',
+    postedDate: '09 Nov 2026',
     featured: false
   },
   {
@@ -711,7 +711,7 @@ export const JOBS_LIST = [
     skills: ['Supply Chain Strategy', 'Warehouse Automation', 'Customs Clearance', 'Vendor Management'],
     qualification: "Master in Supply Chain / MBA",
     benefits: ['Executive Bonus', 'Executive Car', 'Family Visa & Private Healthcare', 'Annual Executive Tickets'],
-    postedDate: '1 day ago',
+    postedDate: '13 Nov 2026',
     featured: true
   },
   {
@@ -728,7 +728,7 @@ export const JOBS_LIST = [
     skills: ['EASA Part-66 B1/B2', 'Boeing 777 Type Rating', 'Aviation Safety', 'Avionics'],
     qualification: "Aircraft Maintenance License / Degree",
     benefits: ['Duty Travel Privileges', 'Tax Free Base Salary', 'Furnished Accommodation', 'Concessionary Flight Tickets'],
-    postedDate: '3 days ago',
+    postedDate: '11 Nov 2026',
     featured: false
   },
   {
@@ -745,7 +745,7 @@ export const JOBS_LIST = [
     skills: ['Revit MEP', 'Navisworks Manage', 'BIM Level 2', 'Clash Resolution', 'COBie'],
     qualification: "B.Sc. Mechanical / Electrical Engineering",
     benefits: ['Family Accommodation Allowance', 'Premium Health Plan', 'Relocation Package'],
-    postedDate: 'Just now',
+    postedDate: '14 Nov 2026',
     featured: true
   },
   {
@@ -762,7 +762,7 @@ export const JOBS_LIST = [
     skills: ['SIEM Splunk', 'Threat Hunting', 'CISSP / CISM', 'Incident Response', 'SAMA Compliance'],
     qualification: "Bachelor in Cybersecurity / Computer Science",
     benefits: ['Performance Incentive', 'Family Visa & Flights', 'Executive Health Insurance'],
-    postedDate: '2 days ago',
+    postedDate: '12 Nov 2026',
     featured: false
   }
 ];

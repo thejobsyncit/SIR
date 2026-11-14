@@ -12,7 +12,65 @@ import jsPDF from 'jspdf';
 import ScrollReveal from '../../components/ScrollReveal';
 import CrmHrTaskAssignment from '../components/CrmHrTaskAssignment';
 
-// Initial Workforce Directory Constants
+// Initial Workforce Directory Constants & Shift Configurations
+export const SHIFT_CONFIGS = [
+  {
+    id: 'shift-9-6',
+    shiftName: 'General Day Shift',
+    timing: '09:00 AM - 06:00 PM',
+    startTime: '09:00 AM',
+    endTime: '06:00 PM',
+    badge: 'Core Operations',
+    description: 'Core operations, HR lead, client advisory, interviews, and student academy.'
+  },
+  {
+    id: 'shift-10-7',
+    shiftName: 'Corporate Mid-Day Shift',
+    timing: '10:00 AM - 07:00 PM',
+    startTime: '10:00 AM',
+    endTime: '07:00 PM',
+    badge: 'Corporate Accounts',
+    description: 'Corporate client accounts, candidate evening debriefs, and global tech hiring.'
+  },
+  {
+    id: 'shift-1-930',
+    shiftName: 'UK & Middle East Overlap',
+    timing: '01:00 PM - 09:30 PM',
+    startTime: '01:00 PM',
+    endTime: '09:30 PM',
+    badge: 'GCC & EMEA',
+    description: 'Dubai, Riyadh and European corporate hiring partner coordination and visa desk.'
+  }
+];
+
+export const computePunctuality = (checkInStr, shiftId) => {
+  if (!checkInStr || checkInStr === '-' || checkInStr.toLowerCase().includes('pending')) {
+    return { isLate: false, lateMinutes: 0, status: 'Pending Clock-In' };
+  }
+  const shift = SHIFT_CONFIGS.find(s => s.id === shiftId) || SHIFT_CONFIGS[0];
+  const [shiftHourStr, shiftMinPart] = shift.startTime.split(':');
+  let shiftH = parseInt(shiftHourStr, 10);
+  const shiftM = parseInt(shiftMinPart.slice(0, 2), 10);
+  if (shift.startTime.toUpperCase().includes('PM') && shiftH !== 12) shiftH += 12;
+  if (shift.startTime.toUpperCase().includes('AM') && shiftH === 12) shiftH = 0;
+  const shiftTotalMinutes = shiftH * 60 + shiftM;
+
+  const match = checkInStr.match(/(\d{1,2}):(\d{2})\s*(AM|PM)?/i);
+  if (!match) return { isLate: false, lateMinutes: 0, status: 'On Time' };
+  let h = parseInt(match[1], 10);
+  const m = parseInt(match[2], 10);
+  const ampm = (match[3] || '').toUpperCase();
+  if (ampm === 'PM' && h !== 12) h += 12;
+  if (ampm === 'AM' && h === 12) h = 0;
+  const punchTotalMinutes = h * 60 + m;
+
+  const diff = punchTotalMinutes - shiftTotalMinutes;
+  if (diff > 0) {
+    return { isLate: true, lateMinutes: diff, status: `Late (${diff} mins)` };
+  }
+  return { isLate: false, lateMinutes: 0, status: 'On Time' };
+};
+
 export const INITIAL_HR_EMPLOYEES = [
   {
     id: 'REV-EMP-101',
@@ -29,7 +87,9 @@ export const INITIAL_HR_EMPLOYEES = [
     salary: '₹68,000 / mo',
     ctc: '₹8.16 LPA',
     leaveBalance: { casual: 6, sick: 7, paid: 12 },
-    attendanceToday: { status: 'Present', checkIn: '08:52 AM', checkOut: '06:05 PM', late: false, hours: '9.2 hrs' }
+    shiftId: 'shift-9-6',
+    shiftName: 'General Day Shift (09:00 AM - 06:00 PM)',
+    attendanceToday: { status: 'Present', checkIn: '08:52 AM', checkOut: '06:05 PM', late: false, lateMinutes: 0, hours: '9.2 hrs', punchSource: 'Biometric Scanner #01', loginStatus: 'On Time' }
   },
   {
     id: 'REV-EMP-102',
@@ -46,7 +106,9 @@ export const INITIAL_HR_EMPLOYEES = [
     salary: '₹62,000 / mo',
     ctc: '₹7.44 LPA',
     leaveBalance: { casual: 5, sick: 8, paid: 14 },
-    attendanceToday: { status: 'Present', checkIn: '09:08 AM', checkOut: '06:15 PM', late: true, hours: '9.1 hrs' }
+    shiftId: 'shift-9-6',
+    shiftName: 'General Day Shift (09:00 AM - 06:00 PM)',
+    attendanceToday: { status: 'Present', checkIn: '09:08 AM', checkOut: '06:15 PM', late: true, lateMinutes: 8, hours: '9.1 hrs', punchSource: 'Web Portal SSO', loginStatus: 'Late (8 mins)' }
   },
   {
     id: 'REV-EMP-103',
@@ -63,7 +125,9 @@ export const INITIAL_HR_EMPLOYEES = [
     salary: '₹55,000 / mo',
     ctc: '₹6.60 LPA',
     leaveBalance: { casual: 7, sick: 6, paid: 10 },
-    attendanceToday: { status: 'Present', checkIn: '08:58 AM', checkOut: '06:00 PM', late: false, hours: '9.0 hrs' }
+    shiftId: 'shift-9-6',
+    shiftName: 'General Day Shift (09:00 AM - 06:00 PM)',
+    attendanceToday: { status: 'Present', checkIn: '08:58 AM', checkOut: '06:00 PM', late: false, lateMinutes: 0, hours: '9.0 hrs', punchSource: 'Face ID Terminal', loginStatus: 'On Time' }
   },
   {
     id: 'REV-EMP-104',
@@ -80,7 +144,9 @@ export const INITIAL_HR_EMPLOYEES = [
     salary: '₹85,000 / mo',
     ctc: '₹10.20 LPA',
     leaveBalance: { casual: 8, sick: 9, paid: 15 },
-    attendanceToday: { status: 'Present', checkIn: '08:45 AM', checkOut: '06:20 PM', late: false, hours: '9.5 hrs' }
+    shiftId: 'shift-10-7',
+    shiftName: 'Corporate Mid-Day Shift (10:00 AM - 07:00 PM)',
+    attendanceToday: { status: 'Present', checkIn: '09:52 AM', checkOut: '07:15 PM', late: false, lateMinutes: 0, hours: '9.4 hrs', punchSource: 'Web Portal SSO', loginStatus: 'On Time' }
   },
   {
     id: 'REV-EMP-105',
@@ -97,7 +163,9 @@ export const INITIAL_HR_EMPLOYEES = [
     salary: '₹75,000 / mo',
     ctc: '₹9.00 LPA',
     leaveBalance: { casual: 4, sick: 5, paid: 11 },
-    attendanceToday: { status: 'Present', checkIn: '09:14 AM', checkOut: '06:10 PM', late: true, hours: '8.9 hrs' }
+    shiftId: 'shift-10-7',
+    shiftName: 'Corporate Mid-Day Shift (10:00 AM - 07:00 PM)',
+    attendanceToday: { status: 'Present', checkIn: '10:14 AM', checkOut: '07:08 PM', late: true, lateMinutes: 14, hours: '8.9 hrs', punchSource: 'Mobile App GPS', loginStatus: 'Late (14 mins)' }
   },
   {
     id: 'REV-EMP-106',
@@ -114,7 +182,9 @@ export const INITIAL_HR_EMPLOYEES = [
     salary: '₹95,000 / mo',
     ctc: '₹11.40 LPA',
     leaveBalance: { casual: 6, sick: 6, paid: 9 },
-    attendanceToday: { status: 'On Leave', checkIn: '-', checkOut: '-', late: false, hours: '0 hrs' }
+    shiftId: 'shift-10-7',
+    shiftName: 'Corporate Mid-Day Shift (10:00 AM - 07:00 PM)',
+    attendanceToday: { status: 'On Leave', checkIn: '-', checkOut: '-', late: false, lateMinutes: 0, hours: '0 hrs', punchSource: '-', loginStatus: 'On Leave' }
   },
   {
     id: 'REV-EMP-107',
@@ -131,7 +201,9 @@ export const INITIAL_HR_EMPLOYEES = [
     salary: '₹58,000 / mo',
     ctc: '₹6.96 LPA',
     leaveBalance: { casual: 4, sick: 4, paid: 6 },
-    attendanceToday: { status: 'Present', checkIn: '08:50 AM', checkOut: '06:05 PM', late: false, hours: '9.2 hrs' }
+    shiftId: 'shift-9-6',
+    shiftName: 'General Day Shift (09:00 AM - 06:00 PM)',
+    attendanceToday: { status: 'Present', checkIn: '08:50 AM', checkOut: '06:05 PM', late: false, lateMinutes: 0, hours: '9.2 hrs', punchSource: 'Biometric Scanner #02', loginStatus: 'On Time' }
   },
   {
     id: 'REV-EMP-108',
@@ -148,7 +220,104 @@ export const INITIAL_HR_EMPLOYEES = [
     salary: '₹1,10,000 / mo',
     ctc: '₹13.20 LPA',
     leaveBalance: { casual: 9, sick: 10, paid: 16 },
-    attendanceToday: { status: 'Absent', checkIn: '-', checkOut: '-', late: false, hours: '0 hrs' }
+    shiftId: 'shift-10-7',
+    shiftName: 'Corporate Mid-Day Shift (10:00 AM - 07:00 PM)',
+    attendanceToday: { status: 'Absent', checkIn: 'Pending', checkOut: '-', late: false, lateMinutes: 0, hours: '0 hrs', punchSource: '-', loginStatus: 'Pending Clock-In' }
+  },
+  {
+    id: 'REV-EMP-109',
+    name: 'Priyanka Sharma',
+    role: 'Senior Technical Talent Scout',
+    department: 'Talent Acquisition',
+    email: 'priyanka.s@revivalcrm.com',
+    phone: '+91 98401 11209',
+    joiningDate: '2023-09-01',
+    status: 'Active',
+    employmentType: 'Full-Time Permanent',
+    location: 'Chennai HQ',
+    avatarLetter: 'P',
+    salary: '₹64,000 / mo',
+    ctc: '₹7.68 LPA',
+    leaveBalance: { casual: 6, sick: 7, paid: 11 },
+    shiftId: 'shift-9-6',
+    shiftName: 'General Day Shift (09:00 AM - 06:00 PM)',
+    attendanceToday: { status: 'Present', checkIn: '08:46 AM', checkOut: '06:02 PM', late: false, lateMinutes: 0, hours: '9.3 hrs', punchSource: 'Biometric Scanner #01', loginStatus: 'On Time' }
+  },
+  {
+    id: 'REV-EMP-110',
+    name: 'Karthik Subramanian',
+    role: 'Global Client Account Partner',
+    department: 'Client Advisory',
+    email: 'karthik.sub@revivalcrm.com',
+    phone: '+91 98401 11210',
+    joiningDate: '2023-06-12',
+    status: 'Active',
+    employmentType: 'Full-Time Permanent',
+    location: 'Chennai HQ',
+    avatarLetter: 'K',
+    salary: '₹78,000 / mo',
+    ctc: '₹9.36 LPA',
+    leaveBalance: { casual: 7, sick: 5, paid: 13 },
+    shiftId: 'shift-10-7',
+    shiftName: 'Corporate Mid-Day Shift (10:00 AM - 07:00 PM)',
+    attendanceToday: { status: 'Present', checkIn: '09:56 AM', checkOut: 'In Office', late: false, lateMinutes: 0, hours: 'Active', punchSource: 'Web Portal SSO', loginStatus: 'On Time' }
+  },
+  {
+    id: 'REV-EMP-111',
+    name: 'Ananya Roy',
+    role: 'Middle East Mobilization Coordinator',
+    department: 'HR Operations',
+    email: 'ananya.roy@revivalcrm.com',
+    phone: '+91 98401 11211',
+    joiningDate: '2024-02-15',
+    status: 'Active',
+    employmentType: 'Full-Time Permanent',
+    location: 'Chennai HQ',
+    avatarLetter: 'A',
+    salary: '₹52,000 / mo',
+    ctc: '₹6.24 LPA',
+    leaveBalance: { casual: 5, sick: 6, paid: 10 },
+    shiftId: 'shift-10-7',
+    shiftName: 'Corporate Mid-Day Shift (10:00 AM - 07:00 PM)',
+    attendanceToday: { status: 'Present', checkIn: '10:07 AM', checkOut: 'In Office', late: true, lateMinutes: 7, hours: 'Active', punchSource: 'Mobile App GPS', loginStatus: 'Late (7 mins)' }
+  },
+  {
+    id: 'REV-EMP-112',
+    name: 'Mohammed Farhan',
+    role: 'GCC Visa Compliance Specialist',
+    department: 'HR Operations',
+    email: 'farhan.m@revivalcrm.com',
+    phone: '+91 98401 11212',
+    joiningDate: '2023-10-20',
+    status: 'Active',
+    employmentType: 'Full-Time Permanent',
+    location: 'Dubai / Chennai Overlap',
+    avatarLetter: 'M',
+    salary: '₹82,000 / mo',
+    ctc: '₹9.84 LPA',
+    leaveBalance: { casual: 8, sick: 8, paid: 14 },
+    shiftId: 'shift-1-930',
+    shiftName: 'UK & Middle East Overlap (01:00 PM - 09:30 PM)',
+    attendanceToday: { status: 'Present', checkIn: '12:54 PM', checkOut: 'In Office', late: false, lateMinutes: 0, hours: 'Active', punchSource: 'Face ID Terminal', loginStatus: 'On Time' }
+  },
+  {
+    id: 'REV-EMP-113',
+    name: 'Tariq Al-Mansoor',
+    role: 'Middle East Corporate Liaison Officer',
+    department: 'Client Advisory',
+    email: 'tariq.mansoor@revivalcrm.com',
+    phone: '+971 50 192 8374',
+    joiningDate: '2023-11-01',
+    status: 'Active',
+    employmentType: 'Full-Time Permanent',
+    location: 'Dubai HQ',
+    avatarLetter: 'T',
+    salary: '₹92,000 / mo',
+    ctc: '₹11.04 LPA',
+    leaveBalance: { casual: 6, sick: 8, paid: 15 },
+    shiftId: 'shift-1-930',
+    shiftName: 'UK & Middle East Overlap (01:00 PM - 09:30 PM)',
+    attendanceToday: { status: 'Present', checkIn: '01:06 PM', checkOut: 'In Office', late: true, lateMinutes: 6, hours: 'Active', punchSource: 'Web Portal SSO', loginStatus: 'Late (6 mins)' }
   }
 ];
 
@@ -768,14 +937,46 @@ export const CrmHrLeadDashboard = ({ initialSection }) => {
     }
   };
 
-  // 1. EMPLOYEES DATA (Feature 1, 4) - With LocalStorage Persistence
+  // 1. EMPLOYEES DATA (Feature 1, 4) - With LocalStorage Persistence & Shift Normalization
   const STORAGE_KEY_WORKFORCE = 'sir_crm_workforce_directory_v2';
   const [employees, setEmployees] = useState(() => {
     try {
       const saved = localStorage.getItem(STORAGE_KEY_WORKFORCE);
       if (saved) {
-        const parsed = JSON.parse(saved);
-        if (Array.isArray(parsed) && parsed.length > 0) return parsed;
+        let parsed = JSON.parse(saved);
+        if (Array.isArray(parsed) && parsed.length > 0) {
+          // Normalize and assign shiftId if missing or unmigrated
+          const needsSync = parsed.some(e => !e.shiftId || !e.attendanceToday?.loginStatus || !e.attendanceToday?.punchSource);
+          if (needsSync) {
+            parsed = parsed.map((emp, i) => {
+              const matchedInitial = INITIAL_HR_EMPLOYEES.find(init => init.id === emp.id || init.name === emp.name);
+              const defaultShiftId = emp.shiftId || (matchedInitial ? matchedInitial.shiftId : (i % 3 === 0 ? 'shift-9-6' : (i % 3 === 1 ? 'shift-10-7' : 'shift-1-930')));
+              const shiftObj = SHIFT_CONFIGS.find(s => s.id === defaultShiftId) || SHIFT_CONFIGS[0];
+              const att = emp.attendanceToday || (matchedInitial ? matchedInitial.attendanceToday : {});
+              const isLeave = att.status === 'On Leave' || att.status === 'Leave';
+              const isAbsent = att.status === 'Absent' || att.checkIn === '-' || att.checkIn === 'Pending';
+              const isLate = !!att.late;
+              const loginStatus = isLeave ? 'On Leave' : (isAbsent ? 'Pending Clock-In' : (isLate ? `Late (${att.lateMinutes || 8} mins)` : 'On Time'));
+              return {
+                ...emp,
+                shiftId: defaultShiftId,
+                shiftName: `${shiftObj.shiftName} (${shiftObj.timing})`,
+                attendanceToday: {
+                  status: att.status || (isLeave ? 'On Leave' : 'Present'),
+                  checkIn: att.checkIn || (isLeave ? '-' : (isAbsent ? 'Pending' : (defaultShiftId === 'shift-10-7' ? '09:55 AM' : (defaultShiftId === 'shift-1-930' ? '12:55 PM' : '08:52 AM')))),
+                  checkOut: att.checkOut || (isLeave || isAbsent ? '-' : (defaultShiftId === 'shift-10-7' ? '07:05 PM' : (defaultShiftId === 'shift-1-930' ? '09:30 PM' : '06:05 PM'))),
+                  late: isLate,
+                  lateMinutes: att.lateMinutes || (isLate ? 8 : 0),
+                  hours: att.hours || (isLeave || isAbsent ? '0 hrs' : '9.1 hrs'),
+                  punchSource: att.punchSource || (isLeave || isAbsent ? '-' : 'Biometric Scanner #01'),
+                  loginStatus: att.loginStatus || loginStatus
+                }
+              };
+            });
+            localStorage.setItem(STORAGE_KEY_WORKFORCE, JSON.stringify(parsed));
+          }
+          return parsed;
+        }
       }
     } catch (e) {}
     return INITIAL_HR_EMPLOYEES;
@@ -849,7 +1050,20 @@ export const CrmHrLeadDashboard = ({ initialSection }) => {
       salary: formattedSalary,
       ctc: formattedCtc,
       leaveBalance: { casual: 8, sick: 8, paid: 12 },
-      attendanceToday: { status: 'Present', checkIn: '09:00 AM', checkOut: 'In Office', late: false, hours: 'Active' }
+      shiftId: newEmp.shiftId || 'shift-9-6',
+      shiftName: newEmp.shiftId === 'shift-10-7' 
+        ? 'Corporate Mid-Day Shift (10:00 AM - 07:00 PM)' 
+        : (newEmp.shiftId === 'shift-1-930' ? 'UK & Middle East Overlap (01:00 PM - 09:30 PM)' : 'General Day Shift (09:00 AM - 06:00 PM)'),
+      attendanceToday: {
+        status: 'Present',
+        checkIn: newEmp.shiftId === 'shift-10-7' ? '09:55 AM' : (newEmp.shiftId === 'shift-1-930' ? '12:55 PM' : '08:55 AM'),
+        checkOut: 'In Office',
+        late: false,
+        lateMinutes: 0,
+        hours: 'Active',
+        punchSource: 'Biometric Scanner #01',
+        loginStatus: 'On Time'
+      }
     };
 
     const updated = [item, ...employees];
@@ -1076,12 +1290,90 @@ export const CrmHrLeadDashboard = ({ initialSection }) => {
     { id: 'EXP-102', employee: 'Sreeja Nair', category: 'Campus Drive Hospitality', amount: '₹8,200', receiptsAttached: 2, date: 'Nov 04, 2026', status: 'Pending Approval', description: 'Dinner hospitality for TechVision International campus recruitment panel.' }
   ]);
 
-  // 6. SHIFTS STATE (Advanced Feature 1)
-  const [shifts] = useState([
-    { shiftName: 'General Day Shift', timing: '09:00 AM - 06:00 PM', count: 34, description: 'Core operations, HR lead, client advisory and student academy.' },
-    { shiftName: 'Early Morning Shift', timing: '08:00 AM - 04:30 PM', count: 8, description: 'Singapore & Far East candidate screening and hotline support.' },
-    { shiftName: 'UK & Middle East Overlap', timing: '01:00 PM - 09:30 PM', count: 6, description: 'Dubai, Riyadh and European corporate hiring partner coordination.' }
-  ]);
+  // 6. SHIFTS STATE (Advanced Feature 1: Shift Roster & Live Login Activity)
+  const [shifts] = useState(SHIFT_CONFIGS);
+  const [selectedShiftId, setSelectedShiftId] = useState('shift-9-6');
+  const [shiftRosterSearch, setShiftRosterSearch] = useState('');
+  const [shiftStatusFilter, setShiftStatusFilter] = useState('All');
+  const [editingPunchEmployee, setEditingPunchEmployee] = useState(null);
+  const [punchFormData, setPunchFormData] = useState({
+    checkIn: '',
+    checkOut: '',
+    punchSource: 'Biometric Scanner #01',
+    loginStatus: 'On Time',
+    lateMinutes: 0
+  });
+  const [isAssignModalOpen, setIsAssignModalOpen] = useState(false);
+
+  const handleReassignShift = (employeeId, targetShiftId) => {
+    const targetShift = SHIFT_CONFIGS.find(s => s.id === targetShiftId);
+    if (!targetShift) return;
+
+    const updated = employees.map(emp => {
+      if (emp.id === employeeId) {
+        return {
+          ...emp,
+          shiftId: targetShift.id,
+          shiftName: `${targetShift.shiftName} (${targetShift.timing})`
+        };
+      }
+      return emp;
+    });
+
+    setEmployees(updated);
+    try {
+      localStorage.setItem(STORAGE_KEY_WORKFORCE, JSON.stringify(updated));
+    } catch (e) {}
+
+    const empObj = employees.find(e => e.id === employeeId);
+    showToast(`✓ Shift updated: ${empObj?.name || 'Staff'} reassigned to ${targetShift.shiftName} (${targetShift.timing})`);
+  };
+
+  const handleOpenEditPunch = (emp) => {
+    setEditingPunchEmployee(emp);
+    setPunchFormData({
+      checkIn: emp.attendanceToday?.checkIn || '09:00 AM',
+      checkOut: emp.attendanceToday?.checkOut || '06:00 PM',
+      punchSource: emp.attendanceToday?.punchSource || 'Biometric Scanner #01',
+      loginStatus: emp.attendanceToday?.loginStatus || 'On Time',
+      lateMinutes: emp.attendanceToday?.lateMinutes || 0
+    });
+  };
+
+  const handleSavePunch = (e) => {
+    e.preventDefault();
+    if (!editingPunchEmployee) return;
+
+    const shiftId = editingPunchEmployee.shiftId || 'shift-9-6';
+    const punctuality = computePunctuality(punchFormData.checkIn, shiftId);
+
+    const updated = employees.map(emp => {
+      if (emp.id === editingPunchEmployee.id) {
+        return {
+          ...emp,
+          attendanceToday: {
+            ...emp.attendanceToday,
+            checkIn: punchFormData.checkIn.trim(),
+            checkOut: punchFormData.checkOut.trim() || 'In Office',
+            punchSource: punchFormData.punchSource,
+            late: punctuality.isLate,
+            lateMinutes: punctuality.lateMinutes,
+            loginStatus: punctuality.status,
+            status: punctuality.status === 'On Leave' ? 'On Leave' : (punchFormData.checkIn === '-' || punchFormData.checkIn.toLowerCase().includes('pending') ? 'Absent' : 'Present')
+          }
+        };
+      }
+      return emp;
+    });
+
+    setEmployees(updated);
+    try {
+      localStorage.setItem(STORAGE_KEY_WORKFORCE, JSON.stringify(updated));
+    } catch (err) {}
+
+    showToast(`✓ Punch timestamp updated for ${editingPunchEmployee.name} (${punchFormData.checkIn}) — ${punctuality.status}`);
+    setEditingPunchEmployee(null);
+  };
 
   // 7. GRIEVANCES STATE (Advanced Feature 4)
   const [grievances, setGrievances] = useState([
@@ -2489,33 +2781,590 @@ export const CrmHrLeadDashboard = ({ initialSection }) => {
         )}
 
         {/* ========================================================
-            TAB 9: SHIFTS & ROSTERS (Advanced Feature 1)
+            TAB 9: SHIFTS & ROSTERS (Advanced Feature 1: Shift Roster & Login Time Tracking)
         ======================================================== */}
-        {activeTab === 'shifts' && (
-          <div className="space-y-6 animate-in fade-in duration-200">
-            <div className="bg-white dark:bg-navy-900 border border-slate-200/90 dark:border-navy-800 rounded-3xl p-6 shadow-xs space-y-4">
-              <h3 className="font-serif font-bold text-base text-slate-900 dark:text-white">
-                Working Hour Shifts & Schedule Roster
-              </h3>
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                {shifts.map((s, idx) => (
-                  <div key={idx} className="p-5 bg-slate-50 dark:bg-navy-950 rounded-2xl border border-slate-200/70 dark:border-navy-800 space-y-3">
-                    <div className="flex justify-between items-center">
-                      <h4 className="font-serif font-bold text-slate-900 dark:text-white text-sm">{s.shiftName}</h4>
-                      <span className="px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-gold-500/20 text-gold-700 font-mono">
-                        {s.count} Staff
-                      </span>
-                    </div>
-                    <div className="p-2.5 bg-white dark:bg-navy-900 rounded-xl border border-slate-200/60 dark:border-navy-800 font-mono font-bold text-xs text-emerald-600">
-                      🕒 {s.timing}
-                    </div>
-                    <p className="text-[11px] text-slate-500 leading-relaxed">{s.description}</p>
+        {activeTab === 'shifts' && (() => {
+          const selectedShift = SHIFT_CONFIGS.find(s => s.id === selectedShiftId) || SHIFT_CONFIGS[0];
+          const selectedShiftStaff = employees.filter(e => (e.shiftId || 'shift-9-6') === selectedShift.id);
+          const shiftOnTimeCount = selectedShiftStaff.filter(e => e.attendanceToday?.loginStatus === 'On Time').length;
+          const shiftLateCount = selectedShiftStaff.filter(e => e.attendanceToday?.late || (e.attendanceToday?.loginStatus && e.attendanceToday.loginStatus.startsWith('Late'))).length;
+          const shiftPendingCount = selectedShiftStaff.filter(e => !e.attendanceToday?.checkIn || e.attendanceToday?.checkIn === '-' || e.attendanceToday?.loginStatus?.includes('Pending')).length;
+          const shiftLeaveCount = selectedShiftStaff.filter(e => e.attendanceToday?.status === 'On Leave' || e.attendanceToday?.loginStatus === 'On Leave').length;
+
+          const filteredShiftStaff = selectedShiftStaff.filter(emp => {
+            const q = shiftRosterSearch.toLowerCase().trim();
+            const matchesSearch = !q || 
+              emp.name.toLowerCase().includes(q) || 
+              emp.id.toLowerCase().includes(q) || 
+              emp.role.toLowerCase().includes(q) || 
+              emp.department.toLowerCase().includes(q);
+
+            let matchesStatus = true;
+            if (shiftStatusFilter === 'On-Time') {
+              matchesStatus = emp.attendanceToday?.loginStatus === 'On Time';
+            } else if (shiftStatusFilter === 'Late') {
+              matchesStatus = emp.attendanceToday?.late || (emp.attendanceToday?.loginStatus && emp.attendanceToday.loginStatus.startsWith('Late'));
+            } else if (shiftStatusFilter === 'Pending') {
+              matchesStatus = !emp.attendanceToday?.checkIn || emp.attendanceToday?.checkIn === '-' || emp.attendanceToday?.loginStatus?.includes('Pending');
+            } else if (shiftStatusFilter === 'On Leave') {
+              matchesStatus = emp.attendanceToday?.status === 'On Leave' || emp.attendanceToday?.loginStatus === 'On Leave';
+            }
+
+            return matchesSearch && matchesStatus;
+          });
+
+          const unassignedOrOtherStaff = employees.filter(e => (e.shiftId || 'shift-9-6') !== selectedShift.id);
+
+          return (
+            <div className="space-y-6 animate-in fade-in duration-200">
+              <div className="bg-white dark:bg-navy-900 border border-slate-200/90 dark:border-navy-800 rounded-3xl p-6 shadow-xs space-y-6">
+                
+                {/* Header with Instructions */}
+                <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3">
+                  <div>
+                    <h3 className="font-serif font-bold text-lg text-slate-900 dark:text-white flex items-center gap-2">
+                      <CalendarCheck className="w-5 h-5 text-gold-500" />
+                      <span>Working Hour Shifts & Schedule Roster</span>
+                    </h3>
+                    <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">
+                      Click any shift card below to inspect assigned personnel, live clock-in timestamps, punctuality status, and shift reassignments.
+                    </p>
                   </div>
-                ))}
+                  <div className="flex items-center gap-2">
+                    <span className="text-[11px] font-bold text-slate-400 bg-slate-100 dark:bg-navy-800 px-3 py-1 rounded-full border border-slate-200 dark:border-navy-700">
+                      Total Workforce: {employees.length} Staff
+                    </span>
+                  </div>
+                </div>
+
+                {/* 3 Clickable Shift Cards */}
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                  {SHIFT_CONFIGS.map((s) => {
+                    const staffInShift = employees.filter(e => (e.shiftId || 'shift-9-6') === s.id);
+                    const isSelected = selectedShiftId === s.id;
+                    const onTime = staffInShift.filter(e => e.attendanceToday?.loginStatus === 'On Time').length;
+                    const late = staffInShift.filter(e => e.attendanceToday?.late || (e.attendanceToday?.loginStatus && e.attendanceToday.loginStatus.startsWith('Late'))).length;
+                    const pending = staffInShift.filter(e => !e.attendanceToday?.checkIn || e.attendanceToday?.checkIn === '-' || e.attendanceToday?.loginStatus?.includes('Pending')).length;
+
+                    return (
+                      <div
+                        key={s.id}
+                        onClick={() => setSelectedShiftId(s.id)}
+                        className={`p-5 rounded-2xl transition-all cursor-pointer space-y-3 relative text-left ${
+                          isSelected
+                            ? 'bg-amber-50/70 dark:bg-amber-950/25 border-2 border-amber-500 shadow-md ring-2 ring-amber-500/20'
+                            : 'bg-slate-50 dark:bg-navy-950 border border-slate-200/80 dark:border-navy-800 hover:border-amber-400/80 hover:shadow-xs'
+                        }`}
+                      >
+                        <div className="flex justify-between items-start gap-2">
+                          <div>
+                            <div className="flex items-center gap-1.5 mb-1">
+                              <span className="px-2 py-0.5 rounded text-[9px] font-bold uppercase tracking-wider bg-slate-200 dark:bg-navy-800 text-slate-700 dark:text-slate-300">
+                                {s.badge}
+                              </span>
+                              {isSelected && (
+                                <span className="px-2 py-0.5 rounded text-[9px] font-bold uppercase tracking-wider bg-amber-500 text-navy-950 flex items-center gap-1">
+                                  <Check className="w-2.5 h-2.5" /> Selected
+                                </span>
+                              )}
+                            </div>
+                            <h4 className="font-serif font-bold text-slate-900 dark:text-white text-sm">
+                              {s.shiftName}
+                            </h4>
+                          </div>
+                          <span className="px-2.5 py-0.5 rounded-full text-[11px] font-bold bg-amber-500/20 text-amber-800 dark:text-gold-400 font-mono shrink-0">
+                            {staffInShift.length} Staff
+                          </span>
+                        </div>
+
+                        <div className="p-2.5 bg-white dark:bg-navy-900 rounded-xl border border-slate-200/70 dark:border-navy-800 font-mono font-bold text-xs text-emerald-600 dark:text-emerald-400 flex items-center justify-between">
+                          <span className="flex items-center gap-1.5">
+                            <Clock className="w-3.5 h-3.5 text-emerald-600 dark:text-emerald-400" />
+                            {s.timing}
+                          </span>
+                          <span className="text-[10px] font-sans font-medium text-slate-400">
+                            Start: {s.startTime}
+                          </span>
+                        </div>
+
+                        <div className="flex items-center gap-2 text-[10px] font-semibold text-slate-600 dark:text-slate-400">
+                          <span className="text-emerald-700 dark:text-emerald-400 font-bold">🟢 {onTime} On Time</span>
+                          <span>•</span>
+                          <span className="text-amber-700 dark:text-amber-400 font-bold">🟡 {late} Late</span>
+                          <span>•</span>
+                          <span className="text-slate-500 dark:text-slate-400">⚪ {pending} Pending</span>
+                        </div>
+
+                        <p className="text-[11px] text-slate-500 dark:text-slate-400 leading-relaxed">
+                          {s.description}
+                        </p>
+
+                        <div className="pt-1">
+                          {isSelected ? (
+                            <div className="w-full text-center py-2 px-3 rounded-xl bg-amber-500 text-navy-950 font-bold text-[11px] shadow-xs flex items-center justify-center gap-1.5">
+                              <span>Viewing Assigned Roster ({staffInShift.length})</span>
+                              <span className="text-xs">▼</span>
+                            </div>
+                          ) : (
+                            <button
+                              type="button"
+                              className="w-full text-center py-2 px-3 rounded-xl bg-white dark:bg-navy-900 border border-slate-200 dark:border-navy-800 text-slate-700 dark:text-slate-300 font-bold text-[11px] hover:bg-slate-100 dark:hover:bg-navy-800 transition flex items-center justify-center gap-1.5 cursor-pointer"
+                            >
+                              <span>Click to View Assigned Staff ({staffInShift.length})</span>
+                              <span className="text-xs">→</span>
+                            </button>
+                          )}
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+
+                {/* ========================================================
+                    DETAILED ASSIGNED SHIFT ROSTER & LIVE LOGIN ACTIVITY
+                ======================================================== */}
+                <div className="mt-8 pt-6 border-t border-slate-200 dark:border-navy-800 space-y-4">
+                  
+                  {/* Shift Roster Header & Metric Summary */}
+                  <div className="flex flex-col lg:flex-row justify-between items-start lg:items-center gap-4 bg-slate-50 dark:bg-navy-950 p-4 rounded-2xl border border-slate-200/80 dark:border-navy-800">
+                    <div>
+                      <div className="flex items-center gap-2 mb-1">
+                        <span className="px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-amber-500/20 text-amber-800 dark:text-gold-400 border border-amber-500/30">
+                          Shift Timing • {selectedShift.timing}
+                        </span>
+                        <span className="text-[10px] text-slate-500 dark:text-slate-400 font-mono">
+                          Scheduled Login: {selectedShift.startTime}
+                        </span>
+                      </div>
+                      <h4 className="font-serif font-bold text-slate-900 dark:text-white text-base">
+                        Assigned Personnel & Daily Login Times: {selectedShift.shiftName}
+                      </h4>
+                      <p className="text-[11px] text-slate-500 dark:text-slate-400">
+                        Live clock-in timestamps, punch verification sources, and punctuality audit for this scheduled roster.
+                      </p>
+                    </div>
+
+                    {/* Summary Metric Pills for Selected Shift */}
+                    <div className="flex flex-wrap items-center gap-2">
+                      <div className="px-3 py-1.5 rounded-xl bg-white dark:bg-navy-900 border border-slate-200 dark:border-navy-800 text-center">
+                        <div className="text-[9px] text-slate-400 font-bold uppercase tracking-wider">Assigned Staff</div>
+                        <div className="font-mono font-bold text-sm text-slate-900 dark:text-white">{selectedShiftStaff.length}</div>
+                      </div>
+                      <div className="px-3 py-1.5 rounded-xl bg-emerald-50 dark:bg-emerald-950/30 border border-emerald-200 dark:border-emerald-800 text-center">
+                        <div className="text-[9px] text-emerald-700 dark:text-emerald-400 font-bold uppercase tracking-wider">On Time</div>
+                        <div className="font-mono font-bold text-sm text-emerald-800 dark:text-emerald-300">{shiftOnTimeCount}</div>
+                      </div>
+                      <div className="px-3 py-1.5 rounded-xl bg-amber-50 dark:bg-amber-950/30 border border-amber-200 dark:border-amber-800 text-center">
+                        <div className="text-[9px] text-amber-700 dark:text-amber-400 font-bold uppercase tracking-wider">Late Login</div>
+                        <div className="font-mono font-bold text-sm text-amber-800 dark:text-amber-300">{shiftLateCount}</div>
+                      </div>
+                      <div className="px-3 py-1.5 rounded-xl bg-slate-100 dark:bg-navy-900 border border-slate-200 dark:border-navy-800 text-center">
+                        <div className="text-[9px] text-slate-500 dark:text-slate-400 font-bold uppercase tracking-wider">Pending</div>
+                        <div className="font-mono font-bold text-sm text-slate-700 dark:text-slate-300">{shiftPendingCount}</div>
+                      </div>
+                      <button
+                        type="button"
+                        onClick={() => setIsAssignModalOpen(true)}
+                        className="px-3.5 py-2 bg-gradient-to-r from-amber-500 to-amber-600 hover:from-amber-400 hover:to-amber-500 text-navy-950 font-bold rounded-xl shadow-xs transition cursor-pointer flex items-center gap-1.5 text-xs"
+                      >
+                        <UserPlus className="w-3.5 h-3.5" />
+                        <span>Assign Staff to Shift</span>
+                      </button>
+                    </div>
+                  </div>
+
+                  {/* Filter and Search Bar */}
+                  <div className="flex flex-col sm:flex-row justify-between items-stretch sm:items-center gap-3">
+                    <div className="relative flex-1">
+                      <Search className="w-3.5 h-3.5 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2" />
+                      <input
+                        type="text"
+                        placeholder={`Search ${selectedShift.shiftName} staff by name, role, ID...`}
+                        value={shiftRosterSearch}
+                        onChange={(e) => setShiftRosterSearch(e.target.value)}
+                        className="w-full pl-9 pr-3 py-2 bg-slate-50 dark:bg-navy-950 border border-slate-200 dark:border-navy-800 rounded-xl text-xs text-slate-800 dark:text-slate-200 focus:outline-none focus:border-amber-500"
+                      />
+                    </div>
+
+                    <div className="flex items-center gap-1.5 overflow-x-auto pb-1 sm:pb-0">
+                      {[
+                        { key: 'All', label: `All (${selectedShiftStaff.length})` },
+                        { key: 'On-Time', label: `On Time (${shiftOnTimeCount})` },
+                        { key: 'Late', label: `Late (${shiftLateCount})` },
+                        { key: 'Pending', label: `Pending (${shiftPendingCount})` },
+                        { key: 'On Leave', label: `On Leave (${shiftLeaveCount})` }
+                      ].map(f => (
+                        <button
+                          key={f.key}
+                          onClick={() => setShiftStatusFilter(f.key)}
+                          className={`px-3 py-1.5 rounded-xl font-bold text-xs whitespace-nowrap transition cursor-pointer ${
+                            shiftStatusFilter === f.key
+                              ? 'bg-navy-950 text-white dark:bg-amber-500 dark:text-navy-950 shadow-xs'
+                              : 'bg-slate-100 dark:bg-navy-800 text-slate-600 dark:text-slate-400 hover:bg-slate-200 dark:hover:bg-navy-700'
+                          }`}
+                        >
+                          {f.label}
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+
+                  {/* Roster & Login Times Table */}
+                  <div className="overflow-x-auto border border-slate-200/80 dark:border-navy-800 rounded-2xl shadow-xs">
+                    <table className="w-full text-left text-xs border-collapse">
+                      <thead className="bg-slate-100 dark:bg-navy-950/80 border-b border-slate-200 dark:border-navy-800 text-[11px] font-bold text-slate-600 dark:text-slate-300 uppercase tracking-wider">
+                        <tr>
+                          <th className="py-3 px-4">Staff Member & ID</th>
+                          <th className="py-3 px-4">Role & Department</th>
+                          <th className="py-3 px-4">Login Time (Clock-In)</th>
+                          <th className="py-3 px-4">Punctuality Status</th>
+                          <th className="py-3 px-4">Clock-Out & Work Hours</th>
+                          <th className="py-3 px-4 text-right">Shift Reassignment / Actions</th>
+                        </tr>
+                      </thead>
+                      <tbody className="divide-y divide-slate-100 dark:divide-navy-800 bg-white dark:bg-navy-900">
+                        {filteredShiftStaff.length === 0 ? (
+                          <tr>
+                            <td colSpan="6" className="py-12 text-center text-slate-400 space-y-2">
+                              <Clock className="w-8 h-8 mx-auto text-slate-300 dark:text-navy-700" />
+                              <p className="font-bold text-sm text-slate-600 dark:text-slate-300">
+                                No employees found matching filter criteria in this shift.
+                              </p>
+                              <p className="text-xs text-slate-400">
+                                Assign staff using the button above or switch filters to view all members.
+                              </p>
+                            </td>
+                          </tr>
+                        ) : (
+                          filteredShiftStaff.map((emp) => {
+                            const att = emp.attendanceToday || {};
+                            const isLate = att.late || (att.loginStatus && att.loginStatus.startsWith('Late'));
+                            const isOnLeave = att.status === 'On Leave' || att.loginStatus === 'On Leave';
+                            const isPending = !att.checkIn || att.checkIn === '-' || att.loginStatus?.includes('Pending');
+
+                            return (
+                              <tr key={emp.id} className="hover:bg-slate-50/80 dark:hover:bg-navy-800/40 transition">
+                                {/* 1. Staff Member */}
+                                <td className="py-3.5 px-4">
+                                  <div className="flex items-center gap-3">
+                                    <div className="w-9 h-9 rounded-xl bg-gradient-to-br from-amber-400 to-amber-600 text-navy-950 font-black text-sm flex items-center justify-center shrink-0 shadow-xs">
+                                      {emp.avatarLetter || emp.name.charAt(0)}
+                                    </div>
+                                    <div>
+                                      <div className="font-bold text-slate-900 dark:text-white text-xs flex items-center gap-1.5">
+                                        <span>{emp.name}</span>
+                                      </div>
+                                      <div className="text-[11px] text-slate-400">{emp.email}</div>
+                                      <div className="text-[10px] font-mono font-bold text-amber-700 dark:text-gold-400">
+                                        {emp.id}
+                                      </div>
+                                    </div>
+                                  </div>
+                                </td>
+
+                                {/* 2. Role & Department */}
+                                <td className="py-3.5 px-4">
+                                  <div className="font-bold text-slate-800 dark:text-slate-200 text-xs">
+                                    {emp.role}
+                                  </div>
+                                  <div className="flex items-center gap-1.5 mt-0.5">
+                                    <span className="px-2 py-0.5 rounded text-[10px] font-semibold bg-slate-100 dark:bg-navy-800 text-slate-600 dark:text-slate-300">
+                                      {emp.department}
+                                    </span>
+                                    <span className="text-[10px] text-slate-400">
+                                      • {emp.location || 'Chennai HQ'}
+                                    </span>
+                                  </div>
+                                </td>
+
+                                {/* 3. Login Time (Clock-In) */}
+                                <td className="py-3.5 px-4">
+                                  {isPending ? (
+                                    <div className="flex items-center gap-1.5 text-slate-400 font-mono text-xs">
+                                      <Clock className="w-3.5 h-3.5" />
+                                      <span>Pending Clock-In</span>
+                                    </div>
+                                  ) : isOnLeave ? (
+                                    <div className="flex items-center gap-1.5 text-purple-600 font-mono text-xs">
+                                      <span>🏖️ On Approved Leave</span>
+                                    </div>
+                                  ) : (
+                                    <div>
+                                      <div className="flex items-center gap-1.5 font-mono font-bold text-sm text-slate-900 dark:text-white">
+                                        <Clock className="w-3.5 h-3.5 text-emerald-600 dark:text-emerald-400" />
+                                        <span>{att.checkIn}</span>
+                                      </div>
+                                      <div className="text-[10px] text-slate-400 mt-0.5 flex items-center gap-1">
+                                        <span className="px-1.5 py-0.5 rounded bg-slate-100 dark:bg-navy-800 text-slate-600 dark:text-slate-400 font-sans">
+                                          {att.punchSource || 'Biometric Scanner #01'}
+                                        </span>
+                                      </div>
+                                    </div>
+                                  )}
+                                </td>
+
+                                {/* 4. Punctuality Status */}
+                                <td className="py-3.5 px-4">
+                                  {isOnLeave ? (
+                                    <span className="px-2.5 py-1 rounded-full text-[10px] font-bold bg-purple-100 dark:bg-purple-950/40 text-purple-800 dark:text-purple-300 border border-purple-200">
+                                      🏖️ On Leave
+                                    </span>
+                                  ) : isPending ? (
+                                    <span className="px-2.5 py-1 rounded-full text-[10px] font-bold bg-slate-100 dark:bg-navy-800 text-slate-600 dark:text-slate-400 border border-slate-200">
+                                      ⏱️ Pending Clock-In
+                                    </span>
+                                  ) : isLate ? (
+                                    <span className="px-2.5 py-1 rounded-full text-[10px] font-bold bg-amber-100 dark:bg-amber-950/40 text-amber-900 dark:text-amber-300 border border-amber-300 flex items-center gap-1 w-fit">
+                                      <AlertCircle className="w-3 h-3 text-amber-600 dark:text-amber-400" />
+                                      <span>Late ({att.lateMinutes || 8} mins)</span>
+                                    </span>
+                                  ) : (
+                                    <span className="px-2.5 py-1 rounded-full text-[10px] font-bold bg-emerald-100 dark:bg-emerald-950/40 text-emerald-800 dark:text-emerald-300 border border-emerald-200 flex items-center gap-1 w-fit">
+                                      <CheckCircle2 className="w-3 h-3 text-emerald-600 dark:text-emerald-400" />
+                                      <span>On Time</span>
+                                    </span>
+                                  )}
+                                </td>
+
+                                {/* 5. Clock-Out & Hours */}
+                                <td className="py-3.5 px-4">
+                                  <div className="font-mono text-xs text-slate-700 dark:text-slate-300">
+                                    Out: <span className="font-bold">{att.checkOut || '-'}</span>
+                                  </div>
+                                  <div className="text-[11px] text-slate-400 font-mono">
+                                    Duration: {att.hours || 'Active'}
+                                  </div>
+                                </td>
+
+                                {/* 6. Shift Reassignment & Actions */}
+                                <td className="py-3.5 px-4 text-right">
+                                  <div className="flex items-center justify-end gap-2">
+                                    {/* Shift Reassign Dropdown */}
+                                    <div className="text-left">
+                                      <select
+                                        value={emp.shiftId || 'shift-9-6'}
+                                        onChange={(e) => handleReassignShift(emp.id, e.target.value)}
+                                        className="py-1 px-2.5 rounded-lg bg-slate-50 dark:bg-navy-950 border border-slate-200 dark:border-navy-700 text-[11px] font-bold text-slate-800 dark:text-slate-200 focus:outline-none focus:border-amber-500 cursor-pointer"
+                                        title="Change / Reassign Shift"
+                                      >
+                                        {SHIFT_CONFIGS.map(sc => (
+                                          <option key={sc.id} value={sc.id}>
+                                            ⇄ {sc.timing} ({sc.shiftName})
+                                          </option>
+                                        ))}
+                                      </select>
+                                    </div>
+
+                                    {/* Edit Punch Button */}
+                                    <button
+                                      type="button"
+                                      onClick={() => handleOpenEditPunch(emp)}
+                                      className="p-1.5 rounded-lg border border-slate-200 dark:border-navy-700 hover:bg-slate-100 dark:hover:bg-navy-800 text-slate-700 dark:text-slate-300 transition cursor-pointer"
+                                      title="Edit / Record Login Punch"
+                                    >
+                                      <Clock className="w-3.5 h-3.5" />
+                                    </button>
+                                  </div>
+                                </td>
+                              </tr>
+                            );
+                          })
+                        )}
+                      </tbody>
+                    </table>
+                  </div>
+                </div>
               </div>
+
+              {/* ========================================================
+                  MODAL 1: EDIT / RECORD LOGIN PUNCH TIME
+              ======================================================== */}
+              {editingPunchEmployee && (
+                <div className="fixed inset-0 z-50 bg-navy-950/70 backdrop-blur-xs flex items-center justify-center p-4">
+                  <div className="bg-white dark:bg-navy-900 border border-slate-200 dark:border-navy-800 rounded-3xl max-w-md w-full p-6 shadow-2xl space-y-4 animate-in fade-in zoom-in-95 duration-200">
+                    <div className="flex justify-between items-start border-b border-slate-200 dark:border-navy-800 pb-3">
+                      <div>
+                        <span className="px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-amber-500/20 text-amber-800 dark:text-gold-400">
+                          Attendance & Punch Adjustment
+                        </span>
+                        <h3 className="font-serif font-bold text-base text-slate-900 dark:text-white mt-1">
+                          Record Login Punch: {editingPunchEmployee.name}
+                        </h3>
+                        <p className="text-xs text-slate-500 dark:text-slate-400 font-mono">
+                          {editingPunchEmployee.id} • {editingPunchEmployee.role}
+                        </p>
+                      </div>
+                      <button
+                        type="button"
+                        onClick={() => setEditingPunchEmployee(null)}
+                        className="p-1 rounded-xl text-slate-400 hover:text-slate-600 dark:hover:text-white hover:bg-slate-100 dark:hover:bg-navy-800 cursor-pointer"
+                      >
+                        <X className="w-5 h-5" />
+                      </button>
+                    </div>
+
+                    <form onSubmit={handleSavePunch} className="space-y-4">
+                      <div className="p-3 bg-slate-50 dark:bg-navy-950 rounded-xl border border-slate-200/80 dark:border-navy-800 text-xs space-y-1">
+                        <div className="text-slate-500 dark:text-slate-400">Assigned Shift:</div>
+                        <div className="font-bold text-slate-800 dark:text-slate-200 font-mono">
+                          {editingPunchEmployee.shiftName || 'General Day Shift (09:00 AM - 06:00 PM)'}
+                        </div>
+                      </div>
+
+                      <div className="grid grid-cols-2 gap-3">
+                        <div>
+                          <label className="block text-[11px] font-bold text-slate-700 dark:text-slate-300 mb-1">
+                            Check-In (Login Time) <span className="text-rose-500">*</span>
+                          </label>
+                          <input
+                            type="text"
+                            required
+                            placeholder="e.g. 08:55 AM or 09:15 AM"
+                            value={punchFormData.checkIn}
+                            onChange={(e) => setPunchFormData({ ...punchFormData, checkIn: e.target.value })}
+                            className="w-full px-3 py-2 bg-slate-50 dark:bg-navy-950 border border-slate-200 dark:border-navy-700 rounded-xl text-xs font-mono font-bold text-slate-900 dark:text-white focus:outline-none focus:border-amber-500"
+                          />
+                        </div>
+
+                        <div>
+                          <label className="block text-[11px] font-bold text-slate-700 dark:text-slate-300 mb-1">
+                            Check-Out Time
+                          </label>
+                          <input
+                            type="text"
+                            placeholder="e.g. 06:05 PM or In Office"
+                            value={punchFormData.checkOut}
+                            onChange={(e) => setPunchFormData({ ...punchFormData, checkOut: e.target.value })}
+                            className="w-full px-3 py-2 bg-slate-50 dark:bg-navy-950 border border-slate-200 dark:border-navy-700 rounded-xl text-xs font-mono font-bold text-slate-900 dark:text-white focus:outline-none focus:border-amber-500"
+                          />
+                        </div>
+                      </div>
+
+                      <div>
+                        <label className="block text-[11px] font-bold text-slate-700 dark:text-slate-300 mb-1">
+                          Punch Verification Source
+                        </label>
+                        <select
+                          value={punchFormData.punchSource}
+                          onChange={(e) => setPunchFormData({ ...punchFormData, punchSource: e.target.value })}
+                          className="w-full px-3 py-2 bg-slate-50 dark:bg-navy-950 border border-slate-200 dark:border-navy-700 rounded-xl text-xs font-medium text-slate-900 dark:text-white focus:outline-none focus:border-amber-500 cursor-pointer"
+                        >
+                          <option value="Biometric Scanner #01 (Main Gate)">Biometric Scanner #01 (Main Gate)</option>
+                          <option value="Biometric Scanner #02 (Floor 2)">Biometric Scanner #02 (Floor 2)</option>
+                          <option value="Face ID Terminal (Reception)">Face ID Terminal (Reception)</option>
+                          <option value="Web Portal SSO (Direct Login)">Web Portal SSO (Direct Login)</option>
+                          <option value="Mobile App GPS Punch">Mobile App GPS Punch</option>
+                          <option value="Manual HR Regularization Entry">Manual HR Regularization Entry</option>
+                        </select>
+                      </div>
+
+                      <div className="flex justify-end gap-2.5 pt-3 border-t border-slate-200 dark:border-navy-800">
+                        <button
+                          type="button"
+                          onClick={() => setEditingPunchEmployee(null)}
+                          className="px-4 py-2 bg-slate-100 dark:bg-navy-800 hover:bg-slate-200 text-slate-700 dark:text-slate-300 font-bold rounded-xl transition cursor-pointer text-xs"
+                        >
+                          Cancel
+                        </button>
+                        <button
+                          type="submit"
+                          className="px-5 py-2 bg-gradient-to-r from-amber-500 to-amber-600 hover:from-amber-400 hover:to-amber-500 text-navy-950 font-bold rounded-xl shadow-xs transition cursor-pointer flex items-center gap-1.5 text-xs"
+                        >
+                          <Check className="w-3.5 h-3.5" />
+                          <span>Update Punch & Reaudit</span>
+                        </button>
+                      </div>
+                    </form>
+                  </div>
+                </div>
+              )}
+
+              {/* ========================================================
+                  MODAL 2: QUICK ASSIGN STAFF TO THIS SHIFT
+              ======================================================== */}
+              {isAssignModalOpen && (
+                <div className="fixed inset-0 z-50 bg-navy-950/70 backdrop-blur-xs flex items-center justify-center p-4">
+                  <div className="bg-white dark:bg-navy-900 border border-slate-200 dark:border-navy-800 rounded-3xl max-w-lg w-full p-6 shadow-2xl space-y-4 animate-in fade-in zoom-in-95 duration-200 max-h-[85vh] flex flex-col">
+                    <div className="flex justify-between items-start border-b border-slate-200 dark:border-navy-800 pb-3">
+                      <div>
+                        <span className="px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-amber-500/20 text-amber-800 dark:text-gold-400">
+                          Shift Roster Assignment
+                        </span>
+                        <h3 className="font-serif font-bold text-base text-slate-900 dark:text-white mt-1">
+                          Assign Personnel to: {selectedShift.shiftName}
+                        </h3>
+                        <p className="text-xs text-slate-500 dark:text-slate-400">
+                          Shift Hours: <span className="font-mono font-bold text-emerald-600">{selectedShift.timing}</span>
+                        </p>
+                      </div>
+                      <button
+                        type="button"
+                        onClick={() => setIsAssignModalOpen(false)}
+                        className="p-1 rounded-xl text-slate-400 hover:text-slate-600 dark:hover:text-white hover:bg-slate-100 dark:hover:bg-navy-800 cursor-pointer"
+                      >
+                        <X className="w-5 h-5" />
+                      </button>
+                    </div>
+
+                    <div className="overflow-y-auto flex-1 pr-1 space-y-2.5">
+                      {unassignedOrOtherStaff.length === 0 ? (
+                        <div className="py-8 text-center text-slate-400 text-xs">
+                          All workforce personnel are currently assigned to this shift.
+                        </div>
+                      ) : (
+                        unassignedOrOtherStaff.map((emp) => (
+                          <div
+                            key={emp.id}
+                            className="p-3 bg-slate-50 dark:bg-navy-950 rounded-xl border border-slate-200/80 dark:border-navy-800 flex items-center justify-between gap-3 hover:border-amber-400/60 transition"
+                          >
+                            <div className="flex items-center gap-2.5">
+                              <div className="w-8 h-8 rounded-lg bg-amber-500/20 text-amber-800 dark:text-gold-400 font-bold text-xs flex items-center justify-center shrink-0">
+                                {emp.avatarLetter || emp.name.charAt(0)}
+                              </div>
+                              <div>
+                                <div className="font-bold text-slate-900 dark:text-white text-xs">
+                                  {emp.name}
+                                </div>
+                                <div className="text-[10px] text-slate-400 font-mono">
+                                  {emp.id} • {emp.role}
+                                </div>
+                                <div className="text-[9px] text-amber-700 dark:text-gold-400 font-medium">
+                                  Current: {emp.shiftName || 'General Day Shift'}
+                                </div>
+                              </div>
+                            </div>
+
+                            <button
+                              type="button"
+                              onClick={() => {
+                                handleReassignShift(emp.id, selectedShift.id);
+                                setIsAssignModalOpen(false);
+                              }}
+                              className="px-3 py-1.5 rounded-lg bg-amber-500 hover:bg-amber-400 text-navy-950 font-bold text-[11px] shadow-xs transition cursor-pointer shrink-0 flex items-center gap-1"
+                            >
+                              <span>Move to this Shift</span>
+                              <span>→</span>
+                            </button>
+                          </div>
+                        ))
+                      )}
+                    </div>
+
+                    <div className="pt-3 border-t border-slate-200 dark:border-navy-800 flex justify-end">
+                      <button
+                        type="button"
+                        onClick={() => setIsAssignModalOpen(false)}
+                        className="px-4 py-2 bg-slate-100 dark:bg-navy-800 text-slate-700 dark:text-slate-300 font-bold rounded-xl text-xs hover:bg-slate-200 cursor-pointer"
+                      >
+                        Done
+                      </button>
+                    </div>
+                  </div>
+                </div>
+              )}
             </div>
-          </div>
-        )}
+          );
+        })()}
 
         {/* ========================================================
             TAB 10: DOCUMENT REPOSITORY (Advanced Feature 2)

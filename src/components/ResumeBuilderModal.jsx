@@ -188,7 +188,7 @@ export const ResumeBuilderModal = () => {
                   type="text" 
                   value={formData.phone}
                   onChange={(e) => setFormData({...formData, phone: e.target.value})}
-                  placeholder="e.g. +971 50 123 4567 or +91 98400 12345"
+                  placeholder="Enter phone number"
                   className="w-full bg-slate-50 dark:bg-navy-950 border border-slate-300 dark:border-navy-700 rounded-lg p-2.5 text-navy-900 dark:text-white font-medium focus:border-gold-500"
                 />
               </div>

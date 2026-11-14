@@ -26,6 +26,12 @@ import { InternationalAdmissionsPage } from './pages/InternationalAdmissionsPage
 import { CollegeAdmissionsPage } from './pages/CollegeAdmissionsPage';
 import { SeminarsAndLanguagePage } from './pages/SeminarsAndLanguagePage';
 import { SocialMediaPage } from './pages/SocialMediaPage';
+import { PrivacyPolicyPage } from './pages/legal/PrivacyPolicyPage';
+import { TermsOfUsePage } from './pages/legal/TermsOfUsePage';
+import { CookiePolicyPage } from './pages/legal/CookiePolicyPage';
+import { RefundPolicyPage } from './pages/legal/RefundPolicyPage';
+import { CandidateConsentPage } from './pages/legal/CandidateConsentPage';
+import { FraudAwarenessPage } from './pages/FraudAwarenessPage';
 import { getEducationServiceById, getEducationServiceBySlug } from './data/educationServicesData';
 import { NotFound } from './pages/NotFound';
 import { UnifiedAuthModal } from './components/UnifiedAuthModal';
@@ -203,6 +209,36 @@ export function App() {
         return <BackgroundVerificationPage />;
       case 'contact':
         return <ContactUsPage />;
+      case 'legal-privacy':
+      case 'legal/privacy-policy':
+      case 'privacy-policy':
+      case 'privacy':
+        return <PrivacyPolicyPage />;
+      case 'legal-terms':
+      case 'legal/terms-of-use':
+      case 'terms-of-use':
+      case 'terms':
+        return <TermsOfUsePage />;
+      case 'legal-cookie':
+      case 'legal/cookie-policy':
+      case 'cookie-policy':
+      case 'cookies':
+        return <CookiePolicyPage />;
+      case 'legal-refund':
+      case 'legal/refund-policy':
+      case 'refund-policy':
+      case 'refunds':
+        return <RefundPolicyPage />;
+      case 'legal-consent':
+      case 'legal/candidate-consent':
+      case 'candidate-consent':
+        return <CandidateConsentPage />;
+      case 'fraud-awareness':
+      case 'zero-placement-fees':
+      case 'zero-fees':
+        return <FraudAwarenessPage />;
+      case 'study-abroad':
+        return <EducationDirectory />;
       case 'social':
       case 'social-media':
         return <SocialMediaPage initialChannel="linkedin" />;

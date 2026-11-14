@@ -633,7 +633,7 @@ ${notesText}`,
                     id="phone"
                     type="tel"
                     name="phone"
-                    placeholder="98765 43210"
+                    placeholder="Enter phone number"
                     value={formData.phone}
                     onChange={handlePhoneChange}
                     className={`w-full pl-10 pr-4 py-2.5 text-sm rounded-xl border ${formErrors.phone ? 'border-red-400 bg-red-50/30' : 'border-gray-300 bg-white'

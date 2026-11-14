@@ -1,10 +1,12 @@
 import React, { useState, useEffect } from 'react';
-import { MapPin, Phone, Mail, Clock, MessageSquare, Send, CheckCircle2, Globe, Building2, AlertCircle, X, Sparkles, Loader2, ChevronDown, ChevronUp, HelpCircle } from 'lucide-react';
+import { MapPin, Phone, Mail, Clock, MessageSquare, Send, CheckCircle2, Globe, Building2, AlertCircle, X, Sparkles, Loader2, ChevronDown, ChevronUp, HelpCircle, ExternalLink, ShieldCheck } from 'lucide-react';
 import { useCrm } from '../crm/context/CrmContext';
 import { useApp } from '../context/AppContext';
 import { SERVICES_LIST } from '../data/mockData';
 import ScrollReveal from '../components/ScrollReveal';
 import { SEO } from '../components/SEO';
+import SITE_CONFIG from '../config/siteConfig';
+import CountryPhoneInput from '../components/common/CountryPhoneInput';
 import { trackEnquiryStart, trackEnquiryValidationFailure, trackEnquiryConversion, trackContactClick } from '../services/analytics';
 import { getAttributionData } from '../utils/attribution';
 
@@ -16,12 +18,15 @@ export const ContactUsPage = () => {
   const [submitError, setSubmitError] = useState(null);
   const [formErrors, setFormErrors] = useState({});
   const [phone, setPhone] = useState('');
+  const [phoneValidation, setPhoneValidation] = useState({ isValid: false, error: null });
+  const [consentAgreed, setConsentAgreed] = useState(false);
+  const [parentConsent, setParentConsent] = useState(false);
   const [openFaqIndex, setOpenFaqIndex] = useState(null);
 
   const contactFaqs = [
     {
       q: 'Where is the Revival International headquarters located in Dubai?',
-      a: 'Our corporate headquarters are located at Level 34, Rolex Tower, Financial Center Road, Business Bay, Dubai, United Arab Emirates. We are centrally situated adjacent to the Dubai International Financial Centre (DIFC) and Downtown Dubai.'
+      a: 'Our registered global headquarters are located at Business Center, Meydan Free Zone, Nad Al Sheba, Dubai, United Arab Emirates, with regional sourcing and academic operations at The Revival International Corporate Center, Anna Salai, Chennai, India.'
     },
     {
       q: 'How quickly does the team respond to submitted enquiries?',
@@ -245,38 +250,88 @@ export const ContactUsPage = () => {
 
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start">
 
-        {/* Office Contact Info */}
+        {/* Office Contact Info (Issue #8: Consistent HQ statement + Verified Offices) */}
         <div className="lg:col-span-5 space-y-6">
           <ScrollReveal delay={0.2}>
-            {/* India Head Office Card */}
+            {/* Dubai Global Headquarters Card */}
             <div className="glass-card bg-white dark:bg-navy-950 p-6 sm:p-8 rounded-3xl border border-slate-200 dark:border-gold-500/40 shadow-luxury space-y-4">
               <div className="flex items-center space-x-3 text-gold-600 dark:text-gold-400 border-b border-slate-200 dark:border-navy-800 pb-3">
                 <Building2 className="w-6 h-6" />
                 <div>
-                  <h3 className="font-serif text-xl font-bold text-slate-900 dark:text-white">India Head Office</h3>
-                  <p className="text-[10px] uppercase text-gold-600 dark:text-gold-400 font-bold tracking-widest">Global Operations & Recruitment Hub</p>
+                  <div className="flex items-center gap-2">
+                    <h3 className="font-serif text-xl font-bold text-slate-900 dark:text-white">Dubai Global HQ</h3>
+                    <span className="bg-gold-500/20 text-gold-700 dark:text-gold-300 text-[9px] font-black uppercase px-2 py-0.5 rounded-full">
+                      Headquarters
+                    </span>
+                  </div>
+                  <p className="text-[10px] uppercase text-gold-600 dark:text-gold-400 font-bold tracking-widest">{SITE_CONFIG.brand.legalName}</p>
                 </div>
               </div>
 
               <div className="space-y-3.5 text-xs text-slate-800 dark:text-slate-200 font-medium">
                 <div className="flex items-start space-x-3">
                   <MapPin className="w-4 h-4 text-gold-600 dark:text-gold-400 shrink-0 mt-0.5" />
-                  <span className="text-slate-800 dark:text-slate-200 font-semibold">The Revival International Corporate Tower, India & Global Network</span>
+                  <span className="text-slate-800 dark:text-slate-200 font-semibold">{SITE_CONFIG.offices[0].fullAddress}</span>
                 </div>
 
                 <div className="flex items-center space-x-3">
                   <Phone className="w-4 h-4 text-gold-600 dark:text-gold-400 shrink-0" />
-                  <a href="tel:+919003475405" className="text-slate-800 dark:text-slate-200 font-bold text-sm hover:text-gold-500 transition">+91 9003475405</a>
+                  <span className="text-slate-800 dark:text-slate-200 font-bold text-sm">{SITE_CONFIG.offices[0].phone}</span>
                 </div>
 
                 <div className="flex items-center space-x-3">
                   <Mail className="w-4 h-4 text-gold-600 dark:text-gold-400 shrink-0" />
-                  <a href="mailto:enquiry@therevivalinternational.com" className="text-slate-800 dark:text-slate-200 font-semibold hover:text-gold-500 transition">enquiry@therevivalinternational.com</a>
+                  <a href={`mailto:${SITE_CONFIG.offices[0].email}`} className="text-slate-800 dark:text-slate-200 font-semibold hover:text-gold-500 transition">{SITE_CONFIG.offices[0].email}</a>
                 </div>
 
                 <div className="flex items-center space-x-3">
                   <Clock className="w-4 h-4 text-gold-600 dark:text-gold-400 shrink-0" />
-                  <span className="text-slate-800 dark:text-slate-200 font-semibold">Monday – Saturday: 09:00 AM – 06:30 PM IST</span>
+                  <span className="text-slate-800 dark:text-slate-200 font-semibold">{SITE_CONFIG.offices[0].workingHours}</span>
+                </div>
+              </div>
+
+              <a
+                href={`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(SITE_CONFIG.offices[0].fullAddress)}`}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="w-full py-2.5 bg-slate-100 hover:bg-slate-200 dark:bg-navy-900 dark:hover:bg-navy-800 text-slate-900 dark:text-white font-bold text-xs rounded-xl flex items-center justify-center space-x-2 transition border border-slate-200 dark:border-navy-800"
+              >
+                <ExternalLink className="w-3.5 h-3.5 text-gold-500" />
+                <span>View Dubai HQ on Google Maps</span>
+              </a>
+            </div>
+          </ScrollReveal>
+
+          {/* India Regional Operations Hub Card */}
+          <ScrollReveal delay={0.3}>
+            <div className="glass-card bg-white dark:bg-navy-950 p-6 sm:p-8 rounded-3xl border border-slate-200 dark:border-gold-500/40 shadow-luxury space-y-4">
+              <div className="flex items-center space-x-3 text-gold-600 dark:text-gold-400 border-b border-slate-200 dark:border-navy-800 pb-3">
+                <Building2 className="w-6 h-6" />
+                <div>
+                  <h3 className="font-serif text-xl font-bold text-slate-900 dark:text-white">India Operations Hub</h3>
+                  <p className="text-[10px] uppercase text-gold-600 dark:text-gold-400 font-bold tracking-widest">{SITE_CONFIG.offices[1].name}</p>
+                </div>
+              </div>
+
+              <div className="space-y-3.5 text-xs text-slate-800 dark:text-slate-200 font-medium">
+                <div className="flex items-start space-x-3">
+                  <MapPin className="w-4 h-4 text-gold-600 dark:text-gold-400 shrink-0 mt-0.5" />
+                  <span className="text-slate-800 dark:text-slate-200 font-semibold">{SITE_CONFIG.offices[1].fullAddress}</span>
+                </div>
+
+                <div className="flex items-center space-x-3">
+                  <Phone className="w-4 h-4 text-gold-600 dark:text-gold-400 shrink-0" />
+                  <a href={`tel:${SITE_CONFIG.offices[1].phone.replace(/\s+/g, '')}`} className="text-slate-800 dark:text-slate-200 font-bold text-sm hover:text-gold-500 transition">{SITE_CONFIG.offices[1].phone}</a>
+                </div>
+
+                <div className="flex items-center space-x-3">
+                  <Mail className="w-4 h-4 text-gold-600 dark:text-gold-400 shrink-0" />
+                  <a href={`mailto:${SITE_CONFIG.offices[1].email}`} className="text-slate-800 dark:text-slate-200 font-semibold hover:text-gold-500 transition">{SITE_CONFIG.offices[1].email}</a>
+                </div>
+
+                <div className="flex items-center space-x-3">
+                  <Clock className="w-4 h-4 text-gold-600 dark:text-gold-400 shrink-0" />
+                  <span className="text-slate-800 dark:text-slate-200 font-semibold">{SITE_CONFIG.offices[1].workingHours}</span>
                 </div>
               </div>
 
@@ -289,20 +344,6 @@ export const ContactUsPage = () => {
                 <MessageSquare className="w-4 h-4" />
                 <span>Instant WhatsApp Consultation (+91 9003475405)</span>
               </a>
-            </div>
-          </ScrollReveal>
-
-          {/* Additional Global Branches */}
-          <ScrollReveal delay={0.3}>
-            <div className="grid grid-cols-2 gap-4 text-xs">
-              <div className="glass-card bg-white dark:bg-navy-900 border p-4 rounded-xl space-y-1">
-                <h4 className="font-bold text-navy-900 dark:text-white">🇦🇪 Dubai Regional Hub</h4>
-                <p className="text-slate-700 dark:text-slate-300 text-[11px] font-medium">Level 34, Rolex Tower, Financial Center Road, Business Bay, Dubai</p>
-              </div>
-              <div className="glass-card bg-white dark:bg-navy-900 border p-4 rounded-xl space-y-1">
-                <h4 className="font-bold text-navy-900 dark:text-white">🇸🇦 Riyadh & GCC Hub</h4>
-                <p className="text-slate-700 dark:text-slate-300 text-[11px] font-medium">King Fahd Road, Olaya District, Riyadh, Saudi Arabia</p>
-              </div>
             </div>
           </ScrollReveal>
 
@@ -435,38 +476,22 @@ export const ContactUsPage = () => {
 
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                 <div>
-                  <div className="flex justify-between items-center mb-1">
-                    <label htmlFor="contact-phone" className="block font-bold text-slate-700 dark:text-slate-200">
-                      Phone / WhatsApp <span className="text-rose-500">*</span>
-                    </label>
-                    {phone.replace(/[\s\-\(\)\+]/g, '').length >= 7 && (
-                      <span className="text-emerald-500 text-[10px] font-bold flex items-center gap-1">
-                        <CheckCircle2 className="w-3 h-3" /> Valid format
-                      </span>
-                    )}
-                  </div>
-                  <input
-                    id="contact-phone"
-                    name="phone"
-                    required
-                    type="tel"
-                    autoComplete="tel"
+                  <CountryPhoneInput
                     value={phone}
-                    aria-required="true"
-                    aria-invalid={!!formErrors.phone}
-                    aria-describedby={formErrors.phone ? "contact-phone-error" : "contact-phone-hint"}
-                    onChange={handlePhoneChange}
-                    placeholder="e.g. +971 50 123 4567 or 5098765432"
-                    className={`w-full bg-slate-50 dark:bg-navy-950 border rounded-xl p-2.5 text-navy-900 dark:text-white text-xs focus:outline-none focus:ring-2 focus:ring-gold-500 font-mono tracking-wider transition ${formErrors.phone ? 'border-rose-500 ring-1 ring-rose-500' : 'border-slate-300 dark:border-navy-700'
-                      }`}
+                    onChange={setPhone}
+                    onValidationChange={(res) => {
+                      setPhoneValidation(res);
+                      if (formErrors.phone && res.isValid) {
+                        setFormErrors(prev => ({ ...prev, phone: null }));
+                      }
+                    }}
+                    label="Phone / WhatsApp"
+                    placeholder="Enter phone number"
+                    required
                   />
-                  {formErrors.phone ? (
+                  {formErrors.phone && (
                     <p id="contact-phone-error" className="text-[10px] text-rose-500 mt-1 font-semibold flex items-center gap-1">
                       <AlertCircle className="w-3 h-3 shrink-0" /> {formErrors.phone}
-                    </p>
-                  ) : (
-                    <p id="contact-phone-hint" className="text-[10px] text-slate-500 dark:text-slate-400 mt-1">
-                      Include country code for international inquiries (e.g. +971, +966, +44)
                     </p>
                   )}
                 </div>
@@ -558,6 +583,47 @@ export const ContactUsPage = () => {
                     <AlertCircle className="w-3 h-3 shrink-0" /> {formErrors.message}
                   </p>
                 )}
+              </div>
+
+              {/* Parent/Guardian Consent for Under-18s on Student Inquiries (Issue #4 & Section 6 P1) */}
+              {formData.type === 'student_parent' && (
+                <div className="p-3.5 bg-amber-500/10 border border-amber-500/30 rounded-xl space-y-1">
+                  <label className="flex items-start gap-2.5 cursor-pointer">
+                    <input
+                      type="checkbox"
+                      checked={parentConsent}
+                      onChange={(e) => setParentConsent(e.target.checked)}
+                      className="mt-0.5 rounded text-gold-500 focus:ring-gold-500 h-4 w-4"
+                    />
+                    <span className="text-[11px] text-amber-900 dark:text-amber-300 leading-snug font-medium">
+                      <strong>Parent / Guardian Consent:</strong> For applicants under 18 years of age, I confirm parent or legal guardian consent for academic counselling, aptitude evaluation, and admissions advisory.
+                    </span>
+                  </label>
+                </div>
+              )}
+
+              {/* Mandatory General Data Consent Checkbox (Issue #4) */}
+              <div className="pt-1">
+                <label className="flex items-start gap-2.5 cursor-pointer">
+                  <input
+                    type="checkbox"
+                    required
+                    checked={consentAgreed}
+                    onChange={(e) => setConsentAgreed(e.target.checked)}
+                    className="mt-0.5 rounded text-gold-500 focus:ring-gold-500 h-4 w-4 border-slate-300 dark:border-navy-700 bg-white dark:bg-navy-950"
+                  />
+                  <span className="text-[11px] text-slate-600 dark:text-slate-400 leading-snug">
+                    I agree to Revival International collecting and processing my enquiry data in accordance with the{' '}
+                    <button
+                      type="button"
+                      onClick={() => navigateTo('legal/privacy-policy')}
+                      className="text-gold-500 font-bold hover:underline"
+                    >
+                      Privacy Policy
+                    </button>{' '}
+                    and UAE PDPL / India DPDP Act 2023. I understand that candidate placement is 100% free of charge.
+                  </span>
+                </label>
               </div>
 
               <button

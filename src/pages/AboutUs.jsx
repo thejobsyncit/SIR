@@ -6,6 +6,7 @@ import {
 } from 'lucide-react';
 import ScrollReveal from '../components/ScrollReveal';
 import { SEO } from '../components/SEO';
+import SITE_CONFIG from '../config/siteConfig';
 
 export const AboutUs = () => {
   const { navigateTo } = useApp();
@@ -34,10 +35,10 @@ export const AboutUs = () => {
   ];
 
   const milestones = [
-    { value: '25,000+', label: 'Candidates Placed Worldwide', sub: 'Across GCC, Europe & Asia' },
-    { value: '12+', label: 'Industry Sectors Served', sub: 'From Health & Tech to Construction' },
-    { value: '98.4%', label: 'Visa & Credential Approval', sub: 'Benchmark Regulatory Clearance' },
-    { value: 'ISO 9001:2025', label: 'Certified Quality Standards', sub: 'Audited & Govt. Recognized' }
+    { value: `${SITE_CONFIG.stats.candidatesPlaced.value}${SITE_CONFIG.stats.candidatesPlaced.suffix}`, label: SITE_CONFIG.stats.candidatesPlaced.label, sub: 'Across GCC, Europe & Asia' },
+    { value: `${SITE_CONFIG.stats.corporateClients.value}${SITE_CONFIG.stats.corporateClients.suffix}`, label: 'Vetted Enterprise Clients', sub: 'From Health & Tech to Construction' },
+    { value: `${SITE_CONFIG.stats.visaSuccessRate.value}${SITE_CONFIG.stats.visaSuccessRate.suffix}`, label: 'Visa & Credential Approval', sub: 'Benchmark Regulatory Clearance' },
+    { value: 'ISO 9001:2015', label: 'Certified Quality Standards', sub: 'Audited & Registered Operations' }
   ];
 
   const operationalSteps = [
@@ -247,6 +248,69 @@ export const AboutUs = () => {
                 </p>
               </div>
             ))}
+          </div>
+        </div>
+      </ScrollReveal>
+
+      {/* Statutory Regulatory Licences & Official Accreditation (Issue #10) */}
+      <ScrollReveal>
+        <div className="space-y-6">
+          <div className="text-center space-y-2 max-w-2xl mx-auto">
+            <span className="text-xs font-bold text-gold-600 dark:text-gold-400 uppercase tracking-widest">
+              Regulatory Governance & Licences
+            </span>
+            <h2 className="font-serif text-3xl font-extrabold text-navy-900 dark:text-white">
+              Official Licensing & International Accreditations
+            </h2>
+            <p className="text-xs text-slate-700 dark:text-slate-300 font-medium">
+              Revival International operates under approved regulatory frameworks across the United Arab Emirates and India.
+            </p>
+          </div>
+
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
+            <div className="p-6 rounded-2xl bg-white dark:bg-navy-900 border border-slate-200 dark:border-navy-800 shadow-sm space-y-2">
+              <span className="text-[10px] uppercase font-bold text-slate-500 block">Commercial Entity</span>
+              <h4 className="font-bold text-sm text-navy-900 dark:text-white">{SITE_CONFIG.licences.tradeLicence.label}</h4>
+              <p className="text-xs text-slate-600 dark:text-slate-400">{SITE_CONFIG.licences.tradeLicence.authority}</p>
+              <div className="pt-2">
+                <span className="inline-block px-2.5 py-1 bg-amber-500/10 text-amber-600 dark:text-amber-400 font-bold text-[10px] rounded-lg">
+                  {SITE_CONFIG.licences.tradeLicence.number} (Pending Legal Confirmation)
+                </span>
+              </div>
+            </div>
+
+            <div className="p-6 rounded-2xl bg-white dark:bg-navy-900 border border-slate-200 dark:border-navy-800 shadow-sm space-y-2">
+              <span className="text-[10px] uppercase font-bold text-slate-500 block">Labor & Recruitment</span>
+              <h4 className="font-bold text-sm text-navy-900 dark:text-white">{SITE_CONFIG.licences.mohreLicence.label}</h4>
+              <p className="text-xs text-slate-600 dark:text-slate-400">{SITE_CONFIG.licences.mohreLicence.authority}</p>
+              <div className="pt-2">
+                <span className="inline-block px-2.5 py-1 bg-amber-500/10 text-amber-600 dark:text-amber-400 font-bold text-[10px] rounded-lg">
+                  {SITE_CONFIG.licences.mohreLicence.number} (Pending Legal Confirmation)
+                </span>
+              </div>
+            </div>
+
+            <div className="p-6 rounded-2xl bg-white dark:bg-navy-900 border border-slate-200 dark:border-navy-800 shadow-sm space-y-2">
+              <span className="text-[10px] uppercase font-bold text-slate-500 block">Emigration Oversight</span>
+              <h4 className="font-bold text-sm text-navy-900 dark:text-white">{SITE_CONFIG.licences.meaLicence.label}</h4>
+              <p className="text-xs text-slate-600 dark:text-slate-400">{SITE_CONFIG.licences.meaLicence.authority}</p>
+              <div className="pt-2">
+                <span className="inline-block px-2.5 py-1 bg-amber-500/10 text-amber-600 dark:text-amber-400 font-bold text-[10px] rounded-lg">
+                  {SITE_CONFIG.licences.meaLicence.number} (Pending Legal Confirmation)
+                </span>
+              </div>
+            </div>
+
+            <div className="p-6 rounded-2xl bg-white dark:bg-navy-900 border border-slate-200 dark:border-navy-800 shadow-sm space-y-2">
+              <span className="text-[10px] uppercase font-bold text-slate-500 block">Quality Management</span>
+              <h4 className="font-bold text-sm text-navy-900 dark:text-white">{SITE_CONFIG.licences.isoCertification.standard}</h4>
+              <p className="text-xs text-slate-600 dark:text-slate-400">{SITE_CONFIG.licences.isoCertification.label}</p>
+              <div className="pt-2">
+                <span className="inline-block px-2.5 py-1 bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 font-bold text-[10px] rounded-lg">
+                  Verified Active Quality System
+                </span>
+              </div>
+            </div>
           </div>
         </div>
       </ScrollReveal>

@@ -1363,12 +1363,13 @@ const initDb = async (db) => {
     { name: 'location', type: 'TEXT' },
     { name: 'preferredCountry', type: 'TEXT' },
     { name: 'education', type: 'TEXT' },
-    { name: 'mohreAttested', type: 'INTEGER DEFAULT 0' }
+    { name: 'mohreAttested', type: 'INTEGER DEFAULT 0' },
+    { name: 'noticePeriod', type: 'TEXT' }
   ]);
 
   await ensureColumns('candidate_profiles', [
     { name: 'citizenship', type: 'TEXT' },
-    { name: 'nationality', type: 'TEXT DEFAULT "UAE"' },
+    { name: 'nationality', type: 'TEXT' },
     { name: 'resumeName', type: 'TEXT' },
     { name: 'resumeUrl', type: 'TEXT' },
     { name: 'resumeSize', type: 'TEXT' },
@@ -1376,7 +1377,10 @@ const initDb = async (db) => {
     { name: 'gender', type: 'TEXT' },
     { name: 'location', type: 'TEXT' },
     { name: 'preferredCountry', type: 'TEXT' },
-    { name: 'mohreAttested', type: 'INTEGER DEFAULT 0' }
+    { name: 'mohreAttested', type: 'INTEGER DEFAULT 0' },
+    { name: 'currentSalary', type: 'TEXT' },
+    { name: 'expectedSalary', type: 'TEXT' },
+    { name: 'noticePeriod', type: 'TEXT' }
   ]);
 
   // Safe migration: Ensure candidate_applications table has resume and applicant detail fields

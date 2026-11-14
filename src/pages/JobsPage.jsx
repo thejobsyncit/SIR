@@ -4,6 +4,7 @@ import { Search, MapPin, Briefcase, DollarSign, Globe, CheckCircle2, Bookmark, A
 import { JOBS_LIST } from '../data/mockData';
 import ScrollReveal from '../components/ScrollReveal';
 import { SEO } from '../components/SEO';
+import { QuickApplyModal } from '../components/QuickApplyModal';
 
 export const JobsPage = () => {
   const { user, openAuthModal, pendingJobToApply, setPendingJobToApply, setSelectedJob, applyForJob, applications, toggleSaveJob, savedJobs, setActiveModal, postedJobs, t, selectedJobCategory: selectedCategory, setSelectedJobCategory: setSelectedCategory } = useApp();
@@ -90,13 +91,6 @@ export const JobsPage = () => {
 
   const handleQuickApply = (e, job) => {
     e.stopPropagation();
-    if (!user || !user.email) {
-      setApplyJob(null);
-      setAppliedSuccess(false);
-      setPendingJobToApply(job);
-      openAuthModal('register', 'candidate');
-      return;
-    }
     setApplyJob(job);
     setAppliedSuccess(false);
   };
@@ -286,7 +280,9 @@ export const JobsPage = () => {
               </div>
 
               <div className="pt-4 border-t border-slate-100 dark:border-navy-800 flex justify-between items-center">
-                <span className="text-[10px] text-slate-700 dark:text-slate-300 font-bold">{j.postedDate}</span>
+                <span className="text-[10px] text-slate-700 dark:text-slate-300 font-bold">
+                  Posted on {j.postedDate && !j.postedDate.includes('ago') && j.postedDate.toLowerCase() !== 'just now' ? j.postedDate : '12 Nov 2026'}
+                </span>
                 {isApplied(j.id) ? (
                   <button 
                     disabled
@@ -372,53 +368,13 @@ export const JobsPage = () => {
         </div>
       )}
 
-      {/* Apply Form Modal */}
-      {applyJob && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/80 dark:bg-navy-950/80 backdrop-blur-sm animate-in fade-in">
-          <div className="glass-card bg-white dark:bg-navy-900 border border-slate-200 dark:border-gold-500/30 rounded-2xl max-w-lg w-full p-6 shadow-luxury space-y-4">
-            <div className="flex justify-between items-start border-b border-slate-200 dark:border-navy-800 pb-3">
-              <div>
-                <h3 className="font-serif text-xl font-bold text-navy-900 dark:text-white">Apply for {applyJob.title}</h3>
-                <p className="text-xs text-slate-700 dark:text-slate-300 font-semibold">{applyJob.company} • {applyJob.country}</p>
-              </div>
-              <button onClick={() => setApplyJob(null)} className="text-slate-500 dark:text-slate-400 hover:text-slate-900 dark:text-white"><X className="w-5 h-5" /></button>
-            </div>
-
-            {!appliedSuccess ? (
-              <div className="space-y-3 text-xs">
-                <div>
-                  <label className="block font-bold text-slate-700 dark:text-slate-200 mb-1">Full Name</label>
-                  <input type="text" readOnly value={user?.name || 'Candidate'} className="w-full bg-slate-50 dark:bg-navy-950 border rounded-lg p-2 text-navy-900 dark:text-white font-semibold" />
-                </div>
-                <div>
-                  <label className="block font-bold text-slate-700 dark:text-slate-200 mb-1">Email Address</label>
-                  <input type="email" readOnly value={user?.email || ''} className="w-full bg-slate-50 dark:bg-navy-950 border rounded-lg p-2 text-navy-900 dark:text-white font-semibold" />
-                </div>
-                <div>
-                  <label className="block font-bold text-slate-700 dark:text-slate-200 mb-1">Attached Resume</label>
-                  <div className="p-3 bg-emerald-500/10 border border-emerald-500/30 rounded-xl text-emerald-600 dark:text-emerald-400 flex justify-between items-center">
-                    <span className="font-medium">📄 {user?.resumeName || `${(user?.name || 'Executive').replace(/\s+/g, '_')}_CV.pdf`}</span>
-                    <span className="font-bold text-[10px] bg-emerald-500/20 text-emerald-600 dark:text-emerald-400 px-2 py-0.5 rounded">Verified Profile</span>
-                  </div>
-                </div>
-                <button onClick={submitApplication} className="w-full py-3 bg-gold-shimmer text-navy-950 font-bold text-xs rounded-xl shadow-gold-glow flex items-center justify-center space-x-2">
-                  <Send className="w-4 h-4" />
-                  <span>Submit Application to Recruiter</span>
-                </button>
-              </div>
-            ) : (
-              <div className="text-center py-6 space-y-3">
-                <div className="w-12 h-12 bg-emerald-500/20 text-emerald-500 rounded-full flex items-center justify-center mx-auto">
-                  <CheckCircle2 className="w-6 h-6" />
-                </div>
-                <h4 className="font-serif text-lg font-bold text-navy-900 dark:text-white">Application Received!</h4>
-                <p className="text-xs text-slate-800 dark:text-slate-200 font-medium">Your candidate profile has been submitted directly to {applyJob.company}. Track application status in your Candidate Portal.</p>
-                <button onClick={() => setApplyJob(null)} className="w-full py-2.5 bg-slate-50 dark:bg-navy-900 text-slate-900 dark:text-white font-bold text-xs rounded-xl">Close</button>
-              </div>
-            )}
-          </div>
-        </div>
-      )}
+      {/* Full Quick Apply Modal (Issue #5: Frictionless apply, reference ID, zero fees) */}
+      <QuickApplyModal
+        job={applyJob}
+        isOpen={Boolean(applyJob)}
+        onClose={() => setApplyJob(null)}
+        onSuccess={() => fetchJobs()}
+      />
 
     </div>
   );

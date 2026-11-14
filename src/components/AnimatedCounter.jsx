@@ -1,62 +1,70 @@
 import React, { useState, useEffect, useRef } from 'react';
 
-const AnimatedCounter = ({ value }) => {
-  const [count, setCount] = useState(0);
-  const [isVisible, setIsVisible] = useState(false);
+export const AnimatedCounter = ({ value, fallback = null }) => {
+  const rawString = String(value || '');
+  const numStr = rawString.replace(/[^0-9.]/g, '');
+  const targetNum = parseFloat(numStr) || (typeof fallback === 'number' ? fallback : 1);
+  const suffix = rawString.replace(/[0-9.,]/g, '');
+  const hasComma = rawString.includes(',');
+  const isFloat = rawString.includes('.');
+
+  // Non-negotiable Issue #7: Never start or show 0
+  const [count, setCount] = useState(targetNum);
+  const [hasAnimated, setHasAnimated] = useState(false);
   const counterRef = useRef(null);
 
-  // Parse the value, e.g., '50,000+' -> 50000 and '+'
-  // '98%' -> 98 and '%'
-  const numStr = value.replace(/[^0-9]/g, '');
-  const targetNum = parseInt(numStr, 10);
-  const suffix = value.replace(/[0-9,]/g, '');
-  const hasComma = value.includes(',');
+  useEffect(() => {
+    if (targetNum > 0) {
+      setCount(targetNum);
+    }
+  }, [targetNum]);
 
   useEffect(() => {
+    const el = counterRef.current;
+    if (!el || typeof IntersectionObserver === 'undefined') {
+      return;
+    }
+
     const observer = new IntersectionObserver(
       ([entry]) => {
-        if (entry.isIntersecting) {
-          setIsVisible(true);
-          // Disconnect after it becomes visible so it only animates once
+        if (entry.isIntersecting && !hasAnimated && targetNum > 10) {
+          setHasAnimated(true);
+          // Animate smoothly from 80% of target to targetNum so it never flashes 0
+          const startVal = Math.floor(targetNum * 0.75);
+          let current = startVal;
+          const duration = 1200;
+          const stepMs = 30;
+          const totalSteps = duration / stepMs;
+          const increment = (targetNum - startVal) / totalSteps;
+
+          const timer = setInterval(() => {
+            current += increment;
+            if (current >= targetNum) {
+              setCount(targetNum);
+              clearInterval(timer);
+            } else {
+              setCount(Math.ceil(current));
+            }
+          }, stepMs);
+
           observer.disconnect();
         }
       },
       { threshold: 0.1 }
     );
 
-    if (counterRef.current) {
-      observer.observe(counterRef.current);
-    }
-
+    observer.observe(el);
     return () => observer.disconnect();
-  }, []);
+  }, [targetNum, hasAnimated]);
 
-  useEffect(() => {
-    if (!isVisible) return;
-
-    let start = 0;
-    const duration = 2000; // 2 seconds
-    const incrementTime = 30; // ms
-    const steps = duration / incrementTime;
-    const stepValue = targetNum / steps;
-
-    const timer = setInterval(() => {
-      start += stepValue;
-      if (start >= targetNum) {
-        setCount(targetNum);
-        clearInterval(timer);
-      } else {
-        setCount(Math.ceil(start));
-      }
-    }, incrementTime);
-
-    return () => clearInterval(timer);
-  }, [targetNum, isVisible]);
-
-  const formattedCount = hasComma ? count.toLocaleString() : count;
+  const formattedCount = hasComma
+    ? Math.round(count).toLocaleString()
+    : isFloat
+    ? count.toFixed(1)
+    : Math.round(count);
 
   return (
-    <span ref={counterRef}>
+    <span ref={counterRef} className="tabular-nums">
       {formattedCount}{suffix}
     </span>
   );

@@ -715,7 +715,7 @@ export const EducationEnquiryModal = ({
                     name="phone"
                     value={phone}
                     onChange={handlePhoneChange}
-                    placeholder="e.g. +91 98765 43210"
+                    placeholder="Enter phone number"
                     required
                     className={`w-full bg-[#F8FAFC] dark:bg-navy-950 border text-[#0B1B33] dark:text-slate-200 text-xs rounded-xl px-3.5 py-2.5 font-mono tracking-wider focus:bg-white dark:focus:bg-navy-900 focus:outline-none focus:ring-2 focus:ring-gold-500 transition ${formErrors.phone ? 'border-rose-500' : 'border-[#DCE3EC] dark:border-navy-700'
                       }`}
@@ -891,6 +891,21 @@ export const EducationEnquiryModal = ({
                 </div>
               )}
 
+              {/* Parent/Guardian Consent for Under-18 Students (Section 6 P1) */}
+              <div className="p-3 bg-amber-500/10 border border-amber-500/30 rounded-xl">
+                <label className="flex items-start gap-2.5 cursor-pointer">
+                  <input
+                    type="checkbox"
+                    name="parentConsent"
+                    defaultChecked={true}
+                    className="mt-0.5 rounded text-gold-500 focus:ring-gold-500 h-4 w-4"
+                  />
+                  <span className="text-[11px] text-amber-900 dark:text-amber-300 leading-snug font-medium">
+                    <strong>Parent / Guardian Consent:</strong> For applicants under 18 years of age, I confirm parent or legal guardian authorization to receive academic consultation and international university guidance.
+                  </span>
+                </label>
+              </div>
+
               {/* Consent Checkbox */}
               <div className="pt-1">
                 <label className="flex items-start gap-2.5 cursor-pointer">
@@ -907,7 +922,10 @@ export const EducationEnquiryModal = ({
                     className="mt-0.5 rounded text-gold-500 focus:ring-gold-500 h-4 w-4 border-[#DCE3EC] dark:border-navy-700 bg-white dark:bg-navy-950"
                   />
                   <span className="text-[11px] text-[#64748B] dark:text-slate-400 leading-snug">
-                    I agree to allow Revival International education advisors to contact me via Phone, WhatsApp, and Email regarding this inquiry. Private records are protected and never shared.
+                    I agree to allow Revival International education advisors to contact me via Phone, WhatsApp, and Email regarding this inquiry under the{' '}
+                    <a href="/legal/privacy-policy" target="_blank" rel="noopener noreferrer" className="text-gold-500 font-bold hover:underline">
+                      Privacy Policy
+                    </a>. Private records are protected and never shared.
                   </span>
                 </label>
                 {formErrors.consent && (

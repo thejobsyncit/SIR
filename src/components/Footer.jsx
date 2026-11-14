@@ -6,6 +6,7 @@ import {
   Send, MessageSquare, Linkedin, Twitter, Facebook, Instagram, Youtube, CheckCircle2
 } from 'lucide-react';
 import { COUNTRIES_LIST } from '../data/mockData';
+import SITE_CONFIG from '../config/siteConfig';
 
 export const Footer = ({ hideNewsletter = false }) => {
   const { navigateTo, setActiveModal, activeTab, isExamDetailsPage, user, openAuthModal } = useApp();
@@ -234,7 +235,7 @@ const [isStudentAcademyActive, setIsStudentAcademyActive] = useState(() => {
                 Stay Ahead of GCC Visa Laws & Executive Vacancies
               </h3>
               <p className="text-xs text-slate-700 dark:text-slate-300 mt-2 font-medium">
-                Subscribe to the Revival Executive Briefing. Delivered bi-weekly to 40,000+ HR Directors & C-Suite Executives.
+                Subscribe to the Revival Executive Briefing. Curated bi-weekly analysis on GCC labor regulations, MOHRE attestation updates, and executive mobility.
               </p>
             </div>
 
@@ -276,7 +277,7 @@ const [isStudentAcademyActive, setIsStudentAcademyActive] = useState(() => {
         )}
 
         {/* Main Footer Links */}
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-10 pb-12 border-b border-slate-200 dark:border-navy-800 text-xs">
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-6 gap-8 pb-12 border-b border-slate-200 dark:border-navy-800 text-xs">
 
           {/* Col 1: Brand Info */}
           <div className="lg:col-span-2 space-y-4">
@@ -294,56 +295,47 @@ const [isStudentAcademyActive, setIsStudentAcademyActive] = useState(() => {
             <div className="space-y-2 pt-2 text-slate-600 dark:text-slate-300">
               <div className="flex items-start space-x-3">
                 <MapPin className="w-4 h-4 text-gold-500 shrink-0 mt-0.5" />
-                <span>The Revival International Corporate Tower, India & Global Network</span>
+                <span><strong>Global HQ:</strong> {SITE_CONFIG.offices[0].fullAddress}</span>
+              </div>
+              <div className="flex items-start space-x-3">
+                <MapPin className="w-4 h-4 text-slate-400 shrink-0 mt-0.5" />
+                <span><strong>India Regional Hub:</strong> {SITE_CONFIG.offices[1].fullAddress}</span>
               </div>
               <div className="flex items-center space-x-3">
                 <Phone className="w-4 h-4 text-gold-500 shrink-0" />
-                <a href="tel:+919003475405" className="hover:text-gold-500 transition">+91 9003475405</a>
+                <a href={`tel:${SITE_CONFIG.brand.supportPhone.replace(/\s+/g, '')}`} className="hover:text-gold-500 transition">{SITE_CONFIG.brand.supportPhone}</a>
               </div>
               <div className="flex items-center space-x-3">
                 <Mail className="w-4 h-4 text-gold-500 shrink-0" />
-                <a href="mailto:enquiry@therevivalinternational.com" className="hover:text-gold-500 transition">enquiry@therevivalinternational.com</a>
+                <a href={`mailto:${SITE_CONFIG.brand.primaryEmail}`} className="hover:text-gold-500 transition">{SITE_CONFIG.brand.primaryEmail}</a>
               </div>
             </div>
 
-            {/* Social Icons */}
+            {/* Social Icons (Issue #2: Render verified channels only) */}
             <div className="flex space-x-3 pt-2">
-              <a
-                href="#social-linkedin"
-                onClick={(e) => { e.preventDefault(); navigateTo('social-linkedin'); }}
-                title="The Revival International on LinkedIn"
-                aria-label="The Revival International on LinkedIn"
-                className="w-8 h-8 rounded-lg bg-slate-50 dark:bg-navy-900 border border-slate-200 dark:border-navy-800 flex items-center justify-center text-slate-500 dark:text-slate-400 hover:text-gold-400 hover:border-gold-500 transition cursor-pointer"
-              >
-                <Linkedin className="w-4 h-4" />
-              </a>
-              <a
-                href="#social-twitter"
-                onClick={(e) => { e.preventDefault(); navigateTo('social-twitter'); }}
-                title="The Revival International on Twitter (X)"
-                aria-label="The Revival International on Twitter (X)"
-                className="w-8 h-8 rounded-lg bg-slate-50 dark:bg-navy-900 border border-slate-200 dark:border-navy-800 flex items-center justify-center text-slate-500 dark:text-slate-400 hover:text-gold-400 hover:border-gold-500 transition cursor-pointer"
-              >
-                <Twitter className="w-4 h-4" />
-              </a>
-              <a
-                href="#social-facebook"
-                onClick={(e) => { e.preventDefault(); navigateTo('social-facebook'); }}
-                title="The Revival International on Facebook"
-                aria-label="The Revival International on Facebook"
-                className="w-8 h-8 rounded-lg bg-slate-50 dark:bg-navy-900 border border-slate-200 dark:border-navy-800 flex items-center justify-center text-slate-500 dark:text-slate-400 hover:text-gold-400 hover:border-gold-500 transition cursor-pointer"
-              >
-                <Facebook className="w-4 h-4" />
-              </a>
-              <a
-                href="#social-instagram"
-                onClick={(e) => { e.preventDefault(); navigateTo('social-instagram'); }}
-                title="The Revival International on Instagram"
-                aria-label="The Revival International on Instagram"
-                className="w-8 h-8 rounded-lg bg-slate-50 dark:bg-navy-900 border border-slate-200 dark:border-navy-800 flex items-center justify-center text-slate-500 dark:text-slate-400 hover:text-gold-400 hover:border-gold-500 transition cursor-pointer"
-              >
-                <Instagram className="w-4 h-4" />
-              </a>
+              {Object.entries(SITE_CONFIG.social).some(([_, s]) => s.approved && s.url) ? (
+                Object.entries(SITE_CONFIG.social).map(([key, soc]) => {
+                  if (!soc.approved || !soc.url) return null;
+                  const Icon = key === 'linkedin' ? Linkedin : key === 'twitter' ? Twitter : key === 'facebook' ? Facebook : key === 'instagram' ? Instagram : Youtube;
+                  return (
+                    <a
+                      key={key}
+                      href={soc.url}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      title={soc.ariaLabel}
+                      aria-label={soc.ariaLabel}
+                      className="w-8 h-8 rounded-lg bg-slate-50 dark:bg-navy-900 border border-slate-200 dark:border-navy-800 flex items-center justify-center text-slate-500 dark:text-slate-400 hover:text-gold-400 hover:border-gold-500 transition"
+                    >
+                      <Icon className="w-4 h-4" />
+                    </a>
+                  );
+                })
+              ) : (
+                <div className="text-[11px] text-slate-500 font-medium">
+                  Official verified social channels launching soon.
+                </div>
+              )}
             </div>
           </div>
 
@@ -408,6 +400,48 @@ const [isStudentAcademyActive, setIsStudentAcademyActive] = useState(() => {
             </ul>
           </div>
 
+          {/* Col 5: Legal & Statutory Compliance (Issue #3) */}
+          <div className="space-y-3">
+            <h4 className="font-bold text-slate-900 dark:text-white uppercase text-xs tracking-wider text-gold-500 border-b border-slate-200 dark:border-navy-800 pb-2">
+              Legal & Compliance
+            </h4>
+            <ul className="space-y-3 text-slate-600 dark:text-slate-300 font-medium">
+              <NavLink tab="legal/privacy-policy" label="Privacy Policy (Draft)" />
+              <NavLink tab="legal/terms-of-use" label="Terms of Use" />
+              <NavLink tab="legal/cookie-policy" label="Cookie Policy" />
+              <NavLink tab="legal/refund-policy" label="Refund & Cancellation" />
+              <NavLink tab="legal/candidate-consent" label="Candidate Data Consent" />
+              <NavLink tab="fraud-awareness" label="Zero-Fee Placement Policy" />
+            </ul>
+          </div>
+
+        </div>
+
+        {/* Statutory Regulatory Licences Strip (Issue #10) */}
+        <div className="py-6 border-b border-slate-200 dark:border-navy-800 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 text-xs">
+          <div className="p-3 bg-slate-50 dark:bg-navy-900 rounded-xl border border-slate-200 dark:border-navy-800 space-y-1">
+            <span className="text-[10px] uppercase font-bold text-slate-500 block">Commercial Registration</span>
+            <p className="font-bold text-slate-900 dark:text-white">{SITE_CONFIG.licences.tradeLicence.label}</p>
+            <span className="text-[10px] text-amber-500 font-semibold">{SITE_CONFIG.licences.tradeLicence.number} (Pending Legal Confirmation)</span>
+          </div>
+
+          <div className="p-3 bg-slate-50 dark:bg-navy-900 rounded-xl border border-slate-200 dark:border-navy-800 space-y-1">
+            <span className="text-[10px] uppercase font-bold text-slate-500 block">UAE Labor Compliance</span>
+            <p className="font-bold text-slate-900 dark:text-white">{SITE_CONFIG.licences.mohreLicence.label}</p>
+            <span className="text-[10px] text-amber-500 font-semibold">{SITE_CONFIG.licences.mohreLicence.number} (Pending Legal Confirmation)</span>
+          </div>
+
+          <div className="p-3 bg-slate-50 dark:bg-navy-900 rounded-xl border border-slate-200 dark:border-navy-800 space-y-1">
+            <span className="text-[10px] uppercase font-bold text-slate-500 block">Emigration Oversight</span>
+            <p className="font-bold text-slate-900 dark:text-white">{SITE_CONFIG.licences.meaLicence.label}</p>
+            <span className="text-[10px] text-amber-500 font-semibold">{SITE_CONFIG.licences.meaLicence.number} (Pending Legal Confirmation)</span>
+          </div>
+
+          <div className="p-3 bg-slate-50 dark:bg-navy-900 rounded-xl border border-slate-200 dark:border-navy-800 space-y-1">
+            <span className="text-[10px] uppercase font-bold text-slate-500 block">Quality Governance</span>
+            <p className="font-bold text-slate-900 dark:text-white">{SITE_CONFIG.licences.isoCertification.standard}</p>
+            <span className="text-[10px] text-emerald-500 font-semibold">Verified Active Standards</span>
+          </div>
         </div>
 
         {/* Bottom Rights & Certifications */}
@@ -427,7 +461,7 @@ const [isStudentAcademyActive, setIsStudentAcademyActive] = useState(() => {
             </span>
             <span className="flex items-center space-x-1 text-slate-600 dark:text-slate-300 font-medium">
               <CheckCircle2 className="w-3.5 h-3.5 text-gold-500" />
-              <span>GDPR Compliant</span>
+              <span>UAE PDPL & India DPDP Act 2023 Aligned</span>
             </span>
           </div>
         </div>

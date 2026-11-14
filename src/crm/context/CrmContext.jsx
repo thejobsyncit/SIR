@@ -523,6 +523,9 @@ export const CrmProvider = ({ children }) => {
           if (parsed.currentRole !== 'HR Operations' && parsed.activeModule === 'my-attendance') {
             return 'dashboard';
           }
+          if (parsed.activeModule === 'interviews') {
+            return 'candidates';
+          }
           return parsed.activeModule;
         }
       }

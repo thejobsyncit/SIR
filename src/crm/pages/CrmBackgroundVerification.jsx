@@ -46,19 +46,24 @@ export const CrmBackgroundVerification = () => {
   ]);
 
   const [selectedCase, setSelectedCase] = useState(null);
+  const [successMessage, setSuccessMessage] = useState('');
 
   const handleApproveCase = (id) => {
+    const target = bgvCases.find(c => c.id === id);
     setBgvCases(prev => prev.map(c => c.id === id ? { ...c, status: 'Approved' } : c));
-    if (selectedCase && selectedCase.id === id) {
-      setSelectedCase({ ...selectedCase, status: 'Approved' });
-    }
+    // Immediately close the indicator box upon approval (Bug #8)
+    setSelectedCase(null);
+    setSuccessMessage(`✓ Background verification audit approved for ${target?.candidate || id}. All 6 compliance checks passed.`);
+    setTimeout(() => setSuccessMessage(''), 5000);
   };
 
   const handleFlagCase = (id) => {
+    const target = bgvCases.find(c => c.id === id);
     setBgvCases(prev => prev.map(c => c.id === id ? { ...c, status: 'Flagged Discrepancy' } : c));
-    if (selectedCase && selectedCase.id === id) {
-      setSelectedCase({ ...selectedCase, status: 'Flagged Discrepancy' });
-    }
+    // Close the indicator box upon flagging (Bug #8)
+    setSelectedCase(null);
+    setSuccessMessage(`⚠️ Case ${id} (${target?.candidate || ''}) flagged for discrepancy review.`);
+    setTimeout(() => setSuccessMessage(''), 5000);
   };
 
   return (
@@ -73,6 +78,16 @@ export const CrmBackgroundVerification = () => {
           <p className="text-slate-600 dark:text-slate-400">Education, employment history, police clearance, reference checks, address & identity validation.</p>
         </div>
       </div>
+
+      {/* Success Notification Banner */}
+      {successMessage && (
+        <div className="p-3.5 bg-emerald-500/15 border border-emerald-500/30 rounded-2xl text-emerald-800 dark:text-emerald-300 font-bold text-xs flex items-center justify-between animate-in fade-in">
+          <span>{successMessage}</span>
+          <button onClick={() => setSuccessMessage('')} className="text-emerald-600 dark:text-emerald-400 p-1 cursor-pointer">
+            <X className="w-4 h-4" />
+          </button>
+        </div>
+      )}
 
       {/* Cases Cards */}
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6">

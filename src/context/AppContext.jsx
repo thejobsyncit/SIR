@@ -5,6 +5,7 @@ import { TRANSLATIONS } from '../data/translations';
 import { useCrm } from '../crm/context/CrmContext';
 import { trackPageView, trackFunnelStep } from '../services/analytics';
 import { getAttributionData } from '../utils/attribution';
+import { validateCandidateEmail } from '../utils/emailValidation';
 
 // Keep a single AppContext instance across Vite Fast Refresh so mounted consumers
 // stay subscribed to the active AppProvider instead of receiving undefined.
@@ -69,8 +70,9 @@ export const AppProvider = ({ children }) => {
       const rawHash = window.location.hash.replace('#', '');
       const hash = rawHash.split('?')[0];
       if (path === 'crm' || path.startsWith('crm/') || hash === 'crm') return 'crm';
+      if (path === 'superadmin-erp' || path === 'erp' || hash === 'erp' || hash === 'superadmin-erp') return 'erp';
+      if (path && path !== '' && path !== 'index.html') return path;
       if (hash) return hash;
-      if (path && path !== '') return path;
     }
     return 'home';
   });
@@ -427,12 +429,28 @@ export const AppProvider = ({ children }) => {
   };
 
   const registerCandidate = async (data) => {
-    const normalizedEmail = (data.email || '').toLowerCase().trim();
-    if (!normalizedEmail) {
-      return { success: false, message: 'Valid email is required.' };
+    const emailValidation = validateCandidateEmail(data.email);
+    if (!emailValidation.isValid) {
+      return { success: false, message: emailValidation.message };
     }
-    if (!data.password) {
+    const normalizedEmail = emailValidation.email;
+
+    const password = data.password || '';
+    if (!password) {
       return { success: false, message: 'Password is required for registration.' };
+    }
+    if (password.length < 8) {
+      return { success: false, message: 'Password must be at least 8 characters long.' };
+    }
+    const hasUpper = /[A-Z]/.test(password);
+    const hasLower = /[a-z]/.test(password);
+    const hasDigit = /\d/.test(password);
+    const hasSpecial = /[!@#$%^&*()_+\-=[\]{};':"\\|,.<>/?]/.test(password);
+    if (!hasUpper || !hasLower || !hasDigit || !hasSpecial) {
+      return { 
+        success: false, 
+        message: 'Password must include uppercase, lowercase, a number, and a special character.' 
+      };
     }
 
     const db = getCandidateDB();
@@ -461,19 +479,23 @@ export const AppProvider = ({ children }) => {
       gender: existing.gender || '',
       nationality: data.nationality || existing.nationality || '',
       citizenship: data.citizenship || existing.citizenship || '',
-      title: data.title || existing.title || 'Executive Candidate',
+      title: data.title || existing.title || '',
       location: data.location || existing.location || '',
-      preferredCountry: data.preferredCountry || existing.preferredCountry || 'UAE',
-      experience: data.experience || existing.experience || '3-5 Years',
-      qualification: data.qualification || existing.qualification || 'Bachelor Degree / Professional Diploma',
-      skills: existing.skills && existing.skills.length > 0 ? existing.skills : (data.industry ? [data.industry] : ['Executive Management']),
-      expectedSalary: data.expectedSalary || existing.expectedSalary || 'Market Standard',
+      preferredCountry: data.preferredCountry || existing.preferredCountry || '',
+      experience: data.experience || existing.experience || '',
+      qualification: data.qualification || existing.qualification || '',
+      skills: existing.skills && existing.skills.length > 0 ? existing.skills : (data.industry ? [data.industry] : []),
+      currentSalary: data.currentSalary || existing.currentSalary || '',
+      expectedSalary: data.expectedSalary || existing.expectedSalary || '',
+      noticePeriod: data.noticePeriod || existing.noticePeriod || '',
       avatar: existing.avatar || `https://api.dicebear.com/7.x/initials/svg?seed=${encodeURIComponent(data.fullName || normalizedEmail)}`,
       role: 'candidate',
       isRegistered: true,
       resumeUploaded: !!data.resumeName || existing.resumeUploaded || false,
       resumeName: data.resumeName || existing.resumeName || '',
       mohreAttested: existing.mohreAttested || false,
+      consentGivenAt: data.consentGivenAt || new Date().toISOString(),
+      consentVersion: data.consentVersion || 'v2.0-nov2026',
       registeredAt: existing.registeredAt || new Date().toISOString(),
       loginTime: new Date().toISOString()
     };
@@ -496,12 +518,14 @@ export const AppProvider = ({ children }) => {
           nationality: candidateUser.preferredCountry,
           currentEmployer: 'Revival International Talent Pool',
           currentRole: candidateUser.title,
+          currentSalary: candidateUser.currentSalary,
           expectedSalary: candidateUser.expectedSalary,
+          noticePeriod: candidateUser.noticePeriod,
           stage: 'lead',
           score: 85,
           skills: candidateUser.skills,
           source: 'Website Candidate Registration',
-          aiSummary: `Candidate registered online for ${candidateUser.preferredCountry} opportunities in ${candidateUser.title}.`
+          aiSummary: `Candidate registered online for ${candidateUser.preferredCountry || 'international'} opportunities.`
         })
       });
     } catch (err) {
@@ -786,13 +810,16 @@ export const AppProvider = ({ children }) => {
   useEffect(() => {
     const handleUrlSync = () => {
       const path = window.location.pathname.replace(/^\/+|\/+$/g, '');
-      const hash = window.location.hash.replace('#', '');
+      const rawHash = window.location.hash.replace('#', '');
+      const hash = rawHash.split('?')[0];
       if (path === 'crm' || path.startsWith('crm/') || hash === 'crm') {
         setActiveTab('crm');
+      } else if (path === 'superadmin-erp' || path === 'erp' || hash === 'erp' || hash === 'superadmin-erp') {
+        setActiveTab('erp');
+      } else if (path && path !== '' && path !== 'index.html') {
+        setActiveTab(path);
       } else if (hash) {
         setActiveTab(hash);
-      } else if (path && path !== '') {
-        setActiveTab(path);
       } else {
         setActiveTab('home');
       }
@@ -933,17 +960,19 @@ export const AppProvider = ({ children }) => {
   const [selectedIndustryId, setSelectedIndustryId] = useState(null);
 
   const navigateTo = (tab) => {
-    setActiveTab(tab);
-    if (tab === 'crm') {
-      window.history.pushState({}, '', '/crm');
-    } else {
-      if (window.location.pathname.startsWith('/crm')) {
-        window.history.pushState({}, '', '/' + (tab === 'home' ? '' : `#${tab}`));
+    const cleanTab = tab ? String(tab).replace(/^#/, '').replace(/^\/+/, '') : 'home';
+    setActiveTab(cleanTab);
+    if (typeof window !== 'undefined') {
+      if (cleanTab === 'crm') {
+        window.history.pushState({}, '', '/crm');
+      } else if (cleanTab === 'erp' || cleanTab === 'superadmin-erp') {
+        window.history.pushState({}, '', '/erp');
       } else {
-        window.location.hash = tab;
+        const targetPath = cleanTab === 'home' || cleanTab === '' ? '/' : `/${cleanTab}`;
+        window.history.pushState({}, '', targetPath);
       }
+      window.scrollTo({ top: 0, behavior: 'smooth' });
     }
-    window.scrollTo({ top: 0, behavior: 'smooth' });
   };
 
   const navigateToService = (serviceId) => {

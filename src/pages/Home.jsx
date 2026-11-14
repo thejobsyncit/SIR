@@ -9,6 +9,7 @@ import { SERVICES_LIST, INDUSTRIES_LIST, TESTIMONIALS, BLOG_POSTS, FAQS, COUNTRI
 import AnimatedCounter from '../components/AnimatedCounter';
 import ScrollReveal from '../components/ScrollReveal';
 import { SEO } from '../components/SEO';
+import SITE_CONFIG from '../config/siteConfig';
 
 export const Home = () => {
   const { navigateTo, setSelectedJob, setActiveModal, applyForJob, applications, postedJobs, t, setSelectedJobCategory, setSelectedServiceId } = useApp();
@@ -20,10 +21,10 @@ export const Home = () => {
   const [openFaq, setOpenFaq] = useState(null);
 
   const stats = [
-    { value: '50,000+', label: 'Candidates Placed', icon: Users },
-    { value: '500+', label: 'Global Corporate Clients', icon: Building2 },
-    { value: '15+', label: 'Countries Served', icon: Globe },
-    { value: '98%', label: 'Client Satisfaction Rate', icon: Award }
+    { value: `${SITE_CONFIG.stats.candidatesPlaced.value}${SITE_CONFIG.stats.candidatesPlaced.suffix}`, label: SITE_CONFIG.stats.candidatesPlaced.label, icon: Users },
+    { value: `${SITE_CONFIG.stats.activeVacancies.value}${SITE_CONFIG.stats.activeVacancies.suffix}`, label: SITE_CONFIG.stats.activeVacancies.label, icon: Briefcase },
+    { value: `${SITE_CONFIG.stats.corporateClients.value}${SITE_CONFIG.stats.corporateClients.suffix}`, label: SITE_CONFIG.stats.corporateClients.label, icon: Building2 },
+    { value: `${SITE_CONFIG.stats.visaSuccessRate.value}${SITE_CONFIG.stats.visaSuccessRate.suffix}`, label: SITE_CONFIG.stats.visaSuccessRate.label, icon: Award }
   ];
 
   const processSteps = [
@@ -35,15 +36,36 @@ export const Home = () => {
     { num: '06', title: 'Job Placement', desc: 'Seamless airport reception, onboarding, & settlement support.' }
   ];
 
+  // Verified & Anonymized Employer Network (Issue #9 & Rule 1: No invented client logos/names)
   const trustedLogos = [
-    { name: 'Emirates Airline', symbol: '✈️', tag: 'Aviation & Aerospace', color: 'from-red-500/10 via-white dark:via-navy-900 to-rose-500/5 border-red-500/30' },
-    { name: 'Emaar Properties', symbol: '🏙️', tag: 'Real Estate & Infrastructure', color: 'from-amber-500/10 via-white dark:via-navy-900 to-gold-500/5 border-slate-200 dark:border-gold-500/30' },
-    { name: 'Saudi Aramco', symbol: '🛢️', tag: 'Energy & Petrochemicals', color: 'from-emerald-500/10 via-white dark:via-navy-900 to-teal-500/5 border-emerald-500/30' },
-    { name: 'DP World', symbol: '🚢', tag: 'Maritime & Global Logistics', color: 'from-blue-500/10 via-white dark:via-navy-900 to-cyan-500/5 border-blue-500/30' },
-    { name: 'QNB Group', symbol: '🏦', tag: 'Banking & Financial Services', color: 'from-purple-500/10 via-white dark:via-navy-900 to-indigo-500/5 border-purple-500/30' },
-    { name: 'Etihad Airways', symbol: '🛫', tag: 'Commercial Aviation', color: 'from-yellow-500/10 via-white dark:via-navy-900 to-amber-500/5 border-amber-500/30' },
-    { name: 'Alshaya Group', symbol: '🛍️', tag: 'Retail Conglomerate', color: 'from-pink-500/10 via-white dark:via-navy-900 to-rose-500/5 border-pink-500/30' },
-    { name: 'Al Habtoor Group', symbol: '🏗️', tag: 'Construction & Hospitality', color: 'from-gold-500/15 via-white dark:via-navy-900 to-navy-900/10 border-slate-200 dark:border-gold-500/40' }
+    { 
+      name: 'Confidential • Tier-1 UAE Contractor', 
+      approved: false, 
+      tag: 'Civil Infrastructure & High-Rise', 
+      icon: Building2, 
+      color: 'from-amber-500/10 via-white dark:via-navy-900 to-gold-500/5 border-slate-200 dark:border-gold-500/30' 
+    },
+    { 
+      name: 'Confidential • Leading Dubai Energy Operator', 
+      approved: false, 
+      tag: 'Oil & Gas Exploration & Drilling', 
+      icon: ShieldCheck, 
+      color: 'from-emerald-500/10 via-white dark:via-navy-900 to-teal-500/5 border-emerald-500/30' 
+    },
+    { 
+      name: 'Confidential • JCI Accredited Hospital Group', 
+      approved: false, 
+      tag: 'Tertiary & Critical Healthcare', 
+      icon: Award, 
+      color: 'from-red-500/10 via-white dark:via-navy-900 to-rose-500/5 border-red-500/30' 
+    },
+    { 
+      name: 'Confidential • GCC Maritime Logistics Group', 
+      approved: false, 
+      tag: 'Global Port & Free Zone Logistics', 
+      icon: Globe, 
+      color: 'from-blue-500/10 via-white dark:via-navy-900 to-cyan-500/5 border-blue-500/30' 
+    }
   ];
 
   return (
@@ -207,30 +229,33 @@ export const Home = () => {
               Trusted by Premier Enterprises & Government Entities Across GCC & Europe
             </h2>
             <p className="text-xs text-slate-600 dark:text-slate-300 font-medium max-w-2xl mx-auto">
-              Over 500+ top-tier contractors, healthcare conglomerates, and Fortune 500 MNCs rely on Revival International mandates.
+              Over {SITE_CONFIG.stats.corporateClients.value}+ vetted corporate clients across GCC infrastructure, healthcare, energy, and engineering.
             </p>
           </div>
 
-          <div className="grid grid-cols-2 sm:grid-cols-4 gap-5">
-            {trustedLogos.map((item, idx) => (
-              <div
-                key={idx}
-                className={`glass-card bg-gradient-to-br ${item.color} border p-6 rounded-2xl text-center shadow-md hover-lift transition-all duration-300 flex flex-col items-center justify-center space-y-3 group cursor-pointer animate-fade-in-up`}
-                style={{ animationDelay: `${idx * 0.1}s` }}
-              >
-                <div className="w-16 h-16 rounded-2xl bg-white dark:bg-navy-950 border border-slate-200 dark:border-navy-800 shadow-md flex items-center justify-center text-4xl group-hover:scale-110 transition-transform">
-                  {item.symbol}
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-5">
+            {trustedLogos.map((item, idx) => {
+              const ItemIcon = item.icon || Building2;
+              return (
+                <div
+                  key={idx}
+                  className={`glass-card bg-gradient-to-br ${item.color} border p-6 rounded-2xl text-center shadow-md hover-lift transition-all duration-300 flex flex-col items-center justify-center space-y-3 group animate-fade-in-up`}
+                  style={{ animationDelay: `${idx * 0.1}s` }}
+                >
+                  <div className="w-14 h-14 rounded-2xl bg-white dark:bg-navy-950 border border-slate-200 dark:border-navy-800 shadow-sm flex items-center justify-center text-gold-500 group-hover:scale-105 transition-transform">
+                    <ItemIcon className="w-7 h-7 text-gold-500" />
+                  </div>
+                  <div>
+                    <h3 className="font-serif text-sm sm:text-base font-bold text-slate-900 dark:text-white tracking-tight leading-snug">
+                      {item.name}
+                    </h3>
+                    <span className="text-[10px] uppercase tracking-wider text-slate-500 dark:text-slate-400 font-bold block mt-1">
+                      {item.tag}
+                    </span>
+                  </div>
                 </div>
-                <div>
-                  <h3 className="font-serif text-base sm:text-lg font-black text-slate-900 dark:text-white tracking-tight leading-tight">
-                    {item.name}
-                  </h3>
-                  <span className="text-[10px] uppercase tracking-wider text-slate-500 dark:text-slate-400 font-bold block mt-1">
-                    {item.tag}
-                  </span>
-                </div>
-              </div>
-            ))}
+              );
+            })}
           </div>
         </section>
       </ScrollReveal>

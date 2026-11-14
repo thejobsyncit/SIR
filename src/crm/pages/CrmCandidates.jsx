@@ -28,11 +28,16 @@ export const CrmCandidates = () => {
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedNationality, setSelectedNationality] = useState('All');
   const [selectedRecruiter, setSelectedRecruiter] = useState('All');
+  const [filterMode, setFilterMode] = useState('all'); // 'all' | 'applicants'
   const [viewCand, setViewCand] = useState(null);
   const [deleteConfirmCand, setDeleteConfirmCand] = useState(null);
   const [isDeleting, setIsDeleting] = useState(false);
   const [statusNotice, setStatusNotice] = useState('');
   const [showFullResumeSheet, setShowFullResumeSheet] = useState(true);
+
+  const activeApplicants = useMemo(() => {
+    return candidates.filter(c => (Array.isArray(c.applications) && c.applications.length > 0) || c.stage === 'applied');
+  }, [candidates]);
 
   // Synchronize when a candidate is selected externally (e.g. from recruiter workspace or search)
   useEffect(() => {
@@ -109,7 +114,7 @@ export const CrmCandidates = () => {
           };
         }
       }
-    } catch {}
+    } catch { }
 
     // Check localStorage for applications
     try {
@@ -129,7 +134,7 @@ export const CrmCandidates = () => {
           }
         }
       }
-    } catch {}
+    } catch { }
 
     // Check if any application attached a specific resume
     const appWithCv = (enriched.applications || []).find(a => a.resumeName || a.resumeUrl);
@@ -144,21 +149,23 @@ export const CrmCandidates = () => {
     // Ensure complete, verified fallback data for every candidate so resume is ALWAYS available
     const cleanName = (enriched.name || 'Executive Candidate').trim();
     const cleanFilePrefix = cleanName.replace(/[^a-zA-Z0-9]/g, '_');
-    
+
     return {
       ...enriched,
       name: cleanName,
-      phone: (enriched.phone && enriched.phone.trim() !== '') ? enriched.phone : '+971 50 123 4567',
-      nationality: (enriched.nationality && enriched.nationality.trim() !== '') ? enriched.nationality : 'UAE',
-      citizenship: (enriched.citizenship && enriched.citizenship.trim() !== '') ? enriched.citizenship : 'United Arab Emirates',
-      location: (enriched.location && enriched.location.trim() !== '') ? enriched.location : 'Dubai, UAE',
-      preferredCountry: (enriched.preferredCountry && enriched.preferredCountry.trim() !== '') ? enriched.preferredCountry : 'AE UAE (Dubai / Abu Dhabi)',
+      phone: (enriched.phone && enriched.phone.trim() !== '') ? enriched.phone : 'Not specified',
+      nationality: (enriched.nationality && enriched.nationality.trim() !== '') ? enriched.nationality : 'Not specified',
+      citizenship: (enriched.citizenship && enriched.citizenship.trim() !== '') ? enriched.citizenship : 'Not specified',
+      location: (enriched.location && enriched.location.trim() !== '') ? enriched.location : 'Not specified',
+      preferredCountry: (enriched.preferredCountry && enriched.preferredCountry.trim() !== '') ? enriched.preferredCountry : 'Not specified',
       currentRole: (enriched.currentRole && enriched.currentRole.trim() !== '') ? enriched.currentRole : 'Executive Candidate',
       currentEmployer: (enriched.currentEmployer && enriched.currentEmployer.trim() !== '') ? enriched.currentEmployer : 'Revival International Candidate',
-      experience: (enriched.experience && enriched.experience.trim() !== '') ? enriched.experience : '3-5 Years',
-      education: (enriched.education || enriched.qualification || 'Bachelor Degree / Professional Diploma'),
-      qualification: (enriched.qualification || enriched.education || 'Bachelor Degree / Professional Diploma'),
-      expectedSalary: (enriched.expectedSalary && enriched.expectedSalary.trim() !== '') ? enriched.expectedSalary : 'Market Standard',
+      experience: (enriched.experience && enriched.experience.trim() !== '') ? enriched.experience : 'Not specified',
+      education: (enriched.education || enriched.qualification || 'Not specified'),
+      qualification: (enriched.qualification || enriched.education || 'Not specified'),
+      currentSalary: (enriched.currentSalary && enriched.currentSalary.trim() !== '') ? enriched.currentSalary : 'Not specified',
+      expectedSalary: (enriched.expectedSalary && enriched.expectedSalary.trim() !== '') ? enriched.expectedSalary : 'Not specified',
+      noticePeriod: (enriched.noticePeriod && enriched.noticePeriod.trim() !== '') ? enriched.noticePeriod : 'Not specified',
       resumeName: enriched.resumeName || `${cleanFilePrefix}_Executive_CV.pdf`,
       resumeSize: enriched.resumeSize || '245 KB',
       mohreAttested: enriched.mohreAttested !== undefined ? enriched.mohreAttested : true,
@@ -171,7 +178,7 @@ export const CrmCandidates = () => {
   // Handle downloading candidate resume as an actual PDF file
   const handleDownloadCv = (cand) => {
     if (!cand) return;
-    
+
     // If candidate uploaded a custom data URL (.pdf), download it directly
     if (cand.resumeUrl && cand.resumeUrl.startsWith('data:application/pdf')) {
       const link = document.createElement('a');
@@ -190,7 +197,7 @@ export const CrmCandidates = () => {
   // Handle viewing / previewing candidate CV in a separate clean tab
   const handlePreviewCv = (cand) => {
     if (!cand) return;
-    
+
     // If candidate uploaded custom data URL, open blob
     if (cand.resumeUrl && cand.resumeUrl.startsWith('data:')) {
       try {
@@ -245,11 +252,16 @@ export const CrmCandidates = () => {
   };
 
   const filtered = candidates.filter(c => {
+    if (filterMode === 'applicants') {
+      const hasApp = (Array.isArray(c.applications) && c.applications.length > 0) || c.stage === 'applied';
+      if (!hasApp) return false;
+    }
     const matchesSearch = (c.name || '').toLowerCase().includes(searchTerm.toLowerCase()) ||
-                          (c.email || '').toLowerCase().includes(searchTerm.toLowerCase()) ||
-                          (c.skills && Array.isArray(c.skills) && c.skills.some(s => s.toLowerCase().includes(searchTerm.toLowerCase()))) ||
-                          (c.id || '').toLowerCase().includes(searchTerm.toLowerCase()) ||
-                          (c.currentRole || '').toLowerCase().includes(searchTerm.toLowerCase());
+      (c.email || '').toLowerCase().includes(searchTerm.toLowerCase()) ||
+      (c.skills && Array.isArray(c.skills) && c.skills.some(s => s.toLowerCase().includes(searchTerm.toLowerCase()))) ||
+      (c.id || '').toLowerCase().includes(searchTerm.toLowerCase()) ||
+      (c.currentRole || '').toLowerCase().includes(searchTerm.toLowerCase()) ||
+      (Array.isArray(c.applications) && c.applications.some(a => (a.jobTitle || '').toLowerCase().includes(searchTerm.toLowerCase())));
     const matchesNat = selectedNationality === 'All' || c.nationality === selectedNationality;
     const matchesRecruiter = selectedRecruiter === 'All' || c.assignedRecruiter === selectedRecruiter;
     return matchesSearch && matchesNat && matchesRecruiter;
@@ -257,34 +269,34 @@ export const CrmCandidates = () => {
 
   return (
     <div className="space-y-6 text-xs font-sans">
-      
+
       {/* Header */}
       <ScrollReveal>
-      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 bg-white dark:bg-navy-950 p-6 rounded-3xl border border-slate-200 dark:border-navy-800 shadow-sm">
-        <div>
-          <span className="bg-gold-500/20 text-gold-600 dark:text-gold-400 text-[10px] font-bold px-2.5 py-1 rounded uppercase">Human Capital Index</span>
-          <h1 className="font-serif text-2xl font-bold text-slate-900 dark:text-white mt-1">Candidate Management System</h1>
-          <p className="text-slate-500 dark:text-slate-400">Total Talent Pool: <strong className="text-slate-900 dark:text-white font-bold">{candidates.length} Registered & Verified Candidates</strong></p>
-        </div>
+        <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 bg-white dark:bg-navy-950 p-6 rounded-3xl border border-slate-200 dark:border-navy-800 shadow-sm">
+          <div>
+            <span className="bg-gold-500/20 text-gold-600 dark:text-gold-400 text-[10px] font-bold px-2.5 py-1 rounded uppercase">Human Capital Index</span>
+            <h1 className="font-serif text-2xl font-bold text-slate-900 dark:text-white mt-1">Candidate Management System</h1>
+            <p className="text-slate-500 dark:text-slate-400">Total Talent Pool: <strong className="text-slate-900 dark:text-white font-bold">{candidates.length} Registered & Verified Candidates</strong></p>
+          </div>
 
-        <div className="flex gap-3">
-          <button 
-            onClick={() => setAiDrawerOpen(true)}
-            className="px-4 py-2.5 bg-gold-500/20 text-gold-600 dark:text-gold-400 border border-gold-500/40 hover:bg-gold-500 hover:text-navy-950 font-bold rounded-xl transition flex items-center space-x-1.5 cursor-pointer"
-          >
-            <Sparkles className="w-4 h-4" />
-            <span>AI Resume Parser</span>
-          </button>
-          
-          <button 
-            onClick={() => setGlobalAddCandidateOpen(true)}
-            className="px-4 py-2.5 bg-gold-500 text-navy-950 font-bold rounded-xl shadow-gold-glow hover:opacity-95 transition flex items-center space-x-1.5 cursor-pointer"
-          >
-            <Plus className="w-4 h-4" />
-            <span>Add New Candidate</span>
-          </button>
+          <div className="flex gap-3">
+            <button
+              onClick={() => setAiDrawerOpen(true)}
+              className="px-4 py-2.5 bg-gold-500/20 text-gold-600 dark:text-gold-400 border border-gold-500/40 hover:bg-gold-500 hover:text-navy-950 font-bold rounded-xl transition flex items-center space-x-1.5 cursor-pointer"
+            >
+              <Sparkles className="w-4 h-4" />
+              <span>AI Resume Parser</span>
+            </button>
+
+            <button
+              onClick={() => setGlobalAddCandidateOpen(true)}
+              className="px-4 py-2.5 bg-gold-500 text-navy-950 font-bold rounded-xl shadow-gold-glow hover:opacity-95 transition flex items-center space-x-1.5 cursor-pointer"
+            >
+              <Plus className="w-4 h-4" />
+              <span>Add New Candidate</span>
+            </button>
+          </div>
         </div>
-      </div>
       </ScrollReveal>
 
       {/* Status Notification Toast */}
@@ -297,160 +309,205 @@ export const CrmCandidates = () => {
         </div>
       )}
 
+      {/* View Mode Toggle: All Talent vs. Active Job Applicants */}
+      <div className="flex flex-wrap gap-2">
+        <button
+          onClick={() => setFilterMode('all')}
+          className={`px-4 py-2 rounded-xl text-xs font-bold transition flex items-center gap-2 cursor-pointer ${filterMode === 'all'
+            ? 'bg-navy-900 text-white dark:bg-white dark:text-navy-950 shadow-sm'
+            : 'bg-white dark:bg-navy-900 text-slate-600 dark:text-slate-400 border border-slate-200 dark:border-navy-800 hover:border-gold-500'
+            }`}
+        >
+          <Users className="w-3.5 h-3.5" />
+          <span>All Talent Pool ({candidates.length})</span>
+        </button>
+        <button
+          onClick={() => setFilterMode('applicants')}
+          className={`px-4 py-2 rounded-xl text-xs font-bold transition flex items-center gap-2 cursor-pointer ${filterMode === 'applicants'
+            ? 'bg-gold-500 text-navy-950 shadow-gold-glow'
+            : 'bg-white dark:bg-navy-900 text-slate-600 dark:text-slate-400 border border-slate-200 dark:border-navy-800 hover:border-gold-500'
+            }`}
+        >
+          <Briefcase className="w-3.5 h-3.5" />
+          <span>🎯 Active Job Applicants ({activeApplicants.length})</span>
+        </button>
+      </div>
+
       {/* Filter Bar */}
       <ScrollReveal>
-      <div className="glass-card bg-white dark:bg-navy-900 p-4 rounded-2xl border border-slate-200 dark:border-navy-800 flex flex-col sm:flex-row justify-between gap-3 shadow-sm">
-        <div className="relative flex-1">
-          <Search className="w-4 h-4 text-slate-400 absolute left-3 top-2.5" />
-          <input 
-            type="text"
-            placeholder="Search candidate by name, email, ID, role, skills, or passport..."
-            value={searchTerm}
-            onChange={(e) => setSearchTerm(e.target.value)}
-            className="w-full bg-slate-100 dark:bg-navy-950 border border-slate-200 dark:border-navy-700 text-slate-900 dark:text-white rounded-xl pl-9 pr-3 py-2 text-xs focus:outline-none focus:border-gold-500 font-semibold"
-          />
-        </div>
+        <div className="glass-card bg-white dark:bg-navy-900 p-4 rounded-2xl border border-slate-200 dark:border-navy-800 flex flex-col sm:flex-row justify-between gap-3 shadow-sm">
+          <div className="relative flex-1">
+            <Search className="w-4 h-4 text-slate-400 absolute left-3 top-2.5" />
+            <input
+              type="text"
+              placeholder="Search candidate by name, email, ID, role, skills, or passport..."
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
+              className="w-full bg-slate-100 dark:bg-navy-950 border border-slate-200 dark:border-navy-700 text-slate-900 dark:text-white rounded-xl pl-9 pr-3 py-2 text-xs focus:outline-none focus:border-gold-500 font-semibold"
+            />
+          </div>
 
-        <div className="flex gap-2">
-          <select 
-            value={selectedRecruiter}
-            onChange={(e) => setSelectedRecruiter(e.target.value)}
-            className="bg-slate-100 dark:bg-navy-950 border border-slate-200 dark:border-navy-700 text-slate-900 dark:text-white rounded-xl px-3 py-2 text-xs font-semibold focus:outline-none cursor-pointer"
-          >
-            <option value="All">All Assigned Recruiters ({ASSIGNED_RECRUITERS.length})</option>
-            {ASSIGNED_RECRUITERS.map(rec => (
-              <option key={rec.id} value={rec.name}>{rec.name}</option>
-            ))}
-          </select>
+          <div className="flex gap-2">
+            <select
+              value={selectedRecruiter}
+              onChange={(e) => setSelectedRecruiter(e.target.value)}
+              className="bg-slate-100 dark:bg-navy-950 border border-slate-200 dark:border-navy-700 text-slate-900 dark:text-white rounded-xl px-3 py-2 text-xs font-semibold focus:outline-none cursor-pointer"
+            >
+              <option value="All">All Assigned Recruiters ({ASSIGNED_RECRUITERS.length})</option>
+              {ASSIGNED_RECRUITERS.map(rec => (
+                <option key={rec.id} value={rec.name}>{rec.name}</option>
+              ))}
+            </select>
 
-          <select 
-            value={selectedNationality}
-            onChange={(e) => setSelectedNationality(e.target.value)}
-            className="bg-slate-100 dark:bg-navy-950 border border-slate-200 dark:border-navy-700 text-slate-900 dark:text-white rounded-xl px-3 py-2 text-xs font-semibold focus:outline-none cursor-pointer"
-          >
-            <option value="All">All Nationalities</option>
-            <option value="UAE">UAE</option>
-            <option value="United Kingdom">United Kingdom</option>
-            <option value="Saudi Arabia">Saudi Arabia</option>
-            <option value="India">India</option>
-            <option value="Poland">Poland</option>
-          </select>
+            <select
+              value={selectedNationality}
+              onChange={(e) => setSelectedNationality(e.target.value)}
+              className="bg-slate-100 dark:bg-navy-950 border border-slate-200 dark:border-navy-700 text-slate-900 dark:text-white rounded-xl px-3 py-2 text-xs font-semibold focus:outline-none cursor-pointer"
+            >
+              <option value="All">All Nationalities</option>
+              <option value="UAE">UAE</option>
+              <option value="United Kingdom">United Kingdom</option>
+              <option value="Saudi Arabia">Saudi Arabia</option>
+              <option value="India">India</option>
+              <option value="Poland">Poland</option>
+            </select>
+          </div>
         </div>
-      </div>
       </ScrollReveal>
 
       {/* Candidates Cards Grid */}
       <ScrollReveal>
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-        {filtered.map((cand) => (
-          <div 
-            key={cand.id}
-            onClick={() => setViewCand(cand)}
-            className="glass-card bg-white dark:bg-navy-900 border border-slate-200 dark:border-navy-800 p-5 rounded-2xl space-y-3 hover:border-gold-500 transition cursor-pointer flex flex-col justify-between shadow-sm group"
-          >
-            <div className="space-y-3">
-              <div className="flex justify-between items-start">
-                <div className="flex items-center space-x-3">
-                  <img
-                    src={cand.avatar || 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=150&auto=format&fit=crop&q=80'}
-                    alt={cand.name}
-                    className="w-11 h-11 rounded-full object-cover border-2 border-gold-500 shrink-0"
-                  />
-                  <div>
-                    <h3 className="font-bold text-sm text-slate-900 dark:text-white group-hover:text-gold-600 transition">{cand.name}</h3>
-                    <p className="text-[10px] text-slate-500 dark:text-slate-400 font-medium">
-                      {cand.id} • {cand.nationality || 'UAE'}
-                      {cand.citizenship && ` • ${cand.citizenship}`}
-                    </p>
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+          {filtered.map((cand) => (
+            <div
+              key={cand.id}
+              onClick={() => setViewCand(cand)}
+              className="glass-card bg-white dark:bg-navy-900 border border-slate-200 dark:border-navy-800 p-5 rounded-2xl space-y-3 hover:border-gold-500 transition cursor-pointer flex flex-col justify-between shadow-sm group"
+            >
+              <div className="space-y-3">
+                <div className="flex justify-between items-start">
+                  <div className="flex items-center space-x-3">
+                    <img
+                      src={cand.avatar || 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=150&auto=format&fit=crop&q=80'}
+                      alt={cand.name}
+                      className="w-11 h-11 rounded-full object-cover border-2 border-gold-500 shrink-0"
+                    />
+                    <div>
+                      <h3 className="font-bold text-sm text-slate-900 dark:text-white group-hover:text-gold-600 transition">{cand.name}</h3>
+                      <p className="text-[10px] text-slate-500 dark:text-slate-400 font-medium">
+                        {cand.id} • {cand.nationality || 'UAE'}
+                        {cand.citizenship && ` • ${cand.citizenship}`}
+                      </p>
+                    </div>
+                  </div>
+
+                  <div className="flex flex-col items-end gap-1">
+                    <span className="px-2 py-0.5 rounded-full bg-emerald-500/15 text-emerald-700 dark:text-emerald-400 font-bold text-[9px] flex items-center gap-1 border border-emerald-500/30" title="CV / Resume Attached">
+                      <FileText className="w-3 h-3 text-emerald-600 dark:text-emerald-400" />
+                      <span>CV Attached</span>
+                    </span>
+                    {Array.isArray(cand.applications) && cand.applications.length > 0 && (
+                      <span className="px-2 py-0.5 rounded-full bg-blue-500/15 text-blue-700 dark:text-blue-400 font-bold text-[9px] flex items-center gap-1 border border-blue-500/30" title="Applied Vacancies">
+                        <Briefcase className="w-3 h-3 text-blue-600 dark:text-blue-400" />
+                        <span>{cand.applications.length} Applied</span>
+                      </span>
+                    )}
+                    <span className="w-7 h-7 rounded-full border border-gold-500 text-gold-600 dark:text-gold-400 font-extrabold text-[11px] flex items-center justify-center bg-gold-500/10" title="AI Profile Score">
+                      {cand.score || 88}
+                    </span>
                   </div>
                 </div>
 
-                <div className="flex flex-col items-end gap-1">
-                  <span className="px-2 py-0.5 rounded-full bg-emerald-500/15 text-emerald-700 dark:text-emerald-400 font-bold text-[9px] flex items-center gap-1 border border-emerald-500/30" title="CV / Resume Attached">
-                    <FileText className="w-3 h-3 text-emerald-600 dark:text-emerald-400" />
-                    <span>CV Attached</span>
-                  </span>
-                  {Array.isArray(cand.applications) && cand.applications.length > 0 && (
-                    <span className="px-2 py-0.5 rounded-full bg-blue-500/15 text-blue-700 dark:text-blue-400 font-bold text-[9px] flex items-center gap-1 border border-blue-500/30" title="Applied Vacancies">
-                      <Briefcase className="w-3 h-3 text-blue-600 dark:text-blue-400" />
-                      <span>{cand.applications.length} Applied</span>
+                <div className="p-3 bg-slate-100 dark:bg-navy-950 rounded-xl space-y-1 text-[11px] border border-slate-200 dark:border-navy-800">
+                  <p><strong className="text-slate-500 dark:text-slate-400">Role:</strong> <span className="text-slate-900 dark:text-white font-semibold">{cand.currentRole || 'Executive Candidate'}</span></p>
+                  <p><strong className="text-slate-500 dark:text-slate-400">Employer:</strong> <span className="text-slate-900 dark:text-white font-semibold">{cand.currentEmployer || 'Revival International Candidate'}</span></p>
+                  {cand.email && (
+                    <p><strong className="text-slate-500 dark:text-slate-400">Email:</strong> <span className="text-slate-800 dark:text-slate-200 font-mono text-[10px]">{cand.email}</span></p>
+                  )}
+                  <p><strong className="text-slate-500 dark:text-slate-400">Expected Salary:</strong> <span className="text-emerald-600 dark:text-emerald-400 font-bold">{cand.expectedSalary || 'Not specified'}</span></p>
+                </div>
+
+                {/* Applied Vacancy Highlight Banner */}
+                {Array.isArray(cand.applications) && cand.applications.length > 0 && (
+                  <div className="p-2.5 bg-blue-50 dark:bg-blue-950/40 rounded-xl border border-blue-200 dark:border-blue-900/50 space-y-1">
+                    <div className="flex items-center justify-between">
+                      <span className="text-[10px] font-bold text-blue-600 dark:text-blue-400 uppercase tracking-wider flex items-center gap-1">
+                        <Briefcase className="w-3 h-3" />
+                        <span>Applied Vacancy</span>
+                      </span>
+                      <span className="text-[9px] text-blue-500 font-medium">
+                        {cand.applications[0].appliedDate ? new Date(cand.applications[0].appliedDate).toLocaleDateString() : 'Recent'}
+                      </span>
+                    </div>
+                    <p className="font-bold text-xs text-blue-950 dark:text-blue-200 line-clamp-1">
+                      {cand.applications[0].jobTitle}
+                    </p>
+                    <p className="text-[10px] text-slate-600 dark:text-slate-400">
+                      {cand.applications[0].company || 'Revival International Partner'}
+                    </p>
+                  </div>
+                )}
+
+                <p className="text-[11px] text-slate-700 dark:text-slate-300 italic line-clamp-2 leading-relaxed">
+                  "{cand.aiSummary || 'Registered candidate in Revival Talent Pool.'}"
+                </p>
+
+                <div className="flex flex-wrap gap-1">
+                  {Array.isArray(cand.skills) && cand.skills.slice(0, 4).map((s, i) => (
+                    <span key={i} className="bg-slate-100 dark:bg-navy-950 text-gold-700 dark:text-gold-400 text-[10px] px-2 py-0.5 rounded font-medium border border-slate-200 dark:border-navy-800">
+                      {s}
+                    </span>
+                  ))}
+                  {Array.isArray(cand.skills) && cand.skills.length > 4 && (
+                    <span className="text-[10px] text-slate-500 px-1 py-0.5 font-bold">
+                      +{cand.skills.length - 4} more
                     </span>
                   )}
-                  <span className="w-7 h-7 rounded-full border border-gold-500 text-gold-600 dark:text-gold-400 font-extrabold text-[11px] flex items-center justify-center bg-gold-500/10" title="AI Profile Score">
-                    {cand.score || 88}
-                  </span>
                 </div>
               </div>
 
-              <div className="p-3 bg-slate-100 dark:bg-navy-950 rounded-xl space-y-1 text-[11px] border border-slate-200 dark:border-navy-800">
-                <p><strong className="text-slate-500 dark:text-slate-400">Role:</strong> <span className="text-slate-900 dark:text-white font-semibold">{cand.currentRole || 'Executive Candidate'}</span></p>
-                <p><strong className="text-slate-500 dark:text-slate-400">Employer:</strong> <span className="text-slate-900 dark:text-white font-semibold">{cand.currentEmployer || 'Revival International Candidate'}</span></p>
-                {cand.email && (
-                  <p><strong className="text-slate-500 dark:text-slate-400">Email:</strong> <span className="text-slate-800 dark:text-slate-200 font-mono text-[10px]">{cand.email}</span></p>
-                )}
-                <p><strong className="text-slate-500 dark:text-slate-400">Expected Salary:</strong> <span className="text-emerald-600 dark:text-emerald-400 font-bold">{cand.expectedSalary || 'Market Standard'}</span></p>
-              </div>
-
-              <p className="text-[11px] text-slate-700 dark:text-slate-300 italic line-clamp-2 leading-relaxed">
-                "{cand.aiSummary || 'Registered candidate in Revival Talent Pool.'}"
-              </p>
-
-              <div className="flex flex-wrap gap-1">
-                {Array.isArray(cand.skills) && cand.skills.slice(0, 4).map((s, i) => (
-                  <span key={i} className="bg-slate-100 dark:bg-navy-950 text-gold-700 dark:text-gold-400 text-[10px] px-2 py-0.5 rounded font-medium border border-slate-200 dark:border-navy-800">
-                    {s}
-                  </span>
-                ))}
-                {Array.isArray(cand.skills) && cand.skills.length > 4 && (
-                  <span className="text-[10px] text-slate-500 px-1 py-0.5 font-bold">
-                    +{cand.skills.length - 4} more
-                  </span>
-                )}
-              </div>
-            </div>
-
-            <div className="pt-3 border-t border-slate-200 dark:border-navy-800 flex justify-between items-center text-[10px] text-slate-500 dark:text-slate-400">
-              <div className="space-y-0.5">
-                <span>Recruiter: <strong className="text-slate-900 dark:text-white">{cand.assignedRecruiter || 'Dhanalakshimi'}</strong></span>
-                <span className="block bg-gold-500/20 text-gold-700 dark:text-gold-400 font-bold px-2 py-0.5 rounded uppercase w-fit">{cand.stage || 'lead'}</span>
-              </div>
-              <div className="flex items-center gap-2">
-                <button
-                  type="button"
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    setViewCand(cand);
-                  }}
-                  className="p-1.5 px-2.5 bg-gold-500/10 hover:bg-gold-500/20 text-gold-700 dark:text-gold-400 rounded-lg border border-gold-500/30 font-bold transition flex items-center gap-1 cursor-pointer"
-                  title={`View Full Profile & CV for ${cand.name}`}
-                >
-                  <Eye className="w-3.5 h-3.5" />
-                  <span>View Details</span>
-                </button>
-                <button
-                  type="button"
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    handleDeleteCandidate(cand);
-                  }}
-                  className="p-1.5 px-2.5 bg-rose-50 hover:bg-rose-100 dark:bg-rose-950/40 dark:hover:bg-rose-900/60 text-rose-600 dark:text-rose-400 rounded-lg border border-rose-200 dark:border-rose-900/50 font-bold transition flex items-center gap-1 cursor-pointer"
-                  title={`Delete ${cand.name}`}
-                >
-                  <Trash2 className="w-3.5 h-3.5" />
-                  <span className="text-[10px]">Delete</span>
-                </button>
+              <div className="pt-3 border-t border-slate-200 dark:border-navy-800 flex justify-between items-center text-[10px] text-slate-500 dark:text-slate-400">
+                <div className="space-y-0.5">
+                  <span>Recruiter: <strong className="text-slate-900 dark:text-white">{cand.assignedRecruiter || 'Dhanalakshimi'}</strong></span>
+                  <span className="block bg-gold-500/20 text-gold-700 dark:text-gold-400 font-bold px-2 py-0.5 rounded uppercase w-fit">{cand.stage || 'lead'}</span>
+                </div>
+                <div className="flex items-center gap-2">
+                  <button
+                    type="button"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      setViewCand(cand);
+                    }}
+                    className="p-1.5 px-2.5 bg-gold-500/10 hover:bg-gold-500/20 text-gold-700 dark:text-gold-400 rounded-lg border border-gold-500/30 font-bold transition flex items-center gap-1 cursor-pointer"
+                    title={`View Full Profile & CV for ${cand.name}`}
+                  >
+                    <Eye className="w-3.5 h-3.5" />
+                    <span>View Details</span>
+                  </button>
+                  <button
+                    type="button"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      handleDeleteCandidate(cand);
+                    }}
+                    className="p-1.5 px-2.5 bg-rose-50 hover:bg-rose-100 dark:bg-rose-950/40 dark:hover:bg-rose-900/60 text-rose-600 dark:text-rose-400 rounded-lg border border-rose-200 dark:border-rose-900/50 font-bold transition flex items-center gap-1 cursor-pointer"
+                    title={`Delete ${cand.name}`}
+                  >
+                    <Trash2 className="w-3.5 h-3.5" />
+                    <span className="text-[10px]">Delete</span>
+                  </button>
+                </div>
               </div>
             </div>
-          </div>
-        ))}
-      </div>
+          ))}
+        </div>
       </ScrollReveal>
 
       {/* Comprehensive Candidate View Modal (With Visual ATS Resume & Downloadable PDF) */}
       {activeCand && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-navy-950/80 backdrop-blur-sm animate-in fade-in">
           <div className="glass-card bg-white dark:bg-navy-900 border border-gold-500/40 rounded-3xl max-w-4xl w-full p-6 shadow-luxury space-y-5 max-h-[94vh] overflow-y-auto text-slate-900 dark:text-white">
-            
+
             {/* Modal Header */}
             <div className="flex justify-between items-start border-b border-slate-200 dark:border-navy-800 pb-4">
               <div className="flex items-center space-x-4">
@@ -480,7 +537,7 @@ export const CrmCandidates = () => {
                   </p>
                 </div>
               </div>
-              <button 
+              <button
                 onClick={() => {
                   setViewCand(null);
                   if (setSelectedCandidate) setSelectedCandidate(null);
@@ -550,7 +607,7 @@ export const CrmCandidates = () => {
             {/* VISUAL ATS RESUME SHEET (Rendered Directly in Modal for Immediate Inspection) */}
             {showFullResumeSheet && (
               <div className="p-6 bg-slate-50 dark:bg-navy-950 rounded-2xl border-2 border-slate-300 dark:border-navy-800 space-y-5 shadow-inner">
-                
+
                 {/* Visual Resume Sheet Header */}
                 <div className="border-b-2 border-gold-500/40 pb-4 flex flex-col md:flex-row justify-between md:items-center gap-3">
                   <div>
@@ -595,8 +652,8 @@ export const CrmCandidates = () => {
                   </h4>
                   <div className="flex flex-wrap gap-1.5 pt-1">
                     {activeCand.skills.map((skill, idx) => (
-                      <span 
-                        key={idx} 
+                      <span
+                        key={idx}
                         className="px-3 py-1 bg-white dark:bg-navy-900 text-gold-700 dark:text-gold-400 font-bold text-xs rounded-xl border border-slate-200 dark:border-navy-800 shadow-2xs"
                       >
                         ✓ {skill}
@@ -649,18 +706,22 @@ export const CrmCandidates = () => {
                     <Clock className="w-3.5 h-3.5 text-gold-500" />
                     <span>Relocation, Remuneration & Availability</span>
                   </h4>
-                  <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-3 text-xs bg-white dark:bg-navy-900 p-3.5 rounded-xl border border-slate-200 dark:border-navy-800">
+                  <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-5 gap-3 text-xs bg-white dark:bg-navy-900 p-3.5 rounded-xl border border-slate-200 dark:border-navy-800">
                     <div>
                       <span className="text-slate-500 block text-[10px] font-bold uppercase">Target Relocation</span>
-                      <strong className="text-slate-900 dark:text-white">{activeCand.preferredCountry}</strong>
+                      <strong className="text-slate-900 dark:text-white">{activeCand.preferredCountry || 'Not specified'}</strong>
+                    </div>
+                    <div>
+                      <span className="text-slate-500 block text-[10px] font-bold uppercase">Current Salary</span>
+                      <strong className="text-slate-900 dark:text-white">{activeCand.currentSalary || 'Not specified'}</strong>
                     </div>
                     <div>
                       <span className="text-slate-500 block text-[10px] font-bold uppercase">Expected Salary</span>
-                      <strong className="text-emerald-600 dark:text-emerald-400 font-bold">{activeCand.expectedSalary}</strong>
+                      <strong className="text-emerald-600 dark:text-emerald-400 font-bold">{activeCand.expectedSalary || 'Not specified'}</strong>
                     </div>
                     <div>
                       <span className="text-slate-500 block text-[10px] font-bold uppercase">Notice Period</span>
-                      <strong className="text-slate-900 dark:text-white">{activeCand.noticePeriod || '30 Days'}</strong>
+                      <strong className="text-slate-900 dark:text-white">{activeCand.noticePeriod || 'Not specified'}</strong>
                     </div>
                     <div>
                       <span className="text-slate-500 block text-[10px] font-bold uppercase">Passport Status</span>
@@ -759,8 +820,8 @@ export const CrmCandidates = () => {
                     const appCvName = app.resumeName || activeCand.resumeName;
                     const appCvSize = app.resumeSize || activeCand.resumeSize || '245 KB';
                     return (
-                      <div 
-                        key={idx} 
+                      <div
+                        key={idx}
                         className="p-3.5 bg-slate-50 dark:bg-navy-950 border border-slate-200 dark:border-navy-800 rounded-2xl flex flex-col gap-2.5 text-xs shadow-xs"
                       >
                         <div className="flex flex-col sm:flex-row justify-between sm:items-center gap-2">
@@ -857,15 +918,15 @@ export const CrmCandidates = () => {
 
             {/* Modal Footer */}
             <div className="flex gap-2 pt-3 border-t border-slate-200 dark:border-navy-800">
-              <button 
+              <button
                 type="button"
-                onClick={() => handleDeleteCandidate(activeCand)} 
+                onClick={() => handleDeleteCandidate(activeCand)}
                 className="py-2.5 px-4 bg-rose-50 hover:bg-rose-100 dark:bg-rose-950/40 dark:hover:bg-rose-900/60 text-rose-600 dark:text-rose-400 font-bold rounded-xl border border-rose-200 dark:border-rose-900/50 flex items-center justify-center gap-1.5 transition cursor-pointer text-xs"
               >
                 <Trash2 className="w-3.5 h-3.5" />
                 <span>Delete Candidate</span>
               </button>
-              
+
               <button
                 type="button"
                 onClick={() => handleDownloadCv(activeCand)}
@@ -875,12 +936,12 @@ export const CrmCandidates = () => {
                 <span>Download Resume (PDF)</span>
               </button>
 
-              <button 
+              <button
                 type="button"
                 onClick={() => {
                   setViewCand(null);
                   if (setSelectedCandidate) setSelectedCandidate(null);
-                }} 
+                }}
                 className="flex-1 py-2.5 bg-slate-200 dark:bg-navy-800 hover:bg-slate-300 dark:hover:bg-navy-700 text-slate-900 dark:text-white font-bold rounded-xl transition cursor-pointer text-xs"
               >
                 Close
@@ -935,9 +996,9 @@ export const CrmCandidates = () => {
       )}
 
       {/* Global Add Candidate Modal */}
-      <CrmAddCandidateModal 
-        isOpen={globalAddCandidateOpen} 
-        onClose={() => setGlobalAddCandidateOpen(false)} 
+      <CrmAddCandidateModal
+        isOpen={globalAddCandidateOpen}
+        onClose={() => setGlobalAddCandidateOpen(false)}
       />
 
     </div>
