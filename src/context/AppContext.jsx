@@ -120,6 +120,8 @@ export const AppProvider = ({ children }) => {
   };
   const [savedJobs, setSavedJobs] = useState([]);
   const [applications, setApplications] = useState([]);
+  const [savedSearches, setSavedSearches] = useState([]);
+  const [activeSearchCriteria, setActiveSearchCriteria] = useState(null);
 
   // Auth State Management & Candidate Profile Database Persistence
   const getCandidateDB = () => {
@@ -201,10 +203,10 @@ export const AppProvider = ({ children }) => {
             setApplications(d.data);
             try {
               localStorage.setItem(`sir_applications_${cid}`, JSON.stringify(d.data));
-            } catch {}
+            } catch { }
           }
         })
-        .catch(() => {});
+        .catch(() => { });
 
       fetch(`/api/candidate/saved-jobs?candidateId=${encodeURIComponent(cid)}`)
         .then(r => r.json())
@@ -213,13 +215,38 @@ export const AppProvider = ({ children }) => {
             setSavedJobs(d.data);
             try {
               localStorage.setItem(`sir_saved_jobs_${cid}`, JSON.stringify(d.data));
-            } catch {}
+            } catch { }
           }
         })
-        .catch(() => {});
+        .catch(() => { });
+
+      // Load saved searches for this candidate
+      try {
+        const savedS = localStorage.getItem(`sir_saved_searches_${cid}`) || localStorage.getItem(`sir_saved_searches_${user.email}`);
+        if (savedS) {
+          setSavedSearches(JSON.parse(savedS));
+        } else {
+          setSavedSearches([]);
+        }
+      } catch {
+        setSavedSearches([]);
+      }
+
+      fetch(`/api/candidate/saved-searches?candidateId=${encodeURIComponent(cid)}`)
+        .then(r => r.json())
+        .then(d => {
+          if (d?.success && Array.isArray(d?.data)) {
+            setSavedSearches(d.data);
+            try {
+              localStorage.setItem(`sir_saved_searches_${cid}`, JSON.stringify(d.data));
+            } catch { }
+          }
+        })
+        .catch(() => { });
     } else {
       setSavedJobs([]);
       setApplications([]);
+      setSavedSearches([]);
     }
   }, [user?.candidateId, user?.email]);
 
@@ -301,14 +328,14 @@ export const AppProvider = ({ children }) => {
     saveCandidateToDB(candidateUser);
     saveUserSession(candidateUser);
     const pendingAcademy = typeof getPendingStudentAcademyEnquiry === 'function' ? getPendingStudentAcademyEnquiry() : null;
-      const pendingCareer = typeof getPendingCareerEnquiry === 'function' ? getPendingCareerEnquiry() : null;
-      const targetTab = (pendingAcademy && pendingAcademy.route)
-        ? pendingAcademy.route
-        : ((pendingCareer && pendingCareer.route) ? pendingCareer.route : 'candidates');
-      setActiveTab(targetTab);
-      if (typeof window !== 'undefined' && targetTab !== 'candidates') {
-        window.location.hash = targetTab;
-      }
+    const pendingCareer = typeof getPendingCareerEnquiry === 'function' ? getPendingCareerEnquiry() : null;
+    const targetTab = (pendingAcademy && pendingAcademy.route)
+      ? pendingAcademy.route
+      : ((pendingCareer && pendingCareer.route) ? pendingCareer.route : 'candidates');
+    setActiveTab(targetTab);
+    if (typeof window !== 'undefined' && targetTab !== 'candidates') {
+      window.location.hash = targetTab;
+    }
     return { success: true, user: candidateUser };
   };
 
@@ -398,14 +425,14 @@ export const AppProvider = ({ children }) => {
       setApplications(backendUser.applications);
       try {
         localStorage.setItem(`sir_applications_${candidateId}`, JSON.stringify(backendUser.applications));
-      } catch {}
+      } catch { }
     }
 
     if (backendUser?.savedJobs && Array.isArray(backendUser.savedJobs)) {
       setSavedJobs(backendUser.savedJobs);
       try {
         localStorage.setItem(`sir_saved_jobs_${candidateId}`, JSON.stringify(backendUser.savedJobs));
-      } catch {}
+      } catch { }
     }
 
     setActiveTab('candidates');
@@ -447,9 +474,9 @@ export const AppProvider = ({ children }) => {
     const hasDigit = /\d/.test(password);
     const hasSpecial = /[!@#$%^&*()_+\-=[\]{};':"\\|,.<>/?]/.test(password);
     if (!hasUpper || !hasLower || !hasDigit || !hasSpecial) {
-      return { 
-        success: false, 
-        message: 'Password must include uppercase, lowercase, a number, and a special character.' 
+      return {
+        success: false,
+        message: 'Password must include uppercase, lowercase, a number, and a special character.'
       };
     }
 
@@ -628,6 +655,8 @@ export const AppProvider = ({ children }) => {
     saveUserSession(null);
     setSavedJobs([]);
     setApplications([]);
+    setSavedSearches([]);
+    setActiveSearchCriteria(null);
     sessionStorage.removeItem('sir_user_session');
     localStorage.removeItem('sir_user_session');
     navigateTo('home');
@@ -644,7 +673,7 @@ export const AppProvider = ({ children }) => {
       if (cid) {
         try {
           localStorage.setItem(`sir_saved_jobs_${cid}`, JSON.stringify(next));
-        } catch {}
+        } catch { }
       }
       return next;
     });
@@ -656,7 +685,135 @@ export const AppProvider = ({ children }) => {
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ candidateId: user.candidateId, jobId })
         });
-      } catch {}
+      } catch { }
+    }
+  };
+
+  const fetchSavedSearches = async () => {
+    const cid = user?.candidateId || user?.email;
+    if (!cid) return [];
+    try {
+      const res = await fetch(`/api/candidate/saved-searches?candidateId=${encodeURIComponent(cid)}`);
+      const data = await res.json();
+      if (data?.success && Array.isArray(data?.data)) {
+        setSavedSearches(data.data);
+        localStorage.setItem(`sir_saved_searches_${cid}`, JSON.stringify(data.data));
+        return data.data;
+      }
+    } catch (e) {
+      console.error('Failed to fetch saved searches:', e);
+    }
+    return [];
+  };
+
+  const saveSearch = async (name, criteria) => {
+    const cid = user?.candidateId || user?.id || 'CAND-TEMP';
+    const uid = user?.userId || '';
+    const email = user?.email || '';
+
+    const duplicate = savedSearches.find(
+      s => (s.name || '').trim().toLowerCase() === name.trim().toLowerCase()
+    );
+    if (duplicate) {
+      return { success: false, duplicate: true, message: `A saved search named "${name.trim()}" already exists. Please choose a different name.` };
+    }
+
+    try {
+      const res = await fetch('/api/candidate/saved-searches', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          candidateId: cid,
+          userId: uid,
+          candidateEmail: email,
+          name: name.trim(),
+          criteria
+        })
+      });
+      const data = await res.json();
+      if (res.ok && data?.success) {
+        setSavedSearches(prev => [data.data, ...prev]);
+        try {
+          const current = JSON.parse(localStorage.getItem(`sir_saved_searches_${cid}`) || '[]');
+          localStorage.setItem(`sir_saved_searches_${cid}`, JSON.stringify([data.data, ...current]));
+        } catch { }
+        return { success: true, data: data.data };
+      } else {
+        return { success: false, duplicate: res.status === 409, message: data?.message || 'Failed to save search.' };
+      }
+    } catch (e) {
+      const fallbackSearch = {
+        id: `srch-${Date.now()}`,
+        candidateId: cid,
+        userId: uid,
+        candidateEmail: email,
+        name: name.trim(),
+        criteria: typeof criteria === 'string' ? criteria : JSON.stringify(criteria),
+        createdAt: new Date().toISOString()
+      };
+      setSavedSearches(prev => [fallbackSearch, ...prev]);
+      try {
+        const current = JSON.parse(localStorage.getItem(`sir_saved_searches_${cid}`) || '[]');
+        localStorage.setItem(`sir_saved_searches_${cid}`, JSON.stringify([fallbackSearch, ...current]));
+      } catch { }
+      return { success: true, data: fallbackSearch };
+    }
+  };
+
+  const updateSavedSearch = async (id, newName) => {
+    const cid = user?.candidateId || user?.email;
+    try {
+      const res = await fetch(`/api/candidate/saved-searches/${id}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          name: newName.trim(),
+          candidateId: cid
+        })
+      });
+      const data = await res.json();
+      if (res.ok && data?.success) {
+        setSavedSearches(prev => prev.map(s => s.id === id ? { ...s, name: newName.trim() } : s));
+        try {
+          const current = JSON.parse(localStorage.getItem(`sir_saved_searches_${cid}`) || '[]');
+          localStorage.setItem(`sir_saved_searches_${cid}`, JSON.stringify(current.map(s => s.id === id ? { ...s, name: newName.trim() } : s)));
+        } catch { }
+        return { success: true };
+      }
+      return { success: false, message: data?.message || 'Failed to rename search.' };
+    } catch {
+      setSavedSearches(prev => prev.map(s => s.id === id ? { ...s, name: newName.trim() } : s));
+      return { success: true };
+    }
+  };
+
+  const deleteSavedSearch = async (id) => {
+    const cid = user?.candidateId || user?.email;
+    try {
+      const res = await fetch(`/api/candidate/saved-searches/${id}?candidateId=${encodeURIComponent(cid || '')}`, {
+        method: 'DELETE'
+      });
+      const data = await res.json();
+      if (res.ok && data?.success) {
+        setSavedSearches(prev => prev.filter(s => s.id !== id));
+        try {
+          const current = JSON.parse(localStorage.getItem(`sir_saved_searches_${cid}`) || '[]');
+          localStorage.setItem(`sir_saved_searches_${cid}`, JSON.stringify(current.filter(s => s.id !== id)));
+        } catch { }
+        return { success: true };
+      }
+      return { success: false, message: data?.message || 'Failed to delete search.' };
+    } catch {
+      setSavedSearches(prev => prev.filter(s => s.id !== id));
+      return { success: true };
+    }
+  };
+
+  const restoreSearch = (criteria) => {
+    setActiveSearchCriteria(criteria);
+    navigateTo('jobs');
+    if (typeof window !== 'undefined') {
+      window.location.hash = 'jobs';
     }
   };
 
@@ -706,7 +863,7 @@ export const AppProvider = ({ children }) => {
           if (userEmail) {
             localStorage.setItem(`sir_applications_${userEmail.toLowerCase().trim()}`, JSON.stringify(next));
           }
-        } catch {}
+        } catch { }
       }
       return next;
     });
@@ -1038,6 +1195,14 @@ export const AppProvider = ({ children }) => {
         setPendingJobToApply,
         savedJobs,
         toggleSaveJob,
+        savedSearches,
+        fetchSavedSearches,
+        saveSearch,
+        updateSavedSearch,
+        deleteSavedSearch,
+        activeSearchCriteria,
+        setActiveSearchCriteria,
+        restoreSearch,
         applications,
         applyForJob,
         updateApplicationStatus,

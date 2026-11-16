@@ -27,7 +27,7 @@ export const DEFAULT_CRM_ACCOUNTS = [
     role: 'Super Admin', 
     phone: '+971 50 123 4567',
     department: 'Executive Management',
-    employeeId: 'REV-EMP-001'
+    employeeId: 'REV-EMP-011'
   },
   { 
     name: 'Dhanalakshimi', 
@@ -64,7 +64,7 @@ export const DEFAULT_CRM_ACCOUNTS = [
     role: 'HR Lead', 
     phone: '+971 50 234 5678', 
     department: 'Human Resources',
-    employeeId: 'REV-EMP-003'
+    employeeId: 'REV-EMP-013'
   },
   { 
     name: 'Kishore Kumar', 
@@ -98,33 +98,9 @@ export const DEFAULT_CRM_ACCOUNTS = [
     employeeId: 'REV-EMP-006'
   },
   { 
-    name: 'Balavarshini S.', 
-    email: 'balavarshini2223@gmail.com', 
-    altEmail: 'balavarshini.s@revivalinternational.com', 
-    password: 'Password123!', 
-    role: 'HR Operations', 
-    phone: '+91 9876543214', 
-    department: 'International HR Operations',
-    operationTeam: 'International HR Operations',
-    designation: 'Lead HR Operations Specialist',
-    employeeId: 'REV-EMP-006'
-  },
-  { 
     name: 'Fatima', 
     email: 'fatima.intl@revivalinternational.com', 
     altEmail: 'fatima.ops@revivalinternational.com', 
-    password: 'Password123!', 
-    role: 'HR Operations', 
-    phone: '+971 50 876 5432', 
-    department: 'International HR Operations',
-    operationTeam: 'International HR Operations',
-    designation: 'International HR Operations Specialist',
-    employeeId: 'REV-EMP-107'
-  },
-  { 
-    name: 'Fatima', 
-    email: 'fatima.ops@revivalinternational.com', 
-    altEmail: 'fatima.intl@revivalinternational.com', 
     password: 'Password123!', 
     role: 'HR Operations', 
     phone: '+971 50 876 5432', 

@@ -1437,26 +1437,112 @@ app.get('/api/jobs', async (req, res) => {
     let query = 'SELECT * FROM jobs WHERE 1=1';
     const params = [];
 
-    if (req.query.country && req.query.country !== 'All') {
-      query += ' AND country = ?';
-      params.push(req.query.country);
+    // Helper for multi-select (comma-separated or array)
+    const getValues = (val) => {
+      if (!val || val === 'All') return [];
+      if (Array.isArray(val)) return val.map(v => String(v).trim()).filter(Boolean);
+      return String(val).split(',').map(v => v.trim()).filter(v => v && v !== 'All');
+    };
+
+    // 1. Country filter (supports multi-select)
+    const countries = getValues(req.query.country);
+    if (countries.length > 0) {
+      query += ` AND (${countries.map(() => 'LOWER(country) = LOWER(?)').join(' OR ')})`;
+      params.push(...countries);
     }
-    if (req.query.category && req.query.category !== 'All') {
-      query += ' AND category = ?';
-      params.push(req.query.category);
+
+    // 2. City filter (supports multi-select)
+    const cities = getValues(req.query.city);
+    if (cities.length > 0) {
+      query += ` AND (${cities.map(() => '(LOWER(city) LIKE LOWER(?) OR LOWER(location) LIKE LOWER(?))').join(' OR ')})`;
+      cities.forEach(c => {
+        params.push(`%${c}%`, `%${c}%`);
+      });
     }
-    if (req.query.jobType && req.query.jobType !== 'All') {
-      query += ' AND jobType = ?';
-      params.push(req.query.jobType);
+
+    // 3. Industry / Category filter (supports multi-select)
+    const industries = getValues(req.query.industry || req.query.category);
+    if (industries.length > 0) {
+      query += ` AND (${industries.map(() => '(LOWER(industry) LIKE LOWER(?) OR LOWER(category) LIKE LOWER(?))').join(' OR ')})`;
+      industries.forEach(ind => {
+        params.push(`%${ind}%`, `%${ind}%`);
+      });
+    }
+
+    // 4. Job Function filter (supports multi-select)
+    const functions = getValues(req.query.function);
+    if (functions.length > 0) {
+      query += ` AND (${functions.map(() => '(LOWER(function) LIKE LOWER(?) OR LOWER(title) LIKE LOWER(?))').join(' OR ')})`;
+      functions.forEach(fn => {
+        params.push(`%${fn}%`, `%${fn}%`);
+      });
+    }
+
+    // 5. Job Type filter (supports multi-select)
+    const jobTypes = getValues(req.query.jobType);
+    if (jobTypes.length > 0) {
+      query += ` AND (${jobTypes.map(() => 'LOWER(jobType) = LOWER(?)').join(' OR ')})`;
+      params.push(...jobTypes);
+    }
+
+    // 6. Currency
+    if (req.query.currency && req.query.currency !== 'All') {
+      query += ' AND (LOWER(currency) = LOWER(?) OR LOWER(salary) LIKE LOWER(?))';
+      params.push(req.query.currency, `%${req.query.currency}%`);
+    }
+
+    // 7. Salary range
+    if (req.query.minSalary && !isNaN(Number(req.query.minSalary))) {
+      query += ' AND (maxSalary IS NULL OR maxSalary >= ?)';
+      params.push(Number(req.query.minSalary));
+    }
+    if (req.query.maxSalary && !isNaN(Number(req.query.maxSalary))) {
+      query += ' AND (minSalary IS NULL OR minSalary <= ?)';
+      params.push(Number(req.query.maxSalary));
     }
 
     let rows = await db.all(query, params);
 
+    // Keyword search across title, company, skills, description
     if (req.query.keyword) {
-      const k = req.query.keyword.toLowerCase();
-      rows = rows.filter(j => j.title.toLowerCase().includes(k) || j.company.toLowerCase().includes(k));
+      const k = req.query.keyword.toLowerCase().trim();
+      rows = rows.filter(j => {
+        const titleMatch = (j.title || '').toLowerCase().includes(k);
+        const compMatch = (j.company || '').toLowerCase().includes(k);
+        const descMatch = (j.description || '').toLowerCase().includes(k);
+        const skillsArray = parseArray(j.skills);
+        const skillMatch = skillsArray.some(s => String(s).toLowerCase().includes(k));
+        return titleMatch || compMatch || descMatch || skillMatch;
+      });
     }
 
+    // Experience filter (flexible matching)
+    const experiences = getValues(req.query.experience);
+    if (experiences.length > 0) {
+      rows = rows.filter(j => {
+        const je = (j.experience || '').toLowerCase();
+        return experiences.some(feRaw => {
+          const fe = feRaw.toLowerCase();
+          if (fe.includes('fresher') && (je.includes('fresher') || je.includes('trainee') || je.includes('0–1') || je.includes('0 - 1') || je.includes('0 years'))) return true;
+          if (fe.includes('entry') && (je.includes('entry') || je.includes('0–1') || je.includes('0 - 1') || je.includes('fresher'))) return true;
+          if (fe.includes('1–3') || fe.includes('1-3')) {
+            if (je.includes('1–3') || je.includes('1 - 3') || je.includes('2 years') || je.includes('2 - 4') || je.includes('1 - 3+')) return true;
+          }
+          if (fe.includes('3–5') || fe.includes('3-5')) {
+            if (je.includes('3–5') || je.includes('3 - 5') || je.includes('4 - 7') || je.includes('3 - 6') || je.includes('3 - 5+')) return true;
+          }
+          if (fe.includes('5–10') || fe.includes('5-10') || fe.includes('5+')) {
+            if (je.includes('5+') || je.includes('5 - 8') || je.includes('5 - 9') || je.includes('6 - 10') || je.includes('7 - 10') || je.includes('8 - 12') || je.includes('8 - 14') || je.includes('10 - 15')) return true;
+          }
+          if (fe.includes('10+') || fe.includes('10+ years')) {
+            if (je.includes('10+') || je.includes('10 - 15') || je.includes('8 - 14')) return true;
+          }
+          return je.includes(fe);
+        });
+      });
+    }
+
+    // Parse array columns
     rows = rows.map(r => ({
       ...r,
       skills: parseArray(r.skills),
@@ -1464,7 +1550,40 @@ app.get('/api/jobs', async (req, res) => {
       featured: r.featured === 1
     }));
 
-    res.json({ success: true, count: rows.length, data: rows });
+    // Sorting
+    const sortBy = req.query.sortBy || 'latest';
+    if (sortBy === 'salary-high') {
+      rows.sort((a, b) => (Number(b.maxSalary || b.minSalary || 0) - Number(a.maxSalary || a.minSalary || 0)));
+    } else if (sortBy === 'salary-low') {
+      rows.sort((a, b) => (Number(a.minSalary || a.maxSalary || 0) - Number(b.minSalary || b.maxSalary || 0)));
+    } else if (sortBy === 'relevant') {
+      rows.sort((a, b) => (b.featured ? 1 : 0) - (a.featured ? 1 : 0));
+    } else {
+      // 'latest' default
+      rows.sort((a, b) => (b.id > a.id ? 1 : -1));
+    }
+
+    const totalCount = rows.length;
+
+    // Optional server pagination
+    if (req.query.page) {
+      const page = Math.max(1, parseInt(req.query.page, 10) || 1);
+      const limit = Math.max(1, parseInt(req.query.limit, 10) || 6);
+      const totalPages = Math.max(1, Math.ceil(totalCount / limit));
+      const startIndex = (page - 1) * limit;
+      const paginatedData = rows.slice(startIndex, startIndex + limit);
+
+      return res.json({
+        success: true,
+        count: totalCount,
+        page,
+        limit,
+        totalPages,
+        data: paginatedData
+      });
+    }
+
+    res.json({ success: true, count: totalCount, data: rows });
   } catch (error) {
     console.error('Error fetching jobs:', error);
     res.status(500).json({ success: false, message: 'Failed to fetch jobs' });
