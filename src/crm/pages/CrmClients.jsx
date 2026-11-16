@@ -15,6 +15,8 @@ export const CrmClients = () => {
     addContactToOrganization, removeClient, user 
   } = useCrm();
 
+  const deleteClient = removeClient;
+
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedType, setSelectedType] = useState('All');
   const [selectedClient, setSelectedClient] = useState(null);

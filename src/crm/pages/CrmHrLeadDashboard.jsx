@@ -329,7 +329,7 @@ export const INITIAL_PERFORMANCE_REVIEWS = [
 ];
 
 export const CrmHrLeadDashboard = ({ initialSection }) => {
-  const { candidates = [], setActiveModule, currentRole, crmToken } = useCrm();
+  const { candidates = [], setActiveModule, currentRole, crmToken, user } = useCrm();
 
   // Helper to map route ID (e.g. 'hr-attendance') to internal tab id
   const getTabFromSection = (sec) => {
