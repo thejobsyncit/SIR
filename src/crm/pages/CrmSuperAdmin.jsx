@@ -16,6 +16,7 @@ export const CrmSuperAdmin = () => {
     leads = [], 
     loadingLeads, 
     fetchLeads,
+    deleteLead,
     updateLead,
     archiveLead,
     addLeadActivity,

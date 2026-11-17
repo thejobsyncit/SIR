@@ -1,11 +1,11 @@
-import React, { useState, useEffect, useMemo, useCallback } from 'react';
+import React, { useState, useEffect, useMemo, useCallback, useRef } from 'react';
 import { useApp } from '../context/AppContext';
 import {
   Search, MapPin, Briefcase, DollarSign, Globe, CheckCircle2,
   Bookmark, ArrowRight, Filter, X, Sparkles, SlidersHorizontal,
   RotateCcw, ChevronLeft, ChevronRight, BookmarkPlus, Check,
   Building2, Layers, Clock, AlertCircle, Tag, ChevronDown,
-  ChevronUp, ArrowUpDown, Sliders
+  ChevronUp, Languages, Coins, Calendar, CheckSquare, Square, Plus
 } from 'lucide-react';
 import { JOBS_LIST } from '../data/mockData';
 import ScrollReveal from '../components/ScrollReveal';
@@ -92,12 +92,154 @@ export const JOB_TYPES = [
 
 export const CURRENCIES = ['All', 'AED', 'SAR', 'QAR', 'OMR', 'KWD', 'BHD', 'USD', 'EUR', 'GBP', 'INR', 'SGD'];
 
+export const COMPANIES = [
+  'Emirates Marketing Group',
+  'Qatar Airways Cargo',
+  'DP World Global Logistics',
+  'Burjeel Medical City',
+  'King Faisal Specialist Hospital',
+  'ALDAR Properties',
+  'Al Habtoor Contracting LLC',
+  'Barclays International Advisory',
+  'Zalando Technology SE',
+  'Grab Financial Group',
+  'Sun Life Financial Canada',
+  'Riyadh Bank Digital Unit',
+  'Revival Global Enterprise Solutions',
+  'Gulf Petroleum Resources',
+  'Atlantis Resorts & Hotels',
+  'Al Khaleej Industrial Trading',
+  'TechVision International',
+  'FinEdge Digital Technologies'
+];
+
+export const POSTED_WITHIN_OPTIONS = [
+  { id: 'all', label: 'Anytime' },
+  { id: 'today', label: 'Today (Past 24 Hours)' },
+  { id: '3days', label: 'Last 3 Days' },
+  { id: '7days', label: 'Last 7 Days' },
+  { id: '14days', label: 'Last 14 Days' },
+  { id: '30days', label: 'Last 30 Days' }
+];
+
+export const LANGUAGES = [
+  'English',
+  'Arabic',
+  'Hindi',
+  'French',
+  'German',
+  'Tagalog',
+  'Urdu'
+];
+
 export const SORT_OPTIONS = [
   { id: 'latest', label: 'Latest' },
   { id: 'relevant', label: 'Most Relevant' },
   { id: 'salary-high', label: 'Salary: High to Low' },
   { id: 'salary-low', label: 'Salary: Low to High' }
 ];
+
+export const SALARY_PRESETS = [
+  { label: 'Under 5,000', min: '0', max: '5000' },
+  { label: '5,000 – 10,000', min: '5000', max: '10000' },
+  { label: '10,000 – 20,000', min: '10000', max: '20000' },
+  { label: '20,000 – 35,000', min: '20000', max: '35000' },
+  { label: '35,000+', min: '35000', max: '' }
+];
+
+export const SALARY_OPTIONS = [
+  'Under 10,000',
+  '10,000 – 20,000',
+  '20,000 – 35,000',
+  '35,000 – 50,000',
+  '50,000+',
+  '0–3 Lakhs',
+  '3–6 Lakhs',
+  '6–10 Lakhs',
+  '10–15 Lakhs',
+  '15–25 Lakhs',
+  '25–50 Lakhs',
+  '50–75 Lakhs',
+  '75–100 Lakhs',
+  '1–5 Crore',
+  '5+ Crore'
+];
+
+export const SALARY_RANGES_MAP = {
+  'Under 10,000': { min: 0, max: 10000 },
+  '10,000 – 20,000': { min: 10000, max: 20000 },
+  '20,000 – 35,000': { min: 20000, max: 35000 },
+  '35,000 – 50,000': { min: 35000, max: 50000 },
+  '50,000+': { min: 50000, max: null },
+  '0–3 Lakhs': { min: 0, max: 300000, annualInr: true },
+  '3–6 Lakhs': { min: 300000, max: 600000, annualInr: true },
+  '6–10 Lakhs': { min: 600000, max: 1000000, annualInr: true },
+  '10–15 Lakhs': { min: 1000000, max: 1500000, annualInr: true },
+  '15–25 Lakhs': { min: 1500000, max: 2500000, annualInr: true },
+  '25–50 Lakhs': { min: 2500000, max: 5000000, annualInr: true },
+  '50–75 Lakhs': { min: 5000000, max: 7500000, annualInr: true },
+  '75–100 Lakhs': { min: 7500000, max: 10000000, annualInr: true },
+  '1–5 Crore': { min: 10000000, max: 50000000, annualInr: true },
+  '5+ Crore': { min: 50000000, max: null, annualInr: true }
+};
+
+export const matchesSalaryRange = (job, rangeLabel) => {
+  const range = SALARY_RANGES_MAP[rangeLabel];
+  if (!range) return true;
+
+  let jMin = job.minSalary !== undefined && job.minSalary !== null ? Number(job.minSalary) : null;
+  let jMax = job.maxSalary !== undefined && job.maxSalary !== null ? Number(job.maxSalary) : null;
+
+  if (jMin === null || isNaN(jMin) || jMax === null || isNaN(jMax)) {
+    const nums = (job.salary || '').replace(/,/g, '').match(/\d+/g)?.map(Number) || [];
+    if (nums.length >= 2) {
+      jMin = nums[0];
+      jMax = nums[1];
+    } else if (nums.length === 1) {
+      jMin = nums[0];
+      jMax = nums[0];
+    } else {
+      return false;
+    }
+  }
+
+  if (range.annualInr) {
+    const inrMin = jMin * 12 * 23;
+    const inrMax = jMax * 12 * 23;
+    if (range.max === null || range.max === undefined) {
+      return inrMax >= range.min;
+    }
+    return inrMax >= range.min && inrMin <= range.max;
+  } else {
+    if (range.max === null || range.max === undefined) {
+      return jMax >= range.min;
+    }
+    return jMax >= range.min && jMin <= range.max;
+  }
+};
+
+export const parseJobExperienceRange = (expStr) => {
+  if (!expStr) return { min: 0, max: 30 };
+  const s = String(expStr).toLowerCase();
+  if (s.includes('fresher') || s.includes('entry') || s.includes('trainee')) {
+    return { min: 0, max: 1 };
+  }
+  const nums = s.replace(/–/g, '-').match(/\d+/g)?.map(Number) || [];
+  if (nums.length >= 2) {
+    return { min: nums[0], max: nums[1] };
+  } else if (nums.length === 1) {
+    return { min: nums[0], max: s.includes('+') ? 30 : nums[0] };
+  }
+  return { min: 0, max: 30 };
+};
+
+export const matchesExperienceYears = (job, years) => {
+  if (years === null || years === undefined) return true;
+  const y = Number(years);
+  if (isNaN(y)) return true;
+  const { min, max } = parseJobExperienceRange(job.experience);
+  return min <= y && max >= y;
+};
 
 // Helper to match experience flexibly
 const matchExperienceOption = (jobExp, filterExp) => {
@@ -114,13 +256,181 @@ const matchExperienceOption = (jobExp, filterExp) => {
   if (fe.includes('3–5') || fe.includes('3-5')) {
     if (je.includes('3–5') || je.includes('3 - 5') || je.includes('4 - 7') || je.includes('3 - 6') || je.includes('3 - 5+')) return true;
   }
-  if (fe.includes('5–10') || fe.includes('5-10')) {
-    if (je.includes('5+') || je.includes('5 - 8') || je.includes('5 - 9') || je.includes('6 - 10') || je.includes('7 - 10') || je.includes('8 - 12')) return true;
+  if (fe.includes('5–10') || fe.includes('5-10') || fe.includes('5+')) {
+    if (je.includes('5+') || je.includes('5 - 8') || je.includes('5 - 9') || je.includes('6 - 10') || je.includes('7 - 10') || je.includes('8 - 12') || je.includes('8 - 14') || je.includes('10 - 15')) return true;
   }
   if (fe.includes('10+') || fe.includes('10+ years')) {
     if (je.includes('10+') || je.includes('10 - 15') || je.includes('8 - 14') || je.includes('8 - 12')) return true;
   }
   return je.includes(fe);
+};
+
+// --- DYNAMIC FILTER COUNT CALCULATION HELPER ---
+// Calculates active filter count dynamically:
+// - Country, City, Industry, Function, Job Type, Company, Language: array lengths
+// - Experience: 1 when value differs from default (non-null), or length of options
+// - Salary: count of selected ranges, plus 1 if custom min/max/currency used
+// - Posted Within: 1 if active ('all' is default)
+export const calculateFilterCount = (filters = {}) => {
+  let count = 0;
+  count += (filters.countries || []).length;
+  count += (filters.cities || []).length;
+  count += (filters.industries || []).length;
+  count += (filters.functions || []).length;
+  if (filters.experienceYears !== null && filters.experienceYears !== undefined) {
+    count += 1;
+  } else {
+    count += (filters.experiences || []).length;
+  }
+  count += (filters.jobTypes || []).length;
+  count += (filters.salaryRanges || []).length;
+  count += (filters.companies || []).length;
+  count += (filters.languages || []).length;
+  if (filters.postedWithin && filters.postedWithin !== 'all') {
+    count += 1;
+  }
+  if (filters.salaryMin || filters.salaryMax || (filters.salaryCurrency && filters.salaryCurrency !== 'All')) {
+    count += 1;
+  }
+  return count;
+};
+
+// --- CLIENT-SIDE JOB FILTERING ENGINE ---
+export const filterJobList = (jobs, filters = {}) => {
+  if (!Array.isArray(jobs)) return [];
+  const {
+    keyword = '',
+    countries = [],
+    cities = [],
+    industries = [],
+    functions = [],
+    experienceYears = null,
+    experiences = [],
+    jobTypes = [],
+    salaryRanges = [],
+    companies = [],
+    postedWithin = 'all',
+    languages = [],
+    salaryCurrency = 'All',
+    salaryMin = '',
+    salaryMax = ''
+  } = filters;
+
+  return jobs.filter(job => {
+    // 1. Keyword search
+    if (keyword && keyword.trim()) {
+      const q = keyword.toLowerCase().trim();
+      const titleMatch = (job.title || '').toLowerCase().includes(q);
+      const compMatch = (job.company || '').toLowerCase().includes(q);
+      const descMatch = (job.description || '').toLowerCase().includes(q);
+      const locMatch = (job.location || '').toLowerCase().includes(q);
+      const skillsMatch = (job.skills || []).some(s => String(s).toLowerCase().includes(q));
+      if (!titleMatch && !compMatch && !descMatch && !locMatch && !skillsMatch) return false;
+    }
+
+    // 2. Country (multi-select)
+    if (countries.length > 0 && !countries.includes(job.country)) {
+      return false;
+    }
+
+    // 3. City (multi-select)
+    if (cities.length > 0) {
+      const jobCity = job.city || '';
+      const jobLoc = job.location || '';
+      const matchCity = cities.some(c =>
+        jobCity.toLowerCase().includes(c.toLowerCase()) || jobLoc.toLowerCase().includes(c.toLowerCase())
+      );
+      if (!matchCity) return false;
+    }
+
+    // 4. Industry (multi-select)
+    if (industries.length > 0) {
+      const jobInd = (job.industry || job.category || '').toLowerCase();
+      const matchInd = industries.some(ind => jobInd.includes(ind.toLowerCase()));
+      if (!matchInd) return false;
+    }
+
+    // 5. Function (multi-select)
+    if (functions.length > 0) {
+      const jobFn = (job.function || job.department || job.title || '').toLowerCase();
+      const matchFn = functions.some(fn => jobFn.includes(fn.toLowerCase()));
+      if (!matchFn) return false;
+    }
+
+    // 6. Experience (Range Slider & options)
+    if (experienceYears !== null && experienceYears !== undefined) {
+      if (!matchesExperienceYears(job, experienceYears)) return false;
+    } else if (experiences.length > 0) {
+      const matchExp = experiences.some(filterExp => matchExperienceOption(job.experience, filterExp));
+      if (!matchExp) return false;
+    }
+
+    // 7. Job Type (multi-select)
+    if (jobTypes.length > 0 && !jobTypes.includes(job.jobType)) {
+      return false;
+    }
+
+    // 8. Company (multi-select)
+    if (companies.length > 0) {
+      const jComp = (job.company || '').toLowerCase();
+      const matchComp = companies.some(c => jComp.includes(c.toLowerCase()));
+      if (!matchComp) return false;
+    }
+
+    // 9. Freshness / Posted Within
+    if (postedWithin && postedWithin !== 'all') {
+      const maxAgeMs = {
+        'today': 24 * 60 * 60 * 1000,
+        '3days': 3 * 24 * 60 * 60 * 1000,
+        '7days': 7 * 24 * 60 * 60 * 1000,
+        '14days': 14 * 24 * 60 * 60 * 1000,
+        '30days': 30 * 24 * 60 * 60 * 1000
+      }[postedWithin];
+
+      if (maxAgeMs && job.postedDate) {
+        const parsed = Date.parse(job.postedDate);
+        if (!isNaN(parsed) && (Date.now() - parsed) > maxAgeMs) {
+          return false;
+        }
+      }
+    }
+
+    // 10. Language
+    if (languages.length > 0) {
+      const fullJobText = `${job.title || ''} ${job.description || ''} ${(job.skills || []).join(' ')} ${job.qualification || ''}`.toLowerCase();
+      const matchLang = languages.some(l => {
+        const lLower = l.toLowerCase();
+        if (lLower === 'english') return true;
+        return fullJobText.includes(lLower);
+      });
+      if (!matchLang) return false;
+    }
+
+    // 11. Salary Currency
+    if (salaryCurrency !== 'All') {
+      const jobCurr = job.currency || (job.salary ? job.salary.split(' ')[0] : '');
+      if (jobCurr && !jobCurr.toLowerCase().includes(salaryCurrency.toLowerCase())) {
+        return false;
+      }
+    }
+
+    // 12. Salary Range
+    if (salaryRanges.length > 0) {
+      const matchSal = salaryRanges.some(sal => matchesSalaryRange(job, sal));
+      if (!matchSal) return false;
+    }
+    if (salaryMin !== '' || salaryMax !== '') {
+      const minVal = salaryMin !== '' ? Number(salaryMin) : null;
+      const maxVal = salaryMax !== '' ? Number(salaryMax) : null;
+      const jMin = job.minSalary !== undefined ? Number(job.minSalary) : null;
+      const jMax = job.maxSalary !== undefined ? Number(job.maxSalary) : null;
+
+      if (minVal !== null && jMax !== null && jMax < minVal) return false;
+      if (maxVal !== null && jMin !== null && jMin > maxVal) return false;
+    }
+
+    return true;
+  });
 };
 
 export const JobsPage = () => {
@@ -148,43 +458,225 @@ export const JobsPage = () => {
   const [rawJobs, setRawJobs] = useState([]);
   const [loading, setLoading] = useState(true);
 
-  // --- FILTER STATES (Supports multi-select within category) ---
+  // --- APPLIED FILTER STATES (Committed filters controlling active job results & applied chips) ---
+  const [appliedCountries, setAppliedCountries] = useState([]);
+  const [appliedCities, setAppliedCities] = useState([]);
+  const [appliedIndustries, setAppliedIndustries] = useState(selectedCategory && selectedCategory !== 'All' ? [selectedCategory] : []);
+  const [appliedFunctions, setAppliedFunctions] = useState([]);
+  const [appliedExperiences, setAppliedExperiences] = useState([]);
+  const [appliedExperienceYears, setAppliedExperienceYears] = useState(null);
+  const [appliedJobTypes, setAppliedJobTypes] = useState([]);
+  const [appliedSalaryRanges, setAppliedSalaryRanges] = useState([]);
+  const [appliedCompanies, setAppliedCompanies] = useState([]);
+  const [appliedLanguages, setAppliedLanguages] = useState([]);
+  const [appliedPostedWithin, setAppliedPostedWithin] = useState('all');
+  const [appliedSalaryMin, setAppliedSalaryMin] = useState('');
+  const [appliedSalaryMax, setAppliedSalaryMax] = useState('');
+  const [appliedSalaryCurrency, setAppliedSalaryCurrency] = useState('All');
+
+  // --- PENDING FILTER STATES (Working selections in sidebar checkboxes & slider preview) ---
+  const [pendingCountries, setPendingCountries] = useState([]);
+  const [pendingCities, setPendingCities] = useState([]);
+  const [pendingIndustries, setPendingIndustries] = useState(selectedCategory && selectedCategory !== 'All' ? [selectedCategory] : []);
+  const [pendingFunctions, setPendingFunctions] = useState([]);
+  const [pendingExperiences, setPendingExperiences] = useState([]);
+  const [pendingExperienceYears, setPendingExperienceYears] = useState(null);
+  const [sliderExperienceYears, setSliderExperienceYears] = useState(0);
+  const [pendingJobTypes, setPendingJobTypes] = useState([]);
+  const [pendingSalaryRanges, setPendingSalaryRanges] = useState([]);
+  const [pendingCompanies, setPendingCompanies] = useState([]);
+  const [pendingLanguages, setPendingLanguages] = useState([]);
+  const [pendingPostedWithin, setPendingPostedWithin] = useState('all');
+  const [pendingSalaryMin, setPendingSalaryMin] = useState('');
+  const [pendingSalaryMax, setPendingSalaryMax] = useState('');
+  const [pendingSalaryCurrency, setPendingSalaryCurrency] = useState('All');
+
+  // Search keyword & sorting
   const [keyword, setKeyword] = useState('');
-  const [selectedCountries, setSelectedCountries] = useState([]);
-  const [selectedCities, setSelectedCities] = useState([]);
-  const [selectedIndustries, setSelectedIndustries] = useState(selectedCategory && selectedCategory !== 'All' ? [selectedCategory] : []);
-  const [selectedFunctions, setSelectedFunctions] = useState([]);
-  const [selectedExperiences, setSelectedExperiences] = useState([]);
-  const [selectedJobTypes, setSelectedJobTypes] = useState([]);
-  const [salaryMin, setSalaryMin] = useState('');
-  const [salaryMax, setSalaryMax] = useState('');
-  const [salaryCurrency, setSalaryCurrency] = useState('All');
   const [sortBy, setSortBy] = useState('latest');
+
+  // Slider change handler
+  const handleSliderChange = (val) => {
+    setSliderExperienceYears(val);
+    setPendingExperienceYears(val);
+  };
+
+  useEffect(() => {
+    if (pendingExperienceYears !== null) {
+      setSliderExperienceYears(pendingExperienceYears);
+    } else {
+      setSliderExperienceYears(0);
+    }
+  }, [pendingExperienceYears]);
+
+  // Search input queries for categories with many options
+  const [countrySearchQuery, setCountrySearchQuery] = useState('');
+  const [citySearchQuery, setCitySearchQuery] = useState('');
+  const [industrySearchQuery, setIndustrySearchQuery] = useState('');
+  const [functionSearchQuery, setFunctionSearchQuery] = useState('');
+  const [companySearchQuery, setCompanySearchQuery] = useState('');
+
+  // Expand / collapse "+ View More" toggles per section
+  const [showAll, setShowAll] = useState({
+    country: false,
+    city: false,
+    industry: false,
+    function: false,
+    experience: false,
+    jobType: false,
+    company: false,
+    salary: false
+  });
+
+  const toggleShowAll = (key) => {
+    setShowAll(prev => ({ ...prev, [key]: !prev[key] }));
+  };
+
+  // Collapsible accordion sections (Country expanded by default, others collapsed)
+  const [openSections, setOpenSections] = useState({
+    country: true,
+    city: false,
+    industry: false,
+    function: false,
+    experience: false,
+    salary: false,
+    jobType: false
+  });
+
+  const toggleSection = (key) => {
+    setOpenSections(prev => ({ ...prev, [key]: !prev[key] }));
+  };
+
+  // --- NAUKRI-STYLE FILTER POPUP STATE & HANDLERS ---
+  const [popupCategory, setPopupCategory] = useState(null);
+  const [tempSelected, setTempSelected] = useState([]);
+  const [popupSearchQuery, setPopupSearchQuery] = useState('');
+
+  const openFilterPopup = (categoryKey) => {
+    let initialSelected = [];
+    if (categoryKey === 'country') initialSelected = [...pendingCountries];
+    else if (categoryKey === 'city') initialSelected = [...pendingCities];
+    else if (categoryKey === 'industry') initialSelected = [...pendingIndustries];
+    else if (categoryKey === 'function') initialSelected = [...pendingFunctions];
+    else if (categoryKey === 'experience') initialSelected = [...pendingExperiences];
+    else if (categoryKey === 'jobType') initialSelected = [...pendingJobTypes];
+    else if (categoryKey === 'salary') initialSelected = [...pendingSalaryRanges];
+
+    setTempSelected(initialSelected);
+    setPopupSearchQuery('');
+    setPopupCategory(categoryKey);
+  };
+
+  const closeFilterPopup = () => {
+    setPopupCategory(null);
+    setTempSelected([]);
+    setPopupSearchQuery('');
+  };
+
+  const toggleTempItem = (item) => {
+    setTempSelected(prev =>
+      prev.includes(item) ? prev.filter(i => i !== item) : [...prev, item]
+    );
+  };
+
+  const toggleSalaryRange = (rangeLabel) => {
+    setPendingSalaryRanges(prev =>
+      prev.includes(rangeLabel) ? prev.filter(r => r !== rangeLabel) : [...prev, rangeLabel]
+    );
+  };
+
+  const applyFilterPopup = () => {
+    let updatedPendingCountries = pendingCountries;
+    let updatedPendingCities = pendingCities;
+    let updatedPendingIndustries = pendingIndustries;
+    let updatedPendingFunctions = pendingFunctions;
+    let updatedPendingExperiences = pendingExperiences;
+    let updatedPendingJobTypes = pendingJobTypes;
+    let updatedPendingSalaryRanges = pendingSalaryRanges;
+
+    if (popupCategory === 'country') {
+      updatedPendingCountries = tempSelected;
+      setPendingCountries(tempSelected);
+      if (tempSelected.length > 0) {
+        const allowedCities = new Set();
+        tempSelected.forEach(cntry => {
+          (COUNTRY_CITY_MAP[cntry] || []).forEach(ci => allowedCities.add(ci));
+        });
+        updatedPendingCities = pendingCities.filter(ci => allowedCities.has(ci));
+        setPendingCities(updatedPendingCities);
+      }
+    } else if (popupCategory === 'city') {
+      updatedPendingCities = tempSelected;
+      setPendingCities(tempSelected);
+    } else if (popupCategory === 'industry') {
+      updatedPendingIndustries = tempSelected;
+      setPendingIndustries(tempSelected);
+    } else if (popupCategory === 'function') {
+      updatedPendingFunctions = tempSelected;
+      setPendingFunctions(tempSelected);
+    } else if (popupCategory === 'experience') {
+      updatedPendingExperiences = tempSelected;
+      setPendingExperiences(tempSelected);
+    } else if (popupCategory === 'jobType') {
+      updatedPendingJobTypes = tempSelected;
+      setPendingJobTypes(tempSelected);
+    } else if (popupCategory === 'salary') {
+      updatedPendingSalaryRanges = tempSelected;
+      setPendingSalaryRanges(tempSelected);
+    }
+
+    // Apply popup changes immediately to committed applied state as well
+    setAppliedCountries([...updatedPendingCountries]);
+    setAppliedCities([...updatedPendingCities]);
+    setAppliedIndustries([...updatedPendingIndustries]);
+    setAppliedFunctions([...updatedPendingFunctions]);
+    setAppliedExperiences([...updatedPendingExperiences]);
+    setAppliedJobTypes([...updatedPendingJobTypes]);
+    setAppliedSalaryRanges([...updatedPendingSalaryRanges]);
+
+    setCurrentPage(1);
+    closeFilterPopup();
+
+    fetchJobs({
+      countries: updatedPendingCountries,
+      cities: updatedPendingCities,
+      industries: updatedPendingIndustries,
+      functions: updatedPendingFunctions,
+      experienceYears: pendingExperienceYears,
+      experiences: updatedPendingExperiences,
+      jobTypes: updatedPendingJobTypes,
+      salaryRanges: updatedPendingSalaryRanges,
+      companies: pendingCompanies,
+      languages: pendingLanguages,
+      postedWithin: pendingPostedWithin,
+      salaryMin: pendingSalaryMin,
+      salaryMax: pendingSalaryMax,
+      salaryCurrency: pendingSalaryCurrency
+    });
+  };
+
+  // Lock document scroll and listen for Escape key when popup is open
+  useEffect(() => {
+    if (popupCategory) {
+      const prevOverflow = document.body.style.overflow;
+      document.body.style.overflow = 'hidden';
+      const handleKeyDown = (e) => {
+        if (e.key === 'Escape') closeFilterPopup();
+      };
+      window.addEventListener('keydown', handleKeyDown);
+      return () => {
+        document.body.style.overflow = prevOverflow;
+        window.removeEventListener('keydown', handleKeyDown);
+      };
+    }
+  }, [popupCategory]);
 
   // Pagination
   const [currentPage, setCurrentPage] = useState(1);
-  const pageSize = 6;
+  const pageSize = 10;
 
   // Mobile drawer filter toggle
   const [mobileFilterOpen, setMobileFilterOpen] = useState(false);
-
-  // Accordion collapsible sections
-  const [openSections, setOpenSections] = useState({
-    country: true,
-    city: true,
-    industry: true,
-    function: true,
-    experience: true,
-    salary: true,
-    jobType: true
-  });
-
-  const toggleSection = (sectionKey) => {
-    setOpenSections(prev => ({ ...prev, [sectionKey]: !prev[sectionKey] }));
-  };
-
-  // City list search within sidebar
-  const [citySearchQuery, setCitySearchQuery] = useState('');
 
   // Restored Saved Search Toast
   const [loadedSavedSearchName, setLoadedSavedSearchName] = useState('');
@@ -203,96 +695,143 @@ export const JobsPage = () => {
 
   const isApplied = (jobId) => applications.some(a => a.jobId === jobId);
 
-  // Available Cities based on selected countries
+  // Available Cities based on pending countries
   const availableCities = useMemo(() => {
-    if (selectedCountries.length === 0) {
+    if (pendingCountries.length === 0) {
       return ALL_CITIES;
     }
     const citiesSet = new Set();
-    selectedCountries.forEach(country => {
+    pendingCountries.forEach(country => {
       const cities = COUNTRY_CITY_MAP[country] || [];
       cities.forEach(c => citiesSet.add(c));
     });
     return Array.from(citiesSet).sort();
-  }, [selectedCountries]);
-
-  // Filtered cities list for city search input in sidebar
-  const filteredAvailableCities = useMemo(() => {
-    if (!citySearchQuery.trim()) return availableCities;
-    return availableCities.filter(c => c.toLowerCase().includes(citySearchQuery.toLowerCase()));
-  }, [availableCities, citySearchQuery]);
+  }, [pendingCountries]);
 
   // Clean invalid cities if country selection changes
   const toggleCountry = (country) => {
-    setSelectedCountries(prev => {
+    setPendingCountries(prev => {
       const next = prev.includes(country) ? prev.filter(c => c !== country) : [...prev, country];
-      // prune cities if needed
       if (next.length > 0) {
         const allowedCities = new Set();
         next.forEach(cntry => {
           (COUNTRY_CITY_MAP[cntry] || []).forEach(ci => allowedCities.add(ci));
         });
-        setSelectedCities(currCities => currCities.filter(ci => allowedCities.has(ci)));
+        setPendingCities(currCities => currCities.filter(ci => allowedCities.has(ci)));
       }
       return next;
     });
-    setCurrentPage(1);
   };
 
   const toggleCity = (city) => {
-    setSelectedCities(prev => prev.includes(city) ? prev.filter(c => c !== city) : [...prev, city]);
-    setCurrentPage(1);
+    setPendingCities(prev => prev.includes(city) ? prev.filter(c => c !== city) : [...prev, city]);
   };
 
   const toggleIndustry = (ind) => {
-    setSelectedIndustries(prev => prev.includes(ind) ? prev.filter(i => i !== ind) : [...prev, ind]);
-    setCurrentPage(1);
+    setPendingIndustries(prev => prev.includes(ind) ? prev.filter(i => i !== ind) : [...prev, ind]);
   };
 
   const toggleFunction = (fn) => {
-    setSelectedFunctions(prev => prev.includes(fn) ? prev.filter(f => f !== fn) : [...prev, fn]);
-    setCurrentPage(1);
+    setPendingFunctions(prev => prev.includes(fn) ? prev.filter(f => f !== fn) : [...prev, fn]);
   };
 
   const toggleExperience = (exp) => {
-    setSelectedExperiences(prev => prev.includes(exp) ? prev.filter(e => e !== exp) : [...prev, exp]);
-    setCurrentPage(1);
+    setPendingExperiences(prev => prev.includes(exp) ? prev.filter(e => e !== exp) : [...prev, exp]);
   };
 
   const toggleJobType = (jt) => {
-    setSelectedJobTypes(prev => prev.includes(jt) ? prev.filter(t => t !== jt) : [...prev, jt]);
-    setCurrentPage(1);
+    setPendingJobTypes(prev => prev.includes(jt) ? prev.filter(t => t !== jt) : [...prev, jt]);
+  };
+
+  const toggleCompany = (comp) => {
+    setPendingCompanies(prev => prev.includes(comp) ? prev.filter(c => c !== comp) : [...prev, comp]);
+  };
+
+  const toggleLanguage = (lang) => {
+    setPendingLanguages(prev => prev.includes(lang) ? prev.filter(l => l !== lang) : [...prev, lang]);
   };
 
   // Restore Search Criteria dispatched from CandidatePortal
   useEffect(() => {
     if (activeSearchCriteria) {
       if (activeSearchCriteria.keyword !== undefined) setKeyword(activeSearchCriteria.keyword || '');
+      const restoredCountries = activeSearchCriteria.country && activeSearchCriteria.country !== 'All'
+        ? (Array.isArray(activeSearchCriteria.country) ? activeSearchCriteria.country : activeSearchCriteria.country.split(',').map(s => s.trim()))
+        : [];
+      setAppliedCountries(restoredCountries);
+      setPendingCountries(restoredCountries);
 
-      if (activeSearchCriteria.country) {
-        setSelectedCountries(activeSearchCriteria.country === 'All' ? [] : (Array.isArray(activeSearchCriteria.country) ? activeSearchCriteria.country : activeSearchCriteria.country.split(',').map(s => s.trim())));
+      const restoredCities = activeSearchCriteria.city && activeSearchCriteria.city !== 'All'
+        ? (Array.isArray(activeSearchCriteria.city) ? activeSearchCriteria.city : activeSearchCriteria.city.split(',').map(s => s.trim()))
+        : [];
+      setAppliedCities(restoredCities);
+      setPendingCities(restoredCities);
+
+      const restoredIndustries = activeSearchCriteria.industry && activeSearchCriteria.industry !== 'All'
+        ? (Array.isArray(activeSearchCriteria.industry) ? activeSearchCriteria.industry : activeSearchCriteria.industry.split(',').map(s => s.trim()))
+        : [];
+      setAppliedIndustries(restoredIndustries);
+      setPendingIndustries(restoredIndustries);
+
+      const restoredFunctions = activeSearchCriteria.function && activeSearchCriteria.function !== 'All'
+        ? (Array.isArray(activeSearchCriteria.function) ? activeSearchCriteria.function : activeSearchCriteria.function.split(',').map(s => s.trim()))
+        : [];
+      setAppliedFunctions(restoredFunctions);
+      setPendingFunctions(restoredFunctions);
+
+      const restoredExperiences = activeSearchCriteria.experience && activeSearchCriteria.experience !== 'All'
+        ? (Array.isArray(activeSearchCriteria.experience) ? activeSearchCriteria.experience : activeSearchCriteria.experience.split(',').map(s => s.trim()))
+        : [];
+      setAppliedExperiences(restoredExperiences);
+      setPendingExperiences(restoredExperiences);
+
+      if (activeSearchCriteria.experienceYears !== undefined && activeSearchCriteria.experienceYears !== '') {
+        const expNum = Number(activeSearchCriteria.experienceYears);
+        setAppliedExperienceYears(expNum);
+        setPendingExperienceYears(expNum);
+        setSliderExperienceYears(expNum);
+      } else {
+        setAppliedExperienceYears(null);
+        setPendingExperienceYears(null);
+        setSliderExperienceYears(0);
       }
-      if (activeSearchCriteria.city) {
-        setSelectedCities(activeSearchCriteria.city === 'All' ? [] : (Array.isArray(activeSearchCriteria.city) ? activeSearchCriteria.city : activeSearchCriteria.city.split(',').map(s => s.trim())));
-      }
-      if (activeSearchCriteria.industry) {
-        setSelectedIndustries(activeSearchCriteria.industry === 'All' ? [] : (Array.isArray(activeSearchCriteria.industry) ? activeSearchCriteria.industry : activeSearchCriteria.industry.split(',').map(s => s.trim())));
-      }
-      if (activeSearchCriteria.function) {
-        setSelectedFunctions(activeSearchCriteria.function === 'All' ? [] : (Array.isArray(activeSearchCriteria.function) ? activeSearchCriteria.function : activeSearchCriteria.function.split(',').map(s => s.trim())));
-      }
-      if (activeSearchCriteria.experience) {
-        setSelectedExperiences(activeSearchCriteria.experience === 'All' ? [] : (Array.isArray(activeSearchCriteria.experience) ? activeSearchCriteria.experience : activeSearchCriteria.experience.split(',').map(s => s.trim())));
-      }
-      if (activeSearchCriteria.salaryMin !== undefined) setSalaryMin(activeSearchCriteria.salaryMin || '');
-      if (activeSearchCriteria.salaryMax !== undefined) setSalaryMax(activeSearchCriteria.salaryMax || '');
-      if (activeSearchCriteria.salaryCurrency !== undefined) setSalaryCurrency(activeSearchCriteria.salaryCurrency || 'All');
-      if (activeSearchCriteria.jobType) {
-        setSelectedJobTypes(activeSearchCriteria.jobType === 'All' ? [] : (Array.isArray(activeSearchCriteria.jobType) ? activeSearchCriteria.jobType : activeSearchCriteria.jobType.split(',').map(s => s.trim())));
-      }
+
+      const restoredSalaryRanges = activeSearchCriteria.salaryRanges && activeSearchCriteria.salaryRanges !== 'All'
+        ? (Array.isArray(activeSearchCriteria.salaryRanges) ? activeSearchCriteria.salaryRanges : activeSearchCriteria.salaryRanges.split(',').map(s => s.trim()))
+        : [];
+      setAppliedSalaryRanges(restoredSalaryRanges);
+      setPendingSalaryRanges(restoredSalaryRanges);
+
+      setAppliedSalaryMin(activeSearchCriteria.salaryMin || '');
+      setPendingSalaryMin(activeSearchCriteria.salaryMin || '');
+      setAppliedSalaryMax(activeSearchCriteria.salaryMax || '');
+      setPendingSalaryMax(activeSearchCriteria.salaryMax || '');
+      setAppliedSalaryCurrency(activeSearchCriteria.salaryCurrency || 'All');
+      setPendingSalaryCurrency(activeSearchCriteria.salaryCurrency || 'All');
+
+      const restoredJobTypes = activeSearchCriteria.jobType && activeSearchCriteria.jobType !== 'All'
+        ? (Array.isArray(activeSearchCriteria.jobType) ? activeSearchCriteria.jobType : activeSearchCriteria.jobType.split(',').map(s => s.trim()))
+        : [];
+      setAppliedJobTypes(restoredJobTypes);
+      setPendingJobTypes(restoredJobTypes);
+
+      const restoredCompanies = activeSearchCriteria.company && activeSearchCriteria.company !== 'All'
+        ? (Array.isArray(activeSearchCriteria.company) ? activeSearchCriteria.company : activeSearchCriteria.company.split(',').map(s => s.trim()))
+        : [];
+      setAppliedCompanies(restoredCompanies);
+      setPendingCompanies(restoredCompanies);
+
+      setAppliedPostedWithin(activeSearchCriteria.postedWithin || 'all');
+      setPendingPostedWithin(activeSearchCriteria.postedWithin || 'all');
+
+      const restoredLanguages = activeSearchCriteria.language && activeSearchCriteria.language !== 'All'
+        ? (Array.isArray(activeSearchCriteria.language) ? activeSearchCriteria.language : activeSearchCriteria.language.split(',').map(s => s.trim()))
+        : [];
+      setAppliedLanguages(restoredLanguages);
+      setPendingLanguages(restoredLanguages);
+
       setCurrentPage(1);
       setLoadedSavedSearchName(activeSearchCriteria._name || 'Restored Saved Search');
-
       setActiveSearchCriteria(null);
 
       setTimeout(() => {
@@ -304,27 +843,53 @@ export const JobsPage = () => {
 
   // Synchronize with global selectedJobCategory if provided from navigation
   useEffect(() => {
-    if (selectedCategory && selectedCategory !== 'All' && selectedIndustries.length === 0) {
-      setSelectedIndustries([selectedCategory]);
+    if (selectedCategory && selectedCategory !== 'All' && appliedIndustries.length === 0) {
+      setAppliedIndustries([selectedCategory]);
+      setPendingIndustries([selectedCategory]);
     }
   }, [selectedCategory]);
 
   // Fetch all jobs from backend API or fallback mock
-  const fetchJobs = useCallback(async () => {
+  const fetchJobs = useCallback(async (filtersOverride = null) => {
     setLoading(true);
     let apiJobs = [];
     try {
+      const active = filtersOverride || {
+        countries: appliedCountries,
+        cities: appliedCities,
+        industries: appliedIndustries,
+        functions: appliedFunctions,
+        experienceYears: appliedExperienceYears,
+        experiences: appliedExperiences,
+        jobTypes: appliedJobTypes,
+        salaryRanges: appliedSalaryRanges,
+        companies: appliedCompanies,
+        languages: appliedLanguages,
+        postedWithin: appliedPostedWithin,
+        salaryMin: appliedSalaryMin,
+        salaryMax: appliedSalaryMax,
+        salaryCurrency: appliedSalaryCurrency
+      };
+
       const params = new URLSearchParams();
       if (keyword) params.append('keyword', keyword);
-      if (selectedCountries.length > 0) params.append('country', selectedCountries.join(','));
-      if (selectedCities.length > 0) params.append('city', selectedCities.join(','));
-      if (selectedIndustries.length > 0) params.append('industry', selectedIndustries.join(','));
-      if (selectedFunctions.length > 0) params.append('function', selectedFunctions.join(','));
-      if (selectedExperiences.length > 0) params.append('experience', selectedExperiences.join(','));
-      if (selectedJobTypes.length > 0) params.append('jobType', selectedJobTypes.join(','));
-      if (salaryMin !== '') params.append('minSalary', salaryMin);
-      if (salaryMax !== '') params.append('maxSalary', salaryMax);
-      if (salaryCurrency !== 'All') params.append('currency', salaryCurrency);
+      if (active.countries && active.countries.length > 0) params.append('country', active.countries.join(','));
+      if (active.cities && active.cities.length > 0) params.append('city', active.cities.join(','));
+      if (active.industries && active.industries.length > 0) params.append('industry', active.industries.join(','));
+      if (active.functions && active.functions.length > 0) params.append('function', active.functions.join(','));
+      if (active.experienceYears !== null && active.experienceYears !== undefined) {
+        params.append('experienceYears', active.experienceYears);
+      } else if (active.experiences && active.experiences.length > 0) {
+        params.append('experience', active.experiences.join(','));
+      }
+      if (active.jobTypes && active.jobTypes.length > 0) params.append('jobType', active.jobTypes.join(','));
+      if (active.salaryMin) params.append('minSalary', active.salaryMin);
+      if (active.salaryMax) params.append('maxSalary', active.salaryMax);
+      if (active.salaryCurrency && active.salaryCurrency !== 'All') params.append('currency', active.salaryCurrency);
+      if (active.companies && active.companies.length > 0) params.append('company', active.companies.join(','));
+      if (active.postedWithin && active.postedWithin !== 'all') params.append('postedWithin', active.postedWithin);
+      if (active.languages && active.languages.length > 0) params.append('language', active.languages.join(','));
+      if (active.salaryRanges && active.salaryRanges.length > 0) params.append('salaryRanges', active.salaryRanges.join(','));
       if (sortBy) params.append('sortBy', sortBy);
 
       const res = await fetch('/api/jobs?' + params.toString());
@@ -338,7 +903,6 @@ export const JobsPage = () => {
       console.warn('Backend API offline. Using mock job dataset fallback:', err);
     }
 
-    // Combine newly posted jobs (from local state/context) with server or mock dataset
     const allCombined = [...postedJobs];
     const baseList = apiJobs.length > 0 ? apiJobs : JOBS_LIST;
     baseList.forEach(item => {
@@ -349,159 +913,422 @@ export const JobsPage = () => {
 
     setRawJobs(allCombined);
     setLoading(false);
-  }, [keyword, selectedCountries, selectedCities, selectedIndustries, selectedFunctions, selectedExperiences, selectedJobTypes, salaryMin, salaryMax, salaryCurrency, sortBy, postedJobs]);
+  }, [
+    keyword, appliedCountries, appliedCities, appliedIndustries, appliedFunctions,
+    appliedExperienceYears, appliedExperiences, appliedJobTypes, appliedSalaryRanges,
+    appliedSalaryMin, appliedSalaryMax, appliedSalaryCurrency, appliedCompanies,
+    appliedPostedWithin, appliedLanguages, sortBy, postedJobs
+  ]);
 
   useEffect(() => {
     fetchJobs();
   }, [fetchJobs]);
 
-  // Multi-Filter Matching Engine (AND logic between categories, OR logic within category)
-  const filteredJobs = useMemo(() => {
-    let result = rawJobs.filter(j => {
-      // 1. Keyword search (title, company, description, skills)
-      if (keyword.trim()) {
-        const kw = keyword.toLowerCase().trim();
-        const matchTitle = (j.title || '').toLowerCase().includes(kw);
-        const matchComp = (j.company || '').toLowerCase().includes(kw);
-        const matchDesc = (j.description || '').toLowerCase().includes(kw);
-        const matchSkills = j.skills && j.skills.some(s => String(s).toLowerCase().includes(kw));
-        if (!matchTitle && !matchComp && !matchDesc && !matchSkills) return false;
-      }
+  // Real option counts for labels e.g. "UAE (14)"
+  const itemCounts = useMemo(() => {
+    const counts = {
+      country: {},
+      city: {},
+      industry: {},
+      function: {},
+      experience: {},
+      jobType: {},
+      company: {},
+      salary: {}
+    };
 
-      // 2. Country (OR among selected countries)
-      if (selectedCountries.length > 0) {
-        const jCountry = (j.country || '').toLowerCase();
-        const matchesCountry = selectedCountries.some(c => jCountry === c.toLowerCase());
-        if (!matchesCountry) return false;
-      }
-
-      // 3. City (OR among selected cities)
-      if (selectedCities.length > 0) {
-        const jCity = (j.city || '').toLowerCase();
-        const jLoc = (j.location || '').toLowerCase();
-        const matchesCity = selectedCities.some(c => {
-          const ckw = c.toLowerCase();
-          return jCity.includes(ckw) || jLoc.includes(ckw);
-        });
-        if (!matchesCity) return false;
-      }
-
-      // 4. Industry (OR among selected industries)
-      if (selectedIndustries.length > 0) {
-        const jInd = (j.industry || '').toLowerCase();
-        const jCat = (j.category || '').toLowerCase();
-        const matchesInd = selectedIndustries.some(ind => {
-          const ikw = ind.toLowerCase();
-          return jInd.includes(ikw) || jCat.includes(ikw) || ikw.includes(jCat);
-        });
-        if (!matchesInd) return false;
-      }
-
-      // 5. Function (OR among selected functions)
-      if (selectedFunctions.length > 0) {
-        const jFn = (j.function || '').toLowerCase();
-        const jTitle = (j.title || '').toLowerCase();
-        const matchesFn = selectedFunctions.some(fn => {
-          const fkw = fn.toLowerCase();
-          return jFn.includes(fkw) || jTitle.includes(fkw);
-        });
-        if (!matchesFn) return false;
-      }
-
-      // 6. Experience (OR among selected experiences)
-      if (selectedExperiences.length > 0) {
-        const matchesExp = selectedExperiences.some(exp => matchExperienceOption(j.experience, exp));
-        if (!matchesExp) return false;
-      }
-
-      // 7. Salary Currency
-      if (salaryCurrency && salaryCurrency !== 'All') {
-        const jCurr = j.currency || (j.salary ? j.salary.split(' ')[0] : '');
-        if (jCurr && !jCurr.toUpperCase().includes(salaryCurrency.toUpperCase()) && !(j.salary || '').toUpperCase().includes(salaryCurrency.toUpperCase())) {
-          return false;
-        }
-      }
-
-      // 8. Salary Range
-      const minVal = salaryMin !== '' && !isNaN(Number(salaryMin)) ? Number(salaryMin) : null;
-      const maxVal = salaryMax !== '' && !isNaN(Number(salaryMax)) ? Number(salaryMax) : null;
-      if (minVal !== null || maxVal !== null) {
-        const jMin = j.minSalary != null ? Number(j.minSalary) : null;
-        const jMax = j.maxSalary != null ? Number(j.maxSalary) : null;
-        if (jMin != null && maxVal != null && jMin > maxVal) return false;
-        if (jMax != null && minVal != null && jMax < minVal) return false;
-      }
-
-      // 9. Job Type (OR among selected types)
-      if (selectedJobTypes.length > 0) {
-        const jt = (j.jobType || '').toLowerCase();
-        const matchesType = selectedJobTypes.some(t => {
-          const tkw = t.toLowerCase();
-          if (tkw === 'remote') {
-            return jt.includes('remote') || (j.location && j.location.toLowerCase().includes('remote'));
-          }
-          return jt === tkw;
-        });
-        if (!matchesType) return false;
-      }
-
-      return true;
+    rawJobs.forEach(j => {
+      if (j.country) counts.country[j.country] = (counts.country[j.country] || 0) + 1;
+      if (j.city) counts.city[j.city] = (counts.city[j.city] || 0) + 1;
+      const ind = j.industry || j.category;
+      if (ind) counts.industry[ind] = (counts.industry[ind] || 0) + 1;
+      const fn = j.function || j.department;
+      if (fn) counts.function[fn] = (counts.function[fn] || 0) + 1;
+      if (j.experience) counts.experience[j.experience] = (counts.experience[j.experience] || 0) + 1;
+      if (j.jobType) counts.jobType[j.jobType] = (counts.jobType[j.jobType] || 0) + 1;
+      if (j.company) counts.company[j.company] = (counts.company[j.company] || 0) + 1;
     });
 
-    // Client-side Sort
-    if (sortBy === 'salary-high') {
-      result.sort((a, b) => (Number(b.maxSalary || b.minSalary || 0) - Number(a.maxSalary || a.minSalary || 0)));
-    } else if (sortBy === 'salary-low') {
-      result.sort((a, b) => (Number(a.minSalary || a.maxSalary || 0) - Number(b.minSalary || b.maxSalary || 0)));
-    } else if (sortBy === 'relevant') {
-      result.sort((a, b) => (b.featured ? 1 : 0) - (a.featured ? 1 : 0));
-    } else {
-      // 'latest' default
-      result.sort((a, b) => (b.id > a.id ? 1 : -1));
+    SALARY_OPTIONS.forEach(opt => {
+      counts.salary[opt] = rawJobs.filter(j => matchesSalaryRange(j, opt)).length;
+    });
+
+    return counts;
+  }, [rawJobs]);
+
+  // Config for the centered Naukri-style Filter Popup Modal
+  const popupConfig = useMemo(() => {
+    if (!popupCategory) return null;
+    switch (popupCategory) {
+      case 'country':
+        return {
+          title: 'Select Country',
+          icon: Globe,
+          items: COUNTRIES,
+          counts: itemCounts.country,
+          placeholder: 'Search Country (e.g. UAE, Qatar, Saudi Arabia)...'
+        };
+      case 'city':
+        return {
+          title: pendingCountries.length > 0 ? `Select City (${pendingCountries.join(', ')})` : 'Select City',
+          icon: MapPin,
+          items: availableCities,
+          counts: itemCounts.city,
+          placeholder: 'Search City (e.g. Dubai, Doha, Riyadh)...'
+        };
+      case 'industry':
+        return {
+          title: 'Select Industry',
+          icon: Briefcase,
+          items: INDUSTRIES,
+          counts: itemCounts.industry,
+          placeholder: 'Search Industry (e.g. IT, Healthcare, Engineering)...'
+        };
+      case 'function':
+        return {
+          title: 'Select Function / Department',
+          icon: Building2,
+          items: FUNCTIONS,
+          counts: itemCounts.function,
+          placeholder: 'Search Department (e.g. Software, Nursing, Sales)...'
+        };
+      case 'experience':
+        return {
+          title: 'Select Experience Level',
+          icon: Clock,
+          items: EXPERIENCE_LEVELS,
+          counts: itemCounts.experience,
+          placeholder: 'Search Experience (e.g. 1–3 Years, 5–10 Years)...'
+        };
+      case 'jobType':
+        return {
+          title: 'Select Job Type',
+          icon: Tag,
+          items: JOB_TYPES,
+          counts: itemCounts.jobType,
+          placeholder: 'Search Job Type (e.g. Full-time, Remote)...'
+        };
+      case 'salary':
+        return {
+          title: 'Salary',
+          icon: Coins,
+          items: SALARY_OPTIONS,
+          counts: itemCounts.salary,
+          placeholder: 'Search Salary Range (e.g. 10k, Lakhs, Crore)...',
+          isCompactVertical: true
+        };
+      default:
+        return null;
     }
+  }, [popupCategory, availableCities, itemCounts, pendingCountries]);
 
-    return result;
-  }, [rawJobs, keyword, selectedCountries, selectedCities, selectedIndustries, selectedFunctions, selectedExperiences, salaryMin, salaryMax, salaryCurrency, selectedJobTypes, sortBy]);
+  // PREVIEW matching jobs for PENDING filters (updates Apply (N) button count)
+  const previewFilteredJobs = useMemo(() => {
+    return filterJobList(rawJobs, {
+      keyword,
+      countries: pendingCountries,
+      cities: pendingCities,
+      industries: pendingIndustries,
+      functions: pendingFunctions,
+      experienceYears: pendingExperienceYears,
+      experiences: pendingExperiences,
+      jobTypes: pendingJobTypes,
+      salaryRanges: pendingSalaryRanges,
+      companies: pendingCompanies,
+      languages: pendingLanguages,
+      postedWithin: pendingPostedWithin,
+      salaryMin: pendingSalaryMin,
+      salaryMax: pendingSalaryMax,
+      salaryCurrency: pendingSalaryCurrency
+    });
+  }, [
+    rawJobs, keyword, pendingCountries, pendingCities, pendingIndustries,
+    pendingFunctions, pendingExperienceYears, pendingExperiences, pendingJobTypes,
+    pendingSalaryRanges, pendingCompanies, pendingLanguages, pendingPostedWithin,
+    pendingSalaryMin, pendingSalaryMax, pendingSalaryCurrency
+  ]);
 
-  // Paginated View
-  const totalPages = Math.max(1, Math.ceil(filteredJobs.length / pageSize));
-  const paginatedJobs = useMemo(() => {
-    const start = (currentPage - 1) * pageSize;
-    return filteredJobs.slice(start, start + pageSize);
-  }, [filteredJobs, currentPage, pageSize]);
+  // ACTUAL displayed jobs based on APPLIED filters
+  const filteredJobs = useMemo(() => {
+    return filterJobList(rawJobs, {
+      keyword,
+      countries: appliedCountries,
+      cities: appliedCities,
+      industries: appliedIndustries,
+      functions: appliedFunctions,
+      experienceYears: appliedExperienceYears,
+      experiences: appliedExperiences,
+      jobTypes: appliedJobTypes,
+      salaryRanges: appliedSalaryRanges,
+      companies: appliedCompanies,
+      languages: appliedLanguages,
+      postedWithin: appliedPostedWithin,
+      salaryMin: appliedSalaryMin,
+      salaryMax: appliedSalaryMax,
+      salaryCurrency: appliedSalaryCurrency
+    }).sort((a, b) => {
+      if (sortBy === 'salary-high') {
+        return (Number(b.maxSalary || b.minSalary || 0) - Number(a.maxSalary || a.minSalary || 0));
+      } else if (sortBy === 'salary-low') {
+        return (Number(a.minSalary || a.maxSalary || 0) - Number(b.minSalary || b.maxSalary || 0));
+      } else if (sortBy === 'relevant') {
+        return (b.featured ? 1 : 0) - (a.featured ? 1 : 0);
+      }
+      return (b.id > a.id ? 1 : -1);
+    });
+  }, [
+    rawJobs, keyword, appliedCountries, appliedCities, appliedIndustries,
+    appliedFunctions, appliedExperienceYears, appliedExperiences, appliedJobTypes,
+    appliedSalaryRanges, appliedCompanies, appliedLanguages, appliedPostedWithin,
+    appliedSalaryMin, appliedSalaryMax, appliedSalaryCurrency, sortBy
+  ]);
 
-  // Count active filter criteria
-  const activeFilterCount = useMemo(() => {
-    let count = 0;
-    if (keyword) count++;
-    count += selectedCountries.length;
-    count += selectedCities.length;
-    count += selectedIndustries.length;
-    count += selectedFunctions.length;
-    count += selectedExperiences.length;
-    count += selectedJobTypes.length;
-    if (salaryCurrency && salaryCurrency !== 'All') count++;
-    if (salaryMin !== '' && salaryMin !== undefined) count++;
-    if (salaryMax !== '' && salaryMax !== undefined) count++;
-    return count;
-  }, [keyword, selectedCountries, selectedCities, selectedIndustries, selectedFunctions, selectedExperiences, selectedJobTypes, salaryCurrency, salaryMin, salaryMax]);
+  // Total applied active filter count (Strictly counts committed filter selections across all categories)
+  const appliedFilterCount = useMemo(() => {
+    return calculateFilterCount({
+      countries: appliedCountries,
+      cities: appliedCities,
+      industries: appliedIndustries,
+      functions: appliedFunctions,
+      experienceYears: appliedExperienceYears,
+      experiences: appliedExperiences,
+      jobTypes: appliedJobTypes,
+      salaryRanges: appliedSalaryRanges,
+      companies: appliedCompanies,
+      languages: appliedLanguages,
+      postedWithin: appliedPostedWithin,
+      salaryMin: appliedSalaryMin,
+      salaryMax: appliedSalaryMax,
+      salaryCurrency: appliedSalaryCurrency
+    });
+  }, [
+    appliedCountries, appliedCities, appliedIndustries, appliedFunctions,
+    appliedExperienceYears, appliedExperiences, appliedJobTypes, appliedSalaryRanges,
+    appliedCompanies, appliedLanguages, appliedPostedWithin, appliedSalaryMin,
+    appliedSalaryMax, appliedSalaryCurrency
+  ]);
 
-  // Clear / Reset All Filters
+  // Pending filter count for sidebar preview
+  const pendingFilterCount = useMemo(() => {
+    return calculateFilterCount({
+      countries: pendingCountries,
+      cities: pendingCities,
+      industries: pendingIndustries,
+      functions: pendingFunctions,
+      experienceYears: pendingExperienceYears,
+      experiences: pendingExperiences,
+      jobTypes: pendingJobTypes,
+      salaryRanges: pendingSalaryRanges,
+      companies: pendingCompanies,
+      languages: pendingLanguages,
+      postedWithin: pendingPostedWithin,
+      salaryMin: pendingSalaryMin,
+      salaryMax: pendingSalaryMax,
+      salaryCurrency: pendingSalaryCurrency
+    });
+  }, [
+    pendingCountries, pendingCities, pendingIndustries, pendingFunctions,
+    pendingExperienceYears, pendingExperiences, pendingJobTypes, pendingSalaryRanges,
+    pendingCompanies, pendingLanguages, pendingPostedWithin, pendingSalaryMin,
+    pendingSalaryMax, pendingSalaryCurrency
+  ]);
+
+  // Whether user has staged pending selections that differ from applied selections
+  const hasPendingChanges = useMemo(() => {
+    if (pendingCountries.length !== appliedCountries.length || !pendingCountries.every(c => appliedCountries.includes(c))) return true;
+    if (pendingCities.length !== appliedCities.length || !pendingCities.every(c => appliedCities.includes(c))) return true;
+    if (pendingIndustries.length !== appliedIndustries.length || !pendingIndustries.every(i => appliedIndustries.includes(i))) return true;
+    if (pendingFunctions.length !== appliedFunctions.length || !pendingFunctions.every(f => appliedFunctions.includes(f))) return true;
+    if (pendingExperienceYears !== appliedExperienceYears) return true;
+    if (pendingExperiences.length !== appliedExperiences.length || !pendingExperiences.every(e => appliedExperiences.includes(e))) return true;
+    if (pendingJobTypes.length !== appliedJobTypes.length || !pendingJobTypes.every(jt => appliedJobTypes.includes(jt))) return true;
+    if (pendingSalaryRanges.length !== appliedSalaryRanges.length || !pendingSalaryRanges.every(sr => appliedSalaryRanges.includes(sr))) return true;
+    if (pendingCompanies.length !== appliedCompanies.length || !pendingCompanies.every(cp => appliedCompanies.includes(cp))) return true;
+    if (pendingLanguages.length !== appliedLanguages.length || !pendingLanguages.every(l => appliedLanguages.includes(l))) return true;
+    if (pendingPostedWithin !== appliedPostedWithin) return true;
+    if (pendingSalaryMin !== appliedSalaryMin || pendingSalaryMax !== appliedSalaryMax || pendingSalaryCurrency !== appliedSalaryCurrency) return true;
+    return false;
+  }, [
+    pendingCountries, appliedCountries,
+    pendingCities, appliedCities,
+    pendingIndustries, appliedIndustries,
+    pendingFunctions, appliedFunctions,
+    pendingExperienceYears, appliedExperienceYears,
+    pendingExperiences, appliedExperiences,
+    pendingJobTypes, appliedJobTypes,
+    pendingSalaryRanges, appliedSalaryRanges,
+    pendingCompanies, appliedCompanies,
+    pendingLanguages, appliedLanguages,
+    pendingPostedWithin, appliedPostedWithin,
+    pendingSalaryMin, appliedSalaryMin,
+    pendingSalaryMax, appliedSalaryMax,
+    pendingSalaryCurrency, appliedSalaryCurrency
+  ]);
+
+  // Apply pending filters: Commits staged selections to applied selections and refreshes job list
+  const applyPendingFilters = () => {
+    setAppliedCountries([...pendingCountries]);
+    setAppliedCities([...pendingCities]);
+    setAppliedIndustries([...pendingIndustries]);
+    setAppliedFunctions([...pendingFunctions]);
+    setAppliedExperienceYears(pendingExperienceYears);
+    setAppliedExperiences([...pendingExperiences]);
+    setAppliedJobTypes([...pendingJobTypes]);
+    setAppliedSalaryRanges([...pendingSalaryRanges]);
+    setAppliedCompanies([...pendingCompanies]);
+    setAppliedLanguages([...pendingLanguages]);
+    setAppliedPostedWithin(pendingPostedWithin);
+    setAppliedSalaryMin(pendingSalaryMin);
+    setAppliedSalaryMax(pendingSalaryMax);
+    setAppliedSalaryCurrency(pendingSalaryCurrency);
+
+    setCurrentPage(1);
+    setMobileFilterOpen(false);
+
+    fetchJobs({
+      countries: pendingCountries,
+      cities: pendingCities,
+      industries: pendingIndustries,
+      functions: pendingFunctions,
+      experienceYears: pendingExperienceYears,
+      experiences: pendingExperiences,
+      jobTypes: pendingJobTypes,
+      salaryRanges: pendingSalaryRanges,
+      companies: pendingCompanies,
+      languages: pendingLanguages,
+      postedWithin: pendingPostedWithin,
+      salaryMin: pendingSalaryMin,
+      salaryMax: pendingSalaryMax,
+      salaryCurrency: pendingSalaryCurrency
+    });
+
+    setTimeout(() => {
+      document.getElementById('jobs-results-header')?.scrollIntoView({ behavior: 'smooth' });
+    }, 100);
+  };
+
+  // Discard pending changes: Restores pending selections from current applied selections
+  const discardPendingFilters = () => {
+    setPendingCountries([...appliedCountries]);
+    setPendingCities([...appliedCities]);
+    setPendingIndustries([...appliedIndustries]);
+    setPendingFunctions([...appliedFunctions]);
+    setPendingExperienceYears(appliedExperienceYears);
+    setSliderExperienceYears(appliedExperienceYears !== null ? appliedExperienceYears : 0);
+    setPendingExperiences([...appliedExperiences]);
+    setPendingJobTypes([...appliedJobTypes]);
+    setPendingSalaryRanges([...appliedSalaryRanges]);
+    setPendingCompanies([...appliedCompanies]);
+    setPendingLanguages([...appliedLanguages]);
+    setPendingPostedWithin(appliedPostedWithin);
+    setPendingSalaryMin(appliedSalaryMin);
+    setPendingSalaryMax(appliedSalaryMax);
+    setPendingSalaryCurrency(appliedSalaryCurrency);
+  };
+
+  // Reset all filters: Clears both applied and pending filters, resets experience to null/0, preserves keyword search
   const clearAllFilters = () => {
-    setKeyword('');
-    setSelectedCountries([]);
-    setSelectedCities([]);
-    setSelectedIndustries([]);
-    setSelectedFunctions([]);
-    setSelectedExperiences([]);
-    setSelectedJobTypes([]);
-    setSalaryMin('');
-    setSalaryMax('');
-    setSalaryCurrency('All');
+    setPendingCountries([]);
+    setAppliedCountries([]);
+    setPendingCities([]);
+    setAppliedCities([]);
+    setPendingIndustries([]);
+    setAppliedIndustries([]);
+    setPendingFunctions([]);
+    setAppliedFunctions([]);
+    setPendingExperiences([]);
+    setAppliedExperiences([]);
+    setPendingExperienceYears(null);
+    setAppliedExperienceYears(null);
+    setSliderExperienceYears(0);
+    setPendingJobTypes([]);
+    setAppliedJobTypes([]);
+    setPendingSalaryRanges([]);
+    setAppliedSalaryRanges([]);
+    setPendingCompanies([]);
+    setAppliedCompanies([]);
+    setPendingLanguages([]);
+    setAppliedLanguages([]);
+    setPendingPostedWithin('all');
+    setAppliedPostedWithin('all');
+    setPendingSalaryMin('');
+    setAppliedSalaryMin('');
+    setPendingSalaryMax('');
+    setAppliedSalaryMax('');
+    setPendingSalaryCurrency('All');
+    setAppliedSalaryCurrency('All');
+
+    // Section 10: "Preserve the keyword search unless the existing application explicitly treats it as part of Clear All"
     setSortBy('latest');
     setCurrentPage(1);
     setLoadedSavedSearchName('');
     if (setSelectedCategory) setSelectedCategory('All');
+
+    fetchJobs({
+      countries: [],
+      cities: [],
+      industries: [],
+      functions: [],
+      experienceYears: null,
+      experiences: [],
+      jobTypes: [],
+      salaryRanges: [],
+      companies: [],
+      languages: [],
+      postedWithin: 'all',
+      salaryMin: '',
+      salaryMax: '',
+      salaryCurrency: 'All'
+    });
+  };
+
+  // Remove individual active filter chip: Immediately updates both applied and pending states and refreshes results
+  const removeAppliedFilter = (category, value) => {
+    if (category === 'country') {
+      const next = appliedCountries.filter(c => c !== value);
+      setAppliedCountries(next);
+      setPendingCountries(next);
+      if (next.length > 0) {
+        const allowed = new Set();
+        next.forEach(cntry => (COUNTRY_CITY_MAP[cntry] || []).forEach(ci => allowed.add(ci)));
+        const nextCities = appliedCities.filter(ci => allowed.has(ci));
+        setAppliedCities(nextCities);
+        setPendingCities(nextCities);
+      }
+    } else if (category === 'city') {
+      const next = appliedCities.filter(ci => ci !== value);
+      setAppliedCities(next);
+      setPendingCities(next);
+    } else if (category === 'industry') {
+      const next = appliedIndustries.filter(i => i !== value);
+      setAppliedIndustries(next);
+      setPendingIndustries(next);
+    } else if (category === 'function') {
+      const next = appliedFunctions.filter(f => f !== value);
+      setAppliedFunctions(next);
+      setPendingFunctions(next);
+    } else if (category === 'experienceYears') {
+      setAppliedExperienceYears(null);
+      setPendingExperienceYears(null);
+      setSliderExperienceYears(0);
+    } else if (category === 'experience') {
+      const next = appliedExperiences.filter(e => e !== value);
+      setAppliedExperiences(next);
+      setPendingExperiences(next);
+    } else if (category === 'jobType') {
+      const next = appliedJobTypes.filter(jt => jt !== value);
+      setAppliedJobTypes(next);
+      setPendingJobTypes(next);
+    } else if (category === 'salary') {
+      const next = appliedSalaryRanges.filter(s => s !== value);
+      setAppliedSalaryRanges(next);
+      setPendingSalaryRanges(next);
+    } else if (category === 'company') {
+      const next = appliedCompanies.filter(c => c !== value);
+      setAppliedCompanies(next);
+      setPendingCompanies(next);
+    }
+    setCurrentPage(1);
   };
 
   // Open Save Search Modal
@@ -512,11 +1339,11 @@ export const JobsPage = () => {
     }
 
     const parts = [];
-    if (selectedIndustries.length > 0) parts.push(selectedIndustries.join(', '));
-    if (selectedFunctions.length > 0) parts.push(selectedFunctions.join(', '));
+    if (appliedIndustries.length > 0) parts.push(appliedIndustries.join(', '));
+    if (appliedFunctions.length > 0) parts.push(appliedFunctions.join(', '));
     if (keyword) parts.push(`"${keyword}"`);
-    if (selectedCities.length > 0) parts.push(selectedCities.join(', '));
-    else if (selectedCountries.length > 0) parts.push(selectedCountries.join(', '));
+    if (appliedCities.length > 0) parts.push(appliedCities.join(', '));
+    else if (appliedCountries.length > 0) parts.push(appliedCountries.join(', '));
 
     const defaultName = parts.length > 0 ? `${parts.join(' - ')} Search` : 'My Saved Job Search';
     setSearchName(defaultName);
@@ -537,15 +1364,20 @@ export const JobsPage = () => {
 
     const criteria = {
       keyword,
-      country: selectedCountries.join(','),
-      city: selectedCities.join(','),
-      industry: selectedIndustries.join(','),
-      function: selectedFunctions.join(','),
-      experience: selectedExperiences.join(','),
-      salaryMin,
-      salaryMax,
-      salaryCurrency,
-      jobType: selectedJobTypes.join(','),
+      country: appliedCountries.join(','),
+      city: appliedCities.join(','),
+      industry: appliedIndustries.join(','),
+      function: appliedFunctions.join(','),
+      experience: appliedExperiences.join(','),
+      experienceYears: appliedExperienceYears !== null ? appliedExperienceYears : '',
+      salaryRanges: appliedSalaryRanges.join(','),
+      salaryMin: appliedSalaryMin,
+      salaryMax: appliedSalaryMax,
+      salaryCurrency: appliedSalaryCurrency,
+      jobType: appliedJobTypes.join(','),
+      company: appliedCompanies.join(','),
+      postedWithin: appliedPostedWithin,
+      language: appliedLanguages.join(','),
       sortBy
     };
 
@@ -578,447 +1410,465 @@ export const JobsPage = () => {
     setAppliedSuccess(false);
   };
 
-  // Sidebar Filter Content (Reusable between Desktop Sticky Sidebar & Mobile Drawer)
-  const renderSidebarContent = () => (
-    <div className="space-y-5">
+  // Pagination calculation
+  const totalPages = Math.max(1, Math.ceil(filteredJobs.length / pageSize));
+  const paginatedJobs = useMemo(() => {
+    const start = (currentPage - 1) * pageSize;
+    return filteredJobs.slice(start, start + pageSize);
+  }, [filteredJobs, currentPage, pageSize]);
 
-      {/* 1. Sidebar Header */}
-      <div className="flex items-center justify-between border-b border-slate-100 dark:border-navy-800 pb-3">
-        <div className="flex items-center gap-2">
-          <div className="w-8 h-8 rounded-xl bg-gold-500/15 text-gold-600 dark:text-gold-400 flex items-center justify-center font-bold">
-            <SlidersHorizontal className="w-4 h-4" />
-          </div>
-          <div>
-            <h3 className="font-serif text-base font-bold text-navy-900 dark:text-white leading-none">
-              Filter Jobs
-            </h3>
-            {activeFilterCount > 0 && (
-              <span className="text-[10px] font-bold text-gold-600 dark:text-gold-400">
-                {activeFilterCount} active filter{activeFilterCount > 1 ? 's' : ''}
-              </span>
-            )}
-          </div>
-        </div>
+  // Reusable multi-select filter category with default 2 items, inline View All / View Less expansion & popup support
+  const renderFilterCategory = ({
+    title,
+    icon: Icon,
+    sectionKey,
+    items,
+    selectedItems,
+    toggleItem,
+    counts = {},
+    isLast = false
+  }) => {
+    const isOpen = openSections[sectionKey];
+    const isExpanded = showAll[sectionKey];
+    const selectedCount = selectedItems.length;
+    const visibleItems = isExpanded ? items : items.slice(0, 2);
+    const hiddenSelectedCount = selectedItems.filter(it => !items.slice(0, 2).includes(it)).length;
 
-        {activeFilterCount > 0 && (
-          <button
-            onClick={clearAllFilters}
-            className="text-xs font-bold text-rose-600 dark:text-rose-400 hover:underline flex items-center gap-1 cursor-pointer transition"
-            title="Reset all filters"
-          >
-            <RotateCcw className="w-3 h-3" />
-            <span>Reset</span>
-          </button>
-        )}
-      </div>
-
-      {/* 2. Country Section */}
-      <div className="border-b border-slate-100 dark:border-navy-800/80 pb-4">
+    return (
+      <div className={isLast ? "pb-1" : "border-b border-slate-100 dark:border-navy-800/80 pb-3"}>
         <button
           type="button"
-          onClick={() => toggleSection('country')}
+          onClick={() => toggleSection(sectionKey)}
           className="w-full flex items-center justify-between text-xs font-bold text-navy-950 dark:text-white py-1 hover:text-gold-500 transition cursor-pointer"
         >
-          <span className="flex items-center gap-1.5">
-            <Globe className="w-3.5 h-3.5 text-gold-500" />
-            <span>Country</span>
-            {selectedCountries.length > 0 && (
-              <span className="w-4 h-4 rounded-full bg-navy-900 text-white dark:bg-gold-500 dark:text-navy-950 text-[10px] flex items-center justify-center">
-                {selectedCountries.length}
+          <span className="flex items-center gap-2">
+            <Icon className="w-3.5 h-3.5 text-gold-500 shrink-0" />
+            <span>{title}{selectedCount > 0 ? ` (${selectedCount})` : ''}</span>
+            {selectedCount > 0 && (
+              <span className="px-1.5 py-0.2 rounded-full bg-gold-500 text-navy-950 text-[10px] font-extrabold">
+                {selectedCount}
               </span>
             )}
           </span>
-          {openSections.country ? <ChevronUp className="w-4 h-4 text-slate-400" /> : <ChevronDown className="w-4 h-4 text-slate-400" />}
+          {isOpen ? <ChevronUp className="w-3.5 h-3.5 text-slate-400" /> : <ChevronDown className="w-3.5 h-3.5 text-slate-400" />}
         </button>
 
-        {openSections.country && (
-          <div className="mt-2.5 space-y-1.5 max-h-48 overflow-y-auto pr-1 text-xs">
-            {COUNTRIES.map(country => {
-              const checked = selectedCountries.includes(country);
-              return (
-                <label
-                  key={country}
-                  className={`flex items-center justify-between px-2.5 py-1.5 rounded-xl cursor-pointer transition select-none ${checked
-                    ? 'bg-gold-500/15 text-navy-950 dark:text-gold-300 font-bold'
-                    : 'text-slate-700 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-navy-900 font-medium'
-                    }`}
-                >
-                  <div className="flex items-center gap-2">
+        {isOpen && (
+          <div className="mt-2 space-y-2">
+            <div className={isExpanded ? "grid grid-cols-2 gap-1.5 max-h-56 overflow-y-auto pr-1 [scrollbar-width:thin] [scrollbar-color:#cbd5e1_transparent] dark:[scrollbar-color:#334155_transparent] [&::-webkit-scrollbar]:w-1.5 [&::-webkit-scrollbar-track]:bg-transparent [&::-webkit-scrollbar-thumb]:bg-slate-300 dark:[&::-webkit-scrollbar-thumb]:bg-slate-700 [&::-webkit-scrollbar-thumb]:rounded-full hover:[&::-webkit-scrollbar-thumb]:bg-slate-400 dark:hover:[&::-webkit-scrollbar-thumb]:bg-slate-600" : "space-y-1"}>
+              {visibleItems.map(item => {
+                const checked = selectedItems.includes(item);
+                const count = counts[item] || 0;
+                return (
+                  <label
+                    key={item}
+                    className={`flex items-start gap-1.5 py-1 px-1.5 rounded-lg cursor-pointer select-none transition ${checked
+                      ? 'bg-gold-500/10 text-gold-700 dark:text-gold-300 font-bold'
+                      : 'hover:bg-slate-50 dark:hover:bg-navy-900/60 text-slate-700 dark:text-slate-300'
+                      }`}
+                  >
                     <input
                       type="checkbox"
                       checked={checked}
-                      onChange={() => toggleCountry(country)}
-                      className="w-3.5 h-3.5 rounded text-navy-900 focus:ring-gold-500 accent-[#102B45] cursor-pointer"
+                      onChange={() => toggleItem(item)}
+                      className="w-3.5 h-3.5 rounded text-[#102B45] focus:ring-gold-500 accent-[#102B45] cursor-pointer shrink-0 mt-0.5"
                     />
-                    <span>{country}</span>
-                  </div>
-                </label>
-              );
-            })}
-          </div>
-        )}
-      </div>
-
-      {/* 3. City Section (Dynamic based on selected country) */}
-      <div className="border-b border-slate-100 dark:border-navy-800/80 pb-4">
-        <button
-          type="button"
-          onClick={() => toggleSection('city')}
-          className="w-full flex items-center justify-between text-xs font-bold text-navy-950 dark:text-white py-1 hover:text-gold-500 transition cursor-pointer"
-        >
-          <span className="flex items-center gap-1.5">
-            <MapPin className="w-3.5 h-3.5 text-gold-500" />
-            <span>City {selectedCountries.length > 0 ? `(${selectedCountries.join(', ')})` : ''}</span>
-            {selectedCities.length > 0 && (
-              <span className="w-4 h-4 rounded-full bg-navy-900 text-white dark:bg-gold-500 dark:text-navy-950 text-[10px] flex items-center justify-center">
-                {selectedCities.length}
-              </span>
-            )}
-          </span>
-          {openSections.city ? <ChevronUp className="w-4 h-4 text-slate-400" /> : <ChevronDown className="w-4 h-4 text-slate-400" />}
-        </button>
-
-        {openSections.city && (
-          <div className="mt-2.5 space-y-2">
-            {availableCities.length > 6 && (
-              <input
-                type="text"
-                placeholder="Search cities..."
-                value={citySearchQuery}
-                onChange={(e) => setCitySearchQuery(e.target.value)}
-                className="w-full px-2.5 py-1.5 rounded-lg bg-slate-50 dark:bg-navy-900 border border-slate-200 dark:border-navy-700 text-xs focus:outline-none focus:border-gold-500"
-              />
-            )}
-            <div className="space-y-1 max-h-40 overflow-y-auto pr-1 text-xs">
-              {filteredAvailableCities.map(city => {
-                const checked = selectedCities.includes(city);
-                return (
-                  <label
-                    key={city}
-                    className={`flex items-center justify-between px-2.5 py-1.5 rounded-xl cursor-pointer transition select-none ${checked
-                      ? 'bg-gold-500/15 text-navy-950 dark:text-gold-300 font-bold'
-                      : 'text-slate-700 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-navy-900 font-medium'
-                      }`}
-                  >
-                    <div className="flex items-center gap-2">
-                      <input
-                        type="checkbox"
-                        checked={checked}
-                        onChange={() => toggleCity(city)}
-                        className="w-3.5 h-3.5 rounded text-navy-900 focus:ring-gold-500 accent-[#102B45] cursor-pointer"
-                      />
-                      <span>{city}</span>
-                    </div>
+                    <span className="text-xs break-words min-w-0 flex-1 leading-tight">{item}</span>
+                    {count > 0 && (
+                      <span className="text-[10px] text-slate-400 dark:text-slate-500 font-mono shrink-0 ml-auto pl-1">
+                        ({count})
+                      </span>
+                    )}
                   </label>
                 );
               })}
             </div>
-          </div>
-        )}
-      </div>
 
-      {/* 4. Industry Section */}
-      <div className="border-b border-slate-100 dark:border-navy-800/80 pb-4">
-        <button
-          type="button"
-          onClick={() => toggleSection('industry')}
-          className="w-full flex items-center justify-between text-xs font-bold text-navy-950 dark:text-white py-1 hover:text-gold-500 transition cursor-pointer"
-        >
-          <span className="flex items-center gap-1.5">
-            <Building2 className="w-3.5 h-3.5 text-gold-500" />
-            <span>Industry</span>
-            {selectedIndustries.length > 0 && (
-              <span className="w-4 h-4 rounded-full bg-navy-900 text-white dark:bg-gold-500 dark:text-navy-950 text-[10px] flex items-center justify-center">
-                {selectedIndustries.length}
-              </span>
-            )}
-          </span>
-          {openSections.industry ? <ChevronUp className="w-4 h-4 text-slate-400" /> : <ChevronDown className="w-4 h-4 text-slate-400" />}
-        </button>
-
-        {openSections.industry && (
-          <div className="mt-2.5 space-y-1 max-h-48 overflow-y-auto pr-1 text-xs">
-            {INDUSTRIES.map(ind => {
-              const checked = selectedIndustries.includes(ind);
-              return (
-                <label
-                  key={ind}
-                  className={`flex items-center justify-between px-2.5 py-1.5 rounded-xl cursor-pointer transition select-none ${checked
-                    ? 'bg-gold-500/15 text-navy-950 dark:text-gold-300 font-bold'
-                    : 'text-slate-700 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-navy-900 font-medium'
-                    }`}
-                >
-                  <div className="flex items-center gap-2">
-                    <input
-                      type="checkbox"
-                      checked={checked}
-                      onChange={() => toggleIndustry(ind)}
-                      className="w-3.5 h-3.5 rounded text-navy-900 focus:ring-gold-500 accent-[#102B45] cursor-pointer"
-                    />
-                    <span>{ind}</span>
-                  </div>
-                </label>
-              );
-            })}
-          </div>
-        )}
-      </div>
-
-      {/* 5. Function / Department Section */}
-      <div className="border-b border-slate-100 dark:border-navy-800/80 pb-4">
-        <button
-          type="button"
-          onClick={() => toggleSection('function')}
-          className="w-full flex items-center justify-between text-xs font-bold text-navy-950 dark:text-white py-1 hover:text-gold-500 transition cursor-pointer"
-        >
-          <span className="flex items-center gap-1.5">
-            <Layers className="w-3.5 h-3.5 text-gold-500" />
-            <span>Function / Department</span>
-            {selectedFunctions.length > 0 && (
-              <span className="w-4 h-4 rounded-full bg-navy-900 text-white dark:bg-gold-500 dark:text-navy-950 text-[10px] flex items-center justify-center">
-                {selectedFunctions.length}
-              </span>
-            )}
-          </span>
-          {openSections.function ? <ChevronUp className="w-4 h-4 text-slate-400" /> : <ChevronDown className="w-4 h-4 text-slate-400" />}
-        </button>
-
-        {openSections.function && (
-          <div className="mt-2.5 space-y-1 max-h-48 overflow-y-auto pr-1 text-xs">
-            {FUNCTIONS.map(fn => {
-              const checked = selectedFunctions.includes(fn);
-              return (
-                <label
-                  key={fn}
-                  className={`flex items-center justify-between px-2.5 py-1.5 rounded-xl cursor-pointer transition select-none ${checked
-                    ? 'bg-gold-500/15 text-navy-950 dark:text-gold-300 font-bold'
-                    : 'text-slate-700 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-navy-900 font-medium'
-                    }`}
-                >
-                  <div className="flex items-center gap-2">
-                    <input
-                      type="checkbox"
-                      checked={checked}
-                      onChange={() => toggleFunction(fn)}
-                      className="w-3.5 h-3.5 rounded text-navy-900 focus:ring-gold-500 accent-[#102B45] cursor-pointer"
-                    />
-                    <span>{fn}</span>
-                  </div>
-                </label>
-              );
-            })}
-          </div>
-        )}
-      </div>
-
-      {/* 6. Experience Level Section */}
-      <div className="border-b border-slate-100 dark:border-navy-800/80 pb-4">
-        <button
-          type="button"
-          onClick={() => toggleSection('experience')}
-          className="w-full flex items-center justify-between text-xs font-bold text-navy-950 dark:text-white py-1 hover:text-gold-500 transition cursor-pointer"
-        >
-          <span className="flex items-center gap-1.5">
-            <Clock className="w-3.5 h-3.5 text-gold-500" />
-            <span>Experience Level</span>
-            {selectedExperiences.length > 0 && (
-              <span className="w-4 h-4 rounded-full bg-navy-900 text-white dark:bg-gold-500 dark:text-navy-950 text-[10px] flex items-center justify-center">
-                {selectedExperiences.length}
-              </span>
-            )}
-          </span>
-          {openSections.experience ? <ChevronUp className="w-4 h-4 text-slate-400" /> : <ChevronDown className="w-4 h-4 text-slate-400" />}
-        </button>
-
-        {openSections.experience && (
-          <div className="mt-2.5 space-y-1 text-xs">
-            {EXPERIENCE_LEVELS.map(exp => {
-              const checked = selectedExperiences.includes(exp);
-              return (
-                <label
-                  key={exp}
-                  className={`flex items-center justify-between px-2.5 py-1.5 rounded-xl cursor-pointer transition select-none ${checked
-                    ? 'bg-gold-500/15 text-navy-950 dark:text-gold-300 font-bold'
-                    : 'text-slate-700 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-navy-900 font-medium'
-                    }`}
-                >
-                  <div className="flex items-center gap-2">
-                    <input
-                      type="checkbox"
-                      checked={checked}
-                      onChange={() => toggleExperience(exp)}
-                      className="w-3.5 h-3.5 rounded text-navy-900 focus:ring-gold-500 accent-[#102B45] cursor-pointer"
-                    />
-                    <span>{exp}</span>
-                  </div>
-                </label>
-              );
-            })}
-          </div>
-        )}
-      </div>
-
-      {/* 7. Salary Range & Currency Section */}
-      <div className="border-b border-slate-100 dark:border-navy-800/80 pb-4">
-        <button
-          type="button"
-          onClick={() => toggleSection('salary')}
-          className="w-full flex items-center justify-between text-xs font-bold text-navy-950 dark:text-white py-1 hover:text-gold-500 transition cursor-pointer"
-        >
-          <span className="flex items-center gap-1.5">
-            <DollarSign className="w-3.5 h-3.5 text-gold-500" />
-            <span>Salary Range</span>
-            {(salaryMin || salaryMax || salaryCurrency !== 'All') && (
-              <span className="w-2 h-2 rounded-full bg-gold-500" />
-            )}
-          </span>
-          {openSections.salary ? <ChevronUp className="w-4 h-4 text-slate-400" /> : <ChevronDown className="w-4 h-4 text-slate-400" />}
-        </button>
-
-        {openSections.salary && (
-          <div className="mt-2.5 space-y-2.5 text-xs">
-            {/* Currency selector */}
-            <div className="space-y-1">
-              <label className="text-[10px] font-bold text-slate-500">Currency</label>
-              <select
-                value={salaryCurrency}
-                onChange={(e) => {
-                  setSalaryCurrency(e.target.value);
-                  setCurrentPage(1);
-                }}
-                className="w-full px-2.5 py-1.5 rounded-xl bg-slate-50 dark:bg-navy-900 border border-slate-200 dark:border-navy-700 text-xs text-slate-900 dark:text-white focus:outline-none focus:border-gold-500 font-semibold"
-              >
-                {CURRENCIES.map(c => (
-                  <option key={c} value={c}>{c === 'All' ? 'All Currencies' : c}</option>
-                ))}
-              </select>
-            </div>
-
-            {/* Min - Max Inputs */}
-            <div className="space-y-1">
-              <label className="text-[10px] font-bold text-slate-500">Monthly Compensation</label>
-              <div className="flex items-center gap-2">
-                <input
-                  type="number"
-                  placeholder="Min"
-                  value={salaryMin}
-                  onChange={(e) => {
-                    setSalaryMin(e.target.value);
-                    setCurrentPage(1);
-                  }}
-                  className="w-1/2 px-2.5 py-1.5 rounded-xl bg-slate-50 dark:bg-navy-900 border border-slate-200 dark:border-navy-700 text-xs text-slate-900 dark:text-white font-mono focus:outline-none focus:border-gold-500"
-                />
-                <span className="text-slate-400 font-bold">-</span>
-                <input
-                  type="number"
-                  placeholder="Max"
-                  value={salaryMax}
-                  onChange={(e) => {
-                    setSalaryMax(e.target.value);
-                    setCurrentPage(1);
-                  }}
-                  className="w-1/2 px-2.5 py-1.5 rounded-xl bg-slate-50 dark:bg-navy-900 border border-slate-200 dark:border-navy-700 text-xs text-slate-900 dark:text-white font-mono focus:outline-none focus:border-gold-500"
-                />
-              </div>
-            </div>
-
-            {/* Quick Range Presets */}
-            <div className="flex flex-wrap gap-1 pt-1">
-              {[
-                { label: '< 10k', min: '', max: '10000' },
-                { label: '10k–20k', min: '10000', max: '20000' },
-                { label: '20k–35k', min: '20000', max: '35000' },
-                { label: '35k+', min: '35000', max: '' }
-              ].map(preset => (
+            {items.length > 2 && (
+              <div className="pt-1">
                 <button
-                  key={preset.label}
                   type="button"
-                  onClick={() => {
-                    setSalaryMin(preset.min);
-                    setSalaryMax(preset.max);
-                    setCurrentPage(1);
-                  }}
-                  className={`px-2 py-0.5 rounded-lg text-[10px] font-semibold border transition cursor-pointer ${salaryMin === preset.min && salaryMax === preset.max
-                    ? 'bg-navy-900 text-white dark:bg-gold-500 dark:text-navy-950 border-transparent'
-                    : 'bg-slate-100 dark:bg-navy-900 text-slate-700 dark:text-slate-300 border-slate-200 dark:border-navy-800 hover:border-gold-500'
-                    }`}
+                  onClick={() => toggleShowAll(sectionKey)}
+                  className="text-[11px] font-bold text-gold-600 dark:text-gold-400 hover:text-gold-700 dark:hover:text-gold-300 hover:underline cursor-pointer flex items-center gap-1 transition"
                 >
-                  {preset.label}
+                  {isExpanded ? (
+                    <>
+                      <ChevronUp className="w-3 h-3 text-gold-500" />
+                      <span>View Less</span>
+                    </>
+                  ) : (
+                    <>
+                      <Plus className="w-3 h-3 text-gold-500" />
+                      <span>View All ({items.length})</span>
+                    </>
+                  )}
                 </button>
+              </div>
+            )}
+          </div>
+        )}
+      </div>
+    );
+  };
+
+  // Body scroll lock on mobile when drawer is open
+  useEffect(() => {
+    if (mobileFilterOpen) {
+      document.body.style.overflow = 'hidden';
+      const handleKeyDown = (e) => {
+        if (e.key === 'Escape') setMobileFilterOpen(false);
+      };
+      window.addEventListener('keydown', handleKeyDown);
+      return () => {
+        document.body.style.overflow = 'unset';
+        window.removeEventListener('keydown', handleKeyDown);
+      };
+    } else {
+      document.body.style.overflow = 'unset';
+    }
+  }, [mobileFilterOpen]);
+
+  // ============================================================
+  // REUSABLE FILTER PANEL CONTENT (Desktop Sidebar & Mobile Drawer)
+  // ============================================================
+  const renderFilterContent = () => (
+    <div className="flex flex-col h-full min-h-0 text-xs font-sans">
+
+      {/* 1. Header with Icon, Title, Subtitle, and Reset (Pinned at Top) */}
+      <div className="shrink-0 flex items-start justify-between border-b border-slate-100 dark:border-navy-800 pb-3 bg-white dark:bg-navy-950">
+        <div className="flex items-center gap-2.5">
+          <div className="w-8 h-8 rounded-xl bg-gold-500/15 text-gold-600 dark:text-gold-400 flex items-center justify-center font-bold shrink-0">
+            <SlidersHorizontal className="w-4 h-4" />
+          </div>
+          <div>
+            <div className="flex items-center gap-2">
+              <h3 className="font-serif text-base font-bold text-navy-900 dark:text-white leading-tight">
+                Filters
+              </h3>
+              <span className="text-xs font-bold text-navy-900 dark:text-white bg-slate-100 dark:bg-navy-900 px-2 py-0.5 rounded-full border border-slate-200 dark:border-navy-800">
+                Applied ({appliedFilterCount})
+              </span>
+            </div>
+            <p className="text-[11px] text-slate-500 dark:text-slate-400 font-medium">
+              Refine your job search
+            </p>
+          </div>
+        </div>
+
+        {(appliedFilterCount > 0 || pendingFilterCount > 0) && (
+          <button
+            type="button"
+            onClick={clearAllFilters}
+            className="text-xs font-bold text-rose-600 dark:text-rose-400 hover:underline flex items-center gap-1 cursor-pointer transition pt-1"
+            title="Reset all filters"
+          >
+            <RotateCcw className="w-3 h-3" />
+            <span>Clear All</span>
+          </button>
+        )}
+      </div>
+
+      {/* 2. Scrollable Body: Selected Filters + Categories */}
+      <div className="flex-1 overflow-y-auto overflow-x-hidden py-3 space-y-3.5 pr-1.5 min-h-0 [scrollbar-width:thin] [scrollbar-color:#cbd5e1_transparent] dark:[scrollbar-color:#334155_transparent] [&::-webkit-scrollbar]:w-1.5 [&::-webkit-scrollbar-track]:bg-transparent [&::-webkit-scrollbar-thumb]:bg-slate-300 dark:[&::-webkit-scrollbar-thumb]:bg-slate-700 [&::-webkit-scrollbar-thumb]:rounded-full hover:[&::-webkit-scrollbar-thumb]:bg-slate-400 dark:hover:[&::-webkit-scrollbar-thumb]:bg-slate-600">
+
+        {/* Selected Filters Section (Shows pending filter chips inside the panel) */}
+        {pendingFilterCount > 0 && (
+          <div className="p-3 bg-slate-50 dark:bg-navy-900/60 rounded-xl border border-slate-200 dark:border-navy-800 space-y-2">
+            <div className="flex items-center justify-between">
+              <span className="text-[11px] font-bold text-slate-700 dark:text-slate-300">
+                Selected Filters ({pendingFilterCount})
+              </span>
+              <button
+                type="button"
+                onClick={clearAllFilters}
+                className="text-[11px] font-semibold text-gold-600 dark:text-gold-400 hover:underline cursor-pointer"
+              >
+                Clear all
+              </button>
+            </div>
+
+            <div className="flex flex-wrap gap-1.5">
+              {pendingCountries.map(c => (
+                <span key={c} className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md text-[11px] font-semibold bg-gold-500/15 text-gold-800 dark:text-gold-300 border border-gold-500/30">
+                  <span>{c}</span>
+                  <button type="button" onClick={() => toggleCountry(c)} className="hover:text-gold-950 dark:hover:text-white cursor-pointer">
+                    <X className="w-3 h-3" />
+                  </button>
+                </span>
               ))}
+
+              {pendingCities.map(ci => (
+                <span key={ci} className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md text-[11px] font-semibold bg-slate-200 dark:bg-navy-800 text-slate-800 dark:text-slate-200 border border-slate-300 dark:border-navy-700">
+                  <span>{ci}</span>
+                  <button type="button" onClick={() => toggleCity(ci)} className="hover:text-black dark:hover:text-white cursor-pointer">
+                    <X className="w-3 h-3" />
+                  </button>
+                </span>
+              ))}
+
+              {pendingIndustries.map(ind => (
+                <span key={ind} className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md text-[11px] font-semibold bg-gold-500/15 text-gold-800 dark:text-gold-300 border border-gold-500/30">
+                  <span>{ind}</span>
+                  <button type="button" onClick={() => toggleIndustry(ind)} className="hover:text-gold-950 dark:hover:text-white cursor-pointer">
+                    <X className="w-3 h-3" />
+                  </button>
+                </span>
+              ))}
+
+              {pendingFunctions.map(fn => (
+                <span key={fn} className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md text-[11px] font-semibold bg-slate-200 dark:bg-navy-800 text-slate-800 dark:text-slate-200 border border-slate-300 dark:border-navy-700">
+                  <span>{fn}</span>
+                  <button type="button" onClick={() => toggleFunction(fn)} className="hover:text-black dark:hover:text-white cursor-pointer">
+                    <X className="w-3 h-3" />
+                  </button>
+                </span>
+              ))}
+
+              {pendingExperienceYears !== null && (
+                <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md text-[11px] font-semibold bg-teal-500/15 text-teal-800 dark:text-teal-300 border border-teal-500/30">
+                  <span>Experience: {pendingExperienceYears} Yrs</span>
+                  <button type="button" onClick={() => { setPendingExperienceYears(null); setSliderExperienceYears(0); }} className="hover:text-teal-950 dark:hover:text-white cursor-pointer">
+                    <X className="w-3 h-3" />
+                  </button>
+                </span>
+              )}
+
+              {pendingExperiences.map(exp => (
+                <span key={exp} className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md text-[11px] font-semibold bg-slate-200 dark:bg-navy-800 text-slate-800 dark:text-slate-200 border border-slate-300 dark:border-navy-700">
+                  <span>{exp}</span>
+                  <button type="button" onClick={() => toggleExperience(exp)} className="hover:text-black dark:hover:text-white cursor-pointer">
+                    <X className="w-3 h-3" />
+                  </button>
+                </span>
+              ))}
+
+              {pendingJobTypes.map(jt => (
+                <span key={jt} className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md text-[11px] font-semibold bg-slate-200 dark:bg-navy-800 text-slate-800 dark:text-slate-200 border border-slate-300 dark:border-navy-700">
+                  <span>{jt}</span>
+                  <button type="button" onClick={() => toggleJobType(jt)} className="hover:text-black dark:hover:text-white cursor-pointer">
+                    <X className="w-3 h-3" />
+                  </button>
+                </span>
+              ))}
+
+              {pendingCompanies.map(comp => (
+                <span key={comp} className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md text-[11px] font-semibold bg-slate-200 dark:bg-navy-800 text-slate-800 dark:text-slate-200 border border-slate-300 dark:border-navy-700">
+                  <span>{comp}</span>
+                  <button type="button" onClick={() => toggleCompany(comp)} className="hover:text-black dark:hover:text-white cursor-pointer">
+                    <X className="w-3 h-3" />
+                  </button>
+                </span>
+              ))}
+
+              {pendingSalaryRanges.map(sal => (
+                <span key={sal} className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md text-[11px] font-semibold bg-emerald-500/15 text-emerald-800 dark:text-emerald-300 border border-emerald-500/30">
+                  <span>{sal}</span>
+                  <button type="button" onClick={() => toggleSalaryRange(sal)} className="hover:text-emerald-950 dark:hover:text-white cursor-pointer">
+                    <X className="w-3 h-3" />
+                  </button>
+                </span>
+              ))}
+
+              {(pendingSalaryMin || pendingSalaryMax || pendingSalaryCurrency !== 'All') && (
+                <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md text-[11px] font-semibold bg-amber-500/15 text-amber-800 dark:text-amber-300 border border-amber-500/30 font-mono">
+                  <span>Salary: {pendingSalaryMin || '0'}{pendingSalaryMax ? `–${pendingSalaryMax}` : '+'} {pendingSalaryCurrency !== 'All' ? pendingSalaryCurrency : ''}</span>
+                  <button type="button" onClick={() => { setPendingSalaryMin(''); setPendingSalaryMax(''); setPendingSalaryCurrency('All'); }} className="hover:text-amber-950 dark:hover:text-white cursor-pointer">
+                    <X className="w-3 h-3" />
+                  </button>
+                </span>
+              )}
             </div>
           </div>
         )}
-      </div>
 
-      {/* 8. Job Type Section */}
-      <div className="pb-2">
-        <button
-          type="button"
-          onClick={() => toggleSection('jobType')}
-          className="w-full flex items-center justify-between text-xs font-bold text-navy-950 dark:text-white py-1 hover:text-gold-500 transition cursor-pointer"
-        >
-          <span className="flex items-center gap-1.5">
-            <Briefcase className="w-3.5 h-3.5 text-gold-500" />
-            <span>Job Type</span>
-            {selectedJobTypes.length > 0 && (
-              <span className="w-4 h-4 rounded-full bg-navy-900 text-white dark:bg-gold-500 dark:text-navy-950 text-[10px] flex items-center justify-center">
-                {selectedJobTypes.length}
+        {/* Filter Categories (7 Categories with clean in-place expansion) */}
+        <div className="space-y-3.5">
+
+          {/* --- CATEGORY 1: COUNTRY --- */}
+          {renderFilterCategory({
+            title: 'Country',
+            icon: Globe,
+            sectionKey: 'country',
+            items: COUNTRIES,
+            selectedItems: pendingCountries,
+            toggleItem: toggleCountry,
+            counts: itemCounts.country
+          })}
+
+          {/* --- CATEGORY 2: CITY --- */}
+          {renderFilterCategory({
+            title: 'City',
+            icon: MapPin,
+            sectionKey: 'city',
+            items: availableCities,
+            selectedItems: pendingCities,
+            toggleItem: toggleCity,
+            counts: itemCounts.city
+          })}
+
+          {/* --- CATEGORY 3: INDUSTRY --- */}
+          {renderFilterCategory({
+            title: 'Industry',
+            icon: Briefcase,
+            sectionKey: 'industry',
+            items: INDUSTRIES,
+            selectedItems: pendingIndustries,
+            toggleItem: toggleIndustry,
+            counts: itemCounts.industry
+          })}
+
+          {/* --- CATEGORY 4: FUNCTION / DEPARTMENT --- */}
+          {renderFilterCategory({
+            title: 'Function / Department',
+            icon: Building2,
+            sectionKey: 'function',
+            items: FUNCTIONS,
+            selectedItems: pendingFunctions,
+            toggleItem: toggleFunction,
+            counts: itemCounts.function
+          })}
+
+          {/* --- CATEGORY 5: EXPERIENCE RANGE SLIDER --- */}
+          <div className="border-b border-slate-100 dark:border-navy-800/80 pb-3">
+            <button
+              type="button"
+              onClick={() => toggleSection('experience')}
+              className="w-full flex items-center justify-between text-xs font-bold text-navy-950 dark:text-white py-1 hover:text-gold-500 transition cursor-pointer"
+            >
+              <span className="flex items-center gap-2">
+                <Clock className="w-3.5 h-3.5 text-gold-500 shrink-0" />
+                <span>Experience{pendingExperienceYears !== null ? ` (${pendingExperienceYears} Yrs)` : ''}</span>
+                {pendingExperienceYears !== null && (
+                  <span className="px-1.5 py-0.2 rounded-full bg-gold-500 text-navy-950 text-[10px] font-extrabold">
+                    ✓
+                  </span>
+                )}
               </span>
-            )}
-          </span>
-          {openSections.jobType ? <ChevronUp className="w-4 h-4 text-slate-400" /> : <ChevronDown className="w-4 h-4 text-slate-400" />}
-        </button>
+              {openSections.experience ? <ChevronUp className="w-3.5 h-3.5 text-slate-400" /> : <ChevronDown className="w-3.5 h-3.5 text-slate-400" />}
+            </button>
 
-        {openSections.jobType && (
-          <div className="mt-2.5 space-y-1 text-xs">
-            {JOB_TYPES.map(jt => {
-              const checked = selectedJobTypes.includes(jt);
-              return (
-                <label
-                  key={jt}
-                  className={`flex items-center justify-between px-2.5 py-1.5 rounded-xl cursor-pointer transition select-none ${checked
-                    ? 'bg-gold-500/15 text-navy-950 dark:text-gold-300 font-bold'
-                    : 'text-slate-700 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-navy-900 font-medium'
-                    }`}
-                >
-                  <div className="flex items-center gap-2">
-                    <input
-                      type="checkbox"
-                      checked={checked}
-                      onChange={() => toggleJobType(jt)}
-                      className="w-3.5 h-3.5 rounded text-navy-900 focus:ring-gold-500 accent-[#102B45] cursor-pointer"
-                    />
-                    <span>{jt}</span>
-                  </div>
-                </label>
-              );
-            })}
+            {openSections.experience && (
+              <div className="mt-2 pt-6 pb-1 px-1">
+                {/* Horizontal Range Slider with Tooltip */}
+                <div className="relative w-full">
+                  {/* Dynamic Tooltip / Bubble Indicator above Thumb */}
+                  {(() => {
+                    const pct = Math.min(Math.max((sliderExperienceYears / 30) * 100, 0), 100);
+                    return (
+                      <>
+                        <div
+                          className="absolute -top-7 transform -translate-x-1/2 pointer-events-none transition-all duration-75 z-10"
+                          style={{ left: `calc(${pct}% + ${(0.5 - pct / 100) * 18}px)` }}
+                        >
+                          <div className="relative bg-[#102B45] text-white dark:bg-gold-500 dark:text-navy-950 font-bold text-[11px] px-2 py-0.5 rounded-md shadow-md whitespace-nowrap">
+                            {sliderExperienceYears} Yrs
+                            <div className="absolute left-1/2 -bottom-1 -translate-x-1/2 w-1.5 h-1.5 rotate-45 bg-[#102B45] dark:bg-gold-500" />
+                          </div>
+                        </div>
+
+                        {/* Draggable Slider Input with Fill Track */}
+                        <input
+                          type="range"
+                          min="0"
+                          max="30"
+                          step="1"
+                          value={sliderExperienceYears}
+                          aria-label="Experience in years"
+                          onChange={(e) => handleSliderChange(Number(e.target.value))}
+                          className="slider-revival"
+                          style={{
+                            background: `linear-gradient(to right, #D5A33B 0%, #D5A33B ${pct}%, var(--slider-track-bg, #e2e8f0) ${pct}%, var(--slider-track-bg, #e2e8f0) 100%)`
+                          }}
+                        />
+                      </>
+                    );
+                  })()}
+                </div>
+
+                {/* Min / Max Labels and Optional Reset Button */}
+                <div className="flex items-center justify-between text-[11px] font-semibold text-slate-400 dark:text-slate-500 pt-1.5">
+                  <span>0 Yrs</span>
+                  {pendingExperienceYears !== null && (
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setPendingExperienceYears(null);
+                        setSliderExperienceYears(0);
+                      }}
+                      className="text-[10px] text-gold-600 dark:text-gold-400 hover:underline cursor-pointer font-bold"
+                    >
+                      Reset (Any)
+                    </button>
+                  )}
+                  <span>30 Yrs</span>
+                </div>
+              </div>
+            )}
           </div>
-        )}
+
+          {/* --- CATEGORY 6: SALARY --- */}
+          {renderFilterCategory({
+            title: 'Salary',
+            icon: Coins,
+            sectionKey: 'salary',
+            items: SALARY_OPTIONS,
+            selectedItems: pendingSalaryRanges,
+            toggleItem: toggleSalaryRange,
+            counts: itemCounts.salary
+          })}
+
+          {/* --- CATEGORY 7: JOB TYPE --- */}
+          {renderFilterCategory({
+            title: 'Job Type',
+            icon: Tag,
+            sectionKey: 'jobType',
+            items: JOB_TYPES,
+            selectedItems: pendingJobTypes,
+            toggleItem: toggleJobType,
+            counts: itemCounts.jobType,
+            isLast: true
+          })}
+
+        </div>
       </div>
 
-      {/* 9. Sidebar Sticky Action Buttons */}
-      <div className="pt-3 border-t border-slate-100 dark:border-navy-800 space-y-2">
-        <button
-          type="button"
-          onClick={() => {
-            fetchJobs();
-            setMobileFilterOpen(false);
-            document.getElementById('jobs-results-header')?.scrollIntoView({ behavior: 'smooth' });
-          }}
-          className="w-full py-3 px-4 rounded-2xl bg-[#102B45] hover:bg-[#0c2236] dark:bg-gold-500 dark:hover:bg-gold-400 text-white dark:text-navy-950 font-bold text-xs shadow-md transition duration-200 flex items-center justify-center gap-2 cursor-pointer"
-        >
-          <Filter className="w-3.5 h-3.5" />
-          <span>Apply Filters ({filteredJobs.length} Jobs)</span>
-        </button>
-
+      {/* 3. Footer Actions inside Filter Card (Pinned at Bottom) */}
+      <div className="shrink-0 pt-3 border-t border-slate-100 dark:border-navy-800 flex items-center gap-2 bg-white dark:bg-navy-950">
         <button
           type="button"
           onClick={clearAllFilters}
-          className="w-full py-2 text-center text-xs font-semibold text-slate-500 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white transition cursor-pointer"
+          disabled={appliedFilterCount === 0 && pendingFilterCount === 0}
+          className="flex-1 py-2 px-3 rounded-xl border border-slate-200 dark:border-navy-700 bg-slate-50 dark:bg-navy-900 hover:bg-slate-100 dark:hover:bg-navy-800 text-slate-700 dark:text-slate-200 font-bold text-xs transition duration-150 text-center cursor-pointer disabled:opacity-40 disabled:cursor-not-allowed"
         >
           Clear All
+        </button>
+
+        {hasPendingChanges && (
+          <button
+            type="button"
+            onClick={discardPendingFilters}
+            className="py-2 px-2.5 rounded-xl border border-slate-200 dark:border-navy-700 bg-white dark:bg-navy-900 text-slate-600 dark:text-slate-300 hover:text-rose-600 text-xs font-semibold cursor-pointer transition"
+            title="Discard pending changes and restore applied filters"
+          >
+            Cancel
+          </button>
+        )}
+
+        <button
+          type="button"
+          onClick={applyPendingFilters}
+          className={`flex-1 py-2 px-3 rounded-xl font-bold text-xs shadow-xs transition duration-150 flex items-center justify-center gap-1.5 cursor-pointer ${
+            hasPendingChanges
+              ? 'bg-gold-500 hover:bg-gold-400 text-navy-950 shadow-md ring-2 ring-gold-500/30'
+              : 'bg-[#102B45] hover:bg-[#0c2236] text-white dark:bg-gold-500 dark:hover:bg-gold-400 dark:text-navy-950'
+          }`}
+        >
+          {loading ? (
+            <span className="w-3.5 h-3.5 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+          ) : (
+            <Filter className={`w-3.5 h-3.5 shrink-0 ${hasPendingChanges ? 'text-navy-950' : 'text-gold-400 dark:text-navy-950'}`} />
+          )}
+          <span>Apply ({pendingFilterCount})</span>
         </button>
       </div>
 
@@ -1026,7 +1876,7 @@ export const JobsPage = () => {
   );
 
   return (
-    <div className="w-full max-w-[1920px] mx-auto px-3 sm:px-5 lg:px-6 xl:px-8 py-6 sm:py-8 space-y-6">
+    <div className="w-full max-w-[1920px] mx-auto px-3 sm:px-5 md:px-6 lg:px-8 xl:px-10 2xl:px-12 py-5 sm:py-7 space-y-5">
       <SEO
         title="Global Job Openings & Executive Vacancies | Revival International"
         description="Search verified international vacancies across Dubai, GCC, Europe, and Asia in Oil & Gas, Healthcare, Construction, Finance, and IT with full visa sponsorship support."
@@ -1036,22 +1886,15 @@ export const JobsPage = () => {
           { name: 'Home', item: '' },
           { name: 'Job Opportunities', item: 'jobs' }
         ]}
-        structuredData={{
-          '@context': 'https://schema.org',
-          '@type': 'CollectionPage',
-          name: 'Global Job Openings & Executive Vacancies',
-          description: 'Verified international employment listings across the UAE, GCC, UK, Europe, and Asia.',
-          url: 'https://www.revivalinternational.com/jobs'
-        }}
       />
 
       {/* Page Header */}
       <ScrollReveal>
-        <div className="text-center space-y-2 max-w-4xl mx-auto py-1">
-          <span className="bg-gold-500/10 text-gold-600 dark:text-gold-400 text-xs font-bold px-3.5 py-1 rounded-full uppercase tracking-wider">
+        <div className="text-center space-y-2 max-w-3xl mx-auto py-1">
+          <span className="bg-gold-500/10 text-gold-600 dark:text-gold-400 text-xs font-bold px-3 py-0.5 rounded-full uppercase tracking-wider">
             {t('jobs.badge')}
           </span>
-          <h1 className="font-serif text-3xl sm:text-4xl lg:text-5xl font-extrabold text-navy-900 dark:text-white">
+          <h1 className="font-serif text-2xl sm:text-3xl lg:text-4xl font-extrabold text-navy-900 dark:text-white">
             {t('jobs.title')}
           </h1>
           <p className="text-xs sm:text-sm text-slate-600 dark:text-slate-300">
@@ -1062,14 +1905,14 @@ export const JobsPage = () => {
 
       {/* Restored Saved Search Toast */}
       {loadedSavedSearchName && (
-        <div className="p-3.5 rounded-2xl bg-amber-50 dark:bg-amber-950/40 border border-amber-300 dark:border-amber-700/50 flex items-center justify-between shadow-sm animate-in fade-in">
+        <div className="p-3 rounded-xl bg-amber-50 dark:bg-amber-950/40 border border-amber-300 dark:border-amber-700/50 flex items-center justify-between shadow-xs">
           <div className="flex items-center gap-2 text-xs font-bold text-amber-900 dark:text-amber-300">
             <Bookmark className="w-4 h-4 text-gold-500 shrink-0" />
             <span>Active Saved Search: <strong>{loadedSavedSearchName}</strong></span>
           </div>
           <button
             onClick={() => setLoadedSavedSearchName('')}
-            className="text-amber-700 dark:text-amber-400 hover:text-amber-950 dark:hover:text-white text-xs font-semibold px-2 py-1 rounded cursor-pointer"
+            className="text-amber-700 dark:text-amber-400 hover:text-amber-950 dark:hover:text-white text-xs font-semibold px-2 py-0.5 rounded cursor-pointer"
           >
             Dismiss
           </button>
@@ -1078,63 +1921,71 @@ export const JobsPage = () => {
 
       {/* Save Success Alert */}
       {saveSuccessToast && (
-        <div className="p-3.5 rounded-2xl bg-emerald-50 dark:bg-emerald-950/40 border border-emerald-300 dark:border-emerald-700/50 flex items-center justify-between shadow-sm animate-in fade-in">
+        <div className="p-3 rounded-xl bg-emerald-50 dark:bg-emerald-950/40 border border-emerald-300 dark:border-emerald-700/50 flex items-center justify-between shadow-xs">
           <div className="flex items-center gap-2 text-xs font-bold text-emerald-900 dark:text-emerald-300">
             <CheckCircle2 className="w-4 h-4 text-emerald-600 dark:text-emerald-400 shrink-0" />
             <span>{saveSuccessToast}</span>
           </div>
           <button
             onClick={() => setSaveSuccessToast('')}
-            className="text-emerald-700 dark:text-emerald-300 p-1 hover:opacity-80"
+            className="text-emerald-700 dark:text-emerald-300 p-1 hover:opacity-80 cursor-pointer"
           >
             <X className="w-4 h-4" />
           </button>
         </div>
       )}
 
-      {/* Mobile Filter Trigger Bar (Visible only on < lg) */}
-      <div className="lg:hidden flex items-center justify-between gap-3 bg-white dark:bg-navy-950 p-3.5 rounded-2xl border border-slate-200 dark:border-navy-800 shadow-sm">
+      {/* Mobile Filter Trigger Bar (Visible only on < lg screens) */}
+      <div className="lg:hidden flex items-center justify-between gap-2.5 bg-white dark:bg-navy-950 p-3 rounded-2xl border border-slate-200 dark:border-navy-800 shadow-xs">
         <button
+          type="button"
           onClick={() => setMobileFilterOpen(true)}
-          className="flex-1 py-2.5 px-4 rounded-xl bg-[#102B45] text-white font-bold text-xs flex items-center justify-center gap-2 shadow-sm cursor-pointer"
+          className="flex-1 py-2 px-3.5 rounded-xl bg-[#102B45] text-white dark:bg-gold-500 dark:text-navy-950 font-bold text-xs flex items-center justify-center gap-2 shadow-xs cursor-pointer"
         >
-          <SlidersHorizontal className="w-4 h-4 text-gold-400" />
-          <span>Filters {activeFilterCount > 0 ? `(${activeFilterCount})` : ''}</span>
+          <SlidersHorizontal className="w-3.5 h-3.5 text-gold-400 dark:text-navy-950" />
+          <span>Filters {appliedFilterCount > 0 ? `(${appliedFilterCount})` : ''}</span>
         </button>
 
         <button
+          type="button"
           onClick={handleOpenSaveSearch}
-          className="py-2.5 px-3.5 rounded-xl border border-gold-500/40 bg-gold-500/10 text-gold-700 dark:text-gold-300 font-bold text-xs flex items-center gap-1.5 cursor-pointer"
+          className="py-2 px-3 rounded-xl border border-gold-500/40 bg-gold-500/10 text-gold-700 dark:text-gold-300 font-bold text-xs flex items-center gap-1.5 cursor-pointer"
         >
-          <BookmarkPlus className="w-4 h-4 text-gold-500" />
-          <span>Save</span>
+          <BookmarkPlus className="w-3.5 h-3.5 text-gold-500" />
+          <span>Save Search</span>
         </button>
       </div>
 
-      {/* MAIN TWO-COLUMN LAYOUT: Expanded to full width with responsive grid */}
-      <div className="grid grid-cols-1 lg:grid-cols-[280px_minmax(0,1fr)] xl:grid-cols-[310px_minmax(0,1fr)] 2xl:grid-cols-[330px_minmax(0,1fr)] gap-5 xl:gap-6 items-start w-full">
+      {/* ============================================================ */}
+      {/* MAIN TWO-COLUMN RESPONSIVE LAYOUT                             */}
+      {/* ============================================================ */}
+      <div className="grid grid-cols-1 lg:grid-cols-[280px_minmax(0,1fr)] xl:grid-cols-[300px_minmax(0,1fr)] 2xl:grid-cols-[330px_minmax(0,1fr)] gap-5 xl:gap-6 items-start w-full">
 
-        {/* ============================================================ */}
-        {/* LEFT COLUMN: DESKTOP STICKY FILTER SIDEBAR                   */}
-        {/* ============================================================ */}
-        <aside className="hidden lg:block w-full shrink-0 sticky top-20 self-start max-h-[calc(100vh-5.5rem)] overflow-y-auto pr-1 z-10">
-          <div className="bg-white dark:bg-navy-950 border border-slate-200 dark:border-navy-800 rounded-2xl shadow-sm p-4.5">
-            {renderSidebarContent()}
+        {/* ------------------------------------------------------------ */}
+        {/* LEFT COLUMN: DESKTOP FILTER CARD                             */}
+        {/* Starts at the same vertical position as right column         */}
+        {/* Does NOT attach to browser edge, does NOT cover results      */}
+        {/* Scrollable with pinned header & footer (max-h viewport)      */}
+        {/* ------------------------------------------------------------ */}
+        <aside className="hidden lg:block w-full sticky top-24 self-start z-10">
+          <div className="bg-white dark:bg-navy-950 border border-gold-500/30 dark:border-navy-800 rounded-2xl shadow-sm p-4 sm:p-4.5 max-h-[calc(100vh-7.5rem)] flex flex-col">
+            {renderFilterContent()}
           </div>
         </aside>
 
-        {/* ============================================================ */}
-        {/* RIGHT COLUMN: JOB SEARCH RESULTS SECTION                     */}
-        {/* ============================================================ */}
-        <main className="min-w-0 w-full space-y-5">
+        {/* ------------------------------------------------------------ */}
+        {/* RIGHT COLUMN: SEARCH, CONTROLS, AND JOB RESULTS              */}
+        {/* ------------------------------------------------------------ */}
+        <main className="min-w-0 w-full space-y-4.5">
 
           {/* Top Search & Controls Bar */}
-          <div id="jobs-results-header" className="bg-white dark:bg-navy-950 border border-slate-200 dark:border-navy-800 rounded-3xl p-4 sm:p-5 shadow-sm space-y-4">
+          <div id="jobs-results-header" className="bg-white dark:bg-navy-950 border border-slate-200 dark:border-navy-800 rounded-2xl p-4 sm:p-4.5 shadow-xs space-y-3">
 
-            <div className="flex flex-col sm:flex-row gap-3 items-stretch sm:items-center">
+            <div className="flex flex-col sm:flex-row gap-2.5 items-stretch sm:items-center">
+
               {/* Keyword Search Input */}
               <div className="relative flex-1">
-                <Search className="w-4 h-4 text-slate-400 absolute left-3.5 top-3.5" />
+                <Search className="w-4 h-4 text-slate-400 absolute left-3.5 top-3" />
                 <input
                   type="text"
                   placeholder="Search by job title, company name, skills (e.g. 'Software Engineer', 'ICU Nurse')..."
@@ -1143,25 +1994,27 @@ export const JobsPage = () => {
                     setKeyword(e.target.value);
                     setCurrentPage(1);
                   }}
-                  className="w-full bg-slate-50 dark:bg-navy-900 border border-slate-300 dark:border-navy-700 text-slate-900 dark:text-white rounded-2xl pl-10 pr-9 py-2.5 text-xs focus:outline-none focus:border-gold-500 transition shadow-inner font-medium"
+                  className="w-full bg-slate-50 dark:bg-navy-900 border border-slate-300 dark:border-navy-700 text-slate-900 dark:text-white rounded-xl pl-10 pr-8 py-2 text-xs focus:outline-none focus:border-gold-500 transition font-medium"
                 />
                 {keyword && (
                   <button
+                    type="button"
                     onClick={() => { setKeyword(''); setCurrentPage(1); }}
-                    className="absolute right-3.5 top-3 text-slate-400 hover:text-slate-600 dark:hover:text-white"
+                    className="absolute right-2.5 top-2.5 text-slate-400 hover:text-slate-600 dark:hover:text-white cursor-pointer"
                   >
-                    <X className="w-4 h-4" />
+                    <X className="w-3.5 h-3.5" />
                   </button>
                 )}
               </div>
 
               {/* Save Search Button (Desktop) */}
               <button
+                type="button"
                 onClick={handleOpenSaveSearch}
-                className="hidden sm:inline-flex items-center gap-1.5 px-4 py-2.5 rounded-2xl border border-gold-500/40 bg-gold-500/10 hover:bg-gold-500/20 text-gold-700 dark:text-gold-300 font-bold text-xs shrink-0 cursor-pointer transition shadow-xs"
+                className="hidden sm:inline-flex items-center gap-1.5 px-3.5 py-2 rounded-xl border border-gold-500/40 bg-gold-500/10 hover:bg-gold-500/20 text-gold-700 dark:text-gold-300 font-bold text-xs shrink-0 cursor-pointer transition shadow-xs"
                 title="Save this search criteria to candidate account"
               >
-                <BookmarkPlus className="w-4 h-4 text-gold-500" />
+                <BookmarkPlus className="w-3.5 h-3.5 text-gold-500" />
                 <span>Save Search</span>
               </button>
 
@@ -1174,7 +2027,7 @@ export const JobsPage = () => {
                     setSortBy(e.target.value);
                     setCurrentPage(1);
                   }}
-                  className="px-3 py-2.5 rounded-2xl bg-slate-50 dark:bg-navy-900 border border-slate-300 dark:border-navy-700 text-slate-900 dark:text-white text-xs font-semibold focus:outline-none focus:border-gold-500 cursor-pointer"
+                  className="px-2.5 py-2 rounded-xl bg-slate-50 dark:bg-navy-900 border border-slate-300 dark:border-navy-700 text-slate-900 dark:text-white text-xs font-semibold focus:outline-none focus:border-gold-500 cursor-pointer"
                 >
                   {SORT_OPTIONS.map(opt => (
                     <option key={opt.id} value={opt.id}>{opt.label}</option>
@@ -1184,311 +2037,352 @@ export const JobsPage = () => {
             </div>
 
             {/* Active Filters as Removable Chips */}
-            {activeFilterCount > 0 && (
-              <div className="flex flex-wrap items-center gap-1.5 pt-3 border-t border-slate-100 dark:border-navy-800 text-xs">
-                <span className="text-[11px] font-bold text-slate-500 mr-1">Active:</span>
+            {appliedFilterCount > 0 && (
+              <div className="flex flex-wrap items-center gap-1.5 pt-2.5 border-t border-slate-100 dark:border-navy-800 text-xs">
+                <span className="text-[11px] font-bold text-slate-500 mr-1">Applied ({appliedFilterCount}):</span>
 
-                {keyword && (
-                  <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-semibold bg-gold-500/15 text-gold-800 dark:text-gold-300 border border-gold-500/30">
-                    <span>"{keyword}"</span>
-                    <button onClick={() => { setKeyword(''); setCurrentPage(1); }} className="hover:text-gold-950">
-                      <X className="w-3 h-3" />
-                    </button>
-                  </span>
-                )}
-
-                {selectedCountries.map(c => (
-                  <span key={c} className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-semibold bg-blue-50 dark:bg-blue-950/60 text-blue-800 dark:text-blue-300 border border-blue-200 dark:border-blue-800/60">
+                {appliedCountries.map(c => (
+                  <span key={c} className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-semibold bg-blue-50 dark:bg-blue-950/60 text-blue-800 dark:text-blue-300 border border-blue-200 dark:border-blue-800/60">
                     <span>{c}</span>
-                    <button onClick={() => toggleCountry(c)} className="hover:text-blue-950">
+                    <button type="button" onClick={() => removeAppliedFilter('country', c)} className="hover:text-blue-950 dark:hover:text-white cursor-pointer">
                       <X className="w-3 h-3" />
                     </button>
                   </span>
                 ))}
 
-                {selectedCities.map(ci => (
-                  <span key={ci} className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-semibold bg-indigo-50 dark:bg-indigo-950/60 text-indigo-800 dark:text-indigo-300 border border-indigo-200 dark:border-indigo-800/60">
+                {appliedCities.map(ci => (
+                  <span key={ci} className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-semibold bg-indigo-50 dark:bg-indigo-950/60 text-indigo-800 dark:text-indigo-300 border border-indigo-200 dark:border-indigo-800/60">
                     <span>{ci}</span>
-                    <button onClick={() => toggleCity(ci)} className="hover:text-indigo-950">
+                    <button type="button" onClick={() => removeAppliedFilter('city', ci)} className="hover:text-indigo-950 dark:hover:text-white cursor-pointer">
                       <X className="w-3 h-3" />
                     </button>
                   </span>
                 ))}
 
-                {selectedIndustries.map(ind => (
-                  <span key={ind} className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-semibold bg-emerald-50 dark:bg-emerald-950/60 text-emerald-800 dark:text-emerald-300 border border-emerald-200 dark:border-emerald-800/60">
+                {appliedIndustries.map(ind => (
+                  <span key={ind} className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-semibold bg-emerald-50 dark:bg-emerald-950/60 text-emerald-800 dark:text-emerald-300 border border-emerald-200 dark:border-emerald-800/60">
                     <span>{ind}</span>
-                    <button onClick={() => toggleIndustry(ind)} className="hover:text-emerald-950">
+                    <button type="button" onClick={() => removeAppliedFilter('industry', ind)} className="hover:text-emerald-950 dark:hover:text-white cursor-pointer">
                       <X className="w-3 h-3" />
                     </button>
                   </span>
                 ))}
 
-                {selectedFunctions.map(fn => (
-                  <span key={fn} className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-semibold bg-purple-50 dark:bg-purple-950/60 text-purple-800 dark:text-purple-300 border border-purple-200 dark:border-purple-800/60">
+                {appliedFunctions.map(fn => (
+                  <span key={fn} className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-semibold bg-purple-50 dark:bg-purple-950/60 text-purple-800 dark:text-purple-300 border border-purple-200 dark:border-purple-800/60">
                     <span>{fn}</span>
-                    <button onClick={() => toggleFunction(fn)} className="hover:text-purple-950">
+                    <button type="button" onClick={() => removeAppliedFilter('function', fn)} className="hover:text-purple-950 dark:hover:text-white cursor-pointer">
                       <X className="w-3 h-3" />
                     </button>
                   </span>
                 ))}
 
-                {selectedExperiences.map(exp => (
-                  <span key={exp} className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-semibold bg-teal-50 dark:bg-teal-950/60 text-teal-800 dark:text-teal-300 border border-teal-200 dark:border-teal-800/60">
-                    <span>{exp}</span>
-                    <button onClick={() => toggleExperience(exp)} className="hover:text-teal-950">
-                      <X className="w-3 h-3" />
-                    </button>
-                  </span>
-                ))}
-
-                {(salaryMin || salaryMax || salaryCurrency !== 'All') && (
-                  <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-semibold bg-amber-50 dark:bg-amber-950/60 text-amber-800 dark:text-amber-300 border border-amber-200 dark:border-amber-800/60 font-mono">
-                    <span>Salary: {salaryMin || '0'}{salaryMax ? `–${salaryMax}` : '+'} {salaryCurrency !== 'All' ? salaryCurrency : ''}</span>
-                    <button onClick={() => { setSalaryMin(''); setSalaryMax(''); setSalaryCurrency('All'); setCurrentPage(1); }} className="hover:text-amber-950">
+                {appliedExperienceYears !== null && (
+                  <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-semibold bg-teal-50 dark:bg-teal-950/60 text-teal-800 dark:text-teal-300 border border-teal-200 dark:border-teal-800/60">
+                    <span>Experience: {appliedExperienceYears} Yrs</span>
+                    <button type="button" onClick={() => removeAppliedFilter('experienceYears', appliedExperienceYears)} className="hover:text-teal-950 dark:hover:text-white cursor-pointer">
                       <X className="w-3 h-3" />
                     </button>
                   </span>
                 )}
 
-                {selectedJobTypes.map(jt => (
-                  <span key={jt} className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-semibold bg-sky-50 dark:bg-sky-950/60 text-sky-800 dark:text-sky-300 border border-sky-200 dark:border-sky-800/60">
-                    <span>{jt}</span>
-                    <button onClick={() => toggleJobType(jt)} className="hover:text-sky-950">
+                {appliedExperiences.map(exp => (
+                  <span key={exp} className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-semibold bg-teal-50 dark:bg-teal-950/60 text-teal-800 dark:text-teal-300 border border-teal-200 dark:border-teal-800/60">
+                    <span>{exp}</span>
+                    <button type="button" onClick={() => removeAppliedFilter('experience', exp)} className="hover:text-teal-950 dark:hover:text-white cursor-pointer">
                       <X className="w-3 h-3" />
                     </button>
                   </span>
                 ))}
+
+                {appliedJobTypes.map(jt => (
+                  <span key={jt} className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-semibold bg-amber-50 dark:bg-amber-950/60 text-amber-800 dark:text-amber-300 border border-amber-200 dark:border-amber-800/60">
+                    <span>{jt}</span>
+                    <button type="button" onClick={() => removeAppliedFilter('jobType', jt)} className="hover:text-amber-950 dark:hover:text-white cursor-pointer">
+                      <X className="w-3 h-3" />
+                    </button>
+                  </span>
+                ))}
+
+                {appliedCompanies.map(comp => (
+                  <span key={comp} className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-semibold bg-cyan-50 dark:bg-cyan-950/60 text-cyan-800 dark:text-cyan-300 border border-cyan-200 dark:border-cyan-800/60">
+                    <span>{comp}</span>
+                    <button type="button" onClick={() => removeAppliedFilter('company', comp)} className="hover:text-cyan-950 dark:hover:text-white cursor-pointer">
+                      <X className="w-3 h-3" />
+                    </button>
+                  </span>
+                ))}
+
+                {appliedSalaryRanges.map(sal => (
+                  <span key={sal} className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-semibold bg-emerald-50 dark:bg-emerald-950/60 text-emerald-800 dark:text-emerald-300 border border-emerald-200 dark:border-emerald-800/60">
+                    <span>{sal}</span>
+                    <button type="button" onClick={() => removeAppliedFilter('salary', sal)} className="hover:text-emerald-950 dark:hover:text-white cursor-pointer">
+                      <X className="w-3 h-3" />
+                    </button>
+                  </span>
+                ))}
+
+                {(appliedSalaryMin || appliedSalaryMax || appliedSalaryCurrency !== 'All') && (
+                  <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-semibold bg-amber-50 dark:bg-amber-950/60 text-amber-800 dark:text-amber-300 border border-amber-200 dark:border-amber-800/60 font-mono">
+                    <span>Salary: {appliedSalaryMin || '0'}{appliedSalaryMax ? `–${appliedSalaryMax}` : '+'} {appliedSalaryCurrency !== 'All' ? appliedSalaryCurrency : ''}</span>
+                    <button type="button" onClick={() => { setAppliedSalaryMin(''); setAppliedSalaryMax(''); setAppliedSalaryCurrency('All'); setPendingSalaryMin(''); setPendingSalaryMax(''); setPendingSalaryCurrency('All'); setCurrentPage(1); }} className="hover:text-amber-950 dark:hover:text-white cursor-pointer">
+                      <X className="w-3 h-3" />
+                    </button>
+                  </span>
+                )}
 
                 <button
+                  type="button"
                   onClick={clearAllFilters}
-                  className="text-xs font-bold text-rose-600 dark:text-rose-400 hover:underline cursor-pointer ml-1"
+                  className="text-xs font-bold text-rose-600 dark:text-rose-400 hover:underline ml-2 cursor-pointer"
                 >
-                  Clear All
+                  Clear all
                 </button>
               </div>
             )}
-
-            {/* Total Results Summary Bar */}
-            <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-2 pt-2 border-t border-slate-100 dark:border-navy-800 text-xs text-slate-500 dark:text-slate-400">
-              <div>
-                Showing <strong className="text-navy-900 dark:text-white font-bold">{filteredJobs.length}</strong> matching international jobs
-                {totalPages > 1 && (
-                  <span className="text-slate-400 font-mono text-[11px] ml-2">
-                    (Page {currentPage} of {totalPages})
-                  </span>
-                )}
-              </div>
-
-              <button
-                onClick={() => {
-                  if (!user) {
-                    openAuthModal('login', 'candidate');
-                  } else {
-                    setActiveModal('ai-resume');
-                  }
-                }}
-                className="text-gold-500 dark:text-gold-400 font-bold hover:underline flex items-center gap-1 cursor-pointer"
-              >
-                <Sparkles className="w-3.5 h-3.5" />
-                <span>{t('jobs.matchAi')}</span>
-              </button>
-            </div>
-
           </div>
 
-          {/* Job Listings Grid */}
+          {/* Results Summary Bar */}
+          <div className="flex items-center justify-between px-1 text-xs">
+            <p className="text-slate-600 dark:text-slate-400 font-medium">
+              Showing <strong className="font-bold text-navy-950 dark:text-white">{filteredJobs.length}</strong> matching international jobs{' '}
+              <span className="text-slate-400 font-normal">
+                (Page {currentPage} of {totalPages})
+              </span>
+            </p>
+
+            <button
+              type="button"
+              onClick={() => setActiveModal('ai-resume')}
+              className="text-gold-600 dark:text-gold-400 hover:text-gold-700 dark:hover:text-gold-300 font-bold flex items-center gap-1.5 cursor-pointer transition"
+            >
+              <Sparkles className="w-3.5 h-3.5 text-gold-500" />
+              <span>Match with AI Resume Analyzer</span>
+            </button>
+          </div>
+
+          {/* Job Listings Grid / Empty State */}
           {loading ? (
-            <div className="py-24 text-center text-xs font-bold text-slate-500 space-y-3">
-              <div className="w-8 h-8 border-2 border-gold-500 border-t-transparent rounded-full animate-spin mx-auto" />
-              <p>Searching verified positions...</p>
+            <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-3 3xl:grid-cols-4 gap-4.5">
+              {[1, 2, 3, 4, 5, 6].map(n => (
+                <div key={n} className="bg-white dark:bg-navy-950 rounded-2xl p-5 border border-slate-200 dark:border-navy-800 animate-pulse space-y-3">
+                  <div className="h-4 bg-slate-200 dark:bg-navy-800 rounded w-1/3" />
+                  <div className="h-5 bg-slate-200 dark:bg-navy-800 rounded w-3/4" />
+                  <div className="h-3 bg-slate-200 dark:bg-navy-800 rounded w-1/2" />
+                  <div className="h-10 bg-slate-100 dark:bg-navy-900 rounded-xl" />
+                </div>
+              ))}
             </div>
           ) : filteredJobs.length === 0 ? (
-            <div className="py-16 text-center text-xs bg-white dark:bg-navy-950 rounded-3xl p-10 border border-slate-200 dark:border-navy-800 space-y-4 shadow-sm max-w-lg mx-auto">
-              <div className="w-14 h-14 rounded-2xl bg-amber-500/10 text-gold-500 flex items-center justify-center mx-auto">
-                <Search className="w-7 h-7" />
+            <div className="bg-white dark:bg-navy-950 rounded-2xl p-8 sm:p-12 text-center border border-dashed border-slate-300 dark:border-navy-800 space-y-3.5">
+              <div className="w-14 h-14 bg-gold-500/10 text-gold-500 rounded-full flex items-center justify-center mx-auto">
+                <Briefcase className="w-7 h-7" />
               </div>
-              <h3 className="font-serif text-lg font-bold text-navy-900 dark:text-white">
-                No Jobs Match Your Filter Criteria
+              <h3 className="font-serif text-lg sm:text-xl font-bold text-navy-900 dark:text-white">
+                No Jobs Match Your Selected Criteria
               </h3>
-              <p className="text-slate-600 dark:text-slate-400 leading-relaxed">
-                We couldn't find any positions matching the selected criteria. Try adjusting your sidebar filters or resetting to view all available positions.
+              <p className="text-xs text-slate-500 dark:text-slate-400 max-w-md mx-auto leading-relaxed">
+                We couldn't find any vacancies matching your combination of filters. Try broadening your location, removing salary restrictions, or clearing filters.
               </p>
-              <div className="flex justify-center gap-3 pt-2">
+              <div className="pt-2">
                 <button
+                  type="button"
                   onClick={clearAllFilters}
-                  className="px-5 py-2.5 rounded-xl bg-gold-500 hover:bg-gold-400 text-navy-950 font-bold text-xs shadow-md cursor-pointer transition"
+                  className="px-5 py-2.5 rounded-xl bg-gold-500 hover:bg-gold-400 text-navy-950 font-bold text-xs shadow-xs transition cursor-pointer"
                 >
                   Reset All Filters
-                </button>
-                <button
-                  onClick={handleOpenSaveSearch}
-                  className="px-4 py-2.5 rounded-xl border border-slate-300 dark:border-navy-700 text-slate-700 dark:text-slate-300 font-bold text-xs hover:bg-slate-100 dark:hover:bg-navy-900 transition cursor-pointer"
-                >
-                  Save This Search Alert
                 </button>
               </div>
             </div>
           ) : (
             <div className="space-y-6">
 
-              <div className="grid grid-cols-1 md:grid-cols-2 2xl:grid-cols-3 gap-4.5 w-full">
-                {paginatedJobs.map((j) => (
-                  <div
-                    key={j.id}
-                    onClick={() => setViewJob(j)}
-                    className="bg-white dark:bg-navy-950 border border-slate-200 dark:border-navy-800 p-5 sm:p-5.5 rounded-2xl space-y-3.5 hover:border-gold-500 transition duration-300 shadow-sm hover:shadow-md cursor-pointer flex flex-col justify-between group"
-                  >
-                    <div className="space-y-3">
+              {/* Responsive Job Cards Grid (expands across available width without compression) */}
+              <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-3 3xl:grid-cols-4 gap-4.5">
+                {paginatedJobs.map((job) => {
+                  const saved = savedJobs.includes(job.id);
+                  const applied = isApplied(job.id);
 
-                      <div className="flex justify-between items-start gap-2">
-                        <div className="space-y-1">
-                          <div className="flex flex-wrap items-center gap-1.5">
-                            <span className="bg-gold-500/10 text-gold-600 dark:text-gold-400 text-[10px] font-bold px-2 py-0.5 rounded-full uppercase tracking-wider">
-                              {j.industry || j.category || 'Executive'}
-                            </span>
-                            {j.jobType && (
-                              <span className="bg-slate-100 dark:bg-navy-900 text-slate-700 dark:text-slate-300 text-[10px] font-semibold px-2 py-0.5 rounded-full">
-                                {j.jobType}
+                  return (
+                    <div
+                      key={job.id}
+                      onClick={() => setViewJob(job)}
+                      className="bg-white dark:bg-navy-950 border border-slate-200 dark:border-navy-800 p-5 sm:p-5.5 rounded-2xl space-y-3.5 hover:border-gold-500 transition duration-300 shadow-sm hover:shadow-md cursor-pointer flex flex-col justify-between group"
+                    >
+                      <div className="space-y-3">
+
+                        {/* Top Badges & Save Bookmark */}
+                        <div className="flex justify-between items-start gap-2">
+                          <div className="space-y-1 min-w-0 flex-1">
+                            <div className="flex flex-wrap items-center gap-1.5">
+                              <span className="bg-gold-500/10 text-gold-600 dark:text-gold-400 text-[10px] font-bold px-2.5 py-0.5 rounded-full uppercase tracking-wider font-mono">
+                                {job.category || job.industry || 'Executive'}
+                              </span>
+                              {job.jobType && (
+                                <span className="bg-slate-100 dark:bg-navy-900 text-slate-700 dark:text-slate-300 text-[10px] font-semibold px-2 py-0.5 rounded-full">
+                                  {job.jobType}
+                                </span>
+                              )}
+                              {job.featured && (
+                                <span className="text-[10px] font-bold uppercase tracking-wider px-2 py-0.5 rounded-full bg-amber-500/15 text-amber-700 dark:text-amber-300 border border-amber-500/30 flex items-center gap-1">
+                                  <Sparkles className="w-2.5 h-2.5" />
+                                  <span>Featured</span>
+                                </span>
+                              )}
+                            </div>
+
+                            <h3 className="font-serif text-lg font-bold text-navy-950 dark:text-white mt-1 group-hover:text-gold-600 dark:group-hover:text-gold-400 transition truncate">
+                              {job.title}
+                            </h3>
+                            <p className="text-xs font-bold text-slate-700 dark:text-slate-300 flex items-center gap-1.5 mt-0.5">
+                              <Building2 className="w-3.5 h-3.5 text-gold-500 shrink-0" />
+                              <span className="truncate">{job.company}</span>
+                            </p>
+                          </div>
+
+                          <button
+                            type="button"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              toggleSaveJob(job.id);
+                            }}
+                            className="p-2 rounded-xl bg-slate-50 dark:bg-navy-900 border border-slate-200 dark:border-navy-700 text-slate-400 hover:text-gold-500 transition cursor-pointer shrink-0"
+                            title={saved ? 'Remove bookmark' : 'Bookmark job'}
+                          >
+                            <Bookmark className={`w-4 h-4 ${saved ? 'fill-gold-500 text-gold-500' : ''}`} />
+                          </button>
+                        </div>
+
+                        {/* Specs Row: Location, Salary, Experience */}
+                        <div className="flex flex-wrap gap-x-4 gap-y-1.5 text-xs text-slate-800 dark:text-slate-200 font-semibold pt-1">
+                          <span className="flex items-center gap-1">
+                            <MapPin className="w-3.5 h-3.5 text-gold-500 shrink-0" />
+                            <span>{job.city ? `${job.city}, ${job.country}` : (job.location || job.country)}</span>
+                          </span>
+                          <span className="flex items-center gap-1 font-bold text-emerald-600 dark:text-emerald-400 font-mono">
+                            💰 {job.salary}
+                          </span>
+                          <span className="flex items-center gap-1 text-slate-600 dark:text-slate-400">
+                            <Clock className="w-3.5 h-3.5 text-slate-400 shrink-0" />
+                            <span>{job.experience}</span>
+                          </span>
+                        </div>
+
+                        {/* Description */}
+                        <p className="text-xs text-slate-600 dark:text-slate-400 font-medium line-clamp-2 leading-relaxed">
+                          {job.description}
+                        </p>
+
+                        {/* Key Skills Tags */}
+                        {job.skills && Array.isArray(job.skills) && (
+                          <div className="flex flex-wrap gap-1 pt-1">
+                            {job.skills.slice(0, 4).map((s, idx) => (
+                              <span
+                                key={idx}
+                                className="bg-slate-100 dark:bg-navy-900 text-slate-700 dark:text-slate-300 text-[10px] font-semibold px-2.5 py-0.5 rounded-lg border border-slate-200 dark:border-navy-800"
+                              >
+                                {s}
+                              </span>
+                            ))}
+                            {job.skills.length > 4 && (
+                              <span className="text-[10px] text-slate-400 font-bold self-center">
+                                +{job.skills.length - 4} more
                               </span>
                             )}
                           </div>
-
-                          <h3 className="font-serif text-lg font-bold text-navy-900 dark:text-white mt-1 group-hover:text-gold-500 transition line-clamp-1">
-                            {j.title}
-                          </h3>
-                          <p className="text-xs font-bold text-slate-700 dark:text-slate-300 flex items-center gap-1.5">
-                            <Building2 className="w-3.5 h-3.5 text-gold-500" />
-                            <span>{j.company}</span>
-                          </p>
-                        </div>
-
-                        <button
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            toggleSaveJob(j.id);
-                          }}
-                          className="p-2 rounded-xl bg-slate-50 dark:bg-navy-900 text-slate-400 hover:text-gold-500 transition cursor-pointer"
-                          title={savedJobs.includes(j.id) ? 'Remove bookmark' : 'Bookmark job'}
-                        >
-                          <Bookmark className={`w-4 h-4 ${savedJobs.includes(j.id) ? 'fill-gold-500 text-gold-500' : ''}`} />
-                        </button>
+                        )}
                       </div>
 
-                      <div className="flex flex-wrap gap-x-4 gap-y-1.5 text-xs text-slate-800 dark:text-slate-200 font-semibold pt-1">
-                        <span className="flex items-center gap-1">
-                          <MapPin className="w-3.5 h-3.5 text-gold-500" />
-                          <span>{j.city ? `${j.city}, ${j.country}` : (j.location || j.country)}</span>
+                      {/* Card Footer: Posted Date & Apply Now Button */}
+                      <div className="pt-3.5 mt-3 border-t border-slate-100 dark:border-navy-800 flex justify-between items-center">
+                        <span className="text-[11px] text-slate-400 font-medium font-mono">
+                          Posted: {job.postedDate && !job.postedDate.includes('ago') && job.postedDate.toLowerCase() !== 'just now' ? job.postedDate : '12 Nov 2026'}
                         </span>
-                        <span className="flex items-center gap-1 font-bold text-emerald-600 dark:text-emerald-400 font-mono">
-                          💰 {j.salary}
-                        </span>
-                        <span className="flex items-center gap-1 text-slate-600 dark:text-slate-400">
-                          <Clock className="w-3.5 h-3.5 text-slate-400" />
-                          <span>{j.experience}</span>
-                        </span>
+
+                        {applied ? (
+                          <button
+                            disabled
+                            onClick={(e) => e.stopPropagation()}
+                            className="px-4 py-2 bg-emerald-500/15 border border-emerald-500/30 text-emerald-700 dark:text-emerald-400 font-bold text-xs rounded-xl flex items-center gap-1 cursor-default shadow-xs"
+                          >
+                            <CheckCircle2 className="w-3.5 h-3.5" />
+                            <span>Applied</span>
+                          </button>
+                        ) : (
+                          <button
+                            onClick={(e) => handleQuickApply(e, job)}
+                            className="px-4 py-2 bg-gold-shimmer text-navy-950 font-bold text-xs rounded-xl shadow-gold-glow hover:opacity-95 transition cursor-pointer flex items-center gap-1"
+                          >
+                            <span>Apply Now</span>
+                            <span>→</span>
+                          </button>
+                        )}
                       </div>
 
-                      <p className="text-xs text-slate-600 dark:text-slate-400 font-medium line-clamp-2 leading-relaxed">
-                        {j.description}
-                      </p>
-
-                      {j.skills && Array.isArray(j.skills) && (
-                        <div className="flex flex-wrap gap-1 pt-1">
-                          {j.skills.slice(0, 4).map((s, idx) => (
-                            <span
-                              key={idx}
-                              className="bg-slate-100 dark:bg-navy-900 text-slate-700 dark:text-slate-300 text-[10px] font-semibold px-2 py-0.5 rounded-lg border border-slate-200 dark:border-navy-800"
-                            >
-                              {s}
-                            </span>
-                          ))}
-                          {j.skills.length > 4 && (
-                            <span className="text-[10px] text-slate-400 font-bold self-center">
-                              +{j.skills.length - 4} more
-                            </span>
-                          )}
-                        </div>
-                      )}
-
                     </div>
-
-                    <div className="pt-4 border-t border-slate-100 dark:border-navy-800 flex justify-between items-center">
-                      <span className="text-[10px] text-slate-400 font-medium font-mono">
-                        Posted: {j.postedDate && !j.postedDate.includes('ago') && j.postedDate.toLowerCase() !== 'just now' ? j.postedDate : '12 Nov 2026'}
-                      </span>
-
-                      {isApplied(j.id) ? (
-                        <button
-                          disabled
-                          onClick={(e) => e.stopPropagation()}
-                          className="px-4 py-2 bg-emerald-500/15 border border-emerald-500/30 text-emerald-700 dark:text-emerald-400 font-bold text-xs rounded-xl flex items-center gap-1 cursor-default shadow-xs"
-                        >
-                          <CheckCircle2 className="w-3.5 h-3.5" />
-                          <span>Applied</span>
-                        </button>
-                      ) : (
-                        <button
-                          onClick={(e) => handleQuickApply(e, j)}
-                          className="px-4 py-2 bg-gold-shimmer text-navy-950 font-bold text-xs rounded-xl shadow-gold-glow hover:opacity-95 transition cursor-pointer"
-                        >
-                          Apply Now →
-                        </button>
-                      )}
-                    </div>
-
-                  </div>
-                ))}
+                  );
+                })}
               </div>
 
               {/* Pagination Controls */}
               {totalPages > 1 && (
-                <div className="flex flex-col sm:flex-row justify-between items-center gap-4 pt-6 border-t border-slate-200 dark:border-navy-800 text-xs">
-                  <span className="text-slate-500 font-medium">
-                    Showing <strong>{(currentPage - 1) * pageSize + 1}</strong> to <strong>{Math.min(currentPage * pageSize, filteredJobs.length)}</strong> of <strong>{filteredJobs.length}</strong> vacancies
-                  </span>
+                <div className="flex items-center justify-center gap-2 pt-4">
+                  <button
+                    type="button"
+                    disabled={currentPage === 1}
+                    onClick={() => {
+                      setCurrentPage(p => Math.max(1, p - 1));
+                      document.getElementById('jobs-results-header')?.scrollIntoView({ behavior: 'smooth' });
+                    }}
+                    className="px-3 py-1.5 rounded-lg border border-slate-300 dark:border-navy-700 text-xs font-semibold disabled:opacity-30 disabled:cursor-not-allowed hover:bg-slate-100 dark:hover:bg-navy-900 transition flex items-center gap-1 cursor-pointer"
+                  >
+                    <ChevronLeft className="w-3.5 h-3.5" />
+                    <span>Prev</span>
+                  </button>
 
-                  <div className="flex items-center gap-1.5">
-                    <button
-                      onClick={() => {
-                        setCurrentPage(prev => Math.max(1, prev - 1));
-                        document.getElementById('jobs-results-header')?.scrollIntoView({ behavior: 'smooth' });
-                      }}
-                      disabled={currentPage === 1}
-                      className="p-2 rounded-xl border border-slate-200 dark:border-navy-700 text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-navy-900 disabled:opacity-40 disabled:cursor-not-allowed transition cursor-pointer"
-                      title="Previous page"
-                    >
-                      <ChevronLeft className="w-4 h-4" />
-                    </button>
-
-                    {Array.from({ length: totalPages }, (_, i) => i + 1).map((pNum) => (
-                      <button
-                        key={pNum}
-                        onClick={() => {
-                          setCurrentPage(pNum);
-                          document.getElementById('jobs-results-header')?.scrollIntoView({ behavior: 'smooth' });
-                        }}
-                        className={`w-8 h-8 rounded-xl font-bold transition cursor-pointer ${currentPage === pNum
-                          ? 'bg-[#102B45] text-white dark:bg-gold-500 dark:text-navy-950 shadow-sm'
-                          : 'text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-navy-900 border border-slate-200 dark:border-navy-800'
-                          }`}
-                      >
-                        {pNum}
-                      </button>
-                    ))}
-
-                    <button
-                      onClick={() => {
-                        setCurrentPage(prev => Math.min(totalPages, prev + 1));
-                        document.getElementById('jobs-results-header')?.scrollIntoView({ behavior: 'smooth' });
-                      }}
-                      disabled={currentPage === totalPages}
-                      className="p-2 rounded-xl border border-slate-200 dark:border-navy-700 text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-navy-900 disabled:opacity-40 disabled:cursor-not-allowed transition cursor-pointer"
-                      title="Next page"
-                    >
-                      <ChevronRight className="w-4 h-4" />
-                    </button>
+                  <div className="flex items-center gap-1">
+                    {Array.from({ length: totalPages }, (_, i) => i + 1).map(pNum => {
+                      if (
+                        pNum === 1 ||
+                        pNum === totalPages ||
+                        (pNum >= currentPage - 1 && pNum <= currentPage + 1)
+                      ) {
+                        return (
+                          <button
+                            key={pNum}
+                            type="button"
+                            onClick={() => {
+                              setCurrentPage(pNum);
+                              document.getElementById('jobs-results-header')?.scrollIntoView({ behavior: 'smooth' });
+                            }}
+                            className={`w-7 h-7 rounded-lg font-bold transition cursor-pointer text-xs ${currentPage === pNum
+                              ? 'bg-[#102B45] text-white dark:bg-gold-500 dark:text-navy-950 shadow-xs'
+                              : 'bg-slate-50 dark:bg-navy-900 text-slate-700 dark:text-slate-300 hover:bg-slate-200 dark:hover:bg-navy-800'
+                              }`}
+                          >
+                            {pNum}
+                          </button>
+                        );
+                      }
+                      if (pNum === currentPage - 2 || pNum === currentPage + 2) {
+                        return <span key={pNum} className="text-slate-400 px-1 text-xs">...</span>;
+                      }
+                      return null;
+                    })}
                   </div>
+
+                  <button
+                    type="button"
+                    disabled={currentPage === totalPages}
+                    onClick={() => {
+                      setCurrentPage(p => Math.min(totalPages, p + 1));
+                      document.getElementById('jobs-results-header')?.scrollIntoView({ behavior: 'smooth' });
+                    }}
+                    className="px-3 py-1.5 rounded-lg border border-slate-300 dark:border-navy-700 text-xs font-semibold disabled:opacity-30 disabled:cursor-not-allowed hover:bg-slate-100 dark:hover:bg-navy-900 transition flex items-center gap-1 cursor-pointer"
+                  >
+                    <span>Next</span>
+                    <ChevronRight className="w-3.5 h-3.5" />
+                  </button>
                 </div>
               )}
 
@@ -1496,30 +2390,46 @@ export const JobsPage = () => {
           )}
 
         </main>
+
       </div>
 
       {/* ============================================================ */}
-      {/* MOBILE SLIDE-OUT FILTER DRAWER                               */}
+      {/* MOBILE FILTER DRAWER (Slide-In on < lg screens only)         */}
       {/* ============================================================ */}
       {mobileFilterOpen && (
-        <div className="fixed inset-0 z-50 lg:hidden flex justify-start bg-slate-900/80 dark:bg-navy-950/80 backdrop-blur-sm animate-in fade-in">
-          <div className="bg-white dark:bg-navy-950 w-full max-w-sm h-full overflow-y-auto p-6 shadow-2xl space-y-5 animate-in slide-in-from-left">
-            <div className="flex justify-between items-center border-b border-slate-100 dark:border-navy-800 pb-3">
+        <div className="lg:hidden fixed inset-0 z-50 flex">
+          {/* Backdrop */}
+          <div
+            className="fixed inset-0 bg-navy-950/70 backdrop-blur-xs transition-opacity"
+            onClick={() => setMobileFilterOpen(false)}
+          />
+
+          {/* Drawer Content */}
+          <div className="relative ml-auto w-full max-w-sm bg-white dark:bg-navy-950 shadow-2xl h-full flex flex-col z-10 border-l border-slate-200 dark:border-navy-800">
+            {/* Header */}
+            <div className="p-4 border-b border-slate-200 dark:border-navy-800 flex items-center justify-between">
               <div className="flex items-center gap-2">
-                <SlidersHorizontal className="w-5 h-5 text-gold-500" />
-                <h3 className="font-serif text-lg font-bold text-navy-900 dark:text-white">
-                  Filter Criteria
+                <SlidersHorizontal className="w-4 h-4 text-gold-500" />
+                <h3 className="font-serif text-base font-bold text-navy-950 dark:text-white">
+                  Filters
                 </h3>
+                <span className="text-xs font-bold text-navy-900 dark:text-white bg-slate-100 dark:bg-navy-900 px-2 py-0.5 rounded-full border border-slate-200 dark:border-navy-800">
+                  Applied ({appliedFilterCount})
+                </span>
               </div>
               <button
+                type="button"
                 onClick={() => setMobileFilterOpen(false)}
-                className="p-1 rounded-xl text-slate-400 hover:text-slate-900 dark:hover:text-white"
+                className="p-1 rounded-lg text-slate-400 hover:text-slate-600 dark:hover:text-white cursor-pointer"
               >
                 <X className="w-5 h-5" />
               </button>
             </div>
 
-            {renderSidebarContent()}
+            {/* Scrollable Body */}
+            <div className="flex-1 overflow-y-auto p-4 space-y-4">
+              {renderFilterContent()}
+            </div>
           </div>
         </div>
       )}
@@ -1528,117 +2438,124 @@ export const JobsPage = () => {
       {/* SAVE SEARCH MODAL                                            */}
       {/* ============================================================ */}
       {saveModalOpen && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/80 dark:bg-navy-950/80 backdrop-blur-sm animate-in fade-in">
-          <div className="bg-white dark:bg-navy-950 border border-slate-200 dark:border-gold-500/30 rounded-3xl max-w-lg w-full p-6 sm:p-7 shadow-luxury space-y-5">
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-navy-950/70 backdrop-blur-xs animate-in fade-in duration-200">
+          <div className="bg-white dark:bg-navy-900 border border-slate-200 dark:border-navy-700 rounded-2xl p-5 sm:p-6 max-w-md w-full shadow-2xl space-y-3.5">
 
-            <div className="flex justify-between items-start border-b border-slate-100 dark:border-navy-800 pb-3">
-              <div>
-                <span className="text-[10px] font-bold text-gold-600 dark:text-gold-400 uppercase tracking-wider">Candidate Job Alert</span>
-                <h3 className="font-serif text-xl font-bold text-navy-900 dark:text-white mt-0.5">
-                  Save Search Criteria
+            <div className="flex items-center justify-between border-b border-slate-100 dark:border-navy-800 pb-2.5">
+              <div className="flex items-center gap-2">
+                <BookmarkPlus className="w-4 h-4 text-gold-500" />
+                <h3 className="font-serif text-base font-bold text-navy-900 dark:text-white">
+                  Save Search Alert
                 </h3>
               </div>
               <button
+                type="button"
                 onClick={() => setSaveModalOpen(false)}
-                className="text-slate-400 hover:text-slate-600 dark:hover:text-white p-1"
+                className="text-slate-400 hover:text-slate-600 dark:hover:text-white p-1 cursor-pointer"
               >
-                <X className="w-5 h-5" />
+                <X className="w-4 h-4" />
               </button>
             </div>
 
             {saveError && (
-              <div className="p-3 rounded-xl bg-rose-50 dark:bg-rose-950/40 border border-rose-300 dark:border-rose-800 text-rose-800 dark:text-rose-300 text-xs flex items-center gap-2">
-                <AlertCircle className="w-4 h-4 shrink-0 text-rose-600" />
+              <div className="p-2.5 rounded-lg bg-rose-50 dark:bg-rose-950/40 border border-rose-300 dark:border-rose-800 text-rose-800 dark:text-rose-300 text-xs flex items-center gap-1.5">
+                <AlertCircle className="w-3.5 h-3.5 shrink-0" />
                 <span>{saveError}</span>
               </div>
             )}
 
-            <form onSubmit={handleSaveSearchSubmit} className="space-y-4">
-              <div className="space-y-1.5">
+            <form onSubmit={handleSaveSearchSubmit} className="space-y-3.5">
+              <div className="space-y-1">
                 <label className="text-xs font-bold text-slate-800 dark:text-slate-200">
-                  Search Alert Name *
+                  Search Name <span className="text-gold-500">*</span>
                 </label>
                 <input
                   type="text"
                   required
-                  placeholder="e.g. Dubai IT & Software Engineer, Healthcare Roles"
+                  placeholder="e.g. Dubai Staff Nurse, Saudi Civil Engineer"
                   value={searchName}
                   onChange={(e) => setSearchName(e.target.value)}
-                  className="w-full bg-slate-50 dark:bg-navy-900 border border-slate-300 dark:border-navy-700 text-slate-900 dark:text-white rounded-xl px-3.5 py-2.5 text-xs focus:outline-none focus:border-gold-500"
+                  className="w-full px-3 py-2 rounded-xl bg-slate-50 dark:bg-navy-950 border border-slate-300 dark:border-navy-700 text-slate-900 dark:text-white text-xs font-medium focus:outline-none focus:border-gold-500"
                 />
-                <p className="text-[10px] text-slate-500">
-                  Save this search to your candidate account to rerun and monitor matching jobs anytime.
-                </p>
               </div>
 
-              {/* Summary of criteria */}
-              <div className="p-3.5 rounded-2xl bg-slate-50 dark:bg-navy-900/60 border border-slate-200 dark:border-navy-800 space-y-2">
-                <span className="text-[11px] font-bold text-slate-600 dark:text-slate-300 block">
-                  Parameters Being Saved:
-                </span>
-                <div className="flex flex-wrap gap-1.5 text-[11px]">
+              {/* Summary of Saved Criteria */}
+              <div className="p-2.5 bg-slate-50 dark:bg-navy-950 rounded-xl border border-slate-200 dark:border-navy-800 space-y-1 text-xs">
+                <p className="text-[10px] font-bold text-slate-500 uppercase tracking-wider">
+                  Included Criteria:
+                </p>
+                <div className="flex flex-wrap gap-1 text-[11px]">
                   {keyword && (
-                    <span className="px-2 py-0.5 rounded bg-slate-200 dark:bg-navy-800 text-slate-800 dark:text-slate-200 font-mono">
+                    <span className="px-1.5 py-0.5 rounded bg-slate-200 dark:bg-navy-800 text-slate-800 dark:text-slate-200">
                       Keyword: "{keyword}"
                     </span>
                   )}
-                  {selectedCountries.length > 0 && (
-                    <span className="px-2 py-0.5 rounded bg-slate-200 dark:bg-navy-800 text-slate-800 dark:text-slate-200">
-                      Countries: {selectedCountries.join(', ')}
+                  {appliedCountries.length > 0 && (
+                    <span className="px-1.5 py-0.5 rounded bg-slate-200 dark:bg-navy-800 text-slate-800 dark:text-slate-200">
+                      Countries: {appliedCountries.join(', ')}
                     </span>
                   )}
-                  {selectedCities.length > 0 && (
-                    <span className="px-2 py-0.5 rounded bg-slate-200 dark:bg-navy-800 text-slate-800 dark:text-slate-200">
-                      Cities: {selectedCities.join(', ')}
+                  {appliedCities.length > 0 && (
+                    <span className="px-1.5 py-0.5 rounded bg-slate-200 dark:bg-navy-800 text-slate-800 dark:text-slate-200">
+                      Cities: {appliedCities.join(', ')}
                     </span>
                   )}
-                  {selectedIndustries.length > 0 && (
-                    <span className="px-2 py-0.5 rounded bg-slate-200 dark:bg-navy-800 text-slate-800 dark:text-slate-200">
-                      Industries: {selectedIndustries.join(', ')}
+                  {appliedIndustries.length > 0 && (
+                    <span className="px-1.5 py-0.5 rounded bg-slate-200 dark:bg-navy-800 text-slate-800 dark:text-slate-200">
+                      Industries: {appliedIndustries.join(', ')}
                     </span>
                   )}
-                  {selectedFunctions.length > 0 && (
-                    <span className="px-2 py-0.5 rounded bg-slate-200 dark:bg-navy-800 text-slate-800 dark:text-slate-200">
-                      Functions: {selectedFunctions.join(', ')}
+                  {appliedFunctions.length > 0 && (
+                    <span className="px-1.5 py-0.5 rounded bg-slate-200 dark:bg-navy-800 text-slate-800 dark:text-slate-200">
+                      Functions: {appliedFunctions.join(', ')}
                     </span>
                   )}
-                  {selectedExperiences.length > 0 && (
-                    <span className="px-2 py-0.5 rounded bg-slate-200 dark:bg-navy-800 text-slate-800 dark:text-slate-200">
-                      Exp: {selectedExperiences.join(', ')}
+                  {appliedExperienceYears !== null ? (
+                    <span className="px-1.5 py-0.5 rounded bg-slate-200 dark:bg-navy-800 text-slate-800 dark:text-slate-200">
+                      Exp: {appliedExperienceYears} Yrs
+                    </span>
+                  ) : appliedExperiences.length > 0 && (
+                    <span className="px-1.5 py-0.5 rounded bg-slate-200 dark:bg-navy-800 text-slate-800 dark:text-slate-200">
+                      Exp: {appliedExperiences.join(', ')}
                     </span>
                   )}
-                  {(salaryMin || salaryMax || salaryCurrency !== 'All') && (
-                    <span className="px-2 py-0.5 rounded bg-slate-200 dark:bg-navy-800 text-slate-800 dark:text-slate-200">
-                      Salary: {salaryMin || '0'}{salaryMax ? `–${salaryMax}` : '+'} {salaryCurrency !== 'All' ? salaryCurrency : ''}
+                  {(appliedSalaryMin || appliedSalaryMax || appliedSalaryCurrency !== 'All') && (
+                    <span className="px-1.5 py-0.5 rounded bg-slate-200 dark:bg-navy-800 text-slate-800 dark:text-slate-200">
+                      Salary: {appliedSalaryMin || '0'}{appliedSalaryMax ? `–${appliedSalaryMax}` : '+'} {appliedSalaryCurrency !== 'All' ? appliedSalaryCurrency : ''}
                     </span>
                   )}
-                  {selectedJobTypes.length > 0 && (
-                    <span className="px-2 py-0.5 rounded bg-slate-200 dark:bg-navy-800 text-slate-800 dark:text-slate-200">
-                      Types: {selectedJobTypes.join(', ')}
+                  {appliedSalaryRanges.length > 0 && (
+                    <span className="px-1.5 py-0.5 rounded bg-slate-200 dark:bg-navy-800 text-slate-800 dark:text-slate-200">
+                      Salary: {appliedSalaryRanges.join(', ')}
                     </span>
                   )}
-                  {activeFilterCount === 0 && (
+                  {appliedJobTypes.length > 0 && (
+                    <span className="px-1.5 py-0.5 rounded bg-slate-200 dark:bg-navy-800 text-slate-800 dark:text-slate-200">
+                      Types: {appliedJobTypes.join(', ')}
+                    </span>
+                  )}
+                  {appliedFilterCount === 0 && (
                     <span className="text-[11px] text-slate-500 italic">
-                      All international vacancies (General Search)
+                      All international vacancies
                     </span>
                   )}
                 </div>
               </div>
 
-              <div className="flex items-center justify-end gap-3 pt-3 border-t border-slate-100 dark:border-navy-800">
+              <div className="flex items-center justify-end gap-2.5 pt-2 border-t border-slate-100 dark:border-navy-800">
                 <button
                   type="button"
                   onClick={() => setSaveModalOpen(false)}
-                  className="px-4 py-2.5 rounded-xl border border-slate-200 dark:border-navy-700 text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-navy-800 text-xs font-semibold cursor-pointer"
+                  className="px-3.5 py-2 rounded-xl border border-slate-200 dark:border-navy-700 text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-navy-800 text-xs font-semibold cursor-pointer"
                 >
                   Cancel
                 </button>
                 <button
                   type="submit"
                   disabled={savingSearch}
-                  className="px-5 py-2.5 rounded-xl bg-gold-500 hover:bg-gold-400 text-navy-950 font-bold text-xs shadow-md transition cursor-pointer disabled:opacity-50"
+                  className="px-4 py-2 rounded-xl bg-gold-500 hover:bg-gold-400 text-navy-950 font-bold text-xs shadow-xs transition cursor-pointer disabled:opacity-50"
                 >
-                  {savingSearch ? 'Saving...' : 'Save Search Alert'}
+                  {savingSearch ? 'Saving...' : 'Save Alert'}
                 </button>
               </div>
             </form>
@@ -1651,24 +2568,24 @@ export const JobsPage = () => {
       {/* VIEW JOB DETAIL MODAL                                        */}
       {/* ============================================================ */}
       {viewJob && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/80 dark:bg-navy-950/80 backdrop-blur-sm animate-in fade-in">
-          <div className="bg-white dark:bg-navy-950 border border-slate-200 dark:border-gold-500/30 rounded-3xl max-w-2xl w-full p-6 sm:p-7 shadow-luxury space-y-4 max-h-[90vh] overflow-y-auto">
-            <div className="flex justify-between items-start border-b border-slate-100 dark:border-navy-800 pb-3">
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/80 dark:bg-navy-950/80 backdrop-blur-xs animate-in fade-in">
+          <div className="bg-white dark:bg-navy-950 border border-slate-200 dark:border-gold-500/30 rounded-2xl max-w-2xl w-full p-5 sm:p-6 shadow-2xl space-y-3.5 max-h-[90vh] overflow-y-auto">
+            <div className="flex justify-between items-start border-b border-slate-100 dark:border-navy-800 pb-2.5">
               <div>
-                <span className="bg-gold-500/20 text-gold-500 text-xs font-bold px-2.5 py-0.5 rounded-full uppercase tracking-wider">{viewJob.category || viewJob.industry}</span>
-                <h2 className="font-serif text-2xl font-bold text-navy-900 dark:text-white mt-1">{viewJob.title}</h2>
-                <p className="text-xs text-slate-700 dark:text-slate-300 font-semibold">{viewJob.company} • {viewJob.city ? `${viewJob.city}, ${viewJob.country}` : viewJob.location}</p>
+                <span className="bg-gold-500/20 text-gold-500 text-xs font-bold px-2 py-0.5 rounded-full uppercase tracking-wider">{viewJob.category || viewJob.industry}</span>
+                <h2 className="font-serif text-xl font-bold text-navy-900 dark:text-white mt-1">{viewJob.title}</h2>
+                <p className="text-xs text-slate-600 dark:text-slate-300 font-semibold">{viewJob.company} • {viewJob.city ? `${viewJob.city}, ${viewJob.country}` : viewJob.location}</p>
               </div>
-              <button onClick={() => setViewJob(null)} className="text-slate-500 dark:text-slate-400 hover:text-slate-900 dark:text-white p-1 cursor-pointer"><X className="w-5 h-5" /></button>
+              <button onClick={() => setViewJob(null)} className="text-slate-400 hover:text-slate-900 dark:hover:text-white p-1 cursor-pointer"><X className="w-5 h-5" /></button>
             </div>
 
-            <div className="p-3.5 bg-slate-50 dark:bg-navy-900 text-slate-900 dark:text-white rounded-2xl text-xs flex justify-between border border-slate-100 dark:border-navy-800">
-              <div><p className="text-[10px] text-slate-500 font-medium">Monthly Compensation</p><p className="font-bold text-gold-500 text-sm font-mono">{viewJob.salary}</p></div>
+            <div className="p-3 bg-slate-50 dark:bg-navy-900 text-slate-900 dark:text-white rounded-xl text-xs flex justify-between border border-slate-100 dark:border-navy-800">
+              <div><p className="text-[10px] text-slate-500 font-medium">Monthly Compensation</p><p className="font-bold text-gold-500 text-xs font-mono">{viewJob.salary}</p></div>
               <div><p className="text-[10px] text-slate-500 font-medium">Experience Required</p><p className="font-bold text-slate-900 dark:text-white text-xs">{viewJob.experience}</p></div>
               <div><p className="text-[10px] text-slate-500 font-medium">Job Type</p><p className="font-bold text-slate-900 dark:text-white text-xs">{viewJob.jobType}</p></div>
             </div>
 
-            <div className="space-y-3 text-xs text-slate-700 dark:text-slate-300 font-medium">
+            <div className="space-y-2.5 text-xs text-slate-700 dark:text-slate-300 font-medium">
               <div>
                 <h4 className="font-bold text-navy-900 dark:text-white mb-1">Full Description:</h4>
                 <p className="leading-relaxed">{viewJob.description}</p>
@@ -1676,23 +2593,23 @@ export const JobsPage = () => {
               {viewJob.qualification && (
                 <div>
                   <h4 className="font-bold text-navy-900 dark:text-white mb-1">Qualification Required:</h4>
-                  <p className="p-2.5 bg-slate-50 dark:bg-navy-900 rounded-xl border border-slate-100 dark:border-navy-800">{viewJob.qualification}</p>
+                  <p className="p-2 bg-slate-50 dark:bg-navy-900 rounded-lg border border-slate-100 dark:border-navy-800">{viewJob.qualification}</p>
                 </div>
               )}
               {viewJob.benefits && Array.isArray(viewJob.benefits) && (
                 <div>
-                  <h4 className="font-bold text-navy-900 dark:text-white mb-1">Key Executive Benefits:</h4>
-                  <ul className="list-disc pl-4 space-y-1">
+                  <h4 className="font-bold text-navy-900 dark:text-white mb-1">Key Benefits:</h4>
+                  <ul className="list-disc pl-4 space-y-0.5">
                     {viewJob.benefits.map((b, idx) => <li key={idx}>{b}</li>)}
                   </ul>
                 </div>
               )}
             </div>
 
-            <div className="flex gap-3 pt-3 border-t border-slate-100 dark:border-navy-800">
-              <button onClick={() => setViewJob(null)} className="flex-1 py-2.5 bg-slate-100 dark:bg-navy-900 text-slate-700 dark:text-slate-300 text-xs font-bold rounded-xl cursor-pointer">Close</button>
+            <div className="flex gap-2.5 pt-2.5 border-t border-slate-100 dark:border-navy-800">
+              <button onClick={() => setViewJob(null)} className="flex-1 py-2 bg-slate-100 dark:bg-navy-900 text-slate-700 dark:text-slate-300 text-xs font-bold rounded-xl cursor-pointer">Close</button>
               {isApplied(viewJob.id) ? (
-                <button disabled className="flex-1 py-2.5 bg-emerald-500/15 border border-emerald-500/30 text-emerald-700 dark:text-emerald-400 font-bold text-xs rounded-xl flex items-center justify-center gap-1 cursor-default">
+                <button disabled className="flex-1 py-2 bg-emerald-500/15 border border-emerald-500/30 text-emerald-700 dark:text-emerald-400 font-bold text-xs rounded-xl flex items-center justify-center gap-1 cursor-default">
                   <CheckCircle2 className="w-4 h-4" />
                   <span>Applied</span>
                 </button>
@@ -1707,7 +2624,7 @@ export const JobsPage = () => {
                   }
                   setApplyJob(j);
                   setAppliedSuccess(false);
-                }} className="flex-1 py-2.5 bg-gold-shimmer text-navy-950 font-bold text-xs rounded-xl shadow-gold-glow cursor-pointer">Apply for Position</button>
+                }} className="flex-1 py-2 bg-gold-shimmer text-navy-950 font-bold text-xs rounded-xl shadow-gold-glow cursor-pointer">Apply for Position</button>
               )}
             </div>
           </div>
@@ -1721,6 +2638,189 @@ export const JobsPage = () => {
         onClose={() => setApplyJob(null)}
         onSuccess={() => fetchJobs()}
       />
+
+      {/* ============================================================ */}
+      {/* NAUKRI-STYLE FILTER SELECTION POPUP MODAL                     */}
+      {/* ============================================================ */}
+      {popupCategory && popupConfig && (
+        <div
+          className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-5 md:p-6 bg-slate-900/60 dark:bg-navy-950/80 backdrop-blur-xs animate-in fade-in duration-150"
+          onClick={closeFilterPopup}
+        >
+          <div
+            className={`relative w-full ${popupConfig.isCompactVertical ? 'max-w-md' : 'max-w-[880px]'} max-h-[88vh] bg-white dark:bg-navy-950 rounded-2xl shadow-2xl border border-slate-200 dark:border-navy-800 flex flex-col overflow-hidden animate-in zoom-in-95 duration-150`}
+            onClick={(e) => e.stopPropagation()}
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby="filter-popup-title"
+          >
+            {/* 1. Fixed Header */}
+            <div className="p-4 sm:p-5 border-b border-slate-100 dark:border-navy-800 space-y-3 bg-white dark:bg-navy-950 shrink-0">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-2.5">
+                  <div className="w-8 h-8 rounded-xl bg-gold-500/15 text-gold-600 dark:text-gold-400 flex items-center justify-center shrink-0">
+                    {React.createElement(popupConfig.icon, { className: 'w-4 h-4' })}
+                  </div>
+                  <div>
+                    <h3 id="filter-popup-title" className="font-serif text-lg sm:text-xl font-bold text-navy-950 dark:text-white leading-tight">
+                      {popupConfig.title}
+                    </h3>
+                    <p className="text-[11px] text-slate-500 dark:text-slate-400 font-medium">
+                      Select one or more options to filter available jobs
+                    </p>
+                  </div>
+                </div>
+
+                <button
+                  type="button"
+                  onClick={closeFilterPopup}
+                  className="p-1.5 rounded-xl text-slate-400 hover:text-slate-700 dark:hover:text-white hover:bg-slate-100 dark:hover:bg-navy-900 transition cursor-pointer"
+                  aria-label="Close dialog"
+                >
+                  <X className="w-5 h-5" />
+                </button>
+              </div>
+
+              {/* Real-time Search Input beneath Title */}
+              <div className="relative">
+                <Search className="w-4 h-4 text-slate-400 absolute left-3.5 top-3" />
+                <input
+                  type="text"
+                  autoFocus
+                  placeholder={popupConfig.placeholder || `Search ${popupConfig.title}...`}
+                  value={popupSearchQuery}
+                  onChange={(e) => setPopupSearchQuery(e.target.value)}
+                  onKeyDown={(e) => {
+                    if (e.key === 'Enter') {
+                      e.preventDefault();
+                      applyFilterPopup();
+                    }
+                  }}
+                  className="w-full pl-10 pr-9 py-2 text-xs sm:text-sm rounded-xl bg-slate-50 dark:bg-navy-900 border border-slate-200 dark:border-navy-700 text-slate-900 dark:text-white placeholder:text-slate-400 focus:outline-none focus:border-gold-500 transition"
+                />
+                {popupSearchQuery && (
+                  <button
+                    type="button"
+                    onClick={() => setPopupSearchQuery('')}
+                    className="absolute right-3 top-2.5 text-slate-400 hover:text-slate-600 dark:hover:text-white cursor-pointer"
+                  >
+                    <X className="w-3.5 h-3.5" />
+                  </button>
+                )}
+              </div>
+            </div>
+
+            {/* 2. Scrollable Body with 3-Column Desktop Grid */}
+            <div className="flex-1 overflow-y-auto p-4 sm:p-5 md:p-6 min-h-[220px] max-h-[52vh] sm:max-h-[58vh] [scrollbar-width:thin] [scrollbar-color:#cbd5e1_transparent] dark:[scrollbar-color:#334155_transparent] [&::-webkit-scrollbar]:w-1.5 [&::-webkit-scrollbar-track]:bg-transparent [&::-webkit-scrollbar-thumb]:bg-slate-300 dark:[&::-webkit-scrollbar-thumb]:bg-slate-700 [&::-webkit-scrollbar-thumb]:rounded-full hover:[&::-webkit-scrollbar-thumb]:bg-slate-400 dark:hover:[&::-webkit-scrollbar-thumb]:bg-slate-600">
+              {(() => {
+                const query = popupSearchQuery.trim().toLowerCase();
+                const filtered = query
+                  ? popupConfig.items.filter(item => item.toLowerCase().includes(query))
+                  : popupConfig.items;
+
+                if (filtered.length === 0) {
+                  return (
+                    <div className="py-12 text-center space-y-2">
+                      <div className="w-10 h-10 rounded-full bg-slate-100 dark:bg-navy-900 text-slate-400 flex items-center justify-center mx-auto">
+                        <Search className="w-5 h-5" />
+                      </div>
+                      <p className="text-xs font-semibold text-slate-600 dark:text-slate-300">
+                        No options found matching "{popupSearchQuery}"
+                      </p>
+                      <button
+                        type="button"
+                        onClick={() => setPopupSearchQuery('')}
+                        className="text-xs text-gold-600 dark:text-gold-400 font-bold hover:underline cursor-pointer"
+                      >
+                        Clear search filter
+                      </button>
+                    </div>
+                  );
+                }
+
+                return (
+                  <div className={popupConfig.isCompactVertical ? "grid grid-cols-1 gap-y-2" : "grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-x-4 sm:gap-x-5 gap-y-2.5"}>
+                    {filtered.map(item => {
+                      const checked = tempSelected.includes(item);
+                      const count = popupConfig.counts[item] || 0;
+
+                      return (
+                        <label
+                          key={item}
+                          className={`flex items-center gap-2.5 py-2 px-3 rounded-xl cursor-pointer select-none border transition ${checked
+                            ? 'bg-gold-500/10 border-gold-500/40 text-navy-950 dark:text-gold-300 font-bold shadow-2xs'
+                            : 'bg-slate-50/50 dark:bg-navy-900/40 border-slate-200/80 dark:border-navy-800 text-slate-700 dark:text-slate-300 hover:bg-slate-100/80 dark:hover:bg-navy-900 hover:border-slate-300 dark:hover:border-navy-700'
+                            }`}
+                        >
+                          <input
+                            type="checkbox"
+                            checked={checked}
+                            onChange={() => toggleTempItem(item)}
+                            className="w-4 h-4 rounded text-[#102B45] focus:ring-gold-500 accent-[#102B45] cursor-pointer shrink-0"
+                          />
+                          <span className="text-xs break-words min-w-0 flex-1 leading-snug">
+                            {item}
+                          </span>
+                          {count > 0 && (
+                            <span className="text-[11px] font-mono text-slate-400 dark:text-slate-500 shrink-0 ml-auto pl-1">
+                              ({count})
+                            </span>
+                          )}
+                        </label>
+                      );
+                    })}
+                  </div>
+                );
+              })()}
+            </div>
+
+            {/* 3. Fixed Footer */}
+            <div className="p-3.5 sm:p-4 border-t border-slate-200 dark:border-navy-800 bg-slate-50 dark:bg-navy-900/60 flex flex-col sm:flex-row items-center justify-between gap-3 shrink-0">
+              <div className="flex items-center gap-3 w-full sm:w-auto justify-between sm:justify-start">
+                <div className="text-xs font-bold text-slate-700 dark:text-slate-300 flex items-center gap-2">
+                  <span>Selected:</span>
+                  <span className="px-2 py-0.5 rounded-full bg-gold-500 text-navy-950 text-xs font-extrabold">
+                    {tempSelected.length}
+                  </span>
+                </div>
+
+                {tempSelected.length > 0 && (
+                  <button
+                    type="button"
+                    onClick={() => setTempSelected([])}
+                    className="text-xs font-bold text-rose-600 dark:text-rose-400 hover:underline cursor-pointer"
+                  >
+                    Clear Selection
+                  </button>
+                )}
+              </div>
+
+              <div className="flex items-center gap-2 w-full sm:w-auto justify-end">
+                <button
+                  type="button"
+                  onClick={closeFilterPopup}
+                  className="flex-1 sm:flex-initial px-4 py-2 rounded-xl border border-slate-300 dark:border-navy-700 text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-navy-800 text-xs font-bold transition cursor-pointer"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="button"
+                  onClick={applyFilterPopup}
+                  className="flex-1 sm:flex-initial px-5 py-2 rounded-xl bg-[#102B45] hover:bg-[#0c2236] text-white dark:bg-gold-500 dark:hover:bg-gold-400 dark:text-navy-950 font-bold text-xs shadow-xs transition flex items-center justify-center gap-1.5 cursor-pointer"
+                >
+                  <span>Apply Filters</span>
+                  {tempSelected.length > 0 && (
+                    <span className="px-1.5 py-0.2 rounded-full bg-white/20 dark:bg-navy-950/20 text-[11px] font-extrabold">
+                      ({tempSelected.length})
+                    </span>
+                  )}
+                </button>
+              </div>
+            </div>
+
+          </div>
+        </div>
+      )}
 
     </div>
   );

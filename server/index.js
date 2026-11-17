@@ -1430,6 +1430,82 @@ app.put('/api/candidate/notifications/:id/read', async (req, res) => {
 });
 
 // API Routes - JOBS
+const SALARY_RANGES_MAP = {
+  'Under 10,000': { min: 0, max: 10000 },
+  '10,000 – 20,000': { min: 10000, max: 20000 },
+  '20,000 – 35,000': { min: 20000, max: 35000 },
+  '35,000 – 50,000': { min: 35000, max: 50000 },
+  '50,000+': { min: 50000, max: null },
+  '0–3 Lakhs': { min: 0, max: 300000, annualInr: true },
+  '3–6 Lakhs': { min: 300000, max: 600000, annualInr: true },
+  '6–10 Lakhs': { min: 600000, max: 1000000, annualInr: true },
+  '10–15 Lakhs': { min: 1000000, max: 1500000, annualInr: true },
+  '15–25 Lakhs': { min: 1500000, max: 2500000, annualInr: true },
+  '25–50 Lakhs': { min: 2500000, max: 5000000, annualInr: true },
+  '50–75 Lakhs': { min: 5000000, max: 7500000, annualInr: true },
+  '75–100 Lakhs': { min: 7500000, max: 10000000, annualInr: true },
+  '1–5 Crore': { min: 10000000, max: 50000000, annualInr: true },
+  '5+ Crore': { min: 50000000, max: null, annualInr: true }
+};
+
+const matchesSalaryRange = (job, rangeLabel) => {
+  const range = SALARY_RANGES_MAP[rangeLabel];
+  if (!range) return true;
+
+  let jMin = job.minSalary !== undefined && job.minSalary !== null ? Number(job.minSalary) : null;
+  let jMax = job.maxSalary !== undefined && job.maxSalary !== null ? Number(job.maxSalary) : null;
+
+  if (jMin === null || isNaN(jMin) || jMax === null || isNaN(jMax)) {
+    const nums = (job.salary || '').replace(/,/g, '').match(/\d+/g)?.map(Number) || [];
+    if (nums.length >= 2) {
+      jMin = nums[0];
+      jMax = nums[1];
+    } else if (nums.length === 1) {
+      jMin = nums[0];
+      jMax = nums[0];
+    } else {
+      return false;
+    }
+  }
+
+  if (range.annualInr) {
+    const inrMin = jMin * 12 * 23;
+    const inrMax = jMax * 12 * 23;
+    if (range.max === null || range.max === undefined) {
+      return inrMax >= range.min;
+    }
+    return inrMax >= range.min && inrMin <= range.max;
+  } else {
+    if (range.max === null || range.max === undefined) {
+      return jMax >= range.min;
+    }
+    return jMax >= range.min && jMin <= range.max;
+  }
+};
+
+const parseJobExperienceRange = (expStr) => {
+  if (!expStr) return { min: 0, max: 30 };
+  const s = String(expStr).toLowerCase();
+  if (s.includes('fresher') || s.includes('entry') || s.includes('trainee')) {
+    return { min: 0, max: 1 };
+  }
+  const nums = s.replace(/–/g, '-').match(/\d+/g)?.map(Number) || [];
+  if (nums.length >= 2) {
+    return { min: nums[0], max: nums[1] };
+  } else if (nums.length === 1) {
+    return { min: nums[0], max: s.includes('+') ? 30 : nums[0] };
+  }
+  return { min: 0, max: 30 };
+};
+
+const matchesExperienceYears = (job, years) => {
+  if (years === null || years === undefined) return true;
+  const y = Number(years);
+  if (isNaN(y)) return true;
+  const { min, max } = parseJobExperienceRange(job.experience);
+  return min <= y && max >= y;
+};
+
 app.get('/api/jobs', async (req, res) => {
   try {
     await seedJobs();
@@ -1485,6 +1561,15 @@ app.get('/api/jobs', async (req, res) => {
       params.push(...jobTypes);
     }
 
+    // 5b. Company filter (supports multi-select)
+    const companies = getValues(req.query.company);
+    if (companies.length > 0) {
+      query += ` AND (${companies.map(() => 'LOWER(company) LIKE LOWER(?)').join(' OR ')})`;
+      companies.forEach(comp => {
+        params.push(`%${comp}%`);
+      });
+    }
+
     // 6. Currency
     if (req.query.currency && req.query.currency !== 'All') {
       query += ' AND (LOWER(currency) = LOWER(?) OR LOWER(salary) LIKE LOWER(?))';
@@ -1502,6 +1587,18 @@ app.get('/api/jobs', async (req, res) => {
     }
 
     let rows = await db.all(query, params);
+
+    // Multi-select salary range brackets filter
+    const salaryRanges = getValues(req.query.salaryRanges);
+    if (salaryRanges.length > 0) {
+      rows = rows.filter(j => salaryRanges.some(sr => matchesSalaryRange(j, sr)));
+    }
+
+    // Experience years slider filter
+    if (req.query.experienceYears !== undefined && req.query.experienceYears !== '' && !isNaN(Number(req.query.experienceYears))) {
+      const expYrs = Number(req.query.experienceYears);
+      rows = rows.filter(j => matchesExperienceYears(j, expYrs));
+    }
 
     // Keyword search across title, company, skills, description
     if (req.query.keyword) {
