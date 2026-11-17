@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { useApp } from '../context/AppContext';
-import { X, Upload, FileText, CheckCircle2, ShieldCheck, AlertCircle, ArrowRight, Lock, KeyRound } from 'lucide-react';
+import { X, Upload, FileText, CheckCircle2, AlertCircle, ArrowRight } from 'lucide-react';
 import CountryPhoneInput from './common/CountryPhoneInput';
 import SITE_CONFIG from '../config/siteConfig';
 
@@ -24,9 +24,10 @@ export const QuickApplyModal = ({ job, isOpen, onClose, onSuccess }) => {
   
   // Post-submission state
   const [isSuccess, setIsSuccess] = useState(false);
-  const [referenceNumber, setReferenceNumber] = useState('');
-  const [password, setPassword] = useState('');
-  const [accountCreated, setAccountCreated] = useState(false);
+
+  const isExpired = Boolean(
+    job?.closingDate && new Date(job.closingDate).setHours(23, 59, 59, 999) < Date.now()
+  );
 
   if (!isOpen || !job) return null;
 
@@ -53,6 +54,11 @@ export const QuickApplyModal = ({ job, isOpen, onClose, onSuccess }) => {
   const handleSubmit = async (e) => {
     e.preventDefault();
     setErrorMsg('');
+
+    if (isExpired) {
+      setErrorMsg(`Applications for this position closed on ${job.closingDate}. Submissions are no longer accepted.`);
+      return;
+    }
 
     if (!fullName.trim()) {
       setErrorMsg('Please enter your full legal name.');
@@ -84,7 +90,6 @@ export const QuickApplyModal = ({ job, isOpen, onClose, onSuccess }) => {
 
     try {
       const generatedRef = `RI-APP-${Math.floor(100000 + Math.random() * 900000)}`;
-      setReferenceNumber(generatedRef);
 
       // Prepare application payload
       const appPayload = {
@@ -146,32 +151,6 @@ export const QuickApplyModal = ({ job, isOpen, onClose, onSuccess }) => {
     }
   };
 
-  const handleCreateAccount = async () => {
-    if (!password || password.length < 8) {
-      setErrorMsg('Password must be at least 8 characters with numbers and letters.');
-      return;
-    }
-
-    try {
-      await fetch('/api/auth/register', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          name: fullName,
-          email: email.toLowerCase().trim(),
-          phone: phone,
-          password: password,
-          role: 'candidate',
-          consentGivenAt: new Date().toISOString(),
-          consentVersion: 'v2.0-nov2026'
-        })
-      });
-      setAccountCreated(true);
-    } catch (err) {
-      setErrorMsg('Account setup notice: You can set your password later via login.');
-    }
-  };
-
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-navy-950/80 backdrop-blur-sm animate-fade-in">
       <div className="bg-white dark:bg-navy-900 rounded-3xl max-w-lg w-full overflow-hidden shadow-2xl border border-slate-200 dark:border-navy-800 transition-all">
@@ -199,7 +178,24 @@ export const QuickApplyModal = ({ job, isOpen, onClose, onSuccess }) => {
 
         {/* Content Body */}
         <div className="p-6">
-          {!isSuccess ? (
+          {isExpired ? (
+            <div className="p-5 bg-rose-500/10 border border-rose-500/30 rounded-2xl text-left space-y-3">
+              <div className="flex items-center gap-2 font-bold text-rose-600 dark:text-rose-400 text-sm">
+                <AlertCircle className="w-5 h-5 shrink-0" />
+                <span>Applications Closed</span>
+              </div>
+              <p className="text-xs leading-relaxed text-slate-700 dark:text-slate-300">
+                The application deadline for <strong>{job.title}</strong> at <strong>{job.company}</strong> was <strong>{job.closingDate}</strong>. Submissions for this vacancy are now closed.
+              </p>
+              <button
+                type="button"
+                onClick={onClose}
+                className="w-full mt-2 py-2.5 bg-slate-200 dark:bg-navy-800 text-slate-800 dark:text-white font-bold text-xs rounded-xl hover:bg-slate-300 dark:hover:bg-navy-700 transition cursor-pointer"
+              >
+                Close & View Open Vacancies
+              </button>
+            </div>
+          ) : !isSuccess ? (
             <form onSubmit={handleSubmit} className="space-y-4 text-left">
               {errorMsg && (
                 <div className="p-3 bg-rose-500/10 border border-rose-500/20 rounded-xl text-rose-500 text-xs font-semibold flex items-center gap-2">
@@ -325,54 +321,6 @@ export const QuickApplyModal = ({ job, isOpen, onClose, onSuccess }) => {
                 </p>
               </div>
 
-              {/* Tracking Reference Number */}
-              <div className="p-4 rounded-2xl bg-slate-100 dark:bg-navy-950 border border-slate-200 dark:border-navy-800 inline-block text-left">
-                <span className="text-[10px] font-bold text-slate-500 uppercase tracking-widest block">
-                  Application Reference ID
-                </span>
-                <span className="text-lg font-mono font-black text-gold-500">
-                  {referenceNumber}
-                </span>
-              </div>
-
-              {/* Zero-Fee Assurance */}
-              <div className="p-3 bg-emerald-50 dark:bg-emerald-950/20 border border-emerald-200 dark:border-emerald-900/30 rounded-xl text-left flex items-start gap-2.5">
-                <ShieldCheck className="w-5 h-5 text-emerald-500 shrink-0 mt-0.5" />
-                <div className="text-[11px] text-emerald-900 dark:text-emerald-300">
-                  <strong>Zero-Fee Placement Reminder:</strong> You will never be asked to pay any fees. An acknowledgement receipt has been dispatched to <strong>{email}</strong>.
-                </div>
-              </div>
-
-              {/* Optional Account Password Setup (Issue #5) */}
-              {!user && !accountCreated ? (
-                <div className="pt-2 border-t border-slate-200 dark:border-navy-800 text-left space-y-2">
-                  <span className="text-xs font-bold text-slate-800 dark:text-white block">
-                    Optional: Set a Password to Track Your Application Status
-                  </span>
-                  <div className="flex gap-2">
-                    <input
-                      type="password"
-                      value={password}
-                      onChange={(e) => setPassword(e.target.value)}
-                      placeholder="Enter a secure password (min 8 chars)"
-                      className="flex-1 px-3 py-2 text-xs rounded-xl border border-slate-300 dark:border-navy-700 bg-slate-50 dark:bg-navy-950 text-slate-900 dark:text-white outline-none focus:border-gold-500"
-                    />
-                    <button
-                      type="button"
-                      onClick={handleCreateAccount}
-                      className="px-4 py-2 bg-navy-900 dark:bg-white text-white dark:text-navy-900 font-bold text-xs rounded-xl hover:opacity-90 transition"
-                    >
-                      Save
-                    </button>
-                  </div>
-                </div>
-              ) : accountCreated ? (
-                <p className="text-xs text-emerald-500 font-bold flex items-center justify-center gap-1">
-                  <CheckCircle2 className="w-4 h-4" />
-                  <span>Account profile created! You can log in anytime to monitor milestones.</span>
-                </p>
-              ) : null}
-
               {/* Action Buttons */}
               <div className="pt-2">
                 <button
@@ -380,7 +328,7 @@ export const QuickApplyModal = ({ job, isOpen, onClose, onSuccess }) => {
                   onClick={onClose}
                   className="w-full bg-slate-200 dark:bg-navy-800 text-slate-800 dark:text-white font-bold text-xs py-2.5 rounded-xl hover:bg-slate-300 dark:hover:bg-navy-700 transition"
                 >
-                  Close & Continue Browsing
+                  Close
                 </button>
               </div>
             </div>

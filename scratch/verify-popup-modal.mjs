@@ -43,9 +43,10 @@ assert('popupConfig maps country, city, industry, function, experience, and jobT
   content.includes("case 'jobType':")
 );
 
-// 4. Modal Layout: Centered 880px max-width, white/navy-950, shadow-2xl, rounded-2xl
-assert('Modal container has centered layout with max-w-[880px], rounded-2xl, shadow-2xl',
-  content.includes('max-w-[880px]') &&
+// 4. Modal Layout: Centered max-width, white/navy-950, shadow-2xl, rounded-2xl, 80vh max-height
+assert('Modal container has centered layout with max-w-[920px], max-h-[80vh], rounded-2xl, shadow-2xl',
+  content.includes('max-w-[920px]') &&
+  content.includes('max-h-[80vh]') &&
   content.includes('rounded-2xl') &&
   content.includes('shadow-2xl') &&
   content.includes('bg-white dark:bg-navy-950')
@@ -60,8 +61,8 @@ assert('Modal fixed header contains title, category icon, real-time search bar, 
 );
 
 // 6. 3-Column Desktop Grid
-assert('Modal body contains 3-column grid for desktop (lg:grid-cols-3) with checkboxes and counts',
-  content.includes('grid-cols-1 sm:grid-cols-2 lg:grid-cols-3') &&
+assert('Modal body contains 3-column grid for desktop (md:grid-cols-3 lg:grid-cols-3) with checkboxes and counts',
+  content.includes('grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-3') &&
   content.includes('popupConfig.counts[item]') &&
   content.includes('toggleTempItem(item)')
 );
@@ -88,10 +89,10 @@ assert('Removed Company, Freshness, and Language categories from sidebar filter 
   !content.includes("sectionKey: 'language'")
 );
 
-// 10. Sidebar trigger: "+ View All ({items.length})" and ensure Maximize2 is removed
-assert('Sidebar category has "+ View All" button and Maximize2 icon is removed',
+// 10. Sidebar trigger: "+ View More" and ensure Maximize2 is removed
+assert('Sidebar category has "+ View More" button and Maximize2 icon is removed',
   content.includes('openFilterPopup(sectionKey)') &&
-  content.includes('View All ({items.length})') &&
+  content.includes('+ View More') &&
   !content.includes('<Maximize2')
 );
 

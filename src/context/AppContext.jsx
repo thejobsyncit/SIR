@@ -390,7 +390,7 @@ export const AppProvider = ({ children }) => {
       email: normalizedEmail,
       phone: (backendUser?.phone || googleUser.phone || existing.phone || '').includes('http') ? '' : (backendUser?.phone || googleUser.phone || existing.phone || ''),
       password: existing.password || 'GoogleOAuth2Verified',
-      avatar: backendUser?.avatar || googleUser.avatar || existing.avatar || `https://api.dicebear.com/7.x/initials/svg?seed=${encodeURIComponent(googleUser.name || normalizedEmail)}`,
+      avatar: (backendUser?.avatar && !backendUser.avatar.includes('dicebear')) ? backendUser.avatar : ((googleUser.avatar && !googleUser.avatar.includes('dicebear')) ? googleUser.avatar : ((existing.avatar && !existing.avatar.includes('dicebear')) ? existing.avatar : '')),
       googleSub: backendUser?.googleSub || googleUser.googleSub || googleUser.googleId || existing.googleSub || '',
       googleId: backendUser?.googleSub || googleUser.googleSub || googleUser.googleId || existing.googleId || '',
       role: 'candidate',
@@ -515,7 +515,7 @@ export const AppProvider = ({ children }) => {
       currentSalary: data.currentSalary || existing.currentSalary || '',
       expectedSalary: data.expectedSalary || existing.expectedSalary || '',
       noticePeriod: data.noticePeriod || existing.noticePeriod || '',
-      avatar: existing.avatar || `https://api.dicebear.com/7.x/initials/svg?seed=${encodeURIComponent(data.fullName || normalizedEmail)}`,
+      avatar: (existing.avatar && !existing.avatar.includes('dicebear')) ? existing.avatar : '',
       role: 'candidate',
       isRegistered: true,
       resumeUploaded: !!data.resumeName || existing.resumeUploaded || false,
@@ -1034,18 +1034,36 @@ export const AppProvider = ({ children }) => {
       skills: Array.isArray(jobData.skills)
         ? jobData.skills
         : (jobData.skills ? jobData.skills.split(',').map(s => s.trim()) : ['Management', 'Operations']),
-      qualification: jobData.qualification || "Bachelor's Degree",
+      qualification: jobData.qualification || jobData.requiredDegree || "Bachelor's Degree",
       benefits: Array.isArray(jobData.benefits)
         ? jobData.benefits
         : (jobData.benefits ? jobData.benefits.split(',').map(b => b.trim()) : ['Tax-free salary', 'Visa Sponsorship', 'Medical Insurance']),
+      educationLevel: jobData.educationLevel || "Bachelor's Degree",
+      requiredDegree: jobData.requiredDegree || jobData.qualification || '',
+      academicQualifications: jobData.academicQualifications || '',
+      mandatoryLicences: jobData.mandatoryLicences || '',
+      contractType: jobData.contractType || jobData.jobType || 'Permanent',
+      contractDuration: jobData.contractDuration || (jobData.contractType === 'Permanent' ? 'Indefinite' : '1 Year'),
+      contractRenewal: jobData.contractRenewal || 'Yes, Renewable upon mutual agreement',
+      accommodation: jobData.accommodation || 'Allowance Provided',
+      transportation: jobData.transportation || 'Allowance Provided',
+      livingAllowancesDetails: jobData.livingAllowancesDetails || '',
+      visaSponsorship: jobData.visaSponsorship || 'Visa sponsorship provided',
+      visaSupportDetails: jobData.visaSupportDetails || 'Full work visa sponsorship and processing support provided.',
+      closingDate: jobData.closingDate || null,
       postedDate: 'Just now',
-      featured: true
+      featured: true,
+      postedByEmployer: true
     };
 
     try {
       await fetch('/api/jobs', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: { 
+          'Content-Type': 'application/json',
+          'x-crm-role': user?.role || 'Employer',
+          'x-user-role': user?.role || 'Employer'
+        },
         body: JSON.stringify(newJob)
       });
     } catch (err) {
