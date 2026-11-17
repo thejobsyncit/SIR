@@ -4,8 +4,8 @@ import {
   Search, MapPin, Briefcase, DollarSign, Globe, CheckCircle2,
   Bookmark, ArrowRight, Filter, X, Sparkles, SlidersHorizontal,
   RotateCcw, ChevronLeft, ChevronRight, BookmarkPlus, Check,
-  Building2, Layers, Clock, AlertCircle, Tag, ChevronDown,
-  ChevronUp, Languages, Coins, Calendar, CheckSquare, Square, Plus
+  Building2, Layers, Clock, AlertCircle, Tag,
+  Languages, Coins, Calendar, CheckSquare, Square, Plus
 } from 'lucide-react';
 import { JOBS_LIST } from '../data/mockData';
 import ScrollReveal from '../components/ScrollReveal';
@@ -317,7 +317,7 @@ export const filterJobList = (jobs, filters = {}) => {
   } = filters;
 
   return jobs.filter(job => {
-    // 1. Keyword search
+    // 1. Keyword search (matches title, company, description, location, skills, qualifications, degree, licences, visa)
     if (keyword && keyword.trim()) {
       const q = keyword.toLowerCase().trim();
       const titleMatch = (job.title || '').toLowerCase().includes(q);
@@ -325,7 +325,10 @@ export const filterJobList = (jobs, filters = {}) => {
       const descMatch = (job.description || '').toLowerCase().includes(q);
       const locMatch = (job.location || '').toLowerCase().includes(q);
       const skillsMatch = (job.skills || []).some(s => String(s).toLowerCase().includes(q));
-      if (!titleMatch && !compMatch && !descMatch && !locMatch && !skillsMatch) return false;
+      const qualMatch = `${job.qualification || ''} ${job.educationLevel || ''} ${job.requiredDegree || ''} ${job.academicQualifications || ''} ${job.mandatoryLicences || ''}`.toLowerCase().includes(q);
+      const visaMatch = (job.visaSponsorship || '').toLowerCase().includes(q);
+      const contractMatch = `${job.contractType || ''} ${job.contractDuration || ''}`.toLowerCase().includes(q);
+      if (!titleMatch && !compMatch && !descMatch && !locMatch && !skillsMatch && !qualMatch && !visaMatch && !contractMatch) return false;
     }
 
     // 2. Country (multi-select)
@@ -365,9 +368,15 @@ export const filterJobList = (jobs, filters = {}) => {
       if (!matchExp) return false;
     }
 
-    // 7. Job Type (multi-select)
-    if (jobTypes.length > 0 && !jobTypes.includes(job.jobType)) {
-      return false;
+    // 7. Job Type & Contract Type (multi-select)
+    if (jobTypes.length > 0) {
+      const jType = (job.jobType || '').toLowerCase();
+      const cType = (job.contractType || '').toLowerCase();
+      const matchType = jobTypes.some(jt => {
+        const jtLower = jt.toLowerCase();
+        return jType.includes(jtLower) || cType.includes(jtLower) || (jtLower.includes('full-time') && cType.includes('permanent'));
+      });
+      if (!matchType) return false;
     }
 
     // 8. Company (multi-select)
@@ -516,36 +525,6 @@ export const JobsPage = () => {
   const [functionSearchQuery, setFunctionSearchQuery] = useState('');
   const [companySearchQuery, setCompanySearchQuery] = useState('');
 
-  // Expand / collapse "+ View More" toggles per section
-  const [showAll, setShowAll] = useState({
-    country: false,
-    city: false,
-    industry: false,
-    function: false,
-    experience: false,
-    jobType: false,
-    company: false,
-    salary: false
-  });
-
-  const toggleShowAll = (key) => {
-    setShowAll(prev => ({ ...prev, [key]: !prev[key] }));
-  };
-
-  // Collapsible accordion sections (Country expanded by default, others collapsed)
-  const [openSections, setOpenSections] = useState({
-    country: true,
-    city: false,
-    industry: false,
-    function: false,
-    experience: false,
-    salary: false,
-    jobType: false
-  });
-
-  const toggleSection = (key) => {
-    setOpenSections(prev => ({ ...prev, [key]: !prev[key] }));
-  };
 
   // --- NAUKRI-STYLE FILTER POPUP STATE & HANDLERS ---
   const [popupCategory, setPopupCategory] = useState(null);
@@ -1010,12 +989,11 @@ export const JobsPage = () => {
         };
       case 'salary':
         return {
-          title: 'Salary',
+          title: 'Select Salary Range',
           icon: Coins,
           items: SALARY_OPTIONS,
           counts: itemCounts.salary,
-          placeholder: 'Search Salary Range (e.g. 10k, Lakhs, Crore)...',
-          isCompactVertical: true
+          placeholder: 'Search Salary Range (e.g. 10k, Lakhs, Crore)...'
         };
       default:
         return null;
@@ -1417,7 +1395,7 @@ export const JobsPage = () => {
     return filteredJobs.slice(start, start + pageSize);
   }, [filteredJobs, currentPage, pageSize]);
 
-  // Reusable multi-select filter category with default 2 items, inline View All / View Less expansion & popup support
+  // Reusable multi-select filter category: each topic with 2 options vertically + "+ View More" popup modal
   const renderFilterCategory = ({
     title,
     icon: Icon,
@@ -1428,85 +1406,75 @@ export const JobsPage = () => {
     counts = {},
     isLast = false
   }) => {
-    const isOpen = openSections[sectionKey];
-    const isExpanded = showAll[sectionKey];
     const selectedCount = selectedItems.length;
-    const visibleItems = isExpanded ? items : items.slice(0, 2);
-    const hiddenSelectedCount = selectedItems.filter(it => !items.slice(0, 2).includes(it)).length;
+
+    // Display initial 2 options vertically, plus any additional selected items so user sees their active selections
+    const visibleItems = useMemo(() => {
+      const initialTwo = items.slice(0, 2);
+      const set = new Set(initialTwo);
+      selectedItems.forEach(it => {
+        if (items.includes(it)) set.add(it);
+      });
+      return Array.from(set);
+    }, [items, selectedItems]);
 
     return (
       <div className={isLast ? "pb-1" : "border-b border-slate-100 dark:border-navy-800/80 pb-3"}>
-        <button
-          type="button"
-          onClick={() => toggleSection(sectionKey)}
-          className="w-full flex items-center justify-between text-xs font-bold text-navy-950 dark:text-white py-1 hover:text-gold-500 transition cursor-pointer"
-        >
+        <div className="w-full flex items-center justify-between text-xs font-bold text-navy-950 dark:text-white py-1">
           <span className="flex items-center gap-2">
             <Icon className="w-3.5 h-3.5 text-gold-500 shrink-0" />
-            <span>{title}{selectedCount > 0 ? ` (${selectedCount})` : ''}</span>
+            <span>{title}</span>
             {selectedCount > 0 && (
-              <span className="px-1.5 py-0.2 rounded-full bg-gold-500 text-navy-950 text-[10px] font-extrabold">
+              <span className="px-1.5 py-0.5 rounded-full bg-gold-500 text-navy-950 text-[10px] font-extrabold leading-none">
                 {selectedCount}
               </span>
             )}
           </span>
-          {isOpen ? <ChevronUp className="w-3.5 h-3.5 text-slate-400" /> : <ChevronDown className="w-3.5 h-3.5 text-slate-400" />}
-        </button>
+        </div>
 
-        {isOpen && (
-          <div className="mt-2 space-y-2">
-            <div className={isExpanded ? "grid grid-cols-2 gap-1.5 max-h-56 overflow-y-auto pr-1 [scrollbar-width:thin] [scrollbar-color:#cbd5e1_transparent] dark:[scrollbar-color:#334155_transparent] [&::-webkit-scrollbar]:w-1.5 [&::-webkit-scrollbar-track]:bg-transparent [&::-webkit-scrollbar-thumb]:bg-slate-300 dark:[&::-webkit-scrollbar-thumb]:bg-slate-700 [&::-webkit-scrollbar-thumb]:rounded-full hover:[&::-webkit-scrollbar-thumb]:bg-slate-400 dark:hover:[&::-webkit-scrollbar-thumb]:bg-slate-600" : "space-y-1"}>
-              {visibleItems.map(item => {
-                const checked = selectedItems.includes(item);
-                const count = counts[item] || 0;
-                return (
-                  <label
-                    key={item}
-                    className={`flex items-start gap-1.5 py-1 px-1.5 rounded-lg cursor-pointer select-none transition ${checked
-                      ? 'bg-gold-500/10 text-gold-700 dark:text-gold-300 font-bold'
-                      : 'hover:bg-slate-50 dark:hover:bg-navy-900/60 text-slate-700 dark:text-slate-300'
-                      }`}
-                  >
-                    <input
-                      type="checkbox"
-                      checked={checked}
-                      onChange={() => toggleItem(item)}
-                      className="w-3.5 h-3.5 rounded text-[#102B45] focus:ring-gold-500 accent-[#102B45] cursor-pointer shrink-0 mt-0.5"
-                    />
-                    <span className="text-xs break-words min-w-0 flex-1 leading-tight">{item}</span>
-                    {count > 0 && (
-                      <span className="text-[10px] text-slate-400 dark:text-slate-500 font-mono shrink-0 ml-auto pl-1">
-                        ({count})
-                      </span>
-                    )}
-                  </label>
-                );
-              })}
-            </div>
-
-            {items.length > 2 && (
-              <div className="pt-1">
-                <button
-                  type="button"
-                  onClick={() => toggleShowAll(sectionKey)}
-                  className="text-[11px] font-bold text-gold-600 dark:text-gold-400 hover:text-gold-700 dark:hover:text-gold-300 hover:underline cursor-pointer flex items-center gap-1 transition"
+        <div className="mt-2 space-y-1.5">
+          <div className="space-y-1">
+            {visibleItems.map(item => {
+              const checked = selectedItems.includes(item);
+              const count = counts[item] || 0;
+              return (
+                <label
+                  key={item}
+                  className={`flex items-start gap-1.5 py-1 px-1.5 rounded-lg cursor-pointer select-none transition ${checked
+                    ? 'bg-gold-500/10 text-gold-700 dark:text-gold-300 font-bold'
+                    : 'hover:bg-slate-50 dark:hover:bg-navy-900/60 text-slate-700 dark:text-slate-300'
+                    }`}
                 >
-                  {isExpanded ? (
-                    <>
-                      <ChevronUp className="w-3 h-3 text-gold-500" />
-                      <span>View Less</span>
-                    </>
-                  ) : (
-                    <>
-                      <Plus className="w-3 h-3 text-gold-500" />
-                      <span>View All ({items.length})</span>
-                    </>
+                  <input
+                    type="checkbox"
+                    checked={checked}
+                    onChange={() => toggleItem(item)}
+                    className="w-3.5 h-3.5 rounded text-[#102B45] focus:ring-gold-500 accent-[#102B45] cursor-pointer shrink-0 mt-0.5"
+                  />
+                  <span className="text-xs break-words min-w-0 flex-1 leading-tight">{item}</span>
+                  {count > 0 && (
+                    <span className="text-[10px] text-slate-400 dark:text-slate-500 font-mono shrink-0 ml-auto pl-1">
+                      ({count})
+                    </span>
                   )}
-                </button>
-              </div>
-            )}
+                </label>
+              );
+            })}
           </div>
-        )}
+
+          {items.length > 2 && (
+            <div className="pt-0.5">
+              <button
+                type="button"
+                onClick={() => openFilterPopup(sectionKey)}
+                className="text-[11px] font-bold text-gold-600 dark:text-gold-400 hover:text-gold-700 dark:hover:text-gold-300 hover:underline cursor-pointer flex items-center gap-1 transition"
+              >
+                <Plus className="w-3 h-3 text-gold-500 shrink-0" />
+                <span>+ View More</span>
+              </button>
+            </div>
+          )}
+        </div>
       </div>
     );
   };
@@ -1730,80 +1698,73 @@ export const JobsPage = () => {
 
           {/* --- CATEGORY 5: EXPERIENCE RANGE SLIDER --- */}
           <div className="border-b border-slate-100 dark:border-navy-800/80 pb-3">
-            <button
-              type="button"
-              onClick={() => toggleSection('experience')}
-              className="w-full flex items-center justify-between text-xs font-bold text-navy-950 dark:text-white py-1 hover:text-gold-500 transition cursor-pointer"
-            >
+            <div className="w-full flex items-center justify-between text-xs font-bold text-navy-950 dark:text-white py-1">
               <span className="flex items-center gap-2">
                 <Clock className="w-3.5 h-3.5 text-gold-500 shrink-0" />
                 <span>Experience{pendingExperienceYears !== null ? ` (${pendingExperienceYears} Yrs)` : ''}</span>
                 {pendingExperienceYears !== null && (
-                  <span className="px-1.5 py-0.2 rounded-full bg-gold-500 text-navy-950 text-[10px] font-extrabold">
+                  <span className="px-1.5 py-0.5 rounded-full bg-gold-500 text-navy-950 text-[10px] font-extrabold leading-none">
                     ✓
                   </span>
                 )}
               </span>
-              {openSections.experience ? <ChevronUp className="w-3.5 h-3.5 text-slate-400" /> : <ChevronDown className="w-3.5 h-3.5 text-slate-400" />}
-            </button>
+            </div>
 
-            {openSections.experience && (
-              <div className="mt-2 pt-6 pb-1 px-1">
-                {/* Horizontal Range Slider with Tooltip */}
-                <div className="relative w-full">
-                  {/* Dynamic Tooltip / Bubble Indicator above Thumb */}
-                  {(() => {
-                    const pct = Math.min(Math.max((sliderExperienceYears / 30) * 100, 0), 100);
-                    return (
-                      <>
-                        <div
-                          className="absolute -top-7 transform -translate-x-1/2 pointer-events-none transition-all duration-75 z-10"
-                          style={{ left: `calc(${pct}% + ${(0.5 - pct / 100) * 18}px)` }}
-                        >
-                          <div className="relative bg-[#102B45] text-white dark:bg-gold-500 dark:text-navy-950 font-bold text-[11px] px-2 py-0.5 rounded-md shadow-md whitespace-nowrap">
-                            {sliderExperienceYears} Yrs
-                            <div className="absolute left-1/2 -bottom-1 -translate-x-1/2 w-1.5 h-1.5 rotate-45 bg-[#102B45] dark:bg-gold-500" />
-                          </div>
+            <div className="mt-2 pt-6 pb-1 px-1">
+              {/* Horizontal Range Slider with Tooltip */}
+              <div className="relative w-full">
+                {/* Dynamic Tooltip / Bubble Indicator above Thumb */}
+                {(() => {
+                  const pct = Math.min(Math.max((sliderExperienceYears / 30) * 100, 0), 100);
+                  return (
+                    <>
+                      <div
+                        className="absolute -top-7 transform -translate-x-1/2 pointer-events-none transition-all duration-75 z-10"
+                        style={{ left: `calc(${pct}% + ${(0.5 - pct / 100) * 18}px)` }}
+                      >
+                        <div className="relative bg-[#102B45] text-white dark:bg-gold-500 dark:text-navy-950 font-bold text-[11px] px-2 py-0.5 rounded-md shadow-md whitespace-nowrap">
+                          {sliderExperienceYears} Yrs
+                          <div className="absolute left-1/2 -bottom-1 -translate-x-1/2 w-1.5 h-1.5 rotate-45 bg-[#102B45] dark:bg-gold-500" />
                         </div>
+                      </div>
 
-                        {/* Draggable Slider Input with Fill Track */}
-                        <input
-                          type="range"
-                          min="0"
-                          max="30"
-                          step="1"
-                          value={sliderExperienceYears}
-                          aria-label="Experience in years"
-                          onChange={(e) => handleSliderChange(Number(e.target.value))}
-                          className="slider-revival"
-                          style={{
-                            background: `linear-gradient(to right, #D5A33B 0%, #D5A33B ${pct}%, var(--slider-track-bg, #e2e8f0) ${pct}%, var(--slider-track-bg, #e2e8f0) 100%)`
-                          }}
-                        />
-                      </>
-                    );
-                  })()}
-                </div>
-
-                {/* Min / Max Labels and Optional Reset Button */}
-                <div className="flex items-center justify-between text-[11px] font-semibold text-slate-400 dark:text-slate-500 pt-1.5">
-                  <span>0 Yrs</span>
-                  {pendingExperienceYears !== null && (
-                    <button
-                      type="button"
-                      onClick={() => {
-                        setPendingExperienceYears(null);
-                        setSliderExperienceYears(0);
-                      }}
-                      className="text-[10px] text-gold-600 dark:text-gold-400 hover:underline cursor-pointer font-bold"
-                    >
-                      Reset (Any)
-                    </button>
-                  )}
-                  <span>30 Yrs</span>
-                </div>
+                      {/* Draggable Slider Input with Fill Track */}
+                      <input
+                        type="range"
+                        min="0"
+                        max="30"
+                        step="1"
+                        value={sliderExperienceYears}
+                        aria-label="Experience in years"
+                        onChange={(e) => handleSliderChange(Number(e.target.value))}
+                        className="slider-revival"
+                        style={{
+                          background: `linear-gradient(to right, #D5A33B 0%, #D5A33B ${pct}%, var(--slider-track-bg, #e2e8f0) ${pct}%, var(--slider-track-bg, #e2e8f0) 100%)`
+                        }}
+                      />
+                    </>
+                  );
+                })()}
               </div>
-            )}
+
+              {/* Min / Max Labels and Optional Reset Button */}
+              <div className="flex items-center justify-between text-[11px] font-semibold text-slate-400 dark:text-slate-500 pt-1.5">
+                <span>0 Yrs</span>
+                {pendingExperienceYears !== null && (
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setPendingExperienceYears(null);
+                      setSliderExperienceYears(0);
+                    }}
+                    className="text-[10px] text-gold-600 dark:text-gold-400 hover:underline cursor-pointer font-bold"
+                  >
+                    Reset (Any)
+                  </button>
+                )}
+                <span>30 Yrs</span>
+              </div>
+            </div>
           </div>
 
           {/* --- CATEGORY 6: SALARY --- */}
@@ -2202,6 +2163,9 @@ export const JobsPage = () => {
                 {paginatedJobs.map((job) => {
                   const saved = savedJobs.includes(job.id);
                   const applied = isApplied(job.id);
+                  const isExpired = Boolean(
+                    job.closingDate && new Date(job.closingDate).setHours(23, 59, 59, 999) < Date.now()
+                  );
 
                   return (
                     <div
@@ -2218,11 +2182,29 @@ export const JobsPage = () => {
                               <span className="bg-gold-500/10 text-gold-600 dark:text-gold-400 text-[10px] font-bold px-2.5 py-0.5 rounded-full uppercase tracking-wider font-mono">
                                 {job.category || job.industry || 'Executive'}
                               </span>
-                              {job.jobType && (
+                              {job.contractType ? (
+                                <span className="bg-slate-100 dark:bg-navy-900 text-slate-700 dark:text-slate-300 text-[10px] font-semibold px-2 py-0.5 rounded-full">
+                                  {job.contractDuration && job.contractType !== 'Permanent' ? `${job.contractType} (${job.contractDuration})` : job.contractType}
+                                </span>
+                              ) : job.jobType ? (
                                 <span className="bg-slate-100 dark:bg-navy-900 text-slate-700 dark:text-slate-300 text-[10px] font-semibold px-2 py-0.5 rounded-full">
                                   {job.jobType}
                                 </span>
+                              ) : null}
+                              {job.visaSponsorship === 'Visa sponsorship provided' && (
+                                <span className="bg-emerald-500/10 text-emerald-700 dark:text-emerald-400 border border-emerald-500/20 text-[10px] font-bold px-2 py-0.5 rounded-full">
+                                  Visa Sponsored
+                                </span>
                               )}
+                              {isExpired ? (
+                                <span className="bg-rose-500/15 text-rose-700 dark:text-rose-400 border border-rose-500/30 text-[10px] font-bold px-2 py-0.5 rounded-full">
+                                  Closed
+                                </span>
+                              ) : job.closingDate ? (
+                                <span className="bg-slate-100 dark:bg-navy-900 text-slate-600 dark:text-slate-400 text-[10px] font-medium px-2 py-0.5 rounded-full font-mono">
+                                  Deadline: {job.closingDate}
+                                </span>
+                              ) : null}
                               {job.featured && (
                                 <span className="text-[10px] font-bold uppercase tracking-wider px-2 py-0.5 rounded-full bg-amber-500/15 text-amber-700 dark:text-amber-300 border border-amber-500/30 flex items-center gap-1">
                                   <Sparkles className="w-2.5 h-2.5" />
@@ -2307,6 +2289,14 @@ export const JobsPage = () => {
                           >
                             <CheckCircle2 className="w-3.5 h-3.5" />
                             <span>Applied</span>
+                          </button>
+                        ) : isExpired ? (
+                          <button
+                            disabled
+                            onClick={(e) => e.stopPropagation()}
+                            className="px-3.5 py-1.5 bg-slate-100 dark:bg-navy-900 border border-slate-200 dark:border-navy-800 text-slate-400 dark:text-slate-500 font-bold text-xs rounded-xl cursor-not-allowed flex items-center gap-1"
+                          >
+                            <span>Closed</span>
                           </button>
                         ) : (
                           <button
@@ -2567,69 +2557,354 @@ export const JobsPage = () => {
       {/* ============================================================ */}
       {/* VIEW JOB DETAIL MODAL                                        */}
       {/* ============================================================ */}
-      {viewJob && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/80 dark:bg-navy-950/80 backdrop-blur-xs animate-in fade-in">
-          <div className="bg-white dark:bg-navy-950 border border-slate-200 dark:border-gold-500/30 rounded-2xl max-w-2xl w-full p-5 sm:p-6 shadow-2xl space-y-3.5 max-h-[90vh] overflow-y-auto">
-            <div className="flex justify-between items-start border-b border-slate-100 dark:border-navy-800 pb-2.5">
-              <div>
-                <span className="bg-gold-500/20 text-gold-500 text-xs font-bold px-2 py-0.5 rounded-full uppercase tracking-wider">{viewJob.category || viewJob.industry}</span>
-                <h2 className="font-serif text-xl font-bold text-navy-900 dark:text-white mt-1">{viewJob.title}</h2>
-                <p className="text-xs text-slate-600 dark:text-slate-300 font-semibold">{viewJob.company} • {viewJob.city ? `${viewJob.city}, ${viewJob.country}` : viewJob.location}</p>
-              </div>
-              <button onClick={() => setViewJob(null)} className="text-slate-400 hover:text-slate-900 dark:hover:text-white p-1 cursor-pointer"><X className="w-5 h-5" /></button>
-            </div>
+      {viewJob && (() => {
+        const isJobExpired = Boolean(
+          viewJob.closingDate && new Date(viewJob.closingDate).setHours(23, 59, 59, 999) < Date.now()
+        );
+        const benefitsList = Array.isArray(viewJob.benefits)
+          ? viewJob.benefits
+          : typeof viewJob.benefits === 'string' && viewJob.benefits.startsWith('[')
+            ? JSON.parse(viewJob.benefits)
+            : typeof viewJob.benefits === 'string' && viewJob.benefits.trim()
+              ? viewJob.benefits.split(',').map(s => s.trim()).filter(Boolean)
+              : [];
 
-            <div className="p-3 bg-slate-50 dark:bg-navy-900 text-slate-900 dark:text-white rounded-xl text-xs flex justify-between border border-slate-100 dark:border-navy-800">
-              <div><p className="text-[10px] text-slate-500 font-medium">Monthly Compensation</p><p className="font-bold text-gold-500 text-xs font-mono">{viewJob.salary}</p></div>
-              <div><p className="text-[10px] text-slate-500 font-medium">Experience Required</p><p className="font-bold text-slate-900 dark:text-white text-xs">{viewJob.experience}</p></div>
-              <div><p className="text-[10px] text-slate-500 font-medium">Job Type</p><p className="font-bold text-slate-900 dark:text-white text-xs">{viewJob.jobType}</p></div>
-            </div>
-
-            <div className="space-y-2.5 text-xs text-slate-700 dark:text-slate-300 font-medium">
-              <div>
-                <h4 className="font-bold text-navy-900 dark:text-white mb-1">Full Description:</h4>
-                <p className="leading-relaxed">{viewJob.description}</p>
-              </div>
-              {viewJob.qualification && (
-                <div>
-                  <h4 className="font-bold text-navy-900 dark:text-white mb-1">Qualification Required:</h4>
-                  <p className="p-2 bg-slate-50 dark:bg-navy-900 rounded-lg border border-slate-100 dark:border-navy-800">{viewJob.qualification}</p>
+        return (
+          <div className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-4 bg-slate-900/80 dark:bg-navy-950/80 backdrop-blur-xs animate-in fade-in">
+            <div className="bg-white dark:bg-navy-950 border border-slate-200 dark:border-gold-500/30 rounded-2xl max-w-3xl w-full p-5 sm:p-6 shadow-2xl space-y-4 max-h-[92vh] overflow-y-auto [scrollbar-width:thin] [scrollbar-color:#cbd5e1_transparent] dark:[scrollbar-color:#334155_transparent]">
+              
+              {/* MODAL HEADER */}
+              <div className="flex justify-between items-start border-b border-slate-100 dark:border-navy-800 pb-3">
+                <div className="space-y-1">
+                  <div className="flex flex-wrap items-center gap-2">
+                    <span className="bg-gold-500/15 text-gold-600 dark:text-gold-400 text-xs font-bold px-2.5 py-0.5 rounded-full uppercase tracking-wider font-mono">
+                      {viewJob.category || viewJob.industry || 'Executive'}
+                    </span>
+                    {viewJob.contractType && (
+                      <span className="bg-slate-100 dark:bg-navy-900 text-slate-700 dark:text-slate-300 text-xs font-semibold px-2.5 py-0.5 rounded-full">
+                        {viewJob.contractDuration && viewJob.contractType !== 'Permanent' ? `${viewJob.contractType} (${viewJob.contractDuration})` : viewJob.contractType}
+                      </span>
+                    )}
+                    {viewJob.visaSponsorship === 'Visa sponsorship provided' && (
+                      <span className="bg-emerald-500/10 text-emerald-700 dark:text-emerald-400 border border-emerald-500/20 text-xs font-bold px-2.5 py-0.5 rounded-full">
+                        Visa Sponsored
+                      </span>
+                    )}
+                    {isJobExpired ? (
+                      <span className="bg-rose-500/15 text-rose-700 dark:text-rose-400 border border-rose-500/30 text-xs font-bold px-2.5 py-0.5 rounded-full">
+                        Closed / Expired
+                      </span>
+                    ) : viewJob.closingDate ? (
+                      <span className="bg-slate-100 dark:bg-navy-900 text-slate-600 dark:text-slate-400 text-xs font-medium px-2.5 py-0.5 rounded-full font-mono">
+                        Deadline: {viewJob.closingDate}
+                      </span>
+                    ) : null}
+                  </div>
+                  <h2 className="font-serif text-xl sm:text-2xl font-bold text-navy-950 dark:text-white mt-1 leading-snug">
+                    {viewJob.title}
+                  </h2>
+                  <p className="text-xs sm:text-sm text-slate-600 dark:text-slate-300 font-semibold flex items-center gap-1.5">
+                    <Building2 className="w-4 h-4 text-gold-500 shrink-0" />
+                    <span>{viewJob.company}</span>
+                    <span>•</span>
+                    <MapPin className="w-3.5 h-3.5 text-slate-400 shrink-0" />
+                    <span>{viewJob.city ? `${viewJob.city}, ${viewJob.country}` : (viewJob.location || viewJob.country)}</span>
+                  </p>
                 </div>
-              )}
-              {viewJob.benefits && Array.isArray(viewJob.benefits) && (
-                <div>
-                  <h4 className="font-bold text-navy-900 dark:text-white mb-1">Key Benefits:</h4>
-                  <ul className="list-disc pl-4 space-y-0.5">
-                    {viewJob.benefits.map((b, idx) => <li key={idx}>{b}</li>)}
-                  </ul>
-                </div>
-              )}
-            </div>
-
-            <div className="flex gap-2.5 pt-2.5 border-t border-slate-100 dark:border-navy-800">
-              <button onClick={() => setViewJob(null)} className="flex-1 py-2 bg-slate-100 dark:bg-navy-900 text-slate-700 dark:text-slate-300 text-xs font-bold rounded-xl cursor-pointer">Close</button>
-              {isApplied(viewJob.id) ? (
-                <button disabled className="flex-1 py-2 bg-emerald-500/15 border border-emerald-500/30 text-emerald-700 dark:text-emerald-400 font-bold text-xs rounded-xl flex items-center justify-center gap-1 cursor-default">
-                  <CheckCircle2 className="w-4 h-4" />
-                  <span>Applied</span>
+                <button
+                  type="button"
+                  onClick={() => setViewJob(null)}
+                  className="text-slate-400 hover:text-slate-900 dark:hover:text-white p-1.5 rounded-xl hover:bg-slate-100 dark:hover:bg-navy-900 transition cursor-pointer"
+                >
+                  <X className="w-5 h-5" />
                 </button>
-              ) : (
-                <button onClick={() => {
-                  const j = viewJob;
-                  setViewJob(null);
-                  if (!user || !user.email) {
-                    setPendingJobToApply(j);
-                    openAuthModal('register', 'candidate');
-                    return;
-                  }
-                  setApplyJob(j);
-                  setAppliedSuccess(false);
-                }} className="flex-1 py-2 bg-gold-shimmer text-navy-950 font-bold text-xs rounded-xl shadow-gold-glow cursor-pointer">Apply for Position</button>
+              </div>
+
+              {/* Expired Alert Notice */}
+              {isJobExpired && (
+                <div className="p-3 bg-rose-500/10 border border-rose-500/30 rounded-xl text-rose-700 dark:text-rose-300 flex items-center gap-2.5 text-xs font-semibold">
+                  <AlertCircle className="w-4 h-4 text-rose-500 shrink-0" />
+                  <span>Applications for this vacancy closed on {viewJob.closingDate}. New candidate submissions are disabled.</span>
+                </div>
               )}
+
+              {/* 8 STRUCTURED SECTIONS */}
+              <div className="space-y-4 text-xs text-slate-700 dark:text-slate-300">
+
+                {/* SECTION 1: JOB OVERVIEW */}
+                <div className="p-3.5 bg-slate-50 dark:bg-navy-900/60 rounded-xl border border-slate-200 dark:border-navy-800 space-y-2">
+                  <div className="flex items-center gap-2 border-b border-slate-200 dark:border-navy-800 pb-1.5">
+                    <Briefcase className="w-4 h-4 text-gold-500" />
+                    <h4 className="font-bold text-navy-950 dark:text-white text-xs uppercase tracking-wider">1. Job Overview</h4>
+                  </div>
+                  <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 pt-1">
+                    <div>
+                      <p className="text-[10px] text-slate-500 dark:text-slate-400 font-medium">Destination</p>
+                      <p className="font-bold text-slate-900 dark:text-white">{viewJob.country || 'International'}</p>
+                    </div>
+                    <div>
+                      <p className="text-[10px] text-slate-500 dark:text-slate-400 font-medium">City / Work Site</p>
+                      <p className="font-bold text-slate-900 dark:text-white">{viewJob.city || viewJob.location || 'On-site'}</p>
+                    </div>
+                    <div>
+                      <p className="text-[10px] text-slate-500 dark:text-slate-400 font-medium">Industry</p>
+                      <p className="font-bold text-slate-900 dark:text-white">{viewJob.industry || viewJob.category || 'Executive'}</p>
+                    </div>
+                    <div>
+                      <p className="text-[10px] text-slate-500 dark:text-slate-400 font-medium">Open Positions</p>
+                      <p className="font-bold text-slate-900 dark:text-white">{viewJob.vacancies || '1'} {Number(viewJob.vacancies || 1) > 1 ? 'Vacancies' : 'Vacancy'}</p>
+                    </div>
+                  </div>
+                </div>
+
+                {/* SECTION 2: SALARY AND BENEFITS */}
+                <div className="p-3.5 bg-slate-50 dark:bg-navy-900/60 rounded-xl border border-slate-200 dark:border-navy-800 space-y-2.5">
+                  <div className="flex items-center gap-2 border-b border-slate-200 dark:border-navy-800 pb-1.5">
+                    <DollarSign className="w-4 h-4 text-gold-500" />
+                    <h4 className="font-bold text-navy-950 dark:text-white text-xs uppercase tracking-wider">2. Salary and Benefits</h4>
+                  </div>
+                  <div>
+                    <p className="text-[10px] text-slate-500 dark:text-slate-400 font-medium">Offered Monthly Compensation (Tax Free)</p>
+                    <p className="text-base sm:text-lg font-bold text-emerald-600 dark:text-emerald-400 font-mono mt-0.5">{viewJob.salary}</p>
+                  </div>
+                  {benefitsList.length > 0 && (
+                    <div className="pt-1.5 border-t border-slate-200 dark:border-navy-800/80">
+                      <p className="text-[11px] font-bold text-slate-800 dark:text-slate-200 mb-1.5">Employer Provided Benefits:</p>
+                      <div className="flex flex-wrap gap-1.5">
+                        {benefitsList.map((benefit, idx) => (
+                          <span key={idx} className="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg text-[11px] font-medium bg-white dark:bg-navy-950 border border-slate-200 dark:border-navy-800 text-slate-800 dark:text-slate-200">
+                            <Check className="w-3 h-3 text-gold-500" />
+                            <span>{benefit}</span>
+                          </span>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+                </div>
+
+                {/* SECTION 3: REQUIRED SKILLS AND EXPERIENCE */}
+                <div className="p-3.5 bg-slate-50 dark:bg-navy-900/60 rounded-xl border border-slate-200 dark:border-navy-800 space-y-2.5">
+                  <div className="flex items-center gap-2 border-b border-slate-200 dark:border-navy-800 pb-1.5">
+                    <Layers className="w-4 h-4 text-gold-500" />
+                    <h4 className="font-bold text-navy-950 dark:text-white text-xs uppercase tracking-wider">3. Required Skills and Experience</h4>
+                  </div>
+                  <div>
+                    <p className="text-[10px] text-slate-500 dark:text-slate-400 font-medium">Minimum Experience</p>
+                    <p className="font-bold text-slate-900 dark:text-white">{viewJob.experience || 'Industry Standard'}</p>
+                  </div>
+                  {viewJob.skills && Array.isArray(viewJob.skills) && viewJob.skills.length > 0 && (
+                    <div>
+                      <p className="text-[11px] font-bold text-slate-800 dark:text-slate-200 mb-1.5">Key Core Skills:</p>
+                      <div className="flex flex-wrap gap-1.5">
+                        {viewJob.skills.map((skill, idx) => (
+                          <span key={idx} className="bg-slate-200/80 dark:bg-navy-800 text-slate-900 dark:text-slate-200 text-[11px] font-semibold px-2.5 py-0.5 rounded-md">
+                            {skill}
+                          </span>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+                  {viewJob.description && (
+                    <div className="pt-1.5 border-t border-slate-200 dark:border-navy-800/80">
+                      <p className="text-[11px] font-bold text-slate-800 dark:text-slate-200 mb-1">Role Description:</p>
+                      <p className="text-xs leading-relaxed text-slate-600 dark:text-slate-300 whitespace-pre-line">{viewJob.description}</p>
+                    </div>
+                  )}
+                </div>
+
+                {/* SECTION 4: QUALIFICATIONS & MANDATORY LICENCES */}
+                {(viewJob.educationLevel || viewJob.requiredDegree || viewJob.academicQualifications || viewJob.mandatoryLicences || viewJob.qualification) && (
+                  <div className="p-3.5 bg-slate-50 dark:bg-navy-900/60 rounded-xl border border-slate-200 dark:border-navy-800 space-y-2.5">
+                    <div className="flex items-center gap-2 border-b border-slate-200 dark:border-navy-800 pb-1.5">
+                      <CheckCircle2 className="w-4 h-4 text-gold-500" />
+                      <h4 className="font-bold text-navy-950 dark:text-white text-xs uppercase tracking-wider">4. Qualifications & Mandatory Licences</h4>
+                    </div>
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                      {viewJob.educationLevel && (
+                        <div>
+                          <p className="text-[10px] text-slate-500 dark:text-slate-400 font-medium">Minimum Education Level</p>
+                          <p className="font-bold text-slate-900 dark:text-white">{viewJob.educationLevel}</p>
+                        </div>
+                      )}
+                      {viewJob.requiredDegree && (
+                        <div>
+                          <p className="text-[10px] text-slate-500 dark:text-slate-400 font-medium">Required Degree / Certification</p>
+                          <p className="font-bold text-slate-900 dark:text-white">{viewJob.requiredDegree}</p>
+                        </div>
+                      )}
+                      {viewJob.academicQualifications && (
+                        <div>
+                          <p className="text-[10px] text-slate-500 dark:text-slate-400 font-medium">Academic / Professional Credentials</p>
+                          <p className="font-bold text-slate-900 dark:text-white">{viewJob.academicQualifications}</p>
+                        </div>
+                      )}
+                      {viewJob.mandatoryLicences && (
+                        <div>
+                          <p className="text-[10px] text-slate-500 dark:text-slate-400 font-medium">Mandatory Professional Licences</p>
+                          <p className="font-bold text-slate-900 dark:text-white">{viewJob.mandatoryLicences}</p>
+                        </div>
+                      )}
+                    </div>
+                    {viewJob.qualification && !viewJob.requiredDegree && (
+                      <p className="text-xs text-slate-600 dark:text-slate-300">{viewJob.qualification}</p>
+                    )}
+                  </div>
+                )}
+
+                {/* SECTION 5: EMPLOYMENT TYPE AND CONTRACT LENGTH */}
+                <div className="p-3.5 bg-slate-50 dark:bg-navy-900/60 rounded-xl border border-slate-200 dark:border-navy-800 space-y-2">
+                  <div className="flex items-center gap-2 border-b border-slate-200 dark:border-navy-800 pb-1.5">
+                    <Clock className="w-4 h-4 text-gold-500" />
+                    <h4 className="font-bold text-navy-950 dark:text-white text-xs uppercase tracking-wider">5. Employment Type and Contract Length</h4>
+                  </div>
+                  <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 pt-1">
+                    <div>
+                      <p className="text-[10px] text-slate-500 dark:text-slate-400 font-medium">Contract Type</p>
+                      <p className="font-bold text-slate-900 dark:text-white">{viewJob.contractType || viewJob.jobType || 'Permanent'}</p>
+                    </div>
+                    {viewJob.contractDuration && viewJob.contractType !== 'Permanent' && (
+                      <div>
+                        <p className="text-[10px] text-slate-500 dark:text-slate-400 font-medium">Contract Duration</p>
+                        <p className="font-bold text-slate-900 dark:text-white">{viewJob.contractDuration}</p>
+                      </div>
+                    )}
+                    {viewJob.contractRenewal && (
+                      <div>
+                        <p className="text-[10px] text-slate-500 dark:text-slate-400 font-medium">Renewal Possibility</p>
+                        <p className="font-bold text-slate-900 dark:text-white">{viewJob.contractRenewal}</p>
+                      </div>
+                    )}
+                  </div>
+                </div>
+
+                {/* SECTION 6: ACCOMMODATION AND TRANSPORTATION */}
+                {(viewJob.accommodation || viewJob.transportation || viewJob.livingAllowancesDetails) && (
+                  <div className="p-3.5 bg-slate-50 dark:bg-navy-900/60 rounded-xl border border-slate-200 dark:border-navy-800 space-y-2">
+                    <div className="flex items-center gap-2 border-b border-slate-200 dark:border-navy-800 pb-1.5">
+                      <Building2 className="w-4 h-4 text-gold-500" />
+                      <h4 className="font-bold text-navy-950 dark:text-white text-xs uppercase tracking-wider">6. Accommodation and Transportation</h4>
+                    </div>
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 pt-1">
+                      {viewJob.accommodation && (
+                        <div>
+                          <p className="text-[10px] text-slate-500 dark:text-slate-400 font-medium">Accommodation Status</p>
+                          <p className="font-bold text-slate-900 dark:text-white">{viewJob.accommodation}</p>
+                        </div>
+                      )}
+                      {viewJob.transportation && (
+                        <div>
+                          <p className="text-[10px] text-slate-500 dark:text-slate-400 font-medium">Transportation Status</p>
+                          <p className="font-bold text-slate-900 dark:text-white">{viewJob.transportation}</p>
+                        </div>
+                      )}
+                    </div>
+                    {viewJob.livingAllowancesDetails && (
+                      <p className="text-xs text-slate-600 dark:text-slate-300 pt-1 border-t border-slate-200 dark:border-navy-800/80">
+                        <strong>Living Allowance Specifics:</strong> {viewJob.livingAllowancesDetails}
+                      </p>
+                    )}
+                  </div>
+                )}
+
+                {/* SECTION 7: VISA SPONSORSHIP */}
+                <div className="p-3.5 bg-slate-50 dark:bg-navy-900/60 rounded-xl border border-slate-200 dark:border-navy-800 space-y-2">
+                  <div className="flex items-center gap-2 border-b border-slate-200 dark:border-navy-800 pb-1.5">
+                    <Globe className="w-4 h-4 text-gold-500" />
+                    <h4 className="font-bold text-navy-950 dark:text-white text-xs uppercase tracking-wider">7. Visa Sponsorship & Work Authorisation</h4>
+                  </div>
+                  <div>
+                    <p className="text-[10px] text-slate-500 dark:text-slate-400 font-medium">Sponsorship Status</p>
+                    <p className="font-bold text-slate-900 dark:text-white">{viewJob.visaSponsorship || 'Sponsorship details to be confirmed'}</p>
+                  </div>
+                  {viewJob.visaSupportDetails && (
+                    <p className="text-xs text-slate-600 dark:text-slate-300">
+                      <strong>Employer Support:</strong> {viewJob.visaSupportDetails}
+                    </p>
+                  )}
+                  <div className="p-2.5 bg-blue-500/10 border border-blue-500/20 rounded-xl text-[11px] text-blue-800 dark:text-blue-300 flex items-start gap-2">
+                    <AlertCircle className="w-4 h-4 text-blue-500 shrink-0 mt-0.5" />
+                    <span>
+                      <strong>Immigration Regulatory Disclaimer:</strong> Work visa issuance is subject to destination immigration authority approval and candidate background clearance.
+                    </span>
+                  </div>
+                </div>
+
+                {/* SECTION 8: APPLICATION DEADLINE & STATUS */}
+                <div className="p-3.5 bg-slate-50 dark:bg-navy-900/60 rounded-xl border border-slate-200 dark:border-navy-800 space-y-2">
+                  <div className="flex items-center gap-2 border-b border-slate-200 dark:border-navy-800 pb-1.5">
+                    <Calendar className="w-4 h-4 text-gold-500" />
+                    <h4 className="font-bold text-navy-950 dark:text-white text-xs uppercase tracking-wider">8. Application Deadline</h4>
+                  </div>
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <p className="text-[10px] text-slate-500 dark:text-slate-400 font-medium">Closing Date (23:59:59 Local Time)</p>
+                      <p className="font-bold text-slate-900 dark:text-white font-mono text-sm">{viewJob.closingDate || 'Open until filled'}</p>
+                    </div>
+                    <div>
+                      {isJobExpired ? (
+                        <span className="px-3 py-1 rounded-full bg-rose-500/15 text-rose-700 dark:text-rose-400 border border-rose-500/30 font-bold text-xs">
+                          Closed / Expired
+                        </span>
+                      ) : (
+                        <span className="px-3 py-1 rounded-full bg-emerald-500/15 text-emerald-700 dark:text-emerald-400 border border-emerald-500/30 font-bold text-xs">
+                          Actively Recruiting
+                        </span>
+                      )}
+                    </div>
+                  </div>
+                </div>
+
+              </div>
+
+              {/* FOOTER BUTTONS */}
+              <div className="flex gap-2.5 pt-3 border-t border-slate-100 dark:border-navy-800">
+                <button
+                  type="button"
+                  onClick={() => setViewJob(null)}
+                  className="flex-1 py-2.5 bg-slate-100 dark:bg-navy-900 hover:bg-slate-200 dark:hover:bg-navy-800 text-slate-700 dark:text-slate-300 text-xs font-bold rounded-xl transition cursor-pointer"
+                >
+                  Close
+                </button>
+                {isApplied(viewJob.id) ? (
+                  <button
+                    disabled
+                    className="flex-1 py-2.5 bg-emerald-500/15 border border-emerald-500/30 text-emerald-700 dark:text-emerald-400 font-bold text-xs rounded-xl flex items-center justify-center gap-1 cursor-default"
+                  >
+                    <CheckCircle2 className="w-4 h-4" />
+                    <span>Applied</span>
+                  </button>
+                ) : isJobExpired ? (
+                  <button
+                    disabled
+                    className="flex-1 py-2.5 bg-slate-200 dark:bg-navy-800 text-slate-400 dark:text-slate-500 font-bold text-xs rounded-xl cursor-not-allowed text-center"
+                  >
+                    Applications Closed
+                  </button>
+                ) : (
+                  <button
+                    type="button"
+                    onClick={() => {
+                      const j = viewJob;
+                      setViewJob(null);
+                      if (!user || !user.email) {
+                        setPendingJobToApply(j);
+                        openAuthModal('register', 'candidate');
+                        return;
+                      }
+                      setApplyJob(j);
+                      setAppliedSuccess(false);
+                    }}
+                    className="flex-1 py-2.5 bg-gold-shimmer text-navy-950 font-bold text-xs rounded-xl shadow-gold-glow hover:opacity-95 transition cursor-pointer"
+                  >
+                    Apply for Position →
+                  </button>
+                )}
+              </div>
+
             </div>
           </div>
-        </div>
-      )}
+        );
+      })()}
 
       {/* Quick Apply Modal */}
       <QuickApplyModal
@@ -2648,7 +2923,7 @@ export const JobsPage = () => {
           onClick={closeFilterPopup}
         >
           <div
-            className={`relative w-full ${popupConfig.isCompactVertical ? 'max-w-md' : 'max-w-[880px]'} max-h-[88vh] bg-white dark:bg-navy-950 rounded-2xl shadow-2xl border border-slate-200 dark:border-navy-800 flex flex-col overflow-hidden animate-in zoom-in-95 duration-150`}
+            className="relative w-full max-w-[920px] max-h-[80vh] bg-white dark:bg-navy-950 rounded-2xl shadow-2xl border border-slate-200 dark:border-navy-800 flex flex-col overflow-hidden animate-in zoom-in-95 duration-150"
             onClick={(e) => e.stopPropagation()}
             role="dialog"
             aria-modal="true"
@@ -2710,8 +2985,8 @@ export const JobsPage = () => {
               </div>
             </div>
 
-            {/* 2. Scrollable Body with 3-Column Desktop Grid */}
-            <div className="flex-1 overflow-y-auto p-4 sm:p-5 md:p-6 min-h-[220px] max-h-[52vh] sm:max-h-[58vh] [scrollbar-width:thin] [scrollbar-color:#cbd5e1_transparent] dark:[scrollbar-color:#334155_transparent] [&::-webkit-scrollbar]:w-1.5 [&::-webkit-scrollbar-track]:bg-transparent [&::-webkit-scrollbar-thumb]:bg-slate-300 dark:[&::-webkit-scrollbar-thumb]:bg-slate-700 [&::-webkit-scrollbar-thumb]:rounded-full hover:[&::-webkit-scrollbar-thumb]:bg-slate-400 dark:hover:[&::-webkit-scrollbar-thumb]:bg-slate-600">
+            {/* 2. Scrollable Body with 3-Column Horizontal Desktop Grid */}
+            <div className="flex-1 overflow-y-auto overflow-x-hidden p-4 sm:p-5 md:p-6 min-h-[220px] max-h-[56vh] [scrollbar-width:thin] [scrollbar-color:#cbd5e1_transparent] dark:[scrollbar-color:#334155_transparent] [&::-webkit-scrollbar]:w-1.5 [&::-webkit-scrollbar-track]:bg-transparent [&::-webkit-scrollbar-thumb]:bg-slate-300 dark:[&::-webkit-scrollbar-thumb]:bg-slate-700 [&::-webkit-scrollbar-thumb]:rounded-full hover:[&::-webkit-scrollbar-thumb]:bg-slate-400 dark:hover:[&::-webkit-scrollbar-thumb]:bg-slate-600">
               {(() => {
                 const query = popupSearchQuery.trim().toLowerCase();
                 const filtered = query
@@ -2739,7 +3014,7 @@ export const JobsPage = () => {
                 }
 
                 return (
-                  <div className={popupConfig.isCompactVertical ? "grid grid-cols-1 gap-y-2" : "grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-x-4 sm:gap-x-5 gap-y-2.5"}>
+                  <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-3 gap-x-4 sm:gap-x-5 gap-y-2.5">
                     {filtered.map(item => {
                       const checked = tempSelected.includes(item);
                       const count = popupConfig.counts[item] || 0;

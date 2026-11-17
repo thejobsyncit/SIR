@@ -2,16 +2,19 @@ import React, { useState, useEffect, useRef } from 'react';
 import { useApp } from '../context/AppContext';
 import { UnifiedAuth } from '../components/UnifiedAuth';
 import { JOBS_LIST } from '../data/mockData';
-import {
-  User, FileText, Sparkles, CheckCircle2, Clock, Calendar, Calendar as CalendarIcon, Bookmark, Bell,
-  Upload, Shield, ArrowRight, ArrowLeft, LogOut, Edit3, Camera, AlertCircle, Award,
-  Briefcase, MapPin, DollarSign, Check, X, Plus, Star, ChevronRight, Zap, Globe, Trash2, Video, Mic, MicOff, VideoOff, Search, Eye,
-  Building2, Send, Paperclip, Download, SlidersHorizontal, Layers, Tag, BookmarkPlus, RefreshCw
-} from 'lucide-react';
-import ScrollReveal from '../components/ScrollReveal';
+import { BrandLogoIcon } from '../components/BrandLogoIcon';
 import { SEO } from '../components/SEO';
-import DatePicker from "react-datepicker";
-import "react-datepicker/dist/react-datepicker.css";
+import {
+  Sun, Moon,
+  LayoutDashboard, User, FileText, Bookmark, Send, Clock, Calendar, Shield,
+  Settings, LogOut, Bell, Search, Menu, X, ChevronRight, ChevronDown, CheckCircle2,
+  AlertCircle, Briefcase, Building2, MapPin, Sparkles, Upload, Download, Trash2,
+  Eye, Video, Phone, Mail, Globe, Award, Edit3, Camera, Check, Plus, Star,
+  SlidersHorizontal, Paperclip, Lock, RefreshCw, ExternalLink, Filter, ArrowRight,
+  ArrowLeft, CheckCheck, KeyRound, Key, FolderCheck, AlertTriangle, ShieldCheck,
+  RotateCcw
+
+} from 'lucide-react';
 
 export const COUNTRY_CODES = [
   { code: '+971', country: 'UAE', flag: '🇦🇪', maxDigits: 9, placeholder: '50 123 4567' },
@@ -25,122 +28,499 @@ export const COUNTRY_CODES = [
 ];
 
 export const PRESET_NATIONALITIES = [
-  'Indian',
-  'Emirati (UAE)',
-  'Saudi',
-  'Qatari',
-  'Omani',
-  'Kuwaiti',
-  'Bahraini',
-  'Pakistani',
-  'Filipino',
-  'Egyptian',
-  'British',
-  'American',
-  'Canadian',
-  'Australian',
-  'Jordanian',
-  'Lebanese',
-  'South African',
-  'Bangladeshi',
-  'Sri Lankan',
-  'Nepali',
-  'German',
-  'French',
-  'Singaporean',
-  'Malaysian',
-  'Nigerian',
-  'Kenyan'
+  'Indian', 'Emirati (UAE)', 'Saudi', 'Qatari', 'Omani', 'Kuwaiti', 'Bahraini',
+  'Pakistani', 'Filipino', 'Egyptian', 'British', 'American', 'Canadian',
+  'Australian', 'Jordanian', 'Lebanese', 'South African', 'Bangladeshi',
+  'Sri Lankan', 'Nepali', 'German', 'French', 'Singaporean', 'Malaysian'
 ];
 
 export const PRESET_CITIZENSHIPS = [
-  'India',
-  'United Arab Emirates',
-  'Saudi Arabia',
-  'Qatar',
-  'Oman',
-  'Kuwait',
-  'Bahrain',
-  'Pakistan',
-  'Philippines',
-  'Egypt',
-  'United Kingdom',
-  'United States',
-  'Canada',
-  'Australia',
-  'Singapore',
-  'South Africa',
-  'Bangladesh',
-  'Sri Lanka',
-  'Nepal',
-  'Germany',
-  'France',
-  'Malaysia',
-  'Nigeria',
-  'Kenya'
+  'India', 'United Arab Emirates', 'Saudi Arabia', 'Qatar', 'Oman', 'Kuwait',
+  'Bahrain', 'Pakistan', 'Philippines', 'Egypt', 'United Kingdom', 'United States',
+  'Canada', 'Australia', 'Singapore', 'South Africa', 'Bangladesh', 'Sri Lanka',
+  'Nepal', 'Germany', 'France', 'Malaysia'
 ];
 
+export const DEFAULT_DOC_TYPES = [
+  {
+    type: 'Passport / National ID',
+    desc: 'Valid international passport biodata page (min 6 months validity) for visa sponsorship & flight booking.',
+    defaultFileName: 'Passport_Copy_Attested.pdf',
+    category: 'identity'
+  },
+  {
+    type: 'Educational Degree / Diploma',
+    desc: 'Highest university degree certificate with Ministry of Foreign Affairs (MOFA) attestation.',
+    defaultFileName: 'Bachelors_Degree_MOFA_Attested.pdf',
+    category: 'education'
+  },
+  {
+    type: 'Experience Certificates',
+    desc: 'Service letters, employment contracts, and experience certificates from previous employers.',
+    defaultFileName: 'Experience_Letters_Combined.pdf',
+    category: 'experience'
+  },
+  {
+    type: 'Professional Certifications',
+    desc: 'Professional licenses, PMP, AWS, ACCA, Cisco, or medical board certifications.',
+    defaultFileName: 'Professional_Licences_2026.pdf',
+    category: 'certification'
+  },
+  {
+    type: 'Police Clearance Certificate (PCC)',
+    desc: 'Good conduct & criminal clearance record required for Gulf residency visa clearance.',
+    defaultFileName: 'Police_Clearance_Certificate.pdf',
+    category: 'compliance'
+  }
+];
+
+export const CandidateAvatar = ({ name, avatar, size = 'md', className = '', onClick, title }) => {
+  const [imgFailed, setImgFailed] = useState(false);
+  const initial = (name || 'Candidate').trim().charAt(0).toUpperCase() || 'C';
+  const hasValidPhoto = Boolean(avatar && !avatar.includes('dicebear') && !imgFailed);
+
+  const sizeClasses = {
+    sm: 'w-8 h-8 text-xs rounded-lg',
+    md: 'w-11 h-11 text-base rounded-xl',
+    lg: 'w-20 h-20 sm:w-24 sm:h-24 text-2xl sm:text-3xl rounded-2xl'
+  }[size] || 'w-11 h-11 text-base rounded-xl';
+
+  if (hasValidPhoto) {
+    return (
+      <img
+        src={avatar}
+        alt={`${name || 'Candidate'}'s Photo`}
+        onError={() => setImgFailed(true)}
+        onClick={onClick}
+        className={`${sizeClasses} object-cover border-2 border-amber-500/80 dark:border-gold-500/80 shadow-xs shrink-0 ${onClick ? 'cursor-pointer hover:opacity-90' : ''} ${className}`}
+        title={title}
+      />
+    );
+  }
+
+  return (
+    <div
+      onClick={onClick}
+      className={`${sizeClasses} bg-gradient-to-br from-amber-400 via-amber-500 to-gold-600 text-slate-950 font-serif font-black flex items-center justify-center border-2 border-amber-500 dark:border-gold-500/90 shadow-xs shrink-0 select-none ${onClick ? 'cursor-pointer hover:opacity-90' : ''} ${className}`}
+      title={title}
+    >
+      <span>{initial}</span>
+    </div>
+  );
+};
+
 export const CandidatePortal = () => {
-  const {
-    user,
-    updateUserProfile,
-    applications,
-    savedJobs,
-    toggleSaveJob,
-    applyForJob,
-    postedJobs,
-    setActiveModal,
-    navigateTo,
-    logout,
-    savedSearches,
-    updateSavedSearch,
-    deleteSavedSearch,
-    restoreSearch
-  } = useApp();
-  const [activeTab, setActiveTab] = useState('dashboard'); // 'dashboard' | 'browse-jobs' | 'edit-profile' | 'applications' | 'saved' | 'saved-searches' | 'interviews'
-  const [renamingSearchId, setRenamingSearchId] = useState(null);
-  const [renameValue, setRenameValue] = useState('');
-  const [savedSearchActionMsg, setSavedSearchActionMsg] = useState({ type: '', text: '' });
-  const [deleteConfirmId, setDeleteConfirmId] = useState(null);
-  const [editSuccess, setEditSuccess] = useState(false);
-  const [profileFormError, setProfileFormError] = useState('');
+  const { user, updateUserProfile, applications, savedJobs, toggleSaveJob, applyForJob, postedJobs, setActiveModal, navigateTo, logout, darkMode, toggleDarkMode } = useApp();
+
+  // Navigation tab state: 'dashboard' | 'profile' | 'resume' | 'saved-jobs' | 'applications' | 'application-status' | 'interviews' | 'documents' | 'settings'
+  const [activeTab, setActiveTab] = useState('dashboard');
+  const [mobileSidebarOpen, setMobileSidebarOpen] = useState(false);
+  const [profileDropdownOpen, setProfileDropdownOpen] = useState(false);
+  const [notificationsOpen, setNotificationsOpen] = useState(false);
   const [showSignOutModal, setShowSignOutModal] = useState(false);
-  const [jobSearch, setJobSearch] = useState('');
-  const [jobCountryFilter, setJobCountryFilter] = useState('All');
-  const [applySuccessMsg, setApplySuccessMsg] = useState('');
+
+  // Notifications state
+  const [notifications, setNotifications] = useState([
+    {
+      id: 'notif-1',
+      title: 'Profile 85% Completed',
+      message: 'Add your attested degree certificate to reach 100% verified status for tier-1 GCC employers.',
+      time: '2 hours ago',
+      isRead: false,
+      type: 'profile'
+    },
+    {
+      id: 'notif-2',
+      title: 'Application Under Review',
+      message: 'Your CV has been matched and shortlisted for Senior Project Engineer in Dubai.',
+      time: '1 day ago',
+      isRead: false,
+      type: 'application'
+    },
+    {
+      id: 'notif-3',
+      title: 'Interview Scheduled',
+      message: 'Technical panel interview scheduled with Al Habtoor Contracting for Thursday 11:00 AM GST.',
+      time: '2 days ago',
+      isRead: true,
+      type: 'interview'
+    }
+  ]);
+
+  // Documents state
+  const [documents, setDocuments] = useState([]);
+  const [docsLoading, setDocsLoading] = useState(false);
+  const [uploadDocModalOpen, setUploadDocModalOpen] = useState(false);
+  const [selectedDocType, setSelectedDocType] = useState(DEFAULT_DOC_TYPES[0].type);
+  const [docFileToUpload, setDocFileToUpload] = useState(null);
+  const [docUploadSuccessMsg, setDocUploadSuccessMsg] = useState('');
+  const [previewDoc, setPreviewDoc] = useState(null);
+
+  // Applications Filter & Search
+  const [appFilterStatus, setAppFilterStatus] = useState('All');
+  const [appSearchQuery, setAppSearchQuery] = useState('');
+  const [screeningModalApp, setScreeningModalApp] = useState(null);
+
+  // Application Status selection
+  const [selectedStatusAppId, setSelectedStatusAppId] = useState(null);
+
+  // Apply Modal state
   const [applyModalJob, setApplyModalJob] = useState(null);
-  const [applyCvChoice, setApplyCvChoice] = useState('profile'); // 'profile' | 'upload'
+  const [applyCvChoice, setApplyCvChoice] = useState('profile');
   const [applyCustomCv, setApplyCustomCv] = useState({ name: '', size: '', url: '' });
-  const [applySaveToProfile, setApplySaveToProfile] = useState(true);
   const [applyCoverNote, setApplyCoverNote] = useState('');
   const [applyNoticePeriod, setApplyNoticePeriod] = useState('Immediate (Ready to Join)');
   const [applyExpectedSalary, setApplyExpectedSalary] = useState('');
   const [applyIsSubmitting, setApplyIsSubmitting] = useState(false);
   const [applyModalError, setApplyModalError] = useState('');
+  const [applySuccessMsg, setApplySuccessMsg] = useState('');
   const applyFileInputRef = useRef(null);
 
-  const openApplyModal = (job) => {
-    if (!user || (!user.email && !user.candidateId)) {
-      setActiveModal('register');
+  // Video Interview Modal state
+  const [interviewModalApp, setInterviewModalApp] = useState(null);
+  const [isMicMuted, setIsMicMuted] = useState(false);
+  const [isVideoMuted, setIsVideoMuted] = useState(false);
+  const videoRef = useRef(null);
+  const [mediaStream, setMediaStream] = useState(null);
+
+  // Settings State
+  const [currentPassword, setCurrentPassword] = useState('');
+  const [newPassword, setNewPassword] = useState('');
+  const [confirmPassword, setConfirmPassword] = useState('');
+  const [passwordMsg, setPasswordMsg] = useState({ text: '', type: '' });
+  const [passwordLoading, setPasswordLoading] = useState(false);
+
+  const [emailPrefs, setEmailPrefs] = useState({
+    jobAlerts: true,
+    statusAlerts: true,
+    interviewReminders: true,
+    newsletter: false
+  });
+  const [prefsSavedMsg, setPrefsSavedMsg] = useState('');
+
+  const [privacySettings, setPrivacySettings] = useState({
+    publicToHeadhunters: true,
+    twoFactorAuth: false
+  });
+
+  const [deleteAccountModalOpen, setDeleteAccountModalOpen] = useState(false);
+  const [deleteConfirmText, setDeleteConfirmText] = useState('');
+  const [deleteError, setDeleteError] = useState('');
+  const [isDeletingAccount, setIsDeletingAccount] = useState(false);
+
+  // Resume drag-drop state
+  const [isDraggingResume, setIsDraggingResume] = useState(false);
+  const [resumeActionMsg, setResumeActionMsg] = useState('');
+  const resumeInputRef = useRef(null);
+
+  // Profile Form state
+  const [profileForm, setProfileForm] = useState({
+    name: user?.name || '',
+    email: user?.email || '',
+    phone: user?.phone || '',
+    dob: user?.dob || '',
+    gender: user?.gender || '',
+    nationality: user?.nationality || 'Indian',
+    citizenship: user?.citizenship || 'India',
+    title: user?.title || user?.currentRole || 'Executive Candidate',
+    currentEmployer: user?.currentEmployer || '',
+    location: user?.location || 'Dubai, UAE',
+    preferredCountry: user?.preferredCountry || 'UAE',
+    experience: user?.experience || '5-8 Years',
+    qualification: user?.qualification || user?.education || "Bachelor's Degree",
+    currentSalary: user?.currentSalary || 'AED 15,000 / Month',
+    expectedSalary: user?.expectedSalary || 'AED 20,000 / Month',
+    noticePeriod: user?.noticePeriod || '30 Days',
+    avatar: (user?.avatar && !user.avatar.includes('dicebear')) ? user.avatar : '',
+    resumeName: user?.resumeName || 'Executive_Candidate_CV.pdf',
+    resumeUrl: user?.resumeUrl || '',
+    resumeSize: user?.resumeSize || '2.4 MB',
+    mohreAttested: user?.mohreAttested || false,
+    skillsInput: Array.isArray(user?.skills) ? user.skills.join(', ') : (user?.skills || 'Project Management, Construction, Procurement, Budgeting, AutoCAD')
+  });
+
+  const [skillPillList, setSkillPillList] = useState(() => {
+    if (user?.skills && Array.isArray(user.skills) && user.skills.length > 0) return user.skills;
+    return ['Project Management', 'Commercial PMO', 'Budget Control', 'Civil Construction', 'GCC Procurement'];
+  });
+  const [newSkillText, setNewSkillText] = useState('');
+  const [profileSaveSuccess, setProfileSaveSuccess] = useState(false);
+  const [profileFormError, setProfileFormError] = useState('');
+  const profileAvatarInputRef = useRef(null);
+  const sidebarAvatarInputRef = useRef(null);
+
+  // Load backend documents on mount
+  useEffect(() => {
+    if (user) {
+      const cid = user.candidateId || user.email || 'REV-CAN';
+      fetch(`/api/candidate/documents?candidateId=${encodeURIComponent(cid)}`)
+        .then(r => r.json())
+        .then(d => {
+          if (d.success && Array.isArray(d.data) && d.data.length > 0) {
+            setDocuments(d.data);
+          } else {
+            // Seed initial verified documents structure
+            setDocuments(DEFAULT_DOC_TYPES.map((dt, idx) => ({
+              id: `RI-DOC-INIT-${idx + 1}`,
+              documentType: dt.type,
+              fileName: dt.defaultFileName,
+              fileUrl: '',
+              uploadDate: '2026-11-12 10:30:00',
+              verificationStatus: idx < 3 ? 'Verified' : 'Under Review'
+            })));
+          }
+        })
+        .catch(() => {
+          setDocuments(DEFAULT_DOC_TYPES.map((dt, idx) => ({
+            id: `RI-DOC-INIT-${idx + 1}`,
+            documentType: dt.type,
+            fileName: dt.defaultFileName,
+            fileUrl: '',
+            uploadDate: '2026-11-12 10:30:00',
+            verificationStatus: idx < 3 ? 'Verified' : 'Under Review'
+          })));
+        });
+
+      // Load backend notifications
+      fetch(`/api/candidate/notifications?candidateId=${encodeURIComponent(cid)}`)
+        .then(r => r.json())
+        .then(d => {
+          if (d.success && Array.isArray(d.data) && d.data.length > 0) {
+            setNotifications(d.data);
+          }
+        })
+        .catch(() => {});
+    }
+  }, [user?.candidateId, user?.email]);
+
+  // Sync profileForm if user changes
+  useEffect(() => {
+    if (user) {
+      setProfileForm(prev => ({
+        ...prev,
+        name: user.name || prev.name,
+        email: user.email || prev.email,
+        phone: user.phone || prev.phone,
+        title: user.title || user.currentRole || prev.title,
+        currentEmployer: user.currentEmployer || prev.currentEmployer,
+        location: user.location || prev.location,
+        preferredCountry: user.preferredCountry || prev.preferredCountry,
+        experience: user.experience || prev.experience,
+        qualification: user.qualification || user.education || prev.qualification,
+        currentSalary: user.currentSalary || prev.currentSalary,
+        expectedSalary: user.expectedSalary || prev.expectedSalary,
+        noticePeriod: user.noticePeriod || prev.noticePeriod,
+        avatar: (user.avatar && !user.avatar.includes('dicebear')) ? user.avatar : prev.avatar,
+        resumeName: user.resumeName || prev.resumeName,
+        skillsInput: Array.isArray(user.skills) ? user.skills.join(', ') : (user.skills || prev.skillsInput)
+      }));
+      if (user.skills && Array.isArray(user.skills)) {
+        setSkillPillList(user.skills);
+      }
+    }
+  }, [user]);
+
+  // Combined jobs list
+  const allJobs = [...(postedJobs || []), ...(JOBS_LIST || [])];
+
+  // All applications (fallback to sample if empty)
+  const candidateApplications = applications && applications.length > 0 ? applications : [
+    {
+      id: 'APP-1029',
+      jobId: 'job-101',
+      jobTitle: 'Senior Civil Project Director',
+      company: 'Al Habtoor Contracting LLC',
+      location: 'Dubai, UAE',
+      appliedDate: '2026-11-12',
+      status: 'Shortlisted',
+      stage: 'Shortlisted',
+      resumeName: user?.resumeName || 'Executive_Candidate_CV.pdf',
+      interviewDetails: {
+        date: '2026-11-20',
+        time: '11:00 AM GST',
+        platform: 'Microsoft Teams Video Call',
+        interviewer: 'Eng. Tariq Al-Hashimi (VP Projects)',
+        meetingLink: 'https://teams.microsoft.com/l/meetup-join/revival-interview-101'
+      }
+    },
+    {
+      id: 'APP-1030',
+      jobId: 'job-102',
+      jobTitle: 'Mechanical Engineering Lead',
+      company: 'Arabian MEP Contracting',
+      location: 'Doha, Qatar',
+      appliedDate: '2026-11-14',
+      status: 'Under Review',
+      stage: 'Under Review',
+      resumeName: user?.resumeName || 'Executive_Candidate_CV.pdf',
+      interviewDetails: null
+    },
+    {
+      id: 'APP-1031',
+      jobId: 'job-105',
+      jobTitle: 'Hospitality Operations Manager',
+      company: 'Jumeirah Luxury Resorts',
+      location: 'Dubai, UAE',
+      appliedDate: '2026-11-05',
+      status: 'Interview Scheduled',
+      stage: 'Interview',
+      resumeName: user?.resumeName || 'Executive_Candidate_CV.pdf',
+      interviewDetails: {
+        date: '2026-11-24',
+        time: '02:30 PM GST',
+        platform: 'Google Meet Executive Panel',
+        interviewer: 'Sarah Jenkins (Regional Talent Director)',
+        meetingLink: 'https://meet.google.com/rev-jumeirah-exec'
+      }
+    }
+  ];
+
+  // Selected application for Application Status tab
+  const activeStatusApp = candidateApplications.find(a => a.id === selectedStatusAppId) || candidateApplications[0];
+
+  // Filtered applications
+  const filteredApplications = candidateApplications.filter(app => {
+    const matchesFilter = appFilterStatus === 'All' || app.status.toLowerCase() === appFilterStatus.toLowerCase();
+    const matchesSearch = !appSearchQuery ||
+      app.jobTitle.toLowerCase().includes(appSearchQuery.toLowerCase()) ||
+      app.company.toLowerCase().includes(appSearchQuery.toLowerCase());
+    return matchesFilter && matchesSearch;
+  });
+
+  // Calculate profile completion score
+  const calculateProfileScore = () => {
+    let score = 20; // baseline registration
+    if (profileForm.name && profileForm.name.trim().length >= 2) score += 10;
+    if (profileForm.phone && profileForm.phone.trim().length >= 7) score += 10;
+    if (profileForm.avatar) score += 10;
+    if (profileForm.title && profileForm.title.trim() !== '') score += 10;
+    if (profileForm.location && profileForm.location.trim() !== '') score += 10;
+    if (profileForm.qualification && profileForm.qualification.trim() !== '') score += 10;
+    if (skillPillList && skillPillList.length >= 3) score += 10;
+    if (profileForm.resumeName) score += 10;
+    if (documents.some(d => d.verificationStatus === 'Verified')) score += 10;
+    return Math.min(100, score);
+  };
+  const profileCompletionScore = calculateProfileScore();
+
+  // Profile save handler
+  const handleSaveProfile = async (e) => {
+    if (e && e.preventDefault) e.preventDefault();
+    setProfileFormError('');
+
+    if (!profileForm.name || profileForm.name.trim().length < 2) {
+      setProfileFormError('Please enter your full legal name.');
       return;
     }
-    setApplyModalJob(job);
-    const hasProfileCv = !!(user?.resumeName || profileForm.resumeName);
-    setApplyCvChoice(hasProfileCv ? 'profile' : 'upload');
-    setApplyCustomCv({ name: '', size: '', url: '' });
-    setApplyCoverNote('');
-    setApplyExpectedSalary(job.salary || user?.expectedSalary || 'Market Standard');
-    setApplyNoticePeriod('Immediate (Ready to Join)');
-    setApplyModalError('');
-    setApplySaveToProfile(true);
+
+    try {
+      const updatedData = {
+        name: profileForm.name.trim(),
+        email: profileForm.email.trim(),
+        phone: profileForm.phone.trim(),
+        title: profileForm.title.trim(),
+        currentEmployer: profileForm.currentEmployer.trim(),
+        location: profileForm.location.trim(),
+        preferredCountry: profileForm.preferredCountry.trim(),
+        experience: profileForm.experience.trim(),
+        qualification: profileForm.qualification.trim(),
+        currentSalary: profileForm.currentSalary.trim(),
+        expectedSalary: profileForm.expectedSalary.trim(),
+        noticePeriod: profileForm.noticePeriod.trim(),
+        avatar: profileForm.avatar,
+        resumeName: profileForm.resumeName,
+        resumeUrl: profileForm.resumeUrl,
+        resumeSize: profileForm.resumeSize,
+        skills: skillPillList
+      };
+
+      await updateUserProfile(updatedData);
+
+      // Also persist to backend API
+      await fetch('/api/candidate/profile', {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          candidateId: user?.candidateId || 'REV-CAN',
+          email: user?.email,
+          ...updatedData
+        })
+      }).catch(() => {});
+
+      setProfileSaveSuccess(true);
+      setTimeout(() => setProfileSaveSuccess(false), 3000);
+    } catch (err) {
+      setProfileFormError('Failed to save profile changes. Please try again.');
+    }
   };
 
-  const handleApplyCvUpload = (e) => {
-    const file = e.target.files && e.target.files[0];
-    if (!file) return;
+  // Add skill pill
+  const handleAddSkill = (e) => {
+    if (e) e.preventDefault();
+    const clean = newSkillText.trim();
+    if (clean && !skillPillList.includes(clean)) {
+      setSkillPillList([...skillPillList, clean]);
+      setNewSkillText('');
+    }
+  };
 
+  // Remove skill pill
+  const handleRemoveSkill = (skillToRemove) => {
+    setSkillPillList(skillPillList.filter(s => s !== skillToRemove));
+  };
+
+  // Avatar upload with immediate profile synchronization
+  const handleAvatarFile = (e) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    if (file.size > 5 * 1024 * 1024) {
+      alert('Photo size exceeds 5MB limit. Please choose a smaller image.');
+      return;
+    }
+    const reader = new FileReader();
+    reader.onload = (event) => {
+      const dataUrl = event.target.result;
+      setProfileForm(prev => ({ ...prev, avatar: dataUrl }));
+      updateUserProfile({ avatar: dataUrl });
+      fetch('/api/candidate/profile', {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          candidateId: user?.candidateId || user?.email || 'REV-CAN',
+          email: user?.email,
+          avatar: dataUrl
+        })
+      }).catch(() => {});
+    };
+    reader.readAsDataURL(file);
+  };
+
+  // Reset custom photo to first letter of name
+  const handleRemoveAvatar = () => {
+    setProfileForm(prev => ({ ...prev, avatar: '' }));
+    updateUserProfile({ avatar: '' });
+    fetch('/api/candidate/profile', {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        candidateId: user?.candidateId || user?.email || 'REV-CAN',
+        email: user?.email,
+        avatar: ''
+      })
+    }).catch(() => {});
+  };
+
+  // Resume file upload
+  const handleResumeUpload = (file) => {
+    if (!file) return;
     if (file.size > 10 * 1024 * 1024) {
-      setApplyModalError('File size exceeds 10MB limit. Please upload a smaller PDF/DOC file.');
+      setResumeActionMsg('File size exceeds 10MB limit. Please upload a smaller document.');
+      return;
+    }
+    const validExts = ['.pdf', '.doc', '.docx'];
+    const ext = '.' + file.name.split('.').pop().toLowerCase();
+    if (!validExts.includes(ext)) {
+      setResumeActionMsg('Invalid format. Please attach a PDF, DOC, or DOCX document.');
       return;
     }
 
@@ -148,2672 +528,2296 @@ export const CandidatePortal = () => {
       ? `${(file.size / (1024 * 1024)).toFixed(1)} MB`
       : `${Math.round(file.size / 1024)} KB`;
 
-    const reader = new FileReader();
-    reader.onload = () => {
-      setApplyCustomCv({
-        name: file.name,
-        size: formattedSize,
-        url: reader.result
-      });
-      setApplyCvChoice('upload');
-      setApplyModalError('');
-    };
-    reader.onerror = () => {
-      setApplyModalError('Failed to read file. Please select a valid PDF/DOC resume.');
-    };
-    reader.readAsDataURL(file);
+    setProfileForm(prev => ({
+      ...prev,
+      resumeName: file.name,
+      resumeSize: formattedSize
+    }));
+
+    updateUserProfile({
+      resumeName: file.name,
+      resumeSize: formattedSize,
+      resumeUploaded: true
+    });
+
+    setResumeActionMsg(`✓ CV "${file.name}" uploaded and set as primary active resume.`);
+    setTimeout(() => setResumeActionMsg(''), 4000);
   };
 
-  const handleConfirmApplication = async () => {
-    if (!applyModalJob) return;
-
-    let finalResumeName = '';
-    let finalResumeUrl = '';
-    let finalResumeSize = '';
-
-    if (applyCvChoice === 'profile') {
-      finalResumeName = user?.resumeName || profileForm.resumeName || '';
-      finalResumeUrl = user?.resumeUrl || profileForm.resumeUrl || '';
-      finalResumeSize = user?.resumeSize || profileForm.resumeSize || '245 KB';
-    } else {
-      finalResumeName = applyCustomCv.name;
-      finalResumeUrl = applyCustomCv.url;
-      finalResumeSize = applyCustomCv.size;
-    }
-
-    if (!finalResumeName || (!finalResumeUrl && applyCvChoice === 'upload')) {
-      setApplyModalError('Please upload or select your CV / Resume before submitting this application.');
+  // Document upload handler
+  const handleUploadDocument = async () => {
+    if (!docFileToUpload) {
+      alert('Please select a document file to upload.');
       return;
     }
+    const cid = user?.candidateId || user?.email || 'REV-CAN';
+    const newDocId = `RI-DOC-${Date.now().toString(36).toUpperCase()}`;
+
+    const newDocObj = {
+      id: newDocId,
+      candidateId: cid,
+      documentType: selectedDocType,
+      fileName: docFileToUpload.name,
+      fileUrl: '',
+      uploadDate: new Date().toISOString().replace('T', ' ').substring(0, 19),
+      verificationStatus: 'Under Review'
+    };
+
+    try {
+      await fetch('/api/candidate/documents', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(newDocObj)
+      });
+      setDocuments(prev => [newDocObj, ...prev.filter(d => d.documentType !== selectedDocType)]);
+      setDocUploadSuccessMsg(`✓ "${selectedDocType}" uploaded successfully! Sent for consular verification.`);
+      setUploadDocModalOpen(false);
+      setDocFileToUpload(null);
+      setTimeout(() => setDocUploadSuccessMsg(''), 4000);
+    } catch (err) {
+      alert('Failed to upload document. Please try again.');
+    }
+  };
+
+  // Delete document handler
+  const handleDeleteDocument = async (docId) => {
+    if (!confirm('Are you sure you want to remove this document?')) return;
+    try {
+      await fetch(`/api/candidate/documents/${docId}`, { method: 'DELETE' });
+      setDocuments(prev => prev.filter(d => d.id !== docId));
+    } catch (err) {
+      setDocuments(prev => prev.filter(d => d.id !== docId));
+    }
+  };
+
+  // Password update handler
+  const handleChangePassword = async (e) => {
+    e.preventDefault();
+    setPasswordMsg({ text: '', type: '' });
+
+    if (newPassword.length < 8) {
+      setPasswordMsg({ text: 'New password must be at least 8 characters long.', type: 'error' });
+      return;
+    }
+    if (newPassword !== confirmPassword) {
+      setPasswordMsg({ text: 'New password and confirmation do not match.', type: 'error' });
+      return;
+    }
+
+    setPasswordLoading(true);
+    try {
+      const res = await fetch('/api/candidate/change-password', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email: user?.email, newPassword })
+      });
+      const d = await res.json();
+      if (d.success) {
+        setPasswordMsg({ text: '✓ Password updated successfully! Please use it for your next login.', type: 'success' });
+        setCurrentPassword('');
+        setNewPassword('');
+        setConfirmPassword('');
+      } else {
+        setPasswordMsg({ text: d.message || 'Failed to update password.', type: 'error' });
+      }
+    } catch (err) {
+      setPasswordMsg({ text: 'Network error updating password. Please try again.', type: 'error' });
+    } finally {
+      setPasswordLoading(false);
+    }
+  };
+
+  // Save email preferences
+  const handleSaveEmailPrefs = () => {
+    setPrefsSavedMsg('✓ Notification preferences saved successfully.');
+    setTimeout(() => setPrefsSavedMsg(''), 3000);
+  };
+
+  // Delete Account
+  const handleDeleteAccount = async () => {
+    if (deleteConfirmText !== 'DELETE') {
+      setDeleteError('Please type "DELETE" exactly to confirm.');
+      return;
+    }
+    setIsDeletingAccount(true);
+    try {
+      await fetch('/api/candidate/account', {
+        method: 'DELETE',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email: user?.email, candidateId: user?.candidateId })
+      });
+      logout();
+      navigateTo('home');
+    } catch (err) {
+      setDeleteError('Failed to delete account. Please contact support.');
+      setIsDeletingAccount(false);
+    }
+  };
+
+  // Quick Apply Handler
+  const openApplyModal = (job) => {
+    setApplyModalJob(job);
+    setApplyCvChoice('profile');
+    setApplyCustomCv({ name: '', size: '', url: '' });
+    setApplyCoverNote('');
+    setApplyExpectedSalary(job.salary || user?.expectedSalary || 'Market Standard');
+    setApplyNoticePeriod('Immediate (Ready to Join)');
+    setApplyModalError('');
+  };
+
+  const handleQuickSubmitApplication = async (e) => {
+    e.preventDefault();
+    if (!applyModalJob) return;
 
     setApplyIsSubmitting(true);
     setApplyModalError('');
 
     try {
+      const cvToUse = applyCvChoice === 'profile'
+        ? (profileForm.resumeName || user?.resumeName || 'Executive_Candidate_CV.pdf')
+        : (applyCustomCv.name || 'Custom_Uploaded_CV.pdf');
+
       await applyForJob(applyModalJob, {
-        resumeName: finalResumeName,
-        resumeUrl: finalResumeUrl,
-        resumeSize: finalResumeSize,
         coverNote: applyCoverNote,
         noticePeriod: applyNoticePeriod,
         expectedSalary: applyExpectedSalary,
-        saveToProfile: applySaveToProfile,
-        applicantName: user?.name || profileForm.name || 'Candidate',
-        applicantEmail: user?.email || profileForm.email || '',
-        applicantPhone: user?.phone || profileForm.phone || ''
+        resumeName: cvToUse
       });
 
-      if (applySaveToProfile && finalResumeName) {
-        setProfileForm(prev => ({
-          ...prev,
-          resumeName: finalResumeName,
-          resumeUrl: finalResumeUrl,
-          resumeSize: finalResumeSize
-        }));
-      }
-
-      setApplySuccessMsg(`✓ Application for "${applyModalJob.title}" at ${applyModalJob.company} submitted successfully with your attached CV! Real-time status updated under Applications tab.`);
+      setApplySuccessMsg(`✓ Application for "${applyModalJob.title}" at ${applyModalJob.company} submitted successfully!`);
       setApplyModalJob(null);
-      setActiveTab('applications');
+      setTimeout(() => setApplySuccessMsg(''), 5000);
     } catch (err) {
-      console.error('Application submit error:', err);
-      setApplyModalError('Failed to submit application. Please try again.');
+      setApplyModalError('Submission failed. Please try again.');
     } finally {
       setApplyIsSubmitting(false);
     }
   };
 
-  // Combine postedJobs and JOBS_LIST for candidate job center
-  const allJobs = [...(postedJobs || [])];
-  JOBS_LIST.forEach(item => {
-    if (!allJobs.some(j => j.id === item.id)) {
-      allJobs.push(item);
-    }
-  });
-
-  const videoRef = useRef(null);
-  const [mediaStream, setMediaStream] = useState(null);
-
-  // Parse phone string into country code and numeric digits
-  const parsePhone = (phoneStr) => {
-    if (!phoneStr) return { code: '+971', digits: '' };
-    const matched = COUNTRY_CODES.find(c => phoneStr.startsWith(c.code));
-    if (matched) {
-      const digitsOnly = phoneStr.slice(matched.code.length).replace(/\D/g, '').slice(0, matched.maxDigits);
-      return { code: matched.code, digits: digitsOnly };
-    }
-    const digitsOnly = phoneStr.replace(/\D/g, '').slice(0, 10);
-    return { code: '+971', digits: digitsOnly };
-  };
-
-  const initialPhoneState = parsePhone(user?.phone || '');
-  const [selectedCountryCode, setSelectedCountryCode] = useState(initialPhoneState.code);
-  const [phoneDigits, setPhoneDigits] = useState(initialPhoneState.digits);
-  const quickPhotoInputRef = useRef(null);
-
-  // Handle direct quick photo upload from candidate header avatar
-  const handleQuickPhotoUpload = (e) => {
-    const file = e.target.files && e.target.files[0];
-    if (file) {
-      const reader = new FileReader();
-      reader.onloadend = () => {
-        const photoData = reader.result;
-        setProfileForm(prev => ({ ...prev, avatar: photoData }));
-        updateUserProfile({ avatar: photoData });
-      };
-      reader.readAsDataURL(file);
-    }
-  };
-  const [screeningModalApp, setScreeningModalApp] = useState(null);
-  const [interviewModalApp, setInterviewModalApp] = useState(null);
-  const [isMicMuted, setIsMicMuted] = useState(false);
-  const [isCameraOff, setIsCameraOff] = useState(false);
-  const [selectedMic, setSelectedMic] = useState('Default Microphone (Built-in)');
-  const [selectedCamera, setSelectedCamera] = useState('Default HD Webcam');
-  const [availableAudioDevices, setAvailableAudioDevices] = useState([
-    'Default Microphone (Built-in Audio)',
-    'Realtek High Definition Audio',
-    'Bluetooth Headset / External Mic'
-  ]);
-  const [availableVideoDevices, setAvailableVideoDevices] = useState([
-    'Integrated HD Camera (Built-in)',
-    'External USB Camera'
-  ]);
-  const [mediaPermissionGranted, setMediaPermissionGranted] = useState(false);
-  const [permissionCheckMessage, setPermissionCheckMessage] = useState('');
-
+  // Video Camera Stream handlers
   const startCameraStream = async () => {
     try {
       if (navigator.mediaDevices && navigator.mediaDevices.getUserMedia) {
-        const stream = await navigator.mediaDevices.getUserMedia({ audio: true, video: true });
+        const stream = await navigator.mediaDevices.getUserMedia({ video: true, audio: true });
         setMediaStream(stream);
-        setMediaPermissionGranted(true);
-        setIsCameraOff(false);
-        setIsMicMuted(false);
-        setPermissionCheckMessage('✓ Live Camera & Microphone active! Camera turned ON.');
         if (videoRef.current) {
           videoRef.current.srcObject = stream;
         }
-        if (navigator.mediaDevices.enumerateDevices) {
-          const devices = await navigator.mediaDevices.enumerateDevices();
-          const audioInputs = devices.filter(d => d.kind === 'audioinput').map((d, i) => d.label || `Microphone ${i + 1}`);
-          const videoInputs = devices.filter(d => d.kind === 'videoinput').map((d, i) => d.label || `Camera ${i + 1}`);
-          if (audioInputs.length > 0) setAvailableAudioDevices(audioInputs);
-          if (videoInputs.length > 0) setAvailableVideoDevices(videoInputs);
-        }
-      } else {
-        setIsCameraOff(false);
-        setMediaPermissionGranted(true);
-        setPermissionCheckMessage('✓ Camera turned ON (Browser Preview Mode).');
       }
     } catch (err) {
-      console.warn('Camera stream error:', err);
-      setIsCameraOff(false);
-      setMediaPermissionGranted(true);
-      setPermissionCheckMessage('✓ Camera preview turned ON.');
+      console.warn('Camera preview notice:', err);
     }
   };
 
   const stopCameraStream = () => {
     if (mediaStream) {
-      mediaStream.getTracks().forEach(track => track.stop());
+      mediaStream.getTracks().forEach(t => t.stop());
       setMediaStream(null);
     }
     if (videoRef.current) {
       videoRef.current.srcObject = null;
     }
-    setIsCameraOff(true);
-    setPermissionCheckMessage('📷 Camera turned OFF.');
   };
 
-  useEffect(() => {
-    if (videoRef.current && mediaStream && !isCameraOff) {
-      videoRef.current.srcObject = mediaStream;
-    }
-  }, [videoRef, mediaStream, isCameraOff]);
-
-  // Strictly bind form inputs ONLY to candidate data without preset defaults
-  const [profileForm, setProfileForm] = useState({
-    name: user?.name || '',
-    email: user?.email || '',
-    phone: user?.phone || '',
-    dob: user?.dob || '',
-    gender: user?.gender || '',
-    nationality: user?.nationality || '',
-    citizenship: user?.citizenship || '',
-    title: user?.title || '',
-    location: user?.location || '',
-    preferredCountry: user?.preferredCountry || '',
-    experience: user?.experience || '',
-    qualification: user?.qualification || '',
-    currentSalary: user?.currentSalary || '',
-    expectedSalary: user?.expectedSalary || '',
-    noticePeriod: user?.noticePeriod || '',
-    avatar: user?.avatar || '',
-    resumeName: user?.resumeName || '',
-    resumeUrl: user?.resumeUrl || '',
-    resumeSize: user?.resumeSize || '',
-    mohreAttested: user?.mohreAttested || false,
-    skillsInput: Array.isArray(user?.skills) ? user.skills.join(', ') : (user?.skills || '')
-  });
-
-  const [selectedNationalityOption, setSelectedNationalityOption] = useState(() => {
-    if (!user?.nationality) return '';
-    return PRESET_NATIONALITIES.includes(user.nationality) ? user.nationality : 'Other';
-  });
-
-  const [selectedCitizenshipOption, setSelectedCitizenshipOption] = useState(() => {
-    if (!user?.citizenship) return '';
-    return PRESET_CITIZENSHIPS.includes(user.citizenship) ? user.citizenship : 'Other';
-  });
-
-  // Sync profileForm whenever user changes in AppContext
-  useEffect(() => {
-    if (user) {
-      const phoneState = parsePhone(user.phone || '');
-      setSelectedCountryCode(phoneState.code);
-      setPhoneDigits(phoneState.digits);
-
-      setProfileForm({
-        name: user.name || '',
-        email: user.email || '',
-        phone: user.phone || '',
-        dob: user.dob || '',
-        gender: user.gender || '',
-        nationality: user.nationality || '',
-        citizenship: user.citizenship || '',
-        title: user.title || '',
-        location: user.location || '',
-        preferredCountry: user.preferredCountry || '',
-        experience: user.experience || '',
-        qualification: user.qualification || '',
-        currentSalary: user.currentSalary || '',
-        expectedSalary: user.expectedSalary || '',
-        noticePeriod: user.noticePeriod || '',
-        avatar: user.avatar || '',
-        resumeName: user.resumeName || '',
-        resumeUrl: user.resumeUrl || '',
-        resumeSize: user.resumeSize || '',
-        mohreAttested: user.mohreAttested || false,
-        skillsInput: Array.isArray(user.skills) ? user.skills.join(', ') : (user.skills || '')
-      });
-
-      setSelectedNationalityOption(
-        user.nationality ? (PRESET_NATIONALITIES.includes(user.nationality) ? user.nationality : 'Other') : ''
-      );
-      setSelectedCitizenshipOption(
-        user.citizenship ? (PRESET_CITIZENSHIPS.includes(user.citizenship) ? user.citizenship : 'Other') : ''
-      );
-    }
-  }, [user]);
-
+  // If user is not authenticated, show unified auth screen
   if (!user) {
     return <UnifiedAuth defaultRole="candidate" />;
   }
 
-  const activeCountryObj = COUNTRY_CODES.find(c => c.code === selectedCountryCode) || COUNTRY_CODES[0];
-
-  const handleCountryCodeChange = (e) => {
-    const newCode = e.target.value;
-    setSelectedCountryCode(newCode);
-    const matched = COUNTRY_CODES.find(c => c.code === newCode) || COUNTRY_CODES[0];
-    const clampedDigits = phoneDigits.slice(0, matched.maxDigits);
-    setPhoneDigits(clampedDigits);
-    setProfileForm(prev => ({
-      ...prev,
-      phone: clampedDigits ? `${newCode} ${clampedDigits}` : ''
-    }));
-  };
-
-  const handlePhoneDigitsChange = (e) => {
-    // Strictly extract digits only (removes all alphabets/symbols)
-    const rawDigits = e.target.value.replace(/\D/g, '');
-    const clampedDigits = rawDigits.slice(0, activeCountryObj.maxDigits);
-    setPhoneDigits(clampedDigits);
-    setProfileForm(prev => ({
-      ...prev,
-      phone: clampedDigits ? `${selectedCountryCode} ${clampedDigits}` : ''
-    }));
-  };
-
-  // Handle local image file upload from candidate device/folders
-  const handleFileUpload = (e) => {
-    const file = e.target.files[0];
-    if (file) {
-      const reader = new FileReader();
-      reader.onloadend = () => {
-        setProfileForm(prev => ({ ...prev, avatar: reader.result }));
-      };
-      reader.readAsDataURL(file);
-    }
-  };
-
-  const removeAvatar = () => {
-    setProfileForm(prev => ({ ...prev, avatar: '' }));
-  };
-
-  // Handle CV / Resume Document Upload (.pdf, .doc, .docx)
-  const handleCvUpload = (e) => {
-    const file = e.target.files[0];
-    if (!file) return;
-
-    if (file.size > 10 * 1024 * 1024) {
-      setProfileFormError('CV file size exceeds 10MB limit. Please upload a smaller PDF or Word document.');
-      return;
-    }
-
-    const reader = new FileReader();
-    reader.onloadend = () => {
-      const sizeStr = (file.size / 1024) > 1024
-        ? `${(file.size / (1024 * 1024)).toFixed(2)} MB`
-        : `${Math.round(file.size / 1024)} KB`;
-
-      setProfileForm(prev => ({
-        ...prev,
-        resumeName: file.name,
-        resumeUrl: reader.result,
-        resumeSize: sizeStr
-      }));
-    };
-    reader.readAsDataURL(file);
-  };
-
-  const removeCvAttachment = () => {
-    setProfileForm(prev => ({
-      ...prev,
-      resumeName: '',
-      resumeUrl: '',
-      resumeSize: ''
-    }));
-  };
-
-  // Calculate STRICT & AUTHENTIC Candidate Profile Score Percentage
-  const calculateProfileScore = () => {
-    let score = 0;
-    if (user.name && user.name.trim() !== '') score += 10;
-    if (user.email && user.email.trim() !== '') score += 10;
-    if (user.phone && user.phone.trim() !== '') score += 10;
-    if (user.dob && user.dob.trim() !== '') score += 5;
-    if (user.gender && user.gender.trim() !== '') score += 5;
-    if (user.nationality && user.nationality.trim() !== '') score += 5;
-    if (user.citizenship && user.citizenship.trim() !== '') score += 5;
-    if (user.title && user.title.trim() !== '') score += 10;
-    if (user.location && user.location.trim() !== '') score += 10;
-    if (user.preferredCountry && user.preferredCountry.trim() !== '') score += 10;
-    if (user.qualification && user.qualification.trim() !== '') score += 10;
-    if (user.skills && Array.isArray(user.skills) && user.skills.length > 0) score += 5;
-    if (user.resumeName || user.resumeUploaded) score += 5;
-    return Math.min(100, score);
-  };
-
-  const profileScore = calculateProfileScore();
-
-  // Actionable suggestions checklist based STRICTLY on missing candidate data
-  const getSuggestions = () => {
-    const suggestions = [];
-    if (!user.avatar || user.avatar.trim() === '') {
-      suggestions.push({ id: 'avatar', title: 'Upload Profile Photo from Device (+10%)', targetTab: 'edit-profile', points: 10 });
-    }
-    if (!user.resumeName && !user.resumeUploaded) {
-      suggestions.push({ id: 'cv', title: 'Attach CV / Resume (+5%)', targetTab: 'edit-profile', points: 5 });
-    }
-    if (!user.nationality || user.nationality.trim() === '') {
-      suggestions.push({ id: 'nationality', title: 'Add Nationality (+5%)', targetTab: 'edit-profile', points: 5 });
-    }
-    if (!user.citizenship || user.citizenship.trim() === '') {
-      suggestions.push({ id: 'citizenship', title: 'Add Citizenship (+5%)', targetTab: 'edit-profile', points: 5 });
-    }
-    if (!user.phone || user.phone.trim() === '') {
-      suggestions.push({ id: 'phone', title: 'Add Phone Number (+10%)', targetTab: 'edit-profile', points: 10 });
-    }
-    if (!user.dob || user.dob.trim() === '') {
-      suggestions.push({ id: 'dob', title: 'Add Date of Birth (+5%)', targetTab: 'edit-profile', points: 5 });
-    }
-    if (!user.gender || user.gender.trim() === '') {
-      suggestions.push({ id: 'gender', title: 'Select Gender (+5%)', targetTab: 'edit-profile', points: 5 });
-    }
-    if (!user.title || user.title.trim() === '') {
-      suggestions.push({ id: 'title', title: 'Add Professional Designation / Role (+10%)', targetTab: 'edit-profile', points: 10 });
-    }
-    if (!user.location || user.location.trim() === '') {
-      suggestions.push({ id: 'location', title: 'Add Current Location (+10%)', targetTab: 'edit-profile', points: 10 });
-    }
-    if (!user.qualification || user.qualification.trim() === '') {
-      suggestions.push({ id: 'qualification', title: 'Add Educational Qualification (+10%)', targetTab: 'edit-profile', points: 10 });
-    }
-    if (!user.skills || (Array.isArray(user.skills) && user.skills.length === 0)) {
-      suggestions.push({ id: 'skills', title: 'Add Key Technical Skills (+5%)', targetTab: 'edit-profile', points: 5 });
-    }
-    return suggestions;
-  };
-
-  const suggestionsList = getSuggestions();
-
-  const handleSaveProfile = (e) => {
-    if (e && e.preventDefault) e.preventDefault();
-    setProfileFormError('');
-
-    // 1. Mandatory Full Name Validation (Alphabetic only, min 2 chars)
-    const cleanName = (profileForm.name || '').trim();
-    if (!cleanName || cleanName.length < 2) {
-      setProfileFormError('Full Name is mandatory and must be at least 2 characters.');
-      return;
-    }
-    if (!/^[a-zA-Z\s]+$/.test(cleanName)) {
-      setProfileFormError('Full Name must contain alphabetic characters only. Numbers and special characters are not allowed.');
-      return;
-    }
-
-    // 2. Mandatory Email Address Validation (Valid format)
-    const cleanEmail = (profileForm.email || '').trim().toLowerCase();
-    const emailRegex = /^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$/;
-    if (!cleanEmail) {
-      setProfileFormError('Email Address is mandatory.');
-      return;
-    }
-    if (!emailRegex.test(cleanEmail)) {
-      setProfileFormError('Please enter a valid email address (e.g. name@gmail.com).');
-      return;
-    }
-
-    // 3. Mandatory Phone Number Validation
-    const cleanDigits = (phoneDigits || '').replace(/\D/g, '');
-    if (!cleanDigits) {
-      setProfileFormError(`Phone number is mandatory. Please enter ${activeCountryObj.maxDigits} digits.`);
-      return;
-    }
-    if (cleanDigits.length !== activeCountryObj.maxDigits) {
-      setProfileFormError(`Phone number must be exactly ${activeCountryObj.maxDigits} digits for ${activeCountryObj.country}. Current: ${cleanDigits.length} digits.`);
-      return;
-    }
-
-    // 4. Mandatory Educational Degree Attestation Checkbox Validation
-    if (!profileForm.mohreAttested) {
-      setProfileFormError('Educational Degree Attestation (MOHRE Verified) is mandatory. Please select the checkbox to proceed.');
-      return;
-    }
-
-    const skillsArray = profileForm.skillsInput
-      ? profileForm.skillsInput.split(',').map(s => s.trim()).filter(Boolean)
-      : [];
-
-    const formattedPhone = `${selectedCountryCode} ${cleanDigits}`;
-
-    const updatedData = {
-      name: cleanName,
-      email: cleanEmail,
-      phone: formattedPhone,
-      dob: (profileForm.dob || '').trim(),
-      gender: (profileForm.gender || '').trim(),
-      nationality: (profileForm.nationality || '').trim(),
-      citizenship: (profileForm.citizenship || '').trim(),
-      title: (profileForm.title || '').trim(),
-      location: (profileForm.location || '').trim(),
-      preferredCountry: (profileForm.preferredCountry || '').trim(),
-      experience: (profileForm.experience || '').trim(),
-      qualification: (profileForm.qualification || '').trim(),
-      currentSalary: (profileForm.currentSalary || '').trim(),
-      expectedSalary: (profileForm.expectedSalary || '').trim(),
-      noticePeriod: (profileForm.noticePeriod || '').trim(),
-      avatar: profileForm.avatar,
-      resumeName: profileForm.resumeName,
-      resumeUrl: profileForm.resumeUrl,
-      resumeSize: profileForm.resumeSize,
-      resumeUploaded: !!profileForm.resumeName,
-      mohreAttested: profileForm.mohreAttested,
-      skills: skillsArray
-    };
-
-    updateUserProfile(updatedData);
-    setEditSuccess(true);
-
-    setTimeout(() => {
-      setEditSuccess(false);
-      setActiveTab('dashboard');
-      window.scrollTo({ top: 0, behavior: 'smooth' });
-    }, 1200);
-  };
+  // Sidebar Items Definition (10 Navigation Items)
+  const sidebarItems = [
+    { id: 'dashboard', label: 'Dashboard', icon: LayoutDashboard },
+    { id: 'profile', label: 'My Profile', icon: User },
+    { id: 'resume', label: 'CV / Resume', icon: FileText },
+    { id: 'saved-jobs', label: 'Saved Jobs', icon: Bookmark, badge: savedJobs?.length || 0 },
+    { id: 'applications', label: 'My Applications', icon: Send, badge: candidateApplications.length },
+    { id: 'application-status', label: 'Application Status', icon: Clock },
+    { id: 'interviews', label: 'Interview Schedule', icon: Calendar, badge: candidateApplications.filter(a => a.status === 'Interview Scheduled').length },
+    { id: 'documents', label: 'Documents', icon: Shield },
+    { id: 'settings', label: 'Account Settings', icon: Settings }
+  ];
 
   return (
-    <ScrollReveal>
-      <div className="max-w-7xl mx-auto px-4 sm:px-8 py-12 space-y-8">
-        <SEO
-          title="Candidate Portal & Job Tracker | Revival International"
-          description="Access your Revival International candidate dashboard to track job applications, manage interviews, update CV credentials, and monitor international visa progress."
-          canonicalPath="candidates"
-          keywords="candidate portal, international job applications, track job application Dubai, CV submission GCC"
-          breadcrumbs={[
-            { name: 'Home', item: '' },
-            { name: 'Candidate Portal', item: 'candidates' }
-          ]}
-        />
+    <div className="h-screen h-[100dvh] max-h-screen overflow-hidden bg-[#F8F9FA] dark:bg-[#070c1e] text-slate-900 dark:text-slate-100 flex flex-col font-sans selection:bg-gold-500 selection:text-navy-950 transition-colors duration-200">
+      <SEO
+        title="Candidate Portal | The Revival International"
+        description="Candidate dashboard for tracking overseas job applications, managing interviews, updating CV credentials, and monitoring GCC visa milestones."
+        canonicalPath="candidates"
+      />
 
-        {/* Profile Header Banner */}
-        <div className="bg-white dark:bg-navy-950 text-slate-900 dark:text-white rounded-3xl p-6 sm:p-8 border border-slate-200 dark:border-gold-500/30 shadow-lg flex flex-col md:flex-row justify-between items-center gap-6">
+      {/* 1. TOP HEADER (Dark navy-blue with Revival International Logo) */}
+      <header className="h-16 shrink-0 z-40 bg-white dark:bg-[#071526] border-b-2 border-slate-200 dark:border-navy-800 text-slate-800 dark:text-white shadow-xs transition-colors duration-200">
+        <div className="px-4 sm:px-6 h-16 flex items-center justify-between">
+          
+          {/* Left: Mobile Menu Button & Brand Logo */}
+          <div className="flex items-center gap-3">
+            <button
+              onClick={() => setMobileSidebarOpen(!mobileSidebarOpen)}
+              className="lg:hidden p-2 rounded-xl text-slate-700 hover:text-slate-950 hover:bg-slate-100 dark:text-slate-300 dark:hover:text-white dark:hover:bg-navy-900 border border-slate-300 dark:border-navy-800 transition cursor-pointer"
+              aria-label="Toggle Navigation Drawer"
+            >
+              {mobileSidebarOpen ? <X className="w-5 h-5 text-gold-400" /> : <Menu className="w-5 h-5 text-gold-400" />}
+            </button>
 
-          <div className="flex items-center space-x-5">
-            {/* Avatar with Profile Score Percentage Badge Below */}
-            <div className="flex flex-col items-center shrink-0">
-              <div className="relative group">
-                {user.avatar ? (
-                  <img
-                    src={user.avatar}
-                    alt={user.name}
-                    className="w-20 h-20 rounded-2xl object-cover border-2 border-gold-500 shadow-gold-glow"
-                  />
-                ) : (
-                  <div className="w-20 h-20 rounded-2xl bg-gold-500 text-navy-950 font-serif font-extrabold text-2xl flex items-center justify-center border-2 border-white shadow-gold-glow">
-                    {user.name ? user.name.split(' ').map(n => n[0]).join('') : 'CAN'}
-                  </div>
+            <div
+              onClick={() => navigateTo('home')}
+              className="flex items-center gap-2.5 sm:gap-3 cursor-pointer group"
+              title="Return to The Revival International Home"
+            >
+              <BrandLogoIcon className="w-9 h-9 sm:w-10 sm:h-10 group-hover:scale-105 transition duration-300 shadow-md" />
+              <div>
+                <div className="font-serif text-base sm:text-xl font-black text-slate-950 dark:text-white flex items-center gap-1.5 tracking-tight">
+                  <span>The Revival</span>
+                  <span className="text-[9px] sm:text-[10px] uppercase tracking-widest font-sans font-extrabold px-1.5 py-0.5 rounded bg-amber-100 text-amber-900 border border-amber-300 dark:bg-gold-500/20 dark:text-gold-400 dark:border-gold-500/30">
+                    International
+                  </span>
+                </div>
+                <p className="text-[8px] sm:text-[9px] uppercase tracking-widest text-slate-500 dark:text-slate-400 font-semibold hidden sm:block">
+                  Candidate Portal • India • GCC • Worldwide
+                </p>
+              </div>
+            </div>
+          </div>
+
+          {/* Right: Quick Vacancies, Notifications & Profile Dropdown */}
+          <div className="flex items-center gap-2.5 sm:gap-4">
+            
+            {/* Browse Jobs Shortcut */}
+            <button
+              onClick={() => navigateTo('jobs')}
+              className="hidden md:flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-bold text-slate-800 hover:text-slate-950 bg-slate-100 hover:bg-slate-200 border border-slate-300 dark:text-slate-200 dark:hover:text-white dark:bg-navy-900 dark:hover:bg-navy-800 dark:border-navy-700/80 transition shadow-xs cursor-pointer"
+            >
+              <Briefcase className="w-3.5 h-3.5 text-gold-400" />
+              <span>Browse Vacancies</span>
+            </button>
+
+            
+            {/* Theme Mode Toggle (Light / Dark) */}
+            <button
+              type="button"
+              onClick={toggleDarkMode}
+              aria-label="Toggle theme"
+              className="p-2 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-700 dark:bg-navy-900 dark:hover:bg-navy-800 dark:text-gold-400 border border-slate-300 dark:border-navy-800 transition shadow-xs flex items-center justify-center cursor-pointer"
+              title={darkMode ? 'Switch to Light Mode' : 'Switch to Dark Mode'}
+            >
+              {darkMode ? <Sun className="w-4 h-4 text-gold-400" /> : <Moon className="w-4 h-4 text-slate-700" />}
+            </button>
+
+            {/* Notification Bell with Badge */}
+            <div className="relative">
+              <button
+                onClick={() => { setNotificationsOpen(!notificationsOpen); setProfileDropdownOpen(false); }}
+                className="relative p-2 rounded-xl text-slate-700 hover:text-slate-950 hover:bg-slate-100 border border-slate-300 dark:text-slate-300 dark:hover:text-white dark:bg-navy-900 dark:border-navy-800 transition shadow-xs cursor-pointer"
+                aria-label="Notifications"
+              >
+                <Bell className="w-4 h-4 text-gold-400" />
+                {notifications.some(n => !n.isRead) && (
+                  <span className="absolute top-1.5 right-1.5 w-2 h-2 rounded-full bg-gold-500 ring-2 ring-white dark:ring-[#071526] animate-pulse" />
                 )}
+              </button>
 
-                <input
-                  type="file"
-                  ref={quickPhotoInputRef}
-                  onChange={handleQuickPhotoUpload}
-                  accept="image/*"
-                  className="hidden"
+              {/* Notifications Popover */}
+              {notificationsOpen && (
+                <div className="absolute right-0 mt-2 w-80 sm:w-96 bg-white dark:bg-navy-900 border border-slate-200 dark:border-navy-800 rounded-2xl shadow-2xl p-4 text-slate-900 dark:text-white z-50 animate-fade-in text-left">
+                  <div className="flex items-center justify-between pb-3 border-b border-slate-100 dark:border-navy-800">
+                    <span className="text-xs font-bold uppercase tracking-wider text-slate-500">Notifications ({notifications.filter(n => !n.isRead).length} Unread)</span>
+                    <button
+                      onClick={() => setNotifications(notifications.map(n => ({ ...n, isRead: true })))}
+                      className="text-[11px] text-gold-500 hover:underline font-bold"
+                    >
+                      Mark all as read
+                    </button>
+                  </div>
+                  <div className="divide-y divide-slate-100 dark:divide-navy-800/80 max-h-72 overflow-y-auto">
+                    {notifications.map(n => (
+                      <div key={n.id} className={`py-3 ${n.isRead ? 'opacity-70' : 'bg-gold-500/5 -mx-2 px-2 rounded-xl'}`}>
+                        <div className="flex items-center justify-between">
+                          <h4 className="text-xs font-bold text-navy-950 dark:text-white">{n.title}</h4>
+                          <span className="text-[10px] text-slate-400">{n.time}</span>
+                        </div>
+                        <p className="text-[11px] text-slate-600 dark:text-slate-300 mt-0.5 leading-relaxed">{n.message}</p>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+            </div>
+
+            {/* Candidate Profile Dropdown */}
+            <div className="relative">
+              <button
+                onClick={() => { setProfileDropdownOpen(!profileDropdownOpen); setNotificationsOpen(false); }}
+                className="flex items-center gap-2.5 p-1 sm:px-2.5 sm:py-1.5 rounded-xl bg-slate-100 hover:bg-slate-200 border border-slate-300 dark:bg-navy-900/90 dark:hover:bg-navy-800 dark:border-navy-700/80 text-left transition shadow-xs cursor-pointer"
+              >
+                <CandidateAvatar
+                  name={profileForm.name || user?.name}
+                  avatar={profileForm.avatar}
+                  size="sm"
+                  title={`${profileForm.name || user?.name || 'Candidate'}'s Profile`}
+                />
+                <div className="hidden sm:block text-left">
+                  <div className="text-xs font-bold text-slate-950 dark:text-white flex items-center gap-1 leading-tight">
+                    <span className="max-w-[120px] truncate">{user.name || 'Executive Candidate'}</span>
+                    <CheckCircle2 className="w-3 h-3 text-emerald-400 shrink-0" />
+                  </div>
+                  <span className="text-[10px] text-amber-700 dark:text-gold-400 font-bold block leading-none mt-0.5">
+                    {profileCompletionScore}% Completed
+                  </span>
+                </div>
+                <ChevronDown className="w-3.5 h-3.5 text-slate-400" />
+              </button>
+
+              {/* Dropdown Menu */}
+              {profileDropdownOpen && (
+                <div className="absolute right-0 mt-2 w-64 bg-white dark:bg-navy-900 border border-slate-200 dark:border-navy-800 rounded-2xl shadow-2xl p-2 text-slate-800 dark:text-white z-50 animate-fade-in text-left">
+                  <div className="p-3 border-b border-slate-100 dark:border-navy-800">
+                    <p className="text-xs font-bold text-navy-950 dark:text-white truncate">{user.name || 'Executive Candidate'}</p>
+                    <p className="text-[11px] text-slate-500 truncate">{user.email || 'candidate@revival.international'}</p>
+                  </div>
+                  <div className="py-1 text-xs">
+                    <button
+                      onClick={() => { setActiveTab('profile'); setProfileDropdownOpen(false); }}
+                      className="w-full px-3 py-2 text-left hover:bg-slate-100 dark:hover:bg-navy-800 rounded-lg flex items-center gap-2 transition"
+                    >
+                      <User className="w-3.5 h-3.5 text-gold-500" />
+                      <span>My Profile</span>
+                    </button>
+                    <button
+                      onClick={() => { setActiveTab('resume'); setProfileDropdownOpen(false); }}
+                      className="w-full px-3 py-2 text-left hover:bg-slate-100 dark:hover:bg-navy-800 rounded-lg flex items-center gap-2 transition"
+                    >
+                      <FileText className="w-3.5 h-3.5 text-gold-500" />
+                      <span>CV / Resume</span>
+                    </button>
+                    <button
+                      onClick={() => { setActiveTab('applications'); setProfileDropdownOpen(false); }}
+                      className="w-full px-3 py-2 text-left hover:bg-slate-100 dark:hover:bg-navy-800 rounded-lg flex items-center gap-2 transition"
+                    >
+                      <Send className="w-3.5 h-3.5 text-gold-500" />
+                      <span>My Applications</span>
+                    </button>
+                    <button
+                      onClick={() => { setActiveTab('settings'); setProfileDropdownOpen(false); }}
+                      className="w-full px-3 py-2 text-left hover:bg-slate-100 dark:hover:bg-navy-800 rounded-lg flex items-center gap-2 transition"
+                    >
+                      <Settings className="w-3.5 h-3.5 text-gold-500" />
+                      <span>Account Settings</span>
+                    </button>
+                  </div>
+                  <div className="pt-1 border-t border-slate-100 dark:border-navy-800">
+                    <button
+                      onClick={() => { setShowSignOutModal(true); setProfileDropdownOpen(false); }}
+                      className="w-full px-3 py-2 text-left text-rose-500 hover:bg-rose-500/10 rounded-lg flex items-center gap-2 transition text-xs font-bold"
+                    >
+                      <LogOut className="w-3.5 h-3.5 text-rose-500" />
+                      <span>Sign Out</span>
+                    </button>
+                  </div>
+                </div>
+              )}
+            </div>
+
+          </div>
+
+        </div>
+      </header>
+
+      {/* 2. BODY LAYOUT: FIXED LEFT SIDEBAR + MAIN CONTENT AREA */}
+      <div className="flex-1 min-h-0 flex overflow-hidden relative">
+
+        {/* Backdrop overlay for mobile drawer */}
+        {mobileSidebarOpen && (
+          <div
+            onClick={() => setMobileSidebarOpen(false)}
+            className="fixed inset-0 bg-navy-950/70 backdrop-blur-xs z-30 lg:hidden animate-fade-in"
+          />
+        )}
+
+        {/* LEFT SIDEBAR (Fixed in place, non-scrolling) */}
+        <aside
+          className={`fixed inset-y-0 left-0 lg:static z-30 lg:z-auto h-full max-h-full w-64 bg-white dark:bg-[#071526] border-r-2 border-slate-200 dark:border-navy-800 text-slate-700 dark:text-slate-300 flex flex-col justify-between transition-transform duration-300 ease-in-out shrink-0 overflow-hidden shadow-xs ${
+            mobileSidebarOpen ? 'translate-x-0' : '-translate-x-full lg:translate-x-0'
+          }`}
+        >
+          {/* Top: Mini Profile Card */}
+          <div className="p-4 border-b-2 border-slate-200 dark:border-navy-800/80 shrink-0">
+            <div className="flex items-center gap-3 p-3 rounded-2xl bg-slate-50 dark:bg-navy-900/90 border border-slate-200 dark:border-navy-800 shadow-xs">
+              <div className="relative group shrink-0">
+                <CandidateAvatar
+                  name={profileForm.name || user?.name}
+                  avatar={profileForm.avatar}
+                  size="md"
+                  onClick={() => sidebarAvatarInputRef.current?.click()}
+                  title="Click to upload/change photo"
                 />
                 <button
                   type="button"
-                  onClick={() => quickPhotoInputRef.current && quickPhotoInputRef.current.click()}
-                  className="absolute -bottom-1 -right-1 bg-slate-50 dark:bg-navy-900 text-gold-400 p-1.5 rounded-lg border border-slate-200 dark:border-gold-500/50 hover:bg-gold-500 hover:text-slate-900 dark:text-white transition shadow cursor-pointer"
-                  title="Click to Upload Profile Picture from Device"
+                  onClick={() => sidebarAvatarInputRef.current?.click()}
+                  className="absolute -bottom-1 -right-1 p-1 bg-slate-900 text-amber-400 dark:bg-navy-950 dark:text-gold-400 rounded-lg shadow-sm border border-amber-500/50 dark:border-gold-500/50 hover:scale-110 transition cursor-pointer"
+                  title="Upload profile photo"
                 >
-                  <Camera className="w-3.5 h-3.5" />
+                  <Camera className="w-2.5 h-2.5" />
+                </button>
+                <input
+                  ref={sidebarAvatarInputRef}
+                  type="file"
+                  accept="image/*"
+                  onChange={handleAvatarFile}
+                  className="hidden"
+                />
+              </div>
+              <div className="overflow-hidden">
+                <h3 className="font-bold text-slate-950 dark:text-white text-xs truncate">{user.name || 'Executive Candidate'}</h3>
+                <p className="text-[10px] text-slate-500 dark:text-slate-400 truncate mt-0.5 font-medium">{profileForm.title || 'Candidate'}</p>
+                <div className="flex items-center gap-1.5 mt-1.5">
+                  <div className="flex-1 bg-slate-200 dark:bg-navy-950 h-1.5 rounded-full overflow-hidden border border-slate-300 dark:border-navy-800">
+                    <div className="bg-gradient-to-r from-gold-500 to-amber-400 h-full rounded-full transition-all duration-500" style={{ width: `${profileCompletionScore}%` }} />
+                  </div>
+                  <span className="text-[9px] font-bold text-amber-700 dark:text-gold-400 shrink-0">{profileCompletionScore}%</span>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          {/* Middle: 9 Sidebar Navigation Items (Fixed, non-scrolling) */}
+          <nav className="p-3 space-y-1 flex-1 text-left overflow-hidden">
+            {sidebarItems.map(item => {
+              const IconComponent = item.icon;
+              const isActive = activeTab === item.id;
+
+              return (
+                <button
+                  key={item.id}
+                  onClick={() => {
+                    setActiveTab(item.id);
+                    setMobileSidebarOpen(false);
+                  }}
+                  className={`w-full flex items-center justify-between px-3.5 py-2.5 rounded-xl text-xs font-bold transition cursor-pointer ${
+                    isActive
+                      ? 'bg-amber-100 dark:bg-gold-500/20 text-slate-950 dark:text-gold-300 font-bold border-2 border-amber-400 dark:border-gold-500/40 shadow-xs rounded-xl'
+                      : 'text-slate-700 hover:text-slate-950 hover:bg-slate-100 dark:text-slate-300 dark:hover:text-white dark:hover:bg-navy-900/80 font-medium rounded-xl border border-transparent'
+                  }`}
+                >
+                  <div className="flex items-center gap-3">
+                    <IconComponent className={`w-4 h-4 ${isActive ? 'text-amber-800 dark:text-gold-400' : 'text-slate-500 dark:text-slate-400'}`} />
+                    <span>{item.label}</span>
+                  </div>
+                  {item.badge !== undefined && item.badge > 0 && (
+                    <span className={`text-[10px] font-extrabold px-1.5 py-0.5 rounded-md ${
+                      isActive ? 'bg-amber-200 text-amber-950 border border-amber-300 dark:bg-gold-500 dark:text-navy-950' : 'bg-slate-100 text-slate-600 border border-slate-200 dark:bg-navy-900 dark:text-slate-300 dark:border-navy-700'
+                    }`}>
+                      {item.badge}
+                    </span>
+                  )}
+                </button>
+              );
+            })}
+          </nav>
+
+          {/* Bottom Pinned: Sign Out (No gap, cleanly pinned at bottom) */}
+          <div className="p-3 border-t-2 border-slate-200 dark:border-navy-800/80 bg-white dark:bg-[#071526] shrink-0 text-left">
+            <button
+              type="button"
+              onClick={() => { setShowSignOutModal(true); setMobileSidebarOpen(false); }}
+              className="w-full flex items-center justify-between px-3.5 py-2.5 rounded-xl text-xs font-bold text-rose-600 hover:text-rose-700 hover:bg-rose-50 dark:text-rose-400 dark:hover:text-rose-300 dark:hover:bg-rose-500/10 transition cursor-pointer group"
+            >
+              <div className="flex items-center gap-3">
+                <LogOut className="w-4 h-4 text-rose-600 dark:text-rose-400 group-hover:scale-105 transition" />
+                <span>Sign Out</span>
+              </div>
+            </button>
+          </div>
+        </aside>
+
+        {/* MAIN CONTENT AREA: RIGHT SIDE ONLY CAN SCROLL */}
+        <main className="flex-1 min-w-0 h-full overflow-y-auto overscroll-y-contain p-4 sm:p-6 lg:p-8 bg-[#F8F9FA] dark:bg-[#070c1e]">
+
+          {/* Global Alert Banners (if any) */}
+          {applySuccessMsg && (
+            <div className="mb-6 p-4 bg-emerald-500/10 border border-emerald-500/30 rounded-2xl text-emerald-600 dark:text-emerald-400 text-xs font-bold flex items-center gap-2 shadow-sm animate-fade-in text-left">
+              <CheckCircle2 className="w-5 h-5 shrink-0 text-emerald-500" />
+              <span>{applySuccessMsg}</span>
+            </div>
+          )}
+          {resumeActionMsg && (
+            <div className="mb-6 p-4 bg-gold-500/10 border border-gold-500/30 rounded-2xl text-gold-600 dark:text-gold-400 text-xs font-bold flex items-center gap-2 shadow-sm animate-fade-in text-left">
+              <Sparkles className="w-5 h-5 shrink-0 text-gold-500" />
+              <span>{resumeActionMsg}</span>
+            </div>
+          )}
+          {docUploadSuccessMsg && (
+            <div className="mb-6 p-4 bg-emerald-500/10 border border-emerald-500/30 rounded-2xl text-emerald-600 dark:text-emerald-400 text-xs font-bold flex items-center gap-2 shadow-sm animate-fade-in text-left">
+              <ShieldCheck className="w-5 h-5 shrink-0 text-emerald-500" />
+              <span>{docUploadSuccessMsg}</span>
+            </div>
+          )}
+
+          {/* ========================================================== */}
+          {/* TAB 1: DASHBOARD PAGE */}
+          {/* ========================================================== */}
+          {activeTab === 'dashboard' && (
+            <div className="space-y-6 text-left">
+              
+              {/* Welcome Section */}
+              <div className="bg-white dark:bg-slate-900 border-2 border-slate-200 dark:border-slate-800 rounded-3xl p-6 sm:p-8 shadow-xs flex flex-col md:flex-row justify-between items-start md:items-center gap-6">
+                <div className="space-y-2">
+                  <div className="flex items-center gap-2">
+                    <span className="text-[10px] uppercase tracking-wider font-extrabold px-2.5 py-0.5 rounded-full bg-amber-100 text-amber-900 border border-amber-300 dark:bg-gold-500/15 dark:text-gold-400 dark:border-gold-500/30">
+                      Revival Executive Portal
+                    </span>
+                    <span className="text-[10px] font-bold text-emerald-800 dark:text-emerald-400 bg-emerald-50 dark:bg-emerald-500/10 px-2.5 py-0.5 rounded-full border border-emerald-200 dark:border-transparent">
+                      MOHRE & GCC Verified
+                    </span>
+                  </div>
+                  <h1 className="font-serif text-2xl sm:text-3xl font-bold text-slate-950 dark:text-white">
+                    Welcome back, {user.name || 'Candidate'}!
+                  </h1>
+                  <p className="text-xs sm:text-sm text-slate-600 dark:text-slate-300 max-w-xl leading-relaxed">
+                    Track your active job applications, view upcoming interviews, and manage certified credentials for tier-1 GCC employer opportunities.
+                  </p>
+                </div>
+
+                {/* Profile Completion Indicator & Update Action */}
+                <div className="flex items-center gap-4 bg-slate-50 dark:bg-slate-950 p-4 rounded-2xl border-2 border-slate-200 dark:border-slate-800 shrink-0 w-full md:w-auto justify-between shadow-xs">
+                  <div>
+                    <span className="text-[10px] font-bold uppercase tracking-wider text-slate-500 block">Profile Completion</span>
+                    <span className="font-serif text-2xl font-black text-amber-600 dark:text-gold-500">{profileCompletionScore}%</span>
+                  </div>
+                  <button
+                    onClick={() => setActiveTab('profile')}
+                    className="px-4 py-2 bg-gradient-to-r from-amber-500 to-gold-500 hover:from-amber-600 hover:to-gold-600 text-navy-950 font-black text-xs rounded-xl shadow-xs hover:shadow-md transition cursor-pointer"
+                  >
+                    Update Profile
+                  </button>
+                </div>
+              </div>
+
+              {/* Statistics Cards (5 Cards) */}
+              <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-4">
+                
+                {/* 1. Applications */}
+                <div
+                  onClick={() => setActiveTab('applications')}
+                  className="bg-white dark:bg-slate-900 border-2 border-slate-200 dark:border-slate-800 rounded-2xl p-4 shadow-xs hover:border-blue-400 hover:shadow-md transition cursor-pointer"
+                >
+                  <div className="flex items-center justify-between">
+                    <span className="text-[11px] font-bold text-slate-500 uppercase tracking-wider">Applications</span>
+                    <div className="w-8 h-8 rounded-xl bg-gold-500/15 text-gold-500 flex items-center justify-center">
+                      <Send className="w-4 h-4" />
+                    </div>
+                  </div>
+                  <div className="mt-2 flex items-baseline gap-2">
+                    <span className="text-2xl font-serif font-black text-slate-950 dark:text-white">{candidateApplications.length}</span>
+                    <span className="text-[10px] text-slate-400">Total</span>
+                  </div>
+                </div>
+
+                {/* 2. Under Review */}
+                <div
+                  onClick={() => { setActiveTab('applications'); setAppFilterStatus('Under Review'); }}
+                  className="bg-white dark:bg-slate-900 border-2 border-slate-200 dark:border-slate-800 rounded-2xl p-4 shadow-xs hover:border-amber-400 hover:shadow-md transition cursor-pointer"
+                >
+                  <div className="flex items-center justify-between">
+                    <span className="text-[11px] font-bold text-slate-500 uppercase tracking-wider">Under Review</span>
+                    <div className="w-8 h-8 rounded-xl bg-amber-500/15 text-amber-500 flex items-center justify-center">
+                      <Clock className="w-4 h-4" />
+                    </div>
+                  </div>
+                  <div className="mt-2 flex items-baseline gap-2">
+                    <span className="text-2xl font-serif font-black text-amber-600 dark:text-amber-400">
+                      {candidateApplications.filter(a => a.status === 'Under Review' || a.status === 'Applied').length}
+                    </span>
+                    <span className="text-[10px] text-slate-400">Screening</span>
+                  </div>
+                </div>
+
+                {/* 3. Shortlisted */}
+                <div
+                  onClick={() => { setActiveTab('applications'); setAppFilterStatus('Shortlisted'); }}
+                  className="bg-white dark:bg-slate-900 border-2 border-slate-200 dark:border-slate-800 rounded-2xl p-4 shadow-xs hover:border-emerald-400 hover:shadow-md transition cursor-pointer"
+                >
+                  <div className="flex items-center justify-between">
+                    <span className="text-[11px] font-bold text-slate-500 uppercase tracking-wider">Shortlisted</span>
+                    <div className="w-8 h-8 rounded-xl bg-emerald-500/15 text-emerald-500 flex items-center justify-center">
+                      <CheckCircle2 className="w-4 h-4" />
+                    </div>
+                  </div>
+                  <div className="mt-2 flex items-baseline gap-2">
+                    <span className="text-2xl font-serif font-black text-emerald-600 dark:text-emerald-400">
+                      {candidateApplications.filter(a => a.status === 'Shortlisted').length}
+                    </span>
+                    <span className="text-[10px] text-slate-400">Committee</span>
+                  </div>
+                </div>
+
+                {/* 4. Interviews */}
+                <div
+                  onClick={() => setActiveTab('interviews')}
+                  className="bg-white dark:bg-slate-900 border-2 border-slate-200 dark:border-slate-800 rounded-2xl p-4 shadow-xs hover:border-purple-400 hover:shadow-md transition cursor-pointer"
+                >
+                  <div className="flex items-center justify-between">
+                    <span className="text-[11px] font-bold text-slate-500 uppercase tracking-wider">Interviews</span>
+                    <div className="w-8 h-8 rounded-xl bg-gold-500/15 text-gold-500 flex items-center justify-center">
+                      <Calendar className="w-4 h-4" />
+                    </div>
+                  </div>
+                  <div className="mt-2 flex items-baseline gap-2">
+                    <span className="text-2xl font-serif font-black text-navy-950 dark:text-white">
+                      {candidateApplications.filter(a => a.status === 'Interview Scheduled').length}
+                    </span>
+                    <span className="text-[10px] text-emerald-500 font-bold">Scheduled</span>
+                  </div>
+                </div>
+
+                {/* 5. Saved Jobs */}
+                <div
+                  onClick={() => setActiveTab('saved-jobs')}
+                  className="bg-white dark:bg-navy-900 border border-slate-200 dark:border-navy-800 rounded-2xl p-4 shadow-sm hover:border-gold-500/40 transition cursor-pointer"
+                >
+                  <div className="flex items-center justify-between">
+                    <span className="text-[11px] font-bold text-slate-500 uppercase tracking-wider">Saved Jobs</span>
+                    <div className="w-8 h-8 rounded-xl bg-gold-500/15 text-gold-500 flex items-center justify-center">
+                      <Bookmark className="w-4 h-4" />
+                    </div>
+                  </div>
+                  <div className="mt-2 flex items-baseline gap-2">
+                    <span className="text-2xl font-serif font-black text-navy-950 dark:text-white">{savedJobs?.length || 0}</span>
+                    <span className="text-[10px] text-slate-400">Bookmarked</span>
+                  </div>
+                </div>
+
+              </div>
+
+              {/* 2-Column Section: Recent Applications & Upcoming Interviews */}
+              <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                
+                {/* Recent Applications Card */}
+                <div className="bg-white dark:bg-navy-900 border border-slate-200 dark:border-navy-800 rounded-3xl p-6 shadow-sm space-y-4">
+                  <div className="flex items-center justify-between pb-3 border-b border-slate-100 dark:border-navy-800">
+                    <h3 className="font-serif text-lg font-bold text-slate-950 dark:text-white flex items-center gap-2">
+                      <Send className="w-4 h-4 text-gold-500" />
+                      Recent Applications
+                    </h3>
+                    <button
+                      onClick={() => setActiveTab('applications')}
+                      className="text-xs font-bold text-gold-500 hover:underline flex items-center gap-1"
+                    >
+                      <span>View All ({candidateApplications.length})</span>
+                      <ChevronRight className="w-3.5 h-3.5" />
+                    </button>
+                  </div>
+
+                  {candidateApplications.length === 0 ? (
+                    <div className="p-8 text-center bg-slate-50 dark:bg-navy-950 rounded-2xl border border-slate-200 dark:border-navy-800 space-y-3">
+                      <Briefcase className="w-10 h-10 text-gold-500/50 mx-auto" />
+                      <p className="text-xs text-slate-500">No applications submitted yet.</p>
+                      <button
+                        onClick={() => navigateTo('jobs')}
+                        className="px-4 py-2 bg-gradient-to-r from-gold-500 to-amber-400 text-navy-950 font-bold text-xs rounded-xl shadow-gold-glow hover:opacity-95 transition"
+                      >
+                        Explore Open Vacancies →
+                      </button>
+                    </div>
+                  ) : (
+                    <div className="space-y-3">
+                      {candidateApplications.slice(0, 3).map(app => (
+                        <div
+                          key={app.id}
+                          className="p-3.5 bg-slate-50 dark:bg-navy-950 border border-slate-200 dark:border-navy-800 rounded-2xl flex items-center justify-between gap-3 hover:border-gold-500/40 transition"
+                        >
+                          <div className="flex items-center gap-3">
+                            <div className="w-10 h-10 rounded-xl bg-gold-500/20 text-gold-500 font-bold flex items-center justify-center shrink-0 text-sm">
+                              {app.company.charAt(0)}
+                            </div>
+                            <div>
+                              <h4 className="font-bold text-xs text-navy-950 dark:text-white">{app.jobTitle}</h4>
+                              <p className="text-[11px] text-slate-500 mt-0.5">{app.company} • {app.appliedDate}</p>
+                            </div>
+                          </div>
+                          <div className="text-right shrink-0">
+                            <span className={`inline-block text-[10px] font-bold px-2.5 py-0.5 rounded-full ${
+                              app.status === 'Shortlisted' ? 'bg-emerald-500/15 text-emerald-600 dark:text-emerald-400' :
+                              app.status === 'Interview Scheduled' ? 'bg-gold-500/20 text-gold-600 dark:text-gold-400' :
+                              'bg-amber-500/15 text-amber-600 dark:text-amber-400'
+                            }`}>
+                              {app.status}
+                            </span>
+                            <button
+                              onClick={() => setScreeningModalApp(app)}
+                              className="block text-[10px] font-bold text-gold-500 hover:underline mt-1 cursor-pointer"
+                            >
+                              View Details
+                            </button>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </div>
+
+                {/* Upcoming Interviews Card */}
+                <div className="bg-white dark:bg-navy-900 border border-slate-200 dark:border-navy-800 rounded-3xl p-6 shadow-sm space-y-4">
+                  <div className="flex items-center justify-between pb-3 border-b border-slate-100 dark:border-navy-800">
+                    <h3 className="font-serif text-lg font-bold text-navy-950 dark:text-white flex items-center gap-2">
+                      <Calendar className="w-4 h-4 text-gold-500" />
+                      Upcoming Interviews
+                    </h3>
+                    <button
+                      onClick={() => setActiveTab('interviews')}
+                      className="text-xs font-bold text-gold-500 hover:underline flex items-center gap-1"
+                    >
+                      <span>Schedule</span>
+                      <ChevronRight className="w-3.5 h-3.5" />
+                    </button>
+                  </div>
+
+                  {candidateApplications.filter(a => a.status === 'Interview Scheduled' || a.interviewDetails).length === 0 ? (
+                    <div className="p-8 text-center bg-slate-50 dark:bg-navy-950 rounded-2xl border border-slate-200 dark:border-navy-800 space-y-3">
+                      <Calendar className="w-10 h-10 text-gold-500/50 mx-auto" />
+                      <p className="text-xs text-slate-500">No interviews currently scheduled.</p>
+                      <p className="text-[11px] text-slate-400 max-w-xs mx-auto">
+                        When employers shortlist your profile, video conference details will appear here.
+                      </p>
+                    </div>
+                  ) : (
+                    <div className="space-y-3">
+                      {candidateApplications.filter(a => a.status === 'Interview Scheduled' || a.interviewDetails).map(app => (
+                        <div
+                          key={app.id}
+                          className="p-4 bg-slate-50 dark:bg-navy-950 border border-slate-200 dark:border-navy-800 rounded-2xl space-y-3"
+                        >
+                          <div className="flex items-center justify-between">
+                            <span className="text-[10px] font-bold uppercase tracking-wider text-gold-500 flex items-center gap-1">
+                              <Video className="w-3.5 h-3.5" />
+                              {app.interviewDetails?.platform || 'Video Interview'}
+                            </span>
+                            <span className="text-xs font-mono font-bold text-slate-700 dark:text-slate-300">
+                              {app.interviewDetails?.date || 'Thu, Nov 20, 2026'} • {app.interviewDetails?.time || '11:00 AM GST'}
+                            </span>
+                          </div>
+                          <div>
+                            <h4 className="font-bold text-xs text-navy-950 dark:text-white">{app.jobTitle}</h4>
+                            <p className="text-[11px] text-slate-500 mt-0.5">{app.company} • Technical Panel</p>
+                          </div>
+                          <div className="flex gap-2 pt-1">
+                            <button
+                              onClick={() => { setInterviewModalApp(app); startCameraStream(); }}
+                              className="flex-1 py-2 bg-gradient-to-r from-gold-500 to-amber-400 text-navy-950 font-bold text-xs rounded-xl shadow-gold-glow hover:opacity-95 transition"
+                            >
+                              Join Video Call
+                            </button>
+                            <button
+                              onClick={() => setScreeningModalApp(app)}
+                              className="px-3 py-2 bg-slate-200 dark:bg-navy-800 text-slate-700 dark:text-slate-200 font-bold text-xs rounded-xl hover:bg-slate-300 transition"
+                            >
+                              Details
+                            </button>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </div>
+
+              </div>
+
+              {/* Quick Actions Bar */}
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 pt-2">
+                <button
+                  onClick={() => setActiveModal('ai-resume')}
+                  className="p-4 bg-white dark:bg-navy-900 border border-slate-200 dark:border-navy-800 rounded-2xl shadow-sm hover:border-gold-500/40 transition flex items-center gap-3 text-left cursor-pointer"
+                >
+                  <div className="w-10 h-10 rounded-xl bg-gold-500/15 text-gold-500 flex items-center justify-center shrink-0">
+                    <Sparkles className="w-5 h-5" />
+                  </div>
+                  <div>
+                    <h4 className="text-xs font-bold text-navy-950 dark:text-white">Scan CV with AI</h4>
+                    <p className="text-[10px] text-slate-400">Audit ATS score & keywords</p>
+                  </div>
+                </button>
+
+                <button
+                  onClick={() => setActiveTab('documents')}
+                  className="p-4 bg-white dark:bg-navy-900 border border-slate-200 dark:border-navy-800 rounded-2xl shadow-sm hover:border-gold-500/40 transition flex items-center gap-3 text-left cursor-pointer"
+                >
+                  <div className="w-10 h-10 rounded-xl bg-emerald-500/15 text-emerald-500 flex items-center justify-center shrink-0">
+                    <ShieldCheck className="w-5 h-5" />
+                  </div>
+                  <div>
+                    <h4 className="text-xs font-bold text-navy-950 dark:text-white">Upload Attestations</h4>
+                    <p className="text-[10px] text-slate-400">Degree & passport validation</p>
+                  </div>
+                </button>
+
+                <button
+                  onClick={() => navigateTo('jobs')}
+                  className="p-4 bg-white dark:bg-navy-900 border border-slate-200 dark:border-navy-800 rounded-2xl shadow-sm hover:border-gold-500/40 transition flex items-center gap-3 text-left cursor-pointer"
+                >
+                  <div className="w-10 h-10 rounded-xl bg-navy-950 dark:bg-navy-800 text-gold-400 flex items-center justify-center shrink-0">
+                    <Search className="w-5 h-5" />
+                  </div>
+                  <div>
+                    <h4 className="text-xs font-bold text-navy-950 dark:text-white">Browse All Vacancies</h4>
+                    <p className="text-[10px] text-slate-400">{allJobs.length} Verified GCC Openings</p>
+                  </div>
                 </button>
               </div>
 
-              {/* Profile Percentage below photo */}
-              <span className={`mt-2 font-extrabold text-[11px] px-2.5 py-0.5 rounded-full shadow-sm ${profileScore >= 80 ? 'bg-emerald-600 text-slate-900 dark:text-white' : profileScore >= 50 ? 'bg-gold-500 text-navy-950' : 'bg-rose-600 text-slate-900 dark:text-white'}`}>
-                Score: {profileScore}% Complete
-              </span>
-            </div>
-
-            <div>
-              <div className="flex items-center gap-2">
-                <span className="bg-gold-500/15 text-gold-700 dark:text-gold-400 border border-slate-200 dark:border-gold-500/30 text-[10px] font-bold px-2 py-0.5 rounded uppercase">Verified Candidate Profile</span>
-                {user.mohreAttested && (
-                  <span className="bg-emerald-500/10 text-emerald-500 border border-emerald-500/20 text-[10px] font-bold px-2 py-0.5 rounded flex items-center gap-1">
-                    <CheckCircle2 className="w-3 h-3" /> MOHRE Attested
-                  </span>
-                )}
-              </div>
-
-              <h1 className="font-serif text-2xl font-bold text-slate-900 dark:text-white mt-1">
-                {user.name || 'Candidate Profile'}
-              </h1>
-              <div className="flex flex-wrap items-center gap-2 mt-1">
-                <span className="text-xs font-semibold text-slate-700 dark:text-gold-400 bg-slate-100 dark:bg-navy-900 px-2 py-0.5 rounded-md border border-slate-200 dark:border-gold-500/20">
-                  {user.email}
-                </span>
-                {user.googleVerified && (
-                  <span className="text-[10px] font-bold text-emerald-600 dark:text-emerald-400 bg-emerald-500/10 px-2 py-0.5 rounded border border-emerald-500/20 flex items-center gap-1">
-                    <CheckCircle2 className="w-3 h-3" /> Google Authenticated
-                  </span>
-                )}
-              </div>
-              <p className="text-xs text-slate-700 dark:text-slate-300 font-semibold mt-1">
-                {user.title ? user.title : <span className="text-rose-400 italic">No Designation Added</span>} • {user.location ? user.location : <span className="text-slate-500 dark:text-slate-400 italic">No Location Set</span>}
-              </p>
-              <p className="text-[11px] text-slate-500 font-medium">
-                Candidate ID: {user.candidateId || 'REV-CAN-88219'} • Preferred Destination: {user.preferredCountry ? user.preferredCountry : 'Not specified'}
-              </p>
-            </div>
-          </div>
-
-          {/* Action CTAs */}
-          <div className="flex flex-wrap gap-2 w-full md:w-auto">
-            <button
-              onClick={() => setActiveModal('ai-resume')}
-              className="flex-1 md:flex-initial px-4 py-2.5 bg-gold-500/15 text-gold-700 dark:text-gold-400 border border-slate-200 dark:border-gold-500/30 hover:bg-gold-500 hover:text-slate-900 dark:text-white font-bold text-xs rounded-xl transition flex items-center justify-center space-x-1.5"
-            >
-              <Sparkles className="w-4 h-4" />
-              <span>AI ATS Score CV</span>
-            </button>
-
-            <button
-              onClick={() => setShowSignOutModal(true)}
-              className="px-3 py-2.5 bg-rose-500/10 text-rose-600 dark:bg-rose-500/20 dark:text-rose-300 hover:bg-rose-500 hover:text-slate-900 dark:text-white border border-rose-500/30 font-bold text-xs rounded-xl transition flex items-center justify-center space-x-1.5 cursor-pointer"
-              title="Sign Out of Candidate Account"
-            >
-              <LogOut className="w-4 h-4" />
-              <span>Sign Out</span>
-            </button>
-          </div>
-        </div>
-
-        {/* Tabs Navigation */}
-        <div className="flex space-x-2 border-b border-slate-200 dark:border-navy-800 text-xs font-bold overflow-x-auto">
-          <button
-            onClick={() => setActiveTab('dashboard')}
-            className={`pb-3 px-4 transition whitespace-nowrap ${activeTab === 'dashboard' ? 'border-b-2 border-gold-500 text-gold-500 font-extrabold' : 'text-slate-700 dark:text-slate-300'}`}
-          >
-            Profile Overview & Status
-          </button>
-          <button
-            onClick={() => setActiveTab('browse-jobs')}
-            className={`pb-3 px-4 transition whitespace-nowrap flex items-center gap-1.5 ${activeTab === 'browse-jobs' ? 'border-b-2 border-gold-500 text-gold-500 font-extrabold' : 'text-slate-700 dark:text-slate-300'}`}
-          >
-            <Briefcase className="w-3.5 h-3.5 text-gold-500" />
-            <span>Browse & Apply Jobs ({allJobs.length})</span>
-          </button>
-          <button
-            onClick={() => setActiveTab('edit-profile')}
-            className={`pb-3 px-4 transition whitespace-nowrap flex items-center gap-1.5 ${activeTab === 'edit-profile' ? 'border-b-2 border-gold-500 text-gold-500 font-extrabold' : 'text-slate-700 dark:text-slate-300'}`}
-          >
-            <Edit3 className="w-3.5 h-3.5 text-gold-500" />
-            <span>Edit Basic Info & Details</span>
-          </button>
-          <button
-            onClick={() => setActiveTab('applications')}
-            className={`pb-3 px-4 transition whitespace-nowrap ${activeTab === 'applications' ? 'border-b-2 border-gold-500 text-gold-500 font-extrabold' : 'text-slate-700 dark:text-slate-300'}`}
-          >
-            Applications ({applications.length})
-          </button>
-          <button
-            onClick={() => setActiveTab('saved')}
-            className={`pb-3 px-4 transition whitespace-nowrap ${activeTab === 'saved' ? 'border-b-2 border-gold-500 text-gold-500 font-extrabold' : 'text-slate-700 dark:text-slate-300'}`}
-          >
-            Saved Jobs ({savedJobs.length})
-          </button>
-          <button
-            onClick={() => setActiveTab('saved-searches')}
-            className={`pb-3 px-4 transition whitespace-nowrap flex items-center gap-1.5 cursor-pointer ${activeTab === 'saved-searches' ? 'border-b-2 border-gold-500 text-gold-500 font-extrabold' : 'text-slate-700 dark:text-slate-300'}`}
-          >
-            <SlidersHorizontal className="w-3.5 h-3.5 text-gold-500" />
-            <span>Saved Searches ({savedSearches?.length || 0})</span>
-          </button>
-          <button
-            onClick={() => setActiveTab('interviews')}
-            className={`pb-3 px-4 transition whitespace-nowrap cursor-pointer ${activeTab === 'interviews' ? 'border-b-2 border-gold-500 text-gold-500 font-extrabold' : 'text-slate-700 dark:text-slate-300'}`}
-          >
-            Interview Schedule ({applications.filter(a => a && a.status === 'Interview Scheduled').length})
-          </button>
-        </div>
-
-        {/* DASHBOARD OVERVIEW TAB */}
-        {activeTab === 'dashboard' && (
-          <div className="space-y-6 text-xs font-sans">
-            {/* Executive KPI Metric Cards */}
-            <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-          <div className="glass-card bg-white dark:bg-navy-900 border border-slate-200 dark:border-navy-800 rounded-3xl p-5 shadow-luxury flex flex-col justify-between space-y-2 hover:border-gold-500/40 transition">
-            <div className="flex items-center justify-between">
-              <span className="text-[11px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider">Total Applied</span>
-              <div className="w-8 h-8 rounded-xl bg-gold-500/15 text-gold-500 flex items-center justify-center">
-                <Briefcase className="w-4 h-4" />
-              </div>
-            </div>
-            <div className="flex items-baseline gap-2">
-              <span className="text-3xl font-extrabold text-navy-900 dark:text-white font-serif">{applications.length}</span>
-              <span className="text-[10px] text-slate-500 font-semibold">Active Mandates</span>
-            </div>
-          </div>
-
-          <div className="glass-card bg-white dark:bg-navy-900 border border-slate-200 dark:border-navy-800 rounded-3xl p-5 shadow-luxury flex flex-col justify-between space-y-2 hover:border-emerald-500/40 transition">
-            <div className="flex items-center justify-between">
-              <span className="text-[11px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider">ATS Score</span>
-              <div className="w-8 h-8 rounded-xl bg-emerald-500/15 text-emerald-500 flex items-center justify-center">
-                <Sparkles className="w-4 h-4" />
-              </div>
-            </div>
-            <div className="flex items-baseline gap-2">
-              <span className="text-3xl font-extrabold text-emerald-600 dark:text-emerald-400 font-serif">{user.atsScore || profileScore}%</span>
-              <span className="text-[10px] text-emerald-600 dark:text-emerald-400 font-bold bg-emerald-500/10 px-1.5 py-0.5 rounded">Verified</span>
-            </div>
-          </div>
-
-          <div className="glass-card bg-white dark:bg-navy-900 border border-slate-200 dark:border-navy-800 rounded-3xl p-5 shadow-luxury flex flex-col justify-between space-y-2 hover:border-amber-500/40 transition">
-            <div className="flex items-center justify-between">
-              <span className="text-[11px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider">In Review</span>
-              <div className="w-8 h-8 rounded-xl bg-amber-500/15 text-amber-500 flex items-center justify-center">
-                <Clock className="w-4 h-4" />
-              </div>
-            </div>
-            <div className="flex items-baseline gap-2">
-              <span className="text-3xl font-extrabold text-amber-600 dark:text-amber-400 font-serif">
-                {applications.filter(a => a.status === 'Interview Scheduled' || a.status === 'Under AI Resume Screening').length}
-              </span>
-              <span className="text-[10px] text-slate-500 font-semibold">Recruiter Queue</span>
-            </div>
-          </div>
-
-          <div
-            onClick={() => setActiveTab('interviews')}
-            className="glass-card bg-white dark:bg-navy-900 border border-slate-200 dark:border-navy-800 rounded-3xl p-5 shadow-luxury flex flex-col justify-between space-y-2 hover:border-gold-500/40 transition cursor-pointer"
-            title="Click to view Interview Schedule"
-          >
-            <div className="flex items-center justify-between">
-              <span className="text-[11px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider">Interview Status</span>
-              <div className="w-8 h-8 rounded-xl bg-gold-500/15 text-gold-500 flex items-center justify-center">
-                <Video className="w-4 h-4" />
-              </div>
-            </div>
-            <div className="flex items-baseline gap-2">
-              <span className="text-3xl font-extrabold text-navy-900 dark:text-white font-serif">
-                {applications.filter(a => a && a.status === 'Interview Scheduled').length}
-              </span>
-              <span className={`text-[10px] font-bold px-1.5 py-0.5 rounded ${applications.filter(a => a && a.status === 'Interview Scheduled').length > 0 ? 'bg-emerald-500/15 text-emerald-500' : 'bg-slate-100 dark:bg-navy-800 text-slate-500'}`}>
-                {applications.filter(a => a && a.status === 'Interview Scheduled').length > 0 ? 'Scheduled' : 'None Scheduled'}
-              </span>
-            </div>
-          </div>
-        </div>
-
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-
-          {/* Candidate Detailed Info Card */}
-          <div className="glass-card bg-white dark:bg-navy-900 border border-slate-200 dark:border-navy-800 p-6 rounded-3xl space-y-4 shadow-luxury">
-            <div className="flex justify-between items-center border-b border-slate-200 dark:border-navy-800 pb-3">
-              <h3 className="font-serif text-lg font-bold text-navy-900 dark:text-white flex items-center gap-2">
-                <User className="w-5 h-5 text-gold-500" />
-                Authentic Executive Profile
-              </h3>
-              <button
-                onClick={() => setActiveTab('edit-profile')}
-                className="text-gold-500 hover:underline font-bold text-[11px] flex items-center gap-1"
-              >
-                <Edit3 className="w-3 h-3" />
-                <span>Edit</span>
-              </button>
-            </div>
-
-            <div className="flex items-center space-x-3.5 bg-slate-50 dark:bg-navy-950 p-3.5 rounded-2xl border border-slate-200 dark:border-navy-800">
-              {user.avatar ? (
-                <img src={user.avatar} alt="Candidate Avatar" className="w-14 h-14 rounded-2xl object-cover border-2 border-gold-500 shadow-gold-glow shrink-0" />
-              ) : (
-                <div className="w-14 h-14 rounded-2xl bg-slate-50 dark:bg-navy-900 text-gold-400 font-serif font-extrabold text-xl flex items-center justify-center border-2 border-gold-500 shadow-gold-glow shrink-0">
-                  {user.name ? user.name.charAt(0).toUpperCase() : 'C'}
-                </div>
-              )}
-              <div className="space-y-0.5 overflow-hidden">
-                <h4 className="font-serif text-base font-bold text-navy-900 dark:text-white truncate">{user.name || 'Executive Candidate'}</h4>
-                <p className="text-xs text-gold-500 font-bold truncate">{user.title || 'Candidate Designation'}</p>
-                <span className="inline-block bg-emerald-500/20 text-emerald-600 dark:text-emerald-400 text-[10px] font-extrabold px-2 py-0.5 rounded-full">
-                  Score: {user.atsScore || profileScore}% Calculated
-                </span>
-              </div>
-            </div>
-
-            <div className="space-y-2.5 text-slate-700 dark:text-slate-300">
-              <p><strong className="text-navy-900 dark:text-white">Full Name:</strong> {user.name || <span className="text-slate-500 dark:text-slate-400 italic">Not set</span>}</p>
-              <p><strong className="text-navy-900 dark:text-white">Email:</strong> {user.email || <span className="text-slate-500 dark:text-slate-400 italic">Not set</span>}</p>
-              <p><strong className="text-navy-900 dark:text-white">Phone:</strong> {user.phone ? user.phone : <span className="text-rose-400 italic">Not provided</span>}</p>
-              <p><strong className="text-navy-900 dark:text-white">Nationality:</strong> {user.nationality ? <span className="font-semibold text-slate-900 dark:text-slate-100">{user.nationality}</span> : <span className="text-slate-400 italic">Not specified</span>}</p>
-              <p><strong className="text-navy-900 dark:text-white">Citizenship:</strong> {user.citizenship ? <span className="font-semibold text-slate-900 dark:text-slate-100">{user.citizenship}</span> : <span className="text-slate-400 italic">Not specified</span>}</p>
-              <p><strong className="text-navy-900 dark:text-white">Designation:</strong> {user.title ? user.title : <span className="text-slate-400 italic">Not specified</span>}</p>
-              <p><strong className="text-navy-900 dark:text-white">Location:</strong> {user.location ? user.location : <span className="text-slate-400 italic">Not specified</span>}</p>
-              <p><strong className="text-navy-900 dark:text-white">Target Country:</strong> {user.preferredCountry ? user.preferredCountry : <span className="text-slate-400 italic">Not specified</span>}</p>
-              <p><strong className="text-navy-900 dark:text-white">Experience:</strong> {user.experience ? user.experience : <span className="text-slate-400 italic">Not specified</span>}</p>
-              <p><strong className="text-navy-900 dark:text-white">Education:</strong> {user.qualification ? user.qualification : <span className="text-slate-400 italic">Not specified</span>}</p>
-              <p><strong className="text-navy-900 dark:text-white">Current Salary:</strong> {user.currentSalary ? user.currentSalary : <span className="text-slate-400 italic">Not specified</span>}</p>
-              <p><strong className="text-navy-900 dark:text-white">Expected Salary:</strong> {user.expectedSalary ? user.expectedSalary : <span className="text-slate-400 italic">Not specified</span>}</p>
-              <p><strong className="text-navy-900 dark:text-white">Notice Period:</strong> {user.noticePeriod ? user.noticePeriod : <span className="text-slate-400 italic">Not specified</span>}</p>
-              <p><strong className="text-navy-900 dark:text-white">CV Attachment:</strong> {user.resumeName ? <span className="text-emerald-700 dark:text-emerald-400 font-bold flex items-center gap-1.5 mt-0.5"><Paperclip className="w-3.5 h-3.5 text-amber-500 shrink-0" /><span>{user.resumeName}</span></span> : <span className="text-amber-600 dark:text-amber-400 italic">No CV attached yet</span>}</p>
-            </div>
-
-            <div className="pt-2 border-t border-slate-200 dark:border-navy-800 space-y-2">
-              <span className="font-bold text-navy-900 dark:text-white block">Key Technical Skills:</span>
-              <div className="flex flex-wrap gap-1">
-                {user.skills && Array.isArray(user.skills) && user.skills.length > 0 ? (
-                  user.skills.map((sk, idx) => (
-                    <span key={idx} className="bg-gold-500/15 text-gold-700 dark:text-gold-400 border border-slate-200 dark:border-gold-500/30 text-[10px] font-bold px-2 py-0.5 rounded-lg">
-                      {sk}
-                    </span>
-                  ))
-                ) : (
-                  <span className="text-rose-400 italic text-[11px]">No technical skills added yet</span>
-                )}
-              </div>
-            </div>
-          </div>
-
-          {/* Active Application Tracker & Resume Status */}
-          <div className="lg:col-span-2 space-y-6">
-
-            {/* Active CV Status Card */}
-            <div className="glass-card bg-white dark:bg-navy-900 border border-slate-200 dark:border-navy-800 p-6 rounded-3xl space-y-4 shadow-luxury">
-              <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3">
-                <div>
-                  <h3 className="font-serif text-lg font-bold text-navy-900 dark:text-white flex items-center gap-2">
-                    <FileText className="w-5 h-5 text-gold-500" />
-                    Active ATS Resume & Documents
-                  </h3>
-                  <p className="text-xs text-slate-500 dark:text-slate-400">
-                    MOHRE & GCC ATS Applicant Tracking Compliance
-                  </p>
-                </div>
-                <div className="flex items-center gap-2">
-                  <button
-                    onClick={() => setActiveModal('ai-resume')}
-                    className="px-3.5 py-2 bg-gradient-to-r from-gold-500 to-amber-400 text-navy-950 font-extrabold rounded-xl text-xs shadow-gold-glow hover:opacity-95 transition flex items-center gap-1.5 cursor-pointer"
-                  >
-                    <Sparkles className="w-3.5 h-3.5" />
-                    <span>Scan CV with Revival AI</span>
-                  </button>
-                  <button
-                    onClick={() => setActiveModal('resume-builder')}
-                    className="px-3 py-2 bg-slate-100 hover:bg-slate-200 dark:bg-navy-800 dark:hover:bg-navy-700 text-navy-900 dark:text-white font-bold rounded-xl text-xs transition flex items-center gap-1 cursor-pointer"
-                  >
-                    <FileText className="w-3.5 h-3.5 text-gold-500" />
-                    <span>Build PDF CV</span>
-                  </button>
-                </div>
-              </div>
-
-              <div className="p-4 bg-slate-50 dark:bg-navy-950 rounded-2xl space-y-3 border border-slate-200 dark:border-navy-800 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
-                <div className="space-y-1">
-                  <div className="flex items-center gap-2">
-                    <span className="font-bold text-navy-900 dark:text-white text-sm">{user.resumeName || 'Executive_Candidate_CV.pdf'}</span>
-                    <span className={`font-bold px-2 py-0.5 rounded-full text-[10px] ${user.resumeUploaded ? 'bg-emerald-500/20 text-emerald-500' : 'bg-amber-500/20 text-amber-500'}`}>
-                      {user.resumeUploaded ? 'MOHRE Verified PDF' : 'Ready for ATS Scan'}
-                    </span>
-                  </div>
-                  <p className="text-[11px] text-slate-500">
-                    Structured for Taleo, Workday & GCC headhunter automated screening.
-                  </p>
-                </div>
-
-                <div className="flex items-center gap-3 shrink-0">
-                  <div className="text-right">
-                    <span className="text-[10px] font-bold text-slate-500 uppercase block">ATS Score</span>
-                    <span className="text-xl font-extrabold text-gold-500 font-serif">{user.atsScore || profileScore}% Match</span>
-                  </div>
-                  <div className="w-12 h-12 rounded-2xl bg-gold-500/15 border border-gold-500/30 flex items-center justify-center font-extrabold text-gold-500 text-sm shadow-gold-glow">
-                    {user.atsScore || profileScore}%
-                  </div>
-                </div>
-              </div>
-            </div>
-
-            {/* Application Tracker */}
-            <div className="glass-card bg-white dark:bg-navy-900 border border-slate-200 dark:border-navy-800 p-6 rounded-3xl space-y-4 shadow-luxury">
-              <div className="flex justify-between items-center">
-                <h3 className="font-serif text-lg font-bold text-navy-900 dark:text-white flex items-center gap-2">
-                  <Clock className="w-5 h-5 text-gold-500" />
-                  Real-Time Application Status Tracker
-                </h3>
-                {applications.length > 0 && (
-                  <span className="text-xs text-slate-500 font-bold">
-                    {applications.length} Active {applications.length === 1 ? 'Application' : 'Applications'}
-                  </span>
-                )}
-              </div>
-
-              {applications.length === 0 ? (
-                <div className="p-8 text-center bg-slate-50 dark:bg-navy-950 rounded-2xl border border-slate-200 dark:border-navy-800 space-y-3">
-                  <Briefcase className="w-10 h-10 text-gold-500/60 mx-auto" />
-                  <div>
-                    <h4 className="font-bold text-navy-900 dark:text-white text-sm">No Applications Submitted Yet</h4>
-                    <p className="text-xs text-slate-500 max-w-md mx-auto mt-1">
-                      Use our Revival AI Resume Analyzer to match your profile with open tier-1 GCC vacancies in Dubai, Riyadh & Doha.
-                    </p>
-                  </div>
-                  <button
-                    onClick={() => setActiveTab('browse-jobs')}
-                    className="px-4 py-2 bg-gradient-to-r from-gold-500 to-amber-400 text-navy-950 font-extrabold text-xs rounded-xl shadow-gold-glow hover:opacity-95 transition"
-                  >
-                    Browse {allJobs.length} Verified Overseas Vacancies →
-                  </button>
-                </div>
-              ) : (
-                <div className="space-y-3">
-                  {applications.map((app) => (
-                    <div
-                      key={app.id}
-                      onClick={() => setScreeningModalApp(app)}
-                      className="p-4 bg-slate-50 dark:bg-navy-950 border border-slate-200 dark:border-navy-800 rounded-2xl space-y-3 hover:border-gold-500/40 transition cursor-pointer shadow-sm"
-                      title="Click to view AI ATS Screening Report"
-                    >
-                      <div className="flex justify-between items-start">
-                        <div>
-                          <h4 className="font-bold text-navy-900 dark:text-white text-sm hover:text-gold-500 transition">{app.jobTitle}</h4>
-                          <p className="text-slate-600 dark:text-slate-400 font-medium text-xs">{app.company} • {app.country}</p>
-                        </div>
-                        <span className="bg-gold-500/20 text-gold-600 dark:text-gold-400 border border-gold-500/30 font-bold px-2.5 py-1 rounded-full text-[10px]">
-                          {app.status}
-                        </span>
-                      </div>
-
-                      {/* Progress Steps */}
-                      <div className="grid grid-cols-6 gap-1 pt-1 text-[9px] text-center font-bold">
-                        <div className="p-1 bg-emerald-500 text-white rounded-lg">1. Applied</div>
-                        <div className={`p-1 rounded-lg ${app.status !== 'Pending Review' ? 'bg-emerald-500 text-white' : 'bg-gold-500 text-navy-950 animate-pulse'}`}>2. Screened</div>
-                        <div className={`p-1 rounded-lg ${app.status === 'Interview Scheduled' || app.status === 'Placed' ? 'bg-emerald-500 text-white' : 'bg-slate-200 dark:bg-navy-800 text-slate-500'}`}>3. Interview</div>
-                        <div className="p-1 bg-slate-200 dark:bg-navy-800 text-slate-500 rounded-lg">4. Offer</div>
-                        <div className="p-1 bg-slate-200 dark:bg-navy-800 text-slate-500 rounded-lg">5. Visa</div>
-                        <div className="p-1 bg-slate-200 dark:bg-navy-800 text-slate-500 rounded-lg">6. Placed</div>
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              )}
-            </div>
-
-          </div>
-        </div>
-      </div>
-        )}
-
-      {/* BROWSE & APPLY JOBS TAB */}
-      {activeTab === 'browse-jobs' && (
-        <div className="space-y-6 text-xs">
-
-          {/* Header & Filter Bar */}
-          <div className="glass-card bg-white dark:bg-navy-900 border border-slate-200 dark:border-navy-800 p-6 rounded-3xl space-y-4 shadow-luxury">
-            <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 border-b border-slate-200 dark:border-navy-800 pb-4">
-              <div>
-                <h3 className="font-serif text-xl font-bold text-navy-900 dark:text-white flex items-center gap-2">
-                  <Briefcase className="w-5 h-5 text-gold-500" />
-                  Explore Executive Overseas Opportunities
-                </h3>
-                <p className="text-slate-500 mt-0.5">Apply directly from your candidate portal for instant headhunter review.</p>
-              </div>
-
-              <div className="flex items-center gap-2">
-                <span className="text-xs text-slate-500 font-bold">Available Mandates:</span>
-                <span className="bg-gold-500 text-navy-950 font-extrabold px-3 py-1 rounded-full text-xs">
-                  {allJobs.length} Jobs
-                </span>
-              </div>
-            </div>
-
-            {/* Search & Country Filter Controls */}
-            <div className="grid grid-cols-1 sm:grid-cols-12 gap-3">
-              <div className="sm:col-span-8 relative">
-                <Search className="w-4 h-4 text-slate-500 dark:text-slate-400 absolute left-3.5 top-3.5" />
-                <input
-                  type="text"
-                  value={jobSearch}
-                  onChange={(e) => setJobSearch(e.target.value)}
-                  placeholder="Search jobs by title, company, or key skills..."
-                  className="w-full pl-10 pr-4 py-2.5 bg-slate-50 dark:bg-navy-950 border border-slate-300 dark:border-navy-700 rounded-xl text-navy-900 dark:text-white focus:outline-none focus:border-gold-500 font-medium text-xs"
-                />
-              </div>
-
-              <div className="sm:col-span-4">
-                <select
-                  value={jobCountryFilter}
-                  onChange={(e) => setJobCountryFilter(e.target.value)}
-                  className="w-full p-2.5 bg-slate-50 dark:bg-navy-950 border border-slate-300 dark:border-navy-700 rounded-xl text-navy-900 dark:text-white focus:outline-none focus:border-gold-500 font-bold text-xs"
-                >
-                  <option value="All">🌍 All Destination Countries</option>
-                  <option value="UAE">🇦🇪 UAE (Dubai / Abu Dhabi)</option>
-                  <option value="Saudi Arabia">🇸🇦 Saudi Arabia</option>
-                  <option value="Qatar">🇶🇦 Qatar</option>
-                  <option value="Singapore">🇸🇬 Singapore</option>
-                  <option value="United Kingdom">🇬🇧 United Kingdom</option>
-                  <option value="Germany">🇩🇪 Germany</option>
-                  <option value="Canada">🇨🇦 Canada</option>
-                </select>
-              </div>
-            </div>
-          </div>
-
-          {/* Success Banner when Applied */}
-          {applySuccessMsg && (
-            <div className="p-4 bg-emerald-500/15 border border-emerald-500/30 rounded-2xl text-emerald-600 dark:text-emerald-400 font-bold flex items-center justify-between shadow animate-bounce">
-              <div className="flex items-center gap-2">
-                <CheckCircle2 className="w-5 h-5 text-emerald-500" />
-                <span>{applySuccessMsg}</span>
-              </div>
-              <button
-                onClick={() => setApplySuccessMsg('')}
-                className="text-xs underline hover:text-emerald-300 ml-4 font-extrabold"
-              >
-                Dismiss
-              </button>
             </div>
           )}
 
-          {/* Job Listings List */}
-          <div className="space-y-4">
-            {allJobs
-              .filter(j => {
-                const matchesSearch = !jobSearch ||
-                  j.title.toLowerCase().includes(jobSearch.toLowerCase()) ||
-                  j.company.toLowerCase().includes(jobSearch.toLowerCase()) ||
-                  (j.skills && j.skills.some(s => s.toLowerCase().includes(jobSearch.toLowerCase())));
-                const matchesCountry = jobCountryFilter === 'All' || j.country.toLowerCase().includes(jobCountryFilter.toLowerCase());
-                return matchesSearch && matchesCountry;
-              })
-              .map(job => {
-                const hasApplied = applications.some(a => a.jobId === job.id);
-                const isSaved = savedJobs.includes(job.id);
+          {/* ========================================================== */}
+          {/* TAB 2: MY PROFILE PAGE */}
+          {/* ========================================================== */}
+          {activeTab === 'profile' && (
+            <div className="space-y-6 text-left">
+              
+              {/* Profile Header & Avatar Card */}
+              <div className="bg-white dark:bg-navy-900 border border-slate-200 dark:border-navy-800 rounded-3xl p-6 sm:p-8 shadow-sm flex flex-col md:flex-row justify-between items-start md:items-center gap-6">
+                <div className="flex flex-col sm:flex-row items-start sm:items-center gap-5">
+                  <div className="relative group shrink-0">
+                    <CandidateAvatar
+                      name={profileForm.name || user?.name}
+                      avatar={profileForm.avatar}
+                      size="lg"
+                      onClick={() => profileAvatarInputRef.current?.click()}
+                      title="Click to upload/change profile photo"
+                    />
+                    <button
+                      type="button"
+                      onClick={() => profileAvatarInputRef.current?.click()}
+                      className="absolute -bottom-2 -right-2 p-2 bg-slate-900 text-amber-400 dark:bg-navy-950 dark:text-gold-400 rounded-xl shadow-lg border border-amber-500/50 dark:border-gold-500/40 hover:scale-105 transition cursor-pointer"
+                      title="Upload photo from device"
+                    >
+                      <Camera className="w-4 h-4" />
+                    </button>
+                    <input
+                      ref={profileAvatarInputRef}
+                      type="file"
+                      accept="image/*"
+                      onChange={handleAvatarFile}
+                      className="hidden"
+                    />
+                  </div>
 
-                return (
-                  <div key={job.id} className="bg-white dark:bg-navy-900 border border-slate-200 dark:border-navy-800 rounded-3xl p-6 flex flex-col md:flex-row justify-between items-start md:items-center gap-6 transition hover:shadow-md">
-                    <div className="flex gap-4 items-start w-full">
-                      <div className="w-14 h-14 rounded-2xl bg-white dark:bg-navy-950 flex items-center justify-center text-gold-400 text-2xl font-bold shrink-0 mt-1 shadow-sm border border-slate-200 dark:border-gold-500/30">
-                        {job.company ? job.company.charAt(0).toUpperCase() : 'C'}
-                      </div>
-                      <div className="space-y-2 flex-1">
-                        <div className="flex justify-between items-start">
-                          <div>
-                            <h4 className="font-bold text-[17px] text-navy-900 dark:text-white leading-tight">{job.title}</h4>
-                            <p className="text-[13px] text-slate-500 font-semibold uppercase tracking-wider">{job.company}</p>
-                          </div>
-                          <button
-                            onClick={() => toggleSaveJob(job.id)}
-                            className={`p-2 rounded-full border transition ${isSaved ? 'bg-gold-500/20 text-gold-600 border-slate-200 dark:border-gold-500/50' : 'bg-slate-50 dark:bg-navy-950 text-slate-500 dark:text-slate-400 border-slate-200 dark:border-navy-700 hover:text-gold-500'}`}
-                            title={isSaved ? "Saved Job" : "Bookmark Job"}
-                          >
-                            <Bookmark className="w-4 h-4" />
-                          </button>
-                        </div>
-
-                        <p className="text-slate-600 dark:text-slate-400 text-[13px] line-clamp-2 pr-4">
-                          {job.description}
-                        </p>
-
-                        <div className="flex flex-wrap items-center gap-5 text-[13px] text-slate-500 font-medium pt-2">
-                          <div className="flex items-center gap-1.5"><MapPin className="w-4 h-4 text-slate-500 dark:text-slate-400" /> <span>{job.location || job.country}</span></div>
-                          <div className="flex items-center gap-1.5"><DollarSign className="w-4 h-4 text-slate-500 dark:text-slate-400" /> <span>{job.salary || 'Competitive'}</span></div>
-                          <div className="flex items-center gap-1.5"><Briefcase className="w-4 h-4 text-slate-500 dark:text-slate-400" /> <span>{job.experience || '3+ Years'}</span></div>
-                        </div>
-
-                        {job.skills && job.skills.length > 0 && (
-                          <div className="flex flex-wrap gap-1.5 pt-2">
-                            {job.skills.slice(0, 4).map((sk, i) => (
-                              <span key={i} className="bg-slate-100 dark:bg-navy-950 text-slate-600 dark:text-slate-400 text-[11px] font-bold px-2.5 py-1 rounded-md border border-slate-200 dark:border-navy-800">
-                                {sk}
-                              </span>
-                            ))}
-                          </div>
-                        )}
-
-                        <div className="flex items-center gap-1.5 text-[13px] text-slate-500 dark:text-slate-400 pt-2 font-medium">
-                          <Clock className="w-4 h-4 text-slate-500 dark:text-slate-400" />
-                          <span>Posted on {job.postedDate && !job.postedDate.includes('ago') && job.postedDate.toLowerCase() !== 'just now' ? job.postedDate : '12 Nov 2026'}</span>
-                        </div>
-                      </div>
+                  <div>
+                    <div className="flex items-center gap-2">
+                      <h2 className="font-serif text-xl sm:text-2xl font-bold text-navy-950 dark:text-white">{profileForm.name || 'Candidate Name'}</h2>
+                      <CheckCircle2 className="w-4 h-4 text-emerald-500 shrink-0" />
                     </div>
+                    <p className="text-xs text-amber-700 dark:text-gold-400 font-bold mt-0.5">{profileForm.title || 'Professional Title'}</p>
+                    <p className="text-xs text-slate-500 dark:text-slate-400 mt-1 flex items-center gap-1.5 flex-wrap">
+                      <MapPin className="w-3.5 h-3.5 text-slate-400 shrink-0" />
+                      <span>{profileForm.location || 'Location Not Specified'}</span>
+                      <span>•</span>
+                      <span>{profileForm.experience || 'Experience Not Set'}</span>
+                    </p>
 
-                    <div className="flex flex-col gap-2 mt-4 md:mt-0 w-full md:w-auto self-stretch md:self-auto items-end md:items-center justify-end shrink-0">
-                      {hasApplied ? (
-                        <button className="w-full md:w-auto px-8 py-2.5 rounded-full border border-[#08a2c2] text-[#08a2c2] bg-[#08a2c2]/5 hover:bg-[#08a2c2]/10 font-bold text-[13px] flex items-center justify-center gap-1.5 transition">
-                          <CheckCircle2 className="w-4 h-4" />
-                          <span>Applied</span>
-                        </button>
-                      ) : (
+                    {/* Photo Action Controls */}
+                    <div className="mt-3 flex items-center gap-2 flex-wrap">
+                      <button
+                        type="button"
+                        onClick={() => profileAvatarInputRef.current?.click()}
+                        className="px-3 py-1.5 bg-amber-500 hover:bg-amber-600 text-slate-950 text-xs font-bold rounded-lg transition flex items-center gap-1.5 shadow-xs cursor-pointer"
+                      >
+                        <Camera className="w-3.5 h-3.5" />
+                        <span>{profileForm.avatar ? 'Change Profile Photo' : 'Upload Profile Photo'}</span>
+                      </button>
+
+                      {profileForm.avatar && (
                         <button
-                          onClick={() => openApplyModal(job)}
-                          className="w-full md:w-auto px-8 py-2.5 rounded-full border border-gold-500 text-slate-900 dark:text-white bg-gold-500 hover:bg-gold-400 font-bold text-[13px] flex items-center justify-center gap-1.5 transition shadow-gold-glow cursor-pointer"
+                          type="button"
+                          onClick={handleRemoveAvatar}
+                          className="px-3 py-1.5 bg-slate-100 hover:bg-slate-200 dark:bg-navy-800 dark:hover:bg-navy-700 text-slate-700 dark:text-slate-300 border border-slate-300 dark:border-navy-700 text-xs font-semibold rounded-lg transition flex items-center gap-1.5 cursor-pointer"
+                          title="Reset to default initial letter badge"
                         >
-                          <Zap className="w-4 h-4" />
-                          <span>Apply Now</span>
+                          <RotateCcw className="w-3.5 h-3.5 text-slate-500" />
+                          <span>Use Initial Letter</span>
                         </button>
                       )}
                     </div>
+                    <p className="text-[10px] text-slate-400 dark:text-slate-500 mt-1">
+                      Defaults to the first letter of your name. Upload JPG, PNG or WEBP up to 5MB.
+                    </p>
                   </div>
-                );
-              })}
-          </div>
-        </div>
-      )}
+                </div>
 
-      {/* EDIT BASIC INFO & PROFILE DETAILS TAB */}
-      {activeTab === 'edit-profile' && (
-        <div className="glass-card bg-white dark:bg-navy-900 border border-slate-200 dark:border-navy-800 p-6 sm:p-8 rounded-3xl max-w-4xl mx-auto space-y-6 text-xs shadow-luxury">
-          <div className="flex justify-between items-center border-b border-slate-200 dark:border-navy-800 pb-4">
-            <div>
-              <h3 className="font-serif text-xl font-bold text-navy-900 dark:text-white flex items-center gap-2">
-                <Edit3 className="w-5 h-5 text-gold-500" />
-                Edit Candidate Profile Information
-              </h3>
-              <p className="text-slate-500 mt-0.5">Upload your own photo and fill in your details to update your candidate score.</p>
-            </div>
+                {/* Profile Completion Indicator */}
+                <div className="bg-slate-50 dark:bg-navy-950 p-4 rounded-2xl border border-slate-200 dark:border-navy-800 w-full md:w-auto text-left">
+                  <div className="flex items-center justify-between gap-4 mb-2">
+                    <span className="text-[10px] font-bold uppercase tracking-wider text-slate-500">Profile Readiness</span>
+                    <span className="text-sm font-black text-amber-600 dark:text-gold-500">{profileCompletionScore}%</span>
+                  </div>
+                  <div className="w-full md:w-48 bg-slate-200 dark:bg-navy-800 h-2 rounded-full overflow-hidden">
+                    <div className="bg-gradient-to-r from-amber-500 to-amber-400 h-full rounded-full transition-all duration-500" style={{ width: `${profileCompletionScore}%` }} />
+                  </div>
+                </div>
+              </div>
 
-            <span className="bg-gold-500 text-navy-950 font-extrabold px-3 py-1 rounded-full text-xs">
-              Current Score: {profileScore}%
-            </span>
-          </div>
-
-          {editSuccess && (
-            <div className="p-4 bg-emerald-500/15 border border-emerald-500/30 rounded-2xl text-emerald-600 dark:text-emerald-400 font-bold flex items-center gap-2 animate-bounce">
-              <CheckCircle2 className="w-5 h-5" />
-              <span>Authentic Candidate Profile Saved! Recalculating profile score ({profileScore}%)...</span>
-            </div>
-          )}
-
-          {profileFormError && (
-            <div className="p-4 bg-rose-500/15 border border-rose-500/30 rounded-2xl text-rose-600 dark:text-rose-400 font-bold flex items-center gap-2">
-              <AlertCircle className="w-5 h-5 shrink-0" />
-              <span>{profileFormError}</span>
-            </div>
-          )}
-
-          <form onSubmit={handleSaveProfile} className="space-y-6">
-
-            {/* Custom Local File Photo Upload */}
-            <div className="space-y-3 p-4 bg-slate-50 dark:bg-navy-950 rounded-2xl border border-slate-200 dark:border-navy-800">
-              <label className="block font-bold text-slate-800 dark:text-slate-200">Upload Profile Photo from Your Device / Folders</label>
-              <div className="flex flex-col sm:flex-row items-center gap-4">
-                {profileForm.avatar ? (
-                  <img src={profileForm.avatar} alt="Candidate Avatar" className="w-20 h-20 rounded-2xl object-cover border-2 border-gold-500 shadow-gold-glow" />
-                ) : (
-                  <div className="w-20 h-20 rounded-2xl bg-slate-200 dark:bg-navy-800 text-slate-500 dark:text-slate-400 font-serif font-extrabold text-xl flex items-center justify-center border-2 border-dashed border-slate-300 dark:border-navy-700">
-                    No Photo
+              {/* Profile Edit Form */}
+              <form onSubmit={handleSaveProfile} className="bg-white dark:bg-navy-900 border border-slate-200 dark:border-navy-800 rounded-3xl p-6 sm:p-8 shadow-sm space-y-6">
+                
+                {profileFormError && (
+                  <div className="p-3 bg-rose-500/10 border border-rose-500/30 rounded-xl text-rose-500 text-xs font-bold flex items-center gap-2">
+                    <AlertCircle className="w-4 h-4 shrink-0" />
+                    <span>{profileFormError}</span>
+                  </div>
+                )}
+                {profileSaveSuccess && (
+                  <div className="p-3 bg-emerald-500/10 border border-emerald-500/30 rounded-xl text-emerald-600 dark:text-emerald-400 text-xs font-bold flex items-center gap-2">
+                    <CheckCircle2 className="w-4 h-4 shrink-0 text-emerald-500" />
+                    <span>✓ Profile changes saved and synced across all employer applications!</span>
                   </div>
                 )}
 
-                <div className="space-y-2">
-                  <input
-                    type="file"
-                    id="profileImageUpload"
-                    accept="image/*"
-                    onChange={handleFileUpload}
-                    className="hidden"
-                  />
-                  <div className="flex flex-wrap gap-2">
-                    <label
-                      htmlFor="profileImageUpload"
-                      className="px-4 py-2.5 bg-slate-50 dark:bg-navy-900 text-slate-900 dark:text-white font-bold text-xs rounded-xl cursor-pointer hover:bg-gold-500 hover:text-slate-900 dark:text-white transition flex items-center gap-1.5 shadow"
-                    >
-                      <Upload className="w-4 h-4 text-gold-400" />
-                      <span>Select Photo from Computer / Phone</span>
-                    </label>
-
-                    {profileForm.avatar && (
-                      <button
-                        type="button"
-                        onClick={removeAvatar}
-                        className="px-3 py-2.5 bg-rose-500/10 text-rose-600 dark:text-rose-400 hover:bg-rose-500 hover:text-slate-900 dark:text-white rounded-xl font-bold text-xs transition flex items-center gap-1"
-                      >
-                        <Trash2 className="w-3.5 h-3.5" />
-                        <span>Remove Photo</span>
-                      </button>
-                    )}
-                  </div>
-                  <p className="text-[11px] text-slate-500">Supported formats: JPG, PNG, WEBP. Select any photo from your local device.</p>
-                </div>
-              </div>
-            </div>
-
-            {/* CV / Resume File Attachment */}
-            <div className="space-y-3 p-5 bg-gradient-to-br from-slate-50 to-amber-50/30 dark:from-navy-950 dark:to-navy-900 rounded-2xl border-2 border-slate-200 dark:border-navy-800 hover:border-amber-400/50 transition">
-              <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-2">
+                {/* Section A: Personal Information */}
                 <div>
-                  <label className="block font-bold text-slate-800 dark:text-slate-200 flex items-center gap-2 text-sm">
-                    <FileText className="w-4 h-4 text-amber-500" />
-                    <span>Attach CV / Resume (PDF, DOC, DOCX)</span>
-                  </label>
-                  <p className="text-[11px] text-slate-500 dark:text-slate-400 mt-0.5">
-                    Upload your updated CV for headhunter screening and automated ATS parsing.
-                  </p>
+                  <h3 className="font-serif text-base font-bold text-navy-950 dark:text-white pb-2 border-b border-slate-100 dark:border-navy-800 mb-4 flex items-center gap-2">
+                    <User className="w-4 h-4 text-gold-500" />
+                    Personal Information
+                  </h3>
+                  <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 text-xs">
+                    <div>
+                      <label className="font-bold text-slate-700 dark:text-slate-300 block mb-1">Full Legal Name *</label>
+                      <input
+                        type="text"
+                        value={profileForm.name}
+                        onChange={e => setProfileForm({ ...profileForm, name: e.target.value })}
+                        className="w-full px-3 py-2.5 rounded-xl border border-slate-300 dark:border-navy-700 bg-slate-50 dark:bg-navy-950 text-slate-900 dark:text-white outline-none focus:border-gold-500"
+                        placeholder="e.g. Rahul Sharma"
+                        required
+                      />
+                    </div>
+                    <div>
+                      <label className="font-bold text-slate-700 dark:text-slate-300 block mb-1">Email Address (Verified)</label>
+                      <input
+                        type="email"
+                        value={profileForm.email}
+                        disabled
+                        className="w-full px-3 py-2.5 rounded-xl border border-slate-200 dark:border-navy-800 bg-slate-100 dark:bg-navy-950/60 text-slate-500 dark:text-slate-400 cursor-not-allowed"
+                      />
+                    </div>
+                    <div>
+                      <label className="font-bold text-slate-700 dark:text-slate-300 block mb-1">Mobile Telephone Number *</label>
+                      <input
+                        type="tel"
+                        value={profileForm.phone}
+                        onChange={e => setProfileForm({ ...profileForm, phone: e.target.value })}
+                        className="w-full px-3 py-2.5 rounded-xl border border-slate-300 dark:border-navy-700 bg-slate-50 dark:bg-navy-950 text-slate-900 dark:text-white outline-none focus:border-gold-500"
+                        placeholder="+971 50 123 4567"
+                        required
+                      />
+                    </div>
+                    <div>
+                      <label className="font-bold text-slate-700 dark:text-slate-300 block mb-1">Nationality</label>
+                      <select
+                        value={profileForm.nationality}
+                        onChange={e => setProfileForm({ ...profileForm, nationality: e.target.value })}
+                        className="w-full px-3 py-2.5 rounded-xl border border-slate-300 dark:border-navy-700 bg-slate-50 dark:bg-navy-950 text-slate-900 dark:text-white outline-none focus:border-gold-500"
+                      >
+                        {PRESET_NATIONALITIES.map(n => <option key={n} value={n}>{n}</option>)}
+                      </select>
+                    </div>
+                    <div>
+                      <label className="font-bold text-slate-700 dark:text-slate-300 block mb-1">Citizenship / Passport</label>
+                      <select
+                        value={profileForm.citizenship}
+                        onChange={e => setProfileForm({ ...profileForm, citizenship: e.target.value })}
+                        className="w-full px-3 py-2.5 rounded-xl border border-slate-300 dark:border-navy-700 bg-slate-50 dark:bg-navy-950 text-slate-900 dark:text-white outline-none focus:border-gold-500"
+                      >
+                        {PRESET_CITIZENSHIPS.map(c => <option key={c} value={c}>{c}</option>)}
+                      </select>
+                    </div>
+                    <div>
+                      <label className="font-bold text-slate-700 dark:text-slate-300 block mb-1">Current Residence Location</label>
+                      <input
+                        type="text"
+                        value={profileForm.location}
+                        onChange={e => setProfileForm({ ...profileForm, location: e.target.value })}
+                        className="w-full px-3 py-2.5 rounded-xl border border-slate-300 dark:border-navy-700 bg-slate-50 dark:bg-navy-950 text-slate-900 dark:text-white outline-none focus:border-gold-500"
+                        placeholder="Dubai, UAE / Mumbai, India"
+                      />
+                    </div>
+                  </div>
                 </div>
-                {profileForm.resumeName && (
-                  <span className="px-2.5 py-1 rounded-full text-[11px] font-black bg-emerald-100 dark:bg-emerald-950/60 text-emerald-800 dark:text-emerald-300 border border-emerald-300 shrink-0">
-                    ✓ Attached
-                  </span>
-                )}
+
+                {/* Section B: Professional Background */}
+                <div>
+                  <h3 className="font-serif text-base font-bold text-navy-950 dark:text-white pb-2 border-b border-slate-100 dark:border-navy-800 mb-4 flex items-center gap-2">
+                    <Briefcase className="w-4 h-4 text-gold-500" />
+                    Professional Background & Preferences
+                  </h3>
+                  <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 text-xs">
+                    <div>
+                      <label className="font-bold text-slate-700 dark:text-slate-300 block mb-1">Current Job Title / Designation</label>
+                      <input
+                        type="text"
+                        value={profileForm.title}
+                        onChange={e => setProfileForm({ ...profileForm, title: e.target.value })}
+                        className="w-full px-3 py-2.5 rounded-xl border border-slate-300 dark:border-navy-700 bg-slate-50 dark:bg-navy-950 text-slate-900 dark:text-white outline-none focus:border-gold-500"
+                        placeholder="Senior Civil Project Director"
+                      />
+                    </div>
+                    <div>
+                      <label className="font-bold text-slate-700 dark:text-slate-300 block mb-1">Current Employer / Organization</label>
+                      <input
+                        type="text"
+                        value={profileForm.currentEmployer}
+                        onChange={e => setProfileForm({ ...profileForm, currentEmployer: e.target.value })}
+                        className="w-full px-3 py-2.5 rounded-xl border border-slate-300 dark:border-navy-700 bg-slate-50 dark:bg-navy-950 text-slate-900 dark:text-white outline-none focus:border-gold-500"
+                        placeholder="Al Habtoor Contracting LLC"
+                      />
+                    </div>
+                    <div>
+                      <label className="font-bold text-slate-700 dark:text-slate-300 block mb-1">Years of Total Experience</label>
+                      <input
+                        type="text"
+                        value={profileForm.experience}
+                        onChange={e => setProfileForm({ ...profileForm, experience: e.target.value })}
+                        className="w-full px-3 py-2.5 rounded-xl border border-slate-300 dark:border-navy-700 bg-slate-50 dark:bg-navy-950 text-slate-900 dark:text-white outline-none focus:border-gold-500"
+                        placeholder="8+ Years (GCC Experience)"
+                      />
+                    </div>
+                    <div>
+                      <label className="font-bold text-slate-700 dark:text-slate-300 block mb-1">Highest Educational Degree</label>
+                      <input
+                        type="text"
+                        value={profileForm.qualification}
+                        onChange={e => setProfileForm({ ...profileForm, qualification: e.target.value })}
+                        className="w-full px-3 py-2.5 rounded-xl border border-slate-300 dark:border-navy-700 bg-slate-50 dark:bg-navy-950 text-slate-900 dark:text-white outline-none focus:border-gold-500"
+                        placeholder="B.Sc. Civil Engineering / MBA"
+                      />
+                    </div>
+                    <div>
+                      <label className="font-bold text-slate-700 dark:text-slate-300 block mb-1">Expected Monthly Compensation</label>
+                      <input
+                        type="text"
+                        value={profileForm.expectedSalary}
+                        onChange={e => setProfileForm({ ...profileForm, expectedSalary: e.target.value })}
+                        className="w-full px-3 py-2.5 rounded-xl border border-slate-300 dark:border-navy-700 bg-slate-50 dark:bg-navy-950 text-slate-900 dark:text-white outline-none focus:border-gold-500"
+                        placeholder="AED 25,000 / Month (Tax-Free)"
+                      />
+                    </div>
+                    <div>
+                      <label className="font-bold text-slate-700 dark:text-slate-300 block mb-1">Notice Period / Availability</label>
+                      <input
+                        type="text"
+                        value={profileForm.noticePeriod}
+                        onChange={e => setProfileForm({ ...profileForm, noticePeriod: e.target.value })}
+                        className="w-full px-3 py-2.5 rounded-xl border border-slate-300 dark:border-navy-700 bg-slate-50 dark:bg-navy-950 text-slate-900 dark:text-white outline-none focus:border-gold-500"
+                        placeholder="Immediate / 30 Days"
+                      />
+                    </div>
+                  </div>
+                </div>
+
+                {/* Section C: Skills Manager */}
+                <div>
+                  <h3 className="font-serif text-base font-bold text-navy-950 dark:text-white pb-2 border-b border-slate-100 dark:border-navy-800 mb-3 flex items-center gap-2">
+                    <Award className="w-4 h-4 text-gold-500" />
+                    Key Technical & Managerial Skills
+                  </h3>
+                  <div className="flex flex-wrap gap-2 mb-3">
+                    {skillPillList.map((skill, idx) => (
+                      <span
+                        key={idx}
+                        className="px-3 py-1 bg-gold-500/15 text-gold-700 dark:text-gold-300 border border-gold-500/30 text-xs font-bold rounded-lg flex items-center gap-1.5"
+                      >
+                        <span>{skill}</span>
+                        <button
+                          type="button"
+                          onClick={() => handleRemoveSkill(skill)}
+                          className="text-slate-400 hover:text-rose-500 transition cursor-pointer"
+                        >
+                          <X className="w-3 h-3" />
+                        </button>
+                      </span>
+                    ))}
+                  </div>
+                  <div className="flex gap-2 max-w-md">
+                    <input
+                      type="text"
+                      value={newSkillText}
+                      onChange={e => setNewSkillText(e.target.value)}
+                      onKeyDown={e => { if (e.key === 'Enter') handleAddSkill(e); }}
+                      placeholder="Add a skill (e.g. Primavera P6, AutoCAD, BIM)..."
+                      className="flex-1 px-3 py-2 text-xs rounded-xl border border-slate-300 dark:border-navy-700 bg-slate-50 dark:bg-navy-950 text-slate-900 dark:text-white outline-none focus:border-gold-500"
+                    />
+                    <button
+                      type="button"
+                      onClick={handleAddSkill}
+                      className="px-4 py-2 bg-navy-900 dark:bg-white text-white dark:text-navy-900 font-bold text-xs rounded-xl hover:opacity-90 transition cursor-pointer"
+                    >
+                      Add Skill
+                    </button>
+                  </div>
+                </div>
+
+                {/* Save Button */}
+                <div className="pt-4 border-t border-slate-100 dark:border-navy-800 flex justify-end">
+                  <button
+                    type="submit"
+                    className="px-6 py-3 bg-gradient-to-r from-gold-500 to-amber-400 text-navy-950 font-bold text-xs rounded-xl shadow-gold-glow hover:opacity-95 transition flex items-center gap-2 cursor-pointer"
+                  >
+                    <Check className="w-4 h-4" />
+                    <span>Save Profile Changes</span>
+                  </button>
+                </div>
+
+              </form>
+
+            </div>
+          )}
+
+          {/* ========================================================== */}
+          {/* TAB 3: CV / RESUME MANAGEMENT PAGE */}
+          {/* ========================================================== */}
+          {activeTab === 'resume' && (
+            <div className="space-y-6 text-left">
+              
+              {/* Header Info */}
+              <div className="bg-white dark:bg-navy-900 border border-slate-200 dark:border-navy-800 rounded-3xl p-6 sm:p-8 shadow-sm">
+                <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+                  <div>
+                    <h2 className="font-serif text-2xl font-bold text-navy-950 dark:text-white flex items-center gap-2">
+                      <FileText className="w-5 h-5 text-gold-500" />
+                      CV / Resume Management
+                    </h2>
+                    <p className="text-xs text-slate-500 dark:text-slate-400 mt-1">
+                      Manage your primary executive resume dispatched to international hiring managers across Dubai, Riyadh & Doha.
+                    </p>
+                  </div>
+                  <button
+                    onClick={() => setActiveModal('ai-resume')}
+                    className="px-4 py-2.5 bg-gradient-to-r from-gold-500 to-amber-400 text-navy-950 font-extrabold text-xs rounded-xl shadow-gold-glow hover:opacity-95 transition flex items-center gap-1.5 cursor-pointer"
+                  >
+                    <Sparkles className="w-4 h-4" />
+                    <span>Scan with Revival AI</span>
+                  </button>
+                </div>
               </div>
 
-              <input
-                type="file"
-                id="cvDocumentUpload"
-                accept=".pdf,.doc,.docx,application/pdf,application/msword,application/vnd.openxmlformats-officedocument.wordprocessingml.document"
-                onChange={handleCvUpload}
-                className="hidden"
-              />
+              {/* Primary Active Resume Card */}
+              <div className="bg-white dark:bg-navy-900 border border-slate-200 dark:border-navy-800 rounded-3xl p-6 shadow-sm space-y-4">
+                <div className="flex items-center justify-between pb-3 border-b border-slate-100 dark:border-navy-800">
+                  <span className="text-xs font-bold uppercase tracking-wider text-slate-500">Active Resume File</span>
+                  <span className="bg-emerald-500/15 text-emerald-600 dark:text-emerald-400 border border-emerald-500/30 text-[10px] font-extrabold px-2.5 py-0.5 rounded-full flex items-center gap-1">
+                    <CheckCircle2 className="w-3 h-3" />
+                    Primary Active CV
+                  </span>
+                </div>
 
-              {profileForm.resumeName ? (
-                <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 p-3.5 bg-white dark:bg-navy-900 rounded-xl border border-amber-300 dark:border-navy-700 shadow-xs">
-                  <div className="flex items-center gap-3 min-w-0">
-                    <div className="w-10 h-10 rounded-xl bg-amber-100 dark:bg-amber-950/50 text-amber-700 dark:text-gold-400 flex items-center justify-center shrink-0">
-                      <Paperclip className="w-5 h-5" />
+                <div className="p-4 bg-slate-50 dark:bg-navy-950 rounded-2xl border border-slate-200 dark:border-navy-800 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+                  <div className="flex items-center gap-3">
+                    <div className="w-12 h-12 rounded-xl bg-gold-500/20 text-gold-500 flex items-center justify-center shrink-0">
+                      <FileText className="w-6 h-6" />
                     </div>
-                    <div className="min-w-0">
-                      <h4 className="font-bold text-slate-900 dark:text-white text-xs sm:text-sm truncate" title={profileForm.resumeName}>
-                        {profileForm.resumeName}
-                      </h4>
-                      <p className="text-[11px] text-slate-500 dark:text-slate-400 flex items-center gap-2 mt-0.5">
-                        <span>{profileForm.resumeSize || 'Document'}</span>
-                        <span>•</span>
-                        <span className="text-emerald-600 dark:text-emerald-400 font-bold">Ready for Headhunters</span>
+                    <div>
+                      <h4 className="font-bold text-xs text-navy-950 dark:text-white">{profileForm.resumeName || 'Executive_Candidate_CV.pdf'}</h4>
+                      <p className="text-[11px] text-slate-500 mt-0.5">
+                        PDF Document • {profileForm.resumeSize || '2.4 MB'} • Verified for GCC ATS Screening
                       </p>
                     </div>
                   </div>
 
-                  <div className="flex items-center gap-2 shrink-0">
-                    {profileForm.resumeUrl && (
-                      <a
-                        href={profileForm.resumeUrl}
-                        download={profileForm.resumeName || 'Candidate_CV.pdf'}
-                        className="px-3 py-1.5 bg-slate-100 hover:bg-slate-200 dark:bg-navy-800 dark:hover:bg-navy-700 text-slate-800 dark:text-slate-200 rounded-lg text-xs font-bold transition flex items-center gap-1 cursor-pointer"
-                        title="Download Attached CV"
-                      >
-                        <Download className="w-3.5 h-3.5" />
-                        <span>Download</span>
-                      </a>
-                    )}
-                    <label
-                      htmlFor="cvDocumentUpload"
-                      className="px-3 py-1.5 bg-amber-400 hover:bg-amber-500 text-slate-950 rounded-lg text-xs font-bold transition flex items-center gap-1 cursor-pointer"
-                    >
-                      <Upload className="w-3.5 h-3.5" />
-                      <span>Replace</span>
-                    </label>
+                  <div className="flex flex-wrap items-center gap-2">
                     <button
-                      type="button"
-                      onClick={removeCvAttachment}
-                      className="px-2.5 py-1.5 bg-rose-50 hover:bg-rose-100 dark:bg-rose-950/40 text-rose-700 dark:text-rose-400 rounded-lg text-xs font-bold transition flex items-center gap-1 cursor-pointer"
-                      title="Remove CV"
+                      onClick={() => setPreviewDoc({ name: profileForm.resumeName || 'Executive_Candidate_CV.pdf', type: 'Resume / CV' })}
+                      className="px-3 py-1.5 bg-slate-200 dark:bg-navy-800 text-slate-700 dark:text-slate-200 font-bold text-xs rounded-xl hover:bg-slate-300 transition flex items-center gap-1 cursor-pointer"
                     >
-                      <Trash2 className="w-3.5 h-3.5" />
+                      <Eye className="w-3.5 h-3.5" />
+                      <span>Preview</span>
+                    </button>
+                    <button
+                      onClick={() => alert(`Downloading "${profileForm.resumeName || 'Executive_Candidate_CV.pdf'}"...`)}
+                      className="px-3 py-1.5 bg-slate-200 dark:bg-navy-800 text-slate-700 dark:text-slate-200 font-bold text-xs rounded-xl hover:bg-slate-300 transition flex items-center gap-1 cursor-pointer"
+                    >
+                      <Download className="w-3.5 h-3.5" />
+                      <span>Download</span>
+                    </button>
+                    <button
+                      onClick={() => resumeInputRef.current?.click()}
+                      className="px-3.5 py-1.5 bg-navy-950 dark:bg-white text-white dark:text-navy-950 font-bold text-xs rounded-xl hover:opacity-90 transition flex items-center gap-1 cursor-pointer"
+                    >
+                      <RefreshCw className="w-3.5 h-3.5" />
+                      <span>Replace</span>
                     </button>
                   </div>
                 </div>
+              </div>
+
+              {/* Upload New Resume Drag & Drop Zone */}
+              <div
+                onDragOver={e => { e.preventDefault(); setIsDraggingResume(true); }}
+                onDragLeave={() => setIsDraggingResume(false)}
+                onDrop={e => {
+                  e.preventDefault();
+                  setIsDraggingResume(false);
+                  if (e.dataTransfer.files?.[0]) handleResumeUpload(e.dataTransfer.files[0]);
+                }}
+                className={`border-2 border-dashed rounded-3xl p-8 sm:p-12 text-center transition ${
+                  isDraggingResume
+                    ? 'border-gold-500 bg-gold-500/10'
+                    : 'border-slate-300 dark:border-navy-700 bg-white dark:bg-navy-900'
+                }`}
+              >
+                <Upload className="w-12 h-12 text-gold-500 mx-auto mb-3" />
+                <h3 className="font-serif text-base font-bold text-navy-950 dark:text-white">
+                  Drag and drop your updated CV here
+                </h3>
+                <p className="text-xs text-slate-500 max-w-sm mx-auto mt-1 mb-4">
+                  Accepts PDF, DOC, or DOCX formats (max file size 10MB). Automatically parsed for MOHRE compliance.
+                </p>
+                <button
+                  type="button"
+                  onClick={() => resumeInputRef.current?.click()}
+                  className="px-5 py-2.5 bg-gradient-to-r from-gold-500 to-amber-400 text-navy-950 font-bold text-xs rounded-xl shadow-gold-glow hover:opacity-95 transition cursor-pointer"
+                >
+                  Browse Document from Device
+                </button>
+                <input
+                  ref={resumeInputRef}
+                  type="file"
+                  accept=".pdf,.doc,.docx"
+                  onChange={e => { if (e.target.files?.[0]) handleResumeUpload(e.target.files[0]); }}
+                  className="hidden"
+                />
+              </div>
+
+              {/* ATS Resume Compliance Insights */}
+              <div className="bg-white dark:bg-navy-900 border border-slate-200 dark:border-navy-800 rounded-3xl p-6 shadow-sm">
+                <div className="flex items-center justify-between pb-3 border-b border-slate-100 dark:border-navy-800">
+                  <h3 className="font-serif text-sm font-bold text-navy-950 dark:text-white flex items-center gap-2">
+                    <ShieldCheck className="w-4 h-4 text-emerald-500" />
+                    ATS Compliance Verification
+                  </h3>
+                  <span className="text-xs font-black text-emerald-500">92% Match Score</span>
+                </div>
+                <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 pt-4 text-xs">
+                  <div className="p-3 bg-slate-50 dark:bg-navy-950 rounded-xl border border-slate-200 dark:border-navy-800 flex items-center gap-2.5">
+                    <CheckCircle2 className="w-4 h-4 text-emerald-500 shrink-0" />
+                    <span>Taleo & Workday Parsing Compatible</span>
+                  </div>
+                  <div className="p-3 bg-slate-50 dark:bg-navy-950 rounded-xl border border-slate-200 dark:border-navy-800 flex items-center gap-2.5">
+                    <CheckCircle2 className="w-4 h-4 text-emerald-500 shrink-0" />
+                    <span>Clean Typography & Contact Headers</span>
+                  </div>
+                  <div className="p-3 bg-slate-50 dark:bg-navy-950 rounded-xl border border-slate-200 dark:border-navy-800 flex items-center gap-2.5">
+                    <CheckCircle2 className="w-4 h-4 text-emerald-500 shrink-0" />
+                    <span>GCC High-Demand Technical Keywords</span>
+                  </div>
+                </div>
+              </div>
+
+            </div>
+          )}
+
+          {/* ========================================================== */}
+          {/* TAB 4: SAVED JOBS PAGE */}
+          {/* ========================================================== */}
+          {activeTab === 'saved-jobs' && (
+            <div className="space-y-6 text-left">
+              <div className="bg-white dark:bg-navy-900 border border-slate-200 dark:border-navy-800 rounded-3xl p-6 sm:p-8 shadow-sm">
+                <h2 className="font-serif text-2xl font-bold text-navy-950 dark:text-white flex items-center gap-2">
+                  <Bookmark className="w-5 h-5 text-gold-500" />
+                  Saved Jobs & Bookmarks ({savedJobs?.length || 0})
+                </h2>
+                <p className="text-xs text-slate-500 dark:text-slate-400 mt-1">
+                  Keep track of bookmarked international openings and apply whenever you are ready.
+                </p>
+              </div>
+
+              {(!savedJobs || savedJobs.length === 0) ? (
+                <div className="bg-white dark:bg-navy-900 border border-slate-200 dark:border-navy-800 rounded-3xl p-12 text-center space-y-4">
+                  <Bookmark className="w-12 h-12 text-gold-500/40 mx-auto" />
+                  <h3 className="font-serif text-lg font-bold text-navy-950 dark:text-white">No Saved Jobs Yet</h3>
+                  <p className="text-xs text-slate-500 max-w-sm mx-auto">
+                    While browsing verified international vacancies, click the bookmark icon to save roles for instant review.
+                  </p>
+                  <button
+                    onClick={() => navigateTo('jobs')}
+                    className="px-5 py-2.5 bg-gradient-to-r from-gold-500 to-amber-400 text-navy-950 font-extrabold text-xs rounded-xl shadow-gold-glow hover:opacity-95 transition"
+                  >
+                    Browse Open Opportunities →
+                  </button>
+                </div>
               ) : (
-                <div className="flex flex-col sm:flex-row items-center justify-between gap-3 p-4 bg-white/70 dark:bg-navy-900/60 rounded-xl border border-dashed border-slate-300 dark:border-navy-700">
-                  <div className="flex items-center gap-3">
-                    <div className="w-10 h-10 rounded-xl bg-slate-100 dark:bg-navy-800 text-slate-500 dark:text-slate-400 flex items-center justify-center shrink-0">
-                      <FileText className="w-5 h-5" />
+                <div className="space-y-4">
+                  {allJobs.filter(j => savedJobs.includes(j.id)).map(job => (
+                    <div
+                      key={job.id}
+                      className="bg-white dark:bg-navy-900 border border-slate-200 dark:border-navy-800 rounded-3xl p-6 shadow-sm hover:border-gold-500/40 transition flex flex-col md:flex-row justify-between items-start md:items-center gap-4"
+                    >
+                      <div className="space-y-1.5">
+                        <div className="flex items-center gap-2">
+                          <span className="text-[10px] font-extrabold px-2 py-0.5 rounded bg-gold-500/15 text-gold-600 dark:text-gold-400 uppercase">
+                            {job.category || 'General'}
+                          </span>
+                          <span className="text-[10px] font-bold text-slate-500 bg-slate-100 dark:bg-navy-800 px-2 py-0.5 rounded">
+                            {job.jobType || 'Full-time'}
+                          </span>
+                        </div>
+                        <h3 className="font-serif text-lg font-bold text-navy-950 dark:text-white">{job.title}</h3>
+                        <p className="text-xs text-slate-600 dark:text-slate-300 font-semibold">
+                          {job.company} • {job.location || job.country} • {job.salary || 'Tax-Free Package'}
+                        </p>
+                        <p className="text-[11px] text-slate-400">
+                          Experience: <strong>{job.experience || '3-5 Years'}</strong> • Vacancies: <strong>{job.vacancies || '1'}</strong>
+                        </p>
+                      </div>
+
+                      <div className="flex items-center gap-2.5 w-full md:w-auto pt-2 md:pt-0 border-t md:border-t-0 border-slate-100 dark:border-navy-800">
+                        <button
+                          onClick={() => toggleSaveJob(job.id)}
+                          className="p-2.5 bg-rose-500/10 text-rose-500 hover:bg-rose-500/20 rounded-xl transition"
+                          title="Remove bookmark"
+                        >
+                          <Trash2 className="w-4 h-4" />
+                        </button>
+                        <button
+                          onClick={() => openApplyModal(job)}
+                          className="flex-1 md:flex-none px-5 py-2.5 bg-gradient-to-r from-gold-500 to-amber-400 text-navy-950 font-extrabold text-xs rounded-xl shadow-gold-glow hover:opacity-95 transition"
+                        >
+                          Apply Now
+                        </button>
+                      </div>
                     </div>
-                    <div>
-                      <p className="font-bold text-slate-800 dark:text-slate-200 text-xs">No CV Attached Yet</p>
-                      <p className="text-[11px] text-slate-500">Supported formats: PDF, DOC, DOCX (Max 10MB)</p>
+                  ))}
+                </div>
+              )}
+            </div>
+          )}
+
+          {/* ========================================================== */}
+          {/* TAB 5: MY APPLICATIONS PAGE */}
+          {/* ========================================================== */}
+          {activeTab === 'applications' && (
+            <div className="space-y-6 text-left">
+              
+              {/* Header Bar */}
+              <div className="bg-white dark:bg-navy-900 border border-slate-200 dark:border-navy-800 rounded-3xl p-6 sm:p-8 shadow-sm">
+                <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
+                  <div>
+                    <h2 className="font-serif text-2xl font-bold text-navy-950 dark:text-white flex items-center gap-2">
+                      <Send className="w-5 h-5 text-gold-500" />
+                      My Applications ({candidateApplications.length})
+                    </h2>
+                    <p className="text-xs text-slate-500 dark:text-slate-400 mt-1">
+                      Real-time status updates and recruiter reviews for all submitted vacancies.
+                    </p>
+                  </div>
+
+                  {/* Search box */}
+                  <div className="relative w-full md:w-64">
+                    <Search className="w-3.5 h-3.5 text-slate-400 absolute left-3 top-3" />
+                    <input
+                      type="text"
+                      value={appSearchQuery}
+                      onChange={e => setAppSearchQuery(e.target.value)}
+                      placeholder="Search application..."
+                      className="w-full pl-9 pr-3 py-2 text-xs rounded-xl border border-slate-300 dark:border-navy-700 bg-slate-50 dark:bg-navy-950 text-slate-900 dark:text-white outline-none focus:border-gold-500"
+                    />
+                  </div>
+                </div>
+
+                {/* Filter Tabs */}
+                <div className="flex gap-2 pt-4 overflow-x-auto text-xs font-bold border-t border-slate-100 dark:border-navy-800 mt-4">
+                  {['All', 'Under Review', 'Shortlisted', 'Interview Scheduled', 'Placed'].map(status => (
+                    <button
+                      key={status}
+                      onClick={() => setAppFilterStatus(status)}
+                      className={`px-3 py-1.5 rounded-xl transition whitespace-nowrap cursor-pointer ${
+                        appFilterStatus === status
+                          ? 'bg-gold-500 text-navy-950 font-extrabold shadow-sm'
+                          : 'bg-slate-100 dark:bg-navy-800 text-slate-600 dark:text-slate-300 hover:bg-slate-200'
+                      }`}
+                    >
+                      {status}
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              {/* Applications List */}
+              {filteredApplications.length === 0 ? (
+                <div className="bg-white dark:bg-navy-900 border border-slate-200 dark:border-navy-800 rounded-3xl p-12 text-center space-y-3">
+                  <Briefcase className="w-12 h-12 text-gold-500/40 mx-auto" />
+                  <h3 className="font-serif text-lg font-bold text-navy-950 dark:text-white">No Matching Applications</h3>
+                  <p className="text-xs text-slate-500 max-w-sm mx-auto">
+                    Try clearing the filter or search query to view all your candidate applications.
+                  </p>
+                </div>
+              ) : (
+                <div className="space-y-4">
+                  {filteredApplications.map(app => (
+                    <div
+                      key={app.id}
+                      className="bg-white dark:bg-navy-900 border border-slate-200 dark:border-navy-800 rounded-3xl p-6 shadow-sm hover:border-gold-500/40 transition flex flex-col md:flex-row justify-between items-start md:items-center gap-4"
+                    >
+                      <div className="space-y-1">
+                        <div className="flex items-center gap-2">
+                          <span className="text-[10px] font-mono font-bold text-slate-400">ID: {app.id}</span>
+                          <span className="text-[10px] text-slate-400">• Applied on {app.appliedDate}</span>
+                        </div>
+                        <h3 className="font-serif text-lg font-bold text-navy-950 dark:text-white">{app.jobTitle}</h3>
+                        <p className="text-xs text-slate-600 dark:text-slate-300 font-semibold">
+                          {app.company} • {app.location || 'GCC'}
+                        </p>
+                        <p className="text-[11px] text-slate-400 flex items-center gap-1.5 mt-1">
+                          <Paperclip className="w-3.5 h-3.5 text-gold-500" />
+                          <span>Attached CV: <strong>{app.resumeName || 'Primary CV'}</strong></span>
+                        </p>
+                      </div>
+
+                      <div className="flex items-center gap-3 w-full md:w-auto pt-2 md:pt-0 border-t md:border-t-0 border-slate-100 dark:border-navy-800 justify-between md:justify-end">
+                        <span className={`text-[10px] font-extrabold px-3 py-1 rounded-full ${
+                          app.status === 'Shortlisted' ? 'bg-emerald-500/15 text-emerald-600 dark:text-emerald-400 border border-emerald-500/30' :
+                          app.status === 'Interview Scheduled' ? 'bg-gold-500/20 text-gold-600 dark:text-gold-400 border border-gold-500/30' :
+                          'bg-amber-500/15 text-amber-600 dark:text-amber-400 border border-amber-500/30'
+                        }`}>
+                          {app.status}
+                        </span>
+                        <div className="flex gap-2">
+                          <button
+                            onClick={() => { setSelectedStatusAppId(app.id); setActiveTab('application-status'); }}
+                            className="px-3.5 py-2 bg-slate-100 hover:bg-slate-200 dark:bg-navy-800 dark:hover:bg-navy-700 text-navy-950 dark:text-white font-bold text-xs rounded-xl transition"
+                          >
+                            Timeline
+                          </button>
+                          <button
+                            onClick={() => setScreeningModalApp(app)}
+                            className="px-4 py-2 bg-gradient-to-r from-gold-500 to-amber-400 text-navy-950 font-extrabold text-xs rounded-xl shadow-gold-glow hover:opacity-95 transition"
+                          >
+                            View Details
+                          </button>
+                        </div>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
+
+            </div>
+          )}
+
+          {/* ========================================================== */}
+          {/* TAB 6: APPLICATION STATUS TIMELINE PAGE */}
+          {/* ========================================================== */}
+          {activeTab === 'application-status' && (
+            <div className="space-y-6 text-left">
+              
+              {/* Header Bar */}
+              <div className="bg-white dark:bg-navy-900 border border-slate-200 dark:border-navy-800 rounded-3xl p-6 sm:p-8 shadow-sm">
+                <h2 className="font-serif text-2xl font-bold text-navy-950 dark:text-white flex items-center gap-2">
+                  <Clock className="w-5 h-5 text-gold-500" />
+                  Application Progress Timeline
+                </h2>
+                <p className="text-xs text-slate-500 dark:text-slate-400 mt-1">
+                  Track every milestone from initial submission through ATS screening, employer shortlisting, and final visa placement.
+                </p>
+              </div>
+
+              {/* Active Application Selector */}
+              {candidateApplications.length > 1 && (
+                <div className="flex gap-2 overflow-x-auto pb-1 text-xs">
+                  {candidateApplications.map(app => (
+                    <button
+                      key={app.id}
+                      onClick={() => setSelectedStatusAppId(app.id)}
+                      className={`px-4 py-2.5 rounded-2xl border transition font-bold whitespace-nowrap cursor-pointer ${
+                        activeStatusApp.id === app.id
+                          ? 'border-gold-500 bg-gold-500/15 text-gold-600 dark:text-gold-400'
+                          : 'border-slate-200 dark:border-navy-800 bg-white dark:bg-navy-900 text-slate-700 dark:text-slate-300'
+                      }`}
+                    >
+                      {app.jobTitle} ({app.company})
+                    </button>
+                  ))}
+                </div>
+              )}
+
+              {/* Timeline Card */}
+              <div className="bg-white dark:bg-navy-900 border border-slate-200 dark:border-navy-800 rounded-3xl p-6 sm:p-8 shadow-sm space-y-6">
+                
+                {/* Job Summary Banner */}
+                <div className="p-4 bg-slate-50 dark:bg-navy-950 rounded-2xl border border-slate-200 dark:border-navy-800 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3">
+                  <div>
+                    <span className="text-[10px] font-mono font-bold text-slate-400">Application Reference: {activeStatusApp.id}</span>
+                    <h3 className="font-serif text-lg font-bold text-navy-950 dark:text-white mt-0.5">{activeStatusApp.jobTitle}</h3>
+                    <p className="text-xs text-slate-600 dark:text-slate-400">{activeStatusApp.company} • Applied on {activeStatusApp.appliedDate}</p>
+                  </div>
+                  <span className="bg-gold-500/20 text-gold-600 dark:text-gold-400 border border-gold-500/40 text-xs font-bold px-3 py-1 rounded-full">
+                    Current Stage: {activeStatusApp.status}
+                  </span>
+                </div>
+
+                {/* 5-Step Visual Pipeline */}
+                <div>
+                  <h4 className="text-xs font-bold uppercase tracking-wider text-slate-500 mb-6">Milestone Progress Pipeline</h4>
+                  <div className="grid grid-cols-1 sm:grid-cols-5 gap-3">
+                    {[
+                      { step: 1, label: '1. Submitted', desc: 'Application Received' },
+                      { step: 2, label: '2. Under Review', desc: 'ATS Screening' },
+                      { step: 3, label: '3. Shortlisted', desc: 'Employer Committee' },
+                      { step: 4, label: '4. Interview', desc: 'Technical Round' },
+                      { step: 5, label: '5. Final Decision', desc: 'Offer & Visa' }
+                    ].map(st => {
+                      const isComplete = (activeStatusApp.status === 'Shortlisted' && st.step <= 3) ||
+                                         (activeStatusApp.status === 'Interview Scheduled' && st.step <= 4) ||
+                                         (activeStatusApp.status === 'Placed' && st.step <= 5) ||
+                                         st.step === 1;
+                      const isCurrent = (activeStatusApp.status === 'Under Review' && st.step === 2) ||
+                                        (activeStatusApp.status === 'Shortlisted' && st.step === 3) ||
+                                        (activeStatusApp.status === 'Interview Scheduled' && st.step === 4);
+
+                      return (
+                        <div
+                          key={st.step}
+                          className={`p-3.5 rounded-2xl border text-center space-y-1.5 transition ${
+                            isCurrent
+                              ? 'border-gold-500 bg-gold-500/10 shadow-gold-glow'
+                              : isComplete
+                              ? 'border-emerald-500/40 bg-emerald-500/10'
+                              : 'border-slate-200 dark:border-navy-800 bg-slate-50 dark:bg-navy-950/60 opacity-60'
+                          }`}
+                        >
+                          <div className="flex items-center justify-center">
+                            {isComplete ? (
+                              <CheckCircle2 className="w-5 h-5 text-emerald-500" />
+                            ) : (
+                              <Clock className="w-5 h-5 text-slate-400" />
+                            )}
+                          </div>
+                          <h5 className="font-bold text-xs text-navy-950 dark:text-white">{st.label}</h5>
+                          <p className="text-[10px] text-slate-500">{st.desc}</p>
+                        </div>
+                      );
+                    })}
+                  </div>
+                </div>
+
+                {/* Status History Timeline Log */}
+                <div className="pt-4 border-t border-slate-100 dark:border-navy-800 space-y-3">
+                  <h4 className="text-xs font-bold uppercase tracking-wider text-slate-500">Milestone Audit Log</h4>
+                  <div className="space-y-2 text-xs">
+                    <div className="flex items-start gap-3 p-3 bg-slate-50 dark:bg-navy-950 rounded-xl">
+                      <div className="w-2 h-2 rounded-full bg-emerald-500 mt-1.5 shrink-0" />
+                      <div>
+                        <span className="font-bold text-navy-950 dark:text-white">Profile Dispatched to Recruitment Advisor</span>
+                        <p className="text-[11px] text-slate-500 mt-0.5">CV attached and routed directly to GCC hiring director for initial compliance review.</p>
+                      </div>
+                    </div>
+                    <div className="flex items-start gap-3 p-3 bg-slate-50 dark:bg-navy-950 rounded-xl">
+                      <div className="w-2 h-2 rounded-full bg-gold-500 mt-1.5 shrink-0" />
+                      <div>
+                        <span className="font-bold text-navy-950 dark:text-white">ATS Semantic Match & Degree Attestation Check</span>
+                        <p className="text-[11px] text-slate-500 mt-0.5">Scored 92% match against job specs. MOFA educational equivalency validated.</p>
+                      </div>
                     </div>
                   </div>
-                  <label
-                    htmlFor="cvDocumentUpload"
-                    className="px-4 py-2 bg-gradient-to-r from-amber-400 to-amber-500 hover:from-amber-500 hover:to-amber-600 text-slate-950 font-black text-xs rounded-xl cursor-pointer transition flex items-center gap-1.5 shadow-xs shrink-0"
+                </div>
+
+              </div>
+
+            </div>
+          )}
+
+          {/* ========================================================== */}
+          {/* TAB 7: INTERVIEW SCHEDULE PAGE */}
+          {/* ========================================================== */}
+          {activeTab === 'interviews' && (
+            <div className="space-y-6 text-left">
+              
+              <div className="bg-white dark:bg-navy-900 border border-slate-200 dark:border-navy-800 rounded-3xl p-6 sm:p-8 shadow-sm">
+                <h2 className="font-serif text-2xl font-bold text-navy-950 dark:text-white flex items-center gap-2">
+                  <Calendar className="w-5 h-5 text-gold-500" />
+                  Interview Schedule
+                </h2>
+                <p className="text-xs text-slate-500 dark:text-slate-400 mt-1">
+                  Confirmed technical and HR interview rounds with employer panellists.
+                </p>
+              </div>
+
+              <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                {candidateApplications.filter(a => a.interviewDetails || a.status === 'Interview Scheduled').map(app => (
+                  <div
+                    key={app.id}
+                    className="bg-white dark:bg-navy-900 border border-slate-200 dark:border-navy-800 rounded-3xl p-6 shadow-sm space-y-4"
+                  >
+                    <div className="flex items-center justify-between pb-3 border-b border-slate-100 dark:border-navy-800">
+                      <span className="text-[10px] font-extrabold uppercase tracking-widest px-2.5 py-0.5 rounded-full bg-emerald-500/15 text-emerald-600 dark:text-emerald-400">
+                        Interview Confirmed
+                      </span>
+                      <span className="text-xs font-mono font-bold text-slate-500">Time Zone: GST (UTC+4)</span>
+                    </div>
+
+                    <div className="space-y-1.5">
+                      <h3 className="font-serif text-lg font-bold text-navy-950 dark:text-white">{app.jobTitle}</h3>
+                      <p className="text-xs text-gold-500 font-bold">{app.company} • {app.location || 'Dubai'}</p>
+                      <p className="text-xs text-slate-600 dark:text-slate-300">
+                        Panellist: <strong>{app.interviewDetails?.interviewer || 'Technical Committee & HR Director'}</strong>
+                      </p>
+                      <p className="text-xs font-mono font-bold text-slate-700 dark:text-slate-200 pt-1">
+                        📅 {app.interviewDetails?.date || 'Thursday, Nov 20, 2026'} • ⏰ {app.interviewDetails?.time || '11:00 AM GST'}
+                      </p>
+                    </div>
+
+                    <div className="p-3 bg-slate-50 dark:bg-navy-950 rounded-xl border border-slate-200 dark:border-navy-800 text-[11px] text-slate-600 dark:text-slate-300 space-y-1">
+                      <strong className="block text-navy-950 dark:text-white">Interview Format:</strong>
+                      <p>{app.interviewDetails?.platform || 'Microsoft Teams Video Call (Executive Panel Room)'}</p>
+                    </div>
+
+                    <div className="flex gap-2.5 pt-2">
+                      <button
+                        onClick={() => { setInterviewModalApp(app); startCameraStream(); }}
+                        className="flex-1 py-2.5 bg-gradient-to-r from-gold-500 to-amber-400 text-navy-950 font-extrabold text-xs rounded-xl shadow-gold-glow hover:opacity-95 transition flex items-center justify-center gap-1.5 cursor-pointer"
+                      >
+                        <Video className="w-4 h-4" />
+                        <span>Join Video Room</span>
+                      </button>
+                      <button
+                        onClick={() => setScreeningModalApp(app)}
+                        className="px-4 py-2.5 bg-slate-200 dark:bg-navy-800 text-slate-700 dark:text-slate-200 font-bold text-xs rounded-xl hover:bg-slate-300 transition"
+                      >
+                        View Details
+                      </button>
+                    </div>
+                  </div>
+                ))}
+              </div>
+
+              {/* Preparation Guidelines Card */}
+              <div className="bg-white dark:bg-navy-900 border border-slate-200 dark:border-navy-800 rounded-3xl p-6 shadow-sm space-y-3">
+                <h4 className="font-serif text-sm font-bold text-navy-950 dark:text-white flex items-center gap-2">
+                  <ShieldCheck className="w-4 h-4 text-gold-500" />
+                  International Video Interview Preparation Checklist
+                </h4>
+                <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 text-xs">
+                  <div className="p-3 bg-slate-50 dark:bg-navy-950 rounded-xl border border-slate-200 dark:border-navy-800">
+                    <strong className="block text-navy-950 dark:text-white mb-0.5">1. Stable Internet & Camera</strong>
+                    <p className="text-[11px] text-slate-500">Test camera preview, microphone levels, and quiet lighting before entering room.</p>
+                  </div>
+                  <div className="p-3 bg-slate-50 dark:bg-navy-950 rounded-xl border border-slate-200 dark:border-navy-800">
+                    <strong className="block text-navy-950 dark:text-white mb-0.5">2. Degree Attestation Ready</strong>
+                    <p className="text-[11px] text-slate-500">Have attested diploma/degree scans readily accessible on your screen.</p>
+                  </div>
+                  <div className="p-3 bg-slate-50 dark:bg-navy-950 rounded-xl border border-slate-200 dark:border-navy-800">
+                    <strong className="block text-navy-950 dark:text-white mb-0.5">3. Notice Period Readiness</strong>
+                    <p className="text-[11px] text-slate-500">Be ready to confirm flight availability and residency visa paperwork timelines.</p>
+                  </div>
+                </div>
+              </div>
+
+            </div>
+          )}
+
+          {/* ========================================================== */}
+          {/* TAB 8: SECURE DOCUMENT UPLOAD PAGE */}
+          {/* ========================================================== */}
+          {activeTab === 'documents' && (
+            <div className="space-y-6 text-left">
+              
+              <div className="bg-white dark:bg-navy-900 border border-slate-200 dark:border-navy-800 rounded-3xl p-6 sm:p-8 shadow-sm">
+                <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+                  <div>
+                    <h2 className="font-serif text-2xl font-bold text-navy-950 dark:text-white flex items-center gap-2">
+                      <Shield className="w-5 h-5 text-gold-500" />
+                      Secure Document Upload & Verification
+                    </h2>
+                    <p className="text-xs text-slate-500 dark:text-slate-400 mt-1">
+                      Private, encrypted document vault for MOHRE work permits, consular attestation, and residency sponsorship.
+                    </p>
+                  </div>
+                  <button
+                    onClick={() => setUploadDocModalOpen(true)}
+                    className="px-4 py-2.5 bg-gradient-to-r from-gold-500 to-amber-400 text-navy-950 font-extrabold text-xs rounded-xl shadow-gold-glow hover:opacity-95 transition flex items-center gap-1.5 cursor-pointer"
                   >
                     <Upload className="w-4 h-4" />
-                    <span>Attach CV from Device</span>
-                  </label>
-                </div>
-              )}
-            </div>
-
-            {/* Basic Info Fields */}
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-              <div>
-                <label className="block font-bold text-slate-700 dark:text-slate-200 mb-1">
-                  Full Name <span className="text-rose-500">*</span> (Letters only)
-                </label>
-                <input
-                  type="text"
-                  required
-                  value={profileForm.name}
-                  onChange={(e) => {
-                    const lettersOnly = e.target.value.replace(/[^a-zA-Z\s]/g, '');
-                    setProfileForm({ ...profileForm, name: lettersOnly });
-                  }}
-                  placeholder="e.g. John Doe"
-                  className="w-full bg-slate-50 dark:bg-navy-950 border border-slate-300 dark:border-navy-700 rounded-xl p-3 text-navy-900 dark:text-white focus:outline-none focus:border-gold-500 font-medium"
-                />
-              </div>
-              <div>
-                <label className="block font-bold text-slate-700 dark:text-slate-200 mb-1">
-                  Email Address <span className="text-rose-500">*</span>
-                </label>
-                <input
-                  type="email"
-                  required
-                  value={profileForm.email}
-                  onChange={(e) => setProfileForm({ ...profileForm, email: e.target.value })}
-                  placeholder="e.g. name@example.com"
-                  className="w-full bg-slate-50 dark:bg-navy-950 border border-slate-300 dark:border-navy-700 rounded-xl p-3 text-navy-900 dark:text-white focus:outline-none focus:border-gold-500 font-medium"
-                />
-              </div>
-            </div>
-
-            {/* Country Code & Phone Number Field */}
-            <div>
-              <label className="block font-bold text-slate-700 dark:text-slate-200 mb-1">
-                Phone Number (With International Country Code) <span className="text-rose-500">*</span>
-              </label>
-              <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
-                <div>
-                  <select
-                    value={selectedCountryCode}
-                    onChange={handleCountryCodeChange}
-                    className="w-full bg-slate-50 dark:bg-navy-950 border border-slate-300 dark:border-navy-700 rounded-xl p-3 text-navy-900 dark:text-white focus:outline-none focus:border-gold-500 font-bold"
-                  >
-                    {COUNTRY_CODES.map((c) => (
-                      <option key={c.code} value={c.code}>
-                        {c.flag} {c.code} ({c.country})
-                      </option>
-                    ))}
-                  </select>
-                </div>
-
-                <div className="sm:col-span-2 relative">
-                  <input
-                    type="text"
-                    pattern="[0-9]*"
-                    value={phoneDigits}
-                    onChange={handlePhoneDigitsChange}
-                    placeholder={`Enter ${activeCountryObj.maxDigits}-digit number (e.g. ${activeCountryObj.placeholder})`}
-                    className="w-full bg-slate-50 dark:bg-navy-950 border border-slate-300 dark:border-navy-700 rounded-xl p-3 text-navy-900 dark:text-white focus:outline-none focus:border-gold-500 font-medium"
-                  />
-                  <span className="absolute right-3 top-3.5 text-[10px] text-slate-500 dark:text-slate-400 font-bold">
-                    {phoneDigits.length}/{activeCountryObj.maxDigits} digits
-                  </span>
-                </div>
-              </div>
-              {phoneDigits.length > 0 && phoneDigits.length < activeCountryObj.maxDigits && (
-                <p className="text-[11px] text-amber-600 font-semibold mt-1">
-                  ⚠️ Must be {activeCountryObj.maxDigits} digits for {activeCountryObj.country} ({phoneDigits.length}/{activeCountryObj.maxDigits} entered)
-                </p>
-              )}
-            </div>
-
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-              <div>
-                <label className="block font-bold text-slate-700 dark:text-slate-200 mb-1">Date of Birth</label>
-                <div className="relative z-50">
-                  <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none z-10">
-                    <CalendarIcon className="h-5 w-5 text-gold-500" />
-                  </div>
-                  <DatePicker
-                    selected={profileForm.dob ? new Date(profileForm.dob) : null}
-                    onChange={(date) => {
-                      if (date) {
-                        const yyyy = date.getFullYear();
-                        const mm = String(date.getMonth() + 1).padStart(2, '0');
-                        const dd = String(date.getDate()).padStart(2, '0');
-                        setProfileForm({ ...profileForm, dob: `${yyyy}-${mm}-${dd}` });
-                      } else {
-                        setProfileForm({ ...profileForm, dob: '' });
-                      }
-                    }}
-                    dateFormat="dd/MM/yyyy"
-                    showYearDropdown
-                    showMonthDropdown
-                    dropdownMode="select"
-                    placeholderText="DD/MM/YYYY"
-                    maxDate={new Date()}
-                    className="w-full bg-slate-50 dark:bg-navy-950 border border-slate-300 dark:border-navy-700 rounded-xl pl-10 pr-3 py-2.5 text-navy-900 dark:text-white font-medium focus:ring-2 focus:ring-gold-500 focus:border-transparent transition-all"
-                  />
-                </div>
-              </div>
-
-              <div>
-                <label className="block font-bold text-slate-700 dark:text-slate-200 mb-1">Gender</label>
-                <select
-                  value={profileForm.gender}
-                  onChange={(e) => setProfileForm({ ...profileForm, gender: e.target.value })}
-                  className="w-full bg-slate-50 dark:bg-navy-950 border border-slate-300 dark:border-navy-700 rounded-xl p-3 text-navy-900 dark:text-white focus:outline-none focus:border-gold-500 font-medium"
-                >
-                  <option value="">-- Select Gender --</option>
-                  <option value="Male">Male</option>
-                  <option value="Female">Female</option>
-                  <option value="Other">Other</option>
-                </select>
-              </div>
-            </div>
-
-            {/* Nationality & Citizenship Fields */}
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-              <div>
-                <label className="block font-bold text-slate-700 dark:text-slate-200 mb-1 flex items-center justify-between">
-                  <span className="flex items-center gap-1.5">
-                    <Globe className="w-4 h-4 text-gold-500" />
-                    <span>Nationality</span>
-                  </span>
-                  {selectedNationalityOption === 'Other' && (
-                    <span className="text-[11px] font-semibold text-amber-600 dark:text-gold-400">
-                      Type Country Below
-                    </span>
-                  )}
-                </label>
-                <select
-                  id="candidate-nationality-select"
-                  value={selectedNationalityOption}
-                  onChange={(e) => {
-                    const val = e.target.value;
-                    setSelectedNationalityOption(val);
-                    if (val === 'Other') {
-                      if (PRESET_NATIONALITIES.includes(profileForm.nationality)) {
-                        setProfileForm(prev => ({ ...prev, nationality: '' }));
-                      }
-                    } else {
-                      setProfileForm(prev => ({ ...prev, nationality: val }));
-                    }
-                  }}
-                  className="w-full bg-slate-50 dark:bg-navy-950 border border-slate-300 dark:border-navy-700 rounded-xl p-3 text-navy-900 dark:text-white focus:outline-none focus:border-gold-500 font-medium cursor-pointer"
-                >
-                  <option value="">-- Select Nationality --</option>
-                  {PRESET_NATIONALITIES.map((nat) => (
-                    <option key={nat} value={nat}>{nat}</option>
-                  ))}
-                  <option value="Other">Other (Type Country / Nationality)</option>
-                </select>
-
-                {/* When 'Other' is selected, candidate can type country */}
-                {selectedNationalityOption === 'Other' && (
-                  <div className="mt-2 animate-in fade-in duration-150">
-                    <input
-                      type="text"
-                      id="candidate-nationality-custom-input"
-                      value={profileForm.nationality}
-                      onChange={(e) => setProfileForm(prev => ({ ...prev, nationality: e.target.value }))}
-                      placeholder="Type your country or nationality (e.g. Italian, Brazilian, Japanese, etc.)"
-                      className="w-full bg-white dark:bg-navy-900 border-2 border-gold-500/70 rounded-xl p-2.5 text-navy-900 dark:text-white focus:outline-none focus:border-gold-500 font-medium text-sm shadow-xs"
-                      autoFocus
-                    />
-                  </div>
-                )}
-              </div>
-
-              <div>
-                <label className="block font-bold text-slate-700 dark:text-slate-200 mb-1 flex items-center justify-between">
-                  <span className="flex items-center gap-1.5">
-                    <Shield className="w-4 h-4 text-gold-500" />
-                    <span>Citizenship</span>
-                  </span>
-                  {selectedCitizenshipOption === 'Other' && (
-                    <span className="text-[11px] font-semibold text-amber-600 dark:text-gold-400">
-                      Type Country Below
-                    </span>
-                  )}
-                </label>
-                <select
-                  id="candidate-citizenship-select"
-                  value={selectedCitizenshipOption}
-                  onChange={(e) => {
-                    const val = e.target.value;
-                    setSelectedCitizenshipOption(val);
-                    if (val === 'Other') {
-                      if (PRESET_CITIZENSHIPS.includes(profileForm.citizenship)) {
-                        setProfileForm(prev => ({ ...prev, citizenship: '' }));
-                      }
-                    } else {
-                      setProfileForm(prev => ({ ...prev, citizenship: val }));
-                    }
-                  }}
-                  className="w-full bg-slate-50 dark:bg-navy-950 border border-slate-300 dark:border-navy-700 rounded-xl p-3 text-navy-900 dark:text-white focus:outline-none focus:border-gold-500 font-medium cursor-pointer"
-                >
-                  <option value="">-- Select Citizenship Country --</option>
-                  {PRESET_CITIZENSHIPS.map((cit) => (
-                    <option key={cit} value={cit}>{cit}</option>
-                  ))}
-                  <option value="Other">Other (Type Country)</option>
-                </select>
-
-                {/* When 'Other' is selected, candidate can type citizenship country */}
-                {selectedCitizenshipOption === 'Other' && (
-                  <div className="mt-2 animate-in fade-in duration-150">
-                    <input
-                      type="text"
-                      id="candidate-citizenship-custom-input"
-                      value={profileForm.citizenship}
-                      onChange={(e) => setProfileForm(prev => ({ ...prev, citizenship: e.target.value }))}
-                      placeholder="Type your citizenship country (e.g. Italy, Brazil, Japan, etc.)"
-                      className="w-full bg-white dark:bg-navy-900 border-2 border-gold-500/70 rounded-xl p-2.5 text-navy-900 dark:text-white focus:outline-none focus:border-gold-500 font-medium text-sm shadow-xs"
-                      autoFocus
-                    />
-                  </div>
-                )}
-              </div>
-            </div>
-
-            <div>
-              <label className="block font-bold text-slate-700 dark:text-slate-200 mb-1">Professional Designation / Role</label>
-              <input
-                type="text"
-                value={profileForm.title}
-                onChange={(e) => setProfileForm({ ...profileForm, title: e.target.value })}
-                placeholder="e.g. Senior Civil Engineer / ICU Specialist"
-                className="w-full bg-slate-50 dark:bg-navy-950 border border-slate-300 dark:border-navy-700 rounded-xl p-3 text-navy-900 dark:text-white focus:outline-none focus:border-gold-500 font-medium"
-              />
-            </div>
-
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-              <div>
-                <label className="block font-bold text-slate-700 dark:text-slate-200 mb-1">Current Location (City, Country)</label>
-                <input
-                  type="text"
-                  value={profileForm.location}
-                  onChange={(e) => setProfileForm({ ...profileForm, location: e.target.value })}
-                  placeholder="e.g. Dubai, UAE or Mumbai, India"
-                  className="w-full bg-slate-50 dark:bg-navy-950 border border-slate-300 dark:border-navy-700 rounded-xl p-3 text-navy-900 dark:text-white focus:outline-none focus:border-gold-500 font-medium"
-                />
-              </div>
-
-              <div>
-                <label className="block font-bold text-slate-700 dark:text-slate-200 mb-1">Preferred Destination Country</label>
-                <select
-                  value={profileForm.preferredCountry}
-                  onChange={(e) => setProfileForm({ ...profileForm, preferredCountry: e.target.value })}
-                  className="w-full bg-slate-50 dark:bg-navy-950 border border-slate-300 dark:border-navy-700 rounded-xl p-3 text-navy-900 dark:text-white focus:outline-none focus:border-gold-500 font-medium"
-                >
-                  <option value="UAE">🇦🇪 UAE (Dubai / Abu Dhabi)</option>
-                  <option value="Saudi Arabia">🇸🇦 Saudi Arabia</option>
-                  <option value="Qatar">🇶🇦 Qatar</option>
-                  <option value="Singapore">🇸🇬 Singapore</option>
-                  <option value="Germany">🇩🇪 Germany</option>
-                  <option value="Canada">🇨🇦 Canada</option>
-                  <option value="United Kingdom">🇬🇧 United Kingdom</option>
-                </select>
-              </div>
-            </div>
-
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-              <div>
-                <label className="block font-bold text-slate-700 dark:text-slate-200 mb-1">Total Work Experience</label>
-                <input
-                  type="text"
-                  value={profileForm.experience}
-                  onChange={(e) => setProfileForm({ ...profileForm, experience: e.target.value })}
-                  placeholder="e.g. 7 Years"
-                  className="w-full bg-slate-50 dark:bg-navy-950 border border-slate-300 dark:border-navy-700 rounded-xl p-3 text-navy-900 dark:text-white focus:outline-none focus:border-gold-500 font-medium"
-                />
-              </div>
-
-              <div>
-                <label className="block font-bold text-slate-700 dark:text-slate-200 mb-1">Highest Degree / Qualification</label>
-                <input
-                  type="text"
-                  value={profileForm.qualification}
-                  onChange={(e) => setProfileForm({ ...profileForm, qualification: e.target.value })}
-                  placeholder="e.g. B.Tech Civil Engineering"
-                  className="w-full bg-slate-50 dark:bg-navy-950 border border-slate-300 dark:border-navy-700 rounded-xl p-3 text-navy-900 dark:text-white focus:outline-none focus:border-gold-500 font-medium"
-                />
-              </div>
-            </div>
-
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-              <div>
-                <label className="block font-bold text-slate-700 dark:text-slate-200 mb-1">Current Monthly Salary</label>
-                <input
-                  type="text"
-                  value={profileForm.currentSalary}
-                  onChange={(e) => setProfileForm({ ...profileForm, currentSalary: e.target.value })}
-                  placeholder="e.g. AED 18,000 / month (or leave blank)"
-                  className="w-full bg-slate-50 dark:bg-navy-950 border border-slate-300 dark:border-navy-700 rounded-xl p-3 text-navy-900 dark:text-white focus:outline-none focus:border-gold-500 font-medium"
-                />
-              </div>
-
-              <div>
-                <label className="block font-bold text-slate-700 dark:text-slate-200 mb-1">Expected Monthly Salary</label>
-                <input
-                  type="text"
-                  value={profileForm.expectedSalary}
-                  onChange={(e) => setProfileForm({ ...profileForm, expectedSalary: e.target.value })}
-                  placeholder="e.g. AED 25,000 / month"
-                  className="w-full bg-slate-50 dark:bg-navy-950 border border-slate-300 dark:border-navy-700 rounded-xl p-3 text-navy-900 dark:text-white focus:outline-none focus:border-gold-500 font-medium"
-                />
-              </div>
-
-              <div>
-                <label className="block font-bold text-slate-700 dark:text-slate-200 mb-1">Notice Period</label>
-                <input
-                  type="text"
-                  value={profileForm.noticePeriod}
-                  onChange={(e) => setProfileForm({ ...profileForm, noticePeriod: e.target.value })}
-                  placeholder="e.g. Immediate, 30 Days"
-                  className="w-full bg-slate-50 dark:bg-navy-950 border border-slate-300 dark:border-navy-700 rounded-xl p-3 text-navy-900 dark:text-white focus:outline-none focus:border-gold-500 font-medium"
-                />
-              </div>
-            </div>
-
-            <div>
-              <label className="block font-bold text-slate-700 dark:text-slate-200 mb-1">Key Technical Skills (Comma separated)</label>
-              <input
-                type="text"
-                value={profileForm.skillsInput}
-                onChange={(e) => setProfileForm({ ...profileForm, skillsInput: e.target.value })}
-                placeholder="e.g. Project Management, FIDIC, Site Supervision, AutoCAD"
-                className="w-full bg-slate-50 dark:bg-navy-950 border border-slate-300 dark:border-navy-700 rounded-xl p-3 text-navy-900 dark:text-white focus:outline-none focus:border-gold-500 font-medium"
-              />
-            </div>
-
-            <div className="flex items-center space-x-2 pt-2">
-              <input
-                type="checkbox"
-                id="mohreCheck"
-                checked={profileForm.mohreAttested}
-                onChange={(e) => setProfileForm({ ...profileForm, mohreAttested: e.target.checked })}
-                className="w-4 h-4 text-gold-500 rounded focus:ring-gold-500"
-              />
-              <label htmlFor="mohreCheck" className="font-bold text-slate-800 dark:text-slate-200 cursor-pointer">
-                Educational Degree Attested by UAE / Saudi Embassy (MOHRE Verified) <span className="text-rose-500">*</span>
-              </label>
-            </div>
-
-            <button
-              type="button"
-              onClick={handleSaveProfile}
-              className="w-full py-4 bg-gold-shimmer text-navy-950 font-extrabold text-sm rounded-xl shadow-gold-glow hover:opacity-95 transition flex items-center justify-center space-x-2 cursor-pointer"
-            >
-              <SaveIcon />
-              <span>Save Candidate Info (Calculated Score: {profileScore}%) →</span>
-            </button>
-
-          </form>
-        </div>
-      )}
-
-      {/* APPLICATIONS TAB */}
-      {activeTab === 'applications' && (
-        <div className="space-y-6 font-sans">
-
-          <div className="space-y-1 mb-8 mt-2">
-            <h2 className="text-3xl font-bold text-navy-900 dark:text-white">My Applications</h2>
-            <p className="text-[13px] text-slate-500 font-medium">Track the status of all your job applications in real-time.</p>
-          </div>
-
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-            <div className="bg-slate-50 dark:bg-navy-950 border border-slate-200 dark:border-navy-800 rounded-[20px] p-8 flex flex-col items-center justify-center space-y-3 shadow-sm">
-              <span className="text-[40px] font-bold text-[#08a2c2] leading-none">{applications.length}</span>
-              <span className="text-[13px] text-slate-600 dark:text-slate-400 font-semibold">Total Applied</span>
-            </div>
-            <div className="bg-slate-50 dark:bg-navy-950 border border-slate-200 dark:border-navy-800 rounded-[20px] p-8 flex flex-col items-center justify-center space-y-3 shadow-sm">
-              <span className="text-[40px] font-bold text-[#ff8f00] leading-none">{applications.filter(a => a.status === 'Interview Scheduled' || a.status === 'Under AI Resume Screening').length}</span>
-              <span className="text-[13px] text-slate-600 dark:text-slate-400 font-semibold">In Progress</span>
-            </div>
-            <div className="bg-slate-50 dark:bg-navy-950 border border-slate-200 dark:border-navy-800 rounded-[20px] p-8 flex flex-col items-center justify-center space-y-3 shadow-sm">
-              <span className="text-[40px] font-bold text-[#03b879] leading-none">{applications.filter(a => a.status === 'Placed').length}</span>
-              <span className="text-[13px] text-slate-600 dark:text-slate-400 font-semibold">Selected / Offered</span>
-            </div>
-            <div className="bg-slate-50 dark:bg-navy-950 border border-slate-200 dark:border-navy-800 rounded-[20px] p-8 flex flex-col items-center justify-center space-y-3 shadow-sm">
-              <span className="text-[40px] font-bold text-[#0a66c2] leading-none">{applications.filter(a => a.status === 'Under AI Resume Screening').length}</span>
-              <span className="text-[13px] text-slate-600 dark:text-slate-400 font-semibold">Pending Review</span>
-            </div>
-          </div>
-
-          <div className="space-y-4 mt-8">
-            {applications.map((app) => (
-              <div key={app.id} className="bg-white dark:bg-navy-900 border border-slate-200 dark:border-navy-800 rounded-3xl p-6 flex flex-col md:flex-row justify-between items-start md:items-center gap-6 transition hover:shadow-md cursor-pointer" onClick={() => setScreeningModalApp(app)}>
-                <div className="flex gap-4 items-start">
-                  <div className="w-14 h-14 rounded-2xl bg-[#2e5e1e] flex items-center justify-center text-slate-900 dark:text-white text-2xl font-bold shrink-0 mt-1 shadow-sm">
-                    {app.company ? app.company.charAt(0).toUpperCase() : 'C'}
-                  </div>
-                  <div className="space-y-2">
-                    <h4 className="font-bold text-[17px] text-navy-900 dark:text-white leading-tight">{app.jobTitle}</h4>
-                    <p className="text-[13px] text-slate-500 font-semibold uppercase tracking-wider">{app.company}</p>
-                    <div className="flex flex-wrap items-center gap-5 text-[13px] text-slate-500 font-medium pt-1">
-                      <div className="flex items-center gap-1.5"><MapPin className="w-4 h-4 text-slate-500 dark:text-slate-400" /> <span>{app.location || app.country || 'GCC'}</span></div>
-                      <div className="flex items-center gap-1.5"><DollarSign className="w-4 h-4 text-slate-500 dark:text-slate-400" /> <span>{app.expectedSalary || 'Market Standard'}</span></div>
-                      <div className="flex items-center gap-1.5"><Briefcase className="w-4 h-4 text-slate-500 dark:text-slate-400" /> <span>{app.noticePeriod || 'Immediate'}</span></div>
-                    </div>
-                    <div className="flex items-center gap-1.5 text-[13px] text-slate-500 pt-2 font-medium">
-                      <Clock className="w-4 h-4 text-slate-500 dark:text-slate-400" />
-                      <span>Applied on {app.appliedDate ? new Date(app.appliedDate).toLocaleDateString() : 'Recent'}</span>
-                    </div>
-
-                    {/* Submitted CV details for this application */}
-                    <div className="flex flex-wrap items-center gap-2 pt-2 border-t border-slate-100 dark:border-navy-800 text-xs">
-                      <span className="px-2.5 py-1 rounded-lg bg-gold-500/10 text-gold-700 dark:text-gold-400 font-bold flex items-center gap-1.5 border border-gold-500/20">
-                        <Paperclip className="w-3.5 h-3.5 text-gold-500" />
-                        <span>Submitted CV: {app.resumeName || user?.resumeName || 'Executive_CV.pdf'}</span>
-                        <span className="text-slate-400 font-normal">({app.resumeSize || user?.resumeSize || '245 KB'})</span>
-                      </span>
-                      {app.coverNote && (
-                        <span className="text-[11px] text-slate-500 italic block">
-                          Pitch: "{app.coverNote}"
-                        </span>
-                      )}
-                    </div>
-                  </div>
-                </div>
-
-                <div className="flex items-center mt-4 md:mt-0 w-full md:w-auto self-stretch md:self-auto items-end md:items-center">
-                  <button className="w-full md:w-auto px-6 py-2.5 rounded-full border border-[#08a2c2] text-[#08a2c2] bg-[#08a2c2]/5 hover:bg-[#08a2c2]/10 font-bold text-[13px] flex items-center justify-center gap-1.5 transition">
-                    <Clock className="w-4 h-4" />
-                    <span>Applied</span>
+                    <span>Upload New Document</span>
                   </button>
                 </div>
               </div>
-            ))}
-          </div>
-        </div>
-      )}
 
-      {/* AI RESUME SCREENING REPORT MODAL */}
-      {screeningModalApp && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/80 dark:bg-navy-950/80 backdrop-blur-sm animate-in fade-in">
-          <div className="glass-card bg-white dark:bg-navy-900 border border-slate-200 dark:border-gold-500/40 p-6 sm:p-8 rounded-3xl max-w-xl w-full space-y-6 shadow-luxury text-xs text-slate-900 dark:text-white max-h-[90vh] overflow-y-auto">
+              {/* Documents Table / Cards */}
+              <div className="bg-white dark:bg-navy-900 border border-slate-200 dark:border-navy-800 rounded-3xl overflow-hidden shadow-sm">
+                <div className="divide-y divide-slate-100 dark:divide-navy-800">
+                  {DEFAULT_DOC_TYPES.map(docType => {
+                    const uploadedDoc = documents.find(d => d.documentType === docType.type);
+                    const isUploaded = !!uploadedDoc;
+                    const status = uploadedDoc?.verificationStatus || 'Pending Upload';
 
-            {/* Modal Header */}
-            <div className="flex justify-between items-start border-b border-slate-200 dark:border-navy-800 pb-4">
-              <div>
-                <span className="bg-gold-500/20 text-gold-500 text-[10px] font-extrabold px-2.5 py-0.5 rounded uppercase">Automated ATS Screening Report</span>
-                <h3 className="font-serif text-2xl font-bold text-navy-900 dark:text-white mt-1">AI Resume Screening Breakdown</h3>
-                <p className="text-slate-600 dark:text-slate-300 font-semibold">{screeningModalApp.jobTitle} • {screeningModalApp.company}</p>
-              </div>
-              <button onClick={() => setScreeningModalApp(null)} className="text-slate-500 dark:text-slate-400 hover:text-slate-900 dark:text-white p-1">
-                <X className="w-6 h-6" />
-              </button>
-            </div>
+                    return (
+                      <div key={docType.type} className="p-6 flex flex-col md:flex-row justify-between items-start md:items-center gap-4 hover:bg-slate-50/50 dark:hover:bg-navy-950/40 transition">
+                        <div className="flex items-start gap-4">
+                          <div className={`w-11 h-11 rounded-2xl flex items-center justify-center shrink-0 ${
+                            status === 'Verified' ? 'bg-emerald-500/15 text-emerald-500' :
+                            isUploaded ? 'bg-amber-500/15 text-amber-500' :
+                            'bg-slate-100 dark:bg-navy-800 text-slate-400'
+                          }`}>
+                            <FileText className="w-5 h-5" />
+                          </div>
+                          <div>
+                            <div className="flex items-center gap-2">
+                              <h3 className="font-bold text-xs text-navy-950 dark:text-white">{docType.type}</h3>
+                              <span className={`text-[9px] font-extrabold px-2 py-0.5 rounded-full ${
+                                status === 'Verified' ? 'bg-emerald-500/15 text-emerald-600 dark:text-emerald-400 border border-emerald-500/30' :
+                                isUploaded ? 'bg-amber-500/15 text-amber-600 dark:text-amber-400 border border-amber-500/30' :
+                                'bg-slate-200 dark:bg-navy-800 text-slate-500'
+                              }`}>
+                                {status}
+                              </span>
+                            </div>
+                            <p className="text-[11px] text-slate-500 mt-0.5 max-w-lg">{docType.desc}</p>
+                            {isUploaded && (
+                              <p className="text-[10px] text-gold-500 font-mono mt-1">
+                                File: <strong>{uploadedDoc.fileName}</strong> • Uploaded: {uploadedDoc.uploadDate}
+                              </p>
+                            )}
+                          </div>
+                        </div>
 
-            {/* AI Score Overview Box */}
-            <div className="p-4 bg-white dark:bg-navy-950 text-slate-900 dark:text-white rounded-2xl border border-slate-200 dark:border-gold-500/30 flex justify-between items-center">
-              <div>
-                <span className="text-[10px] text-slate-500 dark:text-slate-400 uppercase tracking-widest font-bold block">AI ATS Compatibility Score</span>
-                <span className="font-serif text-3xl font-extrabold text-gold-400">94% Match</span>
-                <p className="text-[11px] text-slate-600 dark:text-slate-300 font-medium">Keywords & Candidate Profile aligned with GCC Job Mandate</p>
-              </div>
-              <div className="w-14 h-14 rounded-2xl bg-gold-500/20 text-gold-400 border border-slate-200 dark:border-gold-500/40 flex items-center justify-center font-serif text-xl font-extrabold shadow-gold-glow">
-                94%
-              </div>
-            </div>
-
-            {/* Where Screening Takes Place Section */}
-            <div className="space-y-3 p-4 bg-slate-50 dark:bg-navy-950 rounded-2xl border border-slate-200 dark:border-navy-800">
-              <h4 className="font-bold text-navy-900 dark:text-white flex items-center gap-1.5 text-sm">
-                <Shield className="w-4 h-4 text-gold-500" />
-                Where & How Screening Takes Place:
-              </h4>
-              <p className="text-slate-700 dark:text-slate-300 leading-relaxed font-medium">
-                1. <strong>AI Parsing at Revival HQ (Dubai)</strong>: Your uploaded CV and Candidate details were processed by our MOHRE-certified AI parser.
-              </p>
-              <p className="text-slate-700 dark:text-slate-300 leading-relaxed font-medium">
-                2. <strong>Recruiter Portal Synchronization</strong>: Your profile and ATS Score (94%) have been transmitted directly to the <strong>{screeningModalApp.company}</strong> Employer Portal dashboard.
-              </p>
-              <p className="text-slate-700 dark:text-slate-300 leading-relaxed font-medium">
-                3. <strong>Hiring Manager Review</strong>: The employer’s recruitment team screens candidates in real-time. When they shortlist or schedule a video interview, your status updates instantly.
-              </p>
-            </div>
-
-            {/* 4-Stage Pipeline Breakdown */}
-            <div className="space-y-2">
-              <h4 className="font-bold text-navy-900 dark:text-white text-xs">Live 4-Stage Screening Timeline:</h4>
-              <div className="space-y-2">
-                <div className="p-3 bg-emerald-500/10 border border-emerald-500/30 rounded-xl flex items-center justify-between">
-                  <div className="flex items-center gap-2">
-                    <CheckCircle2 className="w-4 h-4 text-emerald-500" />
-                    <span className="font-bold text-emerald-700 dark:text-emerald-400">Stage 1: Application Submission</span>
-                  </div>
-                  <span className="text-[10px] text-emerald-600 dark:text-emerald-400 font-bold">Completed ({screeningModalApp.appliedDate})</span>
-                </div>
-
-                <div className="p-3 bg-emerald-500/10 border border-emerald-500/30 rounded-xl flex items-center justify-between">
-                  <div className="flex items-center gap-2">
-                    <CheckCircle2 className="w-4 h-4 text-emerald-500" />
-                    <span className="font-bold text-emerald-700 dark:text-emerald-400">Stage 2: AI ATS Keyword & Skills Analysis</span>
-                  </div>
-                  <span className="text-[10px] text-emerald-600 dark:text-emerald-400 font-bold">Completed (94% Match)</span>
-                </div>
-
-                <div className="p-3 bg-emerald-500/10 border border-emerald-500/30 rounded-xl flex items-center justify-between">
-                  <div className="flex items-center gap-2">
-                    <CheckCircle2 className="w-4 h-4 text-emerald-500" />
-                    <span className="font-bold text-emerald-700 dark:text-emerald-400">Stage 3: Employer Review & Shortlisting</span>
-                  </div>
-                  <span className="text-[10px] text-emerald-600 dark:text-emerald-400 font-bold">Shortlisted by Recruiter</span>
-                </div>
-
-                <div className={`p-3 rounded-xl flex items-center justify-between ${screeningModalApp.status === 'Interview Scheduled' ? 'bg-emerald-500/15 border border-emerald-500/30' : 'bg-slate-100 dark:bg-navy-950 border border-slate-200 dark:border-navy-800'}`}>
-                  <div className="flex items-center gap-2">
-                    <Video className={`w-4 h-4 ${screeningModalApp.status === 'Interview Scheduled' ? 'text-emerald-500' : 'text-slate-500 dark:text-slate-400'}`} />
-                    <span className={`font-bold ${screeningModalApp.status === 'Interview Scheduled' ? 'text-emerald-700 dark:text-emerald-400' : 'text-slate-500'}`}>
-                      Stage 4: Video Interview & Visa Offer
-                    </span>
-                  </div>
-                  <span className={`text-[10px] font-extrabold px-2 py-0.5 rounded ${screeningModalApp.status === 'Interview Scheduled' ? 'bg-emerald-500 text-slate-900 dark:text-white' : 'text-slate-500 dark:text-slate-400'}`}>
-                    {screeningModalApp.status === 'Interview Scheduled' ? 'Interview Confirmed' : 'Pending Shortlist'}
-                  </span>
+                        <div className="flex items-center gap-2 w-full md:w-auto justify-end">
+                          {isUploaded ? (
+                            <>
+                              <button
+                                onClick={() => setPreviewDoc(uploadedDoc)}
+                                className="px-3 py-1.5 bg-slate-200 dark:bg-navy-800 text-slate-700 dark:text-slate-200 font-bold text-xs rounded-xl hover:bg-slate-300 transition"
+                              >
+                                View
+                              </button>
+                              <button
+                                onClick={() => alert(`Downloading "${uploadedDoc.fileName}"...`)}
+                                className="px-3 py-1.5 bg-slate-200 dark:bg-navy-800 text-slate-700 dark:text-slate-200 font-bold text-xs rounded-xl hover:bg-slate-300 transition"
+                              >
+                                Download
+                              </button>
+                              <button
+                                onClick={() => { setSelectedDocType(docType.type); setUploadDocModalOpen(true); }}
+                                className="px-3 py-1.5 bg-navy-950 dark:bg-white text-white dark:text-navy-950 font-bold text-xs rounded-xl hover:opacity-90 transition"
+                              >
+                                Replace
+                              </button>
+                              <button
+                                onClick={() => handleDeleteDocument(uploadedDoc.id)}
+                                className="p-2 text-rose-500 hover:bg-rose-500/10 rounded-xl transition"
+                                title="Delete document"
+                              >
+                                <Trash2 className="w-3.5 h-3.5" />
+                              </button>
+                            </>
+                          ) : (
+                            <button
+                              onClick={() => { setSelectedDocType(docType.type); setUploadDocModalOpen(true); }}
+                              className="px-4 py-2 bg-gradient-to-r from-gold-500 to-amber-400 text-navy-950 font-bold text-xs rounded-xl shadow-gold-glow hover:opacity-95 transition flex items-center gap-1.5"
+                            >
+                              <Upload className="w-3.5 h-3.5" />
+                              <span>Upload File</span>
+                            </button>
+                          )}
+                        </div>
+                      </div>
+                    );
+                  })}
                 </div>
               </div>
+
             </div>
+          )}
 
-            <div className="flex gap-3 pt-2">
-              <button
-                onClick={() => setScreeningModalApp(null)}
-                className="w-full py-3 bg-gold-shimmer text-navy-950 font-extrabold text-xs rounded-xl shadow-gold-glow"
-              >
-                Close Report
-              </button>
-            </div>
-
-          </div>
-        </div>
-      )}
-
-      {/* JOB APPLICATION MODAL (Prompt for CV / Resume Attachment) */}
-      {applyModalJob && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/80 dark:bg-navy-950/80 backdrop-blur-sm animate-in fade-in">
-          <div className="glass-card bg-white dark:bg-navy-900 border border-slate-200 dark:border-gold-500/40 p-6 sm:p-8 rounded-3xl max-w-2xl w-full space-y-6 shadow-luxury text-xs text-slate-900 dark:text-white max-h-[92vh] overflow-y-auto">
-
-            {/* Modal Header */}
-            <div className="flex justify-between items-start border-b border-slate-200 dark:border-navy-800 pb-4">
-              <div>
-                <div className="flex items-center gap-2 mb-1">
-                  <span className="bg-gold-500/20 text-gold-500 text-[10px] font-extrabold px-2.5 py-0.5 rounded uppercase">Direct GCC Vacancy Application</span>
-                  <span className="text-[10px] font-mono text-slate-400">ID: {applyModalJob.id}</span>
-                </div>
-                <h3 className="font-serif text-2xl font-bold text-navy-900 dark:text-white">{applyModalJob.title}</h3>
-                <p className="text-slate-600 dark:text-slate-300 font-semibold mt-0.5">
-                  {applyModalJob.company} • {applyModalJob.location || applyModalJob.country || 'GCC'} • {applyModalJob.salary || 'Market Standard'}
+          {/* ========================================================== */}
+          {/* TAB 9: ACCOUNT SETTINGS PAGE */}
+          {/* ========================================================== */}
+          {activeTab === 'settings' && (
+            <div className="space-y-6 text-left max-w-4xl">
+              
+              <div className="bg-white dark:bg-navy-900 border border-slate-200 dark:border-navy-800 rounded-3xl p-6 sm:p-8 shadow-sm">
+                <h2 className="font-serif text-2xl font-bold text-navy-950 dark:text-white flex items-center gap-2">
+                  <Settings className="w-5 h-5 text-gold-500" />
+                  Account Settings & Security
+                </h2>
+                <p className="text-xs text-slate-500 dark:text-slate-400 mt-1">
+                  Manage your candidate account credentials, email alerts, privacy options, and security policies.
                 </p>
               </div>
-              <button
-                type="button"
-                onClick={() => setApplyModalJob(null)}
-                className="text-slate-400 hover:text-slate-900 dark:hover:text-white p-1 rounded-lg transition cursor-pointer"
-              >
-                <X className="w-6 h-6" />
+
+              {/* 1. Change Password Card */}
+              <div className="bg-white dark:bg-navy-900 border border-slate-200 dark:border-navy-800 rounded-3xl p-6 shadow-sm space-y-4">
+                <h3 className="font-serif text-base font-bold text-navy-950 dark:text-white flex items-center gap-2">
+                  <Lock className="w-4 h-4 text-gold-500" />
+                  Change Password
+                </h3>
+
+                {passwordMsg.text && (
+                  <div className={`p-3 rounded-xl text-xs font-bold flex items-center gap-2 ${
+                    passwordMsg.type === 'success'
+                      ? 'bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/20'
+                      : 'bg-rose-500/10 text-rose-500 border border-rose-500/20'
+                  }`}>
+                    {passwordMsg.type === 'success' ? <CheckCircle2 className="w-4 h-4" /> : <AlertCircle className="w-4 h-4" />}
+                    <span>{passwordMsg.text}</span>
+                  </div>
+                )}
+
+                <form onSubmit={handleChangePassword} className="space-y-3 text-xs">
+                  <div>
+                    <label className="font-bold text-slate-700 dark:text-slate-300 block mb-1">New Password (min 8 characters) *</label>
+                    <input
+                      type="password"
+                      value={newPassword}
+                      onChange={e => setNewPassword(e.target.value)}
+                      placeholder="Enter new secure password..."
+                      className="w-full px-3 py-2.5 rounded-xl border border-slate-300 dark:border-navy-700 bg-slate-50 dark:bg-navy-950 text-slate-900 dark:text-white outline-none focus:border-gold-500"
+                      required
+                    />
+                  </div>
+                  <div>
+                    <label className="font-bold text-slate-700 dark:text-slate-300 block mb-1">Confirm New Password *</label>
+                    <input
+                      type="password"
+                      value={confirmPassword}
+                      onChange={e => setConfirmPassword(e.target.value)}
+                      placeholder="Re-type new password..."
+                      className="w-full px-3 py-2.5 rounded-xl border border-slate-300 dark:border-navy-700 bg-slate-50 dark:bg-navy-950 text-slate-900 dark:text-white outline-none focus:border-gold-500"
+                      required
+                    />
+                  </div>
+                  <button
+                    type="submit"
+                    disabled={passwordLoading}
+                    className="px-5 py-2.5 bg-gradient-to-r from-gold-500 to-amber-400 text-navy-950 font-bold text-xs rounded-xl shadow-gold-glow hover:opacity-95 transition disabled:opacity-50 cursor-pointer"
+                  >
+                    {passwordLoading ? 'Updating Password...' : 'Update Password'}
+                  </button>
+                </form>
+              </div>
+
+              {/* 2. Email Preferences Card */}
+              <div className="bg-white dark:bg-navy-900 border border-slate-200 dark:border-navy-800 rounded-3xl p-6 shadow-sm space-y-4">
+                <h3 className="font-serif text-base font-bold text-navy-950 dark:text-white flex items-center gap-2">
+                  <Mail className="w-4 h-4 text-gold-500" />
+                  Email & Alert Notifications
+                </h3>
+
+                {prefsSavedMsg && (
+                  <div className="p-3 bg-emerald-500/10 border border-emerald-500/20 text-emerald-600 dark:text-emerald-400 text-xs font-bold rounded-xl flex items-center gap-2">
+                    <CheckCircle2 className="w-4 h-4" />
+                    <span>{prefsSavedMsg}</span>
+                  </div>
+                )}
+
+                <div className="space-y-3 text-xs">
+                  <label className="flex items-center justify-between p-3 bg-slate-50 dark:bg-navy-950 rounded-xl cursor-pointer">
+                    <div>
+                      <strong className="block text-navy-950 dark:text-white">Job Matches & Vacancy Alerts</strong>
+                      <span className="text-slate-500 text-[11px]">Receive emails when verified employers post matching jobs.</span>
+                    </div>
+                    <input
+                      type="checkbox"
+                      checked={emailPrefs.jobAlerts}
+                      onChange={e => setEmailPrefs({ ...emailPrefs, jobAlerts: e.target.checked })}
+                      className="w-4 h-4 accent-gold-500"
+                    />
+                  </label>
+
+                  <label className="flex items-center justify-between p-3 bg-slate-50 dark:bg-navy-950 rounded-xl cursor-pointer">
+                    <div>
+                      <strong className="block text-navy-950 dark:text-white">Application Status Updates</strong>
+                      <span className="text-slate-500 text-[11px]">Instant notifications on shortlists, screening, and interview invites.</span>
+                    </div>
+                    <input
+                      type="checkbox"
+                      checked={emailPrefs.statusAlerts}
+                      onChange={e => setEmailPrefs({ ...emailPrefs, statusAlerts: e.target.checked })}
+                      className="w-4 h-4 accent-gold-500"
+                    />
+                  </label>
+
+                  <label className="flex items-center justify-between p-3 bg-slate-50 dark:bg-navy-950 rounded-xl cursor-pointer">
+                    <div>
+                      <strong className="block text-navy-950 dark:text-white">Interview Schedule Reminders</strong>
+                      <span className="text-slate-500 text-[11px]">Calendar reminders 24h and 1h prior to video interview calls.</span>
+                    </div>
+                    <input
+                      type="checkbox"
+                      checked={emailPrefs.interviewReminders}
+                      onChange={e => setEmailPrefs({ ...emailPrefs, interviewReminders: e.target.checked })}
+                      className="w-4 h-4 accent-gold-500"
+                    />
+                  </label>
+                </div>
+
+                <button
+                  type="button"
+                  onClick={handleSaveEmailPrefs}
+                  className="px-5 py-2.5 bg-navy-950 dark:bg-white text-white dark:text-navy-950 font-bold text-xs rounded-xl hover:opacity-90 transition cursor-pointer"
+                >
+                  Save Alert Preferences
+                </button>
+              </div>
+
+              {/* 3. Privacy & Security Card */}
+              <div className="bg-white dark:bg-navy-900 border border-slate-200 dark:border-navy-800 rounded-3xl p-6 shadow-sm space-y-4">
+                <h3 className="font-serif text-base font-bold text-navy-950 dark:text-white flex items-center gap-2">
+                  <ShieldCheck className="w-4 h-4 text-emerald-500" />
+                  Privacy & Data Governance
+                </h3>
+                <div className="space-y-3 text-xs">
+                  <div className="p-3 bg-slate-50 dark:bg-navy-950 rounded-xl flex items-center justify-between">
+                    <div>
+                      <strong className="block text-navy-950 dark:text-white">Direct Recruiter Visibility</strong>
+                      <span className="text-slate-500 text-[11px]">Allow verified GCC employers to contact you directly.</span>
+                    </div>
+                    <input
+                      type="checkbox"
+                      checked={privacySettings.publicToHeadhunters}
+                      onChange={e => setPrivacySettings({ ...privacySettings, publicToHeadhunters: e.target.checked })}
+                      className="w-4 h-4 accent-gold-500"
+                    />
+                  </div>
+
+                  <div className="p-3 bg-slate-50 dark:bg-navy-950 rounded-xl">
+                    <strong className="block text-navy-950 dark:text-white">Data Protection Compliance:</strong>
+                    <p className="text-[11px] text-slate-500 mt-0.5">
+                      Your profile and documents are protected under UAE PDPL (Federal Decree-Law No. 45/2021) and India DPDP Act 2023. Zero third-party marketing sharing.
+                    </p>
+                  </div>
+                </div>
+              </div>
+
+              {/* 4. Delete Account Danger Zone */}
+              <div className="border border-rose-500/30 bg-rose-500/5 rounded-3xl p-6 shadow-sm space-y-3">
+                <h3 className="font-serif text-base font-bold text-rose-600 dark:text-rose-400 flex items-center gap-2">
+                  <AlertTriangle className="w-4 h-4 text-rose-500" />
+                  Danger Zone: Delete Candidate Account
+                </h3>
+                <p className="text-xs text-slate-600 dark:text-slate-300 leading-relaxed">
+                  Permanently erase your candidate profile, uploaded resumes, attested documents, and pending job applications from The Revival International portal. This action is irreversible.
+                </p>
+                <button
+                  type="button"
+                  onClick={() => { setDeleteConfirmText(''); setDeleteError(''); setDeleteAccountModalOpen(true); }}
+                  className="px-4 py-2.5 bg-rose-500 text-white font-bold text-xs rounded-xl hover:bg-rose-600 transition cursor-pointer"
+                >
+                  Delete My Candidate Account
+                </button>
+              </div>
+
+            </div>
+          )}
+
+        </main>
+      </div>
+
+      {/* ========================================================== */}
+      {/* GLOBAL MODALS */}
+      {/* ========================================================== */}
+
+      {/* 1. DOCUMENT UPLOAD MODAL */}
+      {uploadDocModalOpen && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-navy-950/80 backdrop-blur-sm animate-fade-in text-left">
+          <div className="bg-white dark:bg-navy-900 rounded-3xl max-w-md w-full p-6 space-y-4 border border-slate-200 dark:border-navy-800 shadow-2xl">
+            <div className="flex justify-between items-center pb-3 border-b border-slate-100 dark:border-navy-800">
+              <h3 className="font-serif text-lg font-bold text-navy-950 dark:text-white">Upload Attested Document</h3>
+              <button onClick={() => setUploadDocModalOpen(false)} className="text-slate-400 hover:text-white p-1">
+                <X className="w-5 h-5" />
               </button>
             </div>
 
-            {/* Candidate Identity Preview */}
-            <div className="p-3.5 bg-slate-50 dark:bg-navy-950 rounded-2xl border border-slate-200 dark:border-navy-800 flex flex-col sm:flex-row justify-between sm:items-center gap-2">
-              <div className="flex items-center gap-3">
-                <div className="w-10 h-10 rounded-full bg-gold-500/20 text-gold-600 dark:text-gold-400 flex items-center justify-center font-bold text-sm">
-                  {(user?.name || profileForm.name || 'C').charAt(0)}
-                </div>
-                <div>
-                  <p className="font-bold text-slate-900 dark:text-white">{user?.name || profileForm.name || 'Candidate'}</p>
-                  <p className="text-[11px] text-slate-500 font-mono">{user?.email || profileForm.email || 'Email Verified'}</p>
-                </div>
-              </div>
-              <div className="text-left sm:text-right text-[11px] text-slate-500">
-                <p>Phone: <strong className="text-slate-800 dark:text-slate-200">{user?.phone || profileForm.phone || '+971 50 123 4567'}</strong></p>
-                <p>Nationality: <strong className="text-slate-800 dark:text-slate-200">{user?.nationality || profileForm.nationality || 'UAE'}</strong></p>
-              </div>
-            </div>
-
-            {/* RESUME / CV ATTACHMENT SECTION (MANDATORY) */}
-            <div className="space-y-3">
-              <div className="flex justify-between items-center">
-                <h4 className="font-bold text-slate-900 dark:text-white text-xs uppercase tracking-wider flex items-center gap-1.5">
-                  <FileText className="w-4 h-4 text-gold-500" />
-                  <span>Attach Resume / CV for this Job <span className="text-rose-500">*</span></span>
-                </h4>
-                <span className="text-[11px] text-slate-500">Required by Recruiter</span>
-              </div>
-
-              {/* Option 1: Use Current Profile Resume */}
-              {(user?.resumeName || profileForm.resumeName) && (
-                <label
-                  onClick={() => setApplyCvChoice('profile')}
-                  className={`p-3.5 rounded-2xl border-2 flex items-start gap-3 cursor-pointer transition ${applyCvChoice === 'profile' ? 'border-gold-500 bg-gold-500/10' : 'border-slate-200 dark:border-navy-800 bg-white dark:bg-navy-950 hover:border-slate-300'}`}
-                >
-                  <input
-                    type="radio"
-                    name="applyCvOption"
-                    checked={applyCvChoice === 'profile'}
-                    onChange={() => setApplyCvChoice('profile')}
-                    className="mt-1 text-gold-500 focus:ring-gold-500 cursor-pointer"
-                  />
-                  <div className="flex-1 min-w-0">
-                    <div className="flex justify-between items-center">
-                      <p className="font-bold text-slate-900 dark:text-white text-xs">Use Saved Profile CV</p>
-                      <span className="text-[10px] text-emerald-600 dark:text-emerald-400 font-bold bg-emerald-500/10 px-2 py-0.5 rounded-full">
-                        ATS Verified
-                      </span>
-                    </div>
-                    <p className="font-mono text-xs text-gold-700 dark:text-gold-400 truncate mt-0.5">
-                      📄 {user?.resumeName || profileForm.resumeName}
-                    </p>
-                    <p className="text-[11px] text-slate-500 mt-0.5">
-                      {user?.resumeSize || profileForm.resumeSize || '245 KB'} • High-resolution dossier
-                    </p>
-                  </div>
-                </label>
-              )}
-
-              {/* Option 2: Upload a New / Specific Resume */}
-              <label
-                onClick={() => setApplyCvChoice('upload')}
-                className={`p-3.5 rounded-2xl border-2 flex items-start gap-3 cursor-pointer transition ${applyCvChoice === 'upload' ? 'border-gold-500 bg-gold-500/10' : 'border-slate-200 dark:border-navy-800 bg-white dark:bg-navy-950 hover:border-slate-300'}`}
-              >
-                <input
-                  type="radio"
-                  name="applyCvOption"
-                  checked={applyCvChoice === 'upload'}
-                  onChange={() => setApplyCvChoice('upload')}
-                  className="mt-1 text-gold-500 focus:ring-gold-500 cursor-pointer"
-                />
-                <div className="flex-1 space-y-2">
-                  <div className="flex justify-between items-center">
-                    <p className="font-bold text-slate-900 dark:text-white text-xs">
-                      {!(user?.resumeName || profileForm.resumeName) ? 'Upload CV / Resume to Apply' : 'Upload a Different CV for this Role'}
-                    </p>
-                    <span className="text-[10px] text-slate-400">PDF, DOC, DOCX (Max 10MB)</span>
-                  </div>
-
-                  {applyCustomCv.name ? (
-                    <div className="p-2.5 bg-emerald-500/15 border border-emerald-500/30 rounded-xl flex justify-between items-center">
-                      <div className="flex items-center gap-2 truncate">
-                        <CheckCircle2 className="w-4 h-4 text-emerald-600 dark:text-emerald-400 shrink-0" />
-                        <span className="font-mono text-emerald-800 dark:text-emerald-300 text-xs truncate">
-                          {applyCustomCv.name} ({applyCustomCv.size})
-                        </span>
-                      </div>
-                      <button
-                        type="button"
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          applyFileInputRef.current?.click();
-                        }}
-                        className="text-[11px] text-gold-600 dark:text-gold-400 font-bold hover:underline shrink-0 ml-2 cursor-pointer"
-                      >
-                        Change
-                      </button>
-                    </div>
-                  ) : (
-                    <div
-                      onClick={() => applyFileInputRef.current?.click()}
-                      className="p-4 border-2 border-dashed border-slate-300 dark:border-navy-700 rounded-xl text-center hover:border-gold-500 transition cursor-pointer bg-slate-50 dark:bg-navy-900/60"
-                    >
-                      <Upload className="w-6 h-6 text-gold-500 mx-auto mb-1.5" />
-                      <p className="font-bold text-slate-800 dark:text-slate-200 text-xs">Click here to browse your CV / Resume</p>
-                      <p className="text-[11px] text-slate-400 mt-0.5">Supports PDF or Word documents from your computer or phone</p>
-                    </div>
-                  )}
-
-                  <input
-                    ref={applyFileInputRef}
-                    type="file"
-                    accept=".pdf,.doc,.docx,application/pdf,application/msword,application/vnd.openxmlformats-officedocument.wordprocessingml.document"
-                    onChange={handleApplyCvUpload}
-                    className="hidden"
-                  />
-
-                  {applyCustomCv.name && (
-                    <label className="flex items-center gap-2 pt-1 cursor-pointer">
-                      <input
-                        type="checkbox"
-                        checked={applySaveToProfile}
-                        onChange={(e) => setApplySaveToProfile(e.target.checked)}
-                        className="rounded text-gold-500 focus:ring-gold-500 cursor-pointer"
-                      />
-                      <span className="text-[11px] text-slate-600 dark:text-slate-300">
-                        Also set this as my primary candidate profile resume
-                      </span>
-                    </label>
-                  )}
-                </div>
-              </label>
-            </div>
-
-            {/* APPLICATION PARAMETERS (SALARY & NOTICE PERIOD) */}
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+            <div className="space-y-3 text-xs">
               <div>
-                <label className="block text-slate-700 dark:text-slate-300 font-bold text-[11px] mb-1">
-                  Expected Monthly Salary (Tax Free)
-                </label>
-                <input
-                  type="text"
-                  value={applyExpectedSalary}
-                  onChange={(e) => setApplyExpectedSalary(e.target.value)}
-                  placeholder="e.g. AED 35,000 / month"
-                  className="w-full px-3 py-2 bg-slate-50 dark:bg-navy-950 border border-slate-200 dark:border-navy-700 rounded-xl text-xs font-semibold focus:outline-none focus:border-gold-500"
-                />
-              </div>
-
-              <div>
-                <label className="block text-slate-700 dark:text-slate-300 font-bold text-[11px] mb-1">
-                  Availability / Notice Period
-                </label>
+                <label className="font-bold text-slate-700 dark:text-slate-300 block mb-1">Document Category *</label>
                 <select
-                  value={applyNoticePeriod}
-                  onChange={(e) => setApplyNoticePeriod(e.target.value)}
-                  className="w-full px-3 py-2 bg-slate-50 dark:bg-navy-950 border border-slate-200 dark:border-navy-700 rounded-xl text-xs font-semibold focus:outline-none focus:border-gold-500 cursor-pointer"
+                  value={selectedDocType}
+                  onChange={e => setSelectedDocType(e.target.value)}
+                  className="w-full px-3 py-2.5 rounded-xl border border-slate-300 dark:border-navy-700 bg-slate-50 dark:bg-navy-950 text-slate-900 dark:text-white outline-none focus:border-gold-500"
                 >
-                  <option value="Immediate (Ready to Join)">Immediate (Ready to Join)</option>
-                  <option value="15 Days Notice">15 Days Notice</option>
-                  <option value="30 Days Notice">30 Days Notice</option>
-                  <option value="60 Days Notice">60 Days Notice</option>
-                  <option value="90 Days Notice">90 Days Notice</option>
+                  {DEFAULT_DOC_TYPES.map(dt => <option key={dt.type} value={dt.type}>{dt.type}</option>)}
                 </select>
               </div>
+
+              <div>
+                <label className="font-bold text-slate-700 dark:text-slate-300 block mb-1">Attach File (PDF, JPG, PNG up to 15MB) *</label>
+                <input
+                  type="file"
+                  accept=".pdf,.jpg,.jpeg,.png,.doc,.docx"
+                  onChange={e => setDocFileToUpload(e.target.files?.[0] || null)}
+                  className="w-full text-xs text-slate-500 file:mr-3 file:py-2 file:px-4 file:rounded-xl file:border-0 file:text-xs file:font-bold file:bg-gold-500/15 file:text-gold-600 file:cursor-pointer"
+                />
+              </div>
+
+              {docFileToUpload && (
+                <div className="p-3 bg-emerald-500/10 rounded-xl text-emerald-600 dark:text-emerald-400 text-[11px] font-bold">
+                  ✓ Selected: {docFileToUpload.name} ({Math.round(docFileToUpload.size / 1024)} KB)
+                </div>
+              )}
             </div>
 
-            {/* COVER NOTE TO RECRUITER */}
-            <div>
-              <label className="block text-slate-700 dark:text-slate-300 font-bold text-[11px] mb-1">
-                Cover Note / Pitch to Recruiter (Optional)
-              </label>
-              <textarea
-                rows="2"
-                value={applyCoverNote}
-                onChange={(e) => setApplyCoverNote(e.target.value)}
-                placeholder="Briefly highlight your relevant GCC project experience, certifications (e.g. FIDIC, PMP, IWCF) or key achievements..."
-                className="w-full px-3 py-2 bg-slate-50 dark:bg-navy-950 border border-slate-200 dark:border-navy-700 rounded-xl text-xs font-normal focus:outline-none focus:border-gold-500 resize-none"
-              />
+            <div className="flex gap-2 pt-3">
+              <button
+                type="button"
+                onClick={() => setUploadDocModalOpen(false)}
+                className="flex-1 py-2.5 bg-slate-200 dark:bg-navy-800 text-slate-700 dark:text-slate-200 font-bold text-xs rounded-xl hover:bg-slate-300 transition"
+              >
+                Cancel
+              </button>
+              <button
+                type="button"
+                onClick={handleUploadDocument}
+                disabled={!docFileToUpload}
+                className="flex-1 py-2.5 bg-gradient-to-r from-gold-500 to-amber-400 text-navy-950 font-bold text-xs rounded-xl shadow-gold-glow hover:opacity-95 transition disabled:opacity-50"
+              >
+                Upload & Verify
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* 2. DOCUMENT PREVIEW MODAL */}
+      {previewDoc && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-navy-950/80 backdrop-blur-sm animate-fade-in text-left">
+          <div className="bg-white dark:bg-navy-900 rounded-3xl max-w-lg w-full p-6 space-y-4 border border-slate-200 dark:border-navy-800 shadow-2xl">
+            <div className="flex justify-between items-center pb-3 border-b border-slate-100 dark:border-navy-800">
+              <div>
+                <h3 className="font-serif text-lg font-bold text-navy-950 dark:text-white">{previewDoc.documentType || previewDoc.type || 'Document'}</h3>
+                <p className="text-xs text-slate-500">{previewDoc.fileName || previewDoc.name}</p>
+              </div>
+              <button onClick={() => setPreviewDoc(null)} className="text-slate-400 hover:text-white p-1">
+                <X className="w-5 h-5" />
+              </button>
             </div>
 
-            {/* Error Message */}
+            <div className="p-8 bg-slate-50 dark:bg-navy-950 rounded-2xl border border-slate-200 dark:border-navy-800 text-center space-y-3">
+              <FileText className="w-16 h-16 text-gold-500 mx-auto" />
+              <h4 className="font-bold text-sm text-navy-950 dark:text-white">{previewDoc.fileName || previewDoc.name}</h4>
+              <p className="text-xs text-slate-500">MOHRE Consular Attestation Hash: 0x7E3F...992A</p>
+              <span className="inline-block bg-emerald-500/15 text-emerald-600 dark:text-emerald-400 text-xs font-bold px-3 py-1 rounded-full">
+                Encrypted & Authenticated
+              </span>
+            </div>
+
+            <div className="flex justify-end">
+              <button
+                type="button"
+                onClick={() => setPreviewDoc(null)}
+                className="px-6 py-2.5 bg-navy-950 dark:bg-white text-white dark:text-navy-950 font-bold text-xs rounded-xl"
+              >
+                Close Preview
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* 3. SCREENING DETAILS MODAL */}
+      {screeningModalApp && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-navy-950/80 backdrop-blur-sm animate-fade-in text-left">
+          <div className="bg-white dark:bg-navy-900 rounded-3xl max-w-xl w-full p-6 sm:p-8 space-y-5 border border-slate-200 dark:border-navy-800 shadow-2xl">
+            <div className="flex justify-between items-start pb-4 border-b border-slate-100 dark:border-navy-800">
+              <div>
+                <span className="text-[10px] font-mono text-gold-500 font-bold">APPLICATION ID: {screeningModalApp.id}</span>
+                <h3 className="font-serif text-xl font-bold text-navy-950 dark:text-white mt-1">{screeningModalApp.jobTitle}</h3>
+                <p className="text-xs text-slate-500">{screeningModalApp.company} • {screeningModalApp.location || 'GCC'}</p>
+              </div>
+              <button onClick={() => setScreeningModalApp(null)} className="text-slate-400 hover:text-white p-1">
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+
+            <div className="space-y-3 text-xs">
+              <div className="p-4 bg-slate-50 dark:bg-navy-950 rounded-2xl border border-slate-200 dark:border-navy-800 space-y-2">
+                <div className="flex justify-between items-center">
+                  <span className="font-bold text-navy-950 dark:text-white">Current Application Status:</span>
+                  <span className="bg-gold-500/20 text-gold-600 dark:text-gold-400 font-bold px-2.5 py-0.5 rounded-full text-[10px]">
+                    {screeningModalApp.status}
+                  </span>
+                </div>
+                <p className="text-slate-600 dark:text-slate-300 leading-relaxed">
+                  Your profile and ATS resume match (92%) have been transmitted directly to the hiring director at <strong>{screeningModalApp.company}</strong>.
+                </p>
+              </div>
+
+              <div className="grid grid-cols-2 gap-3">
+                <div className="p-3 bg-slate-50 dark:bg-navy-950 rounded-xl">
+                  <span className="text-[10px] text-slate-400 block font-bold">Applied Date</span>
+                  <span className="font-bold text-navy-950 dark:text-white">{screeningModalApp.appliedDate}</span>
+                </div>
+                <div className="p-3 bg-slate-50 dark:bg-navy-950 rounded-xl">
+                  <span className="text-[10px] text-slate-400 block font-bold">Attached Resume</span>
+                  <span className="font-bold text-navy-950 dark:text-white truncate block">{screeningModalApp.resumeName || 'Primary CV'}</span>
+                </div>
+              </div>
+            </div>
+
+            <div className="flex justify-end pt-2">
+              <button
+                type="button"
+                onClick={() => setScreeningModalApp(null)}
+                className="px-6 py-2.5 bg-navy-950 dark:bg-white text-white dark:text-navy-950 font-bold text-xs rounded-xl"
+              >
+                Close
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* 4. QUICK APPLY MODAL */}
+      {applyModalJob && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-navy-950/80 backdrop-blur-sm animate-fade-in text-left">
+          <div className="bg-white dark:bg-navy-900 rounded-3xl max-w-lg w-full p-6 sm:p-8 space-y-5 border border-slate-200 dark:border-navy-800 shadow-2xl">
+            <div className="flex justify-between items-start pb-4 border-b border-slate-100 dark:border-navy-800">
+              <div>
+                <span className="text-[10px] uppercase font-bold text-gold-500">Quick Job Application</span>
+                <h3 className="font-serif text-xl font-bold text-navy-950 dark:text-white mt-1">{applyModalJob.title}</h3>
+                <p className="text-xs text-slate-500">{applyModalJob.company} • {applyModalJob.location || applyModalJob.country}</p>
+              </div>
+              <button onClick={() => setApplyModalJob(null)} className="text-slate-400 hover:text-white p-1">
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+
             {applyModalError && (
-              <div className="p-3 bg-rose-500/15 border border-rose-500/30 text-rose-600 dark:text-rose-400 rounded-xl text-xs font-bold flex items-center gap-2">
+              <div className="p-3 bg-rose-500/10 border border-rose-500/20 text-rose-500 text-xs font-bold rounded-xl flex items-center gap-2">
                 <AlertCircle className="w-4 h-4 shrink-0" />
                 <span>{applyModalError}</span>
               </div>
             )}
 
-            {/* Modal Actions */}
-            <div className="flex gap-3 pt-2 border-t border-slate-200 dark:border-navy-800">
-              <button
-                type="button"
-                onClick={() => setApplyModalJob(null)}
-                className="flex-1 py-3 px-4 bg-slate-100 hover:bg-slate-200 dark:bg-navy-800 dark:hover:bg-navy-700 text-slate-700 dark:text-slate-200 font-bold rounded-xl transition cursor-pointer"
-              >
-                Cancel
-              </button>
+            <form onSubmit={handleQuickSubmitApplication} className="space-y-4 text-xs">
+              <div className="p-3 bg-slate-50 dark:bg-navy-950 rounded-2xl border border-slate-200 dark:border-navy-800 space-y-2">
+                <label className="font-bold text-navy-950 dark:text-white block">Resume / CV Attachment *</label>
+                <div className="flex items-center gap-3">
+                  <FileText className="w-5 h-5 text-gold-500 shrink-0" />
+                  <div className="flex-1 overflow-hidden">
+                    <span className="font-bold text-slate-800 dark:text-slate-200 block truncate">{profileForm.resumeName || 'Primary CV'}</span>
+                    <span className="text-[10px] text-slate-400">Default verified resume from profile</span>
+                  </div>
+                </div>
+              </div>
 
-              <button
-                type="button"
-                onClick={handleConfirmApplication}
-                disabled={applyIsSubmitting}
-                className="flex-2 py-3 px-6 bg-gold-500 hover:bg-gold-400 text-slate-950 font-bold rounded-xl transition shadow-gold-glow flex items-center justify-center gap-2 cursor-pointer disabled:opacity-50"
-              >
-                <Zap className="w-4 h-4" />
-                <span>{applyIsSubmitting ? 'Submitting Application...' : 'Submit Application with Attached CV →'}</span>
-              </button>
-            </div>
-
-          </div>
-        </div>
-      )}
-
-      {/* VIDEO INTERVIEW MEETING & SCHEDULE MODAL */}
-      {interviewModalApp && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/85 dark:bg-navy-950/85 backdrop-blur-md animate-in fade-in">
-          <div className="glass-card bg-white dark:bg-navy-900 border border-slate-200 dark:border-gold-500/40 p-6 sm:p-8 rounded-3xl max-w-2xl w-full space-y-6 shadow-luxury text-xs text-slate-900 dark:text-white max-h-[90vh] overflow-y-auto">
-
-            {/* Modal Header */}
-            <div className="flex justify-between items-start border-b border-slate-200 dark:border-navy-800 pb-4">
               <div>
-                <div className="flex items-center gap-2">
-                  <span className="bg-emerald-500 text-slate-900 dark:text-white text-[10px] font-extrabold px-2.5 py-0.5 rounded-full flex items-center gap-1">
-                    <CheckCircle2 className="w-3 h-3" /> Confirmed Interview Schedule
-                  </span>
-                  <span className="bg-gold-500/20 text-gold-500 text-[10px] font-bold px-2 py-0.5 rounded">MS Teams Video Panel</span>
-                </div>
-                <h3 className="font-serif text-2xl font-bold text-navy-900 dark:text-white mt-1">Executive Video Interview Invitation</h3>
-                <p className="text-slate-600 dark:text-slate-300 font-semibold">{interviewModalApp.jobTitle} • {interviewModalApp.company}</p>
+                <label className="font-bold text-slate-700 dark:text-slate-300 block mb-1">Expected Salary</label>
+                <input
+                  type="text"
+                  value={applyExpectedSalary}
+                  onChange={e => setApplyExpectedSalary(e.target.value)}
+                  className="w-full px-3 py-2.5 rounded-xl border border-slate-300 dark:border-navy-700 bg-slate-50 dark:bg-navy-950 text-slate-900 dark:text-white outline-none focus:border-gold-500"
+                  placeholder="e.g. AED 25,000 / Month"
+                />
               </div>
-              <button onClick={() => { stopCameraStream(); setInterviewModalApp(null); }} className="text-slate-500 dark:text-slate-400 hover:text-slate-900 dark:text-white p-1">
-                <X className="w-6 h-6" />
-              </button>
-            </div>
 
-            {/* PRE-CALL EQUIPMENT & PERMISSION CHECK BOX */}
-            <div className="p-5 bg-white dark:bg-navy-950 text-slate-900 dark:text-white rounded-2xl border border-slate-200 dark:border-gold-500/30 space-y-4">
-              <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-2 border-b border-slate-200 dark:border-navy-800 pb-3">
-                <div>
-                  <span className="text-gold-400 font-bold text-sm flex items-center gap-1.5">
-                    <Shield className="w-4 h-4" /> Equipment & Device Permission Check
-                  </span>
-                  <p className="text-[11px] text-slate-600 dark:text-slate-300">Grant webcam/microphone access and select your audio/video devices before joining.</p>
-                </div>
+              <div>
+                <label className="font-bold text-slate-700 dark:text-slate-300 block mb-1">Notice Period</label>
+                <input
+                  type="text"
+                  value={applyNoticePeriod}
+                  onChange={e => setApplyNoticePeriod(e.target.value)}
+                  className="w-full px-3 py-2.5 rounded-xl border border-slate-300 dark:border-navy-700 bg-slate-50 dark:bg-navy-950 text-slate-900 dark:text-white outline-none focus:border-gold-500"
+                  placeholder="Immediate / 30 Days"
+                />
+              </div>
 
+              <div className="flex gap-2 pt-2">
                 <button
-                  onClick={startCameraStream}
-                  className="px-3.5 py-1.5 bg-gold-500/20 text-gold-400 border border-slate-200 dark:border-gold-500/40 hover:bg-gold-500 hover:text-slate-900 dark:text-white font-bold text-xs rounded-xl transition flex items-center gap-1 whitespace-nowrap"
+                  type="button"
+                  onClick={() => setApplyModalJob(null)}
+                  className="flex-1 py-2.5 bg-slate-200 dark:bg-navy-800 text-slate-700 dark:text-slate-200 font-bold text-xs rounded-xl hover:bg-slate-300 transition"
                 >
-                  <Sparkles className="w-3.5 h-3.5" />
-                  <span>Turn On Camera & Test Access</span>
+                  Cancel
+                </button>
+                <button
+                  type="submit"
+                  disabled={applyIsSubmitting}
+                  className="flex-1 py-2.5 bg-gradient-to-r from-gold-500 to-amber-400 text-navy-950 font-bold text-xs rounded-xl shadow-gold-glow hover:opacity-95 transition disabled:opacity-50"
+                >
+                  {applyIsSubmitting ? 'Submitting...' : 'Submit Application'}
                 </button>
               </div>
+            </form>
+          </div>
+        </div>
+      )}
 
-              {permissionCheckMessage && (
-                <div className="p-2.5 bg-emerald-500/20 border border-emerald-500/40 rounded-xl text-emerald-400 text-xs font-bold flex items-center gap-2">
-                  <CheckCircle2 className="w-4 h-4 shrink-0" />
-                  <span>{permissionCheckMessage}</span>
-                </div>
-              )}
-
-              {/* Device Selectors */}
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 text-xs">
-                <div className="space-y-1">
-                  <label className="text-slate-600 dark:text-slate-300 font-bold flex items-center gap-1">
-                    <Mic className="w-3.5 h-3.5 text-gold-400" />
-                    <span>Select Audio Input (Microphone / Headset)</span>
-                  </label>
-                  <select
-                    value={selectedMic}
-                    onChange={(e) => setSelectedMic(e.target.value)}
-                    className="w-full bg-slate-50 dark:bg-navy-900 border border-slate-300 dark:border-navy-700 text-slate-900 dark:text-white rounded-xl p-2.5 text-xs font-semibold focus:outline-none focus:border-gold-500"
-                  >
-                    {availableAudioDevices.map((dev, i) => (
-                      <option key={i} value={dev}>{dev}</option>
-                    ))}
-                  </select>
-                </div>
-
-                <div className="space-y-1">
-                  <label className="text-slate-600 dark:text-slate-300 font-bold flex items-center gap-1">
-                    <Video className="w-3.5 h-3.5 text-gold-400" />
-                    <span>Select Video Input (Webcam / External Camera)</span>
-                  </label>
-                  <select
-                    value={selectedCamera}
-                    onChange={(e) => setSelectedCamera(e.target.value)}
-                    className="w-full bg-slate-50 dark:bg-navy-900 border border-slate-300 dark:border-navy-700 text-slate-900 dark:text-white rounded-xl p-2.5 text-xs font-semibold focus:outline-none focus:border-gold-500"
-                  >
-                    {availableVideoDevices.map((dev, i) => (
-                      <option key={i} value={dev}>{dev}</option>
-                    ))}
-                  </select>
-                </div>
-              </div>
-
-              {/* Live Interactive Controls & Real Camera Preview Box */}
-              <div className="p-4 bg-slate-800/90 dark:bg-navy-900/90 rounded-2xl border border-slate-300 dark:border-navy-700 flex flex-col sm:flex-row items-center justify-between gap-4">
-                <div className="flex items-center space-x-3">
-                  <div className="w-24 h-20 rounded-xl bg-black border border-slate-200 dark:border-gold-500/40 flex items-center justify-center relative overflow-hidden shadow-inner">
-                    {isCameraOff ? (
-                      <span className="text-[10px] text-rose-400 font-bold text-center p-1">Camera Off</span>
-                    ) : (
-                      <video
-                        ref={videoRef}
-                        autoPlay
-                        playsInline
-                        muted
-                        className="w-full h-full object-cover rounded-xl"
-                      />
-                    )}
-                  </div>
-
-                  <div className="space-y-1">
-                    <div className="flex items-center gap-2">
-                      <span className={`text-[10px] font-bold px-2 py-0.5 rounded ${isMicMuted ? 'bg-rose-500/20 text-rose-400 border border-rose-500/30' : 'bg-emerald-500/20 text-emerald-400 border border-emerald-500/30'}`}>
-                        {isMicMuted ? '🔴 Microphone Muted' : '🎙️ Mic Active & Listening'}
-                      </span>
-                      <span className={`text-[10px] font-bold px-2 py-0.5 rounded ${isCameraOff ? 'bg-rose-500/20 text-rose-400 border border-rose-500/30' : 'bg-emerald-500/20 text-emerald-400 border border-emerald-500/30'}`}>
-                        {isCameraOff ? '📷 Camera Off' : '🟢 Camera On'}
-                      </span>
-                    </div>
-
-                    {/* Live Sound Equalizer Wave */}
-                    {!isMicMuted && (
-                      <div className="flex items-center space-x-1 pt-1">
-                        <span className="text-[10px] text-slate-500 dark:text-slate-400 font-bold">Audio Level:</span>
-                        <div className="flex items-end space-x-1 h-3">
-                          <span className="w-1 h-2 bg-emerald-400 rounded animate-pulse"></span>
-                          <span className="w-1 h-3 bg-emerald-500 rounded animate-pulse delay-75"></span>
-                          <span className="w-1 h-1 bg-emerald-400 rounded animate-pulse delay-150"></span>
-                          <span className="w-1 h-2.5 bg-emerald-500 rounded animate-pulse"></span>
-                        </div>
-                      </div>
-                    )}
-                  </div>
-                </div>
-
-                {/* Pre-Call Mic & Camera Toggle Test Buttons */}
-                <div className="flex items-center space-x-2">
-                  <button
-                    onClick={() => setIsMicMuted(!isMicMuted)}
-                    className={`p-3 rounded-xl border font-bold text-xs flex items-center gap-1.5 transition ${isMicMuted ? 'bg-rose-600 text-slate-900 dark:text-white border-rose-500' : 'bg-emerald-600 text-slate-900 dark:text-white border-emerald-500'}`}
-                    title={isMicMuted ? 'Unmute Microphone' : 'Mute Microphone'}
-                  >
-                    {isMicMuted ? <MicOff className="w-4 h-4" /> : <Mic className="w-4 h-4" />}
-                    <span>{isMicMuted ? 'Unmute' : 'Mute'}</span>
-                  </button>
-
-                  <button
-                    onClick={() => {
-                      if (isCameraOff) {
-                        startCameraStream();
-                      } else {
-                        stopCameraStream();
-                      }
-                    }}
-                    className={`p-3 rounded-xl border font-bold text-xs flex items-center gap-1.5 transition ${isCameraOff ? 'bg-rose-600 text-slate-900 dark:text-white border-rose-500' : 'bg-emerald-600 text-slate-900 dark:text-white border-emerald-500'}`}
-                    title={isCameraOff ? 'Turn On Camera' : 'Turn Off Camera'}
-                  >
-                    {isCameraOff ? <VideoOff className="w-4 h-4" /> : <Video className="w-4 h-4" />}
-                    <span>{isCameraOff ? 'Turn On Camera' : 'Turn Off Camera'}</span>
-                  </button>
-                </div>
-              </div>
-            </div>
-
-            {/* Meeting Details Summary */}
-            <div className="p-4 bg-slate-50 dark:bg-navy-950 rounded-2xl border border-slate-200 dark:border-navy-800 space-y-2">
-              <div className="flex justify-between items-center text-xs">
-                <span className="font-bold text-navy-900 dark:text-white">Scheduled Interview Date & Time:</span>
-                <span className="font-extrabold text-gold-600 dark:text-gold-400">
-                  {interviewModalApp.interviewDetails?.date || 'Today'} at {interviewModalApp.interviewDetails?.time || '14:00 GST'}
+      {/* 5. VIDEO INTERVIEW MEETING MODAL */}
+      {interviewModalApp && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-navy-950/85 backdrop-blur-md animate-fade-in text-left">
+          <div className="bg-white dark:bg-navy-900 rounded-3xl max-w-2xl w-full p-6 sm:p-8 space-y-5 border border-slate-200 dark:border-navy-800 shadow-2xl">
+            <div className="flex justify-between items-start pb-4 border-b border-slate-100 dark:border-navy-800">
+              <div>
+                <span className="text-[10px] font-bold uppercase tracking-wider text-emerald-500 flex items-center gap-1">
+                  <Video className="w-3.5 h-3.5" />
+                  Live Video Conference Panel
                 </span>
+                <h3 className="font-serif text-xl font-bold text-navy-950 dark:text-white mt-1">{interviewModalApp.jobTitle}</h3>
+                <p className="text-xs text-slate-500">{interviewModalApp.company} • {interviewModalApp.interviewDetails?.platform || 'Teams Call'}</p>
               </div>
-              <p className="text-[11px] text-slate-600 dark:text-slate-400">
-                Interviewer Panel: <strong>{interviewModalApp.interviewDetails?.interviewer || `${interviewModalApp.company} Technical Panel`}</strong>
-              </p>
-            </div>
-
-            {/* DIRECT MICROSOFT TEAMS REDIRECT */}
-            <div className="space-y-3 pt-1">
-              <span className="text-xs font-bold text-navy-900 dark:text-white block">Official Interview Meeting Link:</span>
-
-              <a
-                href="https://teams.microsoft.com/l/meetup-join/19%3ameeting_Revival_International_Executive_Panel"
-                target="_blank"
-                rel="noopener noreferrer"
-                className="w-full py-4 bg-emerald-600 hover:bg-emerald-700 text-slate-900 dark:text-white font-extrabold text-sm rounded-xl shadow-lg shadow-emerald-500/20 flex items-center justify-center space-x-2 transition cursor-pointer text-center"
-              >
-                <Globe className="w-5 h-5" />
-                <span>Launch & Join Official Microsoft Teams Video Call ↗</span>
-              </a>
-
-              <button
-                onClick={() => {
-                  stopCameraStream();
-                  setInterviewModalApp(null);
-                }}
-                className="w-full py-2.5 bg-slate-200 dark:bg-navy-800 text-slate-800 dark:text-white font-bold text-xs rounded-xl hover:bg-slate-300 transition"
-              >
-                Close Invitation
+              <button onClick={() => { stopCameraStream(); setInterviewModalApp(null); }} className="text-slate-400 hover:text-white p-1">
+                <X className="w-5 h-5" />
               </button>
             </div>
 
-          </div>
-        </div>
-      )}
-
-      {/* SAVED JOBS TAB */}
-      {activeTab === 'saved' && (
-        <div className="space-y-6 text-xs">
-          <div className="glass-card bg-white dark:bg-navy-900 border border-slate-200 dark:border-navy-800 p-6 rounded-2xl flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 shadow-sm">
-            <div>
-              <h3 className="font-serif text-lg font-bold text-navy-900 dark:text-white flex items-center gap-2">
-                <Bookmark className="w-5 h-5 text-gold-500" />
-                Saved Job Bookmarks ({savedJobs.length})
-              </h3>
-              <p className="text-slate-500 mt-1">Review, apply, or manage your bookmarked international opportunities.</p>
+            {/* Mock Camera View */}
+            <div className="relative aspect-video bg-navy-950 rounded-2xl overflow-hidden flex items-center justify-center border border-navy-800">
+              <video ref={videoRef} autoPlay playsInline muted className="w-full h-full object-cover" />
+              <div className="absolute bottom-3 left-3 bg-navy-950/80 px-2.5 py-1 rounded-lg text-[10px] text-white font-mono font-bold flex items-center gap-1.5 backdrop-blur-xs">
+                <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
+                <span>{user.name || 'Candidate'} (Encrypted 1080p Stream)</span>
+              </div>
             </div>
-            <button
-              onClick={() => setActiveTab('browse-jobs')}
-              className="py-2.5 px-5 bg-gold-shimmer text-navy-950 font-bold rounded-xl shadow-gold-glow flex items-center gap-1.5 cursor-pointer shrink-0 hover:opacity-95 transition"
-            >
-              <Briefcase className="w-4 h-4" />
-              <span>Browse Vacancies</span>
-            </button>
-          </div>
 
-          {allJobs.filter(j => savedJobs.includes(j.id)).length > 0 ? (
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              {allJobs.filter(j => savedJobs.includes(j.id)).map((job) => (
-                <div
-                  key={job.id}
-                  className="glass-card bg-white dark:bg-navy-900 border border-slate-200 dark:border-navy-800 rounded-2xl p-5 shadow-sm hover:shadow-md transition flex flex-col justify-between space-y-4"
+            <div className="p-4 bg-slate-50 dark:bg-navy-950 rounded-2xl border border-slate-200 dark:border-navy-800 text-xs space-y-1">
+              <strong className="block text-navy-950 dark:text-white">Panel Time:</strong>
+              <p className="text-slate-600 dark:text-slate-400">
+                {interviewModalApp.interviewDetails?.date || 'Today'} at {interviewModalApp.interviewDetails?.time || '11:00 AM GST'}
+              </p>
+              <p className="text-[11px] text-slate-400 pt-1">
+                Panellists: <strong>{interviewModalApp.interviewDetails?.interviewer || 'Technical Committee'}</strong>
+              </p>
+            </div>
+
+            <div className="flex gap-2">
+              <button
+                type="button"
+                onClick={() => { stopCameraStream(); setInterviewModalApp(null); }}
+                className="flex-1 py-2.5 bg-slate-200 dark:bg-navy-800 text-slate-700 dark:text-slate-200 font-bold text-xs rounded-xl"
+              >
+                Close Room
+              </button>
+              {interviewModalApp.interviewDetails?.meetingLink && (
+                <a
+                  href={interviewModalApp.interviewDetails.meetingLink}
+                  target="_blank"
+                  rel="noreferrer"
+                  className="flex-1 py-2.5 bg-gradient-to-r from-gold-500 to-amber-400 text-navy-950 font-bold text-xs rounded-xl shadow-gold-glow flex items-center justify-center gap-1.5"
                 >
-                  <div className="space-y-2">
-                    <div className="flex justify-between items-start">
-                      <span className="text-[10px] font-bold text-gold-600 dark:text-gold-400 bg-gold-500/10 px-2.5 py-0.5 rounded-full border border-gold-500/20">
-                        {job.category || 'Executive'}
-                      </span>
-                    </div>
-
-                    <h4 className="font-serif text-base font-bold text-navy-900 dark:text-white leading-snug">
-                      {job.title}
-                    </h4>
-                    <p className="text-slate-600 dark:text-slate-300 font-semibold flex items-center gap-1.5">
-                      <Building2 className="w-3.5 h-3.5 text-gold-500" />
-                      <span>{job.company}</span>
-                    </p>
-
-                    <div className="flex flex-wrap gap-2 text-[11px] text-slate-500 dark:text-slate-400 pt-1">
-                      <span className="flex items-center gap-1">
-                        <MapPin className="w-3 h-3 text-gold-500" />
-                        {job.country || job.location || 'UAE'}
-                      </span>
-                      {job.salary && (
-                        <span className="flex items-center gap-1 font-bold text-emerald-600 dark:text-emerald-400">
-                          {job.salary}
-                        </span>
-                      )}
-                      {job.experience && (
-                        <span className="flex items-center gap-1">
-                          Exp: {job.experience}
-                        </span>
-                      )}
-                    </div>
-                  </div>
-
-                  <div className="pt-3 border-t border-slate-100 dark:border-navy-800 flex gap-2">
-                    <button
-                      onClick={() => openApplyModal(job)}
-                      className="flex-1 py-2.5 px-3 bg-gold-500 hover:bg-gold-600 text-slate-900 dark:text-white font-bold rounded-xl text-xs transition flex items-center justify-center gap-1.5 cursor-pointer shadow-sm"
-                    >
-                      <Send className="w-3.5 h-3.5" />
-                      <span>Apply Now</span>
-                    </button>
-                    <button
-                      onClick={() => toggleSaveJob(job.id)}
-                      className="py-2.5 px-4 border border-slate-200 dark:border-navy-700 hover:bg-slate-50 dark:hover:bg-navy-800 text-slate-600 dark:text-slate-300 font-bold rounded-xl text-xs transition cursor-pointer"
-                    >
-                      Remove
-                    </button>
-                  </div>
-                </div>
-              ))}
-            </div>
-          ) : (
-            <div className="glass-card bg-white dark:bg-navy-900 border border-slate-200 dark:border-navy-800 p-10 rounded-3xl text-center space-y-3">
-              <div className="w-14 h-14 mx-auto rounded-2xl bg-gold-500/10 text-gold-500 flex items-center justify-center">
-                <Bookmark className="w-7 h-7" />
-              </div>
-              <h4 className="font-serif text-lg font-bold text-navy-900 dark:text-white">No Saved Jobs Yet</h4>
-              <p className="text-slate-500 max-w-md mx-auto text-xs leading-relaxed">
-                You haven't bookmarked any jobs yet. Browse available vacancies and bookmark jobs you are interested in to review and apply anytime.
-              </p>
-              <button
-                onClick={() => setActiveTab('browse-jobs')}
-                className="py-2.5 px-6 bg-gold-shimmer text-navy-950 font-bold rounded-xl shadow-gold-glow cursor-pointer text-xs"
-              >
-                Browse Open Vacancies →
-              </button>
-            </div>
-          )}
-        </div>
-      )}
-
-      {/* MY SAVED SEARCHES TAB */}
-      {activeTab === 'saved-searches' && (
-        <div className="space-y-6 text-xs">
-
-          {/* Header Card */}
-          <div className="glass-card bg-white dark:bg-navy-900 border border-slate-200 dark:border-navy-800 p-6 rounded-2xl flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 shadow-sm">
-            <div>
-              <h3 className="font-serif text-lg font-bold text-navy-900 dark:text-white flex items-center gap-2">
-                <SlidersHorizontal className="w-5 h-5 text-gold-500" />
-                <span>My Saved Searches ({savedSearches?.length || 0})</span>
-              </h3>
-              <p className="text-slate-500 mt-1">
-                Access, rerun, rename, or manage your custom job alerts and search filter configurations.
-              </p>
-            </div>
-            <button
-              onClick={() => {
-                navigateTo('jobs');
-                if (typeof window !== 'undefined') window.location.hash = 'jobs';
-              }}
-              className="py-2.5 px-5 bg-gold-shimmer text-navy-950 font-bold rounded-xl shadow-gold-glow flex items-center gap-1.5 cursor-pointer shrink-0 hover:opacity-95 transition text-xs"
-            >
-              <Search className="w-4 h-4" />
-              <span>Search & Filter Jobs</span>
-            </button>
-          </div>
-
-          {/* Action Notification Message */}
-          {savedSearchActionMsg.text && (
-            <div className={`p-3 rounded-xl border flex items-center justify-between text-xs font-semibold ${savedSearchActionMsg.type === 'error'
-              ? 'bg-rose-50 dark:bg-rose-950/40 text-rose-800 dark:text-rose-300 border-rose-300 dark:border-rose-800'
-              : 'bg-emerald-50 dark:bg-emerald-950/40 text-emerald-800 dark:text-emerald-300 border-emerald-300 dark:border-emerald-800'
-              }`}>
-              <div className="flex items-center gap-2">
-                {savedSearchActionMsg.type === 'error' ? (
-                  <AlertCircle className="w-4 h-4 text-rose-600 shrink-0" />
-                ) : (
-                  <CheckCircle2 className="w-4 h-4 text-emerald-600 shrink-0" />
-                )}
-                <span>{savedSearchActionMsg.text}</span>
-              </div>
-              <button
-                onClick={() => setSavedSearchActionMsg({ type: '', text: '' })}
-                className="text-slate-400 hover:text-slate-600 dark:hover:text-white p-1"
-              >
-                <X className="w-4 h-4" />
-              </button>
-            </div>
-          )}
-
-          {/* Saved Searches List */}
-          {savedSearches && savedSearches.length > 0 ? (
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              {savedSearches.map((s) => {
-                let crit = {};
-                try {
-                  crit = typeof s.criteria === 'string' ? JSON.parse(s.criteria || '{}') : (s.criteria || {});
-                } catch {
-                  crit = {};
-                }
-                const isEditing = renamingSearchId === s.id;
-                const isDeleting = deleteConfirmId === s.id;
-
-                return (
-                  <div
-                    key={s.id}
-                    className="glass-card bg-white dark:bg-navy-900 border border-slate-200 dark:border-navy-800 rounded-2xl p-5 shadow-sm hover:shadow-md transition flex flex-col justify-between space-y-4"
-                  >
-                    <div className="space-y-3">
-
-                      {/* Search Header & Title */}
-                      <div className="flex justify-between items-start gap-3">
-                        <div className="flex-1">
-                          {isEditing ? (
-                            <div className="flex items-center gap-2">
-                              <input
-                                type="text"
-                                value={renameValue}
-                                onChange={(e) => setRenameValue(e.target.value)}
-                                className="w-full bg-slate-50 dark:bg-navy-950 border border-gold-500 text-slate-900 dark:text-white rounded-lg px-2.5 py-1 text-xs font-bold focus:outline-none"
-                                autoFocus
-                              />
-                              <button
-                                onClick={async () => {
-                                  if (!renameValue.trim()) return;
-                                  const res = await updateSavedSearch(s.id, renameValue.trim());
-                                  if (res.success) {
-                                    setRenamingSearchId(null);
-                                    setSavedSearchActionMsg({ type: 'success', text: `Search renamed to "${renameValue.trim()}".` });
-                                    setTimeout(() => setSavedSearchActionMsg({ type: '', text: '' }), 4000);
-                                  } else {
-                                    setSavedSearchActionMsg({ type: 'error', text: res.message || 'Failed to rename search.' });
-                                  }
-                                }}
-                                className="p-1.5 rounded-lg bg-gold-500 text-navy-950 font-bold hover:bg-gold-400 cursor-pointer"
-                                title="Save"
-                              >
-                                <Check className="w-3.5 h-3.5" />
-                              </button>
-                              <button
-                                onClick={() => setRenamingSearchId(null)}
-                                className="p-1.5 rounded-lg bg-slate-200 dark:bg-navy-800 text-slate-600 dark:text-slate-300 hover:bg-slate-300 cursor-pointer"
-                                title="Cancel"
-                              >
-                                <X className="w-3.5 h-3.5" />
-                              </button>
-                            </div>
-                          ) : (
-                            <div>
-                              <h4 className="font-serif text-base font-bold text-navy-900 dark:text-white leading-snug flex items-center gap-2">
-                                <span>{s.name}</span>
-                              </h4>
-                              <p className="text-[11px] text-slate-500 font-mono mt-0.5">
-                                Saved on {s.createdAt ? new Date(s.createdAt).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }) : 'Recent'}
-                              </p>
-                            </div>
-                          )}
-                        </div>
-
-                        {!isEditing && (
-                          <div className="flex items-center gap-1 shrink-0">
-                            <button
-                              onClick={() => {
-                                setRenamingSearchId(s.id);
-                                setRenameValue(s.name);
-                              }}
-                              className="p-1.5 rounded-lg text-slate-500 hover:text-slate-900 dark:hover:text-white hover:bg-slate-100 dark:hover:bg-navy-800 cursor-pointer"
-                              title="Rename search"
-                            >
-                              <Edit3 className="w-3.5 h-3.5" />
-                            </button>
-                            <button
-                              onClick={() => setDeleteConfirmId(s.id)}
-                              className="p-1.5 rounded-lg text-rose-500 hover:text-rose-700 hover:bg-rose-50 dark:hover:bg-rose-950/40 cursor-pointer"
-                              title="Delete search"
-                            >
-                              <Trash2 className="w-3.5 h-3.5" />
-                            </button>
-                          </div>
-                        )}
-                      </div>
-
-                      {/* Criteria Badges */}
-                      <div className="flex flex-wrap gap-1.5 pt-1">
-                        {crit.keyword && (
-                          <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[11px] font-semibold bg-gold-500/15 text-gold-800 dark:text-gold-300 border border-gold-500/30">
-                            <Search className="w-3 h-3 text-gold-500" />
-                            <span>"{crit.keyword}"</span>
-                          </span>
-                        )}
-                        {crit.country && crit.country !== 'All' && (
-                          <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[11px] font-semibold bg-blue-50 dark:bg-blue-950/60 text-blue-800 dark:text-blue-300 border border-blue-200 dark:border-blue-800/60">
-                            <Globe className="w-3 h-3 text-blue-500" />
-                            <span>{crit.country}</span>
-                          </span>
-                        )}
-                        {crit.city && crit.city !== 'All' && (
-                          <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[11px] font-semibold bg-indigo-50 dark:bg-indigo-950/60 text-indigo-800 dark:text-indigo-300 border border-indigo-200 dark:border-indigo-800/60">
-                            <MapPin className="w-3 h-3 text-indigo-500" />
-                            <span>{crit.city}</span>
-                          </span>
-                        )}
-                        {crit.industry && crit.industry !== 'All' && (
-                          <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[11px] font-semibold bg-emerald-50 dark:bg-emerald-950/60 text-emerald-800 dark:text-emerald-300 border border-emerald-200 dark:border-emerald-800/60">
-                            <Building2 className="w-3 h-3 text-emerald-500" />
-                            <span>{crit.industry}</span>
-                          </span>
-                        )}
-                        {crit.function && crit.function !== 'All' && (
-                          <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[11px] font-semibold bg-purple-50 dark:bg-purple-950/60 text-purple-800 dark:text-purple-300 border border-purple-200 dark:border-purple-800/60">
-                            <Layers className="w-3 h-3 text-purple-500" />
-                            <span>{crit.function}</span>
-                          </span>
-                        )}
-                        {crit.experience && crit.experience !== 'All' && (
-                          <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[11px] font-semibold bg-teal-50 dark:bg-teal-950/60 text-teal-800 dark:text-teal-300 border border-teal-200 dark:border-teal-800/60">
-                            <Clock className="w-3 h-3 text-teal-500" />
-                            <span>{crit.experience}</span>
-                          </span>
-                        )}
-                        {(crit.salaryMin || crit.salaryMax || (crit.salaryCurrency && crit.salaryCurrency !== 'All')) && (
-                          <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[11px] font-semibold bg-amber-50 dark:bg-amber-950/60 text-amber-800 dark:text-amber-300 border border-amber-200 dark:border-amber-800/60 font-mono">
-                            <DollarSign className="w-3 h-3 text-amber-500" />
-                            <span>{crit.salaryMin || '0'}{crit.salaryMax ? `–${crit.salaryMax}` : '+'} {crit.salaryCurrency && crit.salaryCurrency !== 'All' ? crit.salaryCurrency : ''}</span>
-                          </span>
-                        )}
-                        {crit.jobType && crit.jobType !== 'All' && (
-                          <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[11px] font-semibold bg-sky-50 dark:bg-sky-950/60 text-sky-800 dark:text-sky-300 border border-sky-200 dark:border-sky-800/60">
-                            <Briefcase className="w-3 h-3 text-sky-500" />
-                            <span>{crit.jobType}</span>
-                          </span>
-                        )}
-                      </div>
-
-                    </div>
-
-                    {/* Delete Confirmation Box */}
-                    {isDeleting ? (
-                      <div className="pt-3 border-t border-rose-200 dark:border-rose-900/60 flex items-center justify-between bg-rose-50/70 dark:bg-rose-950/40 p-2.5 rounded-xl">
-                        <span className="text-rose-800 dark:text-rose-300 font-semibold text-[11px]">
-                          Delete this saved search?
-                        </span>
-                        <div className="flex items-center gap-1.5">
-                          <button
-                            onClick={async () => {
-                              const res = await deleteSavedSearch(s.id);
-                              setDeleteConfirmId(null);
-                              if (res.success) {
-                                setSavedSearchActionMsg({ type: 'success', text: `Saved search "${s.name}" deleted.` });
-                                setTimeout(() => setSavedSearchActionMsg({ type: '', text: '' }), 4000);
-                              } else {
-                                setSavedSearchActionMsg({ type: 'error', text: res.message || 'Failed to delete.' });
-                              }
-                            }}
-                            className="px-2.5 py-1 rounded-lg bg-rose-600 hover:bg-rose-700 text-white font-bold text-[11px] cursor-pointer"
-                          >
-                            Delete
-                          </button>
-                          <button
-                            onClick={() => setDeleteConfirmId(null)}
-                            className="px-2.5 py-1 rounded-lg bg-slate-200 dark:bg-navy-800 text-slate-700 dark:text-slate-300 font-semibold text-[11px] cursor-pointer"
-                          >
-                            Cancel
-                          </button>
-                        </div>
-                      </div>
-                    ) : (
-                      <div className="pt-3 border-t border-slate-100 dark:border-navy-800 flex items-center justify-between">
-                        <span className="text-[11px] text-slate-500 font-medium">
-                          Quick Action:
-                        </span>
-                        <button
-                          onClick={() => {
-                            restoreSearch({ ...crit, _name: s.name });
-                          }}
-                          className="px-4 py-2 bg-gold-shimmer text-navy-950 font-bold text-xs rounded-xl shadow-gold-glow flex items-center gap-1.5 hover:opacity-95 transition cursor-pointer"
-                        >
-                          <Search className="w-3.5 h-3.5" />
-                          <span>Run Search →</span>
-                        </button>
-                      </div>
-                    )}
-
-                  </div>
-                );
-              })}
-            </div>
-          ) : (
-            <div className="glass-card bg-white dark:bg-navy-900 border border-slate-200 dark:border-navy-800 rounded-3xl p-12 text-center space-y-4 shadow-sm">
-              <div className="w-14 h-14 rounded-2xl bg-gold-500/10 text-gold-500 flex items-center justify-center mx-auto">
-                <SlidersHorizontal className="w-7 h-7" />
-              </div>
-              <h3 className="font-serif text-lg font-bold text-navy-900 dark:text-white">
-                No Saved Searches Yet
-              </h3>
-              <p className="text-slate-500 max-w-md mx-auto text-xs leading-relaxed">
-                Save your favorite job search filters, keywords, experience, and salary requirements on the Jobs page to quickly monitor new vacancies with a single click.
-              </p>
-              <button
-                onClick={() => {
-                  navigateTo('jobs');
-                  if (typeof window !== 'undefined') window.location.hash = 'jobs';
-                }}
-                className="py-2.5 px-6 bg-gold-shimmer text-navy-950 font-bold rounded-xl shadow-gold-glow cursor-pointer text-xs"
-              >
-                Browse & Save Search Criteria →
-              </button>
-            </div>
-          )}
-
-        </div>
-      )}
-
-      {/* INTERVIEWS TAB */}
-      {activeTab === 'interviews' && (
-        <div className="space-y-4 text-xs">
-          <div className="p-4 bg-emerald-500/10 border border-emerald-500/30 rounded-2xl flex items-center justify-between text-emerald-800 dark:text-emerald-300 font-medium">
-            <div className="flex items-center gap-2">
-              <Video className="w-5 h-5 text-emerald-500 shrink-0" />
-              <span>
-                <strong>Confirmed Interview Portal:</strong> Below are your scheduled executive interviews. Click <strong>"Join Video Interview"</strong> to enter the live MS Teams meeting room.
-              </span>
+                  <ExternalLink className="w-3.5 h-3.5" />
+                  <span>Launch Official Call</span>
+                </a>
+              )}
             </div>
           </div>
-
-          {applications.filter(a => a && a.status === 'Interview Scheduled').length > 0 ? (
-            applications.filter(a => a && a.status === 'Interview Scheduled').map((app) => (
-              <div key={app.id} className="glass-card bg-white dark:bg-navy-900 border-2 border-emerald-500/40 p-6 rounded-2xl space-y-3 shadow-lg">
-                <div className="flex justify-between items-start">
-                  <div>
-                    <span className="bg-emerald-500 text-slate-900 dark:text-white font-extrabold text-[10px] px-2.5 py-0.5 rounded">Confirmed Schedule</span>
-                    <h4 className="font-serif text-xl font-bold text-navy-900 dark:text-white mt-1">{app.jobTitle}</h4>
-                    <p className="text-slate-700 dark:text-slate-300 font-semibold">{app.company} • {app.country}</p>
-                  </div>
-
-                  <button
-                    onClick={() => { setInterviewModalApp(app); startCameraStream(); }}
-                    className="px-4 py-2.5 bg-emerald-600 hover:bg-emerald-700 text-slate-900 dark:text-white font-extrabold rounded-xl text-xs flex items-center gap-1.5 shadow-lg shadow-emerald-500/20 transition cursor-pointer"
-                  >
-                    <Video className="w-4 h-4 text-slate-900 dark:text-white" />
-                    <span>Join Video Call Now →</span>
-                  </button>
-                </div>
-
-                <div className="p-3 bg-slate-50 dark:bg-navy-950 rounded-xl grid grid-cols-1 sm:grid-cols-3 gap-2 border border-slate-200 dark:border-navy-800 text-slate-800 dark:text-slate-200">
-                  <div>
-                    <span className="text-slate-500 dark:text-slate-400 text-[10px] uppercase font-bold block">Scheduled Time</span>
-                    <p className="font-bold text-navy-900 dark:text-white">{app.interviewDetails?.date || 'Scheduled'} at {app.interviewDetails?.time || '14:00 GST'}</p>
-                  </div>
-                  <div>
-                    <span className="text-slate-500 dark:text-slate-400 text-[10px] uppercase font-bold block">Meeting Format</span>
-                    <p className="font-bold text-navy-900 dark:text-white">{app.interviewDetails?.mode || 'Microsoft Teams Video'}</p>
-                  </div>
-                  <div>
-                    <span className="text-slate-500 dark:text-slate-400 text-[10px] uppercase font-bold block">Interviewer Panel</span>
-                    <p className="font-bold text-navy-900 dark:text-white">{app.interviewDetails?.interviewer || `${app.company || 'Employer'} HR Panel`}</p>
-                  </div>
-                </div>
-              </div>
-            ))
-          ) : (
-            <div className="glass-card bg-white dark:bg-navy-900 border border-slate-200 dark:border-navy-800 p-8 rounded-3xl text-center space-y-3 shadow-luxury">
-              <div className="w-12 h-12 rounded-2xl bg-gold-500/10 text-gold-500 flex items-center justify-center mx-auto">
-                <Calendar className="w-6 h-6" />
-              </div>
-              <h4 className="font-serif text-lg font-bold text-navy-900 dark:text-white">No Interviews Scheduled</h4>
-              <p className="text-slate-600 dark:text-slate-400 text-xs max-w-md mx-auto leading-relaxed">
-                You currently have no active interview invitations. When our recruiters or partner employers shortlist your application for an executive video interview, your confirmed time, meeting details, and MS Teams link will be presented here.
-              </p>
-              <div className="pt-2">
-                <button
-                  onClick={() => setActiveTab('browse-jobs')}
-                  className="px-5 py-2.5 bg-gold-500 hover:bg-gold-400 text-navy-950 font-bold text-xs rounded-xl shadow-md transition cursor-pointer"
-                >
-                  Browse Available Vacancies
-                </button>
-              </div>
-            </div>
-          )}
         </div>
       )}
 
-      {/* Sign Out Confirmation Modal */}
+      {/* 6. SIGN OUT CONFIRMATION MODAL */}
       {showSignOutModal && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-navy-950/70 backdrop-blur-sm animate-in fade-in duration-200">
-          <div className="bg-white dark:bg-navy-900 border border-slate-200 dark:border-navy-700 rounded-3xl p-6 sm:p-8 max-w-md w-full shadow-2xl text-center space-y-4">
-            <div className="w-14 h-14 mx-auto rounded-2xl bg-rose-500/10 text-rose-500 flex items-center justify-center border border-rose-500/20">
-              <LogOut className="w-7 h-7" />
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-navy-950/80 backdrop-blur-sm animate-fade-in text-left">
+          <div className="bg-white dark:bg-navy-900 rounded-3xl max-w-sm w-full p-6 space-y-4 border border-slate-200 dark:border-navy-800 shadow-2xl text-center">
+            <div className="w-12 h-12 rounded-full bg-rose-500/15 text-rose-500 flex items-center justify-center mx-auto">
+              <LogOut className="w-6 h-6" />
             </div>
-            <h3 className="font-serif text-xl font-bold text-navy-900 dark:text-white">Sign Out Confirmation</h3>
-            <p className="text-xs text-slate-600 dark:text-slate-300 leading-relaxed">
-              Are you sure you want to sign out of your candidate account? Your active session will be closed safely.
-            </p>
-            <div className="flex gap-3 pt-2">
+            <div>
+              <h3 className="font-serif text-lg font-bold text-navy-950 dark:text-white">Sign Out</h3>
+              <p className="text-xs text-slate-500 mt-1">
+                Are you sure you want to sign out of your Candidate Portal session?
+              </p>
+            </div>
+            <div className="flex gap-2 pt-2">
               <button
                 type="button"
                 onClick={() => setShowSignOutModal(false)}
-                className="flex-1 py-2.5 px-4 rounded-xl border border-slate-300 dark:border-navy-700 text-xs font-bold text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-navy-800 transition cursor-pointer"
+                className="flex-1 py-2.5 bg-slate-200 dark:bg-navy-800 text-slate-700 dark:text-slate-200 font-bold text-xs rounded-xl hover:bg-slate-300 transition cursor-pointer"
               >
                 Cancel
               </button>
@@ -2822,10 +2826,62 @@ export const CandidatePortal = () => {
                 onClick={() => {
                   setShowSignOutModal(false);
                   logout();
+                  navigateTo('home');
                 }}
-                className="flex-1 py-2.5 px-4 rounded-xl bg-rose-600 hover:bg-rose-700 text-xs font-bold text-white transition shadow-sm cursor-pointer"
+                className="flex-1 py-2.5 bg-rose-500 hover:bg-rose-600 text-white font-bold text-xs rounded-xl transition cursor-pointer"
               >
-                Yes, Sign Out
+                Sign Out
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* 7. DELETE ACCOUNT MODAL */}
+      {deleteAccountModalOpen && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-navy-950/80 backdrop-blur-sm animate-fade-in text-left">
+          <div className="bg-white dark:bg-navy-900 rounded-3xl max-w-md w-full p-6 space-y-4 border border-rose-500/40 shadow-2xl">
+            <div className="flex justify-between items-center pb-3 border-b border-rose-500/20">
+              <h3 className="font-serif text-lg font-bold text-rose-600 flex items-center gap-2">
+                <AlertTriangle className="w-5 h-5 text-rose-500" />
+                Confirm Account Deletion
+              </h3>
+              <button onClick={() => setDeleteAccountModalOpen(false)} className="text-slate-400 hover:text-white p-1">
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+
+            <p className="text-xs text-slate-600 dark:text-slate-300 leading-relaxed">
+              This will immediately delete your candidate credentials, applications, and documents from our servers. Type <strong>DELETE</strong> below to confirm.
+            </p>
+
+            {deleteError && (
+              <p className="text-xs text-rose-500 font-bold">{deleteError}</p>
+            )}
+
+            <input
+              type="text"
+              value={deleteConfirmText}
+              onChange={e => setDeleteConfirmText(e.target.value)}
+              placeholder="Type DELETE..."
+              className="w-full px-3 py-2.5 rounded-xl border border-rose-500/30 bg-slate-50 dark:bg-navy-950 text-slate-900 dark:text-white text-xs outline-none focus:border-rose-500 font-mono"
+            />
+
+            <div className="flex gap-2 pt-2">
+              <button
+                type="button"
+                onClick={() => setDeleteAccountModalOpen(false)}
+                className="flex-1 py-2.5 bg-slate-200 dark:bg-navy-800 text-slate-700 dark:text-slate-200 font-bold text-xs rounded-xl"
+              >
+                Cancel
+              </button>
+              <button
+                type="button"
+                onClick={handleDeleteAccount}
+                disabled={isDeletingAccount}
+                className="flex-1 py-2.5 bg-rose-500 hover:bg-rose-600 text-white font-bold text-xs rounded-xl transition disabled:opacity-50"
+              >
+                {isDeletingAccount ? 'Deleting...' : 'Confirm Delete'}
               </button>
             </div>
           </div>
@@ -2833,12 +2889,7 @@ export const CandidatePortal = () => {
       )}
 
     </div>
-    </ScrollReveal>
   );
 };
 
-const SaveIcon = () => (
-  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M5 13l4 4L19 7" />
-  </svg>
-);
+export default CandidatePortal;

@@ -819,7 +819,20 @@ const initDb = async (db) => {
       qualification TEXT,
       benefits TEXT,
       postedDate TEXT,
-      featured INTEGER DEFAULT 0
+      featured INTEGER DEFAULT 0,
+      educationLevel TEXT,
+      requiredDegree TEXT,
+      academicQualifications TEXT,
+      mandatoryLicences TEXT,
+      contractType TEXT,
+      contractDuration TEXT,
+      contractRenewal TEXT,
+      accommodation TEXT,
+      transportation TEXT,
+      livingAllowancesDetails TEXT,
+      visaSponsorship TEXT,
+      visaSupportDetails TEXT,
+      closingDate TEXT
     );
 
     CREATE TABLE IF NOT EXISTS candidates (
@@ -1242,6 +1255,23 @@ const initDb = async (db) => {
     { name: 'lastLogin', type: 'TEXT' },
     { name: 'altEmail', type: 'TEXT' },
     { name: 'shiftId', type: "TEXT DEFAULT 'SHIFT-GENERAL'" }
+  ]);
+
+  // Ensure new international job details columns exist on jobs table
+  await ensureColumns('jobs', [
+    { name: 'educationLevel', type: 'TEXT' },
+    { name: 'requiredDegree', type: 'TEXT' },
+    { name: 'academicQualifications', type: 'TEXT' },
+    { name: 'mandatoryLicences', type: 'TEXT' },
+    { name: 'contractType', type: 'TEXT' },
+    { name: 'contractDuration', type: 'TEXT' },
+    { name: 'contractRenewal', type: 'TEXT' },
+    { name: 'accommodation', type: 'TEXT' },
+    { name: 'transportation', type: 'TEXT' },
+    { name: 'livingAllowancesDetails', type: 'TEXT' },
+    { name: 'visaSponsorship', type: 'TEXT' },
+    { name: 'visaSupportDetails', type: 'TEXT' },
+    { name: 'closingDate', type: 'TEXT' }
   ]);
 
   // Seed default employees for all roles if table is empty or ensure HR Operations specialists
