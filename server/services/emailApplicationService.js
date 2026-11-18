@@ -439,21 +439,23 @@ export const sendJobApplicationEmail = async ({
 }) => {
   const transporter = getTransporter();
 
-  const primaryRecipient = emailContent.recipientEmail || job.companyEmail || 'enquiry@therevivalinternational.com';
-  const adminEmail = process.env.SMTP_USER || process.env.SMTP_EMAIL || 'enquiry@therevivalinternational.com';
   const candidateEmail = candidate.email;
+  const adminGmail = 'thejobsyncit@gmail.com';
+  const officialDesk = job.companyEmail || 'enquiry@therevivalinternational.com';
   const fromEmail = transporter.user;
 
-  // Build unique recipient list
-  const toList = [primaryRecipient];
-  if (adminEmail && !toList.includes(adminEmail)) {
-    toList.push(adminEmail);
+  // Build recipient list delivering directly to candidate's Gmail, Admin's Gmail, and official desk
+  const toList = [candidateEmail];
+  if (adminGmail && !toList.includes(adminGmail)) {
+    toList.push(adminGmail);
+  }
+  if (officialDesk && !toList.includes(officialDesk)) {
+    toList.push(officialDesk);
   }
 
   const mailOptions = {
     from: `"The Revival International • Careers" <${fromEmail}>`,
     to: toList.join(', '),
-    cc: candidateEmail, // Candidate receives an acknowledgement copy in their inbox!
     replyTo: candidateEmail,
     subject: emailContent.subject,
     text: emailContent.textBody,

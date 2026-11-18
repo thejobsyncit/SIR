@@ -487,14 +487,27 @@ export const QuickApplyModal = ({ job, isOpen, onClose, onSuccess }) => {
                   <span className="font-semibold text-slate-800 dark:text-slate-200">{job.company}</span>
                 </div>
                 <div className="flex justify-between">
-                  <span className="text-slate-500">Official Routing:</span>
-                  <span className="font-semibold text-slate-800 dark:text-slate-200">enquiry@therevivalinternational.com</span>
+                  <span className="text-slate-500">Applicant Inbox:</span>
+                  <span className="font-semibold text-emerald-600 dark:text-emerald-400">{email}</span>
                 </div>
                 <div className="flex justify-between">
-                  <span className="text-slate-500">Applicant Copy (CC):</span>
-                  <span className="font-semibold text-slate-800 dark:text-slate-200">{email}</span>
+                  <span className="text-slate-500">Official Desk:</span>
+                  <span className="font-semibold text-slate-800 dark:text-slate-200">enquiry@therevivalinternational.com</span>
                 </div>
               </div>
+
+              {/* Real Email Dispatched Banner */}
+              {!successResult?.simulated && (
+                <div className="p-3 bg-emerald-500/10 border border-emerald-500/20 rounded-xl text-left space-y-1 max-w-sm mx-auto">
+                  <div className="flex items-center gap-1.5 text-emerald-600 dark:text-emerald-400 text-xs font-bold">
+                    <CheckCircle2 className="w-3.5 h-3.5 shrink-0" />
+                    <span>Real Email Dispatched to Gmail</span>
+                  </div>
+                  <p className="text-[11px] text-slate-600 dark:text-slate-400 leading-relaxed">
+                    A confirmation email with your CV attachment has been dispatched directly to your Gmail inbox (<strong>{email}</strong>).
+                  </p>
+                </div>
+              )}
 
               {/* SMTP Setup Notice if credentials are not yet configured */}
               {successResult?.simulated && (
@@ -504,7 +517,7 @@ export const QuickApplyModal = ({ job, isOpen, onClose, onSuccess }) => {
                     <span>Real Email Inbox Setup Notice</span>
                   </div>
                   <p className="text-[11px] text-slate-600 dark:text-slate-400 leading-relaxed">
-                    Application is saved in database. To deliver live emails to your Gmail inbox, paste your 16-character Google App Password in <code>SIR/.env</code> (<code>SMTP_APP_PASSWORD</code>).
+                    Application is saved in database. Set your mail credentials in <code>SIR/.env</code> to dispatch real emails.
                   </p>
                 </div>
               )}
