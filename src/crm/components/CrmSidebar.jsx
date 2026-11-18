@@ -151,7 +151,6 @@ export const CrmSidebar = ({ collapsed, setCollapsed }) => {
       items: [
         { id: 'attendance', label: 'Attendance Management', icon: Clock },
         { id: 'leave', label: 'Leave Management', icon: Calendar },
-        { id: 'my-attendance', label: 'My Attendance', icon: CalendarCheck },
         { id: 'documentation', label: 'Documentation', icon: FileText },
         { id: 'visa', label: 'Visa Processing', icon: ShieldCheck },
         { id: 'verification', label: 'Background Check', icon: ShieldCheck }
@@ -170,7 +169,6 @@ export const CrmSidebar = ({ collapsed, setCollapsed }) => {
     {
       category: 'Account',
       items: [
-        { id: 'my-attendance', label: 'My Attendance', icon: CalendarCheck },
         { id: 'my-profile', label: 'My Profile', icon: User }
       ]
     }
