@@ -3,7 +3,7 @@ import { useCrm } from '../context/CrmContext';
 import {
   User, Mail, Phone, ShieldCheck, Briefcase, Calendar, MapPin,
   Clock, CheckCircle2, AlertCircle, Key, Bell, Edit3, Save, X,
-  Lock, RefreshCw, LogOut, Copy, Check, Eye, EyeOff, Building2,
+  Lock, RefreshCw, LogOut, Copy, Check, Eye, EyeOff,
   Globe, GraduationCap, Sparkles, CheckSquare, Shield, Activity,
   ChevronRight, AlertTriangle
 } from 'lucide-react';
@@ -489,24 +489,6 @@ export const CrmMyProfile = () => {
               </p>
 
               <div className="flex flex-wrap items-center gap-y-1 gap-x-4 text-xs text-slate-500 dark:text-slate-400 pt-1">
-                <div className="flex items-center gap-1.5 font-medium">
-                  {isInternationalTeam ? (
-                    <Globe className="w-3.5 h-3.5 text-blue-500 shrink-0" />
-                  ) : (
-                    <GraduationCap className="w-3.5 h-3.5 text-purple-500 shrink-0" />
-                  )}
-                  <span className="text-slate-700 dark:text-slate-300 font-semibold">{p.operationTeam}</span>
-                </div>
-
-                <span className="text-slate-300 dark:text-slate-700">•</span>
-
-                <div className="flex items-center gap-1.5">
-                  <Building2 className="w-3.5 h-3.5 text-slate-400 shrink-0" />
-                  <span>{p.department}</span>
-                </div>
-
-                <span className="text-slate-300 dark:text-slate-700">•</span>
-
                 <div className="flex items-center gap-1.5 font-mono text-[11px]">
                   <Clock className="w-3.5 h-3.5 text-slate-400 shrink-0" />
                   <span>Last login: {lastLoginFormatted}</span>

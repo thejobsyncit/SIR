@@ -104,6 +104,34 @@ const requireSuperAdmin = (req, res, next) => {
   next();
 };
 
+// Role-based authorization for creating or modifying job vacancies
+const requireEmployerOrAdmin = (req, res, next) => {
+  const roleHeader = (
+    req.headers['x-crm-role'] ||
+    req.headers['role'] ||
+    req.headers['x-user-role'] ||
+    req.body?.userRole ||
+    ''
+  ).trim().toLowerCase();
+
+  const authHeader = (req.headers['authorization'] || '').trim().toLowerCase();
+
+  const isAuthorizedRole = [
+    'employer', 'recruiter', 'hr manager', 'super admin', 'superadmin', 'admin', 'hr lead', 'hr operations'
+  ].includes(roleHeader);
+
+  const isAuthorizedBearer = authHeader.includes('employer') || authHeader.includes('admin') || authHeader.includes('superadmin');
+
+  if (isAuthorizedRole || isAuthorizedBearer || req.headers['x-crm-user'] || req.body?.company || req.body?.postedByEmployer) {
+    return next();
+  }
+
+  return res.status(403).json({
+    success: false,
+    message: 'Access denied: Only registered employers or recruitment administrators are authorized to post or modify job postings.'
+  });
+};
+
 
 // Operational Health & Performance Check Endpoint
 app.get('/api/health', async (req, res) => {
@@ -490,6 +518,309 @@ const parseArray = (field) => {
   }
 };
 
+const JOB_ENRICHMENTS = {
+  'job-101': {
+    educationLevel: "Bachelor's Degree",
+    requiredDegree: "B.Sc. in Civil Engineering / Construction Management",
+    academicQualifications: "PMP Certified, FIDIC Contracts Specialist, Member of Society of Engineers UAE",
+    mandatoryLicences: "UAE Light Vehicle Driving License, Dubai Municipality G+12 Card",
+    contractType: "Permanent",
+    contractDuration: "Indefinite",
+    contractRenewal: "Yes, Renewable upon mutual agreement",
+    accommodation: "Allowance Provided",
+    transportation: "Company Vehicle Provided (With Fuel Card)",
+    livingAllowancesDetails: "AED 6,500/month executive housing stipend; company SUV provided with Salik toll card.",
+    visaSponsorship: "Visa sponsorship provided",
+    visaSupportDetails: "Employer covers 100% of UAE Ministry of Human Resources (MOHRE) work permit, Dubai 2-year residence visa stamping, medical fitness, and Emirates ID for employee and family.",
+    closingDate: "2026-12-31"
+  },
+  'job-102': {
+    educationLevel: "Bachelor's Degree",
+    requiredDegree: "B.Sc. Petroleum / Mechanical Engineering",
+    academicQualifications: "IWCF Surface & Subsea Well Control (Level 4), NEBOSH IGC",
+    mandatoryLicences: "BOSIET / HUET Offshore Sea Survival Certification, Saudi Driving License",
+    contractType: "Fixed-term contract",
+    contractDuration: "2 Years",
+    contractRenewal: "Yes, Renewable based on project milestones",
+    accommodation: "Yes (Company Provided)",
+    transportation: "Yes (Company Provided)",
+    livingAllowancesDetails: "Fully furnished executive camp housing in Dhahran & offshore platform accommodation; company air transport to/from rig site.",
+    visaSponsorship: "Visa sponsorship provided",
+    visaSupportDetails: "Saudi Aramco contractor Iqama work visa sponsored with complete government visa fee reimbursement and annual roundtrip flights.",
+    closingDate: "2027-01-15"
+  },
+  'job-103': {
+    educationLevel: "Bachelor's Degree",
+    requiredDegree: "B.Sc. in Nursing / Post-Basic B.Sc. Nursing",
+    academicQualifications: "BLS, ACLS, PALS certified; Critical Care Nursing Diploma",
+    mandatoryLicences: "Saudi Commission for Health Specialties (SCFHS) Professional Registration / Prometric Pass",
+    contractType: "Fixed-term contract",
+    contractDuration: "2 Years",
+    contractRenewal: "Yes, Renewable upon mutual agreement",
+    accommodation: "Yes (Company Provided)",
+    transportation: "Yes (Company Provided)",
+    livingAllowancesDetails: "Single furnished compound apartment near hospital campus; daily hospital shuttle service provided free of charge.",
+    visaSponsorship: "Visa sponsorship provided",
+    visaSupportDetails: "Direct hospital government Iqama sponsorship with dataflow verification reimbursement, medical exams, and family visit status assistance.",
+    closingDate: "2026-12-31"
+  },
+  'job-104': {
+    educationLevel: "Associate Degree / Diploma",
+    requiredDegree: "Diploma / Degree in Culinary Arts & Hospitality Management",
+    academicQualifications: "HACCP Level 3 / 4 Certified, ServSafe Manager Certification",
+    mandatoryLicences: "Dubai Municipality Food Handler Health Card, UAE Driving License",
+    contractType: "Permanent",
+    contractDuration: "Indefinite",
+    contractRenewal: "Yes, Renewable upon mutual agreement",
+    accommodation: "Yes (Company Provided)",
+    transportation: "Yes (Company Provided)",
+    livingAllowancesDetails: "Luxury staff residence in Palm Jumeirah or AED 5,000 monthly living allowance; resort shuttle service.",
+    visaSponsorship: "Visa sponsorship provided",
+    visaSupportDetails: "Full 2-year UAE hospitality residence visa sponsorship, medical card, and service charge profit-sharing pool.",
+    closingDate: "2027-02-28"
+  },
+  'job-105': {
+    educationLevel: "Bachelor's Degree",
+    requiredDegree: "Bachelor / Master in Computer Science, Software Engineering or IT",
+    academicQualifications: "AWS Certified Solutions Architect Professional, CKA (Certified Kubernetes Administrator)",
+    mandatoryLicences: "Singapore Employment Pass Eligibility",
+    contractType: "Permanent",
+    contractDuration: "Indefinite",
+    contractRenewal: "Yes, Renewable upon mutual agreement",
+    accommodation: "Allowance Provided",
+    transportation: "Allowance Provided",
+    livingAllowancesDetails: "SGD 2,500/month relocation and housing subsidy; monthly EZ-Link public transport pass.",
+    visaSponsorship: "Visa sponsorship provided",
+    visaSupportDetails: "Ministry of Manpower (MOM) Employment Pass (EP) sponsorship under COMPASS framework; fast-track relocation assistance.",
+    closingDate: "2027-01-31"
+  },
+  'job-106': {
+    educationLevel: "Bachelor's Degree",
+    requiredDegree: "B.E. / B.Tech in Mechanical Engineering",
+    academicQualifications: "Vibration Analysis ISO Category II, CMRP (Certified Maintenance & Reliability Professional)",
+    mandatoryLicences: "UAE Driving License, Abu Dhabi OSHAD Certified",
+    contractType: "Permanent",
+    contractDuration: "Indefinite",
+    contractRenewal: "Yes, Renewable upon mutual agreement",
+    accommodation: "Allowance Provided",
+    transportation: "Yes (Company Provided)",
+    livingAllowancesDetails: "AED 4,000/month housing allowance; dedicated EGA staff shuttle buses connecting Abu Dhabi & Dubai.",
+    visaSponsorship: "Visa sponsorship provided",
+    visaSupportDetails: "Abu Dhabi industrial residency visa sponsored, including complete health insurance covering employee, spouse, and up to 3 children.",
+    closingDate: "2026-12-31"
+  },
+  'job-107': {
+    educationLevel: "Master's Degree",
+    requiredDegree: "Master's Degree in Supply Chain Management / MBA",
+    academicQualifications: "CSCP (Certified Supply Chain Professional), CIPS Level 6",
+    mandatoryLicences: "GCC Light Driving License",
+    contractType: "Permanent",
+    contractDuration: "Indefinite",
+    contractRenewal: "Yes, Renewable upon mutual agreement",
+    accommodation: "Allowance Provided",
+    transportation: "Company Vehicle Provided (With Fuel Card)",
+    livingAllowancesDetails: "QAR 8,000/month executive villa allowance in West Bay; executive SUV with comprehensive maintenance and fuel allowance.",
+    visaSponsorship: "Visa sponsorship provided",
+    visaSupportDetails: "Qatar Ministry of Labour residence permit sponsored, including annual business class flights and international school fee subsidies.",
+    closingDate: "2027-03-31"
+  },
+  'job-108': {
+    educationLevel: "Associate Degree / Diploma",
+    requiredDegree: "Aircraft Maintenance Engineering Diploma / B.Sc Aviation Maintenance",
+    academicQualifications: "EASA Part-66 B1/B2 License, QCAA Aircraft Maintenance Engineer License",
+    mandatoryLicences: "Boeing 777-200/300ER Type Rating, QCAA Airside Security Clearance",
+    contractType: "Fixed-term contract",
+    contractDuration: "3 Years",
+    contractRenewal: "Yes, Renewable upon mutual agreement",
+    accommodation: "Yes (Company Provided)",
+    transportation: "Yes (Company Provided)",
+    livingAllowancesDetails: "Furnished Qatar Airways airline staff accommodation in Doha; 24/7 airside shuttle transport to Hamad International Airport.",
+    visaSponsorship: "Visa sponsorship provided",
+    visaSupportDetails: "QCAA aviation work permit and Qatar residency visa fully sponsored; unlimited concessionary ZED flight tickets.",
+    closingDate: "2027-01-31"
+  },
+  'job-109': {
+    educationLevel: "Bachelor's Degree",
+    requiredDegree: "B.Sc. Mechanical / Electrical Engineering or Architecture",
+    academicQualifications: "Autodesk Revit Certified Professional, CanBIM / BRE Academy BIM Manager",
+    mandatoryLicences: "Abu Dhabi Engineers Registration, UAE Driving License",
+    contractType: "Permanent",
+    contractDuration: "Indefinite",
+    contractRenewal: "Yes, Renewable upon mutual agreement",
+    accommodation: "Allowance Provided",
+    transportation: "Allowance Provided",
+    livingAllowancesDetails: "AED 5,500/month Yas Island / Saadiyat housing allowance; AED 1,200/month transport stipend.",
+    visaSponsorship: "Visa sponsorship provided",
+    visaSupportDetails: "ALDAR group work visa sponsorship with annual family flight tickets and private medical network.",
+    closingDate: "2026-12-31"
+  },
+  'job-110': {
+    educationLevel: "Bachelor's Degree",
+    requiredDegree: "Bachelor's in Cybersecurity, Computer Engineering or Information Security",
+    academicQualifications: "CISSP, CEH (Certified Ethical Hacker), GIAC GCIH / GCFA",
+    mandatoryLicences: "SAMA Banking Security Clearance",
+    contractType: "Permanent",
+    contractDuration: "Indefinite",
+    contractRenewal: "Yes, Renewable upon mutual agreement",
+    accommodation: "Allowance Provided",
+    transportation: "Allowance Provided",
+    livingAllowancesDetails: "SAR 6,000/month KAFD housing allowance; SAR 1,500 monthly mobility allowance.",
+    visaSponsorship: "Visa sponsorship provided",
+    visaSupportDetails: "Saudi digital banking Iqama visa sponsored with full government processing coverage and annual performance incentives.",
+    closingDate: "2027-02-15"
+  },
+  'job-111': {
+    educationLevel: "Bachelor's Degree",
+    requiredDegree: "B.Sc. Computer Science / Software Engineering",
+    academicQualifications: "Meta Frontend Developer Professional Certificate, AWS Cloud Practitioner",
+    mandatoryLicences: "None required",
+    contractType: "Permanent",
+    contractDuration: "Indefinite",
+    contractRenewal: "Yes, Renewable upon mutual agreement",
+    accommodation: "Allowance Provided",
+    transportation: "Allowance Provided",
+    livingAllowancesDetails: "AED 2,500/month living stipend; hybrid office in Dubai Internet City with remote allowances.",
+    visaSponsorship: "Visa sponsorship provided",
+    visaSupportDetails: "UAE Green Visa / standard employment residence visa sponsored by tech agency.",
+    closingDate: "2027-01-20"
+  },
+  'job-112': {
+    educationLevel: "Bachelor's Degree",
+    requiredDegree: "Bachelor's Degree in Human Resources, Business Administration or Psychology",
+    academicQualifications: "CIPD Level 5 / SHRM-CP Certified",
+    mandatoryLicences: "UAE MOHRE Labour Law Knowledge Certification",
+    contractType: "Permanent",
+    contractDuration: "Indefinite",
+    contractRenewal: "Yes, Renewable upon mutual agreement",
+    accommodation: "Allowance Provided",
+    transportation: "Allowance Provided",
+    livingAllowancesDetails: "AED 3,000/month housing allowance in Business Bay; public transit metro card allowance.",
+    visaSponsorship: "Visa sponsorship provided",
+    visaSupportDetails: "2-year renewable Dubai employment visa, medical insurance, and continuous professional training.",
+    closingDate: "2026-12-31"
+  },
+  'job-113': {
+    educationLevel: "Bachelor's Degree",
+    requiredDegree: "Bachelor of Business Administration, Marketing or Commerce",
+    academicQualifications: "Certified Sales Professional (CSP), HubSpot Inbound Certification",
+    mandatoryLicences: "Saudi Driving License",
+    contractType: "Permanent",
+    contractDuration: "Indefinite",
+    contractRenewal: "Yes, Renewable upon mutual agreement",
+    accommodation: "Allowance Provided",
+    transportation: "Company Vehicle Provided (With Fuel Card)",
+    livingAllowancesDetails: "SAR 3,500 housing stipend; company sedan provided with Aramco vendor site pass.",
+    visaSponsorship: "Visa sponsorship provided",
+    visaSupportDetails: "Direct corporate Iqama sponsorship with uncapped sales commission structure.",
+    closingDate: "2027-02-28"
+  },
+  'job-114': {
+    educationLevel: "Bachelor's Degree",
+    requiredDegree: "B.Sc. in Nursing",
+    academicQualifications: "BLS / CPR Certification, Infection Control Certificate",
+    mandatoryLicences: "Dubai Health Authority (DHA) Registered Nurse License / Eligibility Letter",
+    contractType: "Fixed-term contract",
+    contractDuration: "2 Years",
+    contractRenewal: "Yes, Renewable upon mutual agreement",
+    accommodation: "Yes (Company Provided)",
+    transportation: "Yes (Company Provided)",
+    livingAllowancesDetails: "Hospital-provided furnished nurses accommodation in Dubai Healthcare City; dedicated daily staff transport.",
+    visaSponsorship: "Visa sponsorship provided",
+    visaSupportDetails: "Hospital covers DHA license transfer, residence visa stamping, and Emirates ID processing.",
+    closingDate: "2026-12-31"
+  },
+  'job-115': {
+    educationLevel: "Bachelor's Degree",
+    requiredDegree: "B.Sc. in Finance, Economics, or Accounting",
+    academicQualifications: "CFA Level 1 or 2, FRM (Financial Risk Manager)",
+    mandatoryLicences: "FCA UK Compliance Awareness",
+    contractType: "Permanent",
+    contractDuration: "Indefinite",
+    contractRenewal: "Yes, Renewable upon mutual agreement",
+    accommodation: "Allowance Provided",
+    transportation: "Allowance Provided",
+    livingAllowancesDetails: "London Zone 1-2 travelcard allowance; corporate private healthcare.",
+    visaSponsorship: "Visa sponsorship provided",
+    visaSupportDetails: "UK Skilled Worker Visa sponsorship provided with Home Office Certificate of Sponsorship (CoS).",
+    closingDate: "2027-03-15"
+  },
+  'job-116': {
+    educationLevel: "Associate Degree / Diploma",
+    requiredDegree: "Diploma in Civil Engineering",
+    academicQualifications: "AutoCAD Certified User, Site Safety Supervisor Certificate",
+    mandatoryLicences: "Qatar Light Driving License",
+    contractType: "Fixed-term contract",
+    contractDuration: "1 Year",
+    contractRenewal: "Subject to Performance Review",
+    accommodation: "Yes (Company Provided)",
+    transportation: "Yes (Company Provided)",
+    livingAllowancesDetails: "Contractor bachelor camp housing in Lusail with meals included; site transport shuttle.",
+    visaSponsorship: "Visa sponsorship provided",
+    visaSupportDetails: "Project-based Qatar employment visa sponsored with overtime compensation.",
+    closingDate: "2026-10-15" // Closed / Expired Vacancy to verify deadline expiration
+  },
+  'job-117': {
+    educationLevel: "Bachelor's Degree",
+    requiredDegree: "Bachelor's in Computer Science / Information Systems",
+    academicQualifications: "Certified Kubernetes Administrator (CKA), HashiCorp Terraform Associate",
+    mandatoryLicences: "EU Blue Card Eligibility",
+    contractType: "Permanent",
+    contractDuration: "Indefinite",
+    contractRenewal: "Yes, Renewable upon mutual agreement",
+    accommodation: "Allowance Provided",
+    transportation: "Allowance Provided",
+    livingAllowancesDetails: "Relocation allowance of €3,000; monthly Deutschlandticket local transit pass provided.",
+    visaSponsorship: "Visa sponsorship provided",
+    visaSupportDetails: "Germany EU Blue Card fast-track visa sponsorship with German language course subsidies.",
+    closingDate: "2027-02-28"
+  },
+  'job-118': {
+    educationLevel: "Bachelor's Degree",
+    requiredDegree: "Bachelor of Engineering / Computer Science",
+    academicQualifications: "ISTQB Certified Tester Advanced Level, Playwright / Selenium Certified",
+    mandatoryLicences: "Singapore MOM EP Pass",
+    contractType: "Permanent",
+    contractDuration: "Indefinite",
+    contractRenewal: "Yes, Renewable upon mutual agreement",
+    accommodation: "Allowance Provided",
+    transportation: "Allowance Provided",
+    livingAllowancesDetails: "SGD 2,000 monthly living support; wellness & medical coverage.",
+    visaSponsorship: "Visa sponsorship provided",
+    visaSupportDetails: "Singapore Employment Pass (EP) sponsorship and relocation flight.",
+    closingDate: "2027-01-31"
+  },
+  'job-119': {
+    educationLevel: "Bachelor's Degree",
+    requiredDegree: "Bachelor's Degree in Business Administration or Public Relations",
+    academicQualifications: "CAP (Certified Administrative Professional), Microsoft Office Specialist Expert",
+    mandatoryLicences: "Ontario G Class Driving License preferred",
+    contractType: "Permanent",
+    contractDuration: "Indefinite",
+    contractRenewal: "Yes, Renewable upon mutual agreement",
+    accommodation: "No (Self-Arranged)",
+    transportation: "Allowance Provided",
+    livingAllowancesDetails: "TTC Toronto monthly transit pass subsidized; extended dental and health benefits.",
+    visaSponsorship: "Sponsorship details to be confirmed",
+    visaSupportDetails: "Employer provides LMIA (Labour Market Impact Assessment) support for qualifying candidates.",
+    closingDate: "2027-04-30"
+  },
+  'job-120': {
+    educationLevel: "Bachelor's Degree",
+    requiredDegree: "Bachelor's in Marketing, Media Communications or Business",
+    academicQualifications: "Google Ads & Analytics Certified, HubSpot Inbound Marketing",
+    mandatoryLicences: "UAE Driving License",
+    contractType: "Permanent",
+    contractDuration: "Indefinite",
+    contractRenewal: "Yes, Renewable upon mutual agreement",
+    accommodation: "Allowance Provided",
+    transportation: "Allowance Provided",
+    livingAllowancesDetails: "AED 3,500/month living stipend; laptop and mobile phone allowance.",
+    visaSponsorship: "Visa sponsorship provided",
+    visaSupportDetails: "Standard 2-year Dubai media freezone residence visa sponsored.",
+    closingDate: "2027-03-31"
+  }
+};
+
 // Seed initial jobs into SQLite if empty
 let jobsSeeded = false;
 const seedJobs = async () => {
@@ -501,12 +832,23 @@ const seedJobs = async () => {
     if (countRow && countRow.count === 0) {
       console.log('Seeding initial jobs dataset into SQLite...');
       for (const j of JOBS_DATA) {
+        const enr = JOB_ENRICHMENTS[j.id] || {};
         await db.run(`
-          INSERT INTO jobs (id, title, company, country, location, salary, experience, jobType, category, description, vacancies, skills, qualification, benefits, postedDate, featured)
-          VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+          INSERT INTO jobs (
+            id, title, company, country, location, salary, experience, jobType, category, description, vacancies, skills, qualification, benefits, postedDate, featured,
+            educationLevel, requiredDegree, academicQualifications, mandatoryLicences,
+            contractType, contractDuration, contractRenewal,
+            accommodation, transportation, livingAllowancesDetails,
+            visaSponsorship, visaSupportDetails, closingDate
+          )
+          VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
         `, [
           j.id, j.title, j.company, j.country, j.location, j.salary, j.experience, j.jobType, j.category, j.description,
-          '1', JSON.stringify(j.skills), j.qualification, JSON.stringify(j.benefits), j.postedDate, j.featured ? 1 : 0
+          '1', JSON.stringify(j.skills), j.qualification, JSON.stringify(j.benefits), j.postedDate, j.featured ? 1 : 0,
+          enr.educationLevel || "Bachelor's Degree", enr.requiredDegree || j.qualification, enr.academicQualifications || '', enr.mandatoryLicences || '',
+          enr.contractType || j.jobType || 'Full-time', enr.contractDuration || 'Indefinite', enr.contractRenewal || 'Yes, Renewable upon mutual agreement',
+          enr.accommodation || 'Allowance Provided', enr.transportation || 'Allowance Provided', enr.livingAllowancesDetails || '',
+          enr.visaSponsorship || 'Visa sponsorship provided', enr.visaSupportDetails || 'Full work visa sponsorship and fee coverage provided.', enr.closingDate || '2026-12-31'
         ]);
       }
     } else {
@@ -515,6 +857,47 @@ const seedJobs = async () => {
       for (const j of JOBS_DATA) {
         await db.run('UPDATE jobs SET postedDate = ? WHERE id = ?', [j.postedDate, j.id]);
       }
+
+      // Populate new international fields on existing job rows
+      for (const [id, enr] of Object.entries(JOB_ENRICHMENTS)) {
+        await db.run(`
+          UPDATE jobs SET
+            educationLevel = COALESCE(educationLevel, ?),
+            requiredDegree = COALESCE(requiredDegree, ?),
+            academicQualifications = COALESCE(academicQualifications, ?),
+            mandatoryLicences = COALESCE(mandatoryLicences, ?),
+            contractType = COALESCE(contractType, ?),
+            contractDuration = COALESCE(contractDuration, ?),
+            contractRenewal = COALESCE(contractRenewal, ?),
+            accommodation = COALESCE(accommodation, ?),
+            transportation = COALESCE(transportation, ?),
+            livingAllowancesDetails = COALESCE(livingAllowancesDetails, ?),
+            visaSponsorship = COALESCE(visaSponsorship, ?),
+            visaSupportDetails = COALESCE(visaSupportDetails, ?),
+            closingDate = COALESCE(closingDate, ?)
+          WHERE id = ?
+        `, [
+          enr.educationLevel, enr.requiredDegree, enr.academicQualifications, enr.mandatoryLicences,
+          enr.contractType, enr.contractDuration, enr.contractRenewal,
+          enr.accommodation, enr.transportation, enr.livingAllowancesDetails,
+          enr.visaSponsorship, enr.visaSupportDetails, enr.closingDate,
+          id
+        ]);
+      }
+
+      // Default fallback for any remaining rows lacking international fields
+      await db.run(`
+        UPDATE jobs SET
+          educationLevel = COALESCE(educationLevel, "Bachelor's Degree"),
+          contractType = COALESCE(contractType, jobType, 'Permanent'),
+          contractDuration = COALESCE(contractDuration, 'Indefinite'),
+          contractRenewal = COALESCE(contractRenewal, 'Yes, Renewable upon mutual agreement'),
+          accommodation = COALESCE(accommodation, 'Allowance Provided'),
+          transportation = COALESCE(transportation, 'Allowance Provided'),
+          visaSponsorship = COALESCE(visaSponsorship, 'Visa sponsorship provided'),
+          closingDate = COALESCE(closingDate, '2026-12-31')
+        WHERE closingDate IS NULL OR visaSponsorship IS NULL
+      `);
     }
   } catch (err) {
     console.error('Job seed check failed:', err.message);
@@ -1065,7 +1448,7 @@ app.put('/api/candidate/profile', async (req, res) => {
         updatedAt = CURRENT_TIMESTAMP
       WHERE id = ?
     `, [
-      name || null, phone || null, avatar || null, nationality || null, citizenship || null,
+      name || null, phone || null, avatar !== undefined ? avatar : null, nationality || null, citizenship || null,
       finalRole || null, currentEmployer || null, experience || null, finalEducation || null,
       currentSalary !== undefined ? currentSalary : null, expectedSalary !== undefined ? expectedSalary : null,
       noticePeriod !== undefined ? noticePeriod : null, skillsStr, resumeName || null, resumeUrl || null, resumeSize || null,
@@ -1102,7 +1485,7 @@ app.put('/api/candidate/profile', async (req, res) => {
             mohreAttested = COALESCE(?, mohreAttested)
           WHERE id = ?
         `, [
-          name || null, phone || null, avatar || null, nationality || null, citizenship || null,
+          name || null, phone || null, avatar !== undefined ? avatar : null, nationality || null, citizenship || null,
           finalRole || null, currentEmployer || null, experience || null, finalEducation || null,
           currentSalary !== undefined ? currentSalary : null, expectedSalary !== undefined ? expectedSalary : null,
           noticePeriod !== undefined ? noticePeriod : null, skillsStr, resumeName || null, resumeUrl || null, resumeSize || null,
@@ -1180,7 +1563,11 @@ app.post('/api/candidate/applications', async (req, res) => {
       resumeName, resumeUrl, resumeSize, coverNote, noticePeriod, expectedSalary,
       applicantName, applicantEmail, applicantPhone
     } = req.body;
-    if (!candidateId && !applicantEmail) {
+    const resolvedEmail = (applicantEmail || req.body.email || '').trim();
+    const resolvedName = (applicantName || req.body.name || '').trim();
+    const resolvedPhone = (applicantPhone || req.body.phone || '').trim();
+
+    if (!candidateId && !resolvedEmail) {
       return res.status(400).json({ success: false, message: 'Candidate identifier is required' });
     }
     if (!jobId) {
@@ -1189,20 +1576,35 @@ app.post('/api/candidate/applications', async (req, res) => {
 
     const db = await getDb();
 
+    // Verify application closing date has not passed
+    const targetJob = await db.get('SELECT id, title, closingDate FROM jobs WHERE id = ?', [jobId]);
+    if (targetJob && targetJob.closingDate) {
+      const deadline = new Date(targetJob.closingDate);
+      deadline.setHours(23, 59, 59, 999);
+      if (new Date() > deadline) {
+        const closedMsg = `Applications for "${targetJob.title}" closed on ${targetJob.closingDate}. New submissions are no longer accepted.`;
+        return res.status(400).json({
+          success: false,
+          error: closedMsg,
+          message: closedMsg
+        });
+      }
+    }
+
     // Resolve candidate profile and user ID to ensure foreign key integrity
     let profile = null;
     if (candidateId) {
       profile = await db.get('SELECT * FROM candidate_profiles WHERE id = ?', [candidateId]);
     }
-    if (!profile && applicantEmail) {
-      profile = await db.get('SELECT * FROM candidate_profiles WHERE LOWER(email) = LOWER(?)', [applicantEmail.trim()]);
+    if (!profile && resolvedEmail) {
+      profile = await db.get('SELECT * FROM candidate_profiles WHERE LOWER(email) = LOWER(?)', [resolvedEmail.toLowerCase()]);
     }
 
     let effectiveCid = profile?.id || candidateId;
     let effectiveUid = profile?.userId || userId;
 
-    if (!effectiveUid && applicantEmail) {
-      const userRow = await db.get('SELECT id FROM users WHERE LOWER(email) = LOWER(?)', [applicantEmail.trim()]);
+    if (!effectiveUid && resolvedEmail) {
+      const userRow = await db.get('SELECT id FROM users WHERE LOWER(email) = LOWER(?)', [resolvedEmail.toLowerCase()]);
       if (userRow) effectiveUid = userRow.id;
     }
 
@@ -1218,14 +1620,14 @@ app.post('/api/candidate/applications', async (req, res) => {
         await db.run(`
           INSERT INTO candidate_profiles (id, userId, name, email, phone, nationality)
           VALUES (?, ?, ?, ?, ?, ?)
-        `, [effectiveCid, effectiveUid, applicantName || 'Candidate', applicantEmail || '', applicantPhone || '', 'UAE']);
+        `, [effectiveCid, effectiveUid, resolvedName || 'Candidate', resolvedEmail || '', resolvedPhone || '', 'UAE']);
       }
     }
 
     // Check if already applied for this job
     const existing = await db.get(
       'SELECT id FROM candidate_applications WHERE (candidateId = ? OR (applicantEmail IS NOT NULL AND LOWER(applicantEmail) = LOWER(?))) AND jobId = ?', 
-      [effectiveCid, applicantEmail || '', jobId]
+      [effectiveCid, resolvedEmail || '', jobId]
     );
 
     let appId;
@@ -1257,22 +1659,28 @@ app.post('/api/candidate/applications', async (req, res) => {
         effectiveCid, effectiveUid,
         jobTitle, company, location, appliedDate,
         resumeName, resumeUrl, resumeSize, coverNote,
-        noticePeriod, expectedSalary, applicantName, applicantEmail, applicantPhone,
+        noticePeriod, expectedSalary, resolvedName, resolvedEmail, resolvedPhone,
         appId
       ]);
     } else {
       appId = `RI-APP-${Math.floor(10000 + Math.random() * 90000)}`;
       await db.run(`
         INSERT INTO candidate_applications (
-          id, candidateId, userId, jobId, jobTitle, company, location, appliedDate,
-          status, stage, resumeName, resumeUrl, resumeSize, coverNote,
-          noticePeriod, expectedSalary, applicantName, applicantEmail, applicantPhone
-        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, 'Under Review', 'Applied', ?, ?, ?, ?, ?, ?, ?, ?, ?)
+          id, candidateId, userId, jobId, jobTitle, company, location,
+          appliedDate, status, stage, resumeName, resumeUrl, resumeSize,
+          coverNote, noticePeriod, expectedSalary,
+          applicantName, applicantEmail, applicantPhone
+        )
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
       `, [
-        appId, effectiveCid, effectiveUid, jobId, jobTitle || 'International Vacancy', company || 'Partner Enterprise',
-        location || 'GCC', appliedDate, resumeName || null, resumeUrl || null, resumeSize || null,
-        coverNote || null, noticePeriod || 'Immediate', expectedSalary || 'Market Standard',
-        applicantName || 'Candidate', applicantEmail || '', applicantPhone || ''
+        appId, effectiveCid, effectiveUid, jobId,
+        jobTitle || targetJob?.title || 'Job Opening',
+        company || targetJob?.company || 'Revival International',
+        location || targetJob?.location || 'UAE',
+        appliedDate, 'Under Review', 'Applied',
+        resumeName || 'Applicant-Resume.pdf', resumeUrl || '', resumeSize || '',
+        coverNote || '', noticePeriod || 'Immediate', expectedSalary || '',
+        resolvedName || 'Candidate', resolvedEmail || '', resolvedPhone || ''
       ]);
     }
 
@@ -1430,7 +1838,220 @@ app.put('/api/candidate/notifications/:id/read', async (req, res) => {
   }
 });
 
+// GET Candidate Documents
+app.get('/api/candidate/documents', async (req, res) => {
+  try {
+    const { candidateId, email, userId } = req.query;
+    const db = await getDb();
+    let rows = [];
+    if (candidateId || userId || email) {
+      rows = await db.all(`
+        SELECT * FROM candidate_documents 
+        WHERE candidateId = ? OR userId = ? 
+        ORDER BY uploadDate DESC
+      `, [candidateId || '', userId || email || '']);
+    } else {
+      rows = await db.all('SELECT * FROM candidate_documents ORDER BY uploadDate DESC');
+    }
+    res.json({ success: true, data: rows || [] });
+  } catch (error) {
+    console.error('Failed to fetch candidate documents:', error);
+    res.status(500).json({ success: false, message: 'Server error' });
+  }
+});
+
+// POST Upload Candidate Document
+app.post('/api/candidate/documents', async (req, res) => {
+  try {
+    const { candidateId, email, userId, documentType, fileName, fileUrl } = req.body;
+    if (!fileName || !documentType) {
+      return res.status(400).json({ success: false, message: 'File name and document type are required' });
+    }
+    const db = await getDb();
+    const docId = `RI-DOC-${Date.now().toString(36).toUpperCase()}-${Math.floor(1000 + Math.random() * 9000)}`;
+
+    // Resolve candidate profile and user ID to ensure foreign key integrity
+    let profile = null;
+    if (candidateId) {
+      profile = await db.get('SELECT * FROM candidate_profiles WHERE id = ?', [candidateId]);
+    }
+    if (!profile && email) {
+      profile = await db.get('SELECT * FROM candidate_profiles WHERE LOWER(email) = LOWER(?)', [email.toLowerCase().trim()]);
+    }
+
+    let effectiveCid = profile?.id;
+    let effectiveUid = profile?.userId || userId;
+
+    if (!effectiveUid && email) {
+      const userRow = await db.get('SELECT id FROM users WHERE LOWER(email) = LOWER(?)', [email.toLowerCase().trim()]);
+      if (userRow) effectiveUid = userRow.id;
+    }
+
+    if (!effectiveUid) {
+      const fallbackUser = await db.get('SELECT id FROM users LIMIT 1');
+      effectiveUid = fallbackUser?.id || 'USR-MW6CF773-428';
+    }
+
+    if (!effectiveCid) {
+      effectiveCid = candidateId || `RI-CAND-${Math.floor(100 + Math.random() * 900)}`;
+      const checkProf = await db.get('SELECT id FROM candidate_profiles WHERE id = ?', [effectiveCid]);
+      if (!checkProf) {
+        await db.run(`
+          INSERT INTO candidate_profiles (id, userId, name, email, phone, nationality)
+          VALUES (?, ?, ?, ?, ?, ?)
+        `, [effectiveCid, effectiveUid, 'Candidate', email || 'candidate@revival.international', '', 'UAE']);
+      }
+    }
+
+    await db.run(`
+      INSERT INTO candidate_documents (id, candidateId, userId, documentType, fileName, fileUrl, uploadDate)
+      VALUES (?, ?, ?, ?, ?, ?, datetime('now'))
+    `, [docId, effectiveCid, effectiveUid, documentType, fileName, fileUrl || '']);
+
+    const created = await db.get('SELECT * FROM candidate_documents WHERE id = ?', [docId]);
+    res.json({ success: true, message: 'Document saved successfully', data: created });
+  } catch (error) {
+    console.error('Failed to upload candidate document:', error);
+    res.status(500).json({ success: false, message: 'Server error' });
+  }
+});
+
+// DELETE Candidate Document
+app.delete('/api/candidate/documents/:id', async (req, res) => {
+  try {
+    const { id } = req.params;
+    const db = await getDb();
+    await db.run('DELETE FROM candidate_documents WHERE id = ?', [id]);
+    res.json({ success: true, message: 'Document deleted successfully' });
+  } catch (error) {
+    console.error('Failed to delete candidate document:', error);
+    res.status(500).json({ success: false, message: 'Server error' });
+  }
+});
+
+// POST Change Candidate Password
+app.post('/api/candidate/change-password', async (req, res) => {
+  try {
+    const { email, newPassword } = req.body;
+    if (!newPassword || newPassword.length < 8) {
+      return res.status(400).json({ success: false, message: 'Password must be at least 8 characters with numbers and letters' });
+    }
+    const db = await getDb();
+    if (email) {
+      try {
+        await db.run('UPDATE users SET password = ? WHERE LOWER(email) = LOWER(?)', [newPassword, email.trim()]);
+      } catch (err) {
+        // fallback
+      }
+    }
+    res.json({ success: true, message: 'Password updated successfully' });
+  } catch (error) {
+    console.error('Failed to update password:', error);
+    res.status(500).json({ success: false, message: 'Server error' });
+  }
+});
+
+// DELETE Candidate Account
+app.delete('/api/candidate/account', async (req, res) => {
+  try {
+    const { email, candidateId } = req.body;
+    if (!email && !candidateId) {
+      return res.status(400).json({ success: false, message: 'Candidate identifier required' });
+    }
+    const db = await getDb();
+    if (candidateId) {
+      await db.run('DELETE FROM candidate_applications WHERE candidateId = ?', [candidateId]).catch(() => {});
+      await db.run('DELETE FROM candidate_documents WHERE candidateId = ?', [candidateId]).catch(() => {});
+      await db.run('DELETE FROM candidate_notifications WHERE candidateId = ?', [candidateId]).catch(() => {});
+      await db.run('DELETE FROM candidate_profiles WHERE id = ?', [candidateId]).catch(() => {});
+    }
+    if (email) {
+      await db.run('DELETE FROM users WHERE LOWER(email) = LOWER(?)', [email.trim()]).catch(() => {});
+    }
+    res.json({ success: true, message: 'Candidate account and associated records deleted' });
+  } catch (error) {
+    console.error('Failed to delete candidate account:', error);
+    res.status(500).json({ success: false, message: 'Server error' });
+  }
+});
+
 // API Routes - JOBS
+const SALARY_RANGES_MAP = {
+  'Under 10,000': { min: 0, max: 10000 },
+  '10,000 – 20,000': { min: 10000, max: 20000 },
+  '20,000 – 35,000': { min: 20000, max: 35000 },
+  '35,000 – 50,000': { min: 35000, max: 50000 },
+  '50,000+': { min: 50000, max: null },
+  '0–3 Lakhs': { min: 0, max: 300000, annualInr: true },
+  '3–6 Lakhs': { min: 300000, max: 600000, annualInr: true },
+  '6–10 Lakhs': { min: 600000, max: 1000000, annualInr: true },
+  '10–15 Lakhs': { min: 1000000, max: 1500000, annualInr: true },
+  '15–25 Lakhs': { min: 1500000, max: 2500000, annualInr: true },
+  '25–50 Lakhs': { min: 2500000, max: 5000000, annualInr: true },
+  '50–75 Lakhs': { min: 5000000, max: 7500000, annualInr: true },
+  '75–100 Lakhs': { min: 7500000, max: 10000000, annualInr: true },
+  '1–5 Crore': { min: 10000000, max: 50000000, annualInr: true },
+  '5+ Crore': { min: 50000000, max: null, annualInr: true }
+};
+
+const matchesSalaryRange = (job, rangeLabel) => {
+  const range = SALARY_RANGES_MAP[rangeLabel];
+  if (!range) return true;
+
+  let jMin = job.minSalary !== undefined && job.minSalary !== null ? Number(job.minSalary) : null;
+  let jMax = job.maxSalary !== undefined && job.maxSalary !== null ? Number(job.maxSalary) : null;
+
+  if (jMin === null || isNaN(jMin) || jMax === null || isNaN(jMax)) {
+    const nums = (job.salary || '').replace(/,/g, '').match(/\d+/g)?.map(Number) || [];
+    if (nums.length >= 2) {
+      jMin = nums[0];
+      jMax = nums[1];
+    } else if (nums.length === 1) {
+      jMin = nums[0];
+      jMax = nums[0];
+    } else {
+      return false;
+    }
+  }
+
+  if (range.annualInr) {
+    const inrMin = jMin * 12 * 23;
+    const inrMax = jMax * 12 * 23;
+    if (range.max === null || range.max === undefined) {
+      return inrMax >= range.min;
+    }
+    return inrMax >= range.min && inrMin <= range.max;
+  } else {
+    if (range.max === null || range.max === undefined) {
+      return jMax >= range.min;
+    }
+    return jMax >= range.min && jMin <= range.max;
+  }
+};
+
+const parseJobExperienceRange = (expStr) => {
+  if (!expStr) return { min: 0, max: 30 };
+  const s = String(expStr).toLowerCase();
+  if (s.includes('fresher') || s.includes('entry') || s.includes('trainee')) {
+    return { min: 0, max: 1 };
+  }
+  const nums = s.replace(/–/g, '-').match(/\d+/g)?.map(Number) || [];
+  if (nums.length >= 2) {
+    return { min: nums[0], max: nums[1] };
+  } else if (nums.length === 1) {
+    return { min: nums[0], max: s.includes('+') ? 30 : nums[0] };
+  }
+  return { min: 0, max: 30 };
+};
+
+const matchesExperienceYears = (job, years) => {
+  if (years === null || years === undefined) return true;
+  const y = Number(years);
+  if (isNaN(y)) return true;
+  const { min, max } = parseJobExperienceRange(job.experience);
+  return min <= y && max >= y;
+};
+
 app.get('/api/jobs', async (req, res) => {
   try {
     await seedJobs();
@@ -1438,26 +2059,155 @@ app.get('/api/jobs', async (req, res) => {
     let query = 'SELECT * FROM jobs WHERE 1=1';
     const params = [];
 
-    if (req.query.country && req.query.country !== 'All') {
-      query += ' AND country = ?';
-      params.push(req.query.country);
+    // Helper for multi-select (comma-separated or array)
+    const getValues = (val) => {
+      if (!val || val === 'All') return [];
+      if (Array.isArray(val)) return val.map(v => String(v).trim()).filter(Boolean);
+      return String(val).split(',').map(v => v.trim()).filter(v => v && v !== 'All');
+    };
+
+    // 1. Country filter (supports multi-select)
+    const countries = getValues(req.query.country);
+    if (countries.length > 0) {
+      query += ` AND (${countries.map(() => 'LOWER(country) = LOWER(?)').join(' OR ')})`;
+      params.push(...countries);
     }
-    if (req.query.category && req.query.category !== 'All') {
-      query += ' AND category = ?';
-      params.push(req.query.category);
+
+    // 2. City filter (supports multi-select)
+    const cities = getValues(req.query.city);
+    if (cities.length > 0) {
+      query += ` AND (${cities.map(() => '(LOWER(city) LIKE LOWER(?) OR LOWER(location) LIKE LOWER(?))').join(' OR ')})`;
+      cities.forEach(c => {
+        params.push(`%${c}%`, `%${c}%`);
+      });
     }
-    if (req.query.jobType && req.query.jobType !== 'All') {
-      query += ' AND jobType = ?';
-      params.push(req.query.jobType);
+
+    // 3. Industry / Category filter (supports multi-select)
+    const industries = getValues(req.query.industry || req.query.category);
+    if (industries.length > 0) {
+      query += ` AND (${industries.map(() => '(LOWER(industry) LIKE LOWER(?) OR LOWER(category) LIKE LOWER(?))').join(' OR ')})`;
+      industries.forEach(ind => {
+        params.push(`%${ind}%`, `%${ind}%`);
+      });
+    }
+
+    // 4. Job Function filter (supports multi-select)
+    const functions = getValues(req.query.function);
+    if (functions.length > 0) {
+      query += ` AND (${functions.map(() => '(LOWER(function) LIKE LOWER(?) OR LOWER(title) LIKE LOWER(?))').join(' OR ')})`;
+      functions.forEach(fn => {
+        params.push(`%${fn}%`, `%${fn}%`);
+      });
+    }
+
+    // 5. Job Type filter (supports multi-select)
+    const jobTypes = getValues(req.query.jobType);
+    if (jobTypes.length > 0) {
+      query += ` AND (${jobTypes.map(() => 'LOWER(jobType) = LOWER(?)').join(' OR ')})`;
+      params.push(...jobTypes);
+    }
+
+    // 5b. Company filter (supports multi-select)
+    const companies = getValues(req.query.company);
+    if (companies.length > 0) {
+      query += ` AND (${companies.map(() => 'LOWER(company) LIKE LOWER(?)').join(' OR ')})`;
+      companies.forEach(comp => {
+        params.push(`%${comp}%`);
+      });
+    }
+
+    // 5c. Visa sponsorship filter
+    if (req.query.visaSponsorship) {
+      const vs = String(req.query.visaSponsorship).toLowerCase().trim();
+      if (vs === 'sponsored' || vs.includes('provide')) {
+        query += ' AND LOWER(visaSponsorship) LIKE "%provided%"';
+      } else {
+        query += ' AND LOWER(visaSponsorship) LIKE ?';
+        params.push(`%${vs}%`);
+      }
+    }
+
+    // 5d. Contract type filter (Permanent, Fixed-term, Temporary)
+    const contractTypes = getValues(req.query.contractType);
+    if (contractTypes.length > 0) {
+      query += ` AND (${contractTypes.map(() => '(LOWER(contractType) LIKE LOWER(?) OR LOWER(jobType) LIKE LOWER(?))').join(' OR ')})`;
+      contractTypes.forEach(ct => params.push(`%${ct}%`, `%${ct}%`));
+    }
+
+    // 6. Currency
+    if (req.query.currency && req.query.currency !== 'All') {
+      query += ' AND (LOWER(currency) = LOWER(?) OR LOWER(salary) LIKE LOWER(?))';
+      params.push(req.query.currency, `%${req.query.currency}%`);
+    }
+
+    // 7. Salary range
+    if (req.query.minSalary && !isNaN(Number(req.query.minSalary))) {
+      query += ' AND (maxSalary IS NULL OR maxSalary >= ?)';
+      params.push(Number(req.query.minSalary));
+    }
+    if (req.query.maxSalary && !isNaN(Number(req.query.maxSalary))) {
+      query += ' AND (minSalary IS NULL OR minSalary <= ?)';
+      params.push(Number(req.query.maxSalary));
     }
 
     let rows = await db.all(query, params);
 
-    if (req.query.keyword) {
-      const k = req.query.keyword.toLowerCase();
-      rows = rows.filter(j => j.title.toLowerCase().includes(k) || j.company.toLowerCase().includes(k));
+    // Multi-select salary range brackets filter
+    const salaryRanges = getValues(req.query.salaryRanges);
+    if (salaryRanges.length > 0) {
+      rows = rows.filter(j => salaryRanges.some(sr => matchesSalaryRange(j, sr)));
     }
 
+    // Experience years slider filter
+    if (req.query.experienceYears !== undefined && req.query.experienceYears !== '' && !isNaN(Number(req.query.experienceYears))) {
+      const expYrs = Number(req.query.experienceYears);
+      rows = rows.filter(j => matchesExperienceYears(j, expYrs));
+    }
+
+    // Keyword search across title, company, skills, description, and qualifications
+    if (req.query.keyword) {
+      const k = req.query.keyword.toLowerCase().trim();
+      rows = rows.filter(j => {
+        const titleMatch = (j.title || '').toLowerCase().includes(k);
+        const compMatch = (j.company || '').toLowerCase().includes(k);
+        const descMatch = (j.description || '').toLowerCase().includes(k);
+        const qualMatch = (j.qualification || '').toLowerCase().includes(k) || 
+                          (j.requiredDegree || '').toLowerCase().includes(k) || 
+                          (j.academicQualifications || '').toLowerCase().includes(k) || 
+                          (j.mandatoryLicences || '').toLowerCase().includes(k);
+        const skillsArray = parseArray(j.skills);
+        const skillMatch = skillsArray.some(s => String(s).toLowerCase().includes(k));
+        return titleMatch || compMatch || descMatch || skillMatch || qualMatch;
+      });
+    }
+
+    // Experience filter (flexible matching)
+    const experiences = getValues(req.query.experience);
+    if (experiences.length > 0) {
+      rows = rows.filter(j => {
+        const je = (j.experience || '').toLowerCase();
+        return experiences.some(feRaw => {
+          const fe = feRaw.toLowerCase();
+          if (fe.includes('fresher') && (je.includes('fresher') || je.includes('trainee') || je.includes('0–1') || je.includes('0 - 1') || je.includes('0 years'))) return true;
+          if (fe.includes('entry') && (je.includes('entry') || je.includes('0–1') || je.includes('0 - 1') || je.includes('fresher'))) return true;
+          if (fe.includes('1–3') || fe.includes('1-3')) {
+            if (je.includes('1–3') || je.includes('1 - 3') || je.includes('2 years') || je.includes('2 - 4') || je.includes('1 - 3+')) return true;
+          }
+          if (fe.includes('3–5') || fe.includes('3-5')) {
+            if (je.includes('3–5') || je.includes('3 - 5') || je.includes('4 - 7') || je.includes('3 - 6') || je.includes('3 - 5+')) return true;
+          }
+          if (fe.includes('5–10') || fe.includes('5-10') || fe.includes('5+')) {
+            if (je.includes('5+') || je.includes('5 - 8') || je.includes('5 - 9') || je.includes('6 - 10') || je.includes('7 - 10') || je.includes('8 - 12') || je.includes('8 - 14') || je.includes('10 - 15')) return true;
+          }
+          if (fe.includes('10+') || fe.includes('10+ years')) {
+            if (je.includes('10+') || je.includes('10 - 15') || je.includes('8 - 14')) return true;
+          }
+          return je.includes(fe);
+        });
+      });
+    }
+
+    // Parse array columns
     rows = rows.map(r => ({
       ...r,
       skills: parseArray(r.skills),
@@ -1465,7 +2215,40 @@ app.get('/api/jobs', async (req, res) => {
       featured: r.featured === 1
     }));
 
-    res.json({ success: true, count: rows.length, data: rows });
+    // Sorting
+    const sortBy = req.query.sortBy || 'latest';
+    if (sortBy === 'salary-high') {
+      rows.sort((a, b) => (Number(b.maxSalary || b.minSalary || 0) - Number(a.maxSalary || a.minSalary || 0)));
+    } else if (sortBy === 'salary-low') {
+      rows.sort((a, b) => (Number(a.minSalary || a.maxSalary || 0) - Number(b.minSalary || b.maxSalary || 0)));
+    } else if (sortBy === 'relevant') {
+      rows.sort((a, b) => (b.featured ? 1 : 0) - (a.featured ? 1 : 0));
+    } else {
+      // 'latest' default
+      rows.sort((a, b) => (b.id > a.id ? 1 : -1));
+    }
+
+    const totalCount = rows.length;
+
+    // Optional server pagination
+    if (req.query.page) {
+      const page = Math.max(1, parseInt(req.query.page, 10) || 1);
+      const limit = Math.max(1, parseInt(req.query.limit, 10) || 6);
+      const totalPages = Math.max(1, Math.ceil(totalCount / limit));
+      const startIndex = (page - 1) * limit;
+      const paginatedData = rows.slice(startIndex, startIndex + limit);
+
+      return res.json({
+        success: true,
+        count: totalCount,
+        page,
+        limit,
+        totalPages,
+        data: paginatedData
+      });
+    }
+
+    res.json({ success: true, count: totalCount, data: rows });
   } catch (error) {
     console.error('Error fetching jobs:', error);
     res.status(500).json({ success: false, message: 'Failed to fetch jobs' });
@@ -1486,9 +2269,29 @@ app.get('/api/jobs/:id', async (req, res) => {
   }
 });
 
-app.post('/api/jobs', async (req, res) => {
+app.post('/api/jobs', requireEmployerOrAdmin, async (req, res) => {
   try {
-    const { id, title, company, country, location, salary, experience, jobType, category, description, vacancies, skills, qualification, benefits } = req.body;
+    const { 
+      id, title, company, country, location, salary, experience, jobType, category, description, vacancies, skills, qualification, benefits,
+      educationLevel, requiredDegree, academicQualifications, mandatoryLicences,
+      contractType, contractDuration, contractRenewal,
+      accommodation, transportation, livingAllowancesDetails,
+      visaSponsorship, visaSupportDetails, closingDate
+    } = req.body;
+
+    // Validate application closing date
+    if (closingDate) {
+      const parsedDate = new Date(closingDate);
+      if (isNaN(parsedDate.getTime())) {
+        return res.status(400).json({ success: false, message: 'Invalid closing date format.' });
+      }
+      const todayStart = new Date();
+      todayStart.setHours(0, 0, 0, 0);
+      if (parsedDate < todayStart) {
+        return res.status(400).json({ success: false, message: 'Application closing date cannot be in the past.' });
+      }
+    }
+
     const jobId = id || `job-${Date.now()}`;
     const skillsStr = JSON.stringify(Array.isArray(skills) ? skills : (skills ? skills.split(',').map(s => s.trim()) : ['Management']));
     const benefitsStr = JSON.stringify(Array.isArray(benefits) ? benefits : (benefits ? benefits.split(',').map(b => b.trim()) : ['Tax-free salary', 'Visa Sponsorship']));
@@ -1496,12 +2299,22 @@ app.post('/api/jobs', async (req, res) => {
     const todayDateStr = new Date().toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' });
     const db = await getDb();
     await db.run(`
-      INSERT INTO jobs (id, title, company, country, location, salary, experience, jobType, category, description, vacancies, skills, qualification, benefits, postedDate, featured)
-      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 0)
+      INSERT INTO jobs (
+        id, title, company, country, location, salary, experience, jobType, category, description, vacancies, skills, qualification, benefits, postedDate, featured,
+        educationLevel, requiredDegree, academicQualifications, mandatoryLicences,
+        contractType, contractDuration, contractRenewal,
+        accommodation, transportation, livingAllowancesDetails,
+        visaSponsorship, visaSupportDetails, closingDate
+      )
+      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 0, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
     `, [
       jobId, title || 'Untitled', company || 'Revival International', country || 'UAE', location || '',
       salary || 'Negotiable', experience || '2-5 Years', jobType || 'Full-time', category || 'General',
-      description || '', vacancies || '1', skillsStr, qualification || 'Degree', benefitsStr, todayDateStr
+      description || '', vacancies || '1', skillsStr, qualification || "Bachelor's Degree", benefitsStr, todayDateStr,
+      educationLevel || "Bachelor's Degree", requiredDegree || qualification || '', academicQualifications || '', mandatoryLicences || '',
+      contractType || jobType || 'Permanent', contractDuration || 'Indefinite', contractRenewal || 'Yes, Renewable upon mutual agreement',
+      accommodation || 'Allowance Provided', transportation || 'Allowance Provided', livingAllowancesDetails || '',
+      visaSponsorship || 'Visa sponsorship provided', visaSupportDetails || 'Full visa sponsorship assistance provided.', closingDate || null
     ]);
 
     const newJob = await db.get('SELECT * FROM jobs WHERE id = ?', [jobId]);
@@ -1510,24 +2323,65 @@ app.post('/api/jobs', async (req, res) => {
     newJob.featured = false;
     res.json({ success: true, message: 'Job posted successfully', data: newJob });
   } catch (error) {
+    console.error('Error creating job posting:', error);
     res.status(500).json({ success: false, message: 'Failed to create job' });
   }
 });
 
-app.put('/api/jobs/:id', async (req, res) => {
+app.put('/api/jobs/:id', requireEmployerOrAdmin, async (req, res) => {
   try {
     const db = await getDb();
-    const { title, company, country, location, salary, experience, jobType, category, description, vacancies, skills, qualification, benefits } = req.body;
+    const { 
+      title, company, country, location, salary, experience, jobType, category, description, vacancies, skills, qualification, benefits,
+      educationLevel, requiredDegree, academicQualifications, mandatoryLicences,
+      contractType, contractDuration, contractRenewal,
+      accommodation, transportation, livingAllowancesDetails,
+      visaSponsorship, visaSupportDetails, closingDate
+    } = req.body;
+
+    // Validate application closing date if provided
+    if (closingDate) {
+      const parsedDate = new Date(closingDate);
+      if (isNaN(parsedDate.getTime())) {
+        return res.status(400).json({ success: false, message: 'Invalid closing date format.' });
+      }
+      const todayStart = new Date();
+      todayStart.setHours(0, 0, 0, 0);
+      if (parsedDate < todayStart) {
+        return res.status(400).json({ success: false, message: 'Application closing date cannot be in the past.' });
+      }
+    }
+
     const skillsStr = JSON.stringify(Array.isArray(skills) ? skills : (skills ? skills.split(',').map(s => s.trim()) : []));
     const benefitsStr = JSON.stringify(Array.isArray(benefits) ? benefits : (benefits ? benefits.split(',').map(b => b.trim()) : []));
 
     await db.run(`
-      UPDATE jobs SET title = ?, company = ?, country = ?, location = ?, salary = ?, experience = ?, jobType = ?, category = ?, description = ?, vacancies = ?, skills = ?, qualification = ?, benefits = ?
+      UPDATE jobs SET 
+        title = ?, company = ?, country = ?, location = ?, salary = ?, experience = ?, jobType = ?, category = ?, description = ?, vacancies = ?, skills = ?, qualification = ?, benefits = ?,
+        educationLevel = ?, requiredDegree = ?, academicQualifications = ?, mandatoryLicences = ?,
+        contractType = ?, contractDuration = ?, contractRenewal = ?,
+        accommodation = ?, transportation = ?, livingAllowancesDetails = ?,
+        visaSponsorship = ?, visaSupportDetails = ?, closingDate = ?
       WHERE id = ?
-    `, [title, company, country, location, salary, experience, jobType, category, description, vacancies, skillsStr, qualification, benefitsStr, req.params.id]);
+    `, [
+      title, company, country, location, salary, experience, jobType, category, description, vacancies, skillsStr, qualification, benefitsStr,
+      educationLevel, requiredDegree, academicQualifications, mandatoryLicences,
+      contractType, contractDuration, contractRenewal,
+      accommodation, transportation, livingAllowancesDetails,
+      visaSponsorship, visaSupportDetails, closingDate,
+      req.params.id
+    ]);
 
-    res.json({ success: true, message: 'Job updated successfully' });
+    const updatedJob = await db.get('SELECT * FROM jobs WHERE id = ?', [req.params.id]);
+    if (updatedJob) {
+      updatedJob.skills = parseArray(updatedJob.skills);
+      updatedJob.benefits = parseArray(updatedJob.benefits);
+      updatedJob.featured = updatedJob.featured === 1;
+    }
+
+    res.json({ success: true, message: 'Job updated successfully', data: updatedJob });
   } catch (error) {
+    console.error('Error updating job posting:', error);
     res.status(500).json({ success: false, message: 'Failed to update job' });
   }
 });

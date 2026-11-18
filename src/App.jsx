@@ -40,7 +40,7 @@ import { CrmApp } from './crm/CrmApp';
 import { ErpApp } from './erp/ErpApp';
 
 export function App() {
-  const { activeTab } = useApp();
+  const { activeTab, user } = useApp();
 
   const isCrmRoute = activeTab === 'crm' || 
     (typeof window !== 'undefined' && (window.location.pathname.replace(/^\/+|\/+$/g, '').startsWith('crm') || window.location.hash === '#crm'));
@@ -59,6 +59,18 @@ export function App() {
 
   if (isCrmRoute) {
     return <CrmApp />;
+  }
+
+  const isCandidatePortalRoute = (activeTab === 'candidates' || (typeof window !== 'undefined' && (window.location.pathname.replace(/^\/+|\/+$/g, '') === 'candidates' || window.location.hash === '#candidates'))) && user && user.role === 'candidate';
+
+  if (isCandidatePortalRoute) {
+    return (
+      <div className="h-screen h-[100dvh] max-h-screen overflow-hidden bg-[#F8F9FA] dark:bg-[#070c1e] font-sans selection:bg-gold-500 selection:text-white">
+        <CandidatePortal />
+        <AIResumeAnalyzerModal />
+        <ResumeBuilderModal />
+      </div>
+    );
   }
 
   const isStudentAcademyPage = Boolean(
@@ -279,7 +291,7 @@ export function App() {
       <AIResumeAnalyzerModal />
       <PaymentGatewayModal />
       <ResumeBuilderModal />
-      <AIChatbotDrawer />
+      {activeTab !== 'candidates' && activeTab !== 'employers' && <AIChatbotDrawer />}
       <FloatingWhatsApp />
       <CookieConsent />
     </div>

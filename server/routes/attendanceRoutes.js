@@ -329,7 +329,14 @@ export const registerAttendanceRoutes = (app, { getDb, getClientIp }) => {
           assignedRole === 'Placement Coordinator' ? 'Placement & Client Relations' :
           'International HR Operations'
         );
-        const assignedEmpId = employeeId || `REV-EMP-${Math.floor(100 + Math.random() * 900)}`;
+        let assignedEmpId = employeeId;
+        if (!assignedEmpId) {
+          assignedEmpId = `REV-EMP-${Math.floor(100 + Math.random() * 900)}`;
+        }
+        const existingEmpWithId = await db.get('SELECT id FROM employees WHERE employeeId = ?', [assignedEmpId]);
+        if (existingEmpWithId) {
+          assignedEmpId = `REV-EMP-${Date.now().toString().slice(-4)}-${Math.floor(100 + Math.random() * 900)}`;
+        }
         const newId = `emp-${Date.now()}`;
 
         await db.run(

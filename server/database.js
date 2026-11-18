@@ -44,15 +44,15 @@ export const getDbPath = () => {
 };
 
 export const DEFAULT_CRM_EMPLOYEES = [
-  { 
-    id: 'emp-1', 
-    employeeId: 'REV-EMP-001', 
-    name: 'Dhanalakshimi', 
-    email: 'thejobsyncit@gmail.com', 
+  {
+    id: 'emp-1',
+    employeeId: 'REV-EMP-001',
+    name: 'Dhanalakshimi',
+    email: 'thejobsyncit@gmail.com',
     altEmail: 'dhana.jasync@gmail.com',
-    phone: '+91 9003475405', 
-    role: 'Super Admin', 
-    department: 'Executive Management', 
+    phone: '+91 9003475405',
+    role: 'Super Admin',
+    department: 'Executive Management',
     designation: 'Managing Director & Super Admin',
     reportingManager: 'Board of Directors',
     joiningDate: '2023-01-15',
@@ -61,18 +61,18 @@ export const DEFAULT_CRM_EMPLOYEES = [
     dateOfBirth: '1988-08-14',
     address: 'Level 34, Rolex Tower, Financial Center Road, Business Bay, Dubai',
     avatar: 'https://images.unsplash.com/photo-1573496359142-b8d87734a5a2?w=150&auto=format&fit=crop&q=80',
-    password: 'Thejobsync@26', 
-    status: 'Active', 
-    createdAt: '2026-11-01 09:00:00' 
+    password: 'Thejobsync@26',
+    status: 'Active',
+    createdAt: '2026-11-01 09:00:00'
   },
-  { 
-    id: 'emp-2', 
-    employeeId: 'REV-EMP-002', 
-    name: 'Sarah Jenkins', 
-    email: 'sarah.admin@revivalinternational.com', 
-    phone: '+91 98400 11002', 
-    role: 'Admin', 
-    department: 'Operations Management', 
+  {
+    id: 'emp-2',
+    employeeId: 'REV-EMP-002',
+    name: 'Sarah Jenkins',
+    email: 'sarah.admin@revivalinternational.com',
+    phone: '+91 98400 11002',
+    role: 'Admin',
+    department: 'Operations Management',
     designation: 'Senior CRM Administrator',
     reportingManager: 'Dhanalakshimi (Super Admin)',
     joiningDate: '2023-04-10',
@@ -81,18 +81,18 @@ export const DEFAULT_CRM_EMPLOYEES = [
     dateOfBirth: '1991-03-22',
     address: 'Dubai Silicon Oasis, Dubai, UAE',
     avatar: 'https://images.unsplash.com/photo-1580489944761-15a19d654956?w=150&auto=format&fit=crop&q=80',
-    password: 'Password123!', 
-    status: 'Active', 
-    createdAt: '2026-11-01 09:00:00' 
+    password: 'Password123!',
+    status: 'Active',
+    createdAt: '2026-11-01 09:00:00'
   },
-  { 
-    id: 'emp-3', 
-    employeeId: 'REV-EMP-003', 
-    name: 'Priya Sharma', 
-    email: 'priya.lead@revivalinternational.com', 
-    phone: '+91 98400 11003', 
-    role: 'HR Lead', 
-    department: 'Human Resources', 
+  {
+    id: 'emp-3',
+    employeeId: 'REV-EMP-003',
+    name: 'Priya Sharma',
+    email: 'priya.lead@revivalinternational.com',
+    phone: '+91 98400 11003',
+    role: 'HR Lead',
+    department: 'Human Resources',
     designation: 'Head of Global HR & Operations',
     reportingManager: 'Dhanalakshimi (Super Admin)',
     joiningDate: '2023-06-01',
@@ -101,18 +101,18 @@ export const DEFAULT_CRM_EMPLOYEES = [
     dateOfBirth: '1990-12-05',
     address: 'Al Barsha 1, Dubai, UAE',
     avatar: 'https://images.unsplash.com/photo-1573497019940-1c28c88b4f3e?w=150&auto=format&fit=crop&q=80',
-    password: 'Password123!', 
-    status: 'Active', 
-    createdAt: '2026-11-01 09:00:00' 
+    password: 'Password123!',
+    status: 'Active',
+    createdAt: '2026-11-01 09:00:00'
   },
-  { 
-    id: 'emp-4', 
-    employeeId: 'REV-EMP-004', 
-    name: 'Kishore Kumar', 
-    email: 'kishore.recruiter@revivalinternational.com', 
-    phone: '+91 98400 11004', 
-    role: 'Recruiter', 
-    department: 'Talent Acquisition & ATS', 
+  {
+    id: 'emp-4',
+    employeeId: 'REV-EMP-004',
+    name: 'Kishore Kumar',
+    email: 'kishore.recruiter@revivalinternational.com',
+    phone: '+91 98400 11004',
+    role: 'Recruiter',
+    department: 'Talent Acquisition & ATS',
     designation: 'Lead Recruitment Specialist',
     reportingManager: 'Priya Sharma (HR Lead)',
     joiningDate: '2023-09-15',
@@ -121,18 +121,18 @@ export const DEFAULT_CRM_EMPLOYEES = [
     dateOfBirth: '1993-07-19',
     address: 'Anna Nagar, Chennai, India',
     avatar: 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=150&auto=format&fit=crop&q=80',
-    password: 'Password123!', 
-    status: 'Active', 
-    createdAt: '2026-11-01 09:00:00' 
+    password: 'Password123!',
+    status: 'Active',
+    createdAt: '2026-11-01 09:00:00'
   },
-  { 
-    id: 'emp-5', 
-    employeeId: 'REV-EMP-005', 
-    name: 'Sreeja Nair', 
-    email: 'sreeja.jasync@gmail.com', 
-    phone: '+91 9876543211', 
-    role: 'Placement Coordinator', 
-    department: 'Placement & Industry Relations', 
+  {
+    id: 'emp-5',
+    employeeId: 'REV-EMP-005',
+    name: 'Sreeja Nair',
+    email: 'sreeja.jasync@gmail.com',
+    phone: '+91 9876543211',
+    role: 'Placement Coordinator',
+    department: 'Placement & Industry Relations',
     designation: 'Senior Placement Coordinator',
     reportingManager: 'Priya Sharma (HR Lead)',
     joiningDate: '2023-10-01',
@@ -141,21 +141,21 @@ export const DEFAULT_CRM_EMPLOYEES = [
     dateOfBirth: '1994-02-17',
     address: 'Dubai Marina, Dubai, UAE',
     avatar: 'https://images.unsplash.com/photo-1544005313-94ddf0286df2?w=150&auto=format&fit=crop&q=80',
-    password: 'Password123!', 
-    status: 'Active', 
-    createdAt: '2026-11-01 09:00:00' 
+    password: 'Password123!',
+    status: 'Active',
+    createdAt: '2026-11-01 09:00:00'
   },
-  { 
-    id: 'emp-6', 
-    employeeId: 'REV-EMP-006', 
-    name: 'Balavarshini S.', 
-    email: 'balavarshini.s@revivalinternational.com', 
+  {
+    id: 'emp-6',
+    employeeId: 'REV-EMP-006',
+    name: 'Balavarshini S.',
+    email: 'balavarshini.s@revivalinternational.com',
     altEmail: 'balavarshini2223@gmail.com',
-    phone: '+91 9876543214', 
-    role: 'HR Operations', 
-    department: 'International HR Operations', 
-    designation: 'Lead HR Operations Specialist', 
-    operationTeam: 'International HR Operations', 
+    phone: '+91 9876543214',
+    role: 'HR Operations',
+    department: 'International HR Operations',
+    designation: 'Lead HR Operations Specialist',
+    operationTeam: 'International HR Operations',
     assignedBranch: 'Branch A: International HR Operations (International Admissions & Consulting)',
     reportingManager: 'Priya Sharma (HR Lead)',
     joiningDate: '2023-08-10',
@@ -163,20 +163,20 @@ export const DEFAULT_CRM_EMPLOYEES = [
     dateOfBirth: '1996-11-14',
     address: 'OMR IT Corridor, Chennai, India',
     avatar: 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=150&auto=format&fit=crop&q=80',
-    password: 'Password123!', 
-    status: 'Active', 
-    createdAt: '2026-11-01 09:00:00' 
+    password: 'Password123!',
+    status: 'Active',
+    createdAt: '2026-11-01 09:00:00'
   },
-  { 
-    id: 'emp-fatima', 
-    employeeId: 'REV-EMP-107', 
-    name: 'Fatima', 
-    email: 'fatima.intl@revivalinternational.com', 
-    phone: '+971 50 876 5432', 
-    role: 'HR Operations', 
-    department: 'International HR Operations', 
-    designation: 'International HR Operations Specialist', 
-    operationTeam: 'International HR Operations', 
+  {
+    id: 'emp-fatima',
+    employeeId: 'REV-EMP-107',
+    name: 'Fatima',
+    email: 'fatima.intl@revivalinternational.com',
+    phone: '+971 50 876 5432',
+    role: 'HR Operations',
+    department: 'International HR Operations',
+    designation: 'International HR Operations Specialist',
+    operationTeam: 'International HR Operations',
     assignedBranch: 'Branch A: International HR Operations (International Admissions & Consulting)',
     reportingManager: 'Priya Sharma (HR Lead)',
     joiningDate: '2024-03-15',
@@ -184,20 +184,20 @@ export const DEFAULT_CRM_EMPLOYEES = [
     dateOfBirth: '1994-06-21',
     address: 'Business Bay, Executive Towers, Dubai, UAE',
     avatar: 'https://images.unsplash.com/photo-1573496359142-b8d87734a5a2?w=150&auto=format&fit=crop&q=80',
-    password: 'Password123!', 
-    status: 'Active', 
-    createdAt: '2026-11-01 09:00:00' 
+    password: 'Password123!',
+    status: 'Active',
+    createdAt: '2026-11-01 09:00:00'
   },
-  { 
-    id: 'emp-divya', 
-    employeeId: 'REV-EMP-102', 
-    name: 'Divya R.', 
-    email: 'divya.enq@revivalinternational.com', 
-    phone: '+91 98401 11202', 
-    role: 'HR Operations', 
-    department: 'Enquiry HR Operations', 
-    designation: 'HR Operations Specialist', 
-    operationTeam: 'Enquiry HR Operations', 
+  {
+    id: 'emp-divya',
+    employeeId: 'REV-EMP-102',
+    name: 'Divya R.',
+    email: 'divya.enq@revivalinternational.com',
+    phone: '+91 98401 11202',
+    role: 'HR Operations',
+    department: 'Enquiry HR Operations',
+    designation: 'HR Operations Specialist',
+    operationTeam: 'Enquiry HR Operations',
     assignedBranch: 'Branch B: Enquiry HR Operations (Career Guidance, Student Academy, College Admissions)',
     reportingManager: 'Priya Sharma (HR Lead)',
     joiningDate: '2024-01-22',
@@ -205,20 +205,20 @@ export const DEFAULT_CRM_EMPLOYEES = [
     dateOfBirth: '1997-04-18',
     address: 'T. Nagar, Chennai, India',
     avatar: 'https://images.unsplash.com/photo-1517841905240-472988babdf9?w=150&auto=format&fit=crop&q=80',
-    password: 'Password123!', 
-    status: 'Active', 
-    createdAt: '2026-11-01 09:00:00' 
+    password: 'Password123!',
+    status: 'Active',
+    createdAt: '2026-11-01 09:00:00'
   },
-  { 
-    id: 'emp-praveen', 
-    employeeId: 'REV-EMP-108', 
-    name: 'Praveen Kumar', 
-    email: 'praveen.enq@revivalinternational.com', 
-    phone: '+91 98401 11208', 
-    role: 'HR Operations', 
-    department: 'Enquiry HR Operations', 
-    designation: 'HR Operations Specialist', 
-    operationTeam: 'Enquiry HR Operations', 
+  {
+    id: 'emp-praveen',
+    employeeId: 'REV-EMP-108',
+    name: 'Praveen Kumar',
+    email: 'praveen.enq@revivalinternational.com',
+    phone: '+91 98401 11208',
+    role: 'HR Operations',
+    department: 'Enquiry HR Operations',
+    designation: 'HR Operations Specialist',
+    operationTeam: 'Enquiry HR Operations',
     assignedBranch: 'Branch B: Enquiry HR Operations (Career Guidance, Student Academy, College Admissions)',
     reportingManager: 'Priya Sharma (HR Lead)',
     joiningDate: '2024-05-02',
@@ -226,9 +226,9 @@ export const DEFAULT_CRM_EMPLOYEES = [
     dateOfBirth: '1995-09-30',
     address: 'Velachery Main Road, Chennai, India',
     avatar: 'https://images.unsplash.com/photo-1500648767791-00dcc994a43e?w=150&auto=format&fit=crop&q=80',
-    password: 'Password123!', 
-    status: 'Active', 
-    createdAt: '2026-11-01 09:00:00' 
+    password: 'Password123!',
+    status: 'Active',
+    createdAt: '2026-11-01 09:00:00'
   }
 ];
 
@@ -819,7 +819,20 @@ const initDb = async (db) => {
       qualification TEXT,
       benefits TEXT,
       postedDate TEXT,
-      featured INTEGER DEFAULT 0
+      featured INTEGER DEFAULT 0,
+      educationLevel TEXT,
+      requiredDegree TEXT,
+      academicQualifications TEXT,
+      mandatoryLicences TEXT,
+      contractType TEXT,
+      contractDuration TEXT,
+      contractRenewal TEXT,
+      accommodation TEXT,
+      transportation TEXT,
+      livingAllowancesDetails TEXT,
+      visaSponsorship TEXT,
+      visaSupportDetails TEXT,
+      closingDate TEXT
     );
 
     CREATE TABLE IF NOT EXISTS candidates (
@@ -1244,6 +1257,23 @@ const initDb = async (db) => {
     { name: 'shiftId', type: "TEXT DEFAULT 'SHIFT-GENERAL'" }
   ]);
 
+  // Ensure new international job details columns exist on jobs table
+  await ensureColumns('jobs', [
+    { name: 'educationLevel', type: 'TEXT' },
+    { name: 'requiredDegree', type: 'TEXT' },
+    { name: 'academicQualifications', type: 'TEXT' },
+    { name: 'mandatoryLicences', type: 'TEXT' },
+    { name: 'contractType', type: 'TEXT' },
+    { name: 'contractDuration', type: 'TEXT' },
+    { name: 'contractRenewal', type: 'TEXT' },
+    { name: 'accommodation', type: 'TEXT' },
+    { name: 'transportation', type: 'TEXT' },
+    { name: 'livingAllowancesDetails', type: 'TEXT' },
+    { name: 'visaSponsorship', type: 'TEXT' },
+    { name: 'visaSupportDetails', type: 'TEXT' },
+    { name: 'closingDate', type: 'TEXT' }
+  ]);
+
   // Seed default employees for all roles if table is empty or ensure HR Operations specialists
   try {
     for (const emp of DEFAULT_CRM_EMPLOYEES) {
@@ -1254,22 +1284,22 @@ const initDb = async (db) => {
       await db.run(
         `UPDATE employees SET name = ?, department = ?, designation = ?, operationTeam = ?, assignedBranch = ?, reportingManager = ?, joiningDate = ?, employmentStatus = ?, dateOfBirth = ?, address = ?, avatar = ?, altEmail = COALESCE(?, altEmail), shiftId = COALESCE(shiftId, 'SHIFT-GENERAL') WHERE employeeId = ? OR id = ?`,
         [
-          emp.name, 
-          emp.department, 
-          emp.designation || null, 
-          emp.operationTeam || null, 
-          emp.assignedBranch || null, 
-          emp.reportingManager || null, 
-          emp.joiningDate || null, 
-          emp.employmentStatus || 'Full-Time (Active)', 
-          emp.dateOfBirth || null, 
-          emp.address || null, 
-          emp.avatar || null, 
+          emp.name,
+          emp.department,
+          emp.designation || null,
+          emp.operationTeam || null,
+          emp.assignedBranch || null,
+          emp.reportingManager || null,
+          emp.joiningDate || null,
+          emp.employmentStatus || 'Full-Time (Active)',
+          emp.dateOfBirth || null,
+          emp.address || null,
+          emp.avatar || null,
           emp.altEmail || null,
-          emp.employeeId, 
+          emp.employeeId,
           emp.id
         ]
-      ).catch(() => {});
+      ).catch(() => { });
     }
   } catch (err) {
     console.warn('Employee table seeding notice:', err.message);
@@ -1478,7 +1508,7 @@ const initDb = async (db) => {
     console.warn('Organization seed check warning:', seedErr.message);
   }
 
-  
+
   // Seed default UG & PG Career Guidance Departments if none exist
   try {
     const deptCount = await db.get("SELECT COUNT(*) as count FROM career_departments");

@@ -105,6 +105,14 @@ const renderInlineFormatting = (str) => {
 };
 
 export const AIChatbotDrawer = () => {
+  if (typeof window !== 'undefined') {
+    const hash = (window.location.hash || '').toLowerCase();
+    const path = (window.location.pathname || '').toLowerCase();
+    if (hash.includes('candidates') || path.includes('candidates') || hash.includes('employers') || path.includes('employers')) {
+      return null;
+    }
+  }
+
   const [isOpen, setIsOpen] = useState(false);
   const [isMinimized, setIsMinimized] = useState(false);
   const isSubmittingRef = useRef(false);
