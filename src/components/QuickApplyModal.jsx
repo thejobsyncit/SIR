@@ -461,82 +461,29 @@ export const QuickApplyModal = ({ job, isOpen, onClose, onSuccess }) => {
               </button>
             </form>
           ) : (
-            /* Direct Success Screen */
-            <div className="text-center space-y-4 py-3">
-              <div className="w-14 h-14 mx-auto rounded-full bg-emerald-500/10 text-emerald-500 flex items-center justify-center">
-                <CheckCircle2 className="w-8 h-8" />
+            /* Success Screen exactly matching Image 1 */
+            <div className="text-center space-y-5 py-4">
+              <div className="w-16 h-16 mx-auto rounded-full bg-emerald-500/10 text-emerald-500 flex items-center justify-center">
+                <CheckCircle2 className="w-10 h-10" />
               </div>
 
-              <div className="space-y-1">
-                <span className="text-[10px] uppercase font-black tracking-widest text-emerald-600 dark:text-emerald-400 bg-emerald-500/10 px-2.5 py-0.5 rounded-full inline-block">
-                  Application Submitted
-                </span>
-                <h3 className="text-lg sm:text-xl font-bold text-slate-900 dark:text-white">
+              <div className="space-y-1.5">
+                <h3 className="text-xl font-bold text-slate-900 dark:text-white">
                   Application Submitted Successfully!
                 </h3>
                 <p className="text-xs text-slate-600 dark:text-slate-400 max-w-sm mx-auto leading-relaxed">
-                  Your customized, role-tailored application email and CV have been processed for{' '}
-                  <strong className="text-slate-900 dark:text-white">{job.title}</strong>.
+                  Your profile and CV have been routed directly to the recruitment advisor managing this vacancy.
                 </p>
               </div>
 
-              {/* Summary Card */}
-              <div className="bg-slate-50 dark:bg-navy-950 p-3.5 rounded-2xl border border-slate-200 dark:border-navy-800 text-left space-y-1.5 max-w-sm mx-auto text-xs">
-                <div className="flex justify-between">
-                  <span className="text-slate-500">Reference Number:</span>
-                  <span className="font-mono font-bold text-gold-500">{successResult?.applicationId || 'RI-APP-SUCCESS'}</span>
-                </div>
-                <div className="flex justify-between">
-                  <span className="text-slate-500">Position:</span>
-                  <span className="font-semibold text-slate-800 dark:text-slate-200">{job.title}</span>
-                </div>
-                <div className="flex justify-between">
-                  <span className="text-slate-500">Company:</span>
-                  <span className="font-semibold text-slate-800 dark:text-slate-200">{job.company}</span>
-                </div>
-                <div className="flex justify-between">
-                  <span className="text-slate-500">Applicant Inbox:</span>
-                  <span className="font-semibold text-emerald-600 dark:text-emerald-400">{email}</span>
-                </div>
-                <div className="flex justify-between">
-                  <span className="text-slate-500">Official Desk:</span>
-                  <span className="font-semibold text-slate-800 dark:text-slate-200">enquiry@therevivalinternational.com</span>
-                </div>
-              </div>
-
-              {/* Real Email Dispatched Banner */}
-              {!successResult?.simulated && (
-                <div className="p-3 bg-emerald-500/10 border border-emerald-500/20 rounded-xl text-left space-y-1 max-w-sm mx-auto">
-                  <div className="flex items-center gap-1.5 text-emerald-600 dark:text-emerald-400 text-xs font-bold">
-                    <CheckCircle2 className="w-3.5 h-3.5 shrink-0" />
-                    <span>Real Email Dispatched to Gmail</span>
-                  </div>
-                  <p className="text-[11px] text-slate-600 dark:text-slate-400 leading-relaxed">
-                    A confirmation email with your CV attachment has been dispatched directly to your Gmail inbox (<strong>{email}</strong>).
-                  </p>
-                </div>
-              )}
-
-              {/* SMTP Setup Notice if credentials are not yet configured */}
-              {successResult?.simulated && (
-                <div className="p-3 bg-amber-500/10 border border-amber-500/20 rounded-xl text-left space-y-1 max-w-sm mx-auto">
-                  <div className="flex items-center gap-1.5 text-amber-600 dark:text-amber-400 text-xs font-bold">
-                    <Info className="w-3.5 h-3.5 shrink-0" />
-                    <span>Real Email Inbox Setup Notice</span>
-                  </div>
-                  <p className="text-[11px] text-slate-600 dark:text-slate-400 leading-relaxed">
-                    Application is saved in database. Set your mail credentials in <code>SIR/.env</code> to dispatch real emails.
-                  </p>
-                </div>
-              )}
-
-              <div className="pt-1">
+              {/* Action Button */}
+              <div className="pt-2">
                 <button
                   type="button"
                   onClick={onClose}
-                  className="w-full bg-navy-900 dark:bg-navy-800 text-white font-bold text-xs py-2.5 rounded-xl hover:bg-navy-800 dark:hover:bg-navy-700 transition cursor-pointer"
+                  className="w-full bg-slate-200 dark:bg-navy-800 text-slate-800 dark:text-white font-bold text-xs py-3 rounded-xl hover:bg-slate-300 dark:hover:bg-navy-700 transition cursor-pointer"
                 >
-                  Close & Back to Vacancies
+                  Close
                 </button>
               </div>
             </div>
