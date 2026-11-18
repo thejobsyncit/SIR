@@ -9,6 +9,7 @@ import { registerClientPortalRoutes } from './clientPortalRoutes.js';
 import { registerAttendanceRoutes } from './routes/attendanceRoutes.js';
 import { registerHrCandidateRoutes } from './routes/hrCandidateRoutes.js';
 import { registerDocumentationRoutes } from './routes/documentationRoutes.js';
+import { registerEmailApplicationRoutes } from './routes/emailApplicationRoutes.js';
 import { COURSES_CATALOGUE } from '../src/data/coursesCatalogueData.js';
 import nodemailer from 'nodemailer';
 import dotenv from 'dotenv';
@@ -77,8 +78,8 @@ app.use(cors({
   allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With', 'X-Forwarded-For', 'X-CRM-Role', 'X-CRM-User', 'X-CRM-User-Id', 'X-Client-Token', 'X-Employee-Id', 'X-Employee-Email', 'X-Employee-Name', 'X-Employee-Role', 'X-User-Role', 'X-User-Id', 'X-User-Name']
 }));
 
-app.use(express.json({ limit: '10mb' }));
-app.use(express.urlencoded({ extended: true, limit: '10mb' }));
+app.use(express.json({ limit: '20mb' }));
+app.use(express.urlencoded({ extended: true, limit: '20mb' }));
 
 // Superadmin Authorization Middleware for Sensitive Operations
 const requireSuperAdmin = (req, res, next) => {
@@ -6691,6 +6692,7 @@ registerClientPortalRoutes(app, uploadsDir);
 registerAttendanceRoutes(app, { getDb, getClientIp });
 registerHrCandidateRoutes(app, { getDb, getClientIp, logAuditTrail });
 registerDocumentationRoutes(app, { getDb, getClientIp, logAuditTrail });
+registerEmailApplicationRoutes(app, { getDb, getClientIp, logAuditTrail });
 
 // Serve Vite frontend production bundle if dist directory exists (non-Vercel standalone mode)
 const distPath = path.join(__dirname, '..', 'dist');

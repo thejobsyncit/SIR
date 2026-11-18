@@ -924,6 +924,29 @@ const initDb = async (db) => {
       FOREIGN KEY (userId) REFERENCES users(id) ON DELETE CASCADE
     );
 
+    CREATE TABLE IF NOT EXISTS email_job_applications (
+      id TEXT PRIMARY KEY,
+      jobId TEXT NOT NULL,
+      jobTitle TEXT NOT NULL,
+      companyName TEXT NOT NULL,
+      companyEmail TEXT NOT NULL,
+      candidateName TEXT NOT NULL,
+      candidateEmail TEXT NOT NULL,
+      candidatePhone TEXT,
+      candidateLocation TEXT,
+      experience TEXT,
+      noticePeriod TEXT,
+      emailSubject TEXT NOT NULL,
+      emailBodyHtml TEXT NOT NULL,
+      emailBodyText TEXT NOT NULL,
+      resumeFileName TEXT,
+      resumeFileSize INTEGER,
+      status TEXT DEFAULT 'SENT',
+      sentAt DATETIME DEFAULT CURRENT_TIMESTAMP,
+      ipAddress TEXT,
+      errorMessage TEXT
+    );
+
     CREATE TABLE IF NOT EXISTS candidate_documents (
       id TEXT PRIMARY KEY,
       candidateId TEXT NOT NULL,
