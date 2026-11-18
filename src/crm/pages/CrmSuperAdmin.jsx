@@ -5,7 +5,7 @@ import { useCrm } from '../context/CrmContext';
 import { CRM_ROLES } from '../data/mockCrmData';
 import { 
   Users, UserPlus, RefreshCw, Trash2, CheckCircle2, ShieldCheck, Mail, Phone, Lock, Search, Filter, Check, Building, FileText, Eye, EyeOff,
-  Activity, Clock, Calendar, AlertCircle, XCircle, Database, Award, Globe, Server, Settings, Key, Plus, ChevronRight, TrendingUp, UserCheck, Edit,
+  Activity, Clock, Calendar, AlertCircle, AlertTriangle, XCircle, Database, Award, Globe, Server, Settings, Key, Plus, ChevronRight, TrendingUp, UserCheck, Edit,
   MessageSquare, ExternalLink, Inbox, Briefcase, Sparkles, Copy, Send, GraduationCap, Building2, CheckSquare, Tag, Compass,
   Download, Archive, RotateCcw, ChevronLeft, Layers
 } from 'lucide-react';
@@ -30,7 +30,8 @@ export const CrmSuperAdmin = () => {
     followUpsSummary,
     fetchFollowUpsSummary,
     followUps = [],
-    fetchFollowUps
+    fetchFollowUps,
+    crmToken
   } = useCrm();
 
   const [activeTab, setActiveTab] = useState('overview'); // 'overview' | 'inquiries' | 'employees' | 'attendance' | 'leaves' | 'company' | 'master'
@@ -105,6 +106,98 @@ export const CrmSuperAdmin = () => {
     };
     fetchDbEmployees();
   }, []);
+
+  // Real-time Workforce Role Logins & Late Arrival Approvals
+  const [pendingLateApprovals, setPendingLateApprovals] = useState([]);
+  const [roleLoginLogs, setRoleLoginLogs] = useState([]);
+  const [loginStats, setLoginStats] = useState({
+    totalToday: 0,
+    onTimeCount: 0,
+    lateCount: 0,
+    pendingApprovalCount: 0
+  });
+  const [loadingLateApprovals, setLoadingLateApprovals] = useState(false);
+  const [approvingId, setApprovingId] = useState(null);
+  const [selectedShiftFilter, setSelectedShiftFilter] = useState('all'); // 'all' | 'SHIFT-GENERAL' | 'SHIFT-MORNING' | 'SHIFT-UK-ME'
+  const [loginSearchQuery, setLoginSearchQuery] = useState('');
+  const [loginPunctualityFilter, setLoginPunctualityFilter] = useState('all'); // 'all' | 'On Time' | 'Late' | 'Pending'
+
+  // Fetch pending late approvals & real-time role logins
+  const fetchLateApprovalsAndLogins = async () => {
+    try {
+      const authHeaders = {
+        'Content-Type': 'application/json',
+        'x-crm-role': 'Super Admin',
+        ...(crmToken ? { Authorization: `Bearer ${crmToken}` } : {})
+      };
+
+      // 1. Fetch pending late approvals
+      const pendRes = await fetch('/api/hr-ops/attendance/late-approvals/pending', {
+        headers: authHeaders
+      });
+      if (pendRes.ok) {
+        const pendData = await pendRes.json();
+        if (pendData?.success && Array.isArray(pendData.data)) {
+          setPendingLateApprovals(pendData.data);
+        }
+      }
+
+      // 2. Fetch role login logs
+      const loginRes = await fetch('/api/hr-ops/attendance/role-logins', {
+        headers: authHeaders
+      });
+      if (loginRes.ok) {
+        const loginData = await loginRes.json();
+        if (loginData?.success && Array.isArray(loginData.data)) {
+          setRoleLoginLogs(loginData.data);
+          if (loginData.stats) setLoginStats(loginData.stats);
+        }
+      }
+    } catch (err) {
+      console.warn('Failed to fetch late approvals/logins:', err);
+    }
+  };
+
+  useEffect(() => {
+    fetchLateApprovalsAndLogins();
+    const interval = setInterval(fetchLateApprovalsAndLogins, 4000);
+    return () => clearInterval(interval);
+  }, [crmToken]);
+
+  const handleLateApprovalDecision = async (attendanceId, decision, employeeName = 'Employee') => {
+    try {
+      setApprovingId(attendanceId);
+      const authHeaders = {
+        'Content-Type': 'application/json',
+        'x-crm-role': 'Super Admin',
+        ...(crmToken ? { Authorization: `Bearer ${crmToken}` } : {})
+      };
+      const res = await fetch(`/api/hr-ops/attendance/late-approvals/${attendanceId}/decision`, {
+        method: 'POST',
+        headers: authHeaders,
+        body: JSON.stringify({
+          decision,
+          approvedBy: 'Super Admin',
+          notes: decision === 'APPROVED' ? 'Approved by Super Admin' : 'Access denied by Super Admin'
+        })
+      });
+      if (res.ok) {
+        const data = await res.json();
+        if (data?.success) {
+          setStatusMsg(decision === 'APPROVED' 
+            ? `✓ Approved late arrival entry for ${employeeName}. Access unlocked.` 
+            : `✕ Rejected late arrival entry for ${employeeName}. Access denied.`
+          );
+          setTimeout(() => setStatusMsg(''), 5000);
+          await fetchLateApprovalsAndLogins();
+        }
+      }
+    } catch (err) {
+      console.error('Decision error:', err);
+    } finally {
+      setApprovingId(null);
+    }
+  };
 
   // Attendance Tab State
   const [attendanceList, setAttendanceList] = useState([
@@ -855,7 +948,12 @@ export const CrmSuperAdmin = () => {
               badge: leads.filter(l => l.status === 'New' || l.status === 'New Enquiry').length
             },
             { id: 'employees', label: `Employees (${employees.length})` },
-            { id: 'attendance', label: 'Attendance' },
+            { 
+              id: 'attendance', 
+              label: 'Attendance & Role Logins',
+              badge: pendingLateApprovals.length,
+              badgeColor: 'bg-rose-500'
+            },
             { id: 'leaves', label: 'Leaves' },
             { id: 'company', label: 'Company' },
             { id: 'master', label: 'Master Data' }
@@ -871,7 +969,9 @@ export const CrmSuperAdmin = () => {
             >
               <span>{t.label}</span>
               {t.badge > 0 && (
-                <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" title={`${t.badge} New Inquiries`}></span>
+                <span className={`px-1.5 py-0.2 rounded-full text-[10px] font-black text-white ${t.badgeColor || 'bg-emerald-500'} animate-pulse`}>
+                  {t.badge}
+                </span>
               )}
             </button>
           ))}
@@ -889,6 +989,84 @@ export const CrmSuperAdmin = () => {
       {/* TAB 1: OVERVIEW */}
       {activeTab === 'overview' && (
         <div className="space-y-6 animate-in fade-in">
+          {/* Executive Priority Banner: Pending Late Arrival Approvals */}
+          {pendingLateApprovals.length > 0 && (
+            <div className="p-5 bg-gradient-to-r from-rose-50 to-amber-50 dark:from-rose-950/40 dark:to-amber-950/30 border-2 border-rose-300 dark:border-rose-500/40 rounded-3xl shadow-md space-y-3">
+              <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-2">
+                <div className="flex items-center gap-2.5">
+                  <span className="p-2 bg-rose-500 text-white rounded-xl">
+                    <Clock className="w-5 h-5 animate-spin" />
+                  </span>
+                  <div>
+                    <h4 className="font-serif text-base font-bold text-rose-950 dark:text-rose-200 flex items-center gap-2">
+                      Late Arrival Authorizations Required ({pendingLateApprovals.length})
+                    </h4>
+                    <p className="text-xs text-rose-800 dark:text-rose-300 font-medium">
+                      Staff members who logged in past their scheduled shift start are held at the security gateway until you grant access.
+                    </p>
+                  </div>
+                </div>
+                <button
+                  onClick={() => setActiveTab('attendance')}
+                  className="text-xs font-bold text-rose-700 dark:text-rose-300 hover:underline shrink-0 cursor-pointer"
+                >
+                  Manage in Attendance & Logins Tab →
+                </button>
+              </div>
+
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3 pt-1">
+                {pendingLateApprovals.map((req) => (
+                  <div
+                    key={req.id}
+                    className="p-3.5 bg-white dark:bg-navy-900 border border-rose-200 dark:border-rose-900/60 rounded-2xl shadow-xs flex flex-col justify-between gap-3"
+                  >
+                    <div>
+                      <div className="flex justify-between items-start">
+                        <div>
+                          <p className="font-bold text-sm text-slate-900 dark:text-white">{req.employeeName}</p>
+                          <p className="text-[11px] text-slate-500 dark:text-slate-400 font-medium">{req.role} • {req.department}</p>
+                        </div>
+                        <span className="px-2 py-0.5 rounded-full text-[10px] font-black bg-rose-100 text-rose-800 dark:bg-rose-500/20 dark:text-rose-300 border border-rose-300 dark:border-rose-500/40">
+                          +{req.lateMinutes}m Late
+                        </span>
+                      </div>
+                      <div className="mt-2 text-[11px] space-y-1 text-slate-600 dark:text-slate-300 bg-slate-50 dark:bg-navy-950 p-2 rounded-xl border border-slate-100 dark:border-navy-800">
+                        <div className="flex justify-between">
+                          <span>Scheduled Shift:</span>
+                          <span className="font-mono font-bold">{req.shiftStart || '09:00 AM'}</span>
+                        </div>
+                        <div className="flex justify-between">
+                          <span>Check-in Logged:</span>
+                          <span className="font-mono font-bold text-rose-600 dark:text-rose-400">
+                            {req.checkInAt ? new Date(req.checkInAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : 'Late'}
+                          </span>
+                        </div>
+                      </div>
+                    </div>
+
+                    <div className="flex items-center gap-2 pt-1 border-t border-slate-100 dark:border-navy-800">
+                      <button
+                        onClick={() => handleLateApprovalDecision(req.id, 'APPROVED', req.employeeName)}
+                        disabled={approvingId === req.id}
+                        className="flex-1 py-1.5 px-3 bg-emerald-600 hover:bg-emerald-500 text-white rounded-xl text-xs font-bold transition shadow-xs cursor-pointer flex items-center justify-center gap-1.5 disabled:opacity-50"
+                      >
+                        <Check className="w-3.5 h-3.5" />
+                        <span>{approvingId === req.id ? 'Approving...' : 'Approve Access'}</span>
+                      </button>
+                      <button
+                        onClick={() => handleLateApprovalDecision(req.id, 'REJECTED', req.employeeName)}
+                        disabled={approvingId === req.id}
+                        className="py-1.5 px-3 bg-slate-100 dark:bg-navy-800 hover:bg-rose-100 text-rose-700 dark:text-rose-300 rounded-xl text-xs font-bold transition cursor-pointer border border-slate-200 dark:border-navy-700 disabled:opacity-50"
+                      >
+                        ✕ Reject
+                      </button>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+
           {/* Executive Metrics Cards Grid */}
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5 gap-4">
             <div className="glass-card bg-white dark:bg-navy-900 border border-slate-200 dark:border-navy-800 p-5 rounded-2xl shadow-sm space-y-2">
@@ -2204,57 +2382,470 @@ export const CrmSuperAdmin = () => {
         </div>
       )}
 
-      {/* TAB 3: ATTENDANCE */}
+      {/* TAB 3: ATTENDANCE & REAL-TIME ROLE LOGINS */}
       {activeTab === 'attendance' && (
-        <div className="glass-card bg-white dark:bg-navy-900 border border-slate-200 dark:border-navy-800 p-6 rounded-3xl space-y-4 shadow-sm animate-in fade-in">
-          <div className="flex justify-between items-center border-b border-slate-200 dark:border-navy-800 pb-3">
+        <div className="space-y-6 animate-in fade-in">
+          {/* Header Command Strip */}
+          <div className="glass-card bg-white dark:bg-navy-900 border border-slate-200 dark:border-navy-800 p-6 rounded-3xl shadow-sm flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
             <div>
-              <h3 className="font-serif text-lg font-bold text-slate-900 dark:text-white flex items-center gap-2">
-                <Clock className="w-5 h-5 text-blue-500" />
-                Daily Staff Attendance Tracker (August 05, 2026)
-              </h3>
-              <p className="text-slate-600 dark:text-slate-400 font-medium text-xs">Real-time check-in logs and work hours tracking for active staff members.</p>
+              <div className="flex items-center gap-2">
+                <span className="p-2 rounded-xl bg-amber-500/15 text-amber-700 dark:text-gold-400 border border-amber-300 dark:border-gold-500/30">
+                  <Clock className="w-5 h-5" />
+                </span>
+                <h3 className="font-serif text-xl font-bold text-slate-900 dark:text-white">
+                  Workforce Shift Roster, Role Logins & Late Approval Command
+                </h3>
+              </div>
+              <p className="text-slate-600 dark:text-slate-400 font-medium text-xs mt-1">
+                Real-time tracking of staff role logins across all shifts from SQLite database. Late arrivals are held at security gateway until authorized.
+              </p>
             </div>
-            <span className="bg-blue-100 dark:bg-blue-500/20 text-blue-800 dark:text-blue-400 text-xs font-bold px-3 py-1 rounded-xl border border-blue-300 dark:border-blue-500/30">
-              Today: 4 Present • 1 On Leave
-            </span>
+            <div className="flex items-center gap-3 shrink-0">
+              <span className="flex items-center gap-1.5 text-[11px] font-bold text-emerald-700 dark:text-emerald-400 bg-emerald-100 dark:bg-emerald-500/20 px-3 py-1.5 rounded-xl border border-emerald-300 dark:border-emerald-500/30">
+                <span className="w-2 h-2 rounded-full bg-emerald-500 animate-ping"></span>
+                <span>Live Feed (Auto-sync 4s)</span>
+              </span>
+              <button
+                onClick={fetchLateApprovalsAndLogins}
+                className="py-2 px-3.5 bg-slate-100 hover:bg-slate-200 dark:bg-navy-800 dark:hover:bg-navy-700 text-slate-800 dark:text-slate-200 font-bold text-xs rounded-xl border border-slate-200 dark:border-navy-700 transition cursor-pointer flex items-center gap-1.5"
+                title="Sync Live SQLite Records"
+              >
+                <RefreshCw className="w-3.5 h-3.5" />
+                <span>Sync Live Data</span>
+              </button>
+            </div>
           </div>
 
-          <div className="overflow-x-auto">
-            <table className="w-full text-left text-xs border-collapse">
-              <thead>
-                <tr className="bg-slate-100 dark:bg-navy-950 text-slate-900 dark:text-gold-400 font-serif uppercase tracking-wider text-[10px] border-b border-slate-200 dark:border-navy-800">
-                  <th className="p-3 font-extrabold">EMPLOYEE</th>
-                  <th className="p-3 font-extrabold">ROLE</th>
-                  <th className="p-3 font-extrabold">CHECK-IN</th>
-                  <th className="p-3 font-extrabold">CHECK-OUT</th>
-                  <th className="p-3 font-extrabold">WORK HOURS</th>
-                  <th className="p-3 font-extrabold">MODE</th>
-                  <th className="p-3 font-extrabold">STATUS</th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-slate-200 dark:divide-navy-800 text-slate-800 dark:text-slate-300 font-medium">
-                {attendanceList.map(att => (
-                  <tr key={att.id} className="hover:bg-slate-50 dark:hover:bg-navy-950/60 transition">
-                    <td className="p-3 font-bold text-slate-900 dark:text-white">{att.name}</td>
-                    <td className="p-3">{att.role}</td>
-                    <td className="p-3 font-mono font-bold text-emerald-600 dark:text-emerald-400">{att.checkIn}</td>
-                    <td className="p-3 font-mono font-bold text-slate-700 dark:text-slate-300">{att.checkOut}</td>
-                    <td className="p-3 font-mono font-extrabold text-blue-600 dark:text-blue-400">{att.hours}</td>
-                    <td className="p-3 font-bold">{att.mode}</td>
-                    <td className="p-3">
-                      <span className={`px-2.5 py-0.5 rounded text-[10px] font-extrabold border ${
-                        att.status === 'Present' ? 'bg-emerald-100 text-emerald-900 dark:bg-emerald-500/20 dark:text-emerald-400 border-emerald-300 dark:border-emerald-500/30' :
-                        att.status === 'Late' ? 'bg-amber-100 text-amber-900 dark:bg-amber-500/20 dark:text-amber-300 border-amber-300 dark:border-amber-500/30' :
-                        'bg-rose-100 text-rose-900 dark:bg-rose-500/20 dark:text-rose-300 border-rose-300 dark:border-rose-500/30'
-                      }`}>
-                        ● {att.status}
+          {/* Working Hour Shifts & Schedule Roster Cards (Matching Shift Roster Design) */}
+          <div className="space-y-3">
+            <div className="flex justify-between items-center px-1">
+              <h4 className="font-serif text-base font-bold text-slate-900 dark:text-white">
+                Working Hour Shifts & Schedule Roster
+              </h4>
+              {selectedShiftFilter !== 'all' && (
+                <button
+                  onClick={() => setSelectedShiftFilter('all')}
+                  className="text-xs font-bold text-amber-700 dark:text-gold-400 hover:underline cursor-pointer"
+                >
+                  ✕ Clear Shift Filter (Show All)
+                </button>
+              )}
+            </div>
+
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+              {[
+                {
+                  id: 'SHIFT-GENERAL',
+                  title: 'General Day Shift',
+                  time: '09:00 AM - 06:00 PM',
+                  staffCount: employees.filter(e => !e.shiftId || e.shiftId === 'SHIFT-GENERAL').length || 34,
+                  desc: 'Core operations, HR lead, client advisory and student academy.'
+                },
+                {
+                  id: 'SHIFT-MORNING',
+                  title: 'Early Morning Shift',
+                  time: '08:00 AM - 04:30 PM',
+                  staffCount: employees.filter(e => e.shiftId === 'SHIFT-MORNING').length || 8,
+                  desc: 'Singapore & Far East candidate screening and hotline support.'
+                },
+                {
+                  id: 'SHIFT-UK-ME',
+                  title: 'UK & Middle East Overlap',
+                  time: '01:00 PM - 09:30 PM',
+                  staffCount: employees.filter(e => e.shiftId === 'SHIFT-UK-ME').length || 6,
+                  desc: 'Dubai, Riyadh and European corporate hiring partner coordination.'
+                }
+              ].map((sh) => {
+                const isSelected = selectedShiftFilter === sh.id;
+                return (
+                  <div
+                    key={sh.id}
+                    onClick={() => setSelectedShiftFilter(isSelected ? 'all' : sh.id)}
+                    className={`glass-card p-5 rounded-3xl transition duration-200 cursor-pointer relative group border-2 ${
+                      isSelected
+                        ? 'bg-amber-50/60 dark:bg-gold-500/10 border-amber-500 dark:border-gold-500 shadow-md ring-2 ring-amber-400/30'
+                        : 'bg-white dark:bg-navy-900 border-slate-200 dark:border-navy-800 hover:border-amber-400/60 hover:shadow-sm'
+                    }`}
+                  >
+                    <div className="flex justify-between items-start mb-3">
+                      <h5 className="font-serif text-sm font-bold text-slate-900 dark:text-white">
+                        {sh.title}
+                      </h5>
+                      <span className="px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-amber-100 text-amber-900 dark:bg-gold-500/20 dark:text-gold-300 border border-amber-300 dark:border-gold-500/40">
+                        {sh.staffCount} Staff
                       </span>
-                    </td>
-                  </tr>
+                    </div>
+
+                    <div className="bg-slate-50 dark:bg-navy-950 p-2 rounded-xl border border-slate-200 dark:border-navy-800 mb-3 flex items-center gap-2">
+                      <Clock className="w-4 h-4 text-emerald-600 dark:text-emerald-400 shrink-0" />
+                      <span className="font-mono text-xs font-bold text-emerald-700 dark:text-emerald-400">
+                        {sh.time}
+                      </span>
+                    </div>
+
+                    <p className="text-xs text-slate-600 dark:text-slate-400 font-medium leading-relaxed">
+                      {sh.desc}
+                    </p>
+
+                    <div className="mt-3 pt-2 border-t border-slate-100 dark:border-navy-800 flex justify-between items-center text-[11px] font-bold">
+                      <span className={isSelected ? 'text-amber-800 dark:text-gold-300' : 'text-slate-500 dark:text-slate-400'}>
+                        {isSelected ? '✓ Filter Applied' : 'Click to filter staff'}
+                      </span>
+                      <ChevronRight className={`w-3.5 h-3.5 transition group-hover:translate-x-0.5 ${isSelected ? 'text-amber-700 dark:text-gold-400' : 'text-slate-400'}`} />
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+
+          {/* Pending Late Arrival Approvals Section (Gatekeepers) */}
+          {pendingLateApprovals.length > 0 && (
+            <div className="glass-card bg-rose-50/70 dark:bg-rose-950/30 border-2 border-rose-300 dark:border-rose-500/50 p-6 rounded-3xl shadow-sm space-y-4">
+              <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-2 border-b border-rose-200 dark:border-rose-900/50 pb-3">
+                <div className="flex items-center gap-2.5">
+                  <span className="p-2 bg-rose-500 text-white rounded-xl shadow-xs">
+                    <Clock className="w-5 h-5 animate-spin" />
+                  </span>
+                  <div>
+                    <h4 className="font-serif text-base font-bold text-rose-950 dark:text-rose-200">
+                      Pending Late Arrival Approvals ({pendingLateApprovals.length})
+                    </h4>
+                    <p className="text-xs text-rose-800 dark:text-rose-300 font-medium">
+                      These employees logged in late for their shift. Their CRM portal access is held until you approve.
+                    </p>
+                  </div>
+                </div>
+                <span className="text-xs font-mono font-bold bg-rose-200 dark:bg-rose-500/30 text-rose-950 dark:text-rose-200 px-3 py-1 rounded-xl">
+                  Action Required
+                </span>
+              </div>
+
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
+                {pendingLateApprovals.map((req) => (
+                  <div
+                    key={req.id}
+                    className="p-4 bg-white dark:bg-navy-900 border border-rose-200 dark:border-rose-900/60 rounded-2xl shadow-xs space-y-3"
+                  >
+                    <div className="flex justify-between items-start">
+                      <div>
+                        <p className="font-bold text-sm text-slate-900 dark:text-white">{req.employeeName}</p>
+                        <p className="text-[11px] text-slate-500 dark:text-slate-400 font-medium">{req.role} • {req.department}</p>
+                        <p className="text-[10px] text-slate-400 font-mono mt-0.5">ID: {req.employeeId}</p>
+                      </div>
+                      <span className="px-2 py-0.5 rounded-full text-[10px] font-black bg-rose-100 text-rose-800 dark:bg-rose-500/20 dark:text-rose-300 border border-rose-300 dark:border-rose-500/40">
+                        +{req.lateMinutes}m Late
+                      </span>
+                    </div>
+
+                    <div className="bg-slate-50 dark:bg-navy-950 p-2.5 rounded-xl border border-slate-200 dark:border-navy-800 space-y-1 text-xs">
+                      <div className="flex justify-between">
+                        <span className="text-slate-500 dark:text-slate-400">Shift Name:</span>
+                        <span className="font-bold text-slate-800 dark:text-slate-200">{req.shiftName || 'General Day Shift'}</span>
+                      </div>
+                      <div className="flex justify-between">
+                        <span className="text-slate-500 dark:text-slate-400">Scheduled Start:</span>
+                        <span className="font-mono font-bold text-slate-800 dark:text-slate-200">{req.shiftStart || '09:00 AM'}</span>
+                      </div>
+                      <div className="flex justify-between">
+                        <span className="text-slate-500 dark:text-slate-400">Login Timestamp:</span>
+                        <span className="font-mono font-bold text-rose-600 dark:text-rose-400">
+                          {req.checkInAt ? new Date(req.checkInAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : 'Late'}
+                        </span>
+                      </div>
+                    </div>
+
+                    <div className="flex items-center gap-2 pt-1 border-t border-slate-100 dark:border-navy-800">
+                      <button
+                        onClick={() => handleLateApprovalDecision(req.id, 'APPROVED', req.employeeName)}
+                        disabled={approvingId === req.id}
+                        className="flex-1 py-2 px-3 bg-emerald-600 hover:bg-emerald-500 text-white rounded-xl text-xs font-bold transition shadow-xs cursor-pointer flex items-center justify-center gap-1.5 disabled:opacity-50"
+                      >
+                        <Check className="w-3.5 h-3.5 stroke-[3]" />
+                        <span>{approvingId === req.id ? 'Approving...' : 'Approve Access'}</span>
+                      </button>
+                      <button
+                        onClick={() => handleLateApprovalDecision(req.id, 'REJECTED', req.employeeName)}
+                        disabled={approvingId === req.id}
+                        className="py-2 px-3 bg-slate-100 dark:bg-navy-800 hover:bg-rose-100 text-rose-700 dark:text-rose-300 rounded-xl text-xs font-bold transition cursor-pointer border border-slate-200 dark:border-navy-700 disabled:opacity-50"
+                      >
+                        ✕ Reject
+                      </button>
+                    </div>
+                  </div>
                 ))}
-              </tbody>
-            </table>
+              </div>
+            </div>
+          )}
+
+          {/* Real-Time Workforce Role Logins & Shift Monitoring Table */}
+          <div className="glass-card bg-white dark:bg-navy-900 border border-slate-200 dark:border-navy-800 p-6 rounded-3xl space-y-4 shadow-sm">
+            {/* KPI Summary Strip */}
+            <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+              <div className="p-3.5 bg-slate-50 dark:bg-navy-950 rounded-2xl border border-slate-200 dark:border-navy-800">
+                <span className="text-[10px] uppercase tracking-wider font-extrabold text-slate-500 dark:text-slate-400">Total Logins Recorded</span>
+                <p className="font-serif text-2xl font-bold text-slate-900 dark:text-white mt-0.5">
+                  {loginStats.totalToday || roleLoginLogs.length}
+                </p>
+              </div>
+              <div className="p-3.5 bg-emerald-50/70 dark:bg-emerald-950/20 rounded-2xl border border-emerald-200 dark:border-emerald-900/50">
+                <span className="text-[10px] uppercase tracking-wider font-extrabold text-emerald-800 dark:text-emerald-400">On-Time Arrivals</span>
+                <p className="font-serif text-2xl font-bold text-emerald-700 dark:text-emerald-400 mt-0.5">
+                  {loginStats.onTimeCount || roleLoginLogs.filter(l => l.punctuality === 'On Time' || l.punctuality === 'Exempt').length}
+                </p>
+              </div>
+              <div className="p-3.5 bg-amber-50/70 dark:bg-amber-950/20 rounded-2xl border border-amber-200 dark:border-amber-900/50">
+                <span className="text-[10px] uppercase tracking-wider font-extrabold text-amber-800 dark:text-amber-400">Late Arrivals</span>
+                <p className="font-serif text-2xl font-bold text-amber-700 dark:text-amber-400 mt-0.5">
+                  {loginStats.lateCount || roleLoginLogs.filter(l => l.punctuality === 'Late').length}
+                </p>
+              </div>
+              <div className="p-3.5 bg-rose-50/70 dark:bg-rose-950/20 rounded-2xl border border-rose-200 dark:border-rose-900/50">
+                <span className="text-[10px] uppercase tracking-wider font-extrabold text-rose-800 dark:text-rose-400">Pending Approvals</span>
+                <p className="font-serif text-2xl font-bold text-rose-700 dark:text-rose-400 mt-0.5">
+                  {pendingLateApprovals.length}
+                </p>
+              </div>
+            </div>
+
+            {/* Filter & Search Bar */}
+            <div className="flex flex-col sm:flex-row justify-between items-stretch sm:items-center gap-3 pt-2 border-t border-slate-100 dark:border-navy-800">
+              <div className="relative flex-1 max-w-md">
+                <Search className="w-4 h-4 absolute left-3 top-3 text-slate-400" />
+                <input
+                  type="text"
+                  placeholder="Search by employee name, role, email, or department..."
+                  value={loginSearchQuery}
+                  onChange={(e) => setLoginSearchQuery(e.target.value)}
+                  className="w-full pl-9 pr-3 py-2 bg-slate-50 dark:bg-navy-950 border border-slate-200 dark:border-navy-800 rounded-xl text-xs font-bold text-slate-900 dark:text-white placeholder:text-slate-400 focus:outline-none focus:border-amber-500"
+                />
+              </div>
+
+              <div className="flex items-center gap-2">
+                <div className="flex items-center gap-1.5 bg-slate-50 dark:bg-navy-950 border border-slate-200 dark:border-navy-800 rounded-xl px-2.5 py-1 text-xs font-bold">
+                  <Filter className="w-3.5 h-3.5 text-slate-500" />
+                  <select
+                    value={loginPunctualityFilter}
+                    onChange={(e) => setLoginPunctualityFilter(e.target.value)}
+                    className="bg-transparent border-none text-slate-800 dark:text-slate-200 font-bold focus:outline-none cursor-pointer"
+                  >
+                    <option value="all">All Punctuality</option>
+                    <option value="On Time">On Time Only</option>
+                    <option value="Late">Late Arrivals Only</option>
+                    <option value="Pending">Pending Approval Only</option>
+                  </select>
+                </div>
+
+                {(selectedShiftFilter !== 'all' || loginSearchQuery || loginPunctualityFilter !== 'all') && (
+                  <button
+                    onClick={() => {
+                      setSelectedShiftFilter('all');
+                      setLoginSearchQuery('');
+                      setLoginPunctualityFilter('all');
+                    }}
+                    className="py-1.5 px-3 bg-slate-100 hover:bg-slate-200 dark:bg-navy-800 text-slate-700 dark:text-slate-300 text-xs font-bold rounded-xl transition cursor-pointer"
+                  >
+                    Reset
+                  </button>
+                )}
+              </div>
+            </div>
+
+            {/* Table */}
+            <div className="overflow-x-auto">
+              <table className="w-full text-left text-xs border-collapse">
+                <thead>
+                  <tr className="bg-slate-100 dark:bg-navy-950 text-slate-900 dark:text-gold-400 font-serif uppercase tracking-wider text-[10px] border-b border-slate-200 dark:border-navy-800">
+                    <th className="p-3 font-extrabold">EMPLOYEE NAME & ID</th>
+                    <th className="p-3 font-extrabold">ROLE & DEPARTMENT</th>
+                    <th className="p-3 font-extrabold">ASSIGNED SHIFT</th>
+                    <th className="p-3 font-extrabold">LOGIN TIMESTAMP</th>
+                    <th className="p-3 font-extrabold">CHECK-IN</th>
+                    <th className="p-3 font-extrabold">CHECK-OUT</th>
+                    <th className="p-3 font-extrabold text-center">WORKED HOURS</th>
+                    <th className="p-3 font-extrabold text-center">LOGIN SESSIONS</th>
+                    <th className="p-3 font-extrabold">PUNCTUALITY ALERT</th>
+                    <th className="p-3 font-extrabold">SUPER ADMIN APPROVAL</th>
+                    <th className="p-3 font-extrabold">ACTIONS</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-slate-200 dark:divide-navy-800 text-slate-800 dark:text-slate-300 font-medium">
+                  {roleLoginLogs
+                    .filter((log) => {
+                      if (selectedShiftFilter !== 'all') {
+                        const targetId = selectedShiftFilter.toLowerCase();
+                        const logShiftId = (log.shiftId || '').toLowerCase();
+                        const logShiftName = (log.shiftName || '').toLowerCase();
+                        if (!logShiftId.includes(targetId) && !logShiftName.includes(targetId)) {
+                          if (selectedShiftFilter === 'SHIFT-GENERAL' && !logShiftName.includes('general')) return false;
+                          if (selectedShiftFilter === 'SHIFT-MORNING' && !logShiftName.includes('morning')) return false;
+                          if (selectedShiftFilter === 'SHIFT-UK-ME' && !logShiftName.includes('middle east') && !logShiftName.includes('uk')) return false;
+                        }
+                      }
+                      if (loginPunctualityFilter === 'On Time' && log.punctuality !== 'On Time' && log.punctuality !== 'Exempt') return false;
+                      if (loginPunctualityFilter === 'Late' && log.punctuality !== 'Late') return false;
+                      if (loginPunctualityFilter === 'Pending' && log.lateApprovalStatus !== 'PENDING') return false;
+                      if (loginSearchQuery.trim()) {
+                        const q = loginSearchQuery.toLowerCase();
+                        const match =
+                          (log.employeeName || '').toLowerCase().includes(q) ||
+                          (log.employeeId || '').toLowerCase().includes(q) ||
+                          (log.role || '').toLowerCase().includes(q) ||
+                          (log.email || '').toLowerCase().includes(q) ||
+                          (log.department || '').toLowerCase().includes(q);
+                        if (!match) return false;
+                      }
+                      return true;
+                    })
+                    .map((log) => {
+                      const isPending = log.lateApprovalStatus === 'PENDING';
+                      const isApproved = log.lateApprovalStatus === 'APPROVED';
+                      const isLate = log.punctuality === 'Late';
+
+                      const getRoleBadgeStyle = (role) => {
+                        switch (role) {
+                          case 'Super Admin':
+                            return 'bg-amber-100 text-amber-900 dark:bg-amber-500/20 dark:text-amber-300 border-amber-300 dark:border-amber-500/40';
+                          case 'Admin':
+                            return 'bg-blue-100 text-blue-900 dark:bg-blue-500/20 dark:text-blue-300 border-blue-300 dark:border-blue-500/40';
+                          case 'HR Lead':
+                            return 'bg-emerald-100 text-emerald-900 dark:bg-emerald-500/20 dark:text-emerald-300 border-emerald-300 dark:border-emerald-500/40';
+                          case 'Recruiter':
+                            return 'bg-purple-100 text-purple-900 dark:bg-purple-500/20 dark:text-purple-300 border-purple-300 dark:border-purple-500/40';
+                          case 'Placement Coordinator':
+                            return 'bg-indigo-100 text-indigo-900 dark:bg-indigo-500/20 dark:text-indigo-300 border-indigo-300 dark:border-indigo-500/40';
+                          case 'HR Operations':
+                            return 'bg-teal-100 text-teal-900 dark:bg-teal-500/20 dark:text-teal-300 border-teal-300 dark:border-teal-500/40';
+                          default:
+                            return 'bg-slate-100 text-slate-800 dark:bg-navy-800 dark:text-slate-300 border-slate-300 dark:border-navy-700';
+                        }
+                      };
+
+                      return (
+                        <tr key={log.id} className="hover:bg-slate-50 dark:hover:bg-navy-950/60 transition">
+                          <td className="p-3">
+                            <div className="flex items-center gap-2.5">
+                              <div className="w-8 h-8 rounded-full bg-gradient-to-tr from-amber-500 to-amber-600 text-navy-950 font-black text-xs flex items-center justify-center shrink-0 shadow-xs">
+                                {(log.employeeName || 'U').charAt(0).toUpperCase()}
+                              </div>
+                              <div>
+                                <p className="font-bold text-slate-900 dark:text-white leading-tight">{log.employeeName}</p>
+                                <p className="text-[10px] text-slate-500 dark:text-slate-400 font-mono mt-0.5">{log.employeeId || 'EMP-SYS'}</p>
+                              </div>
+                            </div>
+                          </td>
+                          <td className="p-3">
+                            <span className={`px-2 py-0.5 rounded text-[10px] font-extrabold border ${getRoleBadgeStyle(log.role)}`}>
+                              {log.role}
+                            </span>
+                            <p className="text-[10px] text-slate-500 dark:text-slate-400 mt-1">{log.department || 'Operations'}</p>
+                          </td>
+                          <td className="p-3">
+                            <p className="font-bold text-slate-800 dark:text-slate-200">{log.shiftName || 'General Day Shift'}</p>
+                            <p className="font-mono text-[10px] text-slate-500 dark:text-slate-400">
+                              {log.shiftStart && log.shiftEnd ? `${log.shiftStart} - ${log.shiftEnd}` : '09:00 AM - 06:00 PM'}
+                            </p>
+                          </td>
+                          <td className="p-3 font-mono font-bold text-slate-700 dark:text-slate-300">
+                            {log.loginTime ? new Date(log.loginTime).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' }) : '-'}
+                          </td>
+                          <td className="p-3 font-mono font-bold text-emerald-600 dark:text-emerald-400">
+                            {log.checkIn || log.checkInTime || '-'}
+                          </td>
+                          <td className="p-3 font-mono font-bold text-slate-700 dark:text-slate-300">
+                            {log.checkOut === 'Active / In Office' ? (
+                              <span className="px-2 py-0.5 rounded text-[10px] font-bold bg-emerald-50 text-emerald-700 dark:bg-emerald-500/20 dark:text-emerald-300 border border-emerald-200 dark:border-emerald-500/30">
+                                In Office
+                              </span>
+                            ) : (
+                              log.checkOut || '-'
+                            )}
+                          </td>
+                          <td className="p-3 font-mono font-bold text-center text-indigo-600 dark:text-indigo-400">
+                            {log.workedHours || 'In Progress'}
+                          </td>
+                          <td className="p-3 text-center">
+                            <span 
+                              className="px-2.5 py-0.5 rounded-full text-[10px] font-extrabold bg-blue-50 text-blue-700 dark:bg-blue-500/20 dark:text-blue-300 border border-blue-200 dark:border-blue-500/30 inline-block"
+                              title={log.sessionsList && log.sessionsList.length ? log.sessionsList.join(' • ') : `${log.loginCount || 1} logins recorded today`}
+                            >
+                              {log.loginCount || 1} {log.loginCount === 1 ? 'Login' : 'Logins'}
+                            </span>
+                          </td>
+                          <td className="p-3">
+                            {isLate ? (
+                              <span className="px-2.5 py-0.5 rounded-full text-[10px] font-extrabold bg-amber-100 text-amber-900 dark:bg-amber-500/20 dark:text-amber-300 border border-amber-300 dark:border-amber-500/30 flex items-center gap-1 w-fit">
+                                <AlertTriangle className="w-3 h-3 text-amber-600 dark:text-amber-400" />
+                                <span>Late Arrival (+{log.lateMinutes}m)</span>
+                              </span>
+                            ) : (
+                              <span className="px-2.5 py-0.5 rounded-full text-[10px] font-extrabold bg-emerald-100 text-emerald-900 dark:bg-emerald-500/20 dark:text-emerald-400 border border-emerald-300 dark:border-emerald-500/30 flex items-center gap-1 w-fit">
+                                <Check className="w-3 h-3 text-emerald-600 dark:text-emerald-400" />
+                                <span>✓ On Time</span>
+                              </span>
+                            )}
+                          </td>
+                          <td className="p-3">
+                            {isPending ? (
+                              <span className="px-2.5 py-0.5 rounded-full text-[10px] font-black bg-rose-100 text-rose-900 dark:bg-rose-500/25 dark:text-rose-300 border border-rose-300 dark:border-rose-500/40 animate-pulse flex items-center gap-1 w-fit">
+                                <Clock className="w-3 h-3 text-rose-600 dark:text-rose-400" />
+                                <span>⏳ Pending Super Admin Approval</span>
+                              </span>
+                            ) : isApproved ? (
+                              <span className="px-2.5 py-0.5 rounded-full text-[10px] font-extrabold bg-emerald-100 text-emerald-900 dark:bg-emerald-500/20 dark:text-emerald-400 border border-emerald-300 dark:border-emerald-500/30 flex items-center gap-1 w-fit">
+                                <Check className="w-3 h-3 text-emerald-600 dark:text-emerald-400" />
+                                <span>✓ Approved by Super Admin</span>
+                              </span>
+                            ) : log.punctuality === 'Exempt' || log.role === 'Super Admin' || log.role === 'Admin' ? (
+                              <span className="px-2 py-0.5 rounded text-[10px] font-extrabold bg-blue-100 text-blue-900 dark:bg-blue-500/20 dark:text-blue-300 border border-blue-300 dark:border-blue-500/30">
+                                ✓ Authorized (Executive)
+                              </span>
+                            ) : (
+                              <span className="px-2 py-0.5 rounded text-[10px] font-extrabold bg-slate-100 text-slate-700 dark:bg-navy-800 dark:text-slate-300 border border-slate-300 dark:border-navy-700">
+                                ✓ Standard Access
+                              </span>
+                            )}
+                          </td>
+                          <td className="p-3">
+                            {isPending ? (
+                              <div className="flex items-center gap-1.5">
+                                <button
+                                  onClick={() => handleLateApprovalDecision(log.id, 'APPROVED', log.employeeName)}
+                                  disabled={approvingId === log.id}
+                                  className="py-1 px-2.5 bg-emerald-600 hover:bg-emerald-500 text-white rounded-lg text-[10px] font-bold transition shadow-xs cursor-pointer flex items-center gap-1 disabled:opacity-50"
+                                  title="Approve employee late arrival access"
+                                >
+                                  <Check className="w-3 h-3" />
+                                  <span>{approvingId === log.id ? '...' : 'Approve'}</span>
+                                </button>
+                                <button
+                                  onClick={() => handleLateApprovalDecision(log.id, 'REJECTED', log.employeeName)}
+                                  disabled={approvingId === log.id}
+                                  className="py-1 px-2 bg-slate-100 dark:bg-navy-800 hover:bg-rose-100 text-rose-700 dark:text-rose-300 rounded-lg text-[10px] font-bold transition cursor-pointer border border-slate-200 dark:border-navy-700 disabled:opacity-50"
+                                  title="Reject entry"
+                                >
+                                  ✕
+                                </button>
+                              </div>
+                            ) : (
+                              <span className="text-[11px] font-mono text-slate-400 dark:text-slate-500">
+                                {log.approvedBy ? `by ${log.approvedBy}` : '—'}
+                              </span>
+                            )}
+                          </td>
+                        </tr>
+                      );
+                    })}
+                </tbody>
+              </table>
+
+              {roleLoginLogs.length === 0 && (
+                <div className="text-center py-8 text-slate-500 dark:text-slate-400">
+                  <p className="font-bold text-sm">No role logins recorded yet today.</p>
+                  <p className="text-xs mt-1">When any employee signs into the CRM, their login time and shift punctuality will appear here in real time.</p>
+                </div>
+              )}
+            </div>
           </div>
         </div>
       )}

@@ -1,142 +1,140 @@
 import React, { useState, useEffect } from 'react';
+import { useCrm } from '../context/CrmContext';
 import { 
   Clock, CheckCircle2, AlertCircle, Calendar, Download, Search, 
   Filter, Plus, Edit3, ShieldCheck, Lock, Eye, X, Check, ArrowRight,
-  UserCheck, AlertTriangle, RefreshCw, FileText
+  UserCheck, AlertTriangle, RefreshCw, FileText, ShieldAlert, Laptop,
+  Globe, User
 } from 'lucide-react';
 
-const INITIAL_ATTENDANCE = [
+const INITIAL_FALLBACK_ATTENDANCE = [
   {
-    id: 'REV-EMP-101',
-    name: 'Balavarshini S.',
-    role: 'Lead HR Operations Specialist',
-    department: 'HR Operations',
+    id: 'REV-EMP-001',
+    name: 'Dhanalakshimi',
+    role: 'Super Admin',
+    department: 'Executive Management',
     location: 'Chennai HQ',
-    date: '2026-11-10',
-    checkIn: '08:52 AM',
-    checkOut: '06:05 PM',
-    hours: '9.2 hrs',
-    status: 'Present',
+    date: '2026-11-17',
+    checkIn: '09:00 AM',
+    checkOut: 'Active Session',
+    hours: 'Executive',
+    status: 'Executive Active',
     late: false,
-    remarks: 'Punctual • Biometric Verified'
+    lateMinutes: 0,
+    lateApprovalStatus: 'EXEMPT',
+    remarks: 'Super Admin Executive Console'
   },
   {
-    id: 'REV-EMP-102',
-    name: 'Diviya R.',
-    role: 'Senior Talent Acquisition Specialist',
-    department: 'Talent Acquisition',
-    location: 'Chennai HQ',
-    date: '2026-11-10',
-    checkIn: '09:18 AM',
-    checkOut: '06:15 PM',
-    hours: '9.0 hrs',
-    status: 'Present',
-    late: true,
-    remarks: 'Late arrival (+18m) • Traffic delay'
-  },
-  {
-    id: 'REV-EMP-103',
-    name: 'Chentamilselvi M.',
-    role: 'HR Compliance & Verification Officer',
-    department: 'HR Operations',
-    location: 'Chennai HQ',
-    date: '2026-11-10',
-    checkIn: '08:58 AM',
-    checkOut: '06:00 PM',
-    hours: '9.0 hrs',
-    status: 'Present',
-    late: false,
-    remarks: 'On Time • Biometric'
-  },
-  {
-    id: 'REV-EMP-104',
+    id: 'REV-EMP-004',
     name: 'Kishore Kumar',
-    role: 'Senior Recruitment Partner (GCC & Tech)',
-    department: 'Talent Acquisition',
+    role: 'Recruiter',
+    department: 'Talent Acquisition & ATS',
     location: 'Bangalore Office',
-    date: '2026-11-10',
-    checkIn: '08:45 AM',
-    checkOut: '06:10 PM',
-    hours: '9.4 hrs',
-    status: 'Present',
-    late: false,
-    remarks: 'Early punch • Direct terminal'
-  },
-  {
-    id: 'REV-EMP-105',
-    name: 'Sreeja Nair',
-    role: 'Campus Placement & University Relations Head',
-    department: 'Placement & Relations',
-    location: 'Chennai HQ',
-    date: '2026-11-10',
-    checkIn: '-',
-    checkOut: '-',
-    hours: '0 hrs',
-    status: 'On Leave',
-    late: false,
-    remarks: 'Pre-approved Earned Leave (LEV-503)'
-  },
-  {
-    id: 'REV-EMP-106',
-    name: 'Arjun Venkatesh',
-    role: 'Full Stack Cloud Engineer',
-    department: 'Engineering',
-    location: 'Chennai HQ',
-    date: '2026-11-10',
-    checkIn: '09:25 AM',
-    checkOut: '06:30 PM',
-    hours: '9.1 hrs',
-    status: 'Present',
+    date: '2026-11-17',
+    checkIn: '09:18 AM',
+    checkOut: 'Active / In Office',
+    hours: 'In Progress',
+    status: 'Late',
     late: true,
-    remarks: 'Late arrival (+25m) • Remote sync'
+    lateMinutes: 18,
+    lateApprovalStatus: 'PENDING',
+    remarks: 'Automated check-in on front portal login'
   },
   {
-    id: 'REV-EMP-107',
-    name: 'Meenakshi Sundaram',
-    role: 'Senior International Admissions Consultant',
-    department: 'Academic Advisory',
+    id: 'REV-EMP-006',
+    name: 'Balavarshini S.',
+    role: 'HR Operations',
+    department: 'International HR Operations',
     location: 'Chennai HQ',
-    date: '2026-11-10',
-    checkIn: '08:50 AM',
-    checkOut: '06:05 PM',
-    hours: '9.2 hrs',
+    date: '2026-11-17',
+    checkIn: '08:52 AM',
+    checkOut: 'Active / In Office',
+    hours: 'In Progress',
     status: 'Present',
     late: false,
-    remarks: 'Punctual • Biometric'
-  },
-  {
-    id: 'REV-EMP-108',
-    name: 'Dr. Vigneshwaran K.',
-    role: 'Executive Career Advisor & Principal Mentor',
-    department: 'Client Advisory',
-    location: 'Chennai HQ',
-    date: '2026-11-10',
-    checkIn: '-',
-    checkOut: '-',
-    hours: '0 hrs',
-    status: 'Absent',
-    late: false,
-    remarks: 'Unscheduled absence • Awaiting documentation'
+    lateMinutes: 0,
+    lateApprovalStatus: 'APPROVED',
+    remarks: 'Live Biometric Punch'
   }
 ];
 
 export const CrmAttendanceManagement = ({ isSuperAdmin, currentRole }) => {
-  // Can edit only if active role is Super Admin
-  const canEdit = isSuperAdmin || currentRole === 'Super Admin';
+  const { crmToken, currentRole: ctxRole, setActiveModule } = useCrm();
+  const effectiveRole = currentRole || ctxRole || 'Super Admin';
+  const canEdit = isSuperAdmin || effectiveRole === 'Super Admin';
 
   const [records, setRecords] = useState(() => {
     try {
       const saved = localStorage.getItem('crm_workforce_attendance');
-      return saved ? JSON.parse(saved) : INITIAL_ATTENDANCE;
+      return saved ? JSON.parse(saved) : INITIAL_FALLBACK_ATTENDANCE;
     } catch {
-      return INITIAL_ATTENDANCE;
+      return INITIAL_FALLBACK_ATTENDANCE;
     }
   });
+
+  const [roleLogins, setRoleLogins] = useState([]);
+  const [stats, setStats] = useState({
+    totalWorkforce: 0,
+    presentCount: 0,
+    lateCount: 0,
+    leaveCount: 0,
+    pendingApprovalCount: 0,
+    absentCount: 0
+  });
+
+  const [loading, setLoading] = useState(false);
+  const [lastSynced, setLastSynced] = useState(null);
+  const [viewTab, setViewTab] = useState('register'); // 'register' | 'logins'
+  const [approvingId, setApprovingId] = useState(null);
 
   const [search, setSearch] = useState('');
   const [deptFilter, setDeptFilter] = useState('All');
   const [statusFilter, setStatusFilter] = useState('All');
   const [toastMsg, setToastMsg] = useState('');
+
+  // Fetch unified real-time workforce register from SQLite backend
+  const fetchLiveRegister = async () => {
+    try {
+      setLoading(true);
+      const authHeaders = {
+        'Content-Type': 'application/json',
+        'x-crm-role': effectiveRole || 'Super Admin',
+        ...(crmToken ? { Authorization: `Bearer ${crmToken}` } : {})
+      };
+
+      const res = await fetch('/api/hr-ops/attendance/admin/today-register', {
+        headers: authHeaders
+      });
+
+      if (res.ok) {
+        const data = await res.json();
+        if (data && data.success && Array.isArray(data.register)) {
+          setRecords(data.register);
+          if (Array.isArray(data.roleLogins)) {
+            setRoleLogins(data.roleLogins);
+          }
+          if (data.stats) {
+            setStats(data.stats);
+          }
+          setLastSynced(new Date());
+          try {
+            localStorage.setItem('crm_workforce_attendance', JSON.stringify(data.register));
+          } catch (_) {}
+          return;
+        }
+      }
+    } catch (err) {
+      console.error('Failed to sync live attendance register:', err);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    fetchLiveRegister();
+    const interval = setInterval(fetchLiveRegister, 5000);
+    return () => clearInterval(interval);
+  }, [crmToken, effectiveRole]);
 
   // Edit Attendance Modal State (Super Admin Only)
   const [editingRecord, setEditingRecord] = useState(null);
@@ -149,29 +147,39 @@ export const CrmAttendanceManagement = ({ isSuperAdmin, currentRole }) => {
     remarks: ''
   });
 
-  // Manual Punch Modal State (Super Admin Only)
-  const [isManualPunchOpen, setIsManualPunchOpen] = useState(false);
-  const [manualForm, setManualForm] = useState({
-    name: '',
-    id: '',
-    department: 'HR Operations',
-    status: 'Present',
-    checkIn: '09:00 AM',
-    checkOut: '06:00 PM',
-    hours: '9.0 hrs',
-    remarks: 'Super Admin manual regularization'
-  });
-
   const showToast = (msg) => {
     setToastMsg(msg);
-    setTimeout(() => setToastMsg(''), 4000);
+    setTimeout(() => setToastMsg(''), 4500);
   };
 
-  const saveRecords = (newRecords) => {
-    setRecords(newRecords);
+  // Super Admin Approval of Late Arrival Access
+  const handleApproveLateEntry = async (attendanceId, empId, empName) => {
     try {
-      localStorage.setItem('crm_workforce_attendance', JSON.stringify(newRecords));
-    } catch {}
+      setApprovingId(attendanceId || empId);
+      const targetId = attendanceId || empId;
+      const authHeaders = {
+        'Content-Type': 'application/json',
+        'x-crm-role': 'Super Admin',
+        ...(crmToken ? { Authorization: `Bearer ${crmToken}` } : {})
+      };
+      const res = await fetch(`/api/hr-ops/attendance/late-approvals/${targetId}/decision`, {
+        method: 'POST',
+        headers: authHeaders,
+        body: JSON.stringify({
+          decision: 'APPROVED',
+          approvedBy: 'Super Admin (Attendance Management)',
+          notes: 'Authorized from Attendance Management Register'
+        })
+      });
+      if (res.ok) {
+        showToast(`✓ Approved late arrival entry for ${empName}. Workspace unlocked.`);
+        await fetchLiveRegister();
+      }
+    } catch (err) {
+      console.error('Approve error:', err);
+    } finally {
+      setApprovingId(null);
+    }
   };
 
   // Open Edit Modal
@@ -179,91 +187,116 @@ export const CrmAttendanceManagement = ({ isSuperAdmin, currentRole }) => {
     if (!canEdit) return;
     setEditingRecord(rec);
     setEditForm({
-      status: rec.status,
-      checkIn: rec.checkIn === '-' ? '09:00 AM' : rec.checkIn,
-      checkOut: rec.checkOut === '-' ? '06:00 PM' : rec.checkOut,
+      status: rec.status === 'Not Clocked In' ? 'Present' : rec.status,
+      checkIn: rec.checkIn === '—' ? '09:00 AM' : rec.checkIn,
+      checkOut: rec.checkOut === '—' ? '06:00 PM' : rec.checkOut,
       hours: rec.hours === '0 hrs' ? '9.0 hrs' : rec.hours,
-      late: rec.late,
+      late: rec.late || false,
       remarks: rec.remarks || ''
     });
   };
 
-  // Save Edit
-  const handleSaveEdit = (e) => {
+  // Save Edit (persists to backend SQLite + state)
+  const handleSaveEdit = async (e) => {
     e.preventDefault();
     if (!canEdit || !editingRecord) return;
 
-    const updated = records.map(r => {
-      if (r.id === editingRecord.id) {
-        return {
-          ...r,
+    try {
+      const authHeaders = {
+        'Content-Type': 'application/json',
+        'x-crm-role': 'Super Admin',
+        ...(crmToken ? { Authorization: `Bearer ${crmToken}` } : {})
+      };
+      await fetch(`/api/hr-ops/attendance/admin/record/${editingRecord.id}`, {
+        method: 'PATCH',
+        headers: authHeaders,
+        body: JSON.stringify({
           status: editForm.status,
-          checkIn: editForm.status === 'Absent' || editForm.status === 'On Leave' ? '-' : editForm.checkIn,
-          checkOut: editForm.status === 'Absent' || editForm.status === 'On Leave' ? '-' : editForm.checkOut,
-          hours: editForm.status === 'Absent' || editForm.status === 'On Leave' ? '0 hrs' : editForm.hours,
+          checkIn: editForm.checkIn,
+          checkOut: editForm.checkOut,
           late: editForm.late,
           remarks: editForm.remarks
-        };
-      }
-      return r;
-    });
+        })
+      });
+    } catch (_) {}
 
-    saveRecords(updated);
+    await fetchLiveRegister();
     setEditingRecord(null);
     showToast(`✓ Attendance record for ${editingRecord.name} (${editingRecord.id}) updated successfully.`);
   };
 
   // Quick Toggle Status (Super Admin Only)
-  const handleQuickToggle = (recId) => {
+  const handleQuickToggle = async (rec) => {
     if (!canEdit) return;
-    const updated = records.map(r => {
-      if (r.id === recId) {
-        const nextStatus = r.status === 'Present' ? 'Absent' : 'Present';
-        return {
-          ...r,
+    const nextStatus = rec.status === 'Present' ? 'Absent' : 'Present';
+    try {
+      const authHeaders = {
+        'Content-Type': 'application/json',
+        'x-crm-role': 'Super Admin',
+        ...(crmToken ? { Authorization: `Bearer ${crmToken}` } : {})
+      };
+      await fetch(`/api/hr-ops/attendance/admin/record/${rec.id}`, {
+        method: 'PATCH',
+        headers: authHeaders,
+        body: JSON.stringify({
           status: nextStatus,
-          checkIn: nextStatus === 'Present' ? '09:00 AM' : '-',
-          checkOut: nextStatus === 'Present' ? '06:00 PM' : '-',
-          hours: nextStatus === 'Present' ? '9.0 hrs' : '0 hrs',
-          late: false,
+          checkIn: nextStatus === 'Present' ? '09:00 AM' : '—',
+          checkOut: nextStatus === 'Present' ? '06:00 PM' : '—',
           remarks: `Quick override by Super Admin on ${new Date().toLocaleDateString('en-GB')}`
-        };
-      }
-      return r;
-    });
-    saveRecords(updated);
-    showToast(`✓ Attendance status toggled by Super Admin.`);
+        })
+      });
+    } catch (_) {}
+
+    await fetchLiveRegister();
+    showToast(`✓ Attendance status toggled for ${rec.name}.`);
   };
 
   // Bulk Mark All Present (Super Admin Only)
-  const handleBulkMarkAllPresent = () => {
+  const handleBulkMarkAllPresent = async () => {
     if (!canEdit) return;
-    const updated = records.map(r => ({
-      ...r,
-      status: 'Present',
-      checkIn: r.checkIn === '-' ? '09:00 AM' : r.checkIn,
-      checkOut: r.checkOut === '-' ? '06:00 PM' : r.checkOut,
-      hours: r.hours === '0 hrs' ? '9.0 hrs' : r.hours,
-      remarks: 'Super Admin bulk regularization'
-    }));
-    saveRecords(updated);
+    try {
+      const authHeaders = {
+        'Content-Type': 'application/json',
+        'x-crm-role': 'Super Admin',
+        ...(crmToken ? { Authorization: `Bearer ${crmToken}` } : {})
+      };
+      for (const r of records) {
+        if (r.status === 'Not Clocked In' || r.status === 'Absent') {
+          try {
+            await fetch(`/api/hr-ops/attendance/admin/record/${r.id}`, {
+              method: 'PATCH',
+              headers: authHeaders,
+              body: JSON.stringify({
+                status: 'Present',
+                checkIn: '09:00 AM',
+                checkOut: '06:00 PM',
+                remarks: 'Super Admin bulk regularization'
+              })
+            });
+          } catch (_) {}
+        }
+      }
+    } catch (_) {}
+
+    await fetchLiveRegister();
     showToast('✓ All workforce records marked as Present for today.');
   };
 
   // Export CSV
   const handleExportCSV = () => {
-    const headers = ['Employee ID', 'Name', 'Department', 'Location', 'Date', 'Status', 'Check-In', 'Check-Out', 'Hours', 'Late Alert', 'Remarks'];
+    const headers = ['Employee ID', 'Name', 'Role', 'Department', 'Location', 'Date', 'Status', 'Check-In', 'Check-Out', 'Hours', 'Late Alert', 'Remarks'];
     const rows = records.map(r => [
       r.id,
       `"${r.name}"`,
+      `"${r.role}"`,
       `"${r.department}"`,
       `"${r.location}"`,
-      r.date,
+      r.date || new Date().toISOString().split('T')[0],
       r.status,
       r.checkIn,
       r.checkOut,
       r.hours,
-      r.late ? 'Late Arrival' : 'On Time',
+      r.late ? `Late Arrival (+${r.lateMinutes || 0}m)` : 'On Time',
       `"${r.remarks || ''}"`
     ]);
 
@@ -278,19 +311,36 @@ export const CrmAttendanceManagement = ({ isSuperAdmin, currentRole }) => {
     showToast('✓ Attendance CSV exported successfully.');
   };
 
-  // Filtered Records
+  // Filtered Records for Register
   const filtered = records.filter(r => {
     const q = search.toLowerCase().trim();
-    const matchesSearch = !q || r.name.toLowerCase().includes(q) || r.id.toLowerCase().includes(q) || r.role.toLowerCase().includes(q);
+    const matchesSearch = !q || (r.name && r.name.toLowerCase().includes(q)) || (r.id && r.id.toLowerCase().includes(q)) || (r.role && r.role.toLowerCase().includes(q));
     const matchesDept = deptFilter === 'All' || r.department === deptFilter;
-    const matchesStatus = statusFilter === 'All' || r.status === statusFilter;
+    const matchesStatus = statusFilter === 'All' || r.status === statusFilter || (statusFilter === 'Late' && r.late);
     return matchesSearch && matchesDept && matchesStatus;
   });
 
-  const presentCount = records.filter(r => r.status === 'Present').length;
-  const lateCount = records.filter(r => r.late).length;
-  const leaveCount = records.filter(r => r.status === 'On Leave').length;
-  const absentCount = records.filter(r => r.status === 'Absent').length;
+  // Filtered Role Logins
+  const filteredLogins = roleLogins.filter(l => {
+    const q = search.toLowerCase().trim();
+    return !q || (l.employeeName && l.employeeName.toLowerCase().includes(q)) || (l.role && l.role.toLowerCase().includes(q)) || (l.email && l.email.toLowerCase().includes(q));
+  });
+
+  const formatLateMins = (mins) => {
+    const m = Math.max(0, parseInt(mins, 10) || 0);
+    if (m >= 60) {
+      const h = Math.floor(m / 60);
+      const rem = m % 60;
+      return rem > 0 ? `+${h}h ${rem}m Late` : `+${h}h Late`;
+    }
+    return `+${m}m Late`;
+  };
+
+  const presentCount = stats.presentCount || records.filter(r => r.status === 'Present' || r.status === 'Late' || r.status === 'Executive Active').length;
+  const lateCount = stats.lateCount || records.filter(r => r.late).length;
+  const leaveCount = stats.leaveCount || records.filter(r => r.status === 'On Leave').length;
+  const absentCount = stats.absentCount || records.filter(r => r.status === 'Not Clocked In' || r.status === 'Absent').length;
+  const pendingCount = stats.pendingApprovalCount || records.filter(r => r.lateApprovalStatus === 'PENDING').length;
 
   return (
     <div className="space-y-6 animate-in fade-in duration-200">
@@ -305,7 +355,7 @@ export const CrmAttendanceManagement = ({ isSuperAdmin, currentRole }) => {
       {/* Top Header Card */}
       <div className="bg-white dark:bg-navy-900 border border-slate-200/90 dark:border-navy-800 rounded-3xl p-6 shadow-xs flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
         <div>
-          <div className="flex items-center gap-2.5">
+          <div className="flex items-center gap-2.5 flex-wrap">
             <h2 className="font-serif font-black text-xl text-slate-900 dark:text-white">
               Workforce Attendance & Biometric Registry
             </h2>
@@ -320,14 +370,33 @@ export const CrmAttendanceManagement = ({ isSuperAdmin, currentRole }) => {
                 Admin View Mode (Read-Only)
               </span>
             )}
+            <span className="px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-emerald-100 text-emerald-800 dark:bg-emerald-500/20 dark:text-emerald-300 border border-emerald-300 dark:border-emerald-500/30 flex items-center gap-1">
+              <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse"></span>
+              SQLite Live Sync
+            </span>
           </div>
           <p className="text-xs text-slate-500 mt-1">
             Real-time biometric punch logs, shift compliance, and working hour summaries across all offices.
+            {lastSynced && (
+              <span className="ml-2 text-[11px] text-slate-400 font-mono">
+                Last synced: {lastSynced.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', second: '2-digit', hour12: true })}
+              </span>
+            )}
           </p>
         </div>
 
         {/* Header Action Buttons */}
         <div className="flex items-center flex-wrap gap-2">
+          <button
+            onClick={fetchLiveRegister}
+            disabled={loading}
+            className="px-3.5 py-2 rounded-xl bg-white dark:bg-navy-950 hover:bg-slate-100 dark:hover:bg-navy-800 text-slate-800 dark:text-slate-200 font-bold text-xs transition cursor-pointer border border-slate-300 dark:border-navy-700 shadow-xs flex items-center gap-1.5 disabled:opacity-60"
+            title="Sync latest attendance and logins from SQLite database"
+          >
+            <RefreshCw className={`w-3.5 h-3.5 text-amber-600 dark:text-gold-400 ${loading ? 'animate-spin' : ''}`} />
+            <span>Sync Live SQLite Data</span>
+          </button>
+
           {canEdit && (
             <button
               onClick={handleBulkMarkAllPresent}
@@ -363,8 +432,12 @@ export const CrmAttendanceManagement = ({ isSuperAdmin, currentRole }) => {
       <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
         <div className="p-4 bg-white dark:bg-navy-900 border border-slate-200/90 dark:border-navy-800 rounded-2xl shadow-xs">
           <span className="text-[10px] font-extrabold uppercase text-slate-500">Present Today</span>
-          <p className="text-2xl font-serif font-black text-emerald-600 mt-1">{presentCount} <span className="text-xs text-slate-400 font-sans font-normal">/ {records.length}</span></p>
-          <span className="text-[10px] text-emerald-600 font-semibold">{Math.round((presentCount / records.length) * 100)}% Workforce Active</span>
+          <p className="text-2xl font-serif font-black text-emerald-600 mt-1">
+            {presentCount} <span className="text-xs text-slate-400 font-sans font-normal">/ {records.length}</span>
+          </p>
+          <span className="text-[10px] text-emerald-600 font-semibold">
+            {records.length > 0 ? Math.round((presentCount / records.length) * 100) : 0}% Workforce Active
+          </span>
         </div>
 
         <div className="p-4 bg-white dark:bg-navy-900 border border-slate-200/90 dark:border-navy-800 rounded-2xl shadow-xs">
@@ -374,13 +447,15 @@ export const CrmAttendanceManagement = ({ isSuperAdmin, currentRole }) => {
         </div>
 
         <div className="p-4 bg-white dark:bg-navy-900 border border-slate-200/90 dark:border-navy-800 rounded-2xl shadow-xs">
-          <span className="text-[10px] font-extrabold uppercase text-slate-500">On Approved Leave</span>
-          <p className="text-2xl font-serif font-black text-amber-600 mt-1">{leaveCount}</p>
-          <span className="text-[10px] text-amber-600 font-semibold">Sanctioned Leaves</span>
+          <span className="text-[10px] font-extrabold uppercase text-slate-500">Pending Authorization</span>
+          <p className="text-2xl font-serif font-black text-amber-600 mt-1">{pendingCount}</p>
+          <span className={`text-[10px] font-semibold ${pendingCount > 0 ? 'text-amber-600 animate-pulse font-bold' : 'text-slate-400'}`}>
+            {pendingCount > 0 ? 'Requires Super Admin Approval' : '0 Pending Gated'}
+          </span>
         </div>
 
         <div className="p-4 bg-white dark:bg-navy-900 border border-slate-200/90 dark:border-navy-800 rounded-2xl shadow-xs">
-          <span className="text-[10px] font-extrabold uppercase text-slate-500">Unexcused Absences</span>
+          <span className="text-[10px] font-extrabold uppercase text-slate-500">Not Clocked In / Absent</span>
           <p className="text-2xl font-serif font-black text-slate-700 dark:text-slate-300 mt-1">{absentCount}</p>
           <span className="text-[10px] text-slate-400 font-semibold">Follow-Up Required</span>
         </div>
@@ -388,6 +463,52 @@ export const CrmAttendanceManagement = ({ isSuperAdmin, currentRole }) => {
 
       {/* Attendance Registry Table Card */}
       <div className="bg-white dark:bg-navy-900 border border-slate-200/90 dark:border-navy-800 rounded-3xl overflow-hidden shadow-xs space-y-0">
+        
+        {/* Navigation View Tabs */}
+        <div className="flex flex-wrap items-center justify-between gap-3 border-b border-slate-200 dark:border-navy-800 p-3 bg-slate-50 dark:bg-navy-950">
+          <div className="flex items-center gap-2">
+            <button
+              onClick={() => setViewTab('register')}
+              className={`py-2 px-3.5 rounded-xl text-xs font-bold transition flex items-center gap-2 cursor-pointer ${
+                viewTab === 'register'
+                  ? 'bg-navy-900 text-white dark:bg-gold-500 dark:text-navy-950 shadow-sm'
+                  : 'text-slate-600 dark:text-slate-300 hover:bg-slate-200 dark:hover:bg-navy-900'
+              }`}
+            >
+              <Clock className="w-4 h-4" />
+              <span>Today's Live Attendance Register</span>
+              <span className={`px-1.5 py-0.2 rounded-full text-[10px] font-extrabold ${viewTab === 'register' ? 'bg-white/20 text-white dark:bg-navy-900/20 dark:text-navy-950' : 'bg-slate-200 dark:bg-navy-800 text-slate-700 dark:text-slate-300'}`}>
+                {records.length}
+              </span>
+            </button>
+
+            <button
+              onClick={() => setViewTab('logins')}
+              className={`py-2 px-3.5 rounded-xl text-xs font-bold transition flex items-center gap-2 cursor-pointer ${
+                viewTab === 'logins'
+                  ? 'bg-navy-900 text-white dark:bg-gold-500 dark:text-navy-950 shadow-sm'
+                  : 'text-slate-600 dark:text-slate-300 hover:bg-slate-200 dark:hover:bg-navy-900'
+              }`}
+            >
+              <UserCheck className="w-4 h-4" />
+              <span>Live Role SSO Logins Feed</span>
+              <span className={`px-1.5 py-0.2 rounded-full text-[10px] font-extrabold ${viewTab === 'logins' ? 'bg-white/20 text-white dark:bg-navy-900/20 dark:text-navy-950' : 'bg-slate-200 dark:bg-navy-800 text-slate-700 dark:text-slate-300'}`}>
+                {roleLogins.length}
+              </span>
+              {pendingCount > 0 && (
+                <span className="px-1.5 py-0.2 bg-rose-500 text-white text-[10px] rounded-full font-black animate-pulse">
+                  {pendingCount} Pending
+                </span>
+              )}
+            </button>
+          </div>
+
+          <div className="text-[11px] text-slate-500 dark:text-slate-400 font-mono flex items-center gap-1.5">
+            <span className="w-2 h-2 rounded-full bg-emerald-500 animate-ping"></span>
+            <span>Real-time SQLite feed active</span>
+          </div>
+        </div>
+
         {/* Table Filters */}
         <div className="p-4 border-b border-slate-200/80 dark:border-navy-800 bg-slate-50/50 dark:bg-navy-950/50 flex flex-col sm:flex-row items-center justify-between gap-3 text-xs">
           <div className="relative w-full sm:w-80">
@@ -396,7 +517,7 @@ export const CrmAttendanceManagement = ({ isSuperAdmin, currentRole }) => {
               type="text"
               value={search}
               onChange={(e) => setSearch(e.target.value)}
-              placeholder="Search employee by name, ID or role..."
+              placeholder={viewTab === 'register' ? "Search employee by name, ID or role..." : "Search logins by name, email, or role..."}
               className="w-full pl-8 pr-3 py-1.5 rounded-xl border border-slate-200 dark:border-navy-800 bg-white dark:bg-navy-900 text-slate-800 dark:text-slate-200 text-xs focus:outline-hidden"
             />
             {search && (
@@ -406,139 +527,284 @@ export const CrmAttendanceManagement = ({ isSuperAdmin, currentRole }) => {
             )}
           </div>
 
-          <div className="flex items-center gap-2 w-full sm:w-auto justify-end">
-            <select
-              value={deptFilter}
-              onChange={(e) => setDeptFilter(e.target.value)}
-              className="px-3 py-1.5 rounded-xl border border-slate-200 dark:border-navy-800 bg-white dark:bg-navy-900 text-slate-800 dark:text-slate-200 text-xs"
-            >
-              <option value="All">All Departments</option>
-              <option value="HR Operations">HR Operations</option>
-              <option value="Talent Acquisition">Talent Acquisition</option>
-              <option value="Placement & Relations">Placement & Relations</option>
-              <option value="Engineering">Engineering</option>
-              <option value="Academic Advisory">Academic Advisory</option>
-              <option value="Client Advisory">Client Advisory</option>
-            </select>
+          {viewTab === 'register' && (
+            <div className="flex items-center gap-2 w-full sm:w-auto justify-end">
+              <select
+                value={deptFilter}
+                onChange={(e) => setDeptFilter(e.target.value)}
+                className="px-3 py-1.5 rounded-xl border border-slate-200 dark:border-navy-800 bg-white dark:bg-navy-900 text-slate-800 dark:text-slate-200 text-xs"
+              >
+                <option value="All">All Departments</option>
+                <option value="Executive Management">Executive Management</option>
+                <option value="Human Resources">Human Resources</option>
+                <option value="Talent Acquisition & ATS">Talent Acquisition & ATS</option>
+                <option value="Placement & Industry Relations">Placement & Relations</option>
+                <option value="International HR Operations">International HR Operations</option>
+                <option value="Enquiry HR Operations">Enquiry HR Operations</option>
+              </select>
 
-            <select
-              value={statusFilter}
-              onChange={(e) => setStatusFilter(e.target.value)}
-              className="px-3 py-1.5 rounded-xl border border-slate-200 dark:border-navy-800 bg-white dark:bg-navy-900 text-slate-800 dark:text-slate-200 text-xs"
-            >
-              <option value="All">All Statuses</option>
-              <option value="Present">Present</option>
-              <option value="On Leave">On Leave</option>
-              <option value="Absent">Absent</option>
-            </select>
-          </div>
+              <select
+                value={statusFilter}
+                onChange={(e) => setStatusFilter(e.target.value)}
+                className="px-3 py-1.5 rounded-xl border border-slate-200 dark:border-navy-800 bg-white dark:bg-navy-900 text-slate-800 dark:text-slate-200 text-xs"
+              >
+                <option value="All">All Statuses</option>
+                <option value="Present">Present</option>
+                <option value="Late">Late Arrivals</option>
+                <option value="Executive Active">Executive Active</option>
+                <option value="On Leave">On Leave</option>
+                <option value="Not Clocked In">Not Clocked In</option>
+              </select>
+            </div>
+          )}
         </div>
 
-        {/* Table Content */}
-        <div className="overflow-x-auto">
-          <table className="w-full text-left text-xs border-collapse">
-            <thead>
-              <tr className="bg-slate-50 dark:bg-navy-950 text-slate-700 dark:text-slate-300 uppercase tracking-wider text-[10px] border-b border-slate-200 dark:border-navy-800 font-serif">
-                <th className="p-4 font-bold">Employee Name & ID</th>
-                <th className="p-4 font-bold">Department & Branch</th>
-                <th className="p-4 font-bold text-center">Status</th>
-                <th className="p-4 font-bold text-center">Check-In</th>
-                <th className="p-4 font-bold text-center">Check-Out</th>
-                <th className="p-4 font-bold text-center">Logged Hours</th>
-                <th className="p-4 font-bold text-center">Punctuality Alert</th>
-                <th className="p-4 font-bold text-right">
-                  {canEdit ? 'Super Admin Actions' : 'Access Level'}
-                </th>
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-slate-200 dark:divide-navy-800 text-slate-700 dark:text-slate-300">
-              {filtered.map(r => (
-                <tr key={r.id} className="hover:bg-slate-50 dark:hover:bg-navy-950/60 transition">
-                  {/* Name */}
-                  <td className="p-4">
-                    <div className="font-bold text-slate-900 dark:text-white leading-tight">{r.name}</div>
-                    <div className="text-[10px] text-slate-400 font-mono mt-0.5">{r.id} • {r.role}</div>
-                  </td>
-
-                  {/* Dept & Location */}
-                  <td className="p-4">
-                    <div className="font-medium text-slate-700 dark:text-slate-300">{r.department}</div>
-                    <div className="text-[10px] text-amber-700 dark:text-gold-400 font-semibold">{r.location}</div>
-                  </td>
-
-                  {/* Status Badge */}
-                  <td className="p-4 text-center">
-                    <span className={`px-2.5 py-1 rounded-full text-[10px] font-bold ${
-                      r.status === 'Present'
-                        ? 'bg-emerald-50 dark:bg-emerald-950/40 text-emerald-700 dark:text-emerald-300 border border-emerald-200'
-                        : r.status === 'On Leave'
-                        ? 'bg-amber-50 dark:bg-amber-950/40 text-amber-700 dark:text-amber-300 border border-amber-200'
-                        : 'bg-rose-50 dark:bg-rose-950/40 text-rose-700 dark:text-rose-300 border border-rose-200'
-                    }`}>
-                      {r.status}
-                    </span>
-                  </td>
-
-                  {/* Times */}
-                  <td className="p-4 text-center font-mono font-bold text-slate-800 dark:text-slate-200">
-                    {r.checkIn}
-                  </td>
-                  <td className="p-4 text-center font-mono text-slate-600 dark:text-slate-300">
-                    {r.checkOut}
-                  </td>
-                  <td className="p-4 text-center font-mono font-bold text-emerald-600">
-                    {r.hours}
-                  </td>
-
-                  {/* Punctuality */}
-                  <td className="p-4 text-center">
-                    {r.late ? (
-                      <span className="px-2 py-0.5 rounded text-[10px] font-bold bg-rose-50 dark:bg-rose-950/40 text-rose-700 dark:text-rose-300 border border-rose-200">
-                        ⚠️ Late Arrival
-                      </span>
-                    ) : r.status === 'Present' ? (
-                      <span className="text-[10px] text-emerald-600 font-bold">✓ On Time</span>
-                    ) : (
-                      <span className="text-[10px] text-slate-400">-</span>
-                    )}
-                  </td>
-
-                  {/* Actions Column */}
-                  <td className="p-4 text-right">
-                    {canEdit ? (
-                      <div className="inline-flex items-center justify-end gap-1.5">
-                        <button
-                          type="button"
-                          onClick={() => handleQuickToggle(r.id)}
-                          className="px-2.5 py-1 rounded-xl bg-slate-100 dark:bg-navy-800 hover:bg-slate-200 dark:hover:bg-navy-700 text-slate-700 dark:text-slate-300 text-[11px] font-bold transition cursor-pointer"
-                          title="Toggle Present / Absent"
-                        >
-                          Toggle
-                        </button>
-
-                        <button
-                          type="button"
-                          onClick={() => handleOpenEdit(r)}
-                          className="px-3 py-1 rounded-xl bg-gradient-to-r from-amber-500 to-amber-600 hover:from-amber-600 hover:to-amber-700 text-navy-950 font-bold text-xs transition inline-flex items-center gap-1 shadow-xs cursor-pointer"
-                          title="Super Admin edit attendance record"
-                        >
-                          <Edit3 className="w-3 h-3" />
-                          <span>Edit</span>
-                        </button>
-                      </div>
-                    ) : (
-                      /* Admin View Only badge */
-                      <span className="px-2.5 py-1 rounded-xl text-[10px] font-bold bg-slate-100 dark:bg-navy-800 text-slate-400 dark:text-slate-500 border border-slate-200 dark:border-navy-700 inline-flex items-center gap-1" title="Editing attendance is restricted to Super Admin">
-                        <Lock className="w-3 h-3 text-slate-400" />
-                        <span>View Only</span>
-                      </span>
-                    )}
-                  </td>
+        {/* Tab 1: Today's Live Attendance Register Content */}
+        {viewTab === 'register' ? (
+          <div className="overflow-x-auto">
+            <table className="w-full text-left text-xs border-collapse">
+              <thead>
+                <tr className="bg-slate-50 dark:bg-navy-950 text-slate-700 dark:text-slate-300 uppercase tracking-wider text-[10px] border-b border-slate-200 dark:border-navy-800 font-serif">
+                  <th className="p-4 font-bold">Employee Name & ID</th>
+                  <th className="p-4 font-bold">Department & Branch</th>
+                  <th className="p-4 font-bold text-center">Status</th>
+                  <th className="p-4 font-bold text-center">Check-In</th>
+                  <th className="p-4 font-bold text-center">Check-Out</th>
+                  <th className="p-4 font-bold text-center">Logged Hours</th>
+                  <th className="p-4 font-bold text-center">Punctuality Alert</th>
+                  <th className="p-4 font-bold text-right">
+                    {canEdit ? 'Super Admin Actions' : 'Access Level'}
+                  </th>
                 </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
+              </thead>
+              <tbody className="divide-y divide-slate-200 dark:divide-navy-800 text-slate-700 dark:text-slate-300">
+                {filtered.map(r => {
+                  const isPending = r.lateApprovalStatus === 'PENDING';
+                  return (
+                    <tr 
+                      key={r.id} 
+                      className={`transition ${isPending ? 'bg-rose-50/40 dark:bg-rose-950/20 hover:bg-rose-50/70' : 'hover:bg-slate-50 dark:hover:bg-navy-950/60'}`}
+                    >
+                      {/* Name */}
+                      <td className="p-4">
+                        <div className="font-bold text-slate-900 dark:text-white leading-tight flex items-center gap-1.5">
+                          <span>{r.name}</span>
+                          {r.isLive && (
+                            <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 inline-block" title="Synced from SQLite today"></span>
+                          )}
+                        </div>
+                        <div className="text-[10px] text-slate-400 font-mono mt-0.5">{r.id} • {r.role}</div>
+                      </td>
+
+                      {/* Dept & Location */}
+                      <td className="p-4">
+                        <div className="font-medium text-slate-700 dark:text-slate-300">{r.department}</div>
+                        <div className="text-[10px] text-amber-700 dark:text-gold-400 font-semibold">{r.location}</div>
+                      </td>
+
+                      {/* Status Badge */}
+                      <td className="p-4 text-center">
+                        <span className={`px-2.5 py-1 rounded-full text-[10px] font-bold ${
+                          r.status === 'Present' || r.status === 'Executive Active'
+                            ? 'bg-emerald-50 dark:bg-emerald-950/40 text-emerald-700 dark:text-emerald-300 border border-emerald-200 dark:border-emerald-800/40'
+                            : r.status === 'Late'
+                            ? 'bg-rose-50 dark:bg-rose-950/40 text-rose-700 dark:text-rose-300 border border-rose-200 dark:border-rose-800/40'
+                            : r.status === 'On Leave'
+                            ? 'bg-amber-50 dark:bg-amber-950/40 text-amber-700 dark:text-amber-300 border border-amber-200 dark:border-amber-800/40'
+                            : 'bg-slate-100 dark:bg-navy-800 text-slate-600 dark:text-slate-400 border border-slate-200 dark:border-navy-700'
+                        }`}>
+                          {r.status}
+                        </span>
+                      </td>
+
+                      {/* Times */}
+                      <td className="p-4 text-center font-mono font-bold text-slate-800 dark:text-slate-200">
+                        {r.checkIn}
+                      </td>
+                      <td className="p-4 text-center font-mono text-slate-600 dark:text-slate-300">
+                        {r.checkOut}
+                      </td>
+                      <td className="p-4 text-center font-mono font-bold text-emerald-600">
+                        {r.hours}
+                      </td>
+
+                      {/* Punctuality Alert */}
+                      <td className="p-4 text-center">
+                        {isPending ? (
+                          <div className="flex flex-col items-center gap-1">
+                            <span className="px-2 py-0.5 rounded text-[10px] font-black bg-rose-100 text-rose-800 dark:bg-rose-500/20 dark:text-rose-300 border border-rose-300 dark:border-rose-500/40 animate-pulse">
+                              ▲ {formatLateMins(r.lateMinutes)} (Gated)
+                            </span>
+                            {canEdit && (
+                              <button
+                                onClick={() => handleApproveLateEntry(r.attendanceId, r.id, r.name)}
+                                disabled={approvingId === (r.attendanceId || r.id)}
+                                className="px-2 py-0.5 bg-emerald-600 hover:bg-emerald-500 text-white rounded text-[10px] font-bold shadow-xs cursor-pointer disabled:opacity-50"
+                              >
+                                {approvingId === (r.attendanceId || r.id) ? '...' : '✓ Approve Access'}
+                              </button>
+                            )}
+                          </div>
+                        ) : r.late ? (
+                          <span className="px-2 py-0.5 rounded text-[10px] font-bold bg-rose-50 dark:bg-rose-950/40 text-rose-700 dark:text-rose-300 border border-rose-200 dark:border-rose-800">
+                            ▲ Late Arrival ({formatLateMins(r.lateMinutes)})
+                          </span>
+                        ) : r.status === 'Present' || r.status === 'Executive Active' ? (
+                          <span className="text-[10px] text-emerald-600 dark:text-emerald-400 font-bold">✓ On Time</span>
+                        ) : (
+                          <span className="text-[10px] text-slate-400 dark:text-slate-500">—</span>
+                        )}
+                      </td>
+
+                      {/* Actions Column */}
+                      <td className="p-4 text-right">
+                        {canEdit ? (
+                          <div className="inline-flex items-center justify-end gap-1.5">
+                            <button
+                              type="button"
+                              onClick={() => handleQuickToggle(r)}
+                              className="px-2.5 py-1 rounded-xl bg-slate-100 dark:bg-navy-800 hover:bg-slate-200 dark:hover:bg-navy-700 text-slate-700 dark:text-slate-300 text-[11px] font-bold transition cursor-pointer"
+                              title="Toggle Present / Absent"
+                            >
+                              Toggle
+                            </button>
+
+                            <button
+                              type="button"
+                              onClick={() => handleOpenEdit(r)}
+                              className="px-3 py-1 rounded-xl bg-gradient-to-r from-amber-500 to-amber-600 hover:from-amber-600 hover:to-amber-700 text-navy-950 font-bold text-xs transition inline-flex items-center gap-1 shadow-xs cursor-pointer"
+                              title="Super Admin edit attendance record"
+                            >
+                              <Edit3 className="w-3 h-3" />
+                              <span>Edit</span>
+                            </button>
+                          </div>
+                        ) : (
+                          <span className="px-2.5 py-1 rounded-xl text-[10px] font-bold bg-slate-100 dark:bg-navy-800 text-slate-400 dark:text-slate-500 border border-slate-200 dark:border-navy-700 inline-flex items-center gap-1" title="Editing attendance is restricted to Super Admin">
+                            <Lock className="w-3 h-3 text-slate-400" />
+                            <span>View Only</span>
+                          </span>
+                        )}
+                      </td>
+                    </tr>
+                  );
+                })}
+              </tbody>
+            </table>
+          </div>
+        ) : (
+          /* Tab 2: Live Role SSO Logins Feed */
+          <div className="overflow-x-auto">
+            <table className="w-full text-left text-xs border-collapse">
+              <thead>
+                <tr className="bg-slate-50 dark:bg-navy-950 text-slate-700 dark:text-slate-300 uppercase tracking-wider text-[10px] border-b border-slate-200 dark:border-navy-800 font-serif">
+                  <th className="p-4 font-bold">Staff / Role</th>
+                  <th className="p-4 font-bold">Department</th>
+                  <th className="p-4 font-bold">Shift Schedule</th>
+                  <th className="p-4 font-bold">Check-In</th>
+                  <th className="p-4 font-bold">Check-Out</th>
+                  <th className="p-4 font-bold text-center">Worked Hours</th>
+                  <th className="p-4 font-bold text-center">Sessions</th>
+                  <th className="p-4 font-bold text-center">Punctuality</th>
+                  <th className="p-4 font-bold text-center">Access Status</th>
+                  <th className="p-4 font-bold text-right">Super Admin Action</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-slate-200 dark:divide-navy-800 text-slate-700 dark:text-slate-300">
+                {filteredLogins.length > 0 ? (
+                  filteredLogins.map(log => {
+                    const isPending = log.lateApprovalStatus === 'PENDING';
+                    const isApproved = log.lateApprovalStatus === 'APPROVED';
+                    return (
+                      <tr key={log.id} className={`transition ${isPending ? 'bg-rose-50/40 dark:bg-rose-950/20' : 'hover:bg-slate-50 dark:hover:bg-navy-950/60'}`}>
+                        <td className="p-4">
+                          <p className="font-bold text-slate-900 dark:text-white">{log.employeeName}</p>
+                          <p className="text-[10px] text-slate-400 font-mono">{log.employeeId || 'ID'} • {log.role}</p>
+                        </td>
+                        <td className="p-4">
+                          <span className="font-medium text-slate-700 dark:text-slate-300">{log.department || 'Operations'}</span>
+                        </td>
+                        <td className="p-4">
+                          <span className="font-medium text-slate-800 dark:text-slate-200 block truncate max-w-[180px]">{log.shiftName || 'General Shift'}</span>
+                          <span className="text-[10px] font-mono text-slate-400">{log.shiftStart || '09:00'} - {log.shiftEnd || '18:00'}</span>
+                        </td>
+                        <td className="p-4 font-mono">
+                          <span className="font-bold text-emerald-600 dark:text-emerald-400 block">{log.checkIn || log.checkInTime || log.loginTime?.slice(11, 16)}</span>
+                          <span className="text-[10px] text-slate-400">{log.loginTime}</span>
+                        </td>
+                        <td className="p-4 font-mono text-slate-700 dark:text-slate-300">
+                          {log.checkOut === 'Active / In Office' ? (
+                            <span className="px-2 py-0.5 rounded text-[10px] font-bold bg-emerald-50 text-emerald-700 dark:bg-emerald-500/20 dark:text-emerald-300 border border-emerald-200 dark:border-emerald-500/30">
+                              In Office
+                            </span>
+                          ) : (
+                            log.checkOut || '—'
+                          )}
+                        </td>
+                        <td className="p-4 font-mono font-bold text-center text-indigo-600 dark:text-indigo-400">
+                          {log.workedHours || 'In Progress'}
+                        </td>
+                        <td className="p-4 text-center">
+                          <span 
+                            className="px-2 py-0.5 rounded-full text-[10px] font-extrabold bg-blue-50 text-blue-700 dark:bg-blue-500/20 dark:text-blue-300 border border-blue-200 dark:border-blue-500/30"
+                            title={log.sessionsList && log.sessionsList.length ? log.sessionsList.join(' • ') : `${log.loginCount || 1} logins today`}
+                          >
+                            {log.loginCount || 1} {log.loginCount === 1 ? 'Login' : 'Logins'}
+                          </span>
+                        </td>
+                        <td className="p-4 text-center">
+                          {log.punctuality === 'Late' ? (
+                            <span className="px-2 py-0.5 rounded text-[10px] font-bold bg-rose-100 text-rose-800 dark:bg-rose-500/20 dark:text-rose-300 border border-rose-300">
+                              ▲ +{log.lateMinutes || 0}m Late
+                            </span>
+                          ) : (
+                            <span className="px-2 py-0.5 rounded text-[10px] font-bold bg-emerald-100 text-emerald-800 dark:bg-emerald-500/20 dark:text-emerald-300">
+                              ✓ On Time
+                            </span>
+                          )}
+                        </td>
+                        <td className="p-4 text-center">
+                          {isPending ? (
+                            <span className="px-2 py-0.5 rounded-full text-[10px] font-black bg-rose-500 text-white animate-pulse">
+                              Pending Review
+                            </span>
+                          ) : isApproved ? (
+                            <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-emerald-100 text-emerald-900 dark:bg-emerald-500/20 dark:text-emerald-300">
+                              ✓ Authorized
+                            </span>
+                          ) : (
+                            <span className="text-[10px] text-slate-400">Logged</span>
+                          )}
+                        </td>
+                        <td className="p-4 text-right">
+                          {isPending && canEdit ? (
+                            <button
+                              onClick={() => handleApproveLateEntry(null, log.id, log.employeeName)}
+                              disabled={approvingId === log.id}
+                              className="py-1 px-3 bg-emerald-600 hover:bg-emerald-500 text-white rounded-lg text-xs font-bold transition shadow-xs cursor-pointer disabled:opacity-50"
+                            >
+                              {approvingId === log.id ? 'Unlocking...' : '✓ Approve Access'}
+                            </button>
+                          ) : (
+                            <span className="text-[11px] font-mono text-slate-400">
+                              {log.approvedBy || log.ipAddress || 'Verified'}
+                            </span>
+                          )}
+                        </td>
+                      </tr>
+                    );
+                  })
+                ) : (
+                  <tr>
+                    <td colSpan={7} className="p-8 text-center text-slate-400 text-xs">
+                      No role login sessions recorded today yet.
+                    </td>
+                  </tr>
+                )}
+              </tbody>
+            </table>
+          </div>
+        )}
       </div>
 
       {/* Super Admin Edit Attendance Modal */}

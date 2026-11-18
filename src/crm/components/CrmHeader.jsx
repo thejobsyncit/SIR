@@ -76,12 +76,47 @@ export const CrmHeader = ({ collapsed, setCollapsed }) => {
     setGlobalAddCandidateOpen,
     setGlobalAddClientOpen,
     setGlobalAddInterviewOpen,
-    setGlobalAddInvoiceOpen
+    setGlobalAddInvoiceOpen,
+    crmToken
   } = useCrm();
 
   const [quickMenuOpen, setQuickMenuOpen] = useState(false);
   const [roleMenuOpen, setRoleMenuOpen] = useState(false);
   const roleDropdownRef = useRef(null);
+  const [pendingLateCount, setPendingLateCount] = useState(0);
+
+  // Auto-poll pending late arrivals count for Super Admin
+  useEffect(() => {
+    if (currentRole !== 'Super Admin') {
+      setPendingLateCount(0);
+      return;
+    }
+    const fetchPendingCount = async () => {
+      try {
+        const endpoints = ['/api/hr-ops/attendance/late-approvals/pending', 'http://localhost:5000/api/hr-ops/attendance/late-approvals/pending'];
+        for (const ep of endpoints) {
+          try {
+            const res = await fetch(ep, {
+              headers: {
+                'x-crm-role': 'Super Admin',
+                ...(crmToken ? { Authorization: `Bearer ${crmToken}` } : {})
+              }
+            });
+            if (res.ok) {
+              const data = await res.json();
+              if (data && typeof data.count === 'number') {
+                setPendingLateCount(data.count);
+                break;
+              }
+            }
+          } catch (_) {}
+        }
+      } catch (_) {}
+    };
+    fetchPendingCount();
+    const interval = setInterval(fetchPendingCount, 4000);
+    return () => clearInterval(interval);
+  }, [currentRole, crmToken]);
 
   // Close role dropdown when clicking outside
   useEffect(() => {
@@ -134,6 +169,19 @@ export const CrmHeader = ({ collapsed, setCollapsed }) => {
 
       {/* Right Controls */}
       <div className="flex items-center space-x-2 sm:space-x-3 text-xs sm:text-sm">
+
+        {/* Super Admin Late Arrival Authorization Indicator */}
+        {currentRole === 'Super Admin' && pendingLateCount > 0 && (
+          <button
+            onClick={() => setActiveModule('superadmin')}
+            className="flex items-center space-x-1.5 bg-rose-500/15 hover:bg-rose-500/25 border-2 border-rose-400 text-rose-800 dark:text-rose-200 px-2.5 py-1.5 rounded-xl font-bold text-xs transition shadow-xs cursor-pointer animate-pulse"
+            title={`${pendingLateCount} late arrival authorization(s) pending`}
+          >
+            <Clock className="w-3.5 h-3.5 text-rose-600 dark:text-rose-400" />
+            <span className="hidden md:inline">{pendingLateCount} Late Approvals</span>
+            <span className="md:hidden">{pendingLateCount} Late</span>
+          </button>
+        )}
         
         {/* Quick Create Action Menu */}
         <div className="relative">

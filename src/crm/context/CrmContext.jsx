@@ -26,6 +26,11 @@ export const DEFAULT_CRM_CONTEXT_VALUE = {
   authTokenLoading: false,
   setCrmToken: () => { },
   syncAttendanceNotifications: () => { },
+  attendancePunch: null,
+  clockIn: async () => { },
+  startBreak: async () => { },
+  endBreak: async () => { },
+  clockOut: async () => { },
   currentRole: 'Super Admin',
   isSuperAdmin: true,
   switchRole: () => { },
@@ -520,9 +525,6 @@ export const CrmProvider = ({ children }) => {
           ) {
             return 'dashboard';
           }
-          if (parsed.currentRole !== 'HR Operations' && parsed.activeModule === 'my-attendance') {
-            return 'dashboard';
-          }
           if (parsed.activeModule === 'interviews') {
             return 'candidates';
           }
@@ -658,7 +660,11 @@ export const CrmProvider = ({ children }) => {
       fetch('/api/crm/auth/preview-token', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ targetRole: currentRole })
+        body: JSON.stringify({
+          targetRole: currentRole,
+          targetEmail: user?.email,
+          employeeId: user?.id
+        })
       })
         .then((r) => r.json())
         .then((data) => {
@@ -677,13 +683,532 @@ export const CrmProvider = ({ children }) => {
         })
         .catch(() => {});
     }
-  }, [isAuthenticated, crmToken, currentRole]);
+  }, [isAuthenticated, crmToken, currentRole, user]);
+
+  // =========================================================================
+  // UNIVERSAL ATTENDANCE PUNCH STATE & CONTROLS (Clock In, Break, Clock Out)
+  // =========================================================================
+  const formatAttendanceClockTime = (isoOrTime) => {
+    if (!isoOrTime) return '—';
+    if (/^\d{2}:\d{2}(\s*(AM|PM))?$/i.test(isoOrTime)) return isoOrTime;
+    const d = new Date(isoOrTime);
+    if (Number.isNaN(d.getTime())) return String(isoOrTime);
+    return d.toLocaleTimeString('en-IN', {
+      timeZone: 'Asia/Kolkata',
+      hour: '2-digit',
+      minute: '2-digit',
+      hour12: true
+    });
+  };
+
+  const getAttendanceTodayDateStr = () =>
+    new Date().toLocaleDateString('en-CA', { timeZone: 'Asia/Kolkata' });
+
+  const [attendancePunch, setAttendancePunch] = useState(() => {
+    const today = getAttendanceTodayDateStr();
+    try {
+      const saved = localStorage.getItem('sir_crm_my_attendance_active');
+      if (saved) {
+        const p = JSON.parse(saved);
+        if (p && p.workDate === today) {
+          return p;
+        }
+      }
+    } catch (_) {}
+    return {
+      status: 'Not Checked In',
+      checkInAt: null,
+      checkOutAt: null,
+      checkInFormatted: null,
+      checkOutFormatted: null,
+      isOnBreak: false,
+      breakType: null,
+      breakStartedAt: null,
+      totalBreakMinutes: 0,
+      workDate: today,
+      liveWorkedSeconds: 0,
+      liveBreakSeconds: 0,
+      lateMinutes: 0,
+      isLate: false,
+      shiftName: 'General Day Shift (09:00 AM - 06:00 PM)'
+    };
+  });
+
+  // Keep attendancePunch in sync with localStorage
+  useEffect(() => {
+    try {
+      localStorage.setItem('sir_crm_my_attendance_active', JSON.stringify(attendancePunch));
+    } catch (_) {}
+  }, [attendancePunch]);
+
+  // Live timer ticker effect (1 second)
+  useEffect(() => {
+    const interval = setInterval(() => {
+      setAttendancePunch(prev => {
+        if (!prev || !prev.checkInAt || prev.checkOutAt) return prev;
+        if (prev.isOnBreak && prev.breakStartedAt) {
+          const breakSecs = Math.max(0, Math.floor((Date.now() - new Date(prev.breakStartedAt).getTime()) / 1000));
+          return { ...prev, liveBreakSeconds: breakSecs };
+        }
+        if (prev.status === 'Present' || prev.status === 'Late') {
+          const totalElapsed = Math.max(0, Math.floor((Date.now() - new Date(prev.checkInAt).getTime()) / 1000));
+          const netSeconds = Math.max(0, totalElapsed - ((prev.totalBreakMinutes || 0) * 60));
+          return { ...prev, liveWorkedSeconds: netSeconds };
+        }
+        return prev;
+      });
+    }, 1000);
+    return () => clearInterval(interval);
+  }, []);
+
+  const getOrFetchActiveToken = async (targetRole = null, targetUser = null) => {
+    const role = targetRole || currentRole || 'HR Operations';
+    const usr = targetUser || user;
+    if (crmToken) return crmToken;
+    try {
+      const r = await fetch('/api/crm/auth/preview-token', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          targetRole: role,
+          targetEmail: usr?.email,
+          employeeId: usr?.id || usr?.employeeId
+        })
+      });
+      const d = await r.json();
+      if (d?.success && d.token) {
+        setCrmToken(d.token);
+        return d.token;
+      }
+    } catch (_) {}
+    return null;
+  };
+
+  // Late Arrival Super Admin Approval Gate State
+  const [lateApprovalGate, setLateApprovalGate] = useState(() => {
+    try {
+      const saved = localStorage.getItem('sir_crm_late_approval_gate');
+      return saved ? JSON.parse(saved) : null;
+    } catch {
+      return null;
+    }
+  });
+
+  useEffect(() => {
+    try {
+      if (lateApprovalGate) {
+        localStorage.setItem('sir_crm_late_approval_gate', JSON.stringify(lateApprovalGate));
+      } else {
+        localStorage.removeItem('sir_crm_late_approval_gate');
+      }
+    } catch (_) {}
+  }, [lateApprovalGate]);
+
+  const checkLateApprovalStatus = async () => {
+    try {
+      const tok = await getOrFetchActiveToken(currentRole, user);
+      if (!tok) return null;
+      const res = await fetch('/api/hr-ops/attendance/late-approval-status', {
+        headers: { Authorization: `Bearer ${tok}` }
+      });
+      const data = await res.json();
+      if (data && data.success) {
+        if (data.lateApprovalStatus === 'APPROVED' || data.lateApprovalStatus === 'EXEMPT') {
+          setLateApprovalGate(null);
+          localStorage.removeItem('sir_crm_late_approval_gate');
+          return 'APPROVED';
+        } else if (data.lateApprovalStatus === 'REJECTED') {
+          setLateApprovalGate(prev => ({ ...prev, status: 'REJECTED' }));
+          return 'REJECTED';
+        } else if (data.lateApprovalStatus === 'PENDING') {
+          setLateApprovalGate(prev => ({
+            ...prev,
+            isBlocked: true,
+            status: 'PENDING',
+            lateMinutes: data.lateMinutes,
+            shiftName: data.shiftName,
+            shiftStart: data.shiftStart,
+            checkInAt: data.checkInAt ? new Date(data.checkInAt).toLocaleTimeString('en-US', { timeZone: 'Asia/Kolkata', hour: '2-digit', minute: '2-digit', hour12: true }) : prev?.checkInAt,
+            workDate: data.workDate
+          }));
+          return 'PENDING';
+        }
+      }
+    } catch (_) {}
+    return null;
+  };
+
+  const clockIn = async (notes = '', overrideUser = null, overrideRole = null) => {
+    const activeUser = overrideUser || user;
+    const activeRole = overrideRole || currentRole;
+
+    // Super Admin and Admin are executive management accounts; exempt from attendance check-in
+    if (activeRole === 'Super Admin' || activeRole === 'Admin') {
+      return null;
+    }
+
+    const today = getAttendanceTodayDateStr();
+
+    // Check if an active check-in for today already exists
+    let existingPunch = null;
+    try {
+      const saved = localStorage.getItem('sir_crm_my_attendance_active');
+      if (saved) {
+        const p = JSON.parse(saved);
+        if (p && p.workDate === today && p.checkInAt && (!p.userEmail || p.userEmail === activeUser?.email)) {
+          existingPunch = p;
+        }
+      }
+    } catch (_) {}
+
+    if (existingPunch && existingPunch.checkInAt && !existingPunch.checkOutAt) {
+      setAttendancePunch(existingPunch);
+      return existingPunch;
+    }
+
+    const now = new Date();
+    const checkInIso = now.toISOString();
+    const formatted = formatAttendanceClockTime(now);
+
+    // Calculate punctuality against 09:00 AM
+    const parts = now.toLocaleTimeString('en-US', { timeZone: 'Asia/Kolkata', hour12: false, hour: '2-digit', minute: '2-digit' }).split(':');
+    const h = parseInt(parts[0], 10);
+    const m = parseInt(parts[1], 10);
+    const totalMins = h * 60 + m;
+    const shiftStartMins = 9 * 60; // 09:00 AM
+    const lateM = Math.max(0, totalMins - shiftStartMins);
+    const isLate = lateM > 15;
+
+    const newPunch = {
+      status: isLate ? 'Late' : 'Present',
+      checkInAt: checkInIso,
+      checkOutAt: null,
+      checkInFormatted: formatted,
+      checkOutFormatted: null,
+      isOnBreak: false,
+      breakType: null,
+      breakStartedAt: null,
+      totalBreakMinutes: 0,
+      workDate: today,
+      liveWorkedSeconds: 1,
+      liveBreakSeconds: 0,
+      lateMinutes: lateM,
+      isLate,
+      shiftName: 'General Day Shift (09:00 AM - 06:00 PM)',
+      userEmail: activeUser?.email,
+      userName: activeUser?.name,
+      employeeId: activeUser?.employeeId || activeUser?.id
+    };
+
+    setAttendancePunch(newPunch);
+
+    // Sync to localStorage
+    try {
+      localStorage.setItem('sir_crm_my_attendance_active', JSON.stringify(newPunch));
+    } catch (_) {}
+
+    // Sync to sir_crm_workforce_directory_v2
+    try {
+      const savedDir = localStorage.getItem('sir_crm_workforce_directory_v2');
+      if (savedDir) {
+        const dir = JSON.parse(savedDir);
+        if (Array.isArray(dir)) {
+          const updatedDir = dir.map(emp => {
+            if (emp.email === activeUser?.email || emp.name === activeUser?.name || emp.role === activeRole) {
+              return {
+                ...emp,
+                attendanceToday: {
+                  ...emp.attendanceToday,
+                  status: isLate ? 'Late' : 'Present',
+                  checkIn: formatted,
+                  checkOut: 'In Office',
+                  late: isLate,
+                  lateMinutes: lateM,
+                  hours: 'Active',
+                  punchSource: 'Portal Login SSO',
+                  loginStatus: isLate ? `Late (${lateM} mins)` : 'On Time'
+                }
+              };
+            }
+            return emp;
+          });
+          localStorage.setItem('sir_crm_workforce_directory_v2', JSON.stringify(updatedDir));
+        }
+      }
+    } catch (_) {}
+
+    // Call backend API
+    try {
+      const tok = await getOrFetchActiveToken(activeRole, activeUser);
+      if (tok) {
+        const res = await fetch('/api/hr-ops/attendance/check-in', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            Authorization: `Bearer ${tok}`
+          },
+          body: JSON.stringify({ notes: notes || 'Automated Portal Login Check-In' })
+        });
+        const resJson = await res.json();
+        if (resJson?.data?.lateApprovalStatus) {
+          const status = resJson.data.lateApprovalStatus;
+          if (status === 'PENDING' && activeRole !== 'Super Admin' && activeRole !== 'Admin') {
+            const gateObj = {
+              isBlocked: true,
+              status: 'PENDING',
+              lateMinutes: resJson.data.lateMinutes || lateM,
+              shiftName: resJson.data.shiftName || newPunch.shiftName,
+              shiftStart: resJson.data.shiftStart || '09:00 AM',
+              checkInAt: formatted,
+              employeeName: activeUser?.name,
+              role: activeRole,
+              attendanceId: resJson.data.id,
+              workDate: today
+            };
+            setLateApprovalGate(gateObj);
+            try { localStorage.setItem('sir_crm_late_approval_gate', JSON.stringify(gateObj)); } catch (_) {}
+          } else if (status === 'APPROVED' || status === 'EXEMPT') {
+            setLateApprovalGate(null);
+            try { localStorage.removeItem('sir_crm_late_approval_gate'); } catch (_) {}
+          }
+        }
+      }
+    } catch (_) {}
+
+    // If locally determined late and non-executive, guarantee approval gate engages ONLY if not approved
+    const serverApproval = resJson?.data?.lateApprovalStatus;
+    if (isLate && activeRole !== 'Super Admin' && activeRole !== 'Admin' && serverApproval !== 'APPROVED' && serverApproval !== 'EXEMPT') {
+      setLateApprovalGate(prev => (prev?.status === 'APPROVED' ? null : (prev || {
+        isBlocked: true,
+        status: 'PENDING',
+        lateMinutes: lateM,
+        shiftName: 'General Day Shift (09:00 AM - 06:00 PM)',
+        shiftStart: '09:00 AM',
+        checkInAt: formatted,
+        employeeName: activeUser?.name,
+        role: activeRole,
+        workDate: today
+      })));
+    }
+
+    return newPunch;
+  };
+
+  const startBreak = async (breakType = 'General Break') => {
+    const nowIso = new Date().toISOString();
+    setAttendancePunch(prev => ({
+      ...prev,
+      status: 'On Break',
+      isOnBreak: true,
+      breakType,
+      breakStartedAt: nowIso,
+      liveBreakSeconds: 1
+    }));
+
+    try {
+      const tok = await getOrFetchActiveToken();
+      if (tok) {
+        await fetch('/api/hr-ops/attendance/break/start', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            Authorization: `Bearer ${tok}`
+          },
+          body: JSON.stringify({ breakType })
+        });
+      }
+    } catch (_) {}
+  };
+
+  const endBreak = async () => {
+    let addMins = 0;
+    setAttendancePunch(prev => {
+      if (prev.breakStartedAt) {
+        addMins = Math.max(1, Math.round((Date.now() - new Date(prev.breakStartedAt).getTime()) / 60000));
+      }
+      return {
+        ...prev,
+        status: prev.isLate ? 'Late' : 'Present',
+        isOnBreak: false,
+        breakType: null,
+        breakStartedAt: null,
+        totalBreakMinutes: (prev.totalBreakMinutes || 0) + addMins,
+        liveBreakSeconds: 0
+      };
+    });
+
+    try {
+      const tok = await getOrFetchActiveToken();
+      if (tok) {
+        await fetch('/api/hr-ops/attendance/break/end', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            Authorization: `Bearer ${tok}`
+          },
+          body: JSON.stringify({})
+        });
+      }
+    } catch (_) {}
+  };
+
+  const clockOut = async (overrideUser = null, overrideRole = null) => {
+    const activeUser = overrideUser || user;
+    const activeRole = overrideRole || currentRole;
+
+    if (activeRole === 'Super Admin' || activeRole === 'Admin') {
+      return null;
+    }
+
+    const now = new Date();
+    const checkOutIso = now.toISOString();
+    const formattedOut = formatAttendanceClockTime(now);
+
+    setAttendancePunch(prev => {
+      const totalMins = prev?.checkInAt ? Math.max(0, Math.floor((now.getTime() - new Date(prev.checkInAt).getTime()) / 60000) - (prev.totalBreakMinutes || 0)) : 0;
+      const hrs = (totalMins / 60).toFixed(1);
+      const updated = {
+        ...(prev || {}),
+        status: 'Completed',
+        checkOutAt: checkOutIso,
+        checkOutFormatted: formattedOut,
+        isOnBreak: false,
+        breakType: null,
+        breakStartedAt: null
+      };
+
+      try {
+        localStorage.setItem('sir_crm_my_attendance_active', JSON.stringify(updated));
+      } catch (_) {}
+
+      try {
+        const savedDir = localStorage.getItem('sir_crm_workforce_directory_v2');
+        if (savedDir) {
+          const dir = JSON.parse(savedDir);
+          if (Array.isArray(dir)) {
+            const updatedDir = dir.map(emp => {
+              if (emp.email === activeUser?.email || emp.name === activeUser?.name || emp.role === activeRole) {
+                return {
+                  ...emp,
+                  attendanceToday: {
+                    ...emp.attendanceToday,
+                    checkOut: formattedOut,
+                    hours: `${hrs} hrs`,
+                    status: 'Present'
+                  }
+                };
+              }
+              return emp;
+            });
+            localStorage.setItem('sir_crm_workforce_directory_v2', JSON.stringify(updatedDir));
+          }
+        }
+      } catch (_) {}
+
+      return updated;
+    });
+
+    try {
+      const tok = await getOrFetchActiveToken(activeRole, activeUser);
+      if (tok) {
+        await fetch('/api/hr-ops/attendance/check-out', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            Authorization: `Bearer ${tok}`
+          },
+          body: JSON.stringify({ notes: 'Portal Logout Check-Out' })
+        });
+      }
+    } catch (_) {}
+  };
+
+  // Automatic Check-Out on Browser Tab Close or Window Unload
+  useEffect(() => {
+    const handleBeforeUnload = () => {
+      try {
+        const sessionRaw = localStorage.getItem('sir_crm_session');
+        const session = sessionRaw ? JSON.parse(sessionRaw) : null;
+        if (!session || !session.isAuthenticated) return;
+        const role = session.currentRole || currentRole;
+        if (role === 'Super Admin' || role === 'Admin') return;
+
+        const savedPunch = localStorage.getItem('sir_crm_my_attendance_active');
+        const punch = savedPunch ? JSON.parse(savedPunch) : null;
+        if (punch && punch.checkInAt && !punch.checkOutAt) {
+          const now = new Date();
+          const checkOutIso = now.toISOString();
+          const formattedOut = formatAttendanceClockTime(now);
+          const totalMins = Math.max(0, Math.floor((now.getTime() - new Date(punch.checkInAt).getTime()) / 60000) - (punch.totalBreakMinutes || 0));
+          const hrs = (totalMins / 60).toFixed(1);
+
+          const updatedPunch = {
+            ...punch,
+            status: 'Completed',
+            checkOutAt: checkOutIso,
+            checkOutFormatted: formattedOut,
+            isOnBreak: false,
+            breakType: null,
+            breakStartedAt: null
+          };
+          localStorage.setItem('sir_crm_my_attendance_active', JSON.stringify(updatedPunch));
+
+          // Also update workforce directory cache
+          const savedDir = localStorage.getItem('sir_crm_workforce_directory_v2');
+          if (savedDir) {
+            const dir = JSON.parse(savedDir);
+            if (Array.isArray(dir)) {
+              const updatedDir = dir.map(emp => {
+                if (emp.email === session.user?.email || emp.name === session.user?.name || emp.role === role) {
+                  return {
+                    ...emp,
+                    attendanceToday: {
+                      ...emp.attendanceToday,
+                      checkOut: formattedOut,
+                      hours: `${hrs} hrs`,
+                      status: 'Present'
+                    }
+                  };
+                }
+                return emp;
+              });
+              localStorage.setItem('sir_crm_workforce_directory_v2', JSON.stringify(updatedDir));
+            }
+          }
+
+          // Asynchronously notify backend via beacon and keepalive fetch
+          const token = session.crmToken || crmToken;
+          if (token) {
+            if (typeof navigator !== 'undefined' && navigator.sendBeacon) {
+              navigator.sendBeacon(`/api/hr-ops/attendance/check-out?token=${encodeURIComponent(token)}`);
+            }
+            if (typeof fetch !== 'undefined') {
+              fetch('/api/hr-ops/attendance/check-out', {
+                method: 'POST',
+                headers: {
+                  'Content-Type': 'application/json',
+                  Authorization: `Bearer ${token}`
+                },
+                body: JSON.stringify({ notes: 'Automatic tab close check-out' }),
+                keepalive: true
+              }).catch(() => {});
+            }
+          }
+        }
+      } catch (_) {}
+    };
+
+    window.addEventListener('beforeunload', handleBeforeUnload);
+    return () => {
+      window.removeEventListener('beforeunload', handleBeforeUnload);
+    };
+  }, [crmToken, currentRole]);
 
   const hasPermission = (moduleName) => {
     if (!moduleName) return true;
     if (moduleName === 'my-profile') return true;
     if (moduleName === 'my-attendance') {
-      return currentRole === 'HR Operations';
+      return true;
     }
     if (moduleName === 'super-admin') {
       return currentRole === 'Super Admin';
@@ -893,6 +1418,14 @@ export const CrmProvider = ({ children }) => {
       setAuthTokenLoading(false);
     }
 
+    // Automatic Check-In on Login for all employees except Super Admin & Admin
+    const isExecutive = assignedRole === 'Super Admin' || assignedRole === 'Admin';
+    if (!isExecutive) {
+      setTimeout(() => {
+        clockIn('Automated check-in on front portal login', userData, assignedRole);
+      }, 50);
+    }
+
     logAuditAction(`User ${email} logged in under role '${assignedRole}'.`);
     return true;
   };
@@ -907,6 +1440,15 @@ export const CrmProvider = ({ children }) => {
   const logoutLockRef = useRef(false);
 
   const logout = () => {
+    // If user is a non-executive employee and has active unlocked workspace, automatically clock them out upon logout.
+    // If they are currently gated at the late arrival gate, do NOT record a workday checkout.
+    const isExecutive = currentRole === 'Super Admin' || currentRole === 'Admin';
+    if (!isExecutive && user && !lateApprovalGate?.isBlocked) {
+      try {
+        clockOut(user, currentRole);
+      } catch (_) {}
+    }
+
     setIsAuthenticated(false);
     setLogoutConfirmOpen(false);
     setActiveModuleState('dashboard');
@@ -914,7 +1456,9 @@ export const CrmProvider = ({ children }) => {
     setSuperAdminToken('');
     setAuthTokenLoading(false);
     setAttendanceNotifications([]);
+    setLateApprovalGate(null);
     try {
+      localStorage.removeItem('sir_crm_late_approval_gate');
       localStorage.removeItem('sir_crm_session');
       if (typeof window !== 'undefined') {
         const url = new URL(window.location.href);
@@ -1133,6 +1677,12 @@ export const CrmProvider = ({ children }) => {
     const persona = ROLE_PERSONAS[newRole] || { id: 'EMP-001', name: newRole, email: `${newRole.toLowerCase().replace(/\s+/g, '.')}@revivalinternational.com` };
     const updatedUser = { ...user, ...persona, role: newRole };
     setUser(updatedUser);
+
+    if (newRole === 'Super Admin' || newRole === 'Admin') {
+      setLateApprovalGate(null);
+      try { localStorage.removeItem('sir_crm_late_approval_gate'); } catch (_) {}
+    }
+
     let nextMod = 'dashboard';
     setActiveModule('dashboard');
     if (newRole !== 'HR Operations' && typeof window !== 'undefined') {
@@ -1563,11 +2113,19 @@ export const CrmProvider = ({ children }) => {
         activeDevices,
         user,
         currentEmployee,
+        attendancePunch,
+        clockIn,
+        startBreak,
+        endBreak,
+        clockOut,
         updateUserProfile,
         crmToken,
         authTokenLoading,
         setCrmToken,
         syncAttendanceNotifications,
+        lateApprovalGate,
+        setLateApprovalGate,
+        checkLateApprovalStatus,
         currentRole,
         isSuperAdmin,
         switchRole,

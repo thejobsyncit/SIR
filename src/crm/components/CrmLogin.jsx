@@ -1,8 +1,8 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useCrm } from '../context/CrmContext';
 import { 
   Lock, Mail, Eye, EyeOff, ShieldCheck, KeyRound, Sparkles, 
-  CheckCircle2, UserCheck, AlertTriangle, AlertCircle, RefreshCw, X 
+  CheckCircle2, UserCheck, AlertTriangle, AlertCircle, RefreshCw, X, Clock, Send
 } from 'lucide-react';
 import { CRM_ROLES } from '../data/mockCrmData';
 import ScrollReveal from '../../components/ScrollReveal';
@@ -230,9 +230,113 @@ export const CrmLogin = () => {
 
   const strength = calculatePasswordStrength(password);
 
+  // Executive Late Arrival Ingress Gate State (displayed at top of login form)
+  const [loginLateGate, setLoginLateGate] = useState(null);
+  const [isCheckingApproval, setIsCheckingApproval] = useState(false);
+  const [lateReason, setLateReason] = useState('Traffic / Transit Congestion');
+  const [lateDetails, setLateDetails] = useState('');
+  const [isSubmittingReason, setIsSubmittingReason] = useState(false);
+  const [reasonSubmitted, setReasonSubmitted] = useState(false);
+  const [lateApprovalMsg, setLateApprovalMsg] = useState('');
+
+  const formatLateDelay = (mins) => {
+    const m = Math.max(0, Number(mins) || 0);
+    if (m < 60) return `+${m}m Late`;
+    const hrs = Math.floor(m / 60);
+    const rem = m % 60;
+    return `+${hrs}h ${rem}m Late (${m} mins)`;
+  };
+
+  // Live auto-polling every 3 seconds for Super Admin approval while late gate is active
+  useEffect(() => {
+    if (!loginLateGate || loginLateGate.status !== 'PENDING') return;
+
+    const interval = setInterval(async () => {
+      try {
+        const cleanEmail = loginLateGate.userAccount.email.trim().toLowerCase();
+        const res = await fetch(`/api/hr-ops/attendance/late-approval-status?email=${encodeURIComponent(cleanEmail)}`);
+        if (res.ok) {
+          const json = await res.json();
+          if (json && json.success) {
+            if (json.lateApprovalStatus === 'APPROVED' || json.lateApprovalStatus === 'EXEMPT') {
+              setLoginLateGate(prev => ({ ...prev, status: 'APPROVED' }));
+              setLateApprovalMsg('✓ Super Admin Authorization Approved! Unlocking CRM workspace...');
+              clearInterval(interval);
+              setTimeout(() => {
+                login(loginLateGate.userAccount.email, loginLateGate.password, loginLateGate.userAccount.role, loginLateGate.userAccount);
+              }, 1000);
+            } else if (json.lateApprovalStatus === 'REJECTED') {
+              setLoginLateGate(prev => ({ ...prev, status: 'REJECTED' }));
+              setLateApprovalMsg('❌ Access Declined: Super Admin rejected entry for today\'s shift.');
+              clearInterval(interval);
+            }
+          }
+        }
+      } catch (_) {}
+    }, 3000);
+
+    return () => clearInterval(interval);
+  }, [loginLateGate, login]);
+
+  const handleManualCheckApproval = async () => {
+    if (!loginLateGate) return;
+    setIsCheckingApproval(true);
+    setLateApprovalMsg('Querying Super Admin decision from live database...');
+    try {
+      const cleanEmail = loginLateGate.userAccount.email.trim().toLowerCase();
+      const res = await fetch(`/api/hr-ops/attendance/late-approval-status?email=${encodeURIComponent(cleanEmail)}`);
+      if (res.ok) {
+        const json = await res.json();
+        if (json?.lateApprovalStatus === 'APPROVED' || json?.lateApprovalStatus === 'EXEMPT') {
+          setLoginLateGate(prev => ({ ...prev, status: 'APPROVED' }));
+          setLateApprovalMsg('✓ Super Admin Authorization Approved! Unlocking CRM workspace...');
+          setTimeout(() => {
+            login(loginLateGate.userAccount.email, loginLateGate.password, loginLateGate.userAccount.role, loginLateGate.userAccount);
+          }, 800);
+        } else if (json?.lateApprovalStatus === 'REJECTED') {
+          setLoginLateGate(prev => ({ ...prev, status: 'REJECTED' }));
+          setLateApprovalMsg('❌ Super Admin has rejected this late entry request.');
+        } else {
+          setLateApprovalMsg('Super Admin review is still pending. Please wait or contact Super Admin.');
+        }
+      } else {
+        setLateApprovalMsg('Super Admin review is still pending in Executive Command Console.');
+      }
+    } catch (_) {
+      setLateApprovalMsg('Unable to connect to live server. Retrying...');
+    } finally {
+      setIsCheckingApproval(false);
+    }
+  };
+
+  const handleSubmitJustification = async () => {
+    if (!loginLateGate) return;
+    setIsSubmittingReason(true);
+    try {
+      await fetch('/api/hr-ops/attendance/late-justification', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          email: loginLateGate.userAccount.email,
+          attendanceId: loginLateGate.attendanceId,
+          reasonCategory: lateReason,
+          reasonDetails: lateDetails
+        })
+      });
+      setReasonSubmitted(true);
+    } catch (_) {}
+    setIsSubmittingReason(false);
+  };
+
   const handlePasswordSubmit = async (e) => {
     e.preventDefault();
     setAuthErrorMsg('');
+
+    // If late gate is active and pending, clicking submit re-checks status
+    if (loginLateGate && loginLateGate.status === 'PENDING') {
+      await handleManualCheckApproval();
+      return;
+    }
 
     if (!email || !password) {
       setAuthErrorMsg('Please enter your Corporate Email Address and Password.');
@@ -304,7 +408,7 @@ export const CrmLogin = () => {
         return;
       }
     } else {
-      // Auto-provision demo account so user can enter directly without roadblocks! ("demo laa venum naa add panra email id pota ulla pogura mari irrundha podhum")
+      // Auto-provision demo account so user can enter directly without roadblocks!
       const roleToAssign = 'Super Admin';
       const defaultName = cleanEmail.split('@')[0].replace(/[._-]/g, ' ').replace(/\b\w/g, c => c.toUpperCase());
       userAccount = {
@@ -322,12 +426,83 @@ export const CrmLogin = () => {
       setRegisteredUsers(currentUsers);
     }
 
-    // Direct Instant Authentication (Zero OTP!)
+    // Executive Role: Super Admin & Admin bypass all late gates immediately
+    const isExecutive = userAccount.role === 'Super Admin' || userAccount.role === 'Admin';
+    if (isExecutive) {
+      setIsAuthenticating(true);
+      setTimeout(() => {
+        setIsAuthenticating(false);
+        login(userAccount.email, password, userAccount.role || 'Super Admin', userAccount);
+      }, 200);
+      return;
+    }
+
+    // Non-executive employee: Compute Shift Timing & Late Arrival
+    const now = new Date();
+    const istParts = new Intl.DateTimeFormat('en-US', {
+      timeZone: 'Asia/Kolkata',
+      hour: 'numeric',
+      minute: 'numeric',
+      hour12: false
+    }).formatToParts(now);
+    const h = Number(istParts.find(p => p.type === 'hour')?.value || 0);
+    const m = Number(istParts.find(p => p.type === 'minute')?.value || 0);
+    const currentMinutesFromMidnight = h * 60 + m;
+    const shiftStartMinutes = 9 * 60; // 09:00 AM (540 mins)
+    const graceEndMinutes = shiftStartMinutes + 15; // 09:15 AM (555 mins)
+    const isShiftLate = currentMinutesFromMidnight > graceEndMinutes;
+    const computedLateMinutes = isShiftLate ? (currentMinutesFromMidnight - shiftStartMinutes) : 0;
+
+    // Call server to record login attempt / check approval
     setIsAuthenticating(true);
-    setTimeout(() => {
-      setIsAuthenticating(false);
-      login(userAccount.email, password, userAccount.role || 'Super Admin', userAccount);
-    }, 200);
+    let checkResult = null;
+    try {
+      const res = await fetch('/api/crm/auth/record-late-login', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email: cleanEmail, password })
+      });
+      if (res.ok) {
+        checkResult = await res.json();
+      }
+    } catch (_) {}
+
+    setIsAuthenticating(false);
+
+    // If server says allowed (e.g. on time or already approved by Super Admin)
+    if (checkResult?.allowed || (!isShiftLate && (!checkResult || checkResult.allowed !== false))) {
+      login(userAccount.email, password, userAccount.role || 'HR Operations', userAccount);
+      return;
+    }
+
+    if (checkResult?.lateApprovalStatus === 'REJECTED') {
+      setAuthErrorMsg('❌ Access Declined: Super Admin has rejected your late arrival check-in for today. Contact HR Operations.');
+      return;
+    }
+
+    // Display the Late Arrival Notice Banner right at the top of the login card!
+    const loginTimeStr = new Intl.DateTimeFormat('en-US', {
+      timeZone: 'Asia/Kolkata',
+      hour: '2-digit',
+      minute: '2-digit',
+      hour12: true
+    }).format(now);
+
+    setLoginLateGate({
+      isLate: true,
+      status: 'PENDING',
+      employeeName: userAccount.name,
+      role: userAccount.role,
+      employeeId: userAccount.employeeId,
+      shiftStart: checkResult?.shiftStart || '09:00 AM',
+      shiftName: checkResult?.shiftName || 'General Shift (09:00 AM - 06:00 PM)',
+      loginTime: checkResult?.loginTime || loginTimeStr,
+      lateMinutes: checkResult?.lateMinutes || computedLateMinutes,
+      attendanceId: checkResult?.attendanceId,
+      userAccount,
+      password
+    });
+    setLateApprovalMsg('Super Admin review is pending in Executive Command Console. Please wait a moment.');
   };
 
   const handleDirectResetPassword = async (e) => {
@@ -390,7 +565,7 @@ export const CrmLogin = () => {
   };
 
   return (
-    <div className="dark min-h-screen bg-navy-950 text-white flex items-center justify-center p-4 relative overflow-hidden font-sans selection:bg-gold-500 selection:text-navy-950">
+    <div className="dark fixed inset-0 w-full h-full bg-navy-950 text-white flex items-center justify-center p-4 overflow-y-auto font-sans selection:bg-gold-500 selection:text-navy-950">
       
       {/* Ambient Animated Luxury Background Glows */}
       <div className="absolute -top-40 -left-40 w-96 h-96 bg-gold-500/15 rounded-full blur-3xl pointer-events-none animate-pulse"></div>
@@ -417,6 +592,38 @@ export const CrmLogin = () => {
               <div className="p-3 bg-rose-950/80 border border-rose-500/60 text-rose-200 font-bold rounded-xl text-xs flex items-center gap-2">
                 <AlertTriangle className="w-4 h-4 text-rose-400 shrink-0" />
                 <span>{authErrorMsg}</span>
+              </div>
+            )}
+
+            {/* Simple, Professional, Short Late Warning */}
+            {loginLateGate && loginLateGate.status === 'PENDING' && (
+              <div className="py-2.5 px-3 bg-rose-950/80 border border-rose-500/70 text-rose-200 rounded-xl text-xs flex items-center justify-between gap-2 shadow-sm animate-in fade-in">
+                <div className="flex items-center gap-2 min-w-0">
+                  <AlertTriangle className="w-4 h-4 text-rose-400 shrink-0" />
+                  <span className="text-[11px] font-semibold text-rose-100">
+                    Late Arrival ({loginLateGate.delayTag || `+${loginLateGate.lateMinutes}m`}) • Super Admin approval required
+                  </span>
+                </div>
+                <span className="flex items-center gap-1.5 text-[10px] text-rose-300 font-mono shrink-0 font-bold">
+                  <span className="h-1.5 w-1.5 rounded-full bg-rose-400 animate-ping"></span>
+                  Pending
+                </span>
+              </div>
+            )}
+
+            {/* Approved State Notice */}
+            {loginLateGate && loginLateGate.status === 'APPROVED' && (
+              <div className="py-2.5 px-3 bg-emerald-950/80 border border-emerald-500/70 text-emerald-200 rounded-xl text-xs flex items-center gap-2 shadow-sm animate-in fade-in">
+                <CheckCircle2 className="w-4 h-4 text-emerald-400 shrink-0" />
+                <span className="text-[11px] font-bold text-emerald-100">✓ Super Admin Approved! Logging in...</span>
+              </div>
+            )}
+
+            {/* Rejected State Notice */}
+            {loginLateGate && loginLateGate.status === 'REJECTED' && (
+              <div className="py-2.5 px-3 bg-rose-950/80 border border-rose-500/70 text-rose-200 rounded-xl text-xs flex items-center gap-2 shadow-sm animate-in fade-in">
+                <AlertCircle className="w-4 h-4 text-rose-400 shrink-0" />
+                <span className="text-[11px] font-bold text-rose-100">❌ Access Declined by Super Admin</span>
               </div>
             )}
 
@@ -492,11 +699,23 @@ export const CrmLogin = () => {
 
             <button 
               type="submit"
-              disabled={isAuthenticating}
-              className="w-full py-3.5 bg-gold-shimmer text-navy-950 font-extrabold text-xs rounded-xl shadow-gold-glow hover:opacity-95 transition flex items-center justify-center space-x-2 cursor-pointer"
+              disabled={isAuthenticating || isCheckingApproval}
+              className="w-full py-3.5 bg-gold-shimmer text-navy-950 font-extrabold text-xs rounded-xl shadow-gold-glow hover:opacity-95 transition flex items-center justify-center space-x-2 cursor-pointer disabled:opacity-70"
             >
-              {isAuthenticating ? <RefreshCw className="w-4 h-4 animate-spin" /> : <ShieldCheck className="w-4 h-4" />}
-              <span>{isAuthenticating ? 'Signing In & Launching CRM...' : 'Sign In to Enterprise CRM →'}</span>
+              {isAuthenticating || isCheckingApproval ? (
+                <RefreshCw className="w-4 h-4 animate-spin" />
+              ) : loginLateGate?.status === 'APPROVED' ? (
+                <CheckCircle2 className="w-4 h-4 text-emerald-950" />
+              ) : (
+                <ShieldCheck className="w-4 h-4" />
+              )}
+              <span>
+                {isAuthenticating || isCheckingApproval
+                  ? 'Verifying Authorization...'
+                  : loginLateGate?.status === 'APPROVED'
+                    ? '✓ Authorized — Launching Workspace...'
+                    : 'Sign In to Enterprise CRM →'}
+              </span>
             </button>
           </form>
 

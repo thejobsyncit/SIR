@@ -1,8 +1,8 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import ScrollReveal from '../../components/ScrollReveal';
 import { 
   FileText, ShieldAlert, Download, Eye, AlertTriangle, Upload, 
-  CheckCircle2, Clock, X, Cloud, Lock, Check 
+  CheckCircle2, Clock, X, Cloud, Lock, Check, RefreshCw 
 } from 'lucide-react';
 
 export const CrmDocumentation = () => {
@@ -13,6 +13,15 @@ export const CrmDocumentation = () => {
     { id: 'DOC-104', candidate: 'Rajesh Subramanian', docName: 'Degree_Attestation_IIT.pdf', type: 'Degree', expiry: '2035-12-31', status: 'Attested', version: 'v1.0', size: '4.2 MB' }
   ]);
 
+  const [alertDoc, setAlertDoc] = useState({
+    id: 'DOC-102',
+    candidate: 'Elena Rostova',
+    docName: 'MOM_Work_Pass_IPA.pdf',
+    type: 'Singapore MOM IPA Visa Approval',
+    daysLeft: 25
+  });
+
+  const [loading, setLoading] = useState(false);
   const [previewDoc, setPreviewDoc] = useState(null);
   const [uploadModalOpen, setUploadModalOpen] = useState(false);
   const [notificationMsg, setNotificationMsg] = useState('');
@@ -25,6 +34,32 @@ export const CrmDocumentation = () => {
     size: '1.5 MB'
   });
 
+  const loadDocuments = async () => {
+    try {
+      setLoading(true);
+      const res = await fetch('/api/crm/documents');
+      if (res.ok) {
+        const data = await res.json();
+        if (data.success && Array.isArray(data.documents) && data.documents.length > 0) {
+          setDocuments(data.documents);
+          if (data.alert) {
+            setAlertDoc(data.alert);
+          } else {
+            setAlertDoc(null);
+          }
+        }
+      }
+    } catch (err) {
+      console.warn('API document fetch fallback:', err);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    loadDocuments();
+  }, []);
+
   const handleFileSelect = (e) => {
     if (e.target.files && e.target.files[0]) {
       const file = e.target.files[0];
@@ -36,8 +71,35 @@ export const CrmDocumentation = () => {
     }
   };
 
-  const handleUploadDoc = (e) => {
+  const handleUploadDoc = async (e) => {
     e.preventDefault();
+    try {
+      const payload = {
+        candidateName: newDoc.candidate,
+        docName: newDoc.docName,
+        type: newDoc.type,
+        expiryDate: newDoc.expiry,
+        size: newDoc.size || '1.5 MB'
+      };
+      const res = await fetch('/api/crm/documents', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload)
+      });
+      if (res.ok) {
+        const json = await res.json();
+        if (json.success && json.document) {
+          setDocuments(prev => [json.document, ...prev]);
+          setUploadModalOpen(false);
+          setNotificationMsg(`✓ ${json.message || `Successfully encrypted and uploaded '${newDoc.docName}' to AWS S3 Compliance Vault!`}`);
+          setTimeout(() => setNotificationMsg(''), 4000);
+          return;
+        }
+      }
+    } catch (err) {
+      console.warn('API upload fallback:', err);
+    }
+
     const docObj = {
       id: 'DOC-' + Math.floor(200 + Math.random() * 800),
       candidate: newDoc.candidate,
@@ -62,7 +124,7 @@ export const CrmDocumentation = () => {
     const expiry = doc.expiry || '2031-10-15';
     const size = doc.size || '2.4 MB';
 
-const text = `=====================================================
+    const text = `=====================================================
 The Revival International COMPLIANCE VAULT - VERIFIED DOCUMENT
 =====================================================
 Document Name: ${docName}
@@ -94,9 +156,27 @@ DISTRIBUTED UNDER The Revival International ENTERPRISE COMPLIANCE GOVERNANCE.
     setTimeout(() => setNotificationMsg(''), 4000);
   };
 
-  const handleDispatchRenewal = () => {
+  const handleDispatchRenewal = async () => {
+    const targetId = alertDoc?.id || 'DOC-102';
+    try {
+      const res = await fetch(`/api/crm/documents/${targetId}/dispatch-renewal`, {
+        method: 'POST'
+      });
+      if (res.ok) {
+        const json = await res.json();
+        setNotificationMsg(json.message || `✓ Renewal alert email & SMS dispatched to candidate ${alertDoc?.candidate || 'Elena Rostova'}!`);
+        setDocuments(prev => prev.map(d => d.id === targetId ? { ...d, status: 'Renewal Dispatched' } : d));
+        setAlertDoc(null);
+        setTimeout(() => setNotificationMsg(''), 5000);
+        return;
+      }
+    } catch (err) {
+      console.warn('API dispatch renewal fallback:', err);
+    }
+
     setNotificationMsg("✓ Renewal alert email & SMS dispatched to candidate Elena Rostova for Singapore MOM IPA Visa Approval (Expires in 28 days). Renewal case logged!");
     setDocuments(documents.map(d => d.id === 'DOC-102' ? { ...d, status: 'Renewal Dispatched' } : d));
+    setAlertDoc(null);
     setTimeout(() => setNotificationMsg(''), 5000);
   };
 
@@ -130,21 +210,23 @@ DISTRIBUTED UNDER The Revival International ENTERPRISE COMPLIANCE GOVERNANCE.
       )}
 
       {/* Expiry Alerts Warning Box */}
-      <div className="p-4 bg-amber-100 dark:bg-amber-950/40 border border-amber-300 dark:border-amber-500/40 rounded-2xl flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3 text-xs shadow-xs">
-        <div className="flex items-center space-x-3">
-          <AlertTriangle className="w-5 h-5 text-amber-600 dark:text-amber-400 shrink-0" />
-          <div>
-            <h4 className="font-bold text-amber-900 dark:text-amber-300">1 Document Nearing Expiration Alert</h4>
-            <p className="text-[11px] text-slate-700 dark:text-slate-300 font-medium">Candidate Elena Rostova's Singapore MOM IPA Visa Approval expires in less than 30 days.</p>
+      {alertDoc && (
+        <div className="p-4 bg-amber-100 dark:bg-amber-950/40 border border-amber-300 dark:border-amber-500/40 rounded-2xl flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3 text-xs shadow-xs">
+          <div className="flex items-center space-x-3">
+            <AlertTriangle className="w-5 h-5 text-amber-600 dark:text-amber-400 shrink-0" />
+            <div>
+              <h4 className="font-bold text-amber-900 dark:text-amber-300">1 Document Nearing Expiration Alert</h4>
+              <p className="text-[11px] text-slate-700 dark:text-slate-300 font-medium">Candidate {alertDoc.candidate || 'Elena Rostova'}'s {alertDoc.type || 'Singapore MOM IPA Visa Approval'} expires in less than {alertDoc.daysLeft || 30} days.</p>
+            </div>
           </div>
+          <button 
+            onClick={handleDispatchRenewal}
+            className="px-3.5 py-2 bg-amber-500 hover:bg-amber-400 text-navy-950 font-bold rounded-xl text-xs shadow-xs cursor-pointer shrink-0 transition"
+          >
+            Dispatch Renewal Request
+          </button>
         </div>
-        <button 
-          onClick={handleDispatchRenewal}
-          className="px-3.5 py-2 bg-amber-500 hover:bg-amber-400 text-navy-950 font-bold rounded-xl text-xs shadow-xs cursor-pointer shrink-0 transition"
-        >
-          Dispatch Renewal Request
-        </button>
-      </div>
+      )}
 
       {/* Documents Table */}
       <div className="overflow-x-auto rounded-2xl border border-slate-200 dark:border-navy-800 glass-card bg-white dark:bg-navy-900 shadow-luxury">
@@ -175,7 +257,11 @@ DISTRIBUTED UNDER The Revival International ENTERPRISE COMPLIANCE GOVERNANCE.
                 <td className="p-4 font-mono text-slate-600 dark:text-slate-400">{doc.expiry}</td>
                 <td className="p-4">
                   <span className={`px-2 py-0.5 rounded font-bold text-[10px] border ${
-                    doc.status === 'Valid' ? 'bg-emerald-100 dark:bg-emerald-500/20 text-emerald-800 dark:text-emerald-400 border-emerald-300 dark:border-emerald-500/30' : 'bg-amber-100 dark:bg-amber-500/20 text-amber-900 dark:text-amber-400 border-amber-300 dark:border-amber-500/30'
+                    doc.status === 'Valid' ? 'bg-emerald-100 dark:bg-emerald-500/20 text-emerald-800 dark:text-emerald-400 border-emerald-300 dark:border-emerald-500/30' :
+                    doc.status === 'Attested' ? 'bg-amber-100 dark:bg-amber-500/20 text-amber-800 dark:text-amber-400 border-amber-300 dark:border-amber-500/30' :
+                    doc.status === 'Renewal Dispatched' ? 'bg-blue-100 dark:bg-blue-500/20 text-blue-800 dark:text-blue-400 border-blue-300 dark:border-blue-500/30' :
+                    doc.status === 'Expired' ? 'bg-rose-100 dark:bg-rose-500/20 text-rose-800 dark:text-rose-400 border-rose-300 dark:border-rose-500/30' :
+                    'bg-amber-100 dark:bg-amber-500/20 text-amber-900 dark:text-amber-400 border-amber-300 dark:border-amber-500/30'
                   }`}>
                     {doc.status}
                   </span>
