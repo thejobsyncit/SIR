@@ -966,10 +966,9 @@ export const CandidatePortal = () => {
                   className="hidden"
                 />
               </div>
-              <div className="overflow-hidden">
+              <div className="overflow-hidden flex-1 min-w-0">
                 <h3 className="font-bold text-slate-950 dark:text-white text-xs truncate">{user.name || 'Executive Candidate'}</h3>
-                <p className="text-[10px] text-slate-500 dark:text-slate-400 truncate mt-0.5 font-medium">{profileForm.title || 'Candidate'}</p>
-                <div className="flex items-center gap-1.5 mt-1.5">
+                <div className="flex items-center gap-1.5 mt-2">
                   <div className="flex-1 bg-slate-200 dark:bg-navy-950 h-1.5 rounded-full overflow-hidden border border-slate-300 dark:border-navy-800">
                     <div className="bg-gradient-to-r from-gold-500 to-amber-400 h-full rounded-full transition-all duration-500" style={{ width: `${profileCompletionScore}%` }} />
                   </div>
@@ -1061,14 +1060,6 @@ export const CandidatePortal = () => {
               {/* Welcome Section */}
               <div className="bg-white dark:bg-slate-900 border-2 border-slate-200 dark:border-slate-800 rounded-3xl p-6 sm:p-8 shadow-xs flex flex-col md:flex-row justify-between items-start md:items-center gap-6">
                 <div className="space-y-2">
-                  <div className="flex items-center gap-2">
-                    <span className="text-[10px] uppercase tracking-wider font-extrabold px-2.5 py-0.5 rounded-full bg-amber-100 text-amber-900 border border-amber-300 dark:bg-gold-500/15 dark:text-gold-400 dark:border-gold-500/30">
-                      Revival Executive Portal
-                    </span>
-                    <span className="text-[10px] font-bold text-emerald-800 dark:text-emerald-400 bg-emerald-50 dark:bg-emerald-500/10 px-2.5 py-0.5 rounded-full border border-emerald-200 dark:border-transparent">
-                      MOHRE & GCC Verified
-                    </span>
-                  </div>
                   <h1 className="font-serif text-2xl sm:text-3xl font-bold text-slate-950 dark:text-white">
                     Welcome back, {user.name || 'Candidate'}!
                   </h1>
@@ -1319,48 +1310,6 @@ export const CandidatePortal = () => {
                   )}
                 </div>
 
-              </div>
-
-              {/* Quick Actions Bar */}
-              <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 pt-2">
-                <button
-                  onClick={() => setActiveModal('ai-resume')}
-                  className="p-4 bg-white dark:bg-navy-900 border border-slate-200 dark:border-navy-800 rounded-2xl shadow-sm hover:border-gold-500/40 transition flex items-center gap-3 text-left cursor-pointer"
-                >
-                  <div className="w-10 h-10 rounded-xl bg-gold-500/15 text-gold-500 flex items-center justify-center shrink-0">
-                    <Sparkles className="w-5 h-5" />
-                  </div>
-                  <div>
-                    <h4 className="text-xs font-bold text-navy-950 dark:text-white">Scan CV with AI</h4>
-                    <p className="text-[10px] text-slate-400">Audit ATS score & keywords</p>
-                  </div>
-                </button>
-
-                <button
-                  onClick={() => setActiveTab('documents')}
-                  className="p-4 bg-white dark:bg-navy-900 border border-slate-200 dark:border-navy-800 rounded-2xl shadow-sm hover:border-gold-500/40 transition flex items-center gap-3 text-left cursor-pointer"
-                >
-                  <div className="w-10 h-10 rounded-xl bg-emerald-500/15 text-emerald-500 flex items-center justify-center shrink-0">
-                    <ShieldCheck className="w-5 h-5" />
-                  </div>
-                  <div>
-                    <h4 className="text-xs font-bold text-navy-950 dark:text-white">Upload Attestations</h4>
-                    <p className="text-[10px] text-slate-400">Degree & passport validation</p>
-                  </div>
-                </button>
-
-                <button
-                  onClick={() => navigateTo('jobs')}
-                  className="p-4 bg-white dark:bg-navy-900 border border-slate-200 dark:border-navy-800 rounded-2xl shadow-sm hover:border-gold-500/40 transition flex items-center gap-3 text-left cursor-pointer"
-                >
-                  <div className="w-10 h-10 rounded-xl bg-navy-950 dark:bg-navy-800 text-gold-400 flex items-center justify-center shrink-0">
-                    <Search className="w-5 h-5" />
-                  </div>
-                  <div>
-                    <h4 className="text-xs font-bold text-navy-950 dark:text-white">Browse All Vacancies</h4>
-                    <p className="text-[10px] text-slate-400">{allJobs.length} Verified GCC Openings</p>
-                  </div>
-                </button>
               </div>
 
             </div>

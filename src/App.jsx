@@ -106,6 +106,24 @@ export function App() {
     )
   );
 
+  const isJobsPage = Boolean(
+    activeTab && (
+      activeTab === 'jobs' ||
+      activeTab === 'job' ||
+      activeTab === 'careers' ||
+      activeTab === 'vacancies' ||
+      activeTab.startsWith('jobs/') ||
+      activeTab.startsWith('job/')
+    )
+  ) || (typeof window !== 'undefined' && (
+    window.location.pathname.replace(/^\/+|\/+$/g, '') === 'jobs' ||
+    window.location.pathname.replace(/^\/+|\/+$/g, '').startsWith('jobs/') ||
+    window.location.hash.replace(/^#/, '').split('?')[0] === 'jobs' ||
+    window.location.hash.replace(/^#/, '').split('?')[0] === 'job' ||
+    window.location.hash.replace(/^#/, '').split('?')[0] === 'careers' ||
+    window.location.hash.replace(/^#/, '').split('?')[0] === 'vacancies'
+  ));
+
   const renderCurrentPage = () => {
     // Dedicated Academic & Education Advisory Routes
     if (activeTab === 'education') {
@@ -291,8 +309,8 @@ export function App() {
       <AIResumeAnalyzerModal />
       <PaymentGatewayModal />
       <ResumeBuilderModal />
-      {activeTab !== 'candidates' && activeTab !== 'employers' && <AIChatbotDrawer />}
-      <FloatingWhatsApp />
+      {!isJobsPage && activeTab !== 'candidates' && activeTab !== 'employers' && <AIChatbotDrawer />}
+      {!isJobsPage && activeTab !== 'candidates' && activeTab !== 'employers' && <FloatingWhatsApp />}
       <CookieConsent />
     </div>
   );

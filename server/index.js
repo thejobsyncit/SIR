@@ -2214,17 +2214,32 @@ app.get('/api/jobs', async (req, res) => {
       featured: r.featured === 1
     }));
 
-    // Sorting
-    const sortBy = req.query.sortBy || 'latest';
+    // Sorting: recommended, relevance, date (plus legacy options)
+    const sortBy = req.query.sortBy || 'recommended';
     if (sortBy === 'salary-high') {
       rows.sort((a, b) => (Number(b.maxSalary || b.minSalary || 0) - Number(a.maxSalary || a.minSalary || 0)));
     } else if (sortBy === 'salary-low') {
       rows.sort((a, b) => (Number(a.minSalary || a.maxSalary || 0) - Number(b.minSalary || b.maxSalary || 0)));
-    } else if (sortBy === 'relevant') {
-      rows.sort((a, b) => (b.featured ? 1 : 0) - (a.featured ? 1 : 0));
+    } else if (sortBy === 'relevance' || sortBy === 'relevant') {
+      rows.sort((a, b) => (b.featured ? 1 : 0) - (a.featured ? 1 : 0) || (b.id > a.id ? 1 : -1));
+    } else if (sortBy === 'date' || sortBy === 'latest') {
+      rows.sort((a, b) => {
+        const timeA = Date.parse(a.createdAt || a.postedDate || 0) || 0;
+        const timeB = Date.parse(b.createdAt || b.postedDate || 0) || 0;
+        if (timeB !== timeA) return timeB - timeA;
+        return (b.id > a.id ? 1 : -1);
+      });
     } else {
-      // 'latest' default
-      rows.sort((a, b) => (b.id > a.id ? 1 : -1));
+      // 'recommended' default: featured tier-1 positions first, then newest
+      rows.sort((a, b) => {
+        const scoreB = (b.featured ? 10 : 0) + (b.urgent ? 5 : 0);
+        const scoreA = (a.featured ? 10 : 0) + (a.urgent ? 5 : 0);
+        if (scoreB !== scoreA) return scoreB - scoreA;
+        const timeA = Date.parse(a.createdAt || a.postedDate || 0) || 0;
+        const timeB = Date.parse(b.createdAt || b.postedDate || 0) || 0;
+        if (timeB !== timeA) return timeB - timeA;
+        return (b.id > a.id ? 1 : -1);
+      });
     }
 
     const totalCount = rows.length;

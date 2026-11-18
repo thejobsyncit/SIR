@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { useApp } from '../context/AppContext';
 import { BrandLogoIcon } from './BrandLogoIcon';
 import {
-  Building2, Phone, Mail, MapPin, Globe, Shield, Award,
+  Building2, Phone, Mail, MapPin, Globe, Award,
   Send, MessageSquare, Linkedin, Twitter, Facebook, Instagram, Youtube, CheckCircle2
 } from 'lucide-react';
 import { COUNTRIES_LIST } from '../data/mockData';
@@ -351,7 +351,6 @@ const [isStudentAcademyActive, setIsStudentAcademyActive] = useState(() => {
               <NavLink tab="international-consulting" label="International Consulting" />
               <NavLink tab="education" label="Academic Advisory" />
               <NavLink tab="industries" label="Industries We Serve" />
-              <NavLink tab="jobs" label="Browse Job Portal" />
               <NavLink tab="candidates" label="Candidate Hub" />
               <NavLink tab="contact" label="Office Locations" />
             </ul>
@@ -449,16 +448,6 @@ const [isStudentAcademyActive, setIsStudentAcademyActive] = useState(() => {
           <p>© 2026 Revival International Consultancy FZ-LLC. All Rights Reserved. Managed under Dubai Economic Department & MOHRE Regulations.</p>
 
           <div className="flex items-center space-x-6">
-            <button
-              onClick={() => navigateTo('crm')}
-              className="text-slate-400 dark:text-slate-500 hover:text-gold-500 transition text-[11px] underline"
-            >
-              Recruiter Staff Login
-            </button>
-            <span className="flex items-center space-x-1 text-slate-600 dark:text-slate-300 font-medium">
-              <Shield className="w-3.5 h-3.5 text-emerald-400" />
-              <span>SSL 256-bit Encrypted</span>
-            </span>
             <span className="flex items-center space-x-1 text-slate-600 dark:text-slate-300 font-medium">
               <CheckCircle2 className="w-3.5 h-3.5 text-gold-500" />
               <span>UAE PDPL & India DPDP Act 2023 Aligned</span>

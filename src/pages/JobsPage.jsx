@@ -3,7 +3,7 @@ import { useApp } from '../context/AppContext';
 import {
   Search, MapPin, Briefcase, DollarSign, Globe, CheckCircle2,
   Bookmark, ArrowRight, Filter, X, Sparkles, SlidersHorizontal,
-  RotateCcw, ChevronLeft, ChevronRight, BookmarkPlus, Check,
+  RotateCcw, ChevronLeft, ChevronRight, ChevronDown, BookmarkPlus, Check,
   Building2, Layers, Clock, AlertCircle, Tag,
   Languages, Coins, Calendar, CheckSquare, Square, Plus
 } from 'lucide-react';
@@ -133,10 +133,9 @@ export const LANGUAGES = [
 ];
 
 export const SORT_OPTIONS = [
-  { id: 'latest', label: 'Latest' },
-  { id: 'relevant', label: 'Most Relevant' },
-  { id: 'salary-high', label: 'Salary: High to Low' },
-  { id: 'salary-low', label: 'Salary: Low to High' }
+  { id: 'recommended', label: 'Recommended' },
+  { id: 'relevance', label: 'Relevance' },
+  { id: 'date', label: 'Date' }
 ];
 
 export const SALARY_PRESETS = [
@@ -442,6 +441,128 @@ export const filterJobList = (jobs, filters = {}) => {
   });
 };
 
+// --- JOB DATE PARSING HELPER ---
+export const parseJobTime = (job) => {
+  if (!job) return 0;
+  if (job.createdAt) {
+    const t = Date.parse(job.createdAt);
+    if (!isNaN(t)) return t;
+  }
+  if (job.postedDate) {
+    const pd = String(job.postedDate).trim().toLowerCase();
+    if (pd === 'just now') return Date.now();
+    if (pd.includes('hour') || pd.includes('min') || pd.includes('second')) {
+      const num = parseInt(pd, 10) || 1;
+      return Date.now() - (num * 3600 * 1000);
+    }
+    if (pd.includes('day') && pd.includes('ago')) {
+      const num = parseInt(pd, 10) || 1;
+      return Date.now() - (num * 24 * 3600 * 1000);
+    }
+    const t = Date.parse(job.postedDate);
+    if (!isNaN(t)) return t;
+  }
+  return 0;
+};
+
+// --- JOB RECOMMENDATION SCORING ENGINE ---
+// Matches authenticated candidate profile criteria (role, skills, country) or falls back to featured tier-1 GCC jobs
+export const getRecommendationScore = (job, user, keyword) => {
+  let score = 0;
+  if (!job) return 0;
+
+  // 1. Personalized Candidate Profile Match
+  if (user) {
+    const userRole = (user.currentRole || user.title || '').toLowerCase().trim();
+    const userLocation = (user.preferredCountry || user.location || '').toLowerCase().trim();
+    const userSkills = Array.isArray(user.skills)
+      ? user.skills.map(s => String(s).toLowerCase().trim())
+      : (typeof user.skills === 'string' ? user.skills.toLowerCase().split(',').map(s => s.trim()) : []);
+
+    const jobTitle = (job.title || '').toLowerCase();
+    const jobCat = (job.category || job.industry || '').toLowerCase();
+    const jobCountry = (job.country || job.location || '').toLowerCase();
+    const jobSkills = (job.skills || []).map(s => String(s).toLowerCase());
+
+    // Role / Title match (+25)
+    if (userRole && (jobTitle.includes(userRole) || userRole.includes(jobTitle) || jobCat.includes(userRole))) {
+      score += 25;
+    }
+
+    // Preferred Country / Location match (+15)
+    if (userLocation && (jobCountry.includes(userLocation) || userLocation.includes(jobCountry))) {
+      score += 15;
+    }
+
+    // Skills overlap (+6 per matching skill)
+    if (userSkills.length > 0 && jobSkills.length > 0) {
+      userSkills.forEach(us => {
+        if (us && jobSkills.some(js => js.includes(us) || us.includes(js))) {
+          score += 6;
+        }
+      });
+    }
+  }
+
+  // 2. High-priority GCC Employer Openings
+  if (job.featured) score += 10;
+  if (job.urgent) score += 5;
+  if (job.verified) score += 5;
+
+  // 3. Search query relevance boost if a search query is active
+  if (keyword && keyword.trim()) {
+    const kw = keyword.toLowerCase().trim();
+    if ((job.title || '').toLowerCase().includes(kw)) score += 20;
+    if ((job.skills || []).some(s => String(s).toLowerCase().includes(kw))) score += 10;
+    if ((job.company || '').toLowerCase().includes(kw)) score += 6;
+  }
+
+  return score;
+};
+
+// --- JOB RELEVANCE SCORING ENGINE ---
+// Prioritizes exact and keyword matches in title, skills, company, category, and description
+export const getRelevanceScore = (job, keyword) => {
+  let score = 0;
+  if (!job) return 0;
+
+  if (keyword && keyword.trim()) {
+    const kw = keyword.toLowerCase().trim();
+    const title = (job.title || '').toLowerCase();
+    const company = (job.company || '').toLowerCase();
+    const desc = (job.description || '').toLowerCase();
+    const skills = (job.skills || []).map(s => String(s).toLowerCase());
+    const ind = (job.category || job.industry || '').toLowerCase();
+    const country = (job.country || job.location || '').toLowerCase();
+
+    // Exact Title match (+60) / Partial Title match (+30)
+    if (title === kw) score += 60;
+    else if (title.startsWith(kw) || title.includes(kw)) score += 30;
+
+    // Skills match (+25 / +12)
+    if (skills.some(s => s === kw)) score += 25;
+    else if (skills.some(s => s.includes(kw))) score += 12;
+
+    // Company match (+15)
+    if (company.includes(kw)) score += 15;
+
+    // Category / Industry match (+10)
+    if (ind.includes(kw)) score += 10;
+
+    // Country match (+8)
+    if (country.includes(kw)) score += 8;
+
+    // Description match (+4)
+    if (desc.includes(kw)) score += 4;
+  } else {
+    // Fallback when no search query: featured and urgent verified tier-1 jobs
+    if (job.featured) score += 15;
+    if (job.urgent) score += 8;
+  }
+
+  return score;
+};
+
 export const JobsPage = () => {
   const {
     user,
@@ -502,7 +623,26 @@ export const JobsPage = () => {
 
   // Search keyword & sorting
   const [keyword, setKeyword] = useState('');
-  const [sortBy, setSortBy] = useState('latest');
+  const [sortBy, setSortBy] = useState('recommended');
+  const [sortDropdownOpen, setSortDropdownOpen] = useState(false);
+  const sortDropdownRef = useRef(null);
+
+  // Close Sort Dropdown when clicking outside
+  useEffect(() => {
+    const handleClickOutside = (event) => {
+      if (sortDropdownRef.current && !sortDropdownRef.current.contains(event.target)) {
+        setSortDropdownOpen(false);
+      }
+    };
+    if (sortDropdownOpen) {
+      document.addEventListener('mousedown', handleClickOutside);
+      document.addEventListener('touchstart', handleClickOutside);
+    }
+    return () => {
+      document.removeEventListener('mousedown', handleClickOutside);
+      document.removeEventListener('touchstart', handleClickOutside);
+    };
+  }, [sortDropdownOpen]);
 
   // Slider change handler
   const handleSliderChange = (val) => {
@@ -673,6 +813,7 @@ export const JobsPage = () => {
   const [appliedSuccess, setAppliedSuccess] = useState(false);
 
   const isApplied = (jobId) => applications.some(a => a.jobId === jobId);
+  const isSaved = (jobId) => Boolean(savedJobs && savedJobs.includes(jobId));
 
   // Available Cities based on pending countries
   const availableCities = useMemo(() => {
@@ -1045,20 +1186,41 @@ export const JobsPage = () => {
       salaryMax: appliedSalaryMax,
       salaryCurrency: appliedSalaryCurrency
     }).sort((a, b) => {
-      if (sortBy === 'salary-high') {
-        return (Number(b.maxSalary || b.minSalary || 0) - Number(a.maxSalary || a.minSalary || 0));
-      } else if (sortBy === 'salary-low') {
-        return (Number(a.minSalary || a.maxSalary || 0) - Number(b.minSalary || b.maxSalary || 0));
-      } else if (sortBy === 'relevant') {
-        return (b.featured ? 1 : 0) - (a.featured ? 1 : 0);
+      if (sortBy === 'recommended') {
+        const scoreA = getRecommendationScore(a, user, keyword);
+        const scoreB = getRecommendationScore(b, user, keyword);
+        if (scoreB !== scoreA) return scoreB - scoreA;
+        const timeA = parseJobTime(a);
+        const timeB = parseJobTime(b);
+        if (timeB !== timeA) return timeB - timeA;
+        return String(b.id || '').localeCompare(String(a.id || ''));
       }
-      return (b.id > a.id ? 1 : -1);
+      if (sortBy === 'relevance') {
+        const scoreA = getRelevanceScore(a, keyword);
+        const scoreB = getRelevanceScore(b, keyword);
+        if (scoreB !== scoreA) return scoreB - scoreA;
+        const timeA = parseJobTime(a);
+        const timeB = parseJobTime(b);
+        if (timeB !== timeA) return timeB - timeA;
+        return String(b.id || '').localeCompare(String(a.id || ''));
+      }
+      if (sortBy === 'date') {
+        const timeA = parseJobTime(a);
+        const timeB = parseJobTime(b);
+        if (timeB !== timeA) return timeB - timeA;
+        return String(b.id || '').localeCompare(String(a.id || ''));
+      }
+      // Fallback: Date newest first
+      const timeA = parseJobTime(a);
+      const timeB = parseJobTime(b);
+      if (timeB !== timeA) return timeB - timeA;
+      return String(b.id || '').localeCompare(String(a.id || ''));
     });
   }, [
     rawJobs, keyword, appliedCountries, appliedCities, appliedIndustries,
     appliedFunctions, appliedExperienceYears, appliedExperiences, appliedJobTypes,
     appliedSalaryRanges, appliedCompanies, appliedLanguages, appliedPostedWithin,
-    appliedSalaryMin, appliedSalaryMax, appliedSalaryCurrency, sortBy
+    appliedSalaryMin, appliedSalaryMax, appliedSalaryCurrency, sortBy, user
   ]);
 
   // Total applied active filter count (Strictly counts committed filter selections across all categories)
@@ -1237,7 +1399,7 @@ export const JobsPage = () => {
     setAppliedSalaryCurrency('All');
 
     // Section 10: "Preserve the keyword search unless the existing application explicitly treats it as part of Clear All"
-    setSortBy('latest');
+    setSortBy('recommended');
     setCurrentPage(1);
     setLoadedSavedSearchName('');
     if (setSelectedCategory) setSelectedCategory('All');
@@ -1839,8 +2001,8 @@ export const JobsPage = () => {
   return (
     <div className="w-full max-w-[1920px] mx-auto px-3 sm:px-5 md:px-6 lg:px-8 xl:px-10 2xl:px-12 py-5 sm:py-7 space-y-5">
       <SEO
-        title="Global Job Openings & Executive Vacancies | Revival International"
-        description="Search verified international vacancies across Dubai, GCC, Europe, and Asia in Oil & Gas, Healthcare, Construction, Finance, and IT with full visa sponsorship support."
+        title="Discover Global Career Opportunities | Revival International"
+        description="Explore professional opportunities across the GCC and international markets with Revival International."
         canonicalPath="jobs"
         keywords="international jobs Dubai, GCC executive vacancies, overseas recruitment Dubai, Dubai engineering jobs, healthcare jobs Middle East"
         breadcrumbs={[
@@ -1850,15 +2012,12 @@ export const JobsPage = () => {
       />
 
       {/* Page Header */}
-      <ScrollReveal>
-        <div className="text-center space-y-2 max-w-3xl mx-auto py-1">
-          <span className="bg-gold-500/10 text-gold-600 dark:text-gold-400 text-xs font-bold px-3 py-0.5 rounded-full uppercase tracking-wider">
-            {t('jobs.badge')}
-          </span>
-          <h1 className="font-serif text-2xl sm:text-3xl lg:text-4xl font-extrabold text-navy-900 dark:text-white">
+      <ScrollReveal className="w-full flex justify-center">
+        <div className="w-full text-center space-y-2 max-w-3xl mx-auto py-1 flex flex-col items-center justify-center">
+          <h1 className="font-serif text-2xl sm:text-3xl lg:text-4xl font-extrabold text-navy-900 dark:text-white text-center w-full">
             {t('jobs.title')}
           </h1>
-          <p className="text-xs sm:text-sm text-slate-600 dark:text-slate-300">
+          <p className="text-xs sm:text-sm text-slate-600 dark:text-slate-300 text-center mx-auto max-w-2xl leading-relaxed w-full">
             {t('jobs.subtitle')}
           </p>
         </div>
@@ -1901,19 +2060,10 @@ export const JobsPage = () => {
         <button
           type="button"
           onClick={() => setMobileFilterOpen(true)}
-          className="flex-1 py-2 px-3.5 rounded-xl bg-[#102B45] text-white dark:bg-gold-500 dark:text-navy-950 font-bold text-xs flex items-center justify-center gap-2 shadow-xs cursor-pointer"
+          className="w-full py-2 px-3.5 rounded-xl bg-[#102B45] text-white dark:bg-gold-500 dark:text-navy-950 font-bold text-xs flex items-center justify-center gap-2 shadow-xs cursor-pointer"
         >
           <SlidersHorizontal className="w-3.5 h-3.5 text-gold-400 dark:text-navy-950" />
           <span>Filters {appliedFilterCount > 0 ? `(${appliedFilterCount})` : ''}</span>
-        </button>
-
-        <button
-          type="button"
-          onClick={handleOpenSaveSearch}
-          className="py-2 px-3 rounded-xl border border-gold-500/40 bg-gold-500/10 text-gold-700 dark:text-gold-300 font-bold text-xs flex items-center gap-1.5 cursor-pointer"
-        >
-          <BookmarkPlus className="w-3.5 h-3.5 text-gold-500" />
-          <span>Save Search</span>
         </button>
       </div>
 
@@ -1968,32 +2118,61 @@ export const JobsPage = () => {
                 )}
               </div>
 
-              {/* Save Search Button (Desktop) */}
-              <button
-                type="button"
-                onClick={handleOpenSaveSearch}
-                className="hidden sm:inline-flex items-center gap-1.5 px-3.5 py-2 rounded-xl border border-gold-500/40 bg-gold-500/10 hover:bg-gold-500/20 text-gold-700 dark:text-gold-300 font-bold text-xs shrink-0 cursor-pointer transition shadow-xs"
-                title="Save this search criteria to candidate account"
-              >
-                <BookmarkPlus className="w-3.5 h-3.5 text-gold-500" />
-                <span>Save Search</span>
-              </button>
-
               {/* Sort By Dropdown */}
-              <div className="flex items-center gap-2 shrink-0">
-                <span className="text-[11px] font-bold text-slate-500 dark:text-slate-400 hidden md:inline">Sort:</span>
-                <select
-                  value={sortBy}
-                  onChange={(e) => {
-                    setSortBy(e.target.value);
-                    setCurrentPage(1);
-                  }}
-                  className="px-2.5 py-2 rounded-xl bg-slate-50 dark:bg-navy-900 border border-slate-300 dark:border-navy-700 text-slate-900 dark:text-white text-xs font-semibold focus:outline-none focus:border-gold-500 cursor-pointer"
+              <div ref={sortDropdownRef} className="relative flex items-center gap-2 shrink-0">
+                <span className="text-[11px] font-bold text-slate-500 dark:text-slate-400 hidden sm:inline">Sort:</span>
+
+                <button
+                  type="button"
+                  onClick={() => setSortDropdownOpen(prev => !prev)}
+                  aria-expanded={sortDropdownOpen}
+                  aria-haspopup="listbox"
+                  aria-label="Sort jobs by"
+                  className="h-9 px-3 rounded-xl bg-white dark:bg-navy-900 border border-gold-500/50 hover:border-gold-500 text-navy-950 dark:text-white text-xs font-semibold flex items-center gap-2 shadow-2xs transition-all cursor-pointer select-none focus:outline-none focus:ring-1 focus:ring-gold-500"
                 >
-                  {SORT_OPTIONS.map(opt => (
-                    <option key={opt.id} value={opt.id}>{opt.label}</option>
-                  ))}
-                </select>
+                  <span>{SORT_OPTIONS.find(o => o.id === sortBy)?.label || 'Recommended'}</span>
+                  <ChevronDown className={`w-3.5 h-3.5 text-gold-600 dark:text-gold-400 transition-transform duration-200 ${sortDropdownOpen ? 'rotate-180' : ''}`} />
+                </button>
+
+                {/* Dropdown Menu */}
+                {sortDropdownOpen && (
+                  <div
+                    role="listbox"
+                    aria-label="Sort options"
+                    className="absolute right-0 top-full mt-1.5 w-44 bg-white dark:bg-navy-900 border border-gold-500/40 dark:border-gold-500/30 rounded-xl shadow-xl z-50 overflow-hidden py-1 animate-fade-in"
+                  >
+                    {SORT_OPTIONS.map((opt, idx) => {
+                      const isSelected = sortBy === opt.id;
+                      const isLast = idx === SORT_OPTIONS.length - 1;
+
+                      return (
+                        <button
+                          key={opt.id}
+                          role="option"
+                          aria-selected={isSelected}
+                          type="button"
+                          onClick={() => {
+                            setSortBy(opt.id);
+                            setCurrentPage(1);
+                            setSortDropdownOpen(false);
+                          }}
+                          className={`w-full px-3.5 py-2.5 text-xs text-left flex items-center justify-between transition-colors cursor-pointer ${
+                            !isLast ? 'border-b border-slate-100 dark:border-navy-800/80' : ''
+                          } ${
+                            isSelected
+                              ? 'bg-amber-50/80 dark:bg-amber-950/40 text-navy-950 dark:text-gold-300 font-bold'
+                              : 'text-navy-950 dark:text-slate-200 hover:bg-slate-50 dark:hover:bg-navy-800/60 font-medium'
+                          }`}
+                        >
+                          <span>{opt.label}</span>
+                          {isSelected && (
+                            <Check className="w-3.5 h-3.5 text-gold-600 dark:text-gold-400 shrink-0 ml-2" />
+                          )}
+                        </button>
+                      );
+                    })}
+                  </div>
+                )}
               </div>
             </div>
 
@@ -2103,25 +2282,6 @@ export const JobsPage = () => {
             )}
           </div>
 
-          {/* Results Summary Bar */}
-          <div className="flex items-center justify-between px-1 text-xs">
-            <p className="text-slate-600 dark:text-slate-400 font-medium">
-              Showing <strong className="font-bold text-navy-950 dark:text-white">{filteredJobs.length}</strong> matching international jobs{' '}
-              <span className="text-slate-400 font-normal">
-                (Page {currentPage} of {totalPages})
-              </span>
-            </p>
-
-            <button
-              type="button"
-              onClick={() => setActiveModal('ai-resume')}
-              className="text-gold-600 dark:text-gold-400 hover:text-gold-700 dark:hover:text-gold-300 font-bold flex items-center gap-1.5 cursor-pointer transition"
-            >
-              <Sparkles className="w-3.5 h-3.5 text-gold-500" />
-              <span>Match with AI Resume Analyzer</span>
-            </button>
-          </div>
-
           {/* Job Listings Grid / Empty State */}
           {loading ? (
             <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-3 3xl:grid-cols-4 gap-4.5">
@@ -2175,64 +2335,15 @@ export const JobsPage = () => {
                     >
                       <div className="space-y-3">
 
-                        {/* Top Badges & Save Bookmark */}
-                        <div className="flex justify-between items-start gap-2">
-                          <div className="space-y-1 min-w-0 flex-1">
-                            <div className="flex flex-wrap items-center gap-1.5">
-                              <span className="bg-gold-500/10 text-gold-600 dark:text-gold-400 text-[10px] font-bold px-2.5 py-0.5 rounded-full uppercase tracking-wider font-mono">
-                                {job.category || job.industry || 'Executive'}
-                              </span>
-                              {job.contractType ? (
-                                <span className="bg-slate-100 dark:bg-navy-900 text-slate-700 dark:text-slate-300 text-[10px] font-semibold px-2 py-0.5 rounded-full">
-                                  {job.contractDuration && job.contractType !== 'Permanent' ? `${job.contractType} (${job.contractDuration})` : job.contractType}
-                                </span>
-                              ) : job.jobType ? (
-                                <span className="bg-slate-100 dark:bg-navy-900 text-slate-700 dark:text-slate-300 text-[10px] font-semibold px-2 py-0.5 rounded-full">
-                                  {job.jobType}
-                                </span>
-                              ) : null}
-                              {job.visaSponsorship === 'Visa sponsorship provided' && (
-                                <span className="bg-emerald-500/10 text-emerald-700 dark:text-emerald-400 border border-emerald-500/20 text-[10px] font-bold px-2 py-0.5 rounded-full">
-                                  Visa Sponsored
-                                </span>
-                              )}
-                              {isExpired ? (
-                                <span className="bg-rose-500/15 text-rose-700 dark:text-rose-400 border border-rose-500/30 text-[10px] font-bold px-2 py-0.5 rounded-full">
-                                  Closed
-                                </span>
-                              ) : job.closingDate ? (
-                                <span className="bg-slate-100 dark:bg-navy-900 text-slate-600 dark:text-slate-400 text-[10px] font-medium px-2 py-0.5 rounded-full font-mono">
-                                  Deadline: {job.closingDate}
-                                </span>
-                              ) : null}
-                              {job.featured && (
-                                <span className="text-[10px] font-bold uppercase tracking-wider px-2 py-0.5 rounded-full bg-amber-500/15 text-amber-700 dark:text-amber-300 border border-amber-500/30 flex items-center gap-1">
-                                  <Sparkles className="w-2.5 h-2.5" />
-                                  <span>Featured</span>
-                                </span>
-                              )}
-                            </div>
-
-                            <h3 className="font-serif text-lg font-bold text-navy-950 dark:text-white mt-1 group-hover:text-gold-600 dark:group-hover:text-gold-400 transition truncate">
-                              {job.title}
-                            </h3>
-                            <p className="text-xs font-bold text-slate-700 dark:text-slate-300 flex items-center gap-1.5 mt-0.5">
-                              <Building2 className="w-3.5 h-3.5 text-gold-500 shrink-0" />
-                              <span className="truncate">{job.company}</span>
-                            </p>
-                          </div>
-
-                          <button
-                            type="button"
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              toggleSaveJob(job.id);
-                            }}
-                            className="p-2 rounded-xl bg-slate-50 dark:bg-navy-900 border border-slate-200 dark:border-navy-700 text-slate-400 hover:text-gold-500 transition cursor-pointer shrink-0"
-                            title={saved ? 'Remove bookmark' : 'Bookmark job'}
-                          >
-                            <Bookmark className={`w-4 h-4 ${saved ? 'fill-gold-500 text-gold-500' : ''}`} />
-                          </button>
+                        {/* Top: Title & Company */}
+                        <div className="space-y-1 min-w-0">
+                          <h3 className="font-serif text-lg font-bold text-navy-950 dark:text-white group-hover:text-gold-600 dark:group-hover:text-gold-400 transition truncate">
+                            {job.title}
+                          </h3>
+                          <p className="text-xs font-bold text-slate-700 dark:text-slate-300 flex items-center gap-1.5 mt-0.5">
+                            <Building2 className="w-3.5 h-3.5 text-gold-500 shrink-0" />
+                            <span className="truncate">{job.company}</span>
+                          </p>
                         </div>
 
                         {/* Specs Row: Location, Salary, Experience */}
@@ -2275,38 +2386,52 @@ export const JobsPage = () => {
                         )}
                       </div>
 
-                      {/* Card Footer: Posted Date & Apply Now Button */}
-                      <div className="pt-3.5 mt-3 border-t border-slate-100 dark:border-navy-800 flex justify-between items-center">
-                        <span className="text-[11px] text-slate-400 font-medium font-mono">
+                      {/* Card Footer: Posted Date & Save / Apply Actions */}
+                      <div className="pt-3.5 mt-3 border-t border-slate-100 dark:border-navy-800 flex justify-between items-center gap-2">
+                        <span className="text-[11px] text-slate-400 font-medium font-mono shrink-0">
                           Posted: {job.postedDate && !job.postedDate.includes('ago') && job.postedDate.toLowerCase() !== 'just now' ? job.postedDate : '12 Nov 2026'}
                         </span>
 
-                        {applied ? (
+                        <div className="flex items-center gap-2">
+                          {applied ? (
+                            <button
+                              disabled
+                              onClick={(e) => e.stopPropagation()}
+                              className="px-4 py-2 bg-emerald-500/15 border border-emerald-500/30 text-emerald-700 dark:text-emerald-400 font-bold text-xs rounded-xl flex items-center gap-1 cursor-default shadow-xs"
+                            >
+                              <CheckCircle2 className="w-3.5 h-3.5" />
+                              <span>Applied</span>
+                            </button>
+                          ) : isExpired ? (
+                            <button
+                              disabled
+                              onClick={(e) => e.stopPropagation()}
+                              className="px-3.5 py-1.5 bg-slate-100 dark:bg-navy-900 border border-slate-200 dark:border-navy-800 text-slate-400 dark:text-slate-500 font-bold text-xs rounded-xl cursor-not-allowed flex items-center gap-1"
+                            >
+                              <span>Closed</span>
+                            </button>
+                          ) : (
+                            <button
+                              onClick={(e) => handleQuickApply(e, job)}
+                              className="px-4 py-2 bg-gold-shimmer text-navy-950 font-bold text-xs rounded-xl shadow-gold-glow hover:opacity-95 transition cursor-pointer flex items-center gap-1"
+                            >
+                              <span>Apply Now</span>
+                              <span>→</span>
+                            </button>
+                          )}
+
                           <button
-                            disabled
-                            onClick={(e) => e.stopPropagation()}
-                            className="px-4 py-2 bg-emerald-500/15 border border-emerald-500/30 text-emerald-700 dark:text-emerald-400 font-bold text-xs rounded-xl flex items-center gap-1 cursor-default shadow-xs"
+                            type="button"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              toggleSaveJob(job.id);
+                            }}
+                            className="p-2 rounded-xl bg-slate-50 dark:bg-navy-900 border border-slate-200 dark:border-navy-700 text-slate-400 hover:text-gold-500 transition cursor-pointer shrink-0"
+                            title={saved ? 'Remove bookmark' : 'Bookmark job'}
                           >
-                            <CheckCircle2 className="w-3.5 h-3.5" />
-                            <span>Applied</span>
+                            <Bookmark className={`w-4 h-4 ${saved ? 'fill-gold-500 text-gold-500' : ''}`} />
                           </button>
-                        ) : isExpired ? (
-                          <button
-                            disabled
-                            onClick={(e) => e.stopPropagation()}
-                            className="px-3.5 py-1.5 bg-slate-100 dark:bg-navy-900 border border-slate-200 dark:border-navy-800 text-slate-400 dark:text-slate-500 font-bold text-xs rounded-xl cursor-not-allowed flex items-center gap-1"
-                          >
-                            <span>Closed</span>
-                          </button>
-                        ) : (
-                          <button
-                            onClick={(e) => handleQuickApply(e, job)}
-                            className="px-4 py-2 bg-gold-shimmer text-navy-950 font-bold text-xs rounded-xl shadow-gold-glow hover:opacity-95 transition cursor-pointer flex items-center gap-1"
-                          >
-                            <span>Apply Now</span>
-                            <span>→</span>
-                          </button>
-                        )}
+                        </div>
                       </div>
 
                     </div>
@@ -2375,6 +2500,16 @@ export const JobsPage = () => {
                   </button>
                 </div>
               )}
+
+              {/* Results Summary Bar (Down of all jobs) */}
+              <div className="flex items-center justify-center pt-3 text-xs">
+                <p className="text-slate-600 dark:text-slate-400 font-medium text-center">
+                  Showing <strong className="font-bold text-navy-950 dark:text-white">{filteredJobs.length}</strong> matching international jobs{' '}
+                  <span className="text-slate-400 font-normal">
+                    (Page {currentPage} of {totalPages})
+                  </span>
+                </p>
+              </div>
 
             </div>
           )}
@@ -2561,13 +2696,18 @@ export const JobsPage = () => {
         const isJobExpired = Boolean(
           viewJob.closingDate && new Date(viewJob.closingDate).setHours(23, 59, 59, 999) < Date.now()
         );
-        const benefitsList = Array.isArray(viewJob.benefits)
-          ? viewJob.benefits
-          : typeof viewJob.benefits === 'string' && viewJob.benefits.startsWith('[')
-            ? JSON.parse(viewJob.benefits)
-            : typeof viewJob.benefits === 'string' && viewJob.benefits.trim()
-              ? viewJob.benefits.split(',').map(s => s.trim()).filter(Boolean)
-              : [];
+        let benefitsList = [];
+        if (Array.isArray(viewJob.benefits)) {
+          benefitsList = viewJob.benefits;
+        } else if (typeof viewJob.benefits === 'string' && viewJob.benefits.startsWith('[')) {
+          try {
+            benefitsList = JSON.parse(viewJob.benefits);
+          } catch {
+            benefitsList = [];
+          }
+        } else if (typeof viewJob.benefits === 'string' && viewJob.benefits.trim()) {
+          benefitsList = viewJob.benefits.split(',').map(s => s.trim()).filter(Boolean);
+        }
 
         return (
           <div className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-4 bg-slate-900/80 dark:bg-navy-950/80 backdrop-blur-xs animate-in fade-in">
@@ -2599,6 +2739,12 @@ export const JobsPage = () => {
                         Deadline: {viewJob.closingDate}
                       </span>
                     ) : null}
+                    {viewJob.featured && (
+                      <span className="text-xs font-bold uppercase tracking-wider px-2.5 py-0.5 rounded-full bg-amber-500/15 text-amber-700 dark:text-amber-300 border border-amber-500/30 flex items-center gap-1">
+                        <Sparkles className="w-3 h-3" />
+                        <span>Featured</span>
+                      </span>
+                    )}
                   </div>
                   <h2 className="font-serif text-xl sm:text-2xl font-bold text-navy-950 dark:text-white mt-1 leading-snug">
                     {viewJob.title}
@@ -2857,7 +3003,7 @@ export const JobsPage = () => {
               </div>
 
               {/* FOOTER BUTTONS */}
-              <div className="flex gap-2.5 pt-3 border-t border-slate-100 dark:border-navy-800">
+              <div className="flex gap-2.5 pt-3 border-t border-slate-100 dark:border-navy-800 items-center">
                 <button
                   type="button"
                   onClick={() => setViewJob(null)}
@@ -2899,6 +3045,17 @@ export const JobsPage = () => {
                     Apply for Position →
                   </button>
                 )}
+                <button
+                  type="button"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    toggleSaveJob(viewJob.id);
+                  }}
+                  className="p-2.5 rounded-xl bg-slate-100 dark:bg-navy-900 border border-slate-200 dark:border-navy-700 text-slate-400 hover:text-gold-500 transition cursor-pointer shrink-0"
+                  title={isSaved(viewJob.id) ? 'Remove bookmark' : 'Bookmark job'}
+                >
+                  <Bookmark className={`w-4 h-4 ${isSaved(viewJob.id) ? 'fill-gold-500 text-gold-500' : ''}`} />
+                </button>
               </div>
 
             </div>

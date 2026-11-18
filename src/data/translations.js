@@ -35,8 +35,8 @@ export const TRANSLATIONS = {
     
     // Jobs Page
     'jobs.badge': 'International Job Portal',
-    'jobs.title': 'Explore Executive & Skilled Vacancies',
-    'jobs.subtitle': 'Discover verified opportunities across Dubai, Saudi Arabia, Qatar, Singapore, Canada, and Europe.',
+    'jobs.title': 'Discover Global Career Opportunities',
+    'jobs.subtitle': 'Explore professional opportunities across the GCC and international markets with Revival International.',
     'jobs.searchPlaceholder': 'Title, skills, or company...',
     'jobs.allCountries': 'All Destination Countries',
     'jobs.allCategories': 'All Industry Sectors',
@@ -100,8 +100,8 @@ export const TRANSLATIONS = {
 
     // Jobs Page
     'jobs.badge': 'بوابة الوظائف الدولية',
-    'jobs.title': 'استكشف الوظائف التنفيذية والمهنية',
-    'jobs.subtitle': 'اكتشف فرصًا موثوقة في دبي، السعودية، قطر، سنغافورة، كندا، وأوروبا.',
+    'jobs.title': 'اكتشف فرص العمل العالمية',
+    'jobs.subtitle': 'استكشف الفرص المهنية عبر دول مجلس التعاون الخليجي والأسواق الدولية مع ريفايفل إنترناشيونال.',
     'jobs.searchPlaceholder': 'العنوان، المهارات، أو الشركة...',
     'jobs.allCountries': 'جميع الدول',
     'jobs.allCategories': 'جميع القطاعات',
@@ -165,8 +165,8 @@ export const TRANSLATIONS = {
 
     // Jobs Page
     'jobs.badge': 'Portail d\'Emploi International',
-    'jobs.title': 'Explorez les Postes Exécutifs et Qualifiés',
-    'jobs.subtitle': 'Découvrez des opportunités vérifiées à Dubaï, en Arabie Saoudite, au Qatar, à Singapour, au Canada et en Europe.',
+    'jobs.title': 'Découvrez des Opportunités de Carrière Internationales',
+    'jobs.subtitle': 'Explorez les opportunités professionnelles dans les pays du CCG et les marchés internationaux avec Revival International.',
     'jobs.searchPlaceholder': 'Titre, compétences ou entreprise...',
     'jobs.allCountries': 'Tous les pays',
     'jobs.allCategories': 'Tous les secteurs',
@@ -230,8 +230,8 @@ export const TRANSLATIONS = {
 
     // Jobs Page
     'jobs.badge': 'Internationales Stellenportal',
-    'jobs.title': 'Entdecken Sie Führungs- & Fachkräftepositionen',
-    'jobs.subtitle': 'Entdecken Sie geprüfte Karrierechancen in Dubai, Saudi-Arabien, Katar, Singapur, Kanada und Europa.',
+    'jobs.title': 'Entdecken Sie weltweite Karrieremöglichkeiten',
+    'jobs.subtitle': 'Entdecken Sie berufliche Chancen im GCC-Raum und auf internationalen Märkten mit Revival International.',
     'jobs.searchPlaceholder': 'Titel, Fähigkeiten oder Firma...',
     'jobs.allCountries': 'Alle Länder',
     'jobs.allCategories': 'Alle Branchen',

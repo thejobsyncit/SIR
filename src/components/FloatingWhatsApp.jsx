@@ -1,9 +1,33 @@
 import React, { useState } from 'react';
 import { MessageSquare } from 'lucide-react';
 import { trackContactClick } from '../services/analytics';
+import { useApp } from '../context/AppContext';
 
 export const FloatingWhatsApp = () => {
   const [isCompact, setIsCompact] = useState(false);
+  const { activeTab } = useApp ? useApp() : { activeTab: '' };
+
+  const isJobsPage = Boolean(
+    activeTab && (
+      activeTab === 'jobs' ||
+      activeTab === 'job' ||
+      activeTab === 'careers' ||
+      activeTab === 'vacancies' ||
+      activeTab.startsWith('jobs/') ||
+      activeTab.startsWith('job/')
+    )
+  ) || (typeof window !== 'undefined' && (
+    window.location.pathname.replace(/^\/+|\/+$/g, '') === 'jobs' ||
+    window.location.pathname.replace(/^\/+|\/+$/g, '').startsWith('jobs/') ||
+    window.location.hash.replace(/^#/, '').split('?')[0] === 'jobs' ||
+    window.location.hash.replace(/^#/, '').split('?')[0] === 'job' ||
+    window.location.hash.replace(/^#/, '').split('?')[0] === 'careers' ||
+    window.location.hash.replace(/^#/, '').split('?')[0] === 'vacancies'
+  ));
+
+  if (isJobsPage || activeTab === 'candidates' || activeTab === 'employers') {
+    return null;
+  }
 
   return (
     <div className="fixed bottom-4 sm:bottom-5 right-4 sm:right-6 z-40 flex items-center group">
