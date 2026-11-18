@@ -365,12 +365,13 @@ export const generateApplicationEmail = async ({ candidate = {}, job = {}, middl
 
 /**
  * Creates and verifies the Nodemailer transporter.
+ * Supports Zoho Mail (smtppro.zoho.in / smtp.zoho.com), Gmail, or any custom SMTP host.
  */
 export const getTransporter = () => {
-  const user = process.env.SMTP_USER || process.env.SMTP_EMAIL || 'thejobsyncit@gmail.com';
+  const user = process.env.SMTP_USER || process.env.SMTP_EMAIL || 'enquiry@therevivalinternational.com';
   const pass = (process.env.SMTP_APP_PASSWORD || process.env.GMAIL_APP_PASSWORD || '').replace(/\s+/g, '');
 
-  const isConfigured = Boolean(pass && !pass.includes('your-16-digit') && pass.length >= 8);
+  const isConfigured = Boolean(pass && !pass.includes('your-16-digit') && pass.length >= 6);
 
   if (!isConfigured) {
     return {
@@ -379,16 +380,45 @@ export const getTransporter = () => {
       sendMail: async () => ({
         simulated: true,
         messageId: `sim-${Date.now()}-${Math.random().toString(36).substring(2, 8)}`,
-        reason: 'SMTP_APP_PASSWORD requires a valid Google 16-character App Password'
+        reason: 'SMTP_APP_PASSWORD requires a valid App Password (Zoho or Gmail)'
       })
     };
   }
 
-  const transporter = nodemailer.createTransport({
-    service: 'gmail',
-    auth: { user, pass },
-    tls: { rejectUnauthorized: false }
-  });
+  // Detect Zoho Mail vs Gmail vs Custom Host
+  const isZoho = process.env.SMTP_HOST?.includes('zoho') || 
+                 user.toLowerCase().includes('therevivalinternational.com') ||
+                 user.toLowerCase().includes('zoho');
+
+  let transportOptions;
+
+  if (process.env.SMTP_HOST) {
+    transportOptions = {
+      host: process.env.SMTP_HOST,
+      port: Number(process.env.SMTP_PORT) || 465,
+      secure: Number(process.env.SMTP_PORT) === 465 || !process.env.SMTP_PORT,
+      auth: { user, pass },
+      tls: { rejectUnauthorized: false }
+    };
+  } else if (isZoho) {
+    // Default Zoho Mail SMTP
+    transportOptions = {
+      host: 'smtppro.zoho.in',
+      port: 465,
+      secure: true,
+      auth: { user, pass },
+      tls: { rejectUnauthorized: false }
+    };
+  } else {
+    // Default Gmail SMTP
+    transportOptions = {
+      service: 'gmail',
+      auth: { user, pass },
+      tls: { rejectUnauthorized: false }
+    };
+  }
+
+  const transporter = nodemailer.createTransport(transportOptions);
 
   return {
     isConfigured: true,
@@ -410,7 +440,7 @@ export const sendJobApplicationEmail = async ({
   const transporter = getTransporter();
 
   const primaryRecipient = emailContent.recipientEmail || job.companyEmail || 'enquiry@therevivalinternational.com';
-  const adminEmail = process.env.SMTP_USER || process.env.SMTP_EMAIL || 'thejobsyncit@gmail.com';
+  const adminEmail = process.env.SMTP_USER || process.env.SMTP_EMAIL || 'enquiry@therevivalinternational.com';
   const candidateEmail = candidate.email;
   const fromEmail = transporter.user;
 
