@@ -235,7 +235,7 @@ export const generateApplicationEmail = async ({ candidate = {}, job = {}, middl
   // 1. Normalize Job Data from record
   const jobTitle = job.title || job.jobTitle || 'Valued Position';
   const companyName = job.company || job.companyName || 'Enterprise Employer';
-  const companyEmail = job.companyEmail || job.email || process.env.SMTP_EMAIL || 'thejobsyncit@gmail.com';
+  const companyEmail = job.companyEmail || job.email || process.env.PRIMARY_EMAIL || 'enquiry@therevivalinternational.com';
   const location = job.location || job.country || 'Target Location';
   const department = job.department || job.category || 'Operations';
   const jobSkills = extractJobSkills(job);
@@ -367,7 +367,7 @@ export const generateApplicationEmail = async ({ candidate = {}, job = {}, middl
  * Creates and verifies the Nodemailer transporter.
  */
 export const getTransporter = () => {
-  const user = process.env.SMTP_EMAIL || 'thejobsyncit@gmail.com';
+  const user = process.env.SMTP_USER || process.env.SMTP_EMAIL || 'enquiry@therevivalinternational.com';
   const pass = (process.env.SMTP_APP_PASSWORD || process.env.GMAIL_APP_PASSWORD || '').replace(/\s+/g, '');
 
   if (!pass) {
@@ -405,12 +405,12 @@ export const sendJobApplicationEmail = async ({
 }) => {
   const transporter = getTransporter();
 
-  const recipient = emailContent.recipientEmail || job.companyEmail || process.env.SMTP_EMAIL || 'thejobsyncit@gmail.com';
+  const recipient = emailContent.recipientEmail || job.companyEmail || 'enquiry@therevivalinternational.com';
   const replyTo = candidate.email;
-  const fromEmail = transporter.user;
+  const fromEmail = process.env.SMTP_FROM || transporter.user || 'enquiry@therevivalinternational.com';
 
   const mailOptions = {
-    from: `"${candidate.name || 'Candidate Application'}" <${fromEmail}>`,
+    from: `"The Revival International • Careers" <${fromEmail}>`,
     to: recipient,
     replyTo: replyTo,
     subject: emailContent.subject,

@@ -59,7 +59,7 @@ export const registerEmailApplicationRoutes = (app, { getDb, getClientIp, logAud
       id: job.id,
       title: job.title || job.jobTitle || 'Career Opportunity',
       company: job.company || job.companyName || 'Revival International Partner Employer',
-      companyEmail: job.companyEmail || job.email || process.env.SMTP_EMAIL || 'thejobsyncit@gmail.com',
+      companyEmail: job.companyEmail || job.email || 'enquiry@therevivalinternational.com',
       location: job.location || job.country || 'Target Location',
       department: job.department || job.category || 'Operations',
       skills: job.skills || [],
