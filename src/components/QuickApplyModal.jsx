@@ -87,7 +87,7 @@ export const QuickApplyModal = ({ job, isOpen, onClose, onSuccess }) => {
   /**
    * One-Click Application Submission:
    * Requires candidate registration. Directly generates role-specific email,
-   * attaches CV, and dispatches to enquiry@therevivalinternational.com and candidate's inbox.
+   * attaches CV, and dispatches to candidate Gmail and official desk.
    */
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -226,11 +226,19 @@ export const QuickApplyModal = ({ job, isOpen, onClose, onSuccess }) => {
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-4 bg-navy-950/80 backdrop-blur-sm animate-fade-in overflow-y-auto">
-      <div className="bg-white dark:bg-navy-900 rounded-3xl max-w-lg w-full overflow-hidden shadow-2xl border border-slate-200 dark:border-navy-800 transition-all my-8">
+    <div 
+      className="fixed inset-0 z-50 overflow-y-auto bg-navy-950/80 backdrop-blur-sm p-3 sm:p-6 flex items-start justify-center animate-fade-in"
+      onClick={(e) => {
+        if (e.target === e.currentTarget) onClose();
+      }}
+    >
+      <div 
+        className="relative w-full max-w-lg my-auto sm:my-8 rounded-3xl bg-white dark:bg-navy-900 shadow-2xl border border-slate-200 dark:border-navy-800 transition-all flex flex-col max-h-[92vh] overflow-hidden"
+        onClick={(e) => e.stopPropagation()}
+      >
         
-        {/* Header */}
-        <div className="bg-gradient-to-r from-navy-900 via-navy-950 to-slate-900 text-white p-6 relative">
+        {/* Header - Fixed & Never Squeezed */}
+        <div className="bg-gradient-to-r from-navy-900 via-navy-950 to-slate-900 text-white p-5 sm:p-6 relative shrink-0">
           <button
             onClick={onClose}
             aria-label="Close Modal"
@@ -239,10 +247,10 @@ export const QuickApplyModal = ({ job, isOpen, onClose, onSuccess }) => {
             <X className="w-4 h-4 text-white" />
           </button>
 
-          <span className="text-[10px] uppercase font-black tracking-widest text-gold-400 bg-gold-400/10 px-2.5 py-0.5 rounded-full inline-block mb-2">
+          <span className="text-[10px] uppercase font-black tracking-widest text-gold-400 bg-gold-400/10 px-2.5 py-0.5 rounded-full inline-block mb-1.5">
             INSTANT QUICK APPLY • 100% FREE PLACEMENT
           </span>
-          <h2 className="text-xl font-bold text-white line-clamp-1">{job.title}</h2>
+          <h2 className="text-lg sm:text-xl font-bold text-white line-clamp-1 pr-8">{job.title}</h2>
           <p className="text-xs text-slate-300 mt-0.5 flex items-center gap-1.5 flex-wrap">
             <span>{job.company || 'Revival International Partner Employer'}</span>
             <span>•</span>
@@ -250,8 +258,8 @@ export const QuickApplyModal = ({ job, isOpen, onClose, onSuccess }) => {
           </p>
         </div>
 
-        {/* Modal Body */}
-        <div className="p-6">
+        {/* Modal Body - Scrollable & Well-Proportioned */}
+        <div className="p-5 sm:p-6 overflow-y-auto flex-1">
           {/* GUARD 1: Position Expired */}
           {isExpired ? (
             <div className="p-5 bg-rose-500/10 border border-rose-500/30 rounded-2xl text-left space-y-3">
@@ -272,16 +280,16 @@ export const QuickApplyModal = ({ job, isOpen, onClose, onSuccess }) => {
             </div>
           ) : !user || !user.email ? (
             /* GUARD 2: Registration Required Screen */
-            <div className="text-center py-6 px-2 space-y-5">
-              <div className="w-16 h-16 mx-auto rounded-full bg-gold-500/10 text-gold-500 flex items-center justify-center">
-                <UserPlus className="w-8 h-8" />
+            <div className="text-center py-6 px-2 space-y-4">
+              <div className="w-14 h-14 mx-auto rounded-full bg-gold-500/10 text-gold-500 flex items-center justify-center">
+                <UserPlus className="w-7 h-7" />
               </div>
 
-              <div className="space-y-1.5">
+              <div className="space-y-1">
                 <span className="text-[10px] uppercase font-black tracking-widest text-gold-500 bg-gold-400/10 px-2.5 py-0.5 rounded-full inline-block">
                   Registration Required
                 </span>
-                <h3 className="text-lg sm:text-xl font-bold text-slate-900 dark:text-white">
+                <h3 className="text-lg font-bold text-slate-900 dark:text-white">
                   Candidate Profile Required to Apply
                 </h3>
                 <p className="text-xs text-slate-600 dark:text-slate-400 max-w-sm mx-auto leading-relaxed">
@@ -289,7 +297,7 @@ export const QuickApplyModal = ({ job, isOpen, onClose, onSuccess }) => {
                 </p>
               </div>
 
-              <div className="space-y-2.5 pt-2 max-w-xs mx-auto">
+              <div className="space-y-2 pt-2 max-w-xs mx-auto">
                 <button
                   type="button"
                   onClick={() => {
@@ -319,7 +327,7 @@ export const QuickApplyModal = ({ job, isOpen, onClose, onSuccess }) => {
             </div>
           ) : !isSuccess ? (
             /* Authenticated Candidate Quick Apply Form */
-            <form onSubmit={handleSubmit} className="space-y-4 text-left">
+            <form onSubmit={handleSubmit} className="space-y-3.5 text-left">
               {errorMsg && (
                 <div className={`p-3 rounded-xl text-xs font-semibold flex items-center gap-2 ${
                   errorCode === 'RATE_LIMIT' 
@@ -334,7 +342,7 @@ export const QuickApplyModal = ({ job, isOpen, onClose, onSuccess }) => {
               )}
 
               {/* Registered Account Status Pill */}
-              <div className="flex items-center justify-between bg-slate-50 dark:bg-navy-950 border border-slate-200 dark:border-navy-800 px-3 py-2 rounded-xl text-[11px]">
+              <div className="flex items-center justify-between bg-slate-50 dark:bg-navy-950 border border-slate-200 dark:border-navy-800 px-3 py-1.5 rounded-xl text-[11px]">
                 <span className="text-slate-500">Applying as:</span>
                 <span className="font-bold text-slate-800 dark:text-slate-200 flex items-center gap-1.5">
                   <span className="w-2 h-2 rounded-full bg-emerald-500 inline-block"></span>
@@ -353,7 +361,7 @@ export const QuickApplyModal = ({ job, isOpen, onClose, onSuccess }) => {
                   value={fullName}
                   onChange={(e) => setFullName(e.target.value)}
                   placeholder="e.g. Kishore Kumar"
-                  className="w-full px-3.5 py-2.5 rounded-xl border border-slate-300 dark:border-navy-700 bg-slate-50 dark:bg-navy-950 text-slate-900 dark:text-white text-xs sm:text-sm font-medium outline-none focus:border-gold-500 transition"
+                  className="w-full px-3.5 py-2 rounded-xl border border-slate-300 dark:border-navy-700 bg-slate-50 dark:bg-navy-950 text-slate-900 dark:text-white text-xs sm:text-sm font-medium outline-none focus:border-gold-500 transition"
                 />
               </div>
 
@@ -368,7 +376,7 @@ export const QuickApplyModal = ({ job, isOpen, onClose, onSuccess }) => {
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
                   placeholder="e.g. kishorekumaroffl@gmail.com"
-                  className="w-full px-3.5 py-2.5 rounded-xl border border-slate-300 dark:border-navy-700 bg-slate-50 dark:bg-navy-950 text-slate-900 dark:text-white text-xs sm:text-sm font-medium outline-none focus:border-gold-500 transition"
+                  className="w-full px-3.5 py-2 rounded-xl border border-slate-300 dark:border-navy-700 bg-slate-50 dark:bg-navy-950 text-slate-900 dark:text-white text-xs sm:text-sm font-medium outline-none focus:border-gold-500 transition"
                 />
               </div>
 
@@ -385,7 +393,7 @@ export const QuickApplyModal = ({ job, isOpen, onClose, onSuccess }) => {
                 <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1">
                   Attach Curriculum Vitae (CV) <span className="text-rose-500">*</span>
                 </label>
-                <div className="relative border-2 border-dashed border-slate-300 dark:border-navy-700 hover:border-gold-500 rounded-xl p-4 text-center cursor-pointer transition bg-slate-50/50 dark:bg-navy-950/50">
+                <div className="relative border-2 border-dashed border-slate-300 dark:border-navy-700 hover:border-gold-500 rounded-xl p-3 text-center cursor-pointer transition bg-slate-50/50 dark:bg-navy-950/50">
                   <input
                     type="file"
                     accept=".pdf,.doc,.docx"
@@ -394,7 +402,7 @@ export const QuickApplyModal = ({ job, isOpen, onClose, onSuccess }) => {
                   />
                   <div className="flex flex-col items-center space-y-1">
                     <Upload className="w-5 h-5 text-gold-500" />
-                    <span className="text-xs font-bold text-slate-800 dark:text-white">
+                    <span className="text-xs font-bold text-slate-800 dark:text-white line-clamp-1">
                       {resumeFile ? resumeFile.name : (user?.resumeName || 'Click to upload PDF, DOCX or DOC')}
                     </span>
                     <span className="text-[10px] text-slate-500">Maximum file size: 10MB</span>
@@ -403,7 +411,7 @@ export const QuickApplyModal = ({ job, isOpen, onClose, onSuccess }) => {
               </div>
 
               {/* Mandatory Consent Checkbox */}
-              <div className="pt-1">
+              <div className="pt-0.5">
                 <label className="flex items-start space-x-2.5 cursor-pointer">
                   <input
                     type="checkbox"
@@ -437,7 +445,7 @@ export const QuickApplyModal = ({ job, isOpen, onClose, onSuccess }) => {
               <button
                 type="submit"
                 disabled={isSubmitting}
-                className="w-full bg-gold-shimmer text-navy-950 font-bold text-xs sm:text-sm py-3.5 rounded-xl hover:opacity-95 transition shadow-gold-glow flex items-center justify-center space-x-2 cursor-pointer disabled:opacity-50"
+                className="w-full bg-gold-shimmer text-navy-950 font-bold text-xs sm:text-sm py-3 rounded-xl hover:opacity-95 transition shadow-gold-glow flex items-center justify-center space-x-2 cursor-pointer disabled:opacity-50 mt-1"
               >
                 {isSubmitting ? (
                   <>
@@ -454,16 +462,16 @@ export const QuickApplyModal = ({ job, isOpen, onClose, onSuccess }) => {
             </form>
           ) : (
             /* Direct Success Screen */
-            <div className="text-center space-y-5 py-4">
-              <div className="w-16 h-16 mx-auto rounded-full bg-emerald-500/10 text-emerald-500 flex items-center justify-center">
-                <CheckCircle2 className="w-10 h-10" />
+            <div className="text-center space-y-4 py-3">
+              <div className="w-14 h-14 mx-auto rounded-full bg-emerald-500/10 text-emerald-500 flex items-center justify-center">
+                <CheckCircle2 className="w-8 h-8" />
               </div>
 
-              <div className="space-y-1.5">
+              <div className="space-y-1">
                 <span className="text-[10px] uppercase font-black tracking-widest text-emerald-600 dark:text-emerald-400 bg-emerald-500/10 px-2.5 py-0.5 rounded-full inline-block">
                   Application Submitted
                 </span>
-                <h3 className="text-xl font-bold text-slate-900 dark:text-white">
+                <h3 className="text-lg sm:text-xl font-bold text-slate-900 dark:text-white">
                   Application Submitted Successfully!
                 </h3>
                 <p className="text-xs text-slate-600 dark:text-slate-400 max-w-sm mx-auto leading-relaxed">
@@ -473,7 +481,7 @@ export const QuickApplyModal = ({ job, isOpen, onClose, onSuccess }) => {
               </div>
 
               {/* Summary Card */}
-              <div className="bg-slate-50 dark:bg-navy-950 p-4 rounded-2xl border border-slate-200 dark:border-navy-800 text-left space-y-2 max-w-sm mx-auto text-xs">
+              <div className="bg-slate-50 dark:bg-navy-950 p-3.5 rounded-2xl border border-slate-200 dark:border-navy-800 text-left space-y-1.5 max-w-sm mx-auto text-xs">
                 <div className="flex justify-between">
                   <span className="text-slate-500">Reference Number:</span>
                   <span className="font-mono font-bold text-gold-500">{successResult?.applicationId || 'RI-APP-SUCCESS'}</span>
@@ -522,11 +530,11 @@ export const QuickApplyModal = ({ job, isOpen, onClose, onSuccess }) => {
                 </div>
               )}
 
-              <div className="pt-2">
+              <div className="pt-1">
                 <button
                   type="button"
                   onClick={onClose}
-                  className="w-full bg-navy-900 dark:bg-navy-800 text-white font-bold text-xs py-3 rounded-xl hover:bg-navy-800 dark:hover:bg-navy-700 transition cursor-pointer"
+                  className="w-full bg-navy-900 dark:bg-navy-800 text-white font-bold text-xs py-2.5 rounded-xl hover:bg-navy-800 dark:hover:bg-navy-700 transition cursor-pointer"
                 >
                   Close & Back to Vacancies
                 </button>
