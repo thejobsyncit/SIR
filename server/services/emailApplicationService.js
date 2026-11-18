@@ -367,16 +367,19 @@ export const generateApplicationEmail = async ({ candidate = {}, job = {}, middl
  * Creates and verifies the Nodemailer transporter.
  */
 export const getTransporter = () => {
-  const user = process.env.SMTP_USER || process.env.SMTP_EMAIL || 'enquiry@therevivalinternational.com';
+  const user = process.env.SMTP_USER || process.env.SMTP_EMAIL || 'thejobsyncit@gmail.com';
   const pass = (process.env.SMTP_APP_PASSWORD || process.env.GMAIL_APP_PASSWORD || '').replace(/\s+/g, '');
 
-  if (!pass) {
+  const isConfigured = Boolean(pass && !pass.includes('your-16-digit') && pass.length >= 8);
+
+  if (!isConfigured) {
     return {
       isConfigured: false,
       user,
       sendMail: async () => ({
         simulated: true,
-        messageId: `sim-${Date.now()}-${Math.random().toString(36).substring(2, 8)}`
+        messageId: `sim-${Date.now()}-${Math.random().toString(36).substring(2, 8)}`,
+        reason: 'SMTP_APP_PASSWORD requires a valid Google 16-character App Password'
       })
     };
   }
@@ -396,6 +399,7 @@ export const getTransporter = () => {
 
 /**
  * Sends the job application email with the candidate's CV attached.
+ * Dispatches to the company email, admin inbox, and CCs the candidate.
  */
 export const sendJobApplicationEmail = async ({
   candidate,
@@ -405,14 +409,22 @@ export const sendJobApplicationEmail = async ({
 }) => {
   const transporter = getTransporter();
 
-  const recipient = emailContent.recipientEmail || job.companyEmail || 'enquiry@therevivalinternational.com';
-  const replyTo = candidate.email;
-  const fromEmail = process.env.SMTP_FROM || transporter.user || 'enquiry@therevivalinternational.com';
+  const primaryRecipient = emailContent.recipientEmail || job.companyEmail || 'enquiry@therevivalinternational.com';
+  const adminEmail = process.env.SMTP_USER || process.env.SMTP_EMAIL || 'thejobsyncit@gmail.com';
+  const candidateEmail = candidate.email;
+  const fromEmail = transporter.user;
+
+  // Build unique recipient list
+  const toList = [primaryRecipient];
+  if (adminEmail && !toList.includes(adminEmail)) {
+    toList.push(adminEmail);
+  }
 
   const mailOptions = {
     from: `"The Revival International • Careers" <${fromEmail}>`,
-    to: recipient,
-    replyTo: replyTo,
+    to: toList.join(', '),
+    cc: candidateEmail, // Candidate receives an acknowledgement copy in their inbox!
+    replyTo: candidateEmail,
     subject: emailContent.subject,
     text: emailContent.textBody,
     html: emailContent.htmlBody,
@@ -430,8 +442,10 @@ export const sendJobApplicationEmail = async ({
     success: true,
     simulated: Boolean(result.simulated),
     messageId: result.messageId,
-    recipient,
-    replyTo,
-    subject: emailContent.subject
+    recipient: toList.join(', '),
+    candidateCc: candidateEmail,
+    replyTo: candidateEmail,
+    subject: emailContent.subject,
+    isConfigured: transporter.isConfigured
   };
 };

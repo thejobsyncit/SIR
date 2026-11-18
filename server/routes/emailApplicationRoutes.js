@@ -352,12 +352,14 @@ export const registerEmailApplicationRoutes = (app, { getDb, getClientIp, logAud
       res.status(201).json({
         success: true,
         message: appStatus === 'SIMULATED' 
-          ? `✓ Application email generated and recorded for ${job.title} at ${job.company}. (Simulated transmission mode active).`
-          : `✓ Application successfully sent to ${emailContent.recipientEmail} with your CV attached!`,
+          ? `✓ Application saved and recorded. (Notice: Set your 16-character Google App Password in .env for live inbox dispatch).`
+          : `✓ Application successfully sent to ${sendResult?.recipient || emailContent.recipientEmail} with your CV attached!`,
         applicationId: appId,
-        recipient: emailContent.recipientEmail,
+        recipient: sendResult?.recipient || emailContent.recipientEmail,
+        candidateCc: candidateEmail,
         subject: emailContent.subject,
-        simulated: appStatus === 'SIMULATED'
+        simulated: appStatus === 'SIMULATED',
+        needsAppPassword: appStatus === 'SIMULATED'
       });
 
     } catch (err) {

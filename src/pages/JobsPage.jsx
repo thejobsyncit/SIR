@@ -1371,19 +1371,23 @@ export const JobsPage = () => {
     }
   };
 
-  // Auto-apply when user registers or logs in with a pending job
+  // Auto-open apply modal when user registers or logs in with a pending job
   useEffect(() => {
     if (user && user.email && pendingJobToApply) {
       const targetJob = pendingJobToApply;
       setPendingJobToApply(null);
-      applyForJob(targetJob);
       setApplyJob(targetJob);
-      setAppliedSuccess(true);
+      setAppliedSuccess(false);
     }
   }, [user, pendingJobToApply]);
 
   const handleQuickApply = (e, job) => {
     e.stopPropagation();
+    if (!user || !user.email) {
+      setPendingJobToApply(job);
+      openAuthModal('register', 'candidate');
+      return;
+    }
     setApplyJob(job);
     setAppliedSuccess(false);
   };

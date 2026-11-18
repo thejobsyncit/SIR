@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useApp } from '../context/AppContext';
 import { 
   X, 
@@ -7,14 +7,17 @@ import {
   CheckCircle2, 
   AlertCircle, 
   ArrowRight, 
-  Mail, 
+  UserPlus,
+  LogIn,
+  Key,
+  Info,
   Loader2 
 } from 'lucide-react';
 import CountryPhoneInput from './common/CountryPhoneInput';
 import SITE_CONFIG from '../config/siteConfig';
 
 export const QuickApplyModal = ({ job, isOpen, onClose, onSuccess }) => {
-  const { user, applyForJob, navigateTo } = useApp();
+  const { user, applyForJob, navigateTo, openAuthModal, setPendingJobToApply } = useApp();
 
   // Candidate Form State
   const [fullName, setFullName] = useState(user?.name || '');
@@ -28,6 +31,17 @@ export const QuickApplyModal = ({ job, isOpen, onClose, onSuccess }) => {
   const [phoneValidation, setPhoneValidation] = useState({ isValid: false, error: null });
   const [resumeFile, setResumeFile] = useState(null);
   const [consentAgreed, setConsentAgreed] = useState(false);
+
+  // Sync state if user logs in while modal is active
+  useEffect(() => {
+    if (user) {
+      if (user.name) setFullName(user.name);
+      if (user.email) setEmail(user.email);
+      if (user.phone && !user.phone.includes('123 4567') && !user.phone.includes('1234567')) {
+        setPhone(user.phone);
+      }
+    }
+  }, [user]);
 
   // Submission State
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -71,14 +85,19 @@ export const QuickApplyModal = ({ job, isOpen, onClose, onSuccess }) => {
   };
 
   /**
-   * One-Click Instant Submission:
-   * Directly sends the role-specific email from enquiry@therevivalinternational.com
-   * with the candidate's CV attached to the hiring desk.
+   * One-Click Application Submission:
+   * Requires candidate registration. Directly generates role-specific email,
+   * attaches CV, and dispatches to enquiry@therevivalinternational.com and candidate's inbox.
    */
   const handleSubmit = async (e) => {
     e.preventDefault();
     setErrorMsg('');
     setErrorCode('');
+
+    if (!user || !user.email) {
+      setErrorMsg('Candidate registration is required before submitting an application.');
+      return;
+    }
 
     if (isExpired) {
       setErrorMsg(`Applications for this position closed on ${job.closingDate}. Submissions are no longer accepted.`);
@@ -96,7 +115,7 @@ export const QuickApplyModal = ({ job, isOpen, onClose, onSuccess }) => {
       return;
     }
 
-    if (!phoneValidation.isValid) {
+    if (!phoneValidation.isValid && !user?.phone) {
       setErrorMsg(phoneValidation.error || 'Please enter a valid telephone number.');
       return;
     }
@@ -136,7 +155,7 @@ export const QuickApplyModal = ({ job, isOpen, onClose, onSuccess }) => {
           candidate: {
             name: fullName.trim(),
             email: email.trim().toLowerCase(),
-            phone: phone.trim(),
+            phone: phone.trim() || user?.phone || '',
             location: user?.location || job.location || 'Dubai, UAE',
             experience: user?.experience || '3+ Years',
             noticePeriod: 'Immediate / 30 Days'
@@ -171,7 +190,7 @@ export const QuickApplyModal = ({ job, isOpen, onClose, onSuccess }) => {
           body: JSON.stringify({
             name: fullName.trim(),
             email: email.trim().toLowerCase(),
-            phone: phone.trim(),
+            phone: phone.trim() || user?.phone || '',
             serviceId: 'quick-apply',
             serviceTitle: `Job Application: ${job.title} (${job.company})`,
             referenceNumber: result.applicationId || generatedRef,
@@ -233,6 +252,7 @@ export const QuickApplyModal = ({ job, isOpen, onClose, onSuccess }) => {
 
         {/* Modal Body */}
         <div className="p-6">
+          {/* GUARD 1: Position Expired */}
           {isExpired ? (
             <div className="p-5 bg-rose-500/10 border border-rose-500/30 rounded-2xl text-left space-y-3">
               <div className="flex items-center gap-2 font-bold text-rose-600 dark:text-rose-400 text-sm">
@@ -250,8 +270,55 @@ export const QuickApplyModal = ({ job, isOpen, onClose, onSuccess }) => {
                 Close & View Open Vacancies
               </button>
             </div>
+          ) : !user || !user.email ? (
+            /* GUARD 2: Registration Required Screen */
+            <div className="text-center py-6 px-2 space-y-5">
+              <div className="w-16 h-16 mx-auto rounded-full bg-gold-500/10 text-gold-500 flex items-center justify-center">
+                <UserPlus className="w-8 h-8" />
+              </div>
+
+              <div className="space-y-1.5">
+                <span className="text-[10px] uppercase font-black tracking-widest text-gold-500 bg-gold-400/10 px-2.5 py-0.5 rounded-full inline-block">
+                  Registration Required
+                </span>
+                <h3 className="text-lg sm:text-xl font-bold text-slate-900 dark:text-white">
+                  Candidate Profile Required to Apply
+                </h3>
+                <p className="text-xs text-slate-600 dark:text-slate-400 max-w-sm mx-auto leading-relaxed">
+                  To apply for <strong>{job.title}</strong>, please create a free candidate profile or sign in. Your application and CV will be linked to your candidate dashboard.
+                </p>
+              </div>
+
+              <div className="space-y-2.5 pt-2 max-w-xs mx-auto">
+                <button
+                  type="button"
+                  onClick={() => {
+                    setPendingJobToApply(job);
+                    onClose();
+                    openAuthModal('register', 'candidate');
+                  }}
+                  className="w-full bg-gold-shimmer text-navy-950 font-bold text-xs sm:text-sm py-3 rounded-xl hover:opacity-95 transition shadow-gold-glow flex items-center justify-center gap-2 cursor-pointer"
+                >
+                  <UserPlus className="w-4 h-4" />
+                  <span>Register Free Candidate Account</span>
+                </button>
+
+                <button
+                  type="button"
+                  onClick={() => {
+                    setPendingJobToApply(job);
+                    onClose();
+                    openAuthModal('login', 'candidate');
+                  }}
+                  className="w-full bg-slate-100 dark:bg-navy-800 text-slate-800 dark:text-white font-bold text-xs py-2.5 rounded-xl hover:bg-slate-200 dark:hover:bg-navy-700 transition flex items-center justify-center gap-2 cursor-pointer"
+                >
+                  <LogIn className="w-3.5 h-3.5" />
+                  <span>Already Registered? Sign In</span>
+                </button>
+              </div>
+            </div>
           ) : !isSuccess ? (
-            /* Clean Candidate Quick Apply Form */
+            /* Authenticated Candidate Quick Apply Form */
             <form onSubmit={handleSubmit} className="space-y-4 text-left">
               {errorMsg && (
                 <div className={`p-3 rounded-xl text-xs font-semibold flex items-center gap-2 ${
@@ -265,6 +332,15 @@ export const QuickApplyModal = ({ job, isOpen, onClose, onSuccess }) => {
                   <span>{errorMsg}</span>
                 </div>
               )}
+
+              {/* Registered Account Status Pill */}
+              <div className="flex items-center justify-between bg-slate-50 dark:bg-navy-950 border border-slate-200 dark:border-navy-800 px-3 py-2 rounded-xl text-[11px]">
+                <span className="text-slate-500">Applying as:</span>
+                <span className="font-bold text-slate-800 dark:text-slate-200 flex items-center gap-1.5">
+                  <span className="w-2 h-2 rounded-full bg-emerald-500 inline-block"></span>
+                  {user.name || user.email}
+                </span>
+              </div>
 
               {/* Full Name */}
               <div>
@@ -385,14 +461,14 @@ export const QuickApplyModal = ({ job, isOpen, onClose, onSuccess }) => {
 
               <div className="space-y-1.5">
                 <span className="text-[10px] uppercase font-black tracking-widest text-emerald-600 dark:text-emerald-400 bg-emerald-500/10 px-2.5 py-0.5 rounded-full inline-block">
-                  Dispatched Directly via Email
+                  Application Submitted
                 </span>
                 <h3 className="text-xl font-bold text-slate-900 dark:text-white">
                   Application Submitted Successfully!
                 </h3>
                 <p className="text-xs text-slate-600 dark:text-slate-400 max-w-sm mx-auto leading-relaxed">
-                  Your customized, role-tailored application email and CV have been dispatched directly to{' '}
-                  <strong className="text-slate-900 dark:text-white">enquiry@therevivalinternational.com</strong>.
+                  Your customized, role-tailored application email and CV have been processed for{' '}
+                  <strong className="text-slate-900 dark:text-white">{job.title}</strong>.
                 </p>
               </div>
 
@@ -415,10 +491,23 @@ export const QuickApplyModal = ({ job, isOpen, onClose, onSuccess }) => {
                   <span className="font-semibold text-slate-800 dark:text-slate-200">enquiry@therevivalinternational.com</span>
                 </div>
                 <div className="flex justify-between">
-                  <span className="text-slate-500">Candidate Reply-To:</span>
+                  <span className="text-slate-500">Applicant Copy (CC):</span>
                   <span className="font-semibold text-slate-800 dark:text-slate-200">{email}</span>
                 </div>
               </div>
+
+              {/* SMTP Setup Notice if credentials are not yet configured */}
+              {successResult?.simulated && (
+                <div className="p-3 bg-amber-500/10 border border-amber-500/20 rounded-xl text-left space-y-1 max-w-sm mx-auto">
+                  <div className="flex items-center gap-1.5 text-amber-600 dark:text-amber-400 text-xs font-bold">
+                    <Info className="w-3.5 h-3.5 shrink-0" />
+                    <span>Real Email Inbox Setup Notice</span>
+                  </div>
+                  <p className="text-[11px] text-slate-600 dark:text-slate-400 leading-relaxed">
+                    Application is saved in database. To deliver live emails to your Gmail inbox, paste your 16-character Google App Password in <code>SIR/.env</code> (<code>SMTP_APP_PASSWORD</code>).
+                  </p>
+                </div>
+              )}
 
               <div className="pt-2">
                 <button
