@@ -181,7 +181,7 @@ export const registerEmailApplicationRoutes = (app, { getDb, getClientIp, logAud
         FROM email_job_applications 
         WHERE LOWER(candidateEmail) = LOWER(?) 
           AND jobId = ? 
-          AND status IN ('SENT', 'SIMULATED')
+          AND status = 'SENT'
         LIMIT 1
       `, [candidateEmail, String(jobId)]);
 

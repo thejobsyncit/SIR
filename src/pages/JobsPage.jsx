@@ -671,8 +671,34 @@ export const JobsPage = () => {
   const [viewJob, setViewJob] = useState(null);
   const [applyJob, setApplyJob] = useState(null);
   const [appliedSuccess, setAppliedSuccess] = useState(false);
+  const [dbAppliedJobIds, setDbAppliedJobIds] = useState(new Set());
 
-  const isApplied = (jobId) => applications.some(a => a.jobId === jobId);
+  // Keep applied job status in sync with database for candidate
+  const syncAppliedJobsFromDb = useCallback(() => {
+    if (user?.email) {
+      fetch(`/api/jobs/apply-email/history?email=${encodeURIComponent(user.email.toLowerCase().trim())}`)
+        .then(r => r.json())
+        .then(d => {
+          if (d?.data && Array.isArray(d.data)) {
+            const ids = new Set(d.data.map(app => String(app.jobId)));
+            setDbAppliedJobIds(ids);
+          }
+        })
+        .catch(() => {});
+    } else {
+      setDbAppliedJobIds(new Set());
+    }
+  }, [user]);
+
+  useEffect(() => {
+    syncAppliedJobsFromDb();
+  }, [syncAppliedJobsFromDb]);
+
+  const isApplied = (jobId) => {
+    if (!jobId) return false;
+    const strId = String(jobId);
+    return dbAppliedJobIds.has(strId) || applications.some(a => String(a.jobId) === strId);
+  };
 
   // Available Cities based on pending countries
   const availableCities = useMemo(() => {
@@ -2915,7 +2941,10 @@ export const JobsPage = () => {
         job={applyJob}
         isOpen={Boolean(applyJob)}
         onClose={() => setApplyJob(null)}
-        onSuccess={() => fetchJobs()}
+        onSuccess={() => {
+          fetchJobs();
+          syncAppliedJobsFromDb();
+        }}
       />
 
       {/* ============================================================ */}
