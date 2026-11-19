@@ -8,6 +8,7 @@ import { getDb, closeDb, checkDbHealth, logAuditTrail, DEFAULT_CRM_EMPLOYEES, DE
 import { registerClientPortalRoutes } from './clientPortalRoutes.js';
 import { registerAttendanceRoutes } from './routes/attendanceRoutes.js';
 import { registerHrCandidateRoutes } from './routes/hrCandidateRoutes.js';
+import { registerDocumentationRoutes } from './routes/documentationRoutes.js';
 import { COURSES_CATALOGUE } from '../src/data/coursesCatalogueData.js';
 import nodemailer from 'nodemailer';
 import dotenv from 'dotenv';
@@ -6704,6 +6705,7 @@ app.get('/api/student-academy/stats', async (req, res) => {
 registerClientPortalRoutes(app, uploadsDir);
 registerAttendanceRoutes(app, { getDb, getClientIp });
 registerHrCandidateRoutes(app, { getDb, getClientIp, logAuditTrail });
+registerDocumentationRoutes(app, { getDb, getClientIp, logAuditTrail });
 
 // Serve Vite frontend production bundle if dist directory exists (non-Vercel standalone mode)
 const distPath = path.join(__dirname, '..', 'dist');

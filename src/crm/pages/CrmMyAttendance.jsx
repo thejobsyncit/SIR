@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useMemo, useCallback } from 'react';
+import React, { useState, useEffect, useMemo, useCallback, useRef } from 'react';
 import {
   CalendarCheck,
   Clock,
@@ -9,7 +9,6 @@ import {
   LogIn,
   LogOut,
   Calendar as CalendarIcon,
-  FileEdit,
   History,
   BarChart3,
   Bell,
@@ -20,6 +19,7 @@ import {
   Eye,
   Timer,
   Info,
+  ShieldCheck,
   X
 } from 'lucide-react';
 import { useCrm } from '../context/CrmContext';
@@ -88,9 +88,9 @@ const getInitialMonth = () => {
 };
 
 export const CrmMyAttendance = () => {
-  const { currentRole, user, crmToken, authTokenLoading, logout, syncAttendanceNotifications } = useCrm();
+  const { currentRole, user, crmToken, setCrmToken, authTokenLoading, logout, syncAttendanceNotifications, attendancePunch } = useCrm();
 
-  const [activeTab, setActiveTab] = useState('overview'); // 'overview' | 'calendar' | 'regularization' | 'hours'
+  const [activeTab, setActiveTab] = useState('overview'); // 'overview' | 'calendar' | 'hours'
   const [selectedMonth, setSelectedMonth] = useState(getInitialMonth);
   const [rangeMode, setRangeMode] = useState('monthly'); // 'weekly' | 'monthly' | 'custom'
   const [customStart, setCustomStart] = useState('');
@@ -101,6 +101,28 @@ export const CrmMyAttendance = () => {
   const [actionLoading, setActionLoading] = useState(false);
   const [errorMsg, setErrorMsg] = useState('');
   const [feedback, setFeedback] = useState(null); // { type: 'success' | 'error', text: string }
+
+  // Token helper to auto-authenticate if preview token is needed
+  const getOrAcquireToken = useCallback(async () => {
+    if (crmToken) return crmToken;
+    try {
+      const res = await fetch('/api/crm/auth/preview-token', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          targetRole: currentRole || 'HR Operations',
+          targetEmail: user?.email,
+          employeeId: user?.id
+        })
+      });
+      const data = await res.json();
+      if (data?.success && data.token) {
+        if (setCrmToken) setCrmToken(data.token);
+        return data.token;
+      }
+    } catch (_) {}
+    return null;
+  }, [crmToken, currentRole, user, setCrmToken]);
 
   // Live clock & active elapsed working seconds ticker
   const [nowMs, setNowMs] = useState(() => Date.now());
@@ -121,42 +143,41 @@ export const CrmMyAttendance = () => {
   const [detailData, setDetailData] = useState(null);
   const [detailLoading, setDetailLoading] = useState(false);
 
-  // Regularization form
-  const [regDate, setRegDate] = useState('');
-  const [regType, setRegType] = useState('Missed Check-Out');
-  const [regReqIn, setRegReqIn] = useState('');
-  const [regReqOut, setRegReqOut] = useState('');
-  const [regReqStatus, setRegReqStatus] = useState('Present');
-  const [regReason, setRegReason] = useState('');
-  const [regExisting, setRegExisting] = useState(null);
-  const [regSubmitting, setRegSubmitting] = useState(false);
-
   // Notifications Drawer inline
   const [showNotifDrawer, setShowNotifDrawer] = useState(false);
+
+  const isFirstLoadRef = useRef(true);
 
   useEffect(() => {
     const id = setInterval(() => setNowMs(Date.now()), 1000);
     return () => clearInterval(id);
   }, []);
 
-  const buildDashboardQuery = useCallback(() => {
-    const params = new URLSearchParams();
-    params.set('month', selectedMonth);
-    if (rangeMode === 'weekly') {
+  const weeklyDateLabel = useMemo(() => {
+    try {
       const todayStr = new Date().toLocaleDateString('en-CA', { timeZone: 'Asia/Kolkata' });
       const [y, m, d] = todayStr.split('-').map(Number);
       const startObj = new Date(Date.UTC(y, m - 1, d - 6));
-      params.set('startDate', startObj.toISOString().slice(0, 10));
-      params.set('endDate', todayStr);
-    } else if (rangeMode === 'custom' && customStart && customEnd && customStart <= customEnd) {
-      params.set('startDate', customStart);
-      params.set('endDate', customEnd);
+      const startStr = startObj.toLocaleDateString('en-US', { day: 'numeric', month: 'short' });
+      const endStr = new Date(Date.UTC(y, m - 1, d)).toLocaleDateString('en-US', { day: 'numeric', month: 'short', year: 'numeric' });
+      return `${startStr} – ${endStr}`;
+    } catch (_) {
+      return 'Last 7 Days';
     }
+  }, []);
+
+  const buildDashboardQuery = useCallback(() => {
+    const params = new URLSearchParams();
+    params.set('month', selectedMonth);
     return params.toString();
-  }, [selectedMonth, rangeMode, customStart, customEnd]);
+  }, [selectedMonth]);
 
   const fetchDashboard = useCallback(async (silent = false) => {
-    if (!crmToken) {
+    let token = crmToken;
+    if (!token) {
+      token = await getOrAcquireToken();
+    }
+    if (!token) {
       setLoading(false);
       return;
     }
@@ -166,7 +187,7 @@ export const CrmMyAttendance = () => {
       const qs = buildDashboardQuery();
       const res = await fetch(`/api/hr-ops/attendance/dashboard?${qs}`, {
         headers: {
-          Authorization: `Bearer ${crmToken}`
+          Authorization: `Bearer ${token}`
         }
       });
       const json = await res.json();
@@ -177,46 +198,28 @@ export const CrmMyAttendance = () => {
       if (json.data?.notifications && syncAttendanceNotifications) {
         syncAttendanceNotifications(json.data.notifications);
       }
-      if (!regDate && json.data?.todayDate) {
-        setRegDate(json.data.todayDate);
-      }
     } catch (err) {
       setErrorMsg(err.message || 'Failed to load attendance data.');
     } finally {
       setLoading(false);
     }
-  }, [crmToken, buildDashboardQuery, syncAttendanceNotifications, regDate]);
+  }, [crmToken, getOrAcquireToken, buildDashboardQuery, syncAttendanceNotifications]);
 
   useEffect(() => {
-    fetchDashboard();
+    if (isFirstLoadRef.current) {
+      isFirstLoadRef.current = false;
+      fetchDashboard(false);
+    } else {
+      fetchDashboard(true);
+    }
   }, [fetchDashboard]);
 
-  // Populate existing DB values whenever user picks an attendanceDate on Regularization tab
-  useEffect(() => {
-    if (!regDate || !crmToken) return;
-    let active = true;
-    fetch(`/api/hr-ops/attendance/records/${regDate}`, {
-      headers: { Authorization: `Bearer ${crmToken}` }
-    })
-      .then((r) => r.json())
-      .then((json) => {
-        if (!active || !json?.success) return;
-        const d = json.data?.day;
-        const rec = json.data?.record;
-        setRegExisting({
-          checkIn: rec?.checkInAt ? d?.checkInFormatted : null,
-          checkOut: rec?.checkOutAt ? d?.checkOutFormatted : null,
-          status: d?.status || 'Absent'
-        });
-      })
-      .catch(() => {});
-    return () => {
-      active = false;
-    };
-  }, [regDate, crmToken, dashboard]);
-
   const runAttendanceAction = async (endpoint, payload = {}) => {
-    if (!crmToken) {
+    let token = crmToken;
+    if (!token) {
+      token = await getOrAcquireToken();
+    }
+    if (!token) {
       setFeedback({ type: 'error', text: 'Authenticated CRM session token missing. Please re-login.' });
       return;
     }
@@ -227,7 +230,7 @@ export const CrmMyAttendance = () => {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          Authorization: `Bearer ${crmToken}`
+          Authorization: `Bearer ${token}`
         },
         body: JSON.stringify(payload)
       });
@@ -250,8 +253,10 @@ export const CrmMyAttendance = () => {
     setDetailLoading(true);
     setDetailData(null);
     try {
+      const token = crmToken || await getOrAcquireToken();
+      if (!token) return;
       const res = await fetch(`/api/hr-ops/attendance/records/${workDate}`, {
-        headers: { Authorization: `Bearer ${crmToken}` }
+        headers: { Authorization: `Bearer ${token}` }
       });
       const json = await res.json();
       if (json.success) {
@@ -263,72 +268,25 @@ export const CrmMyAttendance = () => {
     }
   };
 
-  const jumpToRegularizeDate = (day) => {
-    setRegDate(day.date);
-    if (day.status === 'Missing Checkout') {
-      setRegType('Missed Check-Out');
-    } else if (!day.checkInAt) {
-      setRegType('Missed Check-In');
-    } else {
-      setRegType('Incorrect Timestamps');
-    }
-    setActiveTab('regularization');
-  };
-
-  const handleRegularizationSubmit = async (e) => {
-    e.preventDefault();
-    if (!crmToken) return;
-    setRegSubmitting(true);
-    setFeedback(null);
-    try {
-      const res = await fetch('/api/hr-ops/attendance/regularizations', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          Authorization: `Bearer ${crmToken}`
-        },
-        body: JSON.stringify({
-          attendanceDate: regDate,
-          correctionType: regType,
-          requestedCheckIn: regReqIn || null,
-          requestedCheckOut: regReqOut || null,
-          requestedStatus: regType === 'Incorrect Status' ? regReqStatus : undefined,
-          reason: regReason
-        })
-      });
-      const json = await res.json();
-      if (!res.ok || !json.success) {
-        throw new Error(json.message || 'Failed to submit regularization.');
-      }
-      setFeedback({ type: 'success', text: json.message });
-      setRegReason('');
-      setRegReqIn('');
-      setRegReqOut('');
-      await fetchDashboard(true);
-    } catch (err) {
-      setFeedback({ type: 'error', text: err.message || 'Submission failed.' });
-    } finally {
-      setRegSubmitting(false);
-    }
-  };
-
   const markAllNotificationsRead = async () => {
-    if (!crmToken) return;
+    const token = crmToken || await getOrAcquireToken();
+    if (!token) return;
     try {
       await fetch('/api/hr-ops/attendance/notifications/read-all', {
         method: 'PATCH',
-        headers: { Authorization: `Bearer ${crmToken}` }
+        headers: { Authorization: `Bearer ${token}` }
       });
       await fetchDashboard(true);
     } catch (_) {}
   };
 
   const markOneNotificationRead = async (id) => {
-    if (!crmToken) return;
+    const token = crmToken || await getOrAcquireToken();
+    if (!token) return;
     try {
       await fetch(`/api/hr-ops/attendance/notifications/${id}/read`, {
         method: 'PATCH',
-        headers: { Authorization: `Bearer ${crmToken}` }
+        headers: { Authorization: `Bearer ${token}` }
       });
       await fetchDashboard(true);
     } catch (_) {}
@@ -342,10 +300,25 @@ export const CrmMyAttendance = () => {
     setCurrentPage(1);
   };
 
-  // Filtered History Rows
-  const filteredHistory = useMemo(() => {
+  // Instant in-memory date range slicing (eliminates network delay & reflow)
+  const dateRangedHistory = useMemo(() => {
     const rows = dashboard?.history || [];
-    return rows.filter((row) => {
+    if (rangeMode === 'weekly') {
+      const todayStr = new Date().toLocaleDateString('en-CA', { timeZone: 'Asia/Kolkata' });
+      const [y, m, d] = todayStr.split('-').map(Number);
+      const startObj = new Date(Date.UTC(y, m - 1, d - 6));
+      const startStr = startObj.toISOString().slice(0, 10);
+      return rows.filter((r) => r.date >= startStr && r.date <= todayStr);
+    }
+    if (rangeMode === 'custom' && customStart && customEnd && customStart <= customEnd) {
+      return rows.filter((r) => r.date >= customStart && r.date <= customEnd);
+    }
+    return rows;
+  }, [dashboard, rangeMode, customStart, customEnd]);
+
+  // Secondary Filter: Status & Search Query
+  const filteredHistory = useMemo(() => {
+    return dateRangedHistory.filter((row) => {
       if (statusFilter !== 'All' && row.status !== statusFilter) return false;
       if (searchQuery.trim()) {
         const q = searchQuery.toLowerCase();
@@ -354,7 +327,7 @@ export const CrmMyAttendance = () => {
       }
       return true;
     });
-  }, [dashboard, statusFilter, searchQuery]);
+  }, [dateRangedHistory, statusFilter, searchQuery]);
 
   const totalPages = Math.max(1, Math.ceil(filteredHistory.length / pageSize));
   const paginatedHistory = useMemo(() => {
@@ -385,16 +358,16 @@ export const CrmMyAttendance = () => {
     return Math.max(0, grossSec - completedBreakSec - openBreakSec);
   }, [dashboard, nowMs]);
 
-  if (currentRole !== 'HR Operations') {
+  if (currentRole === 'Super Admin' || currentRole === 'Admin') {
     return (
-      <div className="p-6 lg:p-8 max-w-4xl mx-auto">
-        <div className="bg-white dark:bg-navy-900 border border-slate-200 dark:border-white/10 rounded-2xl p-8 text-center">
-          <AlertTriangle className="w-10 h-10 text-amber-500 mx-auto mb-3" />
-          <h2 className="text-lg font-bold text-slate-900 dark:text-white">
-            HR Operations Portal Only
+      <div className="p-6 lg:p-8 max-w-4xl mx-auto space-y-4">
+        <div className="bg-white dark:bg-navy-900 border border-slate-200 dark:border-white/10 rounded-2xl p-8 text-center space-y-3">
+          <ShieldCheck className="w-12 h-12 text-amber-500 mx-auto" />
+          <h2 className="text-xl font-serif font-bold text-slate-900 dark:text-white">
+            Executive Management Session
           </h2>
-          <p className="text-sm text-slate-500 dark:text-slate-400 mt-2">
-            My Attendance is exclusively available for HR Operations employees.
+          <p className="text-sm text-slate-500 dark:text-slate-400 max-w-md mx-auto">
+            Super Admin and Admin accounts hold administrative governance over company operations. Mandatory biometric attendance punch logs are tracked for workforce and department team members.
           </p>
         </div>
       </div>
@@ -407,10 +380,19 @@ export const CrmMyAttendance = () => {
   const activeShift = dashboard?.activeShift || {};
   const tz = dashboard?.timezone || 'Asia/Kolkata';
   const todayRecord = todayState.record;
-  const todayStatus =
-    todayState.daySummary?.status ||
-    todayRecord?.status ||
-    (todayState.isCheckedIn ? 'In Progress' : 'Not Checked In');
+  const activePunch = attendancePunch || {};
+  const isCheckedInLive = todayState.isCheckedIn || Boolean(activePunch.checkInAt && !activePunch.checkOutAt);
+  const displayCheckIn = todayRecord?.checkInAt 
+    ? formatClockTime(todayRecord.checkInAt, tz) 
+    : (activePunch.checkInFormatted || (activePunch.checkInAt ? formatClockTime(activePunch.checkInAt, tz) : '—'));
+    
+  const displayCheckOut = todayRecord?.checkOutAt 
+    ? formatClockTime(todayRecord.checkOutAt, tz) 
+    : (activePunch.checkOutFormatted || (isCheckedInLive ? 'Active (In Office)' : '—'));
+
+  const displayStatus = activePunch.status === 'Completed'
+    ? 'Completed'
+    : (activePunch.status || todayState.daySummary?.status || todayRecord?.status || (isCheckedInLive ? 'Present' : 'Not Checked In'));
 
   const unreadCount = dashboard?.unreadNotificationsCount || 0;
   const missingList = dashboard?.missingCheckoutRecords || [];
@@ -418,60 +400,77 @@ export const CrmMyAttendance = () => {
   return (
     <div className="p-4 sm:p-6 lg:p-8 max-w-7xl mx-auto space-y-6">
       {/* Header Bar */}
-      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 bg-white dark:bg-navy-900 border border-slate-200 dark:border-white/10 rounded-2xl p-5 shadow-sm">
-        <div>
-          <div className="flex items-center gap-2.5">
-            <div className="w-10 h-10 rounded-xl bg-amber-500/15 dark:bg-gold-500/15 flex items-center justify-center text-amber-600 dark:text-gold-400">
-              <CalendarCheck className="w-5 h-5" />
-            </div>
-            <div>
-              <h1 className="text-xl sm:text-2xl font-bold text-slate-900 dark:text-white">
-                My Attendance
-              </h1>
-              <p className="text-xs sm:text-sm text-slate-500 dark:text-slate-400">
-                {dashboard?.employee?.name || user?.name} • {dashboard?.employee?.operationTeam || 'HR Operations'} • {activeShift.name || 'General Shift'}
-              </p>
+      <div className="flex flex-col xl:flex-row xl:items-center justify-between gap-4 bg-white dark:bg-navy-900 border border-slate-200 dark:border-white/10 rounded-2xl p-5 shadow-sm">
+        <div className="flex items-center gap-3.5 min-w-0">
+          <div className="w-11 h-11 rounded-2xl bg-gradient-to-br from-amber-500/20 to-amber-600/10 border border-amber-500/30 flex items-center justify-center text-amber-500 shrink-0 shadow-2xs">
+            <CalendarCheck className="w-5 h-5" />
+          </div>
+          <div className="min-w-0">
+            <h1 className="text-xl sm:text-2xl font-bold tracking-tight text-slate-900 dark:text-white truncate">
+              My Attendance
+            </h1>
+            <div className="mt-1 flex items-center gap-2 flex-wrap text-xs text-slate-500 dark:text-slate-400">
+              <span className="font-semibold text-slate-800 dark:text-slate-200">
+                {dashboard?.employee?.name || user?.name}
+              </span>
+              <span className="text-slate-300 dark:text-white/20">•</span>
+              <span className="px-2 py-0.5 rounded-md text-[11px] font-semibold bg-slate-100 dark:bg-white/5 border border-slate-200 dark:border-white/10 text-slate-600 dark:text-slate-300">
+                {dashboard?.employee?.operationTeam || 'HR Operations'}
+              </span>
+              <span className="text-slate-300 dark:text-white/20">•</span>
+              <span className="px-2 py-0.5 rounded-md text-[11px] font-semibold bg-amber-50 dark:bg-amber-500/10 border border-amber-200 dark:border-amber-500/20 text-amber-700 dark:text-amber-300">
+                {activeShift.name || 'General Shift'}
+              </span>
             </div>
           </div>
         </div>
 
-        <div className="flex flex-wrap items-center gap-3">
-          <div className="px-3.5 py-2 rounded-xl bg-slate-50 dark:bg-navy-950 border border-slate-200 dark:border-white/10 text-right">
-            <p className="text-[11px] uppercase tracking-wider text-slate-400 font-semibold">
-              Company Time ({tz})
-            </p>
-            <p className="text-sm font-bold text-slate-800 dark:text-white tabular-nums">
-              {new Date(nowMs).toLocaleTimeString('en-IN', {
-                timeZone: tz,
-                hour: '2-digit',
-                minute: '2-digit',
-                second: '2-digit',
-                hour12: true
-              })}
-            </p>
+        {/* Right Toolbar: Perfectly Aligned 40px Height Controls */}
+        <div className="flex items-center gap-2.5 flex-wrap sm:flex-nowrap shrink-0">
+          {/* Live Company Clock */}
+          <div className="h-10 px-3.5 rounded-xl bg-slate-50 dark:bg-navy-950 border border-slate-200 dark:border-white/10 flex items-center gap-2.5 shadow-2xs shrink-0">
+            <div className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse shrink-0" title="Live Clock Sync Active" />
+            <div className="text-right">
+              <p className="text-[9px] uppercase tracking-wider text-slate-400 font-bold leading-none mb-0.5">
+                {tz.replace(/_/g, ' ')}
+              </p>
+              <p className="text-xs font-mono font-bold text-slate-800 dark:text-white tabular-nums leading-none">
+                {new Date(nowMs).toLocaleTimeString('en-IN', {
+                  timeZone: tz,
+                  hour: '2-digit',
+                  minute: '2-digit',
+                  second: '2-digit',
+                  hour12: true
+                })}
+              </p>
+            </div>
           </div>
 
+          {/* Alerts Drawer Button */}
           <button
             type="button"
             onClick={() => setShowNotifDrawer((p) => !p)}
-            className="relative inline-flex items-center gap-2 px-3.5 py-2.5 rounded-xl border border-slate-200 dark:border-white/10 bg-white dark:bg-navy-950 text-slate-700 dark:text-slate-200 hover:bg-slate-50 dark:hover:bg-white/5 text-sm font-semibold transition"
+            className="h-10 px-3.5 rounded-xl border border-slate-200 dark:border-white/10 bg-white dark:bg-navy-950 hover:bg-slate-50 dark:hover:bg-white/5 text-slate-700 dark:text-slate-200 text-xs font-bold flex items-center gap-2 transition-colors cursor-pointer shadow-2xs shrink-0"
+            title="View Attendance Notifications & Alerts"
           >
-            <Bell className="w-4 h-4" />
-            <span className="hidden sm:inline">Alerts</span>
+            <Bell className="w-4 h-4 text-slate-500 dark:text-slate-400 shrink-0" />
+            <span>Alerts</span>
             {unreadCount > 0 && (
-              <span className="px-1.5 py-0.5 text-[11px] font-bold rounded-full bg-rose-500 text-white">
+              <span className="px-1.5 py-0.2 text-[10px] font-black rounded-full bg-rose-500 text-white shrink-0">
                 {unreadCount}
               </span>
             )}
           </button>
 
+          {/* Refresh Button */}
           <button
             type="button"
             onClick={() => fetchDashboard()}
             disabled={loading}
-            className="inline-flex items-center gap-2 px-3.5 py-2.5 rounded-xl bg-slate-900 dark:bg-gold-500 text-white dark:text-navy-950 text-sm font-semibold hover:opacity-90 disabled:opacity-50 transition"
+            className="h-10 px-3.5 rounded-xl bg-amber-500 hover:bg-amber-600 dark:bg-gold-500 dark:hover:bg-gold-400 text-white dark:text-navy-950 text-xs font-bold flex items-center gap-2 transition-all cursor-pointer shadow-xs disabled:opacity-50 shrink-0"
+            title="Refresh Attendance Data"
           >
-            <RefreshCw className={`w-4 h-4 ${loading ? 'animate-spin' : ''}`} />
+            <RefreshCw className={`w-3.5 h-3.5 shrink-0 ${loading ? 'animate-spin' : ''}`} />
             <span>Refresh</span>
           </button>
         </div>
@@ -550,23 +549,10 @@ export const CrmMyAttendance = () => {
                 Missing Check-Out Detected ({missingList.length} shift{missingList.length > 1 ? 's' : ''})
               </p>
               <p className="text-xs text-amber-800 dark:text-amber-300 mt-0.5">
-                Date(s): {missingList.map((r) => r.workDate).join(', ')}. Please submit a regularization request so HR Lead can finalize your working hours.
+                Date(s): {missingList.map((r) => r.workDate).join(', ')}. Please notify your HR Lead / Admin to update your shift record.
               </p>
             </div>
           </div>
-          <button
-            type="button"
-            onClick={() =>
-              jumpToRegularizeDate({
-                date: missingList[0].workDate,
-                status: 'Missing Checkout',
-                checkInAt: missingList[0].checkInAt
-              })
-            }
-            className="shrink-0 px-3.5 py-2 rounded-xl bg-amber-600 hover:bg-amber-700 text-white text-xs font-bold transition"
-          >
-            Fix Missing Checkout
-          </button>
         </div>
       )}
 
@@ -634,28 +620,35 @@ export const CrmMyAttendance = () => {
                 Today ({dashboard?.todayDate || 'Today'})
               </p>
               <div className="mt-1.5 flex items-center gap-2.5 flex-wrap">
-                <span className={`inline-flex items-center px-3 py-1 rounded-full text-xs font-bold border ${getStatusBadgeClass(todayStatus)}`}>
-                  {todayStatus}
+                <span className={`inline-flex items-center px-3 py-1 rounded-full text-xs font-bold border ${getStatusBadgeClass(displayStatus)}`}>
+                  {displayStatus}
                 </span>
-                {todayRecord?.lateMinutes > 0 && (
+                {(todayRecord?.lateMinutes > 0 || activePunch.lateMinutes > 0) && (
                   <span className="text-xs font-semibold text-orange-600 dark:text-orange-400">
-                    +{todayRecord.lateMinutes}m late
+                    +{todayRecord?.lateMinutes || activePunch.lateMinutes}m late
                   </span>
                 )}
               </div>
             </div>
             <div className="text-right">
               <p className="text-[11px] uppercase tracking-wider text-slate-400 font-semibold">
-                {todayState.isCheckedIn ? 'Live Worked' : 'Net Worked'}
+                {isCheckedInLive ? 'Live Worked' : 'Net Worked'}
               </p>
               <p className="text-xl font-bold text-slate-900 dark:text-white tabular-nums">
-                {todayRecord?.checkInAt
-                  ? todayState.isCheckedIn
-                    ? formatLiveElapsed(liveWorkedSeconds)
-                    : formatDuration(todayRecord.netWorkMinutes)
+                {todayRecord?.checkInAt || activePunch.checkInAt
+                  ? isCheckedInLive
+                    ? formatLiveElapsed(liveWorkedSeconds || activePunch.liveWorkedSeconds || 1)
+                    : formatDuration(todayRecord?.netWorkMinutes || (activePunch.liveWorkedSeconds ? Math.round(activePunch.liveWorkedSeconds / 60) : 0))
                   : '00:00:00'}
               </p>
             </div>
+          </div>
+
+          <div className="p-2.5 rounded-xl bg-emerald-50/80 dark:bg-emerald-500/10 border border-emerald-200 dark:border-emerald-500/20 text-[11px] text-emerald-800 dark:text-emerald-300 flex items-center gap-2">
+            <CheckCircle2 className="w-4 h-4 text-emerald-600 shrink-0" />
+            <span>
+              <strong>Automated Shift Tracking:</strong> Check-in is logged automatically upon portal sign-in. Check-out is recorded when you click sign-out or close your browser tab.
+            </span>
           </div>
 
           {/* Check-in, Check-out, Break readouts */}
@@ -663,20 +656,23 @@ export const CrmMyAttendance = () => {
             <div>
               <p className="text-[11px] text-slate-400 font-medium">Check-In</p>
               <p className="text-xs sm:text-sm font-bold text-slate-800 dark:text-white mt-0.5">
-                {formatClockTime(todayRecord?.checkInAt, tz)}
+                {displayCheckIn}
               </p>
+              <span className="text-[10px] text-emerald-600 dark:text-emerald-400 font-semibold">Auto-logged</span>
             </div>
             <div>
               <p className="text-[11px] text-slate-400 font-medium">Check-Out</p>
               <p className="text-xs sm:text-sm font-bold text-slate-800 dark:text-white mt-0.5">
-                {formatClockTime(todayRecord?.checkOutAt, tz)}
+                {displayCheckOut}
               </p>
+              <span className="text-[10px] text-slate-400">On logout / close</span>
             </div>
             <div>
               <p className="text-[11px] text-slate-400 font-medium">Break</p>
               <p className="text-xs sm:text-sm font-bold text-slate-800 dark:text-white mt-0.5">
-                {formatDuration(todayRecord?.totalBreakMinutes || 0)}
+                {formatDuration(todayRecord?.totalBreakMinutes || activePunch.totalBreakMinutes || 0)}
               </p>
+              <span className="text-[10px] text-slate-400">Total duration</span>
             </div>
           </div>
 
@@ -812,7 +808,6 @@ export const CrmMyAttendance = () => {
         {[
           { id: 'overview', label: 'Attendance History', icon: History },
           { id: 'calendar', label: 'Attendance Calendar', icon: CalendarIcon },
-          { id: 'regularization', label: 'Regularization', icon: FileEdit },
           { id: 'hours', label: 'My Working Hours', icon: BarChart3 }
         ].map((tab) => {
           const Icon = tab.icon;
@@ -830,12 +825,6 @@ export const CrmMyAttendance = () => {
             >
               <Icon className="w-4 h-4" />
               <span>{tab.label}</span>
-              {tab.id === 'regularization' &&
-                (dashboard?.regularizations || []).filter((r) => r.status === 'Pending').length > 0 && (
-                  <span className="px-1.5 py-0.5 text-[10px] rounded-full bg-amber-500 text-white">
-                    {(dashboard?.regularizations || []).filter((r) => r.status === 'Pending').length}
-                  </span>
-                )}
             </button>
           );
         })}
@@ -844,65 +833,92 @@ export const CrmMyAttendance = () => {
       {/* TAB 1: ATTENDANCE HISTORY TABLE */}
       {activeTab === 'overview' && (
         <div className="bg-white dark:bg-navy-900 border border-slate-200 dark:border-white/10 rounded-2xl p-5 shadow-sm space-y-4">
-          {/* Controls bar */}
-          <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-3">
-            <div className="flex flex-wrap items-center gap-2">
-              {['weekly', 'monthly', 'custom'].map((mode) => (
-                <button
-                  key={mode}
-                  type="button"
-                  onClick={() => {
-                    setRangeMode(mode);
-                    setCurrentPage(1);
-                  }}
-                  className={`px-3 py-1.5 rounded-lg text-xs font-bold capitalize transition ${
-                    rangeMode === mode
-                      ? 'bg-amber-500 text-white dark:bg-gold-500 dark:text-navy-950'
-                      : 'bg-slate-100 dark:bg-white/5 text-slate-600 dark:text-slate-300 hover:bg-slate-200'
-                  }`}
-                >
-                  {mode}
-                </button>
-              ))}
-
-              {rangeMode === 'monthly' && (
-                <input
-                  type="month"
-                  value={selectedMonth}
-                  onChange={(e) => {
-                    if (e.target.value) setSelectedMonth(e.target.value);
-                    setCurrentPage(1);
-                  }}
-                  className="px-2.5 py-1.5 rounded-lg border border-slate-200 dark:border-white/10 bg-slate-50 dark:bg-navy-950 text-xs font-semibold text-slate-700 dark:text-white"
-                />
-              )}
-
-              {rangeMode === 'custom' && (
-                <div className="flex items-center gap-1.5">
-                  <input
-                    type="date"
-                    value={customStart}
-                    onChange={(e) => {
-                      setCustomStart(e.target.value);
+          {/* Controls bar with fixed slots to prevent shaking */}
+          <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-3 min-h-[44px]">
+            <div className="flex items-center gap-2.5 shrink-0">
+              {/* Segmented control for range mode */}
+              <div className="inline-flex items-center p-1 bg-slate-100 dark:bg-navy-950/80 rounded-xl border border-slate-200 dark:border-white/10 shrink-0 select-none">
+                {['weekly', 'monthly', 'custom'].map((mode) => (
+                  <button
+                    key={mode}
+                    type="button"
+                    onClick={() => {
+                      if (rangeMode === mode) return;
+                      if (mode === 'custom' && (!customStart || !customEnd)) {
+                        const todayStr = new Date().toLocaleDateString('en-CA', { timeZone: 'Asia/Kolkata' });
+                        const [y, m, d] = todayStr.split('-').map(Number);
+                        const firstDay = `${y}-${String(m).padStart(2, '0')}-01`;
+                        setCustomStart(firstDay);
+                        setCustomEnd(todayStr);
+                      }
+                      setRangeMode(mode);
                       setCurrentPage(1);
                     }}
-                    className="px-2 py-1.5 rounded-lg border border-slate-200 dark:border-white/10 bg-slate-50 dark:bg-navy-950 text-xs text-slate-700 dark:text-white"
-                  />
-                  <span className="text-xs text-slate-400">to</span>
+                    className={`px-3 py-1.5 rounded-lg text-xs font-bold capitalize transition-colors duration-150 ${
+                      rangeMode === mode
+                        ? 'bg-amber-500 text-white dark:bg-gold-500 dark:text-navy-950 shadow-xs'
+                        : 'text-slate-600 dark:text-slate-300 hover:text-slate-900 dark:hover:text-white'
+                    }`}
+                  >
+                    {mode}
+                  </button>
+                ))}
+              </div>
+
+              {/* Fixed-width date target container (w-[260px]) to prevent any horizontal shift */}
+              <div className="w-[260px] min-w-[260px] max-w-[260px] h-9 flex items-center shrink-0">
+                {rangeMode === 'weekly' && (
+                  <div className="w-full h-9 flex items-center justify-between px-3 rounded-xl border border-slate-200 dark:border-white/10 bg-slate-50 dark:bg-navy-950 text-xs font-semibold text-slate-700 dark:text-slate-200 select-none">
+                    <div className="flex items-center gap-1.5 min-w-0">
+                      <CalendarIcon className="w-3.5 h-3.5 text-amber-500 dark:text-gold-400 shrink-0" />
+                      <span className="truncate">{weeklyDateLabel}</span>
+                    </div>
+                    <span className="text-[10px] font-bold px-1.5 py-0.5 rounded bg-amber-100 text-amber-800 dark:bg-gold-500/20 dark:text-gold-300 shrink-0">
+                      7 Days
+                    </span>
+                  </div>
+                )}
+
+                {rangeMode === 'monthly' && (
                   <input
-                    type="date"
-                    value={customEnd}
+                    type="month"
+                    value={selectedMonth}
                     onChange={(e) => {
-                      setCustomEnd(e.target.value);
+                      if (e.target.value) setSelectedMonth(e.target.value);
                       setCurrentPage(1);
                     }}
-                    className="px-2 py-1.5 rounded-lg border border-slate-200 dark:border-white/10 bg-slate-50 dark:bg-navy-950 text-xs text-slate-700 dark:text-white"
+                    className="w-full h-9 px-3 rounded-xl border border-slate-200 dark:border-white/10 bg-slate-50 dark:bg-navy-950 text-xs font-semibold text-slate-700 dark:text-white focus:outline-none focus:ring-1 focus:ring-amber-500"
                   />
-                </div>
-              )}
+                )}
+
+                {rangeMode === 'custom' && (
+                  <div className="w-full h-9 flex items-center justify-between gap-1.5">
+                    <input
+                      type="date"
+                      value={customStart}
+                      onChange={(e) => {
+                        setCustomStart(e.target.value);
+                        setCurrentPage(1);
+                      }}
+                      className="w-[115px] h-9 px-2 rounded-xl border border-slate-200 dark:border-white/10 bg-slate-50 dark:bg-navy-950 text-[11px] text-slate-700 dark:text-white focus:outline-none focus:ring-1 focus:ring-amber-500"
+                    />
+                    <span className="text-xs text-slate-400 font-medium">to</span>
+                    <input
+                      type="date"
+                      value={customEnd}
+                      onChange={(e) => {
+                        setCustomEnd(e.target.value);
+                        setCurrentPage(1);
+                      }}
+                      className="w-[115px] h-9 px-2 rounded-xl border border-slate-200 dark:border-white/10 bg-slate-50 dark:bg-navy-950 text-[11px] text-slate-700 dark:text-white focus:outline-none focus:ring-1 focus:ring-amber-500"
+                    />
+                  </div>
+                )}
+              </div>
             </div>
 
-            <div className="flex flex-wrap items-center gap-2.5">
+            {/* Right controls: Search & Status Filter */}
+            <div className="flex items-center gap-2.5 shrink-0">
               <div className="relative">
                 <Search className="w-3.5 h-3.5 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2" />
                 <input
@@ -913,7 +929,7 @@ export const CrmMyAttendance = () => {
                     setCurrentPage(1);
                   }}
                   placeholder="Search date, status, shift..."
-                  className="pl-8 pr-3 py-1.5 rounded-lg border border-slate-200 dark:border-white/10 bg-slate-50 dark:bg-navy-950 text-xs text-slate-800 dark:text-white focus:outline-none"
+                  className="h-9 w-44 sm:w-52 pl-8 pr-3 rounded-xl border border-slate-200 dark:border-white/10 bg-slate-50 dark:bg-navy-950 text-xs text-slate-800 dark:text-white focus:outline-none focus:ring-1 focus:ring-amber-500"
                 />
               </div>
 
@@ -924,7 +940,7 @@ export const CrmMyAttendance = () => {
                   setCurrentPage(1);
                 }}
                 aria-label="Filter by attendance status"
-                className="px-3 py-1.5 rounded-lg border border-slate-200 dark:border-white/10 bg-slate-50 dark:bg-navy-950 text-xs font-semibold text-slate-700 dark:text-white"
+                className="h-9 px-3 rounded-xl border border-slate-200 dark:border-white/10 bg-slate-50 dark:bg-navy-950 text-xs font-semibold text-slate-700 dark:text-white focus:outline-none focus:ring-1 focus:ring-amber-500 cursor-pointer"
               >
                 <option value="All">All Statuses</option>
                 <option value="Present">Present</option>
@@ -941,84 +957,93 @@ export const CrmMyAttendance = () => {
             </div>
           </div>
 
-          {/* 9-column Responsive Table */}
-          <div className="overflow-x-auto">
-            <table className="w-full text-left border-collapse">
+          {/* 9-column Responsive Table with fixed columns to eliminate jitter */}
+          <div className="overflow-x-auto min-h-[520px]">
+            <table className="w-full text-left border-collapse table-fixed min-w-[860px]">
+              <colgroup>
+                <col className="w-[110px]" />
+                <col className="w-[65px]" />
+                <col className="w-[185px]" />
+                <col className="w-[95px]" />
+                <col className="w-[95px]" />
+                <col className="w-[95px]" />
+                <col className="w-[105px]" />
+                <col className="w-[110px]" />
+                <col className="w-[50px]" />
+              </colgroup>
               <thead>
-                <tr className="border-b border-slate-200 dark:border-white/10 text-[11px] font-bold uppercase tracking-wider text-slate-400">
-                  <th className="py-3 px-3">Date</th>
-                  <th className="py-3 px-3">Day</th>
-                  <th className="py-3 px-3">Shift</th>
-                  <th className="py-3 px-3">Check-In Time</th>
-                  <th className="py-3 px-3">Check-Out Time</th>
-                  <th className="py-3 px-3">Break Duration</th>
-                  <th className="py-3 px-3">Total Working Hours</th>
-                  <th className="py-3 px-3">Attendance Status</th>
-                  <th className="py-3 px-3 text-right">Actions</th>
+                <tr className="border-b border-slate-200 dark:border-white/10 text-[11px] font-bold uppercase tracking-wider text-slate-400 h-10 select-none">
+                  <th className="py-2.5 px-3 whitespace-nowrap">Date</th>
+                  <th className="py-2.5 px-3 whitespace-nowrap">Day</th>
+                  <th className="py-2.5 px-3 whitespace-nowrap">Shift</th>
+                  <th className="py-2.5 px-3 whitespace-nowrap">Check-In</th>
+                  <th className="py-2.5 px-3 whitespace-nowrap">Check-Out</th>
+                  <th className="py-2.5 px-3 whitespace-nowrap">Break</th>
+                  <th className="py-2.5 px-3 whitespace-nowrap">Total Hours</th>
+                  <th className="py-2.5 px-3 whitespace-nowrap">Status</th>
+                  <th className="py-2.5 px-3 text-right whitespace-nowrap">Actions</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-slate-100 dark:divide-white/5 text-xs sm:text-sm">
                 {paginatedHistory.length === 0 ? (
                   <tr>
-                    <td colSpan={9} className="py-10 text-center text-slate-400">
+                    <td colSpan={9} className="py-20 text-center text-slate-400">
                       No attendance entries match the selected filters.
                     </td>
                   </tr>
                 ) : (
-                  paginatedHistory.map((row) => (
-                    <tr key={row.date} className="hover:bg-slate-50/80 dark:hover:bg-white/[0.02] transition">
-                      <td className="py-3 px-3 font-semibold text-slate-900 dark:text-white whitespace-nowrap">
-                        {row.date}
-                      </td>
-                      <td className="py-3 px-3 text-slate-600 dark:text-slate-300">{row.day}</td>
-                      <td className="py-3 px-3 text-slate-600 dark:text-slate-300">
-                        <span className="block font-medium text-xs text-slate-800 dark:text-slate-200">
-                          {row.shiftName}
-                        </span>
-                        <span className="text-[11px] text-slate-400">{row.shiftTiming}</span>
-                      </td>
-                      <td className="py-3 px-3 text-slate-700 dark:text-slate-200 whitespace-nowrap">
-                        {formatClockTime(row.checkInAt, tz)}
-                      </td>
-                      <td className="py-3 px-3 text-slate-700 dark:text-slate-200 whitespace-nowrap">
-                        {formatClockTime(row.checkOutAt, tz)}
-                      </td>
-                      <td className="py-3 px-3 text-slate-600 dark:text-slate-300 whitespace-nowrap">
-                        {formatDuration(row.totalBreakMinutes)}
-                      </td>
-                      <td className="py-3 px-3 font-semibold text-slate-900 dark:text-white whitespace-nowrap">
-                        {row.hasRealRecord ? formatDuration(row.netWorkMinutes) : '—'}
-                      </td>
-                      <td className="py-3 px-3 whitespace-nowrap">
-                        <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-[11px] font-bold border ${getStatusBadgeClass(row.status)}`}>
-                          {row.status}
-                        </span>
-                      </td>
-                      <td className="py-3 px-3 text-right whitespace-nowrap">
-                        <div className="inline-flex items-center gap-1.5">
+                  <>
+                    {paginatedHistory.map((row) => (
+                      <tr key={row.date} className="h-[52px] hover:bg-slate-50/80 dark:hover:bg-white/[0.02] transition-colors duration-150">
+                        <td className="py-2 px-3 font-semibold text-slate-900 dark:text-white whitespace-nowrap truncate">
+                          {row.date}
+                        </td>
+                        <td className="py-2 px-3 text-slate-600 dark:text-slate-300 whitespace-nowrap">
+                          {row.day}
+                        </td>
+                        <td className="py-2 px-3 text-slate-600 dark:text-slate-300">
+                          <span className="block font-medium text-xs text-slate-800 dark:text-slate-200 truncate" title={row.shiftName}>
+                            {row.shiftName}
+                          </span>
+                          <span className="text-[11px] text-slate-400 block truncate">{row.shiftTiming}</span>
+                        </td>
+                        <td className="py-2 px-3 text-slate-700 dark:text-slate-200 whitespace-nowrap">
+                          {formatClockTime(row.checkInAt, tz)}
+                        </td>
+                        <td className="py-2 px-3 text-slate-700 dark:text-slate-200 whitespace-nowrap">
+                          {formatClockTime(row.checkOutAt, tz)}
+                        </td>
+                        <td className="py-2 px-3 text-slate-600 dark:text-slate-300 whitespace-nowrap">
+                          {formatDuration(row.totalBreakMinutes)}
+                        </td>
+                        <td className="py-2 px-3 font-semibold text-slate-900 dark:text-white whitespace-nowrap">
+                          {row.hasRealRecord ? formatDuration(row.netWorkMinutes) : '—'}
+                        </td>
+                        <td className="py-2 px-3 whitespace-nowrap">
+                          <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-[11px] font-bold border ${getStatusBadgeClass(row.status)}`}>
+                            {row.status}
+                          </span>
+                        </td>
+                        <td className="py-2 px-3 text-right whitespace-nowrap">
                           <button
                             type="button"
                             onClick={() => openDetailsModal(row.date)}
                             title="View Details"
-                            className="p-1.5 rounded-lg border border-slate-200 dark:border-white/10 text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-white/10 transition"
+                            className="p-1.5 rounded-lg border border-slate-200 dark:border-white/10 text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-white/10 transition-colors"
                           >
                             <Eye className="w-3.5 h-3.5" />
                           </button>
-                          {row.date <= (dashboard?.todayDate || '') &&
-                            !['Holiday', 'Weekly Off'].includes(row.status) && (
-                              <button
-                                type="button"
-                                onClick={() => jumpToRegularizeDate(row)}
-                                title="Request Correction"
-                                className="p-1.5 rounded-lg border border-amber-200 dark:border-amber-500/30 text-amber-700 dark:text-gold-400 hover:bg-amber-50 dark:hover:bg-gold-500/10 transition"
-                              >
-                                <FileEdit className="w-3.5 h-3.5" />
-                              </button>
-                            )}
-                        </div>
-                      </td>
-                    </tr>
-                  ))
+                        </td>
+                      </tr>
+                    ))}
+
+                    {/* Height lock: filler rows keep total table rows constant so footer never shifts */}
+                    {Array.from({ length: Math.max(0, pageSize - paginatedHistory.length) }).map((_, idx) => (
+                      <tr key={`filler-${idx}`} className="h-[52px] opacity-0 select-none pointer-events-none" aria-hidden="true">
+                        <td colSpan={9} className="py-2 px-3">&nbsp;</td>
+                      </tr>
+                    ))}
+                  </>
                 )}
               </tbody>
             </table>
@@ -1197,10 +1222,11 @@ export const CrmMyAttendance = () => {
                   !['Holiday', 'Weekly Off'].includes(selectedCalendarDay.status) && (
                     <button
                       type="button"
-                      onClick={() => jumpToRegularizeDate(selectedCalendarDay)}
-                      className="w-full py-2.5 rounded-xl bg-amber-500 hover:bg-amber-600 dark:bg-gold-500 dark:text-navy-950 text-white text-xs font-bold transition"
+                      onClick={() => openDetailsModal(selectedCalendarDay.date)}
+                      className="w-full py-2.5 rounded-xl bg-slate-900 hover:bg-slate-800 dark:bg-gold-500 dark:text-navy-950 text-white text-xs font-bold transition flex items-center justify-center gap-1.5"
                     >
-                      Request Correction for {selectedCalendarDay.date}
+                      <Eye className="w-4 h-4" />
+                      <span>View Shift Breakdown for {selectedCalendarDay.date}</span>
                     </button>
                   )}
               </>
@@ -1219,237 +1245,7 @@ export const CrmMyAttendance = () => {
         </div>
       )}
 
-      {/* TAB 3: ATTENDANCE REGULARIZATION */}
-      {activeTab === 'regularization' && (
-        <div className="grid grid-cols-1 lg:grid-cols-12 gap-5">
-          {/* Request Form */}
-          <form
-            onSubmit={handleRegularizationSubmit}
-            className="lg:col-span-5 bg-white dark:bg-navy-900 border border-slate-200 dark:border-white/10 rounded-2xl p-5 shadow-sm space-y-4"
-          >
-            <div>
-              <h3 className="text-base font-bold text-slate-900 dark:text-white">
-                Request Attendance Correction
-              </h3>
-              <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">
-                All correction requests require HR Lead / Admin approval before records are updated.
-              </p>
-            </div>
-
-            <div className="space-y-3">
-              <div>
-                <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1">
-                  Attendance Date
-                </label>
-                <input
-                  type="date"
-                  required
-                  max={dashboard?.todayDate || undefined}
-                  value={regDate}
-                  onChange={(e) => setRegDate(e.target.value)}
-                  className="w-full px-3 py-2 rounded-xl border border-slate-200 dark:border-white/10 bg-slate-50 dark:bg-navy-950 text-sm text-slate-900 dark:text-white"
-                />
-              </div>
-
-              <div>
-                <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1">
-                  Correction Type
-                </label>
-                <select
-                  value={regType}
-                  onChange={(e) => setRegType(e.target.value)}
-                  className="w-full px-3 py-2 rounded-xl border border-slate-200 dark:border-white/10 bg-slate-50 dark:bg-navy-950 text-sm text-slate-900 dark:text-white"
-                >
-                  <option value="Missed Check-In">Missed Check-In</option>
-                  <option value="Missed Check-Out">Missed Check-Out</option>
-                  <option value="Incorrect Timestamps">Incorrect Timestamps</option>
-                  <option value="Incorrect Status">Incorrect Status</option>
-                </select>
-              </div>
-
-              {/* Existing Recorded Values (Server Read-Only) */}
-              <div className="rounded-xl bg-slate-50 dark:bg-navy-950 border border-slate-200 dark:border-white/10 p-3 space-y-1">
-                <p className="text-[11px] font-bold uppercase tracking-wider text-slate-400">
-                  Existing Recorded Values (Database)
-                </p>
-                <div className="grid grid-cols-3 gap-2 text-xs pt-1">
-                  <div>
-                    <span className="text-slate-400 block">Check-In</span>
-                    <span className="font-bold text-slate-800 dark:text-white">
-                      {regExisting?.checkIn || 'None'}
-                    </span>
-                  </div>
-                  <div>
-                    <span className="text-slate-400 block">Check-Out</span>
-                    <span className="font-bold text-slate-800 dark:text-white">
-                      {regExisting?.checkOut || 'None'}
-                    </span>
-                  </div>
-                  <div>
-                    <span className="text-slate-400 block">Status</span>
-                    <span className="font-bold text-slate-800 dark:text-white">
-                      {regExisting?.status || '—'}
-                    </span>
-                  </div>
-                </div>
-              </div>
-
-              <div className="grid grid-cols-2 gap-3">
-                <div>
-                  <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1">
-                    Requested Check-In
-                  </label>
-                  <input
-                    type="time"
-                    required={regType === 'Missed Check-In'}
-                    value={regReqIn}
-                    onChange={(e) => setRegReqIn(e.target.value)}
-                    className="w-full px-3 py-2 rounded-xl border border-slate-200 dark:border-white/10 bg-slate-50 dark:bg-navy-950 text-sm text-slate-900 dark:text-white"
-                  />
-                </div>
-                <div>
-                  <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1">
-                    Requested Check-Out
-                  </label>
-                  <input
-                    type="time"
-                    required={regType === 'Missed Check-Out'}
-                    value={regReqOut}
-                    onChange={(e) => setRegReqOut(e.target.value)}
-                    className="w-full px-3 py-2 rounded-xl border border-slate-200 dark:border-white/10 bg-slate-50 dark:bg-navy-950 text-sm text-slate-900 dark:text-white"
-                  />
-                </div>
-              </div>
-
-              {regType === 'Incorrect Status' && (
-                <div>
-                  <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1">
-                    Requested Status
-                  </label>
-                  <select
-                    value={regReqStatus}
-                    onChange={(e) => setRegReqStatus(e.target.value)}
-                    className="w-full px-3 py-2 rounded-xl border border-slate-200 dark:border-white/10 bg-slate-50 dark:bg-navy-950 text-sm text-slate-900 dark:text-white"
-                  >
-                    <option value="Present">Present</option>
-                    <option value="Late">Late</option>
-                    <option value="On Leave">On Leave</option>
-                  </select>
-                </div>
-              )}
-
-              <div>
-                <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1">
-                  Reason / Justification
-                </label>
-                <textarea
-                  rows={3}
-                  required
-                  minLength={5}
-                  value={regReason}
-                  onChange={(e) => setRegReason(e.target.value)}
-                  placeholder="Describe why the attendance correction is needed (e.g., Client orientation extended past 6:30 PM; forgot to punch out)..."
-                  className="w-full px-3 py-2 rounded-xl border border-slate-200 dark:border-white/10 bg-slate-50 dark:bg-navy-950 text-sm text-slate-900 dark:text-white"
-                />
-              </div>
-
-              <button
-                type="submit"
-                disabled={regSubmitting || !crmToken}
-                className="w-full py-2.5 rounded-xl bg-slate-900 dark:bg-gold-500 text-white dark:text-navy-950 text-sm font-bold hover:opacity-90 disabled:opacity-50 transition"
-              >
-                {regSubmitting ? 'Submitting Request...' : 'Submit Regularization Request'}
-              </button>
-            </div>
-          </form>
-
-          {/* Submitted Regularizations Status Table */}
-          <div className="lg:col-span-7 bg-white dark:bg-navy-900 border border-slate-200 dark:border-white/10 rounded-2xl p-5 shadow-sm space-y-4">
-            <h3 className="text-base font-bold text-slate-900 dark:text-white">
-              My Regularization Requests
-            </h3>
-            {!(dashboard?.regularizations || []).length ? (
-              <div className="py-12 text-center text-sm text-slate-400">
-                No regularization requests submitted yet.
-              </div>
-            ) : (
-              <div className="space-y-3">
-                {dashboard.regularizations.map((reg) => {
-                  const statusColor =
-                    reg.status === 'Approved'
-                      ? 'bg-emerald-100 text-emerald-800 dark:bg-emerald-500/20 dark:text-emerald-300'
-                      : reg.status === 'Rejected'
-                        ? 'bg-rose-100 text-rose-800 dark:bg-rose-500/20 dark:text-rose-300'
-                        : 'bg-amber-100 text-amber-800 dark:bg-amber-500/20 dark:text-amber-300';
-
-                  return (
-                    <div
-                      key={reg.id}
-                      className="rounded-xl border border-slate-200 dark:border-white/10 bg-slate-50/70 dark:bg-navy-950 p-4 space-y-2"
-                    >
-                      <div className="flex flex-wrap items-center justify-between gap-2">
-                        <div>
-                          <span className="text-sm font-bold text-slate-900 dark:text-white">
-                            {reg.attendanceDate} • {reg.correctionType}
-                          </span>
-                          <span className="block text-[11px] text-slate-400">
-                            Ref: {reg.id} • Submitted {new Date(reg.createdAt).toLocaleString()}
-                          </span>
-                        </div>
-                        <span className={`px-2.5 py-0.5 rounded-full text-xs font-bold ${statusColor}`}>
-                          {reg.status}
-                        </span>
-                      </div>
-
-                      <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 text-xs pt-1">
-                        <div>
-                          <span className="text-slate-400 block">Existing In/Out</span>
-                          <span className="font-medium text-slate-700 dark:text-slate-300">
-                            {reg.existingCheckIn || '—'} / {reg.existingCheckOut || '—'}
-                          </span>
-                        </div>
-                        <div>
-                          <span className="text-slate-400 block">Requested In/Out</span>
-                          <span className="font-semibold text-slate-900 dark:text-white">
-                            {reg.requestedCheckIn || '—'} / {reg.requestedCheckOut || '—'}
-                          </span>
-                        </div>
-                        <div>
-                          <span className="text-slate-400 block">Existing Status</span>
-                          <span className="font-medium text-slate-700 dark:text-slate-300">
-                            {reg.existingStatus || '—'}
-                          </span>
-                        </div>
-                        <div>
-                          <span className="text-slate-400 block">Requested Status</span>
-                          <span className="font-semibold text-slate-900 dark:text-white">
-                            {reg.requestedStatus || 'Present'}
-                          </span>
-                        </div>
-                      </div>
-
-                      <p className="text-xs text-slate-600 dark:text-slate-300">
-                        <span className="font-semibold">Reason:</span> {reg.reason}
-                      </p>
-
-                      {reg.reviewerComments && (
-                        <div className="rounded-lg bg-white dark:bg-navy-900 border border-slate-200 dark:border-white/10 p-2.5 text-xs">
-                          <span className="font-bold text-slate-700 dark:text-slate-200">
-                            Reviewer ({reg.reviewerName || reg.reviewerRole || 'HR Lead'}):
-                          </span>{' '}
-                          <span className="text-slate-600 dark:text-slate-300">{reg.reviewerComments}</span>
-                        </div>
-                      )}
-                    </div>
-                  );
-                })}
-              </div>
-            )}
-          </div>
-        </div>
-      )}
-
-      {/* TAB 4: MY WORKING HOURS BREAKDOWN */}
+      {/* TAB 3: MY WORKING HOURS BREAKDOWN */}
       {activeTab === 'hours' && (
         <div className="space-y-5">
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">

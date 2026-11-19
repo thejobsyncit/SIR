@@ -6,7 +6,7 @@ import {
   Bookmark, Filter, X, Send, UserCheck, Trash2, AlertCircle, Download,
   ExternalLink, Mail, Phone, MapPin, Globe, Calendar, Briefcase,
   GraduationCap, ShieldCheck, Clock, Building, Award, Check, FileCheck,
-  ChevronDown, ChevronUp, Paperclip
+  ChevronDown, ChevronUp, Paperclip, RotateCcw
 } from 'lucide-react';
 import { CrmAddCandidateModal } from '../components/CrmAddCandidateModal';
 import ScrollReveal from '../../components/ScrollReveal';
@@ -34,6 +34,80 @@ export const CrmCandidates = () => {
   const [isDeleting, setIsDeleting] = useState(false);
   const [statusNotice, setStatusNotice] = useState('');
   const [showFullResumeSheet, setShowFullResumeSheet] = useState(true);
+
+  // Multi-Criteria Talent Search & Filter Engine State (Unified from Search & Talent Filters)
+  const [selectedJob, setSelectedJob] = useState('all');
+  const [selectedSkill, setSelectedSkill] = useState('all');
+  const [selectedExp, setSelectedExp] = useState('all');
+  const [selectedLocation, setSelectedLocation] = useState('all');
+  const [selectedQual, setSelectedQual] = useState('all');
+  const [selectedStatus, setSelectedStatus] = useState('all');
+
+  // Distinct Filter Option Sets matching Talent Search Engine
+  const jobsList = [
+    'Senior Civil Project Manager',
+    'Consultant Cardiologist',
+    'Lead DevOps Cloud Architect',
+    'Executive Hospitality Manager',
+    'Structural MEP Engineer',
+    'Bilingual Legal Counsel'
+  ];
+
+  const skillsList = [
+    'Primavera P6',
+    'FIDIC Red Book',
+    'AutoCAD',
+    'High-Rise Construction',
+    'Cardiology',
+    'JCI Accreditation',
+    'AWS',
+    'Kubernetes',
+    'Terraform',
+    'Luxury Guest Services',
+    'BIM Modelling'
+  ];
+
+  const locationsList = ['Dubai, UAE', 'Riyadh, KSA', 'Singapore', 'Doha, Qatar', 'Chennai, India', 'Kuwait'];
+  const qualificationsList = ['B.E / B.Tech Civil', 'MBBS / MD Cardiology', 'B.S Computer Science', 'MBA Hospitality', 'LL.M Corporate Law'];
+  const statusList = [
+    { id: 'all', label: 'All Statuses' },
+    { id: 'applied', label: 'Applied' },
+    { id: 'screening', label: 'Screening' },
+    { id: 'shortlisted', label: 'Shortlisted' },
+    { id: 'interview', label: 'Interview Scheduled' },
+    { id: 'selected', label: 'Selected' },
+    { id: 'offer_released', label: 'Offered' },
+    { id: 'joined', label: 'Hired / Joined' },
+    { id: 'rejected', label: 'Rejected' }
+  ];
+
+  const handleResetFilters = () => {
+    setSearchTerm('');
+    setSelectedJob('all');
+    setSelectedSkill('all');
+    setSelectedExp('all');
+    setSelectedLocation('all');
+    setSelectedQual('all');
+    setSelectedStatus('all');
+    setSelectedNationality('All');
+    setSelectedRecruiter('All');
+    setFilterMode('all');
+  };
+
+  const activeFiltersCount = useMemo(() => {
+    let count = 0;
+    if (searchTerm.trim()) count++;
+    if (selectedJob !== 'all') count++;
+    if (selectedSkill !== 'all') count++;
+    if (selectedExp !== 'all') count++;
+    if (selectedLocation !== 'all') count++;
+    if (selectedQual !== 'all') count++;
+    if (selectedStatus !== 'all') count++;
+    if (selectedNationality !== 'All') count++;
+    if (selectedRecruiter !== 'All') count++;
+    if (filterMode !== 'all') count++;
+    return count;
+  }, [searchTerm, selectedJob, selectedSkill, selectedExp, selectedLocation, selectedQual, selectedStatus, selectedNationality, selectedRecruiter, filterMode]);
 
   const activeApplicants = useMemo(() => {
     return candidates.filter(c => (Array.isArray(c.applications) && c.applications.length > 0) || c.stage === 'applied');
@@ -251,21 +325,75 @@ export const CrmCandidates = () => {
     handlePreviewCv(targetCand);
   };
 
-  const filtered = candidates.filter(c => {
-    if (filterMode === 'applicants') {
-      const hasApp = (Array.isArray(c.applications) && c.applications.length > 0) || c.stage === 'applied';
-      if (!hasApp) return false;
-    }
-    const matchesSearch = (c.name || '').toLowerCase().includes(searchTerm.toLowerCase()) ||
-      (c.email || '').toLowerCase().includes(searchTerm.toLowerCase()) ||
-      (c.skills && Array.isArray(c.skills) && c.skills.some(s => s.toLowerCase().includes(searchTerm.toLowerCase()))) ||
-      (c.id || '').toLowerCase().includes(searchTerm.toLowerCase()) ||
-      (c.currentRole || '').toLowerCase().includes(searchTerm.toLowerCase()) ||
-      (Array.isArray(c.applications) && c.applications.some(a => (a.jobTitle || '').toLowerCase().includes(searchTerm.toLowerCase())));
-    const matchesNat = selectedNationality === 'All' || c.nationality === selectedNationality;
-    const matchesRecruiter = selectedRecruiter === 'All' || c.assignedRecruiter === selectedRecruiter;
-    return matchesSearch && matchesNat && matchesRecruiter;
-  });
+  const filtered = useMemo(() => {
+    return candidates.filter(c => {
+      // Filter mode: active applicants
+      if (filterMode === 'applicants') {
+        const hasApp = (Array.isArray(c.applications) && c.applications.length > 0) || c.stage === 'applied';
+        if (!hasApp) return false;
+      }
+
+      // Keyword / search term match
+      if (searchTerm.trim()) {
+        const q = searchTerm.toLowerCase();
+        const candStr = `${c.name || ''} ${c.email || ''} ${c.phone || ''} ${c.currentRole || ''} ${c.currentEmployer || ''} ${c.nationality || ''} ${c.citizenship || ''} ${c.location || ''} ${c.id || ''} ${Array.isArray(c.skills) ? c.skills.join(' ') : ''} ${Array.isArray(c.applications) ? c.applications.map(a => a.jobTitle || '').join(' ') : ''}`.toLowerCase();
+        if (!candStr.includes(q)) return false;
+      }
+
+      // 1. Target Job / Vacancy match
+      if (selectedJob !== 'all') {
+        const r = (c.currentRole || '').toLowerCase();
+        const apps = Array.isArray(c.applications) ? c.applications.map(a => (a.jobTitle || '').toLowerCase()).join(' ') : '';
+        if (!r.includes(selectedJob.toLowerCase()) && !apps.includes(selectedJob.toLowerCase())) return false;
+      }
+
+      // 2. Core Competence / Skill match
+      if (selectedSkill !== 'all') {
+        const skillsArr = Array.isArray(c.skills) ? c.skills : [];
+        if (!skillsArr.some(s => s.toLowerCase().includes(selectedSkill.toLowerCase()))) return false;
+      }
+
+      // 3. Experience Bracket match
+      if (selectedExp !== 'all') {
+        const expStr = (c.experience || '').toLowerCase();
+        const years = parseInt(expStr) || 4;
+        if (selectedExp === 'junior' && years > 3) return false;
+        if (selectedExp === 'mid' && (years < 3 || years > 7)) return false;
+        if (selectedExp === 'senior' && (years < 8 || years > 12)) return false;
+        if (selectedExp === 'executive' && years < 12) return false;
+      }
+
+      // 4. Candidate Location / Target Region match
+      if (selectedLocation !== 'all') {
+        const loc = (c.location || c.nationality || c.preferredCountry || '').toLowerCase();
+        if (!loc.includes(selectedLocation.split(',')[0].toLowerCase())) return false;
+      }
+
+      // 5. Education / Qualification match
+      if (selectedQual !== 'all') {
+        const qual = (c.qualification || c.education || '').toLowerCase();
+        if (!qual.includes(selectedQual.split(' ')[0].toLowerCase())) return false;
+      }
+
+      // 6. Application Pipeline Stage match
+      if (selectedStatus !== 'all') {
+        const st = (c.stage || '').toLowerCase();
+        if (!st.includes(selectedStatus.toLowerCase())) return false;
+      }
+
+      // Nationality match
+      if (selectedNationality !== 'All') {
+        if (c.nationality !== selectedNationality) return false;
+      }
+
+      // Recruiter match
+      if (selectedRecruiter !== 'All') {
+        if (c.assignedRecruiter !== selectedRecruiter) return false;
+      }
+
+      return true;
+    });
+  }, [candidates, filterMode, searchTerm, selectedJob, selectedSkill, selectedExp, selectedLocation, selectedQual, selectedStatus, selectedNationality, selectedRecruiter]);
 
   return (
     <div className="space-y-6 text-xs font-sans">
@@ -333,47 +461,189 @@ export const CrmCandidates = () => {
         </button>
       </div>
 
-      {/* Filter Bar */}
+      {/* Multi-Dimensional Filter Control Panel (Unified Talent Search Engine from Image 3) */}
       <ScrollReveal>
-        <div className="glass-card bg-white dark:bg-navy-900 p-4 rounded-2xl border border-slate-200 dark:border-navy-800 flex flex-col sm:flex-row justify-between gap-3 shadow-sm">
-          <div className="relative flex-1">
-            <Search className="w-4 h-4 text-slate-400 absolute left-3 top-2.5" />
+        <div className="bg-white dark:bg-navy-900 border border-slate-200 dark:border-navy-800 p-6 rounded-3xl shadow-sm space-y-4">
+          <div className="flex justify-between items-center border-b border-slate-100 dark:border-navy-800 pb-3">
+            <div className="flex items-center gap-2">
+              <Filter className="w-4 h-4 text-gold-500" />
+              <h3 className="font-serif text-sm font-bold text-slate-900 dark:text-white">
+                Multi-Criteria Candidate Search Filters
+              </h3>
+              {activeFiltersCount > 0 && (
+                <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-amber-100 text-amber-900 dark:bg-gold-500/20 dark:text-gold-300 border border-amber-300 dark:border-gold-500/30">
+                  {activeFiltersCount} Active
+                </span>
+              )}
+            </div>
+
+            <button
+              onClick={handleResetFilters}
+              className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-slate-100 hover:bg-slate-200 dark:bg-navy-800 dark:hover:bg-navy-700 text-slate-700 dark:text-slate-300 hover:text-rose-600 dark:hover:text-rose-400 font-bold transition cursor-pointer text-xs"
+            >
+              <RotateCcw className="w-3.5 h-3.5" />
+              <span>Reset All Filters</span>
+            </button>
+          </div>
+
+          {/* Keyword Search Input */}
+          <div className="relative">
+            <Search className="w-4 h-4 absolute left-3 top-3 text-slate-400" />
             <input
               type="text"
-              placeholder="Search candidate by name, email, ID, role, skills, or passport..."
+              placeholder="Search across candidate names, verified emails, phone numbers, skills, passport details..."
               value={searchTerm}
-              onChange={(e) => setSearchTerm(e.target.value)}
-              className="w-full bg-slate-100 dark:bg-navy-950 border border-slate-200 dark:border-navy-700 text-slate-900 dark:text-white rounded-xl pl-9 pr-3 py-2 text-xs focus:outline-none focus:border-gold-500 font-semibold"
+              onChange={e => setSearchTerm(e.target.value)}
+              className="w-full pl-9 pr-3 py-2.5 bg-slate-50 dark:bg-navy-950 border border-slate-200 dark:border-navy-700 rounded-2xl text-xs font-semibold text-slate-900 dark:text-white placeholder:text-slate-400 focus:outline-none focus:border-gold-500"
             />
           </div>
 
-          <div className="flex gap-2">
-            <select
-              value={selectedRecruiter}
-              onChange={(e) => setSelectedRecruiter(e.target.value)}
-              className="bg-slate-100 dark:bg-navy-950 border border-slate-200 dark:border-navy-700 text-slate-900 dark:text-white rounded-xl px-3 py-2 text-xs font-semibold focus:outline-none cursor-pointer"
-            >
-              <option value="All">All Assigned Recruiters ({ASSIGNED_RECRUITERS.length})</option>
-              {ASSIGNED_RECRUITERS.map(rec => (
-                <option key={rec.id} value={rec.name}>{rec.name}</option>
-              ))}
-            </select>
+          {/* 6 Dimension Filter Dropdowns (Matching Image 3) */}
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 pt-1">
+            {/* 1. Target Job / Vacancy */}
+            <div>
+              <label className="block text-[11px] font-bold text-slate-600 dark:text-slate-400 mb-1">
+                Target Job / Vacancy
+              </label>
+              <select
+                value={selectedJob}
+                onChange={e => setSelectedJob(e.target.value)}
+                className="w-full p-2.5 bg-slate-50 dark:bg-navy-950 border border-slate-200 dark:border-navy-700 rounded-xl font-bold text-slate-800 dark:text-slate-200 focus:outline-none cursor-pointer"
+              >
+                <option value="all">All Job Mandates</option>
+                {jobsList.map(j => <option key={j} value={j}>{j}</option>)}
+              </select>
+            </div>
 
-            <select
-              value={selectedNationality}
-              onChange={(e) => setSelectedNationality(e.target.value)}
-              className="bg-slate-100 dark:bg-navy-950 border border-slate-200 dark:border-navy-700 text-slate-900 dark:text-white rounded-xl px-3 py-2 text-xs font-semibold focus:outline-none cursor-pointer"
-            >
-              <option value="All">All Nationalities</option>
-              <option value="UAE">UAE</option>
-              <option value="United Kingdom">United Kingdom</option>
-              <option value="Saudi Arabia">Saudi Arabia</option>
-              <option value="India">India</option>
-              <option value="Poland">Poland</option>
-            </select>
+            {/* 2. Core Competence / Skill */}
+            <div>
+              <label className="block text-[11px] font-bold text-slate-600 dark:text-slate-400 mb-1">
+                Core Competence / Skill
+              </label>
+              <select
+                value={selectedSkill}
+                onChange={e => setSelectedSkill(e.target.value)}
+                className="w-full p-2.5 bg-slate-50 dark:bg-navy-950 border border-slate-200 dark:border-navy-700 rounded-xl font-bold text-slate-800 dark:text-slate-200 focus:outline-none cursor-pointer"
+              >
+                <option value="all">All Technical Skills</option>
+                {skillsList.map(s => <option key={s} value={s}>{s}</option>)}
+              </select>
+            </div>
+
+            {/* 3. Experience Bracket */}
+            <div>
+              <label className="block text-[11px] font-bold text-slate-600 dark:text-slate-400 mb-1">
+                Experience Bracket
+              </label>
+              <select
+                value={selectedExp}
+                onChange={e => setSelectedExp(e.target.value)}
+                className="w-full p-2.5 bg-slate-50 dark:bg-navy-950 border border-slate-200 dark:border-navy-700 rounded-xl font-bold text-slate-800 dark:text-slate-200 focus:outline-none cursor-pointer"
+              >
+                <option value="all">Any Experience Range</option>
+                <option value="junior">Junior (0 - 3 Years)</option>
+                <option value="mid">Mid-Level (4 - 7 Years)</option>
+                <option value="senior">Senior Specialist (8 - 12 Years)</option>
+                <option value="executive">Executive Leadership (12+ Years)</option>
+              </select>
+            </div>
+
+            {/* 4. Candidate Location / Target Region */}
+            <div>
+              <label className="block text-[11px] font-bold text-slate-600 dark:text-slate-400 mb-1">
+                Candidate Location / Target Region
+              </label>
+              <select
+                value={selectedLocation}
+                onChange={e => setSelectedLocation(e.target.value)}
+                className="w-full p-2.5 bg-slate-50 dark:bg-navy-950 border border-slate-200 dark:border-navy-700 rounded-xl font-bold text-slate-800 dark:text-slate-200 focus:outline-none cursor-pointer"
+              >
+                <option value="all">All Locations (Domestic & GCC)</option>
+                {locationsList.map(l => <option key={l} value={l}>{l}</option>)}
+              </select>
+            </div>
+
+            {/* 5. Education / Qualification */}
+            <div>
+              <label className="block text-[11px] font-bold text-slate-600 dark:text-slate-400 mb-1">
+                Education / Qualification
+              </label>
+              <select
+                value={selectedQual}
+                onChange={e => setSelectedQual(e.target.value)}
+                className="w-full p-2.5 bg-slate-50 dark:bg-navy-950 border border-slate-200 dark:border-navy-700 rounded-xl font-bold text-slate-800 dark:text-slate-200 focus:outline-none cursor-pointer"
+              >
+                <option value="all">All Academic Qualifications</option>
+                {qualificationsList.map(q => <option key={q} value={q}>{q}</option>)}
+              </select>
+            </div>
+
+            {/* 6. Application Pipeline Stage */}
+            <div>
+              <label className="block text-[11px] font-bold text-slate-600 dark:text-slate-400 mb-1">
+                Application Pipeline Stage
+              </label>
+              <select
+                value={selectedStatus}
+                onChange={e => setSelectedStatus(e.target.value)}
+                className="w-full p-2.5 bg-slate-50 dark:bg-navy-950 border border-slate-200 dark:border-navy-700 rounded-xl font-bold text-slate-800 dark:text-slate-200 focus:outline-none cursor-pointer"
+              >
+                {statusList.map(s => <option key={s.id} value={s.id}>{s.label}</option>)}
+              </select>
+            </div>
+          </div>
+
+          {/* Secondary Filter Row: Assigned Recruiter & Nationality */}
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 pt-2 border-t border-slate-100 dark:border-navy-800">
+            <div>
+              <label className="block text-[11px] font-bold text-slate-600 dark:text-slate-400 mb-1">
+                Assigned Recruiter
+              </label>
+              <select
+                value={selectedRecruiter}
+                onChange={(e) => setSelectedRecruiter(e.target.value)}
+                className="w-full p-2.5 bg-slate-50 dark:bg-navy-950 border border-slate-200 dark:border-navy-700 text-slate-800 dark:text-slate-200 rounded-xl font-bold focus:outline-none cursor-pointer"
+              >
+                <option value="All">All Assigned Recruiters ({ASSIGNED_RECRUITERS.length})</option>
+                {ASSIGNED_RECRUITERS.map(rec => (
+                  <option key={rec.id} value={rec.name}>{rec.name}</option>
+                ))}
+              </select>
+            </div>
+
+            <div>
+              <label className="block text-[11px] font-bold text-slate-600 dark:text-slate-400 mb-1">
+                Nationality / Country
+              </label>
+              <select
+                value={selectedNationality}
+                onChange={(e) => setSelectedNationality(e.target.value)}
+                className="w-full p-2.5 bg-slate-50 dark:bg-navy-950 border border-slate-200 dark:border-navy-700 text-slate-800 dark:text-slate-200 rounded-xl font-bold focus:outline-none cursor-pointer"
+              >
+                <option value="All">All Nationalities</option>
+                <option value="UAE">UAE</option>
+                <option value="United Kingdom">United Kingdom</option>
+                <option value="Saudi Arabia">Saudi Arabia</option>
+                <option value="India">India</option>
+                <option value="Poland">Poland</option>
+                <option value="Singapore">Singapore</option>
+                <option value="Qatar">Qatar</option>
+              </select>
+            </div>
           </div>
         </div>
       </ScrollReveal>
+
+      {/* Matching Candidates Header Strip (Matching Image 3) */}
+      <div className="flex justify-between items-center px-1">
+        <h3 className="font-serif text-base font-bold text-slate-900 dark:text-white flex items-center gap-2">
+          <span>Matching Candidates:</span>
+          <span className="text-amber-600 dark:text-gold-400 font-extrabold">{filtered.length} Profiles</span>
+        </h3>
+        <span className="text-[11px] text-slate-400 font-mono hidden sm:inline">
+          Real-Time Dynamic Querying
+        </span>
+      </div>
 
       {/* Candidates Cards Grid */}
       <ScrollReveal>

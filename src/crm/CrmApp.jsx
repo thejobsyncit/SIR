@@ -65,13 +65,39 @@ import { CrmMyProfile } from './pages/CrmMyProfile';
 import { CrmMyAttendance } from './pages/CrmMyAttendance';
 import { CrmHrOpsCandidateDirectory } from './pages/CrmHrOpsCandidateDirectory';
 import { HrLogoutConfirmModal } from './components/HrLogoutConfirmModal';
+import { LateArrivalApprovalGateway } from './components/LateArrivalApprovalGateway';
 
 import { Search, Sparkles, X, Send, Bot, Loader2, Copy, Check, RotateCcw } from 'lucide-react';
 
 const CrmAppContent = () => {
-  const { isAuthenticated, currentRole, activeModule, setActiveModule, commandPaletteOpen, setCommandPaletteOpen, aiDrawerOpen, setAiDrawerOpen, hasPermission, logoutConfirmOpen, isLoggingOut, closeLogoutConfirm, confirmLogout } = useCrm();
+  const { 
+    isAuthenticated, currentRole, activeModule, setActiveModule, 
+    commandPaletteOpen, setCommandPaletteOpen, aiDrawerOpen, setAiDrawerOpen, 
+    hasPermission, logoutConfirmOpen, isLoggingOut, closeLogoutConfirm, confirmLogout,
+    lateApprovalGate, setLateApprovalGate, checkLateApprovalStatus, logout
+  } = useCrm();
   const [collapsed, setCollapsed] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
+  const mainScrollRef = useRef(null);
+
+  // Viewport lock to eliminate browser window scrollbars, double-scrolling & layout swaying
+  useEffect(() => {
+    document.documentElement.classList.add('crm-viewport-locked');
+    document.body.classList.add('crm-viewport-locked');
+    window.scrollTo(0, 0);
+
+    return () => {
+      document.documentElement.classList.remove('crm-viewport-locked');
+      document.body.classList.remove('crm-viewport-locked');
+    };
+  }, []);
+
+  // Reset main content scroll position when module or role changes
+  useEffect(() => {
+    if (mainScrollRef.current) {
+      mainScrollRef.current.scrollTop = 0;
+    }
+  }, [activeModule, currentRole]);
 
   useEffect(() => {
     if (window.innerWidth < 1024) {
@@ -221,6 +247,19 @@ const CrmAppContent = () => {
     return <CrmLogin />;
   }
 
+  // Shift Late Arrival Super Admin Approval Gateway (exempts Super Admin & Admin)
+  const isExecutiveUser = currentRole === 'Super Admin' || currentRole === 'Admin';
+  if (lateApprovalGate?.isBlocked && !isExecutiveUser) {
+    return (
+      <LateArrivalApprovalGateway
+        gate={lateApprovalGate}
+        onApproved={() => setLateApprovalGate(null)}
+        onLogout={logout}
+        checkStatus={checkLateApprovalStatus}
+      />
+    );
+  }
+
   const renderModule = () => {
     if (!hasPermission(activeModule)) {
       return (
@@ -299,6 +338,7 @@ const CrmAppContent = () => {
       case 'career-guidance': return <CrmCareerGuidance />;
       case 'student-academy': return <CrmStudentAcademy />;
       case 'candidates':
+      case 'search-filters':
         return currentRole === 'HR Operations' ? <CrmHrOpsCandidateDirectory /> : <CrmCandidates />;
       case 'pipeline': return <CrmPipeline />;
       case 'domestic': return <CrmDomesticRecruitment />;
@@ -316,7 +356,6 @@ const CrmAppContent = () => {
       case 'super-admin': return <CrmSuperAdmin />;
       case 'settings': return <CrmSettings />;
       case 'vacancies': return <CrmVacancyManagement />;
-      case 'search-filters': return <CrmSearchFilters />;
       case 'notes-tags': return <CrmDashboard />;
       case 'communication': return <CrmDashboard />;
       case 'offers': return <CrmOffersJoining />;
@@ -328,14 +367,19 @@ const CrmAppContent = () => {
   };
 
   return (
-    <div className="h-screen h-[100dvh] max-h-screen bg-slate-50 dark:bg-[#040714] text-slate-900 dark:text-white flex flex-col font-sans selection:bg-gold-500 selection:text-navy-950 overflow-hidden">
-
+    <div 
+      id="crm-app-root"
+      className="fixed inset-0 w-full h-full max-w-full max-h-full bg-slate-50 dark:bg-[#040714] text-slate-900 dark:text-white flex flex-col font-sans selection:bg-gold-500 selection:text-navy-950 overflow-hidden"
+    >
       <CrmHeader collapsed={collapsed} setCollapsed={setCollapsed} />
 
-      <div className="flex-1 min-h-0 flex overflow-hidden">
+      <div className="flex-1 min-h-0 flex overflow-hidden w-full relative">
         <CrmSidebar collapsed={collapsed} setCollapsed={setCollapsed} />
 
-        <main className="flex-1 min-w-0 min-h-0 overflow-y-auto overscroll-y-contain crm-main-scroll p-6 bg-slate-50 dark:bg-transparent">
+        <main 
+          ref={mainScrollRef}
+          className="flex-1 min-w-0 min-h-0 overflow-y-auto overscroll-y-contain crm-main-scroll p-4 sm:p-6 bg-slate-50 dark:bg-transparent"
+        >
           <div key={`${activeModule}-${currentRole}`} className="w-full">
             {renderModule()}
           </div>

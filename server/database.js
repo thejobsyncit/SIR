@@ -1732,14 +1732,51 @@ const initDb = async (db) => {
     );
 
     CREATE INDEX IF NOT EXISTS idx_emp_notif_emp ON employee_notifications(employeeId, createdAt);
+
+    CREATE TABLE IF NOT EXISTS role_login_logs (
+      id TEXT PRIMARY KEY,
+      employeeId TEXT,
+      employeeName TEXT NOT NULL,
+      email TEXT NOT NULL,
+      role TEXT NOT NULL,
+      department TEXT,
+      shiftId TEXT,
+      shiftName TEXT,
+      shiftStart TEXT,
+      shiftEnd TEXT,
+      loginTime DATETIME DEFAULT CURRENT_TIMESTAMP,
+      checkInTime TEXT,
+      punctuality TEXT NOT NULL,
+      lateMinutes INTEGER DEFAULT 0,
+      lateApprovalStatus TEXT DEFAULT 'APPROVED',
+      approvedBy TEXT,
+      approvedAt TEXT,
+      rejectionReason TEXT,
+      ipAddress TEXT,
+      userAgent TEXT
+    );
+
+    CREATE INDEX IF NOT EXISTS idx_role_login_time ON role_login_logs(loginTime DESC);
+    CREATE INDEX IF NOT EXISTS idx_role_login_status ON role_login_logs(lateApprovalStatus);
   `);
+
+  // Safe column migration for lateApprovalStatus on attendance_records & taskStatus on leads
+  try {
+    await db.exec(`ALTER TABLE attendance_records ADD COLUMN lateApprovalStatus TEXT DEFAULT 'APPROVED'`);
+  } catch (_) {}
+  try {
+    await db.exec(`ALTER TABLE attendance_records ADD COLUMN role TEXT`);
+  } catch (_) {}
+  try {
+    await db.exec(`ALTER TABLE leads ADD COLUMN taskStatus TEXT`);
+  } catch (_) {}
 
   // Seed Shift Policies (Policy data only — no fabricated employee attendance records)
   try {
     const seedShifts = [
       {
         id: 'SHIFT-GENERAL',
-        name: 'General Shift (09:00 AM - 06:00 PM)',
+        name: 'General Day Shift (09:00 AM - 06:00 PM)',
         startTime: '09:00',
         endTime: '18:00',
         graceMinutes: 15,
@@ -1752,7 +1789,7 @@ const initDb = async (db) => {
       },
       {
         id: 'SHIFT-MORNING',
-        name: 'Morning Operations (08:00 AM - 04:30 PM)',
+        name: 'Early Morning Shift (08:00 AM - 04:30 PM)',
         startTime: '08:00',
         endTime: '16:30',
         graceMinutes: 15,
@@ -1765,7 +1802,7 @@ const initDb = async (db) => {
       },
       {
         id: 'SHIFT-UK-ME',
-        name: 'UK & Middle East Desk (01:00 PM - 09:30 PM)',
+        name: 'UK & Middle East Overlap (01:00 PM - 09:30 PM)',
         startTime: '13:00',
         endTime: '21:30',
         graceMinutes: 15,
@@ -1797,6 +1834,148 @@ const initDb = async (db) => {
          VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
         [sh.id, sh.name, sh.startTime, sh.endTime, sh.graceMinutes, sh.isOvernight, sh.breakTrackingEnabled, sh.overtimeEnabled, sh.overtimeThresholdMinutes, sh.absentCutoffHour, sh.weeklyOffDays]
       );
+    }
+
+    // Seed sample role login logs if empty
+    const existingLogsCount = (await db.get('SELECT COUNT(*) as c FROM role_login_logs'))?.c || 0;
+    if (existingLogsCount === 0) {
+      const today = new Date().toISOString().slice(0, 10);
+      const seedRoleLogins = [
+        {
+          id: 'log-seed-1',
+          employeeId: 'REV-EMP-003',
+          employeeName: 'Priya Sharma',
+          email: 'priya.lead@revivalinternational.com',
+          role: 'HR Lead',
+          department: 'Human Resources',
+          shiftId: 'SHIFT-GENERAL',
+          shiftName: 'General Day Shift (09:00 AM - 06:00 PM)',
+          shiftStart: '09:00 AM',
+          shiftEnd: '06:00 PM',
+          loginTime: `${today} 08:52:00`,
+          checkInTime: '08:52 AM',
+          punctuality: 'On Time',
+          lateMinutes: 0,
+          lateApprovalStatus: 'APPROVED',
+          approvedBy: 'System Auto-Approved',
+          ipAddress: '127.0.0.1'
+        },
+        {
+          id: 'log-seed-2',
+          employeeId: 'REV-EMP-005',
+          employeeName: 'Sreeja Nair',
+          email: 'sreeja.jasync@gmail.com',
+          role: 'Placement Coordinator',
+          department: 'Placement & Industry Relations',
+          shiftId: 'SHIFT-GENERAL',
+          shiftName: 'General Day Shift (09:00 AM - 06:00 PM)',
+          shiftStart: '09:00 AM',
+          shiftEnd: '06:00 PM',
+          loginTime: `${today} 09:12:00`,
+          checkInTime: '09:12 AM',
+          punctuality: 'On Time',
+          lateMinutes: 0,
+          lateApprovalStatus: 'APPROVED',
+          approvedBy: 'System Auto-Approved (Grace Period)',
+          ipAddress: '127.0.0.1'
+        },
+        {
+          id: 'log-seed-3',
+          employeeId: 'REV-EMP-004',
+          employeeName: 'Kishore Kumar',
+          email: 'kishore.recruiter@revivalinternational.com',
+          role: 'Recruiter',
+          department: 'Recruitment & ATS',
+          shiftId: 'SHIFT-MORNING',
+          shiftName: 'Early Morning Shift (08:00 AM - 04:30 PM)',
+          shiftStart: '08:00 AM',
+          shiftEnd: '04:30 PM',
+          loginTime: `${today} 08:02:00`,
+          checkInTime: '08:02 AM',
+          punctuality: 'On Time',
+          lateMinutes: 0,
+          lateApprovalStatus: 'APPROVED',
+          approvedBy: 'System Auto-Approved',
+          ipAddress: '127.0.0.1'
+        },
+        {
+          id: 'log-seed-4',
+          employeeId: 'REV-EMP-107',
+          employeeName: 'Fatima Al Zahra',
+          email: 'fatima.ops@revivalinternational.com',
+          role: 'HR Operations',
+          department: 'HR & Student Operations',
+          shiftId: 'SHIFT-UK-ME',
+          shiftName: 'UK & Middle East Overlap (01:00 PM - 09:30 PM)',
+          shiftStart: '01:00 PM',
+          shiftEnd: '09:30 PM',
+          loginTime: `${today} 13:05:00`,
+          checkInTime: '01:05 PM',
+          punctuality: 'On Time',
+          lateMinutes: 0,
+          lateApprovalStatus: 'APPROVED',
+          approvedBy: 'System Auto-Approved',
+          ipAddress: '127.0.0.1'
+        },
+        {
+          id: 'log-seed-5',
+          employeeId: 'REV-EMP-101',
+          employeeName: 'Balavarshini S.',
+          email: 'balavarshini.s@revivalinternational.com',
+          role: 'HR Operations',
+          department: 'HR Operations',
+          shiftId: 'SHIFT-GENERAL',
+          shiftName: 'General Day Shift (09:00 AM - 06:00 PM)',
+          shiftStart: '09:00 AM',
+          shiftEnd: '06:00 PM',
+          loginTime: `${today} 09:38:00`,
+          checkInTime: '09:38 AM',
+          punctuality: 'Late',
+          lateMinutes: 38,
+          lateApprovalStatus: 'PENDING',
+          approvedBy: null,
+          ipAddress: '127.0.0.1'
+        }
+      ];
+
+      for (const log of seedRoleLogins) {
+        await db.run(
+          `INSERT OR IGNORE INTO role_login_logs (
+            id, employeeId, employeeName, email, role, department,
+            shiftId, shiftName, shiftStart, shiftEnd, loginTime, checkInTime,
+            punctuality, lateMinutes, lateApprovalStatus, approvedBy, ipAddress
+          ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+          [
+            log.id, log.employeeId, log.employeeName, log.email, log.role, log.department,
+            log.shiftId, log.shiftName, log.shiftStart, log.shiftEnd, log.loginTime, log.checkInTime,
+            log.punctuality, log.lateMinutes, log.lateApprovalStatus, log.approvedBy, log.ipAddress
+          ]
+        );
+      }
+
+      const existingAtt = await db.get('SELECT id FROM attendance_records WHERE employeeId = ? AND workDate = ?', ['REV-EMP-101', today]);
+      if (!existingAtt) {
+        await db.run(
+          `INSERT INTO attendance_records (
+            id, employeeId, employeeName, department, operationTeam, workDate,
+            shiftId, shiftName, shiftStart, shiftEnd, isOvernightShift,
+            checkInAt, status, lateMinutes, totalBreakMinutes, grossMinutes, netWorkMinutes, overtimeMinutes, source, notes, lateApprovalStatus, role
+          ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 0, ?, 'In Progress', 38, 0, 0, 0, 0, 'Portal Login', 'Traffic delay reported', 'PENDING', 'HR Operations')`,
+          [
+            'att-seed-bala-1',
+            'REV-EMP-101',
+            'Balavarshini S.',
+            'HR Operations',
+            'HR Operations',
+            today,
+            'SHIFT-GENERAL',
+            'General Day Shift (09:00 AM - 06:00 PM)',
+            '09:00 AM',
+            '06:00 PM',
+            `${today}T04:08:00.000Z`
+          ]
+        );
+      }
     }
 
     const currentYear = new Date().getFullYear();

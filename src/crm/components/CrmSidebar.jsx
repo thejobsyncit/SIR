@@ -151,7 +151,6 @@ export const CrmSidebar = ({ collapsed, setCollapsed }) => {
       items: [
         { id: 'attendance', label: 'Attendance Management', icon: Clock },
         { id: 'leave', label: 'Leave Management', icon: Calendar },
-        { id: 'my-attendance', label: 'My Attendance', icon: CalendarCheck },
         { id: 'documentation', label: 'Documentation', icon: FileText },
         { id: 'visa', label: 'Visa Processing', icon: ShieldCheck },
         { id: 'verification', label: 'Background Check', icon: ShieldCheck }
@@ -191,12 +190,12 @@ export const CrmSidebar = ({ collapsed, setCollapsed }) => {
     { id: 'dashboard', label: 'Dashboard Overview', icon: LayoutDashboard },
     { id: 'vacancies', label: 'Job & Vacancy Management', icon: Briefcase },
     { id: 'candidates', label: 'Candidate Management', icon: Users },
-    { id: 'search-filters', label: 'Search & Talent Filters', icon: Search },
     { id: 'pipeline', label: 'Application Pipeline', icon: GitMerge },
     { id: 'documentation', label: 'Resume & Dossier Storage', icon: FileText },
     { id: 'interviews', label: 'Interview Scheduling', icon: Calendar },
     { id: 'offers', label: 'Offers & Joining', icon: Award },
     { id: 'reports', label: 'Recruiter Analytics', icon: BarChart3 },
+    { id: 'my-attendance', label: 'My Attendance', icon: CalendarCheck },
     { id: 'my-profile', label: 'My Profile', icon: User }
   ];
 
@@ -213,6 +212,7 @@ export const CrmSidebar = ({ collapsed, setCollapsed }) => {
     { id: 'plc-announcements', label: 'Announcements & Alerts', icon: Bell },
     { id: 'plc-reports', label: 'Reports & Exports', icon: BarChart3 },
     { id: 'plc-approvals', label: 'Access & Approvals', icon: ShieldCheck },
+    { id: 'my-attendance', label: 'My Attendance', icon: CalendarCheck },
     { id: 'my-profile', label: 'My Profile', icon: User }
   ];
 
@@ -230,6 +230,7 @@ export const CrmSidebar = ({ collapsed, setCollapsed }) => {
     { id: 'int-context', label: 'Previous Round Notes', icon: BookOpen },
     { id: 'int-calendar', label: 'Availability Calendar', icon: CalendarCheck },
     { id: 'int-permissions', label: 'Confidentiality & Access', icon: Lock },
+    { id: 'my-attendance', label: 'My Attendance', icon: CalendarCheck },
     { id: 'my-profile', label: 'My Profile', icon: User }
   ];
 
@@ -238,6 +239,7 @@ export const CrmSidebar = ({ collapsed, setCollapsed }) => {
     { id: 'hr-overview', label: 'Dashboard Overview', icon: LayoutDashboard },
     { id: 'hr-tasks', label: 'HR Task Assignment', icon: CheckSquare },
     { id: 'hr-attendance', label: 'Attendance Oversight', icon: Clock },
+    { id: 'my-attendance', label: 'My Attendance', icon: CalendarCheck },
     { id: 'hr-leave', label: 'Leave Approvals', icon: Calendar },
     { id: 'hr-employees', label: 'Workforce Directory', icon: Users },
     { id: 'hr-performance', label: 'Performance Metrics', icon: TrendingUp },
