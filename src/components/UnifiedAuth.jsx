@@ -201,11 +201,12 @@ export const UnifiedAuth = ({ defaultMode = 'login', defaultRole = 'candidate', 
       setTimeout(() => {
         setActiveModal(null);
         if (pendingJobToApply) {
-          applyForJob(pendingJobToApply);
-          setPendingJobToApply(null);
+          navigateTo('jobs');
+          window.location.hash = 'jobs';
+        } else {
+          navigateTo('candidates');
+          window.location.hash = 'candidates';
         }
-        navigateTo('candidates');
-        window.location.hash = 'candidates';
         window.scrollTo({ top: 0, behavior: 'smooth' });
         if (onSuccess) onSuccess();
       }, 700);
@@ -326,11 +327,12 @@ export const UnifiedAuth = ({ defaultMode = 'login', defaultRole = 'candidate', 
                 setTimeout(() => {
                   setActiveModal(null);
                   if (pendingJobToApply) {
-                    applyForJob(pendingJobToApply);
-                    setPendingJobToApply(null);
+                    navigateTo('jobs');
+                    window.location.hash = 'jobs';
+                  } else {
+                    navigateTo('candidates');
+                    window.location.hash = 'candidates';
                   }
-                  navigateTo('candidates');
-                  window.location.hash = 'candidates';
                   window.scrollTo({ top: 0, behavior: 'smooth' });
                   if (onSuccess) onSuccess();
                 }, 700);
@@ -446,8 +448,8 @@ export const UnifiedAuth = ({ defaultMode = 'login', defaultRole = 'candidate', 
     }
 
     if (pendingJobToApply) {
-      await applyForJob(pendingJobToApply);
-      setPendingJobToApply(null);
+      navigateTo('jobs');
+      window.location.hash = 'jobs';
     } else {
       navigateTo('candidates');
       window.location.hash = 'candidates';
@@ -549,8 +551,8 @@ export const UnifiedAuth = ({ defaultMode = 'login', defaultRole = 'candidate', 
     }
 
     if (pendingJobToApply) {
-      await applyForJob(pendingJobToApply);
-      setPendingJobToApply(null);
+      navigateTo('jobs');
+      window.location.hash = 'jobs';
     } else {
       navigateTo('candidates');
     }
@@ -565,8 +567,8 @@ export const UnifiedAuth = ({ defaultMode = 'login', defaultRole = 'candidate', 
     const result = loginCandidate('candidate@revivalinternational.com', 'demo123');
     if (result && result.success) {
       if (pendingJobToApply) {
-        await applyForJob(pendingJobToApply);
-        setPendingJobToApply(null);
+        navigateTo('jobs');
+        window.location.hash = 'jobs';
       } else {
         navigateTo('candidates');
       }
