@@ -2937,15 +2937,18 @@ export const JobsPage = () => {
       })()}
 
       {/* Quick Apply Modal */}
-      <QuickApplyModal
-        job={applyJob}
-        isOpen={Boolean(applyJob)}
-        onClose={() => setApplyJob(null)}
-        onSuccess={() => {
-          fetchJobs();
-          syncAppliedJobsFromDb();
-        }}
-      />
+      {applyJob && (
+        <QuickApplyModal
+          key={applyJob.id}
+          job={applyJob}
+          isOpen={Boolean(applyJob)}
+          onClose={() => setApplyJob(null)}
+          onSuccess={() => {
+            fetchJobs();
+            syncAppliedJobsFromDb();
+          }}
+        />
+      )}
 
       {/* ============================================================ */}
       {/* NAUKRI-STYLE FILTER SELECTION POPUP MODAL                     */}

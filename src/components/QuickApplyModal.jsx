@@ -50,6 +50,39 @@ export const QuickApplyModal = ({ job, isOpen, onClose, onSuccess }) => {
   const [isSuccess, setIsSuccess] = useState(false);
   const [successResult, setSuccessResult] = useState(null);
 
+  // Whenever modal opens or a different job is selected, ALWAYS reset form & success state
+  useEffect(() => {
+    if (isOpen && job) {
+      setIsSuccess(false);
+      setIsSubmitting(false);
+      setErrorMsg('');
+      setErrorCode('');
+      setSuccessResult(null);
+      setResumeFile(null);
+      setConsentAgreed(false);
+      if (user) {
+        if (user.name) setFullName(user.name);
+        if (user.email) setEmail(user.email);
+        if (user.phone && !user.phone.includes('123 4567') && !user.phone.includes('1234567') && !user.phone.includes('9876543210')) {
+          setPhone(user.phone);
+        } else {
+          setPhone('');
+        }
+      }
+    }
+  }, [isOpen, job?.id]);
+
+  const handleModalClose = () => {
+    setIsSuccess(false);
+    setIsSubmitting(false);
+    setErrorMsg('');
+    setErrorCode('');
+    setSuccessResult(null);
+    setResumeFile(null);
+    setConsentAgreed(false);
+    onClose();
+  };
+
   const isExpired = Boolean(
     job?.closingDate && new Date(job.closingDate).setHours(23, 59, 59, 999) < Date.now()
   );
@@ -229,7 +262,7 @@ export const QuickApplyModal = ({ job, isOpen, onClose, onSuccess }) => {
     <div 
       className="fixed inset-0 z-50 overflow-y-auto bg-navy-950/80 backdrop-blur-sm p-3 sm:p-6 flex items-start justify-center animate-fade-in"
       onClick={(e) => {
-        if (e.target === e.currentTarget) onClose();
+        if (e.target === e.currentTarget) handleModalClose();
       }}
     >
       <div 
@@ -240,7 +273,7 @@ export const QuickApplyModal = ({ job, isOpen, onClose, onSuccess }) => {
         {/* Header - Fixed & Never Squeezed */}
         <div className="bg-gradient-to-r from-navy-900 via-navy-950 to-slate-900 text-white p-5 sm:p-6 relative shrink-0">
           <button
-            onClick={onClose}
+            onClick={handleModalClose}
             aria-label="Close Modal"
             className="absolute top-4 right-4 w-8 h-8 rounded-full bg-white/10 hover:bg-white/20 flex items-center justify-center transition cursor-pointer"
           >
@@ -272,7 +305,7 @@ export const QuickApplyModal = ({ job, isOpen, onClose, onSuccess }) => {
               </p>
               <button
                 type="button"
-                onClick={onClose}
+                onClick={handleModalClose}
                 className="w-full mt-2 py-2.5 bg-slate-200 dark:bg-navy-800 text-slate-800 dark:text-white font-bold text-xs rounded-xl hover:bg-slate-300 dark:hover:bg-navy-700 transition cursor-pointer"
               >
                 Close & View Open Vacancies
@@ -302,7 +335,7 @@ export const QuickApplyModal = ({ job, isOpen, onClose, onSuccess }) => {
                   type="button"
                   onClick={() => {
                     setPendingJobToApply(job);
-                    onClose();
+                    handleModalClose();
                     openAuthModal('register', 'candidate');
                   }}
                   className="w-full bg-gold-shimmer text-navy-950 font-bold text-xs sm:text-sm py-3 rounded-xl hover:opacity-95 transition shadow-gold-glow flex items-center justify-center gap-2 cursor-pointer"
@@ -315,7 +348,7 @@ export const QuickApplyModal = ({ job, isOpen, onClose, onSuccess }) => {
                   type="button"
                   onClick={() => {
                     setPendingJobToApply(job);
-                    onClose();
+                    handleModalClose();
                     openAuthModal('login', 'candidate');
                   }}
                   className="w-full bg-slate-100 dark:bg-navy-800 text-slate-800 dark:text-white font-bold text-xs py-2.5 rounded-xl hover:bg-slate-200 dark:hover:bg-navy-700 transition flex items-center justify-center gap-2 cursor-pointer"
@@ -480,7 +513,7 @@ export const QuickApplyModal = ({ job, isOpen, onClose, onSuccess }) => {
               <div className="pt-2">
                 <button
                   type="button"
-                  onClick={onClose}
+                  onClick={handleModalClose}
                   className="w-full bg-slate-200 dark:bg-navy-800 text-slate-800 dark:text-white font-bold text-xs py-3 rounded-xl hover:bg-slate-300 dark:hover:bg-navy-700 transition cursor-pointer"
                 >
                   Close
