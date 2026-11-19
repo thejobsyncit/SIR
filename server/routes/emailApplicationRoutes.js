@@ -55,12 +55,21 @@ export const registerEmailApplicationRoutes = (app, { getDb, getClientIp, logAud
 
     if (!job) return null;
 
+    // Check if client company has a specific contact email in clients table
+    let companyEmail = job.companyEmail || job.email;
+    if (!companyEmail && job.company) {
+      try {
+        const client = await db.get('SELECT email FROM clients WHERE LOWER(company) = LOWER(?) LIMIT 1', [job.company]);
+        if (client?.email) companyEmail = client.email;
+      } catch (_) {}
+    }
+
     // Normalize job fields
     return {
       id: job.id,
       title: job.title || job.jobTitle || 'Career Opportunity',
       company: job.company || job.companyName || 'Revival International Partner Employer',
-      companyEmail: job.companyEmail || job.email || 'enquiry@therevivalinternational.com',
+      companyEmail: companyEmail || process.env.PRIMARY_EMAIL || 'enquiry@therevivalinternational.com',
       location: job.location || job.country || 'Target Location',
       department: job.department || job.category || 'Operations',
       skills: job.skills || [],
@@ -229,18 +238,32 @@ export const registerEmailApplicationRoutes = (app, { getDb, getClientIp, logAud
         return res.status(404).json({ success: false, message: 'Job vacancy not found.' });
       }
 
-      // Generate or assemble email content
+      // Enrich candidate details dynamically from database if missing
+      let candidateProfile = null;
+      if (candidateEmail) {
+        try {
+          candidateProfile = await db.get(
+            'SELECT name, phone, email, location FROM candidate_profiles WHERE LOWER(email) = LOWER(?) UNION SELECT name, phone, email, location FROM candidates WHERE LOWER(email) = LOWER(?)',
+            [candidateEmail.toLowerCase().trim(), candidateEmail.toLowerCase().trim()]
+          );
+        } catch (_) {}
+      }
+
+      const resolvedName = candidateName || candidateProfile?.name || 'Candidate';
+      const resolvedPhone = candidatePhone || candidateProfile?.phone || '';
+      const resolvedEmail = candidateEmail || candidateProfile?.email || '';
+
+      // Generate consultant introduction email content
       let emailContent = await generateApplicationEmail({
         candidate: {
-          name: candidateName,
-          email: candidateEmail,
-          phone: candidatePhone,
-          location: candidateLocation,
+          name: resolvedName,
+          email: resolvedEmail,
+          phone: resolvedPhone,
+          location: candidateLocation || candidateProfile?.location,
           experience,
           noticePeriod
         },
-        job,
-        middleParagraphOverride: editedMiddleParagraph || null
+        job
       });
 
       // If candidate customized the subject or body in the preview step, honor their edits

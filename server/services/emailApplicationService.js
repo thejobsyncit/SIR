@@ -231,13 +231,13 @@ Tone: Professional, confident, truthful, no exaggerated or ungrounded claims. Hi
  * generateApplicationEmail({ candidate, job })
  * Generates a clean, short, professional, recruiter-friendly job application email.
  * Format:
- *   Subject: Application for [Job Role] – [Company Name]
+ *   Subject: Candidate Application – [Job Role] | [Company Name]
  *   Dear Hiring Team,
- *   I am interested in applying for the [Job Role] position at [Company Name]...
+ *   Greetings from The Revival International!
+ *   We are pleased to share a candidate application for the [Job Role] position at [Company Name]...
  *   Best regards,
- *   [Candidate Name]
- *   [Candidate Email]
- *   [Candidate Phone Number]
+ *   Recruitment Team
+ *   The Revival International
  */
 export const generateApplicationEmail = async ({ candidate = {}, job = {} }) => {
   // 1. Normalize Job Data from record
@@ -250,27 +250,32 @@ export const generateApplicationEmail = async ({ candidate = {}, job = {} }) => 
   const candidateEmail = candidate.email || 'applicant@example.com';
   const candidatePhone = candidate.phone ? candidate.phone.trim() : '';
 
-  // 3. Exact Required Subject: Application for [Job Role] – [Company Name]
-  const subject = `Application for ${jobTitle} – ${companyName}`;
+  // 3. Exact Required Subject: Candidate Application – [Job Role] | [Company Name]
+  const subject = `Candidate Application – ${jobTitle} | ${companyName}`;
 
   // 4. Exact Required Plain Text Body
   const textBodyLines = [
     'Dear Hiring Team,',
     '',
-    `I am interested in applying for the ${jobTitle} position at ${companyName}. I believe my skills and experience align with the job requirements, and I would appreciate the opportunity to be considered for this position.`,
+    'Greetings from The Revival International!',
     '',
-    'I look forward to hearing from you.',
+    `We are pleased to share a candidate application for the ${jobTitle} position at ${companyName}.`,
     '',
-    'Thank you for your time and consideration.',
+    'Candidate Details:',
+    '',
+    `* Candidate Name: ${candidateName}`,
+    `* Position Applied: ${jobTitle}`,
+    `* Email: ${candidateEmail}`,
+    `* Contact: ${candidatePhone || 'Available upon request'}`,
+    '',
+    'Kindly review the candidate’s profile and consider the application for the mentioned position.',
+    '',
+    'We look forward to your feedback.',
     '',
     'Best regards,',
-    candidateName,
-    candidateEmail
+    'Recruitment Team',
+    'The Revival International'
   ];
-
-  if (candidatePhone) {
-    textBodyLines.push(candidatePhone);
-  }
 
   const textBody = textBodyLines.join('\n');
 
@@ -281,24 +286,63 @@ export const generateApplicationEmail = async ({ candidate = {}, job = {} }) => 
 <head>
   <meta charset="utf-8">
   <style>
-    body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif; line-height: 1.6; color: #1e293b; background-color: #ffffff; margin: 0; padding: 24px; font-size: 15px; }
-    .container { max-width: 600px; margin: 0 auto; }
-    p { margin: 0 0 16px 0; }
-    .signature { margin-top: 20px; line-height: 1.5; color: #1e293b; }
-    .signature-name { font-weight: 600; color: #0f172a; }
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+      line-height: 1.6;
+      color: #1e293b;
+      background-color: #ffffff;
+      margin: 0;
+      padding: 24px;
+      font-size: 15px;
+    }
+    .container {
+      max-width: 600px;
+      margin: 0 auto;
+    }
+    p {
+      margin: 0 0 16px 0;
+    }
+    ul {
+      margin: 0 0 18px 0;
+      padding-left: 20px;
+      list-style-type: disc;
+    }
+    li {
+      margin-bottom: 8px;
+    }
+    .signature {
+      margin-top: 24px;
+      line-height: 1.5;
+      color: #1e293b;
+    }
+    .signature-title {
+      font-weight: 700;
+      color: #0f172a;
+    }
+    .signature-company {
+      font-weight: 600;
+      color: #d97706;
+    }
   </style>
 </head>
 <body>
   <div class="container">
     <p>Dear Hiring Team,</p>
-    <p>I am interested in applying for the ${jobTitle} position at ${companyName}. I believe my skills and experience align with the job requirements, and I would appreciate the opportunity to be considered for this position.</p>
-    <p>I look forward to hearing from you.</p>
-    <p>Thank you for your time and consideration.</p>
+    <p>Greetings from The Revival International!</p>
+    <p>We are pleased to share a candidate application for the <strong>${jobTitle}</strong> position at <strong>${companyName}</strong>.</p>
+    <p><strong>Candidate Details:</strong></p>
+    <ul>
+      <li><strong>Candidate Name:</strong> ${candidateName}</li>
+      <li><strong>Position Applied:</strong> ${jobTitle}</li>
+      <li><strong>Email:</strong> <a href="mailto:${candidateEmail}" style="color: #2563eb; text-decoration: none;">${candidateEmail}</a></li>
+      <li><strong>Contact:</strong> ${candidatePhone || 'Available upon request'}</li>
+    </ul>
+    <p>Kindly review the candidate’s profile and consider the application for the mentioned position.</p>
+    <p>We look forward to your feedback.</p>
     <div class="signature">
-      <p style="margin-bottom: 6px;">Best regards,</p>
-      <div class="signature-name">${candidateName}</div>
-      <div><a href="mailto:${candidateEmail}" style="color: #0f172a; text-decoration: none;">${candidateEmail}</a></div>
-      ${candidatePhone ? `<div>${candidatePhone}</div>` : ''}
+      <p style="margin-bottom: 4px;">Best regards,</p>
+      <div class="signature-title">Recruitment Team</div>
+      <div class="signature-company">The Revival International</div>
     </div>
   </div>
 </body>
@@ -381,8 +425,10 @@ export const getTransporter = () => {
 };
 
 /**
- * Sends the job application email with the candidate's CV attached.
- * Dispatches to the company email, admin inbox, and CCs the candidate.
+ * Sends an automatic candidate introduction email from The Revival International
+ * recruitment team directly to the respective employer/recruiter.
+ * Sent from The Revival International official email address.
+ * No attachments, no duplicate recipients, no unnecessary CCs.
  */
 export const sendJobApplicationEmail = async ({
   candidate,
@@ -392,28 +438,18 @@ export const sendJobApplicationEmail = async ({
 }) => {
   const transporter = getTransporter();
 
-  const candidateEmail = candidate.email;
-  const adminGmail = 'thejobsyncit@gmail.com';
-  const officialDesk = job.companyEmail || 'enquiry@therevivalinternational.com';
-  const fromEmail = transporter.user;
-
-  // Build recipient list delivering directly to candidate's Gmail, Admin's Gmail, and official desk
-  const toList = [candidateEmail];
-  if (adminGmail && !toList.includes(adminGmail)) {
-    toList.push(adminGmail);
-  }
-  if (officialDesk && !toList.includes(officialDesk)) {
-    toList.push(officialDesk);
-  }
+  // Employer / hiring team email address
+  const employerEmail = (job.companyEmail || job.email || process.env.PRIMARY_EMAIL || 'enquiry@therevivalinternational.com').trim();
+  const fromEmail = transporter.user || 'enquiry@therevivalinternational.com';
 
   const mailOptions = {
-    from: `"The Revival International • Careers" <${fromEmail}>`,
-    to: toList.join(', '),
-    replyTo: candidateEmail,
+    from: `"The Revival International • Recruitment Team" <${fromEmail}>`,
+    to: employerEmail,
+    replyTo: candidate.email || fromEmail,
     subject: emailContent.subject,
     text: emailContent.textBody,
     html: emailContent.htmlBody,
-    attachments: [] // Do NOT attach resume or CV to email per requirements
+    attachments: [] // Do NOT attach resume or CV per requirements
   };
 
   const result = await transporter.sendMail(mailOptions);
@@ -421,9 +457,8 @@ export const sendJobApplicationEmail = async ({
     success: true,
     simulated: Boolean(result.simulated),
     messageId: result.messageId,
-    recipient: toList.join(', '),
-    candidateCc: candidateEmail,
-    replyTo: candidateEmail,
+    recipient: employerEmail,
+    replyTo: candidate.email || fromEmail,
     subject: emailContent.subject,
     isConfigured: transporter.isConfigured
   };
