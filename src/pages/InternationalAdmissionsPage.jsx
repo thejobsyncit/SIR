@@ -544,7 +544,7 @@ export const InternationalAdmissionsPage = () => {
       {/* ========================================================================= */}
       {/* SECTION 1: HERO SECTION                                                   */}
       {/* ========================================================================= */}
-      <section className="relative overflow-hidden pt-28 pb-16 md:pt-36 md:pb-24 bg-white border-b border-gray-200/80">
+      <section className="relative overflow-hidden pt-5 pb-16 md:pt-6 md:pb-20 bg-white border-b border-gray-200/80">
         {/* Subtle Architectural Grid Background */}
         <div className="absolute inset-0 opacity-[0.03] pointer-events-none bg-[radial-gradient(#102A43_1px,transparent_1px)] [background-size:24px_24px]" />
         <div className="absolute -top-32 -right-32 w-96 h-96 rounded-full bg-[#C6A45C]/10 blur-3xl pointer-events-none" />

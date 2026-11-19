@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
+import { useApp } from '../context/AppContext';
 import {
   Bot, Send, X, User, Sparkles, Phone, Calendar, Copy, Check,
   RotateCcw, Minimize2, Maximize2, Globe, Briefcase, GraduationCap,
@@ -105,12 +106,43 @@ const renderInlineFormatting = (str) => {
 };
 
 export const AIChatbotDrawer = () => {
+  const { activeTab } = useApp ? useApp() : { activeTab: '' };
+
+  const isJobsPage = Boolean(
+    activeTab && (
+      activeTab === 'jobs' ||
+      activeTab === 'job' ||
+      activeTab === 'careers' ||
+      activeTab === 'vacancies' ||
+      activeTab.startsWith('jobs/') ||
+      activeTab.startsWith('job/')
+    )
+  ) || (typeof window !== 'undefined' && (
+    window.location.pathname.replace(/^\/+|\/+$/g, '') === 'jobs' ||
+    window.location.pathname.replace(/^\/+|\/+$/g, '').startsWith('jobs/') ||
+    window.location.hash.replace(/^#/, '').split('?')[0] === 'jobs' ||
+    window.location.hash.replace(/^#/, '').split('?')[0] === 'job' ||
+    window.location.hash.replace(/^#/, '').split('?')[0] === 'careers' ||
+    window.location.hash.replace(/^#/, '').split('?')[0] === 'vacancies'
+  ));
+
   if (typeof window !== 'undefined') {
     const hash = (window.location.hash || '').toLowerCase();
     const path = (window.location.pathname || '').toLowerCase();
-    if (hash.includes('candidates') || path.includes('candidates') || hash.includes('employers') || path.includes('employers')) {
+    if (
+      isJobsPage ||
+      hash.includes('jobs') || path.includes('jobs') ||
+      hash.includes('careers') || path.includes('careers') ||
+      hash.includes('vacancies') || path.includes('vacancies') ||
+      hash.includes('candidates') || path.includes('candidates') ||
+      hash.includes('employers') || path.includes('employers')
+    ) {
       return null;
     }
+  }
+
+  if (isJobsPage || activeTab === 'candidates' || activeTab === 'employers') {
+    return null;
   }
 
   const [isOpen, setIsOpen] = useState(false);

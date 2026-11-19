@@ -87,23 +87,6 @@ export const Navbar = () => {
         </div>
 
         <div className="flex items-center space-x-4">
-
-
-          {/* Quick AI Tools Button */}
-          <button
-            onClick={() => {
-              if (!user) {
-                openAuthModal('login', 'candidate');
-              } else {
-                setActiveModal('ai-resume');
-              }
-            }}
-            className="hidden sm:flex items-center space-x-1.5 bg-gold-500/20 text-gold-400 hover:bg-gold-500 hover:text-slate-900 dark:text-white px-2.5 py-1 rounded text-xs font-medium transition cursor-pointer"
-          >
-            <Sparkles className="w-3 h-3" />
-            <span>{t('nav.aiResume')}</span>
-          </button>
-
           {/* Language Selector */}
           <select
             value={language}

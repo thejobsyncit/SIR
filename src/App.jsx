@@ -106,6 +106,24 @@ export function App() {
     )
   );
 
+  const isJobsPage = Boolean(
+    activeTab && (
+      activeTab === 'jobs' ||
+      activeTab === 'job' ||
+      activeTab === 'careers' ||
+      activeTab === 'vacancies' ||
+      activeTab.startsWith('jobs/') ||
+      activeTab.startsWith('job/')
+    )
+  ) || (typeof window !== 'undefined' && (
+    window.location.pathname.replace(/^\/+|\/+$/g, '') === 'jobs' ||
+    window.location.pathname.replace(/^\/+|\/+$/g, '').startsWith('jobs/') ||
+    window.location.hash.replace(/^#/, '').split('?')[0] === 'jobs' ||
+    window.location.hash.replace(/^#/, '').split('?')[0] === 'job' ||
+    window.location.hash.replace(/^#/, '').split('?')[0] === 'careers' ||
+    window.location.hash.replace(/^#/, '').split('?')[0] === 'vacancies'
+  ));
+
   const renderCurrentPage = () => {
     // Dedicated Academic & Education Advisory Routes
     if (activeTab === 'education') {
@@ -219,6 +237,8 @@ export function App() {
         return <VisaEligibilityPage />;
       case 'background-verification':
         return <BackgroundVerificationPage />;
+      case 'report-issue':
+      case 'legal/report-issue':
       case 'contact':
         return <ContactUsPage />;
       case 'legal-privacy':
@@ -280,7 +300,7 @@ export function App() {
     <div className="min-h-screen flex flex-col justify-between selection:bg-gold-500 selection:text-white">
       <Navbar />
       
-      <main className="flex-grow pb-16 sm:pb-24">
+      <main className={`flex-grow ${isJobsPage ? 'pb-2' : 'pb-6 sm:pb-8'}`}>
         {renderCurrentPage()}
       </main>
 
@@ -291,8 +311,8 @@ export function App() {
       <AIResumeAnalyzerModal />
       <PaymentGatewayModal />
       <ResumeBuilderModal />
-      {activeTab !== 'candidates' && activeTab !== 'employers' && <AIChatbotDrawer />}
-      <FloatingWhatsApp />
+      {!isJobsPage && activeTab !== 'candidates' && activeTab !== 'employers' && <AIChatbotDrawer />}
+      {!isJobsPage && activeTab !== 'candidates' && activeTab !== 'employers' && <FloatingWhatsApp />}
       <CookieConsent />
     </div>
   );

@@ -165,11 +165,13 @@ export const AppProvider = ({ children }) => {
 
   // Candidate Data Isolation: Load candidate-specific applications and saved jobs
   useEffect(() => {
-    if (user && user.candidateId) {
-      const cid = user.candidateId;
+    if (user && (user.candidateId || user.email)) {
+      const cid = user.candidateId || user.email;
+      const userEmail = (user.email || '').toLowerCase().trim();
+
       // Load saved jobs for this candidate
       try {
-        const saved = localStorage.getItem(`sir_saved_jobs_${cid}`) || localStorage.getItem(`sir_saved_jobs_${user.email}`);
+        const saved = localStorage.getItem(`sir_saved_jobs_${cid}`) || (userEmail ? localStorage.getItem(`sir_saved_jobs_${userEmail}`) : null);
         if (saved) {
           setSavedJobs(JSON.parse(saved));
         } else if (user.savedJobs && Array.isArray(user.savedJobs)) {
@@ -181,29 +183,58 @@ export const AppProvider = ({ children }) => {
         setSavedJobs([]);
       }
 
-      // Load applications for this candidate
+      // Load applications for this candidate from localStorage first (immediate local cache)
+      let initialApps = [];
       try {
-        const apps = localStorage.getItem(`sir_applications_${cid}`) || localStorage.getItem(`sir_applications_${user.email}`);
+        const localByCid = localStorage.getItem(`sir_applications_${cid}`);
+        const localByEmail = userEmail ? localStorage.getItem(`sir_applications_${userEmail}`) : null;
+        const apps = localByCid || localByEmail;
         if (apps) {
-          setApplications(JSON.parse(apps));
-        } else if (user.applications && Array.isArray(user.applications)) {
+          initialApps = JSON.parse(apps);
+          if (Array.isArray(initialApps) && initialApps.length > 0) {
+            setApplications(initialApps);
+          }
+        } else if (user.applications && Array.isArray(user.applications) && user.applications.length > 0) {
+          initialApps = user.applications;
           setApplications(user.applications);
-        } else {
-          setApplications([]);
         }
-      } catch {
-        setApplications([]);
-      }
+      } catch { }
 
-      // Sync from backend candidate APIs for complete data isolation
-      fetch(`/api/candidate/applications?candidateId=${encodeURIComponent(cid)}`)
+      // Sync from backend candidate APIs for complete data isolation & database persistence
+      const queryParams = new URLSearchParams();
+      if (user.candidateId) queryParams.set('candidateId', user.candidateId);
+      if (userEmail) queryParams.set('email', userEmail);
+      if (user.userId) queryParams.set('userId', user.userId);
+
+      fetch(`/api/candidate/applications?${queryParams.toString()}`)
         .then(r => r.json())
         .then(d => {
           if (d?.success && Array.isArray(d?.data)) {
-            setApplications(d.data);
-            try {
-              localStorage.setItem(`sir_applications_${cid}`, JSON.stringify(d.data));
-            } catch { }
+            if (d.data.length > 0) {
+              setApplications(d.data);
+              try {
+                if (user.candidateId) localStorage.setItem(`sir_applications_${user.candidateId}`, JSON.stringify(d.data));
+                if (userEmail) localStorage.setItem(`sir_applications_${userEmail}`, JSON.stringify(d.data));
+              } catch { }
+            } else if (initialApps.length > 0) {
+              // Local cache has applications not yet returned by server; preserve them and sync to backend
+              setApplications(initialApps);
+              initialApps.forEach(app => {
+                fetch('/api/candidate/applications', {
+                  method: 'POST',
+                  headers: { 'Content-Type': 'application/json' },
+                  body: JSON.stringify({
+                    ...app,
+                    candidateId: user.candidateId || cid,
+                    userId: user.userId || '',
+                    applicantEmail: userEmail,
+                    applicantName: user.name || app.applicantName
+                  })
+                }).catch(() => {});
+              });
+            } else {
+              setApplications([]);
+            }
           }
         })
         .catch(() => { });
@@ -222,7 +253,7 @@ export const AppProvider = ({ children }) => {
 
       // Load saved searches for this candidate
       try {
-        const savedS = localStorage.getItem(`sir_saved_searches_${cid}`) || localStorage.getItem(`sir_saved_searches_${user.email}`);
+        const savedS = localStorage.getItem(`sir_saved_searches_${cid}`) || (userEmail ? localStorage.getItem(`sir_saved_searches_${userEmail}`) : null);
         if (savedS) {
           setSavedSearches(JSON.parse(savedS));
         } else {
@@ -296,6 +327,16 @@ export const AppProvider = ({ children }) => {
 
       saveCandidateToDB(candidateUser);
       saveUserSession(candidateUser);
+      const savedAppsPredefined = localStorage.getItem(`sir_applications_${candidateUser.candidateId}`) || 
+                                  localStorage.getItem(`sir_applications_${normalizedEmail}`);
+      if (savedAppsPredefined) {
+        try {
+          const parsed = JSON.parse(savedAppsPredefined);
+          if (Array.isArray(parsed) && parsed.length > 0) setApplications(parsed);
+        } catch { }
+      } else if (candidateUser.applications && Array.isArray(candidateUser.applications)) {
+        setApplications(candidateUser.applications);
+      }
       const pendingAcademy = typeof getPendingStudentAcademyEnquiry === 'function' ? getPendingStudentAcademyEnquiry() : null;
       const pendingCareer = typeof getPendingCareerEnquiry === 'function' ? getPendingCareerEnquiry() : null;
       const targetTab = (pendingAcademy && pendingAcademy.route)
@@ -327,6 +368,18 @@ export const AppProvider = ({ children }) => {
     candidateUser = { ...candidateUser, loginTime: new Date().toISOString() };
     saveCandidateToDB(candidateUser);
     saveUserSession(candidateUser);
+
+    const savedAppsRegular = localStorage.getItem(`sir_applications_${candidateUser.candidateId}`) || 
+                             localStorage.getItem(`sir_applications_${normalizedEmail}`);
+    if (savedAppsRegular) {
+      try {
+        const parsed = JSON.parse(savedAppsRegular);
+        if (Array.isArray(parsed) && parsed.length > 0) setApplications(parsed);
+      } catch { }
+    } else if (candidateUser.applications && Array.isArray(candidateUser.applications)) {
+      setApplications(candidateUser.applications);
+    }
+
     const pendingAcademy = typeof getPendingStudentAcademyEnquiry === 'function' ? getPendingStudentAcademyEnquiry() : null;
     const pendingCareer = typeof getPendingCareerEnquiry === 'function' ? getPendingCareerEnquiry() : null;
     const targetTab = (pendingAcademy && pendingAcademy.route)
@@ -833,9 +886,9 @@ export const AppProvider = ({ children }) => {
 
   const applyForJob = async (job, payload = {}) => {
     if (!job || !job.id) return;
-    const cid = user?.candidateId || user?.id || 'RI-CAND-001';
-    const uid = user?.userId || '';
-    const userEmail = user?.email || payload.applicantEmail || '';
+    const cid = user?.candidateId || user?.id || payload.candidateId || 'RI-CAND-001';
+    const uid = user?.userId || payload.userId || '';
+    const userEmail = (user?.email || payload.applicantEmail || payload.email || '').toLowerCase().trim();
 
     const resumeName = payload.resumeName || user?.resumeName || null;
     const resumeUrl = payload.resumeUrl || user?.resumeUrl || null;
@@ -843,11 +896,11 @@ export const AppProvider = ({ children }) => {
     const coverNote = payload.coverNote || '';
     const noticePeriod = payload.noticePeriod || 'Immediate';
     const expectedSalary = payload.expectedSalary || job.salary || user?.expectedSalary || 'Market Standard';
-    const applicantName = user?.name || payload.applicantName || 'Candidate';
-    const applicantPhone = user?.phone || payload.applicantPhone || '';
+    const applicantName = payload.applicantName || payload.name || user?.name || 'Candidate';
+    const applicantPhone = payload.applicantPhone || payload.phone || user?.phone || '';
 
     const newApp = {
-      id: `RI-APP-${Math.floor(10000 + Math.random() * 90000)}`,
+      id: payload.referenceNumber || `RI-APP-${Math.floor(10000 + Math.random() * 90000)}`,
       candidateId: cid,
       userId: uid,
       jobId: job.id,
@@ -874,8 +927,17 @@ export const AppProvider = ({ children }) => {
       if (cid) {
         try {
           localStorage.setItem(`sir_applications_${cid}`, JSON.stringify(next));
-          if (userEmail) {
-            localStorage.setItem(`sir_applications_${userEmail.toLowerCase().trim()}`, JSON.stringify(next));
+        } catch { }
+      }
+      if (userEmail) {
+        try {
+          localStorage.setItem(`sir_applications_${userEmail}`, JSON.stringify(next));
+        } catch { }
+        try {
+          const db = getCandidateDB();
+          if (db[userEmail]) {
+            db[userEmail].applications = next;
+            localStorage.setItem('sir_candidates_db', JSON.stringify(db));
           }
         } catch { }
       }

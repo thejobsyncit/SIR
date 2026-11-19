@@ -28,6 +28,14 @@ export const QuickApplyModal = ({ job, isOpen, onClose, onSuccess }) => {
     }
     return '';
   });
+
+  useEffect(() => {
+    if (user?.name) setFullName(user.name);
+    if (user?.email) setEmail(user.email);
+    if (user?.phone && !user.phone.includes('123 4567') && !user.phone.includes('1234567') && !user.phone.includes('9876543210')) {
+      setPhone(user.phone);
+    }
+  }, [user]);
   const [phoneValidation, setPhoneValidation] = useState({ isValid: false, error: null });
   const [resumeFile, setResumeFile] = useState(null);
   const [consentAgreed, setConsentAgreed] = useState(false);
@@ -129,6 +137,13 @@ export const QuickApplyModal = ({ job, isOpen, onClose, onSuccess }) => {
 
     if (!user || !user.email) {
       setErrorMsg('Candidate registration is required before submitting an application.');
+      return;
+    }
+
+    if (!user || !user.email) {
+      if (setPendingJobToApply) setPendingJobToApply(job);
+      if (onClose) onClose();
+      if (openAuthModal) openAuthModal('register', 'candidate');
       return;
     }
 
