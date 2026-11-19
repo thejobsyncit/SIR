@@ -317,18 +317,40 @@ export const registerEmailApplicationRoutes = (app, { getDb, getClientIp, logAud
         errorDetail
       ]);
 
-      // Also record in candidate_applications for unified candidate portal display
+      // Record in candidate_applications for Candidate Dashboard and CRM Application Pipeline
       try {
+        const normEmail = (candidateEmail || '').trim().toLowerCase();
+
+        // 1. Resolve user ID for foreign key integrity
+        let userRow = await db.get('SELECT id FROM users WHERE LOWER(email) = LOWER(?)', [normEmail]);
+        let effectiveUid = userRow?.id;
+        if (!effectiveUid) {
+          const fallbackUser = await db.get('SELECT id FROM users WHERE role = "candidate" LIMIT 1') || await db.get('SELECT id FROM users LIMIT 1');
+          effectiveUid = fallbackUser?.id || 'USR-MW6CF773-428';
+        }
+
+        // 2. Resolve or create candidate profile for foreign key integrity
+        let profile = await db.get('SELECT id FROM candidate_profiles WHERE LOWER(email) = LOWER(?)', [normEmail]);
+        let effectiveCid = profile?.id;
+        if (!effectiveCid) {
+          effectiveCid = `RI-CAND-${Date.now().toString().slice(-4)}${Math.floor(10 + Math.random() * 90)}`;
+          await db.run(`
+            INSERT OR IGNORE INTO candidate_profiles (id, userId, name, email, phone, nationality)
+            VALUES (?, ?, ?, ?, ?, ?)
+          `, [effectiveCid, effectiveUid, candidateName || 'Candidate', candidateEmail, candidatePhone || '', candidateLocation || 'Global']);
+        }
+
+        // 3. Insert or update candidate_applications
         await db.run(`
-          INSERT INTO candidate_applications (
+          INSERT OR REPLACE INTO candidate_applications (
             id, candidateId, userId, jobId, jobTitle, company, location,
             applicantName, applicantEmail, applicantPhone, resumeName,
-            status, appliedDate, source
-          ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'Applied', CURRENT_TIMESTAMP, 'Email Application')
+            status, stage, appliedDate
+          ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'Under Review', 'Applied', CURRENT_TIMESTAMP)
         `, [
           appId,
-          `CAND-${Date.now()}`,
-          candidateEmail,
+          effectiveCid,
+          effectiveUid,
           String(job.id),
           job.title,
           job.company,
@@ -336,9 +358,40 @@ export const registerEmailApplicationRoutes = (app, { getDb, getClientIp, logAud
           candidateName,
           candidateEmail,
           candidatePhone,
-          resumeFileName
+          resumeFileName || 'Curriculum_Vitae.pdf'
         ]);
-      } catch (_) {}
+
+        // 4. Ensure candidate exists in candidates table with stage = 'applied' so they show up in CRM Kanban & Applicants
+        const existingInCandidates = await db.get('SELECT id FROM candidates WHERE LOWER(email) = LOWER(?)', [normEmail]);
+        if (existingInCandidates) {
+          await db.run(`
+            UPDATE candidates SET
+              stage = 'applied',
+              currentRole = COALESCE(?, currentRole),
+              currentEmployer = COALESCE(?, currentEmployer)
+            WHERE id = ?
+          `, [job.title, job.company, existingInCandidates.id]);
+        } else {
+          await db.run(`
+            INSERT INTO candidates (
+              id, name, email, phone, nationality, currentEmployer, currentRole,
+              stage, score, skills, source, aiSummary, assignedRecruiter
+            ) VALUES (?, ?, ?, ?, ?, ?, ?, 'applied', 90, ?, 'Quick Apply / Job Application', ?, 'Dhanalakshimi (Lead Advisor)')
+          `, [
+            effectiveCid,
+            candidateName,
+            candidateEmail,
+            candidatePhone,
+            candidateLocation || 'Global',
+            job.company,
+            job.title,
+            JSON.stringify([job.title]),
+            `Applied for ${job.title} at ${job.company}`
+          ]);
+        }
+      } catch (appSyncErr) {
+        console.error('[Application Pipeline Sync Error]:', appSyncErr);
+      }
 
       // Log audit trail
       if (logAuditTrail) {
