@@ -237,6 +237,8 @@ export function App() {
         return <VisaEligibilityPage />;
       case 'background-verification':
         return <BackgroundVerificationPage />;
+      case 'report-issue':
+      case 'legal/report-issue':
       case 'contact':
         return <ContactUsPage />;
       case 'legal-privacy':
@@ -298,7 +300,7 @@ export function App() {
     <div className="min-h-screen flex flex-col justify-between selection:bg-gold-500 selection:text-white">
       <Navbar />
       
-      <main className="flex-grow pb-16 sm:pb-24">
+      <main className={`flex-grow ${isJobsPage ? 'pb-2' : 'pb-6 sm:pb-8'}`}>
         {renderCurrentPage()}
       </main>
 

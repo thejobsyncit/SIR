@@ -1,11 +1,11 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useApp } from '../context/AppContext';
 import { X, Upload, FileText, CheckCircle2, AlertCircle, ArrowRight } from 'lucide-react';
 import CountryPhoneInput from './common/CountryPhoneInput';
 import SITE_CONFIG from '../config/siteConfig';
 
 export const QuickApplyModal = ({ job, isOpen, onClose, onSuccess }) => {
-  const { user, applyForJob, navigateTo } = useApp();
+  const { user, applyForJob, navigateTo, openAuthModal, setPendingJobToApply } = useApp();
 
   const [fullName, setFullName] = useState(user?.name || '');
   const [email, setEmail] = useState(user?.email || '');
@@ -16,6 +16,14 @@ export const QuickApplyModal = ({ job, isOpen, onClose, onSuccess }) => {
     }
     return '';
   });
+
+  useEffect(() => {
+    if (user?.name) setFullName(user.name);
+    if (user?.email) setEmail(user.email);
+    if (user?.phone && !user.phone.includes('123 4567') && !user.phone.includes('1234567') && !user.phone.includes('9876543210')) {
+      setPhone(user.phone);
+    }
+  }, [user]);
   const [phoneValidation, setPhoneValidation] = useState({ isValid: false, error: null });
   const [resumeFile, setResumeFile] = useState(null);
   const [consentAgreed, setConsentAgreed] = useState(false);
@@ -55,6 +63,13 @@ export const QuickApplyModal = ({ job, isOpen, onClose, onSuccess }) => {
     e.preventDefault();
     setErrorMsg('');
 
+    if (!user || !user.email) {
+      if (setPendingJobToApply) setPendingJobToApply(job);
+      if (onClose) onClose();
+      if (openAuthModal) openAuthModal('register', 'candidate');
+      return;
+    }
+
     if (isExpired) {
       setErrorMsg(`Applications for this position closed on ${job.closingDate}. Submissions are no longer accepted.`);
       return;
@@ -91,28 +106,37 @@ export const QuickApplyModal = ({ job, isOpen, onClose, onSuccess }) => {
     try {
       const generatedRef = `RI-APP-${Math.floor(100000 + Math.random() * 900000)}`;
 
-      // Prepare application payload
+      // Prepare application payload with complete candidate identification
       const appPayload = {
+        candidateId: user?.candidateId || user?.id,
+        userId: user?.userId,
         jobId: job.id,
         jobTitle: job.title,
         company: job.company || 'Revival International Partner Employer',
         location: job.location,
         salary: job.salary,
         name: fullName.trim(),
+        applicantName: fullName.trim(),
         email: email.trim().toLowerCase(),
+        applicantEmail: email.trim().toLowerCase(),
         phone: phone.trim(),
+        applicantPhone: phone.trim(),
         referenceNumber: generatedRef,
         resumeName: resumeFile ? resumeFile.name : (user?.resumeName || 'Applicant-CV.pdf'),
         consentGivenAt: new Date().toISOString(),
         consentVersion: 'v2.0-nov2026'
       };
 
-      // 1. Submit application to backend candidate applications
-      const res = await fetch('/api/candidate/applications', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(appPayload)
-      });
+      // 1. Submit application via applyForJob context (syncs state, localStorage, candidateDB, and SQLite backend)
+      if (applyForJob) {
+        await applyForJob(job, appPayload);
+      } else {
+        await fetch('/api/candidate/applications', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(appPayload)
+        });
+      }
 
       // 2. Also record in CRM leads work queue
       try {
@@ -132,11 +156,6 @@ export const QuickApplyModal = ({ job, isOpen, onClose, onSuccess }) => {
         });
       } catch (err) {
         console.warn('Leads queue sync notice:', err);
-      }
-
-      // 3. Update client-side context if available
-      if (applyForJob) {
-        await applyForJob(job);
       }
 
       setIsSuccess(true);
@@ -193,6 +212,28 @@ export const QuickApplyModal = ({ job, isOpen, onClose, onSuccess }) => {
                 className="w-full mt-2 py-2.5 bg-slate-200 dark:bg-navy-800 text-slate-800 dark:text-white font-bold text-xs rounded-xl hover:bg-slate-300 dark:hover:bg-navy-700 transition cursor-pointer"
               >
                 Close & View Open Vacancies
+              </button>
+            </div>
+          ) : !user || !user.email ? (
+            <div className="p-5 bg-amber-50 dark:bg-navy-950/60 border border-amber-300 dark:border-gold-500/30 rounded-2xl text-left space-y-3">
+              <div className="flex items-center gap-2 font-bold text-amber-900 dark:text-gold-400 text-sm">
+                <AlertCircle className="w-5 h-5 shrink-0 text-gold-500" />
+                <span>Candidate Registration Required</span>
+              </div>
+              <p className="text-xs leading-relaxed text-slate-700 dark:text-slate-300">
+                To apply for <strong>{job.title}</strong> at <strong>{job.company}</strong>, you must register a candidate account. Once registered, you will be redirected straight back here to complete your application.
+              </p>
+              <button
+                type="button"
+                onClick={() => {
+                  if (setPendingJobToApply) setPendingJobToApply(job);
+                  if (onClose) onClose();
+                  if (openAuthModal) openAuthModal('register', 'candidate');
+                }}
+                className="w-full mt-2 py-3 bg-gold-shimmer text-navy-950 font-bold text-xs rounded-xl shadow-gold-glow hover:opacity-95 transition cursor-pointer flex items-center justify-center gap-1.5"
+              >
+                <span>Register to Apply Now</span>
+                <ArrowRight className="w-4 h-4" />
               </button>
             </div>
           ) : !isSuccess ? (

@@ -1537,13 +1537,58 @@ app.get('/api/candidate/applications', async (req, res) => {
     const db = await getDb();
     let rows;
     if (candidateId || email || userId) {
+      const cleanEmail = (email || '').trim().toLowerCase();
+      const cleanCid = (candidateId || '').trim();
+      const cleanUid = (userId || '').trim();
+
+      // Find any profile associated with this candidateId or email
+      let profile = null;
+      if (cleanCid) {
+        profile = await db.get('SELECT * FROM candidate_profiles WHERE id = ?', [cleanCid]);
+      }
+      if (!profile && cleanEmail) {
+        profile = await db.get('SELECT * FROM candidate_profiles WHERE LOWER(email) = LOWER(?)', [cleanEmail]);
+      }
+
+      // Collect all candidate identifiers
+      const targetCids = new Set();
+      if (cleanCid) targetCids.add(cleanCid);
+      if (profile?.id) targetCids.add(profile.id);
+
+      const targetEmails = new Set();
+      if (cleanEmail) targetEmails.add(cleanEmail);
+      if (profile?.email) targetEmails.add(profile.email.toLowerCase());
+
+      const targetUids = new Set();
+      if (cleanUid) targetUids.add(cleanUid);
+      if (profile?.userId) targetUids.add(profile.userId);
+
+      const cidList = Array.from(targetCids);
+      const emailList = Array.from(targetEmails);
+      const uidList = Array.from(targetUids);
+
+      const whereClauses = [];
+      const params = [];
+
+      if (cidList.length > 0) {
+        whereClauses.push(`candidateId IN (${cidList.map(() => '?').join(',')})`);
+        params.push(...cidList);
+      }
+      if (emailList.length > 0) {
+        whereClauses.push(`(applicantEmail IS NOT NULL AND LOWER(applicantEmail) IN (${emailList.map(() => '?').join(',')}))`);
+        params.push(...emailList);
+      }
+      if (uidList.length > 0) {
+        whereClauses.push(`userId IN (${uidList.map(() => '?').join(',')})`);
+        params.push(...uidList);
+      }
+
+      const whereSql = whereClauses.length > 0 ? whereClauses.join(' OR ') : '1=0';
       rows = await db.all(`
         SELECT * FROM candidate_applications 
-        WHERE candidateId = ? 
-           OR userId = ? 
-           OR (applicantEmail IS NOT NULL AND LOWER(applicantEmail) = LOWER(?))
+        WHERE ${whereSql}
         ORDER BY appliedDate DESC
-      `, [candidateId || '', userId || '', email || candidateId || '']);
+      `, params);
     } else {
       // Recruiter / CRM view: Return all candidate applications across all vacancies
       rows = await db.all('SELECT * FROM candidate_applications ORDER BY appliedDate DESC');
@@ -1563,7 +1608,7 @@ app.post('/api/candidate/applications', async (req, res) => {
       resumeName, resumeUrl, resumeSize, coverNote, noticePeriod, expectedSalary,
       applicantName, applicantEmail, applicantPhone
     } = req.body;
-    const resolvedEmail = (applicantEmail || req.body.email || '').trim();
+    const resolvedEmail = (applicantEmail || req.body.email || '').trim().toLowerCase();
     const resolvedName = (applicantName || req.body.name || '').trim();
     const resolvedPhone = (applicantPhone || req.body.phone || '').trim();
 
@@ -1592,35 +1637,55 @@ app.post('/api/candidate/applications', async (req, res) => {
     }
 
     // Resolve candidate profile and user ID to ensure foreign key integrity
+    let userRow = null;
+    if (userId) {
+      userRow = await db.get('SELECT id FROM users WHERE id = ?', [userId]);
+    }
+    if (!userRow && resolvedEmail) {
+      userRow = await db.get('SELECT id FROM users WHERE LOWER(email) = LOWER(?)', [resolvedEmail]);
+    }
+
+    let effectiveUid = userRow?.id || userId;
+    if (!userRow) {
+      effectiveUid = effectiveUid || `USR-${Math.random().toString(36).substring(2, 10).toUpperCase()}`;
+      try {
+        await db.run(`
+          INSERT INTO users (id, email, name, role, authProvider, status)
+          VALUES (?, ?, ?, 'candidate', 'local', 'active')
+        `, [effectiveUid, resolvedEmail || `candidate_${Date.now()}@example.com`, resolvedName || 'Candidate']);
+      } catch (userErr) {
+        const fallback = await db.get('SELECT id FROM users WHERE LOWER(email) = LOWER(?)', [resolvedEmail]) ||
+                         await db.get('SELECT id FROM users LIMIT 1');
+        effectiveUid = fallback?.id || 'USR-MW6CF773-428';
+      }
+    }
+
+    // Ensure candidate profile exists in candidate_profiles
     let profile = null;
     if (candidateId) {
       profile = await db.get('SELECT * FROM candidate_profiles WHERE id = ?', [candidateId]);
     }
     if (!profile && resolvedEmail) {
-      profile = await db.get('SELECT * FROM candidate_profiles WHERE LOWER(email) = LOWER(?)', [resolvedEmail.toLowerCase()]);
+      profile = await db.get('SELECT * FROM candidate_profiles WHERE LOWER(email) = LOWER(?)', [resolvedEmail]);
     }
 
-    let effectiveCid = profile?.id || candidateId;
-    let effectiveUid = profile?.userId || userId;
-
-    if (!effectiveUid && resolvedEmail) {
-      const userRow = await db.get('SELECT id FROM users WHERE LOWER(email) = LOWER(?)', [resolvedEmail.toLowerCase()]);
-      if (userRow) effectiveUid = userRow.id;
-    }
-
-    if (!effectiveUid) {
-      const fallbackUser = await db.get('SELECT id FROM users LIMIT 1');
-      effectiveUid = fallbackUser?.id || 'USR-MW6CF773-428';
-    }
+    let effectiveCid = profile?.id || candidateId || `RI-CAND-${Math.floor(100 + Math.random() * 900)}`;
 
     if (!profile) {
-      effectiveCid = effectiveCid || `RI-CAND-${Math.floor(100 + Math.random() * 900)}`;
-      const checkProf = await db.get('SELECT id FROM candidate_profiles WHERE id = ?', [effectiveCid]);
-      if (!checkProf) {
+      try {
         await db.run(`
           INSERT INTO candidate_profiles (id, userId, name, email, phone, nationality)
           VALUES (?, ?, ?, ?, ?, ?)
         `, [effectiveCid, effectiveUid, resolvedName || 'Candidate', resolvedEmail || '', resolvedPhone || '', 'UAE']);
+      } catch (profErr) {
+        const existingProf = await db.get('SELECT id FROM candidate_profiles WHERE id = ?', [effectiveCid]);
+        if (!existingProf) {
+          effectiveCid = `RI-CAND-${Math.floor(100 + Math.random() * 900)}`;
+          await db.run(`
+            INSERT INTO candidate_profiles (id, userId, name, email, phone, nationality)
+            VALUES (?, ?, ?, ?, ?, ?)
+          `, [effectiveCid, effectiveUid, resolvedName || 'Candidate', resolvedEmail || '', resolvedPhone || '', 'UAE']).catch(() => {});
+        }
       }
     }
 

@@ -1,458 +1,201 @@
-import React, { useState, useEffect } from 'react';
+import React from 'react';
 import { useApp } from '../context/AppContext';
 import { BrandLogoIcon } from './BrandLogoIcon';
-import {
-  Building2, Phone, Mail, MapPin, Globe, Award,
-  Send, MessageSquare, Linkedin, Twitter, Facebook, Instagram, Youtube, CheckCircle2
-} from 'lucide-react';
-import { COUNTRIES_LIST } from '../data/mockData';
-import SITE_CONFIG from '../config/siteConfig';
+import { Phone, Mail, MapPin } from 'lucide-react';
 
-export const Footer = ({ hideNewsletter = false }) => {
-  const { navigateTo, setActiveModal, activeTab, isExamDetailsPage, user, openAuthModal } = useApp();
-  const [newsletterEmail, setNewsletterEmail] = useState('');
-  const [newsletterStatus, setNewsletterStatus] = useState('idle');
-  const [newsletterMsg, setNewsletterMsg] = useState('');
-
-  const handleSubscribe = async (e) => {
-    if (e && e.preventDefault) e.preventDefault();
-    setNewsletterMsg('');
-    const cleanEmail = (newsletterEmail || '').trim().toLowerCase();
-    const emailRegex = /^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$/;
-    if (!cleanEmail || !emailRegex.test(cleanEmail)) {
-      setNewsletterStatus('error');
-      setNewsletterMsg('Please enter a valid corporate email address (e.g. name@company.com).');
-      return;
-    }
-
-    setNewsletterStatus('loading');
-    try {
-      try {
-        await fetch('/api/leads', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            name: cleanEmail.split('@')[0],
-            email: cleanEmail,
-            source: 'Newsletter: GCC Visa Laws & Executive Vacancies',
-            type: 'newsletter_subscription'
-          })
-        });
-      } catch {}
-
-      setNewsletterStatus('success');
-      setNewsletterMsg('Thank you for subscribing! You will receive our bi-weekly executive briefing.');
-      setNewsletterEmail('');
-    } catch {
-      setNewsletterStatus('error');
-      setNewsletterMsg('Subscription failed. Please try again.');
-    }
-  };
-
-const isStudentAcademyTab = Boolean(
-    activeTab && (
-      activeTab === 'education-school-academy' ||
-      activeTab === 'school-academy' ||
-      activeTab === 'student-academy' ||
-      activeTab === 'education-student-academy' ||
-      activeTab === 'education/school-academy' ||
-      activeTab === 'education/student-academy' ||
-      activeTab === 'academy-for-school-students' ||
-      activeTab === 'education/academy-for-school-students' ||
-      activeTab.includes('school-academy') ||
-      activeTab.includes('student-academy') ||
-      activeTab.includes('academy-for-school-students')
-    )
-  );
-
-  const isCareerGuidanceTab = Boolean(
-    activeTab && (
-      activeTab === 'education-school-career' ||
-      activeTab === 'school-career' ||
-      activeTab === 'education/school-career' ||
-      activeTab === 'education-career-guidance' ||
-      activeTab === 'career-guidance' ||
-      activeTab === 'education/career-guidance' ||
-      activeTab === 'school-student-career-guidance' ||
-      activeTab === 'education-school-student-career-guidance' ||
-      activeTab === 'education/school-student-career-guidance' ||
-      activeTab.includes('school-career') ||
-      activeTab.includes('career-guidance') ||
-      activeTab.includes('school-student-career-guidance')
-    )
-  );
-
-  const [isExamViewActive, setIsExamViewActive] = useState(() => {
-    if (typeof window === 'undefined') return false;
-    const hash = window.location.hash || '';
-    return hash.includes('exam=') || hash.includes('exam-enquiry') || hash.includes('view=exam-enquiry');
-  });
-
-const [isStudentAcademyActive, setIsStudentAcademyActive] = useState(() => {
-    if (typeof window === 'undefined') return false;
-    const hash = (window.location.hash || '').toLowerCase();
-    const path = (window.location.pathname || '').toLowerCase();
-    return (
-      hash.includes('school-academy') ||
-      hash.includes('student-academy') ||
-      hash.includes('academy-for-school-students') ||
-      path.includes('school-academy') ||
-      path.includes('student-academy') ||
-      path.includes('academy-for-school-students')
-    );
-  });
-
-  const [isCareerGuidanceActive, setIsCareerGuidanceActive] = useState(() => {
-    if (typeof window === 'undefined') return false;
-    const hash = (window.location.hash || '').toLowerCase();
-    const path = (window.location.pathname || '').toLowerCase();
-    return (
-      hash.includes('school-career') ||
-      hash.includes('career-guidance') ||
-      hash.includes('school-student-career-guidance') ||
-      path.includes('school-career') ||
-      path.includes('career-guidance') ||
-      path.includes('school-student-career-guidance')
-    );
-  });
-
-  useEffect(() => {
-    const checkPages = () => {
-      const hash = typeof window !== 'undefined' ? (window.location.hash || '').toLowerCase() : '';
-      const path = typeof window !== 'undefined' ? (window.location.pathname || '').toLowerCase() : '';
-
-      const hasExamHash = hash.includes('exam=') || hash.includes('exam-enquiry') || hash.includes('view=exam-enquiry');
-      const hasDomEl = Boolean(typeof document !== 'undefined' && document.getElementById('exam-enquiry-page'));
-      setIsExamViewActive(hasExamHash || hasDomEl || Boolean(isExamDetailsPage));
-
-      const hasCareerHash = 
-        hash.includes('school-career') || 
-        hash.includes('career-guidance') || 
-        hash.includes('school-student-career-guidance');
-      const hasCareerPath = 
-        path.includes('school-career') || 
-        path.includes('career-guidance') || 
-        path.includes('school-student-career-guidance');
-      const hasCareerEl = Boolean(typeof document !== 'undefined' && document.getElementById('career-guidance-page'));
-      setIsCareerGuidanceActive(hasCareerHash || hasCareerPath || hasCareerEl);
-
-      const hasAcademyHash = 
-        hash.includes('school-academy') || 
-        hash.includes('student-academy') || 
-        hash.includes('academy-for-school-students');
-      const hasAcademyPath = 
-        path.includes('school-academy') || 
-        path.includes('student-academy') || 
-        path.includes('academy-for-school-students');
-      const hasAcademyEl = Boolean(typeof document !== 'undefined' && (
-        document.getElementById('student-academy-page') || 
-        document.getElementById('student-academy-search') ||
-        document.getElementById('browse-exams-section')
-      ));
-      setIsStudentAcademyActive(hasAcademyHash || hasAcademyPath || hasAcademyEl);
-
-    };
-
-    checkPages();
-    window.addEventListener('hashchange', checkPages);
-    window.addEventListener('popstate', checkPages);
-
-    const observer = typeof MutationObserver !== 'undefined' && typeof document !== 'undefined' && document.body
-      ? new MutationObserver(checkPages)
-      : null;
-
-    if (observer) {
-      observer.observe(document.body, { childList: true, subtree: true });
-    }
-
-    return () => {
-      window.removeEventListener('hashchange', checkPages);
-      window.removeEventListener('popstate', checkPages);
-      if (observer) observer.disconnect();
-    };
-  }, [isExamDetailsPage]);
-
-  const shouldHideNewsletter = 
-    hideNewsletter || 
-    Boolean(isExamDetailsPage) || 
-    isExamViewActive || 
-    isCareerGuidanceTab || 
-    isCareerGuidanceActive || 
-    isStudentAcademyTab || 
-    isStudentAcademyActive;
-
-  const NavLink = ({ tab, label, onClick, isModal }) => {
-    const isActive = !isModal && activeTab === tab;
-    if (isModal) {
-      return (
-        <li>
-          <button
-            type="button"
-            onClick={onClick}
-            className={`hover:text-gold-400 transition flex items-center gap-2 ${isActive ? 'text-amber-400 font-bold' : ''}`}
-          >
-            <span className={`w-1.5 h-1.5 rounded-full shrink-0 ${isActive ? 'bg-gold-500 shadow-[0_0_8px_rgba(234,179,8,0.8)]' : 'bg-slate-600'}`}></span>
-            <span className="text-left">{label}</span>
-          </button>
-        </li>
-      );
-    }
-
-    return (
-      <li>
-        <a
-          href={tab === 'home' ? '/' : `#${tab}`}
-          onClick={(e) => {
-            e.preventDefault();
-            if (onClick) onClick();
-            else navigateTo(tab);
-          }}
-          className={`hover:text-gold-400 transition flex items-center gap-2 ${isActive ? 'text-amber-400 font-bold' : ''}`}
-        >
-          <span className={`w-1.5 h-1.5 rounded-full shrink-0 ${isActive ? 'bg-gold-500 shadow-[0_0_8px_rgba(234,179,8,0.8)]' : 'bg-slate-600'}`}></span>
-          <span className="text-left">{label}</span>
-        </a>
-      </li>
-    );
-  };
+export const Footer = () => {
+  const { navigateTo } = useApp();
 
   return (
-    <footer className={`bg-white dark:bg-navy-950 text-slate-600 dark:text-slate-300 ${shouldHideNewsletter ? 'pt-12 sm:pt-14' : 'pt-16'} pb-36 sm:pb-44 lg:pb-48 border-t border-slate-200 dark:border-navy-800 relative overflow-hidden`}>
+    <footer className="bg-white dark:bg-navy-950 text-slate-600 dark:text-slate-300 pt-10 sm:pt-12 pb-8 border-t border-slate-200 dark:border-navy-800 relative overflow-hidden text-xs">
       {/* Glow Effect */}
       <div className="absolute top-0 left-1/4 w-96 h-96 bg-gold-500/5 rounded-full blur-3xl pointer-events-none"></div>
 
-      <div className="max-w-7xl mx-auto px-4 sm:px-8">
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
 
-        {/* Top Newsletter & Banner Callout (Omitted on Examination Details Pages) */}
-        {!shouldHideNewsletter && (
-          <div className="glass-card bg-white dark:bg-navy-900 border border-slate-200 dark:border-gold-500/40 rounded-2xl p-8 mb-16 shadow-luxury flex flex-col lg:flex-row items-center justify-between gap-6">
-            <div className="max-w-xl">
-              <div className="inline-flex items-center space-x-2 bg-gold-500/20 text-gold-600 dark:text-gold-400 px-3 py-1 rounded-full text-xs font-bold mb-3">
-                <Award className="w-3.5 h-3.5" />
-                <span>International Recruitment Intelligence</span>
-              </div>
-              <h3 className="font-serif text-2xl font-bold text-slate-900 dark:text-white tracking-tight">
-                Stay Ahead of GCC Visa Laws & Executive Vacancies
-              </h3>
-              <p className="text-xs text-slate-700 dark:text-slate-300 mt-2 font-medium">
-                Subscribe to the Revival Executive Briefing. Curated bi-weekly analysis on GCC labor regulations, MOHRE attestation updates, and executive mobility.
-              </p>
-            </div>
+        {/* 4-Column Layout with Vertical Dividers */}
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-12 gap-8 lg:gap-0">
 
-            <form onSubmit={handleSubscribe} className="w-full lg:w-auto flex flex-col gap-2">
-              <div className="flex flex-col sm:flex-row gap-3">
-                <input
-                  type="email"
-                  required
-                  value={newsletterEmail}
-                  onChange={(e) => {
-                    setNewsletterEmail(e.target.value);
-                    if (newsletterStatus === 'error') setNewsletterStatus('idle');
-                  }}
-                  placeholder="Enter corporate email address..."
-                  className="bg-slate-50 dark:bg-navy-950 border border-slate-300 dark:border-navy-700 text-slate-900 dark:text-white placeholder-slate-500 text-xs rounded-xl px-4 py-3 w-full sm:min-w-[260px] focus:outline-none focus:border-gold-500 font-medium"
-                />
-                <button
-                  type="submit"
-                  disabled={newsletterStatus === 'loading'}
-                  className="bg-gold-shimmer text-navy-950 font-bold text-xs px-6 py-3 rounded-xl hover:opacity-95 transition shadow-gold-glow flex items-center justify-center space-x-2 w-full sm:w-auto cursor-pointer disabled:opacity-50 shrink-0"
-                >
-                  <span>{newsletterStatus === 'loading' ? 'Subscribing...' : 'Subscribe Now'}</span>
-                  <Send className="w-3.5 h-3.5" />
-                </button>
-              </div>
-              {newsletterStatus === 'success' && (
-                <p className="text-[11px] font-bold text-emerald-600 dark:text-emerald-400 flex items-center gap-1.5">
-                  <CheckCircle2 className="w-3.5 h-3.5" />
-                  <span>{newsletterMsg}</span>
-                </p>
-              )}
-              {newsletterStatus === 'error' && (
-                <p className="text-[11px] font-bold text-rose-500">
-                  {newsletterMsg}
-                </p>
-              )}
-            </form>
-          </div>
-        )}
-
-        {/* Main Footer Links */}
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-6 gap-8 pb-12 border-b border-slate-200 dark:border-navy-800 text-xs">
-
-          {/* Col 1: Brand Info */}
-          <div className="lg:col-span-2 space-y-4">
-            <div className="flex items-center space-x-3 cursor-pointer" onClick={() => navigateTo('home')}>
-              <BrandLogoIcon className="w-10 h-10 shadow-md" />
-              <div className="font-serif text-xl font-black text-navy-900 dark:text-white tracking-tight flex items-center gap-1.5 flex-wrap">
-                The Revival <span className="text-gold-500 font-sans text-[10px] sm:text-xs font-bold uppercase tracking-widest px-1.5 py-0.5 bg-slate-50/50 dark:bg-navy-900/50 rounded">International</span>
+          {/* Column 1: Brand & Contact Info */}
+          <div className="lg:col-span-5 lg:border-r border-slate-200 dark:border-navy-800 lg:pr-8 space-y-3.5">
+            <div className="flex items-center space-x-2.5 cursor-pointer" onClick={() => navigateTo('home')}>
+              <BrandLogoIcon className="w-8 h-8 rounded-lg shadow-xs" />
+              <div className="flex items-center gap-2">
+                <span className="font-serif text-xl font-bold text-navy-950 dark:text-white tracking-tight">The Revival</span>
+                <span className="text-[#C89B27] dark:text-gold-400 font-sans text-xs font-bold uppercase tracking-widest">INTERNATIONAL</span>
               </div>
             </div>
 
-            <p className="text-slate-600 dark:text-slate-300 leading-relaxed pr-4 font-medium">
+            <p className="text-slate-600 dark:text-slate-300 leading-relaxed font-normal text-xs">
               The Revival International is a premier international recruitment consultancy, executive search firm, and licensed manpower outsourcing vendor operating across India, UAE, GCC, Europe, and Asia.
             </p>
 
-            <div className="space-y-2 pt-2 text-slate-600 dark:text-slate-300">
-              <div className="flex items-start space-x-3">
-                <MapPin className="w-4 h-4 text-gold-500 shrink-0 mt-0.5" />
-                <span><strong>Global HQ:</strong> {SITE_CONFIG.offices[0].fullAddress}</span>
+            <div className="space-y-2 text-xs text-slate-700 dark:text-slate-300 pt-1">
+              <div className="flex items-start space-x-2.5">
+                <MapPin className="w-4 h-4 text-[#C89B27] shrink-0 mt-0.5" />
+                <span><strong className="text-navy-950 dark:text-white font-semibold">Global HQ:</strong> Business Center, Meydan Free Zone, Nad Al Sheba, Dubai, United Arab Emirates</span>
               </div>
-              <div className="flex items-start space-x-3">
+              <div className="flex items-start space-x-2.5">
                 <MapPin className="w-4 h-4 text-slate-400 shrink-0 mt-0.5" />
-                <span><strong>India Regional Hub:</strong> {SITE_CONFIG.offices[1].fullAddress}</span>
+                <span><strong className="text-navy-950 dark:text-white font-semibold">India Regional Hub:</strong> The Revival International Corporate Center, Anna Salai, Chennai, Tamil Nadu 600002, India</span>
               </div>
-              <div className="flex items-center space-x-3">
-                <Phone className="w-4 h-4 text-gold-500 shrink-0" />
-                <a href={`tel:${SITE_CONFIG.brand.supportPhone.replace(/\s+/g, '')}`} className="hover:text-gold-500 transition">{SITE_CONFIG.brand.supportPhone}</a>
+              <div className="flex items-center space-x-2.5">
+                <Phone className="w-4 h-4 text-[#C89B27] shrink-0" />
+                <a href="tel:+919003475405" className="hover:text-gold-500 transition font-medium">+919003475405</a>
               </div>
-              <div className="flex items-center space-x-3">
-                <Mail className="w-4 h-4 text-gold-500 shrink-0" />
-                <a href={`mailto:${SITE_CONFIG.brand.primaryEmail}`} className="hover:text-gold-500 transition">{SITE_CONFIG.brand.primaryEmail}</a>
+              <div className="flex items-center space-x-2.5">
+                <Mail className="w-4 h-4 text-[#C89B27] shrink-0" />
+                <a href="mailto:enquiry@therevivalinternational.com" className="hover:text-gold-500 transition font-medium">enquiry@therevivalinternational.com</a>
               </div>
             </div>
 
-            {/* Social Icons (Issue #2: Render verified channels only) */}
-            <div className="flex space-x-3 pt-2">
-              {Object.entries(SITE_CONFIG.social).some(([_, s]) => s.approved && s.url) ? (
-                Object.entries(SITE_CONFIG.social).map(([key, soc]) => {
-                  if (!soc.approved || !soc.url) return null;
-                  const Icon = key === 'linkedin' ? Linkedin : key === 'twitter' ? Twitter : key === 'facebook' ? Facebook : key === 'instagram' ? Instagram : Youtube;
-                  return (
-                    <a
-                      key={key}
-                      href={soc.url}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      title={soc.ariaLabel}
-                      aria-label={soc.ariaLabel}
-                      className="w-8 h-8 rounded-lg bg-slate-50 dark:bg-navy-900 border border-slate-200 dark:border-navy-800 flex items-center justify-center text-slate-500 dark:text-slate-400 hover:text-gold-400 hover:border-gold-500 transition"
-                    >
-                      <Icon className="w-4 h-4" />
-                    </a>
-                  );
-                })
-              ) : (
-                <div className="text-[11px] text-slate-500 font-medium">
-                  Official verified social channels launching soon.
-                </div>
-              )}
+            {/* Social Icons (Instagram, Facebook, X, LinkedIn) */}
+            <div className="flex items-center space-x-2.5 pt-1.5">
+              <a
+                href="#social-instagram"
+                onClick={(e) => { e.preventDefault(); navigateTo('social-instagram'); }}
+                aria-label="Instagram"
+                title="The Revival International on Instagram"
+                className="w-7 h-7 rounded-[7px] bg-gradient-to-tr from-[#f09433] via-[#dc2743] to-[#bc1888] flex items-center justify-center text-white shadow-xs hover:scale-105 transition cursor-pointer shrink-0"
+              >
+                <svg className="w-3.5 h-3.5 fill-current" viewBox="0 0 24 24">
+                  <path d="M12 2.163c3.204 0 3.584.012 4.85.07 3.252.148 4.771 1.691 4.919 4.919.058 1.265.069 1.645.069 4.849 0 3.205-.012 3.584-.069 4.849-.149 3.225-1.664 4.771-4.919 4.919-1.266.058-1.644.07-4.85.07-3.204 0-3.584-.012-4.849-.07-3.26-.149-4.771-1.699-4.919-4.92-.058-1.265-.07-1.644-.07-4.849 0-3.204.013-3.583.07-4.849.149-3.227 1.664-4.771 4.919-4.919 1.266-.057 1.645-.069 4.849-.069zm0-2.163c-3.259 0-3.667.014-4.947.072-4.358.2-6.78 2.618-6.98 6.98-.059 1.281-.073 1.689-.073 4.948 0 3.259.014 3.668.072 4.948.2 4.358 2.618 6.78 6.98 6.98 1.281.058 1.689.072 4.948.072 3.259 0 3.668-.014 4.948-.072 4.354-.2 6.782-2.618 6.979-6.98.059-1.28.073-1.689.073-4.948 0-3.259-.014-3.667-.072-4.947-.196-4.354-2.617-6.78-6.979-6.98-1.281-.059-1.69-.073-4.949-.073zm0 5.838c-3.403 0-6.162 2.759-6.162 6.162s2.759 6.163 6.162 6.163 6.162-2.759 6.162-6.163c0-3.403-2.759-6.162-6.162-6.162zm0 10.162c-2.209 0-4-1.79-4-4 0-2.209 1.791-4 4-4s4 1.791 4 4c0 2.21-1.791 4-4 4zm6.406-11.845c-.796 0-1.441.645-1.441 1.44s.645 1.44 1.441 1.44c.795 0 1.439-.645 1.439-1.44s-.644-1.44-1.439-1.44z"/>
+                </svg>
+              </a>
+              <a
+                href="#social-facebook"
+                onClick={(e) => { e.preventDefault(); navigateTo('social-facebook'); }}
+                aria-label="Facebook"
+                title="The Revival International on Facebook"
+                className="w-7 h-7 rounded-full bg-[#1877F2] flex items-center justify-center text-white shadow-xs hover:scale-105 transition cursor-pointer shrink-0"
+              >
+                <svg className="w-3.5 h-3.5 fill-current" viewBox="0 0 24 24">
+                  <path d="M24 12.073c0-6.627-5.373-12-12-12s-12 5.373-12 12c0 5.99 4.388 10.954 10.125 11.854v-8.385H7.078v-3.47h3.047V9.43c0-3.007 1.792-4.669 4.533-4.669 1.312 0 2.686.235 2.686.235v2.953H15.83c-1.491 0-1.956.925-1.956 1.874v2.25h3.328l-.532 3.47h-2.796v8.385C19.612 23.027 24 18.062 24 12.073z"/>
+                </svg>
+              </a>
+              <a
+                href="#social-twitter"
+                onClick={(e) => { e.preventDefault(); navigateTo('social-twitter'); }}
+                aria-label="Twitter (X)"
+                title="The Revival International on Twitter"
+                className="w-7 h-7 rounded-full bg-black flex items-center justify-center text-white shadow-xs hover:scale-105 transition cursor-pointer shrink-0"
+              >
+                <svg className="w-3.5 h-3.5 fill-current" viewBox="0 0 24 24">
+                  <path d="M18.244 2.25h3.308l-7.227 8.26 8.502 11.24H16.17l-5.214-6.817L4.99 21.75H1.68l7.73-8.835L1.254 2.25H8.08l4.713 6.231zm-1.161 17.52h1.833L7.084 4.126H5.117z" />
+                </svg>
+              </a>
+              <a
+                href="#social-linkedin"
+                onClick={(e) => { e.preventDefault(); navigateTo('social-linkedin'); }}
+                aria-label="LinkedIn"
+                title="The Revival International on LinkedIn"
+                className="w-7 h-7 rounded-full bg-[#0A66C2] flex items-center justify-center text-white shadow-xs hover:scale-105 transition cursor-pointer shrink-0"
+              >
+                <svg className="w-3.5 h-3.5 fill-current" viewBox="0 0 24 24">
+                  <path d="M19 3a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h14m-.5 15.5v-5.3a3.26 3.26 0 0 0-3.26-3.26c-.85 0-1.84.52-2.28 1.3v-1.11h-2.79v8.37h2.79v-4.93c0-.77.62-1.4 1.39-1.4a1.4 1.4 0 0 1 1.4 1.4v4.93h2.75M6.46 8.76a1.65 1.65 0 1 0 0-3.3 1.66 1.66 0 0 0 0 3.3m1.38 9.74V9.93H5.08v8.57h2.76z" />
+                </svg>
+              </a>
             </div>
           </div>
 
-          {/* Col 2: Quick Links */}
-          <div className="space-y-3">
-            <h4 className="font-bold text-slate-900 dark:text-white uppercase text-xs tracking-wider text-gold-500 border-b border-slate-200 dark:border-navy-800 pb-2">
-              Quick Links
+          {/* Column 2: QUICK LINKS */}
+          <div className="lg:col-span-2 lg:border-r border-slate-200 dark:border-navy-800 lg:px-6 space-y-3">
+            <h4 className="font-bold text-navy-950 dark:text-white uppercase text-xs tracking-wider pb-2 border-b border-slate-200 dark:border-navy-800">
+              QUICK LINKS
             </h4>
-            <ul className="space-y-3 text-slate-600 dark:text-slate-300 font-medium">
-              <NavLink tab="home" label="Home" />
-              <NavLink tab="about" label="About Us" />
-              <NavLink tab="services" label="Core Services" />
-              <NavLink tab="international-consulting" label="International Consulting" />
-              <NavLink tab="education" label="Academic Advisory" />
-              <NavLink tab="industries" label="Industries We Serve" />
-              <NavLink tab="candidates" label="Candidate Hub" />
-              <NavLink tab="contact" label="Office Locations" />
+            <ul className="space-y-2 pt-1 text-xs text-slate-700 dark:text-slate-300 font-medium">
+              <li className="flex items-center gap-2">
+                <span className="text-navy-950 dark:text-slate-400 font-black text-xs leading-none">•</span>
+                <a href="#home" onClick={(e) => { e.preventDefault(); navigateTo('home'); }} className="hover:text-gold-500 transition">Home</a>
+              </li>
+              <li className="flex items-center gap-2">
+                <span className="text-navy-950 dark:text-slate-400 font-black text-xs leading-none">•</span>
+                <a href="#about" onClick={(e) => { e.preventDefault(); navigateTo('about'); }} className="hover:text-gold-500 transition">About Us</a>
+              </li>
+              <li className="flex items-center gap-2">
+                <span className="text-navy-950 dark:text-slate-400 font-black text-xs leading-none">•</span>
+                <a href="#services" onClick={(e) => { e.preventDefault(); navigateTo('services'); }} className="hover:text-gold-500 transition">Services</a>
+              </li>
+              <li className="flex items-center gap-2">
+                <span className="text-navy-950 dark:text-slate-400 font-black text-xs leading-none">•</span>
+                <a href="#jobs" onClick={(e) => { e.preventDefault(); navigateTo('jobs'); }} className="hover:text-gold-500 transition">Jobs</a>
+              </li>
+              <li className="flex items-center gap-2">
+                <span className="text-navy-950 dark:text-slate-400 font-black text-xs leading-none">•</span>
+                <a href="#visa-eligibility" onClick={(e) => { e.preventDefault(); navigateTo('visa-eligibility'); }} className="hover:text-gold-500 transition">Visa Eligibility</a>
+              </li>
+              <li className="flex items-center gap-2">
+                <span className="text-navy-950 dark:text-slate-400 font-black text-xs leading-none">•</span>
+                <a href="#background-verification" onClick={(e) => { e.preventDefault(); navigateTo('background-verification'); }} className="hover:text-gold-500 transition">Verification</a>
+              </li>
+              <li className="flex items-center gap-2">
+                <span className="text-navy-950 dark:text-slate-400 font-black text-xs leading-none">•</span>
+                <a href="#contact" onClick={(e) => { e.preventDefault(); navigateTo('contact'); }} className="hover:text-gold-500 transition">Contact Us</a>
+              </li>
             </ul>
           </div>
 
-          {/* Col 3: Key Modules */}
-          <div className="space-y-3">
-            <h4 className="font-bold text-slate-900 dark:text-white uppercase text-xs tracking-wider text-gold-500 border-b border-slate-200 dark:border-navy-800 pb-2">
-              Visa & Verification
+          {/* Column 3: SERVICES */}
+          <div className="lg:col-span-3 lg:border-r border-slate-200 dark:border-navy-800 lg:px-6 space-y-3">
+            <h4 className="font-bold text-navy-950 dark:text-white uppercase text-xs tracking-wider pb-2 border-b border-slate-200 dark:border-navy-800">
+              SERVICES
             </h4>
-            <ul className="space-y-3 text-slate-600 dark:text-slate-300 font-medium">
-              <NavLink tab="visa-eligibility" label="Visa Eligibility Checker" />
-              <NavLink tab="visa-eligibility" label="GCC Country Visa Matrix" />
-              <NavLink tab="background-verification" label="Background Verification" />
-              <NavLink tab="background-verification" label="Education Attestation" />
-              <NavLink 
-                isModal 
-                label="AI Resume Analyzer" 
-                onClick={() => {
-                  if (!user) {
-                    openAuthModal('login', 'candidate');
-                  } else {
-                    setActiveModal('ai-resume');
-                  }
-                }} 
-              />
-              <NavLink isModal label="Resume Builder Tool" onClick={() => setActiveModal('resume-builder')} />
-              <NavLink isModal label="Online Payment Gateway" onClick={() => setActiveModal('payment')} />
+            <ul className="space-y-2 pt-1 text-xs text-slate-700 dark:text-slate-300 font-medium">
+              <li className="flex items-center gap-2">
+                <span className="text-navy-950 dark:text-slate-400 font-black text-xs leading-none">•</span>
+                <a href="#international-consulting" onClick={(e) => { e.preventDefault(); navigateTo('international-consulting'); }} className="hover:text-gold-500 transition">International Consulting</a>
+              </li>
+              <li className="flex items-center gap-2">
+                <span className="text-navy-950 dark:text-slate-400 font-black text-xs leading-none">•</span>
+                <a href="#education/college-admission-assistance" onClick={(e) => { e.preventDefault(); navigateTo('education/college-admission-assistance'); }} className="hover:text-gold-500 transition">College Admission Assistance</a>
+              </li>
+              <li className="flex items-center gap-2">
+                <span className="text-navy-950 dark:text-slate-400 font-black text-xs leading-none">•</span>
+                <a href="#education/school-student-career-guidance" onClick={(e) => { e.preventDefault(); navigateTo('education/school-student-career-guidance'); }} className="hover:text-gold-500 transition">School Student Career Guidance</a>
+              </li>
+              <li className="flex items-center gap-2">
+                <span className="text-navy-950 dark:text-slate-400 font-black text-xs leading-none">•</span>
+                <a href="#education/international-admissions" onClick={(e) => { e.preventDefault(); navigateTo('education/international-admissions'); }} className="hover:text-gold-500 transition">International Admissions</a>
+              </li>
+              <li className="flex items-center gap-2">
+                <span className="text-navy-950 dark:text-slate-400 font-black text-xs leading-none">•</span>
+                <a href="#education/academy-for-school-students" onClick={(e) => { e.preventDefault(); navigateTo('education/academy-for-school-students'); }} className="hover:text-gold-500 transition">Academy for School Students</a>
+              </li>
+              <li className="flex items-center gap-2">
+                <span className="text-navy-950 dark:text-slate-400 font-black text-xs leading-none">•</span>
+                <a href="#education/executive-seminars-and-language-test-preparation" onClick={(e) => { e.preventDefault(); navigateTo('education/executive-seminars-and-language-test-preparation'); }} className="hover:text-gold-500 transition truncate" title="Executive Seminars & Language Test Preparation">Executive Seminars & Language...</a>
+              </li>
             </ul>
           </div>
 
-          {/* Col 4: Top Destinations */}
-          <div className="space-y-3">
-            <h4 className="font-bold text-slate-900 dark:text-white uppercase text-xs tracking-wider text-gold-500 border-b border-slate-200 dark:border-navy-800 pb-2">
-              Global Destinations
+          {/* Column 4: LEGAL & COMPLIANCE */}
+          <div className="lg:col-span-2 lg:pl-6 space-y-3">
+            <h4 className="font-bold text-navy-950 dark:text-white uppercase text-xs tracking-wider pb-2 border-b border-slate-200 dark:border-navy-800">
+              LEGAL & COMPLIANCE
             </h4>
-            <ul className="space-y-3 text-slate-600 dark:text-slate-300 font-medium">
-              {COUNTRIES_LIST.slice(0, 7).map((c) => (
-                <li key={c.code} className="flex items-center space-x-2">
-                  <span>{c.flag}</span>
-                  <button onClick={() => navigateTo('visa-eligibility')} className={`hover:text-gold-400 transition text-left ${activeTab === 'visa-eligibility' ? 'text-amber-400 font-bold' : ''}`}>
-                    {c.name}
-                  </button>
-                </li>
-              ))}
-            </ul>
-          </div>
-
-          {/* Col 5: Legal & Statutory Compliance (Issue #3) */}
-          <div className="space-y-3">
-            <h4 className="font-bold text-slate-900 dark:text-white uppercase text-xs tracking-wider text-gold-500 border-b border-slate-200 dark:border-navy-800 pb-2">
-              Legal & Compliance
-            </h4>
-            <ul className="space-y-3 text-slate-600 dark:text-slate-300 font-medium">
-              <NavLink tab="legal/privacy-policy" label="Privacy Policy (Draft)" />
-              <NavLink tab="legal/terms-of-use" label="Terms of Use" />
-              <NavLink tab="legal/cookie-policy" label="Cookie Policy" />
-              <NavLink tab="legal/refund-policy" label="Refund & Cancellation" />
-              <NavLink tab="legal/candidate-consent" label="Candidate Data Consent" />
-              <NavLink tab="fraud-awareness" label="Zero-Fee Placement Policy" />
+            <ul className="space-y-2 pt-1 text-xs text-slate-700 dark:text-slate-300 font-medium">
+              <li className="flex items-center gap-2">
+                <span className="text-navy-950 dark:text-slate-400 font-black text-xs leading-none">•</span>
+                <a href="#privacy-policy" onClick={(e) => { e.preventDefault(); navigateTo('legal/privacy-policy'); }} className="hover:text-gold-500 transition">Privacy Policy</a>
+              </li>
+              <li className="flex items-center gap-2">
+                <span className="text-navy-950 dark:text-slate-400 font-black text-xs leading-none">•</span>
+                <a href="#terms-of-use" onClick={(e) => { e.preventDefault(); navigateTo('legal/terms-of-use'); }} className="hover:text-gold-500 transition">Terms & Condition</a>
+              </li>
+              <li className="flex items-center gap-2">
+                <span className="text-navy-950 dark:text-slate-400 font-black text-xs leading-none">•</span>
+                <a href="#report-issue" onClick={(e) => { e.preventDefault(); navigateTo('report-issue'); }} className="hover:text-gold-500 transition">Report Issue</a>
+              </li>
             </ul>
           </div>
 
         </div>
 
-        {/* Statutory Regulatory Licences Strip (Issue #10) */}
-        <div className="py-6 border-b border-slate-200 dark:border-navy-800 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 text-xs">
-          <div className="p-3 bg-slate-50 dark:bg-navy-900 rounded-xl border border-slate-200 dark:border-navy-800 space-y-1">
-            <span className="text-[10px] uppercase font-bold text-slate-500 block">Commercial Registration</span>
-            <p className="font-bold text-slate-900 dark:text-white">{SITE_CONFIG.licences.tradeLicence.label}</p>
-            <span className="text-[10px] text-amber-500 font-semibold">{SITE_CONFIG.licences.tradeLicence.number} (Pending Legal Confirmation)</span>
-          </div>
-
-          <div className="p-3 bg-slate-50 dark:bg-navy-900 rounded-xl border border-slate-200 dark:border-navy-800 space-y-1">
-            <span className="text-[10px] uppercase font-bold text-slate-500 block">UAE Labor Compliance</span>
-            <p className="font-bold text-slate-900 dark:text-white">{SITE_CONFIG.licences.mohreLicence.label}</p>
-            <span className="text-[10px] text-amber-500 font-semibold">{SITE_CONFIG.licences.mohreLicence.number} (Pending Legal Confirmation)</span>
-          </div>
-
-          <div className="p-3 bg-slate-50 dark:bg-navy-900 rounded-xl border border-slate-200 dark:border-navy-800 space-y-1">
-            <span className="text-[10px] uppercase font-bold text-slate-500 block">Emigration Oversight</span>
-            <p className="font-bold text-slate-900 dark:text-white">{SITE_CONFIG.licences.meaLicence.label}</p>
-            <span className="text-[10px] text-amber-500 font-semibold">{SITE_CONFIG.licences.meaLicence.number} (Pending Legal Confirmation)</span>
-          </div>
-
-          <div className="p-3 bg-slate-50 dark:bg-navy-900 rounded-xl border border-slate-200 dark:border-navy-800 space-y-1">
-            <span className="text-[10px] uppercase font-bold text-slate-500 block">Quality Governance</span>
-            <p className="font-bold text-slate-900 dark:text-white">{SITE_CONFIG.licences.isoCertification.standard}</p>
-            <span className="text-[10px] text-emerald-500 font-semibold">Verified Active Standards</span>
-          </div>
-        </div>
-
-        {/* Bottom Rights & Certifications */}
-        <div className="pt-8 flex flex-col md:flex-row items-center justify-between gap-4 text-xs text-slate-500 dark:text-slate-400">
-          <p>© 2026 Revival International Consultancy FZ-LLC. All Rights Reserved. Managed under Dubai Economic Department & MOHRE Regulations.</p>
-
-          <div className="flex items-center space-x-6">
-            <span className="flex items-center space-x-1 text-slate-600 dark:text-slate-300 font-medium">
-              <CheckCircle2 className="w-3.5 h-3.5 text-gold-500" />
-              <span>UAE PDPL & India DPDP Act 2023 Aligned</span>
-            </span>
-          </div>
+        {/* Bottom Horizontal Divider and Verified Social Channels Launching Notice */}
+        <div className="border-t border-slate-200 dark:border-navy-800 mt-8 pt-4">
+          <p className="text-[11px] text-slate-500 dark:text-slate-400 font-normal">
+            Official verified social channels launching soon.
+          </p>
         </div>
 
       </div>

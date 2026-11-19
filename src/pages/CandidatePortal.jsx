@@ -323,60 +323,64 @@ export const CandidatePortal = () => {
   // Combined jobs list
   const allJobs = [...(postedJobs || []), ...(JOBS_LIST || [])];
 
-  // All applications (fallback to sample if empty)
-  const candidateApplications = applications && applications.length > 0 ? applications : [
-    {
-      id: 'APP-1029',
-      jobId: 'job-101',
-      jobTitle: 'Senior Civil Project Director',
-      company: 'Al Habtoor Contracting LLC',
-      location: 'Dubai, UAE',
-      appliedDate: '2026-11-12',
-      status: 'Shortlisted',
-      stage: 'Shortlisted',
-      resumeName: user?.resumeName || 'Executive_Candidate_CV.pdf',
-      interviewDetails: {
-        date: '2026-11-20',
-        time: '11:00 AM GST',
-        platform: 'Microsoft Teams Video Call',
-        interviewer: 'Eng. Tariq Al-Hashimi (VP Projects)',
-        meetingLink: 'https://teams.microsoft.com/l/meetup-join/revival-interview-101'
-      }
-    },
-    {
-      id: 'APP-1030',
-      jobId: 'job-102',
-      jobTitle: 'Mechanical Engineering Lead',
-      company: 'Arabian MEP Contracting',
-      location: 'Doha, Qatar',
-      appliedDate: '2026-11-14',
-      status: 'Under Review',
-      stage: 'Under Review',
-      resumeName: user?.resumeName || 'Executive_Candidate_CV.pdf',
-      interviewDetails: null
-    },
-    {
-      id: 'APP-1031',
-      jobId: 'job-105',
-      jobTitle: 'Hospitality Operations Manager',
-      company: 'Jumeirah Luxury Resorts',
-      location: 'Dubai, UAE',
-      appliedDate: '2026-11-05',
-      status: 'Interview Scheduled',
-      stage: 'Interview',
-      resumeName: user?.resumeName || 'Executive_Candidate_CV.pdf',
-      interviewDetails: {
-        date: '2026-11-24',
-        time: '02:30 PM GST',
-        platform: 'Google Meet Executive Panel',
-        interviewer: 'Sarah Jenkins (Regional Talent Director)',
-        meetingLink: 'https://meet.google.com/rev-jumeirah-exec'
-      }
-    }
-  ];
+  // Candidate applications: Real applications from context/backend database.
+  // Sample demo applications are exclusively reserved for the unauthenticated/demo walkthrough account.
+  const isDemoAccount = user?.email === 'candidate@revivalinternational.com';
+  const candidateApplications = (applications && applications.length > 0)
+    ? applications
+    : (isDemoAccount ? [
+        {
+          id: 'APP-1029',
+          jobId: 'job-101',
+          jobTitle: 'Senior Civil Project Director',
+          company: 'Al Habtoor Contracting LLC',
+          location: 'Dubai, UAE',
+          appliedDate: '2026-11-12',
+          status: 'Shortlisted',
+          stage: 'Shortlisted',
+          resumeName: user?.resumeName || 'Executive_Candidate_CV.pdf',
+          interviewDetails: {
+            date: '2026-11-20',
+            time: '11:00 AM GST',
+            platform: 'Microsoft Teams Video Call',
+            interviewer: 'Eng. Tariq Al-Hashimi (VP Projects)',
+            meetingLink: 'https://teams.microsoft.com/l/meetup-join/revival-interview-101'
+          }
+        },
+        {
+          id: 'APP-1030',
+          jobId: 'job-102',
+          jobTitle: 'Mechanical Engineering Lead',
+          company: 'Arabian MEP Contracting',
+          location: 'Doha, Qatar',
+          appliedDate: '2026-11-14',
+          status: 'Under Review',
+          stage: 'Under Review',
+          resumeName: user?.resumeName || 'Executive_Candidate_CV.pdf',
+          interviewDetails: null
+        },
+        {
+          id: 'APP-1031',
+          jobId: 'job-105',
+          jobTitle: 'Hospitality Operations Manager',
+          company: 'Jumeirah Luxury Resorts',
+          location: 'Dubai, UAE',
+          appliedDate: '2026-11-05',
+          status: 'Interview Scheduled',
+          stage: 'Interview',
+          resumeName: user?.resumeName || 'Executive_Candidate_CV.pdf',
+          interviewDetails: {
+            date: '2026-11-24',
+            time: '02:30 PM GST',
+            platform: 'Google Meet Executive Panel',
+            interviewer: 'Sarah Jenkins (Regional Talent Director)',
+            meetingLink: 'https://meet.google.com/rev-jumeirah-exec'
+          }
+        }
+      ] : []);
 
   // Selected application for Application Status tab
-  const activeStatusApp = candidateApplications.find(a => a.id === selectedStatusAppId) || candidateApplications[0];
+  const activeStatusApp = candidateApplications.find(a => a.id === selectedStatusAppId) || candidateApplications[0] || null;
 
   // Filtered applications
   const filteredApplications = candidateApplications.filter(app => {
@@ -1966,15 +1970,31 @@ export const CandidatePortal = () => {
                 </p>
               </div>
 
-              {/* Active Application Selector */}
-              {candidateApplications.length > 1 && (
+              {!activeStatusApp ? (
+                <div className="bg-white dark:bg-navy-900 border border-slate-200 dark:border-navy-800 rounded-3xl p-12 text-center space-y-3">
+                  <Clock className="w-12 h-12 text-gold-500/40 mx-auto" />
+                  <h3 className="font-serif text-lg font-bold text-navy-950 dark:text-white">No Active Applications</h3>
+                  <p className="text-xs text-slate-500 max-w-sm mx-auto">
+                    You have not submitted any applications yet. Browse open vacancies and apply to track your progress timeline here.
+                  </p>
+                  <button
+                    onClick={() => navigateTo('jobs')}
+                    className="px-5 py-2.5 bg-gradient-to-r from-gold-500 to-amber-400 text-navy-950 font-bold text-xs rounded-xl shadow-gold-glow hover:opacity-95 transition"
+                  >
+                    Explore Open Vacancies →
+                  </button>
+                </div>
+              ) : (
+                <>
+                  {/* Active Application Selector */}
+                  {candidateApplications.length > 1 && (
                 <div className="flex gap-2 overflow-x-auto pb-1 text-xs">
                   {candidateApplications.map(app => (
                     <button
                       key={app.id}
                       onClick={() => setSelectedStatusAppId(app.id)}
                       className={`px-4 py-2.5 rounded-2xl border transition font-bold whitespace-nowrap cursor-pointer ${
-                        activeStatusApp.id === app.id
+                        activeStatusApp?.id === app.id
                           ? 'border-gold-500 bg-gold-500/15 text-gold-600 dark:text-gold-400'
                           : 'border-slate-200 dark:border-navy-800 bg-white dark:bg-navy-900 text-slate-700 dark:text-slate-300'
                       }`}
@@ -2067,6 +2087,8 @@ export const CandidatePortal = () => {
                 </div>
 
               </div>
+            </>
+          )}
 
             </div>
           )}
@@ -2088,7 +2110,15 @@ export const CandidatePortal = () => {
               </div>
 
               <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-                {candidateApplications.filter(a => a.interviewDetails || a.status === 'Interview Scheduled').map(app => (
+                {candidateApplications.filter(a => a.interviewDetails || a.status === 'Interview Scheduled').length === 0 ? (
+                  <div className="bg-white dark:bg-navy-900 border border-slate-200 dark:border-navy-800 rounded-3xl p-12 text-center space-y-3 col-span-full">
+                    <Calendar className="w-12 h-12 text-gold-500/40 mx-auto" />
+                    <h3 className="font-serif text-lg font-bold text-navy-950 dark:text-white">No Interviews Scheduled Yet</h3>
+                    <p className="text-xs text-slate-500 max-w-sm mx-auto">
+                      When hiring managers review your application and confirm an interview session, calendar details and video links will be listed here.
+                    </p>
+                  </div>
+                ) : candidateApplications.filter(a => a.interviewDetails || a.status === 'Interview Scheduled').map(app => (
                   <div
                     key={app.id}
                     className="bg-white dark:bg-navy-900 border border-slate-200 dark:border-navy-800 rounded-3xl p-6 shadow-sm space-y-4"

@@ -1533,19 +1533,23 @@ export const JobsPage = () => {
     }
   };
 
-  // Auto-apply when user registers or logs in with a pending job
+  // Auto-open application modal when user registers or logs in with a pending job
   useEffect(() => {
     if (user && user.email && pendingJobToApply) {
       const targetJob = pendingJobToApply;
       setPendingJobToApply(null);
-      applyForJob(targetJob);
       setApplyJob(targetJob);
-      setAppliedSuccess(true);
+      setAppliedSuccess(false);
     }
   }, [user, pendingJobToApply]);
 
   const handleQuickApply = (e, job) => {
     e.stopPropagation();
+    if (!user || !user.email) {
+      setPendingJobToApply(job);
+      openAuthModal('register', 'candidate');
+      return;
+    }
     setApplyJob(job);
     setAppliedSuccess(false);
   };
@@ -1586,11 +1590,6 @@ export const JobsPage = () => {
           <span className="flex items-center gap-2">
             <Icon className="w-3.5 h-3.5 text-gold-500 shrink-0" />
             <span>{title}</span>
-            {selectedCount > 0 && (
-              <span className="px-1.5 py-0.5 rounded-full bg-gold-500 text-navy-950 text-[10px] font-extrabold leading-none">
-                {selectedCount}
-              </span>
-            )}
           </span>
         </div>
 
@@ -1631,8 +1630,7 @@ export const JobsPage = () => {
                 onClick={() => openFilterPopup(sectionKey)}
                 className="text-[11px] font-bold text-gold-600 dark:text-gold-400 hover:text-gold-700 dark:hover:text-gold-300 hover:underline cursor-pointer flex items-center gap-1 transition"
               >
-                <Plus className="w-3 h-3 text-gold-500 shrink-0" />
-                <span>+ View More</span>
+                <span>View More</span>
               </button>
             </div>
           )}
@@ -1664,32 +1662,22 @@ export const JobsPage = () => {
   const renderFilterContent = () => (
     <div className="flex flex-col h-full min-h-0 text-xs font-sans">
 
-      {/* 1. Header with Icon, Title, Subtitle, and Reset (Pinned at Top) */}
-      <div className="shrink-0 flex items-start justify-between border-b border-slate-100 dark:border-navy-800 pb-3 bg-white dark:bg-navy-950">
+      {/* 1. Header with Icon, Title, and Reset (Pinned at Top) */}
+      <div className="shrink-0 flex items-center justify-between border-b border-slate-100 dark:border-navy-800 pb-3 bg-white dark:bg-navy-950">
         <div className="flex items-center gap-2.5">
           <div className="w-8 h-8 rounded-xl bg-gold-500/15 text-gold-600 dark:text-gold-400 flex items-center justify-center font-bold shrink-0">
             <SlidersHorizontal className="w-4 h-4" />
           </div>
-          <div>
-            <div className="flex items-center gap-2">
-              <h3 className="font-serif text-base font-bold text-navy-900 dark:text-white leading-tight">
-                Filters
-              </h3>
-              <span className="text-xs font-bold text-navy-900 dark:text-white bg-slate-100 dark:bg-navy-900 px-2 py-0.5 rounded-full border border-slate-200 dark:border-navy-800">
-                Applied ({appliedFilterCount})
-              </span>
-            </div>
-            <p className="text-[11px] text-slate-500 dark:text-slate-400 font-medium">
-              Refine your job search
-            </p>
-          </div>
+          <h3 className="font-serif text-base font-bold text-navy-900 dark:text-white leading-tight">
+            Filters
+          </h3>
         </div>
 
         {(appliedFilterCount > 0 || pendingFilterCount > 0) && (
           <button
             type="button"
             onClick={clearAllFilters}
-            className="text-xs font-bold text-rose-600 dark:text-rose-400 hover:underline flex items-center gap-1 cursor-pointer transition pt-1"
+            className="text-xs font-bold text-rose-600 dark:text-rose-400 hover:underline flex items-center gap-1 cursor-pointer transition"
             title="Reset all filters"
           >
             <RotateCcw className="w-3 h-3" />
@@ -1728,9 +1716,9 @@ export const JobsPage = () => {
               ))}
 
               {pendingCities.map(ci => (
-                <span key={ci} className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md text-[11px] font-semibold bg-slate-200 dark:bg-navy-800 text-slate-800 dark:text-slate-200 border border-slate-300 dark:border-navy-700">
+                <span key={ci} className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md text-[11px] font-semibold bg-gold-500/15 text-gold-800 dark:text-gold-300 border border-gold-500/30">
                   <span>{ci}</span>
-                  <button type="button" onClick={() => toggleCity(ci)} className="hover:text-black dark:hover:text-white cursor-pointer">
+                  <button type="button" onClick={() => toggleCity(ci)} className="hover:text-gold-950 dark:hover:text-white cursor-pointer">
                     <X className="w-3 h-3" />
                   </button>
                 </span>
@@ -1746,63 +1734,63 @@ export const JobsPage = () => {
               ))}
 
               {pendingFunctions.map(fn => (
-                <span key={fn} className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md text-[11px] font-semibold bg-slate-200 dark:bg-navy-800 text-slate-800 dark:text-slate-200 border border-slate-300 dark:border-navy-700">
+                <span key={fn} className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md text-[11px] font-semibold bg-gold-500/15 text-gold-800 dark:text-gold-300 border border-gold-500/30">
                   <span>{fn}</span>
-                  <button type="button" onClick={() => toggleFunction(fn)} className="hover:text-black dark:hover:text-white cursor-pointer">
+                  <button type="button" onClick={() => toggleFunction(fn)} className="hover:text-gold-950 dark:hover:text-white cursor-pointer">
                     <X className="w-3 h-3" />
                   </button>
                 </span>
               ))}
 
               {pendingExperienceYears !== null && (
-                <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md text-[11px] font-semibold bg-teal-500/15 text-teal-800 dark:text-teal-300 border border-teal-500/30">
+                <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md text-[11px] font-semibold bg-gold-500/15 text-gold-800 dark:text-gold-300 border border-gold-500/30">
                   <span>Experience: {pendingExperienceYears} Yrs</span>
-                  <button type="button" onClick={() => { setPendingExperienceYears(null); setSliderExperienceYears(0); }} className="hover:text-teal-950 dark:hover:text-white cursor-pointer">
+                  <button type="button" onClick={() => { setPendingExperienceYears(null); setSliderExperienceYears(0); }} className="hover:text-gold-950 dark:hover:text-white cursor-pointer">
                     <X className="w-3 h-3" />
                   </button>
                 </span>
               )}
 
               {pendingExperiences.map(exp => (
-                <span key={exp} className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md text-[11px] font-semibold bg-slate-200 dark:bg-navy-800 text-slate-800 dark:text-slate-200 border border-slate-300 dark:border-navy-700">
+                <span key={exp} className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md text-[11px] font-semibold bg-gold-500/15 text-gold-800 dark:text-gold-300 border border-gold-500/30">
                   <span>{exp}</span>
-                  <button type="button" onClick={() => toggleExperience(exp)} className="hover:text-black dark:hover:text-white cursor-pointer">
+                  <button type="button" onClick={() => toggleExperience(exp)} className="hover:text-gold-950 dark:hover:text-white cursor-pointer">
                     <X className="w-3 h-3" />
                   </button>
                 </span>
               ))}
 
               {pendingJobTypes.map(jt => (
-                <span key={jt} className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md text-[11px] font-semibold bg-slate-200 dark:bg-navy-800 text-slate-800 dark:text-slate-200 border border-slate-300 dark:border-navy-700">
+                <span key={jt} className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md text-[11px] font-semibold bg-gold-500/15 text-gold-800 dark:text-gold-300 border border-gold-500/30">
                   <span>{jt}</span>
-                  <button type="button" onClick={() => toggleJobType(jt)} className="hover:text-black dark:hover:text-white cursor-pointer">
+                  <button type="button" onClick={() => toggleJobType(jt)} className="hover:text-gold-950 dark:hover:text-white cursor-pointer">
                     <X className="w-3 h-3" />
                   </button>
                 </span>
               ))}
 
               {pendingCompanies.map(comp => (
-                <span key={comp} className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md text-[11px] font-semibold bg-slate-200 dark:bg-navy-800 text-slate-800 dark:text-slate-200 border border-slate-300 dark:border-navy-700">
+                <span key={comp} className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md text-[11px] font-semibold bg-gold-500/15 text-gold-800 dark:text-gold-300 border border-gold-500/30">
                   <span>{comp}</span>
-                  <button type="button" onClick={() => toggleCompany(comp)} className="hover:text-black dark:hover:text-white cursor-pointer">
+                  <button type="button" onClick={() => toggleCompany(comp)} className="hover:text-gold-950 dark:hover:text-white cursor-pointer">
                     <X className="w-3 h-3" />
                   </button>
                 </span>
               ))}
 
               {pendingSalaryRanges.map(sal => (
-                <span key={sal} className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md text-[11px] font-semibold bg-emerald-500/15 text-emerald-800 dark:text-emerald-300 border border-emerald-500/30">
+                <span key={sal} className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md text-[11px] font-semibold bg-gold-500/15 text-gold-800 dark:text-gold-300 border border-gold-500/30">
                   <span>{sal}</span>
-                  <button type="button" onClick={() => toggleSalaryRange(sal)} className="hover:text-emerald-950 dark:hover:text-white cursor-pointer">
+                  <button type="button" onClick={() => toggleSalaryRange(sal)} className="hover:text-gold-950 dark:hover:text-white cursor-pointer">
                     <X className="w-3 h-3" />
                   </button>
                 </span>
               ))}
 
               {(pendingSalaryMin || pendingSalaryMax || pendingSalaryCurrency !== 'All') && (
-                <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md text-[11px] font-semibold bg-amber-500/15 text-amber-800 dark:text-amber-300 border border-amber-500/30 font-mono">
+                <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md text-[11px] font-semibold bg-gold-500/15 text-gold-800 dark:text-gold-300 border border-gold-500/30 font-mono">
                   <span>Salary: {pendingSalaryMin || '0'}{pendingSalaryMax ? `–${pendingSalaryMax}` : '+'} {pendingSalaryCurrency !== 'All' ? pendingSalaryCurrency : ''}</span>
-                  <button type="button" onClick={() => { setPendingSalaryMin(''); setPendingSalaryMax(''); setPendingSalaryCurrency('All'); }} className="hover:text-amber-950 dark:hover:text-white cursor-pointer">
+                  <button type="button" onClick={() => { setPendingSalaryMin(''); setPendingSalaryMax(''); setPendingSalaryCurrency('All'); }} className="hover:text-gold-950 dark:hover:text-white cursor-pointer">
                     <X className="w-3 h-3" />
                   </button>
                 </span>
@@ -1864,11 +1852,6 @@ export const JobsPage = () => {
               <span className="flex items-center gap-2">
                 <Clock className="w-3.5 h-3.5 text-gold-500 shrink-0" />
                 <span>Experience{pendingExperienceYears !== null ? ` (${pendingExperienceYears} Yrs)` : ''}</span>
-                {pendingExperienceYears !== null && (
-                  <span className="px-1.5 py-0.5 rounded-full bg-gold-500 text-navy-950 text-[10px] font-extrabold leading-none">
-                    ✓
-                  </span>
-                )}
               </span>
             </div>
 
@@ -1921,7 +1904,7 @@ export const JobsPage = () => {
                     }}
                     className="text-[10px] text-gold-600 dark:text-gold-400 hover:underline cursor-pointer font-bold"
                   >
-                    Reset (Any)
+                    Reset
                   </button>
                 )}
                 <span>30 Yrs</span>
@@ -1966,25 +1949,13 @@ export const JobsPage = () => {
           Clear All
         </button>
 
-        {hasPendingChanges && (
-          <button
-            type="button"
-            onClick={discardPendingFilters}
-            className="py-2 px-2.5 rounded-xl border border-slate-200 dark:border-navy-700 bg-white dark:bg-navy-900 text-slate-600 dark:text-slate-300 hover:text-rose-600 text-xs font-semibold cursor-pointer transition"
-            title="Discard pending changes and restore applied filters"
-          >
-            Cancel
-          </button>
-        )}
-
         <button
           type="button"
           onClick={applyPendingFilters}
-          className={`flex-1 py-2 px-3 rounded-xl font-bold text-xs shadow-xs transition duration-150 flex items-center justify-center gap-1.5 cursor-pointer ${
-            hasPendingChanges
-              ? 'bg-gold-500 hover:bg-gold-400 text-navy-950 shadow-md ring-2 ring-gold-500/30'
-              : 'bg-[#102B45] hover:bg-[#0c2236] text-white dark:bg-gold-500 dark:hover:bg-gold-400 dark:text-navy-950'
-          }`}
+          className={`flex-1 py-2 px-3 rounded-xl font-bold text-xs shadow-xs transition duration-150 flex items-center justify-center gap-1.5 cursor-pointer ${hasPendingChanges
+            ? 'bg-gold-500 hover:bg-gold-400 text-navy-950 shadow-md ring-2 ring-gold-500/30'
+            : 'bg-[#102B45] hover:bg-[#0c2236] text-white dark:bg-gold-500 dark:hover:bg-gold-400 dark:text-navy-950'
+            }`}
         >
           {loading ? (
             <span className="w-3.5 h-3.5 border-2 border-white/30 border-t-white rounded-full animate-spin" />
@@ -1999,7 +1970,7 @@ export const JobsPage = () => {
   );
 
   return (
-    <div className="w-full max-w-[1920px] mx-auto px-3 sm:px-5 md:px-6 lg:px-8 xl:px-10 2xl:px-12 py-5 sm:py-7 space-y-5">
+    <div className="w-full max-w-[1920px] mx-auto px-3 sm:px-5 md:px-6 lg:px-8 xl:px-10 2xl:px-12 pt-5 sm:pt-7 pb-2 space-y-5">
       <SEO
         title="Discover Global Career Opportunities | Revival International"
         description="Explore professional opportunities across the GCC and international markets with Revival International."
@@ -2096,7 +2067,7 @@ export const JobsPage = () => {
 
               {/* Keyword Search Input */}
               <div className="relative flex-1">
-                <Search className="w-4 h-4 text-slate-400 absolute left-3.5 top-3" />
+                <Search className="w-4 h-4 text-slate-400 absolute left-3.5 top-1/2 -translate-y-1/2 pointer-events-none" />
                 <input
                   type="text"
                   placeholder="Search by job title, company name, skills (e.g. 'Software Engineer', 'ICU Nurse')..."
@@ -2111,7 +2082,7 @@ export const JobsPage = () => {
                   <button
                     type="button"
                     onClick={() => { setKeyword(''); setCurrentPage(1); }}
-                    className="absolute right-2.5 top-2.5 text-slate-400 hover:text-slate-600 dark:hover:text-white cursor-pointer"
+                    className="absolute right-2.5 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 dark:hover:text-white cursor-pointer"
                   >
                     <X className="w-3.5 h-3.5" />
                   </button>
@@ -2156,13 +2127,11 @@ export const JobsPage = () => {
                             setCurrentPage(1);
                             setSortDropdownOpen(false);
                           }}
-                          className={`w-full px-3.5 py-2.5 text-xs text-left flex items-center justify-between transition-colors cursor-pointer ${
-                            !isLast ? 'border-b border-slate-100 dark:border-navy-800/80' : ''
-                          } ${
-                            isSelected
+                          className={`w-full px-3.5 py-2.5 text-xs text-left flex items-center justify-between transition-colors cursor-pointer ${!isLast ? 'border-b border-slate-100 dark:border-navy-800/80' : ''
+                            } ${isSelected
                               ? 'bg-amber-50/80 dark:bg-amber-950/40 text-navy-950 dark:text-gold-300 font-bold'
                               : 'text-navy-950 dark:text-slate-200 hover:bg-slate-50 dark:hover:bg-navy-800/60 font-medium'
-                          }`}
+                            }`}
                         >
                           <span>{opt.label}</span>
                           {isSelected && (
@@ -2182,90 +2151,90 @@ export const JobsPage = () => {
                 <span className="text-[11px] font-bold text-slate-500 mr-1">Applied ({appliedFilterCount}):</span>
 
                 {appliedCountries.map(c => (
-                  <span key={c} className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-semibold bg-blue-50 dark:bg-blue-950/60 text-blue-800 dark:text-blue-300 border border-blue-200 dark:border-blue-800/60">
+                  <span key={c} className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-semibold bg-gold-500/15 text-gold-800 dark:text-gold-300 border border-gold-500/30">
                     <span>{c}</span>
-                    <button type="button" onClick={() => removeAppliedFilter('country', c)} className="hover:text-blue-950 dark:hover:text-white cursor-pointer">
+                    <button type="button" onClick={() => removeAppliedFilter('country', c)} className="hover:text-gold-950 dark:hover:text-white cursor-pointer">
                       <X className="w-3 h-3" />
                     </button>
                   </span>
                 ))}
 
                 {appliedCities.map(ci => (
-                  <span key={ci} className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-semibold bg-indigo-50 dark:bg-indigo-950/60 text-indigo-800 dark:text-indigo-300 border border-indigo-200 dark:border-indigo-800/60">
+                  <span key={ci} className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-semibold bg-gold-500/15 text-gold-800 dark:text-gold-300 border border-gold-500/30">
                     <span>{ci}</span>
-                    <button type="button" onClick={() => removeAppliedFilter('city', ci)} className="hover:text-indigo-950 dark:hover:text-white cursor-pointer">
+                    <button type="button" onClick={() => removeAppliedFilter('city', ci)} className="hover:text-gold-950 dark:hover:text-white cursor-pointer">
                       <X className="w-3 h-3" />
                     </button>
                   </span>
                 ))}
 
                 {appliedIndustries.map(ind => (
-                  <span key={ind} className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-semibold bg-emerald-50 dark:bg-emerald-950/60 text-emerald-800 dark:text-emerald-300 border border-emerald-200 dark:border-emerald-800/60">
+                  <span key={ind} className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-semibold bg-gold-500/15 text-gold-800 dark:text-gold-300 border border-gold-500/30">
                     <span>{ind}</span>
-                    <button type="button" onClick={() => removeAppliedFilter('industry', ind)} className="hover:text-emerald-950 dark:hover:text-white cursor-pointer">
+                    <button type="button" onClick={() => removeAppliedFilter('industry', ind)} className="hover:text-gold-950 dark:hover:text-white cursor-pointer">
                       <X className="w-3 h-3" />
                     </button>
                   </span>
                 ))}
 
                 {appliedFunctions.map(fn => (
-                  <span key={fn} className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-semibold bg-purple-50 dark:bg-purple-950/60 text-purple-800 dark:text-purple-300 border border-purple-200 dark:border-purple-800/60">
+                  <span key={fn} className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-semibold bg-gold-500/15 text-gold-800 dark:text-gold-300 border border-gold-500/30">
                     <span>{fn}</span>
-                    <button type="button" onClick={() => removeAppliedFilter('function', fn)} className="hover:text-purple-950 dark:hover:text-white cursor-pointer">
+                    <button type="button" onClick={() => removeAppliedFilter('function', fn)} className="hover:text-gold-950 dark:hover:text-white cursor-pointer">
                       <X className="w-3 h-3" />
                     </button>
                   </span>
                 ))}
 
                 {appliedExperienceYears !== null && (
-                  <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-semibold bg-teal-50 dark:bg-teal-950/60 text-teal-800 dark:text-teal-300 border border-teal-200 dark:border-teal-800/60">
+                  <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-semibold bg-gold-500/15 text-gold-800 dark:text-gold-300 border border-gold-500/30">
                     <span>Experience: {appliedExperienceYears} Yrs</span>
-                    <button type="button" onClick={() => removeAppliedFilter('experienceYears', appliedExperienceYears)} className="hover:text-teal-950 dark:hover:text-white cursor-pointer">
+                    <button type="button" onClick={() => removeAppliedFilter('experienceYears', appliedExperienceYears)} className="hover:text-gold-950 dark:hover:text-white cursor-pointer">
                       <X className="w-3 h-3" />
                     </button>
                   </span>
                 )}
 
                 {appliedExperiences.map(exp => (
-                  <span key={exp} className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-semibold bg-teal-50 dark:bg-teal-950/60 text-teal-800 dark:text-teal-300 border border-teal-200 dark:border-teal-800/60">
+                  <span key={exp} className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-semibold bg-gold-500/15 text-gold-800 dark:text-gold-300 border border-gold-500/30">
                     <span>{exp}</span>
-                    <button type="button" onClick={() => removeAppliedFilter('experience', exp)} className="hover:text-teal-950 dark:hover:text-white cursor-pointer">
+                    <button type="button" onClick={() => removeAppliedFilter('experience', exp)} className="hover:text-gold-950 dark:hover:text-white cursor-pointer">
                       <X className="w-3 h-3" />
                     </button>
                   </span>
                 ))}
 
                 {appliedJobTypes.map(jt => (
-                  <span key={jt} className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-semibold bg-amber-50 dark:bg-amber-950/60 text-amber-800 dark:text-amber-300 border border-amber-200 dark:border-amber-800/60">
+                  <span key={jt} className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-semibold bg-gold-500/15 text-gold-800 dark:text-gold-300 border border-gold-500/30">
                     <span>{jt}</span>
-                    <button type="button" onClick={() => removeAppliedFilter('jobType', jt)} className="hover:text-amber-950 dark:hover:text-white cursor-pointer">
+                    <button type="button" onClick={() => removeAppliedFilter('jobType', jt)} className="hover:text-gold-950 dark:hover:text-white cursor-pointer">
                       <X className="w-3 h-3" />
                     </button>
                   </span>
                 ))}
 
                 {appliedCompanies.map(comp => (
-                  <span key={comp} className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-semibold bg-cyan-50 dark:bg-cyan-950/60 text-cyan-800 dark:text-cyan-300 border border-cyan-200 dark:border-cyan-800/60">
+                  <span key={comp} className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-semibold bg-gold-500/15 text-gold-800 dark:text-gold-300 border border-gold-500/30">
                     <span>{comp}</span>
-                    <button type="button" onClick={() => removeAppliedFilter('company', comp)} className="hover:text-cyan-950 dark:hover:text-white cursor-pointer">
+                    <button type="button" onClick={() => removeAppliedFilter('company', comp)} className="hover:text-gold-950 dark:hover:text-white cursor-pointer">
                       <X className="w-3 h-3" />
                     </button>
                   </span>
                 ))}
 
                 {appliedSalaryRanges.map(sal => (
-                  <span key={sal} className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-semibold bg-emerald-50 dark:bg-emerald-950/60 text-emerald-800 dark:text-emerald-300 border border-emerald-200 dark:border-emerald-800/60">
+                  <span key={sal} className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-semibold bg-gold-500/15 text-gold-800 dark:text-gold-300 border border-gold-500/30">
                     <span>{sal}</span>
-                    <button type="button" onClick={() => removeAppliedFilter('salary', sal)} className="hover:text-emerald-950 dark:hover:text-white cursor-pointer">
+                    <button type="button" onClick={() => removeAppliedFilter('salary', sal)} className="hover:text-gold-950 dark:hover:text-white cursor-pointer">
                       <X className="w-3 h-3" />
                     </button>
                   </span>
                 ))}
 
                 {(appliedSalaryMin || appliedSalaryMax || appliedSalaryCurrency !== 'All') && (
-                  <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-semibold bg-amber-50 dark:bg-amber-950/60 text-amber-800 dark:text-amber-300 border border-amber-200 dark:border-amber-800/60 font-mono">
+                  <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-semibold bg-gold-500/15 text-gold-800 dark:text-gold-300 border border-gold-500/30 font-mono">
                     <span>Salary: {appliedSalaryMin || '0'}{appliedSalaryMax ? `–${appliedSalaryMax}` : '+'} {appliedSalaryCurrency !== 'All' ? appliedSalaryCurrency : ''}</span>
-                    <button type="button" onClick={() => { setAppliedSalaryMin(''); setAppliedSalaryMax(''); setAppliedSalaryCurrency('All'); setPendingSalaryMin(''); setPendingSalaryMax(''); setPendingSalaryCurrency('All'); setCurrentPage(1); }} className="hover:text-amber-950 dark:hover:text-white cursor-pointer">
+                    <button type="button" onClick={() => { setAppliedSalaryMin(''); setAppliedSalaryMax(''); setAppliedSalaryCurrency('All'); setPendingSalaryMin(''); setPendingSalaryMax(''); setPendingSalaryCurrency('All'); setCurrentPage(1); }} className="hover:text-gold-950 dark:hover:text-white cursor-pointer">
                       <X className="w-3 h-3" />
                     </button>
                   </span>
@@ -2538,9 +2507,6 @@ export const JobsPage = () => {
                 <h3 className="font-serif text-base font-bold text-navy-950 dark:text-white">
                   Filters
                 </h3>
-                <span className="text-xs font-bold text-navy-900 dark:text-white bg-slate-100 dark:bg-navy-900 px-2 py-0.5 rounded-full border border-slate-200 dark:border-navy-800">
-                  Applied ({appliedFilterCount})
-                </span>
               </div>
               <button
                 type="button"
@@ -2712,7 +2678,7 @@ export const JobsPage = () => {
         return (
           <div className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-4 bg-slate-900/80 dark:bg-navy-950/80 backdrop-blur-xs animate-in fade-in">
             <div className="bg-white dark:bg-navy-950 border border-slate-200 dark:border-gold-500/30 rounded-2xl max-w-3xl w-full p-5 sm:p-6 shadow-2xl space-y-4 max-h-[92vh] overflow-y-auto [scrollbar-width:thin] [scrollbar-color:#cbd5e1_transparent] dark:[scrollbar-color:#334155_transparent]">
-              
+
               {/* MODAL HEADER */}
               <div className="flex justify-between items-start border-b border-slate-100 dark:border-navy-800 pb-3">
                 <div className="space-y-1">
@@ -3115,7 +3081,7 @@ export const JobsPage = () => {
 
               {/* Real-time Search Input beneath Title */}
               <div className="relative">
-                <Search className="w-4 h-4 text-slate-400 absolute left-3.5 top-3" />
+                <Search className="w-4 h-4 text-slate-400 absolute left-3.5 top-1/2 -translate-y-1/2 pointer-events-none" />
                 <input
                   type="text"
                   autoFocus
@@ -3134,7 +3100,7 @@ export const JobsPage = () => {
                   <button
                     type="button"
                     onClick={() => setPopupSearchQuery('')}
-                    className="absolute right-3 top-2.5 text-slate-400 hover:text-slate-600 dark:hover:text-white cursor-pointer"
+                    className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 dark:hover:text-white cursor-pointer"
                   >
                     <X className="w-3.5 h-3.5" />
                   </button>
@@ -3207,47 +3173,19 @@ export const JobsPage = () => {
             </div>
 
             {/* 3. Fixed Footer */}
-            <div className="p-3.5 sm:p-4 border-t border-slate-200 dark:border-navy-800 bg-slate-50 dark:bg-navy-900/60 flex flex-col sm:flex-row items-center justify-between gap-3 shrink-0">
-              <div className="flex items-center gap-3 w-full sm:w-auto justify-between sm:justify-start">
-                <div className="text-xs font-bold text-slate-700 dark:text-slate-300 flex items-center gap-2">
-                  <span>Selected:</span>
-                  <span className="px-2 py-0.5 rounded-full bg-gold-500 text-navy-950 text-xs font-extrabold">
-                    {tempSelected.length}
-                  </span>
-                </div>
-
+            <div className="p-3.5 sm:p-4 border-t border-slate-200 dark:border-navy-800 bg-slate-50 dark:bg-navy-900/60 flex items-center justify-end shrink-0">
+              <button
+                type="button"
+                onClick={applyFilterPopup}
+                className="w-full sm:w-auto px-6 py-2.5 rounded-xl bg-[#102B45] hover:bg-[#0c2236] text-white dark:bg-gold-500 dark:hover:bg-gold-400 dark:text-navy-950 font-bold text-xs shadow-xs transition flex items-center justify-center gap-1.5 cursor-pointer"
+              >
+                <span>Apply Filters</span>
                 {tempSelected.length > 0 && (
-                  <button
-                    type="button"
-                    onClick={() => setTempSelected([])}
-                    className="text-xs font-bold text-rose-600 dark:text-rose-400 hover:underline cursor-pointer"
-                  >
-                    Clear Selection
-                  </button>
+                  <span className="px-1.5 py-0.2 rounded-full bg-white/20 dark:bg-navy-950/20 text-[11px] font-extrabold">
+                    ({tempSelected.length})
+                  </span>
                 )}
-              </div>
-
-              <div className="flex items-center gap-2 w-full sm:w-auto justify-end">
-                <button
-                  type="button"
-                  onClick={closeFilterPopup}
-                  className="flex-1 sm:flex-initial px-4 py-2 rounded-xl border border-slate-300 dark:border-navy-700 text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-navy-800 text-xs font-bold transition cursor-pointer"
-                >
-                  Cancel
-                </button>
-                <button
-                  type="button"
-                  onClick={applyFilterPopup}
-                  className="flex-1 sm:flex-initial px-5 py-2 rounded-xl bg-[#102B45] hover:bg-[#0c2236] text-white dark:bg-gold-500 dark:hover:bg-gold-400 dark:text-navy-950 font-bold text-xs shadow-xs transition flex items-center justify-center gap-1.5 cursor-pointer"
-                >
-                  <span>Apply Filters</span>
-                  {tempSelected.length > 0 && (
-                    <span className="px-1.5 py-0.2 rounded-full bg-white/20 dark:bg-navy-950/20 text-[11px] font-extrabold">
-                      ({tempSelected.length})
-                    </span>
-                  )}
-                </button>
-              </div>
+              </button>
             </div>
 
           </div>
