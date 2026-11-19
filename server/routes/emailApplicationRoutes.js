@@ -1,6 +1,7 @@
 import { 
   generateApplicationEmail, 
   sendJobApplicationEmail, 
+  sendCandidateWelcomeEmail,
   detectRoleCategory 
 } from '../services/emailApplicationService.js';
 import { JOBS_LIST } from '../../src/data/mockData.js';
@@ -396,6 +397,40 @@ export const registerEmailApplicationRoutes = (app, { getDb, getClientIp, logAud
     } catch (err) {
       console.error('Failed to query email applications:', err);
       res.status(500).json({ success: false, message: 'Server error' });
+    }
+  });
+
+  /**
+   * 4. POST /api/auth/welcome-email
+   * Sends an official Welcome & Registration Confirmation Email to new candidates.
+   */
+  app.post('/api/auth/welcome-email', async (req, res) => {
+    try {
+      const { name, email, phone, candidateId, authProvider, preferredCountry } = req.body || {};
+
+      if (!email || !email.includes('@')) {
+        return res.status(400).json({ success: false, message: 'Valid email address is required.' });
+      }
+
+      const result = await sendCandidateWelcomeEmail({
+        name,
+        email,
+        phone,
+        candidateId,
+        authProvider: authProvider || 'email',
+        preferredCountry
+      });
+
+      res.json({
+        success: result.success,
+        message: result.success ? 'Welcome confirmation email dispatched successfully.' : result.error,
+        recipient: result.recipient,
+        messageId: result.messageId,
+        simulated: result.simulated
+      });
+    } catch (err) {
+      console.error('[Welcome Email Route Error]:', err);
+      res.status(500).json({ success: false, message: 'Failed to send welcome email.' });
     }
   });
 };

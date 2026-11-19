@@ -555,6 +555,20 @@ export const AppProvider = ({ children }) => {
           aiSummary: `Candidate registered online for ${candidateUser.preferredCountry || 'international'} opportunities.`
         })
       });
+
+      // Dispatch Welcome Email directly to candidate's Gmail inbox
+      fetch('/api/auth/welcome-email', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          name: candidateUser.name,
+          email: candidateUser.email,
+          phone: candidateUser.phone,
+          candidateId: candidateUser.candidateId,
+          authProvider: 'email',
+          preferredCountry: candidateUser.preferredCountry
+        })
+      }).catch(mailErr => console.warn('Welcome email trigger note:', mailErr));
     } catch (err) {
       console.error('Failed to sync registered candidate to backend:', err);
     }

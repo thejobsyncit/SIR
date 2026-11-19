@@ -481,3 +481,208 @@ export const sendJobApplicationEmail = async ({
     isConfigured: transporter.isConfigured
   };
 };
+
+/**
+ * Sends an official Welcome & Registration Confirmation Email to newly registered candidates.
+ * Dispatches directly to the candidate's email (Gmail, etc.) and notifies admin desk.
+ */
+export const sendCandidateWelcomeEmail = async ({
+  name = '',
+  email = '',
+  phone = '',
+  candidateId = '',
+  authProvider = 'email',
+  preferredCountry = ''
+}) => {
+  const transporter = getTransporter();
+  const fromEmail = transporter.user || 'enquiry@therevivalinternational.com';
+  const adminGmail = 'thejobsyncit@gmail.com';
+  const officialDesk = 'enquiry@therevivalinternational.com';
+
+  const recipientEmail = (email || '').trim().toLowerCase();
+  if (!recipientEmail || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(recipientEmail)) {
+    return { success: false, reason: 'Invalid or missing candidate email address' };
+  }
+
+  const displayName = (name || '').trim() || recipientEmail.split('@')[0];
+  const cid = candidateId || `RI-CAND-${Math.floor(100 + Math.random() * 900)}`;
+  const methodLabel = authProvider === 'google' ? 'Google OAuth 2.0 (Verified)' : 'Direct Candidate Registration';
+
+  const subject = `Welcome to The Revival International – Candidate Registration Confirmed (${cid})`;
+
+  const textBody = `
+Dear ${displayName},
+
+Welcome to The Revival International!
+
+Your candidate account has been successfully created and registered on our international recruitment portal.
+
+Account Summary:
+--------------------------------------------------
+Candidate Name:   ${displayName}
+Candidate ID:     ${cid}
+Registered Email: ${recipientEmail}
+${phone ? `Phone / WhatsApp: ${phone}\n` : ''}${preferredCountry ? `Target Region:    ${preferredCountry}\n` : ''}Registration:     ${methodLabel}
+Account Status:   Active & Verified
+Placement Fee:    100% Free Placement (Zero Candidate Charges)
+--------------------------------------------------
+
+Next Steps to Land Your Next Role:
+1. Browse verified international vacancies across UAE, Saudi Arabia, Qatar, Singapore, and Europe.
+2. Use Instant Quick Apply to submit your tailored CV directly to hiring employers.
+3. Track your application pipeline and interview stages in real time from your Candidate Dashboard.
+
+Zero Fee Policy:
+The Revival International adheres strictly to global ethical recruitment standards. We never charge jobseekers or candidates any placement, registration, or visa processing fees.
+
+Need Support?
+Official Enquiry Desk: enquiry@therevivalinternational.com
+Helpline / WhatsApp:   +91 90034 75405
+Website:               https://www.therevivalinternational.com
+
+Sincerely,
+The Revival International Candidate Services Team
+Dubai Internet City, UAE & Chennai, India
+`.trim();
+
+  const htmlBody = `
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Welcome to The Revival International</title>
+  <style>
+    body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif; line-height: 1.6; color: #1e293b; background-color: #f8fafc; margin: 0; padding: 20px; }
+    .container { max-width: 620px; margin: 0 auto; background: #ffffff; border: 1px solid #e2e8f0; border-radius: 16px; padding: 32px; box-shadow: 0 4px 12px rgba(0,0,0,0.03); }
+    .header { text-align: center; border-bottom: 2px solid #f1f5f9; padding-bottom: 20px; margin-bottom: 24px; }
+    .brand-title { font-size: 22px; font-weight: 800; color: #0f172a; letter-spacing: -0.5px; margin: 0; }
+    .brand-subtitle { font-size: 10px; text-transform: uppercase; letter-spacing: 1.5px; color: #d97706; font-weight: bold; margin-top: 4px; }
+    .badge { display: inline-block; background-color: #ecfdf5; color: #059669; border: 1px solid #a7f3d0; font-size: 11px; font-weight: bold; padding: 5px 12px; border-radius: 9999px; margin-top: 12px; text-transform: uppercase; letter-spacing: 0.5px; }
+    h2 { margin: 0 0 14px 0; color: #0f172a; font-size: 19px; }
+    p { margin: 0 0 14px 0; font-size: 13.5px; color: #334155; }
+    .account-card { background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 12px; padding: 18px; margin: 18px 0; }
+    .account-row { display: flex; justify-content: space-between; padding: 6px 0; border-bottom: 1px dashed #e2e8f0; font-size: 12.5px; }
+    .account-row:last-child { border-bottom: none; }
+    .account-label { color: #64748b; font-weight: 600; }
+    .account-value { color: #0f172a; font-weight: 700; text-align: right; }
+    .benefits-box { background: #fffbeb; border: 1px solid #fde68a; border-radius: 10px; padding: 14px 16px; margin: 18px 0; font-size: 12.5px; color: #92400e; }
+    .cta-container { text-align: center; margin: 24px 0 18px 0; }
+    .cta-btn { display: inline-block; background: linear-gradient(135deg, #d97706, #b45309); color: #ffffff !important; text-decoration: none; font-weight: bold; font-size: 13.5px; padding: 12px 28px; border-radius: 10px; box-shadow: 0 4px 10px rgba(217, 119, 6, 0.25); }
+    .steps-box { background: #f1f5f9; border-radius: 10px; padding: 14px 16px; margin: 18px 0; font-size: 12.5px; }
+    .steps-box ol { margin: 6px 0 0 16px; padding: 0; }
+    .steps-box li { margin-bottom: 4px; color: #334155; }
+    .footer { margin-top: 28px; padding-top: 18px; border-top: 1px solid #e2e8f0; font-size: 11px; color: #94a3b8; text-align: center; line-height: 1.5; }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <div class="header">
+      <div class="brand-title">The Revival International</div>
+      <div class="brand-subtitle">Tier-1 International Manpower & Recruitment Firm • UAE • GCC • Worldwide</div>
+      <div class="badge">✓ Candidate Account Confirmed</div>
+    </div>
+
+    <h2>Welcome to Revival International, ${displayName}!</h2>
+    <p>
+      Thank you for registering with <strong>The Revival International</strong>. Your official candidate profile has been successfully created and linked to our verified talent network.
+    </p>
+
+    <div class="account-card">
+      <div class="account-row">
+        <span class="account-label">Candidate Name:</span>
+        <span class="account-value">${displayName}</span>
+      </div>
+      <div class="account-row">
+        <span class="account-label">Candidate ID:</span>
+        <span class="account-value" style="color: #d97706; font-family: monospace;">${cid}</span>
+      </div>
+      <div class="account-row">
+        <span class="account-label">Registered Email:</span>
+        <span class="account-value">${recipientEmail}</span>
+      </div>
+      ${phone ? `
+      <div class="account-row">
+        <span class="account-label">Phone / WhatsApp:</span>
+        <span class="account-value">${phone}</span>
+      </div>` : ''}
+      ${preferredCountry ? `
+      <div class="account-row">
+        <span class="account-label">Target Region:</span>
+        <span class="account-value">${preferredCountry}</span>
+      </div>` : ''}
+      <div class="account-row">
+        <span class="account-label">Account Status:</span>
+        <span class="account-value" style="color: #059669;">Active & Verified</span>
+      </div>
+      <div class="account-row">
+        <span class="account-label">Placement Services:</span>
+        <span class="account-value" style="color: #059669;">100% Free of Charge</span>
+      </div>
+    </div>
+
+    <div class="steps-box">
+      <strong style="color: #0f172a;">What you can do now:</strong>
+      <ol>
+        <li>Browse hundreds of verified vacancies in UAE, Saudi Arabia, Qatar, Singapore, and Europe.</li>
+        <li>Use <strong>Instant Quick Apply</strong> to submit role-tailored application emails with your CV attached.</li>
+        <li>Track your application milestones and interview progress from your dashboard.</li>
+      </ol>
+    </div>
+
+    <div class="benefits-box">
+      <strong>Zero Fee Policy:</strong> The Revival International strictly adheres to ethical international recruitment standards. We never charge jobseekers or candidates any placement, registration, or visa processing fees.
+    </div>
+
+    <div class="cta-container">
+      <a href="http://localhost:3000/jobs" class="cta-btn" style="color: #ffffff !important;">Browse International Vacancies &rarr;</a>
+    </div>
+
+    <p style="font-size: 12.5px; color: #64748b; margin-top: 18px;">
+      If you have any questions or require support, reply directly to this email or reach us at <a href="mailto:enquiry@therevivalinternational.com" style="color: #d97706; text-decoration: none; font-weight: 600;">enquiry@therevivalinternational.com</a>.
+    </p>
+
+    <div class="footer">
+      &copy; ${new Date().getFullYear()} The Revival International. All rights reserved.<br>
+      Licensed Overseas Employment & Executive Search Firm.<br>
+      Dubai Internet City, UAE &bull; Chennai & Bangalore, India.
+    </div>
+  </div>
+</body>
+</html>
+`.trim();
+
+  // Deliver to candidate email, and CC admin Gmail & official desk
+  const toList = [recipientEmail];
+  if (adminGmail && !toList.includes(adminGmail)) {
+    toList.push(adminGmail);
+  }
+  if (officialDesk && !toList.includes(officialDesk)) {
+    toList.push(officialDesk);
+  }
+
+  const mailOptions = {
+    from: `"The Revival International • Admissions & Careers" <${fromEmail}>`,
+    to: toList.join(', '),
+    replyTo: officialDesk,
+    subject,
+    text: textBody,
+    html: htmlBody
+  };
+
+  try {
+    const result = await transporter.sendMail(mailOptions);
+    return {
+      success: true,
+      simulated: Boolean(result.simulated),
+      messageId: result.messageId,
+      recipient: toList.join(', ')
+    };
+  } catch (err) {
+    console.error('[Welcome Email Error]:', err.message);
+    return {
+      success: false,
+      error: err.message
+    };
+  }
+};

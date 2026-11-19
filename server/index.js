@@ -10,6 +10,7 @@ import { registerAttendanceRoutes } from './routes/attendanceRoutes.js';
 import { registerHrCandidateRoutes } from './routes/hrCandidateRoutes.js';
 import { registerDocumentationRoutes } from './routes/documentationRoutes.js';
 import { registerEmailApplicationRoutes } from './routes/emailApplicationRoutes.js';
+import { sendCandidateWelcomeEmail } from './services/emailApplicationService.js';
 import { COURSES_CATALOGUE } from '../src/data/coursesCatalogueData.js';
 import nodemailer from 'nodemailer';
 import dotenv from 'dotenv';
@@ -1235,6 +1236,20 @@ app.post('/api/auth/google', async (req, res) => {
         'Welcome to The Revival International',
         `Welcome ${finalName}! Your candidate account (${candidateId}) is active. Browse verified global vacancies and track applications in real time.`
       ]);
+
+      // Dispatch Welcome Email for newly registered Google user
+      try {
+        sendCandidateWelcomeEmail({
+          name: finalName,
+          email: cleanEmail,
+          phone: '',
+          candidateId: candidateId,
+          authProvider: 'google',
+          preferredCountry: ''
+        }).catch(e => console.warn('[Google Welcome Email Async Notice]:', e.message));
+      } catch (mailErr) {
+        console.warn('[Google Welcome Email Notice]:', mailErr.message);
+      }
     } else {
       candidateId = candidateProfile.id;
     }
@@ -3223,6 +3238,22 @@ app.post('/api/candidates', async (req, res) => {
         citizenship || null, dob || null, gender || null, location || null, preferredCountry || null,
         finalEducation || null, finalMohre
       ]);
+
+      // Dispatch Welcome Email for newly registered candidate
+      if (email && email.includes('@')) {
+        try {
+          sendCandidateWelcomeEmail({
+            name: name || '',
+            email: email,
+            phone: phone || '',
+            candidateId: candId,
+            authProvider: 'email',
+            preferredCountry: preferredCountry || nationality || ''
+          }).catch(e => console.warn('[Candidate Welcome Email Async Notice]:', e.message));
+        } catch (mailErr) {
+          console.warn('[Candidate Welcome Email Notice]:', mailErr.message);
+        }
+      }
     }
 
     // Mirror to candidate_profiles as well
