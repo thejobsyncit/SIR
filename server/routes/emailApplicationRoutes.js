@@ -353,8 +353,8 @@ export const registerEmailApplicationRoutes = (app, { getDb, getClientIp, logAud
       res.status(201).json({
         success: true,
         message: appStatus === 'SIMULATED' 
-          ? `✓ Application saved and recorded. (Notice: Set your 16-character Google App Password in .env for live inbox dispatch).`
-          : `✓ Application successfully sent to ${sendResult?.recipient || emailContent.recipientEmail} with your CV attached!`,
+          ? `✓ Application saved and recorded.`
+          : `✓ Application successfully sent to ${sendResult?.recipient || emailContent.recipientEmail}!`,
         applicationId: appId,
         recipient: sendResult?.recipient || emailContent.recipientEmail,
         candidateCc: candidateEmail,

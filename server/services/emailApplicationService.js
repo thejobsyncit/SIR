@@ -228,113 +228,77 @@ Tone: Professional, confident, truthful, no exaggerated or ungrounded claims. Hi
 
 /**
  * Primary Template Function:
- * generateApplicationEmail({ candidate, job, middleParagraphOverride })
- * Generates subject, plain text body, HTML body, and metadata strictly from job and candidate records.
+ * generateApplicationEmail({ candidate, job })
+ * Generates a clean, short, professional, recruiter-friendly job application email.
+ * Format:
+ *   Subject: Application for [Job Role] – [Company Name]
+ *   Dear Hiring Team,
+ *   I am interested in applying for the [Job Role] position at [Company Name]...
+ *   Best regards,
+ *   [Candidate Name]
+ *   [Candidate Email]
+ *   [Candidate Phone Number]
  */
-export const generateApplicationEmail = async ({ candidate = {}, job = {}, middleParagraphOverride = null }) => {
+export const generateApplicationEmail = async ({ candidate = {}, job = {} }) => {
   // 1. Normalize Job Data from record
-  const jobTitle = job.title || job.jobTitle || 'Valued Position';
-  const companyName = job.company || job.companyName || 'Enterprise Employer';
+  const jobTitle = job.title || job.jobTitle || 'Career Opportunity';
+  const companyName = job.company || job.companyName || 'Hiring Organization';
   const companyEmail = job.companyEmail || job.email || process.env.PRIMARY_EMAIL || 'enquiry@therevivalinternational.com';
-  const location = job.location || job.country || 'Target Location';
-  const department = job.department || job.category || 'Operations';
-  const jobSkills = extractJobSkills(job);
 
   // 2. Normalize Candidate Data
   const candidateName = candidate.name || candidate.fullName || 'Candidate';
   const candidateEmail = candidate.email || 'applicant@example.com';
-  const candidatePhone = candidate.phone || '—';
-  const candidateLocation = candidate.location || 'Dubai, UAE';
-  const candidateExperience = candidate.experience || 'Extensive professional experience';
-  const candidateNotice = candidate.noticePeriod || 'Standard notice period';
+  const candidatePhone = candidate.phone ? candidate.phone.trim() : '';
 
-  // 3. Detect Role Category
-  const categoryConfig = detectRoleCategory(job);
+  // 3. Exact Required Subject: Application for [Job Role] – [Company Name]
+  const subject = `Application for ${jobTitle} – ${companyName}`;
 
-  // 4. Generate Middle Paragraph (AI -> Template -> Fallback)
-  let middleParagraph = middleParagraphOverride;
-  let generationSource = 'Custom Override';
+  // 4. Exact Required Plain Text Body
+  const textBodyLines = [
+    'Dear Hiring Team,',
+    '',
+    `I am interested in applying for the ${jobTitle} position at ${companyName}. I believe my skills and experience align with the job requirements, and I would appreciate the opportunity to be considered for this position.`,
+    '',
+    'I look forward to hearing from you.',
+    '',
+    'Thank you for your time and consideration.',
+    '',
+    'Best regards,',
+    candidateName,
+    candidateEmail
+  ];
 
-  if (!middleParagraph) {
-    const aiParagraph = await generateAiMiddleParagraph({ candidate, job });
-    if (aiParagraph) {
-      middleParagraph = aiParagraph;
-      generationSource = 'Claude Sonnet 4.6 (AI Tailored)';
-    } else {
-      middleParagraph = categoryConfig.generateMiddleParagraph({
-        jobSkills,
-        candidateExperience,
-        candidateLocation
-      });
-      generationSource = `Template Map: ${categoryConfig.name}`;
-    }
+  if (candidatePhone) {
+    textBodyLines.push(candidatePhone);
   }
 
-  // 5. Structure Elements
-  const subject = `Application for ${jobTitle} – ${location}`;
-  const salutation = `Dear Hiring Team at ${companyName},`;
-  const opening = `I am writing to express my strong interest in the ${jobTitle} opportunity with ${companyName} in ${location}. Having reviewed your requirements for the ${department} department, I believe my background and technical capabilities make me a strong candidate for this role.`;
-  const closing = `My attached CV provides a comprehensive overview of my credentials, projects, and career progression. I am currently based in ${candidateLocation}, bring ${candidateExperience} of relevant domain experience, and am available to join within ${candidateNotice}. I welcome the opportunity to discuss how my skillset can contribute to ${companyName}'s continued success.`;
-  const signOff = `Thank you for your time and consideration.\n\nSincerely,\n${candidateName}\nPhone / WhatsApp: ${candidatePhone}\nEmail: ${candidateEmail}\nLocation: ${candidateLocation}`;
+  const textBody = textBodyLines.join('\n');
 
-  // 6. Plain Text Version
-  const textBody = `${salutation}\n\n${opening}\n\n${middleParagraph}\n\n${closing}\n\n${signOff}`;
-
-  // 7. HTML Version (Responsive, professional corporate formatting)
+  // 5. Clean, Professional, Minimal HTML Version
   const htmlBody = `
 <!DOCTYPE html>
 <html>
 <head>
   <meta charset="utf-8">
   <style>
-    body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif; line-height: 1.6; color: #1e293b; background-color: #f8fafc; margin: 0; padding: 20px; }
-    .container { max-width: 650px; margin: 0 auto; background: #ffffff; border: 1px solid #e2e8f0; border-radius: 16px; padding: 32px; box-shadow: 0 4px 12px rgba(0,0,0,0.03); }
-    .header-badge { display: inline-block; background-color: #fef3c7; color: #92400e; font-size: 11px; font-weight: bold; text-transform: uppercase; padding: 4px 10px; border-radius: 6px; letter-spacing: 0.5px; margin-bottom: 12px; }
-    h2 { margin: 0 0 16px 0; color: #0f172a; font-size: 20px; border-bottom: 2px solid #f1f5f9; padding-bottom: 12px; }
-    p { margin: 0 0 16px 0; font-size: 14px; color: #334155; }
-    .highlight-box { background: #f8fafc; border-left: 4px solid #d97706; padding: 14px 16px; border-radius: 4px 8px 8px 4px; margin: 16px 0; font-size: 14px; color: #1e293b; font-weight: 500; }
-    .meta-table { width: 100%; border-collapse: collapse; margin: 20px 0; font-size: 12px; background: #f8fafc; border-radius: 8px; overflow: hidden; }
-    .meta-table td { padding: 8px 12px; border: 1px solid #e2e8f0; }
-    .meta-label { font-weight: bold; color: #64748b; width: 35%; }
-    .signature { margin-top: 24px; padding-top: 16px; border-top: 1px solid #e2e8f0; }
-    .signature-name { font-size: 16px; font-weight: bold; color: #0f172a; }
-    .signature-meta { font-size: 13px; color: #64748b; margin-top: 4px; }
-    .footer { font-size: 11px; color: #94a3b8; text-align: center; margin-top: 24px; }
+    body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif; line-height: 1.6; color: #1e293b; background-color: #ffffff; margin: 0; padding: 24px; font-size: 15px; }
+    .container { max-width: 600px; margin: 0 auto; }
+    p { margin: 0 0 16px 0; }
+    .signature { margin-top: 20px; line-height: 1.5; color: #1e293b; }
+    .signature-name { font-weight: 600; color: #0f172a; }
   </style>
 </head>
 <body>
   <div class="container">
-    <span class="header-badge">Direct Candidate Job Application</span>
-    <h2>${subject}</h2>
-    
-    <p><strong>${salutation}</strong></p>
-    <p>${opening}</p>
-    
-    <div class="highlight-box">
-      ${middleParagraph}
-    </div>
-    
-    <p>${closing}</p>
-
-    <table class="meta-table">
-      <tr><td class="meta-label">Candidate Name:</td><td><strong>${candidateName}</strong></td></tr>
-      <tr><td class="meta-label">Target Role:</td><td>${jobTitle} (${department})</td></tr>
-      <tr><td class="meta-label">Current Location:</td><td>${candidateLocation}</td></tr>
-      <tr><td class="meta-label">Total Experience:</td><td>${candidateExperience}</td></tr>
-      <tr><td class="meta-label">Notice Period:</td><td>${candidateNotice}</td></tr>
-      <tr><td class="meta-label">Candidate Contact:</td><td>${candidatePhone} • <a href="mailto:${candidateEmail}" style="color: #d97706; text-decoration: none;">${candidateEmail}</a></td></tr>
-    </table>
-
+    <p>Dear Hiring Team,</p>
+    <p>I am interested in applying for the ${jobTitle} position at ${companyName}. I believe my skills and experience align with the job requirements, and I would appreciate the opportunity to be considered for this position.</p>
+    <p>I look forward to hearing from you.</p>
+    <p>Thank you for your time and consideration.</p>
     <div class="signature">
+      <p style="margin-bottom: 6px;">Best regards,</p>
       <div class="signature-name">${candidateName}</div>
-      <div class="signature-meta">
-        Phone: ${candidatePhone} &bull; Email: <a href="mailto:${candidateEmail}" style="color: #d97706; text-decoration: none;">${candidateEmail}</a><br>
-        Location: ${candidateLocation} &bull; Attached: Official Curriculum Vitae (CV)
-      </div>
-    </div>
-
-    <div class="footer">
-      Sent securely via The Revival Recruitment Portal. Candidate verified & attested.
+      <div><a href="mailto:${candidateEmail}" style="color: #0f172a; text-decoration: none;">${candidateEmail}</a></div>
+      ${candidatePhone ? `<div>${candidatePhone}</div>` : ''}
     </div>
   </div>
 </body>
@@ -347,19 +311,8 @@ export const generateApplicationEmail = async ({ candidate = {}, job = {}, middl
     replyTo: candidateEmail,
     textBody,
     htmlBody,
-    opening,
-    middleParagraph,
-    closing,
-    salutation,
-    signOff,
-    category: categoryConfig.id,
-    categoryName: categoryConfig.name,
-    generationSource,
     jobTitle,
-    companyName,
-    location,
-    department,
-    jobSkills
+    companyName
   };
 };
 
@@ -460,13 +413,7 @@ export const sendJobApplicationEmail = async ({
     subject: emailContent.subject,
     text: emailContent.textBody,
     html: emailContent.htmlBody,
-    attachments: cvFile?.buffer ? [
-      {
-        filename: cvFile.filename || 'Curriculum_Vitae.pdf',
-        content: cvFile.buffer,
-        contentType: cvFile.mimeType || 'application/pdf'
-      }
-    ] : []
+    attachments: [] // Do NOT attach resume or CV to email per requirements
   };
 
   const result = await transporter.sendMail(mailOptions);
