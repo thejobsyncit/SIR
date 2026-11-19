@@ -196,6 +196,8 @@ export const CrmProvider = ({ children }) => {
   };
 
   const [candidates, setCandidates] = useState(() => loadState('crm_candidates', CRM_CANDIDATES));
+  const [applications, setApplications] = useState([]);
+  const [loadingApplications, setLoadingApplications] = useState(false);
   const [clients, setClients] = useState(() => loadState('crm_clients', CRM_CLIENTS));
   const [interviews, setInterviews] = useState(() => loadState('crm_interviews', CRM_INTERVIEWS));
   const [invoices, setInvoices] = useState(() => loadState('crm_invoices', CRM_INVOICES));
@@ -364,6 +366,57 @@ export const CrmProvider = ({ children }) => {
     }
   };
 
+  const fetchApplications = async () => {
+    try {
+      setLoadingApplications(true);
+      const res = await fetch('/api/candidate/applications');
+      if (res.ok) {
+        const data = await res.json();
+        if (data && data.success && Array.isArray(data.data)) {
+          setApplications(data.data);
+        }
+      }
+    } catch (err) {
+      console.error('Failed to fetch applications from backend:', err);
+    } finally {
+      setLoadingApplications(false);
+    }
+  };
+
+  const updateApplicationStatus = async (appId, newStatus, stage, notes) => {
+    try {
+      const res = await fetch(`/api/candidate/applications/${appId}/status`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ status: newStatus, stage, notes })
+      });
+      if (res.ok) {
+        setApplications(prev => prev.map(a => a.id === appId ? { ...a, status: newStatus, stage: stage || a.stage } : a));
+        fetchCandidates();
+        return true;
+      }
+    } catch (err) {
+      console.error('Failed to update application status:', err);
+    }
+    return false;
+  };
+
+  const deleteApplication = async (appId) => {
+    try {
+      const res = await fetch(`/api/candidate/applications/${appId}`, {
+        method: 'DELETE'
+      });
+      if (res.ok) {
+        setApplications(prev => prev.filter(a => a.id !== appId));
+        fetchCandidates();
+        return true;
+      }
+    } catch (err) {
+      console.error('Failed to delete application:', err);
+    }
+    return false;
+  };
+
   const fetchClients = async () => {
     try {
       const res = await fetch('/api/clients');
@@ -414,6 +467,7 @@ export const CrmProvider = ({ children }) => {
 
   useEffect(() => {
     fetchCandidates();
+    fetchApplications();
     fetchLeads();
     fetchClients();
     fetchFollowUps();
@@ -425,12 +479,15 @@ export const CrmProvider = ({ children }) => {
       fetchLeads();
       fetchConsultingMetrics();
       fetchLeadMetrics();
+      fetchApplications();
     };
     window.addEventListener('lead-submitted', handleLeadSubmitted);
+    window.addEventListener('application-submitted', fetchApplications);
 
-    // Periodically sync new inquiries, follow-ups, and metrics every 15 seconds
+    // Periodically sync new inquiries, applications, follow-ups, and metrics every 15 seconds
     const interval = setInterval(() => {
       fetchCandidates();
+      fetchApplications();
       fetchLeads();
       fetchFollowUps();
       fetchConsultingMetrics();
@@ -440,6 +497,7 @@ export const CrmProvider = ({ children }) => {
     return () => {
       clearInterval(interval);
       window.removeEventListener('lead-submitted', handleLeadSubmitted);
+      window.removeEventListener('application-submitted', fetchApplications);
     };
   }, []);
 
@@ -2136,6 +2194,11 @@ export const CrmProvider = ({ children }) => {
         setActiveModule,
         candidates,
         fetchCandidates,
+        applications,
+        loadingApplications,
+        fetchApplications,
+        updateApplicationStatus,
+        deleteApplication,
         addCandidate,
         updateCandidate,
         deleteCandidate,

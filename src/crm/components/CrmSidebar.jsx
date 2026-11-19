@@ -7,7 +7,7 @@ import {
   GraduationCap, Compass, School, Languages, Plane,
   Briefcase, Search, Tag, MessageSquare, Users2,
   CheckCircle2, Bell, CheckSquare, Clock, AlertCircle, BookOpen,
-  TrendingUp, UserPlus, Mail, User, FolderCheck
+  TrendingUp, UserPlus, Mail, User, FolderCheck, FileCheck
 } from 'lucide-react';
 
 export const HR_OPERATIONS_MENU_ORDER = [
@@ -40,6 +40,7 @@ export const CrmSidebar = ({ collapsed, setCollapsed }) => {
     currentRole,
     user,
     leads = [],
+    applications = [],
     consultingServiceFilter = 'all',
     setConsultingServiceFilter
   } = useCrm();
@@ -139,6 +140,7 @@ export const CrmSidebar = ({ collapsed, setCollapsed }) => {
       category: 'Talent & Recruitment',
       items: [
         { id: 'candidates', label: 'Candidates', icon: Users },
+        { id: 'job-applications', label: 'Job Applications', icon: FileCheck, badge: applications.length || null },
         { id: 'pipeline', label: 'Recruitment Pipeline', icon: GitMerge },
         { id: 'workspace', label: 'Recruiter Workspace', icon: UserCheck },
         { id: 'domestic', label: 'Domestic Hiring', icon: Home },
@@ -189,6 +191,7 @@ export const CrmSidebar = ({ collapsed, setCollapsed }) => {
   const recruiterMenuItems = [
     { id: 'dashboard', label: 'Dashboard Overview', icon: LayoutDashboard },
     { id: 'vacancies', label: 'Job & Vacancy Management', icon: Briefcase },
+    { id: 'job-applications', label: 'Job Applications', icon: FileCheck, badge: applications.length || null },
     { id: 'candidates', label: 'Candidate Management', icon: Users },
     { id: 'pipeline', label: 'Application Pipeline', icon: GitMerge },
     { id: 'documentation', label: 'Resume & Dossier Storage', icon: FileText },
@@ -406,6 +409,11 @@ export const CrmSidebar = ({ collapsed, setCollapsed }) => {
             : 'text-slate-600 dark:text-slate-300'
         }`} />
         {!collapsed && <span className="truncate flex-1 text-left text-xs sm:text-[13px] font-semibold">{item.label}</span>}
+        {!collapsed && item.badge !== undefined && item.badge !== null && item.badge > 0 && (
+          <span className="px-2 py-0.5 text-[10px] font-bold rounded-full bg-blue-600 text-white shadow-xs shrink-0">
+            {item.badge}
+          </span>
+        )}
         {!collapsed && item.id === 'super-admin' && Array.isArray(leads) && leads.filter(l => l && l.status === 'New').length > 0 && (
           <span className="px-1.5 py-0.2 text-[10px] font-bold rounded-full bg-emerald-600 text-white animate-pulse shadow-xs">
             {leads.filter(l => l && l.status === 'New').length}

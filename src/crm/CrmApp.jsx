@@ -6,6 +6,7 @@ import { CrmHeader } from './components/CrmHeader';
 
 import { CrmDashboard } from './pages/CrmDashboard';
 import { CrmCandidates } from './pages/CrmCandidates';
+import { CrmJobApplications } from './pages/CrmJobApplications';
 import { CrmPipeline } from './pages/CrmPipeline';
 import { CrmDomesticRecruitment } from './pages/CrmDomesticRecruitment';
 import { CrmInternationalRecruitment } from './pages/CrmInternationalRecruitment';
@@ -340,6 +341,7 @@ const CrmAppContent = () => {
       case 'candidates':
       case 'search-filters':
         return currentRole === 'HR Operations' ? <CrmHrOpsCandidateDirectory /> : <CrmCandidates />;
+      case 'job-applications': return <CrmJobApplications />;
       case 'pipeline': return <CrmPipeline />;
       case 'domestic': return <CrmDomesticRecruitment />;
       case 'international': return <CrmInternationalRecruitment />;

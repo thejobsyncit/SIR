@@ -1554,19 +1554,91 @@ app.get('/api/candidate/applications', async (req, res) => {
     let rows;
     if (candidateId || email || userId) {
       rows = await db.all(`
-        SELECT * FROM candidate_applications 
-        WHERE candidateId = ? 
-           OR userId = ? 
-           OR (applicantEmail IS NOT NULL AND LOWER(applicantEmail) = LOWER(?))
-        ORDER BY appliedDate DESC
+        SELECT 
+          ca.*,
+          c.nationality as candidateNationality,
+          c.score as candidateScore,
+          c.avatar as candidateAvatar,
+          c.skills as candidateSkills,
+          c.experience as candidateExperience,
+          c.currentRole as candidateCurrentRole
+        FROM candidate_applications ca
+        LEFT JOIN candidates c ON LOWER(c.email) = LOWER(ca.applicantEmail) OR c.id = ca.candidateId
+        WHERE ca.candidateId = ? 
+           OR ca.userId = ? 
+           OR (ca.applicantEmail IS NOT NULL AND LOWER(ca.applicantEmail) = LOWER(?))
+        ORDER BY ca.appliedDate DESC
       `, [candidateId || '', userId || '', email || candidateId || '']);
     } else {
       // Recruiter / CRM view: Return all candidate applications across all vacancies
-      rows = await db.all('SELECT * FROM candidate_applications ORDER BY appliedDate DESC');
+      rows = await db.all(`
+        SELECT 
+          ca.*,
+          c.nationality as candidateNationality,
+          c.score as candidateScore,
+          c.avatar as candidateAvatar,
+          c.skills as candidateSkills,
+          c.experience as candidateExperience,
+          c.currentRole as candidateCurrentRole
+        FROM candidate_applications ca
+        LEFT JOIN candidates c ON LOWER(c.email) = LOWER(ca.applicantEmail) OR c.id = ca.candidateId
+        ORDER BY ca.appliedDate DESC
+      `);
     }
     res.json({ success: true, data: rows || [] });
   } catch (error) {
     console.error('Failed to fetch candidate applications:', error);
+    res.status(500).json({ success: false, message: 'Server error' });
+  }
+});
+
+// UPDATE Candidate Application Status
+app.patch('/api/candidate/applications/:id/status', async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { status, stage, notes } = req.body;
+    const db = await getDb();
+    
+    const existing = await db.get('SELECT * FROM candidate_applications WHERE id = ?', [id]);
+    if (!existing) {
+      return res.status(404).json({ success: false, message: 'Application not found' });
+    }
+
+    const nextStatus = status || existing.status;
+    const nextStage = stage || (status ? status.toLowerCase().replace(/\s+/g, '_') : existing.stage);
+
+    await db.run(`
+      UPDATE candidate_applications SET
+        status = ?,
+        stage = ?,
+        notes = COALESCE(?, notes)
+      WHERE id = ?
+    `, [nextStatus, nextStage, notes, id]);
+
+    // Also update candidate stage if linked
+    if (existing.candidateId) {
+      await db.run(`
+        UPDATE candidates SET stage = ? WHERE id = ? OR (email IS NOT NULL AND LOWER(email) = LOWER(?))
+      `, [nextStage, existing.candidateId, existing.applicantEmail || '']).catch(() => {});
+    }
+
+    const updated = await db.get('SELECT * FROM candidate_applications WHERE id = ?', [id]);
+    res.json({ success: true, message: 'Application status updated', data: updated });
+  } catch (error) {
+    console.error('Failed to update application status:', error);
+    res.status(500).json({ success: false, message: 'Server error' });
+  }
+});
+
+// DELETE Candidate Application
+app.delete('/api/candidate/applications/:id', async (req, res) => {
+  try {
+    const { id } = req.params;
+    const db = await getDb();
+    await db.run('DELETE FROM candidate_applications WHERE id = ?', [id]);
+    res.json({ success: true, message: 'Application removed successfully' });
+  } catch (error) {
+    console.error('Failed to delete application:', error);
     res.status(500).json({ success: false, message: 'Server error' });
   }
 });

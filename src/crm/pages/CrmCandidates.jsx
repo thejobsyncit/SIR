@@ -16,6 +16,8 @@ import { downloadCandidateResumePdf, openCandidateResumeInNewTab } from '../../s
 export const CrmCandidates = () => {
   const {
     candidates,
+    applications = [],
+    setActiveModule,
     setAiDrawerOpen,
     globalAddCandidateOpen,
     setGlobalAddCandidateOpen,
@@ -458,6 +460,14 @@ export const CrmCandidates = () => {
         >
           <Briefcase className="w-3.5 h-3.5" />
           <span>🎯 Active Job Applicants ({activeApplicants.length})</span>
+        </button>
+
+        <button
+          onClick={() => setActiveModule('job-applications')}
+          className="px-4 py-2 rounded-xl text-xs font-bold transition flex items-center gap-2 cursor-pointer bg-blue-600 hover:bg-blue-500 text-white shadow-sm sm:ml-auto"
+        >
+          <FileCheck className="w-3.5 h-3.5" />
+          <span>Open Dedicated Job Applications Registry ({applications.length}) →</span>
         </button>
       </div>
 
