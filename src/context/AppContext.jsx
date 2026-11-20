@@ -151,7 +151,7 @@ export const AppProvider = ({ children }) => {
       if (!Array.isArray(crmList)) crmList = [];
       const idx = crmList.findIndex(c => (c.id && (c.id === candidateObj.candidateId || c.id === candidateObj.id)) || (c.email && c.email.toLowerCase().trim() === normalizedEmail));
       const crmEntry = {
-        id: candidateObj.candidateId || candidateObj.id || 'RI-CAND-001',
+        id: candidateObj.candidateId || candidateObj.id || ('RI-CAND-' + Math.floor(100 + Math.random() * 900)),
         name: candidateObj.name || candidateObj.fullName || 'Candidate',
         email: normalizedEmail,
         phone: candidateObj.phone || '',
@@ -307,6 +307,28 @@ export const AppProvider = ({ children }) => {
       setSavedSearches([]);
     }
   }, [user?.candidateId, user?.email]);
+
+  // Handle immediate application clearing when candidate is deleted in CRM
+  useEffect(() => {
+    const handleCandDeleted = (e) => {
+      const { candidateId, email } = e?.detail || {};
+      const currentCid = user?.candidateId || user?.id;
+      const currentEmail = (user?.email || '').toLowerCase().trim();
+      if ((candidateId && currentCid === candidateId) || (email && currentEmail === email.toLowerCase().trim())) {
+        setApplications([]);
+        setUser(null);
+        try {
+          localStorage.removeItem('sir_user_session');
+          if (candidateId) localStorage.removeItem(`sir_applications_${candidateId}`);
+          if (email) localStorage.removeItem(`sir_applications_${email.toLowerCase().trim()}`);
+        } catch {}
+      } else {
+        setApplications(prev => (prev || []).filter(a => a.candidateId !== candidateId && (!email || a.applicantEmail?.toLowerCase().trim() !== email.toLowerCase().trim())));
+      }
+    };
+    window.addEventListener('candidate-deleted', handleCandDeleted);
+    return () => window.removeEventListener('candidate-deleted', handleCandDeleted);
+  }, [user]);
 
   const saveUserSession = (userData) => {
     setUser(userData);
@@ -608,6 +630,18 @@ export const AppProvider = ({ children }) => {
       registeredAt: existing.registeredAt || new Date().toISOString(),
       loginTime: new Date().toISOString()
     };
+
+    // Clear from deleted candidates blacklist if re-registering
+    try {
+      const deletedStr = localStorage.getItem('sir_deleted_candidates');
+      if (deletedStr) {
+        const deletedArr = JSON.parse(deletedStr);
+        if (Array.isArray(deletedArr)) {
+          const filtered = deletedArr.filter(d => d !== normalizedEmail && d !== candidateId.toLowerCase());
+          localStorage.setItem('sir_deleted_candidates', JSON.stringify(filtered));
+        }
+      }
+    } catch {}
 
     saveCandidateToDB(candidateUser);
     saveUserSession(candidateUser);

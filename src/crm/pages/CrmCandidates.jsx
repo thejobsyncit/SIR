@@ -116,12 +116,44 @@ export const CrmCandidates = () => {
   const [isDeleting, setIsDeleting] = useState(false);
   const [statusNotice, setStatusNotice] = useState('');
   const [showFullResumeSheet, setShowFullResumeSheet] = useState(true);
+  const [syncTick, setSyncTick] = useState(0);
 
-  // Auto-refresh candidates on mount
+  // Auto-refresh candidates on mount and whenever external events occur
   useEffect(() => {
     if (fetchCandidates) {
       fetchCandidates();
     }
+  }, [fetchCandidates]);
+
+  // Real-time synchronization across browser tabs and user interactions
+  useEffect(() => {
+    const handleSync = () => {
+      setSyncTick(t => t + 1);
+      if (fetchCandidates) fetchCandidates();
+    };
+
+    window.addEventListener('focus', handleSync);
+    window.addEventListener('storage', handleSync);
+    window.addEventListener('candidate-registered', handleSync);
+    window.addEventListener('candidate-deleted', handleSync);
+    window.addEventListener('candidate-profile-updated', handleSync);
+    const handleVis = () => {
+      if (typeof document !== 'undefined' && document.visibilityState === 'visible') {
+        handleSync();
+      }
+    };
+    document.addEventListener('visibilitychange', handleVis);
+
+    const interval = setInterval(handleSync, 2000);
+    return () => {
+      window.removeEventListener('focus', handleSync);
+      window.removeEventListener('storage', handleSync);
+      window.removeEventListener('candidate-registered', handleSync);
+      window.removeEventListener('candidate-deleted', handleSync);
+      window.removeEventListener('candidate-profile-updated', handleSync);
+      document.removeEventListener('visibilitychange', handleVis);
+      clearInterval(interval);
+    };
   }, [fetchCandidates]);
 
   // Synchronize when a candidate is selected externally
@@ -142,10 +174,11 @@ export const CrmCandidates = () => {
       if (deleteCandidate) {
         await deleteCandidate(deleteConfirmCand.id, {
           name: deleteConfirmCand.name,
+          email: deleteConfirmCand.email,
           nationality: deleteConfirmCand.nationality
         });
       }
-      if (viewCand && viewCand.id === deleteConfirmCand.id) {
+      if (viewCand && (viewCand.id === deleteConfirmCand.id || (deleteConfirmCand.email && viewCand.email?.toLowerCase() === deleteConfirmCand.email.toLowerCase()))) {
         setViewCand(null);
       }
       if (setSelectedCandidate && selectedCandidate?.id === deleteConfirmCand.id) {
@@ -153,6 +186,7 @@ export const CrmCandidates = () => {
       }
       setStatusNotice(`✓ Candidate "${deleteConfirmCand.name}" (${deleteConfirmCand.id}) permanently removed.`);
       setDeleteConfirmCand(null);
+      setSyncTick(t => t + 1);
       setTimeout(() => setStatusNotice(''), 4000);
     } catch (err) {
       alert('Failed to delete candidate: ' + (err.message || 'Unknown error'));
@@ -163,7 +197,28 @@ export const CrmCandidates = () => {
 
   // Dynamic Candidate Pool: Merges context candidates with any portal-registered candidate from localStorage
   const candidatePool = useMemo(() => {
-    const pool = [...candidates];
+    // 0. Deleted candidates set
+    const deletedSet = new Set();
+    try {
+      const deletedStr = localStorage.getItem('sir_deleted_candidates');
+      if (deletedStr) {
+        const arr = JSON.parse(deletedStr);
+        if (Array.isArray(arr)) {
+          arr.forEach(d => {
+            if (d) deletedSet.add(String(d).toLowerCase().trim());
+          });
+        }
+      }
+    } catch {}
+
+    const pool = (candidates || []).filter(c => {
+      if (!c || isDummyCandidate(c)) return false;
+      const id = (c.id || '').toLowerCase().trim();
+      const email = (c.email || '').toLowerCase().trim();
+      if (deletedSet.has(id) || deletedSet.has(email)) return false;
+      return true;
+    });
+
     const seenEmails = new Set(pool.map(c => (c.email || '').toLowerCase().trim()).filter(Boolean));
     const seenIds = new Set(pool.map(c => c.id).filter(Boolean));
 
@@ -173,12 +228,19 @@ export const CrmCandidates = () => {
         const localDb = JSON.parse(localDbStr);
         for (const [email, cand] of Object.entries(localDb)) {
           const cleanEmail = (email || '').toLowerCase().trim();
+          const cleanId = (cand.candidateId || cand.id || '').trim();
           if (cleanEmail && !seenEmails.has(cleanEmail) && !isDummyCandidate(cand)) {
+            if (deletedSet.has(cleanEmail) || (cleanId && deletedSet.has(cleanId.toLowerCase()))) {
+              continue; // Exclude deleted
+            }
             seenEmails.add(cleanEmail);
+            const resolvedId = cleanId && !seenIds.has(cleanId) ? cleanId : ('RI-CAND-' + Math.floor(100 + Math.random() * 900));
+            seenIds.add(resolvedId);
+
             pool.push({
-              id: cand.candidateId || cand.id || 'RI-CAND-001',
+              id: resolvedId,
               name: cand.name || cand.fullName || 'Candidate',
-              email: cand.email,
+              email: cand.email || cleanEmail,
               phone: cand.phone || '',
               nationality: cand.nationality || cand.preferredCountry || 'UAE',
               currentEmployer: cand.currentEmployer || 'Revival International Candidate',
@@ -191,7 +253,7 @@ export const CrmCandidates = () => {
               skills: Array.isArray(cand.skills) ? cand.skills : [],
               source: 'Candidate Portal Registration',
               passport: 'Verified',
-              aiSummary: `Portal registered candidate (${cand.email}).`,
+              aiSummary: `Portal registered candidate (${cand.email || cleanEmail}).`,
               experience: cand.experience || '3-5 Years',
               avatar: cand.avatar || null,
               resumeName: cand.resumeName || null,
@@ -208,39 +270,45 @@ export const CrmCandidates = () => {
       if (sessStr) {
         const sessUser = JSON.parse(sessStr);
         const cleanEmail = (sessUser?.email || '').toLowerCase().trim();
+        const cleanId = (sessUser.candidateId || sessUser.id || '').trim();
         if (cleanEmail && !seenEmails.has(cleanEmail) && !isDummyCandidate(sessUser)) {
-          seenEmails.add(cleanEmail);
-          pool.push({
-            id: sessUser.candidateId || sessUser.id || 'RI-CAND-001',
-            name: sessUser.name || sessUser.fullName || 'Candidate',
-            email: sessUser.email,
-            phone: sessUser.phone || '',
-            nationality: sessUser.nationality || sessUser.preferredCountry || 'UAE',
-            currentEmployer: sessUser.currentEmployer || 'Revival International Candidate',
-            currentRole: sessUser.title || sessUser.currentRole || 'Executive Candidate',
-            currentSalary: sessUser.currentSalary || '',
-            expectedSalary: sessUser.expectedSalary || '',
-            noticePeriod: sessUser.noticePeriod || 'Immediate',
-            score: sessUser.score || 92,
-            stage: sessUser.stage || 'lead',
-            skills: Array.isArray(sessUser.skills) ? sessUser.skills : [],
-            source: 'Candidate Portal Registration',
-            passport: 'Verified',
-            aiSummary: `Portal registered candidate (${sessUser.email}).`,
-            experience: sessUser.experience || '3-5 Years',
-            avatar: sessUser.avatar || null,
-            resumeName: sessUser.resumeName || null,
-            resumeUrl: sessUser.resumeUrl || null,
-            resumeSize: sessUser.resumeSize || null,
-            assignedRecruiter: 'Dhanalakshimi (Lead Advisor)',
-            createdAt: sessUser.registeredAt || sessUser.createdAt || new Date().toISOString()
-          });
+          if (!deletedSet.has(cleanEmail) && (!cleanId || !deletedSet.has(cleanId.toLowerCase()))) {
+            seenEmails.add(cleanEmail);
+            const resolvedId = cleanId && !seenIds.has(cleanId) ? cleanId : ('RI-CAND-' + Math.floor(100 + Math.random() * 900));
+            seenIds.add(resolvedId);
+
+            pool.push({
+              id: resolvedId,
+              name: sessUser.name || sessUser.fullName || 'Candidate',
+              email: sessUser.email,
+              phone: sessUser.phone || '',
+              nationality: sessUser.nationality || sessUser.preferredCountry || 'UAE',
+              currentEmployer: sessUser.currentEmployer || 'Revival International Candidate',
+              currentRole: sessUser.title || sessUser.currentRole || 'Executive Candidate',
+              currentSalary: sessUser.currentSalary || '',
+              expectedSalary: sessUser.expectedSalary || '',
+              noticePeriod: sessUser.noticePeriod || 'Immediate',
+              score: sessUser.score || 92,
+              stage: sessUser.stage || 'lead',
+              skills: Array.isArray(sessUser.skills) ? sessUser.skills : [],
+              source: 'Candidate Portal Registration',
+              passport: 'Verified',
+              aiSummary: `Portal registered candidate (${sessUser.email}).`,
+              experience: sessUser.experience || '3-5 Years',
+              avatar: sessUser.avatar || null,
+              resumeName: sessUser.resumeName || null,
+              resumeUrl: sessUser.resumeUrl || null,
+              resumeSize: sessUser.resumeSize || null,
+              assignedRecruiter: 'Dhanalakshimi (Lead Advisor)',
+              createdAt: sessUser.registeredAt || sessUser.createdAt || new Date().toISOString()
+            });
+          }
         }
       }
     } catch {}
 
     return pool;
-  }, [candidates]);
+  }, [candidates, syncTick]);
 
   // Enriched active candidate object for detail view
   const activeCand = useMemo(() => {
@@ -707,16 +775,16 @@ export const CrmCandidates = () => {
                     
                     {/* Header Row: Avatar, Name, Candidate ID, Badges */}
                     <div className="flex justify-between items-start gap-3">
-                      <div className="flex items-center space-x-3 min-w-0">
+                      <div className="flex items-start space-x-3 min-w-0 flex-1">
                         {renderCandidateAvatar(cand, "w-12 h-12 text-sm")}
-                        <div className="min-w-0">
-                          <h3 className="font-serif font-bold text-base text-slate-900 dark:text-white group-hover:text-gold-600 dark:group-hover:text-gold-400 transition truncate" title={cand.name}>
+                        <div className="min-w-0 flex-1">
+                          <h3 className="font-serif font-bold text-base text-slate-900 dark:text-white group-hover:text-gold-600 dark:group-hover:text-gold-400 transition leading-snug break-words" title={cand.name}>
                             {cand.name}
                           </h3>
-                          <p className="text-[11px] text-slate-500 dark:text-slate-400 font-mono font-bold flex items-center gap-1.5 mt-0.5">
-                            <span className="text-gold-600 dark:text-gold-400">{cand.id}</span>
-                            <span>•</span>
-                            <span className="text-slate-600 dark:text-slate-300 font-sans font-semibold">{cand.nationality || 'UAE'}</span>
+                          <p className="text-[11px] text-slate-500 dark:text-slate-400 font-mono font-bold flex flex-wrap items-center gap-1.5 mt-1">
+                            <span className="text-gold-600 dark:text-gold-400 font-extrabold tracking-tight whitespace-nowrap shrink-0">{cand.id}</span>
+                            <span className="text-slate-400 shrink-0">•</span>
+                            <span className="text-slate-600 dark:text-slate-300 font-sans font-semibold shrink-0">{cand.nationality || 'UAE'}</span>
                           </p>
                         </div>
                       </div>
@@ -754,7 +822,7 @@ export const CrmCandidates = () => {
                       <div className="flex items-start justify-between gap-2">
                         <div className="min-w-0">
                           <span className="text-[10px] uppercase font-bold text-slate-400 block leading-tight">Professional Role</span>
-                          <p className="font-bold text-slate-900 dark:text-white truncate text-xs" title={cand.currentRole}>
+                          <p className="font-bold text-slate-900 dark:text-white break-words text-xs leading-snug" title={cand.currentRole}>
                             {cand.currentRole || 'Executive Candidate'}
                           </p>
                         </div>

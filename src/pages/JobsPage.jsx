@@ -838,6 +838,12 @@ export const JobsPage = () => {
 
   useEffect(() => {
     syncAppliedJobsFromDb();
+
+    const handleCandDeleted = () => {
+      syncAppliedJobsFromDb();
+    };
+    window.addEventListener('candidate-deleted', handleCandDeleted);
+    return () => window.removeEventListener('candidate-deleted', handleCandDeleted);
   }, [syncAppliedJobsFromDb, applications]);
 
   const isApplied = (jobId) => {

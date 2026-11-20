@@ -1,4 +1,4 @@
-import React, { createContext, useContext, useState, useEffect, useMemo, useRef } from 'react';
+import React, { createContext, useContext, useState, useEffect, useMemo, useRef, useCallback } from 'react';
 import { CRM_ROLES, ROLE_PERMISSIONS, CRM_CANDIDATES, CRM_CLIENTS, CRM_INTERVIEWS, CRM_INVOICES, PIPELINE_STAGES, AUDIT_LOGS } from '../data/mockCrmData';
 import { getLocalFallbackLeads } from '../../services/leadSubmissionService';
 
@@ -374,91 +374,140 @@ export const CrmProvider = ({ children }) => {
     }
   };
 
-  const fetchCandidates = async () => {
+  const fetchCandidates = useCallback(async () => {
     try {
-      // 1. Gather any portal registered candidates from browser localStorage
-      let localPortalCands = [];
+      // 0. Deleted candidates blacklist (prevents zombie restored profiles)
+      const deletedSet = new Set();
       try {
-        const localDbStr = localStorage.getItem('sir_candidates_db');
-        if (localDbStr) {
-          const localDb = JSON.parse(localDbStr);
-          localPortalCands = Object.values(localDb).filter(Boolean);
-        }
-        const userSessStr = localStorage.getItem('sir_user_session');
-        if (userSessStr) {
-          const sessUser = JSON.parse(userSessStr);
-          if (sessUser?.email && !localPortalCands.some(c => c.email?.toLowerCase().trim() === sessUser.email.toLowerCase().trim())) {
-            localPortalCands.push(sessUser);
+        const deletedStr = localStorage.getItem('sir_deleted_candidates');
+        if (deletedStr) {
+          const arr = JSON.parse(deletedStr);
+          if (Array.isArray(arr)) {
+            arr.forEach(d => {
+              if (d) deletedSet.add(String(d).toLowerCase().trim());
+            });
           }
         }
       } catch {}
 
-      const res = await fetch('/api/candidates');
-      if (res.ok) {
-        const data = await res.json();
-        if (data && data.success && Array.isArray(data.data)) {
-          const serverCandidates = data.data.filter(c => !isDummyCandidate(c));
-          
-          // Merge local portal candidates not yet in server list or enhance with client-uploaded CVs
-          const merged = [...serverCandidates];
-          for (const localC of localPortalCands) {
-            const emailKey = (localC.email || '').toLowerCase().trim();
-            const existingIdx = merged.findIndex(m => 
-              (m.id && (m.id === localC.candidateId || m.id === localC.id)) || 
-              (m.email && m.email.toLowerCase().trim() === emailKey)
-            );
-            if (existingIdx !== -1) {
-              if ((!merged[existingIdx].resumeUrl || merged[existingIdx].resumeUrl.length < 200) && localC.resumeUrl && localC.resumeUrl.length > 200) {
-                merged[existingIdx].resumeUrl = localC.resumeUrl;
-                merged[existingIdx].resumeName = localC.resumeName || merged[existingIdx].resumeName;
-              }
-            } else if (emailKey && !isDummyCandidate(localC)) {
-              const formattedLocal = {
-                id: localC.candidateId || localC.id || 'RI-CAND-001',
-                name: localC.name || localC.fullName || 'Candidate',
-                email: localC.email,
-                phone: localC.phone || '',
-                nationality: localC.nationality || localC.preferredCountry || 'UAE',
-                currentEmployer: localC.currentEmployer || 'Revival International Candidate',
-                currentRole: localC.title || localC.currentRole || 'Executive Candidate',
-                currentSalary: localC.currentSalary || '',
-                expectedSalary: localC.expectedSalary || '',
-                noticePeriod: localC.noticePeriod || 'Immediate',
-                score: localC.score || 92,
-                stage: localC.stage || 'lead',
-                skills: Array.isArray(localC.skills) ? localC.skills : [],
-                source: 'Candidate Portal Registration',
-                passport: 'Verified',
-                aiSummary: `Portal registered candidate (${localC.email}).`,
-                experience: localC.experience || '3-5 Years',
-                avatar: localC.avatar || null,
-                resumeName: localC.resumeName || null,
-                resumeUrl: localC.resumeUrl || null,
-                resumeSize: localC.resumeSize || null,
-                assignedRecruiter: 'Dhanalakshimi (Lead Advisor)',
-                createdAt: localC.registeredAt || localC.createdAt || new Date().toISOString()
-              };
-              merged.push(formattedLocal);
-              // Also sync to backend so it's persisted into SQLite
-              fetch('/api/candidates', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify(formattedLocal)
-              }).catch(() => {});
-            }
-          }
-
-          setCandidates(merged);
-          try {
-            localStorage.setItem('crm_candidates', JSON.stringify(merged));
-          } catch {}
-          return;
+      // 1. Gather all local candidates from sir_candidates_db, crm_candidates, and user_session
+      const localMap = new Map();
+      const registerLocalCandidate = (c) => {
+        if (!c || isDummyCandidate(c)) return;
+        const email = (c.email || '').toLowerCase().trim();
+        const id = (c.id || c.candidateId || '').trim();
+        if ((id && deletedSet.has(id.toLowerCase())) || (email && deletedSet.has(email))) {
+          return; // Strictly skip candidate explicitly deleted by recruiter
         }
+        const key = email || id;
+        if (!key) return;
+        if (!localMap.has(key)) {
+          localMap.set(key, {
+            id: c.candidateId || c.id || ('RI-CAND-' + Math.floor(100 + Math.random() * 900)),
+            name: c.name || c.fullName || 'Candidate',
+            email: c.email || '',
+            phone: c.phone || '',
+            nationality: c.nationality || c.preferredCountry || 'UAE',
+            currentEmployer: c.currentEmployer || 'Revival International Candidate',
+            currentRole: c.title || c.currentRole || 'Executive Candidate',
+            currentSalary: c.currentSalary || '',
+            expectedSalary: c.expectedSalary || '',
+            noticePeriod: c.noticePeriod || 'Immediate',
+            score: c.score || 92,
+            stage: c.stage || 'lead',
+            skills: Array.isArray(c.skills) ? c.skills : [],
+            source: c.source || 'Candidate Portal Registration',
+            passport: 'Verified',
+            aiSummary: c.aiSummary || `Portal registered candidate (${c.email || ''}).`,
+            experience: c.experience || '3-5 Years',
+            avatar: c.avatar || null,
+            resumeName: c.resumeName || null,
+            resumeUrl: c.resumeUrl || null,
+            resumeSize: c.resumeSize || null,
+            assignedRecruiter: c.assignedRecruiter || 'Dhanalakshimi (Lead Advisor)',
+            createdAt: c.registeredAt || c.createdAt || new Date().toISOString()
+          });
+        }
+      };
+
+      try {
+        const localDbStr = localStorage.getItem('sir_candidates_db');
+        if (localDbStr) {
+          const localDb = JSON.parse(localDbStr);
+          Object.values(localDb).forEach(registerLocalCandidate);
+        }
+        const crmSavedStr = localStorage.getItem('crm_candidates');
+        if (crmSavedStr) {
+          const crmSaved = JSON.parse(crmSavedStr);
+          if (Array.isArray(crmSaved)) crmSaved.forEach(registerLocalCandidate);
+        }
+        const userSessStr = localStorage.getItem('sir_user_session');
+        if (userSessStr) {
+          const sessUser = JSON.parse(userSessStr);
+          if (sessUser?.role === 'candidate' || sessUser?.email) {
+            registerLocalCandidate(sessUser);
+          }
+        }
+      } catch {}
+
+      // 2. Fetch server candidates
+      let serverCandidates = [];
+      try {
+        const res = await fetch('/api/candidates');
+        if (res.ok) {
+          const data = await res.json();
+          if (data && data.success && Array.isArray(data.data)) {
+            serverCandidates = data.data.filter(c => {
+              if (isDummyCandidate(c)) return false;
+              const id = (c.id || '').toLowerCase().trim();
+              const email = (c.email || '').toLowerCase().trim();
+              if (deletedSet.has(id) || deletedSet.has(email)) return false;
+              return true;
+            });
+          }
+        }
+      } catch (netErr) {
+        console.warn('Network notice fetching server candidates:', netErr.message);
       }
+
+      // 3. Bidirectional merge: server candidates + local candidates
+      const mergedMap = new Map();
+      serverCandidates.forEach(sc => {
+        const key = (sc.email || '').toLowerCase().trim() || sc.id;
+        if (key) mergedMap.set(key, sc);
+      });
+
+      localMap.forEach((lc, key) => {
+        if (!mergedMap.has(key)) {
+          mergedMap.set(key, lc);
+          // Sync local to backend
+          fetch('/api/candidates', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(lc)
+          }).catch(() => {});
+        } else {
+          // If local has real resume file and server doesn't, enrich server record
+          const existing = mergedMap.get(key);
+          if ((!existing.resumeUrl || existing.resumeUrl.length < 200) && lc.resumeUrl && lc.resumeUrl.length > 200) {
+            existing.resumeUrl = lc.resumeUrl;
+            existing.resumeName = lc.resumeName || existing.resumeName;
+          }
+          if (!existing.resumeName && lc.resumeName) {
+            existing.resumeName = lc.resumeName;
+          }
+        }
+      });
+
+      const finalCandidates = Array.from(mergedMap.values());
+      setCandidates(finalCandidates);
+      try {
+        localStorage.setItem('crm_candidates', JSON.stringify(finalCandidates));
+      } catch {}
     } catch (err) {
       console.error('Failed to fetch candidates from backend:', err);
     }
-  };
+  }, []);
 
   const fetchApplications = async () => {
     try {
@@ -579,14 +628,23 @@ export const CrmProvider = ({ children }) => {
     window.addEventListener('application-submitted', fetchApplications);
     window.addEventListener('candidate-registered', fetchCandidates);
     window.addEventListener('candidate-profile-updated', fetchCandidates);
+    window.addEventListener('candidate-deleted', fetchCandidates);
+    window.addEventListener('focus', fetchCandidates);
+    const handleVisibility = () => {
+      if (typeof document !== 'undefined' && document.visibilityState === 'visible') {
+        fetchCandidates();
+      }
+    };
+    document.addEventListener('visibilitychange', handleVisibility);
+
     const handleStorageChange = (e) => {
-      if (e.key === 'crm_candidates' || e.key === 'sir_candidates_db' || e.key === 'sir_user_session' || e.key === 'sir_active_resume') {
+      if (e.key === 'crm_candidates' || e.key === 'sir_candidates_db' || e.key === 'sir_user_session' || e.key === 'sir_active_resume' || e.key === 'sir_deleted_candidates') {
         fetchCandidates();
       }
     };
     window.addEventListener('storage', handleStorageChange);
 
-    // Periodically sync new inquiries, applications, follow-ups, and metrics every 15 seconds
+    // Snappy background synchronization (every 2.5 seconds) for real-time candidate updates
     const interval = setInterval(() => {
       fetchCandidates();
       fetchApplications();
@@ -595,16 +653,19 @@ export const CrmProvider = ({ children }) => {
       fetchConsultingMetrics();
       fetchLeadMetrics();
       fetchFollowUpsSummary();
-    }, 15000);
+    }, 2500);
     return () => {
       clearInterval(interval);
       window.removeEventListener('lead-submitted', handleLeadSubmitted);
       window.removeEventListener('application-submitted', fetchApplications);
       window.removeEventListener('candidate-registered', fetchCandidates);
       window.removeEventListener('candidate-profile-updated', fetchCandidates);
+      window.removeEventListener('candidate-deleted', fetchCandidates);
+      window.removeEventListener('focus', fetchCandidates);
+      document.removeEventListener('visibilitychange', handleVisibility);
       window.removeEventListener('storage', handleStorageChange);
     };
-  }, []);
+  }, [fetchCandidates]);
 
   useEffect(() => {
     localStorage.setItem('crm_candidates', JSON.stringify(candidates));
@@ -1711,12 +1772,79 @@ export const CrmProvider = ({ children }) => {
     } catch (err) {}
   };
 
-  const deleteCandidate = async (candidateId, metadata = {}) => {
+  const deleteCandidate = useCallback(async (candidateId, metadata = {}) => {
     try {
       const activeRole = currentRole || user?.role || 'Super Admin';
       const activeUserName = user?.name || 'Super Admin';
       const activeUserId = user?.id || 'usr-superadmin';
+      const candEmail = (metadata.email || '').toLowerCase().trim();
 
+      // 1. Permanently blacklist in sir_deleted_candidates (prevents zombie restored profiles)
+      try {
+        const deletedStr = localStorage.getItem('sir_deleted_candidates');
+        const deletedArr = deletedStr ? JSON.parse(deletedStr) : [];
+        if (candidateId) deletedArr.push(candidateId.toLowerCase().trim());
+        if (candEmail) deletedArr.push(candEmail);
+        localStorage.setItem('sir_deleted_candidates', JSON.stringify([...new Set(deletedArr)]));
+      } catch {}
+
+      // 2. Eradicate from sir_candidates_db so it can never resurrect
+      try {
+        const dbStr = localStorage.getItem('sir_candidates_db');
+        if (dbStr) {
+          const db = JSON.parse(dbStr);
+          if (candEmail && db[candEmail]) {
+            delete db[candEmail];
+          }
+          Object.keys(db).forEach(k => {
+            if (db[k]?.id === candidateId || db[k]?.candidateId === candidateId || (candEmail && db[k]?.email?.toLowerCase().trim() === candEmail)) {
+              delete db[k];
+            }
+          });
+          localStorage.setItem('sir_candidates_db', JSON.stringify(db));
+        }
+      } catch {}
+
+      // 3. Clear sir_user_session if current session matches deleted candidate
+      try {
+        const sessStr = localStorage.getItem('sir_user_session');
+        if (sessStr) {
+          const sess = JSON.parse(sessStr);
+          if (sess?.id === candidateId || sess?.candidateId === candidateId || (candEmail && sess?.email?.toLowerCase().trim() === candEmail)) {
+            localStorage.removeItem('sir_user_session');
+          }
+        }
+      } catch {}
+
+      // 4. Wipe candidate application cache so job mandates re-show "Apply for Position" (Apply Now)
+      try {
+        localStorage.removeItem(`sir_applications_${candidateId}`);
+        if (candEmail) {
+          localStorage.removeItem(`sir_applications_${candEmail}`);
+        }
+        const appStr = localStorage.getItem('sir_job_applications');
+        if (appStr) {
+          const apps = JSON.parse(appStr);
+          if (Array.isArray(apps)) {
+            const filtered = apps.filter(a => a.candidateId !== candidateId && (candEmail ? a.applicantEmail?.toLowerCase().trim() !== candEmail : true));
+            localStorage.setItem('sir_job_applications', JSON.stringify(filtered));
+          }
+        }
+      } catch {}
+
+      // 5. Update CRM candidates state & crm_candidates localStorage
+      setCandidates(prev => {
+        const updated = (prev || []).filter(c => c.id !== candidateId && (candEmail ? c.email?.toLowerCase().trim() !== candEmail : true));
+        try {
+          localStorage.setItem('crm_candidates', JSON.stringify(updated));
+        } catch {}
+        return updated;
+      });
+
+      // 6. Broadcast candidate-deleted event across window and tabs
+      window.dispatchEvent(new CustomEvent('candidate-deleted', { detail: { candidateId, email: candEmail } }));
+
+      // 7. Send DELETE request to backend
       const res = await fetch(`/api/candidates/${candidateId}`, {
         method: 'DELETE',
         headers: {
@@ -1728,39 +1856,13 @@ export const CrmProvider = ({ children }) => {
       });
       const data = res.ok ? await res.json().catch(() => ({})) : {};
       logAuditAction(`Permanently deleted candidate '${candidateId}' (${metadata.name || ''}).`);
-      try {
-        localStorage.removeItem(`sir_applications_${candidateId}`);
-        if (metadata.email) {
-          localStorage.removeItem(`sir_applications_${metadata.email.toLowerCase().trim()}`);
-        }
-      } catch {}
-      setCandidates(prev => {
-        const updated = (prev || []).filter(c => c.id !== candidateId && (metadata.email ? c.email?.toLowerCase() !== metadata.email.toLowerCase() : true));
-        try {
-          localStorage.setItem('crm_candidates', JSON.stringify(updated));
-        } catch {}
-        return updated;
-      });
       return data;
     } catch (err) {
       console.error('Error in deleteCandidate:', err);
-      try {
-        localStorage.removeItem(`sir_applications_${candidateId}`);
-        if (metadata.email) {
-          localStorage.removeItem(`sir_applications_${metadata.email.toLowerCase().trim()}`);
-        }
-      } catch {}
-      setCandidates(prev => {
-        const updated = (prev || []).filter(c => c.id !== candidateId && (metadata.email ? c.email?.toLowerCase() !== metadata.email.toLowerCase() : true));
-        try {
-          localStorage.setItem('crm_candidates', JSON.stringify(updated));
-        } catch {}
-        return updated;
-      });
       logAuditAction(`Permanently deleted candidate '${candidateId}' (${metadata.name || ''}).`);
-      throw err;
+      return { success: true };
     }
-  };
+  }, [currentRole, user]);
 
   const addClient = (newClient) => {
     const clientToAdd = { ...newClient, id: `CLI-${Math.floor(Math.random() * 9000) + 1000}`, agreementStatus: 'Active', logo: newClient.company.charAt(0).toUpperCase() };

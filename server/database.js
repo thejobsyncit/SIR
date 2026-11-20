@@ -312,6 +312,38 @@ export const DEFAULT_CRM_CANDIDATES = [
     mohreAttested: 1,
     assignedRecruiter: 'Dhanalakshimi (Lead Advisor)',
     createdAt: '2026-11-19 14:22:00'
+  },
+  {
+    id: 'RI-CAND-391',
+    name: 'kavya',
+    email: 'junejoe@gmail.com',
+    phone: '+91 9478498745',
+    nationality: 'UAE',
+    currentEmployer: 'Revival International Talent Pool',
+    currentRole: 'Executive Operations & Business Specialist',
+    currentSalary: 'AED 18,000 / month',
+    expectedSalary: 'AED 25,000 / month',
+    noticePeriod: 'Immediate',
+    score: 92,
+    stage: 'lead',
+    skills: JSON.stringify(['Business Management', 'Executive Operations', 'Client Relations', 'Process Optimization']),
+    source: 'Website Candidate Registration',
+    passport: 'Verified',
+    aiSummary: 'Registered Candidate (junejoe@gmail.com) with executive international credentials.',
+    experience: '4-6 Years',
+    avatar: null,
+    resumeName: 'Kavya_Resume.pdf',
+    resumeUrl: '',
+    resumeSize: '150 KB',
+    citizenship: 'Indian',
+    dob: '1995-04-16',
+    gender: 'Female',
+    location: 'Dubai, UAE',
+    preferredCountry: 'UAE',
+    education: 'Bachelor of Business Administration',
+    mohreAttested: 1,
+    assignedRecruiter: 'Dhanalakshimi (Lead Advisor)',
+    createdAt: '2026-11-20 11:21:53'
   }
 ];
 
@@ -367,6 +399,32 @@ export const DEFAULT_CRM_PROFILES = [
     mohreAttested: 1,
     savedJobs: '[]',
     updatedAt: '2026-11-19 14:22:00'
+  },
+  {
+    id: 'RI-CAND-391',
+    userId: 'USR-KAVYA391',
+    name: 'kavya',
+    email: 'junejoe@gmail.com',
+    phone: '+91 9478498745',
+    nationality: 'UAE',
+    currentEmployer: 'Revival International Talent Pool',
+    currentRole: 'Executive Operations & Business Specialist',
+    currentSalary: 'AED 18,000 / month',
+    expectedSalary: 'AED 25,000 / month',
+    noticePeriod: 'Immediate',
+    skills: JSON.stringify(['Business Management', 'Executive Operations', 'Client Relations', 'Process Optimization']),
+    resumeName: 'Kavya_Resume.pdf',
+    resumeUrl: '',
+    resumeSize: '150 KB',
+    citizenship: 'Indian',
+    dob: '1995-04-16',
+    gender: 'Female',
+    location: 'Dubai, UAE',
+    preferredCountry: 'UAE',
+    education: 'Bachelor of Business Administration',
+    mohreAttested: 1,
+    savedJobs: '[]',
+    updatedAt: '2026-11-20 11:21:53'
   }
 ];
 
