@@ -144,7 +144,6 @@ export const CrmCandidates = () => {
     };
     document.addEventListener('visibilitychange', handleVis);
 
-    const interval = setInterval(handleSync, 2000);
     return () => {
       window.removeEventListener('focus', handleSync);
       window.removeEventListener('storage', handleSync);
@@ -152,7 +151,6 @@ export const CrmCandidates = () => {
       window.removeEventListener('candidate-deleted', handleSync);
       window.removeEventListener('candidate-profile-updated', handleSync);
       document.removeEventListener('visibilitychange', handleVis);
-      clearInterval(interval);
     };
   }, [fetchCandidates]);
 

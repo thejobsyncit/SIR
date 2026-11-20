@@ -489,12 +489,6 @@ export const CrmProvider = ({ children }) => {
       localMap.forEach((lc, key) => {
         if (!mergedMap.has(key)) {
           mergedMap.set(key, lc);
-          // Sync local to backend
-          fetch('/api/candidates', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify(lc)
-          }).catch(() => {});
         } else {
           // If local has real resume file and server doesn't, enrich server record
           const existing = mergedMap.get(key);
@@ -660,12 +654,6 @@ export const CrmProvider = ({ children }) => {
         const compositeKey = `${String(la.jobId).trim()}_${(la.applicantEmail || '').trim().toLowerCase()}`;
         if (!mergedMap.has(key) && !mergedMap.has(compositeKey)) {
           mergedMap.set(key, la);
-          // Sync local application up to backend SQLite in background
-          fetch('/api/candidate/applications', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify(la)
-          }).catch(() => {});
         } else {
           // If local has real resume file and server doesn't, enrich server record
           const existing = mergedMap.get(key) || mergedMap.get(compositeKey);
@@ -891,16 +879,14 @@ export const CrmProvider = ({ children }) => {
     };
     window.addEventListener('storage', handleStorageChange);
 
-    // Snappy background synchronization (every 2.5 seconds) for real-time candidate & application updates
+    // Event-driven & gentle periodic background sync (every 60s only if tab is visible)
     const interval = setInterval(() => {
-      fetchCandidates();
-      fetchApplications();
-      fetchLeads();
-      fetchFollowUps();
-      fetchConsultingMetrics();
-      fetchLeadMetrics();
-      fetchFollowUpsSummary();
-    }, 2500);
+      if (typeof document !== 'undefined' && document.visibilityState === 'visible') {
+        fetchCandidates();
+        fetchApplications();
+        fetchLeads();
+      }
+    }, 60000);
     return () => {
       clearInterval(interval);
       window.removeEventListener('lead-submitted', handleLeadSubmitted);
