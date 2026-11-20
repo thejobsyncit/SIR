@@ -77,15 +77,53 @@ export const Home = () => {
       />
 
       {/* HERO SECTION WITH EXTENDED SKYLINE BACKGROUND */}
+<<<<<<< Updated upstream
       <div className="hero relative overflow-hidden">
         {/* HERO MAIN CONTENT */}
         <section className="relative z-10 flex items-center justify-center pt-8 pb-3 sm:pt-10 sm:pb-4 md:pt-12 md:pb-5">
           <div className="max-w-7xl mx-auto px-4 sm:px-8 text-center space-y-4 sm:space-y-5">
 
+=======
+      <div className="relative overflow-hidden bg-white dark:bg-navy-950">
+        {/* Background Global Skyline Overlay */}
+        <div className="absolute inset-0 z-0 bg-white dark:bg-navy-950">
+          {/* Light Mode: Global Skyline & Bridge */}
+          <img
+            src="/images/hero_skyline.jpg"
+            alt="Global Skyline and Brooklyn Bridge - Revival International Recruitment and Academic Advisory"
+            loading="eager"
+            fetchPriority="high"
+            className="w-full h-full object-cover object-top opacity-85 dark:opacity-0 transition-opacity duration-700 absolute inset-0"
+          />
+          {/* Dark Mode: Realistic Nighttime New York Skyline & Illuminated Brooklyn Bridge */}
+          <img
+            src="/images/hero_skyline_dark.jpg"
+            alt="Global Skyline and Bridge at Night - Revival International Headquarters"
+            loading="eager"
+            fetchPriority="high"
+            className="w-full h-full object-cover object-top opacity-0 dark:opacity-90 transition-opacity duration-700 absolute inset-0"
+          />
+          {/* Theme-aware smooth background fade transition beneath the Trusted Enterprises section */}
+          <div className="absolute inset-0 pointer-events-none hero-skyline-fade" />
+        </div>
+
+        {/* HERO MAIN CONTENT */}
+        <section className="relative z-10 flex items-center justify-center pt-8 pb-3 sm:pt-10 sm:pb-4 md:pt-12 md:pb-5">
+          <div className="max-w-7xl mx-auto px-4 sm:px-8 text-center space-y-4 sm:space-y-5">
+
+>>>>>>> Stashed changes
             {/* Headline */}
             <h1 className="font-serif text-3xl sm:text-5xl lg:text-6xl font-extrabold text-navy-900 dark:text-white tracking-tight leading-[1.15] max-w-5xl mx-auto animate-fade-in-up" style={{ animationDelay: '0.1s' }}>
               {t('hero.title')}
             </h1>
+<<<<<<< Updated upstream
+=======
+
+            {/* Subheading */}
+            <p className="text-slate-600 dark:text-slate-300 text-sm sm:text-base max-w-3xl mx-auto leading-relaxed font-normal animate-fade-in-up" style={{ animationDelay: '0.2s' }}>
+              {t('hero.subtitle')}
+            </p>
+>>>>>>> Stashed changes
 
             {/* Action CTAs */}
             <div className="flex justify-center items-center pt-1 animate-fade-in-up" style={{ animationDelay: '0.3s' }}>

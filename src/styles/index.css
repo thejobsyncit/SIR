@@ -5,13 +5,19 @@
 :root {
   --hero-fade-end: #ffffff;
   --hero-fade-rgb: 255, 255, 255;
+<<<<<<< Updated upstream
   --hero-pic-saturate: 0.45;
+=======
+>>>>>>> Stashed changes
 }
 
 .dark {
   --hero-fade-end: #060d19;
   --hero-fade-rgb: 6, 13, 25;
+<<<<<<< Updated upstream
   --hero-pic-saturate: 0.45;
+=======
+>>>>>>> Stashed changes
 }
 
 @layer base {
@@ -91,6 +97,7 @@
       var(--hero-fade-end) 100%
     );
   }
+<<<<<<< Updated upstream
 
   /* Hero Section Background with Reduced Picture Saturation and Smooth Bottom-Fade Gradient */
   .hero {
@@ -148,6 +155,8 @@
       var(--hero-fade-end) 100%
     );
   }
+=======
+>>>>>>> Stashed changes
 }
 
 /* Bulletproof Navbar Visibility - Active from 860px and up (all laptops and desktops) */
