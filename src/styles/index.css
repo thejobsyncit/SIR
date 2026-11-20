@@ -5,11 +5,13 @@
 :root {
   --hero-fade-end: #ffffff;
   --hero-fade-rgb: 255, 255, 255;
+  --hero-pic-saturate: 0.45;
 }
 
 .dark {
   --hero-fade-end: #060d19;
   --hero-fade-rgb: 6, 13, 25;
+  --hero-pic-saturate: 0.45;
 }
 
 @layer base {
@@ -86,6 +88,63 @@
       rgba(var(--hero-fade-rgb), 0.88) 70%,
       rgba(var(--hero-fade-rgb), 0.98) 82%,
       var(--hero-fade-end) 92%,
+      var(--hero-fade-end) 100%
+    );
+  }
+
+  /* Hero Section Background with Reduced Picture Saturation and Smooth Bottom-Fade Gradient */
+  .hero {
+    position: relative;
+    background-color: var(--hero-fade-end);
+  }
+
+  .hero::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    z-index: 0;
+    pointer-events: none;
+    background: url("/images/hero-city.jpg") center / cover no-repeat;
+    filter: saturate(var(--hero-pic-saturate, 0.55));
+    -webkit-filter: saturate(var(--hero-pic-saturate, 0.55));
+    transition: filter 0.3s ease;
+  }
+
+  .dark .hero::before {
+    background: url("/images/hero-city-dark.jpg") center / cover no-repeat;
+    filter: saturate(var(--hero-pic-saturate, 0.5));
+    -webkit-filter: saturate(var(--hero-pic-saturate, 0.5));
+  }
+
+  .hero::after {
+    content: '';
+    position: absolute;
+    inset: 0;
+    z-index: 1;
+    pointer-events: none;
+    background: linear-gradient(
+      to bottom,
+      rgba(255, 255, 255, 0.08) 0%,
+      rgba(255, 255, 255, 0.12) 35%,
+      rgba(255, 255, 255, 0.35) 48%,
+      rgba(255, 255, 255, 0.65) 60%,
+      rgba(255, 255, 255, 0.88) 75%,
+      rgba(255, 255, 255, 0.98) 88%,
+      var(--hero-fade-end) 96%,
+      var(--hero-fade-end) 100%
+    );
+  }
+
+  .dark .hero::after {
+    background: linear-gradient(
+      to bottom,
+      rgba(6, 13, 25, 0.08) 0%,
+      rgba(6, 13, 25, 0.12) 35%,
+      rgba(6, 13, 25, 0.35) 48%,
+      rgba(6, 13, 25, 0.65) 60%,
+      rgba(6, 13, 25, 0.88) 75%,
+      rgba(6, 13, 25, 0.98) 88%,
+      var(--hero-fade-end) 96%,
       var(--hero-fade-end) 100%
     );
   }
