@@ -248,9 +248,137 @@ export const DEFAULT_CRM_EMPLOYEES = [
   }
 ];
 
-export const DEFAULT_CRM_CANDIDATES = [];
-export const DEFAULT_CRM_PROFILES = [];
-export const DEFAULT_CRM_APPLICATIONS = [];
+export const DEFAULT_CRM_CANDIDATES = [
+  {
+    id: 'RI-CAND-001',
+    name: 'Kishore Kumar',
+    email: 'kishorekumaroffl@gmail.com',
+    phone: '+971 50 123 4567',
+    nationality: 'UAE',
+    currentEmployer: 'Gulf Petroleum Resources',
+    currentRole: 'MEP BIM Manager - High Rise Development',
+    currentSalary: 'AED 25,000 / month',
+    expectedSalary: 'AED 35,000 / month',
+    noticePeriod: 'Immediate',
+    score: 95,
+    stage: 'applied',
+    skills: JSON.stringify(['BIM Modeling', 'MEP Engineering', 'AutoCAD', 'Revit', 'Project Management']),
+    source: 'Revival International Portal',
+    passport: 'Verified',
+    aiSummary: 'Senior MEP BIM Manager with extensive UAE & GCC high-rise development experience.',
+    experience: '6-8 Years',
+    avatar: null,
+    resumeName: 'Kishore_Kumar_MEP_BIM_Manager.pdf',
+    resumeUrl: '',
+    resumeSize: '161 KB',
+    citizenship: 'Indian',
+    dob: '1993-07-19',
+    gender: 'Male',
+    location: 'Dubai, UAE',
+    preferredCountry: 'UAE',
+    education: 'Bachelor of Engineering in Mechanical',
+    mohreAttested: 1,
+    assignedRecruiter: 'Dhanalakshimi (Lead Advisor)',
+    createdAt: '2026-11-20 09:31:44'
+  },
+  {
+    id: 'RI-CAND-005',
+    name: 'thejobsync',
+    email: 'thejobsyncit@gmail.com',
+    phone: '+971 52 445 8890',
+    nationality: 'UAE',
+    currentEmployer: 'Revival International Talent Pool',
+    currentRole: 'Executive IT & Technical Lead',
+    currentSalary: 'AED 20,000 / month',
+    expectedSalary: 'AED 28,000 / month',
+    noticePeriod: '1 Month',
+    score: 92,
+    stage: 'lead',
+    skills: JSON.stringify(['Cloud Infrastructure', 'Full Stack Architecture', 'Enterprise Security', 'API Engineering']),
+    source: 'Google Authentication (Gmail Verified)',
+    passport: 'Verified',
+    aiSummary: 'Enterprise Systems Architect and Technical Lead verified via Google OAuth 2.0 OpenID Connect.',
+    experience: '7-10 Years',
+    avatar: null,
+    resumeName: 'TheJobSync_IT_Lead_CV.pdf',
+    resumeUrl: '',
+    resumeSize: '145 KB',
+    citizenship: 'Indian',
+    dob: '1990-05-12',
+    gender: 'Male',
+    location: 'Dubai, UAE',
+    preferredCountry: 'UAE',
+    education: 'Master of Science in Information Technology',
+    mohreAttested: 1,
+    assignedRecruiter: 'Dhanalakshimi (Lead Advisor)',
+    createdAt: '2026-11-19 14:00:00'
+  }
+];
+
+export const DEFAULT_CRM_PROFILES = [
+  {
+    id: 'RI-CAND-001',
+    userId: 'USR-MW6KIP1V-492',
+    name: 'Kishore Kumar',
+    email: 'kishorekumaroffl@gmail.com',
+    phone: '+971 50 123 4567',
+    nationality: 'UAE',
+    currentRole: 'MEP BIM Manager - High Rise Development',
+    currentEmployer: 'Gulf Petroleum Resources',
+    expectedSalary: 'AED 35,000 / month',
+    noticePeriod: 'Immediate',
+    score: 95,
+    stage: 'applied',
+    skills: JSON.stringify(['BIM Modeling', 'MEP Engineering', 'AutoCAD', 'Revit']),
+    resumeName: 'Kishore_Kumar_MEP_BIM_Manager.pdf',
+    resumeSize: '161 KB',
+    location: 'Dubai, UAE'
+  },
+  {
+    id: 'RI-CAND-005',
+    userId: 'USR-MW6SYS99-102',
+    name: 'thejobsync',
+    email: 'thejobsyncit@gmail.com',
+    phone: '+971 52 445 8890',
+    nationality: 'UAE',
+    currentRole: 'Executive IT & Technical Lead',
+    currentEmployer: 'Revival International Talent Pool',
+    expectedSalary: 'AED 28,000 / month',
+    noticePeriod: '1 Month',
+    score: 92,
+    stage: 'lead',
+    skills: JSON.stringify(['Cloud Infrastructure', 'Full Stack Architecture']),
+    resumeName: 'TheJobSync_IT_Lead_CV.pdf',
+    resumeSize: '145 KB',
+    location: 'Dubai, UAE'
+  }
+];
+
+export const DEFAULT_CRM_APPLICATIONS = [
+  {
+    id: 'RI-APP-28093',
+    candidateId: 'RI-CAND-001',
+    userId: 'USR-MW6KIP1V-492',
+    jobId: 'job-101',
+    jobTitle: 'MEP BIM Manager - High Rise Development',
+    company: 'ALDAR Properties',
+    location: 'Dubai, UAE',
+    appliedDate: '2026-11-20T06:48:00.000Z',
+    status: 'Under Review',
+    stage: 'Applied',
+    notes: null,
+    createdAt: '2026-11-20 06:48:00',
+    resumeName: 'Kishore_Kumar_MEP_BIM_Manager.pdf',
+    resumeUrl: '',
+    resumeSize: '161 KB',
+    coverNote: '',
+    noticePeriod: 'Immediate',
+    expectedSalary: 'AED 35,000 / month',
+    applicantName: 'Kishore Kumar',
+    applicantEmail: 'kishorekumaroffl@gmail.com',
+    applicantPhone: '+971 50 123 4567'
+  }
+];
 
 export const DEFAULT_CRM_LEADS = [
   {
@@ -1246,6 +1374,60 @@ const initDb = async (db) => {
     }
   } catch (err) {
     console.warn('Employee table seeding notice:', err.message);
+  }
+
+  // Seed default registered candidates, profiles, and applications if not present
+  try {
+    for (const cand of DEFAULT_CRM_CANDIDATES) {
+      await db.run(
+        `INSERT OR IGNORE INTO candidates (
+          id, name, email, phone, nationality, currentEmployer, currentRole,
+          currentSalary, expectedSalary, noticePeriod, score, stage, skills, source, passport,
+          aiSummary, experience, avatar, resumeName, resumeUrl, resumeSize,
+          citizenship, dob, gender, location, preferredCountry, education, mohreAttested, assignedRecruiter, createdAt
+        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+        [
+          cand.id, cand.name, cand.email, cand.phone, cand.nationality, cand.currentEmployer, cand.currentRole,
+          cand.currentSalary, cand.expectedSalary, cand.noticePeriod, cand.score, cand.stage, cand.skills,
+          cand.source, cand.passport, cand.aiSummary, cand.experience, cand.avatar, cand.resumeName,
+          cand.resumeUrl, cand.resumeSize, cand.citizenship, cand.dob, cand.gender, cand.location,
+          cand.preferredCountry, cand.education, cand.mohreAttested, cand.assignedRecruiter, cand.createdAt
+        ]
+      );
+    }
+
+    for (const prof of DEFAULT_CRM_PROFILES) {
+      await db.run(
+        `INSERT OR IGNORE INTO candidate_profiles (
+          id, userId, name, email, phone, nationality, currentRole, currentEmployer,
+          expectedSalary, noticePeriod, score, stage, skills, resumeName, resumeSize, location
+        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+        [
+          prof.id, prof.userId, prof.name, prof.email, prof.phone, prof.nationality,
+          prof.currentRole, prof.currentEmployer, prof.expectedSalary, prof.noticePeriod,
+          prof.score, prof.stage, prof.skills, prof.resumeName, prof.resumeSize, prof.location
+        ]
+      );
+    }
+
+    for (const app of DEFAULT_CRM_APPLICATIONS) {
+      await db.run(
+        `INSERT OR IGNORE INTO candidate_applications (
+          id, candidateId, userId, jobId, jobTitle, company, location,
+          appliedDate, status, stage, resumeName, resumeUrl, resumeSize,
+          coverNote, noticePeriod, expectedSalary,
+          applicantName, applicantEmail, applicantPhone
+        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+        [
+          app.id, app.candidateId, app.userId, app.jobId, app.jobTitle, app.company, app.location,
+          app.appliedDate, app.status, app.stage, app.resumeName, app.resumeUrl, app.resumeSize,
+          app.coverNote, app.noticePeriod, app.expectedSalary,
+          app.applicantName, app.applicantEmail, app.applicantPhone
+        ]
+      );
+    }
+  } catch (candSeedErr) {
+    console.warn('Candidate seed notice:', candSeedErr.message);
   }
 
   await ensureColumns('leads', [
