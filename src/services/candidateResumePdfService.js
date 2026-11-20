@@ -5,6 +5,19 @@ import { jsPDF } from 'jspdf';
  */
 export const downloadCandidateResumePdf = (cand) => {
   if (!cand) return;
+
+  // If candidate has an actual uploaded resume file, trigger direct file download
+  if (cand.resumeUrl && (cand.resumeUrl.startsWith('data:') || cand.resumeUrl.startsWith('blob:') || cand.resumeUrl.startsWith('http'))) {
+    const fileName = cand.resumeName || `${(cand.name || 'Candidate').replace(/\s+/g, '_')}_Resume.pdf`;
+    const link = document.createElement('a');
+    link.href = cand.resumeUrl;
+    link.download = fileName;
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    return;
+  }
+
   const doc = new jsPDF('p', 'mm', 'a4');
 
   const name = cand.name || 'Executive Candidate';
@@ -110,9 +123,9 @@ export const downloadCandidateResumePdf = (cand) => {
   doc.setFontSize(8.8);
   doc.setTextColor(51, 65, 85);
   const resp = [
-    '• Directing key functional deliverables, operational planning, and milestone governance.',
-    '• Ensuring compliance with international standards, quality benchmarks, and safety protocols.',
-    '• Managing stakeholder communication, cross-border resource alignment, and client requirements.'
+    `• Candidate Profile Mandate: ${role} (${experience}).`,
+    `• Affiliated Organization: ${employer}.`,
+    `• Placement & Mobility Destination: ${cand.preferredCountry || location}.`
   ];
   for (const r of resp) {
     doc.text(r, 14, y);
@@ -177,6 +190,54 @@ export const downloadCandidateResumePdf = (cand) => {
  */
 export const openCandidateResumeInNewTab = (cand) => {
   if (!cand) return;
+
+  // 1. If candidate has an uploaded resume file (Data URL / Blob / HTTP URL), open the actual document directly
+  if (cand.resumeUrl) {
+    const url = cand.resumeUrl;
+    if (url.startsWith('http://') || url.startsWith('https://') || url.startsWith('blob:')) {
+      window.open(url, '_blank');
+      return;
+    }
+    if (url.startsWith('data:')) {
+      try {
+        const parts = url.split(',');
+        const header = parts[0];
+        const base64Data = parts[1];
+        let mime = 'application/pdf';
+        const mimeMatch = header.match(/data:([^;]+)/);
+        if (mimeMatch && mimeMatch[1]) {
+          mime = mimeMatch[1].split(';')[0].trim();
+        }
+        const byteCharacters = atob(base64Data);
+        const byteNumbers = new Array(byteCharacters.length);
+        for (let i = 0; i < byteCharacters.length; i++) {
+          byteNumbers[i] = byteCharacters.charCodeAt(i);
+        }
+        const byteArray = new Uint8Array(byteNumbers);
+        const blob = new Blob([byteArray], { type: mime });
+        const blobUrl = URL.createObjectURL(blob);
+        window.open(blobUrl, '_blank');
+        return;
+      } catch (err) {
+        console.warn('Failed to open blob resume, opening in iframe container:', err);
+        const newWin = window.open('', '_blank');
+        if (newWin) {
+          newWin.document.write(`
+            <!DOCTYPE html>
+            <html>
+              <head><title>Candidate CV - ${cand.name || 'Candidate'}</title></head>
+              <body style="margin:0;padding:0;background:#0f172a;display:flex;height:100vh;">
+                <iframe src="${url}" style="width:100%;height:100%;border:none;"></iframe>
+              </body>
+            </html>
+          `);
+          newWin.document.close();
+          return;
+        }
+      }
+    }
+  }
+
   const newWin = window.open('', '_blank');
   if (!newWin) {
     alert('Please allow popups to preview the candidate resume.');
@@ -198,7 +259,7 @@ export const openCandidateResumeInNewTab = (cand) => {
   const skills = Array.isArray(cand.skills) && cand.skills.length > 0 
     ? cand.skills 
     : ['International Mobility', 'Executive Candidate', 'Global Mandates', 'Project Planning', 'Cross-Border Operations'];
-  const summary = cand.aiSummary || `Results-driven executive with ${experience} of proven track record across UAE, GCC and international markets. Verified credentials for overseas relocation, regulatory compliance, and cross-functional leadership in high-impact operations.`;
+  const summary = cand.aiSummary || `Candidate profile registered on The Revival International Portal for ${role} opportunities across ${location}. Verified contact and career credentials on file.`;
 
   const skillsHtml = skills.map(s => `<span class="skill-tag">${s}</span>`).join('');
 
@@ -397,9 +458,9 @@ export const openCandidateResumeInNewTab = (cand) => {
             <div class="exp-title">${role}</div>
             <div class="exp-sub">${employer} • Experience: ${experience}</div>
             <ul class="exp-bullets">
-              <li>Directing key functional deliverables, operational planning, and milestone governance.</li>
-              <li>Ensuring compliance with international standards, quality benchmarks, and safety protocols.</li>
-              <li>Managing stakeholder communication, cross-border resource alignment, and client requirements.</li>
+              <li>Candidate Profile Mandate: ${role} (${experience}).</li>
+              <li>Affiliated Organization: ${employer}.</li>
+              <li>Placement & Mobility Destination: ${cand.preferredCountry || location}.</li>
             </ul>
           </div>
         </div>

@@ -5,51 +5,7 @@ import {
   FileCheck, Download, RotateCcw 
 } from 'lucide-react';
 
-const DEFAULT_BGV_CASES = [
-  {
-    id: 'BGV-991',
-    candidate: 'Alexander Wright',
-    type: '6-Point Comprehensive Audit',
-    education: 'Verified (University of Manchester)',
-    employment: 'Verified (Al Habtoor Contracting)',
-    address: 'Verified (Dubai, Business Bay)',
-    police: 'Clear (UK ACRO Certificate)',
-    reference: 'Verified (2 VP Recommendations)',
-    identity: 'Verified (UK Passport GB98210452)',
-    status: 'Approved',
-    approvedAt: '2026-11-15',
-    approvedBy: 'Super Admin',
-    timeline: 'Completed in 4 Days'
-  },
-  {
-    id: 'BGV-992',
-    candidate: 'Dr. Sarah Al-Mansoori',
-    type: 'Executive Healthcare Audit',
-    education: 'Verified (King Saud University)',
-    employment: 'Verified (King Faisal Specialist Hospital)',
-    address: 'Verified (Riyadh, Olaya)',
-    police: 'Clear (Saudi Police Certificate)',
-    reference: 'Verified (Chief Medical Officer)',
-    identity: 'Verified (Saudi National ID)',
-    status: 'Approved',
-    approvedAt: '2026-11-16',
-    approvedBy: 'Super Admin',
-    timeline: 'Completed in 3 Days'
-  },
-  {
-    id: 'BGV-993',
-    candidate: 'Elena Rostova',
-    type: 'Tech & Financial Audit',
-    education: 'Verified (Warsaw Uni of Tech)',
-    employment: 'Verified (Warsaw Fintech)',
-    address: 'Verified (Warsaw, Poland)',
-    police: 'Clear (Polish Justice Ministry)',
-    reference: 'Pending 2nd Ref Check',
-    identity: 'Verified (EU Passport)',
-    status: 'In Audit',
-    timeline: 'Day 2 of 5'
-  }
-];
+const DEFAULT_BGV_CASES = [];
 
 export const CrmBackgroundVerification = () => {
   const [bgvCases, setBgvCases] = useState(() => {

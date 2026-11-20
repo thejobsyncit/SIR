@@ -7,78 +7,7 @@ import {
 import ScrollReveal from '../../components/ScrollReveal';
 
 export const CrmOffersJoining = () => {
-  const [offers, setOffers] = useState([
-    {
-      id: 'OFF-701',
-      candidateName: 'Alexander Wright',
-      role: 'Senior Civil Project Manager',
-      company: 'Al Habtoor Contracting LLC',
-      location: 'Dubai, UAE',
-      package: '26,000 AED / month + Family Benefits',
-      offerDate: '2026-11-01',
-      joiningDate: '2026-12-01',
-      status: 'Accepted', // 'Offered' | 'Accepted' | 'Joining Confirmed' | 'Declined'
-      joiningConfirmed: false,
-      contractSigned: true,
-      visaStatus: 'Entry Permit Issued'
-    },
-    {
-      id: 'OFF-702',
-      candidateName: 'Dr. Priya Sharma',
-      role: 'Consultant Cardiologist',
-      company: 'Saudi German Hospital',
-      location: 'Riyadh, KSA',
-      package: '52,000 SAR / month + Housing',
-      offerDate: '2026-11-03',
-      joiningDate: '2026-12-15',
-      status: 'Offered',
-      joiningConfirmed: false,
-      contractSigned: false,
-      visaStatus: 'MOH Credentialing'
-    },
-    {
-      id: 'OFF-703',
-      candidateName: 'Rahul Verma',
-      role: 'Lead DevOps Cloud Architect',
-      company: 'TechVision International',
-      location: 'Singapore',
-      package: '11,500 SGD / month',
-      offerDate: '2026-10-25',
-      joiningDate: '2026-11-20',
-      status: 'Joining Confirmed',
-      joiningConfirmed: true,
-      contractSigned: true,
-      visaStatus: 'EP Approved'
-    },
-    {
-      id: 'OFF-704',
-      candidateName: 'Elena Rostova',
-      role: 'Executive Hospitality Manager',
-      company: 'Emaar Hospitality Group',
-      location: 'Dubai, UAE',
-      package: '18,500 AED / month + Annual Flights',
-      offerDate: '2026-10-28',
-      joiningDate: '2026-11-15',
-      status: 'Joining Confirmed',
-      joiningConfirmed: true,
-      contractSigned: true,
-      visaStatus: 'Residence Visa Stamped'
-    },
-    {
-      id: 'OFF-705',
-      candidateName: 'Karthik Raja',
-      role: 'Senior Mechanical Site Engineer',
-      company: 'L&T Construction',
-      location: 'Chennai, India',
-      package: '14.5 LPA (INR)',
-      offerDate: '2026-11-02',
-      joiningDate: '2026-12-05',
-      status: 'Offered',
-      joiningConfirmed: false,
-      contractSigned: false,
-      visaStatus: 'N/A (Domestic)'
-    }
-  ]);
+  const [offers, setOffers] = useState([]);
 
   const [filterStatus, setFilterStatus] = useState('all');
   const [notification, setNotification] = useState('');

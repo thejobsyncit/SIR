@@ -514,7 +514,7 @@ export const CandidatePortal = () => {
     }).catch(() => {});
   };
 
-  // Resume file upload
+  // Resume file upload with full Base64 persistence to backend
   const handleResumeUpload = (file) => {
     if (!file) return;
     if (file.size > 10 * 1024 * 1024) {
@@ -532,20 +532,56 @@ export const CandidatePortal = () => {
       ? `${(file.size / (1024 * 1024)).toFixed(1)} MB`
       : `${Math.round(file.size / 1024)} KB`;
 
-    setProfileForm(prev => ({
-      ...prev,
-      resumeName: file.name,
-      resumeSize: formattedSize
-    }));
+    const reader = new FileReader();
+    reader.onload = async (event) => {
+      const dataUrl = event.target.result;
+      setProfileForm(prev => ({
+        ...prev,
+        resumeName: file.name,
+        resumeSize: formattedSize,
+        resumeUrl: dataUrl
+      }));
 
-    updateUserProfile({
-      resumeName: file.name,
-      resumeSize: formattedSize,
-      resumeUploaded: true
-    });
+      updateUserProfile({
+        resumeName: file.name,
+        resumeSize: formattedSize,
+        resumeUrl: dataUrl,
+        resumeUploaded: true
+      });
 
-    setResumeActionMsg(`✓ CV "${file.name}" uploaded and set as primary active resume.`);
-    setTimeout(() => setResumeActionMsg(''), 4000);
+      // Synchronize directly to backend database so CRM receives the actual uploaded CV
+      try {
+        await fetch('/api/candidate/profile', {
+          method: 'PUT',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            candidateId: user?.candidateId || user?.email || 'REV-CAN',
+            email: user?.email,
+            resumeName: file.name,
+            resumeSize: formattedSize,
+            resumeUrl: dataUrl
+          })
+        });
+
+        await fetch('/api/candidate/documents', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            candidateId: user?.candidateId || user?.email || 'REV-CAN',
+            email: user?.email,
+            documentType: 'Resume / CV',
+            fileName: file.name,
+            fileUrl: dataUrl
+          })
+        }).catch(() => {});
+      } catch (err) {
+        console.warn('Backend resume sync warning:', err);
+      }
+
+      setResumeActionMsg(`✓ CV "${file.name}" successfully uploaded and saved.`);
+      setTimeout(() => setResumeActionMsg(''), 4000);
+    };
+    reader.readAsDataURL(file);
   };
 
   // Document upload handler
@@ -557,30 +593,60 @@ export const CandidatePortal = () => {
     const cid = user?.candidateId || user?.email || 'REV-CAN';
     const newDocId = `RI-DOC-${Date.now().toString(36).toUpperCase()}`;
 
-    const newDocObj = {
-      id: newDocId,
-      candidateId: cid,
-      documentType: selectedDocType,
-      fileName: docFileToUpload.name,
-      fileUrl: '',
-      uploadDate: new Date().toISOString().replace('T', ' ').substring(0, 19),
-      verificationStatus: 'Under Review'
-    };
+    const reader = new FileReader();
+    reader.onload = async (event) => {
+      const dataUrl = event.target.result;
+      const newDocObj = {
+        id: newDocId,
+        candidateId: cid,
+        documentType: selectedDocType,
+        fileName: docFileToUpload.name,
+        fileUrl: dataUrl,
+        uploadDate: new Date().toISOString().replace('T', ' ').substring(0, 19),
+        verificationStatus: 'Under Review'
+      };
 
-    try {
-      await fetch('/api/candidate/documents', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(newDocObj)
-      });
-      setDocuments(prev => [newDocObj, ...prev.filter(d => d.documentType !== selectedDocType)]);
-      setDocUploadSuccessMsg(`✓ "${selectedDocType}" uploaded successfully! Sent for consular verification.`);
-      setUploadDocModalOpen(false);
-      setDocFileToUpload(null);
-      setTimeout(() => setDocUploadSuccessMsg(''), 4000);
-    } catch (err) {
-      alert('Failed to upload document. Please try again.');
-    }
+      try {
+        await fetch('/api/candidate/documents', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(newDocObj)
+        });
+
+        // If uploaded document is Resume / CV, sync to primary candidate profile
+        if (selectedDocType === 'Resume / CV') {
+          setProfileForm(prev => ({
+            ...prev,
+            resumeName: docFileToUpload.name,
+            resumeUrl: dataUrl
+          }));
+          updateUserProfile({
+            resumeName: docFileToUpload.name,
+            resumeUrl: dataUrl,
+            resumeUploaded: true
+          });
+          await fetch('/api/candidate/profile', {
+            method: 'PUT',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              candidateId: cid,
+              email: user?.email,
+              resumeName: docFileToUpload.name,
+              resumeUrl: dataUrl
+            })
+          }).catch(() => {});
+        }
+
+        setDocuments(prev => [newDocObj, ...prev.filter(d => d.documentType !== selectedDocType)]);
+        setDocUploadSuccessMsg(`✓ "${selectedDocType}" uploaded successfully! Sent for consular verification.`);
+        setUploadDocModalOpen(false);
+        setDocFileToUpload(null);
+        setTimeout(() => setDocUploadSuccessMsg(''), 4000);
+      } catch (err) {
+        alert('Failed to upload document. Please try again.');
+      }
+    };
+    reader.readAsDataURL(docFileToUpload);
   };
 
   // Delete document handler

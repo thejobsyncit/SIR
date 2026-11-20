@@ -363,13 +363,18 @@ export const registerEmailApplicationRoutes = (app, { getDb, getClientIp, logAud
           `, [effectiveCid, effectiveUid, candidateName || 'Candidate', candidateEmail, candidatePhone || '', candidateLocation || 'Global']);
         }
 
-        // 3. Insert or update candidate_applications
+        // 3. Insert or update candidate_applications with the actual attached CV data URL
+        const resumeDataUrl = cvFile?.base64 || null;
+        const formattedResumeSize = cvFile?.size
+          ? (cvFile.size > 1024 * 1024 ? `${(cvFile.size / (1024 * 1024)).toFixed(1)} MB` : `${Math.round(cvFile.size / 1024)} KB`)
+          : null;
+
         await db.run(`
           INSERT OR REPLACE INTO candidate_applications (
             id, candidateId, userId, jobId, jobTitle, company, location,
-            applicantName, applicantEmail, applicantPhone, resumeName,
+            applicantName, applicantEmail, applicantPhone, resumeName, resumeUrl, resumeSize,
             status, stage, appliedDate
-          ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'Under Review', 'Applied', CURRENT_TIMESTAMP)
+          ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'Under Review', 'Applied', CURRENT_TIMESTAMP)
         `, [
           appId,
           effectiveCid,
@@ -381,25 +386,42 @@ export const registerEmailApplicationRoutes = (app, { getDb, getClientIp, logAud
           candidateName,
           candidateEmail,
           candidatePhone,
-          resumeFileName || 'Curriculum_Vitae.pdf'
+          resumeFileName || 'Curriculum_Vitae.pdf',
+          resumeDataUrl,
+          formattedResumeSize
         ]);
 
-        // 4. Ensure candidate exists in candidates table with stage = 'applied' so they show up in CRM Kanban & Applicants
+        // Sync CV to candidate_profiles if uploaded
+        if (resumeDataUrl || resumeFileName) {
+          await db.run(`
+            UPDATE candidate_profiles SET
+              resumeName = COALESCE(?, resumeName),
+              resumeUrl = COALESCE(?, resumeUrl),
+              resumeSize = COALESCE(?, resumeSize)
+            WHERE id = ? OR LOWER(email) = LOWER(?)
+          `, [resumeFileName, resumeDataUrl, formattedResumeSize, effectiveCid, normEmail]);
+        }
+
+        // 4. Ensure candidate exists in candidates table with stage = 'applied' and actual CV
         const existingInCandidates = await db.get('SELECT id FROM candidates WHERE LOWER(email) = LOWER(?)', [normEmail]);
         if (existingInCandidates) {
           await db.run(`
             UPDATE candidates SET
               stage = 'applied',
               currentRole = COALESCE(?, currentRole),
-              currentEmployer = COALESCE(?, currentEmployer)
+              currentEmployer = COALESCE(?, currentEmployer),
+              resumeName = COALESCE(?, resumeName),
+              resumeUrl = COALESCE(?, resumeUrl),
+              resumeSize = COALESCE(?, resumeSize)
             WHERE id = ?
-          `, [job.title, job.company, existingInCandidates.id]);
+          `, [job.title, job.company, resumeFileName, resumeDataUrl, formattedResumeSize, existingInCandidates.id]);
         } else {
           await db.run(`
             INSERT INTO candidates (
               id, name, email, phone, nationality, currentEmployer, currentRole,
-              stage, score, skills, source, aiSummary, assignedRecruiter
-            ) VALUES (?, ?, ?, ?, ?, ?, ?, 'applied', 90, ?, 'Quick Apply / Job Application', ?, 'Dhanalakshimi (Lead Advisor)')
+              stage, score, skills, source, aiSummary, assignedRecruiter,
+              resumeName, resumeUrl, resumeSize
+            ) VALUES (?, ?, ?, ?, ?, ?, ?, 'applied', 90, ?, 'Quick Apply / Job Application', ?, 'Dhanalakshimi (Lead Advisor)', ?, ?, ?)
           `, [
             effectiveCid,
             candidateName,
@@ -409,8 +431,20 @@ export const registerEmailApplicationRoutes = (app, { getDb, getClientIp, logAud
             job.company,
             job.title,
             JSON.stringify([job.title]),
-            `Applied for ${job.title} at ${job.company}`
+            `Applied for ${job.title} at ${job.company}`,
+            resumeFileName,
+            resumeDataUrl,
+            formattedResumeSize
           ]);
+        }
+
+        // Also record in candidate_documents if a real CV file was attached
+        if (resumeDataUrl) {
+          const docId = `RI-DOC-${Date.now().toString(36).toUpperCase()}-${Math.floor(1000 + Math.random() * 9000)}`;
+          await db.run(`
+            INSERT INTO candidate_documents (id, candidateId, userId, documentType, fileName, fileUrl, uploadDate)
+            VALUES (?, ?, ?, 'Resume / CV', ?, ?, datetime('now'))
+          `, [docId, effectiveCid, effectiveUid, resumeFileName || 'Resume.pdf', resumeDataUrl]).catch(() => {});
         }
       } catch (appSyncErr) {
         console.error('[Application Pipeline Sync Error]:', appSyncErr);

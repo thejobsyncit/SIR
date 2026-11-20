@@ -13,6 +13,33 @@ import ScrollReveal from '../../components/ScrollReveal';
 import { CrmDeleteConfirmModal } from '../components/CrmDeleteConfirmModal';
 import { downloadCandidateResumePdf, openCandidateResumeInNewTab } from '../../services/candidateResumePdfService';
 
+const isDummyCandidate = (c) => {
+  if (!c) return true;
+  const name = (c.name || '').toLowerCase();
+  const id = (c.id || '').toUpperCase();
+  const email = (c.email || '').toLowerCase();
+  const dummyIds = [
+    'REV-CAN-101', 'REV-CAN-102', 'REV-CAN-103', 'REV-CAN-104', 'REV-CAN-105', 'REV-CAN-106',
+    'REV-CAN-4526', 'REV-CAN-4699', 'REV-CAN-5176', 'REV-CAN-9727', 'REV-CAN-3945',
+    'REV-CAN-8396', 'REV-CAN-3270', 'REV-CAN-6198', 'REV-CAN-2158', 'REV-CAN-8921',
+    'REV-CAN-6858', 'REV-CAN-4283', 'REV-CAN-5599', 'REV-CAN-7331', 'REV-CAN-7211',
+    'REV-CAN-8645', 'REV-CAN-5223', 'REV-CAN-3393', 'REV-CAN-9398', 'REV-CAN-3073',
+    'REV-CAN-5032', 'REV-CAN-1517', 'REV-CAN-4093', 'REV-CAN-7506', 'REV-CAN-5974',
+    'REV-CAN-4404', 'REV-CAN-4539', 'REV-CAN-9000', 'REV-CAN-4378', 'REV-CAN-4043',
+    'REV-CAN-5868', 'REV-CAN-8915', 'REV-CAN-3362', 'REV-CAN-53106',
+    'RI-CAND-001', 'RI-CAND-002', 'RI-CAND-003'
+  ];
+  if (dummyIds.some(d => id.startsWith(d))) return true;
+  if (name.includes('alexander wright') || name.includes('sarah al-mansoori') || name.includes('mohamed tariq') ||
+      name.includes('elena rostova') || name.includes('david chen') || name.includes('fatima al-zahra') ||
+      name.includes('real candidate') || name.includes('test candidate') || name.includes('fake user') ||
+      name.includes('fresh candidate') || name.includes('unknown candidate')) return true;
+  if (email.includes('example.com') || email.includes('mailinator') || email.includes('trashuser') || 
+      email.includes('domain.com') || email.includes('candidate_test') || email.includes('candidate.fresh') ||
+      email === 'johnny@gmail.com' || email === 'real.candidate.test@gmail.com') return true;
+  return false;
+};
+
 export const CrmCandidates = () => {
   const {
     candidates,
@@ -251,12 +278,13 @@ export const CrmCandidates = () => {
   // Handle downloading candidate resume as an actual PDF file
   const handleDownloadCv = (cand) => {
     if (!cand) return;
+    const url = cand.resumeUrl;
+    const fileName = cand.resumeName || `${(cand.name || 'Candidate').replace(/\s+/g, '_')}_Resume.pdf`;
 
-    // If candidate uploaded a custom data URL (.pdf), download it directly
-    if (cand.resumeUrl && cand.resumeUrl.startsWith('data:application/pdf')) {
+    if (url && (url.startsWith('data:') || url.startsWith('blob:') || url.startsWith('http://') || url.startsWith('https://'))) {
       const link = document.createElement('a');
-      link.href = cand.resumeUrl;
-      link.download = cand.resumeName || `${(cand.name || 'Candidate').replace(/\s+/g, '_')}_Resume.pdf`;
+      link.href = url;
+      link.download = fileName;
       document.body.appendChild(link);
       link.click();
       document.body.removeChild(link);
@@ -271,24 +299,50 @@ export const CrmCandidates = () => {
   const handlePreviewCv = (cand) => {
     if (!cand) return;
 
-    // If candidate uploaded custom data URL, open blob
-    if (cand.resumeUrl && cand.resumeUrl.startsWith('data:')) {
-      try {
-        const arr = cand.resumeUrl.split(',');
-        const mimeMatch = arr[0].match(/:(.*?);/);
-        const mime = mimeMatch ? mimeMatch[1] : 'application/pdf';
-        const bstr = atob(arr[1]);
-        let n = bstr.length;
-        const u8arr = new Uint8Array(n);
-        while (n--) {
-          u8arr[n] = bstr.charCodeAt(n);
-        }
-        const blob = new Blob([u8arr], { type: mime });
-        const blobUrl = URL.createObjectURL(blob);
-        window.open(blobUrl, '_blank');
+    // If candidate uploaded custom data URL or document link, open it
+    if (cand.resumeUrl) {
+      const url = cand.resumeUrl;
+      if (url.startsWith('http://') || url.startsWith('https://') || url.startsWith('blob:')) {
+        window.open(url, '_blank');
         return;
-      } catch (e) {
-        console.warn('Blob preview fallback notice:', e);
+      }
+      if (url.startsWith('data:')) {
+        try {
+          const parts = url.split(',');
+          const header = parts[0];
+          const base64Data = parts[1];
+          let mime = 'application/pdf';
+          const mimeMatch = header.match(/data:([^;]+)/);
+          if (mimeMatch && mimeMatch[1]) {
+            mime = mimeMatch[1].split(';')[0].trim();
+          }
+          const byteCharacters = atob(base64Data);
+          const byteNumbers = new Array(byteCharacters.length);
+          for (let i = 0; i < byteCharacters.length; i++) {
+            byteNumbers[i] = byteCharacters.charCodeAt(i);
+          }
+          const byteArray = new Uint8Array(byteNumbers);
+          const blob = new Blob([byteArray], { type: mime });
+          const blobUrl = URL.createObjectURL(blob);
+          window.open(blobUrl, '_blank');
+          return;
+        } catch (e) {
+          console.warn('Blob preview fallback notice:', e);
+          const newWin = window.open('', '_blank');
+          if (newWin) {
+            newWin.document.write(`
+              <!DOCTYPE html>
+              <html>
+                <head><title>Candidate CV - ${cand.name || 'Candidate'}</title></head>
+                <body style="margin:0;padding:0;background:#0f172a;display:flex;height:100vh;">
+                  <iframe src="${url}" style="width:100%;height:100%;border:none;"></iframe>
+                </body>
+              </html>
+            `);
+            newWin.document.close();
+            return;
+          }
+        }
       }
     }
 
@@ -298,12 +352,14 @@ export const CrmCandidates = () => {
 
   // Handle downloading job-specific applied CV
   const handleDownloadAppCv = (app, cand) => {
+    const effectiveResumeUrl = app.resumeUrl || cand.resumeUrl;
+    const effectiveResumeName = app.resumeName || cand.resumeName;
     const targetCand = {
       ...cand,
       currentRole: app.jobTitle || cand.currentRole,
       currentEmployer: app.company || cand.currentEmployer,
-      resumeName: app.resumeName || cand.resumeName,
-      resumeUrl: app.resumeUrl || cand.resumeUrl,
+      resumeName: effectiveResumeName,
+      resumeUrl: effectiveResumeUrl,
       resumeSize: app.resumeSize || cand.resumeSize,
       expectedSalary: app.expectedSalary || cand.expectedSalary
     };
@@ -312,12 +368,14 @@ export const CrmCandidates = () => {
 
   // Handle previewing job-specific applied CV
   const handlePreviewAppCv = (app, cand) => {
+    const effectiveResumeUrl = app.resumeUrl || cand.resumeUrl;
+    const effectiveResumeName = app.resumeName || cand.resumeName;
     const targetCand = {
       ...cand,
       currentRole: app.jobTitle || cand.currentRole,
       currentEmployer: app.company || cand.currentEmployer,
-      resumeName: app.resumeName || cand.resumeName,
-      resumeUrl: app.resumeUrl || cand.resumeUrl,
+      resumeName: effectiveResumeName,
+      resumeUrl: effectiveResumeUrl,
       resumeSize: app.resumeSize || cand.resumeSize,
       expectedSalary: app.expectedSalary || cand.expectedSalary
     };
@@ -354,6 +412,9 @@ export const CrmCandidates = () => {
 
   const filtered = useMemo(() => {
     return candidates.filter(c => {
+      // Exclude any legacy mock/dummy candidate profiles
+      if (isDummyCandidate(c)) return false;
+
       // Filter mode: active applicants
       if (filterMode === 'applicants') {
         const hasApp = (Array.isArray(c.applications) && c.applications.length > 0) || c.stage === 'applied';
@@ -900,141 +961,115 @@ export const CrmCandidates = () => {
                     type="button"
                     onClick={() => setShowFullResumeSheet(!showFullResumeSheet)}
                     className="px-3 py-2.5 bg-slate-100 dark:bg-navy-950 hover:bg-slate-200 dark:hover:bg-navy-800 text-slate-700 dark:text-slate-300 font-bold text-xs rounded-xl transition flex items-center gap-1 border border-slate-200 dark:border-navy-700 cursor-pointer"
-                    title="Toggle Visual ATS Resume Viewer"
+                    title="Toggle Candidate CV Viewer"
                   >
                     {showFullResumeSheet ? <ChevronUp className="w-4 h-4" /> : <ChevronDown className="w-4 h-4" />}
-                    <span>{showFullResumeSheet ? 'Hide Sheet' : 'Show Sheet'}</span>
+                    <span>{showFullResumeSheet ? 'Hide CV Document' : 'View Uploaded CV'}</span>
                   </button>
                 </div>
               </div>
             </div>
 
-            {/* VISUAL ATS RESUME SHEET (Rendered Directly in Modal for Immediate Inspection) */}
+            {/* REAL CANDIDATE UPLOADED CV VIEWER / VERIFIED PROFILE SHEET */}
             {showFullResumeSheet && (
-              <div className="p-6 bg-slate-50 dark:bg-navy-950 rounded-2xl border-2 border-slate-300 dark:border-navy-800 space-y-5 shadow-inner">
+              <div className="rounded-2xl border-2 border-slate-300 dark:border-navy-700 bg-white dark:bg-navy-950 overflow-hidden shadow-lg">
+                {activeCand.resumeUrl ? (
+                  <div className="flex flex-col">
+                    <div className="p-3.5 bg-slate-100 dark:bg-navy-900 border-b border-slate-200 dark:border-navy-800 flex flex-wrap items-center justify-between gap-3">
+                      <div className="flex items-center gap-2">
+                        <FileText className="w-4 h-4 text-gold-500 shrink-0" />
+                        <div>
+                          <p className="font-bold text-slate-900 dark:text-white text-xs">
+                            {activeCand.resumeName || `${(activeCand.name || 'Candidate').replace(/\s+/g, '_')}_Resume.pdf`}
+                          </p>
+                          <span className="text-[10px] text-emerald-600 dark:text-emerald-400 font-semibold">
+                            ✓ Authentic Uploaded Candidate Document ({activeCand.resumeSize || 'Verified Document'})
+                          </span>
+                        </div>
+                      </div>
 
-                {/* Visual Resume Sheet Header */}
-                <div className="border-b-2 border-gold-500/40 pb-4 flex flex-col md:flex-row justify-between md:items-center gap-3">
-                  <div>
-                    <h2 className="font-serif text-2xl font-black text-slate-900 dark:text-white tracking-wide">
-                      {activeCand.name}
-                    </h2>
-                    <p className="text-sm font-bold text-gold-600 dark:text-gold-400 mt-0.5">
-                      {activeCand.currentRole} • {activeCand.id}
-                    </p>
-                    <div className="flex flex-wrap items-center gap-3 text-xs text-slate-600 dark:text-slate-400 mt-2 font-medium">
-                      <span className="flex items-center gap-1"><Mail className="w-3.5 h-3.5 text-blue-500" /> {activeCand.email}</span>
-                      <span className="flex items-center gap-1"><Phone className="w-3.5 h-3.5 text-emerald-500" /> {activeCand.phone}</span>
-                      <span className="flex items-center gap-1"><MapPin className="w-3.5 h-3.5 text-purple-500" /> {activeCand.location}</span>
-                      <span className="flex items-center gap-1"><Globe className="w-3.5 h-3.5 text-amber-500" /> {activeCand.nationality} ({activeCand.citizenship})</span>
+                      <div className="flex items-center gap-2">
+                        <button
+                          type="button"
+                          onClick={() => handlePreviewCv(activeCand)}
+                          className="px-3 py-1.5 bg-slate-900 dark:bg-navy-800 hover:bg-slate-800 text-white rounded-lg text-xs font-semibold flex items-center gap-1.5 transition cursor-pointer"
+                        >
+                          <ExternalLink className="w-3.5 h-3.5 text-gold-400" />
+                          <span>Fullscreen Tab</span>
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => handleDownloadCv(activeCand)}
+                          className="px-3 py-1.5 bg-gold-500 hover:bg-gold-400 text-slate-950 rounded-lg text-xs font-bold flex items-center gap-1.5 transition shadow-gold-glow cursor-pointer"
+                        >
+                          <Download className="w-3.5 h-3.5" />
+                          <span>Download Original</span>
+                        </button>
+                      </div>
+                    </div>
+
+                    <div className="w-full bg-slate-900 flex justify-center items-center min-h-[600px]">
+                      <iframe
+                        src={activeCand.resumeUrl}
+                        title={`Resume - ${activeCand.name || 'Candidate'}`}
+                        className="w-full h-[650px] border-none bg-white"
+                      />
                     </div>
                   </div>
+                ) : (
+                  <div className="p-8 text-center space-y-4">
+                    <div className="w-14 h-14 mx-auto rounded-2xl bg-amber-500/15 text-amber-600 dark:text-amber-400 flex items-center justify-center">
+                      <FileText className="w-7 h-7" />
+                    </div>
+                    <div className="space-y-1">
+                      <h3 className="font-bold text-base text-slate-900 dark:text-white">
+                        No Custom CV File Uploaded
+                      </h3>
+                      <p className="text-xs text-slate-500 dark:text-slate-400 max-w-md mx-auto leading-relaxed">
+                        This candidate registered or applied using verified profile credentials. No standalone PDF/DOC file was uploaded in the candidate portal.
+                      </p>
+                    </div>
 
-                  <div className="flex flex-col items-start md:items-end gap-1 shrink-0">
-                    <span className="px-3 py-1 bg-gold-500/15 border border-gold-500/30 text-gold-700 dark:text-gold-400 font-bold text-xs rounded-full uppercase">
-                      ATS Verified Dossier
-                    </span>
-                    <span className="text-[10px] text-slate-500">The Revival International Placements</span>
-                  </div>
-                </div>
+                    {/* Summary of actual candidate details from database */}
+                    <div className="max-w-xl mx-auto p-4 bg-slate-50 dark:bg-navy-900/60 rounded-xl border border-slate-200 dark:border-navy-800 text-left grid grid-cols-2 gap-3 text-xs">
+                      <div>
+                        <span className="text-slate-400 text-[10px] uppercase font-bold block">Candidate Name</span>
+                        <strong className="text-slate-900 dark:text-white">{activeCand.name}</strong>
+                      </div>
+                      <div>
+                        <span className="text-slate-400 text-[10px] uppercase font-bold block">Target Role</span>
+                        <strong className="text-slate-900 dark:text-white">{activeCand.currentRole || 'Executive Candidate'}</strong>
+                      </div>
+                      <div>
+                        <span className="text-slate-400 text-[10px] uppercase font-bold block">Location</span>
+                        <strong className="text-slate-900 dark:text-white">{activeCand.location || activeCand.nationality}</strong>
+                      </div>
+                      <div>
+                        <span className="text-slate-400 text-[10px] uppercase font-bold block">Total Experience</span>
+                        <strong className="text-slate-900 dark:text-white">{activeCand.experience || 'Not specified'}</strong>
+                      </div>
+                      <div>
+                        <span className="text-slate-400 text-[10px] uppercase font-bold block">Education</span>
+                        <strong className="text-slate-900 dark:text-white">{activeCand.education || 'Not specified'}</strong>
+                      </div>
+                      <div>
+                        <span className="text-slate-400 text-[10px] uppercase font-bold block">Expected Salary</span>
+                        <strong className="text-emerald-600 dark:text-emerald-400 font-bold">{activeCand.expectedSalary || 'Not specified'}</strong>
+                      </div>
+                    </div>
 
-                {/* 1. Executive Summary */}
-                <div className="space-y-1.5">
-                  <h4 className="text-xs font-black uppercase tracking-wider text-slate-900 dark:text-white flex items-center gap-1.5 border-b border-slate-200 dark:border-navy-800 pb-1">
-                    <Sparkles className="w-3.5 h-3.5 text-gold-500" />
-                    <span>Executive Profile Summary</span>
-                  </h4>
-                  <p className="text-xs text-slate-700 dark:text-slate-300 leading-relaxed bg-white dark:bg-navy-900 p-3 rounded-xl border border-slate-200 dark:border-navy-800">
-                    {activeCand.aiSummary || `Results-driven ${activeCand.currentRole} with ${activeCand.experience} of proven track record across UAE and international markets. Verified credentials for overseas relocation, regulatory compliance, and cross-functional leadership in high-impact operations.`}
-                  </p>
-                </div>
-
-                {/* 2. Key Technical Competencies */}
-                <div className="space-y-1.5">
-                  <h4 className="text-xs font-black uppercase tracking-wider text-slate-900 dark:text-white flex items-center gap-1.5 border-b border-slate-200 dark:border-navy-800 pb-1">
-                    <Award className="w-3.5 h-3.5 text-gold-500" />
-                    <span>Core Competencies & Key Technical Skills</span>
-                  </h4>
-                  <div className="flex flex-wrap gap-1.5 pt-1">
-                    {activeCand.skills.map((skill, idx) => (
-                      <span
-                        key={idx}
-                        className="px-3 py-1 bg-white dark:bg-navy-900 text-gold-700 dark:text-gold-400 font-bold text-xs rounded-xl border border-slate-200 dark:border-navy-800 shadow-2xs"
+                    <div className="pt-2 flex justify-center">
+                      <button
+                        type="button"
+                        onClick={() => handleDownloadCv(activeCand)}
+                        className="px-5 py-2.5 bg-gold-500 hover:bg-gold-400 text-slate-950 font-bold text-xs rounded-xl shadow-gold-glow flex items-center gap-2 cursor-pointer"
                       >
-                        ✓ {skill}
-                      </span>
-                    ))}
-                  </div>
-                </div>
-
-                {/* 3. Professional Work Experience */}
-                <div className="space-y-1.5">
-                  <h4 className="text-xs font-black uppercase tracking-wider text-slate-900 dark:text-white flex items-center gap-1.5 border-b border-slate-200 dark:border-navy-800 pb-1">
-                    <Briefcase className="w-3.5 h-3.5 text-gold-500" />
-                    <span>Professional Work Experience</span>
-                  </h4>
-                  <div className="bg-white dark:bg-navy-900 p-4 rounded-xl border border-slate-200 dark:border-navy-800 space-y-2 text-xs">
-                    <div className="flex flex-col sm:flex-row justify-between sm:items-center">
-                      <strong className="text-sm font-bold text-slate-900 dark:text-white">{activeCand.currentRole}</strong>
-                      <span className="text-gold-600 dark:text-gold-400 font-semibold">{activeCand.experience} (Active Mandate)</span>
-                    </div>
-                    <p className="text-slate-500 dark:text-slate-400 font-medium">{activeCand.currentEmployer} • {activeCand.location}</p>
-                    <ul className="list-disc list-inside space-y-1 text-slate-700 dark:text-slate-300 pt-1">
-                      <li>Spearheading core functional planning, milestone delivery, and multi-team governance.</li>
-                      <li>Ensuring strict compliance with international standards, quality benchmarks, and safety protocols.</li>
-                      <li>Coordinating cross-border resource alignment and technical deliverables for enterprise stakeholders.</li>
-                    </ul>
-                  </div>
-                </div>
-
-                {/* 4. Academic Qualifications & Embassy Attestation */}
-                <div className="space-y-1.5">
-                  <h4 className="text-xs font-black uppercase tracking-wider text-slate-900 dark:text-white flex items-center gap-1.5 border-b border-slate-200 dark:border-navy-800 pb-1">
-                    <GraduationCap className="w-3.5 h-3.5 text-gold-500" />
-                    <span>Academic Qualifications & Embassy Attestation</span>
-                  </h4>
-                  <div className="bg-white dark:bg-navy-900 p-4 rounded-xl border border-slate-200 dark:border-navy-800 flex flex-col sm:flex-row justify-between sm:items-center gap-2 text-xs">
-                    <div>
-                      <strong className="text-sm font-bold text-slate-900 dark:text-white">{activeCand.education}</strong>
-                      <p className="text-slate-500 dark:text-slate-400">Verified Higher Educational Degree</p>
-                    </div>
-                    <div className="px-3 py-1.5 rounded-xl bg-emerald-500/15 border border-emerald-500/30 text-emerald-700 dark:text-emerald-400 font-bold text-xs flex items-center gap-1.5 shrink-0">
-                      <ShieldCheck className="w-4 h-4 text-emerald-600" />
-                      <span>✓ UAE & Saudi Embassy (MOHRE Verified)</span>
+                        <Download className="w-4 h-4" />
+                        <span>Export Verified Candidate Profile (PDF)</span>
+                      </button>
                     </div>
                   </div>
-                </div>
-
-                {/* 5. Mobility, Compensation & Availability */}
-                <div className="space-y-1.5">
-                  <h4 className="text-xs font-black uppercase tracking-wider text-slate-900 dark:text-white flex items-center gap-1.5 border-b border-slate-200 dark:border-navy-800 pb-1">
-                    <Clock className="w-3.5 h-3.5 text-gold-500" />
-                    <span>Relocation, Remuneration & Availability</span>
-                  </h4>
-                  <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-5 gap-3 text-xs bg-white dark:bg-navy-900 p-3.5 rounded-xl border border-slate-200 dark:border-navy-800">
-                    <div>
-                      <span className="text-slate-500 block text-[10px] font-bold uppercase">Target Relocation</span>
-                      <strong className="text-slate-900 dark:text-white">{activeCand.preferredCountry || 'Not specified'}</strong>
-                    </div>
-                    <div>
-                      <span className="text-slate-500 block text-[10px] font-bold uppercase">Current Salary</span>
-                      <strong className="text-slate-900 dark:text-white">{activeCand.currentSalary || 'Not specified'}</strong>
-                    </div>
-                    <div>
-                      <span className="text-slate-500 block text-[10px] font-bold uppercase">Expected Salary</span>
-                      <strong className="text-emerald-600 dark:text-emerald-400 font-bold">{activeCand.expectedSalary || 'Not specified'}</strong>
-                    </div>
-                    <div>
-                      <span className="text-slate-500 block text-[10px] font-bold uppercase">Notice Period</span>
-                      <strong className="text-slate-900 dark:text-white">{activeCand.noticePeriod || 'Not specified'}</strong>
-                    </div>
-                    <div>
-                      <span className="text-slate-500 block text-[10px] font-bold uppercase">Passport Status</span>
-                      <strong className="text-slate-900 dark:text-white">{activeCand.passport || 'Standard (Verified)'}</strong>
-                    </div>
-                  </div>
-                </div>
-
+                )}
               </div>
             )}
 

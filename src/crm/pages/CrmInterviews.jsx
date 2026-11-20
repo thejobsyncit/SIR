@@ -15,13 +15,13 @@ export const CrmInterviews = () => {
 
   // Form State
   const [newInterview, setNewInterview] = useState({
-    candidateName: 'Alexander Wright',
-    jobTitle: 'Senior Civil Project Manager',
-    clientCompany: 'Al Habtoor Contracting LLC',
-    date: '2026-08-10',
+    candidateName: '',
+    jobTitle: '',
+    clientCompany: '',
+    date: '2026-11-25',
     time: '15:00 GST',
     platform: 'Microsoft Teams',
-    panelists: 'Eng. Hassan Al-Habtoor, Tariq Al-Hashemi'
+    panelists: ''
   });
 
   // Feedback State

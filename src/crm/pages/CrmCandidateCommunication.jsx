@@ -9,7 +9,7 @@ import ScrollReveal from '../../components/ScrollReveal';
 export const CrmCandidateCommunication = () => {
   const { candidates = [] } = useCrm();
 
-  const [selectedCandId, setSelectedCandId] = useState(candidates[0]?.id || 'REV-CAN-101');
+  const [selectedCandId, setSelectedCandId] = useState(candidates[0]?.id || '');
   const [selectedChannel, setSelectedChannel] = useState('email'); // 'email' | 'whatsapp' | 'sms'
   const [selectedTemplate, setSelectedTemplate] = useState('interview-invite');
   const [customSubject, setCustomSubject] = useState('Interview Invitation: Senior Civil Project Manager - Revival International');
@@ -142,11 +142,11 @@ The Revival International Team`
   ]);
 
   const selectedCandidate = candidates.find(c => c.id === selectedCandId) || candidates[0] || {
-    id: 'REV-CAN-101',
-    name: 'Alexander Wright',
-    email: 'alexander.wright@gmail.com',
+    id: 'RI-CAND',
+    name: 'Candidate Profile',
+    email: 'candidate@therevivalinternational.com',
     phone: '+971 50 123 4567',
-    currentRole: 'Senior Civil Project Manager'
+    currentRole: 'Executive Candidate'
   };
 
   const showToast = (msg) => {

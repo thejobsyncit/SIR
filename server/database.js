@@ -1950,7 +1950,7 @@ const initDb = async (db) => {
   // Automated clean-up of legacy mock/dummy candidates (Ensures clean slate for real portal candidates)
   try {
     const dummyIds = [
-      'REV-CAN-101', 'REV-CAN-102', 'REV-CAN-103', 'REV-CAN-104', 'REV-CAN-105',
+      'REV-CAN-101', 'REV-CAN-102', 'REV-CAN-103', 'REV-CAN-104', 'REV-CAN-105', 'REV-CAN-106',
       'REV-CAN-4526', 'REV-CAN-4699', 'REV-CAN-5176', 'REV-CAN-9727', 'REV-CAN-3945',
       'REV-CAN-8396', 'REV-CAN-3270', 'REV-CAN-6198', 'REV-CAN-2158', 'REV-CAN-8921',
       'REV-CAN-6858', 'REV-CAN-4283', 'REV-CAN-5599', 'REV-CAN-7331', 'REV-CAN-7211',
@@ -1965,47 +1965,67 @@ const initDb = async (db) => {
     await db.run(`
       DELETE FROM candidates WHERE 
         id IN (${ph})
-        OR email LIKE '%mailinator%'
-        OR email LIKE '%candidate_test_%'
-        OR email LIKE '%trashuser%'
-        OR email LIKE '%example.com%'
-        OR email LIKE '%domain.com%'
-        OR email LIKE '%candidate.fresh.%'
-        OR email = 'johnny@gmail.com'
-        OR name IN ('Real Candidate', 'Unknown Candidate', 'Fake User', 'Fresh Candidate')
+        OR LOWER(email) LIKE '%mailinator%'
+        OR LOWER(email) LIKE '%candidate_test_%'
+        OR LOWER(email) LIKE '%trashuser%'
+        OR LOWER(email) LIKE '%example.com%'
+        OR LOWER(email) LIKE '%domain.com%'
+        OR LOWER(email) LIKE '%candidate.fresh.%'
+        OR LOWER(email) = 'johnny@gmail.com'
+        OR LOWER(email) = 'real.candidate.test@gmail.com'
+        OR LOWER(name) IN ('real candidate', 'unknown candidate', 'fake user', 'fresh candidate', 'alexander wright', 'dr. sarah al-mansoori', 'mohamed tariq', 'elena rostova', 'david chen', 'fatima al-zahra', 'test candidate')
     `, dummyIds).catch(() => {});
 
     await db.run(`
       DELETE FROM candidate_profiles WHERE 
         id IN (${ph})
-        OR email LIKE '%mailinator%'
-        OR email LIKE '%candidate_test_%'
-        OR email LIKE '%trashuser%'
-        OR email LIKE '%example.com%'
-        OR email LIKE '%domain.com%'
-        OR email LIKE '%candidate.fresh.%'
-        OR email = 'johnny@gmail.com'
-        OR name IN ('Real Candidate', 'Unknown Candidate', 'Fake User', 'Fresh Candidate')
+        OR LOWER(email) LIKE '%mailinator%'
+        OR LOWER(email) LIKE '%candidate_test_%'
+        OR LOWER(email) LIKE '%trashuser%'
+        OR LOWER(email) LIKE '%example.com%'
+        OR LOWER(email) LIKE '%domain.com%'
+        OR LOWER(email) LIKE '%candidate.fresh.%'
+        OR LOWER(email) = 'johnny@gmail.com'
+        OR LOWER(email) = 'real.candidate.test@gmail.com'
+        OR LOWER(name) IN ('real candidate', 'unknown candidate', 'fake user', 'fresh candidate', 'alexander wright', 'dr. sarah al-mansoori', 'mohamed tariq', 'elena rostova', 'david chen', 'fatima al-zahra', 'test candidate')
     `, dummyIds).catch(() => {});
 
     await db.run(`
       DELETE FROM candidate_applications WHERE 
         candidateId IN (${ph})
-        OR applicantEmail LIKE '%mailinator%'
-        OR applicantEmail LIKE '%candidate_test_%'
-        OR applicantEmail LIKE '%trashuser%'
-        OR applicantEmail LIKE '%example.com%'
-        OR applicantEmail LIKE '%domain.com%'
-        OR applicantEmail LIKE '%candidate.fresh.%'
-        OR applicantEmail = 'johnny@gmail.com'
+        OR LOWER(applicantEmail) LIKE '%mailinator%'
+        OR LOWER(applicantEmail) LIKE '%candidate_test_%'
+        OR LOWER(applicantEmail) LIKE '%trashuser%'
+        OR LOWER(applicantEmail) LIKE '%example.com%'
+        OR LOWER(applicantEmail) LIKE '%domain.com%'
+        OR LOWER(applicantEmail) LIKE '%candidate.fresh.%'
+        OR LOWER(applicantEmail) = 'johnny@gmail.com'
+        OR LOWER(applicantEmail) = 'real.candidate.test@gmail.com'
         OR applicantEmail IS NULL
         OR applicantName IS NULL
-        OR applicantName IN ('Real Candidate', 'Unknown Candidate', 'Fake User', 'Fresh Candidate')
+        OR LOWER(applicantName) IN ('real candidate', 'unknown candidate', 'fake user', 'fresh candidate', 'alexander wright', 'dr. sarah al-mansoori', 'mohamed tariq', 'elena rostova', 'david chen', 'fatima al-zahra', 'test candidate')
     `, dummyIds).catch(() => {});
 
     await db.run(`
       DELETE FROM candidate_documents WHERE 
         candidateId IN (${ph})
+    `, dummyIds).catch(() => {});
+
+    await db.run(`
+      DELETE FROM candidate_notifications WHERE 
+        candidateId IN (${ph})
+    `, dummyIds).catch(() => {});
+
+    await db.run(`
+      DELETE FROM users WHERE 
+        id IN (${ph})
+        OR LOWER(email) LIKE '%mailinator%'
+        OR LOWER(email) LIKE '%candidate_test_%'
+        OR LOWER(email) LIKE '%trashuser%'
+        OR LOWER(email) LIKE '%example.com%'
+        OR LOWER(email) LIKE '%domain.com%'
+        OR LOWER(email) = 'johnny@gmail.com'
+        OR LOWER(email) = 'real.candidate.test@gmail.com'
     `, dummyIds).catch(() => {});
 
     await db.run(`

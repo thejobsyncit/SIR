@@ -25,68 +25,12 @@ export const registerDocumentationRoutes = (app, { getDb, getClientIp, logAuditT
       );
     `);
 
-    const existingCount = await db.get('SELECT COUNT(*) as count FROM compliance_documents');
-    if (!existingCount || existingCount.count === 0) {
-      // Calculate dynamic date within 25 days for Elena Rostova's MOM IPA so alert is permanently active & authentic
-      const now = new Date();
-      const expiringSoonDate = new Date(now.getTime() + 25 * 24 * 60 * 60 * 1000).toISOString().slice(0, 10);
-
-      const baselineDocs = [
-        {
-          id: 'DOC-101',
-          candidateId: 'CAND-ALEX-01',
-          candidateName: 'Alexander Wright',
-          docName: 'UK_Passport_Scan.pdf',
-          type: 'Passport',
-          expiryDate: '2031-10-15',
-          status: 'Valid',
-          version: 'v2.1',
-          size: '2.4 MB'
-        },
-        {
-          id: 'DOC-102',
-          candidateId: 'CAND-ELENA-02',
-          candidateName: 'Elena Rostova',
-          docName: 'MOM_Work_Pass_IPA.pdf',
-          type: 'Visa Approval',
-          expiryDate: expiringSoonDate,
-          status: 'Expiring Soon',
-          version: 'v1.0',
-          size: '1.8 MB'
-        },
-        {
-          id: 'DOC-103',
-          candidateId: 'CAND-SARAH-03',
-          candidateName: 'Dr. Sarah Al-Mansoori',
-          docName: 'Saudi_Prometric_License.pdf',
-          type: 'Medical License',
-          expiryDate: '2028-04-20',
-          status: 'Valid',
-          version: 'v1.2',
-          size: '3.1 MB'
-        },
-        {
-          id: 'DOC-104',
-          candidateId: 'CAND-RAJESH-04',
-          candidateName: 'Rajesh Subramanian',
-          docName: 'Degree_Attestation_IIT.pdf',
-          type: 'Degree',
-          expiryDate: '2035-12-31',
-          status: 'Attested',
-          version: 'v1.0',
-          size: '4.2 MB'
-        }
-      ];
-
-      for (const d of baselineDocs) {
-        await db.run(
-          `INSERT OR IGNORE INTO compliance_documents 
-           (id, candidateId, candidateName, docName, type, expiryDate, status, version, size) 
-           VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`,
-          [d.id, d.candidateId, d.candidateName, d.docName, d.type, d.expiryDate, d.status, d.version, d.size]
-        );
-      }
-    }
+    // Clean up any legacy dummy documents
+    await db.run(`
+      DELETE FROM compliance_documents 
+      WHERE candidateName IN ('Alexander Wright', 'Elena Rostova', 'Dr. Sarah Al-Mansoori', 'Rajesh Subramanian')
+         OR id IN ('DOC-101', 'DOC-102', 'DOC-103', 'DOC-104')
+    `).catch(() => {});
   };
 
   // Helper to compute live expiry state

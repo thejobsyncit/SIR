@@ -171,7 +171,7 @@ const CrmAppContent = () => {
 
     if (q.includes('mandate') || q.includes('match') || q.includes('open vacancies') || q.includes('roles') || q.includes('gcc jobs')) {
       setTimeout(() => {
-        const reply = `⚡ **Live GCC Mandate Matching Matrix**\n\n1. **Al Habtoor Engineering (Dubai, UAE)**\n   • Role: Senior Civil Project Manager (High-Rise)\n   • Recommended Match: **Alexander Wright** (94% Compatibility)\n   • Highlights: 12 yrs GCC High-Rise, FIDIC Red Book expert, MOHRE Ready\n\n2. **Saudi German Health (Riyadh, KSA)**\n   • Role: Lead Consultant — Intensive Care Unit\n   • Recommended Match: **Dr. Sarah Al-Mansoori** (96% Compatibility)\n   • Highlights: SCFHS Consultant license, Immediate visa quota availability\n\n3. **TechVision FinTech (Singapore / Dubai)**\n   • Role: Principal Cloud & Distributed Systems Architect\n   • Recommended Match: **Elena Rostova** (92% Compatibility)\n   • Highlights: AWS Certified Solutions Architect, Kubernetes, Microservices`;
+        const reply = `⚡ **Live GCC Mandate Matching Matrix**\n\n1. **Gulf Petroleum Resources (Dhahran / Offshore)**\n   • Role: Offshore Drilling Engineer\n   • Recommended Match: **Kishore Kumar** (95% Compatibility)\n   • Highlights: Verified credentials, MOHRE & GCC compliant, Ready for immediate deployment\n\n2. **Revival International Talent Pool (Dubai, UAE)**\n   • Role: Executive IT & Technical Lead\n   • Recommended Match: **thejobsync** (94% Compatibility)\n   • Highlights: Cloud Infrastructure & API Engineering verified`;
         setChatMessages(prev => [...prev, { id: Date.now() + 1, sender: 'assistant', text: reply }]);
         setIsAiThinking(false);
       }, 500);
@@ -189,7 +189,7 @@ const CrmAppContent = () => {
 
     if (q.includes('summary') || q.includes('draft') || q.includes('submission') || q.includes('pitch') || q.includes('email')) {
       setTimeout(() => {
-        const reply = `📝 **Executive Candidate Submission Pitch**\n\n**To:** Hiring Committee & Talent Acquisition Directorate\n**Subject:** Candidate Submission — Senior Project Manager | Alexander Wright\n\nDear Hiring Team,\n\nWe are pleased to formally present **Alexander Wright** for your Senior Civil Project Management mandate in Dubai.\n\n**Executive Profile Summary:**\n• Over 12 years of hands-on GCC construction leadership delivering high-rise towers and commercial developments.\n• Direct oversight of 250+ site personnel with flawless MOHRE safety compliance.\n• Degree attested through UAE Ministry of Foreign Affairs (MOFA) with verified 6-point BGV.\n• Availability: 30 days notice period with existing UAE residency visa transferable.\n\nCandidate CV, credentials dossier, and compensation expectations are attached for your review. We look forward to coordinating the initial technical screening.\n\nWarm regards,\n**The Revival International Executive Search Team**`;
+        const reply = `📝 **Executive Candidate Submission Pitch**\n\n**To:** Hiring Committee & Talent Acquisition Directorate\n**Subject:** Candidate Submission — Offshore Drilling Engineer | Kishore Kumar\n\nDear Hiring Team,\n\nWe are pleased to formally present **Kishore Kumar** for your engineering mandate.\n\n**Executive Profile Summary:**\n• Hands-on engineering track record across UAE and international markets.\n• Flawless compliance with regulatory and safety protocols.\n• Verified credentials in candidate portal with verified 6-point BGV.\n• Immediate availability.\n\nCandidate CV, credentials dossier, and compensation expectations are attached for your review. We look forward to coordinating the initial technical screening.\n\nWarm regards,\n**The Revival International Executive Search Team**`;
         setChatMessages(prev => [...prev, { id: Date.now() + 1, sender: 'assistant', text: reply }]);
         setIsAiThinking(false);
       }, 500);
@@ -410,7 +410,7 @@ const CrmAppContent = () => {
                 onClick={() => { setActiveModule('candidates'); setCommandPaletteOpen(false); }}
                 className="p-2.5 bg-slate-100 dark:bg-navy-950 rounded-xl hover:bg-slate-200 dark:hover:bg-navy-800 cursor-pointer flex justify-between items-center border border-slate-200 dark:border-navy-800 font-semibold"
               >
-                <span className="text-slate-900 dark:text-white">👤 Alexander Wright (Candidate #REV-CAN-1001)</span>
+                <span className="text-slate-900 dark:text-white">👤 Kishore Kumar (Candidate #RI-CAND-004)</span>
                 <span className="text-[10px] text-amber-700 dark:text-gold-400 font-bold">Candidates</span>
               </div>
               <div

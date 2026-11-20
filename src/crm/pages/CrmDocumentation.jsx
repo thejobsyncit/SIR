@@ -6,20 +6,8 @@ import {
 } from 'lucide-react';
 
 export const CrmDocumentation = () => {
-  const [documents, setDocuments] = useState([
-    { id: 'DOC-101', candidate: 'Alexander Wright', docName: 'UK_Passport_Scan.pdf', type: 'Passport', expiry: '2031-10-15', status: 'Valid', version: 'v2.1', size: '2.4 MB' },
-    { id: 'DOC-102', candidate: 'Elena Rostova', docName: 'MOM_Work_Pass_IPA.pdf', type: 'Visa Approval', expiry: '2026-09-01', status: 'Expiring Soon', version: 'v1.0', size: '1.8 MB' },
-    { id: 'DOC-103', candidate: 'Dr. Sarah Al-Mansoori', docName: 'Saudi_Prometric_License.pdf', type: 'Medical License', expiry: '2028-04-20', status: 'Valid', version: 'v1.2', size: '3.1 MB' },
-    { id: 'DOC-104', candidate: 'Rajesh Subramanian', docName: 'Degree_Attestation_IIT.pdf', type: 'Degree', expiry: '2035-12-31', status: 'Attested', version: 'v1.0', size: '4.2 MB' }
-  ]);
-
-  const [alertDoc, setAlertDoc] = useState({
-    id: 'DOC-102',
-    candidate: 'Elena Rostova',
-    docName: 'MOM_Work_Pass_IPA.pdf',
-    type: 'Singapore MOM IPA Visa Approval',
-    daysLeft: 25
-  });
+  const [documents, setDocuments] = useState([]);
+  const [alertDoc, setAlertDoc] = useState(null);
 
   const [loading, setLoading] = useState(false);
   const [previewDoc, setPreviewDoc] = useState(null);
@@ -27,10 +15,10 @@ export const CrmDocumentation = () => {
   const [notificationMsg, setNotificationMsg] = useState('');
   
   const [newDoc, setNewDoc] = useState({
-    candidate: 'Alexander Wright',
-    docName: 'Offer_Letter_Signed.pdf',
-    type: 'Offer Letter',
-    expiry: '2027-08-01',
+    candidate: '',
+    docName: 'Candidate_Document.pdf',
+    type: 'Passport',
+    expiry: '2028-01-01',
     size: '1.5 MB'
   });
 
@@ -118,7 +106,7 @@ export const CrmDocumentation = () => {
 
   const triggerDownload = (doc) => {
     const docName = typeof doc === 'string' ? doc : doc.docName;
-    const candidate = doc.candidate || 'Alexander Wright';
+    const candidate = doc.candidate || 'Kishore Kumar';
     const type = doc.type || 'Compliance Audit Certificate';
     const id = doc.id || 'DOC-VERIFIED';
     const expiry = doc.expiry || '2031-10-15';
