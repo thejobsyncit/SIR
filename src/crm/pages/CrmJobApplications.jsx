@@ -39,6 +39,7 @@ export const CrmJobApplications = () => {
   const [statusNotice, setStatusNotice] = useState('');
   const [deleteConfirmApp, setDeleteConfirmApp] = useState(null);
   const [isDeleting, setIsDeleting] = useState(false);
+  const [syncTick, setSyncTick] = useState(0);
 
   const handleConfirmDeleteApp = async () => {
     if (!deleteConfirmApp || !deleteApplication) return;
@@ -48,6 +49,7 @@ export const CrmJobApplications = () => {
       if (ok) {
         setStatusNotice(`✓ Application for "${deleteConfirmApp.jobTitle}" (${deleteConfirmApp.applicantName}) permanently deleted. Candidate can now re-apply.`);
         setDeleteConfirmApp(null);
+        setSyncTick(t => t + 1);
         setTimeout(() => setStatusNotice(''), 5000);
         if (fetchApplications) fetchApplications();
       } else {
@@ -64,28 +66,137 @@ export const CrmJobApplications = () => {
     if (fetchApplications) {
       fetchApplications();
     }
-  }, []);
+  }, [fetchApplications]);
+
+  // Real-time synchronization across browser tabs and user interactions
+  useEffect(() => {
+    const handleSync = () => {
+      setSyncTick(t => t + 1);
+      if (fetchApplications) fetchApplications();
+    };
+
+    window.addEventListener('focus', handleSync);
+    window.addEventListener('storage', handleSync);
+    window.addEventListener('application-submitted', handleSync);
+    window.addEventListener('application-deleted', handleSync);
+    window.addEventListener('candidate-registered', handleSync);
+    const handleVis = () => {
+      if (typeof document !== 'undefined' && document.visibilityState === 'visible') {
+        handleSync();
+      }
+    };
+    document.addEventListener('visibilitychange', handleVis);
+
+    const interval = setInterval(handleSync, 2000);
+    return () => {
+      window.removeEventListener('focus', handleSync);
+      window.removeEventListener('storage', handleSync);
+      window.removeEventListener('application-submitted', handleSync);
+      window.removeEventListener('application-deleted', handleSync);
+      window.removeEventListener('candidate-registered', handleSync);
+      document.removeEventListener('visibilitychange', handleVis);
+      clearInterval(interval);
+    };
+  }, [fetchApplications]);
+
+  // Multi-store application aggregator for instant, zero-latency rendering & cross-tab sync
+  const applicationPool = useMemo(() => {
+    const deletedSet = new Set();
+    try {
+      const delStr = localStorage.getItem('sir_deleted_applications');
+      if (delStr) {
+        const arr = JSON.parse(delStr);
+        if (Array.isArray(arr)) arr.forEach(d => { if (d) deletedSet.add(String(d)); });
+      }
+    } catch {}
+
+    const map = new Map();
+    const addApp = (a) => {
+      if (!a || !a.jobId) return;
+      const appId = String(a.id || '');
+      if (appId && deletedSet.has(appId)) return;
+      const email = (a.applicantEmail || a.email || '').toLowerCase().trim();
+      const comp = `${String(a.jobId).trim()}_${email}`;
+      if (deletedSet.has(comp)) return;
+
+      const key = appId || comp;
+      if (!map.has(key)) {
+        map.set(key, { ...a, applicantEmail: email });
+      }
+    };
+
+    // 1. Applications from CRM context
+    if (Array.isArray(applications)) applications.forEach(addApp);
+
+    // 2. Applications from localStorage sir_job_applications
+    try {
+      const stored = localStorage.getItem('sir_job_applications');
+      if (stored) {
+        const parsed = JSON.parse(stored);
+        if (Array.isArray(parsed)) parsed.forEach(addApp);
+      }
+    } catch {}
+
+    // 3. Applications from candidate portal DB (sir_candidates_db)
+    try {
+      const dbStr = localStorage.getItem('sir_candidates_db');
+      if (dbStr) {
+        const db = JSON.parse(dbStr);
+        Object.values(db).forEach(u => {
+          if (Array.isArray(u?.applications)) {
+            u.applications.forEach(a => addApp({
+              ...a,
+              applicantName: a.applicantName || u.name,
+              applicantEmail: a.applicantEmail || u.email,
+              applicantPhone: a.applicantPhone || u.phone,
+              candidateId: a.candidateId || u.candidateId || u.id,
+              resumeUrl: a.resumeUrl || u.resumeUrl,
+              resumeName: a.resumeName || u.resumeName,
+              resumeSize: a.resumeSize || u.resumeSize
+            }));
+          }
+        });
+      }
+    } catch {}
+
+    // 4. Applications from scoped candidate storage keys (sir_applications_*)
+    try {
+      if (typeof window !== 'undefined' && window.localStorage) {
+        for (let i = 0; i < localStorage.length; i++) {
+          const key = localStorage.key(i);
+          if (key && key.startsWith('sir_applications_')) {
+            try {
+              const subApps = JSON.parse(localStorage.getItem(key) || '[]');
+              if (Array.isArray(subApps)) subApps.forEach(addApp);
+            } catch {}
+          }
+        }
+      }
+    } catch {}
+
+    return Array.from(map.values()).sort((a, b) => new Date(b.appliedDate || 0) - new Date(a.appliedDate || 0));
+  }, [applications, syncTick]);
 
   // Compute unique jobs and companies for dropdown filters
   const uniqueJobs = useMemo(() => {
     const set = new Set();
-    applications.forEach(a => {
+    applicationPool.forEach(a => {
       if (a.jobTitle) set.add(a.jobTitle.trim());
     });
     return Array.from(set).sort();
-  }, [applications]);
+  }, [applicationPool]);
 
   const uniqueCompanies = useMemo(() => {
     const set = new Set();
-    applications.forEach(a => {
+    applicationPool.forEach(a => {
       if (a.company) set.add(a.company.trim());
     });
     return Array.from(set).sort();
-  }, [applications]);
+  }, [applicationPool]);
 
   // Filtered applications
   const filteredApplications = useMemo(() => {
-    return applications.filter(app => {
+    return applicationPool.filter(app => {
       // 1. Search term match
       if (searchTerm.trim()) {
         const q = searchTerm.toLowerCase();
@@ -123,7 +234,7 @@ export const CrmJobApplications = () => {
 
       return true;
     });
-  }, [applications, searchTerm, selectedJob, selectedCompany, selectedStatus, timeFilter]);
+  }, [applicationPool, searchTerm, selectedJob, selectedCompany, selectedStatus, timeFilter]);
 
   // Group applications by Job Title for the Grouped view
   const groupedByJob = useMemo(() => {
@@ -293,14 +404,14 @@ export const CrmJobApplications = () => {
   };
 
   // Stats calculation
-  const totalAppsCount = applications.length;
-  const underReviewCount = applications.filter(a => (a.status || 'Under Review').toLowerCase().includes('review')).length;
-  const shortlistedCount = applications.filter(a => (a.status || '').toLowerCase().includes('shortlist') || (a.status || '').toLowerCase().includes('interview')).length;
+  const totalAppsCount = applicationPool.length;
+  const underReviewCount = applicationPool.filter(a => (a.status || 'Under Review').toLowerCase().includes('review')).length;
+  const shortlistedCount = applicationPool.filter(a => (a.status || '').toLowerCase().includes('shortlist') || (a.status || '').toLowerCase().includes('interview')).length;
   const uniqueApplicantsCount = useMemo(() => {
     const s = new Set();
-    applications.forEach(a => { if (a.applicantEmail) s.add(a.applicantEmail.toLowerCase()); });
+    applicationPool.forEach(a => { if (a.applicantEmail) s.add(a.applicantEmail.toLowerCase()); });
     return s.size;
-  }, [applications]);
+  }, [applicationPool]);
 
   // Status options for recruiters
   const statusOptions = [

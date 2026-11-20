@@ -227,7 +227,16 @@ export const CrmProvider = ({ children }) => {
   };
 
   const [candidates, setCandidates] = useState(() => loadState('crm_candidates', CRM_CANDIDATES));
-  const [applications, setApplications] = useState([]);
+  const [applications, setApplications] = useState(() => {
+    try {
+      const saved = localStorage.getItem('sir_job_applications');
+      if (saved) {
+        const parsed = JSON.parse(saved);
+        if (Array.isArray(parsed) && parsed.length > 0) return parsed;
+      }
+    } catch {}
+    return [];
+  });
   const [loadingApplications, setLoadingApplications] = useState(false);
   const [clients, setClients] = useState(() => loadState('crm_clients', CRM_CLIENTS));
   const [interviews, setInterviews] = useState(() => loadState('crm_interviews', CRM_INTERVIEWS));
@@ -509,22 +518,178 @@ export const CrmProvider = ({ children }) => {
     }
   }, []);
 
-  const fetchApplications = async () => {
+  const fetchApplications = useCallback(async () => {
     try {
       setLoadingApplications(true);
-      const res = await fetch('/api/candidate/applications');
-      if (res.ok) {
-        const data = await res.json();
-        if (data && data.success && Array.isArray(data.data)) {
-          setApplications(data.data);
+
+      // 0. Deleted applications blacklist (prevents zombie restored applications)
+      const deletedAppSet = new Set();
+      try {
+        const deletedStr = localStorage.getItem('sir_deleted_applications');
+        if (deletedStr) {
+          const arr = JSON.parse(deletedStr);
+          if (Array.isArray(arr)) {
+            arr.forEach(d => { if (d) deletedAppSet.add(String(d)); });
+          }
         }
+      } catch {}
+
+      // 1. Gather all local applications from all possible stores
+      const localAppsMap = new Map();
+      const registerLocalApp = (app) => {
+        if (!app || !app.jobId) return;
+        const appId = String(app.id || '');
+        if (appId && deletedAppSet.has(appId)) return;
+
+        const email = (app.applicantEmail || app.email || '').toLowerCase().trim();
+        const jobId = String(app.jobId).trim();
+        const compositeKey = `${jobId}_${email}`.toLowerCase();
+        if (deletedAppSet.has(compositeKey)) return;
+
+        const effectiveId = appId || `RI-APP-${Math.floor(10000 + Math.random() * 90000)}`;
+
+        const normalizedApp = {
+          id: effectiveId,
+          candidateId: app.candidateId || `RI-CAND-${effectiveId.slice(-3)}`,
+          userId: app.userId || '',
+          jobId: app.jobId,
+          jobTitle: app.jobTitle || 'Executive Opening',
+          company: app.company || 'Revival International',
+          location: app.location || 'UAE',
+          appliedDate: app.appliedDate || app.createdAt || new Date().toISOString(),
+          status: app.status || 'Under Review',
+          stage: app.stage || 'Applied',
+          resumeName: app.resumeName || null,
+          resumeUrl: app.resumeUrl || null,
+          resumeSize: app.resumeSize || null,
+          coverNote: app.coverNote || '',
+          noticePeriod: app.noticePeriod || 'Immediate',
+          expectedSalary: app.expectedSalary || 'Market Standard',
+          applicantName: app.applicantName || app.name || 'Candidate',
+          applicantEmail: email,
+          applicantPhone: app.applicantPhone || app.phone || '',
+          candidateNationality: app.candidateNationality || app.nationality || 'UAE'
+        };
+
+        const mapKey = appId || compositeKey;
+        if (!localAppsMap.has(mapKey)) {
+          localAppsMap.set(mapKey, normalizedApp);
+        }
+      };
+
+      try {
+        // Source A: 'sir_job_applications' in localStorage
+        const globalStr = localStorage.getItem('sir_job_applications');
+        if (globalStr) {
+          const parsed = JSON.parse(globalStr);
+          if (Array.isArray(parsed)) parsed.forEach(registerLocalApp);
+        }
+
+        // Source B: 'sir_candidates_db' in localStorage
+        const dbStr = localStorage.getItem('sir_candidates_db');
+        if (dbStr) {
+          const db = JSON.parse(dbStr);
+          Object.values(db).forEach(u => {
+            if (Array.isArray(u?.applications)) {
+              u.applications.forEach(app => registerLocalApp({
+                ...app,
+                applicantName: app.applicantName || u.name,
+                applicantEmail: app.applicantEmail || u.email,
+                applicantPhone: app.applicantPhone || u.phone,
+                candidateId: app.candidateId || u.candidateId || u.id,
+                resumeUrl: app.resumeUrl || u.resumeUrl,
+                resumeName: app.resumeName || u.resumeName,
+                resumeSize: app.resumeSize || u.resumeSize
+              }));
+            }
+          });
+        }
+
+        // Source C: Active user session applications
+        const sessStr = localStorage.getItem('sir_user_session');
+        if (sessStr) {
+          const sess = JSON.parse(sessStr);
+          if (Array.isArray(sess?.applications)) {
+            sess.applications.forEach(registerLocalApp);
+          }
+        }
+
+        // Source D: Scoped candidate applications (keys like sir_applications_*)
+        if (typeof window !== 'undefined' && window.localStorage) {
+          for (let i = 0; i < localStorage.length; i++) {
+            const key = localStorage.key(i);
+            if (key && key.startsWith('sir_applications_')) {
+              try {
+                const subApps = JSON.parse(localStorage.getItem(key) || '[]');
+                if (Array.isArray(subApps)) subApps.forEach(registerLocalApp);
+              } catch {}
+            }
+          }
+        }
+      } catch (readErr) {
+        console.warn('Local applications read notice:', readErr);
       }
+
+      // 2. Fetch server applications
+      let serverApps = [];
+      try {
+        const res = await fetch('/api/candidate/applications');
+        if (res.ok) {
+          const data = await res.json();
+          if (data && data.success && Array.isArray(data.data)) {
+            serverApps = data.data.filter(a => {
+              if (deletedAppSet.has(String(a.id))) return false;
+              const composite = `${String(a.jobId).trim()}_${(a.applicantEmail || '').trim().toLowerCase()}`;
+              if (deletedAppSet.has(composite)) return false;
+              return true;
+            });
+          }
+        }
+      } catch (netErr) {
+        console.warn('Server applications fetch notice:', netErr.message);
+      }
+
+      // 3. Bidirectional merge: server applications + local applications
+      const mergedMap = new Map();
+      serverApps.forEach(sa => {
+        const key = String(sa.id || `${String(sa.jobId).trim()}_${(sa.applicantEmail || '').trim().toLowerCase()}`);
+        mergedMap.set(key, sa);
+      });
+
+      localAppsMap.forEach((la, key) => {
+        const compositeKey = `${String(la.jobId).trim()}_${(la.applicantEmail || '').trim().toLowerCase()}`;
+        if (!mergedMap.has(key) && !mergedMap.has(compositeKey)) {
+          mergedMap.set(key, la);
+          // Sync local application up to backend SQLite in background
+          fetch('/api/candidate/applications', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(la)
+          }).catch(() => {});
+        } else {
+          // If local has real resume file and server doesn't, enrich server record
+          const existing = mergedMap.get(key) || mergedMap.get(compositeKey);
+          if (existing) {
+            if ((!existing.resumeUrl || existing.resumeUrl.length < 200) && la.resumeUrl && la.resumeUrl.length > 200) {
+              existing.resumeUrl = la.resumeUrl;
+              existing.resumeName = la.resumeName || existing.resumeName;
+              existing.resumeSize = la.resumeSize || existing.resumeSize;
+            }
+          }
+        }
+      });
+
+      const finalApps = Array.from(mergedMap.values()).sort((a, b) => new Date(b.appliedDate || 0) - new Date(a.appliedDate || 0));
+      setApplications(finalApps);
+      try {
+        localStorage.setItem('sir_job_applications', JSON.stringify(finalApps));
+      } catch {}
     } catch (err) {
       console.error('Failed to fetch applications from backend:', err);
     } finally {
       setLoadingApplications(false);
     }
-  };
+  }, []);
 
   const updateApplicationStatus = async (appId, newStatus, stage, notes) => {
     try {
@@ -534,7 +699,11 @@ export const CrmProvider = ({ children }) => {
         body: JSON.stringify({ status: newStatus, stage, notes })
       });
       if (res.ok) {
-        setApplications(prev => prev.map(a => a.id === appId ? { ...a, status: newStatus, stage: stage || a.stage } : a));
+        setApplications(prev => {
+          const updated = prev.map(a => a.id === appId ? { ...a, status: newStatus, stage: stage || a.stage } : a);
+          try { localStorage.setItem('sir_job_applications', JSON.stringify(updated)); } catch {}
+          return updated;
+        });
         fetchCandidates();
         return true;
       }
@@ -546,18 +715,87 @@ export const CrmProvider = ({ children }) => {
 
   const deleteApplication = async (appId) => {
     try {
-      const res = await fetch(`/api/candidate/applications/${appId}`, {
-        method: 'DELETE'
-      });
-      if (res.ok) {
-        setApplications(prev => prev.filter(a => a.id !== appId));
-        fetchCandidates();
-        return true;
+      // 1. Blacklist in sir_deleted_applications so it stays deleted across all tabs & reloads
+      try {
+        const deletedStr = localStorage.getItem('sir_deleted_applications');
+        const deletedArr = deletedStr ? JSON.parse(deletedStr) : [];
+        if (Array.isArray(deletedArr)) {
+          deletedArr.push(appId);
+          localStorage.setItem('sir_deleted_applications', JSON.stringify([...new Set(deletedArr)]));
+        }
+      } catch {}
+
+      // Find application details before deleting to clean candidate-scoped caches
+      const targetApp = applications.find(a => a.id === appId);
+      const targetJobId = targetApp?.jobId;
+      const targetEmail = (targetApp?.applicantEmail || '').toLowerCase().trim();
+      const targetCid = targetApp?.candidateId;
+
+      // 2. Wipe from sir_job_applications
+      try {
+        const appStr = localStorage.getItem('sir_job_applications');
+        if (appStr) {
+          const apps = JSON.parse(appStr);
+          if (Array.isArray(apps)) {
+            const filtered = apps.filter(a => a.id !== appId && !(targetJobId && a.jobId === targetJobId && (a.applicantEmail || '').toLowerCase().trim() === targetEmail));
+            localStorage.setItem('sir_job_applications', JSON.stringify(filtered));
+          }
+        }
+      } catch {}
+
+      // 3. Wipe from candidate-specific localStorage caches so website re-shows "Apply Now"
+      try {
+        if (targetCid) {
+          const cidAppsStr = localStorage.getItem(`sir_applications_${targetCid}`);
+          if (cidAppsStr) {
+            const cApps = JSON.parse(cidAppsStr);
+            if (Array.isArray(cApps)) {
+              localStorage.setItem(`sir_applications_${targetCid}`, JSON.stringify(cApps.filter(a => a.id !== appId && String(a.jobId) !== String(targetJobId))));
+            }
+          }
+        }
+        if (targetEmail) {
+          const emailAppsStr = localStorage.getItem(`sir_applications_${targetEmail}`);
+          if (emailAppsStr) {
+            const eApps = JSON.parse(emailAppsStr);
+            if (Array.isArray(eApps)) {
+              localStorage.setItem(`sir_applications_${targetEmail}`, JSON.stringify(eApps.filter(a => a.id !== appId && String(a.jobId) !== String(targetJobId))));
+            }
+          }
+          const dbStr = localStorage.getItem('sir_candidates_db');
+          if (dbStr) {
+            const db = JSON.parse(dbStr);
+            if (db[targetEmail] && Array.isArray(db[targetEmail].applications)) {
+              db[targetEmail].applications = db[targetEmail].applications.filter(a => a.id !== appId && String(a.jobId) !== String(targetJobId));
+              localStorage.setItem('sir_candidates_db', JSON.stringify(db));
+            }
+          }
+        }
+      } catch {}
+
+      // 4. Update in-memory state immediately
+      setApplications(prev => prev.filter(a => a.id !== appId && !(targetJobId && a.jobId === targetJobId && (a.applicantEmail || '').toLowerCase().trim() === targetEmail)));
+
+      // 5. Broadcast application-deleted event across window and tabs
+      if (typeof window !== 'undefined') {
+        window.dispatchEvent(new CustomEvent('application-deleted', { detail: { appId, jobId: targetJobId, email: targetEmail, candidateId: targetCid } }));
       }
+
+      // 6. Delete from backend API
+      try {
+        await fetch(`/api/candidate/applications/${appId}`, {
+          method: 'DELETE'
+        });
+      } catch (beErr) {
+        console.warn('Backend delete application note:', beErr.message);
+      }
+
+      fetchCandidates();
+      return true;
     } catch (err) {
       console.error('Failed to delete application:', err);
+      return false;
     }
-    return false;
   };
 
   const fetchClients = async () => {
@@ -626,13 +864,19 @@ export const CrmProvider = ({ children }) => {
     };
     window.addEventListener('lead-submitted', handleLeadSubmitted);
     window.addEventListener('application-submitted', fetchApplications);
+    window.addEventListener('application-deleted', fetchApplications);
     window.addEventListener('candidate-registered', fetchCandidates);
     window.addEventListener('candidate-profile-updated', fetchCandidates);
     window.addEventListener('candidate-deleted', fetchCandidates);
-    window.addEventListener('focus', fetchCandidates);
+    const handleFocusSync = () => {
+      fetchCandidates();
+      fetchApplications();
+    };
+    window.addEventListener('focus', handleFocusSync);
     const handleVisibility = () => {
       if (typeof document !== 'undefined' && document.visibilityState === 'visible') {
         fetchCandidates();
+        fetchApplications();
       }
     };
     document.addEventListener('visibilitychange', handleVisibility);
@@ -641,10 +885,13 @@ export const CrmProvider = ({ children }) => {
       if (e.key === 'crm_candidates' || e.key === 'sir_candidates_db' || e.key === 'sir_user_session' || e.key === 'sir_active_resume' || e.key === 'sir_deleted_candidates') {
         fetchCandidates();
       }
+      if (e.key === 'sir_job_applications' || e.key === 'sir_deleted_applications' || (e.key && e.key.startsWith('sir_applications_'))) {
+        fetchApplications();
+      }
     };
     window.addEventListener('storage', handleStorageChange);
 
-    // Snappy background synchronization (every 2.5 seconds) for real-time candidate updates
+    // Snappy background synchronization (every 2.5 seconds) for real-time candidate & application updates
     const interval = setInterval(() => {
       fetchCandidates();
       fetchApplications();
@@ -658,14 +905,15 @@ export const CrmProvider = ({ children }) => {
       clearInterval(interval);
       window.removeEventListener('lead-submitted', handleLeadSubmitted);
       window.removeEventListener('application-submitted', fetchApplications);
+      window.removeEventListener('application-deleted', fetchApplications);
       window.removeEventListener('candidate-registered', fetchCandidates);
       window.removeEventListener('candidate-profile-updated', fetchCandidates);
       window.removeEventListener('candidate-deleted', fetchCandidates);
-      window.removeEventListener('focus', fetchCandidates);
+      window.removeEventListener('focus', handleFocusSync);
       document.removeEventListener('visibilitychange', handleVisibility);
       window.removeEventListener('storage', handleStorageChange);
     };
-  }, [fetchCandidates]);
+  }, [fetchCandidates, fetchApplications]);
 
   useEffect(() => {
     localStorage.setItem('crm_candidates', JSON.stringify(candidates));

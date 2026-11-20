@@ -260,6 +260,7 @@ export const QuickApplyModal = ({ job, isOpen, onClose, onSuccess }) => {
       // Update client context with actual uploaded resume
       if (applyForJob) {
         await applyForJob(job, {
+          referenceNumber: result.applicationId || generatedRef,
           resumeName: resumeFile ? resumeFile.name : (user?.resumeName || null),
           resumeUrl: cvPayload?.base64 || user?.resumeUrl || (typeof window !== 'undefined' ? localStorage.getItem('sir_active_resume') : null) || null,
           resumeSize: resumeFile ? `${Math.round(resumeFile.size / 1024)} KB` : (user?.resumeSize || null),

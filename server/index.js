@@ -1733,16 +1733,38 @@ const deleteApplicationHandler = async (req, res) => {
     const db = await getDb();
 
     // 1. Fetch application details before deletion
-    const app = await db.get('SELECT * FROM candidate_applications WHERE id = ?', [id]);
+    let app = await db.get('SELECT * FROM candidate_applications WHERE id = ?', [id]);
     if (!app) {
-      return res.status(404).json({ success: false, message: 'Application not found' });
+      // Try searching in email_job_applications
+      const emailApp = await db.get('SELECT * FROM email_job_applications WHERE id = ?', [id]);
+      if (emailApp) {
+        app = {
+          id: emailApp.id,
+          jobId: emailApp.jobId,
+          applicantEmail: emailApp.candidateEmail,
+          candidateId: null
+        };
+      }
     }
 
-    // 2. Delete application from database
+    // 2. Delete application from candidate_applications
     await db.run('DELETE FROM candidate_applications WHERE id = ?', [id]);
 
+    // Also delete any matching records in email_job_applications so candidate can re-apply
+    if (app && app.jobId && app.applicantEmail) {
+      await db.run(
+        'DELETE FROM email_job_applications WHERE jobId = ? AND LOWER(candidateEmail) = LOWER(?)',
+        [String(app.jobId), (app.applicantEmail || '').trim().toLowerCase()]
+      ).catch(() => {});
+      await db.run(
+        'DELETE FROM candidate_applications WHERE jobId = ? AND (applicantEmail IS NOT NULL AND LOWER(applicantEmail) = LOWER(?))',
+        [String(app.jobId), (app.applicantEmail || '').trim().toLowerCase()]
+      ).catch(() => {});
+    }
+    await db.run('DELETE FROM email_job_applications WHERE id = ?', [id]).catch(() => {});
+
     // 3. If candidate has no other applications, update their stage to 'lead'
-    if (app.candidateId || app.applicantEmail) {
+    if (app && (app.candidateId || app.applicantEmail)) {
       const remaining = await db.all(
         'SELECT id FROM candidate_applications WHERE candidateId = ? OR (applicantEmail IS NOT NULL AND LOWER(applicantEmail) = LOWER(?))',
         [app.candidateId || '', app.applicantEmail || '']
@@ -1762,8 +1784,8 @@ const deleteApplicationHandler = async (req, res) => {
     res.json({
       success: true,
       message: 'Application removed successfully. Candidate can now re-apply to this job.',
-      deletedJobId: app.jobId,
-      deletedCandidateId: app.candidateId
+      deletedJobId: app?.jobId || null,
+      deletedCandidateId: app?.candidateId || null
     });
   } catch (error) {
     console.error('Failed to delete application:', error);

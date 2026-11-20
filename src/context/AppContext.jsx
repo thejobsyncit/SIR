@@ -1044,6 +1044,31 @@ export const AppProvider = ({ children }) => {
           }
         } catch { }
       }
+      // Update global sir_job_applications so CRM immediately shows application
+      try {
+        const globalApps = JSON.parse(localStorage.getItem('sir_job_applications') || '[]');
+        const filteredGlobal = Array.isArray(globalApps)
+          ? globalApps.filter(a => a.id !== newApp.id && !(String(a.jobId) === String(job.id) && (a.applicantEmail || '').toLowerCase().trim() === userEmail))
+          : [];
+        const nextGlobal = [newApp, ...filteredGlobal];
+        localStorage.setItem('sir_job_applications', JSON.stringify(nextGlobal));
+
+        // Clear from deleted applications blacklist if candidate re-applies
+        const delStr = localStorage.getItem('sir_deleted_applications');
+        if (delStr) {
+          const delArr = JSON.parse(delStr);
+          if (Array.isArray(delArr)) {
+            const filteredDel = delArr.filter(d => d !== newApp.id && d !== String(job.id) && d !== `${String(job.id)}_${userEmail}`);
+            localStorage.setItem('sir_deleted_applications', JSON.stringify(filteredDel));
+          }
+        }
+      } catch { }
+
+      // Dispatch real-time global event for CRM and vacancy cards
+      if (typeof window !== 'undefined') {
+        window.dispatchEvent(new CustomEvent('application-submitted', { detail: newApp }));
+      }
+
       return next;
     });
 
@@ -1151,6 +1176,28 @@ export const AppProvider = ({ children }) => {
       console.warn('Backend delete application notice:', err);
     }
 
+    // 1. Blacklist in sir_deleted_applications so it stays deleted across all tabs & reloads
+    try {
+      const delStr = localStorage.getItem('sir_deleted_applications');
+      const delArr = delStr ? JSON.parse(delStr) : [];
+      if (Array.isArray(delArr)) {
+        delArr.push(appId);
+        localStorage.setItem('sir_deleted_applications', JSON.stringify([...new Set(delArr)]));
+      }
+    } catch { }
+
+    // 2. Wipe from global sir_job_applications
+    try {
+      const globalStr = localStorage.getItem('sir_job_applications');
+      if (globalStr) {
+        const globalApps = JSON.parse(globalStr);
+        if (Array.isArray(globalApps)) {
+          const filtered = globalApps.filter(a => a.id !== appId && String(a.jobId) !== String(appId));
+          localStorage.setItem('sir_job_applications', JSON.stringify(filtered));
+        }
+      }
+    } catch { }
+
     setApplications(prev => {
       const updated = prev.filter(a => a.id !== appId && String(a.jobId) !== String(appId));
       try {
@@ -1167,6 +1214,12 @@ export const AppProvider = ({ children }) => {
       } catch { }
       return updated;
     });
+
+    // 3. Dispatch real-time global event so JobsPage immediately shows "Apply Now"
+    if (typeof window !== 'undefined') {
+      window.dispatchEvent(new CustomEvent('application-deleted', { detail: { appId } }));
+    }
+
     return true;
   };
 
