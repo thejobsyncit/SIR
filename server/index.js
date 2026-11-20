@@ -4,7 +4,7 @@ import path from 'path';
 import fs from 'fs';
 import os from 'os';
 import { fileURLToPath } from 'url';
-import { getDb, closeDb, checkDbHealth, logAuditTrail, DEFAULT_CRM_EMPLOYEES, DEFAULT_CRM_CANDIDATES, DEFAULT_CRM_LEADS } from './database.js';
+import { getDb, closeDb, checkDbHealth, logAuditTrail, DEFAULT_CRM_EMPLOYEES, DEFAULT_CRM_CANDIDATES, DEFAULT_CRM_PROFILES, DEFAULT_CRM_APPLICATIONS, DEFAULT_CRM_LEADS } from './database.js';
 import { registerClientPortalRoutes } from './clientPortalRoutes.js';
 import { registerAttendanceRoutes } from './routes/attendanceRoutes.js';
 import { registerHrCandidateRoutes } from './routes/hrCandidateRoutes.js';
@@ -1629,6 +1629,37 @@ app.get('/api/candidate/applications', async (req, res) => {
         LEFT JOIN candidates c ON LOWER(c.email) = LOWER(ca.applicantEmail) OR c.id = ca.candidateId
         ORDER BY ca.appliedDate DESC
       `);
+
+      // If applications table is empty in current environment (e.g. freshly deployed container), seed default applications
+      if (!rows || rows.length === 0) {
+        for (const app of DEFAULT_CRM_APPLICATIONS) {
+          await db.run(`
+            INSERT OR IGNORE INTO candidate_applications (
+              id, candidateId, userId, jobId, jobTitle, company, location,
+              applicantName, applicantEmail, applicantPhone, resumeName, resumeSize,
+              coverNote, noticePeriod, expectedSalary, appliedDate, status, stage, createdAt
+            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+          `, [
+            app.id, app.candidateId, app.userId, app.jobId, app.jobTitle, app.company, app.location,
+            app.applicantName, app.applicantEmail, app.applicantPhone, app.resumeName, app.resumeSize,
+            app.coverNote, app.noticePeriod, app.expectedSalary, app.appliedDate, app.status, app.stage,
+            app.createdAt || app.appliedDate
+          ]).catch(() => {});
+        }
+        rows = await db.all(`
+          SELECT 
+            ca.*,
+            c.nationality as candidateNationality,
+            c.score as candidateScore,
+            c.avatar as candidateAvatar,
+            c.skills as candidateSkills,
+            c.experience as candidateExperience,
+            c.currentRole as candidateCurrentRole
+          FROM candidate_applications ca
+          LEFT JOIN candidates c ON LOWER(c.email) = LOWER(ca.applicantEmail) OR c.id = ca.candidateId
+          ORDER BY ca.appliedDate DESC
+        `);
+      }
     }
     res.json({ success: true, data: rows || [] });
   } catch (error) {
@@ -3072,15 +3103,31 @@ app.get('/api/candidates', async (req, res) => {
   try {
     const db = await getDb();
     let rows = await db.all('SELECT * FROM candidates ORDER BY createdAt DESC');
-    if (!rows || rows.length === 0) {
-      for (const dc of DEFAULT_CRM_CANDIDATES) {
+    
+    // Ensure all verified default CRM candidates exist in the table (guarantees Kishore Kumar, thejobsync, Real Candidate etc. are visible on both local and live Vercel deployments)
+    const existingIds = new Set((rows || []).map(r => r.id));
+    const existingEmails = new Set((rows || []).map(r => (r.email || '').toLowerCase().trim()));
+    let insertedAny = false;
+    for (const dc of DEFAULT_CRM_CANDIDATES) {
+      const emailKey = (dc.email || '').toLowerCase().trim();
+      if (!existingIds.has(dc.id) && (!emailKey || !existingEmails.has(emailKey))) {
         await db.run(`
-          INSERT INTO candidates (id, name, email, phone, nationality, currentEmployer, currentRole, currentSalary, expectedSalary, score, stage, skills, source, passport, aiSummary, experience)
-          VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+          INSERT INTO candidates (
+            id, name, email, phone, nationality, currentEmployer, currentRole,
+            currentSalary, expectedSalary, noticePeriod, score, stage, skills, source, passport,
+            aiSummary, experience, resumeName, resumeSize, mohreAttested, createdAt
+          ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
         `, [
-          dc.id, dc.name, dc.email, dc.phone, dc.nationality, dc.currentEmployer, dc.currentRole, dc.currentSalary, dc.expectedSalary, dc.score, dc.stage, dc.skills, dc.source, dc.passport, dc.aiSummary, dc.experience
-        ]);
+          dc.id, dc.name, dc.email, dc.phone, dc.nationality, dc.currentEmployer, dc.currentRole,
+          dc.currentSalary, dc.expectedSalary, dc.noticePeriod || 'Immediate', dc.score, dc.stage,
+          typeof dc.skills === 'string' ? dc.skills : JSON.stringify(dc.skills || []),
+          dc.source, dc.passport, dc.aiSummary, dc.experience, dc.resumeName || null,
+          dc.resumeSize || null, dc.mohreAttested || 0, dc.createdAt || new Date().toISOString()
+        ]).catch(() => {});
+        insertedAny = true;
       }
+    }
+    if (insertedAny || !rows || rows.length === 0) {
       rows = await db.all('SELECT * FROM candidates ORDER BY createdAt DESC');
     }
 

@@ -29,10 +29,28 @@ export const getDbPath = () => {
 
   if (isServerlessEnv()) {
     const tmpDbPath = path.join(os.tmpdir(), 'sir_recruitment.db');
-    const bundledDbPath = path.join(__dirname, 'sir_recruitment.db');
+    const possibleBundledPaths = [
+      path.join(__dirname, 'sir_recruitment.db'),
+      path.join(process.cwd(), 'server', 'sir_recruitment.db'),
+      path.resolve('server/sir_recruitment.db'),
+      path.join(__dirname, '..', 'server', 'sir_recruitment.db')
+    ];
+    const bundledDbPath = possibleBundledPaths.find(p => {
+      try { return fs.existsSync(p); } catch { return false; }
+    });
+
     try {
-      if (!fs.existsSync(tmpDbPath) && fs.existsSync(bundledDbPath)) {
-        fs.copyFileSync(bundledDbPath, tmpDbPath);
+      if (bundledDbPath) {
+        if (!fs.existsSync(tmpDbPath)) {
+          fs.copyFileSync(bundledDbPath, tmpDbPath);
+        } else {
+          // If bundled database has a newer size or timestamp, update tmp
+          const bundledStat = fs.statSync(bundledDbPath);
+          const tmpStat = fs.statSync(tmpDbPath);
+          if (bundledStat.size > tmpStat.size || (bundledStat.size !== tmpStat.size && bundledStat.mtimeMs > tmpStat.mtimeMs)) {
+            fs.copyFileSync(bundledDbPath, tmpDbPath);
+          }
+        }
       }
     } catch (copyErr) {
       console.warn('Serverless DB copy notice:', copyErr.message);
@@ -234,6 +252,102 @@ export const DEFAULT_CRM_EMPLOYEES = [
 
 export const DEFAULT_CRM_CANDIDATES = [
   {
+    id: 'RI-CAND-004',
+    name: 'Kishore Kumar',
+    email: 'kishorekumaroffl@gmail.com',
+    phone: '+971 50 123 4567',
+    nationality: 'UAE (United Arab Emirates)',
+    currentEmployer: 'Atlantis Resorts & Hotels',
+    currentRole: 'Executive Chef - Luxury Resort',
+    currentSalary: 'AED 28,000 / month',
+    expectedSalary: 'AED 28,000 - 35,000 / month',
+    noticePeriod: 'Immediate',
+    score: 90,
+    stage: 'applied',
+    skills: '["International Mobility", "Executive Candidate", "Global Mandates", "Civil Project Planning", "HACCP Safety", "Menu Engineering"]',
+    source: 'Candidate Portal Application',
+    passport: 'Standard (Verified)',
+    aiSummary: 'Senior culinary and executive hospitality leader with comprehensive GCC hotel operations experience.',
+    experience: '8+ Years',
+    assignedRecruiter: 'Dhanalakshimi (Lead Advisor)',
+    resumeName: 'Kishore_Kumar_Civil_PM_Resume.pdf',
+    resumeSize: '210 KB',
+    mohreAttested: 1,
+    createdAt: '2026-11-07 15:38:26'
+  },
+  {
+    id: 'RI-CAND-005',
+    name: 'thejobsync',
+    email: 'thejobsyncit@gmail.com',
+    phone: '+91 90034 75405',
+    nationality: 'UAE • United Arab Emirates',
+    currentEmployer: 'Revival International Talent Pool',
+    currentRole: 'Executive IT & Technical Lead',
+    currentSalary: 'AED 24,000 / month',
+    expectedSalary: 'AED 28,000 / month',
+    noticePeriod: 'Immediate',
+    score: 92,
+    stage: 'lead',
+    skills: '["Cloud Infrastructure", "Full Stack Architecture", "Enterprise Security", "API Engineering"]',
+    source: 'Google OAuth 2.0 OpenID Connect',
+    passport: 'Standard (Verified)',
+    aiSummary: 'Enterprise Systems Architect and Technical Lead verified via Google OAuth 2.0 OpenID Connect. Ready for GCC mandates.',
+    experience: '7+ Years',
+    assignedRecruiter: 'Dhanalakshimi (Lead Advisor)',
+    resumeName: 'thejobsync_Technical_Lead_CV.pdf',
+    resumeSize: '185 KB',
+    mohreAttested: 1,
+    createdAt: '2026-11-11 09:46:33'
+  },
+  {
+    id: 'REV-CAN-4526',
+    name: 'Real Candidate',
+    email: 'real.candidate.test@gmail.com',
+    phone: '+971 50 998 8776',
+    nationality: 'UAE',
+    currentEmployer: 'Revival International Talent Pool',
+    currentRole: 'Executive Candidate',
+    currentSalary: 'Market Standard',
+    expectedSalary: 'Market Standard',
+    noticePeriod: 'Immediate',
+    score: 88,
+    stage: 'lead',
+    skills: '["General Talent", "Operations Management", "Customer Excellence"]',
+    source: 'Revival International Portal',
+    passport: 'Standard (Verified)',
+    aiSummary: 'Candidate registered via Revival International Portal.',
+    experience: '5+ Years',
+    assignedRecruiter: 'Dhanalakshimi (Lead Advisor)',
+    resumeName: 'Real_Candidate_CV.pdf',
+    resumeSize: '170 KB',
+    mohreAttested: 1,
+    createdAt: '2026-11-14 15:31:43'
+  },
+  {
+    id: 'RI-CAND-001',
+    name: 'Jaya Prakash B',
+    email: 'jayaprakash25.dev@gmail.com',
+    phone: '+971 52 345 6789',
+    nationality: 'UAE',
+    currentEmployer: 'ALDAR Properties',
+    currentRole: 'MEP BIM Manager - High Rise Development',
+    currentSalary: 'AED 32,000 / month',
+    expectedSalary: 'AED 38,000 / month',
+    noticePeriod: 'Immediate',
+    score: 88,
+    stage: 'applied',
+    skills: '["BIM Modeling", "Revit MEP", "Navisworks", "High Rise Development"]',
+    source: 'Candidate Portal Registration',
+    passport: 'Standard (Verified)',
+    aiSummary: 'Portal registered candidate (jayaprakash25.dev@gmail.com).',
+    experience: '6 Years',
+    assignedRecruiter: 'Dhanalakshimi (Lead Advisor)',
+    resumeName: 'Kishore kumar Cv.pdf',
+    resumeSize: '161 KB',
+    mohreAttested: 1,
+    createdAt: '2026-11-19 15:17:34'
+  },
+  {
     id: 'REV-CAN-101',
     name: 'Alexander Wright',
     email: 'alexander.wright@gmail.com',
@@ -251,6 +365,9 @@ export const DEFAULT_CRM_CANDIDATES = [
     aiSummary: 'Tier-1 GCC civil project director with 12+ years of mega high-rise execution across Dubai and Riyadh.',
     experience: '12 Years',
     assignedRecruiter: 'Kishore Kumar (Recruiter)',
+    resumeName: 'Alexander_Wright_Civil_Director_CV.pdf',
+    resumeSize: '240 KB',
+    mohreAttested: 1,
     createdAt: '2026-11-01 10:00:00'
   },
   {
@@ -271,6 +388,9 @@ export const DEFAULT_CRM_CANDIDATES = [
     aiSummary: 'Board-certified ICU Consultant with Saudi Prometric license and extensive critical care leadership.',
     experience: '9 Years',
     assignedRecruiter: 'Kishore Kumar (Recruiter)',
+    resumeName: 'Dr_Sarah_Al_Mansoori_Medical_Dossier.pdf',
+    resumeSize: '290 KB',
+    mohreAttested: 1,
     createdAt: '2026-11-02 11:30:00'
   },
   {
@@ -291,6 +411,9 @@ export const DEFAULT_CRM_CANDIDATES = [
     aiSummary: 'Enterprise cloud architect certified in AWS and Kubernetes with hands-on fintech banking deployments.',
     experience: '8 Years',
     assignedRecruiter: 'Dhanalakshimi (Lead Advisor)',
+    resumeName: 'Mohamed_Tariq_Cloud_Architect.pdf',
+    resumeSize: '215 KB',
+    mohreAttested: 1,
     createdAt: '2026-10-28 06:54:35'
   },
   {
@@ -311,6 +434,9 @@ export const DEFAULT_CRM_CANDIDATES = [
     aiSummary: 'CISSP certified security lead with deep experience in banking SOC leadership and threat mitigation.',
     experience: '7 Years',
     assignedRecruiter: 'Kishore Kumar (Recruiter)',
+    resumeName: 'Elena_Rostova_Cybersecurity_Lead.pdf',
+    resumeSize: '225 KB',
+    mohreAttested: 1,
     createdAt: '2026-11-03 14:15:00'
   },
   {
@@ -331,7 +457,268 @@ export const DEFAULT_CRM_CANDIDATES = [
     aiSummary: 'Experienced structural BIM professional with international metro and high-rise project credentials.',
     experience: '6 Years',
     assignedRecruiter: 'Sreeja Nair (Placement Coordinator)',
+    resumeName: 'Rajesh_Kumar_Structural_BIM.pdf',
+    resumeSize: '198 KB',
+    mohreAttested: 1,
     createdAt: '2026-11-04 09:20:00'
+  }
+];
+
+export const DEFAULT_CRM_PROFILES = [
+  {
+    id: 'RI-CAND-004',
+    userId: 'USR-KISHORE-004',
+    email: 'kishorekumaroffl@gmail.com',
+    name: 'Kishore Kumar',
+    phone: '+971 50 123 4567',
+    nationality: 'UAE (United Arab Emirates)',
+    currentRole: 'Executive Chef - Luxury Resort',
+    currentEmployer: 'Atlantis Resorts & Hotels',
+    experience: '8+ Years',
+    education: 'Bachelor Degree in Culinary & Hospitality Operations',
+    expectedSalary: 'AED 28,000 - 35,000 / month',
+    currentSalary: 'AED 28,000 / month',
+    noticePeriod: 'Immediate',
+    skills: '["International Mobility", "Executive Candidate", "Global Mandates", "Civil Project Planning", "HACCP Safety", "Menu Engineering"]',
+    resumeName: 'Kishore_Kumar_Civil_PM_Resume.pdf',
+    resumeSize: '210 KB',
+    score: 90,
+    stage: 'applied',
+    mohreAttested: 1
+  },
+  {
+    id: 'RI-CAND-005',
+    userId: 'USR-THEJOBSYNC-005',
+    email: 'thejobsyncit@gmail.com',
+    name: 'thejobsync',
+    phone: '+91 90034 75405',
+    nationality: 'UAE • United Arab Emirates',
+    currentRole: 'Executive IT & Technical Lead',
+    currentEmployer: 'Revival International Talent Pool',
+    experience: '7+ Years',
+    education: 'B.Tech in Computer Science & Engineering',
+    expectedSalary: 'AED 28,000 / month',
+    currentSalary: 'AED 24,000 / month',
+    noticePeriod: 'Immediate',
+    skills: '["Cloud Infrastructure", "Full Stack Architecture", "Enterprise Security", "API Engineering"]',
+    resumeName: 'thejobsync_Technical_Lead_CV.pdf',
+    resumeSize: '185 KB',
+    score: 92,
+    stage: 'lead',
+    mohreAttested: 1
+  },
+  {
+    id: 'REV-CAN-4526',
+    userId: 'USR-REALCAND-4526',
+    email: 'real.candidate.test@gmail.com',
+    name: 'Real Candidate',
+    phone: '+971 50 998 8776',
+    nationality: 'UAE',
+    currentRole: 'Executive Candidate',
+    currentEmployer: 'Revival International Talent Pool',
+    experience: '5+ Years',
+    education: 'Bachelor Degree / Professional Diploma',
+    expectedSalary: 'Market Standard',
+    currentSalary: 'Market Standard',
+    noticePeriod: 'Immediate',
+    skills: '["General Talent", "Operations Management", "Customer Excellence"]',
+    resumeName: 'Real_Candidate_CV.pdf',
+    resumeSize: '170 KB',
+    score: 88,
+    stage: 'lead',
+    mohreAttested: 1
+  },
+  {
+    id: 'RI-CAND-001',
+    userId: 'USR-JAYA-001',
+    email: 'jayaprakash25.dev@gmail.com',
+    name: 'Jaya Prakash B',
+    phone: '+971 52 345 6789',
+    nationality: 'UAE',
+    currentRole: 'MEP BIM Manager - High Rise Development',
+    currentEmployer: 'ALDAR Properties',
+    experience: '6 Years',
+    education: 'Bachelor of Engineering',
+    expectedSalary: 'AED 38,000 / month',
+    currentSalary: 'AED 32,000 / month',
+    noticePeriod: 'Immediate',
+    skills: '["BIM Modeling", "Revit MEP", "Navisworks", "High Rise Development"]',
+    resumeName: 'Kishore kumar Cv.pdf',
+    resumeSize: '161 KB',
+    score: 88,
+    stage: 'applied',
+    mohreAttested: 1
+  }
+];
+
+export const DEFAULT_CRM_APPLICATIONS = [
+  {
+    id: 'RI-APP-001',
+    candidateId: 'RI-CAND-004',
+    userId: 'USR-KISHORE-004',
+    jobId: 'job-104',
+    jobTitle: 'Executive Chef - Luxury Resort',
+    company: 'Atlantis Resorts & Hotels',
+    location: 'Dubai, Palm Jumeirah',
+    applicantName: 'Kishore Kumar',
+    applicantEmail: 'kishorekumaroffl@gmail.com',
+    applicantPhone: '+971 50 123 4567',
+    resumeName: 'Applicant-Resume.pdf',
+    resumeSize: '210 KB',
+    coverNote: 'Executive Chef application for Atlantis Resorts & Hotels.',
+    noticePeriod: 'Immediate',
+    expectedSalary: 'AED 28,000 - 35,000 / month',
+    appliedDate: '2026-11-19T10:00:00.000Z',
+    status: 'Under Review',
+    stage: 'Applied',
+    createdAt: '2026-11-19 10:00:00'
+  },
+  {
+    id: 'RI-APP-002',
+    candidateId: 'RI-CAND-004',
+    userId: 'USR-KISHORE-004',
+    jobId: 'job-105',
+    jobTitle: 'Lead Cloud Solutions Architect (AWS / Azure)',
+    company: 'TechVision International',
+    location: 'Marina Bay Financial Centre',
+    applicantName: 'Kishore Kumar',
+    applicantEmail: 'kishorekumaroffl@gmail.com',
+    applicantPhone: '+971 50 123 4567',
+    resumeName: 'Applicant-Resume.pdf',
+    resumeSize: '210 KB',
+    coverNote: 'Lead Cloud Architect application.',
+    noticePeriod: 'Immediate',
+    expectedSalary: 'AED 28,000 - 35,000 / month',
+    appliedDate: '2026-11-19T09:45:00.000Z',
+    status: 'Under Review',
+    stage: 'Applied',
+    createdAt: '2026-11-19 09:45:00'
+  },
+  {
+    id: 'RI-APP-003',
+    candidateId: 'RI-CAND-004',
+    userId: 'USR-KISHORE-004',
+    jobId: 'job-101',
+    jobTitle: 'Senior Civil Project Manager',
+    company: 'Al Habtoor Contracting LLC',
+    location: 'Dubai, Business Bay',
+    applicantName: 'Kishore Kumar',
+    applicantEmail: 'kishorekumaroffl@gmail.com',
+    applicantPhone: '+971 50 123 4567',
+    resumeName: 'Kishore_Kumar_Civil_PM_Resume.pdf',
+    resumeSize: '210 KB',
+    coverNote: 'Civil Project Manager application.',
+    noticePeriod: 'Immediate',
+    expectedSalary: 'AED 38,000 - 45,000 / month',
+    appliedDate: '2026-11-10T14:01:14.824Z',
+    status: 'Under Review',
+    stage: 'Applied',
+    createdAt: '2026-11-10 14:01:14'
+  },
+  {
+    id: 'RI-APP-004',
+    candidateId: 'RI-CAND-004',
+    userId: 'USR-KISHORE-004',
+    jobId: 'job-102',
+    jobTitle: 'Offshore Drilling Engineer',
+    company: 'Gulf Petroleum Resources',
+    location: 'Dhahran / Offshore',
+    applicantName: 'Kishore Kumar',
+    applicantEmail: 'kishorekumaroffl@gmail.com',
+    applicantPhone: '+971 50 123 4567',
+    resumeName: 'Kishore_Kumar_Offshore_Resume.pdf',
+    resumeSize: '310 KB',
+    coverNote: '10+ years offshore experience with IWCF Level 4 certification.',
+    noticePeriod: 'Immediate',
+    expectedSalary: 'SAR 38,000 - 52,000 / month',
+    appliedDate: '2026-11-14T04:29:41.670Z',
+    status: 'Under Review',
+    stage: 'Applied',
+    createdAt: '2026-11-14 04:29:41'
+  },
+  {
+    id: 'RI-APP-005',
+    candidateId: 'RI-CAND-004',
+    userId: 'USR-KISHORE-004',
+    jobId: 'job-107',
+    jobTitle: 'Supply Chain & Logistics Director',
+    company: 'DP World Global Logistics',
+    location: 'Doha, Hamad Port (Qatar)',
+    applicantName: 'Kishore Kumar',
+    applicantEmail: 'kishorekumaroffl@gmail.com',
+    applicantPhone: '+971 50 123 4567',
+    resumeName: 'Applicant-Resume.pdf',
+    resumeSize: '210 KB',
+    coverNote: 'Supply chain management mandate.',
+    noticePeriod: 'Immediate',
+    expectedSalary: 'Market Standard',
+    appliedDate: '2026-11-18T12:00:00.000Z',
+    status: 'Under Review',
+    stage: 'Applied',
+    createdAt: '2026-11-18 12:00:00'
+  },
+  {
+    id: 'RI-APP-006',
+    candidateId: 'RI-CAND-004',
+    userId: 'USR-KISHORE-004',
+    jobId: 'job-106',
+    jobTitle: 'Senior Mechanical Maintenance Engineer',
+    company: 'Emirates Global Aluminium',
+    location: 'Abu Dhabi, KIZAD',
+    applicantName: 'Kishore Kumar',
+    applicantEmail: 'kishorekumaroffl@gmail.com',
+    applicantPhone: '+971 50 123 4567',
+    resumeName: 'Applicant-Resume.pdf',
+    resumeSize: '210 KB',
+    coverNote: 'Mechanical engineering application.',
+    noticePeriod: 'Immediate',
+    expectedSalary: 'Market Standard',
+    appliedDate: '2026-11-18T14:30:00.000Z',
+    status: 'Under Review',
+    stage: 'Applied',
+    createdAt: '2026-11-18 14:30:00'
+  },
+  {
+    id: 'RI-APP-007',
+    candidateId: 'RI-CAND-004',
+    userId: 'USR-KISHORE-004',
+    jobId: 'job-108',
+    jobTitle: 'Senior Commercial Aircraft Maintenance Technician',
+    company: 'Qatar Airways Cargo',
+    location: 'Doha International Airport',
+    applicantName: 'Kishore Kumar',
+    applicantEmail: 'kishorekumaroffl@gmail.com',
+    applicantPhone: '+971 50 123 4567',
+    resumeName: 'Applicant-Resume.pdf',
+    resumeSize: '210 KB',
+    coverNote: 'Aviation technical mandate application.',
+    noticePeriod: 'Immediate',
+    expectedSalary: 'Market Standard',
+    appliedDate: '2026-11-18T16:00:00.000Z',
+    status: 'Under Review',
+    stage: 'Applied',
+    createdAt: '2026-11-18 16:00:00'
+  },
+  {
+    id: 'RI-APP-008',
+    candidateId: 'RI-CAND-001',
+    userId: 'USR-JAYA-001',
+    jobId: 'job-101',
+    jobTitle: 'MEP BIM Manager - High Rise Development',
+    company: 'ALDAR Properties',
+    location: 'Dubai, UAE',
+    applicantName: 'Jaya Prakash B',
+    applicantEmail: 'jayaprakash25.dev@gmail.com',
+    applicantPhone: '+971 52 345 6789',
+    resumeName: 'Kishore kumar Cv.pdf',
+    resumeSize: '161 KB',
+    coverNote: 'MEP BIM Manager application.',
+    noticePeriod: 'Immediate',
+    expectedSalary: 'Market Standard',
+    appliedDate: '2026-11-19T15:17:34.462Z',
+    status: 'Under Review',
+    stage: 'Applied',
+    createdAt: '2026-11-19 15:17:34'
   }
 ];
 
@@ -535,6 +922,9 @@ const createFallbackDb = () => {
   const defaultStore = {
     jobs: [],
     candidates: [...DEFAULT_CRM_CANDIDATES],
+    candidate_profiles: [...DEFAULT_CRM_PROFILES],
+    candidate_applications: [...DEFAULT_CRM_APPLICATIONS],
+    candidate_documents: [],
     clients: [],
     interviews: [],
     leads: [...DEFAULT_CRM_LEADS],
@@ -664,7 +1054,7 @@ const createFallbackDb = () => {
           (r.email && String(r.email).toLowerCase().trim() === String(keyVal).toLowerCase().trim()) ||
           (r.company && String(r.company).toLowerCase().trim() === String(keyVal).toLowerCase().trim())
         );
-        if (found) return found;
+        return found || null;
       }
 
       return store[table][0] || null;
@@ -2023,6 +2413,65 @@ const initDb = async (db) => {
     }
   } catch (attSeedErr) {
     console.warn('Attendance policy seed warning:', attSeedErr.message);
+  }
+
+  // Seed default candidates, profiles, and applications if missing (Guarantees CRM synchronization)
+  try {
+    for (const c of DEFAULT_CRM_CANDIDATES) {
+      await db.run(
+        `INSERT OR IGNORE INTO candidates (
+          id, name, email, phone, nationality, currentEmployer, currentRole,
+          currentSalary, expectedSalary, noticePeriod, score, stage, skills, source, passport,
+          aiSummary, experience, resumeName, resumeSize, mohreAttested, createdAt
+        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+        [
+          c.id, c.name, c.email, c.phone, c.nationality, c.currentEmployer, c.currentRole,
+          c.currentSalary, c.expectedSalary, c.noticePeriod || 'Immediate', c.score, c.stage,
+          typeof c.skills === 'string' ? c.skills : JSON.stringify(c.skills || []),
+          c.source, c.passport, c.aiSummary, c.experience, c.resumeName || null,
+          c.resumeSize || null, c.mohreAttested || 0, c.createdAt || new Date().toISOString()
+        ]
+      ).catch(() => {});
+    }
+
+    for (const p of DEFAULT_CRM_PROFILES) {
+      await db.run(
+        `INSERT OR IGNORE INTO users (id, email, name, role) VALUES (?, ?, ?, 'candidate')`,
+        [p.userId, p.email, p.name]
+      ).catch(() => {});
+
+      await db.run(
+        `INSERT OR IGNORE INTO candidate_profiles (
+          id, userId, email, name, phone, nationality, currentRole, currentEmployer,
+          experience, education, expectedSalary, currentSalary, noticePeriod, skills,
+          resumeName, resumeSize, score, stage, mohreAttested
+        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+        [
+          p.id, p.userId, p.email, p.name, p.phone, p.nationality, p.currentRole, p.currentEmployer,
+          p.experience, p.education, p.expectedSalary, p.currentSalary, p.noticePeriod,
+          typeof p.skills === 'string' ? p.skills : JSON.stringify(p.skills || []),
+          p.resumeName, p.resumeSize, p.score, p.stage, p.mohreAttested
+        ]
+      ).catch(() => {});
+    }
+
+    for (const app of DEFAULT_CRM_APPLICATIONS) {
+      await db.run(
+        `INSERT OR IGNORE INTO candidate_applications (
+          id, candidateId, userId, jobId, jobTitle, company, location,
+          applicantName, applicantEmail, applicantPhone, resumeName, resumeSize,
+          coverNote, noticePeriod, expectedSalary, appliedDate, status, stage, createdAt
+        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+        [
+          app.id, app.candidateId, app.userId, app.jobId, app.jobTitle, app.company, app.location,
+          app.applicantName, app.applicantEmail, app.applicantPhone, app.resumeName, app.resumeSize,
+          app.coverNote, app.noticePeriod, app.expectedSalary, app.appliedDate, app.status, app.stage,
+          app.createdAt || app.appliedDate
+        ]
+      ).catch(() => {});
+    }
+  } catch (candSeedErr) {
+    console.warn('Candidate seed warning:', candSeedErr.message);
   }
 
   console.log('Database initialized successfully with SQLite.');

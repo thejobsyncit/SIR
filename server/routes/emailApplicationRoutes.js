@@ -1,8 +1,8 @@
-import { 
-  generateApplicationEmail, 
-  sendJobApplicationEmail, 
+import {
+  generateApplicationEmail,
+  sendJobApplicationEmail,
   sendCandidateWelcomeEmail,
-  detectRoleCategory 
+  detectRoleCategory
 } from '../services/emailApplicationService.js';
 import { JOBS_LIST } from '../../src/data/mockData.js';
 
@@ -47,7 +47,7 @@ export const registerEmailApplicationRoutes = (app, { getDb, getClientIp, logAud
     let job = null;
     try {
       job = await db.get('SELECT * FROM jobs WHERE id = ?', [jobId]);
-    } catch (_) {}
+    } catch (_) { }
 
     if (!job) {
       job = JOBS_LIST.find(j => String(j.id) === String(jobId));
@@ -61,7 +61,7 @@ export const registerEmailApplicationRoutes = (app, { getDb, getClientIp, logAud
       try {
         const client = await db.get('SELECT email FROM clients WHERE LOWER(company) = LOWER(?) LIMIT 1', [job.company]);
         if (client?.email) companyEmail = client.email;
-      } catch (_) {}
+      } catch (_) { }
     }
 
     // Normalize job fields
@@ -246,7 +246,7 @@ export const registerEmailApplicationRoutes = (app, { getDb, getClientIp, logAud
             'SELECT name, phone, email, location FROM candidate_profiles WHERE LOWER(email) = LOWER(?) UNION SELECT name, phone, email, location FROM candidates WHERE LOWER(email) = LOWER(?)',
             [candidateEmail.toLowerCase().trim(), candidateEmail.toLowerCase().trim()]
           );
-        } catch (_) {}
+        } catch (_) { }
       }
 
       const resolvedName = candidateName || candidateProfile?.name || 'Candidate';
@@ -423,12 +423,12 @@ export const registerEmailApplicationRoutes = (app, { getDb, getClientIp, logAud
           module: 'JOBS_PORTAL',
           details: `Application ${appId} sent for ${job.title} at ${job.company} by ${candidateEmail} [status=${appStatus}]`,
           ipAddress
-        }).catch(() => {});
+        }).catch(() => { });
       }
 
       res.status(201).json({
         success: true,
-        message: appStatus === 'SIMULATED' 
+        message: appStatus === 'SIMULATED'
           ? `✓ Application saved and recorded.`
           : `✓ Application successfully sent to ${sendResult?.recipient || emailContent.recipientEmail}!`,
         applicationId: appId,
