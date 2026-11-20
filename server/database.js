@@ -248,9 +248,148 @@ export const DEFAULT_CRM_EMPLOYEES = [
   }
 ];
 
-export const DEFAULT_CRM_CANDIDATES = [];
-export const DEFAULT_CRM_PROFILES = [];
-export const DEFAULT_CRM_APPLICATIONS = [];
+export const DEFAULT_CRM_CANDIDATES = [
+  {
+    id: 'RI-CAND-001',
+    name: 'Kishore Kumar',
+    email: 'kishorekumaroffl@gmail.com',
+    phone: '+971 50 123 4567',
+    nationality: 'UAE',
+    currentEmployer: 'ALDAR Properties',
+    currentRole: 'Senior MEP BIM Manager / Offshore Drilling Engineer',
+    currentSalary: 'AED 25,000 / month',
+    expectedSalary: 'AED 35,000 / month',
+    noticePeriod: 'Immediate',
+    score: 95,
+    stage: 'applied',
+    skills: JSON.stringify(['BIM Modeling', 'MEP Engineering', 'AutoCAD', 'Revit', 'Offshore Drilling']),
+    source: 'Revival International Portal',
+    passport: 'Verified',
+    aiSummary: 'Senior MEP BIM Manager with extensive UAE & GCC high-rise development experience.',
+    experience: '6-8 Years',
+    avatar: null,
+    resumeName: 'Kishore kumar Cv.pdf',
+    resumeUrl: '',
+    resumeSize: '161 KB',
+    citizenship: 'Indian',
+    dob: '1993-07-19',
+    gender: 'Male',
+    location: 'Dubai, UAE',
+    preferredCountry: 'UAE',
+    education: 'Bachelor of Engineering in Mechanical',
+    mohreAttested: 1,
+    assignedRecruiter: 'Dhanalakshimi (Lead Advisor)',
+    createdAt: '2026-11-20 09:31:44'
+  },
+  {
+    id: 'RI-CAND-005',
+    name: 'thejobsync',
+    email: 'thejobsyncit@gmail.com',
+    phone: '+971 52 445 8890',
+    nationality: 'UAE',
+    currentEmployer: 'Revival International Talent Pool',
+    currentRole: 'Executive IT & Technical Lead',
+    currentSalary: 'AED 20,000 / month',
+    expectedSalary: 'AED 28,000 / month',
+    noticePeriod: '1 Month',
+    score: 92,
+    stage: 'lead',
+    skills: JSON.stringify(['Cloud Infrastructure', 'Full Stack Architecture', 'Enterprise Security', 'API Engineering']),
+    source: 'Google Authentication (Gmail Verified)',
+    passport: 'Verified',
+    aiSummary: 'Enterprise Systems Architect and Technical Lead verified via Google OAuth 2.0 OpenID Connect.',
+    experience: '7-10 Years',
+    avatar: null,
+    resumeName: 'TheJobSync_IT_Lead_CV.pdf',
+    resumeUrl: '',
+    resumeSize: '145 KB',
+    citizenship: 'Indian',
+    dob: '1990-05-12',
+    gender: 'Male',
+    location: 'Dubai, UAE',
+    preferredCountry: 'UAE',
+    education: 'B.Tech Computer Science & Engineering',
+    mohreAttested: 1,
+    assignedRecruiter: 'Dhanalakshimi (Lead Advisor)',
+    createdAt: '2026-11-19 14:22:00'
+  }
+];
+
+export const DEFAULT_CRM_PROFILES = [
+  {
+    id: 'RI-CAND-001',
+    userId: 'RI-CAND-001',
+    name: 'Kishore Kumar',
+    email: 'kishorekumaroffl@gmail.com',
+    phone: '+971 50 123 4567',
+    nationality: 'UAE',
+    currentEmployer: 'ALDAR Properties',
+    currentRole: 'Senior MEP BIM Manager / Offshore Drilling Engineer',
+    currentSalary: 'AED 25,000 / month',
+    expectedSalary: 'AED 35,000 / month',
+    noticePeriod: 'Immediate',
+    skills: JSON.stringify(['BIM Modeling', 'MEP Engineering', 'AutoCAD', 'Revit', 'Offshore Drilling']),
+    resumeName: 'Kishore kumar Cv.pdf',
+    resumeUrl: '',
+    resumeSize: '161 KB',
+    citizenship: 'Indian',
+    dob: '1993-07-19',
+    gender: 'Male',
+    location: 'Dubai, UAE',
+    preferredCountry: 'UAE',
+    education: 'Bachelor of Engineering in Mechanical',
+    mohreAttested: 1,
+    savedJobs: '[]',
+    updatedAt: '2026-11-20 09:31:44'
+  },
+  {
+    id: 'RI-CAND-005',
+    userId: 'RI-CAND-005',
+    name: 'thejobsync',
+    email: 'thejobsyncit@gmail.com',
+    phone: '+971 52 445 8890',
+    nationality: 'UAE',
+    currentEmployer: 'Revival International Talent Pool',
+    currentRole: 'Executive IT & Technical Lead',
+    currentSalary: 'AED 20,000 / month',
+    expectedSalary: 'AED 28,000 / month',
+    noticePeriod: '1 Month',
+    skills: JSON.stringify(['Cloud Infrastructure', 'Full Stack Architecture', 'Enterprise Security', 'API Engineering']),
+    resumeName: 'TheJobSync_IT_Lead_CV.pdf',
+    resumeUrl: '',
+    resumeSize: '145 KB',
+    citizenship: 'Indian',
+    dob: '1990-05-12',
+    gender: 'Male',
+    location: 'Dubai, UAE',
+    preferredCountry: 'UAE',
+    education: 'B.Tech Computer Science & Engineering',
+    mohreAttested: 1,
+    savedJobs: '[]',
+    updatedAt: '2026-11-19 14:22:00'
+  }
+];
+
+export const DEFAULT_CRM_APPLICATIONS = [
+  {
+    id: 'RI-APP-28093',
+    candidateId: 'RI-CAND-001',
+    userId: 'RI-CAND-001',
+    jobId: 'job-101',
+    jobTitle: 'MEP BIM Manager - High Rise Development',
+    company: 'ALDAR Properties',
+    applicantName: 'Kishore Kumar',
+    applicantEmail: 'kishorekumaroffl@gmail.com',
+    applicantPhone: '+971 50 123 4567',
+    location: 'Dubai, UAE',
+    appliedDate: '2026-11-20 12:18:00',
+    status: 'Under Review',
+    stage: 'applied',
+    resumeName: 'Kishore kumar Cv.pdf',
+    resumeUrl: '',
+    resumeSize: '161 KB'
+  }
+];
 
 export const DEFAULT_CRM_LEADS = [
   {

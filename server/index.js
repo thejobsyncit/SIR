@@ -1387,6 +1387,21 @@ app.get('/api/candidate/profile', async (req, res) => {
       profile = await db.get('SELECT * FROM candidate_profiles WHERE LOWER(email) = LOWER(?)', [email.trim()]);
     }
 
+    // Fallback: If not found in candidate_profiles, look in candidates table
+    if (!profile) {
+      const candFallback = await db.get(
+        'SELECT * FROM candidates WHERE id = ? OR (email IS NOT NULL AND LOWER(email) = LOWER(?))',
+        [candidateId || userId || '', (email || '').trim()]
+      );
+      if (candFallback) {
+        profile = {
+          ...candFallback,
+          userId: candFallback.id,
+          savedJobs: '[]'
+        };
+      }
+    }
+
     if (!profile) {
       return res.status(404).json({ success: false, message: 'Candidate profile not found' });
     }
@@ -1429,7 +1444,36 @@ app.put('/api/candidate/profile', async (req, res) => {
     }
 
     if (!existing) {
-      return res.status(404).json({ success: false, message: 'Candidate not found' });
+      // Auto-resolve or create candidate profile from candidates table
+      const candRow = await db.get(
+        'SELECT * FROM candidates WHERE id = ? OR (email IS NOT NULL AND LOWER(email) = LOWER(?))',
+        [candidateId || '', (email || '').trim()]
+      );
+
+      const targetId = candRow?.id || candidateId || `RI-CAND-${Math.floor(100 + Math.random() * 900)}`;
+      await db.run(`
+        INSERT OR IGNORE INTO candidate_profiles (
+          id, userId, name, email, phone, nationality, citizenship,
+          currentRole, currentEmployer, experience, education,
+          currentSalary, expectedSalary, noticePeriod, skills,
+          resumeName, resumeUrl, resumeSize, dob, gender, location, preferredCountry, mohreAttested
+        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+      `, [
+        targetId, targetId, name || candRow?.name || 'Candidate', email || candRow?.email || '', phone || candRow?.phone || '',
+        nationality || candRow?.nationality || 'UAE', citizenship || candRow?.citizenship || null,
+        currentRole || title || candRow?.currentRole || 'Executive Candidate',
+        currentEmployer || candRow?.currentEmployer || 'Revival International Candidate',
+        experience || candRow?.experience || '3-5 Years', education || qualification || candRow?.education || 'Bachelor Degree',
+        currentSalary || candRow?.currentSalary || '', expectedSalary || candRow?.expectedSalary || '',
+        noticePeriod || candRow?.noticePeriod || 'Immediate',
+        skills ? JSON.stringify(Array.isArray(skills) ? skills : [skills]) : (candRow?.skills || '[]'),
+        resumeName || candRow?.resumeName || null, resumeUrl || candRow?.resumeUrl || null, resumeSize || candRow?.resumeSize || null,
+        dob || candRow?.dob || null, gender || candRow?.gender || null,
+        location || candRow?.location || 'Dubai, UAE', preferredCountry || candRow?.preferredCountry || 'UAE',
+        mohreAttested !== undefined ? (mohreAttested ? 1 : 0) : (candRow?.mohreAttested || 0)
+      ]);
+
+      existing = await db.get('SELECT * FROM candidate_profiles WHERE id = ? OR (email IS NOT NULL AND LOWER(email) = LOWER(?))', [targetId, (email || '').trim()]);
     }
 
     const targetCandId = existing.id;
