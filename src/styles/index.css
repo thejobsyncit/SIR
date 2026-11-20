@@ -5,19 +5,13 @@
 :root {
   --hero-fade-end: #ffffff;
   --hero-fade-rgb: 255, 255, 255;
-<<<<<<< Updated upstream
   --hero-pic-saturate: 0.45;
-=======
->>>>>>> Stashed changes
 }
 
 .dark {
   --hero-fade-end: #060d19;
   --hero-fade-rgb: 6, 13, 25;
-<<<<<<< Updated upstream
   --hero-pic-saturate: 0.45;
-=======
->>>>>>> Stashed changes
 }
 
 @layer base {
@@ -97,7 +91,6 @@
       var(--hero-fade-end) 100%
     );
   }
-<<<<<<< Updated upstream
 
   /* Hero Section Background with Reduced Picture Saturation and Smooth Bottom-Fade Gradient */
   .hero {
@@ -112,15 +105,15 @@
     z-index: 0;
     pointer-events: none;
     background: url("/images/hero-city.jpg") center / cover no-repeat;
-    filter: saturate(var(--hero-pic-saturate, 0.55));
-    -webkit-filter: saturate(var(--hero-pic-saturate, 0.55));
+    filter: saturate(var(--hero-pic-saturate, 0.45));
+    -webkit-filter: saturate(var(--hero-pic-saturate, 0.45));
     transition: filter 0.3s ease;
   }
 
   .dark .hero::before {
     background: url("/images/hero-city-dark.jpg") center / cover no-repeat;
-    filter: saturate(var(--hero-pic-saturate, 0.5));
-    -webkit-filter: saturate(var(--hero-pic-saturate, 0.5));
+    filter: saturate(var(--hero-pic-saturate, 0.45));
+    -webkit-filter: saturate(var(--hero-pic-saturate, 0.45));
   }
 
   .hero::after {
@@ -155,8 +148,6 @@
       var(--hero-fade-end) 100%
     );
   }
-=======
->>>>>>> Stashed changes
 }
 
 /* Bulletproof Navbar Visibility - Active from 860px and up (all laptops and desktops) */
