@@ -19,16 +19,9 @@ const isServerlessEnv = () => {
 };
 
 export const getDbPath = () => {
-  if (process.env.DATABASE_PATH) {
-    // If relative path on serverless, resolve inside os.tmpdir()
-    if (isServerlessEnv() && !path.isAbsolute(process.env.DATABASE_PATH)) {
-      return path.join(os.tmpdir(), path.basename(process.env.DATABASE_PATH));
-    }
-    return process.env.DATABASE_PATH;
-  }
-
   if (isServerlessEnv()) {
-    const tmpDbPath = path.join(os.tmpdir(), 'sir_recruitment.db');
+    const tmpDbName = process.env.DATABASE_PATH ? path.basename(process.env.DATABASE_PATH) : 'sir_recruitment.db';
+    const tmpDbPath = path.join(os.tmpdir(), tmpDbName);
     const possibleBundledPaths = [
       path.join(__dirname, 'sir_recruitment.db'),
       path.join(process.cwd(), 'server', 'sir_recruitment.db'),
@@ -43,19 +36,24 @@ export const getDbPath = () => {
       if (bundledDbPath) {
         if (!fs.existsSync(tmpDbPath)) {
           fs.copyFileSync(bundledDbPath, tmpDbPath);
+          console.log(`[Serverless DB] Initialized tmp database from bundled: ${bundledDbPath} -> ${tmpDbPath}`);
         } else {
-          // If bundled database has a newer size or timestamp, update tmp
           const bundledStat = fs.statSync(bundledDbPath);
           const tmpStat = fs.statSync(tmpDbPath);
           if (bundledStat.size > tmpStat.size || (bundledStat.size !== tmpStat.size && bundledStat.mtimeMs > tmpStat.mtimeMs)) {
             fs.copyFileSync(bundledDbPath, tmpDbPath);
+            console.log(`[Serverless DB] Updated tmp database with newer bundled version`);
           }
         }
       }
     } catch (copyErr) {
-      console.warn('Serverless DB copy notice:', copyErr.message);
+      console.warn('[Serverless DB] Copy notice:', copyErr.message);
     }
     return tmpDbPath;
+  }
+
+  if (process.env.DATABASE_PATH) {
+    return path.resolve(process.env.DATABASE_PATH);
   }
 
   return path.join(__dirname, 'sir_recruitment.db');
@@ -1339,7 +1337,8 @@ const initDb = async (db) => {
     { name: 'preferredCountry', type: 'TEXT' },
     { name: 'education', type: 'TEXT' },
     { name: 'mohreAttested', type: 'INTEGER DEFAULT 0' },
-    { name: 'noticePeriod', type: 'TEXT' }
+    { name: 'noticePeriod', type: 'TEXT' },
+    { name: 'assignedRecruiter', type: "TEXT DEFAULT 'Dhanalakshimi (Lead Advisor)'" }
   ]);
 
   await ensureColumns('candidate_profiles', [
@@ -1957,8 +1956,7 @@ const initDb = async (db) => {
       'REV-CAN-8645', 'REV-CAN-5223', 'REV-CAN-3393', 'REV-CAN-9398', 'REV-CAN-3073',
       'REV-CAN-5032', 'REV-CAN-1517', 'REV-CAN-4093', 'REV-CAN-7506', 'REV-CAN-5974',
       'REV-CAN-4404', 'REV-CAN-4539', 'REV-CAN-9000', 'REV-CAN-4378', 'REV-CAN-4043',
-      'REV-CAN-5868', 'REV-CAN-8915', 'REV-CAN-3362', 'REV-CAN-53106',
-      'RI-CAND-001', 'RI-CAND-002', 'RI-CAND-003'
+      'REV-CAN-5868', 'REV-CAN-8915', 'REV-CAN-3362', 'REV-CAN-53106'
     ];
     const ph = dummyIds.map(() => '?').join(',');
 

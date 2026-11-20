@@ -1676,16 +1676,74 @@ app.patch('/api/candidate/applications/:id/status', async (req, res) => {
   }
 });
 
-// DELETE Candidate Application
-app.delete('/api/candidate/applications/:id', async (req, res) => {
+// DELETE Candidate Application (Allows candidate to re-apply)
+const deleteApplicationHandler = async (req, res) => {
   try {
     const { id } = req.params;
     const db = await getDb();
-    await db.run('DELETE FROM candidate_applications WHERE id = ?', [id]);
-    res.json({ success: true, message: 'Application removed successfully' });
+    
+    // 1. Fetch application details before deletion
+    const app = await db.get('SELECT * FROM candidate_applications WHERE id = ? OR jobId = ?', [id, id]);
+    if (!app) {
+      return res.status(404).json({ success: false, message: 'Application not found' });
+    }
+
+    // 2. Delete application from database
+    await db.run('DELETE FROM candidate_applications WHERE id = ?', [app.id]);
+
+    // 3. If candidate has no other applications, update their stage to 'lead'
+    if (app.candidateId || app.applicantEmail) {
+      const remaining = await db.all(
+        'SELECT id FROM candidate_applications WHERE candidateId = ? OR (applicantEmail IS NOT NULL AND LOWER(applicantEmail) = LOWER(?))',
+        [app.candidateId || '', app.applicantEmail || '']
+      );
+      if (remaining.length === 0) {
+        if (app.candidateId) {
+          await db.run("UPDATE candidates SET stage = 'lead' WHERE id = ?", [app.candidateId]).catch(() => {});
+          await db.run("UPDATE candidate_profiles SET stage = 'lead' WHERE id = ?", [app.candidateId]).catch(() => {});
+        }
+        if (app.applicantEmail) {
+          await db.run("UPDATE candidates SET stage = 'lead' WHERE LOWER(email) = LOWER(?)", [app.applicantEmail]).catch(() => {});
+          await db.run("UPDATE candidate_profiles SET stage = 'lead' WHERE LOWER(email) = LOWER(?)", [app.applicantEmail]).catch(() => {});
+        }
+      }
+    }
+
+    res.json({ 
+      success: true, 
+      message: 'Application removed successfully. Candidate can now re-apply to this job.',
+      deletedJobId: app.jobId,
+      deletedCandidateId: app.candidateId
+    });
   } catch (error) {
     console.error('Failed to delete application:', error);
     res.status(500).json({ success: false, message: 'Server error' });
+  }
+};
+
+app.delete('/api/candidate/applications/:id', deleteApplicationHandler);
+app.delete('/api/candidate-applications/:id', deleteApplicationHandler);
+
+// GET Candidate Application History (Used by JobsPage to check which jobs candidate already applied for)
+app.get('/api/jobs/apply-email/history', async (req, res) => {
+  try {
+    const email = (req.query.email || '').toLowerCase().trim();
+    const candidateId = (req.query.candidateId || '').trim();
+    if (!email && !candidateId) {
+      return res.json({ success: true, data: [] });
+    }
+    const db = await getDb();
+    const rows = await db.all(`
+      SELECT id, jobId, jobTitle, company, status, appliedDate, applicantEmail, candidateId 
+      FROM candidate_applications 
+      WHERE (applicantEmail IS NOT NULL AND LOWER(applicantEmail) = LOWER(?)) 
+         OR (candidateId IS NOT NULL AND candidateId = ?)
+      ORDER BY appliedDate DESC
+    `, [email || '', candidateId || '']);
+    res.json({ success: true, data: rows });
+  } catch (error) {
+    console.error('Failed to get application history:', error);
+    res.status(500).json({ success: false, data: [] });
   }
 });
 
@@ -1913,7 +1971,7 @@ app.post('/api/candidate/applications', async (req, res) => {
     ]);
 
     const created = await db.get('SELECT * FROM candidate_applications WHERE id = ?', [appId]);
-    res.json({ success: true, message: 'Application submitted successfully with attached CV', data: created });
+    res.json({ success: true, message: 'Application submitted successfully with attached CV', applicationId: appId, data: created });
   } catch (error) {
     console.error('Failed to submit application:', error);
     res.status(500).json({ success: false, message: 'Server error' });
@@ -3204,6 +3262,60 @@ app.get('/api/candidates', async (req, res) => {
           education: prof.education || '',
           qualification: prof.education || '',
           mohreAttested: !!prof.mohreAttested,
+          applications: userApps,
+          documents: userDocs
+        });
+      }
+    }
+
+    // Also include any candidates from candidate_applications not yet in candidateList
+    for (const app of applications) {
+      const cid = app.candidateId || `RI-CAND-${(app.id || '').replace(/[^0-9]/g, '').slice(0, 3) || '001'}`;
+      const appEmailKey = app.applicantEmail ? app.applicantEmail.toLowerCase().trim() : '';
+      if (!seenIds.has(cid) && (!appEmailKey || !seenIds.has(appEmailKey))) {
+        seenIds.add(cid);
+        if (appEmailKey) seenIds.add(appEmailKey);
+
+        const prof = profileMap.get(cid) || (appEmailKey ? profileMap.get(appEmailKey) : null);
+        const userApps = appsMap.get(cid) || (appEmailKey ? appsMap.get(appEmailKey) : [app]);
+        const userDocs = docsMap.get(cid) || (appEmailKey ? docsMap.get(appEmailKey) : []);
+        const appWithResume = userApps.find(a => a.resumeName || a.resumeUrl);
+        const resumeName = app.resumeName || prof?.resumeName || appWithResume?.resumeName || null;
+        const resumeUrl = app.resumeUrl || prof?.resumeUrl || appWithResume?.resumeUrl || null;
+        const resumeSize = app.resumeSize || prof?.resumeSize || appWithResume?.resumeSize || null;
+
+        candidateList.push({
+          id: cid,
+          name: app.applicantName || prof?.name || 'Applicant',
+          email: app.applicantEmail || prof?.email || '',
+          phone: app.applicantPhone || prof?.phone || '',
+          nationality: prof?.nationality || 'UAE',
+          currentEmployer: prof?.currentEmployer || 'Revival International Candidate',
+          currentRole: prof?.currentRole || app.jobTitle || 'Executive Candidate',
+          currentSalary: prof?.currentSalary || '',
+          expectedSalary: app.expectedSalary || prof?.expectedSalary || '',
+          noticePeriod: app.noticePeriod || prof?.noticePeriod || '',
+          score: prof?.score || 92,
+          stage: 'applied',
+          skills: prof?.skills ? parseArray(prof.skills) : [app.jobTitle || 'Professional Candidate'],
+          source: `Job Application (${app.jobTitle || ''})`,
+          passport: prof?.passport || 'Standard (Verified)',
+          aiSummary: prof?.aiSummary || `Candidate applied for ${app.jobTitle} at ${app.company}.`,
+          experience: prof?.experience || '3-5 Years',
+          avatar: (prof?.avatar && !prof.avatar.includes('images.unsplash.com')) ? prof.avatar : null,
+          assignedRecruiter: prof?.assignedRecruiter || 'Dhanalakshimi (Lead Advisor)',
+          createdAt: app.appliedDate || app.createdAt || new Date().toISOString(),
+          resumeName,
+          resumeUrl,
+          resumeSize,
+          citizenship: prof?.citizenship || null,
+          dob: prof?.dob || null,
+          gender: prof?.gender || null,
+          location: prof?.location || app.location || null,
+          preferredCountry: prof?.preferredCountry || null,
+          education: prof?.education || '',
+          qualification: prof?.education || '',
+          mohreAttested: !!prof?.mohreAttested,
           applications: userApps,
           documents: userDocs
         });

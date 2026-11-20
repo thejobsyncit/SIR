@@ -815,16 +815,22 @@ export const JobsPage = () => {
 
   // Keep applied job status in sync with database for candidate
   const syncAppliedJobsFromDb = useCallback(() => {
-    if (user?.email) {
-      fetch(`/api/jobs/apply-email/history?email=${encodeURIComponent(user.email.toLowerCase().trim())}`)
+    if (user?.email || user?.candidateId) {
+      const emailParam = user?.email ? encodeURIComponent(user.email.toLowerCase().trim()) : '';
+      const cidParam = user?.candidateId ? encodeURIComponent(user.candidateId) : '';
+      fetch(`/api/jobs/apply-email/history?email=${emailParam}&candidateId=${cidParam}`)
         .then(r => r.json())
         .then(d => {
           if (d?.data && Array.isArray(d.data)) {
             const ids = new Set(d.data.map(app => String(app.jobId)));
             setDbAppliedJobIds(ids);
+          } else {
+            setDbAppliedJobIds(new Set());
           }
         })
-        .catch(() => {});
+        .catch(() => {
+          setDbAppliedJobIds(new Set());
+        });
     } else {
       setDbAppliedJobIds(new Set());
     }
@@ -832,12 +838,12 @@ export const JobsPage = () => {
 
   useEffect(() => {
     syncAppliedJobsFromDb();
-  }, [syncAppliedJobsFromDb]);
+  }, [syncAppliedJobsFromDb, applications]);
 
   const isApplied = (jobId) => {
     if (!jobId) return false;
     const strId = String(jobId);
-    return dbAppliedJobIds.has(strId) || applications.some(a => String(a.jobId) === strId);
+    return dbAppliedJobIds.has(strId) || (Array.isArray(applications) && applications.some(a => String(a.jobId) === strId));
   };
   const isSaved = (jobId) => Boolean(savedJobs && savedJobs.includes(jobId));
 

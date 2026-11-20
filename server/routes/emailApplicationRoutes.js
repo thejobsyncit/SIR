@@ -417,11 +417,11 @@ export const registerEmailApplicationRoutes = (app, { getDb, getClientIp, logAud
           `, [job.title, job.company, resumeFileName, resumeDataUrl, formattedResumeSize, existingInCandidates.id]);
         } else {
           await db.run(`
-            INSERT INTO candidates (
-              id, name, email, phone, nationality, currentEmployer, currentRole,
-              stage, score, skills, source, aiSummary, assignedRecruiter,
-              resumeName, resumeUrl, resumeSize
-            ) VALUES (?, ?, ?, ?, ?, ?, ?, 'applied', 90, ?, 'Quick Apply / Job Application', ?, 'Dhanalakshimi (Lead Advisor)', ?, ?, ?)
+            INSERT INTO candidates(
+            id, name, email, phone, nationality, currentEmployer, currentRole,
+          stage, score, skills, source, aiSummary, assignedRecruiter,
+            resumeName, resumeUrl, resumeSize
+            ) VALUES(?, ?, ?, ?, ?, ?, ?, 'applied', 90, ?, 'Quick Apply / Job Application', ?, 'Dhanalakshimi (Lead Advisor)', ?, ?, ?)
           `, [
             effectiveCid,
             candidateName,
@@ -431,7 +431,7 @@ export const registerEmailApplicationRoutes = (app, { getDb, getClientIp, logAud
             job.company,
             job.title,
             JSON.stringify([job.title]),
-            `Applied for ${job.title} at ${job.company}`,
+            `Applied for ${ job.title } at ${ job.company } `,
             resumeFileName,
             resumeDataUrl,
             formattedResumeSize
@@ -440,10 +440,10 @@ export const registerEmailApplicationRoutes = (app, { getDb, getClientIp, logAud
 
         // Also record in candidate_documents if a real CV file was attached
         if (resumeDataUrl) {
-          const docId = `RI-DOC-${Date.now().toString(36).toUpperCase()}-${Math.floor(1000 + Math.random() * 9000)}`;
+          const docId = `RI - DOC - ${ Date.now().toString(36).toUpperCase() } -${ Math.floor(1000 + Math.random() * 9000) } `;
           await db.run(`
-            INSERT INTO candidate_documents (id, candidateId, userId, documentType, fileName, fileUrl, uploadDate)
-            VALUES (?, ?, ?, 'Resume / CV', ?, ?, datetime('now'))
+            INSERT INTO candidate_documents(id, candidateId, userId, documentType, fileName, fileUrl, uploadDate)
+  VALUES(?, ?, ?, 'Resume / CV', ?, ?, datetime('now'))
           `, [docId, effectiveCid, effectiveUid, resumeFileName || 'Resume.pdf', resumeDataUrl]).catch(() => {});
         }
       } catch (appSyncErr) {
@@ -455,7 +455,7 @@ export const registerEmailApplicationRoutes = (app, { getDb, getClientIp, logAud
         await logAuditTrail(db, {
           action: 'APPLY_VIA_EMAIL',
           module: 'JOBS_PORTAL',
-          details: `Application ${appId} sent for ${job.title} at ${job.company} by ${candidateEmail} [status=${appStatus}]`,
+          details: `Application ${ appId } sent for ${ job.title } at ${ job.company } by ${ candidateEmail } [status = ${ appStatus }]`,
           ipAddress
         }).catch(() => { });
       }
@@ -464,7 +464,7 @@ export const registerEmailApplicationRoutes = (app, { getDb, getClientIp, logAud
         success: true,
         message: appStatus === 'SIMULATED'
           ? `✓ Application saved and recorded.`
-          : `✓ Application successfully sent to ${sendResult?.recipient || emailContent.recipientEmail}!`,
+          : `✓ Application successfully sent to ${ sendResult?.recipient || emailContent.recipientEmail } !`,
         applicationId: appId,
         recipient: sendResult?.recipient || emailContent.recipientEmail,
         candidateCc: candidateEmail,
@@ -495,10 +495,10 @@ export const registerEmailApplicationRoutes = (app, { getDb, getClientIp, logAud
       let rows;
       if (email) {
         rows = await db.all(`
-          SELECT * FROM email_job_applications 
+  SELECT * FROM email_job_applications 
           WHERE LOWER(candidateEmail) = LOWER(?) 
           ORDER BY sentAt DESC LIMIT 20
-        `, [email.trim()]);
+    `, [email.trim()]);
       } else {
         rows = await db.all('SELECT * FROM email_job_applications ORDER BY sentAt DESC LIMIT 50');
       }

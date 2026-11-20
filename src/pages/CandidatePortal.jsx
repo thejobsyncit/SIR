@@ -110,7 +110,7 @@ export const CandidateAvatar = ({ name, avatar, size = 'md', className = '', onC
 };
 
 export const CandidatePortal = () => {
-  const { user, updateUserProfile, applications, savedJobs, toggleSaveJob, applyForJob, postedJobs, setActiveModal, navigateTo, logout, darkMode, toggleDarkMode } = useApp();
+  const { user, updateUserProfile, applications, savedJobs, toggleSaveJob, applyForJob, postedJobs, deleteApplication, withdrawApplication, setActiveModal, navigateTo, logout, darkMode, toggleDarkMode } = useApp();
 
   // Navigation tab state: 'dashboard' | 'profile' | 'resume' | 'saved-jobs' | 'applications' | 'application-status' | 'interviews' | 'documents' | 'settings'
   const [activeTab, setActiveTab] = useState('dashboard');
@@ -1996,7 +1996,7 @@ export const CandidatePortal = () => {
                         }`}>
                           {app.status}
                         </span>
-                        <div className="flex gap-2">
+                        <div className="flex items-center gap-2">
                           <button
                             onClick={() => { setSelectedStatusAppId(app.id); setActiveTab('application-status'); }}
                             className="px-3.5 py-2 bg-slate-100 hover:bg-slate-200 dark:bg-navy-800 dark:hover:bg-navy-700 text-navy-950 dark:text-white font-bold text-xs rounded-xl transition"
@@ -2008,6 +2008,22 @@ export const CandidatePortal = () => {
                             className="px-4 py-2 bg-gradient-to-r from-gold-500 to-amber-400 text-navy-950 font-extrabold text-xs rounded-xl shadow-gold-glow hover:opacity-95 transition"
                           >
                             View Details
+                          </button>
+                          <button
+                            type="button"
+                            onClick={async () => {
+                              if (window.confirm(`Withdraw and delete your application for "${app.jobTitle}"? Once withdrawn, you will be able to apply to this vacancy again.`)) {
+                                if (withdrawApplication) {
+                                  await withdrawApplication(app.id);
+                                } else if (deleteApplication) {
+                                  await deleteApplication(app.id);
+                                }
+                              }
+                            }}
+                            className="p-2 text-rose-500 hover:text-rose-700 hover:bg-rose-50 dark:hover:bg-rose-950/40 rounded-xl transition border border-rose-200/60 dark:border-rose-900/40"
+                            title="Withdraw application & allow re-applying"
+                          >
+                            <Trash2 className="w-4 h-4" />
                           </button>
                         </div>
                       </div>

@@ -210,31 +210,18 @@ export const AppProvider = ({ children }) => {
         .then(r => r.json())
         .then(d => {
           if (d?.success && Array.isArray(d?.data)) {
-            if (d.data.length > 0) {
-              setApplications(d.data);
-              try {
-                if (user.candidateId) localStorage.setItem(`sir_applications_${user.candidateId}`, JSON.stringify(d.data));
-                if (userEmail) localStorage.setItem(`sir_applications_${userEmail}`, JSON.stringify(d.data));
-              } catch { }
-            } else if (initialApps.length > 0) {
-              // Local cache has applications not yet returned by server; preserve them and sync to backend
-              setApplications(initialApps);
-              initialApps.forEach(app => {
-                fetch('/api/candidate/applications', {
-                  method: 'POST',
-                  headers: { 'Content-Type': 'application/json' },
-                  body: JSON.stringify({
-                    ...app,
-                    candidateId: user.candidateId || cid,
-                    userId: user.userId || '',
-                    applicantEmail: userEmail,
-                    applicantName: user.name || app.applicantName
-                  })
-                }).catch(() => {});
-              });
-            } else {
-              setApplications([]);
-            }
+            setApplications(d.data);
+            try {
+              if (user.candidateId) localStorage.setItem(`sir_applications_${user.candidateId}`, JSON.stringify(d.data));
+              if (userEmail) {
+                localStorage.setItem(`sir_applications_${userEmail}`, JSON.stringify(d.data));
+                const db = getCandidateDB();
+                if (db[userEmail]) {
+                  db[userEmail].applications = d.data;
+                  localStorage.setItem('sir_candidates_db', JSON.stringify(db));
+                }
+              }
+            } catch { }
           }
         })
         .catch(() => { });
@@ -1081,6 +1068,34 @@ export const AppProvider = ({ children }) => {
     });
   };
 
+  const deleteApplication = async (appId) => {
+    try {
+      await fetch(`/api/candidate/applications/${appId}`, {
+        method: 'DELETE'
+      });
+    } catch (err) {
+      console.warn('Backend delete application notice:', err);
+    }
+
+    setApplications(prev => {
+      const updated = prev.filter(a => a.id !== appId && String(a.jobId) !== String(appId));
+      try {
+        if (user?.candidateId) localStorage.setItem(`sir_applications_${user.candidateId}`, JSON.stringify(updated));
+        const userEmail = (user?.email || '').toLowerCase().trim();
+        if (userEmail) {
+          localStorage.setItem(`sir_applications_${userEmail}`, JSON.stringify(updated));
+          const db = getCandidateDB();
+          if (db[userEmail]) {
+            db[userEmail].applications = updated;
+            localStorage.setItem('sir_candidates_db', JSON.stringify(db));
+          }
+        }
+      } catch { }
+      return updated;
+    });
+    return true;
+  };
+
   // Sync URL pathname & hash routing
   useEffect(() => {
     const handleUrlSync = () => {
@@ -1342,6 +1357,8 @@ export const AppProvider = ({ children }) => {
         applications,
         applyForJob,
         updateApplicationStatus,
+        deleteApplication,
+        withdrawApplication: deleteApplication,
         postedJobs,
         addJob,
         deleteJob,
