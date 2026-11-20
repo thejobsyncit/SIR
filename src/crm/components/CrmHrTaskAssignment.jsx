@@ -587,7 +587,7 @@ export const CrmHrTaskAssignment = () => {
         <div className="space-y-1">
           <div className="flex items-center space-x-2">
             <span className="px-2.5 py-0.5 rounded-full text-[10px] font-black uppercase tracking-wider bg-gold-500 text-navy-950 shadow-xs">
-              {isHrLead ? 'HR Lead Assignment Hub' : 'HR Operations Work Queue'}
+              {isHrLead ? 'HR Lead Assignment Hub' : 'My Dashboard'}
             </span>
             <span className="text-xs text-slate-500 dark:text-slate-400 font-semibold">
               Revival International CRM • {isHrLead ? 'Central Task Engine' : 'Assigned Enquiries Desk'}

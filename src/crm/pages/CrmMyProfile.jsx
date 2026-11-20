@@ -1,24 +1,30 @@
-import React, { useState, useEffect, useMemo, useCallback } from 'react';
+import React, { useState, useEffect, useMemo, useCallback, useRef } from 'react';
 import { useCrm } from '../context/CrmContext';
 import {
   User, Mail, Phone, ShieldCheck, Briefcase, Calendar, MapPin,
   Clock, CheckCircle2, AlertCircle, Key, Bell, Edit3, Save, X,
   Lock, RefreshCw, LogOut, Copy, Check, Eye, EyeOff,
   Globe, GraduationCap, Sparkles, CheckSquare, Shield, Activity,
-  ChevronRight, AlertTriangle
+  ChevronRight, AlertTriangle, Camera
 } from 'lucide-react';
 
-const PRESET_AVATARS = [
-  { id: 'av-1', label: 'Executive 1', url: 'https://images.unsplash.com/photo-1573496359142-b8d87734a5a2?w=150&auto=format&fit=crop&q=80' },
-  { id: 'av-2', label: 'Executive 2', url: 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=150&auto=format&fit=crop&q=80' },
-  { id: 'av-3', label: 'Executive 3', url: 'https://images.unsplash.com/photo-1517841905240-472988babdf9?w=150&auto=format&fit=crop&q=80' },
-  { id: 'av-4', label: 'Executive 4', url: 'https://images.unsplash.com/photo-1500648767791-00dcc994a43e?w=150&auto=format&fit=crop&q=80' },
-  { id: 'av-5', label: 'Executive 5', url: 'https://images.unsplash.com/photo-1580489944761-15a19d654956?w=150&auto=format&fit=crop&q=80' },
-  { id: 'av-6', label: 'Executive 6', url: 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=150&auto=format&fit=crop&q=80' }
-];
+// Helper to determine if an avatar is an uploaded custom photo (vs empty or legacy preset stock image)
+const hasUploadedPhoto = (avatarUrl) => {
+  if (!avatarUrl || typeof avatarUrl !== 'string') return false;
+  const trimmed = avatarUrl.trim();
+  if (!trimmed) return false;
+  // Legacy preset stock images from old preset gallery are not user-uploaded photos
+  if (trimmed.includes('unsplash.com') || trimmed.includes('dicebear.com')) {
+    return false;
+  }
+  return true;
+};
 
 export const CrmMyProfile = () => {
   const { currentEmployee, currentRole, user, updateUserProfile, logout, requestLogout, setActiveModule } = useCrm();
+
+  const isHrOperations = currentRole === 'HR Operations';
+  const fileInputRef = useRef(null);
 
   // Profile data state
   const [profile, setProfile] = useState(null);
@@ -77,6 +83,12 @@ export const CrmMyProfile = () => {
     return currentEmployee?.name || user?.name || 'Administrator';
   }, [currentEmployee, user]);
 
+  // Dynamic first letter of employee's name for default avatar
+  const employeeInitial = useMemo(() => {
+    const name = profile?.name || activeEmployeeName || user?.name || currentEmployee?.name || 'Employee';
+    return name.trim().charAt(0).toUpperCase() || 'E';
+  }, [profile?.name, activeEmployeeName, user?.name, currentEmployee?.name]);
+
   // Fetch full employee profile and real-time task metrics from backend
   const fetchProfileData = useCallback(async (isManualRefresh = false) => {
     if (isManualRefresh) setRefreshing(true);
@@ -100,7 +112,11 @@ export const CrmMyProfile = () => {
 
       const json = await res.json();
       if (json && json.success && json.data) {
-        setProfile(json.data);
+        const loadedAvatar = hasUploadedPhoto(json.data.avatar) ? json.data.avatar : '';
+        setProfile({
+          ...json.data,
+          avatar: loadedAvatar
+        });
         if (json.data.notificationPreferences) {
           setNotifPrefs(prev => ({ ...prev, ...json.data.notificationPreferences }));
         }
@@ -108,7 +124,7 @@ export const CrmMyProfile = () => {
           phone: json.data.phone || '',
           address: json.data.address || '',
           dateOfBirth: json.data.dateOfBirth || '',
-          avatar: json.data.avatar || ''
+          avatar: loadedAvatar
         });
       } else {
         // Fallback to active logged-in user session (Bug #11)
@@ -128,7 +144,7 @@ export const CrmMyProfile = () => {
           employmentStatus: 'Full-Time (Active)',
           dateOfBirth: currentEmployee?.dateOfBirth || user?.dateOfBirth || '1990-05-20',
           address: currentEmployee?.address || user?.address || 'Dubai Internet City, Dubai, UAE',
-          avatar: currentEmployee?.avatar || user?.avatar || 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=150&auto=format&fit=crop&q=80',
+          avatar: hasUploadedPhoto(currentEmployee?.avatar || user?.avatar) ? (currentEmployee?.avatar || user?.avatar) : '',
           status: 'Active',
           stats: {
             totalTasks: 4,
@@ -173,11 +189,58 @@ export const CrmMyProfile = () => {
         phone: profile.phone || '',
         address: profile.address || '',
         dateOfBirth: profile.dateOfBirth || '',
-        avatar: profile.avatar || ''
+        avatar: hasUploadedPhoto(profile.avatar) ? profile.avatar : ''
       });
     }
     setEditError('');
+    if (fileInputRef.current) fileInputRef.current.value = '';
     setEditModalOpen(true);
+  };
+
+  // Handle profile photo upload from device
+  const handlePhotoSelect = (e) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    // Validate format (JPG, JPEG, PNG, WebP)
+    const validMimes = ['image/jpeg', 'image/png', 'image/webp', 'image/jpg'];
+    const fileType = (file.type || '').toLowerCase();
+    const fileName = (file.name || '').toLowerCase();
+    const hasValidExt = /\.(jpe?g|png|webp)$/i.test(fileName);
+
+    if (!validMimes.includes(fileType) && !hasValidExt) {
+      setEditError('Invalid file type. Please upload a JPG, JPEG, PNG, or WebP image.');
+      if (fileInputRef.current) fileInputRef.current.value = '';
+      return;
+    }
+
+    // Validate size (max 5MB)
+    const maxSize = 5 * 1024 * 1024;
+    if (file.size > maxSize) {
+      setEditError('Photo size exceeds 5MB limit. Please choose a smaller image.');
+      if (fileInputRef.current) fileInputRef.current.value = '';
+      return;
+    }
+
+    setEditError('');
+    const reader = new FileReader();
+    reader.onload = (event) => {
+      const dataUrl = event.target?.result;
+      if (typeof dataUrl === 'string') {
+        setEditFormData(prev => ({ ...prev, avatar: dataUrl }));
+      }
+    };
+    reader.onerror = () => {
+      setEditError('Failed to read image file. Please try another image.');
+    };
+    reader.readAsDataURL(file);
+  };
+
+  // Remove photo and reset to default initial
+  const handleRemovePhoto = () => {
+    setEditFormData(prev => ({ ...prev, avatar: '' }));
+    setEditError('');
+    if (fileInputRef.current) fileInputRef.current.value = '';
   };
 
   // Submit Profile Edits (Only permitted personal fields)
@@ -242,7 +305,7 @@ export const CrmMyProfile = () => {
           phone: payload.phone,
           address: payload.address,
           dateOfBirth: payload.dateOfBirth,
-          avatar: payload.avatar || profile?.avatar || user?.avatar
+          avatar: payload.avatar !== undefined ? payload.avatar : ''
         });
       }
 
@@ -457,15 +520,26 @@ export const CrmMyProfile = () => {
           {/* Left: Avatar + Details */}
           <div className="flex flex-col sm:flex-row items-start sm:items-center gap-5">
             <div className="relative shrink-0 group">
-              <img
-                src={p.avatar || 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=150&auto=format&fit=crop&q=80'}
-                alt={p.name}
-                className="w-24 h-24 sm:w-28 sm:h-28 rounded-3xl object-cover border-3 border-gold-500/80 shadow-lg ring-4 ring-gold-500/20 group-hover:scale-[1.02] transition duration-300"
-              />
-              <span
-                className="absolute -bottom-1 -right-1 w-5 h-5 bg-emerald-500 border-2 border-white dark:border-[#070c1e] rounded-full shadow-md animate-pulse"
-                title="Account Status: Active & Authenticated"
-              />
+              {hasUploadedPhoto(p.avatar) ? (
+                <img
+                  src={p.avatar}
+                  alt={p.name}
+                  className="w-24 h-24 sm:w-28 sm:h-28 rounded-full object-cover border-3 border-gold-500/80 shadow-lg ring-4 ring-gold-500/20 group-hover:scale-[1.02] transition duration-300"
+                />
+              ) : (
+                <div
+                  className="w-24 h-24 sm:w-28 sm:h-28 rounded-full bg-gradient-to-br from-amber-400 via-amber-500 to-gold-600 text-slate-950 font-serif font-black text-3xl sm:text-4xl flex items-center justify-center border-3 border-gold-500/80 shadow-lg ring-4 ring-gold-500/20 select-none group-hover:scale-[1.02] transition duration-300"
+                  title={p.name}
+                >
+                  {employeeInitial}
+                </div>
+              )}
+              {!isHrOperations && (
+                <span
+                  className="absolute -bottom-1 -right-1 w-5 h-5 bg-emerald-500 border-2 border-white dark:border-[#070c1e] rounded-full shadow-md animate-pulse"
+                  title="Account Status: Active & Authenticated"
+                />
+              )}
             </div>
 
             <div className="space-y-1.5">
@@ -474,9 +548,11 @@ export const CrmMyProfile = () => {
                   {p.name}
                 </h1>
 
-                <span className="font-mono text-xs font-black px-2.5 py-0.5 rounded-full bg-gold-500/15 text-gold-700 dark:text-gold-300 border border-gold-500/40 uppercase tracking-wider">
-                  {p.employeeId}
-                </span>
+                {!isHrOperations && (
+                  <span className="font-mono text-xs font-black px-2.5 py-0.5 rounded-full bg-gold-500/15 text-gold-700 dark:text-gold-300 border border-gold-500/40 uppercase tracking-wider">
+                    {p.employeeId}
+                  </span>
+                )}
 
                 <span className="inline-flex items-center gap-1.5 px-3 py-0.5 rounded-full text-xs font-bold bg-emerald-100 dark:bg-emerald-950/60 text-emerald-800 dark:text-emerald-300 border border-emerald-300 dark:border-emerald-700/50">
                   <span className="w-2 h-2 rounded-full bg-emerald-500" />
@@ -485,28 +561,32 @@ export const CrmMyProfile = () => {
               </div>
 
               <p className="text-sm font-semibold text-amber-700 dark:text-gold-400">
-                {p.designation}
+                {isHrOperations ? 'International HR Operations' : p.designation}
               </p>
 
-              <div className="flex flex-wrap items-center gap-y-1 gap-x-4 text-xs text-slate-500 dark:text-slate-400 pt-1">
-                <div className="flex items-center gap-1.5 font-mono text-[11px]">
-                  <Clock className="w-3.5 h-3.5 text-slate-400 shrink-0" />
-                  <span>Last login: {lastLoginFormatted}</span>
+              {!isHrOperations && (
+                <div className="flex flex-wrap items-center gap-y-1 gap-x-4 text-xs text-slate-500 dark:text-slate-400 pt-1">
+                  <div className="flex items-center gap-1.5 font-mono text-[11px]">
+                    <Clock className="w-3.5 h-3.5 text-slate-400 shrink-0" />
+                    <span>Last login: {lastLoginFormatted}</span>
+                  </div>
                 </div>
-              </div>
+              )}
             </div>
           </div>
 
           {/* Right: Actions */}
           <div className="flex flex-wrap items-center gap-3">
-            <button
-              onClick={() => fetchProfileData(true)}
-              disabled={refreshing}
-              className="p-2.5 rounded-2xl border border-slate-200 dark:border-navy-700 hover:border-gold-500 text-slate-600 dark:text-slate-300 hover:text-slate-900 dark:hover:text-white transition duration-200 cursor-pointer"
-              title="Refresh profile and task counts"
-            >
-              <RefreshCw className={`w-4 h-4 ${refreshing ? 'animate-spin text-gold-500' : ''}`} />
-            </button>
+            {!isHrOperations && (
+              <button
+                onClick={() => fetchProfileData(true)}
+                disabled={refreshing}
+                className="p-2.5 rounded-2xl border border-slate-200 dark:border-navy-700 hover:border-gold-500 text-slate-600 dark:text-slate-300 hover:text-slate-900 dark:hover:text-white transition duration-200 cursor-pointer"
+                title="Refresh profile and task counts"
+              >
+                <RefreshCw className={`w-4 h-4 ${refreshing ? 'animate-spin text-gold-500' : ''}`} />
+              </button>
+            )}
 
             <button
               onClick={handleOpenEditModal}
@@ -528,7 +608,7 @@ export const CrmMyProfile = () => {
                 : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white hover:bg-slate-100 dark:hover:bg-navy-900'
               }`}
           >
-            Overview & Tasks
+            Overview
           </button>
           <button
             onClick={() => setActiveTab('work-info')}
@@ -537,7 +617,7 @@ export const CrmMyProfile = () => {
                 : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white hover:bg-slate-100 dark:hover:bg-navy-900'
               }`}
           >
-            Work & Operations Branch
+            Role and Organization
           </button>
           <button
             onClick={() => setActiveTab('security')}
@@ -561,127 +641,129 @@ export const CrmMyProfile = () => {
 
       </div>
 
-      {/* 2. WORK SUMMARY STATS CARDS (5 METRICS) */}
-      <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-4">
+      {/* 2. WORK SUMMARY STATS CARDS (5 METRICS) - Excluded for HR Operations */}
+      {!isHrOperations && (
+        <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-4">
 
-        {/* 1. Total Assigned Tasks */}
-        <div
-          onClick={() => setActiveModule('hr-tasks')}
-          className="bg-white dark:bg-[#070c1e] border border-slate-200 dark:border-navy-800 p-4 rounded-2xl space-y-2 hover:border-gold-500/50 transition duration-200 cursor-pointer shadow-xs group"
-          title="Click to view all assigned tasks in HR Task Assignment"
-        >
-          <div className="flex items-center justify-between">
-            <span className="text-[11px] font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider">
-              Total Tasks
-            </span>
-            <div className="w-8 h-8 rounded-xl bg-gold-500/10 text-gold-600 dark:text-gold-400 flex items-center justify-center group-hover:scale-110 transition">
-              <Briefcase className="w-4 h-4" />
+          {/* 1. Total Assigned Tasks */}
+          <div
+            onClick={() => setActiveModule('hr-tasks')}
+            className="bg-white dark:bg-[#070c1e] border border-slate-200 dark:border-navy-800 p-4 rounded-2xl space-y-2 hover:border-gold-500/50 transition duration-200 cursor-pointer shadow-xs group"
+            title="Click to view all assigned tasks in HR Task Assignment"
+          >
+            <div className="flex items-center justify-between">
+              <span className="text-[11px] font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider">
+                Total Tasks
+              </span>
+              <div className="w-8 h-8 rounded-xl bg-gold-500/10 text-gold-600 dark:text-gold-400 flex items-center justify-center group-hover:scale-110 transition">
+                <Briefcase className="w-4 h-4" />
+              </div>
             </div>
-          </div>
-          <div className="flex items-baseline justify-between">
-            <span className="font-mono text-2xl font-black text-slate-900 dark:text-white">
-              {stats.totalTasks}
-            </span>
-            <span className="text-[10px] text-gold-600 dark:text-gold-400 font-semibold group-hover:underline flex items-center gap-0.5">
-              View Queue <ChevronRight className="w-3 h-3" />
-            </span>
-          </div>
-          <p className="text-[10px] text-slate-400 truncate">Total enquiries in your queue</p>
-        </div>
-
-        {/* 2. Pending Tasks */}
-        <div
-          onClick={() => setActiveModule('hr-tasks')}
-          className="bg-white dark:bg-[#070c1e] border border-slate-200 dark:border-navy-800 p-4 rounded-2xl space-y-2 hover:border-amber-500/50 transition duration-200 cursor-pointer shadow-xs group"
-          title="Click to view pending enquiries"
-        >
-          <div className="flex items-center justify-between">
-            <span className="text-[11px] font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider">
-              Pending Tasks
-            </span>
-            <div className="w-8 h-8 rounded-xl bg-amber-500/10 text-amber-600 dark:text-amber-400 flex items-center justify-center group-hover:scale-110 transition">
-              <Clock className="w-4 h-4" />
+            <div className="flex items-baseline justify-between">
+              <span className="font-mono text-2xl font-black text-slate-900 dark:text-white">
+                {stats.totalTasks}
+              </span>
+              <span className="text-[10px] text-gold-600 dark:text-gold-400 font-semibold group-hover:underline flex items-center gap-0.5">
+                View Queue <ChevronRight className="w-3 h-3" />
+              </span>
             </div>
+            <p className="text-[10px] text-slate-400 truncate">Total enquiries in your queue</p>
           </div>
-          <div className="flex items-baseline justify-between">
-            <span className="font-mono text-2xl font-black text-amber-600 dark:text-amber-400">
-              {stats.pendingTasks}
-            </span>
-            <span className="text-[10px] text-amber-600 font-semibold">New / Assigned</span>
-          </div>
-          <p className="text-[10px] text-slate-400 truncate">Awaiting initial specialist contact</p>
-        </div>
 
-        {/* 3. In-Progress Tasks */}
-        <div
-          onClick={() => setActiveModule('hr-tasks')}
-          className="bg-white dark:bg-[#070c1e] border border-slate-200 dark:border-navy-800 p-4 rounded-2xl space-y-2 hover:border-blue-500/50 transition duration-200 cursor-pointer shadow-xs group"
-          title="Click to view in-progress enquiries"
-        >
-          <div className="flex items-center justify-between">
-            <span className="text-[11px] font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider">
-              In-Progress
-            </span>
-            <div className="w-8 h-8 rounded-xl bg-blue-500/10 text-blue-600 dark:text-blue-400 flex items-center justify-center group-hover:scale-110 transition">
-              <Activity className="w-4 h-4" />
+          {/* 2. Pending Tasks */}
+          <div
+            onClick={() => setActiveModule('hr-tasks')}
+            className="bg-white dark:bg-[#070c1e] border border-slate-200 dark:border-navy-800 p-4 rounded-2xl space-y-2 hover:border-amber-500/50 transition duration-200 cursor-pointer shadow-xs group"
+            title="Click to view pending enquiries"
+          >
+            <div className="flex items-center justify-between">
+              <span className="text-[11px] font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider">
+                Pending Tasks
+              </span>
+              <div className="w-8 h-8 rounded-xl bg-amber-500/10 text-amber-600 dark:text-amber-400 flex items-center justify-center group-hover:scale-110 transition">
+                <Clock className="w-4 h-4" />
+              </div>
             </div>
-          </div>
-          <div className="flex items-baseline justify-between">
-            <span className="font-mono text-2xl font-black text-blue-600 dark:text-blue-400">
-              {stats.inProgressTasks}
-            </span>
-            <span className="text-[10px] text-blue-600 font-semibold">Active Work</span>
-          </div>
-          <p className="text-[10px] text-slate-400 truncate">Under consultation & processing</p>
-        </div>
-
-        {/* 4. Completed Tasks */}
-        <div
-          onClick={() => setActiveModule('hr-tasks')}
-          className="bg-white dark:bg-[#070c1e] border border-slate-200 dark:border-navy-800 p-4 rounded-2xl space-y-2 hover:border-emerald-500/50 transition duration-200 cursor-pointer shadow-xs group"
-          title="Click to view completed enquiries"
-        >
-          <div className="flex items-center justify-between">
-            <span className="text-[11px] font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider">
-              Completed
-            </span>
-            <div className="w-8 h-8 rounded-xl bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 flex items-center justify-center group-hover:scale-110 transition">
-              <CheckCircle2 className="w-4 h-4" />
+            <div className="flex items-baseline justify-between">
+              <span className="font-mono text-2xl font-black text-amber-600 dark:text-amber-400">
+                {stats.pendingTasks}
+              </span>
+              <span className="text-[10px] text-amber-600 font-semibold">New / Assigned</span>
             </div>
+            <p className="text-[10px] text-slate-400 truncate">Awaiting initial specialist contact</p>
           </div>
-          <div className="flex items-baseline justify-between">
-            <span className="font-mono text-2xl font-black text-emerald-600 dark:text-emerald-400">
-              {stats.completedTasks}
-            </span>
-            <span className="text-[10px] text-emerald-600 font-semibold">Fulfilled</span>
-          </div>
-          <p className="text-[10px] text-slate-400 truncate">Successfully closed & enrolled</p>
-        </div>
 
-        {/* 5. Overdue Tasks */}
-        <div
-          onClick={() => setActiveModule('hr-tasks')}
-          className="bg-white dark:bg-[#070c1e] border border-slate-200 dark:border-navy-800 p-4 rounded-2xl space-y-2 hover:border-rose-500/50 transition duration-200 cursor-pointer shadow-xs group col-span-2 sm:col-span-1"
-          title="Click to review overdue items"
-        >
-          <div className="flex items-center justify-between">
-            <span className="text-[11px] font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider">
-              Overdue Tasks
-            </span>
-            <div className="w-8 h-8 rounded-xl bg-rose-500/10 text-rose-600 dark:text-rose-400 flex items-center justify-center group-hover:scale-110 transition">
-              <AlertCircle className="w-4 h-4" />
+          {/* 3. In-Progress Tasks */}
+          <div
+            onClick={() => setActiveModule('hr-tasks')}
+            className="bg-white dark:bg-[#070c1e] border border-slate-200 dark:border-navy-800 p-4 rounded-2xl space-y-2 hover:border-blue-500/50 transition duration-200 cursor-pointer shadow-xs group"
+            title="Click to view in-progress enquiries"
+          >
+            <div className="flex items-center justify-between">
+              <span className="text-[11px] font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider">
+                In-Progress
+              </span>
+              <div className="w-8 h-8 rounded-xl bg-blue-500/10 text-blue-600 dark:text-blue-400 flex items-center justify-center group-hover:scale-110 transition">
+                <Activity className="w-4 h-4" />
+              </div>
             </div>
+            <div className="flex items-baseline justify-between">
+              <span className="font-mono text-2xl font-black text-blue-600 dark:text-blue-400">
+                {stats.inProgressTasks}
+              </span>
+              <span className="text-[10px] text-blue-600 font-semibold">Active Work</span>
+            </div>
+            <p className="text-[10px] text-slate-400 truncate">Under consultation & processing</p>
           </div>
-          <div className="flex items-baseline justify-between">
-            <span className="font-mono text-2xl font-black text-rose-600 dark:text-rose-400">
-              {stats.overdueTasks}
-            </span>
-            <span className="text-[10px] text-rose-600 font-semibold">SLA Critical</span>
-          </div>
-          <p className="text-[10px] text-slate-400 truncate">Follow-up deadline exceeded</p>
-        </div>
 
-      </div>
+          {/* 4. Completed Tasks */}
+          <div
+            onClick={() => setActiveModule('hr-tasks')}
+            className="bg-white dark:bg-[#070c1e] border border-slate-200 dark:border-navy-800 p-4 rounded-2xl space-y-2 hover:border-emerald-500/50 transition duration-200 cursor-pointer shadow-xs group"
+            title="Click to view completed enquiries"
+          >
+            <div className="flex items-center justify-between">
+              <span className="text-[11px] font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider">
+                Completed
+              </span>
+              <div className="w-8 h-8 rounded-xl bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 flex items-center justify-center group-hover:scale-110 transition">
+                <CheckCircle2 className="w-4 h-4" />
+              </div>
+            </div>
+            <div className="flex items-baseline justify-between">
+              <span className="font-mono text-2xl font-black text-emerald-600 dark:text-emerald-400">
+                {stats.completedTasks}
+              </span>
+              <span className="text-[10px] text-emerald-600 font-semibold">Fulfilled</span>
+            </div>
+            <p className="text-[10px] text-slate-400 truncate">Successfully closed & enrolled</p>
+          </div>
+
+          {/* 5. Overdue Tasks */}
+          <div
+            onClick={() => setActiveModule('hr-tasks')}
+            className="bg-white dark:bg-[#070c1e] border border-slate-200 dark:border-navy-800 p-4 rounded-2xl space-y-2 hover:border-rose-500/50 transition duration-200 cursor-pointer shadow-xs group col-span-2 sm:col-span-1"
+            title="Click to review overdue items"
+          >
+            <div className="flex items-center justify-between">
+              <span className="text-[11px] font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider">
+                Overdue Tasks
+              </span>
+              <div className="w-8 h-8 rounded-xl bg-rose-500/10 text-rose-600 dark:text-rose-400 flex items-center justify-center group-hover:scale-110 transition">
+                <AlertCircle className="w-4 h-4" />
+              </div>
+            </div>
+            <div className="flex items-baseline justify-between">
+              <span className="font-mono text-2xl font-black text-rose-600 dark:text-rose-400">
+                {stats.overdueTasks}
+              </span>
+              <span className="text-[10px] text-rose-600 font-semibold">SLA Critical</span>
+            </div>
+            <p className="text-[10px] text-slate-400 truncate">Follow-up deadline exceeded</p>
+          </div>
+
+        </div>
+      )}
 
       {/* 3. MAIN SECTION CARDS (Based on Active Tab) */}
 
@@ -700,7 +782,6 @@ export const CrmMyProfile = () => {
                   <h3 className="font-serif text-base font-bold text-slate-900 dark:text-white">
                     Personal Information
                   </h3>
-                  <p className="text-xs text-slate-400">Verified identity & contact credentials</p>
                 </div>
               </div>
             </div>
@@ -713,12 +794,9 @@ export const CrmMyProfile = () => {
                 <span className="font-bold text-slate-900 dark:text-white sm:text-right">{p.name}</span>
               </div>
 
-              {/* Employee ID (Read-Only) */}
+              {/* Employee ID */}
               <div className="flex flex-col sm:flex-row sm:items-center justify-between p-3 rounded-2xl bg-slate-50 dark:bg-navy-900/60 border border-slate-100 dark:border-navy-800 gap-1">
-                <div className="flex items-center gap-1.5 text-slate-500 font-medium">
-                  <Lock className="w-3.5 h-3.5 text-slate-400 shrink-0" />
-                  <span>Employee ID (Read-Only)</span>
-                </div>
+                <span className="text-slate-500 font-medium">Employee ID</span>
                 <div className="flex items-center gap-2">
                   <span className="font-mono font-bold text-gold-600 dark:text-gold-400">{p.employeeId}</span>
                   <button
@@ -777,7 +855,7 @@ export const CrmMyProfile = () => {
             </div>
           </div>
 
-          {/* Card B: Work & Operational Branch Information */}
+          {/* Card B: Role and Organization Information */}
           <div className="bg-white dark:bg-[#070c1e] border border-slate-200 dark:border-navy-800 rounded-3xl p-6 shadow-sm space-y-6">
             <div className="flex items-center justify-between border-b border-slate-100 dark:border-navy-800 pb-4">
               <div className="flex items-center space-x-3">
@@ -786,56 +864,20 @@ export const CrmMyProfile = () => {
                 </div>
                 <div>
                   <h3 className="font-serif text-base font-bold text-slate-900 dark:text-white">
-                    Work & Operations Assignment
+                    Role and Organization
                   </h3>
-                  <p className="text-xs text-slate-400">Read-only enterprise organizational record</p>
                 </div>
               </div>
-
-              <span className="inline-flex items-center gap-1 text-[11px] font-bold text-slate-500 dark:text-slate-400 bg-slate-100 dark:bg-navy-900 px-2.5 py-1 rounded-full border border-slate-200 dark:border-navy-700">
-                <Lock className="w-3 h-3" /> Managed by HR
-              </span>
             </div>
 
             <div className="space-y-4 text-xs">
 
-              {/* Department & Operational Team */}
-              <div className="p-4 rounded-2xl bg-slate-50 dark:bg-navy-900/60 border border-slate-100 dark:border-navy-800 space-y-1">
-                <div className="flex items-center justify-between">
-                  <span className="text-slate-500 font-medium">Assigned HR Team</span>
-                  <span className={`px-2.5 py-0.5 rounded-full font-bold text-[11px] ${isInternationalTeam
-                      ? 'bg-blue-100 dark:bg-blue-950/60 text-blue-800 dark:text-blue-300 border border-blue-300 dark:border-blue-700/40'
-                      : 'bg-purple-100 dark:bg-purple-950/60 text-purple-800 dark:text-purple-300 border border-purple-300 dark:border-purple-700/40'
-                    }`}>
-                    {p.operationTeam}
-                  </span>
-                </div>
-                <p className="text-[11px] text-slate-400 pt-1">
-                  Department: <strong className="text-slate-800 dark:text-slate-200">{p.department}</strong>
-                </p>
-              </div>
-
-              {/* Assigned Operations Branch */}
-              <div className="p-4 rounded-2xl bg-gradient-to-r from-gold-500/10 to-amber-500/5 border border-gold-500/30 space-y-1">
-                <div className="flex items-center gap-2">
-                  {isInternationalTeam ? (
-                    <Globe className="w-4 h-4 text-gold-600 dark:text-gold-400 shrink-0" />
-                  ) : (
-                    <GraduationCap className="w-4 h-4 text-gold-600 dark:text-gold-400 shrink-0" />
-                  )}
-                  <h4 className="font-bold text-slate-900 dark:text-white text-xs">
-                    {resolvedBranchName}
-                  </h4>
-                </div>
-                <p className="text-[11px] text-slate-600 dark:text-slate-400 leading-relaxed pl-6">
-                  {resolvedBranchSub}
-                </p>
-              </div>
-
-              {/* Designation */}
+              {/* Role / Designation */}
               <div className="flex flex-col sm:flex-row sm:items-center justify-between p-3 rounded-2xl bg-slate-50 dark:bg-navy-900/60 border border-slate-100 dark:border-navy-800 gap-1">
-                <span className="text-slate-500 font-medium">Official Designation</span>
-                <span className="font-bold text-slate-900 dark:text-white sm:text-right">{p.designation}</span>
+                <span className="text-slate-500 font-medium">Role</span>
+                <span className="font-bold text-slate-900 dark:text-white sm:text-right">
+                  {isHrOperations ? 'International HR Operations' : p.designation}
+                </span>
               </div>
 
               {/* Reporting Manager */}
@@ -878,14 +920,7 @@ export const CrmMyProfile = () => {
                 <h3 className="font-serif text-base font-bold text-slate-900 dark:text-white">
                   Account Security & Password Management
                 </h3>
-                <p className="text-xs text-slate-400">Enterprise password credentials and session access</p>
               </div>
-            </div>
-
-            <div className="flex items-center gap-2">
-              <span className="text-[10px] font-mono text-emerald-600 dark:text-emerald-400 bg-emerald-50 dark:bg-emerald-950/60 px-2.5 py-1 rounded-full border border-emerald-300 dark:border-emerald-700/40 font-bold">
-                🔒 TLS 1.3 Encrypted
-              </span>
             </div>
           </div>
 
@@ -1033,28 +1068,6 @@ export const CrmMyProfile = () => {
             </div>
           </form>
 
-          {/* Session Termination & Logout Row */}
-          <div className="p-4 rounded-2xl bg-rose-500/10 border border-rose-500/20 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
-            <div className="space-y-0.5">
-              <h4 className="font-bold text-xs text-rose-700 dark:text-rose-400 flex items-center gap-1.5">
-                <LogOut className="w-4 h-4 shrink-0" />
-                <span>Session Management & Sign Out</span>
-              </h4>
-              <p className="text-[11px] text-slate-600 dark:text-slate-400">
-                Terminate active corporate session on this browser. You will be redirected to the secure CRM portal login.
-              </p>
-            </div>
-
-            <button
-              type="button"
-              onClick={() => (currentRole === 'HR Operations' && requestLogout ? requestLogout() : logout())}
-              className="px-5 py-2 rounded-xl bg-rose-600 hover:bg-rose-500 text-white font-bold text-xs transition duration-200 shadow-sm flex items-center gap-2 shrink-0 cursor-pointer"
-            >
-              <LogOut className="w-3.5 h-3.5" />
-              <span>Log Out Now</span>
-            </button>
-          </div>
-
         </div>
       )}
 
@@ -1070,7 +1083,6 @@ export const CrmMyProfile = () => {
                 <h3 className="font-serif text-base font-bold text-slate-900 dark:text-white">
                   Notification Preferences
                 </h3>
-                <p className="text-xs text-slate-400">Configure alert channels for operational assignments and follow-ups</p>
               </div>
             </div>
 
@@ -1166,6 +1178,32 @@ export const CrmMyProfile = () => {
         </div>
       )}
 
+      {/* 4. SESSION MANAGEMENT & SIGN OUT */}
+      {(activeTab === 'overview' || activeTab === 'security') && (
+        <div className="bg-white dark:bg-[#070c1e] border border-slate-200 dark:border-navy-800 rounded-3xl p-6 sm:p-8 shadow-sm">
+          <div className="p-4 rounded-2xl bg-rose-500/10 border border-rose-500/20 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+            <div className="space-y-0.5">
+              <h4 className="font-bold text-xs text-rose-700 dark:text-rose-400 flex items-center gap-1.5">
+                <LogOut className="w-4 h-4 shrink-0" />
+                <span>Session Management & Sign Out</span>
+              </h4>
+              <p className="text-[11px] text-slate-600 dark:text-slate-400">
+                Terminate active corporate session on this browser. You will be redirected to the secure CRM portal login.
+              </p>
+            </div>
+
+            <button
+              type="button"
+              onClick={() => (currentRole === 'HR Operations' && requestLogout ? requestLogout() : logout())}
+              className="px-5 py-2 rounded-xl bg-rose-600 hover:bg-rose-500 text-white font-bold text-xs transition duration-200 shadow-sm flex items-center gap-2 shrink-0 cursor-pointer"
+            >
+              <LogOut className="w-3.5 h-3.5" />
+              <span>Log Out Now</span>
+            </button>
+          </div>
+        </div>
+      )}
+
       {/* 4. EDIT PROFILE POPUP MODAL */}
       {editModalOpen && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-navy-950/70 backdrop-blur-sm animate-in fade-in duration-200">
@@ -1181,7 +1219,6 @@ export const CrmMyProfile = () => {
                   <h3 className="font-serif text-lg font-bold text-slate-900 dark:text-white">
                     Edit Personal Profile
                   </h3>
-                  <p className="text-xs text-slate-400">Update approved personal contact and avatar details</p>
                 </div>
               </div>
 
@@ -1203,52 +1240,85 @@ export const CrmMyProfile = () => {
 
             <form onSubmit={handleSaveProfile} className="space-y-4 text-xs">
 
-              {/* Locked System Fields (Read-Only Warning) */}
-              <div className="p-3 bg-amber-50 dark:bg-amber-950/30 border border-amber-300 dark:border-amber-700/40 rounded-xl space-y-1">
-                <div className="flex items-center gap-1.5 font-bold text-amber-800 dark:text-amber-300 text-[11px]">
-                  <Lock className="w-3.5 h-3.5 shrink-0" />
-                  <span>Administrative Role & Work Assignment Locked</span>
-                </div>
-                <p className="text-[10px] text-amber-700/80 dark:text-amber-400 leading-relaxed">
-                  Employee ID (<strong>{p.employeeId}</strong>), Official Name, Designation, and Assigned Team are governed by Central HR Administration and cannot be modified directly.
-                </p>
-              </div>
-
-              {/* Avatar Selector */}
+              {/* Upload Photo Section */}
               <div className="space-y-2">
-                <label className="font-semibold text-slate-700 dark:text-slate-300">Choose Profile Avatar</label>
-                <div className="grid grid-cols-6 gap-2">
-                  {PRESET_AVATARS.map(av => (
-                    <button
-                      key={av.id}
-                      type="button"
-                      onClick={() => setEditFormData(prev => ({ ...prev, avatar: av.url }))}
-                      className={`relative rounded-2xl overflow-hidden border-2 transition p-0.5 cursor-pointer ${editFormData.avatar === av.url
-                          ? 'border-gold-500 scale-105 shadow-md ring-2 ring-gold-500/30'
-                          : 'border-transparent hover:border-slate-300 dark:hover:border-navy-600 opacity-75 hover:opacity-100'
-                        }`}
-                    >
-                      <img src={av.url} alt={av.label} className="w-full h-12 rounded-xl object-cover" />
-                      {editFormData.avatar === av.url && (
-                        <span className="absolute top-1 right-1 w-4 h-4 rounded-full bg-gold-500 text-navy-950 flex items-center justify-center text-[9px] font-black">
-                          ✓
-                        </span>
-                      )}
-                    </button>
-                  ))}
-                </div>
-              </div>
+                <label className="font-semibold text-slate-700 dark:text-slate-300 block text-xs">
+                  Upload Photo
+                </label>
 
-              {/* Or Custom Avatar URL */}
-              <div className="space-y-1">
-                <label className="font-semibold text-slate-700 dark:text-slate-300">Or Custom Image URL</label>
+                {/* Hidden File Input */}
                 <input
-                  type="url"
-                  value={editFormData.avatar}
-                  onChange={(e) => setEditFormData(prev => ({ ...prev, avatar: e.target.value }))}
-                  placeholder="https://example.com/avatar.jpg"
-                  className="w-full px-3 py-2 rounded-xl bg-slate-50 dark:bg-navy-900 border border-slate-200 dark:border-navy-700 text-slate-900 dark:text-white text-xs focus:outline-none focus:border-gold-500"
+                  type="file"
+                  ref={fileInputRef}
+                  onChange={handlePhotoSelect}
+                  accept="image/jpeg,image/png,image/webp,image/jpg"
+                  className="hidden"
                 />
+
+                <div className="flex items-center gap-4 p-3 rounded-2xl bg-slate-50 dark:bg-navy-900/60 border border-slate-100 dark:border-navy-800">
+                  {/* Clickable Profile Image Preview with Camera Icon Overlay */}
+                  <div
+                    onClick={() => fileInputRef.current?.click()}
+                    className="relative group cursor-pointer shrink-0"
+                    title="Click to choose a photo from your device"
+                    role="button"
+                    tabIndex={0}
+                    onKeyDown={(e) => {
+                      if (e.key === 'Enter' || e.key === ' ') {
+                        e.preventDefault();
+                        fileInputRef.current?.click();
+                      }
+                    }}
+                  >
+                    {hasUploadedPhoto(editFormData.avatar) ? (
+                      <img
+                        src={editFormData.avatar}
+                        alt="Profile preview"
+                        className="w-20 h-20 rounded-full object-cover border-2 border-gold-500 shadow-md ring-2 ring-gold-500/30 group-hover:opacity-90 transition"
+                      />
+                    ) : (
+                      <div
+                        className="w-20 h-20 rounded-full bg-gradient-to-br from-amber-400 via-amber-500 to-gold-600 text-slate-950 font-serif font-black text-2xl flex items-center justify-center border-2 border-gold-500 shadow-md ring-2 ring-gold-500/30 select-none group-hover:scale-[1.02] transition"
+                        title={profile?.name || activeEmployeeName}
+                      >
+                        {employeeInitial}
+                      </div>
+                    )}
+
+                    {/* Camera Icon Overlay */}
+                    <div className="absolute -bottom-1 -right-1 w-7 h-7 rounded-full bg-slate-900 dark:bg-navy-950 text-gold-400 border-2 border-white dark:border-[#070c1e] flex items-center justify-center shadow-md group-hover:scale-110 group-hover:bg-gold-500 group-hover:text-navy-950 transition duration-200">
+                      <Camera className="w-3.5 h-3.5" />
+                    </div>
+                  </div>
+
+                  {/* Actions & Guidance */}
+                  <div className="space-y-1.5 flex-1 min-w-0">
+                    <div className="flex flex-wrap items-center gap-2">
+                      <button
+                        type="button"
+                        onClick={() => fileInputRef.current?.click()}
+                        className="px-3.5 py-1.5 rounded-xl bg-white dark:bg-navy-800 hover:bg-gold-500 hover:text-navy-950 text-slate-800 dark:text-slate-200 text-xs font-bold border border-slate-300 dark:border-navy-700 transition flex items-center gap-1.5 cursor-pointer shadow-xs"
+                      >
+                        <Camera className="w-3.5 h-3.5" />
+                        <span>{hasUploadedPhoto(editFormData.avatar) ? 'Change Photo' : 'Choose Photo'}</span>
+                      </button>
+
+                      {hasUploadedPhoto(editFormData.avatar) && (
+                        <button
+                          type="button"
+                          onClick={handleRemovePhoto}
+                          className="px-3 py-1.5 rounded-xl border border-rose-300 dark:border-rose-900/60 text-rose-600 dark:text-rose-400 hover:bg-rose-50 dark:hover:bg-rose-950/40 text-xs font-semibold transition cursor-pointer"
+                        >
+                          Remove Photo
+                        </button>
+                      )}
+                    </div>
+
+                    <p className="text-[11px] text-slate-500 dark:text-slate-400">
+                      Supports JPG, JPEG, PNG, or WebP. Max file size: 5MB.
+                    </p>
+                  </div>
+                </div>
               </div>
 
               {/* Phone Number Input */}
@@ -1286,7 +1356,7 @@ export const CrmMyProfile = () => {
               <div className="space-y-1">
                 <label className="font-semibold text-slate-700 dark:text-slate-300 flex items-center gap-1.5">
                   <MapPin className="w-3.5 h-3.5 text-rose-500" />
-                  <span>Residential / Work Location Address</span>
+                  <span>Address</span>
                 </label>
                 <textarea
                   rows={2}

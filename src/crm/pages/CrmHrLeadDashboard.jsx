@@ -1,8 +1,8 @@
 import React, { useState, useEffect } from 'react';
 import { useCrm } from '../context/CrmContext';
-import { 
-  LayoutDashboard, Users, UserCheck, Clock, CheckCircle2, AlertCircle, ArrowUpRight, 
-  Calendar, BarChart3, RefreshCw, Search, Filter, Phone, Mail, MessageSquare, 
+import {
+  LayoutDashboard, Users, UserCheck, Clock, CheckCircle2, AlertCircle, ArrowUpRight,
+  Calendar, BarChart3, RefreshCw, Search, Filter, Phone, Mail, MessageSquare,
   CheckSquare, ChevronRight, UserPlus, FileText, TrendingUp, CalendarCheck,
   CreditCard, DollarSign, Award, Bell, ShieldCheck, Download, Plus, X,
   Briefcase, Gift, Cake, ShieldAlert, HeartHandshake, Eye, EyeOff, FileSpreadsheet,
@@ -330,9 +330,9 @@ export const INITIAL_PERFORMANCE_REVIEWS = [
 ];
 
 export const CrmHrLeadDashboard = ({ initialSection }) => {
-  const { 
+  const {
     candidates = [], setActiveModule, currentRole, crmToken, setCrmToken, user,
-    attendancePunch, clockIn, startBreak, endBreak, clockOut 
+    attendancePunch, clockIn, startBreak, endBreak, clockOut
   } = useCrm();
 
   // Helper to map route ID (e.g. 'hr-attendance') to internal tab id
@@ -359,6 +359,7 @@ export const CrmHrLeadDashboard = ({ initialSection }) => {
 
   const [activeTab, setActiveTab] = useState(() => getTabFromSection(initialSection));
   const [toastMsg, setToastMsg] = useState('');
+  const [refreshing, setRefreshing] = useState(false);
   const [maskSalary, setMaskSalary] = useState(true);
   const [searchEmployee, setSearchEmployee] = useState('');
   const [filterDept, setFilterDept] = useState('All');
@@ -415,7 +416,7 @@ export const CrmHrLeadDashboard = ({ initialSection }) => {
           }));
         }
       }
-    } catch (_) {}
+    } catch (_) { }
     return [];
   });
   const [regCommentMap, setRegCommentMap] = useState({});
@@ -439,7 +440,7 @@ export const CrmHrLeadDashboard = ({ initialSection }) => {
           token = previewJson.token;
           if (setCrmToken) setCrmToken(token);
         }
-      } catch (_) {}
+      } catch (_) { }
     }
 
     if (!token) return;
@@ -461,12 +462,24 @@ export const CrmHrLeadDashboard = ({ initialSection }) => {
       if (teamJson?.success && Array.isArray(teamJson.data?.team) && teamJson.data.team.length > 0) {
         setHrTeamAttendance(teamJson.data.team);
       }
-    } catch (_) {}
+    } catch (_) { }
   };
 
   useEffect(() => {
     loadHrAttendanceData();
   }, [crmToken, currentRole, activeTab]);
+
+  const handleRefresh = async () => {
+    setRefreshing(true);
+    try {
+      await loadHrAttendanceData();
+      showToast('HR Lead dashboard updated with live data.');
+    } catch (_) {
+      showToast('Dashboard refreshed.');
+    } finally {
+      setTimeout(() => setRefreshing(false), 500);
+    }
+  };
 
   const handleReviewRegularization = async (regId, decision) => {
     if (!crmToken) return;
@@ -518,17 +531,17 @@ export const CrmHrLeadDashboard = ({ initialSection }) => {
     const conveyance = 2500;
     const medical = 1500;
     const specialAllowance = Math.max(0, grossMonthly - (basic + hra + conveyance + medical));
-    
+
     const pf = Math.min(Math.round(basic * 0.12), 1800);
     const profTax = 200;
     const esi = grossMonthly <= 21000 ? Math.round(grossMonthly * 0.0075) : 0;
     const mediclaim = 500;
     const tds = grossMonthly > 60000 ? Math.round(grossMonthly * 0.05) : 0;
-    
+
     const totalEarnings = grossMonthly;
     const totalDeductions = pf + profTax + esi + mediclaim + tds;
     const netPay = totalEarnings - totalDeductions;
-    
+
     return {
       grossMonthly,
       basic,
@@ -559,7 +572,7 @@ export const CrmHrLeadDashboard = ({ initialSection }) => {
     if (!num || isNaN(num)) return 'Zero Rupees Only';
     const a = ['', 'One', 'Two', 'Three', 'Four', 'Five', 'Six', 'Seven', 'Eight', 'Nine', 'Ten', 'Eleven', 'Twelve', 'Thirteen', 'Fourteen', 'Fifteen', 'Sixteen', 'Seventeen', 'Eighteen', 'Nineteen'];
     const b = ['', '', 'Twenty', 'Thirty', 'Forty', 'Fifty', 'Sixty', 'Seventy', 'Eighty', 'Ninety'];
-    
+
     const inWords = (n) => {
       if (n < 20) return a[n];
       if (n < 100) return b[Math.floor(n / 10)] + (n % 10 !== 0 ? ' ' + a[n % 10] : '');
@@ -1043,7 +1056,7 @@ export const CrmHrLeadDashboard = ({ initialSection }) => {
           return parsed;
         }
       }
-    } catch (e) {}
+    } catch (e) { }
     return INITIAL_HR_EMPLOYEES;
   });
 
@@ -1116,8 +1129,8 @@ export const CrmHrLeadDashboard = ({ initialSection }) => {
       ctc: formattedCtc,
       leaveBalance: { casual: 8, sick: 8, paid: 12 },
       shiftId: newEmp.shiftId || 'shift-9-6',
-      shiftName: newEmp.shiftId === 'shift-10-7' 
-        ? 'Corporate Mid-Day Shift (10:00 AM - 07:00 PM)' 
+      shiftName: newEmp.shiftId === 'shift-10-7'
+        ? 'Corporate Mid-Day Shift (10:00 AM - 07:00 PM)'
         : (newEmp.shiftId === 'shift-1-930' ? 'UK & Middle East Overlap (01:00 PM - 09:30 PM)' : 'General Day Shift (09:00 AM - 06:00 PM)'),
       attendanceToday: {
         status: 'Present',
@@ -1150,7 +1163,7 @@ export const CrmHrLeadDashboard = ({ initialSection }) => {
         });
         localStorage.setItem('sir_crm_registered_users', JSON.stringify(registered));
       }
-    } catch (err) {}
+    } catch (err) { }
 
     setIsAddEmployeeOpen(false);
     setNewEmp({ name: '', role: '', department: 'HR Operations', email: '', phone: '', salary: '₹55,000 / mo', ctc: '₹6.60 LPA', employmentType: 'Full-Time Permanent' });
@@ -1248,14 +1261,14 @@ export const CrmHrLeadDashboard = ({ initialSection }) => {
         const parsed = JSON.parse(saved);
         if (Array.isArray(parsed) && parsed.length > 0) return parsed;
       }
-    } catch {}
+    } catch { }
     return DEFAULT_ANNOUNCEMENTS;
   });
 
   useEffect(() => {
     try {
       localStorage.setItem(STORAGE_KEY_ANNOUNCEMENTS, JSON.stringify(announcements));
-    } catch {}
+    } catch { }
   }, [announcements]);
 
   const [broadcastModalOpen, setBroadcastModalOpen] = useState(false);
@@ -1286,7 +1299,7 @@ export const CrmHrLeadDashboard = ({ initialSection }) => {
       const updated = [newNotice, ...prev];
       try {
         localStorage.setItem(STORAGE_KEY_ANNOUNCEMENTS, JSON.stringify(updated));
-      } catch {}
+      } catch { }
       return updated;
     });
     showToast(`✓ Broadcast notice "${newNotice.title}" published and saved.`);
@@ -1309,7 +1322,7 @@ export const CrmHrLeadDashboard = ({ initialSection }) => {
         const parsed = JSON.parse(saved);
         if (Array.isArray(parsed) && parsed.length > 0) return parsed;
       }
-    } catch (e) {}
+    } catch (e) { }
     return INITIAL_PERFORMANCE_REVIEWS;
   });
 
@@ -1343,7 +1356,7 @@ export const CrmHrLeadDashboard = ({ initialSection }) => {
     setPerformanceReviews(updated);
     try {
       localStorage.setItem(STORAGE_KEY_PERFORMANCE, JSON.stringify(updated));
-    } catch (e) {}
+    } catch (e) { }
     setIsAddReviewOpen(false);
     setReviewError('');
     showToast(`✓ Performance review submitted for ${createdReview.employee}.`);
@@ -1388,7 +1401,7 @@ export const CrmHrLeadDashboard = ({ initialSection }) => {
     setEmployees(updated);
     try {
       localStorage.setItem(STORAGE_KEY_WORKFORCE, JSON.stringify(updated));
-    } catch (e) {}
+    } catch (e) { }
 
     const empObj = employees.find(e => e.id === employeeId);
     showToast(`✓ Shift updated: ${empObj?.name || 'Staff'} reassigned to ${targetShift.shiftName} (${targetShift.timing})`);
@@ -1434,7 +1447,7 @@ export const CrmHrLeadDashboard = ({ initialSection }) => {
     setEmployees(updated);
     try {
       localStorage.setItem(STORAGE_KEY_WORKFORCE, JSON.stringify(updated));
-    } catch (err) {}
+    } catch (err) { }
 
     showToast(`✓ Punch timestamp updated for ${editingPunchEmployee.name} (${punchFormData.checkIn}) — ${punctuality.status}`);
     setEditingPunchEmployee(null);
@@ -1456,47 +1469,130 @@ export const CrmHrLeadDashboard = ({ initialSection }) => {
 
   // Filtered Employees
   const filteredEmployees = employees.filter(e => {
-    const matchQuery = e.name.toLowerCase().includes(searchEmployee.toLowerCase()) || 
-                       e.role.toLowerCase().includes(searchEmployee.toLowerCase()) ||
-                       e.id.toLowerCase().includes(searchEmployee.toLowerCase());
+    const matchQuery = e.name.toLowerCase().includes(searchEmployee.toLowerCase()) ||
+      e.role.toLowerCase().includes(searchEmployee.toLowerCase()) ||
+      e.id.toLowerCase().includes(searchEmployee.toLowerCase());
     const matchDept = filterDept === 'All' || e.department === filterDept;
     return matchQuery && matchDept;
   });
 
+  const pendingLeavesCount = leaveRequests.filter(l => l.status.includes('Pending')).length;
+
+  const kpiCards = [
+    {
+      id: 'total-employees',
+      label: 'TOTAL EMPLOYEES',
+      value: totalEmployeesCount,
+      desc: '↗ 100% On-roll Staff',
+      icon: Users,
+      tab: 'employees',
+      valueColor: 'text-slate-950 dark:text-white',
+      descColor: 'text-blue-700 dark:text-blue-300',
+      iconContainer: 'bg-blue-50 dark:bg-blue-500/10 text-blue-700 dark:text-blue-400',
+      iconBorder: 'border-blue-200/80 dark:border-blue-500/25'
+    },
+    {
+      id: 'present-today',
+      label: 'PRESENT TODAY',
+      value: presentTodayCount,
+      desc: '↗ 87.5% Attendance',
+      icon: CheckCircle2,
+      tab: 'attendance',
+      valueColor: 'text-emerald-700 dark:text-emerald-400',
+      descColor: 'text-emerald-700 dark:text-emerald-300',
+      iconContainer: 'bg-emerald-50 dark:bg-emerald-500/10 text-emerald-700 dark:text-emerald-400',
+      iconBorder: 'border-emerald-200/80 dark:border-emerald-500/25'
+    },
+    {
+      id: 'absent-today',
+      label: 'ABSENT TODAY',
+      value: absentCount,
+      desc: '↗ 1 Uninformed Absence',
+      icon: XCircle,
+      tab: 'attendance',
+      valueColor: 'text-rose-700 dark:text-rose-400',
+      descColor: 'text-rose-700 dark:text-rose-300',
+      iconContainer: 'bg-rose-50 dark:bg-rose-500/10 text-rose-700 dark:text-rose-400',
+      iconBorder: 'border-rose-200/80 dark:border-rose-500/25'
+    },
+    {
+      id: 'on-leave',
+      label: 'ON LEAVE',
+      value: onLeaveCount,
+      desc: '↗ Approved Leaves',
+      icon: Calendar,
+      tab: 'leave',
+      valueColor: 'text-amber-700 dark:text-gold-400',
+      descColor: 'text-amber-800 dark:text-gold-300',
+      iconContainer: 'bg-amber-50 dark:bg-amber-500/10 text-amber-700 dark:text-gold-400',
+      iconBorder: 'border-amber-200/80 dark:border-amber-500/25'
+    },
+    {
+      id: 'new-joiners',
+      label: 'NEW JOINERS',
+      value: newJoinersCount,
+      desc: '↗ This Month (Nov 2026)',
+      icon: UserPlus,
+      tab: 'employees',
+      valueColor: 'text-purple-700 dark:text-purple-300',
+      descColor: 'text-purple-700 dark:text-purple-300',
+      iconContainer: 'bg-purple-50 dark:bg-purple-500/10 text-purple-700 dark:text-purple-300',
+      iconBorder: 'border-purple-200/80 dark:border-purple-500/25'
+    },
+    {
+      id: 'pending-leaves',
+      label: 'PENDING LEAVES',
+      value: pendingLeavesCount,
+      desc: '↗ Review Required',
+      icon: Calendar,
+      tab: 'leave',
+      valueColor: 'text-amber-900 dark:text-gold-300',
+      descColor: 'text-amber-900 dark:text-gold-300',
+      iconContainer: 'bg-amber-100/70 dark:bg-gold-500/15 text-amber-900 dark:text-gold-400',
+      iconBorder: 'border-amber-300/70 dark:border-gold-500/30'
+    }
+  ];
+
   return (
     <ScrollReveal>
       <div className="space-y-6 text-xs font-sans pb-10">
-        
-        {/* TOP COMMAND BANNER (SUPER ADMIN LUXURY GOLD PALETTE) */}
-        <div className="bg-white dark:bg-navy-900 border-2 border-slate-200 dark:border-navy-800 p-6 rounded-3xl shadow-sm flex flex-col lg:flex-row justify-between items-start lg:items-center gap-4">
+
+        {/* TOP COMMAND BANNER */}
+        <div className="bg-white dark:bg-navy-900 border-2 border-slate-200 dark:border-navy-800 p-5 sm:p-6 rounded-3xl shadow-sm flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
           <div>
-            <div className="flex items-center gap-2 mb-1.5">
-              <span className="bg-amber-100 dark:bg-amber-950/40 text-amber-900 dark:text-gold-400 px-2.5 py-0.5 rounded-lg text-[10px] font-bold uppercase tracking-wider border border-amber-300/80 dark:border-gold-500/30">
-                HR Lead Executive HQ • Central Console
-              </span>
-              <span className="text-[10px] font-bold text-slate-600 dark:text-slate-400 uppercase tracking-wider">
-                WORKFORCE GOVERNANCE & OPERATIONS
-              </span>
-            </div>
             <h1 className="font-serif text-xl sm:text-2xl font-bold text-slate-950 dark:text-white">
-              HR Lead Operations & Workforce Management Console
+              HR Lead
             </h1>
-            <p className="text-slate-700 dark:text-slate-300 text-xs sm:text-sm font-medium mt-1 max-w-3xl">
-              Centralized workspace to monitor employees, approve workforce requests, track real-time attendance, and manage end-to-end HR operations.
-            </p>
           </div>
 
-          <div className="flex flex-wrap items-center gap-2">
-            <button
-              onClick={() => setMaskSalary(!maskSalary)}
-              className="px-3 py-1.5 rounded-xl bg-slate-100 dark:bg-navy-800 text-slate-900 dark:text-slate-100 font-bold border border-slate-300 dark:border-navy-700 hover:bg-slate-200 transition flex items-center gap-1.5 cursor-pointer text-xs shadow-xs"
-              title="Toggle salary encryption view"
+          <div className="flex flex-wrap items-center gap-2.5">
+            <div
+              className="flex items-center gap-2 px-3 py-1.5 rounded-xl bg-amber-50 dark:bg-amber-500/10 border border-amber-300 dark:border-amber-500/30"
+              data-testid="hr-lead-shift-timing"
             >
-              {maskSalary ? <Eye className="w-3.5 h-3.5 text-amber-700" /> : <EyeOff className="w-3.5 h-3.5 text-slate-500" />}
-              <span>{maskSalary ? 'Unmask CTC' : 'Mask CTC'}</span>
+              <div className="w-6 h-6 rounded-md bg-amber-500/20 flex items-center justify-center text-amber-700 dark:text-amber-400 shrink-0 font-bold">
+                <Clock className="w-3.5 h-3.5" />
+              </div>
+              <div className="leading-tight">
+                <p className="text-[10px] font-bold uppercase tracking-wider text-amber-900 dark:text-amber-300">
+                  Today’s Shift • General Shift
+                </p>
+                <p className="text-xs font-bold text-slate-950 dark:text-white">
+                  09:00 AM – 06:00 PM
+                </p>
+              </div>
+            </div>
+
+            <button
+              type="button"
+              onClick={handleRefresh}
+              disabled={refreshing}
+              className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-bold border-2 border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-900 dark:text-slate-100 hover:bg-slate-100 dark:hover:bg-slate-700/70 transition-colors disabled:opacity-60 cursor-pointer shadow-xs"
+            >
+              <RefreshCw className={`w-3.5 h-3.5 ${refreshing ? 'animate-spin' : ''}`} />
+              <span>{refreshing ? 'Refreshing...' : 'Refresh'}</span>
             </button>
 
-            {/* Bug 1: Only show in Employee Directory, unnecessary in HR Task Assignment */}
             {activeTab === 'employees' && (
               <button
                 onClick={() => {
@@ -1509,10 +1605,6 @@ export const CrmHrLeadDashboard = ({ initialSection }) => {
                 <span>Add Employee</span>
               </button>
             )}
-
-            <span className="px-3 py-1.5 rounded-full text-xs font-bold bg-emerald-100 dark:bg-emerald-950/40 border border-emerald-300 dark:border-emerald-700 text-emerald-900 dark:text-emerald-300 shadow-xs">
-              ● 42 Present Today
-            </span>
           </div>
         </div>
 
@@ -1523,107 +1615,40 @@ export const CrmHrLeadDashboard = ({ initialSection }) => {
           </div>
         )}
 
-        {/* 6 TOP EXECUTIVE KPI CARDS (From Image 1: 1. Dashboard Overview) */}
-        <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3">
-          <div className="bg-white dark:bg-navy-900 border-2 border-slate-200 dark:border-navy-800 rounded-2xl p-3.5 sm:p-4 shadow-xs">
-            <div className="flex justify-between items-start">
-              <span className="text-xs font-bold uppercase tracking-wider text-slate-800 dark:text-slate-200">Total Employees</span>
-              <div className="w-7 h-7 rounded-lg bg-blue-100 text-blue-800 flex items-center justify-center border border-blue-200">
-                <Users className="w-3.5 h-3.5" />
-              </div>
-            </div>
-            <p className="text-2xl sm:text-3xl font-extrabold font-mono text-slate-950 dark:text-white mt-1.5">{totalEmployeesCount}</p>
-            <span className="text-xs text-blue-800 dark:text-blue-300 font-semibold mt-0.5 block">↗ 100% On-roll Staff</span>
-          </div>
+        {/* 6 TOP EXECUTIVE KPI CARDS */}
+        <section aria-label="Workforce Key Performance Indicators">
+          <div className="grid grid-cols-2 sm:grid-cols-3 xl:grid-cols-6 gap-3 sm:gap-4">
+            {kpiCards.map((card) => {
+              const Icon = card.icon;
+              return (
+                <div
+                  key={card.id}
+                  data-testid={`kpi-card-${card.id}`}
+                  onClick={() => card.tab && setActiveTab(card.tab)}
+                  className="group relative bg-white dark:bg-navy-900 border border-slate-200/90 dark:border-navy-800 border-l-4 border-l-gold-500 rounded-2xl p-4 shadow-xs hover:shadow-md hover:-translate-y-0.5 hover:border-gold-500/40 transition-all duration-200 flex flex-col justify-between min-h-[126px] cursor-pointer select-none"
+                >
+                  <div className="flex items-start justify-between gap-2">
+                    <span className="text-[11px] font-semibold uppercase tracking-wider text-slate-500 dark:text-slate-400 leading-tight">
+                      {card.label}
+                    </span>
+                    <div className={`w-8 h-8 rounded-xl ${card.iconContainer} flex items-center justify-center shrink-0 border ${card.iconBorder} shadow-2xs group-hover:scale-105 transition-transform duration-200`}>
+                      <Icon className="w-4 h-4 stroke-[2.2]" />
+                    </div>
+                  </div>
 
-          <div className="bg-white dark:bg-navy-900 border-2 border-slate-200 dark:border-navy-800 rounded-2xl p-3.5 sm:p-4 shadow-xs">
-            <div className="flex justify-between items-start">
-              <span className="text-xs font-bold uppercase tracking-wider text-slate-800 dark:text-slate-200">Present Today</span>
-              <div className="w-7 h-7 rounded-lg bg-emerald-100 text-emerald-800 flex items-center justify-center border border-emerald-200">
-                <CheckCircle2 className="w-3.5 h-3.5" />
-              </div>
-            </div>
-            <p className="text-2xl sm:text-3xl font-extrabold font-mono text-emerald-700 dark:text-emerald-400 mt-1.5">{presentTodayCount}</p>
-            <span className="text-xs text-emerald-800 dark:text-emerald-300 font-semibold mt-0.5 block">↗ 87.5% Attendance</span>
+                  <div className="mt-2 space-y-0.5">
+                    <p className={`text-2xl sm:text-3xl font-bold font-mono ${card.valueColor}`}>
+                      {card.value}
+                    </p>
+                    <span className={`text-[11px] sm:text-xs font-semibold leading-tight block truncate ${card.descColor}`}>
+                      {card.desc}
+                    </span>
+                  </div>
+                </div>
+              );
+            })}
           </div>
-
-          <div className="bg-white dark:bg-navy-900 border-2 border-slate-200 dark:border-navy-800 rounded-2xl p-3.5 sm:p-4 shadow-xs">
-            <div className="flex justify-between items-start">
-              <span className="text-xs font-bold uppercase tracking-wider text-slate-800 dark:text-slate-200">Absent Today</span>
-              <div className="w-7 h-7 rounded-lg bg-rose-100 text-rose-800 flex items-center justify-center border border-rose-200">
-                <XCircle className="w-3.5 h-3.5" />
-              </div>
-            </div>
-            <p className="text-2xl sm:text-3xl font-extrabold font-mono text-rose-700 dark:text-rose-400 mt-1.5">{absentCount}</p>
-            <span className="text-xs text-rose-800 dark:text-rose-300 font-semibold mt-0.5 block">↗ 1 Uninformed Absence</span>
-          </div>
-
-          <div className="bg-white dark:bg-navy-900 border-2 border-slate-200 dark:border-navy-800 rounded-2xl p-3.5 sm:p-4 shadow-xs">
-            <div className="flex justify-between items-start">
-              <span className="text-xs font-bold uppercase tracking-wider text-slate-800 dark:text-slate-200">On Leave</span>
-              <div className="w-7 h-7 rounded-lg bg-amber-100 text-amber-800 flex items-center justify-center border border-amber-200">
-                <Calendar className="w-3.5 h-3.5" />
-              </div>
-            </div>
-            <p className="text-2xl sm:text-3xl font-extrabold font-mono text-amber-700 dark:text-gold-400 mt-1.5">{onLeaveCount}</p>
-            <span className="text-xs text-amber-800 dark:text-amber-300 font-semibold mt-0.5 block">↗ Approved Leaves</span>
-          </div>
-
-          <div className="bg-white dark:bg-navy-900 border-2 border-slate-200 dark:border-navy-800 rounded-2xl p-3.5 sm:p-4 shadow-xs">
-            <div className="flex justify-between items-start">
-              <span className="text-xs font-black uppercase tracking-wider text-slate-800 dark:text-slate-200">New Joiners</span>
-              <div className="w-7.5 h-7.5 rounded-xl bg-purple-100 text-purple-800 flex items-center justify-center border border-purple-200">
-                <UserPlus className="w-4 h-4" />
-              </div>
-            </div>
-            <p className="text-3xl sm:text-4xl font-serif font-black text-purple-700 dark:text-purple-300 mt-2">{newJoinersCount}</p>
-            <span className="text-xs sm:text-sm text-purple-800 dark:text-purple-300 font-extrabold mt-1 block">↗ This Month (Nov 2026)</span>
-          </div>
-
-          <div className="bg-white dark:bg-navy-900 border-2 border-slate-200 dark:border-navy-800 rounded-3xl p-4.5 shadow-xs">
-            <div className="flex justify-between items-start">
-              <span className="text-xs font-black uppercase tracking-wider text-slate-800 dark:text-slate-200">Pending Leaves</span>
-              <div className="w-7.5 h-7.5 rounded-xl bg-amber-100 dark:bg-gold-500/20 text-amber-900 dark:text-gold-400 flex items-center justify-center border border-amber-200 dark:border-gold-500/30">
-                <Calendar className="w-4 h-4" />
-              </div>
-            </div>
-            <p className="text-3xl sm:text-4xl font-serif font-black text-slate-950 dark:text-white mt-2">{leaveRequests.filter(l => l.status.includes('Pending')).length}</p>
-            <span className="text-xs sm:text-sm text-amber-900 dark:text-gold-300 font-extrabold mt-1 block">↗ Review Required</span>
-          </div>
-        </div>
-
-        {/* MASTER FEATURE TABS BAR (Active Core Modules - Clean, High Contrast Labels) */}
-        <div className="bg-white dark:bg-navy-900 border-2 border-slate-200 dark:border-navy-800 rounded-2xl p-2.5 shadow-xs flex flex-wrap gap-2 overflow-x-auto">
-          {[
-            { id: 'overview', label: 'Overview', icon: LayoutDashboard },
-            { id: 'tasks', label: 'HR Task Assignment', icon: CheckSquare },
-            { id: 'attendance', label: 'Attendance Oversight', icon: Clock },
-            { id: 'leave', label: 'Leave Management', icon: Calendar },
-            { id: 'employees', label: 'Employee Directory', icon: Users },
-            { id: 'performance', label: 'Performance Reviews', icon: TrendingUp },
-            { id: 'recruitment', label: 'Onboarding & Hiring', icon: UserCheck },
-            { id: 'announcements', label: 'Company Notices', icon: Bell },
-            { id: 'shifts', label: 'Shift Roster', icon: CalendarCheck },
-            { id: 'documents', label: 'Document Vault', icon: FileText }
-          ].map(tab => {
-            const TabIcon = tab.icon;
-            const isTabActive = activeTab === tab.id;
-            return (
-              <button
-                key={tab.id}
-                onClick={() => setActiveTab(tab.id)}
-                className={`flex items-center gap-2 px-4 py-2 rounded-xl font-black text-xs sm:text-sm transition cursor-pointer shrink-0 ${
-                  isTabActive
-                    ? 'bg-gradient-to-r from-amber-500 to-amber-600 text-navy-950 shadow-sm border border-amber-400'
-                    : 'text-slate-800 dark:text-slate-200 hover:text-slate-950 dark:hover:text-white hover:bg-slate-100 dark:hover:bg-navy-800 border border-transparent hover:border-slate-300 dark:hover:border-navy-700'
-                }`}
-              >
-                <TabIcon className="w-4 h-4 shrink-0" />
-                <span>{tab.label}</span>
-              </button>
-            );
-          })}
-        </div>
+        </section>
 
         {/* ========================================================
             TAB 1: DASHBOARD OVERVIEW (Feature 1)
@@ -1648,7 +1673,7 @@ export const CrmHrLeadDashboard = ({ initialSection }) => {
                     <p className="font-serif font-bold text-slate-900 dark:text-white text-xs">Balavarshini S. (HR Ops)</p>
                   </div>
                 </div>
-                <button 
+                <button
                   onClick={() => showToast('🎉 Birthday greeting sent to Balavarshini!')}
                   className="px-2.5 py-1 rounded-xl bg-gold-500 text-navy-950 font-bold text-[10px] shadow-xs cursor-pointer hover:bg-gold-600"
                 >
@@ -1666,7 +1691,7 @@ export const CrmHrLeadDashboard = ({ initialSection }) => {
                     <p className="font-serif font-bold text-slate-900 dark:text-white text-xs">Diviya R. (2 Years Milestone)</p>
                   </div>
                 </div>
-                <button 
+                <button
                   onClick={() => showToast('🎖️ Work anniversary congratulations sent to Diviya!')}
                   className="px-2.5 py-1 rounded-xl bg-purple-600 text-white font-bold text-[10px] shadow-xs cursor-pointer hover:bg-purple-700"
                 >
@@ -1684,7 +1709,7 @@ export const CrmHrLeadDashboard = ({ initialSection }) => {
                     <p className="font-serif font-bold text-slate-900 dark:text-white text-xs">{leaveRequests.filter(l => l.status.includes('Pending')).length} Actionable Requests</p>
                   </div>
                 </div>
-                <button 
+                <button
                   onClick={() => setActiveTab('leave')}
                   className="px-2.5 py-1 rounded-xl bg-emerald-600 text-white font-bold text-[10px] shadow-xs cursor-pointer hover:bg-emerald-700"
                 >
@@ -1695,7 +1720,7 @@ export const CrmHrLeadDashboard = ({ initialSection }) => {
 
             {/* Department Headcount Breakdown & Live Activity Stream */}
             <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
-              
+
               {/* Department Distribution (7 cols) */}
               <div className="lg:col-span-7 bg-white dark:bg-navy-900 border border-slate-200/90 dark:border-navy-800 rounded-3xl p-6 shadow-xs space-y-4">
                 <div className="flex justify-between items-center">
@@ -1737,8 +1762,8 @@ export const CrmHrLeadDashboard = ({ initialSection }) => {
                   <h3 className="font-serif font-bold text-base text-slate-900 dark:text-white">
                     Today's Attendance Feed
                   </h3>
-                  <button 
-                    onClick={() => setActiveTab('attendance')} 
+                  <button
+                    onClick={() => setActiveTab('attendance')}
                     className="text-xs text-gold-600 dark:text-gold-400 font-bold hover:underline cursor-pointer"
                   >
                     Full Register →
@@ -1759,11 +1784,10 @@ export const CrmHrLeadDashboard = ({ initialSection }) => {
                       </div>
 
                       <div className="text-right">
-                        <span className={`px-2 py-0.5 rounded-full text-[9px] font-bold ${
-                          e.attendanceToday.status === 'Present' 
-                            ? 'bg-emerald-50 dark:bg-emerald-950/40 text-emerald-700 dark:text-emerald-300 border border-emerald-200' 
-                            : 'bg-amber-50 text-amber-700 border border-amber-200'
-                        }`}>
+                        <span className={`px-2 py-0.5 rounded-full text-[9px] font-bold ${e.attendanceToday.status === 'Present'
+                          ? 'bg-emerald-50 dark:bg-emerald-950/40 text-emerald-700 dark:text-emerald-300 border border-emerald-200'
+                          : 'bg-amber-50 text-amber-700 border border-amber-200'
+                          }`}>
                           {e.attendanceToday.checkIn}
                         </span>
                         {e.attendanceToday.late && (
@@ -1897,7 +1921,7 @@ export const CrmHrLeadDashboard = ({ initialSection }) => {
                     </p>
                   </div>
                   <div className="w-full bg-slate-200 dark:bg-navy-800 h-1.5 rounded-full overflow-hidden">
-                    <div 
+                    <div
                       className={`h-full transition-all duration-500 ${attendancePunch?.isOnBreak ? 'bg-amber-500' : 'bg-emerald-500'}`}
                       style={{ width: `${Math.min(100, (((attendancePunch?.liveWorkedSeconds || 0) / (8 * 3600)) * 100))}%` }}
                     />
@@ -2101,13 +2125,12 @@ export const CrmHrLeadDashboard = ({ initialSection }) => {
                           {e.department}
                         </td>
                         <td className="p-4 text-center">
-                          <span className={`px-2.5 py-1 rounded-full text-[10px] font-bold ${
-                            e.attendanceToday.status === 'Present'
-                              ? 'bg-emerald-50 dark:bg-emerald-950/40 text-emerald-700 dark:text-emerald-300 border border-emerald-200'
-                              : e.attendanceToday.status === 'On Leave'
+                          <span className={`px-2.5 py-1 rounded-full text-[10px] font-bold ${e.attendanceToday.status === 'Present'
+                            ? 'bg-emerald-50 dark:bg-emerald-950/40 text-emerald-700 dark:text-emerald-300 border border-emerald-200'
+                            : e.attendanceToday.status === 'On Leave'
                               ? 'bg-amber-50 dark:bg-amber-950/40 text-amber-700 dark:text-amber-300 border border-amber-200'
                               : 'bg-rose-50 dark:bg-rose-950/40 text-rose-700 dark:text-rose-300 border border-rose-200'
-                          }`}>
+                            }`}>
                             {e.attendanceToday.status}
                           </span>
                         </td>
@@ -2192,9 +2215,8 @@ export const CrmHrLeadDashboard = ({ initialSection }) => {
                           </button>
                         </>
                       ) : (
-                        <span className={`px-3 py-1 rounded-full text-[10px] font-bold ${
-                          l.status === 'Approved' ? 'bg-emerald-50 text-emerald-700 border border-emerald-200' : 'bg-rose-50 text-rose-700 border border-rose-200'
-                        }`}>
+                        <span className={`px-3 py-1 rounded-full text-[10px] font-bold ${l.status === 'Approved' ? 'bg-emerald-50 text-emerald-700 border border-emerald-200' : 'bg-rose-50 text-rose-700 border border-rose-200'
+                          }`}>
                           ✓ {l.status}
                         </span>
                       )}
@@ -2304,9 +2326,8 @@ export const CrmHrLeadDashboard = ({ initialSection }) => {
                         <span className="text-[10px] text-slate-400 font-mono">{e.id} • {e.location}</span>
                       </div>
                     </div>
-                    <span className={`px-2 py-0.5 rounded-full text-[9px] font-bold ${
-                      e.status === 'Active' ? 'bg-emerald-50 text-emerald-700 border border-emerald-200' : 'bg-amber-50 text-amber-700 border border-amber-200'
-                    }`}>
+                    <span className={`px-2 py-0.5 rounded-full text-[9px] font-bold ${e.status === 'Active' ? 'bg-emerald-50 text-emerald-700 border border-emerald-200' : 'bg-amber-50 text-amber-700 border border-amber-200'
+                      }`}>
                       {e.status}
                     </span>
                   </div>
@@ -2667,11 +2688,10 @@ export const CrmHrLeadDashboard = ({ initialSection }) => {
                                 type="button"
                                 onClick={() => toggleEmployeeDisbursement(e.id)}
                                 title="Click to toggle disbursement status"
-                                className={`px-2.5 py-1 rounded-full text-[10px] font-bold transition inline-flex items-center gap-1 cursor-pointer border ${
-                                  isCredited
-                                    ? 'bg-emerald-50 dark:bg-emerald-950/50 text-emerald-700 dark:text-emerald-300 border-emerald-200 dark:border-emerald-800 hover:bg-emerald-100'
-                                    : 'bg-amber-50 dark:bg-amber-950/50 text-amber-700 dark:text-amber-300 border-amber-200 dark:border-amber-800 hover:bg-amber-100'
-                                }`}
+                                className={`px-2.5 py-1 rounded-full text-[10px] font-bold transition inline-flex items-center gap-1 cursor-pointer border ${isCredited
+                                  ? 'bg-emerald-50 dark:bg-emerald-950/50 text-emerald-700 dark:text-emerald-300 border-emerald-200 dark:border-emerald-800 hover:bg-emerald-100'
+                                  : 'bg-amber-50 dark:bg-amber-950/50 text-amber-700 dark:text-amber-300 border-amber-200 dark:border-amber-800 hover:bg-amber-100'
+                                  }`}
                               >
                                 {isCredited ? (
                                   <>
@@ -3057,10 +3077,10 @@ export const CrmHrLeadDashboard = ({ initialSection }) => {
 
           const filteredShiftStaff = selectedShiftStaff.filter(emp => {
             const q = shiftRosterSearch.toLowerCase().trim();
-            const matchesSearch = !q || 
-              emp.name.toLowerCase().includes(q) || 
-              emp.id.toLowerCase().includes(q) || 
-              emp.role.toLowerCase().includes(q) || 
+            const matchesSearch = !q ||
+              emp.name.toLowerCase().includes(q) ||
+              emp.id.toLowerCase().includes(q) ||
+              emp.role.toLowerCase().includes(q) ||
               emp.department.toLowerCase().includes(q);
 
             let matchesStatus = true;
@@ -3082,7 +3102,7 @@ export const CrmHrLeadDashboard = ({ initialSection }) => {
           return (
             <div className="space-y-6 animate-in fade-in duration-200">
               <div className="bg-white dark:bg-navy-900 border border-slate-200/90 dark:border-navy-800 rounded-3xl p-6 shadow-xs space-y-6">
-                
+
                 {/* Header with Instructions */}
                 <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3">
                   <div>
@@ -3114,11 +3134,10 @@ export const CrmHrLeadDashboard = ({ initialSection }) => {
                       <div
                         key={s.id}
                         onClick={() => setSelectedShiftId(s.id)}
-                        className={`p-5 rounded-2xl transition-all cursor-pointer space-y-3 relative text-left ${
-                          isSelected
-                            ? 'bg-amber-50/70 dark:bg-amber-950/25 border-2 border-amber-500 shadow-md ring-2 ring-amber-500/20'
-                            : 'bg-slate-50 dark:bg-navy-950 border border-slate-200/80 dark:border-navy-800 hover:border-amber-400/80 hover:shadow-xs'
-                        }`}
+                        className={`p-5 rounded-2xl transition-all cursor-pointer space-y-3 relative text-left ${isSelected
+                          ? 'bg-amber-50/70 dark:bg-amber-950/25 border-2 border-amber-500 shadow-md ring-2 ring-amber-500/20'
+                          : 'bg-slate-50 dark:bg-navy-950 border border-slate-200/80 dark:border-navy-800 hover:border-amber-400/80 hover:shadow-xs'
+                          }`}
                       >
                         <div className="flex justify-between items-start gap-2">
                           <div>
@@ -3188,7 +3207,7 @@ export const CrmHrLeadDashboard = ({ initialSection }) => {
                     DETAILED ASSIGNED SHIFT ROSTER & LIVE LOGIN ACTIVITY
                 ======================================================== */}
                 <div className="mt-8 pt-6 border-t border-slate-200 dark:border-navy-800 space-y-4">
-                  
+
                   {/* Shift Roster Header & Metric Summary */}
                   <div className="flex flex-col lg:flex-row justify-between items-start lg:items-center gap-4 bg-slate-50 dark:bg-navy-950 p-4 rounded-2xl border border-slate-200/80 dark:border-navy-800">
                     <div>
@@ -3261,11 +3280,10 @@ export const CrmHrLeadDashboard = ({ initialSection }) => {
                         <button
                           key={f.key}
                           onClick={() => setShiftStatusFilter(f.key)}
-                          className={`px-3 py-1.5 rounded-xl font-bold text-xs whitespace-nowrap transition cursor-pointer ${
-                            shiftStatusFilter === f.key
-                              ? 'bg-navy-950 text-white dark:bg-amber-500 dark:text-navy-950 shadow-xs'
-                              : 'bg-slate-100 dark:bg-navy-800 text-slate-600 dark:text-slate-400 hover:bg-slate-200 dark:hover:bg-navy-700'
-                          }`}
+                          className={`px-3 py-1.5 rounded-xl font-bold text-xs whitespace-nowrap transition cursor-pointer ${shiftStatusFilter === f.key
+                            ? 'bg-navy-950 text-white dark:bg-amber-500 dark:text-navy-950 shadow-xs'
+                            : 'bg-slate-100 dark:bg-navy-800 text-slate-600 dark:text-slate-400 hover:bg-slate-200 dark:hover:bg-navy-700'
+                            }`}
                         >
                           {f.label}
                         </button>
@@ -3694,9 +3712,8 @@ export const CrmHrLeadDashboard = ({ initialSection }) => {
                       <p className="text-[11px] text-slate-600 dark:text-slate-300 mt-1">{g.details}</p>
                     </div>
 
-                    <span className={`px-2.5 py-1 rounded-full text-[10px] font-bold ${
-                      g.status === 'Resolved' ? 'bg-emerald-50 text-emerald-700 border border-emerald-200' : 'bg-blue-50 text-blue-700 border border-blue-200'
-                    }`}>
+                    <span className={`px-2.5 py-1 rounded-full text-[10px] font-bold ${g.status === 'Resolved' ? 'bg-emerald-50 text-emerald-700 border border-emerald-200' : 'bg-blue-50 text-blue-700 border border-blue-200'
+                      }`}>
                       {g.status}
                     </span>
                   </div>
@@ -3748,13 +3765,12 @@ export const CrmHrLeadDashboard = ({ initialSection }) => {
                           </p>
                         </div>
                         <span
-                          className={`px-2.5 py-0.5 rounded-full text-xs font-bold ${
-                            reg.status === 'Approved'
-                              ? 'bg-emerald-100 text-emerald-800 dark:bg-emerald-500/20 dark:text-emerald-300'
-                              : reg.status === 'Rejected'
-                                ? 'bg-rose-100 text-rose-800 dark:bg-rose-500/20 dark:text-rose-300'
-                                : 'bg-amber-100 text-amber-800 dark:bg-amber-500/20 dark:text-amber-300'
-                          }`}
+                          className={`px-2.5 py-0.5 rounded-full text-xs font-bold ${reg.status === 'Approved'
+                            ? 'bg-emerald-100 text-emerald-800 dark:bg-emerald-500/20 dark:text-emerald-300'
+                            : reg.status === 'Rejected'
+                              ? 'bg-rose-100 text-rose-800 dark:bg-rose-500/20 dark:text-rose-300'
+                              : 'bg-amber-100 text-amber-800 dark:bg-amber-500/20 dark:text-amber-300'
+                            }`}
                         >
                           {reg.status}
                         </span>
@@ -3918,7 +3934,7 @@ export const CrmHrLeadDashboard = ({ initialSection }) => {
             <div className="bg-white dark:bg-navy-900 rounded-3xl p-6 border border-slate-200 dark:border-navy-800 shadow-2xl max-w-lg w-full space-y-4">
               <div className="flex justify-between items-center border-b border-slate-200 dark:border-navy-800 pb-3">
                 <h3 className="font-serif font-bold text-lg text-slate-900 dark:text-white">Add Employee Profile</h3>
-                <button 
+                <button
                   onClick={() => setIsAddEmployeeOpen(false)}
                   className="text-slate-400 hover:text-slate-600 text-lg cursor-pointer"
                 >
@@ -4072,7 +4088,7 @@ export const CrmHrLeadDashboard = ({ initialSection }) => {
         {selectedProfileEmployee && (
           <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-navy-950/70 backdrop-blur-xs animate-in fade-in">
             <div className="bg-white dark:bg-navy-900 rounded-3xl p-6 border border-slate-200 dark:border-navy-800 shadow-2xl max-w-2xl w-full space-y-5 max-h-[90vh] overflow-y-auto">
-              
+
               <div className="flex justify-between items-start border-b border-slate-200 dark:border-navy-800 pb-4">
                 <div className="flex items-center gap-3.5">
                   <div className="w-14 h-14 rounded-2xl bg-amber-100 dark:bg-navy-800 text-amber-900 dark:text-gold-400 font-serif font-black text-2xl flex items-center justify-center border border-amber-300/60 dark:border-navy-700 shadow-sm">
@@ -4093,7 +4109,7 @@ export const CrmHrLeadDashboard = ({ initialSection }) => {
                   </div>
                 </div>
 
-                <button 
+                <button
                   onClick={() => setSelectedProfileEmployee(null)}
                   className="w-8 h-8 rounded-full bg-slate-100 dark:bg-navy-800 hover:bg-slate-200 dark:hover:bg-navy-700 flex items-center justify-center text-slate-500 dark:text-slate-400 cursor-pointer transition"
                 >
@@ -4179,7 +4195,7 @@ export const CrmHrLeadDashboard = ({ initialSection }) => {
                     doc.setFont('helvetica', 'normal');
                     doc.text(`Generated: ${new Date().toLocaleDateString('en-GB')}`, 14, 26);
                     doc.line(14, 30, 196, 30);
-                    
+
                     doc.text(`Full Name: ${selectedProfileEmployee.name}`, 14, 40);
                     doc.text(`Employee ID: ${selectedProfileEmployee.id}`, 14, 48);
                     doc.text(`Designation: ${selectedProfileEmployee.role}`, 14, 56);
@@ -4190,7 +4206,7 @@ export const CrmHrLeadDashboard = ({ initialSection }) => {
                     doc.text(`Date of Joining: ${selectedProfileEmployee.joiningDate}`, 14, 96);
                     doc.text(`Gross Salary: ${selectedProfileEmployee.salary}`, 14, 104);
                     doc.text(`Annual CTC: ${selectedProfileEmployee.ctc}`, 14, 112);
-                    
+
                     doc.save(`Employee_Dossier_${selectedProfileEmployee.id}.pdf`);
                     showToast(`✓ Downloaded personnel dossier for ${selectedProfileEmployee.name}`);
                   }}
@@ -4217,7 +4233,7 @@ export const CrmHrLeadDashboard = ({ initialSection }) => {
         {isAddReviewOpen && (
           <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-navy-950/70 backdrop-blur-xs animate-in fade-in">
             <div className="bg-white dark:bg-navy-900 rounded-3xl p-6 border border-slate-200 dark:border-navy-800 shadow-2xl max-w-lg w-full space-y-4">
-              
+
               <div className="flex justify-between items-center border-b border-slate-200 dark:border-navy-800 pb-3">
                 <div className="flex items-center gap-2">
                   <Award className="w-5 h-5 text-gold-500" />
@@ -4225,7 +4241,7 @@ export const CrmHrLeadDashboard = ({ initialSection }) => {
                     Add Quarterly Performance Review
                   </h3>
                 </div>
-                <button 
+                <button
                   onClick={() => setIsAddReviewOpen(false)}
                   className="text-slate-400 hover:text-slate-600 text-lg cursor-pointer"
                 >

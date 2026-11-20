@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { useCrm } from '../context/CrmContext';
 import {
   LayoutDashboard, Users, GitMerge, Home, Globe, Building2, UserCheck,
@@ -30,6 +30,17 @@ export const CONSULTING_SUB_SERVICES = [
   { id: 'exec-seminars-lang', label: 'Executive Seminars & Language', icon: Languages }
 ];
 
+// Helper to determine if an avatar is an uploaded custom photo (vs empty or legacy preset stock image)
+const hasUploadedPhoto = (avatarUrl) => {
+  if (!avatarUrl || typeof avatarUrl !== 'string') return false;
+  const trimmed = avatarUrl.trim();
+  if (!trimmed) return false;
+  if (trimmed.includes('unsplash.com') || trimmed.includes('dicebear.com')) {
+    return false;
+  }
+  return true;
+};
+
 export const CrmSidebar = ({ collapsed, setCollapsed }) => {
   const {
     activeModule,
@@ -45,12 +56,25 @@ export const CrmSidebar = ({ collapsed, setCollapsed }) => {
     setConsultingServiceFilter
   } = useCrm();
 
-  const isHrOperationsRole = currentRole === 'HR Operations';
+  const isHrOperationsRole = currentRole === 'HR Operations' || user?.role === 'HR Operations' || user?.designation === 'HR Operations';
   const isRecruiterRole = currentRole === 'Recruiter' || currentRole === 'Domestic Recruiter' || currentRole === 'International Recruiter';
   const isPlacementRole = currentRole === 'Placement Coordinator';
   const isInterviewerRole = currentRole === 'Interviewer';
   const isHrLeadRole = currentRole === 'HR Lead';
   const isExecutiveRole = currentRole === 'Super Admin' || currentRole === 'Admin';
+
+  // Dynamic first letter of employee's name for default avatar fallback
+  const userInitial = useMemo(() => {
+    const rawName = user?.name || currentRole || 'HR';
+    const cleanName = rawName.replace(/^(Mr\.|Ms\.|Mrs\.|Dr\.)\s+/i, '').trim();
+    return cleanName.charAt(0).toUpperCase() || 'H';
+  }, [user?.name, currentRole]);
+
+  // For HR Operations: if user removes photo (or has stock preset), show default profile (first letter of name).
+  // If user uploaded a custom photo, display the uploaded photo.
+  const showUserInitial = isHrOperationsRole
+    ? !hasUploadedPhoto(user?.avatar)
+    : (!user?.avatar || user.avatar.trim() === '');
 
   const [consultingOpen, setConsultingOpen] = useState(false);
 
@@ -178,9 +202,9 @@ export const CrmSidebar = ({ collapsed, setCollapsed }) => {
 
   // Tailored HR Operations menu (Clean, high contrast labels)
   const hrOpsMenuItems = [
-    { id: 'dashboard', label: 'Operations Work Queue', icon: LayoutDashboard },
+    { id: 'dashboard', label: 'My Dashboard', icon: LayoutDashboard },
     { id: 'hr-tasks', label: 'My Assigned Enquiries', icon: CheckSquare },
-    { id: 'candidates', label: 'Candidate Directory', icon: Users },
+    { id: 'candidates', label: 'Candidates', icon: Users },
     { id: 'my-attendance', label: 'My Attendance', icon: CalendarCheck },
     { id: 'documentation', label: 'Document Verification & KYC', icon: FileText },
     { id: 'verification', label: 'Background Verification (BGV)', icon: ShieldCheck },
@@ -307,13 +331,12 @@ export const CrmSidebar = ({ collapsed, setCollapsed }) => {
                 }
               }
             }}
-            className={`w-full flex items-center justify-between px-3 py-2 rounded-xl transition duration-150 group cursor-pointer ${
-              isConsultingActive && consultingServiceFilter === 'all'
-                ? 'bg-amber-100 dark:bg-gold-500/25 text-slate-950 dark:text-gold-200 font-bold border-2 border-amber-400 dark:border-gold-500/40 shadow-xs'
-                : isParentActive
-                  ? 'bg-amber-50 dark:bg-gold-500/10 text-amber-950 dark:text-gold-300 font-semibold border border-amber-300/60 dark:border-gold-500/20'
-                  : 'hover:bg-slate-100 dark:hover:bg-navy-900/90 hover:text-slate-950 dark:hover:text-white text-slate-800 dark:text-slate-200 font-medium border border-transparent'
-            }`}
+            className={`w-full flex items-center justify-between px-3 py-2 rounded-xl transition duration-150 group cursor-pointer ${isConsultingActive && consultingServiceFilter === 'all'
+              ? 'bg-amber-100 dark:bg-gold-500/25 text-slate-950 dark:text-gold-200 font-bold border-2 border-amber-400 dark:border-gold-500/40 shadow-xs'
+              : isParentActive
+                ? 'bg-amber-50 dark:bg-gold-500/10 text-amber-950 dark:text-gold-300 font-semibold border border-amber-300/60 dark:border-gold-500/20'
+                : 'hover:bg-slate-100 dark:hover:bg-navy-900/90 hover:text-slate-950 dark:hover:text-white text-slate-800 dark:text-slate-200 font-medium border border-transparent'
+              }`}
             title={item.label}
           >
             <div className="flex items-center space-x-2.5 truncate">
@@ -359,11 +382,10 @@ export const CrmSidebar = ({ collapsed, setCollapsed }) => {
                       }
                       if (window.innerWidth < 1024) setCollapsed(true);
                     }}
-                    className={`w-full flex items-center justify-between px-3 py-2 rounded-lg text-xs sm:text-[13px] transition duration-150 cursor-pointer ${
-                      isSrvActive
-                        ? 'bg-amber-100 dark:bg-gold-500/25 text-slate-950 dark:text-gold-100 font-black border border-amber-300 dark:border-gold-500/40 shadow-xs'
-                        : 'text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-navy-900/80 hover:text-slate-950 dark:hover:text-white font-bold'
-                    }`}
+                    className={`w-full flex items-center justify-between px-3 py-2 rounded-lg text-xs sm:text-[13px] transition duration-150 cursor-pointer ${isSrvActive
+                      ? 'bg-amber-100 dark:bg-gold-500/25 text-slate-950 dark:text-gold-100 font-black border border-amber-300 dark:border-gold-500/40 shadow-xs'
+                      : 'text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-navy-900/80 hover:text-slate-950 dark:hover:text-white font-bold'
+                      }`}
                     title={srv.label}
                   >
                     <div className="flex items-center space-x-2.5 truncate">
@@ -371,11 +393,10 @@ export const CrmSidebar = ({ collapsed, setCollapsed }) => {
                       <span className="truncate">{srv.label}</span>
                     </div>
                     {srvCount > 0 && (
-                      <span className={`px-2 py-0.5 rounded-full text-xs font-mono font-bold shrink-0 ${
-                        isSrvActive
-                          ? 'bg-amber-500 text-navy-950'
-                          : 'bg-slate-200 dark:bg-navy-800 text-slate-800 dark:text-slate-200'
-                      }`}>
+                      <span className={`px-2 py-0.5 rounded-full text-xs font-mono font-bold shrink-0 ${isSrvActive
+                        ? 'bg-amber-500 text-navy-950'
+                        : 'bg-slate-200 dark:bg-navy-800 text-slate-800 dark:text-slate-200'
+                        }`}>
                         {srvCount}
                       </span>
                     )}
@@ -396,18 +417,16 @@ export const CrmSidebar = ({ collapsed, setCollapsed }) => {
           setConsultingOpen(false);
           if (window.innerWidth < 1024) setCollapsed(true);
         }}
-        className={`w-full flex items-center space-x-2.5 px-3 py-2 rounded-xl transition duration-150 cursor-pointer ${
-          isActive
-            ? 'bg-amber-100 dark:bg-gold-500/25 text-slate-950 dark:text-gold-200 font-bold border-2 border-amber-400 dark:border-gold-500/40 shadow-xs'
-            : 'hover:bg-slate-100 dark:hover:bg-navy-900/90 hover:text-slate-950 dark:hover:text-white text-slate-800 dark:text-slate-200 font-semibold border border-transparent'
-        }`}
+        className={`w-full flex items-center space-x-2.5 px-3 py-2 rounded-xl transition duration-150 cursor-pointer ${isActive
+          ? 'bg-amber-100 dark:bg-gold-500/25 text-slate-950 dark:text-gold-200 font-bold border-2 border-amber-400 dark:border-gold-500/40 shadow-xs'
+          : 'hover:bg-slate-100 dark:hover:bg-navy-900/90 hover:text-slate-950 dark:hover:text-white text-slate-800 dark:text-slate-200 font-semibold border border-transparent'
+          }`}
         title={item.label}
       >
-        <Icon className={`w-4 h-4 shrink-0 ${
-          isActive
-            ? 'text-amber-700 dark:text-gold-400'
-            : 'text-slate-600 dark:text-slate-300'
-        }`} />
+        <Icon className={`w-4 h-4 shrink-0 ${isActive
+          ? 'text-amber-700 dark:text-gold-400'
+          : 'text-slate-600 dark:text-slate-300'
+          }`} />
         {!collapsed && <span className="truncate flex-1 text-left text-xs sm:text-[13px] font-semibold">{item.label}</span>}
         {!collapsed && item.badge !== undefined && item.badge !== null && item.badge > 0 && (
           <span className="px-2 py-0.5 text-[10px] font-bold rounded-full bg-blue-600 text-white shadow-xs shrink-0">
@@ -458,8 +477,8 @@ export const CrmSidebar = ({ collapsed, setCollapsed }) => {
 
     if (isHrOperationsRole) {
       currentList = hrOpsMenuItems;
-      roleSectionTitle = 'Operations Desk';
-      roleBadge = 'Daily Workspace';
+      roleSectionTitle = '';
+      roleBadge = '';
     } else if (isRecruiterRole) {
       currentList = recruiterMenuItems;
       roleSectionTitle = 'Recruiter Workspace';
@@ -561,11 +580,20 @@ export const CrmSidebar = ({ collapsed, setCollapsed }) => {
                 title="View & Edit My Profile"
               >
                 <div className="relative shrink-0">
-                  <img
-                    src={user?.avatar || 'https://images.unsplash.com/photo-1573496359142-b8d87734a5a2?w=150&auto=format&fit=crop&q=80'}
-                    alt={formatUserName(user?.name)}
-                    className="w-9 h-9 rounded-full border-2 border-amber-500 object-cover shadow-xs ring-1 ring-gold-500/40"
-                  />
+                  {!showUserInitial && user?.avatar ? (
+                    <img
+                      src={user.avatar}
+                      alt={formatUserName(user?.name)}
+                      className="w-9 h-9 rounded-full border-2 border-amber-500 object-cover shadow-xs ring-1 ring-gold-500/40"
+                    />
+                  ) : (
+                    <div
+                      className="w-9 h-9 rounded-full bg-gradient-to-br from-amber-400 via-amber-500 to-gold-600 text-slate-950 font-serif font-black text-sm flex items-center justify-center border-2 border-amber-500 shadow-xs ring-1 ring-gold-500/40 select-none shrink-0"
+                      title={formatUserName(user?.name)}
+                    >
+                      {userInitial}
+                    </div>
+                  )}
                   <span className="absolute bottom-0 right-0 w-2.5 h-2.5 bg-emerald-500 border-2 border-white dark:border-[#070c1e] rounded-full shadow-xs" title="Online & Active" />
                 </div>
 
@@ -610,11 +638,20 @@ export const CrmSidebar = ({ collapsed, setCollapsed }) => {
                 className="relative cursor-pointer hover:scale-105 transition"
                 title={'View My Profile (' + formatUserName(user?.name) + ')'}
               >
-                <img
-                  src={user?.avatar || 'https://images.unsplash.com/photo-1573496359142-b8d87734a5a2?w=150&auto=format&fit=crop&q=80'}
-                  alt={formatUserName(user?.name)}
-                  className="w-8 h-8 rounded-full border-2 border-gold-500 object-cover shadow-sm ring-1 ring-gold-500/40"
-                />
+                {!showUserInitial && user?.avatar ? (
+                  <img
+                    src={user.avatar}
+                    alt={formatUserName(user?.name)}
+                    className="w-8 h-8 rounded-full border-2 border-gold-500 object-cover shadow-sm ring-1 ring-gold-500/40"
+                  />
+                ) : (
+                  <div
+                    className="w-8 h-8 rounded-full bg-gradient-to-br from-amber-400 via-amber-500 to-gold-600 text-slate-950 font-serif font-black text-xs flex items-center justify-center border-2 border-gold-500 shadow-sm ring-1 ring-gold-500/40 select-none shrink-0"
+                    title={'View My Profile (' + formatUserName(user?.name) + ')'}
+                  >
+                    {userInitial}
+                  </div>
+                )}
                 <span className="absolute bottom-0 right-0 w-2 h-2 bg-emerald-500 border border-white dark:border-navy-900 rounded-full" />
               </div>
               <button

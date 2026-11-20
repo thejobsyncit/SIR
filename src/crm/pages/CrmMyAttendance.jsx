@@ -409,19 +409,6 @@ export const CrmMyAttendance = () => {
             <h1 className="text-xl sm:text-2xl font-bold tracking-tight text-slate-900 dark:text-white truncate">
               My Attendance
             </h1>
-            <div className="mt-1 flex items-center gap-2 flex-wrap text-xs text-slate-500 dark:text-slate-400">
-              <span className="font-semibold text-slate-800 dark:text-slate-200">
-                {dashboard?.employee?.name || user?.name}
-              </span>
-              <span className="text-slate-300 dark:text-white/20">•</span>
-              <span className="px-2 py-0.5 rounded-md text-[11px] font-semibold bg-slate-100 dark:bg-white/5 border border-slate-200 dark:border-white/10 text-slate-600 dark:text-slate-300">
-                {dashboard?.employee?.operationTeam || 'HR Operations'}
-              </span>
-              <span className="text-slate-300 dark:text-white/20">•</span>
-              <span className="px-2 py-0.5 rounded-md text-[11px] font-semibold bg-amber-50 dark:bg-amber-500/10 border border-amber-200 dark:border-amber-500/20 text-amber-700 dark:text-amber-300">
-                {activeShift.name || 'General Shift'}
-              </span>
-            </div>
           </div>
         </div>
 
@@ -445,22 +432,6 @@ export const CrmMyAttendance = () => {
               </p>
             </div>
           </div>
-
-          {/* Alerts Drawer Button */}
-          <button
-            type="button"
-            onClick={() => setShowNotifDrawer((p) => !p)}
-            className="h-10 px-3.5 rounded-xl border border-slate-200 dark:border-white/10 bg-white dark:bg-navy-950 hover:bg-slate-50 dark:hover:bg-white/5 text-slate-700 dark:text-slate-200 text-xs font-bold flex items-center gap-2 transition-colors cursor-pointer shadow-2xs shrink-0"
-            title="View Attendance Notifications & Alerts"
-          >
-            <Bell className="w-4 h-4 text-slate-500 dark:text-slate-400 shrink-0" />
-            <span>Alerts</span>
-            {unreadCount > 0 && (
-              <span className="px-1.5 py-0.2 text-[10px] font-black rounded-full bg-rose-500 text-white shrink-0">
-                {unreadCount}
-              </span>
-            )}
-          </button>
 
           {/* Refresh Button */}
           <button
@@ -623,11 +594,6 @@ export const CrmMyAttendance = () => {
                 <span className={`inline-flex items-center px-3 py-1 rounded-full text-xs font-bold border ${getStatusBadgeClass(displayStatus)}`}>
                   {displayStatus}
                 </span>
-                {(todayRecord?.lateMinutes > 0 || activePunch.lateMinutes > 0) && (
-                  <span className="text-xs font-semibold text-orange-600 dark:text-orange-400">
-                    +{todayRecord?.lateMinutes || activePunch.lateMinutes}m late
-                  </span>
-                )}
               </div>
             </div>
             <div className="text-right">
@@ -644,13 +610,6 @@ export const CrmMyAttendance = () => {
             </div>
           </div>
 
-          <div className="p-2.5 rounded-xl bg-emerald-50/80 dark:bg-emerald-500/10 border border-emerald-200 dark:border-emerald-500/20 text-[11px] text-emerald-800 dark:text-emerald-300 flex items-center gap-2">
-            <CheckCircle2 className="w-4 h-4 text-emerald-600 shrink-0" />
-            <span>
-              <strong>Automated Shift Tracking:</strong> Check-in is logged automatically upon portal sign-in. Check-out is recorded when you click sign-out or close your browser tab.
-            </span>
-          </div>
-
           {/* Check-in, Check-out, Break readouts */}
           <div className="grid grid-cols-3 gap-2.5 bg-slate-50 dark:bg-navy-950 border border-slate-200/80 dark:border-white/10 rounded-xl p-3">
             <div>
@@ -658,21 +617,18 @@ export const CrmMyAttendance = () => {
               <p className="text-xs sm:text-sm font-bold text-slate-800 dark:text-white mt-0.5">
                 {displayCheckIn}
               </p>
-              <span className="text-[10px] text-emerald-600 dark:text-emerald-400 font-semibold">Auto-logged</span>
             </div>
             <div>
               <p className="text-[11px] text-slate-400 font-medium">Check-Out</p>
               <p className="text-xs sm:text-sm font-bold text-slate-800 dark:text-white mt-0.5">
                 {displayCheckOut}
               </p>
-              <span className="text-[10px] text-slate-400">On logout / close</span>
             </div>
             <div>
               <p className="text-[11px] text-slate-400 font-medium">Break</p>
               <p className="text-xs sm:text-sm font-bold text-slate-800 dark:text-white mt-0.5">
                 {formatDuration(todayRecord?.totalBreakMinutes || activePunch.totalBreakMinutes || 0)}
               </p>
-              <span className="text-[10px] text-slate-400">Total duration</span>
             </div>
           </div>
 
@@ -754,7 +710,6 @@ export const CrmMyAttendance = () => {
             <p className="text-2xl font-bold text-emerald-600 dark:text-emerald-400 mt-1">
               {summary.presentDays ?? 0}
             </p>
-            <p className="text-[11px] text-slate-400 mt-1">On-time: {summary.onTimePresentDays ?? 0}</p>
           </div>
 
           <div className="bg-white dark:bg-navy-900 border border-slate-200 dark:border-white/10 rounded-2xl p-4 shadow-sm">
@@ -762,7 +717,6 @@ export const CrmMyAttendance = () => {
             <p className="text-2xl font-bold text-rose-600 dark:text-rose-400 mt-1">
               {summary.absentDays ?? 0}
             </p>
-            <p className="text-[11px] text-slate-400 mt-1">Missing checkout: {summary.missingCheckoutDays ?? 0}</p>
           </div>
 
           <div className="bg-white dark:bg-navy-900 border border-slate-200 dark:border-white/10 rounded-2xl p-4 shadow-sm">
@@ -770,16 +724,12 @@ export const CrmMyAttendance = () => {
             <p className="text-2xl font-bold text-blue-600 dark:text-blue-400 mt-1">
               {summary.leaveDays ?? 0}
             </p>
-            <p className="text-[11px] text-slate-400 mt-1">Holidays: {summary.holidayDays ?? 0}</p>
           </div>
 
           <div className="bg-white dark:bg-navy-900 border border-slate-200 dark:border-white/10 rounded-2xl p-4 shadow-sm">
             <p className="text-xs font-medium text-slate-500 dark:text-slate-400">Late Arrivals</p>
             <p className="text-2xl font-bold text-orange-600 dark:text-orange-400 mt-1">
               {summary.lateArrivals ?? 0}
-            </p>
-            <p className="text-[11px] text-slate-400 mt-1">
-              Grace: {activeShift.graceMinutes ?? 15}m after {activeShift.startTime || '09:00'}
             </p>
           </div>
 
@@ -788,16 +738,12 @@ export const CrmMyAttendance = () => {
             <p className="text-2xl font-bold text-slate-900 dark:text-white mt-1">
               {summary.attendancePercentage ?? 100}%
             </p>
-            <p className="text-[11px] text-slate-400 mt-1">Scheduled elapsed workdays</p>
           </div>
 
           <div className="bg-white dark:bg-navy-900 border border-slate-200 dark:border-white/10 rounded-2xl p-4 shadow-sm">
             <p className="text-xs font-medium text-slate-500 dark:text-slate-400">Monthly Work Hours</p>
             <p className="text-2xl font-bold text-indigo-600 dark:text-gold-400 mt-1">
               {workingHours.monthlyTotalFormatted || '0h 00m'}
-            </p>
-            <p className="text-[11px] text-slate-400 mt-1">
-              Avg: {workingHours.avgDailyFormatted || '0h 00m'} / day
             </p>
           </div>
         </div>

@@ -7,7 +7,6 @@ import {
   Calendar,
   CalendarClock,
   CheckCircle2,
-  ChevronRight,
   Clock,
   FileCheck2,
   Filter,
@@ -190,13 +189,10 @@ const CrmHrOperationsDashboard = ({ initialSection } = {}) => {
   const isEnquiriesPage = initialSection === 'tasks' || initialSection === 'hr-tasks' || initialSection === 'enquiries';
 
   // Interactive workspace tabs & filters
-  const [activeCardId, setActiveCardId] = useState('myAssignedEnquiries');
-  const [activeTab, setActiveTab] = useState(() => (initialSection === 'tasks') ? 'tasks' : 'enquiries'); // 'enquiries' | 'followups' | 'tasks'
+  const [activeTab, setActiveTab] = useState('enquiries'); // 'enquiries' | 'followups'
 
   useEffect(() => {
-    if (initialSection === 'tasks') {
-      setActiveTab('tasks');
-    } else if (initialSection === 'enquiries' || initialSection === 'hr-tasks') {
+    if (initialSection === 'enquiries' || initialSection === 'hr-tasks' || initialSection === 'tasks') {
       setActiveTab('enquiries');
     }
   }, [initialSection]);
@@ -354,42 +350,6 @@ const CrmHrOperationsDashboard = ({ initialSection } = {}) => {
     url.searchParams.set('candidateKey', candidateKey);
     window.history.replaceState({}, '', url.toString());
     setActiveModule('candidates');
-  };
-
-  const handleSummaryCardClick = (cardKey) => {
-    setActiveCardId(cardKey);
-    switch (cardKey) {
-      case 'myAssignedEnquiries':
-        setActiveTab('enquiries');
-        setEnquiryQuickFilter('all');
-        setStatusFilter('all');
-        break;
-      case 'pendingEnquiries':
-        setActiveTab('enquiries');
-        setEnquiryQuickFilter('pending');
-        setStatusFilter('all');
-        break;
-      case 'followUpsDueToday':
-        setActiveTab('followups');
-        setFollowUpBucketFilter('today');
-        break;
-      case 'overdueFollowUps':
-        setActiveTab('followups');
-        setFollowUpBucketFilter('overdue');
-        break;
-      case 'completedEnquiriesThisMonth':
-        setActiveTab('enquiries');
-        setEnquiryQuickFilter('completed-month');
-        setStatusFilter('all');
-        break;
-      case 'pendingTasks':
-        setActiveTab('tasks');
-        setTaskFilter('pending');
-        break;
-      default:
-        break;
-    }
-    scrollToWorkspace();
   };
 
   const openStatusModal = (enq) => {
@@ -673,76 +633,44 @@ const CrmHrOperationsDashboard = ({ initialSection } = {}) => {
       key: 'myAssignedEnquiries',
       label: 'My Assigned Enquiries',
       value: metrics.myAssignedEnquiries,
-      hint: 'View assigned queue',
-      icon: Inbox,
-      accent: 'text-blue-600 dark:text-blue-400',
-      iconBg: 'bg-blue-50 dark:bg-blue-500/15 border-blue-200/70 dark:border-blue-500/30',
-      activeRing: 'ring-2 ring-blue-500 border-blue-400 dark:border-blue-500'
+      icon: Inbox
     },
     {
       key: 'pendingEnquiries',
       label: 'Pending Enquiries',
       value: metrics.pendingEnquiries,
-      hint: 'Open items needing action',
-      icon: Clock,
-      accent: 'text-amber-600 dark:text-amber-400',
-      iconBg: 'bg-amber-50 dark:bg-amber-500/15 border-amber-200/70 dark:border-amber-500/30',
-      activeRing: 'ring-2 ring-amber-500 border-amber-400 dark:border-amber-500'
+      icon: Clock
     },
     {
       key: 'followUpsDueToday',
       label: 'Follow-ups Due Today',
       value: metrics.followUpsDueToday,
-      hint: 'Scheduled for today',
-      icon: CalendarClock,
-      accent: 'text-indigo-600 dark:text-indigo-400',
-      iconBg: 'bg-indigo-50 dark:bg-indigo-500/15 border-indigo-200/70 dark:border-indigo-500/30',
-      activeRing: 'ring-2 ring-indigo-500 border-indigo-400 dark:border-indigo-500'
+      icon: CalendarClock
     },
     {
       key: 'overdueFollowUps',
       label: 'Overdue Follow-ups',
       value: metrics.overdueFollowUps,
-      hint: 'Past due follow-ups',
-      icon: AlertTriangle,
-      accent: 'text-rose-600 dark:text-rose-400',
-      iconBg: 'bg-rose-50 dark:bg-rose-500/15 border-rose-200/70 dark:border-rose-500/30',
-      activeRing: 'ring-2 ring-rose-500 border-rose-400 dark:border-rose-500'
+      icon: AlertTriangle
     },
     {
       key: 'completedEnquiriesThisMonth',
       label: 'Completed Enquiries This Month',
       value: metrics.completedEnquiriesThisMonth,
-      hint: 'Resolved this month',
-      icon: CheckCircle2,
-      accent: 'text-emerald-600 dark:text-emerald-400',
-      iconBg: 'bg-emerald-50 dark:bg-emerald-500/15 border-emerald-200/70 dark:border-emerald-500/30',
-      activeRing: 'ring-2 ring-emerald-500 border-emerald-400 dark:border-emerald-500'
-    },
-    {
-      key: 'pendingTasks',
-      label: 'Pending Tasks',
-      value: metrics.pendingTasks,
-      hint: 'Open assigned tasks',
-      icon: ListTodo,
-      accent: 'text-violet-600 dark:text-violet-400',
-      iconBg: 'bg-violet-50 dark:bg-violet-500/15 border-violet-200/70 dark:border-violet-500/30',
-      activeRing: 'ring-2 ring-violet-500 border-violet-400 dark:border-violet-500'
+      icon: CheckCircle2
     }
   ];
 
-  const enquiriesSummaryCards = summaryCards.filter((card) =>
-    ['myAssignedEnquiries', 'pendingEnquiries', 'followUpsDueToday', 'completedEnquiriesThisMonth'].includes(card.key)
-  );
+  const enquiriesSummaryCards = summaryCards;
 
   // Role Preview / Auth / Fatal Error states
   if (authTokenLoading || (loading && !dashboard && !errorState)) {
     return (
       <div className="space-y-6 animate-pulse" data-testid="hr-ops-dashboard-loading">
         <div className="h-32 rounded-2xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800" />
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6 gap-4">
-          {Array.from({ length: 6 }).map((_, idx) => (
-            <div key={idx} className="h-28 rounded-2xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800" />
+        <div className="grid grid-cols-2 md:grid-cols-3 xl:grid-cols-5 gap-3 sm:gap-4">
+          {Array.from({ length: 5 }).map((_, idx) => (
+            <div key={idx} className="h-28 rounded-2xl bg-white dark:bg-slate-900 border border-slate-200/80 dark:border-slate-800 border-l-4 border-l-amber-500/40" />
           ))}
         </div>
         <div className="h-36 rounded-2xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800" />
@@ -861,35 +789,9 @@ const CrmHrOperationsDashboard = ({ initialSection } = {}) => {
       <header className="rounded-2xl bg-white dark:bg-slate-900 border-2 border-slate-200 dark:border-slate-800 p-4 sm:p-5 shadow-xs">
         <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-3 sm:gap-4">
           <div className="space-y-1 sm:space-y-1.5 min-w-0">
-            <div className="flex items-center gap-2">
-              <span className="text-[10px] font-bold uppercase tracking-wider px-2.5 py-0.5 rounded-md bg-amber-100 text-amber-900 dark:bg-gold-500/20 dark:text-gold-300 border border-amber-300 dark:border-gold-500/30">
-                {isEnquiriesPage ? 'Enquiries Desk • Active Pipeline' : 'Operations Desk • Daily Workspace'}
-              </span>
-            </div>
             <h1 className="text-xl sm:text-2xl font-bold tracking-tight text-slate-950 dark:text-white">
-              {isEnquiriesPage ? 'My Assigned Enquiries & Active Pipeline' : 'Daily Operations Work Queue & Console'}
+              {isEnquiriesPage ? 'My Assigned Enquiries' : 'My Dashboard'}
             </h1>
-            <p className="text-xs sm:text-sm text-slate-600 dark:text-slate-300 font-medium">
-              {isEnquiriesPage
-                ? 'Review assigned candidate and student enquiries, schedule follow-ups, and update pipeline status.'
-                : 'Centralized workforce workspace for shift tracking, attendance logs, and operational workflow.'}
-            </p>
-            <div className="flex flex-wrap items-center gap-x-3 gap-y-1 text-xs text-slate-600 dark:text-slate-400 pt-0.5">
-              <span className="inline-flex items-center gap-1 font-semibold text-slate-900 dark:text-slate-200">
-                <UserCheck className="w-3.5 h-3.5 text-amber-600 shrink-0" />
-                <span data-testid="hr-dashboard-employee-name">{employeeInfo.name}</span>
-              </span>
-              <span>•</span>
-              <span data-testid="hr-dashboard-employee-designation">{employeeInfo.designation}</span>
-              {employeeInfo.operationTeam && (
-                <>
-                  <span>•</span>
-                  <span className="px-2 py-0.2 rounded-full text-[10px] font-bold bg-amber-100 text-amber-900 border border-amber-300 dark:bg-slate-800 dark:text-slate-300">
-                    {employeeInfo.operationTeam}
-                  </span>
-                </>
-              )}
-            </div>
           </div>
 
           <div className="flex flex-wrap items-center gap-2.5">
@@ -928,50 +830,43 @@ const CrmHrOperationsDashboard = ({ initialSection } = {}) => {
         </div>
       </header>
 
-      {/* 2. Summary Cards */}
+      {/* 2. Redesigned Five KPI Cards for HR Operations */}
       <section aria-label="Employee Operations Metrics">
-        <div className={`grid gap-3 sm:gap-3.5 ${
-          isEnquiriesPage
-            ? 'grid-cols-2 lg:grid-cols-4'
-            : 'grid-cols-2 sm:grid-cols-3 xl:grid-cols-6'
-        }`}>
-          {(isEnquiriesPage ? enquiriesSummaryCards : summaryCards).map((card) => {
+        <div className="grid grid-cols-2 md:grid-cols-3 xl:grid-cols-5 gap-3 sm:gap-4">
+          {summaryCards.map((card) => {
             const Icon = card.icon;
-            const isActive = activeCardId === card.key;
             return (
-              <button
+              <div
                 key={card.key}
-                type="button"
-                onClick={() => handleSummaryCardClick(card.key)}
                 data-testid={`kpi-card-${card.key}`}
-                className={`group text-left rounded-xl p-3.5 sm:p-4 bg-white dark:bg-slate-900 border-2 transition-all duration-200 hover:-translate-y-0.5 hover:shadow-xs focus:outline-none focus-visible:ring-2 focus-visible:ring-amber-500 ${
-                  isActive
-                    ? card.activeRing
-                    : 'border-slate-200 dark:border-slate-800 hover:border-slate-400 dark:hover:border-slate-600'
-                }`}
+                className="group relative rounded-2xl p-4 sm:p-4.5 bg-white dark:bg-slate-900 border border-slate-200/80 dark:border-slate-800 border-l-4 border-l-amber-500 dark:border-l-gold-500 shadow-xs hover:shadow-md hover:-translate-y-0.5 transition-all duration-200 flex flex-col items-center text-center justify-between min-h-[134px] select-none cursor-default"
               >
-                <div className="flex items-center justify-between gap-2 mb-2">
-                  <div className={`w-7.5 h-7.5 rounded-lg border flex items-center justify-center shrink-0 ${card.iconBg}`}>
-                    <Icon className={`w-3.5 h-3.5 ${card.accent}`} />
+                {/* Top: Small, consistent icon in light-gold container */}
+                <div className="flex items-center justify-center mb-2.5">
+                  <div className="w-8 h-8 rounded-xl bg-amber-50 dark:bg-amber-500/10 border border-amber-200/80 dark:border-amber-500/20 flex items-center justify-center text-amber-700 dark:text-gold-400 shrink-0 shadow-2xs group-hover:scale-105 transition-transform duration-200">
+                    <Icon className="w-4 h-4 stroke-[2.2]" />
                   </div>
-                  <ChevronRight className="w-3.5 h-3.5 text-slate-500 group-hover:text-slate-900 dark:group-hover:text-slate-200 group-hover:translate-x-0.5 transition-transform" />
                 </div>
-                <div className="text-xl sm:text-2xl font-extrabold text-slate-950 dark:text-white tabular-nums" data-testid={`kpi-value-${card.key}`}>
-                  {card.value}
+
+                {/* KPI Number prominently in bold, dark navy typography (centered), with label below */}
+                <div className="w-full flex flex-col items-center text-center">
+                  <div
+                    className="text-2xl sm:text-3xl font-extrabold text-navy-950 dark:text-white tabular-nums tracking-tight leading-none text-center"
+                    data-testid={`kpi-value-${card.key}`}
+                  >
+                    {card.value}
+                  </div>
+                  <div className="text-xs sm:text-[13px] font-semibold text-slate-600 dark:text-slate-300 mt-2 leading-snug text-center">
+                    {card.label}
+                  </div>
                 </div>
-                <div className="text-xs font-semibold text-slate-900 dark:text-slate-100 mt-0.5 leading-snug">
-                  {card.label}
-                </div>
-                <div className="text-[11px] font-medium text-slate-500 dark:text-slate-400 mt-0.5">
-                  {card.hint}
-                </div>
-              </button>
+              </div>
             );
           })}
         </div>
       </section>
 
-      {/* 3. Attendance Summary (Shown on Operations Work Queue only) */}
+      {/* 3. Attendance Summary (Shown on My Dashboard only) */}
       {!isEnquiriesPage && (
         <section
           aria-label="Attendance Summary"
@@ -1072,12 +967,13 @@ const CrmHrOperationsDashboard = ({ initialSection } = {}) => {
         </section>
       )}
 
-      {/* 4. Interactive Employee Workspace (Enquiries / Follow-ups / Tasks) */}
-      <section
-        ref={workspaceRef}
-        id="hr-ops-workspace"
-        className="rounded-2xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 shadow-sm overflow-hidden"
-      >
+      {/* 4. Interactive Employee Workspace (Enquiries / Follow-ups / Tasks) - Shown on My Assigned Enquiries only */}
+      {isEnquiriesPage && (
+        <section
+          ref={workspaceRef}
+          id="hr-ops-workspace"
+          className="rounded-2xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 shadow-sm overflow-hidden"
+        >
         {/* Tab Bar + Search */}
         <div className="p-4 sm:p-5 border-b border-slate-200 dark:border-slate-800 flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4">
           <div className="flex flex-wrap items-center gap-2" role="tablist" aria-label="Operational queues">
@@ -1116,25 +1012,6 @@ const CrmHrOperationsDashboard = ({ initialSection } = {}) => {
               <span>Follow-ups</span>
               <span className="px-1.5 py-0.2 rounded-md text-[10px] font-bold bg-black/10 dark:bg-white/10 font-mono">
                 {followUps.length}
-              </span>
-            </button>
-
-            <button
-              type="button"
-              role="tab"
-              aria-selected={activeTab === 'tasks'}
-              onClick={() => setActiveTab('tasks')}
-              data-testid="tab-tasks"
-              className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs sm:text-[13px] font-semibold transition-colors ${
-                activeTab === 'tasks'
-                  ? 'bg-slate-900 text-white dark:bg-amber-500 dark:text-slate-950'
-                  : 'bg-slate-100 text-slate-700 hover:bg-slate-200 dark:bg-slate-800 dark:text-slate-300 dark:hover:bg-slate-700'
-              }`}
-            >
-              <ListTodo className="w-3.5 h-3.5" />
-              <span>Assigned Tasks</span>
-              <span className="px-1.5 py-0.2 rounded-md text-[10px] font-bold bg-black/10 dark:bg-white/10 font-mono">
-                {tasks.length}
               </span>
             </button>
           </div>
@@ -1579,6 +1456,7 @@ const CrmHrOperationsDashboard = ({ initialSection } = {}) => {
           )}
         </div>
       </section>
+      )}
 
       {/* Update Enquiry Status Modal */}
       {statusModalEnquiry && (

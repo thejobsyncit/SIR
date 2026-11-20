@@ -780,6 +780,108 @@ export const buildCandidateDirectoryModel = async (db, employee) => {
   return { candidates, lookupByKey, groupByEnquiryId, employeeProfile };
 };
 
+export const getCanonicalEnquiryType = (enquiry) => {
+  if (!enquiry) return null;
+  const sId = (enquiry.serviceId || '').toLowerCase().trim();
+  const sTitle = (enquiry.serviceTitle || '').toLowerCase().trim();
+  const category = (enquiry.category || '').toLowerCase().trim();
+  const enqType = (enquiry.enquiryType || '').toLowerCase().trim();
+  const sourceTable = (enquiry.sourceTable || '').toLowerCase().trim();
+
+  // 1. College Admissions
+  if (sId === 'college-adm' || sId.includes('college') || sTitle.includes('college admission') || category.includes('college admission')) {
+    return 'College Admissions';
+  }
+
+  // 2. Career Guidance
+  if (sId === 'school-career' || sId.includes('career') || sTitle.includes('career guidance') || category.includes('career guidance') || enqType.includes('career guidance')) {
+    return 'Career Guidance';
+  }
+
+  // 3. Student Academy
+  if (sId === 'school-academy' || sId.includes('academy') || sTitle.includes('academy') || category.includes('academy') || sourceTable.includes('student_academy')) {
+    return 'Student Academy';
+  }
+
+  // 4. International Admissions
+  if (sId === 'intl-adm' || sTitle.includes('international admission') || (sTitle.includes('international') && sTitle.includes('admission'))) {
+    return 'International Admissions';
+  }
+
+  // 5. International Consulting
+  if (sId === 'intl-consult' || sTitle.includes('international consult') || (sTitle.includes('international') && sTitle.includes('consult'))) {
+    return 'International Consulting';
+  }
+
+  // 6. Executive Seminars & Language
+  if (sId === 'exec-seminars-lang' || sTitle.includes('seminar') || sTitle.includes('language test') || sTitle.includes('language preparation')) {
+    return 'Executive Seminars & Language';
+  }
+
+  // 7. Job Seeker / Recruitment / Placement
+  if (
+    sId === 'intl-recruitment' ||
+    sId.includes('recruit') ||
+    sId.includes('job') ||
+    sId.includes('staff') ||
+    sTitle.includes('job') ||
+    sTitle.includes('recruitment') ||
+    sTitle.includes('candidate registration') ||
+    sTitle.includes('staffing') ||
+    sourceTable === 'candidates' ||
+    sourceTable === 'candidate_profiles'
+  ) {
+    return 'Job Seeker';
+  }
+
+  // 8. If candidate has registered via Candidate Portal / Candidates table without explicit enquiry
+  if (sourceTable.includes('candidate')) {
+    return 'Job Seeker';
+  }
+
+  // 9. Specific fallback names
+  if (enquiry.serviceTitle && enquiry.serviceTitle !== 'General Enquiry') {
+    return enquiry.serviceTitle;
+  }
+  if (enquiry.enquiryType && enquiry.enquiryType !== 'Destination & Profile Assessment') {
+    return enquiry.enquiryType;
+  }
+  if (enquiry.category) {
+    return enquiry.category;
+  }
+
+  return null;
+};
+
+export const resolveCandidateEnquiryTypes = (candidate) => {
+  const set = new Set();
+  for (const e of candidate.enquiries || []) {
+    const t = getCanonicalEnquiryType(e);
+    if (t) set.add(t);
+  }
+  if (
+    set.size === 0 &&
+    ((candidate.candidateProfileIds && candidate.candidateProfileIds.length > 0) ||
+      (candidate.candidateRecordIds && candidate.candidateRecordIds.length > 0))
+  ) {
+    set.add('Job Seeker');
+  }
+  return set.size > 0 ? Array.from(set) : ['Not specified'];
+};
+
+export const resolveCandidateUniqueId = (candidate) => {
+  if (candidate.candidateProfileIds && candidate.candidateProfileIds.length > 0) {
+    return candidate.candidateProfileIds[0];
+  }
+  if (candidate.candidateRecordIds && candidate.candidateRecordIds.length > 0) {
+    return candidate.candidateRecordIds[0];
+  }
+  if (typeof candidate.candidateReferenceNumber === 'string' && candidate.candidateReferenceNumber.startsWith('RI-CAND-')) {
+    return candidate.candidateReferenceNumber;
+  }
+  return 'Not assigned';
+};
+
 /**
  * List authorized unique candidates for the authenticated HR Operations employee.
  */
@@ -791,11 +893,18 @@ export const listHrCandidateDirectory = async (db, employee, { search = '', page
 
   const q = cleanStr(search).toLowerCase();
   const filtered = q
-    ? authorized.filter(
-        (c) =>
-          c.fullName.toLowerCase().includes(q) ||
-          c.candidateReferenceNumber.toLowerCase().includes(q)
-      )
+    ? authorized.filter((c) => {
+        const candidateId = resolveCandidateUniqueId(c).toLowerCase();
+        const ref = (c.candidateReferenceNumber || '').toLowerCase();
+        const name = (c.fullName || '').toLowerCase();
+        const enqTypes = resolveCandidateEnquiryTypes(c).map((t) => t.toLowerCase());
+        return (
+          name.includes(q) ||
+          candidateId.includes(q) ||
+          ref.includes(q) ||
+          enqTypes.some((t) => t.includes(q))
+        );
+      })
     : authorized;
 
   const safeLimit = Math.min(Math.max(parseInt(limit, 10) || 15, 1), 100);
@@ -808,8 +917,10 @@ export const listHrCandidateDirectory = async (db, employee, { search = '', page
   return {
     candidates: paged.map((c) => ({
       candidateKey: c.candidateKey,
+      candidateId: resolveCandidateUniqueId(c),
       candidateReferenceNumber: c.candidateReferenceNumber,
-      fullName: c.fullName
+      fullName: c.fullName,
+      enquiryTypes: resolveCandidateEnquiryTypes(c)
     })),
     pagination: {
       page: safePage,

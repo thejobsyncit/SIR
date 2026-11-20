@@ -183,7 +183,7 @@ export const CrmHrOpsCandidateDirectory = () => {
     if (!activeToken) {
       setDirLoading(false);
       setDirErrorCode(401);
-      setDirError('Your CRM session needs re-authentication. Please sign in again to access Candidate Directory.');
+      setDirError('Your CRM session needs re-authentication. Please sign in again to access Candidates.');
       return;
     }
 
@@ -204,12 +204,12 @@ export const CrmHrOpsCandidateDirectory = () => {
       const json = await res.json();
       if (!res.ok || !json.success) {
         setDirErrorCode(res.status);
-        throw new Error(json.message || 'Unable to fetch candidate directory.');
+        throw new Error(json.message || 'Unable to fetch candidates.');
       }
       setDirectoryRows(json.data?.candidates || []);
       setPagination(json.data?.pagination || { page: currentPage, limit: pageSize, totalCount: 0, totalPages: 1 });
     } catch (err) {
-      setDirError(err.message || 'Failed to load candidate directory.');
+      setDirError(err.message || 'Failed to load candidates.');
       setDirectoryRows([]);
     } finally {
       setDirLoading(false);
@@ -382,7 +382,7 @@ export const CrmHrOpsCandidateDirectory = () => {
           <div>
             <h2 className="text-base font-bold text-rose-900 dark:text-rose-200">Restricted Access</h2>
             <p className="text-sm text-rose-700 dark:text-rose-300 mt-1">
-              This Candidate Directory portal is restricted to authorized HR Operations employees.
+              This Candidates portal is restricted to authorized HR Operations employees.
             </p>
           </div>
         </div>
@@ -500,7 +500,7 @@ export const CrmHrOpsCandidateDirectory = () => {
                 onClick={handleBackToDirectory}
                 className="px-4 py-2 rounded-xl text-xs font-semibold bg-indigo-600 text-white hover:bg-indigo-700"
               >
-                Return to Candidate Directory
+                Return to Candidates
               </button>
               {profileErrorCode !== 403 && profileErrorCode !== 401 && (
                 <button
@@ -1268,7 +1268,7 @@ export const CrmHrOpsCandidateDirectory = () => {
   }
 
   // =========================================================================
-  // VIEW A: MINIMAL TWO-COLUMN CANDIDATE DIRECTORY
+  // VIEW A: THREE-COLUMN CANDIDATES DIRECTORY (Candidate ID | Candidate Name | Enquiry)
   // =========================================================================
   const totalCount = pagination.totalCount || 0;
   const totalPages = pagination.totalPages || 1;
@@ -1281,7 +1281,7 @@ export const CrmHrOpsCandidateDirectory = () => {
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
           <h1 className="text-xl sm:text-2xl font-bold text-slate-900 dark:text-white tracking-tight">
-            Candidate Directory
+            Candidates
           </h1>
           <p className="text-sm text-slate-500 dark:text-slate-400 mt-0.5">
             Select a candidate to view complete profile details, associated enquiries, follow-ups, and activity history.
@@ -1307,8 +1307,8 @@ export const CrmHrOpsCandidateDirectory = () => {
             type="text"
             value={searchInput}
             onChange={(e) => setSearchInput(e.target.value)}
-            placeholder="Search by candidate name or reference number..."
-            aria-label="Search candidates by name or reference number"
+            placeholder="Search by candidate ID, name, or enquiry..."
+            aria-label="Search candidates by ID, name, or enquiry"
             className="w-full pl-10 pr-9 py-2.5 rounded-xl border border-slate-200 dark:border-white/10 bg-slate-50/70 dark:bg-navy-800 text-sm text-slate-900 dark:text-white placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-indigo-500"
           />
           {searchInput && (
@@ -1354,7 +1354,7 @@ export const CrmHrOpsCandidateDirectory = () => {
             <AlertCircle className="w-5 h-5 text-rose-600 dark:text-rose-400 shrink-0 mt-0.5" />
             <div>
               <h2 className="text-sm font-bold text-rose-900 dark:text-rose-200">
-                {dirErrorCode === 401 ? 'Session Authentication Required' : 'Unable to Load Candidate Directory'}
+                {dirErrorCode === 401 ? 'Session Authentication Required' : 'Unable to Load Candidates'}
               </h2>
               <p className="text-xs text-rose-700 dark:text-rose-300 mt-0.5">{dirError}</p>
             </div>
@@ -1380,18 +1380,21 @@ export const CrmHrOpsCandidateDirectory = () => {
         </div>
       )}
 
-      {/* Two-Column Directory Table (ONLY Candidate Name & Candidate Reference Number) */}
+      {/* Three-Column Table (Candidate ID | Candidate Name | Enquiry) */}
       {!dirError && (
         <div className="bg-white dark:bg-navy-900 border border-slate-200 dark:border-white/10 rounded-2xl shadow-sm overflow-hidden">
           <div className="overflow-x-auto">
-            <table className="w-full text-left border-collapse" aria-label="Candidate Directory">
+            <table className="w-full text-left border-collapse" aria-label="Candidates">
               <thead>
                 <tr className="border-b border-slate-200 dark:border-white/10 bg-slate-50/90 dark:bg-white/[0.03]">
+                  <th scope="col" className="px-5 py-3.5 text-xs font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400">
+                    Candidate ID
+                  </th>
                   <th scope="col" className="px-5 py-3.5 text-xs font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400">
                     Candidate Name
                   </th>
                   <th scope="col" className="px-5 py-3.5 text-xs font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400">
-                    Candidate Reference Number
+                    Enquiry
                   </th>
                 </tr>
               </thead>
@@ -1401,7 +1404,10 @@ export const CrmHrOpsCandidateDirectory = () => {
                     {[1, 2, 3, 4, 5, 6].map((idx) => (
                       <tr key={idx} className="animate-pulse">
                         <td className="px-5 py-4">
-                          <div className="h-4 w-48 rounded bg-slate-200 dark:bg-white/10" />
+                          <div className="h-4 w-28 rounded bg-slate-200 dark:bg-white/10" />
+                        </td>
+                        <td className="px-5 py-4">
+                          <div className="h-4 w-44 rounded bg-slate-200 dark:bg-white/10" />
                         </td>
                         <td className="px-5 py-4">
                           <div className="h-4 w-36 rounded bg-slate-200 dark:bg-white/10" />
@@ -1413,7 +1419,7 @@ export const CrmHrOpsCandidateDirectory = () => {
 
                 {!dirLoading && directoryRows.length === 0 && (
                   <tr>
-                    <td colSpan={2} className="px-5 py-12 text-center">
+                    <td colSpan={3} className="px-5 py-12 text-center">
                       <div className="max-w-sm mx-auto space-y-2">
                         <div className="w-11 h-11 rounded-2xl bg-slate-100 dark:bg-white/5 text-slate-400 flex items-center justify-center mx-auto">
                           <Users className="w-5 h-5" />
@@ -1423,7 +1429,7 @@ export const CrmHrOpsCandidateDirectory = () => {
                         </div>
                         <p className="text-xs text-slate-500 dark:text-slate-400">
                           {debouncedSearch
-                            ? `No authorized candidate matched "${debouncedSearch}". Try a different name or reference number.`
+                            ? `No authorized candidate matched "${debouncedSearch}". Try a different ID, name, or enquiry.`
                             : 'Candidates will appear here once enquiries are assigned to your HR Operations profile.'}
                         </p>
                         {debouncedSearch && (
@@ -1456,14 +1462,48 @@ export const CrmHrOpsCandidateDirectory = () => {
                       }}
                       tabIndex={0}
                       role="button"
-                      aria-label={`View profile for ${row.fullName} (${row.candidateReferenceNumber})`}
+                      aria-label={`View profile for ${row.fullName} (${row.candidateId || row.candidateReferenceNumber || ''})`}
                       className="cursor-pointer transition-colors hover:bg-indigo-50/60 dark:hover:bg-white/[0.04] focus:outline-none focus:bg-indigo-50 dark:focus:bg-white/[0.06]"
                     >
+                      <td className="px-5 py-4 text-sm font-mono font-medium text-indigo-700 dark:text-amber-300">
+                        {row.candidateId && row.candidateId !== 'Not assigned' ? (
+                          <span>{row.candidateId}</span>
+                        ) : (
+                          <span className="text-slate-400 dark:text-slate-500 font-sans italic text-xs">
+                            Not assigned
+                          </span>
+                        )}
+                      </td>
                       <td className="px-5 py-4 text-sm font-semibold text-slate-900 dark:text-white">
                         {row.fullName}
                       </td>
-                      <td className="px-5 py-4 text-sm font-mono font-medium text-indigo-700 dark:text-amber-300">
-                        {row.candidateReferenceNumber}
+                      <td className="px-5 py-4 text-sm">
+                        <div className="flex flex-wrap items-center gap-1.5">
+                          {(row.enquiryTypes && row.enquiryTypes.length > 0 ? row.enquiryTypes : ['Not specified']).map((enqType, idx) => (
+                            <span
+                              key={idx}
+                              className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-semibold ${
+                                enqType === 'College Admissions'
+                                  ? 'bg-blue-100 text-blue-800 dark:bg-blue-500/20 dark:text-blue-300 border border-blue-200 dark:border-blue-500/30'
+                                  : enqType === 'Career Guidance'
+                                  ? 'bg-purple-100 text-purple-800 dark:bg-purple-500/20 dark:text-purple-300 border border-purple-200 dark:border-purple-500/30'
+                                  : enqType === 'Student Academy'
+                                  ? 'bg-emerald-100 text-emerald-800 dark:bg-emerald-500/20 dark:text-emerald-300 border border-emerald-200 dark:border-emerald-500/30'
+                                  : enqType === 'Job Seeker'
+                                  ? 'bg-amber-100 text-amber-800 dark:bg-amber-500/20 dark:text-amber-300 border border-amber-200 dark:border-amber-500/30'
+                                  : enqType === 'International Admissions'
+                                  ? 'bg-cyan-100 text-cyan-800 dark:bg-cyan-500/20 dark:text-cyan-300 border border-cyan-200 dark:border-cyan-500/30'
+                                  : enqType === 'International Consulting'
+                                  ? 'bg-indigo-100 text-indigo-800 dark:bg-indigo-500/20 dark:text-indigo-300 border border-indigo-200 dark:border-indigo-500/30'
+                                  : enqType === 'Executive Seminars & Language'
+                                  ? 'bg-rose-100 text-rose-800 dark:bg-rose-500/20 dark:text-rose-300 border border-rose-200 dark:border-rose-500/30'
+                                  : 'bg-slate-100 text-slate-700 dark:bg-slate-800 dark:text-slate-300 border border-slate-200 dark:border-slate-700'
+                              }`}
+                            >
+                              {enqType}
+                            </span>
+                          ))}
+                        </div>
                       </td>
                     </tr>
                   ))}
