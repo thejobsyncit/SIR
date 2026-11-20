@@ -23,16 +23,19 @@ const isDummyCandidate = (c) => {
     'REV-CAN-8645', 'REV-CAN-5223', 'REV-CAN-3393', 'REV-CAN-9398', 'REV-CAN-3073',
     'REV-CAN-5032', 'REV-CAN-1517', 'REV-CAN-4093', 'REV-CAN-7506', 'REV-CAN-5974',
     'REV-CAN-4404', 'REV-CAN-4539', 'REV-CAN-9000', 'REV-CAN-4378', 'REV-CAN-4043',
-    'REV-CAN-5868', 'REV-CAN-8915', 'REV-CAN-3362', 'REV-CAN-53106'
+    'REV-CAN-5868', 'REV-CAN-8915', 'REV-CAN-3362', 'REV-CAN-53106', 'RI-CAND-777'
   ];
-  if (dummyIds.some(d => id.startsWith(d))) return true;
+  if (dummyIds.some(d => id.startsWith(d) || id === d)) return true;
   if (name.includes('alexander wright') || name.includes('sarah al-mansoori') || name.includes('mohamed tariq') ||
       name.includes('elena rostova') || name.includes('david chen') || name.includes('fatima al-zahra') ||
       name.includes('real candidate') || name.includes('test candidate') || name.includes('fake user') ||
       name.includes('fresh candidate') || name.includes('unknown candidate')) return true;
   if (email.includes('example.com') || email.includes('mailinator') || email.includes('trashuser') || 
       email.includes('domain.com') || email.includes('candidate_test') || email.includes('candidate.fresh') ||
-      email === 'johnny@gmail.com' || email === 'real.candidate.test@gmail.com') return true;
+      email === 'johnny@gmail.com' || email === 'real.candidate.test@gmail.com' ||
+      email === 'candidate.verify@gmail.com' || email === 'paviseetha21@gmail.com' ||
+      email === 'kennedy@gmail.com' || email === 'instant@gmail.com' ||
+      email === 'dhana.jasync@gmail.com') return true;
   return false;
 };
 
@@ -227,7 +230,7 @@ export const CrmCandidates = () => {
         for (const [email, cand] of Object.entries(localDb)) {
           const cleanEmail = (email || '').toLowerCase().trim();
           const cleanId = (cand.candidateId || cand.id || '').trim();
-          if (cleanEmail && !seenEmails.has(cleanEmail) && !isDummyCandidate(cand)) {
+          if (cleanEmail && cand.isRegistered && !seenEmails.has(cleanEmail) && !isDummyCandidate(cand)) {
             if (deletedSet.has(cleanEmail) || (cleanId && deletedSet.has(cleanId.toLowerCase()))) {
               continue; // Exclude deleted
             }
@@ -259,46 +262,6 @@ export const CrmCandidates = () => {
               resumeSize: cand.resumeSize || null,
               assignedRecruiter: 'Dhanalakshimi (Lead Advisor)',
               createdAt: cand.registeredAt || cand.createdAt || new Date().toISOString()
-            });
-          }
-        }
-      }
-
-      const sessStr = localStorage.getItem('sir_user_session');
-      if (sessStr) {
-        const sessUser = JSON.parse(sessStr);
-        const cleanEmail = (sessUser?.email || '').toLowerCase().trim();
-        const cleanId = (sessUser.candidateId || sessUser.id || '').trim();
-        if (cleanEmail && !seenEmails.has(cleanEmail) && !isDummyCandidate(sessUser)) {
-          if (!deletedSet.has(cleanEmail) && (!cleanId || !deletedSet.has(cleanId.toLowerCase()))) {
-            seenEmails.add(cleanEmail);
-            const resolvedId = cleanId && !seenIds.has(cleanId) ? cleanId : ('RI-CAND-' + Math.floor(100 + Math.random() * 900));
-            seenIds.add(resolvedId);
-
-            pool.push({
-              id: resolvedId,
-              name: sessUser.name || sessUser.fullName || 'Candidate',
-              email: sessUser.email,
-              phone: sessUser.phone || '',
-              nationality: sessUser.nationality || sessUser.preferredCountry || 'UAE',
-              currentEmployer: sessUser.currentEmployer || 'Revival International Candidate',
-              currentRole: sessUser.title || sessUser.currentRole || 'Executive Candidate',
-              currentSalary: sessUser.currentSalary || '',
-              expectedSalary: sessUser.expectedSalary || '',
-              noticePeriod: sessUser.noticePeriod || 'Immediate',
-              score: sessUser.score || 92,
-              stage: sessUser.stage || 'lead',
-              skills: Array.isArray(sessUser.skills) ? sessUser.skills : [],
-              source: 'Candidate Portal Registration',
-              passport: 'Verified',
-              aiSummary: `Portal registered candidate (${sessUser.email}).`,
-              experience: sessUser.experience || '3-5 Years',
-              avatar: sessUser.avatar || null,
-              resumeName: sessUser.resumeName || null,
-              resumeUrl: sessUser.resumeUrl || null,
-              resumeSize: sessUser.resumeSize || null,
-              assignedRecruiter: 'Dhanalakshimi (Lead Advisor)',
-              createdAt: sessUser.registeredAt || sessUser.createdAt || new Date().toISOString()
             });
           }
         }

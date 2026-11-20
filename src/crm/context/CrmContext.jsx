@@ -194,16 +194,19 @@ export const CrmProvider = ({ children }) => {
       'REV-CAN-8645', 'REV-CAN-5223', 'REV-CAN-3393', 'REV-CAN-9398', 'REV-CAN-3073',
       'REV-CAN-5032', 'REV-CAN-1517', 'REV-CAN-4093', 'REV-CAN-7506', 'REV-CAN-5974',
       'REV-CAN-4404', 'REV-CAN-4539', 'REV-CAN-9000', 'REV-CAN-4378', 'REV-CAN-4043',
-      'REV-CAN-5868', 'REV-CAN-8915', 'REV-CAN-3362', 'REV-CAN-53106'
+      'REV-CAN-5868', 'REV-CAN-8915', 'REV-CAN-3362', 'REV-CAN-53106', 'RI-CAND-777'
     ];
-    if (dummyIds.some(d => id.startsWith(d))) return true;
+    if (dummyIds.some(d => id.startsWith(d) || id === d)) return true;
     if (name.includes('alexander wright') || name.includes('sarah al-mansoori') || name.includes('mohamed tariq') ||
         name.includes('elena rostova') || name.includes('david chen') || name.includes('fatima al-zahra') ||
         name.includes('real candidate') || name.includes('test candidate') || name.includes('fake user') ||
         name.includes('fresh candidate') || name.includes('unknown candidate')) return true;
     if (email.includes('example.com') || email.includes('mailinator') || email.includes('trashuser') || 
         email.includes('domain.com') || email.includes('candidate_test') || email.includes('candidate.fresh') ||
-        email === 'johnny@gmail.com' || email === 'real.candidate.test@gmail.com') return true;
+        email === 'johnny@gmail.com' || email === 'real.candidate.test@gmail.com' ||
+        email === 'candidate.verify@gmail.com' || email === 'paviseetha21@gmail.com' ||
+        email === 'kennedy@gmail.com' || email === 'instant@gmail.com' ||
+        email === 'dhana.jasync@gmail.com') return true;
     return false;
   };
 
@@ -399,13 +402,13 @@ export const CrmProvider = ({ children }) => {
         }
       } catch {}
 
-      // 1. Gather all local candidates from sir_candidates_db, crm_candidates, and user_session
+      // 1. Gather all verified local candidates from sir_candidates_db (only if registered)
       const localMap = new Map();
       const registerLocalCandidate = (c) => {
-        if (!c || isDummyCandidate(c)) return;
+        if (!c || isDummyCandidate(c) || !c.isRegistered) return;
         const email = (c.email || '').toLowerCase().trim();
         const id = (c.id || c.candidateId || '').trim();
-        if ((id && deletedSet.has(id.toLowerCase())) || (email && deletedSet.has(email))) {
+        if (!email || (id && deletedSet.has(id.toLowerCase())) || (email && deletedSet.has(email))) {
           return; // Strictly skip candidate explicitly deleted by recruiter
         }
         const key = email || id;
@@ -445,16 +448,16 @@ export const CrmProvider = ({ children }) => {
           const localDb = JSON.parse(localDbStr);
           Object.values(localDb).forEach(registerLocalCandidate);
         }
+      } catch {}
+
+      // Clean up any stale dummy profiles from crm_candidates cache
+      try {
         const crmSavedStr = localStorage.getItem('crm_candidates');
         if (crmSavedStr) {
           const crmSaved = JSON.parse(crmSavedStr);
-          if (Array.isArray(crmSaved)) crmSaved.forEach(registerLocalCandidate);
-        }
-        const userSessStr = localStorage.getItem('sir_user_session');
-        if (userSessStr) {
-          const sessUser = JSON.parse(userSessStr);
-          if (sessUser?.role === 'candidate' || sessUser?.email) {
-            registerLocalCandidate(sessUser);
+          if (Array.isArray(crmSaved)) {
+            const cleaned = crmSaved.filter(c => !isDummyCandidate(c));
+            localStorage.setItem('crm_candidates', JSON.stringify(cleaned));
           }
         }
       } catch {}

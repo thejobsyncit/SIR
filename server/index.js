@@ -1373,6 +1373,60 @@ app.post('/api/auth/google', async (req, res) => {
 
 // --- INDIVIDUAL CANDIDATE DASHBOARD API ENDPOINTS ---
 
+// Check if candidate email or phone is already registered (Strict One-Time Registration)
+app.post('/api/candidate/check-exists', async (req, res) => {
+  try {
+    const { email, phone } = req.body || {};
+    const db = await getDb();
+    const cleanEmail = (email || '').trim().toLowerCase();
+    const cleanDigits = (phone || '').replace(/\D/g, '');
+
+    // 1. Check if email already registered
+    if (cleanEmail) {
+      const existingEmail = await db.get(
+        `SELECT id, name, email FROM candidate_profiles WHERE LOWER(email) = LOWER(?)
+         UNION
+         SELECT id, name, email FROM candidates WHERE LOWER(email) = LOWER(?)
+         UNION
+         SELECT id, name, email FROM users WHERE LOWER(email) = LOWER(?) AND role = 'candidate'`,
+        [cleanEmail, cleanEmail, cleanEmail]
+      );
+      if (existingEmail) {
+        return res.json({
+          exists: true,
+          field: 'email',
+          message: 'An account with this email is already registered. Please sign in.'
+        });
+      }
+    }
+
+    // 2. Check if phone number already registered
+    if (cleanDigits && cleanDigits.length >= 7) {
+      const matchSuffix = `%${cleanDigits.slice(-7)}`;
+      const existingPhone = await db.get(
+        `SELECT id, name, phone FROM candidate_profiles 
+         WHERE phone IS NOT NULL AND REPLACE(REPLACE(REPLACE(REPLACE(phone, ' ', ''), '-', ''), '+', ''), '(', '') LIKE ?
+         UNION
+         SELECT id, name, phone FROM candidates 
+         WHERE phone IS NOT NULL AND REPLACE(REPLACE(REPLACE(REPLACE(phone, ' ', ''), '-', ''), '+', ''), '(', '') LIKE ?`,
+        [matchSuffix, matchSuffix]
+      );
+      if (existingPhone) {
+        return res.json({
+          exists: true,
+          field: 'phone',
+          message: 'An account with this phone number is already registered. Please sign in.'
+        });
+      }
+    }
+
+    return res.json({ exists: false });
+  } catch (err) {
+    console.error('Check candidate exists error:', err);
+    res.status(500).json({ exists: false, error: 'Database check error' });
+  }
+});
+
 // GET Candidate Profile
 app.get('/api/candidate/profile', async (req, res) => {
   try {
@@ -3395,6 +3449,38 @@ app.post('/api/candidates', async (req, res) => {
     }
     if (!existing && email) {
       existing = await db.get('SELECT * FROM candidates WHERE LOWER(email) = LOWER(?)', [email]);
+    }
+
+    // Strict One-Time Registration Check: Prevent duplicate accounts with same email or phone number
+    if (req.body.isRegistration) {
+      if (existing) {
+        return res.status(409).json({
+          success: false,
+          error: 'An account with this email is already registered. Please sign in.',
+          message: 'An account with this email is already registered. Please sign in.'
+        });
+      }
+      if (phone) {
+        const cleanDigits = phone.replace(/\D/g, '');
+        if (cleanDigits.length >= 7) {
+          const matchSuffix = `%${cleanDigits.slice(-7)}`;
+          const existingPhone = await db.get(
+            `SELECT id, name, phone FROM candidate_profiles 
+             WHERE phone IS NOT NULL AND REPLACE(REPLACE(REPLACE(REPLACE(phone, ' ', ''), '-', ''), '+', ''), '(', '') LIKE ?
+             UNION
+             SELECT id, name, phone FROM candidates 
+             WHERE phone IS NOT NULL AND REPLACE(REPLACE(REPLACE(REPLACE(phone, ' ', ''), '-', ''), '+', ''), '(', '') LIKE ?`,
+            [matchSuffix, matchSuffix]
+          );
+          if (existingPhone) {
+            return res.status(409).json({
+              success: false,
+              error: 'An account with this phone number is already registered. Please sign in.',
+              message: 'An account with this phone number is already registered. Please sign in.'
+            });
+          }
+        }
+      }
     }
 
     const candId = existing?.id || id || `REV-CAN-${Math.floor(1000 + Math.random() * 9000)}`;

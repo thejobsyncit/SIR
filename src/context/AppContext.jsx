@@ -592,6 +592,45 @@ export const AppProvider = ({ children }) => {
       };
     }
 
+    // Check duplicate phone number in local candidate database
+    const inputDigits = (data.phone || '').replace(/\D/g, '');
+    if (inputDigits.length >= 7) {
+      const matchSuffix = inputDigits.slice(-7);
+      for (const [em, c] of Object.entries(db)) {
+        if (c && c.isRegistered && c.phone) {
+          const cDigits = c.phone.replace(/\D/g, '');
+          if (cDigits && cDigits.slice(-7) === matchSuffix) {
+            return {
+              success: false,
+              message: 'An account with this phone number is already registered. Please sign in.'
+            };
+          }
+        }
+      }
+    }
+
+    // Verify candidate does not already exist in SQLite server database
+    try {
+      const checkRes = await fetch('/api/candidate/check-exists', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email: normalizedEmail, phone: data.phone })
+      });
+      if (checkRes.ok) {
+        const checkData = await checkRes.json();
+        if (checkData.exists) {
+          return {
+            success: false,
+            message: checkData.message || (checkData.field === 'phone'
+              ? 'An account with this phone number is already registered. Please sign in.'
+              : 'An account with this email is already registered. Please sign in.')
+          };
+        }
+      }
+    } catch (checkErr) {
+      console.warn('Backend duplicate candidate check notice:', checkErr);
+    }
+
     const candidateId = existing.candidateId || ('RI-CAND-' + Math.floor(100 + Math.random() * 900));
     const userId = existing.userId || (`USR-${Date.now().toString(36).toUpperCase()}`);
 
@@ -658,6 +697,7 @@ export const AppProvider = ({ children }) => {
           name: candidateUser.name,
           email: candidateUser.email,
           phone: candidateUser.phone,
+          isRegistration: true,
           nationality: candidateUser.preferredCountry,
           currentEmployer: 'Revival International Talent Pool',
           currentRole: candidateUser.title,

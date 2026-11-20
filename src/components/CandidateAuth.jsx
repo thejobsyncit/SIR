@@ -42,7 +42,7 @@ export const CandidateAuth = () => {
     }
   };
 
-  const handleRegisterSubmit = (e) => {
+  const handleRegisterSubmit = async (e) => {
     e.preventDefault();
     setError('');
     if (!regData.fullName || !regData.email || !regData.password) {
@@ -76,7 +76,7 @@ export const CandidateAuth = () => {
       setError('Passwords do not match.');
       return;
     }
-    const result = registerCandidate({
+    const result = await registerCandidate({
       fullName: regData.fullName,
       email: regData.email,
       password: regData.password,
