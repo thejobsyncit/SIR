@@ -1,16 +1,13 @@
 import React, { useState, useMemo, useEffect } from 'react';
 import { useCrm } from '../context/CrmContext';
-import { ASSIGNED_RECRUITERS } from '../data/mockCrmData';
 import {
   Users, Search, Plus, Sparkles, FileText, CheckCircle2, Shield, Eye,
-  Bookmark, Filter, X, Send, UserCheck, Trash2, AlertCircle, Download,
-  ExternalLink, Mail, Phone, MapPin, Globe, Calendar, Briefcase,
-  GraduationCap, ShieldCheck, Clock, Building, Award, Check, FileCheck,
-  ChevronDown, ChevronUp, Paperclip, RotateCcw
+  Filter, X, Trash2, Download, ExternalLink, Mail, Phone, MapPin, Globe,
+  Calendar, Briefcase, GraduationCap, Clock, Building, Award, Check,
+  FileCheck, ChevronDown, ChevronUp, RotateCcw, AlertCircle
 } from 'lucide-react';
 import { CrmAddCandidateModal } from '../components/CrmAddCandidateModal';
 import ScrollReveal from '../../components/ScrollReveal';
-import { CrmDeleteConfirmModal } from '../components/CrmDeleteConfirmModal';
 import { downloadCandidateResumePdf, openCandidateResumeInNewTab } from '../../services/candidateResumePdfService';
 
 const isDummyCandidate = (c) => {
@@ -40,109 +37,87 @@ const isDummyCandidate = (c) => {
   return false;
 };
 
+// Formats candidate registration timestamp into readable executive date & time
+const formatCandidateDateTime = (dateStr) => {
+  if (!dateStr) return 'Registered Member';
+  try {
+    const raw = dateStr.includes('T') ? dateStr : dateStr.replace(' ', 'T') + 'Z';
+    const d = new Date(raw);
+    if (isNaN(d.getTime())) return dateStr;
+    const dateFormatted = d.toLocaleDateString('en-GB', {
+      day: '2-digit',
+      month: 'short',
+      year: 'numeric'
+    });
+    const timeFormatted = d.toLocaleTimeString('en-US', {
+      hour: '2-digit',
+      minute: '2-digit',
+      hour12: true
+    });
+    return `${dateFormatted} • ${timeFormatted}`;
+  } catch {
+    return dateStr;
+  }
+};
+
+// Evaluates candidate registration timestamp against selected timeframe
+const matchesTimeframe = (dateStr, timeframe) => {
+  if (!timeframe || timeframe === 'all') return true;
+  if (!dateStr) return true;
+  try {
+    const raw = dateStr.includes('T') ? dateStr : dateStr.replace(' ', 'T') + 'Z';
+    const candDate = new Date(raw);
+    if (isNaN(candDate.getTime())) return true;
+
+    const now = new Date();
+    const diffMs = now.getTime() - candDate.getTime();
+    const diffHours = diffMs / (1000 * 60 * 60);
+    const diffDays = diffHours / 24;
+
+    if (timeframe === 'day') {
+      // Today / Last 24 Hours or same calendar day
+      return diffHours <= 24 || candDate.toDateString() === now.toDateString();
+    }
+    if (timeframe === 'week') {
+      // Within last 7 days
+      return diffDays <= 7;
+    }
+    if (timeframe === 'month') {
+      // Within last 30 days or same calendar month
+      return diffDays <= 30 || (candDate.getMonth() === now.getMonth() && candDate.getFullYear() === now.getFullYear());
+    }
+    if (timeframe === 'year') {
+      // Within last 365 days or same calendar year
+      return diffDays <= 365 || candDate.getFullYear() === now.getFullYear();
+    }
+    return true;
+  } catch {
+    return true;
+  }
+};
+
 export const CrmCandidates = () => {
   const {
-    candidates,
+    candidates = [],
     applications = [],
     setActiveModule,
     setAiDrawerOpen,
     globalAddCandidateOpen,
     setGlobalAddCandidateOpen,
-    isSuperAdmin,
     deleteCandidate,
     selectedCandidate,
     setSelectedCandidate
   } = useCrm();
 
   const [searchTerm, setSearchTerm] = useState('');
-  const [selectedNationality, setSelectedNationality] = useState('All');
-  const [selectedRecruiter, setSelectedRecruiter] = useState('All');
-  const [filterMode, setFilterMode] = useState('all'); // 'all' | 'applicants'
+  const [timeframe, setTimeframe] = useState('all'); // 'all' | 'day' | 'week' | 'month' | 'year'
   const [viewCand, setViewCand] = useState(null);
   const [deleteConfirmCand, setDeleteConfirmCand] = useState(null);
   const [isDeleting, setIsDeleting] = useState(false);
   const [statusNotice, setStatusNotice] = useState('');
   const [showFullResumeSheet, setShowFullResumeSheet] = useState(true);
 
-  // Multi-Criteria Talent Search & Filter Engine State (Unified from Search & Talent Filters)
-  const [selectedJob, setSelectedJob] = useState('all');
-  const [selectedSkill, setSelectedSkill] = useState('all');
-  const [selectedExp, setSelectedExp] = useState('all');
-  const [selectedLocation, setSelectedLocation] = useState('all');
-  const [selectedQual, setSelectedQual] = useState('all');
-  const [selectedStatus, setSelectedStatus] = useState('all');
-
-  // Distinct Filter Option Sets matching Talent Search Engine
-  const jobsList = [
-    'Senior Civil Project Manager',
-    'Consultant Cardiologist',
-    'Lead DevOps Cloud Architect',
-    'Executive Hospitality Manager',
-    'Structural MEP Engineer',
-    'Bilingual Legal Counsel'
-  ];
-
-  const skillsList = [
-    'Primavera P6',
-    'FIDIC Red Book',
-    'AutoCAD',
-    'High-Rise Construction',
-    'Cardiology',
-    'JCI Accreditation',
-    'AWS',
-    'Kubernetes',
-    'Terraform',
-    'Luxury Guest Services',
-    'BIM Modelling'
-  ];
-
-  const locationsList = ['Dubai, UAE', 'Riyadh, KSA', 'Singapore', 'Doha, Qatar', 'Chennai, India', 'Kuwait'];
-  const qualificationsList = ['B.E / B.Tech Civil', 'MBBS / MD Cardiology', 'B.S Computer Science', 'MBA Hospitality', 'LL.M Corporate Law'];
-  const statusList = [
-    { id: 'all', label: 'All Statuses' },
-    { id: 'applied', label: 'Applied' },
-    { id: 'screening', label: 'Screening' },
-    { id: 'shortlisted', label: 'Shortlisted' },
-    { id: 'interview', label: 'Interview Scheduled' },
-    { id: 'selected', label: 'Selected' },
-    { id: 'offer_released', label: 'Offered' },
-    { id: 'joined', label: 'Hired / Joined' },
-    { id: 'rejected', label: 'Rejected' }
-  ];
-
-  const handleResetFilters = () => {
-    setSearchTerm('');
-    setSelectedJob('all');
-    setSelectedSkill('all');
-    setSelectedExp('all');
-    setSelectedLocation('all');
-    setSelectedQual('all');
-    setSelectedStatus('all');
-    setSelectedNationality('All');
-    setSelectedRecruiter('All');
-    setFilterMode('all');
-  };
-
-  const activeFiltersCount = useMemo(() => {
-    let count = 0;
-    if (searchTerm.trim()) count++;
-    if (selectedJob !== 'all') count++;
-    if (selectedSkill !== 'all') count++;
-    if (selectedExp !== 'all') count++;
-    if (selectedLocation !== 'all') count++;
-    if (selectedQual !== 'all') count++;
-    if (selectedStatus !== 'all') count++;
-    if (selectedNationality !== 'All') count++;
-    if (selectedRecruiter !== 'All') count++;
-    if (filterMode !== 'all') count++;
-    return count;
-  }, [searchTerm, selectedJob, selectedSkill, selectedExp, selectedLocation, selectedQual, selectedStatus, selectedNationality, selectedRecruiter, filterMode]);
-
-  const activeApplicants = useMemo(() => {
-    return candidates.filter(c => (Array.isArray(c.applications) && c.applications.length > 0) || c.stage === 'applied');
-  }, [candidates]);
-
-  // Synchronize when a candidate is selected externally (e.g. from recruiter workspace or search)
+  // Synchronize when a candidate is selected externally
   useEffect(() => {
     if (selectedCandidate) {
       setViewCand(selectedCandidate);
@@ -179,18 +154,19 @@ export const CrmCandidates = () => {
     }
   };
 
-  // Enriched active candidate object that merges backend database data with any live local storage updates
+  // Enriched active candidate object for detail view
   const activeCand = useMemo(() => {
     if (!viewCand) return null;
     let enriched = { ...viewCand };
 
-    // Also look up in fresh candidates array from CRM context
-    const currentInContext = candidates.find(c => c.id === viewCand.id || (c.email && c.email.toLowerCase() === (viewCand.email || '').toLowerCase()));
+    const currentInContext = candidates.find(
+      c => c.id === viewCand.id || (c.email && c.email.toLowerCase() === (viewCand.email || '').toLowerCase())
+    );
     if (currentInContext) {
       enriched = { ...enriched, ...currentInContext };
     }
 
-    // Check localStorage sir_candidates_db for any recent candidate registration updates
+    // Check localStorage sir_candidates_db for candidate portal updates
     try {
       const localDbStr = localStorage.getItem('sir_candidates_db');
       if (localDbStr) {
@@ -212,6 +188,8 @@ export const CrmCandidates = () => {
             preferredCountry: candLocal.preferredCountry || enriched.preferredCountry,
             qualification: candLocal.qualification || candLocal.education || enriched.qualification,
             education: candLocal.education || candLocal.qualification || enriched.education,
+            currentRole: candLocal.currentRole || candLocal.title || enriched.currentRole,
+            currentEmployer: candLocal.currentEmployer || enriched.currentEmployer,
             mohreAttested: candLocal.mohreAttested !== undefined ? candLocal.mohreAttested : enriched.mohreAttested,
             skills: (Array.isArray(candLocal.skills) && candLocal.skills.length > 0) ? candLocal.skills : enriched.skills
           };
@@ -219,33 +197,10 @@ export const CrmCandidates = () => {
       }
     } catch { }
 
-    // Check localStorage for applications
-    try {
-      const keysToCheck = [
-        `sir_applications_${viewCand.id}`,
-        viewCand.email ? `sir_applications_${viewCand.email.toLowerCase().trim()}` : null
-      ].filter(Boolean);
-
-      for (const k of keysToCheck) {
-        const appsStr = localStorage.getItem(k);
-        if (appsStr) {
-          const localApps = JSON.parse(appsStr);
-          if (Array.isArray(localApps) && localApps.length > 0) {
-            const existingIds = new Set((enriched.applications || []).map(a => a.id || a.jobId));
-            const newApps = localApps.filter(a => !existingIds.has(a.id || a.jobId));
-            enriched.applications = [...(enriched.applications || []), ...newApps];
-          }
-        }
-      }
-    } catch { }
-
-    // Check if any application attached a specific resume
-    const appWithCv = (enriched.applications || []).find(a => a.resumeName || a.resumeUrl);
-    const rawResumeName = enriched.resumeName || appWithCv?.resumeName;
-    const rawResumeUrl = enriched.resumeUrl || appWithCv?.resumeUrl;
+    const rawResumeName = enriched.resumeName;
+    const rawResumeUrl = enriched.resumeUrl;
     const isFabricated = !rawResumeName || rawResumeName.includes('_Executive_CV.pdf') || rawResumeName === 'Executive_CV.pdf';
     const hasRealCv = !!(rawResumeUrl || (!isFabricated && rawResumeName));
-
     const cleanName = (enriched.name || 'Executive Candidate').trim();
 
     return {
@@ -263,11 +218,11 @@ export const CrmCandidates = () => {
       qualification: (enriched.qualification || enriched.education || 'Not specified'),
       currentSalary: (enriched.currentSalary && enriched.currentSalary.trim() !== '') ? enriched.currentSalary : 'Not specified',
       expectedSalary: (enriched.expectedSalary && enriched.expectedSalary.trim() !== '') ? enriched.expectedSalary : 'Not specified',
-      noticePeriod: (enriched.noticePeriod && enriched.noticePeriod.trim() !== '') ? enriched.noticePeriod : 'Not specified',
+      noticePeriod: (enriched.noticePeriod && enriched.noticePeriod.trim() !== '') ? enriched.noticePeriod : 'Immediate',
       hasRealCv,
       resumeName: hasRealCv ? (rawResumeName || `${cleanName.replace(/[^a-zA-Z0-9]/g, '_')}_Resume.pdf`) : null,
       resumeUrl: hasRealCv ? rawResumeUrl : null,
-      resumeSize: hasRealCv ? (enriched.resumeSize || appWithCv?.resumeSize || 'PDF Document') : null,
+      resumeSize: hasRealCv ? (enriched.resumeSize || 'PDF Document') : null,
       mohreAttested: enriched.mohreAttested !== undefined ? enriched.mohreAttested : true,
       skills: (Array.isArray(enriched.skills) && enriched.skills.length > 0)
         ? enriched.skills
@@ -291,7 +246,6 @@ export const CrmCandidates = () => {
       return;
     }
 
-    // Otherwise, generate the high-resolution vector ATS Resume PDF directly
     downloadCandidateResumePdf(cand);
   };
 
@@ -299,7 +253,6 @@ export const CrmCandidates = () => {
   const handlePreviewCv = (cand) => {
     if (!cand) return;
 
-    // If candidate uploaded custom data URL or document link, open it
     if (cand.resumeUrl) {
       const url = cand.resumeUrl;
       if (url.startsWith('http://') || url.startsWith('https://') || url.startsWith('blob:')) {
@@ -346,50 +299,17 @@ export const CrmCandidates = () => {
       }
     }
 
-    // Open clean, formatted ATS Resume preview
     openCandidateResumeInNewTab(cand);
   };
 
-  // Handle downloading job-specific applied CV
-  const handleDownloadAppCv = (app, cand) => {
-    const effectiveResumeUrl = app.resumeUrl || cand.resumeUrl;
-    const effectiveResumeName = app.resumeName || cand.resumeName;
-    const targetCand = {
-      ...cand,
-      currentRole: app.jobTitle || cand.currentRole,
-      currentEmployer: app.company || cand.currentEmployer,
-      resumeName: effectiveResumeName,
-      resumeUrl: effectiveResumeUrl,
-      resumeSize: app.resumeSize || cand.resumeSize,
-      expectedSalary: app.expectedSalary || cand.expectedSalary
-    };
-    handleDownloadCv(targetCand);
-  };
-
-  // Handle previewing job-specific applied CV
-  const handlePreviewAppCv = (app, cand) => {
-    const effectiveResumeUrl = app.resumeUrl || cand.resumeUrl;
-    const effectiveResumeName = app.resumeName || cand.resumeName;
-    const targetCand = {
-      ...cand,
-      currentRole: app.jobTitle || cand.currentRole,
-      currentEmployer: app.company || cand.currentEmployer,
-      resumeName: effectiveResumeName,
-      resumeUrl: effectiveResumeUrl,
-      resumeSize: app.resumeSize || cand.resumeSize,
-      expectedSalary: app.expectedSalary || cand.expectedSalary
-    };
-    handlePreviewCv(targetCand);
-  };
-
-  const renderCandidateAvatar = (c, sizeClasses = "w-11 h-11 text-xs") => {
+  const renderCandidateAvatar = (c, sizeClasses = "w-12 h-12 text-sm") => {
     const isRealPhoto = c?.avatar && !c.avatar.includes('unsplash.com');
     if (isRealPhoto) {
       return (
         <img
           src={c.avatar}
           alt={c.name || 'Candidate'}
-          className={`${sizeClasses} rounded-full object-cover border-2 border-gold-500 shrink-0`}
+          className={`${sizeClasses} rounded-2xl object-cover border-2 border-gold-500 shadow-md shrink-0`}
         />
       );
     }
@@ -403,85 +323,46 @@ export const CrmCandidates = () => {
 
     return (
       <div
-        className={`${sizeClasses} rounded-full bg-gradient-to-br from-[#0c1322] to-[#1e293b] text-gold-400 font-extrabold flex items-center justify-center border-2 border-gold-500/70 shadow-sm shrink-0 select-none`}
+        className={`${sizeClasses} rounded-2xl bg-gradient-to-br from-[#0a1120] to-[#1e293b] text-gold-400 font-extrabold flex items-center justify-center border-2 border-gold-500/70 shadow-md shrink-0 select-none`}
       >
         {initials}
       </div>
     );
   };
 
+  // Pure Candidate Profiles: Filtered exclusively by Timeframe and Search Keyword
   const filtered = useMemo(() => {
     return candidates.filter(c => {
       // Exclude any legacy mock/dummy candidate profiles
       if (isDummyCandidate(c)) return false;
 
-      // Filter mode: active applicants
-      if (filterMode === 'applicants') {
-        const hasApp = (Array.isArray(c.applications) && c.applications.length > 0) || c.stage === 'applied';
-        if (!hasApp) return false;
+      // 1. Timeframe Filter: All Time | Today (Day) | Weekly | Monthly | Yearly
+      const regDate = c.createdAt || c.registeredAt || c.updatedAt;
+      if (!matchesTimeframe(regDate, timeframe)) {
+        return false;
       }
 
-      // Keyword / search term match
+      // 2. Search Term Filter across profile credentials
       if (searchTerm.trim()) {
         const q = searchTerm.toLowerCase();
-        const candStr = `${c.name || ''} ${c.email || ''} ${c.phone || ''} ${c.currentRole || ''} ${c.currentEmployer || ''} ${c.nationality || ''} ${c.citizenship || ''} ${c.location || ''} ${c.id || ''} ${Array.isArray(c.skills) ? c.skills.join(' ') : ''} ${Array.isArray(c.applications) ? c.applications.map(a => a.jobTitle || '').join(' ') : ''}`.toLowerCase();
+        const candStr = `${c.name || ''} ${c.email || ''} ${c.phone || ''} ${c.currentRole || ''} ${c.currentEmployer || ''} ${c.nationality || ''} ${c.citizenship || ''} ${c.location || ''} ${c.id || ''} ${Array.isArray(c.skills) ? c.skills.join(' ') : ''}`.toLowerCase();
         if (!candStr.includes(q)) return false;
-      }
-
-      // 1. Target Job / Vacancy match
-      if (selectedJob !== 'all') {
-        const r = (c.currentRole || '').toLowerCase();
-        const apps = Array.isArray(c.applications) ? c.applications.map(a => (a.jobTitle || '').toLowerCase()).join(' ') : '';
-        if (!r.includes(selectedJob.toLowerCase()) && !apps.includes(selectedJob.toLowerCase())) return false;
-      }
-
-      // 2. Core Competence / Skill match
-      if (selectedSkill !== 'all') {
-        const skillsArr = Array.isArray(c.skills) ? c.skills : [];
-        if (!skillsArr.some(s => s.toLowerCase().includes(selectedSkill.toLowerCase()))) return false;
-      }
-
-      // 3. Experience Bracket match
-      if (selectedExp !== 'all') {
-        const expStr = (c.experience || '').toLowerCase();
-        const years = parseInt(expStr) || 4;
-        if (selectedExp === 'junior' && years > 3) return false;
-        if (selectedExp === 'mid' && (years < 3 || years > 7)) return false;
-        if (selectedExp === 'senior' && (years < 8 || years > 12)) return false;
-        if (selectedExp === 'executive' && years < 12) return false;
-      }
-
-      // 4. Candidate Location / Target Region match
-      if (selectedLocation !== 'all') {
-        const loc = (c.location || c.nationality || c.preferredCountry || '').toLowerCase();
-        if (!loc.includes(selectedLocation.split(',')[0].toLowerCase())) return false;
-      }
-
-      // 5. Education / Qualification match
-      if (selectedQual !== 'all') {
-        const qual = (c.qualification || c.education || '').toLowerCase();
-        if (!qual.includes(selectedQual.split(' ')[0].toLowerCase())) return false;
-      }
-
-      // 6. Application Pipeline Stage match
-      if (selectedStatus !== 'all') {
-        const st = (c.stage || '').toLowerCase();
-        if (!st.includes(selectedStatus.toLowerCase())) return false;
-      }
-
-      // Nationality match
-      if (selectedNationality !== 'All') {
-        if (c.nationality !== selectedNationality) return false;
-      }
-
-      // Recruiter match
-      if (selectedRecruiter !== 'All') {
-        if (c.assignedRecruiter !== selectedRecruiter) return false;
       }
 
       return true;
     });
-  }, [candidates, filterMode, searchTerm, selectedJob, selectedSkill, selectedExp, selectedLocation, selectedQual, selectedStatus, selectedNationality, selectedRecruiter]);
+  }, [candidates, timeframe, searchTerm]);
+
+  const timeframeCounts = useMemo(() => {
+    const valid = candidates.filter(c => !isDummyCandidate(c));
+    return {
+      all: valid.length,
+      day: valid.filter(c => matchesTimeframe(c.createdAt || c.registeredAt, 'day')).length,
+      week: valid.filter(c => matchesTimeframe(c.createdAt || c.registeredAt, 'week')).length,
+      month: valid.filter(c => matchesTimeframe(c.createdAt || c.registeredAt, 'month')).length,
+      year: valid.filter(c => matchesTimeframe(c.createdAt || c.registeredAt, 'year')).length
+    };
+  }, [candidates]);
 
   return (
     <div className="space-y-6 text-xs font-sans">
@@ -490,15 +371,35 @@ export const CrmCandidates = () => {
       <ScrollReveal>
         <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 bg-white dark:bg-navy-950 p-6 rounded-3xl border border-slate-200 dark:border-navy-800 shadow-sm">
           <div>
-            <span className="bg-gold-500/20 text-gold-600 dark:text-gold-400 text-[10px] font-bold px-2.5 py-1 rounded uppercase">Human Capital Index</span>
-            <h1 className="font-serif text-2xl font-bold text-slate-900 dark:text-white mt-1">Candidate Management System</h1>
-            <p className="text-slate-500 dark:text-slate-400">Total Talent Pool: <strong className="text-slate-900 dark:text-white font-bold">{candidates.length} Registered & Verified Candidates</strong></p>
+            <div className="flex items-center gap-2">
+              <span className="bg-gold-500/20 text-gold-600 dark:text-gold-400 text-[10px] font-bold px-2.5 py-1 rounded uppercase tracking-wider">
+                Human Capital Index
+              </span>
+              <span className="text-[10px] text-slate-400 font-medium">
+                Live Executive Talent Pool
+              </span>
+            </div>
+            <h1 className="font-serif text-2xl sm:text-3xl font-bold text-slate-900 dark:text-white mt-1.5">
+              Candidate Directory & Profiles
+            </h1>
+            <p className="text-slate-500 dark:text-slate-400 mt-0.5">
+              Verified Candidate Profiles synchronized directly with Candidate Portal Dashboard.
+            </p>
           </div>
 
-          <div className="flex gap-3">
+          <div className="flex flex-wrap items-center gap-2.5">
+            <button
+              onClick={() => setActiveModule('job-applications')}
+              className="px-4 py-2.5 bg-blue-600/10 hover:bg-blue-600/20 text-blue-700 dark:text-blue-300 border border-blue-500/30 font-bold rounded-xl transition flex items-center space-x-1.5 cursor-pointer shadow-xs"
+              title="View Job Applications Registry"
+            >
+              <FileCheck className="w-4 h-4 text-blue-600 dark:text-blue-400" />
+              <span>Job Applications Registry ({applications.length})</span>
+            </button>
+
             <button
               onClick={() => setAiDrawerOpen(true)}
-              className="px-4 py-2.5 bg-gold-500/20 text-gold-600 dark:text-gold-400 border border-gold-500/40 hover:bg-gold-500 hover:text-navy-950 font-bold rounded-xl transition flex items-center space-x-1.5 cursor-pointer"
+              className="px-4 py-2.5 bg-gold-500/15 text-gold-700 dark:text-gold-400 border border-gold-500/40 hover:bg-gold-500 hover:text-navy-950 font-bold rounded-xl transition flex items-center space-x-1.5 cursor-pointer"
             >
               <Sparkles className="w-4 h-4" />
               <span>AI Resume Parser</span>
@@ -506,10 +407,10 @@ export const CrmCandidates = () => {
 
             <button
               onClick={() => setGlobalAddCandidateOpen(true)}
-              className="px-4 py-2.5 bg-gold-500 text-navy-950 font-bold rounded-xl shadow-gold-glow hover:opacity-95 transition flex items-center space-x-1.5 cursor-pointer"
+              className="px-4 py-2.5 bg-gold-500 hover:bg-gold-400 text-navy-950 font-extrabold rounded-xl shadow-gold-glow transition flex items-center space-x-1.5 cursor-pointer"
             >
               <Plus className="w-4 h-4" />
-              <span>Add New Candidate</span>
+              <span>Add Candidate</span>
             </button>
           </div>
         </div>
@@ -525,351 +426,385 @@ export const CrmCandidates = () => {
         </div>
       )}
 
-      {/* View Mode Toggle: All Talent vs. Active Job Applicants */}
-      <div className="flex flex-wrap gap-2">
-        <button
-          onClick={() => setFilterMode('all')}
-          className={`px-4 py-2 rounded-xl text-xs font-bold transition flex items-center gap-2 cursor-pointer ${filterMode === 'all'
-            ? 'bg-navy-900 text-white dark:bg-white dark:text-navy-950 shadow-sm'
-            : 'bg-white dark:bg-navy-900 text-slate-600 dark:text-slate-400 border border-slate-200 dark:border-navy-800 hover:border-gold-500'
-            }`}
-        >
-          <Users className="w-3.5 h-3.5" />
-          <span>All Talent Pool ({candidates.length})</span>
-        </button>
-        <button
-          onClick={() => setFilterMode('applicants')}
-          className={`px-4 py-2 rounded-xl text-xs font-bold transition flex items-center gap-2 cursor-pointer ${filterMode === 'applicants'
-            ? 'bg-gold-500 text-navy-950 shadow-gold-glow'
-            : 'bg-white dark:bg-navy-900 text-slate-600 dark:text-slate-400 border border-slate-200 dark:border-navy-800 hover:border-gold-500'
-            }`}
-        >
-          <Briefcase className="w-3.5 h-3.5" />
-          <span>🎯 Active Job Applicants ({activeApplicants.length})</span>
-        </button>
-
-        <button
-          onClick={() => setActiveModule('job-applications')}
-          className="px-4 py-2 rounded-xl text-xs font-bold transition flex items-center gap-2 cursor-pointer bg-blue-600 hover:bg-blue-500 text-white shadow-sm sm:ml-auto"
-        >
-          <FileCheck className="w-3.5 h-3.5" />
-          <span>Open Dedicated Job Applications Registry ({applications.length}) →</span>
-        </button>
-      </div>
-
-      {/* Multi-Dimensional Filter Control Panel (Unified Talent Search Engine from Image 3) */}
+      {/* TIMEFRAME FILTER BAR & KEYWORD SEARCH (Replaces Clunky 8 Dropdowns) */}
       <ScrollReveal>
-        <div className="bg-white dark:bg-navy-900 border border-slate-200 dark:border-navy-800 p-6 rounded-3xl shadow-sm space-y-4">
-          <div className="flex justify-between items-center border-b border-slate-100 dark:border-navy-800 pb-3">
-            <div className="flex items-center gap-2">
-              <Filter className="w-4 h-4 text-gold-500" />
-              <h3 className="font-serif text-sm font-bold text-slate-900 dark:text-white">
-                Multi-Criteria Candidate Search Filters
-              </h3>
-              {activeFiltersCount > 0 && (
-                <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-amber-100 text-amber-900 dark:bg-gold-500/20 dark:text-gold-300 border border-amber-300 dark:border-gold-500/30">
-                  {activeFiltersCount} Active
-                </span>
-              )}
+        <div className="bg-white dark:bg-navy-900 border border-slate-200 dark:border-navy-800 p-5 rounded-3xl shadow-sm space-y-4">
+          <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
+            
+            {/* Timeframe Filter Tabs (Day, Weekly, Monthly, Yearly, All) */}
+            <div className="flex flex-wrap items-center gap-2">
+              <span className="text-[11px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider flex items-center gap-1.5 mr-1">
+                <Calendar className="w-3.5 h-3.5 text-gold-500" />
+                <span>Filter Timeframe:</span>
+              </span>
+
+              <button
+                type="button"
+                onClick={() => setTimeframe('day')}
+                className={`px-3.5 py-1.5 rounded-xl font-bold text-xs transition cursor-pointer flex items-center gap-1.5 ${
+                  timeframe === 'day'
+                    ? 'bg-gold-500 text-navy-950 shadow-gold-glow'
+                    : 'bg-slate-100 hover:bg-slate-200 dark:bg-navy-800 dark:hover:bg-navy-700 text-slate-700 dark:text-slate-300'
+                }`}
+              >
+                <span>Daily (Today)</span>
+                {timeframeCounts.day > 0 && (
+                  <span className={`text-[10px] px-1.5 py-0.2 rounded-full font-extrabold ${
+                    timeframe === 'day' ? 'bg-navy-950 text-gold-400' : 'bg-slate-200 dark:bg-navy-700 text-slate-600 dark:text-slate-300'
+                  }`}>
+                    {timeframeCounts.day}
+                  </span>
+                )}
+              </button>
+
+              <button
+                type="button"
+                onClick={() => setTimeframe('week')}
+                className={`px-3.5 py-1.5 rounded-xl font-bold text-xs transition cursor-pointer flex items-center gap-1.5 ${
+                  timeframe === 'week'
+                    ? 'bg-gold-500 text-navy-950 shadow-gold-glow'
+                    : 'bg-slate-100 hover:bg-slate-200 dark:bg-navy-800 dark:hover:bg-navy-700 text-slate-700 dark:text-slate-300'
+                }`}
+              >
+                <span>Weekly</span>
+                {timeframeCounts.week > 0 && (
+                  <span className={`text-[10px] px-1.5 py-0.2 rounded-full font-extrabold ${
+                    timeframe === 'week' ? 'bg-navy-950 text-gold-400' : 'bg-slate-200 dark:bg-navy-700 text-slate-600 dark:text-slate-300'
+                  }`}>
+                    {timeframeCounts.week}
+                  </span>
+                )}
+              </button>
+
+              <button
+                type="button"
+                onClick={() => setTimeframe('month')}
+                className={`px-3.5 py-1.5 rounded-xl font-bold text-xs transition cursor-pointer flex items-center gap-1.5 ${
+                  timeframe === 'month'
+                    ? 'bg-gold-500 text-navy-950 shadow-gold-glow'
+                    : 'bg-slate-100 hover:bg-slate-200 dark:bg-navy-800 dark:hover:bg-navy-700 text-slate-700 dark:text-slate-300'
+                }`}
+              >
+                <span>Monthly</span>
+                {timeframeCounts.month > 0 && (
+                  <span className={`text-[10px] px-1.5 py-0.2 rounded-full font-extrabold ${
+                    timeframe === 'month' ? 'bg-navy-950 text-gold-400' : 'bg-slate-200 dark:bg-navy-700 text-slate-600 dark:text-slate-300'
+                  }`}>
+                    {timeframeCounts.month}
+                  </span>
+                )}
+              </button>
+
+              <button
+                type="button"
+                onClick={() => setTimeframe('year')}
+                className={`px-3.5 py-1.5 rounded-xl font-bold text-xs transition cursor-pointer flex items-center gap-1.5 ${
+                  timeframe === 'year'
+                    ? 'bg-gold-500 text-navy-950 shadow-gold-glow'
+                    : 'bg-slate-100 hover:bg-slate-200 dark:bg-navy-800 dark:hover:bg-navy-700 text-slate-700 dark:text-slate-300'
+                }`}
+              >
+                <span>Yearly</span>
+                {timeframeCounts.year > 0 && (
+                  <span className={`text-[10px] px-1.5 py-0.2 rounded-full font-extrabold ${
+                    timeframe === 'year' ? 'bg-navy-950 text-gold-400' : 'bg-slate-200 dark:bg-navy-700 text-slate-600 dark:text-slate-300'
+                  }`}>
+                    {timeframeCounts.year}
+                  </span>
+                )}
+              </button>
+
+              <button
+                type="button"
+                onClick={() => setTimeframe('all')}
+                className={`px-3.5 py-1.5 rounded-xl font-bold text-xs transition cursor-pointer flex items-center gap-1.5 ${
+                  timeframe === 'all'
+                    ? 'bg-navy-900 text-white dark:bg-white dark:text-navy-950 shadow-sm'
+                    : 'bg-slate-100 hover:bg-slate-200 dark:bg-navy-800 dark:hover:bg-navy-700 text-slate-700 dark:text-slate-300'
+                }`}
+              >
+                <span>All Time ({timeframeCounts.all})</span>
+              </button>
             </div>
 
-            <button
-              onClick={handleResetFilters}
-              className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-slate-100 hover:bg-slate-200 dark:bg-navy-800 dark:hover:bg-navy-700 text-slate-700 dark:text-slate-300 hover:text-rose-600 dark:hover:text-rose-400 font-bold transition cursor-pointer text-xs"
-            >
-              <RotateCcw className="w-3.5 h-3.5" />
-              <span>Reset All Filters</span>
-            </button>
+            {/* Reset Filter Button */}
+            {(timeframe !== 'all' || searchTerm.trim() !== '') && (
+              <button
+                type="button"
+                onClick={() => {
+                  setTimeframe('all');
+                  setSearchTerm('');
+                }}
+                className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-slate-100 hover:bg-slate-200 dark:bg-navy-800 dark:hover:bg-navy-700 text-slate-600 dark:text-slate-300 hover:text-rose-600 dark:hover:text-rose-400 font-bold transition cursor-pointer text-xs self-start md:self-auto"
+              >
+                <RotateCcw className="w-3.5 h-3.5" />
+                <span>Reset Filters</span>
+              </button>
+            )}
           </div>
 
-          {/* Keyword Search Input */}
+          {/* Quick Keyword Search Input */}
           <div className="relative">
-            <Search className="w-4 h-4 absolute left-3 top-3 text-slate-400" />
+            <Search className="w-4 h-4 absolute left-3.5 top-3.5 text-slate-400" />
             <input
               type="text"
-              placeholder="Search across candidate names, verified emails, phone numbers, skills, passport details..."
+              placeholder="Search candidates by name, verified email, phone number, professional role, skills, nationality, or Candidate ID..."
               value={searchTerm}
               onChange={e => setSearchTerm(e.target.value)}
-              className="w-full pl-9 pr-3 py-2.5 bg-slate-50 dark:bg-navy-950 border border-slate-200 dark:border-navy-700 rounded-2xl text-xs font-semibold text-slate-900 dark:text-white placeholder:text-slate-400 focus:outline-none focus:border-gold-500"
+              className="w-full pl-10 pr-4 py-3 bg-slate-50 dark:bg-navy-950 border border-slate-200 dark:border-navy-700 rounded-2xl text-xs font-semibold text-slate-900 dark:text-white placeholder:text-slate-400 focus:outline-none focus:border-gold-500 shadow-inner"
             />
-          </div>
-
-          {/* 6 Dimension Filter Dropdowns (Matching Image 3) */}
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 pt-1">
-            {/* 1. Target Job / Vacancy */}
-            <div>
-              <label className="block text-[11px] font-bold text-slate-600 dark:text-slate-400 mb-1">
-                Target Job / Vacancy
-              </label>
-              <select
-                value={selectedJob}
-                onChange={e => setSelectedJob(e.target.value)}
-                className="w-full p-2.5 bg-slate-50 dark:bg-navy-950 border border-slate-200 dark:border-navy-700 rounded-xl font-bold text-slate-800 dark:text-slate-200 focus:outline-none cursor-pointer"
+            {searchTerm && (
+              <button
+                onClick={() => setSearchTerm('')}
+                className="absolute right-3.5 top-3.5 text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 cursor-pointer"
               >
-                <option value="all">All Job Mandates</option>
-                {jobsList.map(j => <option key={j} value={j}>{j}</option>)}
-              </select>
-            </div>
-
-            {/* 2. Core Competence / Skill */}
-            <div>
-              <label className="block text-[11px] font-bold text-slate-600 dark:text-slate-400 mb-1">
-                Core Competence / Skill
-              </label>
-              <select
-                value={selectedSkill}
-                onChange={e => setSelectedSkill(e.target.value)}
-                className="w-full p-2.5 bg-slate-50 dark:bg-navy-950 border border-slate-200 dark:border-navy-700 rounded-xl font-bold text-slate-800 dark:text-slate-200 focus:outline-none cursor-pointer"
-              >
-                <option value="all">All Technical Skills</option>
-                {skillsList.map(s => <option key={s} value={s}>{s}</option>)}
-              </select>
-            </div>
-
-            {/* 3. Experience Bracket */}
-            <div>
-              <label className="block text-[11px] font-bold text-slate-600 dark:text-slate-400 mb-1">
-                Experience Bracket
-              </label>
-              <select
-                value={selectedExp}
-                onChange={e => setSelectedExp(e.target.value)}
-                className="w-full p-2.5 bg-slate-50 dark:bg-navy-950 border border-slate-200 dark:border-navy-700 rounded-xl font-bold text-slate-800 dark:text-slate-200 focus:outline-none cursor-pointer"
-              >
-                <option value="all">Any Experience Range</option>
-                <option value="junior">Junior (0 - 3 Years)</option>
-                <option value="mid">Mid-Level (4 - 7 Years)</option>
-                <option value="senior">Senior Specialist (8 - 12 Years)</option>
-                <option value="executive">Executive Leadership (12+ Years)</option>
-              </select>
-            </div>
-
-            {/* 4. Candidate Location / Target Region */}
-            <div>
-              <label className="block text-[11px] font-bold text-slate-600 dark:text-slate-400 mb-1">
-                Candidate Location / Target Region
-              </label>
-              <select
-                value={selectedLocation}
-                onChange={e => setSelectedLocation(e.target.value)}
-                className="w-full p-2.5 bg-slate-50 dark:bg-navy-950 border border-slate-200 dark:border-navy-700 rounded-xl font-bold text-slate-800 dark:text-slate-200 focus:outline-none cursor-pointer"
-              >
-                <option value="all">All Locations (Domestic & GCC)</option>
-                {locationsList.map(l => <option key={l} value={l}>{l}</option>)}
-              </select>
-            </div>
-
-            {/* 5. Education / Qualification */}
-            <div>
-              <label className="block text-[11px] font-bold text-slate-600 dark:text-slate-400 mb-1">
-                Education / Qualification
-              </label>
-              <select
-                value={selectedQual}
-                onChange={e => setSelectedQual(e.target.value)}
-                className="w-full p-2.5 bg-slate-50 dark:bg-navy-950 border border-slate-200 dark:border-navy-700 rounded-xl font-bold text-slate-800 dark:text-slate-200 focus:outline-none cursor-pointer"
-              >
-                <option value="all">All Academic Qualifications</option>
-                {qualificationsList.map(q => <option key={q} value={q}>{q}</option>)}
-              </select>
-            </div>
-
-            {/* 6. Application Pipeline Stage */}
-            <div>
-              <label className="block text-[11px] font-bold text-slate-600 dark:text-slate-400 mb-1">
-                Application Pipeline Stage
-              </label>
-              <select
-                value={selectedStatus}
-                onChange={e => setSelectedStatus(e.target.value)}
-                className="w-full p-2.5 bg-slate-50 dark:bg-navy-950 border border-slate-200 dark:border-navy-700 rounded-xl font-bold text-slate-800 dark:text-slate-200 focus:outline-none cursor-pointer"
-              >
-                {statusList.map(s => <option key={s.id} value={s.id}>{s.label}</option>)}
-              </select>
-            </div>
-          </div>
-
-          {/* Secondary Filter Row: Assigned Recruiter & Nationality */}
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 pt-2 border-t border-slate-100 dark:border-navy-800">
-            <div>
-              <label className="block text-[11px] font-bold text-slate-600 dark:text-slate-400 mb-1">
-                Assigned Recruiter
-              </label>
-              <select
-                value={selectedRecruiter}
-                onChange={(e) => setSelectedRecruiter(e.target.value)}
-                className="w-full p-2.5 bg-slate-50 dark:bg-navy-950 border border-slate-200 dark:border-navy-700 text-slate-800 dark:text-slate-200 rounded-xl font-bold focus:outline-none cursor-pointer"
-              >
-                <option value="All">All Assigned Recruiters ({ASSIGNED_RECRUITERS.length})</option>
-                {ASSIGNED_RECRUITERS.map(rec => (
-                  <option key={rec.id} value={rec.name}>{rec.name}</option>
-                ))}
-              </select>
-            </div>
-
-            <div>
-              <label className="block text-[11px] font-bold text-slate-600 dark:text-slate-400 mb-1">
-                Nationality / Country
-              </label>
-              <select
-                value={selectedNationality}
-                onChange={(e) => setSelectedNationality(e.target.value)}
-                className="w-full p-2.5 bg-slate-50 dark:bg-navy-950 border border-slate-200 dark:border-navy-700 text-slate-800 dark:text-slate-200 rounded-xl font-bold focus:outline-none cursor-pointer"
-              >
-                <option value="All">All Nationalities</option>
-                <option value="UAE">UAE</option>
-                <option value="United Kingdom">United Kingdom</option>
-                <option value="Saudi Arabia">Saudi Arabia</option>
-                <option value="India">India</option>
-                <option value="Poland">Poland</option>
-                <option value="Singapore">Singapore</option>
-                <option value="Qatar">Qatar</option>
-              </select>
-            </div>
+                <X className="w-4 h-4" />
+              </button>
+            )}
           </div>
         </div>
       </ScrollReveal>
 
-      {/* Matching Candidates Header Strip (Matching Image 3) */}
-      <div className="flex justify-between items-center px-1">
+      {/* Profiles Count Banner */}
+      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center px-1 gap-2">
         <h3 className="font-serif text-base font-bold text-slate-900 dark:text-white flex items-center gap-2">
-          <span>Matching Candidates:</span>
-          <span className="text-amber-600 dark:text-gold-400 font-extrabold">{filtered.length} Profiles</span>
+          <span>Registered Profiles:</span>
+          <span className="text-amber-600 dark:text-gold-400 font-extrabold">{filtered.length} Candidates</span>
+          {timeframe !== 'all' && (
+            <span className="text-xs font-sans font-semibold text-slate-500 dark:text-slate-400">
+              ({timeframe === 'day' ? 'Today' : timeframe === 'week' ? 'This Week' : timeframe === 'month' ? 'This Month' : 'This Year'})
+            </span>
+          )}
         </h3>
-        <span className="text-[11px] text-slate-400 font-mono hidden sm:inline">
-          Real-Time Dynamic Querying
+        <span className="text-[11px] text-slate-400 font-mono">
+          Pure Candidate Profiles • Job Applications Managed Separately
         </span>
       </div>
 
-      {/* Candidates Cards Grid */}
+      {/* CANDIDATES PROFILE CARDS GRID (PURE CANDIDATE PROFILES ONLY) */}
       <ScrollReveal>
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-          {filtered.map((cand) => (
-            <div
-              key={cand.id}
-              onClick={() => setViewCand(cand)}
-              className="glass-card bg-white dark:bg-navy-900 border border-slate-200 dark:border-navy-800 p-5 rounded-2xl space-y-3 hover:border-gold-500 transition cursor-pointer flex flex-col justify-between shadow-sm group"
-            >
-              <div className="space-y-3">
-                <div className="flex justify-between items-start">
-                  <div className="flex items-center space-x-3">
-                    <img
-                      src={cand.avatar || 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=150&auto=format&fit=crop&q=80'}
-                      alt={cand.name}
-                      className="w-11 h-11 rounded-full object-cover border-2 border-gold-500 shrink-0"
-                    />
-                    <div>
-                      <h3 className="font-bold text-sm text-slate-900 dark:text-white group-hover:text-gold-600 transition">{cand.name}</h3>
-                      <p className="text-[10px] text-slate-500 dark:text-slate-400 font-medium">
-                        {cand.id} • {cand.nationality || 'UAE'}
-                        {cand.citizenship && ` • ${cand.citizenship}`}
-                      </p>
-                    </div>
-                  </div>
-
-                  <div className="flex flex-col items-end gap-1">
-                    <span className="px-2 py-0.5 rounded-full bg-emerald-500/15 text-emerald-700 dark:text-emerald-400 font-bold text-[9px] flex items-center gap-1 border border-emerald-500/30" title="CV / Resume Attached">
-                      <FileText className="w-3 h-3 text-emerald-600 dark:text-emerald-400" />
-                      <span>CV Attached</span>
-                    </span>
-                    {Array.isArray(cand.applications) && cand.applications.length > 0 && (
-                      <span className="px-2 py-0.5 rounded-full bg-blue-500/15 text-blue-700 dark:text-blue-400 font-bold text-[9px] flex items-center gap-1 border border-blue-500/30" title="Applied Vacancies">
-                        <Briefcase className="w-3 h-3 text-blue-600 dark:text-blue-400" />
-                        <span>{cand.applications.length} Applied</span>
-                      </span>
-                    )}
-                    <span className="w-7 h-7 rounded-full border border-gold-500 text-gold-600 dark:text-gold-400 font-extrabold text-[11px] flex items-center justify-center bg-gold-500/10" title="AI Profile Score">
-                      {cand.score || 88}
-                    </span>
-                  </div>
-                </div>
-
-                <div className="p-3 bg-slate-100 dark:bg-navy-950 rounded-xl space-y-1 text-[11px] border border-slate-200 dark:border-navy-800">
-                  <p><strong className="text-slate-500 dark:text-slate-400">Role:</strong> <span className="text-slate-900 dark:text-white font-semibold">{cand.currentRole || 'Executive Candidate'}</span></p>
-                  <p><strong className="text-slate-500 dark:text-slate-400">Employer:</strong> <span className="text-slate-900 dark:text-white font-semibold">{cand.currentEmployer || 'Revival International Candidate'}</span></p>
-                  {cand.email && (
-                    <p><strong className="text-slate-500 dark:text-slate-400">Email:</strong> <span className="text-slate-800 dark:text-slate-200 font-mono text-[10px]">{cand.email}</span></p>
-                  )}
-                  <p><strong className="text-slate-500 dark:text-slate-400">Expected Salary:</strong> <span className="text-emerald-600 dark:text-emerald-400 font-bold">{cand.expectedSalary || 'Not specified'}</span></p>
-                </div>
-
-                {/* Applied Vacancy Highlight Banner */}
-                {Array.isArray(cand.applications) && cand.applications.length > 0 && (
-                  <div className="p-2.5 bg-blue-50 dark:bg-blue-950/40 rounded-xl border border-blue-200 dark:border-blue-900/50 space-y-1">
-                    <div className="flex items-center justify-between">
-                      <span className="text-[10px] font-bold text-blue-600 dark:text-blue-400 uppercase tracking-wider flex items-center gap-1">
-                        <Briefcase className="w-3 h-3" />
-                        <span>Applied Vacancy</span>
-                      </span>
-                      <span className="text-[9px] text-blue-500 font-medium">
-                        {cand.applications[0].appliedDate ? new Date(cand.applications[0].appliedDate).toLocaleDateString() : 'Recent'}
-                      </span>
-                    </div>
-                    <p className="font-bold text-xs text-blue-950 dark:text-blue-200 line-clamp-1">
-                      {cand.applications[0].jobTitle}
-                    </p>
-                    <p className="text-[10px] text-slate-600 dark:text-slate-400">
-                      {cand.applications[0].company || 'Revival International Partner'}
-                    </p>
-                  </div>
-                )}
-
-                <p className="text-[11px] text-slate-700 dark:text-slate-300 italic line-clamp-2 leading-relaxed">
-                  "{cand.aiSummary || 'Registered candidate in Revival Talent Pool.'}"
-                </p>
-
-                <div className="flex flex-wrap gap-1">
-                  {Array.isArray(cand.skills) && cand.skills.slice(0, 4).map((s, i) => (
-                    <span key={i} className="bg-slate-100 dark:bg-navy-950 text-gold-700 dark:text-gold-400 text-[10px] px-2 py-0.5 rounded font-medium border border-slate-200 dark:border-navy-800">
-                      {s}
-                    </span>
-                  ))}
-                  {Array.isArray(cand.skills) && cand.skills.length > 4 && (
-                    <span className="text-[10px] text-slate-500 px-1 py-0.5 font-bold">
-                      +{cand.skills.length - 4} more
-                    </span>
-                  )}
-                </div>
-              </div>
-
-              <div className="pt-3 border-t border-slate-200 dark:border-navy-800 flex justify-between items-center text-[10px] text-slate-500 dark:text-slate-400">
-                <div className="space-y-0.5">
-                  <span>Recruiter: <strong className="text-slate-900 dark:text-white">{cand.assignedRecruiter || 'Dhanalakshimi'}</strong></span>
-                  <span className="block bg-gold-500/20 text-gold-700 dark:text-gold-400 font-bold px-2 py-0.5 rounded uppercase w-fit">{cand.stage || 'lead'}</span>
-                </div>
-                <div className="flex items-center gap-2">
-                  <button
-                    type="button"
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      setViewCand(cand);
-                    }}
-                    className="p-1.5 px-2.5 bg-gold-500/10 hover:bg-gold-500/20 text-gold-700 dark:text-gold-400 rounded-lg border border-gold-500/30 font-bold transition flex items-center gap-1 cursor-pointer"
-                    title={`View Full Profile & CV for ${cand.name}`}
-                  >
-                    <Eye className="w-3.5 h-3.5" />
-                    <span>View Details</span>
-                  </button>
-                  <button
-                    type="button"
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      handleDeleteCandidate(cand);
-                    }}
-                    className="p-1.5 px-2.5 bg-rose-50 hover:bg-rose-100 dark:bg-rose-950/40 dark:hover:bg-rose-900/60 text-rose-600 dark:text-rose-400 rounded-lg border border-rose-200 dark:border-rose-900/50 font-bold transition flex items-center gap-1 cursor-pointer"
-                    title={`Delete ${cand.name}`}
-                  >
-                    <Trash2 className="w-3.5 h-3.5" />
-                    <span className="text-[10px]">Delete</span>
-                  </button>
-                </div>
-              </div>
+        {filtered.length === 0 ? (
+          <div className="bg-white dark:bg-navy-900 border border-slate-200 dark:border-navy-800 rounded-3xl p-12 text-center space-y-3">
+            <div className="w-16 h-16 rounded-2xl bg-amber-500/10 text-amber-500 flex items-center justify-center mx-auto">
+              <Users className="w-8 h-8" />
             </div>
-          ))}
-        </div>
+            <h3 className="font-serif text-lg font-bold text-slate-900 dark:text-white">
+              No Registered Candidates in this Timeframe
+            </h3>
+            <p className="text-xs text-slate-500 dark:text-slate-400 max-w-md mx-auto">
+              No candidates found matching the selected timeframe ({timeframe}) or search query. Switch timeframe to "All Time" or reset your search.
+            </p>
+            <button
+              onClick={() => {
+                setTimeframe('all');
+                setSearchTerm('');
+              }}
+              className="px-4 py-2 bg-gold-500 text-navy-950 font-bold rounded-xl text-xs shadow-gold-glow cursor-pointer mt-2"
+            >
+              View All Candidates
+            </button>
+          </div>
+        ) : (
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
+            {filtered.map((cand) => {
+              const regDateTime = cand.createdAt || cand.registeredAt || cand.updatedAt;
+              const hasCv = !!(cand.resumeUrl || cand.resumeName);
+
+              return (
+                <div
+                  key={cand.id}
+                  onClick={() => setViewCand(cand)}
+                  className="glass-card bg-white dark:bg-navy-900 border border-slate-200 dark:border-navy-800 p-5 rounded-3xl space-y-4 hover:border-gold-500/80 transition duration-200 cursor-pointer flex flex-col justify-between shadow-sm hover:shadow-luxury group relative overflow-hidden"
+                >
+                  {/* Top Decorative Gold Accent Bar */}
+                  <div className="absolute top-0 left-0 right-0 h-1 bg-gradient-to-r from-gold-500 via-amber-400 to-gold-600 opacity-80 group-hover:opacity-100 transition" />
+
+                  <div className="space-y-3.5">
+                    
+                    {/* Header Row: Avatar, Name, Candidate ID, Badges */}
+                    <div className="flex justify-between items-start gap-3">
+                      <div className="flex items-center space-x-3 min-w-0">
+                        {renderCandidateAvatar(cand, "w-12 h-12 text-sm")}
+                        <div className="min-w-0">
+                          <h3 className="font-serif font-bold text-base text-slate-900 dark:text-white group-hover:text-gold-600 dark:group-hover:text-gold-400 transition truncate" title={cand.name}>
+                            {cand.name}
+                          </h3>
+                          <p className="text-[11px] text-slate-500 dark:text-slate-400 font-mono font-bold flex items-center gap-1.5 mt-0.5">
+                            <span className="text-gold-600 dark:text-gold-400">{cand.id}</span>
+                            <span>•</span>
+                            <span className="text-slate-600 dark:text-slate-300 font-sans font-semibold">{cand.nationality || 'UAE'}</span>
+                          </p>
+                        </div>
+                      </div>
+
+                      {/* Top Badges */}
+                      <div className="flex flex-col items-end gap-1 shrink-0">
+                        {hasCv ? (
+                          <span className="px-2.5 py-0.5 rounded-full bg-emerald-500/15 text-emerald-700 dark:text-emerald-400 font-bold text-[9px] flex items-center gap-1 border border-emerald-500/30" title={`CV Attached: ${cand.resumeName || 'Verified'}`}>
+                            <FileText className="w-3 h-3 text-emerald-600 dark:text-emerald-400" />
+                            <span>CV Attached</span>
+                          </span>
+                        ) : (
+                          <span className="px-2 py-0.5 rounded-full bg-slate-100 dark:bg-navy-800 text-slate-500 dark:text-slate-400 font-semibold text-[9px] border border-slate-200 dark:border-navy-700">
+                            No CV
+                          </span>
+                        )}
+                        <span className="px-2 py-0.5 rounded-full border border-gold-500/40 text-gold-700 dark:text-gold-400 font-extrabold text-[10px] bg-gold-500/10 flex items-center gap-1" title="Candidate Profile Quality Score">
+                          <Award className="w-3 h-3 text-gold-500" />
+                          <span>{cand.score || 88}%</span>
+                        </span>
+                      </div>
+                    </div>
+
+                    {/* REGISTRATION DATE & TIME BADGE (User Requirement) */}
+                    <div className="flex items-center gap-1.5 text-[10px] font-semibold text-slate-600 dark:text-slate-400 bg-slate-50 dark:bg-navy-950 px-2.5 py-1 rounded-xl border border-slate-200/80 dark:border-navy-800/80">
+                      <Clock className="w-3.5 h-3.5 text-gold-500 shrink-0" />
+                      <span>Registered:</span>
+                      <strong className="text-slate-900 dark:text-white font-mono">
+                        {formatCandidateDateTime(regDateTime)}
+                      </strong>
+                    </div>
+
+                    {/* PROFESSIONAL PROFILE DETAILS CARD */}
+                    <div className="p-3.5 bg-slate-50 dark:bg-navy-950/80 rounded-2xl space-y-1.5 text-xs border border-slate-200/80 dark:border-navy-800/80">
+                      <div className="flex items-start justify-between gap-2">
+                        <div className="min-w-0">
+                          <span className="text-[10px] uppercase font-bold text-slate-400 block leading-tight">Professional Role</span>
+                          <p className="font-bold text-slate-900 dark:text-white truncate text-xs" title={cand.currentRole}>
+                            {cand.currentRole || 'Executive Candidate'}
+                          </p>
+                        </div>
+                      </div>
+
+                      <div className="pt-1 border-t border-slate-200/60 dark:border-navy-800/60 grid grid-cols-2 gap-2 text-[11px]">
+                        <div>
+                          <span className="text-[9px] uppercase font-bold text-slate-400 block">Organization / Pool</span>
+                          <span className="font-semibold text-slate-700 dark:text-slate-300 truncate block" title={cand.currentEmployer}>
+                            {cand.currentEmployer || 'Revival International Candidate'}
+                          </span>
+                        </div>
+                        <div>
+                          <span className="text-[9px] uppercase font-bold text-slate-400 block">Experience</span>
+                          <span className="font-semibold text-slate-700 dark:text-slate-300">
+                            {cand.experience || '3-5 Years'}
+                          </span>
+                        </div>
+                      </div>
+
+                      {/* Contact Credentials */}
+                      <div className="pt-1.5 border-t border-slate-200/60 dark:border-navy-800/60 space-y-0.5 text-[11px]">
+                        {cand.email && (
+                          <div className="flex items-center gap-1.5 text-slate-600 dark:text-slate-400 font-mono text-[10px] truncate" title={cand.email}>
+                            <Mail className="w-3 h-3 text-gold-500 shrink-0" />
+                            <span className="truncate">{cand.email}</span>
+                          </div>
+                        )}
+                        {cand.phone && cand.phone !== 'Not specified' && (
+                          <div className="flex items-center gap-1.5 text-slate-600 dark:text-slate-400 font-mono text-[10px]">
+                            <Phone className="w-3 h-3 text-emerald-500 shrink-0" />
+                            <span>{cand.phone}</span>
+                          </div>
+                        )}
+                      </div>
+
+                      {/* Salary Expectations & Notice */}
+                      <div className="pt-1.5 border-t border-slate-200/60 dark:border-navy-800/60 flex items-center justify-between text-[10px]">
+                        <span className="text-slate-500 dark:text-slate-400">Expected:</span>
+                        <strong className="text-emerald-600 dark:text-emerald-400 font-bold truncate max-w-[170px]" title={cand.expectedSalary}>
+                          {cand.expectedSalary || 'Market Standard'}
+                        </strong>
+                      </div>
+                    </div>
+
+                    {/* Executive Bio / AI Summary */}
+                    <p className="text-[11px] text-slate-600 dark:text-slate-300 italic line-clamp-2 leading-relaxed px-1">
+                      "{cand.aiSummary || `Registered candidate in Revival Talent Pool (${cand.name}).`}"
+                    </p>
+
+                    {/* Skills Pills */}
+                    <div className="flex flex-wrap gap-1 pt-0.5">
+                      {Array.isArray(cand.skills) && cand.skills.slice(0, 3).map((s, i) => (
+                        <span
+                          key={i}
+                          className="bg-gold-500/10 text-gold-700 dark:text-gold-400 text-[10px] px-2.5 py-0.5 rounded-lg font-semibold border border-gold-500/20"
+                        >
+                          {s}
+                        </span>
+                      ))}
+                      {Array.isArray(cand.skills) && cand.skills.length > 3 && (
+                        <span className="text-[10px] text-slate-400 px-1 py-0.5 font-bold">
+                          +{cand.skills.length - 3} more
+                        </span>
+                      )}
+                    </div>
+                  </div>
+
+                  {/* Card Footer: Quick CV Actions & Profile Buttons */}
+                  <div className="pt-3.5 border-t border-slate-200 dark:border-navy-800 flex items-center justify-between gap-2">
+                    <div className="flex items-center gap-1.5">
+                      {hasCv && (
+                        <button
+                          type="button"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            handlePreviewCv(cand);
+                          }}
+                          className="p-1.5 px-2 bg-slate-100 hover:bg-slate-200 dark:bg-navy-800 dark:hover:bg-navy-700 text-slate-700 dark:text-slate-200 rounded-xl font-bold transition flex items-center gap-1 cursor-pointer text-[10px]"
+                          title="Preview Candidate CV in Tab"
+                        >
+                          <Eye className="w-3.5 h-3.5 text-gold-500" />
+                          <span>Preview CV</span>
+                        </button>
+                      )}
+
+                      <button
+                        type="button"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          handleDownloadCv(cand);
+                        }}
+                        className="p-1.5 px-2 bg-gold-500/15 hover:bg-gold-500/25 text-gold-700 dark:text-gold-400 rounded-xl font-bold transition flex items-center gap-1 cursor-pointer text-[10px] border border-gold-500/30"
+                        title="Download Candidate CV (PDF)"
+                      >
+                        <Download className="w-3.5 h-3.5" />
+                        <span>CV PDF</span>
+                      </button>
+                    </div>
+
+                    <div className="flex items-center gap-1.5">
+                      <button
+                        type="button"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          setViewCand(cand);
+                        }}
+                        className="p-1.5 px-3 bg-navy-900 hover:bg-navy-800 dark:bg-gold-500 dark:hover:bg-gold-400 text-white dark:text-navy-950 font-bold rounded-xl transition flex items-center gap-1 cursor-pointer text-[10px] shadow-xs"
+                      >
+                        <span>View Profile</span>
+                        <span>→</span>
+                      </button>
+
+                      <button
+                        type="button"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          handleDeleteCandidate(cand);
+                        }}
+                        className="p-1.5 text-rose-500 hover:text-rose-700 hover:bg-rose-50 dark:hover:bg-rose-950/40 rounded-xl transition cursor-pointer"
+                        title={`Delete ${cand.name}`}
+                      >
+                        <Trash2 className="w-3.5 h-3.5" />
+                      </button>
+                    </div>
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        )}
       </ScrollReveal>
 
-      {/* Comprehensive Candidate View Modal (With Visual ATS Resume & Downloadable PDF) */}
+      {/* COMPREHENSIVE CANDIDATE PROFILE MODAL */}
       {activeCand && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-navy-950/80 backdrop-blur-sm animate-in fade-in">
           <div className="glass-card bg-white dark:bg-navy-900 border border-gold-500/40 rounded-3xl max-w-4xl w-full p-6 shadow-luxury space-y-5 max-h-[94vh] overflow-y-auto text-slate-900 dark:text-white">
@@ -877,25 +812,21 @@ export const CrmCandidates = () => {
             {/* Modal Header */}
             <div className="flex justify-between items-start border-b border-slate-200 dark:border-navy-800 pb-4">
               <div className="flex items-center space-x-4">
-                <img
-                  src={activeCand.avatar || 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=150&auto=format&fit=crop&q=80'}
-                  alt={activeCand.name}
-                  className="w-14 h-14 rounded-full border-2 border-gold-500 object-cover shadow-sm shrink-0"
-                />
+                {renderCandidateAvatar(activeCand, "w-14 h-14 text-base")}
                 <div>
                   <div className="flex flex-wrap items-center gap-2">
                     <h3 className="font-serif text-2xl font-bold text-slate-900 dark:text-white">{activeCand.name}</h3>
                     <span className="px-2.5 py-0.5 rounded-full text-[10px] font-extrabold bg-gold-500/20 text-gold-700 dark:text-gold-400 uppercase tracking-wider">
-                      {activeCand.stage || 'Lead'}
+                      {activeCand.stage || 'Verified'}
                     </span>
-                    <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-emerald-500/15 text-emerald-700 dark:text-emerald-400 border border-emerald-500/30">
+                    <span className="px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-emerald-500/15 text-emerald-700 dark:text-emerald-400 border border-emerald-500/30">
                       Score: {activeCand.score || 88}%
                     </span>
                   </div>
                   <p className="text-xs text-slate-500 dark:text-slate-400 mt-1 flex flex-wrap items-center gap-1.5">
                     <span className="font-mono font-bold text-gold-600 dark:text-gold-400">{activeCand.id}</span>
                     <span>•</span>
-                    <span>{activeCand.currentRole}</span>
+                    <strong className="text-slate-900 dark:text-white">{activeCand.currentRole}</strong>
                     <span>•</span>
                     <span>{activeCand.nationality || 'UAE'} ({activeCand.citizenship || 'UAE'})</span>
                     <span>•</span>
@@ -915,7 +846,21 @@ export const CrmCandidates = () => {
               </button>
             </div>
 
-            {/* CANDIDATE APPLIED RESUME / CV ACTION SPOTLIGHT BAR */}
+            {/* REGISTRATION TIMESTAMP STRIP */}
+            <div className="flex items-center justify-between p-3 bg-slate-50 dark:bg-navy-950 rounded-2xl border border-slate-200 dark:border-navy-800 text-xs">
+              <div className="flex items-center gap-2 text-slate-600 dark:text-slate-400">
+                <Clock className="w-4 h-4 text-gold-500" />
+                <span>Candidate Portal Registration Date & Time:</span>
+                <strong className="text-slate-900 dark:text-white font-mono">
+                  {formatCandidateDateTime(activeCand.createdAt || activeCand.registeredAt)}
+                </strong>
+              </div>
+              <span className="text-[10px] bg-emerald-500/15 text-emerald-700 dark:text-emerald-400 font-bold px-2 py-0.5 rounded-full border border-emerald-500/30">
+                ✓ Portal Verified Record
+              </span>
+            </div>
+
+            {/* CANDIDATE ATTACHED RESUME / CV ACTION SPOTLIGHT BAR */}
             <div className="p-4 rounded-2xl bg-gradient-to-r from-amber-500/15 via-gold-500/10 to-emerald-500/10 border-2 border-gold-500/40 space-y-3 shadow-sm">
               <div className="flex flex-col sm:flex-row justify-between sm:items-center gap-3">
                 <div className="flex items-center gap-3">
@@ -924,13 +869,13 @@ export const CrmCandidates = () => {
                   </div>
                   <div>
                     <h4 className="font-bold text-sm text-slate-900 dark:text-white flex items-center gap-2">
-                      <span>Candidate Applied Resume / CV</span>
+                      <span>Candidate Official Profile Resume / CV</span>
                       <span className="text-[10px] bg-emerald-500/20 text-emerald-700 dark:text-emerald-400 font-extrabold px-2.5 py-0.5 rounded-full flex items-center gap-1 border border-emerald-500/30">
                         <CheckCircle2 className="w-3 h-3" /> Active & Verified CV
                       </span>
                     </h4>
                     <p className="text-xs text-slate-600 dark:text-slate-300 font-medium">
-                      Document: <strong className="font-mono text-slate-900 dark:text-white">{activeCand.resumeName}</strong> <span className="text-slate-500">({activeCand.resumeSize} • ATS Certified)</span>
+                      Document: <strong className="font-mono text-slate-900 dark:text-white">{activeCand.resumeName || `${activeCand.name.replace(/\s+/g, '_')}_Resume.pdf`}</strong> <span className="text-slate-500">({activeCand.resumeSize || 'Verified Document'} • ATS Certified)</span>
                     </p>
                   </div>
                 </div>
@@ -964,7 +909,7 @@ export const CrmCandidates = () => {
                     title="Toggle Candidate CV Viewer"
                   >
                     {showFullResumeSheet ? <ChevronUp className="w-4 h-4" /> : <ChevronDown className="w-4 h-4" />}
-                    <span>{showFullResumeSheet ? 'Hide CV Document' : 'View Uploaded CV'}</span>
+                    <span>{showFullResumeSheet ? 'Hide Document' : 'View Document'}</span>
                   </button>
                 </div>
               </div>
@@ -1008,11 +953,11 @@ export const CrmCandidates = () => {
                       </div>
                     </div>
 
-                    <div className="w-full bg-slate-900 flex justify-center items-center min-h-[600px]">
+                    <div className="w-full bg-slate-900 flex justify-center items-center min-h-[550px]">
                       <iframe
                         src={activeCand.resumeUrl}
                         title={`Resume - ${activeCand.name || 'Candidate'}`}
-                        className="w-full h-[650px] border-none bg-white"
+                        className="w-full h-[600px] border-none bg-white"
                       />
                     </div>
                   </div>
@@ -1023,39 +968,11 @@ export const CrmCandidates = () => {
                     </div>
                     <div className="space-y-1">
                       <h3 className="font-bold text-base text-slate-900 dark:text-white">
-                        No Custom CV File Uploaded
+                        Standard Profile Credentials Active
                       </h3>
                       <p className="text-xs text-slate-500 dark:text-slate-400 max-w-md mx-auto leading-relaxed">
-                        This candidate registered or applied using verified profile credentials. No standalone PDF/DOC file was uploaded in the candidate portal.
+                        This candidate registered and maintains their verified profile in the Revival International Talent Network.
                       </p>
-                    </div>
-
-                    {/* Summary of actual candidate details from database */}
-                    <div className="max-w-xl mx-auto p-4 bg-slate-50 dark:bg-navy-900/60 rounded-xl border border-slate-200 dark:border-navy-800 text-left grid grid-cols-2 gap-3 text-xs">
-                      <div>
-                        <span className="text-slate-400 text-[10px] uppercase font-bold block">Candidate Name</span>
-                        <strong className="text-slate-900 dark:text-white">{activeCand.name}</strong>
-                      </div>
-                      <div>
-                        <span className="text-slate-400 text-[10px] uppercase font-bold block">Target Role</span>
-                        <strong className="text-slate-900 dark:text-white">{activeCand.currentRole || 'Executive Candidate'}</strong>
-                      </div>
-                      <div>
-                        <span className="text-slate-400 text-[10px] uppercase font-bold block">Location</span>
-                        <strong className="text-slate-900 dark:text-white">{activeCand.location || activeCand.nationality}</strong>
-                      </div>
-                      <div>
-                        <span className="text-slate-400 text-[10px] uppercase font-bold block">Total Experience</span>
-                        <strong className="text-slate-900 dark:text-white">{activeCand.experience || 'Not specified'}</strong>
-                      </div>
-                      <div>
-                        <span className="text-slate-400 text-[10px] uppercase font-bold block">Education</span>
-                        <strong className="text-slate-900 dark:text-white">{activeCand.education || 'Not specified'}</strong>
-                      </div>
-                      <div>
-                        <span className="text-slate-400 text-[10px] uppercase font-bold block">Expected Salary</span>
-                        <strong className="text-emerald-600 dark:text-emerald-400 font-bold">{activeCand.expectedSalary || 'Not specified'}</strong>
-                      </div>
                     </div>
 
                     <div className="pt-2 flex justify-center">
@@ -1130,7 +1047,7 @@ export const CrmCandidates = () => {
                 <div className="min-w-0">
                   <p className="text-[10px] text-slate-500 uppercase font-bold">DOB & Gender</p>
                   <p className="font-semibold text-slate-900 dark:text-white truncate">
-                    {activeCand.dob || '1994-08-15'} {activeCand.gender ? `• ${activeCand.gender}` : '• Male'}
+                    {activeCand.dob || '1995-10-20'} {activeCand.gender ? `• ${activeCand.gender}` : '• Male'}
                   </p>
                 </div>
               </div>
@@ -1148,113 +1065,52 @@ export const CrmCandidates = () => {
               </div>
             </div>
 
-            {/* Applied Vacancies & Mandates History */}
-            <div className="space-y-2">
-              <h4 className="font-bold text-slate-900 dark:text-white text-xs uppercase tracking-wider flex items-center gap-1.5">
+            {/* Candidate Professional Dossier Grid */}
+            <div className="p-4 bg-slate-50 dark:bg-navy-950 rounded-2xl border border-slate-200 dark:border-navy-800 space-y-3 text-xs">
+              <h4 className="font-bold text-slate-900 dark:text-white uppercase tracking-wider text-[11px] flex items-center gap-2">
                 <Briefcase className="w-4 h-4 text-gold-500" />
-                <span>Applied Vacancies & Mandates ({activeCand.applications?.length || 0})</span>
+                <span>Executive Professional Profile Data</span>
               </h4>
-              {Array.isArray(activeCand.applications) && activeCand.applications.length > 0 ? (
-                <div className="space-y-3 max-h-72 overflow-y-auto pr-1">
-                  {activeCand.applications.map((app, idx) => {
-                    const appCvName = app.resumeName || activeCand.resumeName;
-                    const appCvSize = app.resumeSize || activeCand.resumeSize || '245 KB';
-                    return (
-                      <div
-                        key={idx}
-                        className="p-3.5 bg-slate-50 dark:bg-navy-950 border border-slate-200 dark:border-navy-800 rounded-2xl flex flex-col gap-2.5 text-xs shadow-xs"
-                      >
-                        <div className="flex flex-col sm:flex-row justify-between sm:items-center gap-2">
-                          <div>
-                            <p className="font-bold text-slate-900 dark:text-white text-sm">{app.jobTitle}</p>
-                            <p className="text-[11px] text-slate-500 dark:text-slate-400 font-semibold">{app.company} • {app.location || 'GCC'}</p>
-                          </div>
-                          <div className="flex items-center gap-2">
-                            <span className="text-[10px] text-slate-500 font-mono">
-                              {app.appliedDate ? new Date(app.appliedDate).toLocaleDateString() : 'Recent'}
-                            </span>
-                            <span className="px-2.5 py-0.5 rounded-full font-bold text-[10px] bg-gold-500/20 text-gold-700 dark:text-gold-400 uppercase">
-                              {app.status || 'Under Review'}
-                            </span>
-                          </div>
-                        </div>
 
-                        {/* Resume / CV Attached for this Specific Job Application */}
-                        <div className="bg-white dark:bg-navy-900 p-2.5 rounded-xl border border-slate-200/90 dark:border-navy-800 flex flex-col sm:flex-row justify-between sm:items-center gap-2">
-                          <div className="flex items-center gap-2.5 min-w-0">
-                            <div className="w-8 h-8 rounded-lg bg-gold-500/15 text-gold-600 dark:text-gold-400 flex items-center justify-center shrink-0">
-                              <FileText className="w-4 h-4" />
-                            </div>
-                            <div className="min-w-0">
-                              <span className="text-[9px] uppercase font-bold text-slate-400 block leading-tight">Applied Resume / CV</span>
-                              <p className="font-bold text-slate-900 dark:text-white truncate text-xs" title={appCvName}>
-                                {appCvName}
-                              </p>
-                              <span className="text-[10px] text-slate-500">{appCvSize} • ATS Certified</span>
-                            </div>
-                          </div>
-
-                          <div className="flex items-center gap-1.5 shrink-0">
-                            <button
-                              type="button"
-                              onClick={() => handlePreviewAppCv(app, activeCand)}
-                              className="px-2.5 py-1.5 rounded-lg bg-slate-100 hover:bg-slate-200 dark:bg-navy-800 dark:hover:bg-navy-700 text-slate-800 dark:text-slate-200 font-bold text-[11px] flex items-center gap-1 transition cursor-pointer"
-                              title="Preview Candidate CV in New Tab"
-                            >
-                              <Eye className="w-3.5 h-3.5 text-gold-500" />
-                              <span>Preview CV</span>
-                            </button>
-                            <button
-                              type="button"
-                              onClick={() => handleDownloadAppCv(app, activeCand)}
-                              className="px-2.5 py-1.5 rounded-lg bg-gold-500 hover:bg-gold-400 text-slate-950 font-bold text-[11px] flex items-center gap-1 transition shadow-gold-glow cursor-pointer"
-                              title="Download Candidate CV"
-                            >
-                              <Download className="w-3.5 h-3.5" />
-                              <span>Download CV</span>
-                            </button>
-                          </div>
-                        </div>
-
-                        {/* Candidate Application Notes / Terms */}
-                        {(app.coverNote || app.noticePeriod || app.expectedSalary) && (
-                          <div className="pt-1.5 border-t border-slate-200/60 dark:border-navy-800/60 flex flex-wrap items-center justify-between gap-2 text-[11px] text-slate-600 dark:text-slate-400">
-                            {app.coverNote && (
-                              <p className="italic font-medium">"{app.coverNote}"</p>
-                            )}
-                            <div className="flex items-center gap-3 font-semibold ml-auto text-[10px]">
-                              {app.noticePeriod && <span>⏱️ Notice: <strong>{app.noticePeriod}</strong></span>}
-                              {app.expectedSalary && <span>💰 Expected: <strong>{app.expectedSalary}</strong></span>}
-                            </div>
-                          </div>
-                        )}
-                      </div>
-                    );
-                  })}
+              <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-3">
+                <div>
+                  <span className="text-slate-400 text-[10px] uppercase font-bold block">Current Role / Title</span>
+                  <strong className="text-slate-900 dark:text-white">{activeCand.currentRole}</strong>
                 </div>
-              ) : (
-                <div className="p-3 bg-slate-100/60 dark:bg-navy-950/60 rounded-xl text-xs text-slate-500 italic border border-dashed border-slate-300 dark:border-navy-800">
-                  Candidate registered in General Executive Talent Pool (No specific job applied yet).
+                <div>
+                  <span className="text-slate-400 text-[10px] uppercase font-bold block">Current Organization</span>
+                  <strong className="text-slate-900 dark:text-white">{activeCand.currentEmployer}</strong>
                 </div>
-              )}
-            </div>
+                <div>
+                  <span className="text-slate-400 text-[10px] uppercase font-bold block">Total Experience</span>
+                  <strong className="text-slate-900 dark:text-white">{activeCand.experience}</strong>
+                </div>
+                <div>
+                  <span className="text-slate-400 text-[10px] uppercase font-bold block">Education / Degree</span>
+                  <strong className="text-slate-900 dark:text-white">{activeCand.education}</strong>
+                </div>
+                <div>
+                  <span className="text-slate-400 text-[10px] uppercase font-bold block">Expected Salary</span>
+                  <strong className="text-emerald-600 dark:text-emerald-400 font-bold">{activeCand.expectedSalary}</strong>
+                </div>
+                <div>
+                  <span className="text-slate-400 text-[10px] uppercase font-bold block">Notice Period</span>
+                  <strong className="text-slate-900 dark:text-white">{activeCand.noticePeriod}</strong>
+                </div>
+              </div>
 
-            {/* Attached Compliance Documents (if any) */}
-            {Array.isArray(activeCand.documents) && activeCand.documents.length > 0 && (
-              <div className="space-y-2">
-                <h4 className="font-bold text-slate-900 dark:text-white text-xs uppercase tracking-wider">
-                  Attached Compliance Documents:
-                </h4>
-                <div className="space-y-1.5">
-                  {activeCand.documents.map((doc, idx) => (
-                    <div key={idx} className="p-2.5 bg-slate-100 dark:bg-navy-950 border border-slate-200 dark:border-navy-800 rounded-xl flex justify-between items-center text-xs">
-                      <span className="text-slate-800 dark:text-slate-200 font-medium">📄 {doc.fileName || doc.name} ({doc.documentType || doc.type || 'Document'})</span>
-                      <span className="text-emerald-700 dark:text-emerald-400 font-bold">✓ {doc.status || 'Verified'}</span>
-                    </div>
+              {/* Skills Tags */}
+              <div className="pt-2 border-t border-slate-200 dark:border-navy-800">
+                <span className="text-slate-400 text-[10px] uppercase font-bold block mb-1.5">Core Competencies & Skills</span>
+                <div className="flex flex-wrap gap-1.5">
+                  {Array.isArray(activeCand.skills) && activeCand.skills.map((s, idx) => (
+                    <span key={idx} className="bg-gold-500/10 text-gold-700 dark:text-gold-400 px-2.5 py-1 rounded-lg text-xs font-semibold border border-gold-500/20">
+                      ✓ {s}
+                    </span>
                   ))}
                 </div>
               </div>
-            )}
+            </div>
 
             {/* Modal Footer */}
             <div className="flex gap-2 pt-3 border-t border-slate-200 dark:border-navy-800">

@@ -1843,13 +1843,11 @@ app.post('/api/candidate/applications', async (req, res) => {
       await db.run(`
         UPDATE candidate_profiles SET
           stage = 'applied',
-          currentRole = COALESCE(?, currentRole),
-          currentEmployer = COALESCE(?, currentEmployer),
           resumeName = COALESCE(?, resumeName),
           resumeUrl = COALESCE(?, resumeUrl),
           resumeSize = COALESCE(?, resumeSize)
         WHERE id = ? OR userId = ? OR (email IS NOT NULL AND LOWER(email) = LOWER(?))
-      `, [jobTitle, company, resumeName, resumeUrl, resumeSize, effectiveCid, effectiveUid, applicantEmail || '']);
+      `, [resumeName, resumeUrl, resumeSize, effectiveCid, effectiveUid, applicantEmail || '']);
 
       const existingCand = await db.get(
         'SELECT id FROM candidates WHERE id = ? OR (email IS NOT NULL AND LOWER(email) = LOWER(?))',
@@ -1860,15 +1858,11 @@ app.post('/api/candidate/applications', async (req, res) => {
         await db.run(`
           UPDATE candidates SET
             stage = 'applied',
-            currentRole = COALESCE(?, currentRole),
-            currentEmployer = COALESCE(?, currentEmployer),
-            source = ?,
             resumeName = COALESCE(?, resumeName),
             resumeUrl = COALESCE(?, resumeUrl),
             resumeSize = COALESCE(?, resumeSize)
           WHERE id = ? OR (email IS NOT NULL AND LOWER(email) = LOWER(?))
         `, [
-          jobTitle, company, `Applied for: ${jobTitle} (${company})`,
           resumeName, resumeUrl, resumeSize, effectiveCid, applicantEmail || ''
         ]);
       } else {
@@ -1883,13 +1877,13 @@ app.post('/api/candidate/applications', async (req, res) => {
           applicantEmail || '',
           applicantPhone || '+971 50 123 4567',
           'UAE',
-          jobTitle,
-          company,
+          'Executive Candidate',
+          'Revival International Talent Pool',
           resumeName || null,
           resumeUrl || null,
           resumeSize || null,
           `Applied for: ${jobTitle} (${company})`,
-          `Candidate applied for ${jobTitle} at ${company}. Attached CV: ${resumeName || 'Verified'}`
+          `Candidate registered via Revival International Portal.`
         ]);
       }
 
@@ -3129,10 +3123,9 @@ app.get('/api/candidates', async (req, res) => {
       const education = r.education || prof?.education || '';
       const mohreAttested = (r.mohreAttested !== undefined && r.mohreAttested !== null) ? !!r.mohreAttested : (prof?.mohreAttested ? !!prof.mohreAttested : false);
 
-      const latestApp = userApps[0];
-      const effectiveStage = (latestApp && (!r.stage || r.stage === 'lead')) ? 'applied' : (r.stage || prof?.stage || 'lead');
-      const effectiveRole = (latestApp && (!r.currentRole || r.currentRole === 'Executive Candidate')) ? latestApp.jobTitle : (r.currentRole || prof?.currentRole || '');
-      const effectiveEmployer = (latestApp && (!r.currentEmployer || r.currentEmployer === 'Revival International Candidate')) ? latestApp.company : (r.currentEmployer || prof?.currentEmployer || '');
+      const effectiveStage = prof?.stage || r.stage || (userApps.length > 0 ? 'applied' : 'lead');
+      const effectiveRole = prof?.currentRole || r.currentRole || 'Executive Candidate';
+      const effectiveEmployer = prof?.currentEmployer || r.currentEmployer || 'Revival International Candidate';
 
       return {
         ...r,
@@ -3175,10 +3168,9 @@ app.get('/api/candidates', async (req, res) => {
         const resumeUrl = prof.resumeUrl || appWithResume?.resumeUrl || null;
         const resumeSize = prof.resumeSize || appWithResume?.resumeSize || null;
 
-        const latestApp = userApps[0];
-        const effectiveStage = (latestApp && (!prof.stage || prof.stage === 'lead')) ? 'applied' : (prof.stage || 'lead');
-        const effectiveRole = (latestApp && (!prof.currentRole || prof.currentRole === 'Executive Candidate')) ? latestApp.jobTitle : (prof.currentRole || 'Executive Candidate');
-        const effectiveEmployer = (latestApp && (!prof.currentEmployer || prof.currentEmployer === 'Revival International Candidate')) ? latestApp.company : (prof.currentEmployer || 'Revival International Candidate');
+        const effectiveStage = prof.stage || (userApps.length > 0 ? 'applied' : 'lead');
+        const effectiveRole = prof.currentRole || 'Executive Candidate';
+        const effectiveEmployer = prof.currentEmployer || 'Revival International Candidate';
 
         candidateList.push({
           id: prof.id,
@@ -3214,52 +3206,6 @@ app.get('/api/candidates', async (req, res) => {
           mohreAttested: !!prof.mohreAttested,
           applications: userApps,
           documents: userDocs
-        });
-      }
-    }
-
-    // Also include any applicant from candidate_applications not yet in candidateList
-    for (const app of applications) {
-      const appCid = app.candidateId || `RI-APP-CAND-${app.id}`;
-      const emailKey = app.applicantEmail ? app.applicantEmail.toLowerCase().trim() : '';
-      if (!seenIds.has(appCid) && (!emailKey || !seenIds.has(emailKey))) {
-        seenIds.add(appCid);
-        if (emailKey) seenIds.add(emailKey);
-        const userApps = appsMap.get(app.candidateId) || (emailKey ? appsMap.get(emailKey) : [app]) || [app];
-        candidateList.push({
-          id: appCid,
-          name: app.applicantName || 'Job Applicant',
-          email: app.applicantEmail || '',
-          phone: app.applicantPhone || '',
-          nationality: app.nationality || '',
-          currentEmployer: app.company || 'Revival International Partner Employer',
-          currentRole: app.jobTitle || 'Applied Vacancy Candidate',
-          currentSalary: app.currentSalary || '',
-          expectedSalary: app.expectedSalary || '',
-          noticePeriod: app.noticePeriod || '',
-          score: 88,
-          stage: 'applied',
-          skills: [app.jobTitle || 'Executive'],
-          source: 'Quick Apply / Job Application',
-          passport: 'Standard (Verified)',
-          aiSummary: `Applied for ${app.jobTitle} at ${app.company}.`,
-          experience: app.experience || '',
-          avatar: `https://api.dicebear.com/7.x/initials/svg?seed=${encodeURIComponent(app.applicantName || 'Applicant')}`,
-          assignedRecruiter: 'Dhanalakshimi (Lead Advisor)',
-          createdAt: app.appliedDate || new Date().toISOString(),
-          resumeName: app.resumeName || null,
-          resumeUrl: app.resumeUrl || null,
-          resumeSize: app.resumeSize || null,
-          citizenship: null,
-          dob: null,
-          gender: null,
-          location: app.location || null,
-          preferredCountry: app.country || app.location || '',
-          education: '',
-          qualification: '',
-          mohreAttested: false,
-          applications: userApps,
-          documents: []
         });
       }
     }
