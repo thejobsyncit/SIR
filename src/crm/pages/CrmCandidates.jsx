@@ -766,134 +766,105 @@ export const CrmCandidates = () => {
                 <div
                   key={cand.id}
                   onClick={() => setViewCand(cand)}
-                  className="glass-card bg-white dark:bg-navy-900 border border-slate-200 dark:border-navy-800 p-5 rounded-3xl space-y-4 hover:border-gold-500/80 transition duration-200 cursor-pointer flex flex-col justify-between shadow-sm hover:shadow-luxury group relative overflow-hidden"
+                  className="glass-card bg-white dark:bg-navy-900 border border-slate-200/90 dark:border-navy-800 p-4 rounded-2xl hover:border-gold-500/80 transition duration-200 cursor-pointer flex flex-col justify-between shadow-xs hover:shadow-md group relative overflow-hidden"
                 >
                   {/* Top Decorative Gold Accent Bar */}
                   <div className="absolute top-0 left-0 right-0 h-1 bg-gradient-to-r from-gold-500 via-amber-400 to-gold-600 opacity-80 group-hover:opacity-100 transition" />
 
-                  <div className="space-y-3.5">
+                  <div className="space-y-2.5">
                     
                     {/* Header Row: Avatar, Name, Candidate ID, Badges */}
-                    <div className="flex justify-between items-start gap-3">
-                      <div className="flex items-start space-x-3 min-w-0 flex-1">
-                        {renderCandidateAvatar(cand, "w-12 h-12 text-sm")}
+                    <div className="flex justify-between items-start gap-2.5">
+                      <div className="flex items-center space-x-2.5 min-w-0 flex-1">
+                        {renderCandidateAvatar(cand, "w-10 h-10 text-xs shrink-0")}
                         <div className="min-w-0 flex-1">
-                          <h3 className="font-serif font-bold text-base text-slate-900 dark:text-white group-hover:text-gold-600 dark:group-hover:text-gold-400 transition leading-snug break-words" title={cand.name}>
+                          <h3 className="font-serif font-bold text-sm text-slate-900 dark:text-white group-hover:text-gold-600 dark:group-hover:text-gold-400 transition leading-tight truncate" title={cand.name}>
                             {cand.name}
                           </h3>
-                          <p className="text-[11px] text-slate-500 dark:text-slate-400 font-mono font-bold flex flex-wrap items-center gap-1.5 mt-1">
-                            <span className="text-gold-600 dark:text-gold-400 font-extrabold tracking-tight whitespace-nowrap shrink-0">{cand.id}</span>
-                            <span className="text-slate-400 shrink-0">•</span>
-                            <span className="text-slate-600 dark:text-slate-300 font-sans font-semibold shrink-0">{cand.nationality || 'UAE'}</span>
+                          <p className="text-[10px] text-slate-500 dark:text-slate-400 font-mono font-bold flex items-center gap-1.5 mt-0.5 truncate">
+                            <span className="text-gold-600 dark:text-gold-400 font-extrabold whitespace-nowrap">{cand.id}</span>
+                            <span className="text-slate-300 dark:text-navy-700">•</span>
+                            <span className="text-slate-600 dark:text-slate-300 font-sans font-medium whitespace-nowrap">{cand.nationality || 'UAE'}</span>
                           </p>
                         </div>
                       </div>
 
                       {/* Top Badges */}
-                      <div className="flex flex-col items-end gap-1 shrink-0">
+                      <div className="flex items-center gap-1 shrink-0">
                         {hasCv ? (
-                          <span className="px-2.5 py-0.5 rounded-full bg-emerald-500/15 text-emerald-700 dark:text-emerald-400 font-bold text-[9px] flex items-center gap-1 border border-emerald-500/30" title={`CV Attached: ${cand.resumeName || 'Verified'}`}>
-                            <FileText className="w-3 h-3 text-emerald-600 dark:text-emerald-400" />
-                            <span>CV Attached</span>
+                          <span className="px-2 py-0.5 rounded-md bg-emerald-500/15 text-emerald-700 dark:text-emerald-400 font-bold text-[9px] flex items-center gap-0.5 border border-emerald-500/30" title={`CV Attached: ${cand.resumeName || 'Verified'}`}>
+                            <FileText className="w-2.5 h-2.5 text-emerald-600 dark:text-emerald-400" />
+                            <span>CV</span>
                           </span>
                         ) : (
-                          <span className="px-2 py-0.5 rounded-full bg-slate-100 dark:bg-navy-800 text-slate-500 dark:text-slate-400 font-semibold text-[9px] border border-slate-200 dark:border-navy-700">
+                          <span className="px-1.5 py-0.5 rounded-md bg-slate-100 dark:bg-navy-800 text-slate-400 font-medium text-[9px]">
                             No CV
                           </span>
                         )}
-                        <span className="px-2 py-0.5 rounded-full border border-gold-500/40 text-gold-700 dark:text-gold-400 font-extrabold text-[10px] bg-gold-500/10 flex items-center gap-1" title="Candidate Profile Quality Score">
-                          <Award className="w-3 h-3 text-gold-500" />
+                        <span className="px-1.5 py-0.5 rounded-md border border-gold-500/40 text-gold-700 dark:text-gold-400 font-bold text-[9px] bg-gold-500/10 flex items-center gap-0.5">
+                          <Award className="w-2.5 h-2.5 text-gold-500" />
                           <span>{cand.score || 88}%</span>
                         </span>
                       </div>
                     </div>
 
-                    {/* REGISTRATION DATE & TIME BADGE (User Requirement) */}
-                    <div className="flex items-center gap-1.5 text-[10px] font-semibold text-slate-600 dark:text-slate-400 bg-slate-50 dark:bg-navy-950 px-2.5 py-1 rounded-xl border border-slate-200/80 dark:border-navy-800/80">
-                      <Clock className="w-3.5 h-3.5 text-gold-500 shrink-0" />
-                      <span>Registered:</span>
-                      <strong className="text-slate-900 dark:text-white font-mono">
-                        {formatCandidateDateTime(regDateTime)}
-                      </strong>
-                    </div>
-
-                    {/* PROFESSIONAL PROFILE DETAILS CARD */}
-                    <div className="p-3.5 bg-slate-50 dark:bg-navy-950/80 rounded-2xl space-y-1.5 text-xs border border-slate-200/80 dark:border-navy-800/80">
-                      <div className="flex items-start justify-between gap-2">
-                        <div className="min-w-0">
-                          <span className="text-[10px] uppercase font-bold text-slate-400 block leading-tight">Professional Role</span>
-                          <p className="font-bold text-slate-900 dark:text-white break-words text-xs leading-snug" title={cand.currentRole}>
-                            {cand.currentRole || 'Executive Candidate'}
-                          </p>
+                    {/* Compact Professional Details Container */}
+                    <div className="p-2.5 bg-slate-50 dark:bg-navy-950/70 rounded-xl space-y-1.5 border border-slate-100 dark:border-navy-800/80 text-[11px]">
+                      <div>
+                        <div className="flex items-center justify-between gap-1">
+                          <span className="text-[9px] uppercase font-bold text-slate-400 block tracking-wider">Role</span>
+                          <span className="text-[10px] text-slate-600 dark:text-slate-300 font-semibold">{cand.experience || '3-5 Years'}</span>
                         </div>
+                        <p className="font-bold text-slate-900 dark:text-white truncate text-xs" title={cand.currentRole}>
+                          {cand.currentRole || 'Executive Candidate'}
+                        </p>
+                        <p className="text-[10px] text-slate-500 dark:text-slate-400 truncate mt-0.5" title={cand.currentEmployer}>
+                          {cand.currentEmployer || 'Revival International Candidate'}
+                        </p>
                       </div>
 
-                      <div className="pt-1 border-t border-slate-200/60 dark:border-navy-800/60 grid grid-cols-2 gap-2 text-[11px]">
-                        <div>
-                          <span className="text-[9px] uppercase font-bold text-slate-400 block">Organization / Pool</span>
-                          <span className="font-semibold text-slate-700 dark:text-slate-300 truncate block" title={cand.currentEmployer}>
-                            {cand.currentEmployer || 'Revival International Candidate'}
-                          </span>
-                        </div>
-                        <div>
-                          <span className="text-[9px] uppercase font-bold text-slate-400 block">Experience</span>
-                          <span className="font-semibold text-slate-700 dark:text-slate-300">
-                            {cand.experience || '3-5 Years'}
-                          </span>
-                        </div>
-                      </div>
-
-                      {/* Contact Credentials */}
-                      <div className="pt-1.5 border-t border-slate-200/60 dark:border-navy-800/60 space-y-0.5 text-[11px]">
-                        {cand.email && (
-                          <div className="flex items-center gap-1.5 text-slate-600 dark:text-slate-400 font-mono text-[10px] truncate" title={cand.email}>
-                            <Mail className="w-3 h-3 text-gold-500 shrink-0" />
-                            <span className="truncate">{cand.email}</span>
-                          </div>
-                        )}
-                        {cand.phone && cand.phone !== 'Not specified' && (
-                          <div className="flex items-center gap-1.5 text-slate-600 dark:text-slate-400 font-mono text-[10px]">
-                            <Phone className="w-3 h-3 text-emerald-500 shrink-0" />
-                            <span>{cand.phone}</span>
-                          </div>
-                        )}
-                      </div>
-
-                      {/* Salary Expectations & Notice */}
+                      {/* Contact & Expected Salary */}
                       <div className="pt-1.5 border-t border-slate-200/60 dark:border-navy-800/60 flex items-center justify-between text-[10px]">
-                        <span className="text-slate-500 dark:text-slate-400">Expected:</span>
-                        <strong className="text-emerald-600 dark:text-emerald-400 font-bold truncate max-w-[170px]" title={cand.expectedSalary}>
-                          {cand.expectedSalary || 'Market Standard'}
-                        </strong>
+                        <div className="flex items-center gap-1 text-slate-600 dark:text-slate-400 font-mono truncate max-w-[58%]" title={cand.email}>
+                          <Mail className="w-2.5 h-2.5 text-gold-500 shrink-0" />
+                          <span className="truncate">{cand.email}</span>
+                        </div>
+                        <div className="text-right shrink-0">
+                          <span className="text-slate-400 text-[9px]">Exp: </span>
+                          <strong className="text-emerald-600 dark:text-emerald-400 font-bold">{cand.expectedSalary || 'Market Standard'}</strong>
+                        </div>
                       </div>
                     </div>
 
-                    {/* Executive Bio / AI Summary */}
-                    <p className="text-[11px] text-slate-600 dark:text-slate-300 italic line-clamp-2 leading-relaxed px-1">
-                      "{cand.aiSummary || `Registered candidate in Revival Talent Pool (${cand.name}).`}"
-                    </p>
+                    {/* Compact Registration Time & Skills Row */}
+                    <div className="flex items-center justify-between gap-2 text-[10px]">
+                      <div className="flex items-center gap-1 text-slate-400 font-mono text-[9px] shrink-0">
+                        <Clock className="w-2.5 h-2.5 text-gold-500 shrink-0" />
+                        <span>{formatCandidateDateTime(regDateTime)}</span>
+                      </div>
 
-                    {/* Skills Pills */}
-                    <div className="flex flex-wrap gap-1 pt-0.5">
-                      {Array.isArray(cand.skills) && cand.skills.slice(0, 3).map((s, i) => (
-                        <span
-                          key={i}
-                          className="bg-gold-500/10 text-gold-700 dark:text-gold-400 text-[10px] px-2.5 py-0.5 rounded-lg font-semibold border border-gold-500/20"
-                        >
-                          {s}
-                        </span>
-                      ))}
-                      {Array.isArray(cand.skills) && cand.skills.length > 3 && (
-                        <span className="text-[10px] text-slate-400 px-1 py-0.5 font-bold">
-                          +{cand.skills.length - 3} more
-                        </span>
-                      )}
+                      {/* Skills Tags */}
+                      <div className="flex items-center gap-1 overflow-hidden">
+                        {Array.isArray(cand.skills) && cand.skills.slice(0, 2).map((s, i) => (
+                          <span
+                            key={i}
+                            className="bg-gold-500/10 text-gold-700 dark:text-gold-400 text-[9px] px-1.5 py-0.5 rounded font-medium truncate max-w-[85px]"
+                          >
+                            {s}
+                          </span>
+                        ))}
+                        {Array.isArray(cand.skills) && cand.skills.length > 2 && (
+                          <span className="text-[9px] text-slate-400 font-bold shrink-0">
+                            +{cand.skills.length - 2}
+                          </span>
+                        )}
+                      </div>
                     </div>
                   </div>
 
-                  {/* Card Footer: Quick CV Actions & Profile Buttons */}
-                  <div className="pt-3.5 border-t border-slate-200 dark:border-navy-800 flex items-center justify-between gap-2">
-                    <div className="flex items-center gap-1.5">
+                  {/* Card Footer: Quick Actions */}
+                  <div className="pt-2.5 mt-2.5 border-t border-slate-100 dark:border-navy-800 flex items-center justify-between gap-1.5">
+                    <div className="flex items-center gap-1">
                       {hasCv && (
                         <button
                           type="button"
@@ -901,11 +872,11 @@ export const CrmCandidates = () => {
                             e.stopPropagation();
                             handlePreviewCv(cand);
                           }}
-                          className="p-1.5 px-2 bg-slate-100 hover:bg-slate-200 dark:bg-navy-800 dark:hover:bg-navy-700 text-slate-700 dark:text-slate-200 rounded-xl font-bold transition flex items-center gap-1 cursor-pointer text-[10px]"
-                          title="Preview Candidate CV in Tab"
+                          className="px-2 py-1 bg-slate-100 hover:bg-slate-200 dark:bg-navy-800 dark:hover:bg-navy-700 text-slate-700 dark:text-slate-200 rounded-lg font-bold transition flex items-center gap-1 cursor-pointer text-[10px]"
+                          title="Preview CV"
                         >
-                          <Eye className="w-3.5 h-3.5 text-gold-500" />
-                          <span>Preview CV</span>
+                          <Eye className="w-3 h-3 text-gold-500" />
+                          <span>Preview</span>
                         </button>
                       )}
 
@@ -915,24 +886,24 @@ export const CrmCandidates = () => {
                           e.stopPropagation();
                           handleDownloadCv(cand);
                         }}
-                        className="p-1.5 px-2 bg-gold-500/15 hover:bg-gold-500/25 text-gold-700 dark:text-gold-400 rounded-xl font-bold transition flex items-center gap-1 cursor-pointer text-[10px] border border-gold-500/30"
-                        title="Download Candidate CV (PDF)"
+                        className="px-2 py-1 bg-gold-500/15 hover:bg-gold-500/25 text-gold-700 dark:text-gold-400 rounded-lg font-bold transition flex items-center gap-1 cursor-pointer text-[10px] border border-gold-500/30"
+                        title="Download CV"
                       >
-                        <Download className="w-3.5 h-3.5" />
-                        <span>CV PDF</span>
+                        <Download className="w-3 h-3" />
+                        <span>CV</span>
                       </button>
                     </div>
 
-                    <div className="flex items-center gap-1.5">
+                    <div className="flex items-center gap-1">
                       <button
                         type="button"
                         onClick={(e) => {
                           e.stopPropagation();
                           setViewCand(cand);
                         }}
-                        className="p-1.5 px-3 bg-navy-900 hover:bg-navy-800 dark:bg-gold-500 dark:hover:bg-gold-400 text-white dark:text-navy-950 font-bold rounded-xl transition flex items-center gap-1 cursor-pointer text-[10px] shadow-xs"
+                        className="px-2.5 py-1 bg-navy-900 hover:bg-navy-800 dark:bg-gold-500 dark:hover:bg-gold-400 text-white dark:text-navy-950 font-bold rounded-lg transition flex items-center gap-1 cursor-pointer text-[10px] shadow-xs"
                       >
-                        <span>View Profile</span>
+                        <span>View</span>
                         <span>→</span>
                       </button>
 
@@ -942,7 +913,7 @@ export const CrmCandidates = () => {
                           e.stopPropagation();
                           handleDeleteCandidate(cand);
                         }}
-                        className="p-1.5 text-rose-500 hover:text-rose-700 hover:bg-rose-50 dark:hover:bg-rose-950/40 rounded-xl transition cursor-pointer"
+                        className="p-1 text-slate-400 hover:text-rose-600 hover:bg-rose-50 dark:hover:bg-rose-950/40 rounded-lg transition cursor-pointer"
                         title={`Delete ${cand.name}`}
                       >
                         <Trash2 className="w-3.5 h-3.5" />
