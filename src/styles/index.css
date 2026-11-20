@@ -2,6 +2,16 @@
 @tailwind components;
 @tailwind utilities;
 
+:root {
+  --hero-fade-end: #ffffff;
+  --hero-fade-rgb: 255, 255, 255;
+}
+
+.dark {
+  --hero-fade-end: #060d19;
+  --hero-fade-rgb: 6, 13, 25;
+}
+
 @layer base {
   html {
     scroll-behavior: smooth;
@@ -11,7 +21,7 @@
   }
 
   body {
-    @apply bg-liteblue-50 text-navy-900 font-sans transition-colors duration-300 antialiased overflow-x-hidden w-full;
+    @apply bg-white text-navy-900 font-sans transition-colors duration-300 antialiased overflow-x-hidden w-full;
   }
 
   .dark body {
@@ -58,6 +68,26 @@
     background: linear-gradient(135deg, #10b981 0%, #34d399 50%, #059669 100%);
     -webkit-background-clip: text;
     -webkit-text-fill-color: transparent;
+  }
+
+  /* Theme-aware smooth background fade transition using CSS variables for gradient ending color */
+  .hero-skyline-fade {
+    background: linear-gradient(
+      to bottom,
+      var(--hero-fade-end) 0%,
+      rgba(var(--hero-fade-rgb), 0.85) 4%,
+      rgba(var(--hero-fade-rgb), 0.48) 9%,
+      rgba(var(--hero-fade-rgb), 0.16) 15%,
+      rgba(var(--hero-fade-rgb), 0) 22%,
+      rgba(var(--hero-fade-rgb), 0) 34%,
+      rgba(var(--hero-fade-rgb), 0.15) 42%,
+      rgba(var(--hero-fade-rgb), 0.38) 48%,
+      rgba(var(--hero-fade-rgb), 0.65) 58%,
+      rgba(var(--hero-fade-rgb), 0.88) 70%,
+      rgba(var(--hero-fade-rgb), 0.98) 82%,
+      var(--hero-fade-end) 92%,
+      var(--hero-fade-end) 100%
+    );
   }
 }
 

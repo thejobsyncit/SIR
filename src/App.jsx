@@ -297,10 +297,10 @@ export function App() {
   };
 
   return (
-    <div className="min-h-screen flex flex-col justify-between selection:bg-gold-500 selection:text-white">
+    <div className="min-h-screen bg-white dark:bg-navy-950 flex flex-col justify-between selection:bg-gold-500 selection:text-white">
       <Navbar />
       
-      <main className={`flex-grow ${isJobsPage ? 'pb-2' : 'pb-6 sm:pb-8'}`}>
+      <main className={`flex-grow bg-white dark:bg-navy-950 ${isJobsPage ? 'pb-2' : 'pb-6 sm:pb-8'}`}>
         {renderCurrentPage()}
       </main>
 

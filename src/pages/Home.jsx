@@ -15,8 +15,6 @@ export const Home = () => {
   const { navigateTo, setSelectedJob, setActiveModal, applyForJob, applications, postedJobs, t, setSelectedJobCategory, setSelectedServiceId } = useApp();
   const allJobsList = [...(postedJobs || []), ...JOBS_LIST];
   const isApplied = (jobId) => applications && applications.some(a => a.jobId === jobId);
-  const [searchKeyword, setSearchKeyword] = useState('');
-  const [searchCountry, setSearchCountry] = useState('All');
   const [activeFaqCategory, setActiveFaqCategory] = useState('General');
   const [openFaq, setOpenFaq] = useState(null);
 
@@ -38,38 +36,38 @@ export const Home = () => {
 
   // Verified & Anonymized Employer Network (Issue #9 & Rule 1: No invented client logos/names)
   const trustedLogos = [
-    { 
-      name: 'Confidential • Tier-1 UAE Contractor', 
-      approved: false, 
-      tag: 'Civil Infrastructure & High-Rise', 
-      icon: Building2, 
-      color: 'from-amber-500/10 via-white dark:via-navy-900 to-gold-500/5 border-slate-200 dark:border-gold-500/30' 
+    {
+      name: 'Confidential • Tier-1 UAE Contractor',
+      approved: false,
+      tag: 'Civil Infrastructure & High-Rise',
+      icon: Building2,
+      color: 'from-amber-500/10 via-white dark:via-navy-900 to-gold-500/5 border-slate-200 dark:border-gold-500/30'
     },
-    { 
-      name: 'Confidential • Leading Dubai Energy Operator', 
-      approved: false, 
-      tag: 'Oil & Gas Exploration & Drilling', 
-      icon: ShieldCheck, 
-      color: 'from-emerald-500/10 via-white dark:via-navy-900 to-teal-500/5 border-emerald-500/30' 
+    {
+      name: 'Confidential • Leading Dubai Energy Operator',
+      approved: false,
+      tag: 'Oil & Gas Exploration & Drilling',
+      icon: ShieldCheck,
+      color: 'from-emerald-500/10 via-white dark:via-navy-900 to-teal-500/5 border-emerald-500/30'
     },
-    { 
-      name: 'Confidential • JCI Accredited Hospital Group', 
-      approved: false, 
-      tag: 'Tertiary & Critical Healthcare', 
-      icon: Award, 
-      color: 'from-red-500/10 via-white dark:via-navy-900 to-rose-500/5 border-red-500/30' 
+    {
+      name: 'Confidential • JCI Accredited Hospital Group',
+      approved: false,
+      tag: 'Tertiary & Critical Healthcare',
+      icon: Award,
+      color: 'from-red-500/10 via-white dark:via-navy-900 to-rose-500/5 border-red-500/30'
     },
-    { 
-      name: 'Confidential • GCC Maritime Logistics Group', 
-      approved: false, 
-      tag: 'Global Port & Free Zone Logistics', 
-      icon: Globe, 
-      color: 'from-blue-500/10 via-white dark:via-navy-900 to-cyan-500/5 border-blue-500/30' 
+    {
+      name: 'Confidential • GCC Maritime Logistics Group',
+      approved: false,
+      tag: 'Global Port & Free Zone Logistics',
+      icon: Globe,
+      color: 'from-blue-500/10 via-white dark:via-navy-900 to-cyan-500/5 border-blue-500/30'
     }
   ];
 
   return (
-    <div className="space-y-24 pb-16">
+    <div className="space-y-24 pb-16 bg-white dark:bg-navy-950">
       <SEO
         title="Revival International | Premier International Recruitment & Academic Advisory Dubai"
         description="Revival International connects global talent and students with premier employers and universities across UAE, GCC, Europe, and Asia. Specializing in executive search, visa processing, background checks, and academic advisory."
@@ -78,17 +76,17 @@ export const Home = () => {
         breadcrumbs={[{ name: 'Home', item: '/' }]}
       />
 
-      {/* HERO SECTION */}
-      <section className="relative min-h-[85vh] flex items-center justify-center pt-8 overflow-hidden">
+      {/* HERO SECTION WITH EXTENDED SKYLINE BACKGROUND */}
+      <div className="relative overflow-hidden bg-white dark:bg-navy-950">
         {/* Background Global Skyline Overlay */}
-        <div className="absolute inset-0 z-0 bg-navy-950">
+        <div className="absolute inset-0 z-0 bg-white dark:bg-navy-950">
           {/* Light Mode: Global Skyline & Bridge */}
           <img
             src="/images/hero_skyline.jpg"
             alt="Global Skyline and Brooklyn Bridge - Revival International Recruitment and Academic Advisory"
             loading="eager"
             fetchPriority="high"
-            className="w-full h-full object-cover opacity-70 dark:opacity-0 transform scale-105 transition-opacity duration-700 absolute inset-0"
+            className="w-full h-full object-cover object-top opacity-85 dark:opacity-0 transition-opacity duration-700 absolute inset-0"
           />
           {/* Dark Mode: Realistic Nighttime New York Skyline & Illuminated Brooklyn Bridge */}
           <img
@@ -96,136 +94,47 @@ export const Home = () => {
             alt="Global Skyline and Bridge at Night - Revival International Headquarters"
             loading="eager"
             fetchPriority="high"
-            className="w-full h-full object-cover opacity-0 dark:opacity-80 transform scale-105 transition-opacity duration-700 absolute inset-0"
+            className="w-full h-full object-cover object-top opacity-0 dark:opacity-90 transition-opacity duration-700 absolute inset-0"
           />
-          <div className="absolute inset-0 bg-gradient-to-b from-liteblue-50/60 via-liteblue-50/40 to-liteblue-50 dark:from-navy-950/25 dark:via-navy-950/35 dark:to-navy-950/90 pointer-events-none"></div>
+          {/* Theme-aware smooth background fade transition beneath the Trusted Enterprises section */}
+          <div className="absolute inset-0 pointer-events-none hero-skyline-fade" />
         </div>
 
-        <div className="relative z-10 max-w-7xl mx-auto px-4 sm:px-8 text-center space-y-8 py-12">
+        {/* HERO MAIN CONTENT */}
+        <section className="relative z-10 flex items-center justify-center pt-8 pb-3 sm:pt-10 sm:pb-4 md:pt-12 md:pb-5">
+          <div className="max-w-7xl mx-auto px-4 sm:px-8 text-center space-y-4 sm:space-y-5">
 
-          {/* Badge */}
-          <div className="inline-flex items-center space-x-2 bg-slate-800/90 dark:bg-navy-900/90 text-gold-400 border border-slate-200 dark:border-gold-500/30 px-4 py-1.5 rounded-full text-xs font-bold shadow-luxury animate-fade-in-up">
-            <Sparkles className="w-3.5 h-3.5 text-gold-500" />
-            <span>{t('hero.badge')}</span>
-          </div>
+            {/* Headline */}
+            <h1 className="font-serif text-3xl sm:text-5xl lg:text-6xl font-extrabold text-navy-900 dark:text-white tracking-tight leading-[1.15] max-w-5xl mx-auto animate-fade-in-up" style={{ animationDelay: '0.1s' }}>
+              {t('hero.title')}
+            </h1>
 
-          {/* Headline */}
-          <h1 className="font-serif text-3xl sm:text-5xl lg:text-6xl font-extrabold text-navy-900 dark:text-white tracking-tight leading-[1.15] max-w-5xl mx-auto animate-fade-in-up" style={{ animationDelay: '0.1s' }}>
-            {t('hero.title')}
-          </h1>
+            {/* Subheading */}
+            <p className="text-slate-600 dark:text-slate-300 text-sm sm:text-base max-w-3xl mx-auto leading-relaxed font-normal animate-fade-in-up" style={{ animationDelay: '0.2s' }}>
+              {t('hero.subtitle')}
+            </p>
 
-          {/* Subheading */}
-          <p className="text-slate-600 dark:text-slate-300 text-sm sm:text-base max-w-3xl mx-auto leading-relaxed font-normal animate-fade-in-up" style={{ animationDelay: '0.2s' }}>
-            {t('hero.subtitle')}
-          </p>
-
-          {/* Action CTAs */}
-          <div className="flex flex-col sm:flex-row justify-center items-center gap-4 pt-2 animate-fade-in-up" style={{ animationDelay: '0.3s' }}>
-            <button
-              onClick={() => navigateTo('jobs')}
-              className="w-full sm:w-auto px-8 py-3.5 bg-gold-shimmer text-navy-950 font-extrabold text-sm rounded-xl shadow-gold-glow hover-lift active-scale flex items-center justify-center space-x-2"
-            >
-              <Briefcase className="w-4 h-4" />
-              <span>{t('hero.findJobsBtn')}</span>
-            </button>
-
-            <button
-              onClick={() => navigateTo('education')}
-              className="w-full sm:w-auto px-8 py-3.5 bg-white dark:bg-navy-900 text-emerald-700 dark:text-emerald-400 font-extrabold text-sm rounded-xl border border-emerald-500/30 hover:bg-emerald-500/10 hover-lift active-scale shadow-sm flex items-center justify-center space-x-2"
-            >
-              <GraduationCap className="w-4 h-4 text-emerald-600 dark:text-emerald-400" />
-              <span>Academic & Admissions Advisory</span>
-            </button>
-          </div>
-
-          {/* Hero Quick Search Box */}
-          <div className="glass-card bg-white/90 dark:bg-navy-900/90 border border-slate-200 dark:border-navy-700 p-4 sm:p-6 rounded-2xl max-w-4xl mx-auto shadow-luxury animate-fade-in-up" style={{ animationDelay: '0.4s' }}>
-            <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
-
-              <div className="relative">
-                <Search className="w-4 h-4 text-slate-500 dark:text-slate-400 absolute left-3 top-3.5" />
-                <input
-                  type="text"
-                  placeholder={t('hero.searchPlaceholder')}
-                  value={searchKeyword}
-                  onChange={(e) => setSearchKeyword(e.target.value)}
-                  className="w-full bg-slate-50 dark:bg-navy-950 border border-slate-300 dark:border-navy-700 text-navy-900 dark:text-white rounded-xl pl-9 pr-3 py-3 text-xs focus:outline-none focus:border-gold-500"
-                />
-              </div>
-
-              <div className="relative">
-                <Globe className="w-4 h-4 text-slate-500 dark:text-slate-400 absolute left-3 top-3.5" />
-                <select
-                  value={searchCountry}
-                  onChange={(e) => setSearchCountry(e.target.value)}
-                  className="w-full bg-slate-50 dark:bg-navy-950 border border-slate-300 dark:border-navy-700 text-navy-900 dark:text-white rounded-xl pl-9 pr-3 py-3 text-xs focus:outline-none focus:border-gold-500"
-                >
-                  <option value="All">{t('hero.allCountries')}</option>
-                  <option value="UAE">🇦🇪 United Arab Emirates</option>
-                  <option value="Saudi Arabia">🇸🇦 Saudi Arabia</option>
-                  <option value="Qatar">🇶🇦 Qatar</option>
-                  <option value="Singapore">🇸🇬 Singapore</option>
-                  <option value="UK">🇬🇧 United Kingdom</option>
-                </select>
-              </div>
-
+            {/* Action CTAs */}
+            <div className="flex justify-center items-center pt-1 animate-fade-in-up" style={{ animationDelay: '0.3s' }}>
               <button
                 onClick={() => navigateTo('jobs')}
-                className="w-full py-3 bg-gold-500 hover:bg-gold-400 text-navy-950 font-bold text-xs rounded-xl shadow-md hover:shadow-gold-glow active-scale transition duration-300 flex items-center justify-center space-x-2 cursor-pointer"
+                className="px-8 py-3.5 bg-gold-shimmer text-navy-950 font-extrabold text-sm rounded-xl shadow-gold-glow hover-lift active-scale flex items-center justify-center space-x-2 cursor-pointer"
               >
-                <span>{t('hero.searchBtn')}</span>
-                <ArrowRight className="w-4 h-4" />
-              </button>
-
-            </div>
-
-            {/* Quick-Intent Exploration Chips */}
-            <div className="flex flex-wrap justify-center items-center gap-2 pt-4 mt-3 border-t border-slate-100 dark:border-navy-800">
-              <span className="text-[10px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider">Quick Navigation:</span>
-              <button
-                onClick={() => navigateTo('education')}
-                className="px-2.5 py-1 bg-slate-50 dark:bg-navy-950 hover:bg-gold-500/10 border border-slate-200 dark:border-navy-800 hover:border-gold-500/50 rounded-lg text-[11px] font-semibold text-slate-700 dark:text-slate-300 transition"
-              >
-                🎓 Study Abroad
-              </button>
-              <button
-                onClick={() => navigateTo('international-consulting')}
-                className="px-2.5 py-1 bg-slate-50 dark:bg-navy-950 hover:bg-gold-500/10 border border-slate-200 dark:border-navy-800 hover:border-gold-500/50 rounded-lg text-[11px] font-semibold text-slate-700 dark:text-slate-300 transition"
-              >
-                🌐 International Admissions
-              </button>
-              <button
-                onClick={() => navigateTo('services')}
-                className="px-2.5 py-1 bg-slate-50 dark:bg-navy-950 hover:bg-gold-500/10 border border-slate-200 dark:border-navy-800 hover:border-gold-500/50 rounded-lg text-[11px] font-semibold text-slate-700 dark:text-slate-300 transition"
-              >
-                💼 Executive Search
-              </button>
-              <button
-                onClick={() => navigateTo('education-exec-seminars-lang')}
-                className="px-2.5 py-1 bg-slate-50 dark:bg-navy-950 hover:bg-gold-500/10 border border-slate-200 dark:border-navy-800 hover:border-gold-500/50 rounded-lg text-[11px] font-semibold text-slate-700 dark:text-slate-300 transition"
-              >
-                📝 IELTS & OET Prep
-              </button>
-              <button
-                onClick={() => navigateTo('contact')}
-                className="px-2.5 py-1 bg-gold-500/15 border border-gold-500/30 hover:bg-gold-500/25 rounded-lg text-[11px] font-bold text-gold-700 dark:text-gold-400 transition"
-              >
-                💬 Free Consultation
+                <Briefcase className="w-4 h-4" />
+                <span>{t('hero.findJobsBtn')}</span>
               </button>
             </div>
+
           </div>
+        </section>
 
-        </div>
-      </section>
-
-      {/* TRUSTED COMPANIES LOGO BANNER - PROMINENT LARGE LOGO DISPLAY */}
-      <ScrollReveal>
-        <section className="max-w-7xl mx-auto px-4 sm:px-8 py-6">
-          <div className="text-center space-y-2 mb-8">
-            <span className="bg-gold-500/15 text-gold-700 dark:text-gold-400 font-extrabold text-[11px] px-3.5 py-1 rounded-full uppercase tracking-widest border border-slate-200 dark:border-gold-500/30">
+        {/* TRUSTED COMPANIES LOGO BANNER - PROMINENT LARGE LOGO DISPLAY */}
+        <section className="relative z-10 max-w-7xl mx-auto px-4 sm:px-8 pt-1 pb-8 sm:pt-2 sm:pb-12">
+          <div className="text-center space-y-2 mb-5 sm:mb-7">
+            <span className="bg-white/85 dark:bg-navy-900/85 backdrop-blur-sm text-gold-700 dark:text-gold-400 font-extrabold text-[11px] px-3.5 py-1 rounded-full uppercase tracking-widest border border-gold-500/30 shadow-sm">
               Enterprise Client Network
             </span>
-            <h2 className="font-serif text-2xl sm:text-3xl font-extrabold text-navy-900 dark:text-white tracking-tight">
+            <h2 className="font-serif text-2xl sm:text-3xl font-extrabold text-navy-900 dark:text-white tracking-tight drop-shadow-sm">
               Trusted by Premier Enterprises & Government Entities Across GCC & Europe
             </h2>
             <p className="text-xs text-slate-600 dark:text-slate-300 font-medium max-w-2xl mx-auto">
@@ -258,7 +167,7 @@ export const Home = () => {
             })}
           </div>
         </section>
-      </ScrollReveal>
+      </div>
 
       {/* KEY STATISTICS COUNTERS */}
       <ScrollReveal>

@@ -22,7 +22,7 @@ export const AppProvider = ({ children }) => {
   const [localDarkMode, setLocalDarkMode] = useState(() => {
     try {
       const saved = localStorage.getItem('sir_theme_mode');
-      return saved === 'dark';
+      return true;
     } catch {
       return false;
     }
@@ -230,7 +230,7 @@ export const AppProvider = ({ children }) => {
                     applicantEmail: userEmail,
                     applicantName: user.name || app.applicantName
                   })
-                }).catch(() => {});
+                }).catch(() => { });
               });
             } else {
               setApplications([]);
@@ -327,8 +327,8 @@ export const AppProvider = ({ children }) => {
 
       saveCandidateToDB(candidateUser);
       saveUserSession(candidateUser);
-      const savedAppsPredefined = localStorage.getItem(`sir_applications_${candidateUser.candidateId}`) || 
-                                  localStorage.getItem(`sir_applications_${normalizedEmail}`);
+      const savedAppsPredefined = localStorage.getItem(`sir_applications_${candidateUser.candidateId}`) ||
+        localStorage.getItem(`sir_applications_${normalizedEmail}`);
       if (savedAppsPredefined) {
         try {
           const parsed = JSON.parse(savedAppsPredefined);
@@ -369,8 +369,8 @@ export const AppProvider = ({ children }) => {
     saveCandidateToDB(candidateUser);
     saveUserSession(candidateUser);
 
-    const savedAppsRegular = localStorage.getItem(`sir_applications_${candidateUser.candidateId}`) || 
-                             localStorage.getItem(`sir_applications_${normalizedEmail}`);
+    const savedAppsRegular = localStorage.getItem(`sir_applications_${candidateUser.candidateId}`) ||
+      localStorage.getItem(`sir_applications_${normalizedEmail}`);
     if (savedAppsRegular) {
       try {
         const parsed = JSON.parse(savedAppsRegular);
@@ -1135,7 +1135,7 @@ export const AppProvider = ({ children }) => {
     try {
       await fetch('/api/jobs', {
         method: 'POST',
-        headers: { 
+        headers: {
           'Content-Type': 'application/json',
           'x-crm-role': user?.role || 'Employer',
           'x-user-role': user?.role || 'Employer'

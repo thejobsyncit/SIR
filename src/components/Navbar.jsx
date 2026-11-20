@@ -59,58 +59,16 @@ export const Navbar = () => {
 
   const navItems = [
     { id: 'home', label: t('nav.home') },
-    { id: 'about', label: t('nav.about') },
-    { id: 'services', label: t('nav.services'), hasMega: 'services' },
     { id: 'jobs', label: t('nav.jobs') },
+    { id: 'services', label: t('nav.services'), hasMega: 'services' },
     { id: 'visa-eligibility', label: t('nav.visa') },
     { id: 'background-verification', label: t('nav.verification') },
+    { id: 'about', label: t('nav.about') },
     { id: 'contact', label: t('nav.contact') }
   ];
 
   return (
     <header className="sticky top-0 z-50 transition-all duration-300">
-      {/* Top Corporate Bar */}
-      <div className="bg-white dark:bg-navy-950 text-slate-600 dark:text-slate-300 text-xs py-2 px-4 sm:px-8 border-b border-slate-200 dark:border-navy-800 flex justify-between items-center">
-        <div className="flex items-center space-x-6">
-          <div className="flex items-center space-x-2">
-            <Phone className="w-3.5 h-3.5 text-gold-500" />
-            <span>{t('nav.indiaHQ') || 'India HQ'}: <a href="tel:+919003475405" className="text-slate-900 dark:text-white font-bold hover:text-gold-500 transition">+91 9003475405</a></span>
-          </div>
-          <div className="hidden md:flex items-center space-x-2">
-            <Mail className="w-3.5 h-3.5 text-gold-500" />
-            <a href="mailto:enquiry@therevivalinternational.com" className="hover:text-gold-500 transition">enquiry@therevivalinternational.com</a>
-          </div>
-          <div className="hidden lg:flex items-center space-x-1 text-gold-400">
-            <Award className="w-3.5 h-3.5" />
-            <span>{t('nav.indiaBadge') || 'Govt. Recognized & ISO 9001:2025 Certified Agency'}</span>
-          </div>
-        </div>
-
-        <div className="flex items-center space-x-4">
-          {/* Language Selector */}
-          <select
-            value={language}
-            onChange={(e) => setLanguage(e.target.value)}
-            className="bg-slate-50 dark:bg-navy-900 text-slate-700 dark:text-slate-200 border border-slate-300 dark:border-navy-700 rounded px-2 py-0.5 text-xs focus:outline-none focus:border-gold-500 font-bold"
-          >
-            <option value="EN">🇺🇸 EN</option>
-            <option value="AR">🇦🇪 العربية</option>
-            <option value="FR">🇫🇷 FR</option>
-            <option value="DE">🇩🇪 DE</option>
-          </select>
-
-          {/* Dark Mode Toggle */}
-          <button
-            onClick={toggleDarkMode}
-            aria-label="Toggle dark mode"
-            className="p-1.5 rounded-lg bg-slate-100 hover:bg-slate-200 dark:bg-navy-800 dark:hover:bg-navy-700 text-slate-700 dark:text-gold-400 border border-slate-300 dark:border-navy-700 transition shadow-sm flex items-center justify-center"
-            title={darkMode ? "Switch to light mode" : "Switch to dark mode"}
-          >
-            {darkMode ? <Sun className="w-3.5 h-3.5 text-gold-400" /> : <Moon className="w-3.5 h-3.5 text-slate-700" />}
-          </button>
-        </div>
-      </div>
-
       {/* Main Glass Header */}
       <nav className="bg-[#FFFFFF] dark:bg-navy-900/95 shadow-sm backdrop-blur-md border-b border-slate-200/80 dark:border-navy-800 px-3 sm:px-6 lg:px-4 2xl:px-8 py-2.5 sm:py-3 transition">
         <div className="max-w-[1440px] w-full mx-auto flex justify-between items-center gap-2 sm:gap-4 lg:gap-5 xl:gap-7 2xl:gap-8">
@@ -286,7 +244,32 @@ export const Navbar = () => {
           </div>
 
           {/* Right Header Actions & Mobile Menu Wrapper */}
-          <div className="flex items-center gap-3 shrink-0">
+          <div className="flex items-center gap-2 sm:gap-2.5 shrink-0">
+            {/* Language Selector (Pill format matching Profile design) */}
+            <div className="relative hidden md:inline-flex items-center">
+              <select
+                value={language}
+                onChange={(e) => setLanguage(e.target.value)}
+                className="appearance-none bg-white dark:bg-navy-900 border-2 border-gold-500/40 hover:border-gold-500 pl-3.5 pr-8 py-1.5 rounded-full text-xs font-bold text-[#0B1B33] dark:text-white shadow-md transition-all active:scale-95 cursor-pointer focus:outline-none focus:border-gold-500"
+              >
+                <option value="EN">🇺🇸 EN</option>
+                <option value="AR">🇦🇪 AR</option>
+                <option value="FR">🇫🇷 FR</option>
+                <option value="DE">🇩🇪 DE</option>
+              </select>
+              <ChevronDown className="w-3.5 h-3.5 text-slate-400 pointer-events-none absolute right-3 top-1/2 -translate-y-1/2" />
+            </div>
+
+            {/* Dark Mode Toggle (Squircle shape with gold border & white inside) */}
+            <button
+              onClick={toggleDarkMode}
+              aria-label="Toggle dark mode"
+              className="w-9 h-9 rounded-xl bg-white dark:bg-navy-900 border-2 border-gold-500/40 hover:border-gold-500 text-slate-700 dark:text-gold-400 shadow-md transition-all active:scale-95 cursor-pointer flex items-center justify-center shrink-0"
+              title={darkMode ? "Switch to light mode" : "Switch to dark mode"}
+            >
+              {darkMode ? <Sun className="w-4 h-4 text-gold-400" /> : <Moon className="w-4 h-4 text-slate-700" />}
+            </button>
+
             {/* Action CTAs: Matching Master Logged-Out Layout with Revival Theme Colors */}
             <div className="hidden sm:flex items-center justify-start shrink-0">
               {user ? (
@@ -417,19 +400,19 @@ export const Navbar = () => {
                 </div>
               ) : (
                 <div className="flex items-center space-x-3.5">
-                  {/* Register button */}
+                  {/* Register button (Matching gold border reference from dark mode button) */}
                   <button
                     onClick={() => openAuthModal('register')}
-                    className="px-4 py-2 rounded-full text-xs font-bold text-[#0B1B33] dark:text-gold-400 bg-white dark:bg-navy-900 border-2 border-[#E0B32D] hover:bg-gold-500/10 transition flex items-center space-x-1.5 shadow-sm cursor-pointer whitespace-nowrap"
+                    className="px-4 py-2 rounded-full text-xs font-bold text-[#0B1B33] dark:text-gold-400 bg-white dark:bg-navy-900 border-2 border-gold-500/40 hover:border-gold-500 hover:bg-gold-500/10 transition-all active:scale-95 flex items-center space-x-1.5 shadow-md cursor-pointer whitespace-nowrap"
                   >
                     <User className="w-3.5 h-3.5 text-gold-500" />
                     <span>Register</span>
                   </button>
 
-                  {/* Sign In button */}
+                  {/* Sign In button (Matching gold border reference from dark mode button) */}
                   <button
                     onClick={() => openAuthModal('login')}
-                    className="px-5 py-2 rounded-full text-xs font-bold text-[#0B1B33] dark:text-navy-950 bg-[#D9AF2B] hover:bg-[#c99f24] shadow-gold-glow transition flex items-center space-x-1.5 cursor-pointer whitespace-nowrap"
+                    className="px-5 py-2 rounded-full text-xs font-bold text-[#0B1B33] dark:text-navy-950 bg-[#D9AF2B] hover:bg-[#c99f24] border-2 border-gold-500/40 hover:border-gold-500 shadow-gold-glow transition-all active:scale-95 flex items-center space-x-1.5 cursor-pointer whitespace-nowrap"
                   >
                     <LogIn className="w-3.5 h-3.5 text-[#0B1B33]" />
                     <span>Sign In</span>
@@ -454,6 +437,33 @@ export const Navbar = () => {
         {/* Mobile Menu Drawer - Premium Glassmorphism */}
         {mobileMenuOpen && (
           <div className="mobile-nav-drawer nav:hidden mt-3 pt-4 border-t border-slate-200/50 dark:border-navy-700/50 flex flex-col gap-2.5 animate-in slide-in-from-top-4 duration-300">
+
+            {/* Mobile Language & Theme Controls */}
+            <div className="flex items-center justify-between gap-2.5 p-2 bg-slate-50 dark:bg-navy-800/60 rounded-2xl border border-slate-200 dark:border-navy-700">
+              <div className="relative flex-1">
+                <select
+                  value={language}
+                  onChange={(e) => setLanguage(e.target.value)}
+                  className="w-full appearance-none bg-white dark:bg-navy-900 border-2 border-gold-500/40 text-slate-800 dark:text-white rounded-full pl-3.5 pr-8 py-1.5 text-xs font-bold cursor-pointer shadow-xs focus:outline-none"
+                >
+                  <option value="EN">🇺🇸 English (EN)</option>
+                  <option value="AR">🇦🇪 العربية (AR)</option>
+                  <option value="FR">🇫🇷 Français (FR)</option>
+                  <option value="DE">🇩🇪 Deutsch (DE)</option>
+                </select>
+                <ChevronDown className="w-3.5 h-3.5 text-slate-400 pointer-events-none absolute right-3 top-1/2 -translate-y-1/2" />
+              </div>
+
+              <button
+                onClick={toggleDarkMode}
+                aria-label="Toggle dark mode"
+                className="px-3.5 py-1.5 rounded-xl bg-white dark:bg-navy-900 text-slate-700 dark:text-gold-400 border-2 border-gold-500/40 shadow-xs flex items-center justify-center gap-1.5 text-xs font-bold cursor-pointer"
+                title={darkMode ? "Switch to light mode" : "Switch to dark mode"}
+              >
+                {darkMode ? <Sun className="w-3.5 h-3.5 text-gold-400" /> : <Moon className="w-3.5 h-3.5 text-slate-700" />}
+                <span>{darkMode ? "Light" : "Dark"}</span>
+              </button>
+            </div>
 
             {/* Dedicated Academic Advisory Mobile Card */}
             <div className="p-3 bg-gold-500/10 border border-gold-500/30 rounded-xl space-y-2">
@@ -527,7 +537,7 @@ export const Navbar = () => {
                 <>
                   <button
                     onClick={() => { openAuthModal('register'); setMobileMenuOpen(false); }}
-                    className="flex-1 h-[44px] px-4 rounded-full border-2 border-gold-500 bg-white text-navy-950 dark:bg-navy-900 dark:text-gold-400 dark:border-gold-500 font-bold text-sm shadow-sm hover:scale-[1.02] active:scale-95 transition-all duration-200 flex items-center justify-center space-x-2 cursor-pointer select-none"
+                    className="flex-1 h-[44px] px-4 rounded-full border-2 border-gold-500/40 hover:border-gold-500 bg-white text-navy-950 dark:bg-navy-900 dark:text-gold-400 font-bold text-sm shadow-sm hover:scale-[1.02] active:scale-95 transition-all duration-200 flex items-center justify-center space-x-2 cursor-pointer select-none"
                     aria-label="Register Account"
                   >
                     <User className="w-[18px] h-[18px] text-gold-500 dark:text-gold-400 shrink-0" strokeWidth={2} />
@@ -535,7 +545,7 @@ export const Navbar = () => {
                   </button>
                   <button
                     onClick={() => { openAuthModal('login'); setMobileMenuOpen(false); }}
-                    className="flex-1 h-[44px] px-4 rounded-full bg-gold-500 hover:bg-[#c29d2b] dark:bg-gold-500 dark:hover:bg-[#dfb93e] text-navy-950 dark:text-white font-bold text-sm shadow-[0_2px_14px_rgba(212,175,55,0.35)] dark:shadow-[0_0_24px_rgba(212,175,55,0.5)] hover:scale-[1.02] active:scale-95 transition-all duration-200 flex items-center justify-center space-x-2 cursor-pointer select-none"
+                    className="flex-1 h-[44px] px-4 rounded-full bg-gold-500 hover:bg-[#c29d2b] dark:bg-gold-500 dark:hover:bg-[#dfb93e] border-2 border-gold-500/40 hover:border-gold-500 text-navy-950 dark:text-white font-bold text-sm shadow-[0_2px_14px_rgba(212,175,55,0.35)] dark:shadow-[0_0_24px_rgba(212,175,55,0.5)] hover:scale-[1.02] active:scale-95 transition-all duration-200 flex items-center justify-center space-x-2 cursor-pointer select-none"
                     aria-label="Sign In to Portal"
                   >
                     <LogIn className="w-[18px] h-[18px] text-navy-950 dark:text-white shrink-0" strokeWidth={2.2} />

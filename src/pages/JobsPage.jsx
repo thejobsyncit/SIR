@@ -2499,10 +2499,7 @@ export const JobsPage = () => {
               {/* Results Summary Bar (Down of all jobs) */}
               <div className="flex items-center justify-center pt-3 text-xs">
                 <p className="text-slate-600 dark:text-slate-400 font-medium text-center">
-                  Showing <strong className="font-bold text-navy-950 dark:text-white">{filteredJobs.length}</strong> matching international jobs{' '}
-                  <span className="text-slate-400 font-normal">
-                    (Page {currentPage} of {totalPages})
-                  </span>
+                  Showing <strong className="font-bold text-navy-950 dark:text-white">{filteredJobs.length}</strong> matching international jobs
                 </p>
               </div>
 

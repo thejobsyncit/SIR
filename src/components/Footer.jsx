@@ -110,15 +110,11 @@ export const Footer = () => {
               </li>
               <li className="flex items-center gap-2">
                 <span className="text-navy-950 dark:text-slate-400 font-black text-xs leading-none">•</span>
-                <a href="#about" onClick={(e) => { e.preventDefault(); navigateTo('about'); }} className="hover:text-gold-500 transition">About Us</a>
+                <a href="#jobs" onClick={(e) => { e.preventDefault(); navigateTo('jobs'); }} className="hover:text-gold-500 transition">Jobs</a>
               </li>
               <li className="flex items-center gap-2">
                 <span className="text-navy-950 dark:text-slate-400 font-black text-xs leading-none">•</span>
                 <a href="#services" onClick={(e) => { e.preventDefault(); navigateTo('services'); }} className="hover:text-gold-500 transition">Services</a>
-              </li>
-              <li className="flex items-center gap-2">
-                <span className="text-navy-950 dark:text-slate-400 font-black text-xs leading-none">•</span>
-                <a href="#jobs" onClick={(e) => { e.preventDefault(); navigateTo('jobs'); }} className="hover:text-gold-500 transition">Jobs</a>
               </li>
               <li className="flex items-center gap-2">
                 <span className="text-navy-950 dark:text-slate-400 font-black text-xs leading-none">•</span>
@@ -127,6 +123,10 @@ export const Footer = () => {
               <li className="flex items-center gap-2">
                 <span className="text-navy-950 dark:text-slate-400 font-black text-xs leading-none">•</span>
                 <a href="#background-verification" onClick={(e) => { e.preventDefault(); navigateTo('background-verification'); }} className="hover:text-gold-500 transition">Verification</a>
+              </li>
+              <li className="flex items-center gap-2">
+                <span className="text-navy-950 dark:text-slate-400 font-black text-xs leading-none">•</span>
+                <a href="#about" onClick={(e) => { e.preventDefault(); navigateTo('about'); }} className="hover:text-gold-500 transition">About Us</a>
               </li>
               <li className="flex items-center gap-2">
                 <span className="text-navy-950 dark:text-slate-400 font-black text-xs leading-none">•</span>
@@ -189,13 +189,6 @@ export const Footer = () => {
             </ul>
           </div>
 
-        </div>
-
-        {/* Bottom Horizontal Divider and Verified Social Channels Launching Notice */}
-        <div className="border-t border-slate-200 dark:border-navy-800 mt-8 pt-4">
-          <p className="text-[11px] text-slate-500 dark:text-slate-400 font-normal">
-            Official verified social channels launching soon.
-          </p>
         </div>
 
       </div>
