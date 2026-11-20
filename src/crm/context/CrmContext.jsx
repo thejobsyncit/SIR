@@ -399,15 +399,20 @@ export const CrmProvider = ({ children }) => {
         if (data && data.success && Array.isArray(data.data)) {
           const serverCandidates = data.data.filter(c => !isDummyCandidate(c));
           
-          // Merge local portal candidates not yet in server list
+          // Merge local portal candidates not yet in server list or enhance with client-uploaded CVs
           const merged = [...serverCandidates];
           for (const localC of localPortalCands) {
             const emailKey = (localC.email || '').toLowerCase().trim();
-            const exists = merged.some(m => 
+            const existingIdx = merged.findIndex(m => 
               (m.id && (m.id === localC.candidateId || m.id === localC.id)) || 
               (m.email && m.email.toLowerCase().trim() === emailKey)
             );
-            if (!exists && emailKey && !isDummyCandidate(localC)) {
+            if (existingIdx !== -1) {
+              if ((!merged[existingIdx].resumeUrl || merged[existingIdx].resumeUrl.length < 200) && localC.resumeUrl && localC.resumeUrl.length > 200) {
+                merged[existingIdx].resumeUrl = localC.resumeUrl;
+                merged[existingIdx].resumeName = localC.resumeName || merged[existingIdx].resumeName;
+              }
+            } else if (emailKey && !isDummyCandidate(localC)) {
               const formattedLocal = {
                 id: localC.candidateId || localC.id || 'RI-CAND-001',
                 name: localC.name || localC.fullName || 'Candidate',
@@ -573,8 +578,9 @@ export const CrmProvider = ({ children }) => {
     window.addEventListener('lead-submitted', handleLeadSubmitted);
     window.addEventListener('application-submitted', fetchApplications);
     window.addEventListener('candidate-registered', fetchCandidates);
+    window.addEventListener('candidate-profile-updated', fetchCandidates);
     const handleStorageChange = (e) => {
-      if (e.key === 'crm_candidates' || e.key === 'sir_candidates_db' || e.key === 'sir_user_session') {
+      if (e.key === 'crm_candidates' || e.key === 'sir_candidates_db' || e.key === 'sir_user_session' || e.key === 'sir_active_resume') {
         fetchCandidates();
       }
     };
@@ -595,6 +601,7 @@ export const CrmProvider = ({ children }) => {
       window.removeEventListener('lead-submitted', handleLeadSubmitted);
       window.removeEventListener('application-submitted', fetchApplications);
       window.removeEventListener('candidate-registered', fetchCandidates);
+      window.removeEventListener('candidate-profile-updated', fetchCandidates);
       window.removeEventListener('storage', handleStorageChange);
     };
   }, []);

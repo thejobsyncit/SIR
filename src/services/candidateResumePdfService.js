@@ -1,27 +1,13 @@
 import { jsPDF } from 'jspdf';
 
 /**
- * Generates and downloads an ATS-compliant, executive PDF resume for a candidate.
+ * Creates an ATS-compliant, executive PDF resume document for a candidate using jsPDF.
  */
-export const downloadCandidateResumePdf = (cand) => {
-  if (!cand) return;
-
-  // If candidate has an actual uploaded resume file, trigger direct file download
-  if (cand.resumeUrl && (cand.resumeUrl.startsWith('data:') || cand.resumeUrl.startsWith('blob:') || cand.resumeUrl.startsWith('http'))) {
-    const fileName = cand.resumeName || `${(cand.name || 'Candidate').replace(/\s+/g, '_')}_Resume.pdf`;
-    const link = document.createElement('a');
-    link.href = cand.resumeUrl;
-    link.download = fileName;
-    document.body.appendChild(link);
-    link.click();
-    document.body.removeChild(link);
-    return;
-  }
-
+export const createCandidateJsPdf = (cand = {}) => {
   const doc = new jsPDF('p', 'mm', 'a4');
 
   const name = cand.name || 'Executive Candidate';
-  const role = cand.currentRole || 'Executive Candidate';
+  const role = cand.currentRole || cand.title || 'Executive Candidate';
   const id = cand.id || 'RI-CAND';
   const email = cand.email || 'candidate@therevivalinternational.com';
   const phone = cand.phone || '+971 50 123 4567';
@@ -181,314 +167,304 @@ export const downloadCandidateResumePdf = (cand) => {
   doc.text('The Revival International Recruitment & Executive Placements • Certified ATS Dossier', 14, 285);
   doc.text(`Generated: ${new Date().toLocaleDateString()}`, 168, 285);
 
-  const cleanName = name.trim().replace(/[^a-zA-Z0-9]/g, '_');
+  return doc;
+};
+
+/**
+ * Resolves a candidate's uploaded resume data URL or file link from various context sources.
+ */
+export const resolveResumeUrl = (cand) => {
+  if (!cand) return { url: null, name: 'Candidate_CV.pdf' };
+  
+  let url = cand.resumeUrl || cand.fileUrl || cand.resumeDataUrl;
+  let name = cand.resumeName || cand.fileName || `${(cand.name || 'Candidate').replace(/\s+/g, '_')}_CV.pdf`;
+
+  // Look in candidate applications if present
+  if ((!url || url.length < 200) && Array.isArray(cand.applications)) {
+    const appWithResume = cand.applications.find(a => (a.resumeUrl && a.resumeUrl.length > 200) || a.resumeName);
+    if (appWithResume) {
+      if (!url || url.length < 200) url = appWithResume.resumeUrl;
+      name = name || appWithResume.resumeName;
+    }
+  }
+
+  // Look in candidate documents if present
+  if ((!url || url.length < 200) && Array.isArray(cand.documents)) {
+    const docWithResume = cand.documents.find(d => (d.fileUrl && d.fileUrl.length > 200) || (d.fileName && d.fileName.toLowerCase().includes('cv')));
+    if (docWithResume) {
+      if (!url || url.length < 200) url = docWithResume.fileUrl;
+      name = name || docWithResume.fileName;
+    }
+  }
+
+  // Fallback to client localStorage cache if running in browser
+  if ((!url || url.length < 200) && typeof window !== 'undefined' && window.localStorage) {
+    try {
+      if (cand.email) {
+        const emailKey = cand.email.toLowerCase().trim();
+        const storedForEmail = localStorage.getItem(`sir_resume_${emailKey}`);
+        if (storedForEmail && storedForEmail.length > 200) {
+          url = storedForEmail;
+        }
+      }
+      if (!url || url.length < 200) {
+        const activeResume = localStorage.getItem('sir_active_resume');
+        const activeName = localStorage.getItem('sir_active_resume_name');
+        if (activeResume && activeResume.length > 200) {
+          url = activeResume;
+          if (activeName) name = activeName;
+        }
+      }
+    } catch {}
+  }
+
+  return { url: (url && url.length > 100) ? url : null, name };
+};
+
+/**
+ * Downloads the actual candidate CV document (if uploaded) or generates an authentic PDF resume.
+ */
+export const downloadCandidateResumePdf = (cand) => {
+  if (!cand) return;
+
+  const { url, name } = resolveResumeUrl(cand);
+  const fileName = name.endsWith('.pdf') || name.endsWith('.doc') || name.endsWith('.docx') ? name : `${name}.pdf`;
+
+  // If candidate has an actual uploaded resume file, trigger direct file download
+  if (url && (url.startsWith('data:') || url.startsWith('blob:') || url.startsWith('http'))) {
+    const link = document.createElement('a');
+    link.href = url;
+    link.download = fileName;
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    return;
+  }
+
+  // Generate ATS PDF using jsPDF
+  const doc = createCandidateJsPdf(cand);
+  const cleanName = (cand.name || 'Candidate').trim().replace(/[^a-zA-Z0-9]/g, '_');
   doc.save(`${cleanName}_Resume.pdf`);
 };
 
 /**
- * Opens a formatted, standalone ATS Resume preview tab for a candidate.
+ * Opens the candidate's actual uploaded resume file in a clean, dedicated viewer tab with download capability.
+ * If no custom file was uploaded, generates an authentic executive PDF and previews it.
  */
 export const openCandidateResumeInNewTab = (cand) => {
   if (!cand) return;
 
-  // 1. If candidate has an uploaded resume file (Data URL / Blob / HTTP URL), open the actual document directly
-  if (cand.resumeUrl) {
-    const url = cand.resumeUrl;
-    if (url.startsWith('http://') || url.startsWith('https://') || url.startsWith('blob:')) {
-      window.open(url, '_blank');
-      return;
-    }
-    if (url.startsWith('data:')) {
-      try {
-        const parts = url.split(',');
-        const header = parts[0];
-        const base64Data = parts[1];
-        let mime = 'application/pdf';
-        const mimeMatch = header.match(/data:([^;]+)/);
-        if (mimeMatch && mimeMatch[1]) {
-          mime = mimeMatch[1].split(';')[0].trim();
-        }
-        const byteCharacters = atob(base64Data);
-        const byteNumbers = new Array(byteCharacters.length);
-        for (let i = 0; i < byteCharacters.length; i++) {
-          byteNumbers[i] = byteCharacters.charCodeAt(i);
-        }
-        const byteArray = new Uint8Array(byteNumbers);
-        const blob = new Blob([byteArray], { type: mime });
-        const blobUrl = URL.createObjectURL(blob);
-        window.open(blobUrl, '_blank');
-        return;
-      } catch (err) {
-        console.warn('Failed to open blob resume, opening in iframe container:', err);
-        const newWin = window.open('', '_blank');
-        if (newWin) {
-          newWin.document.write(`
-            <!DOCTYPE html>
-            <html>
-              <head><title>Candidate CV - ${cand.name || 'Candidate'}</title></head>
-              <body style="margin:0;padding:0;background:#0f172a;display:flex;height:100vh;">
-                <iframe src="${url}" style="width:100%;height:100%;border:none;"></iframe>
-              </body>
-            </html>
-          `);
-          newWin.document.close();
-          return;
-        }
-      }
-    }
-  }
+  const { url, name } = resolveResumeUrl(cand);
+  const fileName = name.endsWith('.pdf') || name.endsWith('.doc') || name.endsWith('.docx') ? name : `${name}.pdf`;
+  const candidateName = cand.name || 'Candidate';
 
-  const newWin = window.open('', '_blank');
-  if (!newWin) {
-    alert('Please allow popups to preview the candidate resume.');
+  // 1. Direct web URLs
+  if (url && (url.startsWith('http://') || url.startsWith('https://'))) {
+    window.open(url, '_blank');
     return;
   }
 
-  const name = cand.name || 'Executive Candidate';
-  const role = cand.currentRole || 'Executive Candidate';
-  const id = cand.id || 'RI-CAND';
-  const email = cand.email || 'candidate@therevivalinternational.com';
-  const phone = cand.phone || '+971 50 123 4567';
-  const location = cand.location || cand.nationality || 'Dubai, UAE';
-  const nationality = cand.nationality || 'UAE';
-  const citizenship = cand.citizenship || 'United Arab Emirates';
-  const experience = cand.experience || '3-5 Years';
-  const education = cand.qualification || cand.education || 'Bachelor Degree / Professional Diploma';
-  const salary = cand.expectedSalary || 'Market Standard';
-  const employer = cand.currentEmployer || 'Revival International Candidate';
-  const skills = Array.isArray(cand.skills) && cand.skills.length > 0 
-    ? cand.skills 
-    : ['International Mobility', 'Executive Candidate', 'Global Mandates', 'Project Planning', 'Cross-Border Operations'];
-  const summary = cand.aiSummary || `Candidate profile registered on The Revival International Portal for ${role} opportunities across ${location}. Verified contact and career credentials on file.`;
+  // Helper to open a custom, styled PDF/Document viewer window with actions
+  const openViewerWindow = (fileUrl, mimeType, isGenerated = false) => {
+    const newWin = window.open('', '_blank');
+    if (!newWin) {
+      // Fallback: direct download if popups are blocked
+      const link = document.createElement('a');
+      link.href = fileUrl;
+      link.download = fileName;
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      return;
+    }
 
-  const skillsHtml = skills.map(s => `<span class="skill-tag">${s}</span>`).join('');
-
-  newWin.document.write(`
-    <!DOCTYPE html>
-    <html lang="en">
-    <head>
-      <meta charset="UTF-8">
-      <title>Resume - ${name} (${id})</title>
-      <style>
-        body {
-          font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
-          background: #f8fafc;
-          color: #0f172a;
-          margin: 0;
-          padding: 24px;
-          display: flex;
-          justify-content: center;
-        }
-        .resume-sheet {
-          background: #ffffff;
-          width: 100%;
-          max-width: 820px;
-          padding: 40px;
-          border-radius: 12px;
-          box-shadow: 0 10px 25px rgba(0,0,0,0.08);
-          border-top: 6px solid #d97706;
-        }
-        .header {
-          border-bottom: 2px solid #e2e8f0;
-          padding-bottom: 18px;
-          margin-bottom: 22px;
-          display: flex;
-          justify-content: space-between;
-          align-items: flex-start;
-        }
-        .candidate-name {
-          font-size: 26px;
-          font-weight: 800;
-          color: #0f172a;
-          margin: 0 0 4px 0;
-        }
-        .candidate-role {
-          font-size: 14px;
-          font-weight: 700;
-          color: #d97706;
-          margin: 0 0 8px 0;
-        }
-        .contact-bar {
-          font-size: 12px;
-          color: #64748b;
-          display: flex;
-          flex-wrap: wrap;
-          gap: 12px;
-        }
-        .badge {
-          background: #fef3c7;
-          color: #92400e;
-          padding: 6px 12px;
-          border-radius: 9999px;
-          font-size: 11px;
-          font-weight: 700;
-          text-transform: uppercase;
-          border: 1px solid #fde68a;
-        }
-        .section {
-          margin-bottom: 22px;
-        }
-        .section-title {
-          font-size: 13px;
-          font-weight: 800;
-          text-transform: uppercase;
-          letter-spacing: 0.05em;
-          color: #0f172a;
-          border-bottom: 1.5px solid #e2e8f0;
-          padding-bottom: 6px;
-          margin-bottom: 10px;
-          display: flex;
-          align-items: center;
-          gap: 6px;
-        }
-        .summary-text {
-          font-size: 13px;
-          line-height: 1.6;
-          color: #334155;
-          margin: 0;
-        }
-        .skills-grid {
-          display: flex;
-          flex-wrap: wrap;
-          gap: 6px;
-        }
-        .skill-tag {
-          background: #f1f5f9;
-          color: #0f172a;
-          border: 1px solid #e2e8f0;
-          font-size: 11px;
-          font-weight: 600;
-          padding: 4px 10px;
-          border-radius: 6px;
-        }
-        .exp-item {
-          margin-bottom: 12px;
-        }
-        .exp-title {
-          font-size: 14px;
-          font-weight: 700;
-          color: #0f172a;
-        }
-        .exp-sub {
-          font-size: 12px;
-          color: #64748b;
-          margin-bottom: 6px;
-        }
-        .exp-bullets {
-          font-size: 12.5px;
-          color: #334155;
-          margin: 0;
-          padding-left: 18px;
-          line-height: 1.5;
-        }
-        .attest-badge {
-          display: inline-flex;
-          align-items: center;
-          gap: 6px;
-          background: #ecfdf5;
-          color: #047857;
-          border: 1px solid #a7f3d0;
-          padding: 4px 10px;
-          border-radius: 6px;
-          font-size: 11.5px;
-          font-weight: 700;
-          margin-top: 6px;
-        }
-        .print-btn-bar {
-          position: fixed;
-          bottom: 24px;
-          right: 24px;
-          display: flex;
-          gap: 8px;
-          background: rgba(255, 255, 255, 0.95);
-          padding: 8px;
-          border-radius: 12px;
-          box-shadow: 0 4px 15px rgba(0,0,0,0.15);
-          backdrop-filter: blur(8px);
-        }
-        .btn {
-          background: #d97706;
-          color: #ffffff;
-          border: none;
-          padding: 8px 16px;
-          border-radius: 8px;
-          font-weight: 700;
-          font-size: 12px;
-          cursor: pointer;
-        }
-        .btn-secondary {
-          background: #0f172a;
-        }
-        @media print {
-          .print-btn-bar { display: none; }
-          body { padding: 0; background: #ffffff; }
-          .resume-sheet { box-shadow: none; border: none; padding: 0; }
-        }
-      </style>
-    </head>
-    <body>
-      <div class="resume-sheet">
-        <div class="header">
-          <div>
-            <h1 class="candidate-name">${name}</h1>
-            <p class="candidate-role">${role} • ${id}</p>
-            <div class="contact-bar">
-              <span>✉ ${email}</span>
-              <span>☎ ${phone}</span>
-              <span>📍 ${location}</span>
-              <span>🌐 ${nationality} (${citizenship})</span>
+    newWin.document.write(`
+      <!DOCTYPE html>
+      <html lang="en">
+      <head>
+        <meta charset="utf-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1">
+        <title>${fileName} - The Revival International</title>
+        <style>
+          * { box-sizing: border-box; }
+          html, body {
+            margin: 0;
+            padding: 0;
+            width: 100%;
+            height: 100%;
+            background: #0b1120;
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+            overflow: hidden;
+          }
+          .viewer-toolbar {
+            height: 54px;
+            background: #0f172a;
+            border-bottom: 1px solid #1e293b;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 0 20px;
+            color: #ffffff;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.25);
+          }
+          .doc-info {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+          }
+          .doc-icon {
+            width: 32px;
+            height: 32px;
+            border-radius: 8px;
+            background: rgba(217, 119, 6, 0.2);
+            color: #f59e0b;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: 800;
+            font-size: 14px;
+          }
+          .doc-titles h1 {
+            font-size: 13.5px;
+            font-weight: 700;
+            margin: 0;
+            color: #f8fafc;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+          }
+          .doc-titles p {
+            font-size: 11px;
+            color: #94a3b8;
+            margin: 2px 0 0 0;
+          }
+          .badge-status {
+            background: rgba(16, 185, 129, 0.15);
+            color: #10b981;
+            border: 1px solid rgba(16, 185, 129, 0.3);
+            font-size: 10px;
+            font-weight: 800;
+            padding: 2px 8px;
+            border-radius: 9999px;
+            text-transform: uppercase;
+            letter-spacing: 0.04em;
+          }
+          .toolbar-actions {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+          }
+          .btn-dl {
+            background: linear-gradient(135deg, #d97706, #b45309);
+            color: #ffffff;
+            text-decoration: none;
+            padding: 8px 18px;
+            border-radius: 9px;
+            font-size: 12px;
+            font-weight: 700;
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            cursor: pointer;
+            border: none;
+            transition: opacity 0.15s ease;
+          }
+          .btn-dl:hover {
+            opacity: 0.92;
+          }
+          .btn-cls {
+            background: #1e293b;
+            color: #94a3b8;
+            border: 1px solid #334155;
+            padding: 8px 14px;
+            border-radius: 9px;
+            font-size: 12px;
+            font-weight: 700;
+            cursor: pointer;
+            transition: all 0.15s ease;
+          }
+          .btn-cls:hover {
+            background: #334155;
+            color: #ffffff;
+          }
+          .content-stage {
+            width: 100%;
+            height: calc(100% - 54px);
+            background: #0b1120;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+          }
+          iframe, embed {
+            width: 100%;
+            height: 100%;
+            border: none;
+            display: block;
+          }
+        </style>
+      </head>
+      <body>
+        <div class="viewer-toolbar">
+          <div class="doc-info">
+            <div class="doc-icon">CV</div>
+            <div class="doc-titles">
+              <h1>
+                <span>${fileName}</span>
+                <span class="badge-status">${isGenerated ? 'ATS Dossier' : 'Candidate Uploaded CV'}</span>
+              </h1>
+              <p>${candidateName} • The Revival International Certified Talent</p>
             </div>
           </div>
-          <span class="badge">ATS Verified Candidate</span>
-        </div>
-
-        <div class="section">
-          <div class="section-title">Executive Profile Summary</div>
-          <p class="summary-text">${summary}</p>
-        </div>
-
-        <div class="section">
-          <div class="section-title">Core Competencies & Key Technical Skills</div>
-          <div class="skills-grid">${skillsHtml}</div>
-        </div>
-
-        <div class="section">
-          <div class="section-title">Professional Work Experience</div>
-          <div class="exp-item">
-            <div class="exp-title">${role}</div>
-            <div class="exp-sub">${employer} • Experience: ${experience}</div>
-            <ul class="exp-bullets">
-              <li>Candidate Profile Mandate: ${role} (${experience}).</li>
-              <li>Affiliated Organization: ${employer}.</li>
-              <li>Placement & Mobility Destination: ${cand.preferredCountry || location}.</li>
-            </ul>
+          <div class="toolbar-actions">
+            <a class="btn-dl" href="${fileUrl}" download="${fileName}">⬇ Download File</a>
+            <button class="btn-cls" onclick="window.close()">✕ Close</button>
           </div>
         </div>
-
-        <div class="section">
-          <div class="section-title">Academic Qualifications & Attestation</div>
-          <div style="font-size: 13.5px; font-weight: 700; color: #0f172a;">${education}</div>
-          <div class="attest-badge">✓ Educational Degree Attested by UAE / Saudi Embassy (MOHRE Verified)</div>
+        <div class="content-stage">
+          <iframe src="${fileUrl}#toolbar=1" type="${mimeType}" title="${fileName}"></iframe>
         </div>
+      </body>
+      </html>
+    `);
+    newWin.document.close();
+  };
 
-        <div class="section">
-          <div class="section-title">Relocation, Compensation & Availability</div>
-          <div style="font-size: 12.5px; color: #334155; line-height: 1.6;">
-            <div><strong>Preferred Relocation:</strong> ${cand.preferredCountry || 'United Arab Emirates (Dubai / Abu Dhabi)'}</div>
-            <div><strong>Expected Remuneration:</strong> ${salary}</div>
-            <div><strong>Notice Period:</strong> ${cand.noticePeriod || '30 Days'}</div>
-            <div><strong>Passport Verification:</strong> ${cand.passport || 'Standard (Verified)'}</div>
-          </div>
-        </div>
-      </div>
+  // 2. Data URL or Blob URL of candidate's actual uploaded CV
+  if (url && (url.startsWith('data:') || url.startsWith('blob:'))) {
+    try {
+      let finalBlobUrl = url;
+      let mimeType = 'application/pdf';
 
-      <div class="print-btn-bar">
-        <button class="btn" onclick="window.print()">Print / Save as PDF</button>
-        <button class="btn btn-secondary" onclick="window.close()">Close</button>
-      </div>
-    </body>
-    </html>
-  `);
-  newWin.document.close();
+      if (url.startsWith('data:')) {
+        const parts = url.split(',');
+        const header = parts[0];
+        const base64Data = parts[1];
+        const match = header.match(/data:([^;]+)/);
+        if (match && match[1]) mimeType = match[1].trim();
+
+        const byteCharacters = atob(base64Data);
+        const byteArray = new Uint8Array(byteCharacters.length);
+        for (let i = 0; i < byteCharacters.length; i++) {
+          byteArray[i] = byteCharacters.charCodeAt(i);
+        }
+        const blob = new Blob([byteArray], { type: mimeType });
+        finalBlobUrl = URL.createObjectURL(blob);
+      }
+
+      openViewerWindow(finalBlobUrl, mimeType, false);
+      return;
+    } catch (err) {
+      console.warn('Direct uploaded resume preview fallback notice:', err);
+    }
+  }
+
+  // 3. If candidate has no custom uploaded resume file yet, generate an executive ATS PDF on-the-fly
+  try {
+    const doc = createCandidateJsPdf(cand);
+    const pdfBlobUrl = doc.output('bloburl');
+    openViewerWindow(pdfBlobUrl, 'application/pdf', true);
+  } catch (err) {
+    console.error('Failed to generate ATS PDF resume preview:', err);
+    downloadCandidateResumePdf(cand);
+  }
 };
-

@@ -318,76 +318,58 @@ export const CrmCandidates = () => {
     };
   }, [viewCand, candidates]);
 
-  // Handle downloading candidate resume as an actual PDF file
-  const handleDownloadCv = (cand) => {
-    if (!cand) return;
-    const url = cand.resumeUrl;
-    const fileName = cand.resumeName || `${(cand.name || 'Candidate').replace(/\s+/g, '_')}_Resume.pdf`;
+  // Helper to ensure candidate has their full uploaded CV from all available stores
+  const resolveCandidateWithResume = (cand) => {
+    if (!cand) return cand;
+    let url = cand.resumeUrl || cand.fileUrl;
+    let name = cand.resumeName || `${(cand.name || 'Candidate').replace(/\s+/g, '_')}_CV.pdf`;
 
-    if (url && (url.startsWith('data:') || url.startsWith('blob:') || url.startsWith('http://') || url.startsWith('https://'))) {
-      const link = document.createElement('a');
-      link.href = url;
-      link.download = fileName;
-      document.body.appendChild(link);
-      link.click();
-      document.body.removeChild(link);
-      return;
+    if ((!url || url.length < 200) && Array.isArray(cand.applications)) {
+      const appWithResume = cand.applications.find(a => (a.resumeUrl && a.resumeUrl.length > 200) || a.resumeName);
+      if (appWithResume) {
+        url = url || appWithResume.resumeUrl;
+        name = name || appWithResume.resumeName;
+      }
     }
 
-    downloadCandidateResumePdf(cand);
+    if ((!url || url.length < 200) && Array.isArray(cand.documents)) {
+      const docWithResume = cand.documents.find(d => d.fileUrl && d.fileUrl.length > 200);
+      if (docWithResume) {
+        url = url || docWithResume.fileUrl;
+        name = name || docWithResume.fileName;
+      }
+    }
+
+    if ((!url || url.length < 200) && typeof window !== 'undefined' && window.localStorage) {
+      if (cand.email) {
+        const stored = localStorage.getItem(`sir_resume_${cand.email.toLowerCase().trim()}`);
+        if (stored && stored.length > 200) url = stored;
+      }
+      if (!url || url.length < 200) {
+        const active = localStorage.getItem('sir_active_resume');
+        const activeName = localStorage.getItem('sir_active_resume_name');
+        if (active && active.length > 200) {
+          url = active;
+          if (activeName) name = activeName;
+        }
+      }
+    }
+
+    return { ...cand, resumeUrl: url, resumeName: name };
+  };
+
+  // Handle downloading candidate resume as an actual file
+  const handleDownloadCv = (cand) => {
+    if (!cand) return;
+    const resolved = resolveCandidateWithResume(cand);
+    downloadCandidateResumePdf(resolved);
   };
 
   // Handle viewing / previewing candidate CV in a separate clean tab
   const handlePreviewCv = (cand) => {
     if (!cand) return;
-
-    if (cand.resumeUrl) {
-      const url = cand.resumeUrl;
-      if (url.startsWith('http://') || url.startsWith('https://') || url.startsWith('blob:')) {
-        window.open(url, '_blank');
-        return;
-      }
-      if (url.startsWith('data:')) {
-        try {
-          const parts = url.split(',');
-          const header = parts[0];
-          const base64Data = parts[1];
-          let mime = 'application/pdf';
-          const mimeMatch = header.match(/data:([^;]+)/);
-          if (mimeMatch && mimeMatch[1]) {
-            mime = mimeMatch[1].split(';')[0].trim();
-          }
-          const byteCharacters = atob(base64Data);
-          const byteNumbers = new Array(byteCharacters.length);
-          for (let i = 0; i < byteCharacters.length; i++) {
-            byteNumbers[i] = byteCharacters.charCodeAt(i);
-          }
-          const byteArray = new Uint8Array(byteNumbers);
-          const blob = new Blob([byteArray], { type: mime });
-          const blobUrl = URL.createObjectURL(blob);
-          window.open(blobUrl, '_blank');
-          return;
-        } catch (e) {
-          console.warn('Blob preview fallback notice:', e);
-          const newWin = window.open('', '_blank');
-          if (newWin) {
-            newWin.document.write(`
-              <!DOCTYPE html>
-              <html>
-                <head><title>Candidate CV - ${cand.name || 'Candidate'}</title></head>
-                <body style="margin:0;padding:0;background:#0f172a;display:flex;height:100vh;">
-                  <iframe src="${url}" style="width:100%;height:100%;border:none;"></iframe>
-                </body>
-              </html>
-            `);
-            newWin.document.close();
-            return;
-          }
-        }
-      }
-    }
-
-    openCandidateResumeInNewTab(cand);
+    const resolved = resolveCandidateWithResume(cand);
+    openCandidateResumeInNewTab(resolved);
   };
 
   const renderCandidateAvatar = (c, sizeClasses = "w-12 h-12 text-sm") => {

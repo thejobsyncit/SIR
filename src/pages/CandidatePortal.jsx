@@ -4,6 +4,7 @@ import { UnifiedAuth } from '../components/UnifiedAuth';
 import { JOBS_LIST } from '../data/mockData';
 import { BrandLogoIcon } from '../components/BrandLogoIcon';
 import { SEO } from '../components/SEO';
+import { openCandidateResumeInNewTab, downloadCandidateResumePdf } from '../services/candidateResumePdfService';
 import {
   Sun, Moon,
   LayoutDashboard, User, FileText, Bookmark, Send, Clock, Calendar, Shield,
@@ -232,9 +233,9 @@ export const CandidatePortal = () => {
     expectedSalary: user?.expectedSalary || 'AED 20,000 / Month',
     noticePeriod: user?.noticePeriod || '30 Days',
     avatar: (user?.avatar && !user.avatar.includes('dicebear')) ? user.avatar : '',
-    resumeName: user?.resumeName || 'Executive_Candidate_CV.pdf',
-    resumeUrl: user?.resumeUrl || '',
-    resumeSize: user?.resumeSize || '2.4 MB',
+    resumeName: user?.resumeName || (typeof window !== 'undefined' ? localStorage.getItem('sir_active_resume_name') : null) || 'Executive_Candidate_CV.pdf',
+    resumeUrl: user?.resumeUrl || (typeof window !== 'undefined' ? localStorage.getItem('sir_active_resume') : null) || '',
+    resumeSize: user?.resumeSize || '161 KB',
     mohreAttested: user?.mohreAttested || false,
     skillsInput: Array.isArray(user?.skills) ? user.skills.join(', ') : (user?.skills || 'Project Management, Construction, Procurement, Budgeting, AutoCAD')
   });
@@ -311,7 +312,9 @@ export const CandidatePortal = () => {
         expectedSalary: user.expectedSalary || prev.expectedSalary,
         noticePeriod: user.noticePeriod || prev.noticePeriod,
         avatar: (user.avatar && !user.avatar.includes('dicebear')) ? user.avatar : prev.avatar,
-        resumeName: user.resumeName || prev.resumeName,
+        resumeName: user.resumeName || prev.resumeName || (typeof window !== 'undefined' ? localStorage.getItem('sir_active_resume_name') : null) || 'Executive_Candidate_CV.pdf',
+        resumeUrl: user.resumeUrl || prev.resumeUrl || (typeof window !== 'undefined' ? localStorage.getItem('sir_active_resume') : null) || '',
+        resumeSize: user.resumeSize || prev.resumeSize || '161 KB',
         skillsInput: Array.isArray(user.skills) ? user.skills.join(', ') : (user.skills || prev.skillsInput)
       }));
       if (user.skills && Array.isArray(user.skills)) {
@@ -549,6 +552,17 @@ export const CandidatePortal = () => {
         resumeUploaded: true
       });
 
+      // Cache in client storage so preview and download work immediately across all tabs
+      try {
+        localStorage.setItem('sir_active_resume', dataUrl);
+        localStorage.setItem('sir_active_resume_name', file.name);
+        if (user?.email) {
+          localStorage.setItem(`sir_resume_${user.email.toLowerCase().trim()}`, dataUrl);
+        }
+      } catch (storeErr) {
+        console.warn('Local resume cache warning:', storeErr);
+      }
+
       // Synchronize directly to backend database so CRM receives the actual uploaded CV
       try {
         await fetch('/api/candidate/profile', {
@@ -574,6 +588,31 @@ export const CandidatePortal = () => {
             fileUrl: dataUrl
           })
         }).catch(() => {});
+
+        // Direct CRM candidate update
+        await fetch('/api/candidates', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            id: user?.candidateId || user?.id,
+            email: user?.email,
+            name: profileForm.name || user?.name,
+            phone: profileForm.phone || user?.phone,
+            resumeName: file.name,
+            resumeUrl: dataUrl,
+            resumeSize: formattedSize
+          })
+        }).catch(() => {});
+
+        // Broadcast event so CRM candidates tab updates immediately
+        window.dispatchEvent(new CustomEvent('candidate-profile-updated', {
+          detail: {
+            email: user?.email,
+            resumeName: file.name,
+            resumeUrl: dataUrl,
+            resumeSize: formattedSize
+          }
+        }));
       } catch (err) {
         console.warn('Backend resume sync warning:', err);
       }
@@ -582,6 +621,54 @@ export const CandidatePortal = () => {
       setTimeout(() => setResumeActionMsg(''), 4000);
     };
     reader.readAsDataURL(file);
+  };
+
+  // Preview the candidate's active uploaded resume
+  const handlePreviewActiveResume = () => {
+    const activeUrl = profileForm.resumeUrl ||
+      user?.resumeUrl ||
+      (typeof window !== 'undefined' ? localStorage.getItem('sir_active_resume') : null) ||
+      (user?.email && typeof window !== 'undefined' ? localStorage.getItem(`sir_resume_${user.email.toLowerCase().trim()}`) : null) ||
+      (documents.find(d => d.documentType === 'Resume / CV' || (d.fileName && d.fileName.toLowerCase().endsWith('.pdf')))?.fileUrl);
+
+    const activeName = profileForm.resumeName || 
+      user?.resumeName || 
+      (typeof window !== 'undefined' ? localStorage.getItem('sir_active_resume_name') : null) || 
+      'Candidate_Resume.pdf';
+
+    openCandidateResumeInNewTab({
+      ...profileForm,
+      id: user?.candidateId || user?.id || 'RI-CAND',
+      name: profileForm.name || user?.name || 'Candidate',
+      email: profileForm.email || user?.email,
+      phone: profileForm.phone || user?.phone,
+      resumeUrl: activeUrl,
+      resumeName: activeName
+    });
+  };
+
+  // Download the candidate's active uploaded resume
+  const handleDownloadActiveResume = () => {
+    const activeUrl = profileForm.resumeUrl ||
+      user?.resumeUrl ||
+      (typeof window !== 'undefined' ? localStorage.getItem('sir_active_resume') : null) ||
+      (user?.email && typeof window !== 'undefined' ? localStorage.getItem(`sir_resume_${user.email.toLowerCase().trim()}`) : null) ||
+      (documents.find(d => d.documentType === 'Resume / CV' || (d.fileName && d.fileName.toLowerCase().endsWith('.pdf')))?.fileUrl);
+
+    const activeName = profileForm.resumeName || 
+      user?.resumeName || 
+      (typeof window !== 'undefined' ? localStorage.getItem('sir_active_resume_name') : null) || 
+      `${(profileForm.name || user?.name || 'Candidate').replace(/\s+/g, '_')}_CV.pdf`;
+
+    downloadCandidateResumePdf({
+      ...profileForm,
+      id: user?.candidateId || user?.id || 'RI-CAND',
+      name: profileForm.name || user?.name || 'Candidate',
+      email: profileForm.email || user?.email,
+      phone: profileForm.phone || user?.phone,
+      resumeUrl: activeUrl,
+      resumeName: activeName
+    });
   };
 
   // Document upload handler
@@ -1741,15 +1828,19 @@ export const CandidatePortal = () => {
 
                   <div className="flex flex-wrap items-center gap-2">
                     <button
-                      onClick={() => setPreviewDoc({ name: profileForm.resumeName || 'Executive_Candidate_CV.pdf', type: 'Resume / CV' })}
-                      className="px-3 py-1.5 bg-slate-200 dark:bg-navy-800 text-slate-700 dark:text-slate-200 font-bold text-xs rounded-xl hover:bg-slate-300 transition flex items-center gap-1 cursor-pointer"
+                      type="button"
+                      onClick={handlePreviewActiveResume}
+                      className="px-3 py-1.5 bg-slate-200 dark:bg-navy-800 text-slate-700 dark:text-slate-200 font-bold text-xs rounded-xl hover:bg-slate-300 dark:hover:bg-navy-700 transition flex items-center gap-1 cursor-pointer"
+                      title="Preview candidate uploaded CV in new tab"
                     >
                       <Eye className="w-3.5 h-3.5" />
                       <span>Preview</span>
                     </button>
                     <button
-                      onClick={() => alert(`Downloading "${profileForm.resumeName || 'Executive_Candidate_CV.pdf'}"...`)}
-                      className="px-3 py-1.5 bg-slate-200 dark:bg-navy-800 text-slate-700 dark:text-slate-200 font-bold text-xs rounded-xl hover:bg-slate-300 transition flex items-center gap-1 cursor-pointer"
+                      type="button"
+                      onClick={handleDownloadActiveResume}
+                      className="px-3 py-1.5 bg-slate-200 dark:bg-navy-800 text-slate-700 dark:text-slate-200 font-bold text-xs rounded-xl hover:bg-slate-300 dark:hover:bg-navy-700 transition flex items-center gap-1 cursor-pointer"
+                      title="Download candidate uploaded CV file"
                     >
                       <Download className="w-3.5 h-3.5" />
                       <span>Download</span>
@@ -2648,20 +2739,43 @@ export const CandidatePortal = () => {
               </button>
             </div>
 
-            <div className="p-8 bg-slate-50 dark:bg-navy-950 rounded-2xl border border-slate-200 dark:border-navy-800 text-center space-y-3">
-              <FileText className="w-16 h-16 text-gold-500 mx-auto" />
-              <h4 className="font-bold text-sm text-navy-950 dark:text-white">{previewDoc.fileName || previewDoc.name}</h4>
-              <p className="text-xs text-slate-500">MOHRE Consular Attestation Hash: 0x7E3F...992A</p>
-              <span className="inline-block bg-emerald-500/15 text-emerald-600 dark:text-emerald-400 text-xs font-bold px-3 py-1 rounded-full">
-                Encrypted & Authenticated
-              </span>
+            <div className="p-4 bg-slate-50 dark:bg-navy-950 rounded-2xl border border-slate-200 dark:border-navy-800 space-y-3">
+              {previewDoc.fileUrl ? (
+                <div className="w-full h-80 rounded-xl overflow-hidden border border-slate-200 dark:border-navy-800 bg-navy-950">
+                  <iframe src={previewDoc.fileUrl} title={previewDoc.fileName || previewDoc.name} className="w-full h-full border-none" />
+                </div>
+              ) : (
+                <div className="text-center py-6 space-y-3">
+                  <FileText className="w-16 h-16 text-gold-500 mx-auto" />
+                  <h4 className="font-bold text-sm text-navy-950 dark:text-white">{previewDoc.fileName || previewDoc.name}</h4>
+                  <p className="text-xs text-slate-500">MOHRE Consular Attestation Hash: 0x7E3F...992A</p>
+                  <span className="inline-block bg-emerald-500/15 text-emerald-600 dark:text-emerald-400 text-xs font-bold px-3 py-1 rounded-full">
+                    Encrypted & Authenticated
+                  </span>
+                </div>
+              )}
             </div>
 
-            <div className="flex justify-end">
+            <div className="flex justify-between items-center">
+              {previewDoc.fileUrl ? (
+                <button
+                  type="button"
+                  onClick={() => openCandidateResumeInNewTab({
+                    name: user?.name,
+                    email: user?.email,
+                    resumeUrl: previewDoc.fileUrl,
+                    resumeName: previewDoc.fileName || previewDoc.name
+                  })}
+                  className="px-4 py-2 bg-gold-500 text-navy-950 font-bold text-xs rounded-xl flex items-center gap-1.5 cursor-pointer"
+                >
+                  <ExternalLink className="w-3.5 h-3.5" />
+                  <span>Open in Full Tab</span>
+                </button>
+              ) : <div />}
               <button
                 type="button"
                 onClick={() => setPreviewDoc(null)}
-                className="px-6 py-2.5 bg-navy-950 dark:bg-white text-white dark:text-navy-950 font-bold text-xs rounded-xl"
+                className="px-6 py-2.5 bg-navy-950 dark:bg-white text-white dark:text-navy-950 font-bold text-xs rounded-xl cursor-pointer"
               >
                 Close Preview
               </button>

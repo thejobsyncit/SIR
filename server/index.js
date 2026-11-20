@@ -1603,6 +1603,9 @@ app.get('/api/candidate/applications', async (req, res) => {
       rows = await db.all(`
         SELECT 
           ca.*,
+          COALESCE(NULLIF(ca.resumeUrl, ''), c.resumeUrl) as resumeUrl,
+          COALESCE(NULLIF(ca.resumeName, ''), c.resumeName) as resumeName,
+          COALESCE(NULLIF(ca.resumeSize, ''), c.resumeSize) as resumeSize,
           c.nationality as candidateNationality,
           c.score as candidateScore,
           c.avatar as candidateAvatar,
@@ -1619,6 +1622,9 @@ app.get('/api/candidate/applications', async (req, res) => {
       rows = await db.all(`
         SELECT 
           ca.*,
+          COALESCE(NULLIF(ca.resumeUrl, ''), c.resumeUrl) as resumeUrl,
+          COALESCE(NULLIF(ca.resumeName, ''), c.resumeName) as resumeName,
+          COALESCE(NULLIF(ca.resumeSize, ''), c.resumeSize) as resumeSize,
           c.nationality as candidateNationality,
           c.score as candidateScore,
           c.avatar as candidateAvatar,
@@ -1644,7 +1650,7 @@ app.patch('/api/candidate/applications/:id/status', async (req, res) => {
     const { id } = req.params;
     const { status, stage, notes } = req.body;
     const db = await getDb();
-    
+
     const existing = await db.get('SELECT * FROM candidate_applications WHERE id = ?', [id]);
     if (!existing) {
       return res.status(404).json({ success: false, message: 'Application not found' });
@@ -1665,7 +1671,7 @@ app.patch('/api/candidate/applications/:id/status', async (req, res) => {
     if (existing.candidateId) {
       await db.run(`
         UPDATE candidates SET stage = ? WHERE id = ? OR (email IS NOT NULL AND LOWER(email) = LOWER(?))
-      `, [nextStage, existing.candidateId, existing.applicantEmail || '']).catch(() => {});
+      `, [nextStage, existing.candidateId, existing.applicantEmail || '']).catch(() => { });
     }
 
     const updated = await db.get('SELECT * FROM candidate_applications WHERE id = ?', [id]);
@@ -1681,15 +1687,15 @@ const deleteApplicationHandler = async (req, res) => {
   try {
     const { id } = req.params;
     const db = await getDb();
-    
+
     // 1. Fetch application details before deletion
-    const app = await db.get('SELECT * FROM candidate_applications WHERE id = ? OR jobId = ?', [id, id]);
+    const app = await db.get('SELECT * FROM candidate_applications WHERE id = ?', [id]);
     if (!app) {
       return res.status(404).json({ success: false, message: 'Application not found' });
     }
 
     // 2. Delete application from database
-    await db.run('DELETE FROM candidate_applications WHERE id = ?', [app.id]);
+    await db.run('DELETE FROM candidate_applications WHERE id = ?', [id]);
 
     // 3. If candidate has no other applications, update their stage to 'lead'
     if (app.candidateId || app.applicantEmail) {
@@ -1699,18 +1705,18 @@ const deleteApplicationHandler = async (req, res) => {
       );
       if (remaining.length === 0) {
         if (app.candidateId) {
-          await db.run("UPDATE candidates SET stage = 'lead' WHERE id = ?", [app.candidateId]).catch(() => {});
-          await db.run("UPDATE candidate_profiles SET stage = 'lead' WHERE id = ?", [app.candidateId]).catch(() => {});
+          await db.run("UPDATE candidates SET stage = 'lead' WHERE id = ?", [app.candidateId]).catch(() => { });
+          await db.run("UPDATE candidate_profiles SET stage = 'lead' WHERE id = ?", [app.candidateId]).catch(() => { });
         }
         if (app.applicantEmail) {
-          await db.run("UPDATE candidates SET stage = 'lead' WHERE LOWER(email) = LOWER(?)", [app.applicantEmail]).catch(() => {});
-          await db.run("UPDATE candidate_profiles SET stage = 'lead' WHERE LOWER(email) = LOWER(?)", [app.applicantEmail]).catch(() => {});
+          await db.run("UPDATE candidates SET stage = 'lead' WHERE LOWER(email) = LOWER(?)", [app.applicantEmail]).catch(() => { });
+          await db.run("UPDATE candidate_profiles SET stage = 'lead' WHERE LOWER(email) = LOWER(?)", [app.applicantEmail]).catch(() => { });
         }
       }
     }
 
-    res.json({ 
-      success: true, 
+    res.json({
+      success: true,
       message: 'Application removed successfully. Candidate can now re-apply to this job.',
       deletedJobId: app.jobId,
       deletedCandidateId: app.candidateId
@@ -1750,7 +1756,7 @@ app.get('/api/jobs/apply-email/history', async (req, res) => {
 // SUBMIT Candidate Application (strictly associated with candidateId & resumes)
 app.post('/api/candidate/applications', async (req, res) => {
   try {
-    const { 
+    const {
       candidateId, userId, jobId, jobTitle, company, location,
       resumeName, resumeUrl, resumeSize, coverNote, noticePeriod, expectedSalary,
       applicantName, applicantEmail, applicantPhone
@@ -1802,7 +1808,7 @@ app.post('/api/candidate/applications', async (req, res) => {
         `, [effectiveUid, resolvedEmail || `candidate_${Date.now()}@example.com`, resolvedName || 'Candidate']);
       } catch (userErr) {
         const fallback = await db.get('SELECT id FROM users WHERE LOWER(email) = LOWER(?)', [resolvedEmail]) ||
-                         await db.get('SELECT id FROM users LIMIT 1');
+          await db.get('SELECT id FROM users LIMIT 1');
         effectiveUid = fallback?.id || 'USR-MW6CF773-428';
       }
     }
@@ -1831,14 +1837,14 @@ app.post('/api/candidate/applications', async (req, res) => {
           await db.run(`
             INSERT INTO candidate_profiles (id, userId, name, email, phone, nationality)
             VALUES (?, ?, ?, ?, ?, ?)
-          `, [effectiveCid, effectiveUid, resolvedName || 'Candidate', resolvedEmail || '', resolvedPhone || '', 'UAE']).catch(() => {});
+          `, [effectiveCid, effectiveUid, resolvedName || 'Candidate', resolvedEmail || '', resolvedPhone || '', 'UAE']).catch(() => { });
         }
       }
     }
 
     // Check if already applied for this job
     const existing = await db.get(
-      'SELECT id FROM candidate_applications WHERE (candidateId = ? OR (applicantEmail IS NOT NULL AND LOWER(applicantEmail) = LOWER(?))) AND jobId = ?', 
+      'SELECT id FROM candidate_applications WHERE (candidateId = ? OR (applicantEmail IS NOT NULL AND LOWER(applicantEmail) = LOWER(?))) AND jobId = ?',
       [effectiveCid, resolvedEmail || '', jobId]
     );
 
@@ -1971,7 +1977,7 @@ app.post('/api/candidate/applications', async (req, res) => {
     ]);
 
     const created = await db.get('SELECT * FROM candidate_applications WHERE id = ?', [appId]);
-    res.json({ success: true, message: 'Application submitted successfully with attached CV', applicationId: appId, data: created });
+    res.json({ success: true, message: 'Application submitted successfully with attached CV', data: created });
   } catch (error) {
     console.error('Failed to submit application:', error);
     res.status(500).json({ success: false, message: 'Server error' });
@@ -2166,13 +2172,13 @@ app.delete('/api/candidate/account', async (req, res) => {
     }
     const db = await getDb();
     if (candidateId) {
-      await db.run('DELETE FROM candidate_applications WHERE candidateId = ?', [candidateId]).catch(() => {});
-      await db.run('DELETE FROM candidate_documents WHERE candidateId = ?', [candidateId]).catch(() => {});
-      await db.run('DELETE FROM candidate_notifications WHERE candidateId = ?', [candidateId]).catch(() => {});
-      await db.run('DELETE FROM candidate_profiles WHERE id = ?', [candidateId]).catch(() => {});
+      await db.run('DELETE FROM candidate_applications WHERE candidateId = ?', [candidateId]).catch(() => { });
+      await db.run('DELETE FROM candidate_documents WHERE candidateId = ?', [candidateId]).catch(() => { });
+      await db.run('DELETE FROM candidate_notifications WHERE candidateId = ?', [candidateId]).catch(() => { });
+      await db.run('DELETE FROM candidate_profiles WHERE id = ?', [candidateId]).catch(() => { });
     }
     if (email) {
-      await db.run('DELETE FROM users WHERE LOWER(email) = LOWER(?)', [email.trim()]).catch(() => {});
+      await db.run('DELETE FROM users WHERE LOWER(email) = LOWER(?)', [email.trim()]).catch(() => { });
     }
     res.json({ success: true, message: 'Candidate account and associated records deleted' });
   } catch (error) {
@@ -2377,10 +2383,10 @@ app.get('/api/jobs', async (req, res) => {
         const titleMatch = (j.title || '').toLowerCase().includes(k);
         const compMatch = (j.company || '').toLowerCase().includes(k);
         const descMatch = (j.description || '').toLowerCase().includes(k);
-        const qualMatch = (j.qualification || '').toLowerCase().includes(k) || 
-                          (j.requiredDegree || '').toLowerCase().includes(k) || 
-                          (j.academicQualifications || '').toLowerCase().includes(k) || 
-                          (j.mandatoryLicences || '').toLowerCase().includes(k);
+        const qualMatch = (j.qualification || '').toLowerCase().includes(k) ||
+          (j.requiredDegree || '').toLowerCase().includes(k) ||
+          (j.academicQualifications || '').toLowerCase().includes(k) ||
+          (j.mandatoryLicences || '').toLowerCase().includes(k);
         const skillsArray = parseArray(j.skills);
         const skillMatch = skillsArray.some(s => String(s).toLowerCase().includes(k));
         return titleMatch || compMatch || descMatch || skillMatch || qualMatch;
@@ -2492,7 +2498,7 @@ app.get('/api/jobs/:id', async (req, res) => {
 
 app.post('/api/jobs', requireEmployerOrAdmin, async (req, res) => {
   try {
-    const { 
+    const {
       id, title, company, country, location, salary, experience, jobType, category, description, vacancies, skills, qualification, benefits,
       educationLevel, requiredDegree, academicQualifications, mandatoryLicences,
       contractType, contractDuration, contractRenewal,
@@ -2552,7 +2558,7 @@ app.post('/api/jobs', requireEmployerOrAdmin, async (req, res) => {
 app.put('/api/jobs/:id', requireEmployerOrAdmin, async (req, res) => {
   try {
     const db = await getDb();
-    const { 
+    const {
       title, company, country, location, salary, experience, jobType, category, description, vacancies, skills, qualification, benefits,
       educationLevel, requiredDegree, academicQualifications, mandatoryLicences,
       contractType, contractDuration, contractRenewal,
@@ -2698,9 +2704,9 @@ app.post('/api/employees', async (req, res) => {
     }
 
     if (!VALID_CRM_ROLES.includes(role)) {
-      return res.status(400).json({ 
-        success: false, 
-        message: `Invalid role '${role}'. Must be one of: ${VALID_CRM_ROLES.join(', ')}` 
+      return res.status(400).json({
+        success: false,
+        message: `Invalid role '${role}'. Must be one of: ${VALID_CRM_ROLES.join(', ')}`
       });
     }
 
@@ -2717,11 +2723,11 @@ app.post('/api/employees', async (req, res) => {
     const employeeId = req.body.employeeId || `REV-EMP-${Math.floor(100 + Math.random() * 900)}`;
     const finalDept = department || (
       role === 'Super Admin' ? 'Executive Management' :
-      role === 'Admin' ? 'Administration' :
-      role === 'HR Lead' ? 'Human Resources' :
-      role === 'Recruiter' ? 'Recruitment & ATS' :
-      role === 'Placement Coordinator' ? 'Placement & Client Relations' :
-      'HR Operations'
+        role === 'Admin' ? 'Administration' :
+          role === 'HR Lead' ? 'Human Resources' :
+            role === 'Recruiter' ? 'Recruitment & ATS' :
+              role === 'Placement Coordinator' ? 'Placement & Client Relations' :
+                'HR Operations'
     );
 
     await db.run(
@@ -2765,9 +2771,9 @@ app.put('/api/employees/:id', async (req, res) => {
     }
 
     if (role && !VALID_CRM_ROLES.includes(role)) {
-      return res.status(400).json({ 
-        success: false, 
-        message: `Invalid role '${role}'. Must be one of: ${VALID_CRM_ROLES.join(', ')}` 
+      return res.status(400).json({
+        success: false,
+        message: `Invalid role '${role}'. Must be one of: ${VALID_CRM_ROLES.join(', ')}`
       });
     }
 
@@ -2961,7 +2967,7 @@ app.get('/api/employees/me/profile', async (req, res) => {
 
     let notifPrefs = {};
     if (safeEmployee.notificationPreferences) {
-      try { notifPrefs = JSON.parse(safeEmployee.notificationPreferences); } catch (_) {}
+      try { notifPrefs = JSON.parse(safeEmployee.notificationPreferences); } catch (_) { }
     } else {
       notifPrefs = {
         emailTaskAssignments: true,
@@ -3018,7 +3024,7 @@ const updateEmployeeProfileHandler = async (req, res) => {
     const updatedAvatar = avatar !== undefined ? String(avatar).trim() : employee.avatar;
     const updatedDob = dateOfBirth !== undefined ? String(dateOfBirth).trim() : employee.dateOfBirth;
     const updatedAddress = address !== undefined ? String(address).trim() : employee.address;
-    const updatedNotif = notificationPreferences !== undefined 
+    const updatedNotif = notificationPreferences !== undefined
       ? (typeof notificationPreferences === 'object' ? JSON.stringify(notificationPreferences) : String(notificationPreferences))
       : employee.notificationPreferences;
 
@@ -3033,7 +3039,7 @@ const updateEmployeeProfileHandler = async (req, res) => {
 
     let parsedNotifs = {};
     if (safeUpdated.notificationPreferences) {
-      try { parsedNotifs = JSON.parse(safeUpdated.notificationPreferences); } catch (_) {}
+      try { parsedNotifs = JSON.parse(safeUpdated.notificationPreferences); } catch (_) { }
     }
 
     const clientIp = getClientIp(req);
@@ -3139,7 +3145,7 @@ app.get('/api/candidates', async (req, res) => {
     const appsMap = new Map();
     for (const app of applications) {
       const keys = [
-        app.candidateId, 
+        app.candidateId,
         app.userId,
         app.applicantEmail ? app.applicantEmail.toLowerCase().trim() : null
       ].filter(Boolean);
@@ -3168,10 +3174,14 @@ app.get('/api/candidates', async (req, res) => {
       const userApps = appsMap.get(r.id) || (emailKey ? appsMap.get(emailKey) : []) || (prof?.userId ? appsMap.get(prof.userId) : []) || (prof?.id ? appsMap.get(prof.id) : []) || [];
       const userDocs = docsMap.get(r.id) || (emailKey ? docsMap.get(emailKey) : []) || (prof?.userId ? docsMap.get(prof.userId) : []) || (prof?.id ? docsMap.get(prof.id) : []) || [];
 
-      // Check if any application has an attached resume
-      const appWithResume = userApps.find(a => a.resumeName || a.resumeUrl);
-      const resumeName = r.resumeName || prof?.resumeName || appWithResume?.resumeName || null;
-      const resumeUrl = r.resumeUrl || prof?.resumeUrl || appWithResume?.resumeUrl || null;
+      // Check if any application or document has an attached resume
+      const docWithResume = userDocs.find(d => (d.documentType === 'Resume / CV' || (d.fileName && d.fileName.toLowerCase().includes('cv')) || (d.fileName && d.fileName.toLowerCase().endsWith('.pdf'))) && d.fileUrl && d.fileUrl.length > 200);
+      const appWithResume = userApps.find(a => (a.resumeUrl && a.resumeUrl.length > 200) || a.resumeName);
+      const resumeName = r.resumeName || prof?.resumeName || appWithResume?.resumeName || docWithResume?.fileName || null;
+      const resumeUrl = (r.resumeUrl && r.resumeUrl.length > 200 ? r.resumeUrl : null) || 
+                        (prof?.resumeUrl && prof.resumeUrl.length > 200 ? prof.resumeUrl : null) || 
+                        (appWithResume?.resumeUrl && appWithResume.resumeUrl.length > 200 ? appWithResume.resumeUrl : null) || 
+                        docWithResume?.fileUrl || r.resumeUrl || prof?.resumeUrl || null;
       const resumeSize = r.resumeSize || prof?.resumeSize || appWithResume?.resumeSize || null;
       const citizenship = r.citizenship || prof?.citizenship || null;
       const dob = r.dob || prof?.dob || null;
@@ -3221,9 +3231,12 @@ app.get('/api/candidates', async (req, res) => {
         const profEmailKey = prof.email ? prof.email.toLowerCase().trim() : '';
         const userApps = appsMap.get(prof.id) || (profEmailKey ? appsMap.get(profEmailKey) : []) || (prof.userId ? appsMap.get(prof.userId) : []) || [];
         const userDocs = docsMap.get(prof.id) || (profEmailKey ? docsMap.get(profEmailKey) : []) || (prof.userId ? docsMap.get(prof.userId) : []) || [];
-        const appWithResume = userApps.find(a => a.resumeName || a.resumeUrl);
-        const resumeName = prof.resumeName || appWithResume?.resumeName || null;
-        const resumeUrl = prof.resumeUrl || appWithResume?.resumeUrl || null;
+        const docWithResume = userDocs.find(d => (d.documentType === 'Resume / CV' || (d.fileName && d.fileName.toLowerCase().includes('cv')) || (d.fileName && d.fileName.toLowerCase().endsWith('.pdf'))) && d.fileUrl && d.fileUrl.length > 200);
+        const appWithResume = userApps.find(a => (a.resumeUrl && a.resumeUrl.length > 200) || a.resumeName);
+        const resumeName = prof.resumeName || appWithResume?.resumeName || docWithResume?.fileName || null;
+        const resumeUrl = (prof.resumeUrl && prof.resumeUrl.length > 200 ? prof.resumeUrl : null) || 
+                          (appWithResume?.resumeUrl && appWithResume.resumeUrl.length > 200 ? appWithResume.resumeUrl : null) || 
+                          docWithResume?.fileUrl || prof.resumeUrl || null;
         const resumeSize = prof.resumeSize || appWithResume?.resumeSize || null;
 
         const effectiveStage = prof.stage || (userApps.length > 0 ? 'applied' : 'lead');
@@ -3262,60 +3275,6 @@ app.get('/api/candidates', async (req, res) => {
           education: prof.education || '',
           qualification: prof.education || '',
           mohreAttested: !!prof.mohreAttested,
-          applications: userApps,
-          documents: userDocs
-        });
-      }
-    }
-
-    // Also include any candidates from candidate_applications not yet in candidateList
-    for (const app of applications) {
-      const cid = app.candidateId || `RI-CAND-${(app.id || '').replace(/[^0-9]/g, '').slice(0, 3) || '001'}`;
-      const appEmailKey = app.applicantEmail ? app.applicantEmail.toLowerCase().trim() : '';
-      if (!seenIds.has(cid) && (!appEmailKey || !seenIds.has(appEmailKey))) {
-        seenIds.add(cid);
-        if (appEmailKey) seenIds.add(appEmailKey);
-
-        const prof = profileMap.get(cid) || (appEmailKey ? profileMap.get(appEmailKey) : null);
-        const userApps = appsMap.get(cid) || (appEmailKey ? appsMap.get(appEmailKey) : [app]);
-        const userDocs = docsMap.get(cid) || (appEmailKey ? docsMap.get(appEmailKey) : []);
-        const appWithResume = userApps.find(a => a.resumeName || a.resumeUrl);
-        const resumeName = app.resumeName || prof?.resumeName || appWithResume?.resumeName || null;
-        const resumeUrl = app.resumeUrl || prof?.resumeUrl || appWithResume?.resumeUrl || null;
-        const resumeSize = app.resumeSize || prof?.resumeSize || appWithResume?.resumeSize || null;
-
-        candidateList.push({
-          id: cid,
-          name: app.applicantName || prof?.name || 'Applicant',
-          email: app.applicantEmail || prof?.email || '',
-          phone: app.applicantPhone || prof?.phone || '',
-          nationality: prof?.nationality || 'UAE',
-          currentEmployer: prof?.currentEmployer || 'Revival International Candidate',
-          currentRole: prof?.currentRole || app.jobTitle || 'Executive Candidate',
-          currentSalary: prof?.currentSalary || '',
-          expectedSalary: app.expectedSalary || prof?.expectedSalary || '',
-          noticePeriod: app.noticePeriod || prof?.noticePeriod || '',
-          score: prof?.score || 92,
-          stage: 'applied',
-          skills: prof?.skills ? parseArray(prof.skills) : [app.jobTitle || 'Professional Candidate'],
-          source: `Job Application (${app.jobTitle || ''})`,
-          passport: prof?.passport || 'Standard (Verified)',
-          aiSummary: prof?.aiSummary || `Candidate applied for ${app.jobTitle} at ${app.company}.`,
-          experience: prof?.experience || '3-5 Years',
-          avatar: (prof?.avatar && !prof.avatar.includes('images.unsplash.com')) ? prof.avatar : null,
-          assignedRecruiter: prof?.assignedRecruiter || 'Dhanalakshimi (Lead Advisor)',
-          createdAt: app.appliedDate || app.createdAt || new Date().toISOString(),
-          resumeName,
-          resumeUrl,
-          resumeSize,
-          citizenship: prof?.citizenship || null,
-          dob: prof?.dob || null,
-          gender: prof?.gender || null,
-          location: prof?.location || app.location || null,
-          preferredCountry: prof?.preferredCountry || null,
-          education: prof?.education || '',
-          qualification: prof?.education || '',
-          mohreAttested: !!prof?.mohreAttested,
           applications: userApps,
           documents: userDocs
         });
@@ -3574,35 +3533,35 @@ app.delete('/api/candidates/:id', async (req, res) => {
 
     // 2. Full cascade deletion across ALL tables:
     // Delete from candidates table
-    await db.run('DELETE FROM candidates WHERE id = ?', [id]).catch(() => {});
+    await db.run('DELETE FROM candidates WHERE id = ?', [id]).catch(() => { });
     if (candEmail) {
-      await db.run('DELETE FROM candidates WHERE LOWER(email) = LOWER(?)', [candEmail]).catch(() => {});
+      await db.run('DELETE FROM candidates WHERE LOWER(email) = LOWER(?)', [candEmail]).catch(() => { });
     }
 
     // Delete from candidate_profiles table
-    await db.run('DELETE FROM candidate_profiles WHERE id = ?', [id]).catch(() => {});
+    await db.run('DELETE FROM candidate_profiles WHERE id = ?', [id]).catch(() => { });
     if (candEmail) {
-      await db.run('DELETE FROM candidate_profiles WHERE LOWER(email) = LOWER(?)', [candEmail]).catch(() => {});
+      await db.run('DELETE FROM candidate_profiles WHERE LOWER(email) = LOWER(?)', [candEmail]).catch(() => { });
     }
 
     // Delete from candidate_applications table
-    await db.run('DELETE FROM candidate_applications WHERE candidateId = ?', [id]).catch(() => {});
+    await db.run('DELETE FROM candidate_applications WHERE candidateId = ?', [id]).catch(() => { });
     if (candEmail) {
-      await db.run('DELETE FROM candidate_applications WHERE LOWER(applicantEmail) = LOWER(?)', [candEmail]).catch(() => {});
+      await db.run('DELETE FROM candidate_applications WHERE LOWER(applicantEmail) = LOWER(?)', [candEmail]).catch(() => { });
     }
 
     // Delete from candidate_documents table
-    await db.run('DELETE FROM candidate_documents WHERE candidateId = ?', [id]).catch(() => {});
+    await db.run('DELETE FROM candidate_documents WHERE candidateId = ?', [id]).catch(() => { });
 
     // Delete from candidate_notifications table
-    await db.run('DELETE FROM candidate_notifications WHERE candidateId = ?', [id]).catch(() => {});
+    await db.run('DELETE FROM candidate_notifications WHERE candidateId = ?', [id]).catch(() => { });
 
     // Delete from interviews table
-    await db.run('DELETE FROM interviews WHERE candidateId = ?', [id]).catch(() => {});
+    await db.run('DELETE FROM interviews WHERE candidateId = ?', [id]).catch(() => { });
 
     // If candidate has an account in users table with role 'candidate', delete it so it cannot recreate
     if (candEmail) {
-      await db.run("DELETE FROM users WHERE LOWER(email) = LOWER(?) AND role = 'candidate'", [candEmail]).catch(() => {});
+      await db.run("DELETE FROM users WHERE LOWER(email) = LOWER(?) AND role = 'candidate'", [candEmail]).catch(() => { });
     }
 
     await logAuditTrail(db, {
@@ -3991,21 +3950,21 @@ app.post('/api/hr-operations/assign', async (req, res) => {
     }
 
     const db = await getDb();
-    
+
     // Ensure leads table columns exist
-    await db.run('ALTER TABLE leads ADD COLUMN assignedEmployeeId TEXT').catch(() => {});
-    await db.run('ALTER TABLE leads ADD COLUMN assignedEmployeeEmail TEXT').catch(() => {});
-    await db.run('ALTER TABLE leads ADD COLUMN operationTeam TEXT').catch(() => {});
-    await db.run('ALTER TABLE leads ADD COLUMN assignedBy TEXT').catch(() => {});
-    await db.run('ALTER TABLE leads ADD COLUMN assignedAt DATETIME').catch(() => {});
-    await db.run('ALTER TABLE leads ADD COLUMN assignmentStatus TEXT').catch(() => {});
-    await db.run('ALTER TABLE leads ADD COLUMN assignmentNotes TEXT').catch(() => {});
+    await db.run('ALTER TABLE leads ADD COLUMN assignedEmployeeId TEXT').catch(() => { });
+    await db.run('ALTER TABLE leads ADD COLUMN assignedEmployeeEmail TEXT').catch(() => { });
+    await db.run('ALTER TABLE leads ADD COLUMN operationTeam TEXT').catch(() => { });
+    await db.run('ALTER TABLE leads ADD COLUMN assignedBy TEXT').catch(() => { });
+    await db.run('ALTER TABLE leads ADD COLUMN assignedAt DATETIME').catch(() => { });
+    await db.run('ALTER TABLE leads ADD COLUMN assignmentStatus TEXT').catch(() => { });
+    await db.run('ALTER TABLE leads ADD COLUMN assignmentNotes TEXT').catch(() => { });
 
     // Resolve canonical employee identity
     let canonicalName = employeeName || 'Balavarshini S.';
     let canonicalId = employeeId || 'REV-EMP-006';
     let canonicalEmail = employeeEmail || '';
-    
+
     const nameClean = (canonicalName || '').toLowerCase().replace(/[^a-z]/g, '');
     const cleanEmail = (canonicalEmail || '').toLowerCase();
     const cleanId = canonicalId || '';
@@ -4034,7 +3993,7 @@ app.post('/api/hr-operations/assign', async (req, res) => {
     for (const enqId of enquiryIds) {
       // Fetch existing lead details to populate task assignment
       const currentLead = await db.get('SELECT * FROM leads WHERE id = ? OR referenceNumber = ? LIMIT 1', [enqId, enqId]);
-      
+
       const effectiveTeam = operationTeam || (
         currentLead && ['intl-adm', 'intl-consult'].includes(currentLead.serviceId)
           ? 'International HR Operations'
@@ -4115,7 +4074,7 @@ app.post('/api/hr-operations/assign', async (req, res) => {
             now,
             now
           ]
-        ).catch(() => {});
+        ).catch(() => { });
 
         // Log in enquiry_activities
         await db.run(
@@ -4129,7 +4088,7 @@ app.post('/api/hr-operations/assign', async (req, res) => {
             assignedBy,
             now
           ]
-        ).catch(() => {});
+        ).catch(() => { });
       }
     }
 
@@ -4422,7 +4381,7 @@ app.get(['/api/leads', '/api/consulting/enquiries', '/api/career-guidance/enquir
             VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
           `, [
             dl.id, dl.name, dl.email, dl.phone, dl.company, dl.message, dl.serviceId, dl.serviceTitle, dl.countryInterest, dl.assistanceType, dl.intakeTerm, dl.status, dl.assignedEmployee
-          ]).catch(() => {});
+          ]).catch(() => { });
         }
         rows = await db.all(query, params);
       }
@@ -4791,7 +4750,7 @@ app.post(['/api/leads', '/api/consulting/enquiries', '/api/career-guidance/enqui
       try {
         const parsed = typeof customFields === 'string' ? JSON.parse(customFields) : customFields;
         customConsent = parsed.consent;
-      } catch (_) {}
+      } catch (_) { }
     }
     const effectiveConsent = bodyConsent !== undefined ? bodyConsent : customConsent;
     if (isCareerLeadOrEdu && (effectiveConsent === false || effectiveConsent === 'false')) {
@@ -4804,7 +4763,7 @@ app.post(['/api/leads', '/api/consulting/enquiries', '/api/career-guidance/enqui
         try {
           const parsed = typeof customFields === 'string' ? JSON.parse(customFields) : customFields;
           if (parsed && parsed.organization !== undefined) org = parsed.organization;
-        } catch (_) {}
+        } catch (_) { }
       }
       if (org !== undefined && (typeof org !== 'string' || org.trim().length === 0)) {
         return res.status(400).json({ success: false, message: 'Current school or college name is required.' });
@@ -4918,7 +4877,7 @@ app.post(['/api/leads', '/api/consulting/enquiries', '/api/career-guidance/enqui
         if (!resolvedStreamName && parsedCustom.streamName) resolvedStreamName = String(parsedCustom.streamName).trim();
         if (!resolvedDepartment && parsedCustom.department) resolvedDepartment = String(parsedCustom.department).trim();
         if (!resolvedDepartment && parsedCustom.streamName) resolvedDepartment = String(parsedCustom.streamName).trim();
-      } catch (_) {}
+      } catch (_) { }
     }
 
     if (!resolvedCourseName && assistanceType && assistanceType !== 'Destination & Profile Assessment' && assistanceType !== 'Stream Planning & Course Advisory') {
@@ -6356,7 +6315,7 @@ const ATS_DOMAINS = [
 function analyzeResumeDeterministic(resumeText = '', fileName = '', targetRole = '', targetIndustry = '') {
   const combined = (fileName + ' ' + resumeText + ' ' + targetRole + ' ' + targetIndustry).toLowerCase();
   const cleanInput = (fileName + ' ' + resumeText).trim();
-  
+
   // Deterministic DJB2 hash of the input content (never random)
   let hash = 5381;
   const s = cleanInput.toLowerCase();
@@ -6411,10 +6370,10 @@ function analyzeResumeDeterministic(resumeText = '', fileName = '', targetRole =
   const fineTune = seed % 3; // 0, 1, or 2
   const finalScore = Math.min(95, Math.max(82, score + fineTune));
 
-  const grade = finalScore >= 90 
-    ? 'A+ (Executive Tier)' 
-    : finalScore >= 80 
-      ? 'A (Strong Professional)' 
+  const grade = finalScore >= 90
+    ? 'A+ (Executive Tier)'
+    : finalScore >= 80
+      ? 'A (Strong Professional)'
       : 'B+ (Qualified Candidate)';
 
   const displayName = fileName ? fileName : 'Uploaded CV';
@@ -6447,14 +6406,14 @@ function analyzeResumeDeterministic(resumeText = '', fileName = '', targetRole =
 const handleResumeAnalyzeRequest = (req, res) => {
   const { resumeText, fileName, targetRole, industry } = req.body || {};
   const extractedFileName = fileName || (typeof resumeText === 'string' && resumeText.match(/File Name:\s*([^\n\r]+)/i)?.[1]) || '';
-  
+
   const lowerName = (extractedFileName || '').toLowerCase();
   const lowerText = (resumeText || '').toLowerCase();
 
   // Strict check for dummy/non-resume files (Bug #2)
   const dummyKeywords = ['dummy', 'test', 'sample', 'blank', 'temp', 'untitled', 'fake', 'invoice', 'receipt', 'bank statement', 'bill', 'passport', 'license', 'bug', 'report', 'spec'];
   const isExplicitDummy = dummyKeywords.some(k => lowerName.includes(k));
-  
+
   const careerIndicators = ['experience', 'work history', 'employment', 'career', 'responsibilities', 'project', 'director', 'manager', 'engineer', 'developer', 'specialist', 'consultant', 'lead', 'officer', 'coordinator'];
   const educationIndicators = ['education', 'degree', 'bachelor', 'master', 'diploma', 'university', 'college', 'school', 'phd', 'mba', 'b.tech', 'btech', 'bsc', 'msc'];
   const skillsIndicators = ['skills', 'technologies', 'competencies', 'proficiencies', 'tools', 'management', 'engineering', 'development', 'programming', 'supervision'];
@@ -6495,12 +6454,12 @@ app.post('/api/ai/chat', async (req, res) => {
     }
 
     const sanitizedMessage = message.trim().slice(0, 2000);
-    const sanitizedHistory = Array.isArray(conversationHistory) 
+    const sanitizedHistory = Array.isArray(conversationHistory)
       ? conversationHistory.slice(-10).map(m => ({
-          sender: m.sender === 'user' ? 'user' : 'bot',
-          text: String(m.text || '').slice(0, 1500),
-          detectedService: m.detectedService || null
-        }))
+        sender: m.sender === 'user' ? 'user' : 'bot',
+        text: String(m.text || '').slice(0, 1500),
+        detectedService: m.detectedService || null
+      }))
       : [];
 
     const result = await handleAIAdvisorQuery({
@@ -6984,7 +6943,7 @@ app.get('/api/employees/me/profile', async (req, res) => {
         'SELECT * FROM employees WHERE employeeId = ? OR id = ? OR LOWER(email) = LOWER(?)',
         [employeeId, employeeId, email]
       );
-    } catch (e) {}
+    } catch (e) { }
 
     const memProfile = inMemoryEmployeeProfiles.get(employeeId) || (email ? inMemoryEmployeeProfiles.get(email.toLowerCase()) : null);
 

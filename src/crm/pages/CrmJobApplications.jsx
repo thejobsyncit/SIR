@@ -171,36 +171,60 @@ export const CrmJobApplications = () => {
     }
   };
 
-  // Resume Download & Preview handlers
-  const handleDownloadAppResume = (app) => {
-    const targetCand = {
-      name: app.applicantName || 'Candidate',
-      email: app.applicantEmail || '',
-      phone: app.applicantPhone || '',
-      currentRole: app.jobTitle || 'Executive Candidate',
-      currentEmployer: app.company || 'Revival International Candidate',
-      nationality: app.candidateNationality || 'UAE',
-      location: app.location || 'Dubai, UAE',
-      resumeName: app.resumeName || `${(app.applicantName || 'Candidate').replace(/\s+/g, '_')}_Resume.pdf`,
-      resumeUrl: app.resumeUrl || null,
+  // Resume Download & Preview handlers with multi-source fallback
+  const resolveAppCandidate = (app) => {
+    const candMatch = candidates.find(c => 
+      (c.id && c.id === app.candidateId) || 
+      (c.email && c.email.toLowerCase() === (app.applicantEmail || '').toLowerCase())
+    );
+
+    let effectiveResumeUrl = app.resumeUrl;
+    let effectiveResumeName = app.resumeName;
+
+    if (!effectiveResumeUrl || effectiveResumeUrl.length < 200) {
+      if (candMatch?.resumeUrl && candMatch.resumeUrl.length > 200) {
+        effectiveResumeUrl = candMatch.resumeUrl;
+        effectiveResumeName = effectiveResumeName || candMatch.resumeName;
+      }
+    }
+
+    if ((!effectiveResumeUrl || effectiveResumeUrl.length < 200) && typeof window !== 'undefined' && window.localStorage) {
+      if (app.applicantEmail) {
+        const stored = localStorage.getItem(`sir_resume_${app.applicantEmail.toLowerCase().trim()}`);
+        if (stored && stored.length > 200) effectiveResumeUrl = stored;
+      }
+      if (!effectiveResumeUrl || effectiveResumeUrl.length < 200) {
+        const active = localStorage.getItem('sir_active_resume');
+        const activeName = localStorage.getItem('sir_active_resume_name');
+        if (active && active.length > 200) {
+          effectiveResumeUrl = active;
+          if (activeName && !effectiveResumeName) effectiveResumeName = activeName;
+        }
+      }
+    }
+
+    return {
+      id: app.candidateId || candMatch?.id || `RI-CAND-${app.id.slice(-4)}`,
+      name: app.applicantName || candMatch?.name || 'Candidate',
+      email: app.applicantEmail || candMatch?.email || '',
+      phone: app.applicantPhone || candMatch?.phone || '',
+      currentRole: app.jobTitle || candMatch?.currentRole || 'Executive Candidate',
+      currentEmployer: app.company || candMatch?.currentEmployer || 'Revival International Candidate',
+      nationality: app.candidateNationality || candMatch?.nationality || 'UAE',
+      location: app.location || candMatch?.location || 'Dubai, UAE',
+      resumeName: effectiveResumeName || `${(app.applicantName || 'Candidate').replace(/\s+/g, '_')}_Resume.pdf`,
+      resumeUrl: effectiveResumeUrl || null,
       skills: app.candidateSkills ? (typeof app.candidateSkills === 'string' ? JSON.parse(app.candidateSkills || '[]') : app.candidateSkills) : [app.jobTitle || 'Executive Candidate']
     };
+  };
+
+  const handleDownloadAppResume = (app) => {
+    const targetCand = resolveAppCandidate(app);
     downloadCandidateResumePdf(targetCand);
   };
 
   const handlePreviewAppResume = (app) => {
-    const targetCand = {
-      name: app.applicantName || 'Candidate',
-      email: app.applicantEmail || '',
-      phone: app.applicantPhone || '',
-      currentRole: app.jobTitle || 'Executive Candidate',
-      currentEmployer: app.company || 'Revival International Candidate',
-      nationality: app.candidateNationality || 'UAE',
-      location: app.location || 'Dubai, UAE',
-      resumeName: app.resumeName || `${(app.applicantName || 'Candidate').replace(/\s+/g, '_')}_Resume.pdf`,
-      resumeUrl: app.resumeUrl || null,
-      skills: app.candidateSkills ? (typeof app.candidateSkills === 'string' ? JSON.parse(app.candidateSkills || '[]') : app.candidateSkills) : [app.jobTitle || 'Executive Candidate']
-    };
+    const targetCand = resolveAppCandidate(app);
     openCandidateResumeInNewTab(targetCand);
   };
 
