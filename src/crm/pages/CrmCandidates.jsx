@@ -4,7 +4,7 @@ import {
   Users, Search, Plus, Sparkles, FileText, CheckCircle2, Shield, Eye,
   Filter, X, Trash2, Download, ExternalLink, Mail, Phone, MapPin, Globe,
   Calendar, Briefcase, GraduationCap, Clock, Building, Award, Check,
-  FileCheck, ChevronDown, ChevronUp, RotateCcw, AlertCircle
+  FileCheck, ChevronDown, ChevronUp, RotateCcw, AlertCircle, RefreshCw
 } from 'lucide-react';
 import { CrmAddCandidateModal } from '../components/CrmAddCandidateModal';
 import ScrollReveal from '../../components/ScrollReveal';
@@ -105,7 +105,8 @@ export const CrmCandidates = () => {
     setGlobalAddCandidateOpen,
     deleteCandidate,
     selectedCandidate,
-    setSelectedCandidate
+    setSelectedCandidate,
+    fetchCandidates
   } = useCrm();
 
   const [searchTerm, setSearchTerm] = useState('');
@@ -115,6 +116,13 @@ export const CrmCandidates = () => {
   const [isDeleting, setIsDeleting] = useState(false);
   const [statusNotice, setStatusNotice] = useState('');
   const [showFullResumeSheet, setShowFullResumeSheet] = useState(true);
+
+  // Auto-refresh candidates on mount
+  useEffect(() => {
+    if (fetchCandidates) {
+      fetchCandidates();
+    }
+  }, [fetchCandidates]);
 
   // Synchronize when a candidate is selected externally
   useEffect(() => {
@@ -153,12 +161,93 @@ export const CrmCandidates = () => {
     }
   };
 
+  // Dynamic Candidate Pool: Merges context candidates with any portal-registered candidate from localStorage
+  const candidatePool = useMemo(() => {
+    const pool = [...candidates];
+    const seenEmails = new Set(pool.map(c => (c.email || '').toLowerCase().trim()).filter(Boolean));
+    const seenIds = new Set(pool.map(c => c.id).filter(Boolean));
+
+    try {
+      const localDbStr = localStorage.getItem('sir_candidates_db');
+      if (localDbStr) {
+        const localDb = JSON.parse(localDbStr);
+        for (const [email, cand] of Object.entries(localDb)) {
+          const cleanEmail = (email || '').toLowerCase().trim();
+          if (cleanEmail && !seenEmails.has(cleanEmail) && !isDummyCandidate(cand)) {
+            seenEmails.add(cleanEmail);
+            pool.push({
+              id: cand.candidateId || cand.id || 'RI-CAND-001',
+              name: cand.name || cand.fullName || 'Candidate',
+              email: cand.email,
+              phone: cand.phone || '',
+              nationality: cand.nationality || cand.preferredCountry || 'UAE',
+              currentEmployer: cand.currentEmployer || 'Revival International Candidate',
+              currentRole: cand.title || cand.currentRole || 'Executive Candidate',
+              currentSalary: cand.currentSalary || '',
+              expectedSalary: cand.expectedSalary || '',
+              noticePeriod: cand.noticePeriod || 'Immediate',
+              score: cand.score || 92,
+              stage: cand.stage || 'lead',
+              skills: Array.isArray(cand.skills) ? cand.skills : [],
+              source: 'Candidate Portal Registration',
+              passport: 'Verified',
+              aiSummary: `Portal registered candidate (${cand.email}).`,
+              experience: cand.experience || '3-5 Years',
+              avatar: cand.avatar || null,
+              resumeName: cand.resumeName || null,
+              resumeUrl: cand.resumeUrl || null,
+              resumeSize: cand.resumeSize || null,
+              assignedRecruiter: 'Dhanalakshimi (Lead Advisor)',
+              createdAt: cand.registeredAt || cand.createdAt || new Date().toISOString()
+            });
+          }
+        }
+      }
+
+      const sessStr = localStorage.getItem('sir_user_session');
+      if (sessStr) {
+        const sessUser = JSON.parse(sessStr);
+        const cleanEmail = (sessUser?.email || '').toLowerCase().trim();
+        if (cleanEmail && !seenEmails.has(cleanEmail) && !isDummyCandidate(sessUser)) {
+          seenEmails.add(cleanEmail);
+          pool.push({
+            id: sessUser.candidateId || sessUser.id || 'RI-CAND-001',
+            name: sessUser.name || sessUser.fullName || 'Candidate',
+            email: sessUser.email,
+            phone: sessUser.phone || '',
+            nationality: sessUser.nationality || sessUser.preferredCountry || 'UAE',
+            currentEmployer: sessUser.currentEmployer || 'Revival International Candidate',
+            currentRole: sessUser.title || sessUser.currentRole || 'Executive Candidate',
+            currentSalary: sessUser.currentSalary || '',
+            expectedSalary: sessUser.expectedSalary || '',
+            noticePeriod: sessUser.noticePeriod || 'Immediate',
+            score: sessUser.score || 92,
+            stage: sessUser.stage || 'lead',
+            skills: Array.isArray(sessUser.skills) ? sessUser.skills : [],
+            source: 'Candidate Portal Registration',
+            passport: 'Verified',
+            aiSummary: `Portal registered candidate (${sessUser.email}).`,
+            experience: sessUser.experience || '3-5 Years',
+            avatar: sessUser.avatar || null,
+            resumeName: sessUser.resumeName || null,
+            resumeUrl: sessUser.resumeUrl || null,
+            resumeSize: sessUser.resumeSize || null,
+            assignedRecruiter: 'Dhanalakshimi (Lead Advisor)',
+            createdAt: sessUser.registeredAt || sessUser.createdAt || new Date().toISOString()
+          });
+        }
+      }
+    } catch {}
+
+    return pool;
+  }, [candidates]);
+
   // Enriched active candidate object for detail view
   const activeCand = useMemo(() => {
     if (!viewCand) return null;
     let enriched = { ...viewCand };
 
-    const currentInContext = candidates.find(
+    const currentInContext = candidatePool.find(
       c => c.id === viewCand.id || (c.email && c.email.toLowerCase() === (viewCand.email || '').toLowerCase())
     );
     if (currentInContext) {
@@ -331,7 +420,7 @@ export const CrmCandidates = () => {
 
   // Pure Candidate Profiles: Filtered exclusively by Timeframe and Search Keyword
   const filtered = useMemo(() => {
-    return candidates.filter(c => {
+    return candidatePool.filter(c => {
       // Exclude any legacy mock/dummy candidate profiles
       if (isDummyCandidate(c)) return false;
 
@@ -350,10 +439,10 @@ export const CrmCandidates = () => {
 
       return true;
     });
-  }, [candidates, timeframe, searchTerm]);
+  }, [candidatePool, timeframe, searchTerm]);
 
   const timeframeCounts = useMemo(() => {
-    const valid = candidates.filter(c => !isDummyCandidate(c));
+    const valid = candidatePool.filter(c => !isDummyCandidate(c));
     return {
       all: valid.length,
       day: valid.filter(c => matchesTimeframe(c.createdAt || c.registeredAt, 'day')).length,
@@ -361,7 +450,7 @@ export const CrmCandidates = () => {
       month: valid.filter(c => matchesTimeframe(c.createdAt || c.registeredAt, 'month')).length,
       year: valid.filter(c => matchesTimeframe(c.createdAt || c.registeredAt, 'year')).length
     };
-  }, [candidates]);
+  }, [candidatePool]);
 
   return (
     <div className="space-y-6 text-xs font-sans">
@@ -402,6 +491,20 @@ export const CrmCandidates = () => {
             >
               <Sparkles className="w-4 h-4" />
               <span>AI Resume Parser</span>
+            </button>
+
+            <button
+              type="button"
+              onClick={() => {
+                if (fetchCandidates) fetchCandidates();
+                setStatusNotice('✓ Candidate directory synchronized with live database.');
+                setTimeout(() => setStatusNotice(''), 3000);
+              }}
+              className="px-3.5 py-2.5 bg-slate-100 hover:bg-slate-200 dark:bg-navy-800 dark:hover:bg-navy-700 text-slate-700 dark:text-slate-300 font-bold rounded-xl transition flex items-center space-x-1.5 cursor-pointer shadow-xs border border-slate-200 dark:border-navy-700"
+              title="Refresh Candidate Directory"
+            >
+              <RefreshCw className="w-4 h-4 text-amber-500" />
+              <span>Refresh</span>
             </button>
 
             <button

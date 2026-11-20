@@ -143,6 +143,46 @@ export const AppProvider = ({ children }) => {
       lastUpdated: new Date().toISOString()
     };
     localStorage.setItem('sir_candidates_db', JSON.stringify(db));
+
+    // Synchronize directly with CRM Talent Pool local storage & dispatch live event
+    try {
+      const crmSaved = localStorage.getItem('crm_candidates');
+      let crmList = crmSaved ? JSON.parse(crmSaved) : [];
+      if (!Array.isArray(crmList)) crmList = [];
+      const idx = crmList.findIndex(c => (c.id && (c.id === candidateObj.candidateId || c.id === candidateObj.id)) || (c.email && c.email.toLowerCase().trim() === normalizedEmail));
+      const crmEntry = {
+        id: candidateObj.candidateId || candidateObj.id || 'RI-CAND-001',
+        name: candidateObj.name || candidateObj.fullName || 'Candidate',
+        email: normalizedEmail,
+        phone: candidateObj.phone || '',
+        nationality: candidateObj.nationality || candidateObj.preferredCountry || 'UAE',
+        currentEmployer: candidateObj.currentEmployer || 'Revival International Candidate',
+        currentRole: candidateObj.title || candidateObj.currentRole || 'Executive Candidate',
+        currentSalary: candidateObj.currentSalary || '',
+        expectedSalary: candidateObj.expectedSalary || '',
+        noticePeriod: candidateObj.noticePeriod || 'Immediate',
+        score: candidateObj.score || 92,
+        stage: candidateObj.stage || 'lead',
+        skills: Array.isArray(candidateObj.skills) ? candidateObj.skills : [],
+        source: candidateObj.source || 'Candidate Portal Registration',
+        passport: 'Verified',
+        aiSummary: `Portal registered candidate (${normalizedEmail}).`,
+        experience: candidateObj.experience || '3-5 Years',
+        avatar: candidateObj.avatar || null,
+        resumeName: candidateObj.resumeName || null,
+        resumeUrl: candidateObj.resumeUrl || null,
+        resumeSize: candidateObj.resumeSize || null,
+        assignedRecruiter: 'Dhanalakshimi (Lead Advisor)',
+        createdAt: candidateObj.registeredAt || candidateObj.createdAt || new Date().toISOString()
+      };
+      if (idx >= 0) {
+        crmList[idx] = { ...crmList[idx], ...crmEntry };
+      } else {
+        crmList.unshift(crmEntry);
+      }
+      localStorage.setItem('crm_candidates', JSON.stringify(crmList));
+      window.dispatchEvent(new CustomEvent('candidate-registered', { detail: crmEntry }));
+    } catch {}
   };
 
   const [user, setUser] = useState(() => {

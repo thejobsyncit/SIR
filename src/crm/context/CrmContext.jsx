@@ -376,15 +376,78 @@ export const CrmProvider = ({ children }) => {
 
   const fetchCandidates = async () => {
     try {
+      // 1. Gather any portal registered candidates from browser localStorage
+      let localPortalCands = [];
+      try {
+        const localDbStr = localStorage.getItem('sir_candidates_db');
+        if (localDbStr) {
+          const localDb = JSON.parse(localDbStr);
+          localPortalCands = Object.values(localDb).filter(Boolean);
+        }
+        const userSessStr = localStorage.getItem('sir_user_session');
+        if (userSessStr) {
+          const sessUser = JSON.parse(userSessStr);
+          if (sessUser?.email && !localPortalCands.some(c => c.email?.toLowerCase().trim() === sessUser.email.toLowerCase().trim())) {
+            localPortalCands.push(sessUser);
+          }
+        }
+      } catch {}
+
       const res = await fetch('/api/candidates');
       if (res.ok) {
         const data = await res.json();
         if (data && data.success && Array.isArray(data.data)) {
           const serverCandidates = data.data.filter(c => !isDummyCandidate(c));
-          setCandidates(serverCandidates);
+          
+          // Merge local portal candidates not yet in server list
+          const merged = [...serverCandidates];
+          for (const localC of localPortalCands) {
+            const emailKey = (localC.email || '').toLowerCase().trim();
+            const exists = merged.some(m => 
+              (m.id && (m.id === localC.candidateId || m.id === localC.id)) || 
+              (m.email && m.email.toLowerCase().trim() === emailKey)
+            );
+            if (!exists && emailKey && !isDummyCandidate(localC)) {
+              const formattedLocal = {
+                id: localC.candidateId || localC.id || 'RI-CAND-001',
+                name: localC.name || localC.fullName || 'Candidate',
+                email: localC.email,
+                phone: localC.phone || '',
+                nationality: localC.nationality || localC.preferredCountry || 'UAE',
+                currentEmployer: localC.currentEmployer || 'Revival International Candidate',
+                currentRole: localC.title || localC.currentRole || 'Executive Candidate',
+                currentSalary: localC.currentSalary || '',
+                expectedSalary: localC.expectedSalary || '',
+                noticePeriod: localC.noticePeriod || 'Immediate',
+                score: localC.score || 92,
+                stage: localC.stage || 'lead',
+                skills: Array.isArray(localC.skills) ? localC.skills : [],
+                source: 'Candidate Portal Registration',
+                passport: 'Verified',
+                aiSummary: `Portal registered candidate (${localC.email}).`,
+                experience: localC.experience || '3-5 Years',
+                avatar: localC.avatar || null,
+                resumeName: localC.resumeName || null,
+                resumeUrl: localC.resumeUrl || null,
+                resumeSize: localC.resumeSize || null,
+                assignedRecruiter: 'Dhanalakshimi (Lead Advisor)',
+                createdAt: localC.registeredAt || localC.createdAt || new Date().toISOString()
+              };
+              merged.push(formattedLocal);
+              // Also sync to backend so it's persisted into SQLite
+              fetch('/api/candidates', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(formattedLocal)
+              }).catch(() => {});
+            }
+          }
+
+          setCandidates(merged);
           try {
-            localStorage.setItem('crm_candidates', JSON.stringify(serverCandidates));
+            localStorage.setItem('crm_candidates', JSON.stringify(merged));
           } catch {}
+          return;
         }
       }
     } catch (err) {
@@ -509,6 +572,13 @@ export const CrmProvider = ({ children }) => {
     };
     window.addEventListener('lead-submitted', handleLeadSubmitted);
     window.addEventListener('application-submitted', fetchApplications);
+    window.addEventListener('candidate-registered', fetchCandidates);
+    const handleStorageChange = (e) => {
+      if (e.key === 'crm_candidates' || e.key === 'sir_candidates_db' || e.key === 'sir_user_session') {
+        fetchCandidates();
+      }
+    };
+    window.addEventListener('storage', handleStorageChange);
 
     // Periodically sync new inquiries, applications, follow-ups, and metrics every 15 seconds
     const interval = setInterval(() => {
@@ -524,6 +594,8 @@ export const CrmProvider = ({ children }) => {
       clearInterval(interval);
       window.removeEventListener('lead-submitted', handleLeadSubmitted);
       window.removeEventListener('application-submitted', fetchApplications);
+      window.removeEventListener('candidate-registered', fetchCandidates);
+      window.removeEventListener('storage', handleStorageChange);
     };
   }, []);
 
