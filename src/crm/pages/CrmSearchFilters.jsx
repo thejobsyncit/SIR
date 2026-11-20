@@ -281,11 +281,17 @@ export const CrmSearchFilters = () => {
             >
               <div className="flex justify-between items-start">
                 <div className="flex items-center space-x-3">
-                  <img
-                    src={cand.avatar || 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=150&auto=format&fit=crop&q=80'}
-                    alt={cand.name}
-                    className="w-11 h-11 rounded-2xl object-cover border border-gold-500/40"
-                  />
+                  {cand.avatar && !cand.avatar.includes('unsplash.com') ? (
+                    <img
+                      src={cand.avatar}
+                      alt={cand.name}
+                      className="w-11 h-11 rounded-2xl object-cover border border-gold-500/40"
+                    />
+                  ) : (
+                    <div className="w-11 h-11 rounded-2xl bg-gradient-to-br from-[#0c1322] to-[#1e293b] text-gold-400 font-extrabold flex items-center justify-center border border-gold-500/50 shadow-sm shrink-0 text-xs">
+                      {(cand.name || 'C').split(' ').filter(Boolean).map(p => p[0]).slice(0, 2).join('').toUpperCase() || 'RI'}
+                    </div>
+                  )}
                   <div>
                     <h4 className="font-bold text-slate-900 dark:text-white text-xs">{cand.name}</h4>
                     <p className="text-[11px] text-slate-500 dark:text-slate-400">{cand.currentRole || 'Executive Candidate'}</p>

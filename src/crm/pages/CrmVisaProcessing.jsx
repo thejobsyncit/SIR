@@ -3,44 +3,7 @@ import { ShieldCheck, Clock, CheckCircle2, FileText, AlertTriangle, Plane, X } f
 import ScrollReveal from '../../components/ScrollReveal';
 
 export const CrmVisaProcessing = () => {
-  const [visaMilestones, setVisaMilestones] = useState([
-    {
-      id: 'VISA-801',
-      candidate: 'Alexander Wright',
-      country: 'UAE',
-      type: 'Work Permit & Residence Visa',
-      stage: 'MOHRE Approval Granted',
-      medical: 'Passed DHA Clinic',
-      pcc: 'Verified UK ACRO Clearance',
-      embassy: 'Attested in London',
-      visaSubmitted: '2026-08-01',
-      visaApproved: '2026-08-03',
-      ticketBooking: 'Emirates EK-008 Booked',
-      departure: '2026-08-18',
-      arrival: 'Dubai Airport (DXB)',
-      workPermit: 'MOHRE Issued',
-      residencePermit: 'EID In Processing',
-      expiryAlert: 'Valid (2 Years)'
-    },
-    {
-      id: 'VISA-802',
-      candidate: 'Elena Rostova',
-      country: 'Singapore',
-      type: 'Employment Pass (EP)',
-      stage: 'IPA Approved by MOM',
-      medical: 'Completed',
-      pcc: 'Verified',
-      embassy: 'N/A (Online Portal)',
-      visaSubmitted: '2026-07-25',
-      visaApproved: '2026-08-02',
-      ticketBooking: 'SQ-421 Booked',
-      departure: '2026-08-21',
-      arrival: 'Changi Airport (SIN)',
-      workPermit: 'MOM IPA Active',
-      residencePermit: 'EP Pass Digital Issued',
-      expiryAlert: 'Expiring in 24 Months'
-    }
-  ]);
+  const [visaMilestones, setVisaMilestones] = useState([]);
 
   const [selectedVisa, setSelectedVisa] = useState(null);
 

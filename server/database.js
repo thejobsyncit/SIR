@@ -29,10 +29,28 @@ export const getDbPath = () => {
 
   if (isServerlessEnv()) {
     const tmpDbPath = path.join(os.tmpdir(), 'sir_recruitment.db');
-    const bundledDbPath = path.join(__dirname, 'sir_recruitment.db');
+    const possibleBundledPaths = [
+      path.join(__dirname, 'sir_recruitment.db'),
+      path.join(process.cwd(), 'server', 'sir_recruitment.db'),
+      path.resolve('server/sir_recruitment.db'),
+      path.join(__dirname, '..', 'server', 'sir_recruitment.db')
+    ];
+    const bundledDbPath = possibleBundledPaths.find(p => {
+      try { return fs.existsSync(p); } catch { return false; }
+    });
+
     try {
-      if (!fs.existsSync(tmpDbPath) && fs.existsSync(bundledDbPath)) {
-        fs.copyFileSync(bundledDbPath, tmpDbPath);
+      if (bundledDbPath) {
+        if (!fs.existsSync(tmpDbPath)) {
+          fs.copyFileSync(bundledDbPath, tmpDbPath);
+        } else {
+          // If bundled database has a newer size or timestamp, update tmp
+          const bundledStat = fs.statSync(bundledDbPath);
+          const tmpStat = fs.statSync(tmpDbPath);
+          if (bundledStat.size > tmpStat.size || (bundledStat.size !== tmpStat.size && bundledStat.mtimeMs > tmpStat.mtimeMs)) {
+            fs.copyFileSync(bundledDbPath, tmpDbPath);
+          }
+        }
       }
     } catch (copyErr) {
       console.warn('Serverless DB copy notice:', copyErr.message);
@@ -232,108 +250,9 @@ export const DEFAULT_CRM_EMPLOYEES = [
   }
 ];
 
-export const DEFAULT_CRM_CANDIDATES = [
-  {
-    id: 'REV-CAN-101',
-    name: 'Alexander Wright',
-    email: 'alexander.wright@gmail.com',
-    phone: '+971 50 123 4567',
-    nationality: 'British',
-    currentEmployer: 'Arabtec Construction LLC',
-    currentRole: 'Senior Civil Project Manager',
-    currentSalary: 'AED 38,000',
-    expectedSalary: 'AED 45,000',
-    score: 95,
-    stage: 'interview',
-    skills: '["FIDIC Red Book", "Primavera P6", "High-Rise Construction", "Budget Control"]',
-    source: 'Executive Headhunting',
-    passport: 'UK (Valid 2031)',
-    aiSummary: 'Tier-1 GCC civil project director with 12+ years of mega high-rise execution across Dubai and Riyadh.',
-    experience: '12 Years',
-    assignedRecruiter: 'Kishore Kumar (Recruiter)',
-    createdAt: '2026-11-01 10:00:00'
-  },
-  {
-    id: 'REV-CAN-102',
-    name: 'Dr. Sarah Al-Mansoori',
-    email: 'dr.sarah.mansoori@gmail.com',
-    phone: '+966 50 234 5678',
-    nationality: 'Saudi / UAE',
-    currentEmployer: 'King Faisal Specialist Hospital',
-    currentRole: 'Consultant Critical Care & ICU',
-    currentSalary: 'SAR 42,000',
-    expectedSalary: 'SAR 50,000',
-    score: 97,
-    stage: 'shortlisted',
-    skills: '["Critical Care Medicine", "ICU Ventilation", "JCI Accreditation", "Saudi Prometric"]',
-    source: 'Medical Referral',
-    passport: 'Saudi Arabia (Verified)',
-    aiSummary: 'Board-certified ICU Consultant with Saudi Prometric license and extensive critical care leadership.',
-    experience: '9 Years',
-    assignedRecruiter: 'Kishore Kumar (Recruiter)',
-    createdAt: '2026-11-02 11:30:00'
-  },
-  {
-    id: 'REV-CAN-103',
-    name: 'Mohamed Tariq',
-    email: 'candidate_test_1793170475278@domain.com',
-    phone: '+971 50 112 2334',
-    nationality: 'Indian',
-    currentEmployer: 'Emirates NBD Technology',
-    currentRole: 'Lead Cloud Solutions Architect',
-    currentSalary: 'AED 28,000',
-    expectedSalary: 'AED 35,000',
-    score: 92,
-    stage: 'lead',
-    skills: '["AWS Solutions Architect", "Kubernetes", "DevOps CI/CD", "Fintech Compliance"]',
-    source: 'Candidate Portal Application',
-    passport: 'India (Valid 2029)',
-    aiSummary: 'Enterprise cloud architect certified in AWS and Kubernetes with hands-on fintech banking deployments.',
-    experience: '8 Years',
-    assignedRecruiter: 'Dhanalakshimi (Lead Advisor)',
-    createdAt: '2026-10-28 06:54:35'
-  },
-  {
-    id: 'REV-CAN-104',
-    name: 'Elena Rostova',
-    email: 'elena.rostova@outlook.com',
-    phone: '+65 9123 4567',
-    nationality: 'Singaporean',
-    currentEmployer: 'DBS Bank Singapore',
-    currentRole: 'Senior Cybersecurity Operations Lead',
-    currentSalary: 'SGD 14,000',
-    expectedSalary: 'SGD 16,500',
-    score: 94,
-    stage: 'screening',
-    skills: '["Splunk SIEM", "Threat Hunting", "CISSP", "Incident Response"]',
-    source: 'Talent Acquisition',
-    passport: 'Singapore (Verified)',
-    aiSummary: 'CISSP certified security lead with deep experience in banking SOC leadership and threat mitigation.',
-    experience: '7 Years',
-    assignedRecruiter: 'Kishore Kumar (Recruiter)',
-    createdAt: '2026-11-03 14:15:00'
-  },
-  {
-    id: 'REV-CAN-105',
-    name: 'Rajesh Kumar',
-    email: 'rajesh.kumar@gmail.com',
-    phone: '+91 98401 55667',
-    nationality: 'Indian',
-    currentEmployer: 'Larsen & Toubro Heavy Civil',
-    currentRole: 'Senior Structural BIM Engineer',
-    currentSalary: 'INR 18,00,000',
-    expectedSalary: 'AED 22,000',
-    score: 89,
-    stage: 'applied',
-    skills: '["Revit Structural", "Navisworks Manage", "BIM 360", "Clash Detection"]',
-    source: 'GCC Career Fair',
-    passport: 'India (ECNR Verified)',
-    aiSummary: 'Experienced structural BIM professional with international metro and high-rise project credentials.',
-    experience: '6 Years',
-    assignedRecruiter: 'Sreeja Nair (Placement Coordinator)',
-    createdAt: '2026-11-04 09:20:00'
-  }
-];
+export const DEFAULT_CRM_CANDIDATES = [];
+export const DEFAULT_CRM_PROFILES = [];
+export const DEFAULT_CRM_APPLICATIONS = [];
 
 export const DEFAULT_CRM_LEADS = [
   {
@@ -535,6 +454,9 @@ const createFallbackDb = () => {
   const defaultStore = {
     jobs: [],
     candidates: [...DEFAULT_CRM_CANDIDATES],
+    candidate_profiles: [...DEFAULT_CRM_PROFILES],
+    candidate_applications: [...DEFAULT_CRM_APPLICATIONS],
+    candidate_documents: [],
     clients: [],
     interviews: [],
     leads: [...DEFAULT_CRM_LEADS],
@@ -664,7 +586,7 @@ const createFallbackDb = () => {
           (r.email && String(r.email).toLowerCase().trim() === String(keyVal).toLowerCase().trim()) ||
           (r.company && String(r.company).toLowerCase().trim() === String(keyVal).toLowerCase().trim())
         );
-        if (found) return found;
+        return found || null;
       }
 
       return store[table][0] || null;
@@ -2023,6 +1945,104 @@ const initDb = async (db) => {
     }
   } catch (attSeedErr) {
     console.warn('Attendance policy seed warning:', attSeedErr.message);
+  }
+
+  // Automated clean-up of legacy mock/dummy candidates (Ensures clean slate for real portal candidates)
+  try {
+    const dummyIds = [
+      'REV-CAN-101', 'REV-CAN-102', 'REV-CAN-103', 'REV-CAN-104', 'REV-CAN-105', 'REV-CAN-106',
+      'REV-CAN-4526', 'REV-CAN-4699', 'REV-CAN-5176', 'REV-CAN-9727', 'REV-CAN-3945',
+      'REV-CAN-8396', 'REV-CAN-3270', 'REV-CAN-6198', 'REV-CAN-2158', 'REV-CAN-8921',
+      'REV-CAN-6858', 'REV-CAN-4283', 'REV-CAN-5599', 'REV-CAN-7331', 'REV-CAN-7211',
+      'REV-CAN-8645', 'REV-CAN-5223', 'REV-CAN-3393', 'REV-CAN-9398', 'REV-CAN-3073',
+      'REV-CAN-5032', 'REV-CAN-1517', 'REV-CAN-4093', 'REV-CAN-7506', 'REV-CAN-5974',
+      'REV-CAN-4404', 'REV-CAN-4539', 'REV-CAN-9000', 'REV-CAN-4378', 'REV-CAN-4043',
+      'REV-CAN-5868', 'REV-CAN-8915', 'REV-CAN-3362', 'REV-CAN-53106',
+      'RI-CAND-001', 'RI-CAND-002', 'RI-CAND-003'
+    ];
+    const ph = dummyIds.map(() => '?').join(',');
+
+    await db.run(`
+      DELETE FROM candidates WHERE 
+        id IN (${ph})
+        OR LOWER(email) LIKE '%mailinator%'
+        OR LOWER(email) LIKE '%candidate_test_%'
+        OR LOWER(email) LIKE '%trashuser%'
+        OR LOWER(email) LIKE '%example.com%'
+        OR LOWER(email) LIKE '%domain.com%'
+        OR LOWER(email) LIKE '%candidate.fresh.%'
+        OR LOWER(email) = 'johnny@gmail.com'
+        OR LOWER(email) = 'real.candidate.test@gmail.com'
+        OR LOWER(name) IN ('real candidate', 'unknown candidate', 'fake user', 'fresh candidate', 'alexander wright', 'dr. sarah al-mansoori', 'mohamed tariq', 'elena rostova', 'david chen', 'fatima al-zahra', 'test candidate')
+    `, dummyIds).catch(() => {});
+
+    await db.run(`
+      DELETE FROM candidate_profiles WHERE 
+        id IN (${ph})
+        OR LOWER(email) LIKE '%mailinator%'
+        OR LOWER(email) LIKE '%candidate_test_%'
+        OR LOWER(email) LIKE '%trashuser%'
+        OR LOWER(email) LIKE '%example.com%'
+        OR LOWER(email) LIKE '%domain.com%'
+        OR LOWER(email) LIKE '%candidate.fresh.%'
+        OR LOWER(email) = 'johnny@gmail.com'
+        OR LOWER(email) = 'real.candidate.test@gmail.com'
+        OR LOWER(name) IN ('real candidate', 'unknown candidate', 'fake user', 'fresh candidate', 'alexander wright', 'dr. sarah al-mansoori', 'mohamed tariq', 'elena rostova', 'david chen', 'fatima al-zahra', 'test candidate')
+    `, dummyIds).catch(() => {});
+
+    await db.run(`
+      DELETE FROM candidate_applications WHERE 
+        candidateId IN (${ph})
+        OR LOWER(applicantEmail) LIKE '%mailinator%'
+        OR LOWER(applicantEmail) LIKE '%candidate_test_%'
+        OR LOWER(applicantEmail) LIKE '%trashuser%'
+        OR LOWER(applicantEmail) LIKE '%example.com%'
+        OR LOWER(applicantEmail) LIKE '%domain.com%'
+        OR LOWER(applicantEmail) LIKE '%candidate.fresh.%'
+        OR LOWER(applicantEmail) = 'johnny@gmail.com'
+        OR LOWER(applicantEmail) = 'real.candidate.test@gmail.com'
+        OR applicantEmail IS NULL
+        OR applicantName IS NULL
+        OR LOWER(applicantName) IN ('real candidate', 'unknown candidate', 'fake user', 'fresh candidate', 'alexander wright', 'dr. sarah al-mansoori', 'mohamed tariq', 'elena rostova', 'david chen', 'fatima al-zahra', 'test candidate')
+    `, dummyIds).catch(() => {});
+
+    await db.run(`
+      DELETE FROM candidate_documents WHERE 
+        candidateId IN (${ph})
+    `, dummyIds).catch(() => {});
+
+    await db.run(`
+      DELETE FROM candidate_notifications WHERE 
+        candidateId IN (${ph})
+    `, dummyIds).catch(() => {});
+
+    await db.run(`
+      DELETE FROM users WHERE 
+        id IN (${ph})
+        OR LOWER(email) LIKE '%mailinator%'
+        OR LOWER(email) LIKE '%candidate_test_%'
+        OR LOWER(email) LIKE '%trashuser%'
+        OR LOWER(email) LIKE '%example.com%'
+        OR LOWER(email) LIKE '%domain.com%'
+        OR LOWER(email) = 'johnny@gmail.com'
+        OR LOWER(email) = 'real.candidate.test@gmail.com'
+    `, dummyIds).catch(() => {});
+
+    await db.run(`
+      DELETE FROM users WHERE 
+        role = 'candidate' AND (
+          id IN (${ph})
+          OR email LIKE '%mailinator%'
+          OR email LIKE '%candidate_test_%'
+          OR email LIKE '%trashuser%'
+          OR email LIKE '%example.com%'
+          OR email LIKE '%domain.com%'
+          OR email = 'johnny@gmail.com'
+          OR name IN ('Real Candidate', 'Unknown Candidate', 'Fake User', 'Fresh Candidate')
+        )
+    `, dummyIds).catch(() => {});
+  } catch (cleanErr) {
+    console.warn('Candidate cleanup warning:', cleanErr.message);
   }
 
   console.log('Database initialized successfully with SQLite.');

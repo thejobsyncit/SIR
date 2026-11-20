@@ -9,7 +9,7 @@ import ScrollReveal from '../../components/ScrollReveal';
 export const CrmCandidateNotesTags = () => {
   const { candidates = [], user } = useCrm();
 
-  const [selectedCandId, setSelectedCandId] = useState(candidates[0]?.id || 'REV-CAN-101');
+  const [selectedCandId, setSelectedCandId] = useState(candidates[0]?.id || '');
   const [newTagInput, setNewTagInput] = useState('');
   const [newNoteInput, setNewNoteInput] = useState('');
   const [newTaskInput, setNewTaskInput] = useState('');
@@ -17,42 +17,16 @@ export const CrmCandidateNotesTags = () => {
   const [notification, setNotification] = useState('');
 
   // Local candidate tags state (pre-populated)
-  const [candidateTags, setCandidateTags] = useState({
-    'REV-CAN-101': ['#ImmediateJoiner', '#GCC-Ready', '#FIDIC-Certified', '#HighPriority'],
-    'REV-CAN-102': ['#PrometricPassed', '#ConsultantLevel', '#SaudiEligible'],
-    'REV-CAN-103': ['#DevOpsGuru', '#AWS-Certified', '#Singapore-EP-Ready'],
-    'REV-CAN-104': ['#5StarLuxury', '#VIPProtocols', '#Immediate']
-  });
+  const [candidateTags, setCandidateTags] = useState({});
 
   // Candidate ratings (1-5 stars)
-  const [candidateRatings, setCandidateRatings] = useState({
-    'REV-CAN-101': 5,
-    'REV-CAN-102': 5,
-    'REV-CAN-103': 4,
-    'REV-CAN-104': 4
-  });
+  const [candidateRatings, setCandidateRatings] = useState({});
 
   // Candidate internal notes history
-  const [candidateNotes, setCandidateNotes] = useState({
-    'REV-CAN-101': [
-      { id: 1, text: 'Spoke with Alexander regarding Dubai mega tower project. Notice period confirmed at 30 days. Ready for technical round.', author: 'Kishore Kumar', time: 'Today at 10:45 AM', rating: 5 },
-      { id: 2, text: 'Verified educational credentials and UAE civil defense approvals. Verified genuine.', author: 'Fatima Al-Zahra', time: 'Yesterday at 03:20 PM', rating: 5 }
-    ],
-    'REV-CAN-102': [
-      { id: 3, text: 'Cardiologist candidate cleared Saudi MOH verification. Available for Riyadh in-person final round.', author: 'Dr. Rajesh Kannan', time: '2 days ago', rating: 5 }
-    ]
-  });
+  const [candidateNotes, setCandidateNotes] = useState({});
 
   // Follow-up actions per candidate
-  const [candidateTasks, setCandidateTasks] = useState({
-    'REV-CAN-101': [
-      { id: 101, text: 'Call candidate to confirm final salary expectations (AED 25,000 target)', due: '2026-11-08', completed: false, priority: 'High' },
-      { id: 102, text: 'Collect updated attested engineering degree copy', due: '2026-11-10', completed: true, priority: 'Normal' }
-    ],
-    'REV-CAN-102': [
-      { id: 103, text: 'Schedule hospital director interview via Zoom', due: '2026-11-09', completed: false, priority: 'Urgent' }
-    ]
-  });
+  const [candidateTasks, setCandidateTasks] = useState({});
 
   const showToast = (msg) => {
     setNotification(msg);
@@ -60,10 +34,10 @@ export const CrmCandidateNotesTags = () => {
   };
 
   const selectedCandidate = candidates.find(c => c.id === selectedCandId) || candidates[0] || {
-    id: 'REV-CAN-101',
-    name: 'Alexander Wright',
-    currentRole: 'Senior Civil Project Manager',
-    email: 'alexander.wright@gmail.com'
+    id: 'RI-CAND',
+    name: 'Candidate Profile',
+    currentRole: 'Executive Candidate',
+    email: 'candidate@therevivalinternational.com'
   };
 
   const currentTags = candidateTags[selectedCandId] || ['#Screened', '#TalentPool'];

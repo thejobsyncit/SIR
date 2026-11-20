@@ -91,14 +91,14 @@ export const CrmTeamCollaboration = () => {
 
   // Reassignment Modal State
   const [reassignModalOpen, setReassignModalOpen] = useState(false);
-  const [selectedCandidateToAssign, setSelectedCandidateToAssign] = useState(candidates[0]?.id || 'REV-CAN-101');
+  const [selectedCandidateToAssign, setSelectedCandidateToAssign] = useState(candidates[0]?.id || '');
   const [selectedTargetRecruiter, setSelectedTargetRecruiter] = useState('Harish Durai');
   const [assignmentNote, setAssignmentNote] = useState('');
   const [notification, setNotification] = useState('');
 
   // New Shared Decision Form
   const [newDecisionText, setNewDecisionText] = useState('');
-  const [newDecisionCandidate, setNewDecisionCandidate] = useState(candidates[0]?.name || 'Alexander Wright');
+  const [newDecisionCandidate, setNewDecisionCandidate] = useState(candidates[0]?.name || 'Executive Candidate');
   const [newDecisionAction, setNewDecisionAction] = useState('Candidate Shortlisted');
 
   const showToast = (msg) => {

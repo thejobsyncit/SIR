@@ -573,6 +573,8 @@ export const AppProvider = ({ children }) => {
       isRegistered: true,
       resumeUploaded: !!data.resumeName || existing.resumeUploaded || false,
       resumeName: data.resumeName || existing.resumeName || '',
+      resumeUrl: data.resumeUrl || existing.resumeUrl || null,
+      resumeSize: data.resumeSize || existing.resumeSize || null,
       mohreAttested: existing.mohreAttested || false,
       consentGivenAt: data.consentGivenAt || new Date().toISOString(),
       consentVersion: data.consentVersion || 'v2.0-nov2026',
@@ -601,6 +603,9 @@ export const AppProvider = ({ children }) => {
           currentSalary: candidateUser.currentSalary,
           expectedSalary: candidateUser.expectedSalary,
           noticePeriod: candidateUser.noticePeriod,
+          resumeName: candidateUser.resumeName,
+          resumeUrl: candidateUser.resumeUrl,
+          resumeSize: candidateUser.resumeSize,
           stage: 'lead',
           score: 85,
           skills: candidateUser.skills,
@@ -608,6 +613,43 @@ export const AppProvider = ({ children }) => {
           aiSummary: `Candidate registered online for ${candidateUser.preferredCountry || 'international'} opportunities.`
         })
       });
+
+      // Synchronize to candidate_profiles table
+      fetch('/api/candidate/profile', {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          candidateId: candidateUser.candidateId,
+          email: candidateUser.email,
+          fullName: candidateUser.name,
+          phone: candidateUser.phone,
+          nationality: candidateUser.nationality,
+          preferredCountry: candidateUser.preferredCountry,
+          currentRole: candidateUser.title,
+          currentEmployer: 'Revival International Talent Pool',
+          currentSalary: candidateUser.currentSalary,
+          expectedSalary: candidateUser.expectedSalary,
+          noticePeriod: candidateUser.noticePeriod,
+          resumeName: candidateUser.resumeName,
+          resumeUrl: candidateUser.resumeUrl,
+          resumeSize: candidateUser.resumeSize,
+          skills: candidateUser.skills
+        })
+      }).catch(() => {});
+
+      if (candidateUser.resumeUrl) {
+        fetch('/api/candidate/documents', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            candidateId: candidateUser.candidateId,
+            email: candidateUser.email,
+            documentType: 'Resume / CV',
+            fileName: candidateUser.resumeName || 'Candidate_CV.pdf',
+            fileUrl: candidateUser.resumeUrl
+          })
+        }).catch(() => {});
+      }
 
       // Dispatch Welcome Email directly to candidate's Gmail inbox
       fetch('/api/auth/welcome-email', {

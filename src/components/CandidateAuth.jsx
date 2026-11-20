@@ -83,7 +83,9 @@ export const CandidateAuth = () => {
       phone: `${regData.countryCode} ${regData.phone}`,
       preferredCountry: regData.preferredCountry,
       industry: regData.industry,
-      resumeName: regData.resumeName || 'Uploaded_Executive_CV.pdf'
+      resumeName: regData.resumeName || null,
+      resumeUrl: regData.resumeUrl || null,
+      resumeSize: regData.resumeSize || null
     });
     if (!result || !result.success) {
       setError(result?.message || 'Registration failed. Please try again.');
@@ -101,7 +103,21 @@ export const CandidateAuth = () => {
 
   const handleFileChange = (e) => {
     if (e.target.files && e.target.files[0]) {
-      setRegData({ ...regData, resumeName: e.target.files[0].name });
+      const file = e.target.files[0];
+      const formattedSize = file.size > 1024 * 1024
+        ? `${(file.size / (1024 * 1024)).toFixed(1)} MB`
+        : `${Math.round(file.size / 1024)} KB`;
+
+      const reader = new FileReader();
+      reader.onload = (event) => {
+        setRegData(prev => ({
+          ...prev,
+          resumeName: file.name,
+          resumeSize: formattedSize,
+          resumeUrl: event.target.result
+        }));
+      };
+      reader.readAsDataURL(file);
     }
   };
 

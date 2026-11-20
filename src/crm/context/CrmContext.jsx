@@ -181,11 +181,43 @@ export const CrmProvider = ({ children }) => {
       return false;
     }
   });
+  const isDummyCandidate = (c) => {
+    if (!c) return true;
+    const name = (c.name || '').toLowerCase();
+    const id = (c.id || '').toUpperCase();
+    const email = (c.email || '').toLowerCase();
+    const dummyIds = [
+      'REV-CAN-101', 'REV-CAN-102', 'REV-CAN-103', 'REV-CAN-104', 'REV-CAN-105', 'REV-CAN-106',
+      'REV-CAN-4526', 'REV-CAN-4699', 'REV-CAN-5176', 'REV-CAN-9727', 'REV-CAN-3945',
+      'REV-CAN-8396', 'REV-CAN-3270', 'REV-CAN-6198', 'REV-CAN-2158', 'REV-CAN-8921',
+      'REV-CAN-6858', 'REV-CAN-4283', 'REV-CAN-5599', 'REV-CAN-7331', 'REV-CAN-7211',
+      'REV-CAN-8645', 'REV-CAN-5223', 'REV-CAN-3393', 'REV-CAN-9398', 'REV-CAN-3073',
+      'REV-CAN-5032', 'REV-CAN-1517', 'REV-CAN-4093', 'REV-CAN-7506', 'REV-CAN-5974',
+      'REV-CAN-4404', 'REV-CAN-4539', 'REV-CAN-9000', 'REV-CAN-4378', 'REV-CAN-4043',
+      'REV-CAN-5868', 'REV-CAN-8915', 'REV-CAN-3362', 'REV-CAN-53106',
+      'RI-CAND-001', 'RI-CAND-002', 'RI-CAND-003'
+    ];
+    if (dummyIds.some(d => id.startsWith(d))) return true;
+    if (name.includes('alexander wright') || name.includes('sarah al-mansoori') || name.includes('mohamed tariq') ||
+        name.includes('elena rostova') || name.includes('david chen') || name.includes('fatima al-zahra') ||
+        name.includes('real candidate') || name.includes('test candidate') || name.includes('fake user') ||
+        name.includes('fresh candidate') || name.includes('unknown candidate')) return true;
+    if (email.includes('example.com') || email.includes('mailinator') || email.includes('trashuser') || 
+        email.includes('domain.com') || email.includes('candidate_test') || email.includes('candidate.fresh') ||
+        email === 'johnny@gmail.com' || email === 'real.candidate.test@gmail.com') return true;
+    return false;
+  };
+
   const loadState = (key, defaultData) => {
     try {
       const saved = localStorage.getItem(key);
       if (!saved) return defaultData;
       const parsed = JSON.parse(saved);
+      if (key === 'crm_candidates' && Array.isArray(parsed)) {
+        const cleanList = parsed.filter(c => !isDummyCandidate(c));
+        try { localStorage.setItem('crm_candidates', JSON.stringify(cleanList)); } catch {}
+        return cleanList;
+      }
       if (Array.isArray(parsed) && parsed.length === 0 && Array.isArray(defaultData) && defaultData.length > 0) {
         return defaultData;
       }
@@ -349,16 +381,11 @@ export const CrmProvider = ({ children }) => {
       if (res.ok) {
         const data = await res.json();
         if (data && data.success && Array.isArray(data.data)) {
-          setCandidates(prev => {
-            const serverCandidates = data.data;
-            const serverIds = new Set(serverCandidates.map(c => c.id));
-            const localOnly = (prev || []).filter(c => !serverIds.has(c.id));
-            const merged = [...serverCandidates, ...localOnly];
-            try {
-              localStorage.setItem('crm_candidates', JSON.stringify(merged));
-            } catch {}
-            return merged;
-          });
+          const serverCandidates = data.data.filter(c => !isDummyCandidate(c));
+          setCandidates(serverCandidates);
+          try {
+            localStorage.setItem('crm_candidates', JSON.stringify(serverCandidates));
+          } catch {}
         }
       }
     } catch (err) {
@@ -638,9 +665,8 @@ export const CrmProvider = ({ children }) => {
   const [notificationsOpen, setNotificationsOpen] = useState(false);
   const [selectedCandidate, setSelectedCandidate] = useState(null);
   const [notifications, setNotifications] = useState([
-    { id: 1, text: 'Degree Attestation Verified for Candidate Alexander Wright', time: '10 mins ago', type: 'success' },
-    { id: 2, text: 'MOM Singapore Work Pass Approved for Elena Rostova', time: '1 hour ago', type: 'info' },
-    { id: 3, text: 'Invoice INV-2026-091 Payment Reminder Triggered', time: '3 hours ago', type: 'warning' }
+    { id: 1, text: 'Portal candidate application received for Offshore Drilling Engineer', time: '10 mins ago', type: 'success' },
+    { id: 2, text: 'Verified candidate credentials synced to recruiter dashboard', time: '1 hour ago', type: 'info' }
   ]);
 
   // Remove duplicate global dark mode sync as AppContext handles it
@@ -1624,11 +1650,35 @@ export const CrmProvider = ({ children }) => {
       });
       const data = res.ok ? await res.json().catch(() => ({})) : {};
       logAuditAction(`Permanently deleted candidate '${candidateId}' (${metadata.name || ''}).`);
-      setCandidates(prev => prev.filter(c => c.id !== candidateId));
+      try {
+        localStorage.removeItem(`sir_applications_${candidateId}`);
+        if (metadata.email) {
+          localStorage.removeItem(`sir_applications_${metadata.email.toLowerCase().trim()}`);
+        }
+      } catch {}
+      setCandidates(prev => {
+        const updated = (prev || []).filter(c => c.id !== candidateId && (metadata.email ? c.email?.toLowerCase() !== metadata.email.toLowerCase() : true));
+        try {
+          localStorage.setItem('crm_candidates', JSON.stringify(updated));
+        } catch {}
+        return updated;
+      });
       return data;
     } catch (err) {
       console.error('Error in deleteCandidate:', err);
-      setCandidates(prev => prev.filter(c => c.id !== candidateId));
+      try {
+        localStorage.removeItem(`sir_applications_${candidateId}`);
+        if (metadata.email) {
+          localStorage.removeItem(`sir_applications_${metadata.email.toLowerCase().trim()}`);
+        }
+      } catch {}
+      setCandidates(prev => {
+        const updated = (prev || []).filter(c => c.id !== candidateId && (metadata.email ? c.email?.toLowerCase() !== metadata.email.toLowerCase() : true));
+        try {
+          localStorage.setItem('crm_candidates', JSON.stringify(updated));
+        } catch {}
+        return updated;
+      });
       logAuditAction(`Permanently deleted candidate '${candidateId}' (${metadata.name || ''}).`);
       throw err;
     }

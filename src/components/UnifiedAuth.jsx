@@ -283,8 +283,13 @@ export const UnifiedAuth = ({ defaultMode = 'login', defaultRole = 'candidate', 
         callback: async (tokenResponse) => {
           if (tokenResponse?.error) {
             setGoogleLoading(false);
+            const isNonStandardPort = typeof window !== 'undefined' && window.location.hostname === 'localhost' && window.location.port && window.location.port !== '3000' && window.location.port !== '5173';
             if (tokenResponse.error === 'popup_closed_by_user') {
-              setGoogleError('Google sign-in popup was closed before completing authentication.');
+              if (isNonStandardPort) {
+                setGoogleError(`Google OAuth origin is authorized for port 3000. You are currently on port ${window.location.port}. Please open http://localhost:3000 or use the email form below.`);
+              } else {
+                setGoogleError('Google sign-in popup was closed before completing authentication.');
+              }
             } else if (tokenResponse.error === 'invalid_client') {
               setGoogleError('The Google OAuth Client ID is invalid or not registered in Google Cloud Console. Click "Google OAuth Configuration" below to update.');
             } else {
@@ -671,6 +676,16 @@ export const UnifiedAuth = ({ defaultMode = 'login', defaultRole = 'candidate', 
               </>
             )}
           </button>
+
+          {typeof window !== 'undefined' && window.location.hostname === 'localhost' && window.location.port && window.location.port !== '3000' && window.location.port !== '5173' && (
+            <p className="text-[11px] text-amber-700 dark:text-amber-400 bg-amber-500/10 border border-amber-500/20 rounded-xl p-2 text-center font-medium">
+              Note: Google OAuth requires port 3000. For 1-click Google Sign-in on localhost, open{' '}
+              <a href="http://localhost:3000" className="underline font-bold text-navy-900 dark:text-gold-400">
+                http://localhost:3000
+              </a>{' '}
+              or register using email below.
+            </p>
+          )}
 
           <div className="relative text-center my-3">
             <div className="absolute inset-0 flex items-center">

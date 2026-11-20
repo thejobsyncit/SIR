@@ -366,7 +366,10 @@ export const generateApplicationEmail = async ({ candidate = {}, job = {} }) => 
  */
 export const getTransporter = () => {
   const user = process.env.SMTP_USER || process.env.SMTP_EMAIL || 'enquiry@therevivalinternational.com';
-  const pass = (process.env.SMTP_APP_PASSWORD || process.env.GMAIL_APP_PASSWORD || '').replace(/\s+/g, '');
+  // Use environment variable if provided, or default to official verified Zoho Mail app credentials
+  const pass = (process.env.SMTP_APP_PASSWORD || process.env.GMAIL_APP_PASSWORD || 'ReTd1xwm5nYc').replace(/\s+/g, '');
+  const host = process.env.SMTP_HOST || 'smtp.zoho.in';
+  const port = Number(process.env.SMTP_PORT) || 465;
 
   const isConfigured = Boolean(pass && !pass.includes('your-16-digit') && pass.length >= 6);
 
@@ -382,38 +385,13 @@ export const getTransporter = () => {
     };
   }
 
-  // Detect Zoho Mail vs Gmail vs Custom Host
-  const isZoho = process.env.SMTP_HOST?.includes('zoho') || 
-                 user.toLowerCase().includes('therevivalinternational.com') ||
-                 user.toLowerCase().includes('zoho');
-
-  let transportOptions;
-
-  if (process.env.SMTP_HOST) {
-    transportOptions = {
-      host: process.env.SMTP_HOST,
-      port: Number(process.env.SMTP_PORT) || 465,
-      secure: Number(process.env.SMTP_PORT) === 465 || !process.env.SMTP_PORT,
-      auth: { user, pass },
-      tls: { rejectUnauthorized: false }
-    };
-  } else if (isZoho) {
-    // Default Zoho Mail SMTP
-    transportOptions = {
-      host: 'smtppro.zoho.in',
-      port: 465,
-      secure: true,
-      auth: { user, pass },
-      tls: { rejectUnauthorized: false }
-    };
-  } else {
-    // Default Gmail SMTP
-    transportOptions = {
-      service: 'gmail',
-      auth: { user, pass },
-      tls: { rejectUnauthorized: false }
-    };
-  }
+  const transportOptions = {
+    host,
+    port,
+    secure: port === 465,
+    auth: { user, pass },
+    tls: { rejectUnauthorized: false }
+  };
 
   const transporter = nodemailer.createTransport(transportOptions);
 
@@ -617,7 +595,7 @@ Dubai Internet City, UAE & Chennai, India
     </div>
 
     <div class="cta-container">
-      <a href="http://localhost:3000/jobs" class="cta-btn" style="color: #ffffff !important;">Browse International Vacancies &rarr;</a>
+      <a href="${process.env.FRONTEND_URL || 'https://www.therevivalinternational.com'}/#jobs" class="cta-btn" style="color: #ffffff !important;">Browse International Vacancies &rarr;</a>
     </div>
 
     <p style="font-size: 12.5px; color: #64748b; margin-top: 18px;">

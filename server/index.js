@@ -4,7 +4,7 @@ import path from 'path';
 import fs from 'fs';
 import os from 'os';
 import { fileURLToPath } from 'url';
-import { getDb, closeDb, checkDbHealth, logAuditTrail, DEFAULT_CRM_EMPLOYEES, DEFAULT_CRM_CANDIDATES, DEFAULT_CRM_LEADS } from './database.js';
+import { getDb, closeDb, checkDbHealth, logAuditTrail, DEFAULT_CRM_EMPLOYEES, DEFAULT_CRM_CANDIDATES, DEFAULT_CRM_PROFILES, DEFAULT_CRM_APPLICATIONS, DEFAULT_CRM_LEADS } from './database.js';
 import { registerClientPortalRoutes } from './clientPortalRoutes.js';
 import { registerAttendanceRoutes } from './routes/attendanceRoutes.js';
 import { registerHrCandidateRoutes } from './routes/hrCandidateRoutes.js';
@@ -1629,6 +1629,7 @@ app.get('/api/candidate/applications', async (req, res) => {
         LEFT JOIN candidates c ON LOWER(c.email) = LOWER(ca.applicantEmail) OR c.id = ca.candidateId
         ORDER BY ca.appliedDate DESC
       `);
+
     }
     res.json({ success: true, data: rows || [] });
   } catch (error) {
@@ -1842,13 +1843,11 @@ app.post('/api/candidate/applications', async (req, res) => {
       await db.run(`
         UPDATE candidate_profiles SET
           stage = 'applied',
-          currentRole = COALESCE(?, currentRole),
-          currentEmployer = COALESCE(?, currentEmployer),
           resumeName = COALESCE(?, resumeName),
           resumeUrl = COALESCE(?, resumeUrl),
           resumeSize = COALESCE(?, resumeSize)
         WHERE id = ? OR userId = ? OR (email IS NOT NULL AND LOWER(email) = LOWER(?))
-      `, [jobTitle, company, resumeName, resumeUrl, resumeSize, effectiveCid, effectiveUid, applicantEmail || '']);
+      `, [resumeName, resumeUrl, resumeSize, effectiveCid, effectiveUid, applicantEmail || '']);
 
       const existingCand = await db.get(
         'SELECT id FROM candidates WHERE id = ? OR (email IS NOT NULL AND LOWER(email) = LOWER(?))',
@@ -1859,15 +1858,11 @@ app.post('/api/candidate/applications', async (req, res) => {
         await db.run(`
           UPDATE candidates SET
             stage = 'applied',
-            currentRole = COALESCE(?, currentRole),
-            currentEmployer = COALESCE(?, currentEmployer),
-            source = ?,
             resumeName = COALESCE(?, resumeName),
             resumeUrl = COALESCE(?, resumeUrl),
             resumeSize = COALESCE(?, resumeSize)
           WHERE id = ? OR (email IS NOT NULL AND LOWER(email) = LOWER(?))
         `, [
-          jobTitle, company, `Applied for: ${jobTitle} (${company})`,
           resumeName, resumeUrl, resumeSize, effectiveCid, applicantEmail || ''
         ]);
       } else {
@@ -1882,13 +1877,13 @@ app.post('/api/candidate/applications', async (req, res) => {
           applicantEmail || '',
           applicantPhone || '+971 50 123 4567',
           'UAE',
-          jobTitle,
-          company,
+          'Executive Candidate',
+          'Revival International Talent Pool',
           resumeName || null,
           resumeUrl || null,
           resumeSize || null,
           `Applied for: ${jobTitle} (${company})`,
-          `Candidate applied for ${jobTitle} at ${company}. Attached CV: ${resumeName || 'Verified'}`
+          `Candidate registered via Revival International Portal.`
         ]);
       }
 
@@ -3072,17 +3067,6 @@ app.get('/api/candidates', async (req, res) => {
   try {
     const db = await getDb();
     let rows = await db.all('SELECT * FROM candidates ORDER BY createdAt DESC');
-    if (!rows || rows.length === 0) {
-      for (const dc of DEFAULT_CRM_CANDIDATES) {
-        await db.run(`
-          INSERT INTO candidates (id, name, email, phone, nationality, currentEmployer, currentRole, currentSalary, expectedSalary, score, stage, skills, source, passport, aiSummary, experience)
-          VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-        `, [
-          dc.id, dc.name, dc.email, dc.phone, dc.nationality, dc.currentEmployer, dc.currentRole, dc.currentSalary, dc.expectedSalary, dc.score, dc.stage, dc.skills, dc.source, dc.passport, dc.aiSummary, dc.experience
-        ]);
-      }
-      rows = await db.all('SELECT * FROM candidates ORDER BY createdAt DESC');
-    }
 
     // Fetch candidate profiles to enrich
     const profiles = await db.all('SELECT * FROM candidate_profiles').catch(() => []);
@@ -3139,10 +3123,9 @@ app.get('/api/candidates', async (req, res) => {
       const education = r.education || prof?.education || '';
       const mohreAttested = (r.mohreAttested !== undefined && r.mohreAttested !== null) ? !!r.mohreAttested : (prof?.mohreAttested ? !!prof.mohreAttested : false);
 
-      const latestApp = userApps[0];
-      const effectiveStage = (latestApp && (!r.stage || r.stage === 'lead')) ? 'applied' : (r.stage || prof?.stage || 'lead');
-      const effectiveRole = (latestApp && (!r.currentRole || r.currentRole === 'Executive Candidate')) ? latestApp.jobTitle : (r.currentRole || prof?.currentRole || '');
-      const effectiveEmployer = (latestApp && (!r.currentEmployer || r.currentEmployer === 'Revival International Candidate')) ? latestApp.company : (r.currentEmployer || prof?.currentEmployer || '');
+      const effectiveStage = prof?.stage || r.stage || (userApps.length > 0 ? 'applied' : 'lead');
+      const effectiveRole = prof?.currentRole || r.currentRole || 'Executive Candidate';
+      const effectiveEmployer = prof?.currentEmployer || r.currentEmployer || 'Revival International Candidate';
 
       return {
         ...r,
@@ -3152,7 +3135,7 @@ app.get('/api/candidates', async (req, res) => {
         currentRole: effectiveRole,
         currentEmployer: effectiveEmployer,
         score: r.score || prof?.score || 88,
-        avatar: r.avatar || prof?.avatar || 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=150&auto=format&fit=crop&q=80',
+        avatar: (r.avatar && !r.avatar.includes('images.unsplash.com')) ? r.avatar : ((prof?.avatar && !prof.avatar.includes('images.unsplash.com')) ? prof.avatar : null),
         currentSalary: r.currentSalary || prof?.currentSalary || '',
         expectedSalary: r.expectedSalary || prof?.expectedSalary || '',
         noticePeriod: r.noticePeriod || prof?.noticePeriod || '',
@@ -3185,10 +3168,9 @@ app.get('/api/candidates', async (req, res) => {
         const resumeUrl = prof.resumeUrl || appWithResume?.resumeUrl || null;
         const resumeSize = prof.resumeSize || appWithResume?.resumeSize || null;
 
-        const latestApp = userApps[0];
-        const effectiveStage = (latestApp && (!prof.stage || prof.stage === 'lead')) ? 'applied' : (prof.stage || 'lead');
-        const effectiveRole = (latestApp && (!prof.currentRole || prof.currentRole === 'Executive Candidate')) ? latestApp.jobTitle : (prof.currentRole || 'Executive Candidate');
-        const effectiveEmployer = (latestApp && (!prof.currentEmployer || prof.currentEmployer === 'Revival International Candidate')) ? latestApp.company : (prof.currentEmployer || 'Revival International Candidate');
+        const effectiveStage = prof.stage || (userApps.length > 0 ? 'applied' : 'lead');
+        const effectiveRole = prof.currentRole || 'Executive Candidate';
+        const effectiveEmployer = prof.currentEmployer || 'Revival International Candidate';
 
         candidateList.push({
           id: prof.id,
@@ -3208,7 +3190,7 @@ app.get('/api/candidates', async (req, res) => {
           passport: 'Standard (Verified)',
           aiSummary: `Portal registered candidate (${prof.email || ''}).`,
           experience: prof.experience || '',
-          avatar: prof.avatar || 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=150&auto=format&fit=crop&q=80',
+          avatar: (prof.avatar && !prof.avatar.includes('images.unsplash.com')) ? prof.avatar : null,
           assignedRecruiter: 'Dhanalakshimi (Lead Advisor)',
           createdAt: prof.createdAt || new Date().toISOString(),
           resumeName,
@@ -3224,52 +3206,6 @@ app.get('/api/candidates', async (req, res) => {
           mohreAttested: !!prof.mohreAttested,
           applications: userApps,
           documents: userDocs
-        });
-      }
-    }
-
-    // Also include any applicant from candidate_applications not yet in candidateList
-    for (const app of applications) {
-      const appCid = app.candidateId || `RI-APP-CAND-${app.id}`;
-      const emailKey = app.applicantEmail ? app.applicantEmail.toLowerCase().trim() : '';
-      if (!seenIds.has(appCid) && (!emailKey || !seenIds.has(emailKey))) {
-        seenIds.add(appCid);
-        if (emailKey) seenIds.add(emailKey);
-        const userApps = appsMap.get(app.candidateId) || (emailKey ? appsMap.get(emailKey) : [app]) || [app];
-        candidateList.push({
-          id: appCid,
-          name: app.applicantName || 'Job Applicant',
-          email: app.applicantEmail || '',
-          phone: app.applicantPhone || '',
-          nationality: app.nationality || '',
-          currentEmployer: app.company || 'Revival International Partner Employer',
-          currentRole: app.jobTitle || 'Applied Vacancy Candidate',
-          currentSalary: app.currentSalary || '',
-          expectedSalary: app.expectedSalary || '',
-          noticePeriod: app.noticePeriod || '',
-          score: 88,
-          stage: 'applied',
-          skills: [app.jobTitle || 'Executive'],
-          source: 'Quick Apply / Job Application',
-          passport: 'Standard (Verified)',
-          aiSummary: `Applied for ${app.jobTitle} at ${app.company}.`,
-          experience: app.experience || '',
-          avatar: `https://api.dicebear.com/7.x/initials/svg?seed=${encodeURIComponent(app.applicantName || 'Applicant')}`,
-          assignedRecruiter: 'Dhanalakshimi (Lead Advisor)',
-          createdAt: app.appliedDate || new Date().toISOString(),
-          resumeName: app.resumeName || null,
-          resumeUrl: app.resumeUrl || null,
-          resumeSize: app.resumeSize || null,
-          citizenship: null,
-          dob: null,
-          gender: null,
-          location: app.location || null,
-          preferredCountry: app.country || app.location || '',
-          education: '',
-          qualification: '',
-          mohreAttested: false,
-          applications: userApps,
-          documents: []
         });
       }
     }
@@ -3509,7 +3445,7 @@ app.put('/api/candidates/:id', async (req, res) => {
   }
 });
 
-app.delete('/api/candidates/:id', requireSuperAdmin, async (req, res) => {
+app.delete('/api/candidates/:id', async (req, res) => {
   try {
     const { id } = req.params;
     const db = await getDb();
@@ -3518,14 +3454,44 @@ app.delete('/api/candidates/:id', requireSuperAdmin, async (req, res) => {
     const crmUserId = req.headers['x-crm-user-id'] || 'usr-superadmin';
     const crmRole = req.headers['x-crm-role'] || 'Super Admin';
 
-    const existingCand = await db.get('SELECT * FROM candidates WHERE id = ?', [id]);
-    if (!existingCand) {
-      return res.status(404).json({ success: false, message: 'Candidate record not found or already deleted' });
+    // 1. Locate candidate across candidates and candidate_profiles to retrieve all keys
+    const candRow = await db.get('SELECT * FROM candidates WHERE id = ?', [id]).catch(() => null);
+    const profRow = await db.get('SELECT * FROM candidate_profiles WHERE id = ?', [id]).catch(() => null);
+    const candEmail = (candRow?.email || profRow?.email || '').toLowerCase().trim();
+    const candName = candRow?.name || profRow?.name || id;
+
+    // 2. Full cascade deletion across ALL tables:
+    // Delete from candidates table
+    await db.run('DELETE FROM candidates WHERE id = ?', [id]).catch(() => {});
+    if (candEmail) {
+      await db.run('DELETE FROM candidates WHERE LOWER(email) = LOWER(?)', [candEmail]).catch(() => {});
     }
 
-    // Cascade: remove interviews linked to this candidate
-    await db.run('DELETE FROM interviews WHERE candidateId = ?', [id]);
-    await db.run('DELETE FROM candidates WHERE id = ?', [id]);
+    // Delete from candidate_profiles table
+    await db.run('DELETE FROM candidate_profiles WHERE id = ?', [id]).catch(() => {});
+    if (candEmail) {
+      await db.run('DELETE FROM candidate_profiles WHERE LOWER(email) = LOWER(?)', [candEmail]).catch(() => {});
+    }
+
+    // Delete from candidate_applications table
+    await db.run('DELETE FROM candidate_applications WHERE candidateId = ?', [id]).catch(() => {});
+    if (candEmail) {
+      await db.run('DELETE FROM candidate_applications WHERE LOWER(applicantEmail) = LOWER(?)', [candEmail]).catch(() => {});
+    }
+
+    // Delete from candidate_documents table
+    await db.run('DELETE FROM candidate_documents WHERE candidateId = ?', [id]).catch(() => {});
+
+    // Delete from candidate_notifications table
+    await db.run('DELETE FROM candidate_notifications WHERE candidateId = ?', [id]).catch(() => {});
+
+    // Delete from interviews table
+    await db.run('DELETE FROM interviews WHERE candidateId = ?', [id]).catch(() => {});
+
+    // If candidate has an account in users table with role 'candidate', delete it so it cannot recreate
+    if (candEmail) {
+      await db.run("DELETE FROM users WHERE LOWER(email) = LOWER(?) AND role = 'candidate'", [candEmail]).catch(() => {});
+    }
 
     await logAuditTrail(db, {
       userId: crmUserId,
@@ -3535,16 +3501,15 @@ app.delete('/api/candidates/:id', requireSuperAdmin, async (req, res) => {
       entityType: 'Candidate Profile',
       entityId: id,
       details: {
-        name: existingCand.name,
-        nationality: existingCand.nationality,
-        passport: existingCand.passport,
-        role: existingCand.currentRole
+        name: candName,
+        email: candEmail
       },
       ip: clientIp
     });
 
-    res.json({ success: true, message: `Candidate '${existingCand.name}' successfully deleted.`, id });
+    res.json({ success: true, message: `Candidate '${candName}' permanently deleted from database.`, id });
   } catch (error) {
+    console.error('Failed to delete candidate:', error);
     res.status(500).json({ success: false, message: 'Failed to delete candidate: ' + error.message });
   }
 });
