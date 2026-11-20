@@ -1460,6 +1460,30 @@ app.get('/api/candidate/profile', async (req, res) => {
       return res.status(404).json({ success: false, message: 'Candidate profile not found' });
     }
 
+    // Resolve candidate resume from candidate_applications or candidate_documents if missing or stub
+    if (!profile.resumeUrl || profile.resumeUrl.length < 500) {
+      const candApps = await db.all(
+        'SELECT resumeUrl, resumeName, resumeSize FROM candidate_applications WHERE candidateId = ? OR (applicantEmail IS NOT NULL AND LOWER(applicantEmail) = LOWER(?))',
+        [profile.id || '', (profile.email || '').trim()]
+      );
+      const appWithCv = candApps.find(a => a.resumeUrl && a.resumeUrl.length > 500);
+      if (appWithCv) {
+        profile.resumeUrl = appWithCv.resumeUrl;
+        profile.resumeName = appWithCv.resumeName || profile.resumeName;
+        profile.resumeSize = appWithCv.resumeSize || profile.resumeSize;
+      } else {
+        const candDocs = await db.all(
+          'SELECT fileUrl, fileName FROM candidate_documents WHERE candidateId = ?',
+          [profile.id || '']
+        );
+        const docWithCv = candDocs.find(d => d.fileUrl && d.fileUrl.length > 500);
+        if (docWithCv) {
+          profile.resumeUrl = docWithCv.fileUrl;
+          profile.resumeName = docWithCv.fileName || profile.resumeName;
+        }
+      }
+    }
+
     res.json({
       success: true,
       data: {
@@ -3294,14 +3318,21 @@ app.get('/api/candidates', async (req, res) => {
       const userApps = appsMap.get(r.id) || (emailKey ? appsMap.get(emailKey) : []) || (prof?.userId ? appsMap.get(prof.userId) : []) || (prof?.id ? appsMap.get(prof.id) : []) || [];
       const userDocs = docsMap.get(r.id) || (emailKey ? docsMap.get(emailKey) : []) || (prof?.userId ? docsMap.get(prof.userId) : []) || (prof?.id ? docsMap.get(prof.id) : []) || [];
 
-      // Check if any application or document has an attached resume
+      // Check if any application, profile, or document has an attached real resume
       const docWithResume = userDocs.find(d => (d.documentType === 'Resume / CV' || (d.fileName && d.fileName.toLowerCase().includes('cv')) || (d.fileName && d.fileName.toLowerCase().endsWith('.pdf'))) && d.fileUrl && d.fileUrl.length > 200);
       const appWithResume = userApps.find(a => (a.resumeUrl && a.resumeUrl.length > 200) || a.resumeName);
       const resumeName = r.resumeName || prof?.resumeName || appWithResume?.resumeName || docWithResume?.fileName || null;
-      const resumeUrl = (r.resumeUrl && r.resumeUrl.length > 200 ? r.resumeUrl : null) || 
-                        (prof?.resumeUrl && prof.resumeUrl.length > 200 ? prof.resumeUrl : null) || 
-                        (appWithResume?.resumeUrl && appWithResume.resumeUrl.length > 200 ? appWithResume.resumeUrl : null) || 
-                        docWithResume?.fileUrl || r.resumeUrl || prof?.resumeUrl || null;
+
+      // Select longest, most complete resume data URL available across all candidate stores
+      const resumeCandidates = [
+        r.resumeUrl,
+        prof?.resumeUrl,
+        appWithResume?.resumeUrl,
+        docWithResume?.fileUrl
+      ].filter(u => u && typeof u === 'string' && u.length > 200);
+      resumeCandidates.sort((a, b) => b.length - a.length);
+
+      const resumeUrl = resumeCandidates[0] || r.resumeUrl || prof?.resumeUrl || null;
       const resumeSize = r.resumeSize || prof?.resumeSize || appWithResume?.resumeSize || null;
       const citizenship = r.citizenship || prof?.citizenship || null;
       const dob = r.dob || prof?.dob || null;
@@ -3354,9 +3385,15 @@ app.get('/api/candidates', async (req, res) => {
         const docWithResume = userDocs.find(d => (d.documentType === 'Resume / CV' || (d.fileName && d.fileName.toLowerCase().includes('cv')) || (d.fileName && d.fileName.toLowerCase().endsWith('.pdf'))) && d.fileUrl && d.fileUrl.length > 200);
         const appWithResume = userApps.find(a => (a.resumeUrl && a.resumeUrl.length > 200) || a.resumeName);
         const resumeName = prof.resumeName || appWithResume?.resumeName || docWithResume?.fileName || null;
-        const resumeUrl = (prof.resumeUrl && prof.resumeUrl.length > 200 ? prof.resumeUrl : null) || 
-                          (appWithResume?.resumeUrl && appWithResume.resumeUrl.length > 200 ? appWithResume.resumeUrl : null) || 
-                          docWithResume?.fileUrl || prof.resumeUrl || null;
+
+        const profResumeCandidates = [
+          prof.resumeUrl,
+          appWithResume?.resumeUrl,
+          docWithResume?.fileUrl
+        ].filter(u => u && typeof u === 'string' && u.length > 200);
+        profResumeCandidates.sort((a, b) => b.length - a.length);
+
+        const resumeUrl = profResumeCandidates[0] || prof.resumeUrl || null;
         const resumeSize = prof.resumeSize || appWithResume?.resumeSize || null;
 
         const effectiveStage = prof.stage || (userApps.length > 0 ? 'applied' : 'lead');

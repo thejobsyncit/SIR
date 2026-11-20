@@ -193,7 +193,12 @@ export const AppProvider = ({ children }) => {
         if (parsed && parsed.email && parsed.role === 'candidate') {
           const db = getCandidateDB();
           const storedProfile = db[parsed.email.toLowerCase().trim()];
-          return storedProfile ? { ...parsed, ...storedProfile } : parsed;
+          const resumeFromCache = (parsed.email && localStorage.getItem(`sir_resume_${parsed.email.toLowerCase().trim()}`)) || localStorage.getItem('sir_active_resume');
+          const resumeNameFromCache = localStorage.getItem('sir_active_resume_name');
+          const combined = storedProfile ? { ...parsed, ...storedProfile } : parsed;
+          if (!combined.resumeUrl && resumeFromCache) combined.resumeUrl = resumeFromCache;
+          if (!combined.resumeName && resumeNameFromCache) combined.resumeName = resumeNameFromCache;
+          return combined;
         }
         return parsed;
       }
@@ -513,6 +518,9 @@ export const AppProvider = ({ children }) => {
       profileCompletion: backendUser?.profileCompletion || existing.profileCompletion || 65,
       stage: backendUser?.stage || existing.stage || 'lead',
       score: backendUser?.score || existing.score || 88,
+      resumeName: backendUser?.resumeName || existing.resumeName || (typeof window !== 'undefined' ? localStorage.getItem('sir_active_resume_name') : null) || null,
+      resumeUrl: backendUser?.resumeUrl || existing.resumeUrl || (typeof window !== 'undefined' ? (localStorage.getItem(`sir_resume_${normalizedEmail}`) || localStorage.getItem('sir_active_resume')) : null) || null,
+      resumeSize: backendUser?.resumeSize || existing.resumeSize || null,
       registeredAt: existing.registeredAt || new Date().toISOString(),
       loginTime: new Date().toISOString(),
       token: backendToken || existing.token || `revival_jwt_gis_${Date.now()}`
@@ -550,7 +558,10 @@ export const AppProvider = ({ children }) => {
         score: 92,
         stage: 'lead',
         nationality: candidateUser.preferredCountry,
-        skills: candidateUser.skills
+        skills: candidateUser.skills,
+        resumeName: candidateUser.resumeName,
+        resumeUrl: candidateUser.resumeUrl,
+        resumeSize: candidateUser.resumeSize
       });
     }
 
@@ -831,9 +842,9 @@ export const AppProvider = ({ children }) => {
           experience: activeUser?.experience || '3-5 Years',
           education: activeUser?.qualification || activeUser?.education || 'Bachelor Degree / Professional Diploma',
           skills: activeUser?.skills || [],
-          resumeName: activeUser?.resumeName,
-          resumeUrl: activeUser?.resumeUrl,
-          resumeSize: activeUser?.resumeSize,
+          resumeName: profileData?.resumeName || activeUser?.resumeName,
+          resumeUrl: profileData?.resumeUrl || activeUser?.resumeUrl,
+          resumeSize: profileData?.resumeSize || activeUser?.resumeSize,
           dob: activeUser?.dob,
           gender: activeUser?.gender,
           location: activeUser?.location,

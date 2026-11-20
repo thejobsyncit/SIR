@@ -291,6 +291,29 @@ export const CandidatePortal = () => {
           }
         })
         .catch(() => {});
+
+      // Load backend candidate profile to sync custom uploaded CV and latest details
+      fetch(`/api/candidate/profile?candidateId=${encodeURIComponent(cid)}&email=${encodeURIComponent(user.email || '')}`)
+        .then(r => r.json())
+        .then(p => {
+          if (p.success && p.data) {
+            const prof = p.data;
+            if (prof.resumeUrl && prof.resumeUrl.length > 100) {
+              setProfileForm(prev => ({
+                ...prev,
+                resumeName: prof.resumeName || prev.resumeName,
+                resumeUrl: prof.resumeUrl,
+                resumeSize: prof.resumeSize || prev.resumeSize
+              }));
+              try {
+                localStorage.setItem('sir_active_resume', prof.resumeUrl);
+                if (prof.resumeName) localStorage.setItem('sir_active_resume_name', prof.resumeName);
+                if (user.email) localStorage.setItem(`sir_resume_${user.email.toLowerCase().trim()}`, prof.resumeUrl);
+              } catch {}
+            }
+          }
+        })
+        .catch(() => {});
     }
   }, [user?.candidateId, user?.email]);
 
@@ -624,17 +647,31 @@ export const CandidatePortal = () => {
   };
 
   // Preview the candidate's active uploaded resume
-  const handlePreviewActiveResume = () => {
-    const activeUrl = profileForm.resumeUrl ||
+  const handlePreviewActiveResume = async () => {
+    let activeUrl = profileForm.resumeUrl ||
       user?.resumeUrl ||
       (typeof window !== 'undefined' ? localStorage.getItem('sir_active_resume') : null) ||
       (user?.email && typeof window !== 'undefined' ? localStorage.getItem(`sir_resume_${user.email.toLowerCase().trim()}`) : null) ||
       (documents.find(d => d.documentType === 'Resume / CV' || (d.fileName && d.fileName.toLowerCase().endsWith('.pdf')))?.fileUrl);
 
-    const activeName = profileForm.resumeName || 
+    let activeName = profileForm.resumeName || 
       user?.resumeName || 
       (typeof window !== 'undefined' ? localStorage.getItem('sir_active_resume_name') : null) || 
       'Candidate_Resume.pdf';
+
+    // If still missing, attempt fetching from backend profile directly
+    if (!activeUrl || activeUrl.length < 100) {
+      try {
+        const cid = user?.candidateId || user?.email || 'REV-CAN';
+        const res = await fetch(`/api/candidate/profile?candidateId=${encodeURIComponent(cid)}&email=${encodeURIComponent(user?.email || '')}`);
+        const data = await res.json();
+        if (data?.success && data?.data?.resumeUrl) {
+          activeUrl = data.data.resumeUrl;
+          activeName = data.data.resumeName || activeName;
+          setProfileForm(prev => ({ ...prev, resumeUrl: activeUrl, resumeName: activeName }));
+        }
+      } catch {}
+    }
 
     openCandidateResumeInNewTab({
       ...profileForm,
@@ -648,17 +685,30 @@ export const CandidatePortal = () => {
   };
 
   // Download the candidate's active uploaded resume
-  const handleDownloadActiveResume = () => {
-    const activeUrl = profileForm.resumeUrl ||
+  const handleDownloadActiveResume = async () => {
+    let activeUrl = profileForm.resumeUrl ||
       user?.resumeUrl ||
       (typeof window !== 'undefined' ? localStorage.getItem('sir_active_resume') : null) ||
       (user?.email && typeof window !== 'undefined' ? localStorage.getItem(`sir_resume_${user.email.toLowerCase().trim()}`) : null) ||
       (documents.find(d => d.documentType === 'Resume / CV' || (d.fileName && d.fileName.toLowerCase().endsWith('.pdf')))?.fileUrl);
 
-    const activeName = profileForm.resumeName || 
+    let activeName = profileForm.resumeName || 
       user?.resumeName || 
       (typeof window !== 'undefined' ? localStorage.getItem('sir_active_resume_name') : null) || 
       `${(profileForm.name || user?.name || 'Candidate').replace(/\s+/g, '_')}_CV.pdf`;
+
+    if (!activeUrl || activeUrl.length < 100) {
+      try {
+        const cid = user?.candidateId || user?.email || 'REV-CAN';
+        const res = await fetch(`/api/candidate/profile?candidateId=${encodeURIComponent(cid)}&email=${encodeURIComponent(user?.email || '')}`);
+        const data = await res.json();
+        if (data?.success && data?.data?.resumeUrl) {
+          activeUrl = data.data.resumeUrl;
+          activeName = data.data.resumeName || activeName;
+          setProfileForm(prev => ({ ...prev, resumeUrl: activeUrl, resumeName: activeName }));
+        }
+      } catch {}
+    }
 
     downloadCandidateResumePdf({
       ...profileForm,

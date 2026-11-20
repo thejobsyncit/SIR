@@ -180,26 +180,56 @@ export const resolveResumeUrl = (cand) => {
   let name = cand.resumeName || cand.fileName || `${(cand.name || 'Candidate').replace(/\s+/g, '_')}_CV.pdf`;
 
   // Look in candidate applications if present
-  if ((!url || url.length < 200) && Array.isArray(cand.applications)) {
-    const appWithResume = cand.applications.find(a => (a.resumeUrl && a.resumeUrl.length > 200) || a.resumeName);
+  if ((!url || url.length < 500) && Array.isArray(cand.applications)) {
+    const appWithResume = cand.applications.find(a => (a.resumeUrl && a.resumeUrl.length > 500));
     if (appWithResume) {
-      if (!url || url.length < 200) url = appWithResume.resumeUrl;
-      name = name || appWithResume.resumeName;
+      url = appWithResume.resumeUrl;
+      name = appWithResume.resumeName || name;
     }
   }
 
   // Look in candidate documents if present
-  if ((!url || url.length < 200) && Array.isArray(cand.documents)) {
-    const docWithResume = cand.documents.find(d => (d.fileUrl && d.fileUrl.length > 200) || (d.fileName && d.fileName.toLowerCase().includes('cv')));
+  if ((!url || url.length < 500) && Array.isArray(cand.documents)) {
+    const docWithResume = cand.documents.find(d => (d.fileUrl && d.fileUrl.length > 500) || (d.fileName && d.fileName.toLowerCase().includes('cv')));
     if (docWithResume) {
-      if (!url || url.length < 200) url = docWithResume.fileUrl;
-      name = name || docWithResume.fileName;
+      url = docWithResume.fileUrl;
+      name = docWithResume.fileName || name;
     }
   }
 
   // Fallback to client localStorage cache if running in browser
-  if ((!url || url.length < 200) && typeof window !== 'undefined' && window.localStorage) {
+  if ((!url || url.length < 500) && typeof window !== 'undefined' && window.localStorage) {
     try {
+      // 1. Check Candidate Database (where portal updates active profiles)
+      const candDbStr = localStorage.getItem('sir_candidates_db');
+      if (candDbStr && cand.email) {
+        const candDb = JSON.parse(candDbStr);
+        const localEntry = candDb[cand.email.toLowerCase().trim()];
+        if (localEntry && localEntry.resumeUrl && localEntry.resumeUrl.length > 200) {
+          url = localEntry.resumeUrl;
+          name = localEntry.resumeName || name;
+        }
+      }
+    } catch {}
+
+    try {
+      // 2. Check Candidate User Session
+      const sessStr = localStorage.getItem('sir_user_session');
+      if (sessStr) {
+        const sess = JSON.parse(sessStr);
+        const candEmail = (cand.email || '').toLowerCase().trim();
+        const sessEmail = (sess.email || '').toLowerCase().trim();
+        if (sess && (sessEmail === candEmail || sess.candidateId === cand.id)) {
+          if (sess.resumeUrl && sess.resumeUrl.length > 200) {
+            url = sess.resumeUrl;
+            name = sess.resumeName || name;
+          }
+        }
+      }
+    } catch {}
+
+    try {
+      // 3. Check direct key stores
       if (cand.email) {
         const emailKey = cand.email.toLowerCase().trim();
         const storedForEmail = localStorage.getItem(`sir_resume_${emailKey}`);
