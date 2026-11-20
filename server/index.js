@@ -7003,6 +7003,17 @@ if (!isVercelServerless) {
     console.log(`[Revival International] Express Server running on port ${PORT} [env=${process.env.NODE_ENV || 'development'}]`);
   });
 
+  server.on('error', (err) => {
+    if (err.code === 'EADDRINUSE') {
+      console.error(`\n❌ [PORT IN USE] Port ${PORT} is already occupied by another process.`);
+      console.error(`   To free port ${PORT} on Windows PowerShell, run:`);
+      console.error(`   Get-Process -Id (Get-NetTCPConnection -LocalPort ${PORT} -State Listen).OwningProcess | Stop-Process -Force\n`);
+    } else {
+      console.error('[Server Error]', err);
+    }
+    process.exit(1);
+  });
+
   const handleGracefulShutdown = async (signal) => {
     console.log(`[Shutdown] Received ${signal}. Gracefully stopping server...`);
     if (server) {
