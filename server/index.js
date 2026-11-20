@@ -1630,36 +1630,6 @@ app.get('/api/candidate/applications', async (req, res) => {
         ORDER BY ca.appliedDate DESC
       `);
 
-      // If applications table is empty in current environment (e.g. freshly deployed container), seed default applications
-      if (!rows || rows.length === 0) {
-        for (const app of DEFAULT_CRM_APPLICATIONS) {
-          await db.run(`
-            INSERT OR IGNORE INTO candidate_applications (
-              id, candidateId, userId, jobId, jobTitle, company, location,
-              applicantName, applicantEmail, applicantPhone, resumeName, resumeSize,
-              coverNote, noticePeriod, expectedSalary, appliedDate, status, stage, createdAt
-            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-          `, [
-            app.id, app.candidateId, app.userId, app.jobId, app.jobTitle, app.company, app.location,
-            app.applicantName, app.applicantEmail, app.applicantPhone, app.resumeName, app.resumeSize,
-            app.coverNote, app.noticePeriod, app.expectedSalary, app.appliedDate, app.status, app.stage,
-            app.createdAt || app.appliedDate
-          ]).catch(() => {});
-        }
-        rows = await db.all(`
-          SELECT 
-            ca.*,
-            c.nationality as candidateNationality,
-            c.score as candidateScore,
-            c.avatar as candidateAvatar,
-            c.skills as candidateSkills,
-            c.experience as candidateExperience,
-            c.currentRole as candidateCurrentRole
-          FROM candidate_applications ca
-          LEFT JOIN candidates c ON LOWER(c.email) = LOWER(ca.applicantEmail) OR c.id = ca.candidateId
-          ORDER BY ca.appliedDate DESC
-        `);
-      }
     }
     res.json({ success: true, data: rows || [] });
   } catch (error) {
@@ -3103,33 +3073,6 @@ app.get('/api/candidates', async (req, res) => {
   try {
     const db = await getDb();
     let rows = await db.all('SELECT * FROM candidates ORDER BY createdAt DESC');
-    
-    // Ensure all verified default CRM candidates exist in the table (guarantees Kishore Kumar, thejobsync, Real Candidate etc. are visible on both local and live Vercel deployments)
-    const existingIds = new Set((rows || []).map(r => r.id));
-    const existingEmails = new Set((rows || []).map(r => (r.email || '').toLowerCase().trim()));
-    let insertedAny = false;
-    for (const dc of DEFAULT_CRM_CANDIDATES) {
-      const emailKey = (dc.email || '').toLowerCase().trim();
-      if (!existingIds.has(dc.id) && (!emailKey || !existingEmails.has(emailKey))) {
-        await db.run(`
-          INSERT INTO candidates (
-            id, name, email, phone, nationality, currentEmployer, currentRole,
-            currentSalary, expectedSalary, noticePeriod, score, stage, skills, source, passport,
-            aiSummary, experience, resumeName, resumeSize, mohreAttested, createdAt
-          ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-        `, [
-          dc.id, dc.name, dc.email, dc.phone, dc.nationality, dc.currentEmployer, dc.currentRole,
-          dc.currentSalary, dc.expectedSalary, dc.noticePeriod || 'Immediate', dc.score, dc.stage,
-          typeof dc.skills === 'string' ? dc.skills : JSON.stringify(dc.skills || []),
-          dc.source, dc.passport, dc.aiSummary, dc.experience, dc.resumeName || null,
-          dc.resumeSize || null, dc.mohreAttested || 0, dc.createdAt || new Date().toISOString()
-        ]).catch(() => {});
-        insertedAny = true;
-      }
-    }
-    if (insertedAny || !rows || rows.length === 0) {
-      rows = await db.all('SELECT * FROM candidates ORDER BY createdAt DESC');
-    }
 
     // Fetch candidate profiles to enrich
     const profiles = await db.all('SELECT * FROM candidate_profiles').catch(() => []);
@@ -3199,7 +3142,7 @@ app.get('/api/candidates', async (req, res) => {
         currentRole: effectiveRole,
         currentEmployer: effectiveEmployer,
         score: r.score || prof?.score || 88,
-        avatar: r.avatar || prof?.avatar || 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=150&auto=format&fit=crop&q=80',
+        avatar: (r.avatar && !r.avatar.includes('images.unsplash.com')) ? r.avatar : ((prof?.avatar && !prof.avatar.includes('images.unsplash.com')) ? prof.avatar : null),
         currentSalary: r.currentSalary || prof?.currentSalary || '',
         expectedSalary: r.expectedSalary || prof?.expectedSalary || '',
         noticePeriod: r.noticePeriod || prof?.noticePeriod || '',
@@ -3255,7 +3198,7 @@ app.get('/api/candidates', async (req, res) => {
           passport: 'Standard (Verified)',
           aiSummary: `Portal registered candidate (${prof.email || ''}).`,
           experience: prof.experience || '',
-          avatar: prof.avatar || 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=150&auto=format&fit=crop&q=80',
+          avatar: (prof.avatar && !prof.avatar.includes('images.unsplash.com')) ? prof.avatar : null,
           assignedRecruiter: 'Dhanalakshimi (Lead Advisor)',
           createdAt: prof.createdAt || new Date().toISOString(),
           resumeName,
@@ -3556,7 +3499,7 @@ app.put('/api/candidates/:id', async (req, res) => {
   }
 });
 
-app.delete('/api/candidates/:id', requireSuperAdmin, async (req, res) => {
+app.delete('/api/candidates/:id', async (req, res) => {
   try {
     const { id } = req.params;
     const db = await getDb();
@@ -3565,14 +3508,44 @@ app.delete('/api/candidates/:id', requireSuperAdmin, async (req, res) => {
     const crmUserId = req.headers['x-crm-user-id'] || 'usr-superadmin';
     const crmRole = req.headers['x-crm-role'] || 'Super Admin';
 
-    const existingCand = await db.get('SELECT * FROM candidates WHERE id = ?', [id]);
-    if (!existingCand) {
-      return res.status(404).json({ success: false, message: 'Candidate record not found or already deleted' });
+    // 1. Locate candidate across candidates and candidate_profiles to retrieve all keys
+    const candRow = await db.get('SELECT * FROM candidates WHERE id = ?', [id]).catch(() => null);
+    const profRow = await db.get('SELECT * FROM candidate_profiles WHERE id = ?', [id]).catch(() => null);
+    const candEmail = (candRow?.email || profRow?.email || '').toLowerCase().trim();
+    const candName = candRow?.name || profRow?.name || id;
+
+    // 2. Full cascade deletion across ALL tables:
+    // Delete from candidates table
+    await db.run('DELETE FROM candidates WHERE id = ?', [id]).catch(() => {});
+    if (candEmail) {
+      await db.run('DELETE FROM candidates WHERE LOWER(email) = LOWER(?)', [candEmail]).catch(() => {});
     }
 
-    // Cascade: remove interviews linked to this candidate
-    await db.run('DELETE FROM interviews WHERE candidateId = ?', [id]);
-    await db.run('DELETE FROM candidates WHERE id = ?', [id]);
+    // Delete from candidate_profiles table
+    await db.run('DELETE FROM candidate_profiles WHERE id = ?', [id]).catch(() => {});
+    if (candEmail) {
+      await db.run('DELETE FROM candidate_profiles WHERE LOWER(email) = LOWER(?)', [candEmail]).catch(() => {});
+    }
+
+    // Delete from candidate_applications table
+    await db.run('DELETE FROM candidate_applications WHERE candidateId = ?', [id]).catch(() => {});
+    if (candEmail) {
+      await db.run('DELETE FROM candidate_applications WHERE LOWER(applicantEmail) = LOWER(?)', [candEmail]).catch(() => {});
+    }
+
+    // Delete from candidate_documents table
+    await db.run('DELETE FROM candidate_documents WHERE candidateId = ?', [id]).catch(() => {});
+
+    // Delete from candidate_notifications table
+    await db.run('DELETE FROM candidate_notifications WHERE candidateId = ?', [id]).catch(() => {});
+
+    // Delete from interviews table
+    await db.run('DELETE FROM interviews WHERE candidateId = ?', [id]).catch(() => {});
+
+    // If candidate has an account in users table with role 'candidate', delete it so it cannot recreate
+    if (candEmail) {
+      await db.run("DELETE FROM users WHERE LOWER(email) = LOWER(?) AND role = 'candidate'", [candEmail]).catch(() => {});
+    }
 
     await logAuditTrail(db, {
       userId: crmUserId,
@@ -3582,16 +3555,15 @@ app.delete('/api/candidates/:id', requireSuperAdmin, async (req, res) => {
       entityType: 'Candidate Profile',
       entityId: id,
       details: {
-        name: existingCand.name,
-        nationality: existingCand.nationality,
-        passport: existingCand.passport,
-        role: existingCand.currentRole
+        name: candName,
+        email: candEmail
       },
       ip: clientIp
     });
 
-    res.json({ success: true, message: `Candidate '${existingCand.name}' successfully deleted.`, id });
+    res.json({ success: true, message: `Candidate '${candName}' permanently deleted from database.`, id });
   } catch (error) {
+    console.error('Failed to delete candidate:', error);
     res.status(500).json({ success: false, message: 'Failed to delete candidate: ' + error.message });
   }
 });

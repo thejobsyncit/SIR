@@ -214,17 +214,12 @@ export const CrmCandidates = () => {
 
     // Check if any application attached a specific resume
     const appWithCv = (enriched.applications || []).find(a => a.resumeName || a.resumeUrl);
-    if (appWithCv) {
-      if (!enriched.resumeName || enriched.resumeName.includes('Executive_CV.pdf')) {
-        enriched.resumeName = appWithCv.resumeName || enriched.resumeName;
-      }
-      if (!enriched.resumeUrl) enriched.resumeUrl = appWithCv.resumeUrl;
-      if (!enriched.resumeSize) enriched.resumeSize = appWithCv.resumeSize;
-    }
+    const rawResumeName = enriched.resumeName || appWithCv?.resumeName;
+    const rawResumeUrl = enriched.resumeUrl || appWithCv?.resumeUrl;
+    const isFabricated = !rawResumeName || rawResumeName.includes('_Executive_CV.pdf') || rawResumeName === 'Executive_CV.pdf';
+    const hasRealCv = !!(rawResumeUrl || (!isFabricated && rawResumeName));
 
-    // Ensure complete, verified fallback data for every candidate so resume is ALWAYS available
     const cleanName = (enriched.name || 'Executive Candidate').trim();
-    const cleanFilePrefix = cleanName.replace(/[^a-zA-Z0-9]/g, '_');
 
     return {
       ...enriched,
@@ -242,12 +237,14 @@ export const CrmCandidates = () => {
       currentSalary: (enriched.currentSalary && enriched.currentSalary.trim() !== '') ? enriched.currentSalary : 'Not specified',
       expectedSalary: (enriched.expectedSalary && enriched.expectedSalary.trim() !== '') ? enriched.expectedSalary : 'Not specified',
       noticePeriod: (enriched.noticePeriod && enriched.noticePeriod.trim() !== '') ? enriched.noticePeriod : 'Not specified',
-      resumeName: enriched.resumeName || `${cleanFilePrefix}_Executive_CV.pdf`,
-      resumeSize: enriched.resumeSize || '245 KB',
+      hasRealCv,
+      resumeName: hasRealCv ? (rawResumeName || `${cleanName.replace(/[^a-zA-Z0-9]/g, '_')}_Resume.pdf`) : null,
+      resumeUrl: hasRealCv ? rawResumeUrl : null,
+      resumeSize: hasRealCv ? (enriched.resumeSize || appWithCv?.resumeSize || 'PDF Document') : null,
       mohreAttested: enriched.mohreAttested !== undefined ? enriched.mohreAttested : true,
       skills: (Array.isArray(enriched.skills) && enriched.skills.length > 0)
         ? enriched.skills
-        : ['International Mobility', 'Executive Candidate', 'Global Mandates', 'Project Governance']
+        : ['International Mobility', 'Executive Candidate', 'Global Mandates']
     };
   }, [viewCand, candidates]);
 
@@ -325,6 +322,34 @@ export const CrmCandidates = () => {
       expectedSalary: app.expectedSalary || cand.expectedSalary
     };
     handlePreviewCv(targetCand);
+  };
+
+  const renderCandidateAvatar = (c, sizeClasses = "w-11 h-11 text-xs") => {
+    const isRealPhoto = c?.avatar && !c.avatar.includes('unsplash.com');
+    if (isRealPhoto) {
+      return (
+        <img
+          src={c.avatar}
+          alt={c.name || 'Candidate'}
+          className={`${sizeClasses} rounded-full object-cover border-2 border-gold-500 shrink-0`}
+        />
+      );
+    }
+    const initials = (c?.name || 'C')
+      .split(' ')
+      .filter(Boolean)
+      .map(p => p[0])
+      .slice(0, 2)
+      .join('')
+      .toUpperCase() || 'RI';
+
+    return (
+      <div
+        className={`${sizeClasses} rounded-full bg-gradient-to-br from-[#0c1322] to-[#1e293b] text-gold-400 font-extrabold flex items-center justify-center border-2 border-gold-500/70 shadow-sm shrink-0 select-none`}
+      >
+        {initials}
+      </div>
+    );
   };
 
   const filtered = useMemo(() => {

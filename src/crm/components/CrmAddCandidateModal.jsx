@@ -48,7 +48,7 @@ export const CrmAddCandidateModal = ({ isOpen, onClose }) => {
     const candObj = {
       ...formData,
       skills: skillsArray.length ? skillsArray : ['Executive Leadership', 'GCC Compliance'],
-      avatar: `https://images.unsplash.com/photo-${1500000000000 + Math.floor(Math.random() * 99999)}?w=150&auto=format&fit=crop&q=80`
+      avatar: null
     };
 
     addCandidate(candObj);

@@ -83,7 +83,7 @@ export const CandidateAuth = () => {
       phone: `${regData.countryCode} ${regData.phone}`,
       preferredCountry: regData.preferredCountry,
       industry: regData.industry,
-      resumeName: regData.resumeName || 'Uploaded_Executive_CV.pdf'
+      resumeName: regData.resumeName || null
     });
     if (!result || !result.success) {
       setError(result?.message || 'Registration failed. Please try again.');

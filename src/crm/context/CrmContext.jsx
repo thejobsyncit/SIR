@@ -349,16 +349,11 @@ export const CrmProvider = ({ children }) => {
       if (res.ok) {
         const data = await res.json();
         if (data && data.success && Array.isArray(data.data)) {
-          setCandidates(prev => {
-            const serverCandidates = data.data;
-            const serverIds = new Set(serverCandidates.map(c => c.id));
-            const localOnly = (prev || []).filter(c => !serverIds.has(c.id));
-            const merged = [...serverCandidates, ...localOnly];
-            try {
-              localStorage.setItem('crm_candidates', JSON.stringify(merged));
-            } catch {}
-            return merged;
-          });
+          const serverCandidates = data.data;
+          setCandidates(serverCandidates);
+          try {
+            localStorage.setItem('crm_candidates', JSON.stringify(serverCandidates));
+          } catch {}
         }
       }
     } catch (err) {
@@ -1624,11 +1619,23 @@ export const CrmProvider = ({ children }) => {
       });
       const data = res.ok ? await res.json().catch(() => ({})) : {};
       logAuditAction(`Permanently deleted candidate '${candidateId}' (${metadata.name || ''}).`);
-      setCandidates(prev => prev.filter(c => c.id !== candidateId));
+      setCandidates(prev => {
+        const updated = (prev || []).filter(c => c.id !== candidateId);
+        try {
+          localStorage.setItem('crm_candidates', JSON.stringify(updated));
+        } catch {}
+        return updated;
+      });
       return data;
     } catch (err) {
       console.error('Error in deleteCandidate:', err);
-      setCandidates(prev => prev.filter(c => c.id !== candidateId));
+      setCandidates(prev => {
+        const updated = (prev || []).filter(c => c.id !== candidateId);
+        try {
+          localStorage.setItem('crm_candidates', JSON.stringify(updated));
+        } catch {}
+        return updated;
+      });
       logAuditAction(`Permanently deleted candidate '${candidateId}' (${metadata.name || ''}).`);
       throw err;
     }
