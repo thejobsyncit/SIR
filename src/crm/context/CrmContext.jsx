@@ -160,7 +160,7 @@ export const CrmProvider = ({ children }) => {
           return { ...DEFAULT_USER, ...parsed.user };
         }
       }
-    } catch {}
+    } catch { }
     return DEFAULT_USER;
   });
 
@@ -171,7 +171,7 @@ export const CrmProvider = ({ children }) => {
         const parsed = JSON.parse(saved);
         if (parsed && parsed.currentRole && parsed.currentRole !== 'Interviewer') return parsed.currentRole;
       }
-    } catch {}
+    } catch { }
     return 'Super Admin';
   });
   const isSuperAdmin = currentRole === 'Super Admin' || user?.role === 'Super Admin';
@@ -200,13 +200,13 @@ export const CrmProvider = ({ children }) => {
     ];
     if (dummyIds.some(d => id.startsWith(d) || id === d)) return true;
     if (name.includes('alexander wright') || name.includes('sarah al-mansoori') || name.includes('mohamed tariq') ||
-        name.includes('elena rostova') || name.includes('david chen') || name.includes('fatima al-zahra') ||
-        name.includes('real candidate') || name.includes('test candidate') || name.includes('fake user') ||
-        name.includes('fresh candidate') || name.includes('unknown candidate')) return true;
-    if (email.includes('example.com') || email.includes('mailinator') || email.includes('trashuser') || 
-        email.includes('domain.com') || email.includes('candidate_test') || email.includes('candidate.fresh') ||
-        email === 'johnny@gmail.com' || email === 'real.candidate.test@gmail.com' ||
-        email === 'candidate.verify@gmail.com') return true;
+      name.includes('elena rostova') || name.includes('david chen') || name.includes('fatima al-zahra') ||
+      name.includes('real candidate') || name.includes('test candidate') || name.includes('fake user') ||
+      name.includes('fresh candidate') || name.includes('unknown candidate')) return true;
+    if (email.includes('example.com') || email.includes('mailinator') || email.includes('trashuser') ||
+      email.includes('domain.com') || email.includes('candidate_test') || email.includes('candidate.fresh') ||
+      email === 'johnny@gmail.com' || email === 'real.candidate.test@gmail.com' ||
+      email === 'candidate.verify@gmail.com') return true;
     return false;
   };
 
@@ -321,7 +321,7 @@ export const CrmProvider = ({ children }) => {
       const parsed = JSON.parse(saved);
       if (key === 'crm_candidates' && Array.isArray(parsed)) {
         const cleanList = parsed.filter(c => !isDummyCandidate(c));
-        try { localStorage.setItem('crm_candidates', JSON.stringify(cleanList)); } catch {}
+        try { localStorage.setItem('crm_candidates', JSON.stringify(cleanList)); } catch { }
         return cleanList;
       }
       if (Array.isArray(parsed) && parsed.length === 0 && Array.isArray(defaultData) && defaultData.length > 0) {
@@ -343,7 +343,7 @@ export const CrmProvider = ({ children }) => {
           return parsed.filter(c => !isDummyCandidate(c));
         }
       }
-    } catch {}
+    } catch { }
     return [];
   });
   const [applications, setApplications] = useState(() => {
@@ -353,7 +353,7 @@ export const CrmProvider = ({ children }) => {
         const parsed = JSON.parse(saved);
         if (Array.isArray(parsed) && parsed.length > 0) return parsed;
       }
-    } catch {}
+    } catch { }
     return [];
   });
   const [loadingApplications, setLoadingApplications] = useState(false);
@@ -449,7 +449,7 @@ export const CrmProvider = ({ children }) => {
             }));
           }
         }
-      } catch (_) {}
+      } catch (_) { }
 
       // Clean localStorage of any legacy test/dummy leads
       try {
@@ -477,7 +477,7 @@ export const CrmProvider = ({ children }) => {
             localStorage.setItem('sir_offline_leads', JSON.stringify(cleanOff));
           }
         }
-      } catch (_) {}
+      } catch (_) { }
 
       const combinedLocal = [...localLeads, ...localAcademyLeads];
       const cleanCombinedLocal = combinedLocal.filter(l => !isDummyLead(l));
@@ -548,7 +548,7 @@ export const CrmProvider = ({ children }) => {
           setCandidates(finalCandidates);
           try {
             localStorage.setItem('crm_candidates', JSON.stringify(finalCandidates));
-          } catch {}
+          } catch { }
           setLoadingCandidates(false);
           return finalCandidates;
         }
@@ -574,7 +574,7 @@ export const CrmProvider = ({ children }) => {
             arr.forEach(d => { if (d) deletedAppSet.add(String(d)); });
           }
         }
-      } catch {}
+      } catch { }
 
       // 1. Gather all local applications from all possible stores
       const localAppsMap = new Map();
@@ -664,7 +664,7 @@ export const CrmProvider = ({ children }) => {
               try {
                 const subApps = JSON.parse(localStorage.getItem(key) || '[]');
                 if (Array.isArray(subApps)) subApps.forEach(registerLocalApp);
-              } catch {}
+              } catch { }
             }
           }
         }
@@ -719,7 +719,7 @@ export const CrmProvider = ({ children }) => {
       setApplications(finalApps);
       try {
         localStorage.setItem('sir_job_applications', JSON.stringify(finalApps));
-      } catch {}
+      } catch { }
     } catch (err) {
       console.error('Failed to fetch applications from backend:', err);
     } finally {
@@ -737,7 +737,7 @@ export const CrmProvider = ({ children }) => {
       if (res.ok) {
         setApplications(prev => {
           const updated = prev.map(a => a.id === appId ? { ...a, status: newStatus, stage: stage || a.stage } : a);
-          try { localStorage.setItem('sir_job_applications', JSON.stringify(updated)); } catch {}
+          try { localStorage.setItem('sir_job_applications', JSON.stringify(updated)); } catch { }
           return updated;
         });
         fetchCandidates();
@@ -759,7 +759,7 @@ export const CrmProvider = ({ children }) => {
           deletedArr.push(appId);
           localStorage.setItem('sir_deleted_applications', JSON.stringify([...new Set(deletedArr)]));
         }
-      } catch {}
+      } catch { }
 
       // Find application details before deleting to clean candidate-scoped caches
       const targetApp = applications.find(a => a.id === appId);
@@ -777,7 +777,7 @@ export const CrmProvider = ({ children }) => {
             localStorage.setItem('sir_job_applications', JSON.stringify(filtered));
           }
         }
-      } catch {}
+      } catch { }
 
       // 3. Wipe from candidate-specific localStorage caches so website re-shows "Apply Now"
       try {
@@ -807,7 +807,7 @@ export const CrmProvider = ({ children }) => {
             }
           }
         }
-      } catch {}
+      } catch { }
 
       // 4. Update in-memory state immediately
       setApplications(prev => prev.filter(a => a.id !== appId && !(targetJobId && a.jobId === targetJobId && (a.applicantEmail || '').toLowerCase().trim() === targetEmail)));
@@ -846,7 +846,7 @@ export const CrmProvider = ({ children }) => {
           const merged = [...data.data, ...localOnly];
           try {
             localStorage.setItem('crm_clients', JSON.stringify(merged));
-          } catch {}
+          } catch { }
           return merged;
         });
       }
@@ -1037,7 +1037,7 @@ export const CrmProvider = ({ children }) => {
           return parsed.activeModule;
         }
       }
-    } catch {}
+    } catch { }
     return 'dashboard';
   });
 
@@ -1054,7 +1054,7 @@ export const CrmProvider = ({ children }) => {
           }));
         }
       }
-    } catch {}
+    } catch { }
   };
 
   const [consultingServiceFilter, setConsultingServiceFilterState] = useState(() => {
@@ -1064,7 +1064,7 @@ export const CrmProvider = ({ children }) => {
         const parsed = JSON.parse(saved);
         if (parsed && parsed.consultingServiceFilter) return parsed.consultingServiceFilter;
       }
-    } catch {}
+    } catch { }
     return 'all';
   });
 
@@ -1079,7 +1079,7 @@ export const CrmProvider = ({ children }) => {
           consultingServiceFilter: filterVal
         }));
       }
-    } catch {}
+    } catch { }
   };
   const [commandPaletteOpen, setCommandPaletteOpen] = useState(false);
   const [aiDrawerOpen, setAiDrawerOpen] = useState(false);
@@ -1133,7 +1133,7 @@ export const CrmProvider = ({ children }) => {
             setShowIdleModal(false);
             try {
               localStorage.removeItem('sir_crm_session');
-            } catch (e) {}
+            } catch (e) { }
             return 0;
           }
           return prev + 1;
@@ -1183,10 +1183,10 @@ export const CrmProvider = ({ children }) => {
                   crmToken: data.token
                 }));
               }
-            } catch (_) {}
+            } catch (_) { }
           }
         })
-        .catch(() => {});
+        .catch(() => { });
     }
   }, [isAuthenticated, crmToken, currentRole, user]);
 
@@ -1219,7 +1219,7 @@ export const CrmProvider = ({ children }) => {
           return p;
         }
       }
-    } catch (_) {}
+    } catch (_) { }
     return {
       status: 'Not Checked In',
       checkInAt: null,
@@ -1243,7 +1243,7 @@ export const CrmProvider = ({ children }) => {
   useEffect(() => {
     try {
       localStorage.setItem('sir_crm_my_attendance_active', JSON.stringify(attendancePunch));
-    } catch (_) {}
+    } catch (_) { }
   }, [attendancePunch]);
 
   // Live timer ticker effect (1 second)
@@ -1285,7 +1285,7 @@ export const CrmProvider = ({ children }) => {
         setCrmToken(d.token);
         return d.token;
       }
-    } catch (_) {}
+    } catch (_) { }
     return null;
   };
 
@@ -1306,7 +1306,7 @@ export const CrmProvider = ({ children }) => {
       } else {
         localStorage.removeItem('sir_crm_late_approval_gate');
       }
-    } catch (_) {}
+    } catch (_) { }
   }, [lateApprovalGate]);
 
   const checkLateApprovalStatus = async () => {
@@ -1339,7 +1339,7 @@ export const CrmProvider = ({ children }) => {
           return 'PENDING';
         }
       }
-    } catch (_) {}
+    } catch (_) { }
     return null;
   };
 
@@ -1364,7 +1364,7 @@ export const CrmProvider = ({ children }) => {
           existingPunch = p;
         }
       }
-    } catch (_) {}
+    } catch (_) { }
 
     if (existingPunch && existingPunch.checkInAt && !existingPunch.checkOutAt) {
       setAttendancePunch(existingPunch);
@@ -1410,7 +1410,7 @@ export const CrmProvider = ({ children }) => {
     // Sync to localStorage
     try {
       localStorage.setItem('sir_crm_my_attendance_active', JSON.stringify(newPunch));
-    } catch (_) {}
+    } catch (_) { }
 
     // Sync to sir_crm_workforce_directory_v2
     try {
@@ -1440,7 +1440,7 @@ export const CrmProvider = ({ children }) => {
           localStorage.setItem('sir_crm_workforce_directory_v2', JSON.stringify(updatedDir));
         }
       }
-    } catch (_) {}
+    } catch (_) { }
 
     // Call backend API
     try {
@@ -1471,14 +1471,14 @@ export const CrmProvider = ({ children }) => {
               workDate: today
             };
             setLateApprovalGate(gateObj);
-            try { localStorage.setItem('sir_crm_late_approval_gate', JSON.stringify(gateObj)); } catch (_) {}
+            try { localStorage.setItem('sir_crm_late_approval_gate', JSON.stringify(gateObj)); } catch (_) { }
           } else if (status === 'APPROVED' || status === 'EXEMPT') {
             setLateApprovalGate(null);
-            try { localStorage.removeItem('sir_crm_late_approval_gate'); } catch (_) {}
+            try { localStorage.removeItem('sir_crm_late_approval_gate'); } catch (_) { }
           }
         }
       }
-    } catch (_) {}
+    } catch (_) { }
 
     // If locally determined late and non-executive, guarantee approval gate engages ONLY if not approved
     const serverApproval = resJson?.data?.lateApprovalStatus;
@@ -1522,7 +1522,7 @@ export const CrmProvider = ({ children }) => {
           body: JSON.stringify({ breakType })
         });
       }
-    } catch (_) {}
+    } catch (_) { }
   };
 
   const endBreak = async () => {
@@ -1554,7 +1554,7 @@ export const CrmProvider = ({ children }) => {
           body: JSON.stringify({})
         });
       }
-    } catch (_) {}
+    } catch (_) { }
   };
 
   const clockOut = async (overrideUser = null, overrideRole = null) => {
@@ -1584,7 +1584,7 @@ export const CrmProvider = ({ children }) => {
 
       try {
         localStorage.setItem('sir_crm_my_attendance_active', JSON.stringify(updated));
-      } catch (_) {}
+      } catch (_) { }
 
       try {
         const savedDir = localStorage.getItem('sir_crm_workforce_directory_v2');
@@ -1608,7 +1608,7 @@ export const CrmProvider = ({ children }) => {
             localStorage.setItem('sir_crm_workforce_directory_v2', JSON.stringify(updatedDir));
           }
         }
-      } catch (_) {}
+      } catch (_) { }
 
       return updated;
     });
@@ -1625,7 +1625,7 @@ export const CrmProvider = ({ children }) => {
           body: JSON.stringify({ notes: 'Portal Logout Check-Out' })
         });
       }
-    } catch (_) {}
+    } catch (_) { }
   };
 
   // Automatic Check-Out on Browser Tab Close or Window Unload
@@ -1696,11 +1696,11 @@ export const CrmProvider = ({ children }) => {
                 },
                 body: JSON.stringify({ notes: 'Automatic tab close check-out' }),
                 keepalive: true
-              }).catch(() => {});
+              }).catch(() => { });
             }
           }
         }
-      } catch (_) {}
+      } catch (_) { }
     };
 
     window.addEventListener('beforeunload', handleBeforeUnload);
@@ -1749,7 +1749,7 @@ export const CrmProvider = ({ children }) => {
 
   const login = (email, password, roleName, customData) => {
     if (accountLocked) return false;
-    
+
     const assignedRole = roleName || currentRole;
     const emailLower = (email || '').toLowerCase().trim();
 
@@ -1951,7 +1951,7 @@ export const CrmProvider = ({ children }) => {
     if (!isExecutive && user && !lateApprovalGate?.isBlocked) {
       try {
         clockOut(user, currentRole);
-      } catch (_) {}
+      } catch (_) { }
     }
 
     setIsAuthenticated(false);
@@ -2021,7 +2021,7 @@ export const CrmProvider = ({ children }) => {
       const updated = [candidateToAdd, ...prev.filter(c => c.id !== candidateToAdd.id)];
       try {
         localStorage.setItem('crm_candidates', JSON.stringify(updated));
-      } catch {}
+      } catch { }
       return updated;
     });
     logAuditAction(`Added new candidate ${candidateToAdd.name} (${candidateToAdd.id}).`);
@@ -2041,7 +2041,7 @@ export const CrmProvider = ({ children }) => {
       const updated = prev.map(c => c.id === updatedCand.id ? updatedCand : c);
       try {
         localStorage.setItem('crm_candidates', JSON.stringify(updated));
-      } catch {}
+      } catch { }
       return updated;
     });
     logAuditAction(`Updated candidate profile ${updatedCand.id}.`);
@@ -2051,7 +2051,7 @@ export const CrmProvider = ({ children }) => {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(updatedCand)
       });
-    } catch (err) {}
+    } catch (err) { }
   };
 
   const deleteCandidate = useCallback(async (candidateId, metadata = {}) => {
@@ -2068,7 +2068,7 @@ export const CrmProvider = ({ children }) => {
         if (candidateId) deletedArr.push(candidateId.toLowerCase().trim());
         if (candEmail) deletedArr.push(candEmail);
         localStorage.setItem('sir_deleted_candidates', JSON.stringify([...new Set(deletedArr)]));
-      } catch {}
+      } catch { }
 
       // 2. Eradicate from sir_candidates_db so it can never resurrect
       try {
@@ -2085,7 +2085,7 @@ export const CrmProvider = ({ children }) => {
           });
           localStorage.setItem('sir_candidates_db', JSON.stringify(db));
         }
-      } catch {}
+      } catch { }
 
       // 3. Clear sir_user_session if current session matches deleted candidate
       try {
@@ -2096,7 +2096,7 @@ export const CrmProvider = ({ children }) => {
             localStorage.removeItem('sir_user_session');
           }
         }
-      } catch {}
+      } catch { }
 
       // 4. Wipe candidate application cache so job mandates re-show "Apply for Position" (Apply Now)
       try {
@@ -2112,14 +2112,14 @@ export const CrmProvider = ({ children }) => {
             localStorage.setItem('sir_job_applications', JSON.stringify(filtered));
           }
         }
-      } catch {}
+      } catch { }
 
       // 5. Update CRM candidates state & crm_candidates localStorage
       setCandidates(prev => {
         const updated = (prev || []).filter(c => c.id !== candidateId && (candEmail ? c.email?.toLowerCase().trim() !== candEmail : true));
         try {
           localStorage.setItem('crm_candidates', JSON.stringify(updated));
-        } catch {}
+        } catch { }
         return updated;
       });
 
@@ -2250,7 +2250,7 @@ export const CrmProvider = ({ children }) => {
 
     if (newRole === 'Super Admin' || newRole === 'Admin') {
       setLateApprovalGate(null);
-      try { localStorage.removeItem('sir_crm_late_approval_gate'); } catch (_) {}
+      try { localStorage.removeItem('sir_crm_late_approval_gate'); } catch (_) { }
     }
 
     let nextMod = 'dashboard';
@@ -2386,7 +2386,7 @@ export const CrmProvider = ({ children }) => {
       const next = !prev;
       try {
         localStorage.setItem('sir_theme_mode', next ? 'dark' : 'light');
-      } catch (e) {}
+      } catch (e) { }
       return next;
     });
   };
@@ -2412,7 +2412,7 @@ export const CrmProvider = ({ children }) => {
       const updated = [newOrgRecord, ...prev.filter(c => c.id !== localId && (c.company || '').toLowerCase().trim() !== (orgData.company || '').toLowerCase().trim())];
       try {
         localStorage.setItem('crm_clients', JSON.stringify(updated));
-      } catch {}
+      } catch { }
       return updated;
     });
 
@@ -2429,7 +2429,7 @@ export const CrmProvider = ({ children }) => {
           const updated = prev.map(c => c.id === localId ? { ...c, ...data.data } : c);
           try {
             localStorage.setItem('crm_clients', JSON.stringify(updated));
-          } catch {}
+          } catch { }
           return updated;
         });
         await fetchConsultingMetrics();
@@ -2618,7 +2618,7 @@ export const CrmProvider = ({ children }) => {
             localStorage.setItem('sir_offline_leads', JSON.stringify(filtered));
           }
         }
-      } catch (e) {}
+      } catch (e) { }
 
       logAuditAction(`Permanently deleted ${metadata.entityType || 'lead'} '${leadId}' (${metadata.name || metadata.referenceNumber || ''}).`);
       setLeads(prev => prev.filter(l => l.id !== leadId && l.referenceNumber !== leadId));
