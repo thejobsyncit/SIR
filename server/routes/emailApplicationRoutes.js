@@ -4,7 +4,7 @@ import {
   sendCandidateWelcomeEmail,
   detectRoleCategory
 } from '../services/emailApplicationService.js';
-import { JOBS_LIST } from '../../src/data/mockData.js';
+import { JOBS_LIST } from '../data/mockData.js';
 
 /**
  * Register API routes for "Apply via Email" with dynamic role-based template generation.

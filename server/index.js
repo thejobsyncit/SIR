@@ -11,7 +11,7 @@ import { registerHrCandidateRoutes } from './routes/hrCandidateRoutes.js';
 import { registerDocumentationRoutes } from './routes/documentationRoutes.js';
 import { registerEmailApplicationRoutes } from './routes/emailApplicationRoutes.js';
 import { sendCandidateWelcomeEmail } from './services/emailApplicationService.js';
-import { COURSES_CATALOGUE } from '../src/data/coursesCatalogueData.js';
+import { COURSES_CATALOGUE } from './data/coursesCatalogueData.js';
 import nodemailer from 'nodemailer';
 import dotenv from 'dotenv';
 import { handleAIAdvisorQuery, REVIVAL_KNOWLEDGE_BASE } from './services/aiAdvisorEngine.js';
@@ -4186,18 +4186,6 @@ app.post('/api/candidates', async (req, res) => {
         currentSalary || '', expectedSalary || '', noticePeriod || 'Immediate', score || 88,
         (stage === 'applied' ? 'lead' : stage) || 'lead', skillsStr, safeSource || 'Candidate Portal Registration',
         passport || 'Standard (Verified)', safeAiSummary || 'Verified Candidate Profile', experience || '', avatar || null,
-        resumeName || null, resumeUrl || null, resumeSize || null,
-        citizenship || null, dob || null, gender || null, location || null, preferredCountry || null,
-        finalEducation || null, finalMohre
-      ]);
-    }
-      `, [
-        candId, name || '', email || '', phone || '', nationality || '',
-        currentEmployer || '', finalRole,
-        currentSalary || '', expectedSalary || '', noticePeriod || '',
-        score || 88, stage || 'lead', skillsStr, source || 'Website Registration',
-        passport || 'Standard (Verified)', aiSummary || 'Candidate registered via Revival International Portal.',
-        experience || '', avatar || null,
         resumeName || null, resumeUrl || null, resumeSize || null,
         citizenship || null, dob || null, gender || null, location || null, preferredCountry || null,
         finalEducation || null, finalMohre
