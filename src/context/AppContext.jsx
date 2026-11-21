@@ -235,13 +235,31 @@ export const AppProvider = ({ children }) => {
         const localByEmail = userEmail ? localStorage.getItem(`sir_applications_${userEmail}`) : null;
         const apps = localByCid || localByEmail;
         if (apps) {
-          initialApps = JSON.parse(apps);
-          if (Array.isArray(initialApps) && initialApps.length > 0) {
-            setApplications(initialApps);
+          const parsed = JSON.parse(apps);
+          if (Array.isArray(parsed) && parsed.length > 0) initialApps = parsed;
+        }
+        
+        // Also check global sir_job_applications if specific cache is empty
+        if (initialApps.length === 0) {
+          const globalAppsStr = localStorage.getItem('sir_job_applications');
+          if (globalAppsStr) {
+            const parsedGlobal = JSON.parse(globalAppsStr);
+            if (Array.isArray(parsedGlobal)) {
+              initialApps = parsedGlobal.filter(a => {
+                const aEmail = (a.applicantEmail || a.email || '').toLowerCase().trim();
+                const aCid = (a.candidateId || '').trim();
+                return (userEmail && aEmail === userEmail) || (cid && aCid === cid);
+              });
+            }
           }
-        } else if (user.applications && Array.isArray(user.applications) && user.applications.length > 0) {
+        }
+
+        if (initialApps.length === 0 && user.applications && Array.isArray(user.applications) && user.applications.length > 0) {
           initialApps = user.applications;
-          setApplications(user.applications);
+        }
+
+        if (initialApps.length > 0) {
+          setApplications(initialApps);
         }
       } catch { }
 
@@ -255,18 +273,57 @@ export const AppProvider = ({ children }) => {
         .then(r => r.json())
         .then(d => {
           if (d?.success && Array.isArray(d?.data)) {
-            setApplications(d.data);
-            try {
-              if (user.candidateId) localStorage.setItem(`sir_applications_${user.candidateId}`, JSON.stringify(d.data));
-              if (userEmail) {
-                localStorage.setItem(`sir_applications_${userEmail}`, JSON.stringify(d.data));
-                const db = getCandidateDB();
-                if (db[userEmail]) {
-                  db[userEmail].applications = d.data;
-                  localStorage.setItem('sir_candidates_db', JSON.stringify(db));
+            if (d.data.length > 0) {
+              setApplications(d.data);
+              try {
+                if (user.candidateId) localStorage.setItem(`sir_applications_${user.candidateId}`, JSON.stringify(d.data));
+                if (userEmail) {
+                  localStorage.setItem(`sir_applications_${userEmail}`, JSON.stringify(d.data));
+                  const db = getCandidateDB();
+                  if (db[userEmail]) {
+                    db[userEmail].applications = d.data;
+                    localStorage.setItem('sir_candidates_db', JSON.stringify(db));
+                  }
                 }
+              } catch { }
+            } else {
+              // Check global sir_job_applications or initialApps fallback to prevent accidental empty overrides
+              let fallbackApps = [];
+              try {
+                const globalApps = JSON.parse(localStorage.getItem('sir_job_applications') || '[]');
+                if (Array.isArray(globalApps)) {
+                  fallbackApps = globalApps.filter(a => {
+                    const aEmail = (a.applicantEmail || a.email || '').toLowerCase().trim();
+                    const aCid = (a.candidateId || '').trim();
+                    return (userEmail && aEmail === userEmail) || (user.candidateId && aCid === user.candidateId) || (cid && aCid === cid);
+                  });
+                }
+              } catch { }
+
+              if (fallbackApps.length === 0 && initialApps.length > 0) {
+                fallbackApps = initialApps;
               }
-            } catch { }
+
+              if (fallbackApps.length > 0) {
+                setApplications(fallbackApps);
+                // Sync back to backend SQLite database so they are stored permanently!
+                fallbackApps.forEach(fbApp => {
+                  fetch('/api/candidate/applications', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                      ...fbApp,
+                      candidateId: user.candidateId || fbApp.candidateId || cid,
+                      userId: user.userId || fbApp.userId || '',
+                      applicantEmail: userEmail || fbApp.applicantEmail,
+                      applicantName: user.name || fbApp.applicantName
+                    })
+                  }).catch(() => { });
+                });
+              } else {
+                setApplications([]);
+              }
+            }
           }
         })
         .catch(() => { });
@@ -347,23 +404,58 @@ export const AppProvider = ({ children }) => {
     }
   };
 
-  const loginCandidate = (email, password) => {
+  const loginCandidate = async (email, password) => {
     const normalizedEmail = (email || '').toLowerCase().trim();
     if (!normalizedEmail || !password) {
       return { success: false, message: 'Please provide both email and password.' };
     }
 
-    const db = getCandidateDB();
-    let candidateUser = db[normalizedEmail];
+    try {
+      const res = await fetch('/api/candidate/login', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email: normalizedEmail, password })
+      });
+      const data = await res.json();
+      if (!res.ok || !data.success) {
+        return {
+          success: false,
+          error: data.error,
+          message: data.message || 'Login failed. Please check your credentials.'
+        };
+      }
 
-    // Predefined thejobsync candidate account
-    if (normalizedEmail === 'thejobsyncit@gmail.com' && password === 'Thejobsync@26') {
-      if (!candidateUser) {
-        candidateUser = {
+      const candidateUser = data.user;
+      saveCandidateToDB(candidateUser);
+      saveUserSession(candidateUser);
+      setUser(candidateUser);
+      if (candidateUser.applications && Array.isArray(candidateUser.applications)) {
+        setApplications(candidateUser.applications);
+      }
+      if (candidateUser.savedJobs && Array.isArray(candidateUser.savedJobs)) {
+        setSavedJobs(candidateUser.savedJobs);
+      }
+
+      const pendingAcademy = typeof getPendingStudentAcademyEnquiry === 'function' ? getPendingStudentAcademyEnquiry() : null;
+      const pendingCareer = typeof getPendingCareerEnquiry === 'function' ? getPendingCareerEnquiry() : null;
+      const targetTab = (pendingAcademy && pendingAcademy.route)
+        ? pendingAcademy.route
+        : ((pendingCareer && pendingCareer.route) ? pendingCareer.route : 'candidates');
+      setActiveTab(targetTab);
+      if (typeof window !== 'undefined' && targetTab !== 'candidates') {
+        window.location.hash = targetTab;
+      }
+      return { success: true, user: candidateUser };
+    } catch (err) {
+      console.warn('Backend login notice, checking local cache:', err.message);
+      // Predefined thejobsync candidate account offline fallback
+      if (normalizedEmail === 'thejobsyncit@gmail.com' && password === 'Thejobsync@26') {
+        const db = getCandidateDB();
+        let candidateUser = db[normalizedEmail] || {
           name: 'thejobsync',
           email: 'thejobsyncit@gmail.com',
           password: 'Thejobsync@26',
-          phone: '+91 9876543210',
+          phone: '+971 52 445 8890',
           title: 'Executive Director & Candidate',
           location: 'Chennai, India',
           preferredCountry: 'UAE',
@@ -375,79 +467,40 @@ export const AppProvider = ({ children }) => {
           candidateId: 'REV-CAN-THEJOBSYNC',
           loginTime: new Date().toISOString()
         };
-      } else {
-        candidateUser = { ...candidateUser, isRegistered: true, password: 'Thejobsync@26', loginTime: new Date().toISOString() };
+        saveCandidateToDB(candidateUser);
+        saveUserSession(candidateUser);
+        setUser(candidateUser);
+        setActiveTab('candidates');
+        return { success: true, user: candidateUser };
       }
-
-      saveCandidateToDB(candidateUser);
-      saveUserSession(candidateUser);
-      const savedAppsPredefined = localStorage.getItem(`sir_applications_${candidateUser.candidateId}`) || 
-                                  localStorage.getItem(`sir_applications_${normalizedEmail}`);
-      if (savedAppsPredefined) {
-        try {
-          const parsed = JSON.parse(savedAppsPredefined);
-          if (Array.isArray(parsed) && parsed.length > 0) setApplications(parsed);
-        } catch { }
-      } else if (candidateUser.applications && Array.isArray(candidateUser.applications)) {
-        setApplications(candidateUser.applications);
-      }
-      const pendingAcademy = typeof getPendingStudentAcademyEnquiry === 'function' ? getPendingStudentAcademyEnquiry() : null;
-      const pendingCareer = typeof getPendingCareerEnquiry === 'function' ? getPendingCareerEnquiry() : null;
-      const targetTab = (pendingAcademy && pendingAcademy.route)
-        ? pendingAcademy.route
-        : ((pendingCareer && pendingCareer.route) ? pendingCareer.route : 'candidates');
-      setActiveTab(targetTab);
-      if (typeof window !== 'undefined' && targetTab !== 'candidates') {
-        window.location.hash = targetTab;
-      }
-      return { success: true, user: candidateUser };
-    }
-
-    // Regular users MUST be registered first
-    if (!candidateUser || !candidateUser.isRegistered) {
       return {
         success: false,
-        message: 'No registered account found with this email. Please click "Create Candidate Account" below to register first.'
+        message: 'Could not connect to authentication server. Please check your connection and try again.'
       };
     }
-
-    // Verify password
-    if (candidateUser.password && candidateUser.password !== password) {
-      return {
-        success: false,
-        message: 'Incorrect password. Please verify and try again.'
-      };
-    }
-
-    candidateUser = { ...candidateUser, loginTime: new Date().toISOString() };
-    saveCandidateToDB(candidateUser);
-    saveUserSession(candidateUser);
-
-    const savedAppsRegular = localStorage.getItem(`sir_applications_${candidateUser.candidateId}`) || 
-                             localStorage.getItem(`sir_applications_${normalizedEmail}`);
-    if (savedAppsRegular) {
-      try {
-        const parsed = JSON.parse(savedAppsRegular);
-        if (Array.isArray(parsed) && parsed.length > 0) setApplications(parsed);
-      } catch { }
-    } else if (candidateUser.applications && Array.isArray(candidateUser.applications)) {
-      setApplications(candidateUser.applications);
-    }
-
-    const pendingAcademy = typeof getPendingStudentAcademyEnquiry === 'function' ? getPendingStudentAcademyEnquiry() : null;
-    const pendingCareer = typeof getPendingCareerEnquiry === 'function' ? getPendingCareerEnquiry() : null;
-    const targetTab = (pendingAcademy && pendingAcademy.route)
-      ? pendingAcademy.route
-      : ((pendingCareer && pendingCareer.route) ? pendingCareer.route : 'candidates');
-    setActiveTab(targetTab);
-    if (typeof window !== 'undefined' && targetTab !== 'candidates') {
-      window.location.hash = targetTab;
-    }
-    return { success: true, user: candidateUser };
   };
 
   const loginWithGoogle = async (googleUser) => {
     let normalizedEmail = (googleUser?.email || googleUser?.profile?.email || '').toLowerCase().trim();
+    const mode = googleUser?.mode || 'login';
+
+    if (!normalizedEmail) {
+      return { success: false, message: 'Valid Google email is required.' };
+    }
+
+    // Strict 1-Time Candidate Registration: Prevent duplicate registration via "Sign up with Google"
+    if (mode === 'register') {
+      try {
+        const db = getCandidateDB();
+        if (db[normalizedEmail] && db[normalizedEmail].isRegistered) {
+          return {
+            success: false,
+            code: 'DUPLICATE_EMAIL',
+            message: 'An account with this email address already exists. Please sign in to your existing account.'
+          };
+        }
+      } catch (_) {}
+    }
 
     let backendUser = null;
     let backendToken = null;
@@ -460,6 +513,7 @@ export const AppProvider = ({ children }) => {
         body: JSON.stringify({
           idToken: googleUser.idToken || googleUser.credential,
           accessToken: googleUser.accessToken,
+          mode: mode,
           profile: googleUser.profile || {
             email: normalizedEmail,
             name: googleUser.name,
@@ -468,6 +522,16 @@ export const AppProvider = ({ children }) => {
           }
         })
       });
+
+      if (res.status === 409) {
+        const conflictData = await res.json();
+        return {
+          success: false,
+          code: 'DUPLICATE_EMAIL',
+          message: conflictData.message || 'An account with this email address already exists. Please sign in to your existing account.'
+        };
+      }
+
       const data = await res.json();
       if (data?.success && data?.user) {
         backendUser = data.user;
@@ -593,210 +657,134 @@ export const AppProvider = ({ children }) => {
       };
     }
 
-    const db = getCandidateDB();
-    const existing = db[normalizedEmail] || {};
+    const inputDigits = String(data.phone || '').replace(/\D/g, '');
 
-    if (existing && existing.isRegistered) {
-      return {
-        success: false,
-        message: 'An account with this email is already registered. Please sign in.'
-      };
-    }
+    // 1. Instant Client-Side Duplicate Verification (prevents duplicate entry in same browser)
+    try {
+      const db = getCandidateDB();
+      if (db[normalizedEmail] && db[normalizedEmail].isRegistered) {
+        return {
+          success: false,
+          error: 'duplicate_email',
+          field: 'email',
+          message: 'An account with this email address already exists. Please sign in to your existing account.'
+        };
+      }
 
-    // Check duplicate phone number in local candidate database
-    const inputDigits = (data.phone || '').replace(/\D/g, '');
-    if (inputDigits.length >= 7) {
-      const matchSuffix = inputDigits.slice(-7);
-      for (const [em, c] of Object.entries(db)) {
-        if (c && c.isRegistered && c.phone) {
-          const cDigits = c.phone.replace(/\D/g, '');
-          if (cDigits && cDigits.slice(-7) === matchSuffix) {
-            return {
-              success: false,
-              message: 'An account with this phone number is already registered. Please sign in.'
-            };
+      if (inputDigits.length >= 7) {
+        const matchSuffix = inputDigits.slice(-7);
+        for (const [em, c] of Object.entries(db)) {
+          if (c && c.isRegistered && c.phone) {
+            const cDigits = String(c.phone).replace(/\D/g, '');
+            if (cDigits && cDigits.slice(-7) === matchSuffix) {
+              return {
+                success: false,
+                error: 'duplicate_phone',
+                field: 'phone',
+                message: 'An account with this phone number is already registered. Please sign in using your existing account.'
+              };
+            }
           }
         }
       }
-    }
 
-    // Verify candidate does not already exist in SQLite server database
-    try {
-      const checkRes = await fetch('/api/candidate/check-exists', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ email: normalizedEmail, phone: data.phone })
-      });
-      if (checkRes.ok) {
-        const checkData = await checkRes.json();
-        if (checkData.exists) {
-          return {
-            success: false,
-            message: checkData.message || (checkData.field === 'phone'
-              ? 'An account with this phone number is already registered. Please sign in.'
-              : 'An account with this email is already registered. Please sign in.')
-          };
+      // Check CRM candidate list cache in localStorage
+      const crmListStr = localStorage.getItem('crm_candidates');
+      if (crmListStr) {
+        const crmList = JSON.parse(crmListStr);
+        if (Array.isArray(crmList)) {
+          for (const c of crmList) {
+            if (c && c.email && c.email.toLowerCase().trim() === normalizedEmail) {
+              return {
+                success: false,
+                error: 'duplicate_email',
+                field: 'email',
+                message: 'An account with this email address already exists. Please sign in to your existing account.'
+              };
+            }
+            if (c && c.phone && inputDigits.length >= 7) {
+              const cDigits = String(c.phone).replace(/\D/g, '');
+              if (cDigits && cDigits.slice(-7) === inputDigits.slice(-7)) {
+                return {
+                  success: false,
+                  error: 'duplicate_phone',
+                  field: 'phone',
+                  message: 'An account with this phone number is already registered. Please sign in using your existing account.'
+                };
+              }
+            }
+          }
         }
       }
-    } catch (checkErr) {
-      console.warn('Backend duplicate candidate check notice:', checkErr);
-    }
+    } catch (_) {}
 
-    const candidateId = existing.candidateId || ('RI-CAND-' + Math.floor(100 + Math.random() * 900));
-    const userId = existing.userId || (`USR-${Date.now().toString(36).toUpperCase()}`);
-
-    const candidateUser = {
-      ...existing,
-      id: candidateId,
-      candidateId: candidateId,
-      userId: userId,
-      name: data.fullName || existing.name || '',
-      email: normalizedEmail,
-      password: data.password,
-      phone: data.phone || existing.phone || '',
-      dob: existing.dob || '',
-      gender: existing.gender || '',
-      nationality: data.nationality || existing.nationality || '',
-      citizenship: data.citizenship || existing.citizenship || '',
-      title: data.title || existing.title || '',
-      location: data.location || existing.location || '',
-      preferredCountry: data.preferredCountry || existing.preferredCountry || '',
-      experience: data.experience || existing.experience || '',
-      qualification: data.qualification || existing.qualification || '',
-      skills: existing.skills && existing.skills.length > 0 ? existing.skills : (data.industry ? [data.industry] : []),
-      currentSalary: data.currentSalary || existing.currentSalary || '',
-      expectedSalary: data.expectedSalary || existing.expectedSalary || '',
-      noticePeriod: data.noticePeriod || existing.noticePeriod || '',
-      avatar: (existing.avatar && !existing.avatar.includes('dicebear')) ? existing.avatar : '',
-      role: 'candidate',
-      isRegistered: true,
-      resumeUploaded: !!data.resumeName || existing.resumeUploaded || false,
-      resumeName: data.resumeName || existing.resumeName || '',
-      resumeUrl: data.resumeUrl || existing.resumeUrl || null,
-      resumeSize: data.resumeSize || existing.resumeSize || null,
-      mohreAttested: existing.mohreAttested || false,
-      consentGivenAt: data.consentGivenAt || new Date().toISOString(),
-      consentVersion: data.consentVersion || 'v2.0-nov2026',
-      registeredAt: existing.registeredAt || new Date().toISOString(),
-      loginTime: new Date().toISOString()
-    };
-
-    // Clear from deleted candidates blacklist if re-registering
+    // 2. Authoritative Database-Level Duplicate Verification via Backend API
     try {
-      const deletedStr = localStorage.getItem('sir_deleted_candidates');
-      if (deletedStr) {
-        const deletedArr = JSON.parse(deletedStr);
-        if (Array.isArray(deletedArr)) {
-          const filtered = deletedArr.filter(d => d !== normalizedEmail && d !== candidateId.toLowerCase());
-          localStorage.setItem('sir_deleted_candidates', JSON.stringify(filtered));
-        }
-      }
-    } catch {}
-
-    saveCandidateToDB(candidateUser);
-    saveUserSession(candidateUser);
-    setUser(candidateUser);
-    setActiveTab('candidates');
-
-    // Post to backend Candidates API to persist into SQLite database & CRM leads
-    try {
-      await fetch('/api/candidates', {
+      const regRes = await fetch('/api/candidate/register', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          id: candidateUser.candidateId,
-          name: candidateUser.name,
-          email: candidateUser.email,
-          phone: candidateUser.phone,
-          isRegistration: true,
-          nationality: candidateUser.preferredCountry,
-          currentEmployer: 'Revival International Talent Pool',
-          currentRole: candidateUser.title,
-          currentSalary: candidateUser.currentSalary,
-          expectedSalary: candidateUser.expectedSalary,
-          noticePeriod: candidateUser.noticePeriod,
-          resumeName: candidateUser.resumeName,
-          resumeUrl: candidateUser.resumeUrl,
-          resumeSize: candidateUser.resumeSize,
-          stage: 'lead',
-          score: 85,
-          skills: candidateUser.skills,
-          source: 'Website Candidate Registration',
-          aiSummary: `Candidate registered online for ${candidateUser.preferredCountry || 'international'} opportunities.`
+          fullName: data.fullName || data.name || '',
+          email: normalizedEmail,
+          password: data.password,
+          phone: data.phone,
+          preferredCountry: data.preferredCountry,
+          nationality: data.nationality || data.preferredCountry,
+          citizenship: data.citizenship,
+          title: data.title || data.industry,
+          currentRole: data.title || data.industry,
+          currentEmployer: data.currentEmployer || 'Revival International Talent Pool',
+          experience: data.experience,
+          qualification: data.qualification,
+          education: data.education,
+          currentSalary: data.currentSalary,
+          expectedSalary: data.expectedSalary,
+          noticePeriod: data.noticePeriod,
+          skills: data.skills || (data.industry ? [data.industry] : []),
+          resumeName: data.resumeName,
+          resumeUrl: data.resumeUrl,
+          resumeSize: data.resumeSize,
+          consentGivenAt: data.consentGivenAt || new Date().toISOString(),
+          consentVersion: data.consentVersion || 'v2.0-nov2026'
         })
       });
 
-      // Synchronize to candidate_profiles table
-      fetch('/api/candidate/profile', {
-        method: 'PUT',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          candidateId: candidateUser.candidateId,
-          email: candidateUser.email,
-          fullName: candidateUser.name,
-          phone: candidateUser.phone,
-          nationality: candidateUser.nationality,
-          preferredCountry: candidateUser.preferredCountry,
-          currentRole: candidateUser.title,
-          currentEmployer: 'Revival International Talent Pool',
-          currentSalary: candidateUser.currentSalary,
-          expectedSalary: candidateUser.expectedSalary,
-          noticePeriod: candidateUser.noticePeriod,
-          resumeName: candidateUser.resumeName,
-          resumeUrl: candidateUser.resumeUrl,
-          resumeSize: candidateUser.resumeSize,
-          skills: candidateUser.skills
-        })
-      }).catch(() => {});
-
-      if (candidateUser.resumeUrl) {
-        fetch('/api/candidate/documents', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            candidateId: candidateUser.candidateId,
-            email: candidateUser.email,
-            documentType: 'Resume / CV',
-            fileName: candidateUser.resumeName || 'Candidate_CV.pdf',
-            fileUrl: candidateUser.resumeUrl
-          })
-        }).catch(() => {});
+      let regData = {};
+      try {
+        regData = await regRes.json();
+      } catch (_) {
+        regData = { message: 'Server communication error' };
       }
 
-      // Dispatch Welcome Email directly to candidate's Gmail inbox
-      fetch('/api/auth/welcome-email', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          name: candidateUser.name,
-          email: candidateUser.email,
-          phone: candidateUser.phone,
-          candidateId: candidateUser.candidateId,
-          authProvider: 'email',
-          preferredCountry: candidateUser.preferredCountry
-        })
-      }).catch(mailErr => console.warn('Welcome email trigger note:', mailErr));
+      if (!regRes.ok || !regData?.success) {
+        return {
+          success: false,
+          error: regData?.error || 'registration_blocked',
+          field: regData?.field,
+          message: regData?.message || (regRes.status === 409
+            ? 'An account with this email address or phone number already exists. Please sign in to your existing account.'
+            : 'Registration failed. Please try again.')
+        };
+      }
+
+      const candidateUser = regData.user;
+      saveCandidateToDB(candidateUser);
+      saveUserSession(candidateUser);
+      setUser(candidateUser);
+      setActiveTab('candidates');
+
+      if (crm && crm.fetchCandidates) {
+        crm.fetchCandidates();
+      }
+
+      return { success: true, user: candidateUser };
     } catch (err) {
-      console.error('Failed to sync registered candidate to backend:', err);
+      console.error('Candidate registration network error:', err);
+      return {
+        success: false,
+        message: 'Unable to connect to registration server. Please check your network and try again.'
+      };
     }
-
-    // CRM Integration: Add candidate to internal CRM database
-    if (crm && crm.addCandidate) {
-      crm.addCandidate({
-        id: candidateUser.candidateId,
-        name: candidateUser.name,
-        email: candidateUser.email,
-        phone: candidateUser.phone,
-        title: candidateUser.title,
-        status: 'Web Lead',
-        score: 85,
-        stage: 'lead',
-        nationality: candidateUser.preferredCountry,
-        skills: candidateUser.skills
-      });
-    }
-
-    return { success: true, user: candidateUser };
   };
 
   const updateUserProfile = (profileData) => {
@@ -1158,42 +1146,6 @@ export const AppProvider = ({ children }) => {
       });
     } catch (err) {
       console.warn('Failed to sync application to candidate_applications:', err);
-    }
-
-    // Also mirror to legacy /api/candidates for CRM recruiters
-    try {
-      await fetch('/api/candidates', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          id: cid,
-          name: applicantName,
-          email: userEmail,
-          phone: applicantPhone,
-          nationality: user?.nationality || user?.preferredCountry || job.country || 'UAE',
-          citizenship: user?.citizenship,
-          currentEmployer: 'Revival International Candidate',
-          currentRole: job.title,
-          expectedSalary: expectedSalary,
-          source: `Applied for: ${job.title} (${job.company})`,
-          stage: 'applied',
-          score: 90,
-          skills: user?.skills && user.skills.length > 0 ? user.skills : (job.skills || ['Executive Candidate']),
-          aiSummary: `Candidate applied for ${job.title} at ${job.company}. Submitted CV: ${resumeName || 'Attached'}`,
-          resumeName,
-          resumeUrl,
-          resumeSize,
-          dob: user?.dob,
-          gender: user?.gender,
-          location: user?.location,
-          preferredCountry: user?.preferredCountry,
-          education: user?.qualification || user?.education,
-          mohreAttested: user?.mohreAttested,
-          avatar: user?.avatar
-        })
-      });
-    } catch (err) {
-      console.warn('Failed to sync application to CRM:', err);
     }
   };
 

@@ -28,14 +28,14 @@ export const CandidateAuth = () => {
     agreeTerms: true
   });
 
-  const handleLoginSubmit = (e) => {
+  const handleLoginSubmit = async (e) => {
     e.preventDefault();
     setError('');
     if (!loginData.email || !loginData.password) {
       setError('Please provide both email and password.');
       return;
     }
-    const result = loginCandidate(loginData.email, loginData.password);
+    const result = await loginCandidate(loginData.email, loginData.password);
     if (!result || !result.success) {
       setError(result?.message || 'No registered candidate account found with this email. Please register first.');
       return;
@@ -201,8 +201,18 @@ export const CandidateAuth = () => {
           </div>
 
           {error && (
-            <div className="mb-4 p-3 bg-rose-500/10 border border-rose-500/30 rounded-xl text-rose-600 dark:text-rose-300 text-xs font-medium">
-              {error}
+            <div className="mb-4 p-4 bg-amber-500/10 dark:bg-amber-950/30 border-2 border-amber-500/40 rounded-2xl text-slate-800 dark:text-slate-100 text-xs font-semibold shadow-sm animate-in fade-in duration-200">
+              <div className="flex items-start justify-between gap-3">
+                <p className="text-amber-950 dark:text-amber-100 font-bold text-xs sm:text-sm leading-snug">
+                  {error}
+                </p>
+                <button
+                  onClick={() => setError('')}
+                  className="p-1 text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 cursor-pointer rounded-lg hover:bg-slate-200/50 dark:hover:bg-navy-800 shrink-0"
+                >
+                  <span className="text-sm font-bold">✕</span>
+                </button>
+              </div>
             </div>
           )}
 

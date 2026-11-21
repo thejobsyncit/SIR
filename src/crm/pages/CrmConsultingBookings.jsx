@@ -13,6 +13,7 @@ import {
 export const CrmConsultingBookings = () => {
   const {
     leads = [],
+    isDummyLead,
     loadingLeads,
     fetchLeads,
     updateLead,
@@ -143,7 +144,7 @@ export const CrmConsultingBookings = () => {
 
   // Filter leads to include all consulting, academic advisory, and direct consultation bookings
   const isConsultingLead = (l) => {
-    if (!l) return false;
+    if (!l || (isDummyLead && isDummyLead(l))) return false;
     const sId = (l.serviceId || '').toLowerCase();
     const title = (l.serviceTitle || '').toLowerCase();
     const msg = (l.message || '').toLowerCase();

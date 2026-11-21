@@ -4,7 +4,8 @@ import {
   Users, Search, Plus, Sparkles, FileText, CheckCircle2, Shield, Eye,
   Filter, X, Trash2, Download, ExternalLink, Mail, Phone, MapPin, Globe,
   Calendar, Briefcase, GraduationCap, Clock, Building, Award, Check,
-  FileCheck, ChevronDown, ChevronUp, RotateCcw, AlertCircle, RefreshCw
+  FileCheck, ChevronDown, ChevronUp, RotateCcw, AlertCircle, RefreshCw,
+  LayoutGrid, List, ArrowUpDown, SlidersHorizontal, Star
 } from 'lucide-react';
 import { CrmAddCandidateModal } from '../components/CrmAddCandidateModal';
 import ScrollReveal from '../../components/ScrollReveal';
@@ -33,9 +34,7 @@ const isDummyCandidate = (c) => {
   if (email.includes('example.com') || email.includes('mailinator') || email.includes('trashuser') || 
       email.includes('domain.com') || email.includes('candidate_test') || email.includes('candidate.fresh') ||
       email === 'johnny@gmail.com' || email === 'real.candidate.test@gmail.com' ||
-      email === 'candidate.verify@gmail.com' || email === 'paviseetha21@gmail.com' ||
-      email === 'kennedy@gmail.com' || email === 'instant@gmail.com' ||
-      email === 'dhana.jasync@gmail.com') return true;
+      email === 'candidate.verify@gmail.com') return true;
   return false;
 };
 
@@ -59,6 +58,54 @@ const formatCandidateDateTime = (dateStr) => {
     return `${dateFormatted} • ${timeFormatted}`;
   } catch {
     return dateStr;
+  }
+};
+
+// Sanitizes AI summary so job application logs never leak into candidate profiles
+const getCleanAiSummary = (cand) => {
+  if (!cand) return '';
+  const summary = cand.aiSummary || '';
+  if (!summary || summary.toLowerCase().includes('applied for') || summary.includes('Submitted CV:')) {
+    const isGoogle = (cand.source && cand.source.includes('Google')) || (cand.email && cand.email.toLowerCase().includes('gmail'));
+    return isGoogle
+      ? 'Candidate verified via Google OAuth 2.0 OpenID Connect.'
+      : 'Registered Candidate profile verified with international credentials.';
+  }
+  return summary;
+};
+
+// Sanitizes candidate role to ensure applied job titles do not overwrite professional profile credentials
+const getCleanCandidateRole = (cand) => {
+  if (!cand) return 'Executive Candidate';
+  const role = cand.currentRole || '';
+  if (!role || role.toLowerCase().startsWith('applied for:') || role.includes(' - Luxury Resort')) {
+    return 'Executive Candidate';
+  }
+  return role;
+};
+
+// Sanitizes employer to ensure hiring vacancy companies do not overwrite candidate's registered organization
+const getCleanCandidateEmployer = (cand) => {
+  if (!cand) return 'Revival International Candidate';
+  const emp = cand.currentEmployer || '';
+  if (!emp || emp === 'Atlantis Resorts & Hotels' || emp.toLowerCase().includes('resort')) {
+    return 'Revival International Candidate';
+  }
+  return emp;
+};
+
+// Extracts numeric milliseconds timestamp for strict descending sorting (#1 latest)
+const getCandidateTimestamp = (cand) => {
+  if (!cand) return 0;
+  const raw = cand.createdAt || cand.registeredAt || cand.updatedAt;
+  if (!raw) return 0;
+  try {
+    const str = String(raw).trim();
+    const iso = str.includes('T') ? str : str.replace(' ', 'T') + 'Z';
+    const t = new Date(iso).getTime();
+    return isNaN(t) ? (new Date(str).getTime() || 0) : t;
+  } catch {
+    return 0;
   }
 };
 
@@ -101,6 +148,7 @@ const matchesTimeframe = (dateStr, timeframe) => {
 export const CrmCandidates = () => {
   const {
     candidates = [],
+    loadingCandidates = false,
     applications = [],
     setActiveModule,
     setAiDrawerOpen,
@@ -114,6 +162,11 @@ export const CrmCandidates = () => {
 
   const [searchTerm, setSearchTerm] = useState('');
   const [timeframe, setTimeframe] = useState('all'); // 'all' | 'day' | 'week' | 'month' | 'year'
+  const [sortBy, setSortBy] = useState('newest'); // 'newest' | 'oldest' | 'name' | 'score'
+  const [roleFilter, setRoleFilter] = useState('all');
+  const [cvFilter, setCvFilter] = useState('all'); // 'all' | 'with_cv'
+  const [scoreFilter, setScoreFilter] = useState('all'); // 'all' | 'high'
+  const [viewMode, setViewMode] = useState('grid'); // 'grid' | 'table'
   const [viewCand, setViewCand] = useState(null);
   const [deleteConfirmCand, setDeleteConfirmCand] = useState(null);
   const [isDeleting, setIsDeleting] = useState(false);
@@ -196,80 +249,18 @@ export const CrmCandidates = () => {
     }
   };
 
-  // Dynamic Candidate Pool: Merges context candidates with any portal-registered candidate from localStorage
+  // Centralized Candidate Pool: Sourced directly from production database (Pure registered profiles)
   const candidatePool = useMemo(() => {
-    // 0. Deleted candidates set
-    const deletedSet = new Set();
-    try {
-      const deletedStr = localStorage.getItem('sir_deleted_candidates');
-      if (deletedStr) {
-        const arr = JSON.parse(deletedStr);
-        if (Array.isArray(arr)) {
-          arr.forEach(d => {
-            if (d) deletedSet.add(String(d).toLowerCase().trim());
-          });
-        }
-      }
-    } catch {}
-
-    const pool = (candidates || []).filter(c => {
+    return (candidates || []).filter(c => {
       if (!c || isDummyCandidate(c)) return false;
-      const id = (c.id || '').toLowerCase().trim();
-      const email = (c.email || '').toLowerCase().trim();
-      if (deletedSet.has(id) || deletedSet.has(email)) return false;
+      // Filter out pure job application submissions that do not belong to a registered profile
+      const isJobAppOnly = c.source === 'Quick Apply / Job Application' || (c.source && c.source.startsWith('Applied for:'));
+      if (isJobAppOnly && !c.userId && !c.registeredAt && !c.createdAt) {
+        return false;
+      }
       return true;
     });
-
-    const seenEmails = new Set(pool.map(c => (c.email || '').toLowerCase().trim()).filter(Boolean));
-    const seenIds = new Set(pool.map(c => c.id).filter(Boolean));
-
-    try {
-      const localDbStr = localStorage.getItem('sir_candidates_db');
-      if (localDbStr) {
-        const localDb = JSON.parse(localDbStr);
-        for (const [email, cand] of Object.entries(localDb)) {
-          const cleanEmail = (email || '').toLowerCase().trim();
-          const cleanId = (cand.candidateId || cand.id || '').trim();
-          if (cleanEmail && cand.isRegistered && !seenEmails.has(cleanEmail) && !isDummyCandidate(cand)) {
-            if (deletedSet.has(cleanEmail) || (cleanId && deletedSet.has(cleanId.toLowerCase()))) {
-              continue; // Exclude deleted
-            }
-            seenEmails.add(cleanEmail);
-            const resolvedId = cleanId && !seenIds.has(cleanId) ? cleanId : ('RI-CAND-' + Math.floor(100 + Math.random() * 900));
-            seenIds.add(resolvedId);
-
-            pool.push({
-              id: resolvedId,
-              name: cand.name || cand.fullName || 'Candidate',
-              email: cand.email || cleanEmail,
-              phone: cand.phone || '',
-              nationality: cand.nationality || cand.preferredCountry || 'UAE',
-              currentEmployer: cand.currentEmployer || 'Revival International Candidate',
-              currentRole: cand.title || cand.currentRole || 'Executive Candidate',
-              currentSalary: cand.currentSalary || '',
-              expectedSalary: cand.expectedSalary || '',
-              noticePeriod: cand.noticePeriod || 'Immediate',
-              score: cand.score || 92,
-              stage: cand.stage || 'lead',
-              skills: Array.isArray(cand.skills) ? cand.skills : [],
-              source: 'Candidate Portal Registration',
-              passport: 'Verified',
-              aiSummary: `Portal registered candidate (${cand.email || cleanEmail}).`,
-              experience: cand.experience || '3-5 Years',
-              avatar: cand.avatar || null,
-              resumeName: cand.resumeName || null,
-              resumeUrl: cand.resumeUrl || null,
-              resumeSize: cand.resumeSize || null,
-              assignedRecruiter: 'Dhanalakshimi (Lead Advisor)',
-              createdAt: cand.registeredAt || cand.createdAt || new Date().toISOString()
-            });
-          }
-        }
-      }
-    } catch {}
-
-    return pool;
-  }, [candidates, syncTick]);
+  }, [candidates]);
 
   // Enriched active candidate object for detail view
   const activeCand = useMemo(() => {
@@ -328,8 +319,9 @@ export const CrmCandidates = () => {
       citizenship: (enriched.citizenship && enriched.citizenship.trim() !== '') ? enriched.citizenship : 'Not specified',
       location: (enriched.location && enriched.location.trim() !== '') ? enriched.location : 'Not specified',
       preferredCountry: (enriched.preferredCountry && enriched.preferredCountry.trim() !== '') ? enriched.preferredCountry : 'Not specified',
-      currentRole: (enriched.currentRole && enriched.currentRole.trim() !== '') ? enriched.currentRole : 'Executive Candidate',
-      currentEmployer: (enriched.currentEmployer && enriched.currentEmployer.trim() !== '') ? enriched.currentEmployer : 'Revival International Candidate',
+      currentRole: getCleanCandidateRole(enriched),
+      currentEmployer: getCleanCandidateEmployer(enriched),
+      aiSummary: getCleanAiSummary(enriched),
       experience: (enriched.experience && enriched.experience.trim() !== '') ? enriched.experience : 'Not specified',
       education: (enriched.education || enriched.qualification || 'Not specified'),
       qualification: (enriched.qualification || enriched.education || 'Not specified'),
@@ -345,7 +337,7 @@ export const CrmCandidates = () => {
         ? enriched.skills
         : ['International Mobility', 'Executive Candidate', 'Global Mandates']
     };
-  }, [viewCand, candidates]);
+  }, [viewCand, candidates, candidatePool]);
 
   // Helper to ensure candidate has their full uploaded CV from all available stores
   const resolveCandidateWithResume = (cand) => {
@@ -479,9 +471,21 @@ export const CrmCandidates = () => {
     );
   };
 
-  // Pure Candidate Profiles: Filtered exclusively by Timeframe and Search Keyword
+  // Dynamically extract distinct candidate roles for fast recruiter filtering
+  const availableRoles = useMemo(() => {
+    const roles = new Set();
+    (candidatePool || []).forEach(c => {
+      const cleanRole = getCleanCandidateRole(c);
+      if (cleanRole && cleanRole.trim() && cleanRole.trim() !== 'Executive Candidate') {
+        roles.add(cleanRole.trim());
+      }
+    });
+    return Array.from(roles).sort();
+  }, [candidatePool]);
+
+  // Pure Candidate Profiles: Filtered & Strictly Ordered (Newest First #1 by default)
   const filtered = useMemo(() => {
-    return candidatePool.filter(c => {
+    const list = candidatePool.filter(c => {
       // Exclude any legacy mock/dummy candidate profiles
       if (isDummyCandidate(c)) return false;
 
@@ -494,13 +498,50 @@ export const CrmCandidates = () => {
       // 2. Search Term Filter across profile credentials
       if (searchTerm.trim()) {
         const q = searchTerm.toLowerCase();
-        const candStr = `${c.name || ''} ${c.email || ''} ${c.phone || ''} ${c.currentRole || ''} ${c.currentEmployer || ''} ${c.nationality || ''} ${c.citizenship || ''} ${c.location || ''} ${c.id || ''} ${Array.isArray(c.skills) ? c.skills.join(' ') : ''}`.toLowerCase();
+        const role = getCleanCandidateRole(c);
+        const emp = getCleanCandidateEmployer(c);
+        const summary = getCleanAiSummary(c);
+        const candStr = `${c.name || ''} ${c.email || ''} ${c.phone || ''} ${role} ${emp} ${summary} ${c.nationality || ''} ${c.citizenship || ''} ${c.location || ''} ${c.id || ''} ${Array.isArray(c.skills) ? c.skills.join(' ') : ''}`.toLowerCase();
         if (!candStr.includes(q)) return false;
+      }
+
+      // 3. Role / Industry Filter
+      if (roleFilter !== 'all') {
+        const role = getCleanCandidateRole(c).trim().toLowerCase();
+        if (role !== roleFilter.toLowerCase()) return false;
+      }
+
+      // 4. CV Availability Filter
+      if (cvFilter === 'with_cv') {
+        const hasCv = !!(c.resumeUrl || c.resumeName || c.fileUrl);
+        if (!hasCv) return false;
+      }
+
+      // 5. High Score Filter (>85%)
+      if (scoreFilter === 'high') {
+        if ((c.score || 0) < 85) return false;
       }
 
       return true;
     });
-  }, [candidatePool, timeframe, searchTerm]);
+
+    // 6. Strict Ordering: Whoever registered last appears #1 (Newest First)
+    return list.sort((a, b) => {
+      if (sortBy === 'newest') {
+        return getCandidateTimestamp(b) - getCandidateTimestamp(a);
+      }
+      if (sortBy === 'oldest') {
+        return getCandidateTimestamp(a) - getCandidateTimestamp(b);
+      }
+      if (sortBy === 'name') {
+        return (a.name || '').localeCompare(b.name || '');
+      }
+      if (sortBy === 'score') {
+        return (b.score || 0) - (a.score || 0);
+      }
+      return getCandidateTimestamp(b) - getCandidateTimestamp(a);
+    });
+  }, [candidatePool, timeframe, searchTerm, roleFilter, cvFilter, scoreFilter, sortBy]);
 
   const timeframeCounts = useMemo(() => {
     const valid = candidatePool.filter(c => !isDummyCandidate(c));
@@ -589,22 +630,117 @@ export const CrmCandidates = () => {
         </div>
       )}
 
-      {/* TIMEFRAME FILTER BAR & KEYWORD SEARCH (Replaces Clunky 8 Dropdowns) */}
+      {/* ADVANCED RECRUITER FILTER & SEARCH BAR */}
       <ScrollReveal>
         <div className="bg-white dark:bg-navy-900 border border-slate-200 dark:border-navy-800 p-5 rounded-3xl shadow-sm space-y-4">
-          <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
+          
+          {/* Top Row: Search Input + Sort Dropdown + View Toggle */}
+          <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-3">
             
-            {/* Timeframe Filter Tabs (Day, Weekly, Monthly, Yearly, All) */}
-            <div className="flex flex-wrap items-center gap-2">
-              <span className="text-[11px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider flex items-center gap-1.5 mr-1">
+            {/* Search Input with Clear & Counter */}
+            <div className="relative flex-1">
+              <Search className="w-4 h-4 absolute left-3.5 top-3.5 text-gold-500 pointer-events-none" />
+              <input
+                type="text"
+                placeholder="Search candidates by name, email, phone, role, skills, nationality, or Candidate ID..."
+                value={searchTerm}
+                onChange={e => setSearchTerm(e.target.value)}
+                className="w-full pl-10 pr-24 py-2.5 sm:py-3 bg-slate-50 dark:bg-navy-950 border border-slate-200 dark:border-navy-700 rounded-2xl text-xs font-semibold text-slate-900 dark:text-white placeholder:text-slate-400 focus:outline-none focus:border-gold-500 focus:ring-1 focus:ring-gold-500 shadow-inner"
+              />
+              <div className="absolute right-3 top-2.5 sm:top-3 flex items-center gap-1.5">
+                {searchTerm && (
+                  <button
+                    onClick={() => setSearchTerm('')}
+                    className="p-1 text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 cursor-pointer rounded-full hover:bg-slate-200 dark:hover:bg-navy-800"
+                    title="Clear search"
+                  >
+                    <X className="w-3.5 h-3.5" />
+                  </button>
+                )}
+                <span className="text-[10px] font-mono font-bold px-2 py-0.5 rounded-full bg-slate-200/80 dark:bg-navy-800 text-slate-600 dark:text-slate-300">
+                  {filtered.length} found
+                </span>
+              </div>
+            </div>
+
+            {/* Controls: Sort Order & View Mode */}
+            <div className="flex flex-wrap items-center gap-2.5 shrink-0">
+              
+              {/* Sort Order Selector (Defaults to Newest Registered First #1) */}
+              <div className="flex items-center gap-1.5 bg-slate-50 dark:bg-navy-950 border border-slate-200 dark:border-navy-700 rounded-2xl px-3 py-2 shadow-xs">
+                <ArrowUpDown className="w-3.5 h-3.5 text-gold-500 shrink-0" />
+                <span className="text-[11px] font-bold text-slate-500 dark:text-slate-400 whitespace-nowrap">Order:</span>
+                <select
+                  value={sortBy}
+                  onChange={(e) => setSortBy(e.target.value)}
+                  className="bg-transparent font-bold text-xs text-slate-900 dark:text-white focus:outline-none cursor-pointer pr-1"
+                >
+                  <option value="newest" className="dark:bg-navy-900">✦ Newest Registered First (#1 Latest)</option>
+                  <option value="oldest" className="dark:bg-navy-900">Oldest Registered First</option>
+                  <option value="name" className="dark:bg-navy-900">Candidate Name (A - Z)</option>
+                  <option value="score" className="dark:bg-navy-900">Highest Profile Match Score</option>
+                </select>
+              </div>
+
+              {/* View Mode Toggle (Grid Cards vs Compact Table) */}
+              <div className="flex items-center bg-slate-100 dark:bg-navy-800 p-1 rounded-2xl border border-slate-200 dark:border-navy-700">
+                <button
+                  type="button"
+                  onClick={() => setViewMode('grid')}
+                  className={`p-1.5 rounded-xl transition cursor-pointer flex items-center gap-1 text-xs font-bold ${
+                    viewMode === 'grid'
+                      ? 'bg-white dark:bg-navy-950 text-gold-600 dark:text-gold-400 shadow-sm'
+                      : 'text-slate-500 dark:text-slate-400 hover:text-slate-700'
+                  }`}
+                  title="Grid Cards View"
+                >
+                  <LayoutGrid className="w-4 h-4" />
+                  <span className="hidden sm:inline text-[11px]">Cards</span>
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setViewMode('table')}
+                  className={`p-1.5 rounded-xl transition cursor-pointer flex items-center gap-1 text-xs font-bold ${
+                    viewMode === 'table'
+                      ? 'bg-white dark:bg-navy-950 text-gold-600 dark:text-gold-400 shadow-sm'
+                      : 'text-slate-500 dark:text-slate-400 hover:text-slate-700'
+                  }`}
+                  title="Compact Table List View (Easy Multi-Profile Pick)"
+                >
+                  <List className="w-4 h-4" />
+                  <span className="hidden sm:inline text-[11px]">List</span>
+                </button>
+              </div>
+            </div>
+
+          </div>
+
+          {/* Bottom Row: Timeframe Pills, Role Filter & Quick Presets */}
+          <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-3 pt-3 border-t border-slate-100 dark:border-navy-800">
+            
+            {/* Filter Timeframe Buttons */}
+            <div className="flex flex-wrap items-center gap-1.5">
+              <span className="text-[11px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider flex items-center gap-1 mr-1">
                 <Calendar className="w-3.5 h-3.5 text-gold-500" />
-                <span>Filter Timeframe:</span>
+                <span>Timeframe:</span>
               </span>
 
               <button
                 type="button"
+                onClick={() => setTimeframe('all')}
+                className={`px-3 py-1.5 rounded-xl font-bold text-xs transition cursor-pointer flex items-center gap-1.5 ${
+                  timeframe === 'all'
+                    ? 'bg-navy-900 text-white dark:bg-white dark:text-navy-950 shadow-sm'
+                    : 'bg-slate-100 hover:bg-slate-200 dark:bg-navy-800 dark:hover:bg-navy-700 text-slate-700 dark:text-slate-300'
+                }`}
+              >
+                <span>All Time ({timeframeCounts.all})</span>
+              </button>
+
+              <button
+                type="button"
                 onClick={() => setTimeframe('day')}
-                className={`px-3.5 py-1.5 rounded-xl font-bold text-xs transition cursor-pointer flex items-center gap-1.5 ${
+                className={`px-3 py-1.5 rounded-xl font-bold text-xs transition cursor-pointer flex items-center gap-1.5 ${
                   timeframe === 'day'
                     ? 'bg-gold-500 text-navy-950 shadow-gold-glow'
                     : 'bg-slate-100 hover:bg-slate-200 dark:bg-navy-800 dark:hover:bg-navy-700 text-slate-700 dark:text-slate-300'
@@ -623,7 +759,7 @@ export const CrmCandidates = () => {
               <button
                 type="button"
                 onClick={() => setTimeframe('week')}
-                className={`px-3.5 py-1.5 rounded-xl font-bold text-xs transition cursor-pointer flex items-center gap-1.5 ${
+                className={`px-3 py-1.5 rounded-xl font-bold text-xs transition cursor-pointer flex items-center gap-1.5 ${
                   timeframe === 'week'
                     ? 'bg-gold-500 text-navy-950 shadow-gold-glow'
                     : 'bg-slate-100 hover:bg-slate-200 dark:bg-navy-800 dark:hover:bg-navy-700 text-slate-700 dark:text-slate-300'
@@ -642,7 +778,7 @@ export const CrmCandidates = () => {
               <button
                 type="button"
                 onClick={() => setTimeframe('month')}
-                className={`px-3.5 py-1.5 rounded-xl font-bold text-xs transition cursor-pointer flex items-center gap-1.5 ${
+                className={`px-3 py-1.5 rounded-xl font-bold text-xs transition cursor-pointer flex items-center gap-1.5 ${
                   timeframe === 'month'
                     ? 'bg-gold-500 text-navy-950 shadow-gold-glow'
                     : 'bg-slate-100 hover:bg-slate-200 dark:bg-navy-800 dark:hover:bg-navy-700 text-slate-700 dark:text-slate-300'
@@ -661,7 +797,7 @@ export const CrmCandidates = () => {
               <button
                 type="button"
                 onClick={() => setTimeframe('year')}
-                className={`px-3.5 py-1.5 rounded-xl font-bold text-xs transition cursor-pointer flex items-center gap-1.5 ${
+                className={`px-3 py-1.5 rounded-xl font-bold text-xs transition cursor-pointer flex items-center gap-1.5 ${
                   timeframe === 'year'
                     ? 'bg-gold-500 text-navy-950 shadow-gold-glow'
                     : 'bg-slate-100 hover:bg-slate-200 dark:bg-navy-800 dark:hover:bg-navy-700 text-slate-700 dark:text-slate-300'
@@ -676,83 +812,107 @@ export const CrmCandidates = () => {
                   </span>
                 )}
               </button>
-
-              <button
-                type="button"
-                onClick={() => setTimeframe('all')}
-                className={`px-3.5 py-1.5 rounded-xl font-bold text-xs transition cursor-pointer flex items-center gap-1.5 ${
-                  timeframe === 'all'
-                    ? 'bg-navy-900 text-white dark:bg-white dark:text-navy-950 shadow-sm'
-                    : 'bg-slate-100 hover:bg-slate-200 dark:bg-navy-800 dark:hover:bg-navy-700 text-slate-700 dark:text-slate-300'
-                }`}
-              >
-                <span>All Time ({timeframeCounts.all})</span>
-              </button>
             </div>
 
-            {/* Reset Filter Button */}
-            {(timeframe !== 'all' || searchTerm.trim() !== '') && (
+            {/* Quick Filter Badges: CV Attached & Role Filter & Reset */}
+            <div className="flex flex-wrap items-center gap-2">
+              
+              {/* CV Attached Toggle Pill */}
               <button
                 type="button"
-                onClick={() => {
-                  setTimeframe('all');
-                  setSearchTerm('');
-                }}
-                className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-slate-100 hover:bg-slate-200 dark:bg-navy-800 dark:hover:bg-navy-700 text-slate-600 dark:text-slate-300 hover:text-rose-600 dark:hover:text-rose-400 font-bold transition cursor-pointer text-xs self-start md:self-auto"
+                onClick={() => setCvFilter(cvFilter === 'with_cv' ? 'all' : 'with_cv')}
+                className={`px-3 py-1.5 rounded-xl text-xs font-bold transition cursor-pointer flex items-center gap-1.5 border ${
+                  cvFilter === 'with_cv'
+                    ? 'bg-emerald-500/20 text-emerald-700 dark:text-emerald-400 border-emerald-500/40 shadow-xs'
+                    : 'bg-slate-50 dark:bg-navy-950 text-slate-600 dark:text-slate-400 border-slate-200 dark:border-navy-700 hover:bg-slate-100'
+                }`}
               >
-                <RotateCcw className="w-3.5 h-3.5" />
-                <span>Reset Filters</span>
+                <FileText className="w-3.5 h-3.5 text-emerald-500" />
+                <span>CV Attached Only</span>
               </button>
-            )}
+
+              {/* Role Dropdown Filter */}
+              {availableRoles.length > 0 && (
+                <div className="flex items-center gap-1 bg-slate-50 dark:bg-navy-950 border border-slate-200 dark:border-navy-700 rounded-xl px-2.5 py-1.5">
+                  <Briefcase className="w-3.5 h-3.5 text-gold-500 shrink-0" />
+                  <select
+                    value={roleFilter}
+                    onChange={(e) => setRoleFilter(e.target.value)}
+                    className="bg-transparent text-xs font-bold text-slate-800 dark:text-white focus:outline-none cursor-pointer max-w-[140px] truncate"
+                  >
+                    <option value="all" className="dark:bg-navy-900">All Roles</option>
+                    {availableRoles.map(role => (
+                      <option key={role} value={role} className="dark:bg-navy-900">{role}</option>
+                    ))}
+                  </select>
+                </div>
+              )}
+
+              {/* Reset All Filters Button */}
+              {(timeframe !== 'all' || searchTerm.trim() !== '' || roleFilter !== 'all' || cvFilter !== 'all' || sortBy !== 'newest') && (
+                <button
+                  type="button"
+                  onClick={() => {
+                    setTimeframe('all');
+                    setSearchTerm('');
+                    setRoleFilter('all');
+                    setCvFilter('all');
+                    setSortBy('newest');
+                  }}
+                  className="flex items-center gap-1 px-2.5 py-1.5 rounded-xl bg-rose-500/10 hover:bg-rose-500/20 text-rose-600 dark:text-rose-400 font-bold transition cursor-pointer text-xs border border-rose-500/30"
+                  title="Reset all search & filters"
+                >
+                  <RotateCcw className="w-3 h-3" />
+                  <span>Reset</span>
+                </button>
+              )}
+
+            </div>
+
           </div>
 
-          {/* Quick Keyword Search Input */}
-          <div className="relative">
-            <Search className="w-4 h-4 absolute left-3.5 top-3.5 text-slate-400" />
-            <input
-              type="text"
-              placeholder="Search candidates by name, verified email, phone number, professional role, skills, nationality, or Candidate ID..."
-              value={searchTerm}
-              onChange={e => setSearchTerm(e.target.value)}
-              className="w-full pl-10 pr-4 py-3 bg-slate-50 dark:bg-navy-950 border border-slate-200 dark:border-navy-700 rounded-2xl text-xs font-semibold text-slate-900 dark:text-white placeholder:text-slate-400 focus:outline-none focus:border-gold-500 shadow-inner"
-            />
-            {searchTerm && (
-              <button
-                onClick={() => setSearchTerm('')}
-                className="absolute right-3.5 top-3.5 text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 cursor-pointer"
-              >
-                <X className="w-4 h-4" />
-              </button>
-            )}
-          </div>
         </div>
       </ScrollReveal>
 
-      {/* Profiles Count Banner */}
+      {/* Profiles Count Banner & Active Filter Indicators */}
       <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center px-1 gap-2">
-        <h3 className="font-serif text-base font-bold text-slate-900 dark:text-white flex items-center gap-2">
-          <span>Registered Profiles:</span>
-          <span className="text-amber-600 dark:text-gold-400 font-extrabold">{filtered.length} Candidates</span>
-          {timeframe !== 'all' && (
-            <span className="text-xs font-sans font-semibold text-slate-500 dark:text-slate-400">
-              ({timeframe === 'day' ? 'Today' : timeframe === 'week' ? 'This Week' : timeframe === 'month' ? 'This Month' : 'This Year'})
+        <div className="flex items-center gap-2">
+          <h3 className="font-serif text-base font-bold text-slate-900 dark:text-white flex items-center gap-2">
+            <span>Registered Profiles:</span>
+            <span className="text-amber-600 dark:text-gold-400 font-extrabold">
+              {loadingCandidates ? 'Synchronizing...' : `${filtered.length} Candidates`}
             </span>
-          )}
-        </h3>
+          </h3>
+          <span className="text-xs font-sans font-semibold text-slate-500 dark:text-slate-400">
+            • Sorted by: <strong className="text-gold-600 dark:text-gold-400 font-bold">{sortBy === 'newest' ? 'Newest Registered First (#1)' : sortBy === 'oldest' ? 'Oldest Registered First' : sortBy === 'name' ? 'Name A-Z' : 'Score'}</strong>
+          </span>
+        </div>
         <span className="text-[11px] text-slate-400 font-mono">
           Pure Candidate Profiles • Job Applications Managed Separately
         </span>
       </div>
 
-      {/* CANDIDATES PROFILE CARDS GRID (PURE CANDIDATE PROFILES ONLY) */}
+      {/* CANDIDATES PROFILE CARDS / TABLE (PURE CANDIDATE PROFILES ONLY) */}
       <ScrollReveal>
-        {filtered.length === 0 ? (
+        {loadingCandidates ? (
+          <div className="bg-white dark:bg-navy-900 border border-slate-200 dark:border-navy-800 rounded-3xl p-16 text-center space-y-4 shadow-sm">
+            <div className="w-14 h-14 rounded-2xl bg-amber-500/10 text-amber-500 flex items-center justify-center mx-auto">
+              <RefreshCw className="w-7 h-7 animate-spin" />
+            </div>
+            <h3 className="font-serif text-base font-bold text-slate-900 dark:text-white">
+              Synchronizing Candidate Profiles...
+            </h3>
+            <p className="text-xs text-slate-500 dark:text-slate-400 max-w-sm mx-auto">
+              Fetching verified profiles from centralized database.
+            </p>
+          </div>
+        ) : filtered.length === 0 ? (
           <div className="bg-white dark:bg-navy-900 border border-slate-200 dark:border-navy-800 rounded-3xl p-12 text-center space-y-3">
             <div className="w-16 h-16 rounded-2xl bg-amber-500/10 text-amber-500 flex items-center justify-center mx-auto">
               <Users className="w-8 h-8" />
             </div>
             <h3 className="font-serif text-lg font-bold text-slate-900 dark:text-white">
-              No Registered Candidates in this Timeframe
+              No Registered Candidates Matching Filters
             </h3>
             <p className="text-xs text-slate-500 dark:text-slate-400 max-w-md mx-auto">
               No candidates found matching the selected timeframe ({timeframe}) or search query. Switch timeframe to "All Time" or reset your search.
@@ -761,15 +921,146 @@ export const CrmCandidates = () => {
               onClick={() => {
                 setTimeframe('all');
                 setSearchTerm('');
+                setRoleFilter('all');
+                setCvFilter('all');
+                setSortBy('newest');
               }}
               className="px-4 py-2 bg-gold-500 text-navy-950 font-bold rounded-xl text-xs shadow-gold-glow cursor-pointer mt-2"
             >
               View All Candidates
             </button>
           </div>
+        ) : viewMode === 'table' ? (
+          /* COMPACT LIST / TABLE VIEW FOR ULTRA-FAST PROFILE PICKING */
+          <div className="bg-white dark:bg-navy-900 border border-slate-200 dark:border-navy-800 rounded-3xl overflow-hidden shadow-sm">
+            <div className="overflow-x-auto">
+              <table className="w-full text-left text-xs border-collapse">
+                <thead>
+                  <tr className="bg-slate-50 dark:bg-navy-950 border-b border-slate-200 dark:border-navy-800 text-slate-500 dark:text-slate-400 text-[11px] font-bold uppercase tracking-wider">
+                    <th className="py-3 px-4">Order</th>
+                    <th className="py-3 px-4">Candidate Profile</th>
+                    <th className="py-3 px-4">Role & Experience</th>
+                    <th className="py-3 px-4">Contact (Email & Phone)</th>
+                    <th className="py-3 px-4">Registration Date & Time</th>
+                    <th className="py-3 px-4">Score</th>
+                    <th className="py-3 px-4">Resume / CV</th>
+                    <th className="py-3 px-4 text-right">Actions</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-slate-100 dark:divide-navy-800/60 font-medium">
+                  {filtered.map((cand, index) => {
+                    const regDateTime = cand.createdAt || cand.registeredAt || cand.updatedAt;
+                    const hasCv = !!(cand.resumeUrl || cand.resumeName);
+
+                    return (
+                      <tr 
+                        key={cand.id}
+                        onClick={() => setViewCand(cand)}
+                        className="hover:bg-slate-50/80 dark:hover:bg-navy-800/50 transition cursor-pointer group"
+                      >
+                        <td className="py-3 px-4 whitespace-nowrap">
+                          {index === 0 && sortBy === 'newest' ? (
+                            <span className="px-2 py-0.5 rounded-md bg-gradient-to-r from-amber-500 to-gold-500 text-slate-950 font-extrabold text-[10px] shadow-xs">
+                              ✦ #1 LATEST
+                            </span>
+                          ) : (
+                            <span className="px-2 py-0.5 rounded-md bg-slate-100 dark:bg-navy-800 text-slate-500 dark:text-slate-400 font-mono font-bold text-[10px]">
+                              #{index + 1}
+                            </span>
+                          )}
+                        </td>
+                        <td className="py-3 px-4">
+                          <div className="flex items-center space-x-3">
+                            {renderCandidateAvatar(cand, "w-9 h-9 text-xs shrink-0")}
+                            <div>
+                              <div className="font-bold text-slate-900 dark:text-white group-hover:text-gold-500 transition">
+                                {cand.name}
+                              </div>
+                              <div className="text-[10px] text-slate-400 font-mono">
+                                <span className="text-gold-500 font-bold">{cand.id}</span> • {cand.nationality || 'UAE'}
+                              </div>
+                            </div>
+                          </div>
+                        </td>
+                        <td className="py-3 px-4">
+                          <div className="font-semibold text-slate-800 dark:text-slate-200">{getCleanCandidateRole(cand)}</div>
+                          <div className="text-[10px] text-slate-400">{cand.experience || '3-5 Years'}</div>
+                        </td>
+                        <td className="py-3 px-4">
+                          <div className="text-slate-700 dark:text-slate-300 font-mono text-[11px]">{cand.email}</div>
+                          {cand.phone && (
+                            <div className="text-slate-400 font-mono text-[10px]">{cand.phone}</div>
+                          )}
+                        </td>
+                        <td className="py-3 px-4 whitespace-nowrap">
+                          <div className="flex items-center gap-1.5 text-slate-600 dark:text-slate-300 font-mono text-[11px]">
+                            <Calendar className="w-3 h-3 text-gold-500" />
+                            <span>{formatCandidateDateTime(regDateTime)}</span>
+                          </div>
+                        </td>
+                        <td className="py-3 px-4">
+                          <span className="px-2 py-0.5 rounded-md border border-gold-500/40 text-gold-700 dark:text-gold-400 font-bold text-[10px] bg-gold-500/10">
+                            {cand.score || 88}%
+                          </span>
+                        </td>
+                        <td className="py-3 px-4 whitespace-nowrap">
+                          <div className="flex items-center gap-1.5" onClick={e => e.stopPropagation()}>
+                            {hasCv ? (
+                              <>
+                                <button
+                                  type="button"
+                                  onClick={() => handlePreviewCv(cand)}
+                                  className="px-2 py-1 bg-slate-100 hover:bg-slate-200 dark:bg-navy-800 dark:hover:bg-navy-700 text-slate-700 dark:text-slate-200 rounded-lg font-bold text-[10px] flex items-center gap-1"
+                                  title="Preview CV"
+                                >
+                                  <Eye className="w-3 h-3 text-gold-500" />
+                                  <span>Preview</span>
+                                </button>
+                                <button
+                                  type="button"
+                                  onClick={() => handleDownloadCv(cand)}
+                                  className="px-2 py-1 bg-gold-500/15 hover:bg-gold-500/25 text-gold-700 dark:text-gold-400 rounded-lg font-bold text-[10px] flex items-center gap-1 border border-gold-500/30"
+                                  title="Download CV"
+                                >
+                                  <Download className="w-3 h-3" />
+                                  <span>Download</span>
+                                </button>
+                              </>
+                            ) : (
+                              <span className="text-[10px] text-slate-400 italic">No CV</span>
+                            )}
+                          </div>
+                        </td>
+                        <td className="py-3 px-4 text-right whitespace-nowrap" onClick={e => e.stopPropagation()}>
+                          <div className="flex items-center justify-end gap-1.5">
+                            <button
+                              type="button"
+                              onClick={() => setViewCand(cand)}
+                              className="px-2.5 py-1 bg-navy-900 hover:bg-navy-800 dark:bg-gold-500 dark:hover:bg-gold-400 text-white dark:text-navy-950 font-bold rounded-lg text-[10px] transition"
+                            >
+                              View →
+                            </button>
+                            <button
+                              type="button"
+                              onClick={() => handleDeleteCandidate(cand)}
+                              className="p-1 text-slate-400 hover:text-rose-600 rounded"
+                              title="Delete Candidate"
+                            >
+                              <Trash2 className="w-3.5 h-3.5" />
+                            </button>
+                          </div>
+                        </td>
+                      </tr>
+                    );
+                  })}
+                </tbody>
+              </table>
+            </div>
+          </div>
         ) : (
+          /* LUXURY GRID CARDS VIEW */
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-            {filtered.map((cand) => {
+            {filtered.map((cand, index) => {
               const regDateTime = cand.createdAt || cand.registeredAt || cand.updatedAt;
               const hasCv = !!(cand.resumeUrl || cand.resumeName);
 
@@ -784,11 +1075,25 @@ export const CrmCandidates = () => {
 
                   <div className="space-y-3">
                     
-                    {/* Header Row: Avatar, Name, Candidate ID, Badges */}
+                    {/* Header Row: Rank Badge, Avatar, Name, Candidate ID, Badges */}
                     <div className="flex justify-between items-start gap-3">
                       <div className="flex items-center space-x-3 min-w-0 flex-1">
                         {renderCandidateAvatar(cand, "w-11 h-11 text-xs shrink-0")}
                         <div className="min-w-0 flex-1">
+                          
+                          {/* Rank / Latest Registration Badge */}
+                          <div className="flex items-center gap-1.5 mb-0.5">
+                            {index === 0 && sortBy === 'newest' ? (
+                              <span className="px-2 py-0.5 rounded-md bg-gradient-to-r from-amber-500 to-gold-500 text-slate-950 font-extrabold text-[9px] shadow-xs tracking-wider">
+                                ✦ #1 LATEST
+                              </span>
+                            ) : (
+                              <span className="px-1.5 py-0.2 rounded-md bg-slate-100 dark:bg-navy-800 text-slate-500 dark:text-slate-400 font-mono font-bold text-[9px]">
+                                #{index + 1}
+                              </span>
+                            )}
+                          </div>
+
                           <h3 className="font-serif font-bold text-base text-slate-900 dark:text-white group-hover:text-gold-600 dark:group-hover:text-gold-400 transition leading-snug truncate" title={cand.name}>
                             {cand.name}
                           </h3>
@@ -826,11 +1131,11 @@ export const CrmCandidates = () => {
                           <span className="text-[10px] uppercase font-bold text-slate-400 tracking-wider">Role</span>
                           <span className="text-[11px] text-slate-600 dark:text-slate-300 font-semibold">{cand.experience || '3-5 Years'}</span>
                         </div>
-                        <p className="font-bold text-slate-900 dark:text-white truncate text-xs sm:text-[13px]" title={cand.currentRole}>
-                          {cand.currentRole || 'Executive Candidate'}
+                        <p className="font-bold text-slate-900 dark:text-white truncate text-xs sm:text-[13px]" title={getCleanCandidateRole(cand)}>
+                          {getCleanCandidateRole(cand)}
                         </p>
-                        <p className="text-[11px] text-slate-500 dark:text-slate-400 truncate mt-0.5" title={cand.currentEmployer}>
-                          {cand.currentEmployer || 'Revival International Candidate'}
+                        <p className="text-[11px] text-slate-500 dark:text-slate-400 truncate mt-0.5" title={getCleanCandidateEmployer(cand)}>
+                          {getCleanCandidateEmployer(cand)}
                         </p>
                       </div>
 
@@ -856,32 +1161,32 @@ export const CrmCandidates = () => {
                     </div>
 
                     {/* Candidate Bio / Executive Summary */}
-                    {cand.aiSummary && (
+                    {getCleanAiSummary(cand) && (
                       <p className="text-[11.5px] italic text-slate-600 dark:text-slate-300 line-clamp-2 px-1 leading-relaxed">
-                        &ldquo;{cand.aiSummary}&rdquo;
+                        &ldquo;{getCleanAiSummary(cand)}&rdquo;
                       </p>
                     )}
 
-                    {/* Registration Time & Skills Row */}
+                    {/* Registration Date & Time Banner */}
                     <div className="flex items-center justify-between gap-2 text-xs">
-                      <div className="flex items-center gap-1 text-slate-400 font-mono text-[10px] shrink-0">
-                        <Clock className="w-3 h-3 text-gold-500 shrink-0" />
+                      <div className="flex items-center gap-1.5 text-slate-500 dark:text-slate-400 font-mono text-[11px] font-semibold shrink-0">
+                        <Calendar className="w-3.5 h-3.5 text-gold-500 shrink-0" />
                         <span>{formatCandidateDateTime(regDateTime)}</span>
                       </div>
 
                       {/* Skills Tags */}
                       <div className="flex items-center gap-1 overflow-hidden">
-                        {Array.isArray(cand.skills) && cand.skills.slice(0, 3).map((s, i) => (
+                        {Array.isArray(cand.skills) && cand.skills.slice(0, 2).map((s, i) => (
                           <span
                             key={i}
-                            className="bg-gold-500/10 text-gold-700 dark:text-gold-400 text-[10px] px-2 py-0.5 rounded-md font-medium truncate max-w-[95px]"
+                            className="bg-gold-500/10 text-gold-700 dark:text-gold-400 text-[10px] px-2 py-0.5 rounded-md font-medium truncate max-w-[90px]"
                           >
                             {s}
                           </span>
                         ))}
-                        {Array.isArray(cand.skills) && cand.skills.length > 3 && (
+                        {Array.isArray(cand.skills) && cand.skills.length > 2 && (
                           <span className="text-[10px] text-slate-400 font-bold shrink-0">
-                            +{cand.skills.length - 3}
+                            +{cand.skills.length - 2}
                           </span>
                         )}
                       </div>

@@ -402,41 +402,19 @@ export const registerEmailApplicationRoutes = (app, { getDb, getClientIp, logAud
           `, [resumeFileName, resumeDataUrl, formattedResumeSize, effectiveCid, normEmail]);
         }
 
-        // 4. Ensure candidate exists in candidates table with stage = 'applied' and actual CV
+        // 4. If candidate already has a registered profile, enrich their CV/resume info without overwriting their professional role or profile credentials
         const existingInCandidates = await db.get('SELECT id FROM candidates WHERE LOWER(email) = LOWER(?)', [normEmail]);
-        if (existingInCandidates) {
+        if (existingInCandidates && (resumeDataUrl || resumeFileName)) {
           await db.run(`
             UPDATE candidates SET
-              stage = 'applied',
-              currentRole = COALESCE(?, currentRole),
-              currentEmployer = COALESCE(?, currentEmployer),
               resumeName = COALESCE(?, resumeName),
               resumeUrl = COALESCE(?, resumeUrl),
               resumeSize = COALESCE(?, resumeSize)
             WHERE id = ?
-          `, [job.title, job.company, resumeFileName, resumeDataUrl, formattedResumeSize, existingInCandidates.id]);
-        } else {
-          await db.run(`
-            INSERT INTO candidates(
-            id, name, email, phone, nationality, currentEmployer, currentRole,
-          stage, score, skills, source, aiSummary, assignedRecruiter,
-            resumeName, resumeUrl, resumeSize
-            ) VALUES(?, ?, ?, ?, ?, ?, ?, 'applied', 90, ?, 'Quick Apply / Job Application', ?, 'Dhanalakshimi (Lead Advisor)', ?, ?, ?)
-          `, [
-            effectiveCid,
-            candidateName,
-            candidateEmail,
-            candidatePhone,
-            candidateLocation || 'Global',
-            job.company,
-            job.title,
-            JSON.stringify([job.title]),
-            `Applied for ${ job.title } at ${ job.company } `,
-            resumeFileName,
-            resumeDataUrl,
-            formattedResumeSize
-          ]);
+          `, [resumeFileName, resumeDataUrl, formattedResumeSize, existingInCandidates.id]);
         }
+        // Note: Unregistered applicants are stored strictly in candidate_applications & email_job_applications
+        // and are NOT inserted into candidates table (pure registered candidate profiles only).
 
         // Also record in candidate_documents if a real CV file was attached
         if (resumeDataUrl) {

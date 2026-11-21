@@ -4,7 +4,8 @@ import {
   Briefcase, Users, Search, Filter, Clock, Building2, MapPin, Mail, Phone,
   FileText, Download, ExternalLink, CheckCircle2, AlertCircle, Calendar,
   ChevronDown, ChevronUp, Eye, Trash2, Sparkles, Layers, Table, LayoutGrid,
-  X, ArrowUpRight, Tag, Award, FileCheck, RotateCcw, Share2, Check, Send
+  X, ArrowUpRight, Tag, Award, FileCheck, RotateCcw, Share2, Check, Send,
+  ChevronLeft, ChevronRight, MessageSquare
 } from 'lucide-react';
 import ScrollReveal from '../../components/ScrollReveal';
 import { downloadCandidateResumePdf, openCandidateResumeInNewTab } from '../../services/candidateResumePdfService';
@@ -23,6 +24,11 @@ export const CrmJobApplications = () => {
 
   // View mode: 'all' (Unified Application Log) | 'grouped' (Grouped by Job Vacancy)
   const [viewMode, setViewMode] = useState('all');
+  const [layoutStyle, setLayoutStyle] = useState('table'); // 'table' (Image 1 style) | 'cards'
+
+  // Pagination (Matching Image 1 table view)
+  const [currentPage, setCurrentPage] = useState(1);
+  const itemsPerPage = 30;
 
   // Filters & Search
   const [searchTerm, setSearchTerm] = useState('');
@@ -233,6 +239,18 @@ export const CrmJobApplications = () => {
       return true;
     });
   }, [applicationPool, searchTerm, selectedJob, selectedCompany, selectedStatus, timeFilter]);
+
+  // Reset pagination when filters change
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [searchTerm, selectedJob, selectedCompany, selectedStatus, timeFilter]);
+
+  const totalPages = Math.max(1, Math.ceil(filteredApplications.length / itemsPerPage));
+  const startIndex = (currentPage - 1) * itemsPerPage;
+  const endIndex = Math.min(filteredApplications.length, startIndex + itemsPerPage);
+  const paginatedApplications = useMemo(() => {
+    return filteredApplications.slice(startIndex, endIndex);
+  }, [filteredApplications, startIndex, endIndex]);
 
   // Group applications by Job Title for the Grouped view
   const groupedByJob = useMemo(() => {
@@ -660,17 +678,47 @@ export const CrmJobApplications = () => {
 
       </div>
 
-      {/* VIEW 1: UNIFIED ALL APPLICATIONS (Cards / Table Layout) */}
+      {/* VIEW 1: UNIFIED ALL APPLICATIONS (Table / Cards Layout) */}
       {viewMode === 'all' && (
         <div className="space-y-3">
           
-          <div className="flex justify-between items-center px-1">
-            <span className="font-bold text-slate-700 dark:text-slate-300">
-              Showing <strong className="text-slate-900 dark:text-white font-extrabold">{filteredApplications.length}</strong> Applications Received
-            </span>
-            <span className="text-[11px] text-slate-400 font-mono">
-              Live Applications Feed
-            </span>
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 px-1">
+            <div className="flex items-center gap-2">
+              <span className="font-bold text-slate-700 dark:text-slate-300 text-sm">
+                Showing <strong className="text-slate-900 dark:text-white font-extrabold">{filteredApplications.length}</strong> Applications Received
+              </span>
+              <span className="text-[11px] text-slate-400 font-mono hidden sm:inline">
+                • Live Applications Feed
+              </span>
+            </div>
+
+            {/* Layout Toggle: Table View (Image 1 Style) vs Cards View */}
+            <div className="flex items-center bg-slate-100 dark:bg-navy-950 p-1 rounded-xl border border-slate-200 dark:border-slate-800">
+              <button
+                type="button"
+                onClick={() => setLayoutStyle('table')}
+                className={`px-3 py-1 rounded-lg text-xs font-bold flex items-center space-x-1.5 transition cursor-pointer ${
+                  layoutStyle === 'table'
+                    ? 'bg-white dark:bg-navy-900 text-slate-900 dark:text-white shadow-xs border border-slate-200/80 dark:border-navy-700'
+                    : 'text-slate-500 hover:text-slate-800 dark:hover:text-slate-200'
+                }`}
+              >
+                <Table className="w-3.5 h-3.5 text-gold-500" />
+                <span>Table View</span>
+              </button>
+              <button
+                type="button"
+                onClick={() => setLayoutStyle('cards')}
+                className={`px-3 py-1 rounded-lg text-xs font-bold flex items-center space-x-1.5 transition cursor-pointer ${
+                  layoutStyle === 'cards'
+                    ? 'bg-white dark:bg-navy-900 text-slate-900 dark:text-white shadow-xs border border-slate-200/80 dark:border-navy-700'
+                    : 'text-slate-500 hover:text-slate-800 dark:hover:text-slate-200'
+                }`}
+              >
+                <LayoutGrid className="w-3.5 h-3.5 text-gold-500" />
+                <span>Cards View</span>
+              </button>
+            </div>
           </div>
 
           {filteredApplications.length === 0 ? (
@@ -685,9 +733,270 @@ export const CrmJobApplications = () => {
                 Reset Filters
               </button>
             </div>
+          ) : layoutStyle === 'table' ? (
+            /* ENTERPRISE TABLE VIEW (Exact Style from Image 1) */
+            <div className="glass-card bg-white dark:bg-navy-900 rounded-2xl border border-slate-200 dark:border-navy-800 shadow-sm overflow-hidden">
+              <div className="overflow-x-auto scrollbar-thin scrollbar-thumb-gold-500/40 hover:scrollbar-thumb-gold-500 scrollbar-track-slate-100 dark:scrollbar-track-navy-950">
+                <table className="w-full text-left text-xs border-collapse">
+                  <thead>
+                    <tr className="bg-slate-100 dark:bg-navy-950 text-slate-700 dark:text-gold-400 font-serif uppercase tracking-wider text-[10px] border-b border-slate-200 dark:border-navy-800">
+                      <th className="px-2 py-2.5 font-extrabold w-10 text-center">#</th>
+                      <th className="px-3 py-2.5 font-extrabold whitespace-nowrap">REFERENCE ID</th>
+                      <th className="px-3 py-2.5 font-extrabold whitespace-nowrap">CANDIDATE NAME</th>
+                      <th className="px-3 py-2.5 font-extrabold whitespace-nowrap">PHONE NUMBER</th>
+                      <th className="px-3 py-2.5 font-extrabold whitespace-nowrap">EMAIL ADDRESS</th>
+                      <th className="px-3 py-2.5 font-extrabold">APPLIED VACANCY / ROLE</th>
+                      <th className="px-2.5 py-2.5 font-extrabold whitespace-nowrap text-center">APPLICATION STATUS</th>
+                      <th className="px-3 py-2.5 font-extrabold text-right whitespace-nowrap">ACTIONS</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-slate-100 dark:divide-navy-800 text-slate-800 dark:text-slate-300">
+                    {paginatedApplications.map((app, idx) => {
+                      const currentStatusObj = statusOptions.find(s => s.label.toLowerCase() === (app.status || 'Under Review').toLowerCase()) || statusOptions[0];
+                      const cleanPhone = (app.applicantPhone || '').replace(/[^0-9+]/g, '');
+                      const rawDigits = (app.applicantPhone || '').replace(/[^0-9]/g, '');
+                      const whatsappUrl = rawDigits ? `https://wa.me/${rawDigits}?text=Hello%20${encodeURIComponent(app.applicantName || 'Candidate')},%20regarding%20your%20application%20for%20${encodeURIComponent(app.jobTitle || 'the vacancy')}...` : null;
+                      const mailtoUrl = app.applicantEmail ? `mailto:${app.applicantEmail}?subject=Regarding Your Job Application - The Revival International&body=Dear ${encodeURIComponent(app.applicantName || 'Candidate')},%0D%0A%0D%0AThank you for applying for the position of ${encodeURIComponent(app.jobTitle || 'Executive Opening')} at ${encodeURIComponent(app.company || 'The Revival International')}.%0D%0A%0D%0A` : null;
+
+                      return (
+                        <tr
+                          key={app.id}
+                          className="hover:bg-slate-50 dark:hover:bg-navy-950/60 transition group"
+                        >
+                          {/* 0. Serial Number Badge (Gold box index matching Image 1) */}
+                          <td className="px-2 py-2.5 text-center">
+                            <span className="inline-flex items-center justify-center w-6 h-6 rounded-lg bg-gold-500/10 dark:bg-gold-500/20 text-gold-700 dark:text-gold-400 font-mono font-extrabold text-xs border border-gold-500/30">
+                              {startIndex + idx + 1}
+                            </span>
+                          </td>
+
+                          {/* 1. Reference ID & Date (Matching Image 1) */}
+                          <td className="px-3 py-2.5 whitespace-nowrap">
+                            <span className="font-mono font-bold text-gold-600 dark:text-gold-400 block text-xs">
+                              {app.id}
+                            </span>
+                            <span className="text-[10px] text-slate-500 font-medium block">
+                              {app.appliedDate ? new Date(app.appliedDate).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' }) : 'Recent'}
+                            </span>
+                          </td>
+
+                          {/* 2. Candidate Name & Avatar (Matching Image 1) */}
+                          <td className="px-3 py-2.5 whitespace-nowrap">
+                            <div className="flex items-center space-x-2.5">
+                              <img
+                                src={app.candidateAvatar || `https://api.dicebear.com/7.x/initials/svg?seed=${encodeURIComponent(app.applicantName || 'Applicant')}`}
+                                alt={app.applicantName}
+                                className="w-8 h-8 rounded-full object-cover border-2 border-gold-500 shrink-0"
+                              />
+                              <div>
+                                <div className="font-bold text-slate-900 dark:text-white text-xs">
+                                  {app.applicantName || 'Candidate'}
+                                </div>
+                                <div className="text-[10px] text-slate-400 font-mono">
+                                  {app.candidateId || 'Candidate Portal'} • {app.candidateNationality || 'Verified'}
+                                </div>
+                              </div>
+                            </div>
+                          </td>
+
+                          {/* 3. Phone Number with icon (Matching Image 1) */}
+                          <td className="px-3 py-2.5 whitespace-nowrap font-mono text-xs">
+                            {app.applicantPhone ? (
+                              <div className="flex items-center gap-1.5">
+                                <Phone className="w-3.5 h-3.5 text-emerald-500 shrink-0" />
+                                <a href={`tel:${cleanPhone}`} className="hover:text-emerald-500 text-slate-700 dark:text-slate-300 font-semibold transition">
+                                  {app.applicantPhone}
+                                </a>
+                                {whatsappUrl && (
+                                  <a
+                                    href={whatsappUrl}
+                                    target="_blank"
+                                    rel="noopener noreferrer"
+                                    className="text-emerald-600 dark:text-emerald-400 hover:opacity-80 transition ml-0.5"
+                                    title="Chat on WhatsApp"
+                                  >
+                                    <MessageSquare className="w-3.5 h-3.5" />
+                                  </a>
+                                )}
+                              </div>
+                            ) : (
+                              <span className="text-slate-400 italic text-[11px]">—</span>
+                            )}
+                          </td>
+
+                          {/* 4. Email Address with icon (Matching Image 1) */}
+                          <td className="px-3 py-2.5 font-mono text-xs">
+                            {app.applicantEmail ? (
+                              <a
+                                href={mailtoUrl}
+                                className="text-slate-700 dark:text-slate-300 hover:text-blue-500 flex items-center gap-1.5 truncate max-w-[200px] transition"
+                                title={app.applicantEmail}
+                              >
+                                <Mail className="w-3.5 h-3.5 text-blue-500 shrink-0" />
+                                <span className="truncate">{app.applicantEmail}</span>
+                              </a>
+                            ) : (
+                              <span className="text-slate-400 italic text-[11px]">—</span>
+                            )}
+                          </td>
+
+                          {/* 5. Applied Vacancy / Role */}
+                          <td className="px-3 py-2.5 max-w-[240px]">
+                            <div className="flex items-center gap-1.5 font-bold text-slate-900 dark:text-white text-xs truncate">
+                              <Briefcase className="w-3.5 h-3.5 text-gold-500 shrink-0" />
+                              <span className="truncate" title={app.jobTitle || 'Executive Opening'}>
+                                {app.jobTitle || 'Executive Opening'}
+                              </span>
+                            </div>
+                            <div className="flex items-center gap-2 mt-0.5 text-[10px] text-slate-500 dark:text-slate-400 font-semibold truncate">
+                              <span className="truncate">{app.company || 'Revival Partner Employer'}</span>
+                              <span>•</span>
+                              <span className="truncate">{app.location || 'Global'}</span>
+                              <span className="ml-1 px-1.5 py-0.2 rounded text-[9px] font-mono font-bold bg-amber-100 dark:bg-gold-500/20 text-amber-800 dark:text-gold-300 border border-amber-300 dark:border-gold-500/30 shrink-0">
+                                {app.candidateScore || 90}% Match
+                              </span>
+                            </div>
+                          </td>
+
+                          {/* 6. Application Status Dropdown */}
+                          <td className="px-2.5 py-2.5 whitespace-nowrap text-center">
+                            <select
+                              value={app.status || 'Under Review'}
+                              onChange={(e) => handleStatusChange(app.id, e.target.value)}
+                              className={`px-2.5 py-1 rounded-lg text-[10px] font-bold border cursor-pointer focus:outline-none transition ${currentStatusObj.color}`}
+                            >
+                              {statusOptions.map(opt => (
+                                <option key={opt.label} value={opt.label}>{opt.label}</option>
+                              ))}
+                            </select>
+                          </td>
+
+                          {/* 7. Actions */}
+                          <td className="px-3 py-2.5 text-right whitespace-nowrap">
+                            <div className="flex items-center justify-end gap-1.5">
+                              <button
+                                onClick={() => handlePreviewAppResume(app)}
+                                className="px-2.5 py-1.5 rounded-lg bg-slate-100 hover:bg-slate-200 dark:bg-navy-800 dark:hover:bg-navy-700 text-slate-800 dark:text-slate-200 text-[10px] font-bold flex items-center space-x-1 transition cursor-pointer border border-slate-200 dark:border-slate-700"
+                                title="Preview CV"
+                              >
+                                <Eye className="w-3 h-3 text-gold-500" />
+                                <span>Preview CV</span>
+                              </button>
+
+                              <button
+                                onClick={() => handleDownloadAppResume(app)}
+                                className="px-2.5 py-1.5 rounded-lg bg-gold-500 hover:bg-gold-400 text-navy-950 text-[10px] font-bold flex items-center space-x-1 transition cursor-pointer shadow-xs"
+                                title="Download CV"
+                              >
+                                <Download className="w-3 h-3" />
+                                <span>Download CV</span>
+                              </button>
+
+                              <button
+                                onClick={() => handleOpenCandidateDossier(app)}
+                                className="px-2.5 py-1.5 rounded-lg bg-slate-100 hover:bg-slate-200 dark:bg-navy-800 dark:hover:bg-navy-700 text-slate-800 dark:text-slate-200 text-[10px] font-bold flex items-center space-x-1 transition cursor-pointer border border-slate-200 dark:border-slate-700"
+                                title="View full candidate profile"
+                              >
+                                <FileText className="w-3 h-3 text-blue-500" />
+                                <span>Full Profile</span>
+                              </button>
+
+                              <button
+                                type="button"
+                                onClick={() => setDeleteConfirmApp(app)}
+                                className="px-2.5 py-1.5 rounded-lg bg-rose-50 hover:bg-rose-100 dark:bg-rose-950/40 dark:hover:bg-rose-900/60 text-rose-600 dark:text-rose-400 text-[10px] font-bold flex items-center space-x-1 transition cursor-pointer border border-rose-200 dark:border-rose-900/50"
+                                title="Delete application"
+                              >
+                                <Trash2 className="w-3 h-3" />
+                                <span>Delete</span>
+                              </button>
+                            </div>
+                          </td>
+                        </tr>
+                      );
+                    })}
+                  </tbody>
+                </table>
+              </div>
+
+              {/* Table Pagination Footer (Image 1 style) */}
+              <div className="p-4 border-t border-slate-200 dark:border-navy-800 bg-slate-50/50 dark:bg-navy-950/50 flex flex-col sm:flex-row items-center justify-between gap-3 text-xs">
+                <div className="text-slate-600 dark:text-slate-400 font-medium">
+                  Showing <strong className="text-slate-900 dark:text-white font-bold">{filteredApplications.length === 0 ? 0 : startIndex + 1}</strong> to <strong className="text-slate-900 dark:text-white font-bold">{endIndex}</strong> of <strong className="text-slate-900 dark:text-white font-bold">{filteredApplications.length}</strong> applications (30 per page)
+                </div>
+
+                {totalPages > 1 && (
+                  <div className="flex items-center gap-1.5 flex-wrap justify-center">
+                    <button
+                      type="button"
+                      onClick={() => setCurrentPage(1)}
+                      disabled={currentPage === 1}
+                      className="px-2.5 py-1.5 rounded-lg border border-slate-200 dark:border-navy-700 bg-white dark:bg-navy-900 text-slate-700 dark:text-slate-300 disabled:opacity-40 disabled:cursor-not-allowed hover:bg-gold-50 dark:hover:bg-navy-800 font-bold text-xs transition cursor-pointer"
+                      title="First Page"
+                    >
+                      First
+                    </button>
+
+                    <button
+                      type="button"
+                      onClick={() => setCurrentPage(prev => Math.max(1, prev - 1))}
+                      disabled={currentPage === 1}
+                      className="px-3 py-1.5 rounded-lg border border-slate-200 dark:border-navy-700 bg-white dark:bg-navy-900 text-slate-700 dark:text-slate-300 disabled:opacity-40 disabled:cursor-not-allowed hover:bg-gold-50 dark:hover:bg-navy-800 font-bold text-xs transition cursor-pointer flex items-center gap-1"
+                    >
+                      <ChevronLeft className="w-3.5 h-3.5" />
+                      <span>Prev</span>
+                    </button>
+
+                    <div className="flex items-center gap-1">
+                      {Array.from({ length: totalPages }, (_, i) => i + 1)
+                        .filter(p => p === 1 || p === totalPages || Math.abs(p - currentPage) <= 1)
+                        .map((page, i, arr) => (
+                          <React.Fragment key={page}>
+                            {i > 0 && arr[i - 1] !== page - 1 && (
+                              <span className="px-1 text-slate-400">...</span>
+                            )}
+                            <button
+                              type="button"
+                              onClick={() => setCurrentPage(page)}
+                              className={`w-7 h-7 rounded-lg font-bold text-xs transition cursor-pointer ${
+                                currentPage === page
+                                  ? 'bg-gold-500 text-navy-950 shadow-xs'
+                                  : 'border border-slate-200 dark:border-navy-700 bg-white dark:bg-navy-900 text-slate-700 dark:text-slate-300 hover:bg-gold-50 dark:hover:bg-navy-800'
+                              }`}
+                            >
+                              {page}
+                            </button>
+                          </React.Fragment>
+                        ))}
+                    </div>
+
+                    <button
+                      type="button"
+                      onClick={() => setCurrentPage(prev => Math.min(totalPages, prev + 1))}
+                      disabled={currentPage === totalPages}
+                      className="px-3 py-1.5 rounded-lg border border-slate-200 dark:border-navy-700 bg-white dark:bg-navy-900 text-slate-700 dark:text-slate-300 disabled:opacity-40 disabled:cursor-not-allowed hover:bg-gold-50 dark:hover:bg-navy-800 font-bold text-xs transition cursor-pointer flex items-center gap-1"
+                    >
+                      <span>Next</span>
+                      <ChevronRight className="w-3.5 h-3.5" />
+                    </button>
+
+                    <button
+                      type="button"
+                      onClick={() => setCurrentPage(totalPages)}
+                      disabled={currentPage === totalPages}
+                      className="px-2.5 py-1.5 rounded-lg border border-slate-200 dark:border-navy-700 bg-white dark:bg-navy-900 text-slate-700 dark:text-slate-300 disabled:opacity-40 disabled:cursor-not-allowed hover:bg-gold-50 dark:hover:bg-navy-800 font-bold text-xs transition cursor-pointer"
+                      title="Last Page"
+                    >
+                      Last
+                    </button>
+                  </div>
+                )}
+              </div>
+            </div>
           ) : (
+            /* Cards layout when user toggles to cards */
             <div className="space-y-3">
-              {filteredApplications.map((app) => {
+              {paginatedApplications.map((app) => {
                 const currentStatusObj = statusOptions.find(s => s.label.toLowerCase() === (app.status || 'Under Review').toLowerCase()) || statusOptions[0];
 
                 return (

@@ -2,7 +2,7 @@ import React, { useState, useEffect, useRef } from 'react';
 import { createPortal } from 'react-dom';
 import { useApp } from '../context/AppContext';
 import { BrandLogoIcon } from './BrandLogoIcon';
-import { Briefcase, ArrowRight, User, Lock, Mail, Phone, Sparkles, CheckCircle2, X, Settings, ExternalLink, Eye, EyeOff, UserPlus, ChevronRight } from 'lucide-react';
+import { Briefcase, ArrowRight, User, Lock, Mail, Phone, Sparkles, CheckCircle2, X, Settings, ExternalLink, Eye, EyeOff, UserPlus, ChevronRight, AlertCircle, LogIn } from 'lucide-react';
 import { validateCandidateEmail } from '../utils/emailValidation';
 
 export const COUNTRY_PHONE_CONFIG = [
@@ -41,7 +41,7 @@ export const COUNTRY_PHONE_CONFIG = [
   { code: '+82', country: 'South Korea', flag: '🇰🇷', digits: 10, placeholder: '10 1234 5678' }
 ];
 
-export const UnifiedAuth = ({ defaultMode = 'login', defaultRole = 'candidate', onSuccess }) => {
+export const UnifiedAuth = ({ defaultMode = 'login', defaultRole = 'candidate', onSuccess, onClose }) => {
   const { 
     loginCandidate, 
     registerCandidate, 
@@ -171,11 +171,41 @@ export const UnifiedAuth = ({ defaultMode = 'login', defaultRole = 'candidate', 
       setGoogleLoading(true);
       setGoogleError('');
       setGoogleSuccess('');
+      setError('');
       const profile = decodeGoogleJwt(response.credential);
       if (!profile || !profile.email) {
         setGoogleError('Failed to decode profile from Google credential.');
         setGoogleLoading(false);
         return;
+      }
+
+      const cleanGoogleEmail = (profile.email || '').toLowerCase().trim();
+
+      // Strict 1-Time Registration: If clicking "Sign up with Google", prevent duplicate account creation
+      if (authMode === 'register') {
+        try {
+          const checkRes = await fetch('/api/candidate/check-exists', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ email: cleanGoogleEmail })
+          });
+          if (checkRes.status === 409) {
+            setGoogleLoading(false);
+            setGoogleError('');
+            setError('An account with this email address already exists. Please sign in to your existing account.');
+            return;
+          }
+        } catch (_) {}
+
+        try {
+          const localDb = JSON.parse(localStorage.getItem('sir_candidates_db') || '{}');
+          if (localDb[cleanGoogleEmail] && localDb[cleanGoogleEmail].isRegistered) {
+            setGoogleLoading(false);
+            setGoogleError('');
+            setError('An account with this email address already exists. Please sign in to your existing account.');
+            return;
+          }
+        } catch (_) {}
       }
 
       const result = await loginWithGoogle({
@@ -185,11 +215,17 @@ export const UnifiedAuth = ({ defaultMode = 'login', defaultRole = 'candidate', 
         name: profile.name || profile.given_name || profile.email.split('@')[0],
         avatar: profile.picture,
         googleId: profile.sub,
-        profile: profile
+        profile: profile,
+        mode: authMode
       });
 
       if (!result || !result.success) {
-        setGoogleError(result?.message || 'Google authentication failed.');
+        if (result?.code === 'DUPLICATE_EMAIL' || result?.message?.includes('already exists')) {
+          setError(result?.message || 'An account with this email address already exists. Please sign in to your existing account.');
+          setGoogleError('');
+        } else {
+          setGoogleError(result?.message || 'Google authentication failed.');
+        }
         setGoogleLoading(false);
         return;
       }
@@ -300,27 +336,116 @@ export const UnifiedAuth = ({ defaultMode = 'login', defaultRole = 'candidate', 
 
           if (tokenResponse?.access_token) {
             try {
-              const res = await fetch('https://www.googleapis.com/oauth2/v3/userinfo', {
-                headers: { Authorization: `Bearer ${tokenResponse.access_token}` }
-              });
+              let userInfo = null;
+              const hintEmail = (candidateLogin.email || candidateReg.email || '').trim().toLowerCase();
 
-              if (!res.ok) {
-                throw new Error('Failed to fetch user profile from Google');
+              // Tier 1: Direct Google v3 UserInfo endpoint
+              try {
+                const res = await fetch('https://www.googleapis.com/oauth2/v3/userinfo', {
+                  headers: { Authorization: `Bearer ${tokenResponse.access_token}` }
+                });
+                if (res.ok) {
+                  userInfo = await res.json();
+                }
+              } catch (e1) {
+                console.warn('Direct Google v3 userinfo notice:', e1.message);
               }
 
-              const userInfo = await res.json();
+              // Tier 2: Direct Google v2 UserInfo endpoint
+              if (!userInfo || !userInfo.email) {
+                try {
+                  const res2 = await fetch('https://www.googleapis.com/oauth2/v2/userinfo', {
+                    headers: { Authorization: `Bearer ${tokenResponse.access_token}` }
+                  });
+                  if (res2.ok) {
+                    userInfo = await res2.json();
+                  }
+                } catch (e2) {
+                  console.warn('Direct Google v2 userinfo notice:', e2.message);
+                }
+              }
+
+              // Tier 3: Server-Side Proxy (/api/auth/google/userinfo) - bypasses browser extensions, CORS & network shields
+              if (!userInfo || !userInfo.email) {
+                try {
+                  const pRes = await fetch('/api/auth/google/userinfo', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                      accessToken: tokenResponse.access_token,
+                      hintEmail: hintEmail || undefined
+                    })
+                  });
+                  if (pRes.ok) {
+                    const pData = await pRes.json();
+                    if (pData?.success && pData?.user) {
+                      userInfo = pData.user;
+                    }
+                  }
+                } catch (e3) {
+                  console.warn('Server proxy userinfo notice:', e3.message);
+                }
+              }
+
+              // Tier 4: Fallback to existing typed or remembered Google email
+              if (!userInfo || !userInfo.email) {
+                if (hintEmail && hintEmail.includes('@')) {
+                  userInfo = {
+                    email: hintEmail,
+                    name: hintEmail.split('@')[0],
+                    picture: '',
+                    sub: ''
+                  };
+                }
+              }
+
               if (userInfo?.email) {
+                const cleanGoogleEmail = (userInfo.email || '').toLowerCase().trim();
+
+                // Strict 1-Time Registration: If clicking "Sign up with Google", prevent duplicate account creation
+                if (authMode === 'register') {
+                  try {
+                    const checkRes = await fetch('/api/candidate/check-exists', {
+                      method: 'POST',
+                      headers: { 'Content-Type': 'application/json' },
+                      body: JSON.stringify({ email: cleanGoogleEmail })
+                    });
+                    if (checkRes.status === 409) {
+                      setGoogleLoading(false);
+                      setGoogleError('');
+                      setError('An account with this email address already exists. Please sign in to your existing account.');
+                      return;
+                    }
+                  } catch (_) {}
+
+                  try {
+                    const localDb = JSON.parse(localStorage.getItem('sir_candidates_db') || '{}');
+                    if (localDb[cleanGoogleEmail] && localDb[cleanGoogleEmail].isRegistered) {
+                      setGoogleLoading(false);
+                      setGoogleError('');
+                      setError('An account with this email address already exists. Please sign in to your existing account.');
+                      return;
+                    }
+                  } catch (_) {}
+                }
+
                 const result = await loginWithGoogle({
                   accessToken: tokenResponse.access_token,
                   email: userInfo.email,
                   name: userInfo.name || userInfo.given_name || userInfo.email.split('@')[0],
                   avatar: userInfo.picture,
                   googleId: userInfo.sub,
-                  profile: userInfo
+                  profile: userInfo,
+                  mode: authMode
                 });
 
                 if (!result || !result.success) {
-                  setGoogleError(result?.message || 'Google authentication failed.');
+                  if (result?.code === 'DUPLICATE_EMAIL' || result?.message?.includes('already exists')) {
+                    setError(result?.message || 'An account with this email address already exists. Please sign in to your existing account.');
+                    setGoogleError('');
+                  } else {
+                    setGoogleError(result?.message || 'Google authentication failed.');
+                  }
                   setGoogleLoading(false);
                   return;
                 }
@@ -347,7 +472,7 @@ export const UnifiedAuth = ({ defaultMode = 'login', defaultRole = 'candidate', 
               }
             } catch (fetchErr) {
               console.error('Error fetching Google profile:', fetchErr);
-              setGoogleError('Failed to fetch profile details from Google servers.');
+              setGoogleError('Google sign-in could not retrieve profile. Please sign in using your email.');
               setGoogleLoading(false);
             }
           } else {
@@ -446,7 +571,7 @@ export const UnifiedAuth = ({ defaultMode = 'login', defaultRole = 'candidate', 
       return;
     }
 
-    const result = loginCandidate(cleanEmail, candidateLogin.password);
+    const result = await loginCandidate(cleanEmail, candidateLogin.password);
     if (!result || !result.success) {
       setError(result?.message || 'Invalid credentials. Please register if you do not have an account.');
       return;
@@ -463,6 +588,25 @@ export const UnifiedAuth = ({ defaultMode = 'login', defaultRole = 'candidate', 
 
     if (onSuccess) onSuccess();
     setActiveModal(null);
+  };
+
+  // Check if email or phone is already registered (Strict 1-Time Registration)
+  const checkDuplicateCandidate = async (field, val) => {
+    if (!val) return;
+    try {
+      const payload = field === 'email' ? { email: val } : { phone: val };
+      const res = await fetch('/api/candidate/check-exists', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload)
+      });
+      if (res.status === 409) {
+        const data = await res.json();
+        setError(data.message || (field === 'email'
+          ? 'An account with this email address already exists. Please sign in to your existing account.'
+          : 'An account with this phone number is already registered. Please sign in using your existing account.'));
+      }
+    } catch (_) {}
   };
 
   // Submit Candidate Registration
@@ -566,35 +710,29 @@ export const UnifiedAuth = ({ defaultMode = 'login', defaultRole = 'candidate', 
     setActiveModal(null);
   };
 
-  // Quick Demo Login
-  const handleDemoCandidateLogin = async () => {
-    setError('');
-    const result = loginCandidate('candidate@revivalinternational.com', 'demo123');
-    if (result && result.success) {
-      if (pendingJobToApply) {
-        navigateTo('jobs');
-        window.location.hash = 'jobs';
-      } else {
-        navigateTo('candidates');
-      }
-      if (onSuccess) onSuccess();
-      setActiveModal(null);
-    } else {
-      setError(result?.message || 'Demo access failed.');
-    }
-  };
-
   return (
-    <div className="w-full max-w-xl mx-auto px-4 py-8">
-      <div className="bg-white dark:bg-navy-950 rounded-3xl p-6 sm:p-8 shadow-2xl border border-slate-200 dark:border-gold-500/30">
+    <div className="w-full max-w-lg mx-auto">
+      <div className="relative bg-white dark:bg-navy-950 rounded-2xl p-3.5 sm:p-5 shadow-2xl border border-slate-200 dark:border-gold-500/30 overflow-hidden">
         
+        {/* Modal Close Button */}
+        {onClose && (
+          <button
+            type="button"
+            onClick={onClose}
+            className="absolute top-3 right-3 p-1.5 rounded-full text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 hover:bg-slate-100 dark:hover:bg-navy-800 transition z-10 cursor-pointer"
+            title="Close"
+          >
+            <X className="w-4 h-4" />
+          </button>
+        )}
+
         {/* Revival Branding Header */}
-        <div className="flex flex-col items-center text-center mb-6">
-          <BrandLogoIcon className="w-20 h-20 shadow-luxury mb-3" />
-          <h2 className="font-serif text-2xl sm:text-3xl font-extrabold text-navy-900 dark:text-white tracking-tight">
+        <div className="flex flex-col items-center text-center mb-2">
+          <BrandLogoIcon className="w-8 h-8 sm:w-9 sm:h-9 shadow-luxury mb-1" />
+          <h2 className="font-serif text-base sm:text-lg font-bold text-slate-900 dark:text-white tracking-tight leading-tight">
             {authMode === 'login' ? 'Sign In to Your Account' : 'Create Your Candidate Account'}
           </h2>
-          <p className="text-xs text-slate-600 dark:text-slate-400 font-medium mt-1">
+          <p className="text-[11px] text-slate-700 dark:text-slate-300 font-medium mt-0.5">
             {authMode === 'login' 
               ? 'Access your Candidate Portal to track job applications and interview updates.'
               : 'Register with verified credentials to apply for international vacancies.'}
@@ -603,20 +741,17 @@ export const UnifiedAuth = ({ defaultMode = 'login', defaultRole = 'candidate', 
 
         {/* Position Application Banner (if gated from Apply Now) */}
         {pendingJobToApply && (
-          <div className="mb-5 p-4 bg-gold-500/10 border-2 border-gold-500/40 rounded-2xl flex items-start gap-3 text-left">
-            <div className="p-2 rounded-xl bg-gold-500/20 text-gold-500 font-bold shrink-0 mt-0.5">
-              <Briefcase className="w-5 h-5" />
+          <div className="mb-2 p-2 bg-gold-500/10 border border-gold-500/40 rounded-xl flex items-start gap-2 text-left text-xs">
+            <div className="p-1 rounded-lg bg-gold-500/20 text-gold-500 font-bold shrink-0 mt-0.5">
+              <Briefcase className="w-3.5 h-3.5" />
             </div>
-            <div className="space-y-0.5">
-              <span className="text-[10px] font-bold uppercase tracking-wider text-gold-600 dark:text-gold-400">Position Application</span>
-              <h4 className="font-serif text-sm font-bold text-navy-900 dark:text-white">
+            <div className="space-y-0.5 leading-tight">
+              <span className="text-[9px] font-bold uppercase tracking-wider text-gold-600 dark:text-gold-400">Position Application</span>
+              <h4 className="font-serif text-xs font-bold text-navy-900 dark:text-white">
                 {pendingJobToApply.title}
               </h4>
-              <p className="text-[11px] text-slate-600 dark:text-slate-300">
+              <p className="text-[10px] text-slate-500 dark:text-slate-400">
                 {pendingJobToApply.company} • {pendingJobToApply.location} ({pendingJobToApply.country})
-              </p>
-              <p className="text-[11px] text-emerald-600 dark:text-emerald-400 font-semibold pt-1">
-                {authMode === 'register' ? '✦ Complete registration or continue with Google to submit your verified application directly.' : '✦ Sign in below to submit your application with your existing candidate profile.'}
               </p>
             </div>
           </div>
@@ -624,74 +759,74 @@ export const UnifiedAuth = ({ defaultMode = 'login', defaultRole = 'candidate', 
 
         {/* Error Notification */}
         {error && (
-          <div className="mb-4 p-3 bg-rose-500/10 border border-rose-500/30 rounded-xl text-rose-600 dark:text-rose-300 text-xs font-semibold flex items-center justify-between">
-            <span>{error}</span>
-            <button onClick={() => setError('')} className="p-0.5 text-rose-500 hover:text-rose-700">
-              <X className="w-3.5 h-3.5" />
-            </button>
+          <div className="mb-2 p-2.5 bg-amber-50 dark:bg-amber-950/40 border border-amber-300 dark:border-amber-700/60 rounded-xl text-slate-900 dark:text-slate-100 text-xs shadow-xs animate-in fade-in duration-200">
+            <div className="flex items-start justify-between gap-2">
+              <div className="flex items-start gap-2">
+                <AlertCircle className="w-4 h-4 text-amber-600 dark:text-amber-400 shrink-0 mt-0.5" />
+                <p className="text-amber-950 dark:text-amber-100 font-bold text-xs leading-snug">
+                  {error}
+                </p>
+              </div>
+              <button
+                type="button"
+                onClick={() => setError('')}
+                className="p-0.5 text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 cursor-pointer rounded shrink-0"
+              >
+                <X className="w-3.5 h-3.5" />
+              </button>
+            </div>
           </div>
         )}
 
         {/* Google Error Notification */}
         {googleError && (
-          <div className="mb-4 p-3 bg-rose-500/10 border border-rose-500/30 rounded-xl text-rose-600 dark:text-rose-300 text-xs font-semibold flex items-center justify-between">
-            <span>{googleError}</span>
-            <button onClick={() => setGoogleError('')} className="p-0.5 text-rose-500 hover:text-rose-700">
-              <X className="w-3.5 h-3.5" />
+          <div className="mb-2 p-2 bg-rose-500/10 border border-rose-500/30 rounded-lg text-rose-600 dark:text-rose-300 text-xs font-semibold flex items-center justify-between">
+            <span className="text-[11px]">{googleError}</span>
+            <button type="button" onClick={() => setGoogleError('')} className="p-0.5 text-rose-500 hover:text-rose-700">
+              <X className="w-3 h-3" />
             </button>
           </div>
         )}
 
         {/* Google Success Notification */}
         {googleSuccess && (
-          <div className="mb-4 p-3 bg-emerald-500/10 border border-emerald-500/30 rounded-xl text-emerald-600 dark:text-emerald-400 text-xs font-semibold flex items-center gap-2">
-            <CheckCircle2 className="w-4 h-4 shrink-0 text-emerald-500" />
+          <div className="mb-2 p-2 bg-emerald-500/10 border border-emerald-500/30 rounded-lg text-emerald-600 dark:text-emerald-400 text-[11px] font-semibold flex items-center gap-1.5">
+            <CheckCircle2 className="w-3.5 h-3.5 shrink-0 text-emerald-500" />
             <span>{googleSuccess}</span>
           </div>
         )}
 
         {/* 1-CLICK UNIFIED GOOGLE AUTHENTICATION BUTTON */}
-        <div className="space-y-3 mb-5">
+        <div className="mb-2">
           <button
             type="button"
             onClick={handleTriggerGoogleAuth}
             disabled={googleLoading}
-            className="w-full py-3 px-4 bg-white dark:bg-navy-900 hover:bg-slate-50 dark:hover:bg-navy-800 border-2 border-slate-200 dark:border-navy-700 hover:border-slate-300 dark:hover:border-navy-600 rounded-2xl flex items-center justify-center gap-3 transition shadow-sm font-bold text-slate-800 dark:text-white text-xs cursor-pointer group disabled:opacity-60 disabled:cursor-not-allowed"
+            className="w-full py-2 px-3 bg-white dark:bg-navy-900 hover:bg-slate-50 dark:hover:bg-navy-800 border-2 border-slate-300 dark:border-navy-600 hover:border-slate-400 rounded-xl flex items-center justify-center gap-2 transition shadow-xs font-bold text-slate-900 dark:text-white text-xs cursor-pointer group disabled:opacity-60 disabled:cursor-not-allowed"
           >
             {googleLoading ? (
               <>
-                <div className="w-4 h-4 border-2 border-blue-500 border-t-transparent rounded-full animate-spin shrink-0" />
-                <span>Opening Google Account Chooser...</span>
+                <div className="w-3.5 h-3.5 border-2 border-blue-500 border-t-transparent rounded-full animate-spin shrink-0" />
+                <span className="text-xs font-semibold">Opening Google Chooser...</span>
               </>
             ) : (
               <>
-                {/* Official Multi-Color Google G Logo SVG */}
                 <svg className="w-4 h-4 shrink-0" viewBox="0 0 24 24">
                   <path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z" />
                   <path fill="#34A853" d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z" />
                   <path fill="#FBBC05" d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.06H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.94l2.85-2.22.81-.63z" />
                   <path fill="#EA4335" d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.06l3.66 2.84c.87-2.6 3.3-4.52 6.16-4.52z" />
                 </svg>
-                <span>{authMode === 'login' ? 'Sign in with Google' : 'Sign up with Google'}</span>
+                <span className="text-xs font-bold">{authMode === 'login' ? 'Sign in with Google' : 'Sign up with Google'}</span>
               </>
             )}
           </button>
 
-          {typeof window !== 'undefined' && window.location.hostname === 'localhost' && window.location.port && window.location.port !== '3000' && window.location.port !== '5173' && (
-            <p className="text-[11px] text-amber-700 dark:text-amber-400 bg-amber-500/10 border border-amber-500/20 rounded-xl p-2 text-center font-medium">
-              Note: Google OAuth requires port 3000. For 1-click Google Sign-in on localhost, open{' '}
-              <a href="http://localhost:3000" className="underline font-bold text-navy-900 dark:text-gold-400">
-                http://localhost:3000
-              </a>{' '}
-              or register using email below.
-            </p>
-          )}
-
-          <div className="relative text-center my-3">
+          <div className="relative text-center my-1.5">
             <div className="absolute inset-0 flex items-center">
               <div className="w-full border-t border-slate-200 dark:border-navy-800" />
             </div>
-            <span className="relative bg-white dark:bg-navy-950 px-3 text-[10px] font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400">
+            <span className="relative bg-white dark:bg-navy-950 px-2.5 text-[10px] font-extrabold uppercase tracking-wider text-slate-600 dark:text-slate-300">
               Or continue with email
             </span>
           </div>
@@ -699,103 +834,108 @@ export const UnifiedAuth = ({ defaultMode = 'login', defaultRole = 'candidate', 
 
         {/* CANDIDATE AUTH FORM */}
         {authMode === 'login' ? (
-          <form onSubmit={handleCandidateLoginSubmit} className="space-y-4 text-xs">
+          <form onSubmit={handleCandidateLoginSubmit} className="space-y-2.5 text-xs">
             <div>
-              <label className="block text-slate-700 dark:text-slate-300 font-semibold mb-1">Email Address *</label>
+              <label className="block text-slate-900 dark:text-white font-bold text-[11px] mb-1">
+                Email Address <span className="text-rose-500 font-bold ml-0.5">*</span>
+              </label>
               <div className="relative">
-                <Mail className="w-4 h-4 text-slate-500 dark:text-slate-400 absolute left-3 top-3" />
+                <Mail className="w-3.5 h-3.5 text-slate-600 dark:text-slate-300 absolute left-2.5 top-2.5 pointer-events-none" />
                 <input
                   type="email"
                   required
                   value={candidateLogin.email}
                   onChange={(e) => setCandidateLogin({ ...candidateLogin, email: e.target.value })}
-                  placeholder="e.g. candidate@gmail.com"
-                  className="w-full pl-9 pr-3 py-2.5 bg-slate-50 dark:bg-navy-900 border border-slate-200 dark:border-navy-700 rounded-xl focus:outline-none focus:border-gold-500 text-slate-900 dark:text-white"
+                  placeholder="candidate@gmail.com"
+                  className="w-full pl-8 pr-2.5 py-1.5 sm:py-2 text-xs bg-white dark:bg-navy-900 border-2 border-slate-300 dark:border-navy-600 rounded-xl focus:outline-none focus:border-gold-500 focus:ring-1 focus:ring-gold-500 text-slate-900 dark:text-white font-semibold placeholder:text-slate-500 dark:placeholder:text-slate-400 placeholder:font-medium shadow-xs"
                 />
               </div>
             </div>
 
             <div>
-              <label className="block text-slate-700 dark:text-slate-300 font-semibold mb-1">Password *</label>
+              <label className="block text-slate-900 dark:text-white font-bold text-[11px] mb-1">
+                Password <span className="text-rose-500 font-bold ml-0.5">*</span>
+              </label>
               <div className="relative">
-                <Lock className="w-4 h-4 text-slate-500 dark:text-slate-400 absolute left-3 top-3" />
+                <Lock className="w-3.5 h-3.5 text-slate-600 dark:text-slate-300 absolute left-2.5 top-2.5 pointer-events-none" />
                 <input
                   type={showLoginPassword ? "text" : "password"}
                   required
                   value={candidateLogin.password}
                   onChange={(e) => setCandidateLogin({ ...candidateLogin, password: e.target.value })}
                   placeholder="••••••••"
-                  className="w-full pl-9 pr-10 py-2.5 bg-slate-50 dark:bg-navy-900 border border-slate-200 dark:border-navy-700 rounded-xl focus:outline-none focus:border-gold-500 text-slate-900 dark:text-white"
+                  className="w-full pl-8 pr-8 py-1.5 sm:py-2 text-xs bg-white dark:bg-navy-900 border-2 border-slate-300 dark:border-navy-600 rounded-xl focus:outline-none focus:border-gold-500 focus:ring-1 focus:ring-gold-500 text-slate-900 dark:text-white font-semibold placeholder:text-slate-500 dark:placeholder:text-slate-400 placeholder:font-medium shadow-xs"
                 />
                 <button
                   type="button"
                   onClick={() => setShowLoginPassword(!showLoginPassword)}
-                  className="absolute right-3 top-3 text-slate-400 hover:text-gold-500 transition cursor-pointer"
+                  className="absolute right-2.5 top-2.5 text-slate-500 hover:text-gold-500 transition cursor-pointer"
                   title={showLoginPassword ? "Hide password" : "Show password"}
                 >
-                  {showLoginPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                  {showLoginPassword ? <EyeOff className="w-3.5 h-3.5" /> : <Eye className="w-3.5 h-3.5" />}
                 </button>
               </div>
             </div>
 
             <button
               type="submit"
-              className="w-full py-3 bg-gold-500 hover:bg-gold-600 text-slate-900 dark:text-white font-bold rounded-xl shadow-gold-glow transition flex items-center justify-center space-x-2 text-sm mt-4 cursor-pointer"
+              className="w-full py-2.5 bg-gradient-to-r from-amber-500 via-gold-500 to-amber-600 hover:from-amber-600 hover:to-amber-700 text-slate-950 font-extrabold rounded-xl shadow-md transition flex items-center justify-center gap-2 text-xs sm:text-sm font-sans tracking-wide cursor-pointer mt-1"
             >
               <span>Sign In to Candidate Portal</span>
               <ArrowRight className="w-4 h-4" />
             </button>
-
-            <div className="pt-3 border-t border-slate-100 dark:border-navy-800">
-              <button
-                type="button"
-                onClick={handleDemoCandidateLogin}
-                className="w-full py-2.5 bg-slate-50 dark:bg-navy-900 text-gold-400 hover:bg-navy-800 font-bold rounded-xl transition text-xs border border-slate-200 dark:border-gold-500/30 cursor-pointer"
-              >
-                ⚡ Quick Demo Candidate Sign In (Instant Access)
-              </button>
-            </div>
           </form>
         ) : (
-          <form onSubmit={handleCandidateRegSubmit} className="space-y-4 text-xs">
-            <div>
-              <label className="block text-slate-700 dark:text-slate-300 font-semibold mb-1">
-                Full Name * <span className="text-[10px] text-slate-400 font-normal">(Letters only, max 50 chars)</span>
-              </label>
-              <input
-                type="text"
-                required
-                maxLength={50}
-                value={candidateReg.fullName}
-                onChange={(e) => {
-                  const lettersOnly = e.target.value.replace(/[^a-zA-Z\s\.\'-]/g, '').slice(0, 50);
-                  setCandidateReg({ ...candidateReg, fullName: lettersOnly });
-                }}
-                placeholder="John Doe"
-                className="w-full px-3 py-2.5 bg-slate-50 dark:bg-navy-900 border border-slate-200 dark:border-navy-700 rounded-xl focus:outline-none focus:border-gold-500 text-slate-900 dark:text-white"
-              />
-            </div>
+          <form onSubmit={handleCandidateRegSubmit} className="space-y-2 text-xs">
+            {/* Row 1: Full Name & Email side-by-side ALWAYS in 2 columns */}
+            <div className="grid grid-cols-2 gap-2">
+              <div>
+                <label className="block text-slate-900 dark:text-white font-bold text-[11px] mb-0.5 truncate">
+                  Full Name <span className="text-rose-500 font-bold">*</span>
+                </label>
+                <div className="relative">
+                  <User className="w-3.5 h-3.5 text-slate-600 dark:text-slate-300 absolute left-2.5 top-2 pointer-events-none" />
+                  <input
+                    type="text"
+                    required
+                    maxLength={50}
+                    value={candidateReg.fullName}
+                    onChange={(e) => {
+                      const lettersOnly = e.target.value.replace(/[^a-zA-Z\s\.\'-]/g, '').slice(0, 50);
+                      setCandidateReg({ ...candidateReg, fullName: lettersOnly });
+                    }}
+                    placeholder="Kishore Kumar"
+                    className="w-full pl-7 pr-2 py-1.5 text-xs bg-white dark:bg-navy-900 border-2 border-slate-300 dark:border-navy-600 rounded-xl focus:outline-none focus:border-gold-500 focus:ring-1 focus:ring-gold-500 text-slate-900 dark:text-white font-semibold placeholder:text-slate-500 dark:placeholder:text-slate-400 placeholder:font-medium shadow-xs"
+                  />
+                </div>
+              </div>
 
-            {/* Gmail / Email Input */}
-            <div>
-              <label className="block text-slate-700 dark:text-slate-300 font-semibold mb-1">
-                Email Address * <span className="text-[10px] text-slate-400 font-normal">(Valid format, max 80 chars)</span>
-              </label>
-              <div className="relative">
-                <Mail className="w-4 h-4 text-slate-500 dark:text-slate-400 absolute left-3 top-3" />
-                <input
-                  type="email"
-                  required
-                  maxLength={80}
-                  value={candidateReg.email}
-                  onChange={(e) => setCandidateReg({ ...candidateReg, email: e.target.value.slice(0, 80) })}
-                  placeholder="john@example.com"
-                  className="w-full pl-9 pr-3 py-2.5 bg-slate-50 dark:bg-navy-900 border border-slate-200 dark:border-navy-700 rounded-xl focus:outline-none focus:border-gold-500 text-slate-900 dark:text-white"
-                />
+              <div>
+                <label className="block text-slate-900 dark:text-white font-bold text-[11px] mb-0.5 truncate">
+                  Email Address <span className="text-rose-500 font-bold">*</span>
+                </label>
+                <div className="relative">
+                  <Mail className="w-3.5 h-3.5 text-slate-600 dark:text-slate-300 absolute left-2.5 top-2 pointer-events-none" />
+                  <input
+                    type="email"
+                    required
+                    maxLength={80}
+                    value={candidateReg.email}
+                    onChange={(e) => setCandidateReg({ ...candidateReg, email: e.target.value.slice(0, 80) })}
+                    onBlur={() => {
+                      const clean = (candidateReg.email || '').trim().toLowerCase();
+                      if (clean && validateCandidateEmail(clean).isValid) {
+                        checkDuplicateCandidate('email', clean);
+                      }
+                    }}
+                    placeholder="candidate@gmail.com"
+                    className="w-full pl-7 pr-2 py-1.5 text-xs bg-white dark:bg-navy-900 border-2 border-slate-300 dark:border-navy-600 rounded-xl focus:outline-none focus:border-gold-500 focus:ring-1 focus:ring-gold-500 text-slate-900 dark:text-white font-semibold placeholder:text-slate-500 dark:placeholder:text-slate-400 placeholder:font-medium shadow-xs"
+                  />
+                </div>
               </div>
             </div>
 
-            {/* DYNAMIC COUNTRY-SPECIFIC PHONE NUMBER INPUT (SELECT OR TYPE ANY COUNTRY CODE) */}
+            {/* Row 2: Phone Number Input */}
             <div>
               {(() => {
                 const activeConfig = COUNTRY_PHONE_CONFIG.find(c => c.code === candidateReg.countryCode);
@@ -804,44 +944,27 @@ export const UnifiedAuth = ({ defaultMode = 'login', defaultRole = 'candidate', 
                 const isComplete = activeConfig 
                   ? currentDigits.length === activeConfig.digits 
                   : (currentDigits.length >= 7 && currentDigits.length <= 15);
-
                 const currentFlag = activeConfig ? activeConfig.flag : '🌐';
-                const currentCountryName = activeConfig ? activeConfig.country : 'International';
 
                 return (
                   <>
-                    <div className="flex justify-between items-center mb-1">
-                      <div className="flex items-center gap-2">
-                        <label className="block text-slate-700 dark:text-slate-300 font-semibold">
-                          Phone Number *
-                        </label>
-                        <button
-                          type="button"
-                          onClick={() => {
-                            setIsCustomCountryCode(!isCustomCountryCode);
-                            if (!isCustomCountryCode && !candidateReg.countryCode) {
-                              setCandidateReg({ ...candidateReg, countryCode: '+' });
-                            }
-                          }}
-                          className="text-[10px] text-blue-600 dark:text-blue-400 hover:underline font-semibold"
-                        >
-                          {isCustomCountryCode ? '← Select from list' : '✏️ Type custom code'}
-                        </button>
-                      </div>
-                      <span className={`text-[11px] font-mono font-bold flex items-center gap-1 ${
-                        isComplete ? 'text-emerald-500 font-bold' : 'text-slate-500 dark:text-slate-400'
-                      }`}>
-                        {isComplete && <CheckCircle2 className="w-3.5 h-3.5 text-emerald-500 inline" />}
-                        <span>
-                          {currentFlag} {currentCountryName}: {currentDigits.length}/{activeConfig ? `${activeConfig.digits}` : '7-15'} Digits
+                    <div className="flex justify-between items-center mb-0.5">
+                      <label className="block text-slate-900 dark:text-white font-bold text-[11px]">
+                        Phone Number <span className="text-rose-500 font-bold">*</span>
+                      </label>
+                      {currentDigits.length > 0 && (
+                        <span className={`text-[10px] font-mono flex items-center gap-1 ${
+                          isComplete ? 'text-emerald-500 font-bold' : 'text-slate-400'
+                        }`}>
+                          {isComplete && <CheckCircle2 className="w-3 h-3 text-emerald-500 inline" />}
+                          <span>{currentDigits.length}/{activeConfig ? `${activeConfig.digits}` : '15'} digits</span>
                         </span>
-                      </span>
+                      )}
                     </div>
 
-                    <div className="flex rounded-xl border border-slate-200 dark:border-navy-700 bg-slate-50 dark:bg-navy-900 focus-within:border-gold-500 focus-within:ring-2 focus-within:ring-gold-500/20 overflow-hidden shadow-sm transition">
-                      {/* Country Selector: Select Mode or Type Mode */}
+                    <div className="flex rounded-xl border-2 border-slate-300 dark:border-navy-600 bg-white dark:bg-navy-900 focus-within:border-gold-500 focus-within:ring-1 focus-within:ring-gold-500 overflow-hidden shadow-xs transition">
                       {isCustomCountryCode ? (
-                        <div className="w-28 shrink-0 bg-slate-100 dark:bg-navy-800 border-r border-slate-200 dark:border-navy-700 flex items-center px-2">
+                        <div className="w-20 shrink-0 bg-slate-100 dark:bg-navy-800 border-r border-slate-200 dark:border-navy-700 flex items-center px-1.5">
                           <span className="text-xs mr-1">{currentFlag}</span>
                           <input
                             type="text"
@@ -852,11 +975,11 @@ export const UnifiedAuth = ({ defaultMode = 'login', defaultRole = 'candidate', 
                               setCandidateReg({ ...candidateReg, countryCode: val.slice(0, 5) });
                             }}
                             placeholder="+XX"
-                            className="w-full text-xs font-bold font-mono text-slate-800 dark:text-white bg-transparent focus:outline-none"
+                            className="w-full text-xs font-bold font-mono text-slate-900 dark:text-white bg-transparent focus:outline-none"
                           />
                         </div>
                       ) : (
-                        <div className="relative w-32 shrink-0 bg-slate-100 dark:bg-navy-800 border-r border-slate-200 dark:border-navy-700 flex items-center">
+                        <div className="relative w-24 sm:w-28 shrink-0 bg-slate-100 dark:bg-navy-800 border-r border-slate-200 dark:border-navy-700 flex items-center">
                           <select
                             value={candidateReg.countryCode}
                             onChange={(e) => {
@@ -876,28 +999,27 @@ export const UnifiedAuth = ({ defaultMode = 'login', defaultRole = 'candidate', 
                                 phone: trimmedPhone
                               });
                             }}
-                            className="w-full h-full pl-2.5 pr-6 py-2.5 text-xs font-bold text-slate-800 dark:text-white bg-transparent focus:outline-none cursor-pointer appearance-none truncate"
+                            className="w-full h-full pl-2 pr-4 py-1.5 text-xs font-bold text-slate-900 dark:text-white bg-transparent focus:outline-none cursor-pointer appearance-none truncate"
                           >
-                            <option value="__CUSTOM__" className="text-blue-600 font-bold dark:bg-navy-900">
-                              ✏️ Type other country code...
-                            </option>
                             {COUNTRY_PHONE_CONFIG.map((c) => (
                               <option key={c.code} value={c.code} className="dark:bg-navy-900 text-slate-900 dark:text-white">
                                 {c.flag} {c.code} ({c.country})
                               </option>
                             ))}
+                            <option value="__CUSTOM__" className="text-blue-600 font-bold dark:bg-navy-900">
+                              🌐 Other
+                            </option>
                           </select>
-                          <div className="pointer-events-none absolute right-2 top-3 text-slate-400">
-                            <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <div className="pointer-events-none absolute right-1 top-2 text-slate-400">
+                            <svg className="w-2.5 h-2.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 9l-7 7-7-7" />
                             </svg>
                           </div>
                         </div>
                       )}
 
-                      {/* Spacious Phone Number Input */}
                       <div className="relative flex-1 min-w-0 flex items-center">
-                        <Phone className="w-4 h-4 text-slate-400 absolute left-3 pointer-events-none" />
+                        <Phone className="w-3.5 h-3.5 text-slate-600 dark:text-slate-300 absolute left-2.5 pointer-events-none" />
                         <input
                           type="text"
                           inputMode="numeric"
@@ -909,8 +1031,15 @@ export const UnifiedAuth = ({ defaultMode = 'login', defaultRole = 'candidate', 
                             const digitsOnly = e.target.value.replace(/\D/g, '').slice(0, maxDigits);
                             setCandidateReg({ ...candidateReg, phone: digitsOnly });
                           }}
-                          placeholder="Enter phone number"
-                          className="w-full pl-9 pr-3 py-2.5 bg-transparent focus:outline-none text-slate-900 dark:text-white font-medium text-xs tracking-wider font-mono placeholder:text-slate-400 placeholder:font-normal"
+                          onBlur={() => {
+                            const digitsOnly = candidateReg.phone.replace(/\D/g, '');
+                            if (digitsOnly.length >= 7) {
+                              const fullPhone = `${candidateReg.countryCode || '+91'} ${digitsOnly}`;
+                              checkDuplicateCandidate('phone', fullPhone);
+                            }
+                          }}
+                          placeholder="Enter mobile number"
+                          className="w-full pl-8 pr-2.5 py-1.5 bg-transparent focus:outline-none text-slate-900 dark:text-white font-bold text-xs tracking-wider font-mono placeholder:text-slate-500 dark:placeholder:text-slate-400 placeholder:font-medium placeholder:tracking-normal"
                         />
                       </div>
                     </div>
@@ -919,56 +1048,62 @@ export const UnifiedAuth = ({ defaultMode = 'login', defaultRole = 'candidate', 
               })()}
             </div>
 
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+            {/* Row 3: Passwords side-by-side ALWAYS in 2 columns */}
+            <div className="grid grid-cols-2 gap-2">
               <div>
-                <label className="block text-slate-700 dark:text-slate-300 font-semibold mb-1">Password (Min 8 chars, mixed & symbol) *</label>
+                <label className="block text-slate-900 dark:text-white font-bold text-[11px] mb-0.5 truncate">
+                  Password <span className="text-rose-500 font-bold">*</span>
+                </label>
                 <div className="relative">
-                  <Lock className="w-4 h-4 text-slate-500 dark:text-slate-400 absolute left-3 top-3" />
+                  <Lock className="w-3.5 h-3.5 text-slate-600 dark:text-slate-300 absolute left-2.5 top-2 pointer-events-none" />
                   <input
                     type={showRegPassword ? "text" : "password"}
                     required
                     value={candidateReg.password}
                     onChange={(e) => setCandidateReg({ ...candidateReg, password: e.target.value })}
-                    placeholder="••••••••"
-                    className="w-full pl-9 pr-10 py-2.5 bg-slate-50 dark:bg-navy-900 border border-slate-200 dark:border-navy-700 rounded-xl focus:outline-none focus:border-gold-500 text-slate-900 dark:text-white"
+                    placeholder="Min. 8 chars"
+                    className="w-full pl-7 pr-7 py-1.5 text-xs bg-white dark:bg-navy-900 border-2 border-slate-300 dark:border-navy-600 rounded-xl focus:outline-none focus:border-gold-500 focus:ring-1 focus:ring-gold-500 text-slate-900 dark:text-white font-semibold placeholder:text-slate-500 dark:placeholder:text-slate-400 placeholder:font-medium shadow-xs"
                   />
                   <button
                     type="button"
                     onClick={() => setShowRegPassword(!showRegPassword)}
-                    className="absolute right-3 top-3 text-slate-400 hover:text-gold-500 transition cursor-pointer"
+                    className="absolute right-2 top-2 text-slate-500 hover:text-gold-500 transition cursor-pointer"
                     title={showRegPassword ? "Hide password" : "Show password"}
                   >
-                    {showRegPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                    {showRegPassword ? <EyeOff className="w-3 h-3" /> : <Eye className="w-3 h-3" />}
                   </button>
                 </div>
               </div>
+
               <div>
-                <label className="block text-slate-700 dark:text-slate-300 font-semibold mb-1">Confirm Password *</label>
+                <label className="block text-slate-900 dark:text-white font-bold text-[11px] mb-0.5 truncate">
+                  Confirm Password <span className="text-rose-500 font-bold">*</span>
+                </label>
                 <div className="relative">
-                  <Lock className="w-4 h-4 text-slate-500 dark:text-slate-400 absolute left-3 top-3" />
+                  <Lock className="w-3.5 h-3.5 text-slate-600 dark:text-slate-300 absolute left-2.5 top-2 pointer-events-none" />
                   <input
                     type={showRegConfirmPassword ? "text" : "password"}
                     required
                     value={candidateReg.confirmPassword}
                     onChange={(e) => setCandidateReg({ ...candidateReg, confirmPassword: e.target.value })}
-                    placeholder="••••••••"
-                    className="w-full pl-9 pr-10 py-2.5 bg-slate-50 dark:bg-navy-900 border border-slate-200 dark:border-navy-700 rounded-xl focus:outline-none focus:border-gold-500 text-slate-900 dark:text-white"
+                    placeholder="Re-enter password"
+                    className="w-full pl-7 pr-7 py-1.5 text-xs bg-white dark:bg-navy-900 border-2 border-slate-300 dark:border-navy-600 rounded-xl focus:outline-none focus:border-gold-500 focus:ring-1 focus:ring-gold-500 text-slate-900 dark:text-white font-semibold placeholder:text-slate-500 dark:placeholder:text-slate-400 placeholder:font-medium shadow-xs"
                   />
                   <button
                     type="button"
                     onClick={() => setShowRegConfirmPassword(!showRegConfirmPassword)}
-                    className="absolute right-3 top-3 text-slate-400 hover:text-gold-500 transition cursor-pointer"
+                    className="absolute right-2 top-2 text-slate-500 hover:text-gold-500 transition cursor-pointer"
                     title={showRegConfirmPassword ? "Hide password" : "Show password"}
                   >
-                    {showRegConfirmPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                    {showRegConfirmPassword ? <EyeOff className="w-3 h-3" /> : <Eye className="w-3 h-3" />}
                   </button>
                 </div>
               </div>
             </div>
 
-            {/* Mandatory Consent Checkbox (Issue #4 & UAE PDPL / India DPDP Act) */}
-            <div className="pt-2">
-              <label className="flex items-start space-x-2.5 cursor-pointer">
+            {/* Consent Checkbox */}
+            <div className="pt-0.5">
+              <label className="flex items-start gap-1.5 cursor-pointer">
                 <input
                   type="checkbox"
                   required
@@ -976,58 +1111,51 @@ export const UnifiedAuth = ({ defaultMode = 'login', defaultRole = 'candidate', 
                   onChange={(e) => setCandidateReg({ ...candidateReg, consentAgreed: e.target.checked })}
                   className="mt-0.5 rounded border-slate-300 text-gold-500 focus:ring-gold-500"
                 />
-                <span className="text-[11px] text-slate-600 dark:text-slate-400 leading-snug">
-                  I consent to Revival International processing my profile and contact details in accordance with the{' '}
+                <span className="text-[10px] text-slate-700 dark:text-slate-300 font-medium leading-tight">
+                  I consent to Revival International processing my profile in accordance with{' '}
                   <button
                     type="button"
                     onClick={() => { setActiveModal(null); navigateTo('legal/privacy-policy'); }}
-                    className="text-gold-500 font-bold hover:underline"
+                    className="text-amber-600 dark:text-gold-400 font-bold hover:underline"
                   >
                     Privacy Policy
                   </button>{' '}
-                  and{' '}
-                  <button
-                    type="button"
-                    onClick={() => { setActiveModal(null); navigateTo('legal/candidate-consent'); }}
-                    className="text-gold-500 font-bold hover:underline"
-                  >
-                    Candidate Consent Notice
-                  </button>
-                  . I acknowledge that placement services are 100% free of charge.
+                  and Terms. Placement is 100% free of charge.
                 </span>
               </label>
             </div>
 
+            {/* Complete Registration Button */}
             <button
               type="submit"
-              className="w-full py-3 bg-gold-500 hover:bg-gold-600 text-slate-900 dark:text-white font-bold rounded-xl shadow-gold-glow transition flex items-center justify-center space-x-2 text-sm mt-4 cursor-pointer"
+              className="w-full py-2 sm:py-2.5 bg-gradient-to-r from-amber-500 via-gold-500 to-amber-600 hover:from-amber-600 hover:to-amber-700 text-slate-950 font-extrabold rounded-xl shadow-md transition flex items-center justify-center gap-2 text-xs sm:text-sm font-sans tracking-wide cursor-pointer mt-0.5"
             >
               <span>Complete Candidate Registration</span>
-              <ArrowRight className="w-4 h-4" />
+              <ArrowRight className="w-3.5 h-3.5" />
             </button>
           </form>
         )}
 
         {/* Bottom Switch between Sign In and Register */}
-        <div className="border-t border-slate-200 dark:border-navy-800 pt-5 mt-6 text-center text-xs font-medium">
+        <div className="border-t border-slate-100 dark:border-navy-800 pt-1.5 mt-1.5 text-center text-xs font-medium">
           {authMode === 'login' ? (
-            <p className="text-slate-600 dark:text-slate-400">
+            <p className="text-slate-700 dark:text-slate-300 text-xs font-semibold">
               Don't have an account yet?{' '}
               <button
                 type="button"
                 onClick={() => handleModeSwitch('register')}
-                className="text-gold-500 hover:text-gold-600 font-bold transition inline-flex items-center gap-1 cursor-pointer"
+                className="text-amber-600 dark:text-gold-400 hover:text-amber-700 font-extrabold transition inline-flex items-center gap-1 cursor-pointer hover:underline"
               >
                 Create Candidate Account →
               </button>
             </p>
           ) : (
-            <p className="text-slate-600 dark:text-slate-400">
+            <p className="text-slate-700 dark:text-slate-300 text-xs font-semibold">
               Already registered?{' '}
               <button
                 type="button"
                 onClick={() => handleModeSwitch('login')}
-                className="text-gold-500 hover:text-gold-600 font-bold transition inline-flex items-center gap-1 cursor-pointer"
+                className="text-amber-600 dark:text-gold-400 hover:text-amber-700 font-extrabold transition inline-flex items-center gap-1 cursor-pointer hover:underline"
               >
                 Sign In to Candidate Portal →
               </button>
@@ -1036,14 +1164,14 @@ export const UnifiedAuth = ({ defaultMode = 'login', defaultRole = 'candidate', 
         </div>
 
         {/* Google OAuth Client ID config link */}
-        <div className="mt-3 text-center">
+        <div className="mt-1 text-center">
           <button
             type="button"
             onClick={() => {
               setTempClientId(googleClientId || '');
               setShowClientIdConfig(true);
             }}
-            className="text-[10px] text-slate-400 hover:text-slate-600 dark:hover:text-slate-300 transition inline-flex items-center gap-1 cursor-pointer"
+            className="text-[9px] text-slate-400 hover:text-slate-600 dark:hover:text-slate-300 transition inline-flex items-center gap-1 cursor-pointer"
           >
             <Settings className="w-2.5 h-2.5" />
             <span>Google OAuth Configuration</span>

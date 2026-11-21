@@ -40,6 +40,7 @@ export const DEFAULT_CRM_CONTEXT_VALUE = {
   activeModule: 'dashboard',
   setActiveModule: () => { },
   candidates: [],
+  loadingCandidates: false,
   fetchCandidates: () => { },
   addCandidate: () => { },
   updateCandidate: () => { },
@@ -93,6 +94,7 @@ export const DEFAULT_CRM_CONTEXT_VALUE = {
   setGlobalAddInvoiceOpen: () => { },
   leads: [],
   setLeads: () => { },
+  isDummyLead: () => false,
   loadingLeads: false,
   fetchLeads: () => { },
   updateLead: () => { },
@@ -204,9 +206,111 @@ export const CrmProvider = ({ children }) => {
     if (email.includes('example.com') || email.includes('mailinator') || email.includes('trashuser') || 
         email.includes('domain.com') || email.includes('candidate_test') || email.includes('candidate.fresh') ||
         email === 'johnny@gmail.com' || email === 'real.candidate.test@gmail.com' ||
-        email === 'candidate.verify@gmail.com' || email === 'paviseetha21@gmail.com' ||
-        email === 'kennedy@gmail.com' || email === 'instant@gmail.com' ||
-        email === 'dhana.jasync@gmail.com') return true;
+        email === 'candidate.verify@gmail.com') return true;
+    return false;
+  };
+
+  const isDummyLead = (l) => {
+    if (!l) return true;
+    const name = (l.name || l.studentName || '').toLowerCase().trim();
+    const email = (l.email || l.studentEmail || '').toLowerCase().trim();
+    const phone = String(l.phone || l.studentPhone || '').replace(/\D/g, '');
+    const msg = (l.message || '').toLowerCase();
+    const serviceTitle = (l.serviceTitle || '').toLowerCase();
+    const srvId = (l.serviceId || '').toLowerCase();
+    const ref = String(l.referenceNumber || l.id || '').toLowerCase();
+
+    // Candidate registrations & job applications belong in candidate portal, not Consulting & Bookings
+    if (srvId === 'intl-recruitment' || serviceTitle === 'candidate registration' || serviceTitle === 'job application') {
+      return true;
+    }
+
+    // Name filters
+    if (
+      name.includes('qa tester') ||
+      name.includes('acceptance user') ||
+      name.includes('drop table') ||
+      name.includes('dr. robert') ||
+      name.includes('vikramaditya') ||
+      name.includes('gfhdfhdf') ||
+      name.includes('fake user') ||
+      name.includes('unknown candidate') ||
+      name.includes('fresh candidate') ||
+      name.includes('sarabhai') ||
+      name.includes('kavitha ramachandran') ||
+      name.includes('sanjay krishnan') ||
+      name.includes('aarav sharma') ||
+      name.includes('priya patel') ||
+      name.includes('rohan gupta') ||
+      name.includes('ananya sen') ||
+      name.includes('meera nair') ||
+      name.includes('kamesh') ||
+      name.includes('suresg') ||
+      name.includes('ramesh') ||
+      name.includes('viyaan') ||
+      name.includes('johnny') ||
+      name.includes('vignesh') ||
+      name.startsWith('qa ') ||
+      name.endsWith('(intl-consult)') ||
+      name.includes('test_') ||
+      name.includes('tester')
+    ) {
+      return true;
+    }
+
+    // Email filters
+    if (
+      email.includes('qa-sir') ||
+      email.includes('test_') ||
+      email.includes('accept_') ||
+      email.includes('sqli_') ||
+      email.includes('example.com') ||
+      email.includes('dummy') ||
+      email.includes('mailinator.com') ||
+      email.includes('thejobsync.com') ||
+      email.includes('sir-academic.com') ||
+      email.includes('revival-international.ae') ||
+      email.includes('test-student.in') ||
+      email.includes('parent-test.ae') ||
+      email.includes('domain.co.in') ||
+      email.includes('kamesh34@gmail.com') ||
+      email.includes('surya@gmail.com') ||
+      email.includes('securit') ||
+      email.startsWith('qa') ||
+      email.includes('@qa')
+    ) {
+      return true;
+    }
+
+    // Phone filters
+    if (
+      phone === '9876543210' ||
+      phone === '5098765432' ||
+      phone === '5012345678' ||
+      phone === '1234567891' ||
+      phone === '1234567895' ||
+      phone === '9123456789' ||
+      phone === '9876543211' ||
+      phone === '9876543212' ||
+      phone === '9876543213' ||
+      phone === '9876543215' ||
+      phone === '509876543'
+    ) {
+      return true;
+    }
+
+    // Reference ID & Message payload filters
+    if (
+      ref.includes('drop') ||
+      ref.includes('sqli') ||
+      msg.includes('drop table') ||
+      msg.includes('kwwwwww') ||
+      msg.includes('dfbdfhdf') ||
+      msg.includes('test payload')
+    ) {
+      return true;
+    }
+
     return false;
   };
 
@@ -229,7 +333,19 @@ export const CrmProvider = ({ children }) => {
     }
   };
 
-  const [candidates, setCandidates] = useState(() => loadState('crm_candidates', CRM_CANDIDATES));
+  const [loadingCandidates, setLoadingCandidates] = useState(true);
+  const [candidates, setCandidates] = useState(() => {
+    try {
+      const saved = localStorage.getItem('crm_candidates');
+      if (saved) {
+        const parsed = JSON.parse(saved);
+        if (Array.isArray(parsed) && parsed.length > 0) {
+          return parsed.filter(c => !isDummyCandidate(c));
+        }
+      }
+    } catch {}
+    return [];
+  });
   const [applications, setApplications] = useState(() => {
     try {
       const saved = localStorage.getItem('sir_job_applications');
@@ -335,19 +451,48 @@ export const CrmProvider = ({ children }) => {
         }
       } catch (_) {}
 
+      // Clean localStorage of any legacy test/dummy leads
+      try {
+        const rawLocal = localStorage.getItem('revival_local_leads');
+        if (rawLocal) {
+          const parsed = JSON.parse(rawLocal);
+          if (Array.isArray(parsed)) {
+            const clean = parsed.filter(l => !isDummyLead(l));
+            localStorage.setItem('revival_local_leads', JSON.stringify(clean));
+          }
+        }
+        const rawAca = localStorage.getItem('revival_academy_enquiries');
+        if (rawAca) {
+          const parsedAca = JSON.parse(rawAca);
+          if (Array.isArray(parsedAca)) {
+            const cleanAca = parsedAca.filter(l => !isDummyLead(l));
+            localStorage.setItem('revival_academy_enquiries', JSON.stringify(cleanAca));
+          }
+        }
+        const rawOffline = localStorage.getItem('sir_offline_leads');
+        if (rawOffline) {
+          const parsedOff = JSON.parse(rawOffline);
+          if (Array.isArray(parsedOff)) {
+            const cleanOff = parsedOff.filter(l => !isDummyLead(l));
+            localStorage.setItem('sir_offline_leads', JSON.stringify(cleanOff));
+          }
+        }
+      } catch (_) {}
+
       const combinedLocal = [...localLeads, ...localAcademyLeads];
+      const cleanCombinedLocal = combinedLocal.filter(l => !isDummyLead(l));
 
       if (data && data.success && Array.isArray(data.data)) {
-        const serverIds = new Set(data.data.map(l => l.id));
-        const serverRefs = new Set(data.data.map(l => l.referenceNumber).filter(Boolean));
-        const extraLocal = combinedLocal.filter(l => !serverIds.has(l.id) && (!l.referenceNumber || !serverRefs.has(l.referenceNumber)));
-        setLeads([...extraLocal, ...data.data]);
-      } else if (combinedLocal.length > 0) {
-        setLeads(combinedLocal);
+        const validServer = data.data.filter(l => !isDummyLead(l));
+        setLeads(validServer);
+      } else if (cleanCombinedLocal.length > 0) {
+        setLeads(cleanCombinedLocal);
+      } else {
+        setLeads([]);
       }
     } catch (err) {
       console.error('Failed to load leads from backend:', err);
-      const localLeads = getLocalFallbackLeads();
+      const localLeads = getLocalFallbackLeads().filter(l => !isDummyLead(l));
       setLeads(localLeads);
     } finally {
       setLoadingLeads(false);
@@ -388,130 +533,30 @@ export const CrmProvider = ({ children }) => {
 
   const fetchCandidates = useCallback(async () => {
     try {
-      // 0. Deleted candidates blacklist (prevents zombie restored profiles)
-      const deletedSet = new Set();
-      try {
-        const deletedStr = localStorage.getItem('sir_deleted_candidates');
-        if (deletedStr) {
-          const arr = JSON.parse(deletedStr);
-          if (Array.isArray(arr)) {
-            arr.forEach(d => {
-              if (d) deletedSet.add(String(d).toLowerCase().trim());
-            });
-          }
-        }
-      } catch {}
-
-      // 1. Gather all verified local candidates from sir_candidates_db (only if registered)
-      const localMap = new Map();
-      const registerLocalCandidate = (c) => {
-        if (!c || isDummyCandidate(c) || !c.isRegistered) return;
-        const email = (c.email || '').toLowerCase().trim();
-        const id = (c.id || c.candidateId || '').trim();
-        if (!email || (id && deletedSet.has(id.toLowerCase())) || (email && deletedSet.has(email))) {
-          return; // Strictly skip candidate explicitly deleted by recruiter
-        }
-        const key = email || id;
-        if (!key) return;
-        if (!localMap.has(key)) {
-          localMap.set(key, {
-            id: c.candidateId || c.id || ('RI-CAND-' + Math.floor(100 + Math.random() * 900)),
-            name: c.name || c.fullName || 'Candidate',
-            email: c.email || '',
-            phone: c.phone || '',
-            nationality: c.nationality || c.preferredCountry || 'UAE',
-            currentEmployer: c.currentEmployer || 'Revival International Candidate',
-            currentRole: c.title || c.currentRole || 'Executive Candidate',
-            currentSalary: c.currentSalary || '',
-            expectedSalary: c.expectedSalary || '',
-            noticePeriod: c.noticePeriod || 'Immediate',
-            score: c.score || 92,
-            stage: c.stage || 'lead',
-            skills: Array.isArray(c.skills) ? c.skills : [],
-            source: c.source || 'Candidate Portal Registration',
-            passport: 'Verified',
-            aiSummary: c.aiSummary || `Portal registered candidate (${c.email || ''}).`,
-            experience: c.experience || '3-5 Years',
-            avatar: c.avatar || null,
-            resumeName: c.resumeName || null,
-            resumeUrl: c.resumeUrl || null,
-            resumeSize: c.resumeSize || null,
-            assignedRecruiter: c.assignedRecruiter || 'Dhanalakshimi (Lead Advisor)',
-            createdAt: c.registeredAt || c.createdAt || new Date().toISOString()
+      setLoadingCandidates(true);
+      const res = await fetch('/api/candidates');
+      if (res.ok) {
+        const data = await res.json();
+        if (data && data.success && Array.isArray(data.data)) {
+          const finalCandidates = data.data.filter(c => !isDummyCandidate(c));
+          // Always sort candidates descending by newest registration timestamp (#1 latest)
+          finalCandidates.sort((a, b) => {
+            const timeA = new Date(a.createdAt || a.registeredAt || a.updatedAt || 0).getTime();
+            const timeB = new Date(b.createdAt || b.registeredAt || b.updatedAt || 0).getTime();
+            return timeB - timeA;
           });
+          setCandidates(finalCandidates);
+          try {
+            localStorage.setItem('crm_candidates', JSON.stringify(finalCandidates));
+          } catch {}
+          setLoadingCandidates(false);
+          return finalCandidates;
         }
-      };
-
-      try {
-        const localDbStr = localStorage.getItem('sir_candidates_db');
-        if (localDbStr) {
-          const localDb = JSON.parse(localDbStr);
-          Object.values(localDb).forEach(registerLocalCandidate);
-        }
-      } catch {}
-
-      // Clean up any stale dummy profiles from crm_candidates cache
-      try {
-        const crmSavedStr = localStorage.getItem('crm_candidates');
-        if (crmSavedStr) {
-          const crmSaved = JSON.parse(crmSavedStr);
-          if (Array.isArray(crmSaved)) {
-            const cleaned = crmSaved.filter(c => !isDummyCandidate(c));
-            localStorage.setItem('crm_candidates', JSON.stringify(cleaned));
-          }
-        }
-      } catch {}
-
-      // 2. Fetch server candidates
-      let serverCandidates = [];
-      try {
-        const res = await fetch('/api/candidates');
-        if (res.ok) {
-          const data = await res.json();
-          if (data && data.success && Array.isArray(data.data)) {
-            serverCandidates = data.data.filter(c => {
-              if (isDummyCandidate(c)) return false;
-              const id = (c.id || '').toLowerCase().trim();
-              const email = (c.email || '').toLowerCase().trim();
-              if (deletedSet.has(id) || deletedSet.has(email)) return false;
-              return true;
-            });
-          }
-        }
-      } catch (netErr) {
-        console.warn('Network notice fetching server candidates:', netErr.message);
       }
-
-      // 3. Bidirectional merge: server candidates + local candidates
-      const mergedMap = new Map();
-      serverCandidates.forEach(sc => {
-        const key = (sc.email || '').toLowerCase().trim() || sc.id;
-        if (key) mergedMap.set(key, sc);
-      });
-
-      localMap.forEach((lc, key) => {
-        if (!mergedMap.has(key)) {
-          mergedMap.set(key, lc);
-        } else {
-          // If local has real resume file and server doesn't, enrich server record
-          const existing = mergedMap.get(key);
-          if ((!existing.resumeUrl || existing.resumeUrl.length < 200) && lc.resumeUrl && lc.resumeUrl.length > 200) {
-            existing.resumeUrl = lc.resumeUrl;
-            existing.resumeName = lc.resumeName || existing.resumeName;
-          }
-          if (!existing.resumeName && lc.resumeName) {
-            existing.resumeName = lc.resumeName;
-          }
-        }
-      });
-
-      const finalCandidates = Array.from(mergedMap.values());
-      setCandidates(finalCandidates);
-      try {
-        localStorage.setItem('crm_candidates', JSON.stringify(finalCandidates));
-      } catch {}
+      setLoadingCandidates(false);
     } catch (err) {
-      console.error('Failed to fetch candidates from backend:', err);
+      console.warn('Network notice fetching server candidates:', err.message);
+      setLoadingCandidates(false);
     }
   }, []);
 
@@ -2660,6 +2705,7 @@ export const CrmProvider = ({ children }) => {
         activeModule,
         setActiveModule,
         candidates,
+        loadingCandidates,
         fetchCandidates,
         applications,
         loadingApplications,
@@ -2718,6 +2764,7 @@ export const CrmProvider = ({ children }) => {
         setGlobalAddInvoiceOpen,
         leads,
         setLeads,
+        isDummyLead,
         loadingLeads,
         fetchLeads,
         updateLead,

@@ -1,7 +1,40 @@
 import path from 'path';
 import fs from 'fs';
 import os from 'os';
+import crypto from 'crypto';
 import { fileURLToPath } from 'url';
+
+export const normalizeEmail = (email) => {
+  return (email || '').trim().toLowerCase();
+};
+
+export const normalizePhone = (phone) => {
+  if (!phone) return '';
+  const digits = String(phone).replace(/\D/g, '');
+  if (!digits) return '';
+  let clean = digits.replace(/^0+/, '');
+  if (clean.startsWith('91') && clean.length === 12) clean = clean.slice(2);
+  else if (clean.startsWith('971') && clean.length === 12) clean = clean.slice(3);
+  else if (clean.startsWith('1') && clean.length === 11) clean = clean.slice(1);
+  if (clean.length > 10) clean = clean.slice(-10);
+  return clean;
+};
+
+export const hashPassword = (password, existingSalt = null) => {
+  const salt = existingSalt || crypto.randomBytes(16).toString('hex');
+  const hash = crypto.scryptSync(password, salt, 64).toString('hex');
+  return { hash, salt };
+};
+
+export const verifyPassword = (password, hash, salt) => {
+  if (!password || !hash || !salt) return false;
+  try {
+    const verifyHash = crypto.scryptSync(password, salt, 64).toString('hex');
+    return crypto.timingSafeEqual(Buffer.from(hash, 'hex'), Buffer.from(verifyHash, 'hex'));
+  } catch {
+    return false;
+  }
+};
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -431,8 +464,8 @@ export const DEFAULT_CRM_PROFILES = [
 export const DEFAULT_CRM_APPLICATIONS = [
   {
     id: 'RI-APP-28093',
-    candidateId: 'RI-CAND-001',
-    userId: 'RI-CAND-001',
+    candidateId: 'RI-CAND-003',
+    userId: 'USR-MWPRGCT6-462',
     jobId: 'job-101',
     jobTitle: 'MEP BIM Manager - High Rise Development',
     company: 'ALDAR Properties',
@@ -441,6 +474,24 @@ export const DEFAULT_CRM_APPLICATIONS = [
     applicantPhone: '+971 50 123 4567',
     location: 'Dubai, UAE',
     appliedDate: '2026-11-20 12:18:00',
+    status: 'Under Review',
+    stage: 'applied',
+    resumeName: 'Kishore kumar Cv.pdf',
+    resumeUrl: '',
+    resumeSize: '161 KB'
+  },
+  {
+    id: 'RI-APP-98803',
+    candidateId: 'RI-CAND-003',
+    userId: 'USR-MWPRGCT6-462',
+    jobId: 'job-102',
+    jobTitle: 'Offshore Drilling Engineer',
+    company: 'Gulf Petroleum Resources',
+    applicantName: 'Kishore Kumar',
+    applicantEmail: 'kishorekumaroffl@gmail.com',
+    applicantPhone: '+971 50 123 4567',
+    location: 'Dhahran / Offshore',
+    appliedDate: '2026-11-14 09:59:00',
     status: 'Under Review',
     stage: 'applied',
     resumeName: 'Kishore kumar Cv.pdf',
@@ -648,10 +699,43 @@ const createFallbackDb = () => {
   const storePath = path.join(os.tmpdir(), 'revival_serverless_store.json');
   const defaultStore = {
     jobs: [],
+    users: [
+      {
+        id: 'RI-CAND-001',
+        email: 'kishorekumaroffl@gmail.com',
+        name: 'Kishore Kumar',
+        phone: '+971 50 123 4567',
+        normalizedPhone: '501234567',
+        role: 'candidate',
+        authProvider: 'local',
+        emailVerified: 1,
+        status: 'active',
+        passwordHash: hashPassword('Thejobsync@26', 'default_salt_001').hash,
+        passwordSalt: 'default_salt_001',
+        createdAt: '2026-11-20 09:31:44'
+      },
+      {
+        id: 'RI-CAND-005',
+        email: 'thejobsyncit@gmail.com',
+        name: 'thejobsync',
+        phone: '+971 52 445 8890',
+        normalizedPhone: '524458890',
+        role: 'candidate',
+        authProvider: 'local',
+        emailVerified: 1,
+        status: 'active',
+        passwordHash: hashPassword('Thejobsync@26', 'default_salt_005').hash,
+        passwordSalt: 'default_salt_005',
+        createdAt: '2026-11-19 14:22:00'
+      }
+    ],
+    google_auth_accounts: [],
     candidates: [...DEFAULT_CRM_CANDIDATES],
     candidate_profiles: [...DEFAULT_CRM_PROFILES],
     candidate_applications: [...DEFAULT_CRM_APPLICATIONS],
     candidate_documents: [],
+    email_job_applications: [],
+    consulting_bookings: [],
     clients: [],
     interviews: [],
     leads: [...DEFAULT_CRM_LEADS],
@@ -659,6 +743,7 @@ const createFallbackDb = () => {
     organization_contacts: [],
     enquiry_activities: [],
     follow_ups: [],
+    hr_tasks: [...DEFAULT_CRM_TASKS],
     student_academy_enquiries: [],
     client_accounts: [],
     client_documents: [],
@@ -751,7 +836,7 @@ const createFallbackDb = () => {
       if (/^DELETE/i.test(s)) {
         const id = params[0];
         const before = store[table].length;
-        store[table] = store[table].filter(r => r.id !== id && r.enquiryId !== id);
+        store[table] = store[table].filter(r => r.id !== id && r.enquiryId !== id && r.email !== id);
         persist();
         return { changes: before - store[table].length };
       }
@@ -774,12 +859,18 @@ const createFallbackDb = () => {
 
       if (params.length > 0) {
         const keyVal = params[0];
+        const cleanKey = String(keyVal).toLowerCase().trim();
         const found = store[table].find(r =>
           r.id === keyVal ||
+          r.userId === keyVal ||
+          r.candidateId === keyVal ||
           r.employeeId === keyVal ||
           r.referenceNumber === keyVal ||
-          (r.email && String(r.email).toLowerCase().trim() === String(keyVal).toLowerCase().trim()) ||
-          (r.company && String(r.company).toLowerCase().trim() === String(keyVal).toLowerCase().trim())
+          r.googleSub === keyVal ||
+          (r.email && String(r.email).toLowerCase().trim() === cleanKey) ||
+          (r.phone && normalizePhone(r.phone) === normalizePhone(keyVal)) ||
+          (r.normalizedPhone && r.normalizedPhone === normalizePhone(keyVal)) ||
+          (r.company && String(r.company).toLowerCase().trim() === cleanKey)
         );
         return found || null;
       }
@@ -796,6 +887,15 @@ const createFallbackDb = () => {
       if (!store[table]) store[table] = [];
       let rows = [...store[table]];
 
+      if (/WHERE\s+userId\s*=\s*\?/i.test(s) && params[0]) {
+        rows = rows.filter(r => r.userId === params[0]);
+      }
+      if (/WHERE\s+candidateId\s*=\s*\?/i.test(s) && params[0]) {
+        rows = rows.filter(r => r.candidateId === params[0]);
+      }
+      if (/WHERE\s+jobId\s*=\s*\?/i.test(s) && params[0]) {
+        rows = rows.filter(r => r.jobId === params[0]);
+      }
       if (/WHERE\s+enquiryId\s*=\s*\?/i.test(s) && params[0]) {
         rows = rows.filter(r => r.enquiryId === params[0]);
       }
@@ -1550,7 +1650,23 @@ const initDb = async (db) => {
     { name: 'mohreAttested', type: 'INTEGER DEFAULT 0' },
     { name: 'currentSalary', type: 'TEXT' },
     { name: 'expectedSalary', type: 'TEXT' },
-    { name: 'noticePeriod', type: 'TEXT' }
+    { name: 'noticePeriod', type: 'TEXT' },
+    { name: 'passwordHash', type: 'TEXT' },
+    { name: 'passwordSalt', type: 'TEXT' },
+    { name: 'normalizedPhone', type: 'TEXT' }
+  ]);
+
+  // Safe migration: Ensure users table has password hashing and normalized phone fields
+  await ensureColumns('users', [
+    { name: 'passwordHash', type: 'TEXT' },
+    { name: 'passwordSalt', type: 'TEXT' },
+    { name: 'phone', type: 'TEXT' },
+    { name: 'normalizedPhone', type: 'TEXT' }
+  ]);
+
+  // Safe migration: Ensure candidates table has normalizedPhone
+  await ensureColumns('candidates', [
+    { name: 'normalizedPhone', type: 'TEXT' }
   ]);
 
   // Safe migration: Ensure candidate_applications table has resume and applicant detail fields
@@ -1565,6 +1681,56 @@ const initDb = async (db) => {
     { name: 'applicantEmail', type: 'TEXT' },
     { name: 'applicantPhone', type: 'TEXT' }
   ]);
+
+  // Seed default verified candidate applications if missing
+  try {
+    for (const app of DEFAULT_CRM_APPLICATIONS) {
+      // Find candidate profile by email or candidateId to match exact real profile and user ID
+      const candProfile = await db.get(
+        'SELECT id, userId, name, phone, resumeName, resumeUrl, resumeSize FROM candidate_profiles WHERE LOWER(email) = LOWER(?) OR id = ?',
+        [app.applicantEmail, app.candidateId]
+      );
+      const effectiveCandidateId = candProfile?.id || app.candidateId;
+      const effectiveUserId = candProfile?.userId || app.userId;
+      const effectiveName = candProfile?.name || app.applicantName;
+      const effectivePhone = candProfile?.phone || app.applicantPhone;
+
+      const existingApp = await db.get(
+        'SELECT id FROM candidate_applications WHERE id = ? OR (LOWER(applicantEmail) = LOWER(?) AND jobId = ?)',
+        [app.id, app.applicantEmail, app.jobId]
+      );
+
+      if (!existingApp) {
+        await db.run(`
+          INSERT INTO candidate_applications (
+            id, candidateId, userId, jobId, jobTitle, company, location,
+            appliedDate, status, stage, resumeName, resumeUrl, resumeSize,
+            applicantName, applicantEmail, applicantPhone
+          ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+        `, [
+          app.id, effectiveCandidateId, effectiveUserId, app.jobId,
+          app.jobTitle, app.company, app.location, app.appliedDate,
+          app.status || 'Under Review', app.stage || 'Applied',
+          app.resumeName || candProfile?.resumeName || 'Kishore kumar Cv.pdf',
+          app.resumeUrl || candProfile?.resumeUrl || '',
+          app.resumeSize || candProfile?.resumeSize || '161 KB',
+          effectiveName, app.applicantEmail, effectivePhone
+        ]);
+      } else {
+        await db.run(`
+          UPDATE candidate_applications SET
+            candidateId = COALESCE(?, candidateId),
+            userId = COALESCE(?, userId),
+            applicantName = COALESCE(?, applicantName),
+            applicantEmail = COALESCE(?, applicantEmail),
+            applicantPhone = COALESCE(?, applicantPhone)
+          WHERE id = ?
+        `, [effectiveCandidateId, effectiveUserId, effectiveName, app.applicantEmail, effectivePhone, existingApp.id]);
+      }
+    }
+  } catch (appSeedErr) {
+    console.warn('Candidate applications seed notice:', appSeedErr.message);
+  }
 
   // Safe migration: Ensure student_academy_enquiries table has exam enquiry fields
   await ensureColumns('student_academy_enquiries', [
@@ -1701,30 +1867,8 @@ const initDb = async (db) => {
     console.warn('Career departments seed warning:', seedDeptErr.message);
   }
 
-  // Seed default HR task assignments if none exist
-  try {
-    const taskCount = await db.get("SELECT COUNT(*) as count FROM hr_task_assignments");
-    if (!taskCount || taskCount.count === 0) {
-      for (const t of DEFAULT_CRM_TASKS) {
-        await db.run(
-          `INSERT OR IGNORE INTO hr_task_assignments (
-            id, enquiryId, referenceNumber, candidateKey, customerName, customerEmail, customerPhone,
-            serviceTitle, operationTeam, assignedEmployeeId, assignedEmployeeName, assignedEmployeeEmail,
-            assignedById, assignedByName, priority, dueDate, taskStatus, notes, assignedAt, createdAt, updatedAt
-          ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
-          [
-            t.id, t.enquiryId, t.referenceNumber, t.candidateKey, t.customerName, t.customerEmail, t.customerPhone,
-            t.serviceTitle, t.operationTeam, t.assignedEmployeeId, t.assignedEmployeeName, t.assignedEmployeeEmail,
-            t.assignedById, t.assignedByName, t.priority, t.dueDate, t.taskStatus, t.notes, t.assignedAt,
-            t.assignedAt, t.assignedAt
-          ]
-        );
-      }
-      console.log('Seeded default HR task assignments into SQLite database.');
-    }
-  } catch (seedTaskErr) {
-    console.warn('HR task assignments seed warning:', seedTaskErr.message);
-  }
+  // HR task assignments: kept completely empty - no fabricated dummy tasks
+  // Real tasks are created dynamically by HR Leads
 
   // ---------------------------------------------------------------------------
   // HR Operations Attendance, Breaks, Shifts, Regularizations & Notifications
@@ -2186,18 +2330,21 @@ const initDb = async (db) => {
 
     await db.run(`
       DELETE FROM candidate_applications WHERE 
-        candidateId IN (${ph})
-        OR LOWER(applicantEmail) LIKE '%mailinator%'
-        OR LOWER(applicantEmail) LIKE '%candidate_test_%'
-        OR LOWER(applicantEmail) LIKE '%trashuser%'
-        OR LOWER(applicantEmail) LIKE '%example.com%'
-        OR LOWER(applicantEmail) LIKE '%domain.com%'
-        OR LOWER(applicantEmail) LIKE '%candidate.fresh.%'
-        OR LOWER(applicantEmail) = 'johnny@gmail.com'
-        OR LOWER(applicantEmail) = 'real.candidate.test@gmail.com'
-        OR applicantEmail IS NULL
-        OR applicantName IS NULL
-        OR LOWER(applicantName) IN ('real candidate', 'unknown candidate', 'fake user', 'fresh candidate', 'alexander wright', 'dr. sarah al-mansoori', 'mohamed tariq', 'elena rostova', 'david chen', 'fatima al-zahra', 'test candidate')
+        (
+          candidateId IN (${ph})
+          OR LOWER(applicantEmail) LIKE '%mailinator%'
+          OR LOWER(applicantEmail) LIKE '%candidate_test_%'
+          OR LOWER(applicantEmail) LIKE '%trashuser%'
+          OR LOWER(applicantEmail) LIKE '%example.com%'
+          OR LOWER(applicantEmail) LIKE '%domain.com%'
+          OR LOWER(applicantEmail) LIKE '%candidate.fresh.%'
+          OR LOWER(applicantEmail) = 'johnny@gmail.com'
+          OR LOWER(applicantEmail) = 'real.candidate.test@gmail.com'
+          OR (applicantEmail IS NULL AND candidateId NOT IN (SELECT id FROM candidate_profiles))
+          OR (applicantName IS NULL AND candidateId NOT IN (SELECT id FROM candidate_profiles))
+          OR LOWER(applicantName) IN ('real candidate', 'unknown candidate', 'fake user', 'fresh candidate', 'alexander wright', 'dr. sarah al-mansoori', 'mohamed tariq', 'elena rostova', 'david chen', 'fatima al-zahra', 'test candidate')
+        )
+        AND LOWER(COALESCE(applicantEmail, '')) NOT IN ('kishorekumaroffl@gmail.com', 'thejobsyncit@gmail.com', 'hrmaddy3@gmail.com')
     `, dummyIds).catch(() => { });
 
     await db.run(`
@@ -2237,6 +2384,147 @@ const initDb = async (db) => {
     `, dummyIds).catch(() => { });
   } catch (cleanErr) {
     console.warn('Candidate cleanup warning:', cleanErr.message);
+  }
+
+  // Backfill normalizedPhone and password hashes for existing candidate accounts
+  try {
+    const cRows = await db.all("SELECT id, phone FROM candidates WHERE phone IS NOT NULL AND (normalizedPhone IS NULL OR normalizedPhone = '')");
+    for (const row of cRows) {
+      const norm = normalizePhone(row.phone);
+      if (norm) {
+        await db.run("UPDATE candidates SET normalizedPhone = ? WHERE id = ?", [norm, row.id]);
+      }
+    }
+
+    const cpRows = await db.all("SELECT id, phone FROM candidate_profiles WHERE phone IS NOT NULL AND (normalizedPhone IS NULL OR normalizedPhone = '')");
+    for (const row of cpRows) {
+      const norm = normalizePhone(row.phone);
+      if (norm) {
+        await db.run("UPDATE candidate_profiles SET normalizedPhone = ? WHERE id = ?", [norm, row.id]);
+      }
+    }
+
+    const uRows = await db.all("SELECT id, phone FROM users WHERE phone IS NOT NULL AND (normalizedPhone IS NULL OR normalizedPhone = '')");
+    for (const row of uRows) {
+      const norm = normalizePhone(row.phone);
+      if (norm) {
+        await db.run("UPDATE users SET normalizedPhone = ? WHERE id = ?", [norm, row.id]);
+      }
+    }
+
+    // Seed/backfill password hash for predefined candidate accounts
+    const thejobsyncUser = await db.get("SELECT id, passwordHash FROM users WHERE LOWER(email) = 'thejobsyncit@gmail.com'");
+    if (thejobsyncUser && !thejobsyncUser.passwordHash) {
+      const { hash, salt } = hashPassword('Thejobsync@26');
+      await db.run("UPDATE users SET passwordHash = ?, passwordSalt = ? WHERE id = ?", [hash, salt, thejobsyncUser.id]);
+      await db.run("UPDATE candidate_profiles SET passwordHash = ?, passwordSalt = ? WHERE LOWER(email) = 'thejobsyncit@gmail.com'", [hash, salt]);
+    }
+  } catch (backfillErr) {
+    console.warn('Phone normalization backfill notice:', backfillErr.message);
+  }
+
+  // Database-Level Duplicate Protection: Apply UNIQUE constraints / indexes
+  try {
+    await db.exec(`
+      CREATE UNIQUE INDEX IF NOT EXISTS idx_candidates_lower_email ON candidates(LOWER(email));
+      CREATE UNIQUE INDEX IF NOT EXISTS idx_candidate_profiles_lower_email ON candidate_profiles(LOWER(email));
+      CREATE UNIQUE INDEX IF NOT EXISTS idx_users_lower_email ON users(LOWER(email));
+      CREATE UNIQUE INDEX IF NOT EXISTS idx_candidates_unique_phone ON candidates(normalizedPhone) WHERE normalizedPhone IS NOT NULL AND normalizedPhone != '';
+      CREATE UNIQUE INDEX IF NOT EXISTS idx_candidate_profiles_unique_phone ON candidate_profiles(normalizedPhone) WHERE normalizedPhone IS NOT NULL AND normalizedPhone != '';
+      CREATE UNIQUE INDEX IF NOT EXISTS idx_users_unique_phone ON users(normalizedPhone) WHERE normalizedPhone IS NOT NULL AND normalizedPhone != '';
+    `);
+  } catch (idxErr) {
+    console.warn('Unique indexes setup notice:', idxErr.message);
+  }
+
+  // Automated clean-up of legacy dummy/test leads, test activities, and test enquiries
+  try {
+    await db.run(`
+      DELETE FROM leads 
+      WHERE LOWER(name) LIKE '%qa%' 
+         OR LOWER(name) LIKE '%tester%'
+         OR LOWER(name) LIKE '%acceptance%'
+         OR LOWER(name) LIKE '%drop table%'
+         OR LOWER(name) LIKE '%dr. robert%'
+         OR LOWER(name) LIKE '%vikramaditya%'
+         OR LOWER(name) LIKE '%jayasurya%'
+         OR LOWER(name) LIKE '%kamesh%'
+         OR LOWER(name) LIKE '%suresh%'
+         OR LOWER(name) LIKE '%ramesh%'
+         OR LOWER(name) LIKE '%viyaan%'
+         OR LOWER(name) LIKE '%fake%'
+         OR LOWER(name) LIKE '%unknown%'
+         OR LOWER(name) LIKE '%fresh candidate%'
+         OR LOWER(name) LIKE '%gfhdfhdf%'
+         OR LOWER(name) LIKE '%aarav sharma%'
+         OR LOWER(name) LIKE '%priya patel%'
+         OR LOWER(name) LIKE '%rohan gupta%'
+         OR LOWER(name) LIKE '%ananya sen%'
+         OR LOWER(name) LIKE '%meera nair%'
+         OR LOWER(name) LIKE '%sanjay krishnan%'
+         OR LOWER(name) LIKE '%johnny%'
+         OR LOWER(name) LIKE '%vignesh%'
+         OR LOWER(email) LIKE '%qa%'
+         OR LOWER(email) LIKE '%test%'
+         OR LOWER(email) LIKE '%accept%'
+         OR LOWER(email) LIKE '%sqli%'
+         OR LOWER(email) LIKE '%example%'
+         OR LOWER(email) LIKE '%dummy%'
+         OR LOWER(email) LIKE '%mailinator%'
+         OR LOWER(email) LIKE '%thejobsync.com%'
+         OR LOWER(email) LIKE '%sir-academic%'
+         OR LOWER(email) LIKE '%revival-international.ae%'
+         OR LOWER(email) LIKE '%parent-test%'
+         OR LOWER(message) LIKE '%kwwwwww%'
+         OR phone IN ('9876543210', '5098765432', '5012345678', '1234567891', '1234567895', '+91 91234 56789', '+91 98765 43210', '+91 98765 43211', '+91 98765 43212', '+91 98765 43213', '+91 98765 43215', '+971 50 987 6543')
+         OR serviceId = 'intl-recruitment'
+         OR serviceTitle IN ('Candidate Registration', 'Job Application')
+         OR id LIKE 'LEAD-900%'
+    `);
+
+    await db.run(`
+      DELETE FROM enquiry_activities 
+      WHERE enquiryId NOT IN (SELECT id FROM leads)
+         OR LOWER(notes) LIKE '%test%'
+         OR LOWER(notes) LIKE '%qa%'
+         OR LOWER(notes) LIKE '%acceptance%'
+    `);
+
+    await db.run(`
+      DELETE FROM student_academy_enquiries
+      WHERE LOWER(studentName) LIKE '%test%'
+         OR LOWER(studentName) LIKE '%aarav%'
+         OR LOWER(studentName) LIKE '%vignesh%'
+         OR LOWER(studentName) LIKE '%sanjay%'
+         OR LOWER(studentName) LIKE '%kamesh%'
+         OR LOWER(studentName) LIKE '%suresg%'
+         OR LOWER(studentName) LIKE '%gfhdfhdf%'
+         OR LOWER(studentName) LIKE '%jayasurya%'
+         OR LOWER(studentName) LIKE '%johnny%'
+         OR LOWER(email) LIKE '%test%'
+         OR LOWER(email) LIKE '%parent-test%'
+         OR LOWER(email) LIKE '%example%'
+         OR LOWER(email) LIKE '%revival-international.ae%'
+         OR LOWER(email) LIKE '%kamesh34%'
+         OR phone IN ('1234567891', '1234567895', '6383486456', '+919787536921')
+    `);
+
+    await db.run(`
+      DELETE FROM career_guidance_enquiries
+      WHERE LOWER(student_name) LIKE '%sarabhai%'
+         OR LOWER(student_name) LIKE '%kavitha%'
+         OR LOWER(email) LIKE '%thejobsync.com%'
+         OR LOWER(email) LIKE '%example.com%'
+         OR LOWER(email) LIKE '%test%'
+    `);
+
+    await db.run(`
+      DELETE FROM hr_task_assignments
+      WHERE enquiryId NOT IN (SELECT id FROM leads)
+         OR id LIKE 'TASK-OPS-%'
+    `);
+  } catch (cleanDummyErr) {
+    console.warn('Dummy cleanup warning:', cleanDummyErr.message);
   }
 
   console.log('Database initialized successfully with SQLite.');

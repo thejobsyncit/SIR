@@ -349,6 +349,17 @@ export const CandidatePortal = () => {
   // Combined jobs list
   const allJobs = [...(postedJobs || []), ...(JOBS_LIST || [])];
 
+  const formatAppDate = (dateVal) => {
+    if (!dateVal) return 'Recently';
+    try {
+      const dt = new Date(dateVal);
+      if (!isNaN(dt.getTime())) {
+        return dt.toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit' });
+      }
+    } catch {}
+    return String(dateVal);
+  };
+
   // Candidate applications: Real applications from context/backend database.
   // Sample demo applications are exclusively reserved for the unauthenticated/demo walkthrough account.
   const isDemoAccount = user?.email === 'candidate@revivalinternational.com';
@@ -1429,7 +1440,7 @@ export const CandidatePortal = () => {
                             </div>
                             <div>
                               <h4 className="font-bold text-xs text-navy-950 dark:text-white">{app.jobTitle}</h4>
-                              <p className="text-[11px] text-slate-500 mt-0.5">{app.company} • {app.appliedDate}</p>
+                              <p className="text-[11px] text-slate-500 mt-0.5">{app.company} • {formatAppDate(app.appliedDate)}</p>
                             </div>
                           </div>
                           <div className="text-right shrink-0">
@@ -2117,7 +2128,7 @@ export const CandidatePortal = () => {
                       <div className="space-y-1">
                         <div className="flex items-center gap-2">
                           <span className="text-[10px] font-mono font-bold text-slate-400">ID: {app.id}</span>
-                          <span className="text-[10px] text-slate-400">• Applied on {app.appliedDate}</span>
+                          <span className="text-[10px] text-slate-400">• Applied on {formatAppDate(app.appliedDate)}</span>
                         </div>
                         <h3 className="font-serif text-lg font-bold text-navy-950 dark:text-white">{app.jobTitle}</h3>
                         <p className="text-xs text-slate-600 dark:text-slate-300 font-semibold">
@@ -2236,7 +2247,7 @@ export const CandidatePortal = () => {
                   <div>
                     <span className="text-[10px] font-mono font-bold text-slate-400">Application Reference: {activeStatusApp.id}</span>
                     <h3 className="font-serif text-lg font-bold text-navy-950 dark:text-white mt-0.5">{activeStatusApp.jobTitle}</h3>
-                    <p className="text-xs text-slate-600 dark:text-slate-400">{activeStatusApp.company} • Applied on {activeStatusApp.appliedDate}</p>
+                    <p className="text-xs text-slate-600 dark:text-slate-400">{activeStatusApp.company} • Applied on {formatAppDate(activeStatusApp.appliedDate)}</p>
                   </div>
                   <span className="bg-gold-500/20 text-gold-600 dark:text-gold-400 border border-gold-500/40 text-xs font-bold px-3 py-1 rounded-full">
                     Current Stage: {activeStatusApp.status}
