@@ -1171,9 +1171,11 @@ app.post('/api/auth/google', async (req, res) => {
 
     // Strict 1-Time Candidate Registration: Prevent duplicate registration via "Sign up with Google"
     if (req.body?.mode === 'register') {
+      const sbCheck = await checkSupabaseCandidateExists(cleanEmail);
       const existingCandidate = userRecord ||
         await db.get('SELECT id FROM candidate_profiles WHERE LOWER(email) = LOWER(?)', [cleanEmail]) ||
-        await db.get('SELECT id FROM candidates WHERE LOWER(email) = LOWER(?)', [cleanEmail]);
+        await db.get('SELECT id FROM candidates WHERE LOWER(email) = LOWER(?)', [cleanEmail]) ||
+        (sbCheck.exists ? { id: 'sb-existing' } : null);
       if (existingCandidate) {
         return res.status(409).json({
           success: false,
@@ -1262,6 +1264,33 @@ app.post('/api/auth/google', async (req, res) => {
         'Welcome to The Revival International',
         `Welcome ${finalName}! Your candidate account (${candidateId}) is active. Browse verified global vacancies and track applications in real time.`
       ]);
+
+      // Cloud Sync to Supabase PostgreSQL cloud database
+      try {
+        await syncUserToSupabase({
+          id: userId,
+          name: finalName,
+          email: cleanEmail,
+          phone: '',
+          role: 'candidate',
+          status: 'active'
+        });
+        await syncCandidateToSupabase({
+          id: candidateId,
+          name: finalName,
+          email: cleanEmail,
+          phone: '',
+          nationality: 'UAE',
+          score: 92,
+          stage: 'lead',
+          skills: '[]',
+          source: 'Google Authentication (Gmail Verified)',
+          passport: 'Verified',
+          experience: '3-5 Years'
+        });
+      } catch (sbErr) {
+        console.warn('[Google Auth] Supabase cloud sync warning:', sbErr.message);
+      }
 
       // Dispatch Welcome Email for newly registered Google user
       try {
@@ -1501,7 +1530,41 @@ app.post('/api/candidate/check-exists', async (req, res) => {
     const cleanEmail = normalizeEmail(email);
     const normalizedPhone = normalizePhone(phone);
 
-    // 1. Authoritative check via Supabase Cloud (Single Source of Truth across serverless containers)
+    // 1. Check in SQLite (users, candidate_profiles, candidates)
+    if (cleanEmail) {
+      const sqliteUser = await db.get(
+        'SELECT id, email FROM users WHERE LOWER(TRIM(email)) = LOWER(?) UNION SELECT id, email FROM candidate_profiles WHERE LOWER(TRIM(email)) = LOWER(?) UNION SELECT id, email FROM candidates WHERE LOWER(TRIM(email)) = LOWER(?) LIMIT 1',
+        [cleanEmail, cleanEmail, cleanEmail]
+      );
+      if (sqliteUser) {
+        return res.status(409).json({
+          exists: true,
+          field: 'email',
+          message: 'An account with this email address already exists. Please sign in to your existing account.'
+        });
+      }
+    }
+
+    if (normalizedPhone && normalizedPhone.length >= 7) {
+      const phoneSuffix = `%${normalizedPhone.slice(-7)}`;
+      const sqlitePhone = await db.get(
+        `SELECT id, phone FROM users WHERE phone IS NOT NULL AND REPLACE(REPLACE(REPLACE(REPLACE(phone, ' ', ''), '-', ''), '+', ''), '(', '') LIKE ?
+         UNION
+         SELECT id, phone FROM candidate_profiles WHERE phone IS NOT NULL AND REPLACE(REPLACE(REPLACE(REPLACE(phone, ' ', ''), '-', ''), '+', ''), '(', '') LIKE ?
+         UNION
+         SELECT id, phone FROM candidates WHERE phone IS NOT NULL AND REPLACE(REPLACE(REPLACE(REPLACE(phone, ' ', ''), '-', ''), '+', ''), '(', '') LIKE ? LIMIT 1`,
+        [phoneSuffix, phoneSuffix, phoneSuffix]
+      );
+      if (sqlitePhone) {
+        return res.status(409).json({
+          exists: true,
+          field: 'phone',
+          message: 'An account with this phone number is already registered. Please sign in using your existing account.'
+        });
+      }
+    }
+
+    // 2. Authoritative check via Supabase Cloud (Single Source of Truth across serverless containers)
     const sbCheck = await checkSupabaseCandidateExists(cleanEmail, normalizedPhone);
     if (sbCheck.exists) {
       return res.status(409).json({
@@ -1511,13 +1574,6 @@ app.post('/api/candidate/check-exists', async (req, res) => {
           ? 'An account with this email address already exists. Please sign in to your existing account.'
           : 'An account with this phone number is already registered. Please sign in using your existing account.'
       });
-    }
-
-    // If Supabase confirms account does NOT exist, clean up any ghost SQLite rows on this container!
-    if (cleanEmail) {
-      await db.run('DELETE FROM users WHERE LOWER(email) = LOWER(?)', [cleanEmail]).catch(() => {});
-      await db.run('DELETE FROM candidates WHERE LOWER(email) = LOWER(?)', [cleanEmail]).catch(() => {});
-      await db.run('DELETE FROM candidate_profiles WHERE LOWER(email) = LOWER(?)', [cleanEmail]).catch(() => {});
     }
 
     return res.json({ exists: false });
@@ -1580,7 +1636,43 @@ app.post('/api/candidate/register', async (req, res) => {
 
     const db = await getDb();
 
-    // 2. Authoritative Duplicate Check via Supabase Cloud Database (Single Source of Truth)
+    // 2a. Check in SQLite (users, candidate_profiles, candidates)
+    if (cleanEmail) {
+      const sqliteUser = await db.get(
+        'SELECT id, email FROM users WHERE LOWER(TRIM(email)) = LOWER(?) UNION SELECT id, email FROM candidate_profiles WHERE LOWER(TRIM(email)) = LOWER(?) UNION SELECT id, email FROM candidates WHERE LOWER(TRIM(email)) = LOWER(?) LIMIT 1',
+        [cleanEmail, cleanEmail, cleanEmail]
+      );
+      if (sqliteUser) {
+        return res.status(409).json({
+          success: false,
+          error: 'duplicate_email',
+          field: 'email',
+          message: 'An account with this email address already exists. Please sign in to your existing account.'
+        });
+      }
+    }
+
+    if (normalizedPhone && normalizedPhone.length >= 7) {
+      const phoneSuffix = `%${normalizedPhone.slice(-7)}`;
+      const sqlitePhone = await db.get(
+        `SELECT id, phone FROM users WHERE phone IS NOT NULL AND REPLACE(REPLACE(REPLACE(REPLACE(phone, ' ', ''), '-', ''), '+', ''), '(', '') LIKE ?
+         UNION
+         SELECT id, phone FROM candidate_profiles WHERE phone IS NOT NULL AND REPLACE(REPLACE(REPLACE(REPLACE(phone, ' ', ''), '-', ''), '+', ''), '(', '') LIKE ?
+         UNION
+         SELECT id, phone FROM candidates WHERE phone IS NOT NULL AND REPLACE(REPLACE(REPLACE(REPLACE(phone, ' ', ''), '-', ''), '+', ''), '(', '') LIKE ? LIMIT 1`,
+        [phoneSuffix, phoneSuffix, phoneSuffix]
+      );
+      if (sqlitePhone) {
+        return res.status(409).json({
+          success: false,
+          error: 'duplicate_phone',
+          field: 'phone',
+          message: 'An account with this phone number is already registered. Please sign in using your existing account.'
+        });
+      }
+    }
+
+    // 2b. Authoritative Duplicate Check via Supabase Cloud Database (Single Source of Truth)
     const sbCheck = await checkSupabaseCandidateExists(cleanEmail, normalizedPhone);
     if (sbCheck.exists) {
       return res.status(409).json({
@@ -1592,11 +1684,6 @@ app.post('/api/candidate/register', async (req, res) => {
           : 'An account with this phone number is already registered. Please sign in using your existing account.'
       });
     }
-
-    // Since candidate does NOT exist in Supabase cloud, clear any local stale ghost rows in SQLite!
-    await db.run('DELETE FROM users WHERE LOWER(email) = LOWER(?)', [cleanEmail]).catch(() => {});
-    await db.run('DELETE FROM candidates WHERE LOWER(email) = LOWER(?)', [cleanEmail]).catch(() => {});
-    await db.run('DELETE FROM candidate_profiles WHERE LOWER(email) = LOWER(?)', [cleanEmail]).catch(() => {});
 
     // 4. Secure Password Hashing
     const { hash: passwordHash, salt: passwordSalt } = hashPassword(password);
