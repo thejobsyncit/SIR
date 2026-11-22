@@ -1180,7 +1180,7 @@ app.post('/api/auth/google', async (req, res) => {
         return res.status(409).json({
           success: false,
           code: 'DUPLICATE_EMAIL',
-          message: 'An account with this email address already exists. Please sign in to your existing account.'
+          message: 'An account with this email address or phone number already exists. Please sign in to your existing account.'
         });
       }
     }
@@ -1540,7 +1540,7 @@ app.post('/api/candidate/check-exists', async (req, res) => {
         return res.status(409).json({
           exists: true,
           field: 'email',
-          message: 'An account with this email address already exists. Please sign in to your existing account.'
+          message: 'An account with this email address or phone number already exists. Please sign in to your existing account.'
         });
       }
     }
@@ -1559,7 +1559,7 @@ app.post('/api/candidate/check-exists', async (req, res) => {
         return res.status(409).json({
           exists: true,
           field: 'phone',
-          message: 'An account with this phone number is already registered. Please sign in using your existing account.'
+          message: 'An account with this email address or phone number already exists. Please sign in to your existing account.'
         });
       }
     }
@@ -1570,9 +1570,7 @@ app.post('/api/candidate/check-exists', async (req, res) => {
       return res.status(409).json({
         exists: true,
         field: sbCheck.field,
-        message: sbCheck.field === 'email'
-          ? 'An account with this email address already exists. Please sign in to your existing account.'
-          : 'An account with this phone number is already registered. Please sign in using your existing account.'
+        message: 'An account with this email address or phone number already exists. Please sign in to your existing account.'
       });
     }
 
@@ -1647,7 +1645,7 @@ app.post('/api/candidate/register', async (req, res) => {
           success: false,
           error: 'duplicate_email',
           field: 'email',
-          message: 'An account with this email address already exists. Please sign in to your existing account.'
+          message: 'An account with this email address or phone number already exists. Please sign in to your existing account.'
         });
       }
     }
@@ -1667,7 +1665,7 @@ app.post('/api/candidate/register', async (req, res) => {
           success: false,
           error: 'duplicate_phone',
           field: 'phone',
-          message: 'An account with this phone number is already registered. Please sign in using your existing account.'
+          message: 'An account with this email address or phone number already exists. Please sign in to your existing account.'
         });
       }
     }
@@ -1679,9 +1677,7 @@ app.post('/api/candidate/register', async (req, res) => {
         success: false,
         error: `duplicate_${sbCheck.field}`,
         field: sbCheck.field,
-        message: sbCheck.field === 'email'
-          ? 'An account with this email address already exists. Please sign in to your existing account.'
-          : 'An account with this phone number is already registered. Please sign in using your existing account.'
+        message: 'An account with this email address or phone number already exists. Please sign in to your existing account.'
       });
     }
 
@@ -1997,6 +1993,9 @@ app.post('/api/candidate/login', async (req, res) => {
       applications: applications,
       score: profileRow?.score || candRow?.score || 90,
       stage: profileRow?.stage || candRow?.stage || 'lead',
+      avatar: profileRow?.avatar || candRow?.avatar || userRow?.avatar || null,
+      createdAt: profileRow?.createdAt || candRow?.createdAt || userRow?.createdAt || null,
+      registeredAt: profileRow?.createdAt || candRow?.createdAt || userRow?.createdAt || null,
       loginTime: nowIso,
       token: `revival_jwt_cand_${Buffer.from(cleanEmail).toString('base64')}_${Date.now()}`
     };
@@ -2240,6 +2239,36 @@ app.put('/api/candidate/profile', async (req, res) => {
       }
     } catch (syncErr) {
       console.warn('Sync to candidates table notice:', syncErr.message);
+    }
+
+    // Also sync avatar & profile to users table and Supabase cloud
+    try {
+      if (existing.email) {
+        await db.run('UPDATE users SET avatar = COALESCE(?, avatar), name = COALESCE(?, name), phone = COALESCE(?, phone) WHERE LOWER(email) = LOWER(?)', [avatar !== undefined ? avatar : null, name || null, phone || null, existing.email]).catch(() => {});
+        await syncUserToSupabase({
+          id: existing.userId || existing.id,
+          name: name || existing.name,
+          email: existing.email,
+          phone: phone || existing.phone,
+          avatar: avatar !== undefined ? avatar : existing.avatar,
+          role: 'candidate'
+        });
+        await syncCandidateToSupabase({
+          id: targetCandId,
+          name: name || existing.name,
+          email: existing.email,
+          phone: phone || existing.phone,
+          nationality: nationality || existing.nationality || 'UAE',
+          currentEmployer: currentEmployer || existing.currentEmployer,
+          currentRole: finalRole || existing.currentRole,
+          score: existing.score || 90,
+          stage: existing.stage || 'lead',
+          skills: skillsStr,
+          experience: experience || existing.experience
+        });
+      }
+    } catch (sbSyncErr) {
+      console.warn('[Profile Update] Supabase sync notice:', sbSyncErr.message);
     }
 
     const updated = await db.get('SELECT * FROM candidate_profiles WHERE id = ?', [targetCandId]);
@@ -3908,7 +3937,7 @@ app.get('/api/candidates', async (req, res) => {
         fetchSupabaseCandidates(),
         new Promise(resolve => setTimeout(() => resolve([]), 1500))
       ]).catch(() => []),
-      db.all('SELECT id, email FROM users').catch(() => []),
+      db.all('SELECT id, email, avatar, phone, name, createdAt FROM users').catch(() => []),
       db.all('SELECT email FROM google_auth_accounts').catch(() => []),
       db.all('SELECT * FROM candidate_profiles').catch(() => []),
       db.all('SELECT * FROM candidate_applications ORDER BY appliedDate DESC').catch(() => []),
@@ -3924,9 +3953,11 @@ app.get('/api/candidates', async (req, res) => {
       for (const sc of supabaseCandidates) {
         const scEmail = (sc.email || '').toLowerCase().trim();
         if (!existingIdSet.has(sc.id) && (!scEmail || !existingEmailSet.has(scEmail))) {
+          const scTime = sc.createdat || sc.created_at || sc.createdAt || null;
           rows.unshift({
             ...sc,
-            createdAt: sc.created_at || sc.createdAt || new Date().toISOString()
+            createdAt: scTime,
+            registeredAt: scTime
           });
           existingIdSet.add(sc.id);
           if (scEmail) existingEmailSet.add(scEmail);
@@ -3945,6 +3976,11 @@ app.get('/api/candidates', async (req, res) => {
     });
 
     const userEmailSet = new Set(users.map(u => (u.email || '').toLowerCase().trim()).filter(Boolean));
+    const userMap = new Map();
+    for (const u of users) {
+      if (u.email) userMap.set(u.email.toLowerCase().trim(), u);
+      if (u.id) userMap.set(u.id, u);
+    }
     const googleEmailSet = new Set(googleAccounts.map(g => (g.email || '').toLowerCase().trim()).filter(Boolean));
 
     const profileMap = new Map();
@@ -4074,10 +4110,13 @@ app.get('/api/candidates', async (req, res) => {
         cleanPhone = '';
       }
 
+      const uRow = userMap.get(emailKey) || (r.id ? userMap.get(r.id) : null);
+
       // Recover genuine candidate avatar photo
       const candidateAvatarCandidates = [
         r.avatar,
         prof?.avatar,
+        uRow?.avatar,
         (r.phone && r.phone.startsWith('http')) ? r.phone : null,
         (r.currentRole && r.currentRole.startsWith('http')) ? r.currentRole : null
       ];
@@ -4106,7 +4145,7 @@ app.get('/api/candidates', async (req, res) => {
       }
 
       // Guarantee authoritative registration timestamp for CRM timeframe filters & sorting
-      const guaranteedCreatedAt = r.createdAt || prof?.createdAt || (typeof r.stage === 'string' && r.stage.includes('T') ? r.stage : null) || (typeof r.resumeName === 'string' && r.resumeName.includes('T') ? r.resumeName : null) || new Date().toISOString();
+      const guaranteedCreatedAt = r.createdat || r.createdAt || prof?.createdat || prof?.createdAt || uRow?.createdAt || uRow?.createdat || (typeof r.stage === 'string' && r.stage.includes('T') ? r.stage : null) || (typeof r.resumeName === 'string' && r.resumeName.includes('T') ? r.resumeName : null) || new Date().toISOString();
 
       return {
         ...r,
@@ -4518,8 +4557,23 @@ app.delete('/api/candidates/:id', async (req, res) => {
     // 1. Locate candidate across candidates and candidate_profiles to retrieve all keys
     const candRow = await db.get('SELECT * FROM candidates WHERE id = ?', [id]).catch(() => null);
     const profRow = await db.get('SELECT * FROM candidate_profiles WHERE id = ?', [id]).catch(() => null);
-    const targetEmail = (req.body?.email || req.query?.email || candRow?.email || profRow?.email || '').toLowerCase().trim();
+    let targetEmail = (req.body?.email || req.query?.email || candRow?.email || profRow?.email || '').toLowerCase().trim();
+    let targetPhone = (req.body?.phone || req.query?.phone || candRow?.phone || profRow?.phone || '').trim();
     const candName = req.body?.name || candRow?.name || profRow?.name || id;
+
+    // If email or phone was not found in SQLite, resolve directly from Supabase by ID
+    if (!targetEmail || !targetPhone) {
+      try {
+        const sbClient = getSupabaseClient();
+        if (sbClient && id) {
+          const { data: sbCand } = await sbClient.from('candidates').select('email, phone').eq('id', id).maybeSingle();
+          if (sbCand) {
+            if (!targetEmail && sbCand.email) targetEmail = sbCand.email.toLowerCase().trim();
+            if (!targetPhone && sbCand.phone) targetPhone = sbCand.phone.trim();
+          }
+        }
+      } catch (_) {}
+    }
 
     // 2. Full cascade deletion across ALL tables:
     // Delete from candidates table
@@ -4527,11 +4581,23 @@ app.delete('/api/candidates/:id', async (req, res) => {
     if (targetEmail) {
       await db.run('DELETE FROM candidates WHERE LOWER(email) = LOWER(?)', [targetEmail]).catch(() => { });
     }
+    if (targetPhone) {
+      const cleanP = targetPhone.replace(/\D/g, '');
+      if (cleanP.length >= 7) {
+        await db.run("DELETE FROM candidates WHERE phone IS NOT NULL AND REPLACE(REPLACE(REPLACE(REPLACE(phone, ' ', ''), '-', ''), '+', ''), '(', '') LIKE ?", [`%${cleanP.slice(-7)}`]).catch(() => { });
+      }
+    }
 
     // Delete from candidate_profiles table
     await db.run('DELETE FROM candidate_profiles WHERE id = ?', [id]).catch(() => { });
     if (targetEmail) {
       await db.run('DELETE FROM candidate_profiles WHERE LOWER(email) = LOWER(?)', [targetEmail]).catch(() => { });
+    }
+    if (targetPhone) {
+      const cleanP = targetPhone.replace(/\D/g, '');
+      if (cleanP.length >= 7) {
+        await db.run("DELETE FROM candidate_profiles WHERE phone IS NOT NULL AND REPLACE(REPLACE(REPLACE(REPLACE(phone, ' ', ''), '-', ''), '+', ''), '(', '') LIKE ?", [`%${cleanP.slice(-7)}`]).catch(() => { });
+      }
     }
 
     // Delete from candidate_applications table
@@ -4555,6 +4621,12 @@ app.delete('/api/candidates/:id', async (req, res) => {
       await db.run("DELETE FROM google_auth_accounts WHERE LOWER(email) = LOWER(?)", [targetEmail]).catch(() => { });
       await db.run("DELETE FROM leads WHERE LOWER(email) = LOWER(?)", [targetEmail]).catch(() => { });
     }
+    if (targetPhone) {
+      const cleanP = targetPhone.replace(/\D/g, '');
+      if (cleanP.length >= 7) {
+        await db.run("DELETE FROM users WHERE phone IS NOT NULL AND REPLACE(REPLACE(REPLACE(REPLACE(phone, ' ', ''), '-', ''), '+', ''), '(', '') LIKE ?", [`%${cleanP.slice(-7)}`]).catch(() => { });
+      }
+    }
 
     // Remove from memory blacklist so re-registration is immediately permitted
     deletedCandidatesMemorySet.delete(id.toLowerCase().trim());
@@ -4562,7 +4634,7 @@ app.delete('/api/candidates/:id', async (req, res) => {
 
     // Cascade deletion to Supabase cloud database
     try {
-      await deleteCandidateFromSupabase(id, targetEmail);
+      await deleteCandidateFromSupabase(id, targetEmail, targetPhone);
     } catch (sbErr) {
       console.warn('[Delete Candidate] Supabase delete warning:', sbErr.message);
     }

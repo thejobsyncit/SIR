@@ -206,7 +206,7 @@ export const UnifiedAuth = ({ defaultMode = 'login', defaultRole = 'candidate', 
           if (checkRes.status === 409) {
             setGoogleLoading(false);
             setGoogleError('');
-            setError('An account with this email address already exists. Please sign in to your existing account.');
+            setError('An account with this email address or phone number already exists. Please sign in to your existing account.');
             return;
           }
         } catch (_) {}
@@ -225,7 +225,7 @@ export const UnifiedAuth = ({ defaultMode = 'login', defaultRole = 'candidate', 
 
       if (!result || !result.success) {
         if (result?.code === 'DUPLICATE_EMAIL' || result?.message?.includes('already exists')) {
-          setError(result?.message || 'An account with this email address already exists. Please sign in to your existing account.');
+          setError(result?.message || 'An account with this email address or phone number already exists. Please sign in to your existing account.');
           setGoogleError('');
         } else {
           setGoogleError(result?.message || 'Google authentication failed.');
@@ -417,7 +417,7 @@ export const UnifiedAuth = ({ defaultMode = 'login', defaultRole = 'candidate', 
                     if (checkRes.status === 409) {
                       setGoogleLoading(false);
                       setGoogleError('');
-                      setError('An account with this email address already exists. Please sign in to your existing account.');
+                      setError('An account with this email address or phone number already exists. Please sign in to your existing account.');
                       return;
                     }
                   } catch (_) {}
@@ -435,7 +435,7 @@ export const UnifiedAuth = ({ defaultMode = 'login', defaultRole = 'candidate', 
 
                 if (!result || !result.success) {
                   if (result?.code === 'DUPLICATE_EMAIL' || result?.message?.includes('already exists')) {
-                    setError(result?.message || 'An account with this email address already exists. Please sign in to your existing account.');
+                    setError(result?.message || 'An account with this email address or phone number already exists. Please sign in to your existing account.');
                     setGoogleError('');
                   } else {
                     setGoogleError(result?.message || 'Google authentication failed.');
@@ -596,9 +596,7 @@ export const UnifiedAuth = ({ defaultMode = 'login', defaultRole = 'candidate', 
       });
       if (res.status === 409) {
         const data = await res.json();
-        setError(data.message || (field === 'email'
-          ? 'An account with this email address already exists. Please sign in to your existing account.'
-          : 'An account with this phone number is already registered. Please sign in using your existing account.'));
+        setError(data.message || 'An account with this email address or phone number already exists. Please sign in to your existing account.');
       } else {
         setError(prev => (prev && prev.includes('already exists')) ? '' : prev);
       }
@@ -759,9 +757,21 @@ export const UnifiedAuth = ({ defaultMode = 'login', defaultRole = 'candidate', 
             <div className="flex items-start justify-between gap-2">
               <div className="flex items-start gap-2">
                 <AlertCircle className="w-4 h-4 text-amber-600 dark:text-amber-400 shrink-0 mt-0.5" />
-                <p className="text-amber-950 dark:text-amber-100 font-bold text-xs leading-snug">
-                  {error}
-                </p>
+                <div className="space-y-1">
+                  <p className="text-amber-950 dark:text-amber-100 font-bold text-xs leading-snug">
+                    {error}
+                  </p>
+                  {(error.includes('already exists') || error.includes('sign in')) && authMode === 'register' && (
+                    <button
+                      type="button"
+                      onClick={() => switchAuthMode('login')}
+                      className="inline-flex items-center gap-1 font-bold text-amber-800 dark:text-amber-300 underline hover:text-amber-950 dark:hover:text-amber-100 text-[11px] cursor-pointer mt-0.5 transition"
+                    >
+                      <span>Sign In to your existing account</span>
+                      <ArrowRight className="w-3 h-3" />
+                    </button>
+                  )}
+                </div>
               </div>
               <button
                 type="button"

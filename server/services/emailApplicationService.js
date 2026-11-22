@@ -743,16 +743,7 @@ Dubai Internet City, UAE · Chennai & Bangalore, India.
     replyTo: officialDesk,
     subject,
     text: textBody,
-    html: htmlBody,
-    attachments: [
-      {
-        filename: 'logo.png',
-        content: Buffer.from(REVIVAL_LOGO_BASE64, 'base64'),
-        cid: 'revival_logo',
-        contentType: 'image/png',
-        contentDisposition: 'inline'
-      }
-    ]
+    html: htmlBody
   };
 
   try {

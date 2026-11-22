@@ -2069,7 +2069,12 @@ export const CrmProvider = ({ children }) => {
       } catch { }
 
       // 5. Send DELETE request to backend & cloud database with authoritative candidate ID & email
-      const deleteUrl = `/api/candidates/${encodeURIComponent(candidateId)}${candEmail ? `?email=${encodeURIComponent(candEmail)}` : ''}`;
+      const candPhone = (metadata.phone || '').trim();
+      const queryParams = new URLSearchParams();
+      if (candEmail) queryParams.set('email', candEmail);
+      if (candPhone) queryParams.set('phone', candPhone);
+      const queryString = queryParams.toString();
+      const deleteUrl = `/api/candidates/${encodeURIComponent(candidateId)}${queryString ? `?${queryString}` : ''}`;
       const res = await fetch(deleteUrl, {
         method: 'DELETE',
         headers: {
@@ -2081,6 +2086,7 @@ export const CrmProvider = ({ children }) => {
         body: JSON.stringify({
           id: candidateId,
           email: candEmail,
+          phone: candPhone,
           name: metadata.name || ''
         })
       });

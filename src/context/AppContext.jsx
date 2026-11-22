@@ -516,7 +516,7 @@ export const AppProvider = ({ children }) => {
         return {
           success: false,
           code: 'DUPLICATE_EMAIL',
-          message: conflictData.message || 'An account with this email address already exists. Please sign in to your existing account.'
+          message: conflictData.message || 'An account with this email address or phone number already exists. Please sign in to your existing account.'
         };
       }
 
