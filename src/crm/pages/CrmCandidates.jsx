@@ -79,8 +79,8 @@ const getCleanAiSummary = (cand) => {
 // Sanitizes candidate role to ensure applied job titles do not overwrite professional profile credentials
 const getCleanCandidateRole = (cand) => {
   if (!cand) return 'Executive Candidate';
-  const role = cand.currentRole || '';
-  if (!role || role.toLowerCase().startsWith('applied for:') || role.includes(' - Luxury Resort')) {
+  const role = cand.currentRole || cand.title || '';
+  if (!role || role.startsWith('http') || role.toLowerCase().startsWith('applied for:') || role.includes(' - Luxury Resort')) {
     return 'Executive Candidate';
   }
   return role;
@@ -315,7 +315,7 @@ export const CrmCandidates = () => {
     return {
       ...enriched,
       name: cleanName,
-      phone: (enriched.phone && enriched.phone.trim() !== '') ? enriched.phone : 'Not specified',
+      phone: (enriched.phone && enriched.phone.trim() !== '' && !enriched.phone.startsWith('http')) ? enriched.phone : 'Not specified',
       nationality: (enriched.nationality && enriched.nationality.trim() !== '') ? enriched.nationality : 'Not specified',
       citizenship: (enriched.citizenship && enriched.citizenship.trim() !== '') ? enriched.citizenship : 'Not specified',
       location: (enriched.location && enriched.location.trim() !== '') ? enriched.location : 'Not specified',
@@ -1147,7 +1147,7 @@ export const CrmCandidates = () => {
                             <Mail className="w-3 h-3 text-gold-500 shrink-0" />
                             <span className="truncate">{cand.email}</span>
                           </div>
-                          {cand.phone && (
+                          {cand.phone && !cand.phone.startsWith('http') && (
                             <div className="flex items-center gap-1 text-slate-500 dark:text-slate-400 font-mono text-[10px] shrink-0" title={cand.phone}>
                               <Phone className="w-2.5 h-2.5 text-emerald-500 shrink-0" />
                               <span>{cand.phone}</span>

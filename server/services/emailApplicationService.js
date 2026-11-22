@@ -467,9 +467,13 @@ export const sendJobApplicationEmail = async ({
   };
 };
 
+// Debounce cache to prevent duplicate welcome emails caused by repeated API requests
+const recentWelcomeEmails = new Map();
+
 /**
  * Sends an official Welcome & Registration Confirmation Email to newly registered candidates.
- * Dispatches directly to the candidate's email (Gmail, etc.) and notifies admin desk.
+ * Redesigned with premium corporate branding, official logo, and table-based responsive layout.
+ * Dispatches directly to the candidate's email (Gmail, Outlook, etc.) and notifies admin desk.
  */
 export const sendCandidateWelcomeEmail = async (params = {}) => {
   const {
@@ -486,161 +490,261 @@ export const sendCandidateWelcomeEmail = async (params = {}) => {
     desiredRole = ''
   } = params;
 
-  const transporter = getTransporter();
-  const fromEmail = transporter.user || 'enquiry@therevivalinternational.com';
-  const adminGmail = 'thejobsyncit@gmail.com';
-  const officialDesk = 'enquiry@therevivalinternational.com';
-
   const recipientEmail = (email || toEmail || '').trim().toLowerCase();
   if (!recipientEmail || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(recipientEmail)) {
     return { success: false, reason: 'Invalid or missing candidate email address' };
   }
 
+  // Prevent duplicate confirmation emails caused by rapid repeated API requests (30s window)
+  const now = Date.now();
+  const lastSent = recentWelcomeEmails.get(recipientEmail);
+  if (lastSent && (now - lastSent < 30000)) {
+    console.log(`[Welcome Email] Debounced duplicate dispatch for ${recipientEmail} (sent ${Math.round((now - lastSent) / 1000)}s ago)`);
+    return { success: true, duplicatePrevented: true };
+  }
+  recentWelcomeEmails.set(recipientEmail, now);
+
+  const transporter = getTransporter();
+  const fromEmail = transporter.user || 'enquiry@therevivalinternational.com';
+  const adminGmail = 'thejobsyncit@gmail.com';
+  const officialDesk = 'enquiry@therevivalinternational.com';
+
   const displayName = (name || candidateName || fullName || '').trim() || recipientEmail.split('@')[0];
   const cid = candidateId || `RI-CAND-${Math.floor(100 + Math.random() * 900)}`;
-  const methodLabel = authProvider === 'google' ? 'Google OAuth 2.0 (Verified)' : 'Direct Candidate Registration';
-  const targetCountry = preferredCountry || country || 'UAE';
 
-  const subject = `Welcome to The Revival International – Candidate Registration Confirmed (${cid})`;
+  // Official Subject specified in task requirements
+  const subject = 'Welcome to The Revival International – Your Candidate Account is Confirmed!';
 
+  // Plain Text Fallback
   const textBody = `
 Dear ${displayName},
 
 Welcome to The Revival International!
 
-Your candidate account has been successfully created and registered on our international recruitment portal.
+Thank you for registering with The Revival International. We are delighted to welcome you to our international talent network.
 
-Account Summary:
+Your candidate account has been successfully created. You can now explore international career opportunities and manage your job applications through our candidate portal.
+
+Candidate Registration Details:
 --------------------------------------------------
-Candidate Name:   ${displayName}
-Candidate ID:     ${cid}
-Registered Email: ${recipientEmail}
-${phone ? `Phone / WhatsApp: ${phone}\n` : ''}${preferredCountry ? `Target Region:    ${preferredCountry}\n` : ''}Registration:     ${methodLabel}
-Account Status:   Active & Verified
-Placement Fee:    100% Free Placement (Zero Candidate Charges)
+Candidate Name:     ${displayName}
+Candidate ID:       ${cid}
+Registered Email:   ${recipientEmail}
+Account Status:     Active & Verified
+Placement Services: 100% Free of Charge
 --------------------------------------------------
 
-Next Steps to Land Your Next Role:
-1. Browse verified international vacancies across UAE, Saudi Arabia, Qatar, Singapore, and Europe.
-2. Use Instant Quick Apply to submit your tailored CV directly to hiring employers.
-3. Track your application pipeline and interview stages in real time from your Candidate Dashboard.
+What You Can Do Now:
+1. Explore international job opportunities in UAE, Saudi Arabia, Qatar, Singapore and Europe.
+2. Apply for suitable vacancies using the Quick Apply feature.
+3. Upload and manage your CV and candidate profile.
+4. Track your job applications and interview progress.
+5. Receive important updates about your applications.
 
-Zero Fee Policy:
-The Revival International adheres strictly to global ethical recruitment standards. We never charge jobseekers or candidates any placement, registration, or visa processing fees.
+Our Zero Placement Fee Commitment:
+The Revival International is committed to ethical international recruitment. We do not charge candidates any placement or registration fees.
 
-Need Support?
-Official Enquiry Desk: enquiry@therevivalinternational.com
-Helpline / WhatsApp:   +91 90034 75405
-Website:               https://www.therevivalinternational.com
+Explore International Opportunities:
+https://www.therevivalinternational.com/#jobs
 
-Sincerely,
-The Revival International Candidate Services Team
-Dubai Internet City, UAE & Chennai, India
+If you have any questions or require assistance, contact our support team:
+Email: enquiry@therevivalinternational.com
+
+Company Name: The Revival International
+Dubai Internet City, UAE · Chennai & Bangalore, India.
+
+© 2026 The Revival International. All rights reserved.
 `.trim();
 
+  // Premium, Responsive, Table-Based HTML Email with Official Logo
+  const logoUrl = 'https://www.therevivalinternational.com/images/logo.png';
+  const jobsUrl = 'https://www.therevivalinternational.com/#jobs';
+
   const htmlBody = `
-<!DOCTYPE html>
-<html>
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml" lang="en">
 <head>
-  <meta charset="utf-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Welcome to The Revival International</title>
-  <style>
-    body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif; line-height: 1.6; color: #1e293b; background-color: #f8fafc; margin: 0; padding: 20px; }
-    .container { max-width: 620px; margin: 0 auto; background: #ffffff; border: 1px solid #e2e8f0; border-radius: 16px; padding: 32px; box-shadow: 0 4px 12px rgba(0,0,0,0.03); }
-    .header { text-align: center; border-bottom: 2px solid #f1f5f9; padding-bottom: 20px; margin-bottom: 24px; }
-    .brand-title { font-size: 22px; font-weight: 800; color: #0f172a; letter-spacing: -0.5px; margin: 0; }
-    .brand-subtitle { font-size: 10px; text-transform: uppercase; letter-spacing: 1.5px; color: #d97706; font-weight: bold; margin-top: 4px; }
-    .badge { display: inline-block; background-color: #ecfdf5; color: #059669; border: 1px solid #a7f3d0; font-size: 11px; font-weight: bold; padding: 5px 12px; border-radius: 9999px; margin-top: 12px; text-transform: uppercase; letter-spacing: 0.5px; }
-    h2 { margin: 0 0 14px 0; color: #0f172a; font-size: 19px; }
-    p { margin: 0 0 14px 0; font-size: 13.5px; color: #334155; }
-    .account-card { background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 12px; padding: 18px; margin: 18px 0; }
-    .account-row { display: flex; justify-content: space-between; padding: 6px 0; border-bottom: 1px dashed #e2e8f0; font-size: 12.5px; }
-    .account-row:last-child { border-bottom: none; }
-    .account-label { color: #64748b; font-weight: 600; }
-    .account-value { color: #0f172a; font-weight: 700; text-align: right; }
-    .benefits-box { background: #fffbeb; border: 1px solid #fde68a; border-radius: 10px; padding: 14px 16px; margin: 18px 0; font-size: 12.5px; color: #92400e; }
-    .cta-container { text-align: center; margin: 24px 0 18px 0; }
-    .cta-btn { display: inline-block; background: linear-gradient(135deg, #d97706, #b45309); color: #ffffff !important; text-decoration: none; font-weight: bold; font-size: 13.5px; padding: 12px 28px; border-radius: 10px; box-shadow: 0 4px 10px rgba(217, 119, 6, 0.25); }
-    .steps-box { background: #f1f5f9; border-radius: 10px; padding: 14px 16px; margin: 18px 0; font-size: 12.5px; }
-    .steps-box ol { margin: 6px 0 0 16px; padding: 0; }
-    .steps-box li { margin-bottom: 4px; color: #334155; }
-    .footer { margin-top: 28px; padding-top: 18px; border-top: 1px solid #e2e8f0; font-size: 11px; color: #94a3b8; text-align: center; line-height: 1.5; }
+  <meta http-equiv="Content-Type" content="text/html; charset=UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta name="color-scheme" content="light" />
+  <meta name="supported-color-schemes" content="light" />
+  <title>${subject}</title>
+  <!--[if mso]>
+  <style type="text/css">
+    table, td, div, p, a, h1, h2, h3 { font-family: Arial, sans-serif !important; }
   </style>
+  <![endif]-->
 </head>
-<body>
-  <div class="container">
-    <div class="header">
-      <div class="brand-title">The Revival International</div>
-      <div class="brand-subtitle">Tier-1 International Manpower & Recruitment Firm • UAE • GCC • Worldwide</div>
-      <div class="badge">✓ Candidate Account Confirmed</div>
-    </div>
+<body style="margin: 0; padding: 0; background-color: #f1f5f9; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif; -webkit-font-smoothing: antialiased; -webkit-text-size-adjust: 100%;">
+  <table width="100%" cellpadding="0" cellspacing="0" border="0" style="background-color: #f1f5f9; padding: 24px 12px;">
+    <tr>
+      <td align="center">
+        <!-- Main Card Container -->
+        <table width="100%" cellpadding="0" cellspacing="0" border="0" style="max-width: 620px; background-color: #ffffff; border: 1px solid #e2e8f0; border-radius: 16px; overflow: hidden; box-shadow: 0 4px 20px rgba(15, 23, 42, 0.06);">
+          
+          <!-- 1. Header (Dark Navy / Charcoal with Official Logo) -->
+          <tr>
+            <td align="center" style="background-color: #0B1B33; background: linear-gradient(135deg, #0B1B33 0%, #07101E 100%); padding: 36px 24px 30px 24px; text-align: center;">
+              <!-- Official Website Logo (Absolute HTTPS URL) -->
+              <table cellpadding="0" cellspacing="0" border="0" style="margin: 0 auto 14px auto;">
+                <tr>
+                  <td align="center" style="background-color: #ffffff; border-radius: 14px; padding: 6px; box-shadow: 0 4px 14px rgba(0,0,0,0.25);">
+                    <img src="${logoUrl}" alt="The Revival International Logo" width="56" height="56" style="display: block; width: 56px; height: 56px; border: 0; outline: none; object-contain: contain;" />
+                  </td>
+                </tr>
+              </table>
+              <h1 style="margin: 0; font-family: Georgia, 'Times New Roman', serif; font-size: 24px; font-weight: 800; color: #ffffff; letter-spacing: -0.3px; line-height: 1.2;">
+                The Revival <span style="display: inline-block; color: #f59e0b; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; font-size: 11px; font-weight: 800; text-transform: uppercase; letter-spacing: 2px; padding: 3px 8px; background-color: rgba(245, 158, 11, 0.16); border: 1px solid rgba(245, 158, 11, 0.3); border-radius: 6px; vertical-align: middle; margin-left: 4px;">International</span>
+              </h1>
+              <p style="margin: 8px 0 0 0; font-size: 11px; text-transform: uppercase; letter-spacing: 2px; color: #94a3b8; font-weight: 700;">
+                India &bull; GCC &bull; Worldwide
+              </p>
+              <div style="margin-top: 14px;">
+                <span style="display: inline-block; background-color: rgba(16, 185, 129, 0.15); color: #34d399; border: 1px solid rgba(16, 185, 129, 0.35); font-size: 11px; font-weight: 700; padding: 4px 14px; border-radius: 20px; text-transform: uppercase; letter-spacing: 0.5px;">
+                  &#10003; Candidate Registration Confirmed
+                </span>
+              </div>
+            </td>
+          </tr>
 
-    <h2>Welcome to Revival International, ${displayName}!</h2>
-    <p>
-      Thank you for registering with <strong>The Revival International</strong>. Your official candidate profile has been successfully created and linked to our verified talent network.
-    </p>
+          <!-- 2. Main Content Body -->
+          <tr>
+            <td style="padding: 36px 32px 28px 32px; color: #1e293b; font-size: 14px; line-height: 1.65;">
+              <p style="margin: 0 0 16px 0; font-size: 15px; color: #0f172a;">
+                Dear <strong>${displayName}</strong>,
+              </p>
+              <h2 style="margin: 0 0 16px 0; color: #0B1B33; font-family: Georgia, 'Times New Roman', serif; font-size: 21px; font-weight: 700; line-height: 1.3;">
+                Welcome to The Revival International!
+              </h2>
+              <p style="margin: 0 0 14px 0; color: #334155; font-size: 14px;">
+                Thank you for registering with <strong>The Revival International</strong>. We are delighted to welcome you to our international talent network.
+              </p>
+              <p style="margin: 0 0 24px 0; color: #334155; font-size: 14px;">
+                Your candidate account has been successfully created. You can now explore international career opportunities and manage your job applications through our candidate portal.
+              </p>
 
-    <div class="account-card">
-      <div class="account-row">
-        <span class="account-label">Candidate Name:</span>
-        <span class="account-value">${displayName}</span>
-      </div>
-      <div class="account-row">
-        <span class="account-label">Candidate ID:</span>
-        <span class="account-value" style="color: #d97706; font-family: monospace;">${cid}</span>
-      </div>
-      <div class="account-row">
-        <span class="account-label">Registered Email:</span>
-        <span class="account-value">${recipientEmail}</span>
-      </div>
-      ${phone ? `
-      <div class="account-row">
-        <span class="account-label">Phone / WhatsApp:</span>
-        <span class="account-value">${phone}</span>
-      </div>` : ''}
-      ${preferredCountry ? `
-      <div class="account-row">
-        <span class="account-label">Target Region:</span>
-        <span class="account-value">${preferredCountry}</span>
-      </div>` : ''}
-      <div class="account-row">
-        <span class="account-label">Account Status:</span>
-        <span class="account-value" style="color: #059669;">Active & Verified</span>
-      </div>
-      <div class="account-row">
-        <span class="account-label">Placement Services:</span>
-        <span class="account-value" style="color: #059669;">100% Free of Charge</span>
-      </div>
-    </div>
+              <!-- 3. Dynamic Candidate Registration Details Card -->
+              <table width="100%" cellpadding="0" cellspacing="0" border="0" style="background-color: #f8fafc; border: 1px solid #e2e8f0; border-radius: 12px; margin: 0 0 28px 0; overflow: hidden;">
+                <tr>
+                  <td style="background-color: #f1f5f9; padding: 12px 18px; border-bottom: 1px solid #e2e8f0;">
+                    <table width="100%" cellpadding="0" cellspacing="0" border="0">
+                      <tr>
+                        <td align="left" style="font-size: 11px; font-weight: 800; text-transform: uppercase; letter-spacing: 1px; color: #475569;">
+                          Candidate Registration Details
+                        </td>
+                        <td align="right">
+                          <span style="display: inline-block; background-color: #ecfdf5; color: #059669; border: 1px solid #a7f3d0; font-size: 10px; font-weight: 800; padding: 2px 8px; border-radius: 12px; text-transform: uppercase; letter-spacing: 0.5px;">
+                            Active &amp; Verified
+                          </span>
+                        </td>
+                      </tr>
+                    </table>
+                  </td>
+                </tr>
+                <tr>
+                  <td style="padding: 16px 18px;">
+                    <table width="100%" cellpadding="0" cellspacing="0" border="0">
+                      <tr>
+                        <td style="padding: 6px 0; color: #64748b; font-size: 13px; font-weight: 600; width: 40%;">Candidate Name:</td>
+                        <td style="padding: 6px 0; color: #0f172a; font-size: 13px; font-weight: 700;" align="right">${displayName}</td>
+                      </tr>
+                      <tr>
+                        <td style="padding: 6px 0; color: #64748b; font-size: 13px; font-weight: 600; border-top: 1px dashed #e2e8f0;">Candidate ID:</td>
+                        <td style="padding: 6px 0; color: #d97706; font-size: 13px; font-weight: 800; font-family: monospace;" align="right">${cid}</td>
+                      </tr>
+                      <tr>
+                        <td style="padding: 6px 0; color: #64748b; font-size: 13px; font-weight: 600; border-top: 1px dashed #e2e8f0;">Registered Email:</td>
+                        <td style="padding: 6px 0; color: #0f172a; font-size: 13px; font-weight: 600; font-family: monospace;" align="right">${recipientEmail}</td>
+                      </tr>
+                      <tr>
+                        <td style="padding: 6px 0; color: #64748b; font-size: 13px; font-weight: 600; border-top: 1px dashed #e2e8f0;">Account Status:</td>
+                        <td style="padding: 6px 0; color: #059669; font-size: 13px; font-weight: 700;" align="right">&#10003; Active &amp; Verified</td>
+                      </tr>
+                      <tr>
+                        <td style="padding: 6px 0; color: #64748b; font-size: 13px; font-weight: 600; border-top: 1px dashed #e2e8f0;">Placement Services:</td>
+                        <td style="padding: 6px 0; color: #059669; font-size: 13px; font-weight: 700;" align="right">100% Free of Charge</td>
+                      </tr>
+                    </table>
+                  </td>
+                </tr>
+              </table>
 
-    <div class="steps-box">
-      <strong style="color: #0f172a;">What you can do now:</strong>
-      <ol>
-        <li>Browse hundreds of verified vacancies in UAE, Saudi Arabia, Qatar, Singapore, and Europe.</li>
-        <li>Use <strong>Instant Quick Apply</strong> to submit role-tailored application emails with your CV attached.</li>
-        <li>Track your application milestones and interview progress from your dashboard.</li>
-      </ol>
-    </div>
+              <!-- 4. What You Can Do Now -->
+              <h3 style="margin: 0 0 14px 0; color: #0B1B33; font-family: Georgia, 'Times New Roman', serif; font-size: 16px; font-weight: 700;">
+                What You Can Do Now
+              </h3>
+              <table width="100%" cellpadding="0" cellspacing="0" border="0" style="margin: 0 0 24px 0; background-color: #f8fafc; border-radius: 12px; border: 1px solid #e2e8f0; padding: 14px 16px;">
+                <tr>
+                  <td style="padding: 4px 0; color: #334155; font-size: 13px; line-height: 1.6;">
+                    <ol style="margin: 0; padding-left: 20px;">
+                      <li style="margin-bottom: 6px;">Explore international job opportunities in UAE, Saudi Arabia, Qatar, Singapore and Europe.</li>
+                      <li style="margin-bottom: 6px;">Apply for suitable vacancies using the Quick Apply feature.</li>
+                      <li style="margin-bottom: 6px;">Upload and manage your CV and candidate profile.</li>
+                      <li style="margin-bottom: 6px;">Track your job applications and interview progress.</li>
+                      <li style="margin-bottom: 0;">Receive important updates about your applications.</li>
+                    </ol>
+                  </td>
+                </tr>
+              </table>
 
-    <div class="benefits-box">
-      <strong>Zero Fee Policy:</strong> The Revival International strictly adheres to ethical international recruitment standards. We never charge jobseekers or candidates any placement, registration, or visa processing fees.
-    </div>
+              <!-- 5. Zero Placement Fee Policy -->
+              <table width="100%" cellpadding="0" cellspacing="0" border="0" style="background-color: #fffbeb; border: 1px solid #fde68a; border-radius: 12px; margin: 0 0 28px 0;">
+                <tr>
+                  <td style="padding: 16px 20px;">
+                    <div style="font-size: 13.5px; font-weight: 800; color: #92400e; margin-bottom: 6px;">
+                      &ldquo;Our Zero Placement Fee Commitment&rdquo;
+                    </div>
+                    <div style="font-size: 13px; color: #78350f; line-height: 1.55;">
+                      The Revival International is committed to ethical international recruitment. We do not charge candidates any placement or registration fees.
+                    </div>
+                  </td>
+                </tr>
+              </table>
 
-    <div class="cta-container">
-      <a href="${process.env.FRONTEND_URL || 'https://www.therevivalinternational.com'}/#jobs" class="cta-btn" style="color: #ffffff !important;">Browse International Vacancies &rarr;</a>
-    </div>
+              <!-- 6. Call-to-Action Button -->
+              <table width="100%" cellpadding="0" cellspacing="0" border="0" style="margin: 0 0 28px 0;">
+                <tr>
+                  <td align="center">
+                    <table cellpadding="0" cellspacing="0" border="0">
+                      <tr>
+                        <td align="center" style="border-radius: 10px; background: linear-gradient(135deg, #d97706 0%, #b45309 100%); background-color: #d97706; box-shadow: 0 4px 14px rgba(217, 119, 6, 0.35);">
+                          <a href="${jobsUrl}" target="_blank" style="display: inline-block; padding: 14px 34px; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; font-size: 14px; font-weight: 800; color: #ffffff !important; text-decoration: none; border-radius: 10px; letter-spacing: 0.3px;">
+                            Explore International Opportunities &rarr;
+                          </a>
+                        </td>
+                      </tr>
+                    </table>
+                  </td>
+                </tr>
+              </table>
 
-    <p style="font-size: 12.5px; color: #64748b; margin-top: 18px;">
-      If you have any questions or require support, reply directly to this email or reach us at <a href="mailto:enquiry@therevivalinternational.com" style="color: #d97706; text-decoration: none; font-weight: 600;">enquiry@therevivalinternational.com</a>.
-    </p>
+              <!-- 7. Support Note -->
+              <p style="margin: 0; padding-top: 18px; border-top: 1px solid #e2e8f0; font-size: 13px; color: #64748b; line-height: 1.6;">
+                If you have any questions or require assistance, contact our support team:<br />
+                Email: <a href="mailto:enquiry@therevivalinternational.com" style="color: #d97706; text-decoration: none; font-weight: 700;">enquiry@therevivalinternational.com</a>
+              </p>
+            </td>
+          </tr>
 
-    <div class="footer">
-      &copy; ${new Date().getFullYear()} The Revival International. All rights reserved.<br>
-      Licensed Overseas Employment & Executive Search Firm.<br>
-      Dubai Internet City, UAE &bull; Chennai & Bangalore, India.
-    </div>
-  </div>
+          <!-- 8. Footer -->
+          <tr>
+            <td align="center" style="background-color: #07101E; padding: 24px 20px; color: #94a3b8; font-size: 11px; line-height: 1.6; text-align: center;">
+              <p style="margin: 0 0 6px 0; font-weight: 700; color: #e2e8f0; font-size: 12px;">
+                Company Name: The Revival International
+              </p>
+              <p style="margin: 0 0 8px 0; color: #94a3b8;">
+                Dubai Internet City, UAE &bull; Chennai &amp; Bangalore, India.
+              </p>
+              <p style="margin: 0; color: #64748b; font-size: 10.5px;">
+                &copy; 2026 The Revival International. All rights reserved.
+              </p>
+            </td>
+          </tr>
+
+        </table>
+      </td>
+    </tr>
+  </table>
 </body>
 </html>
 `.trim();
