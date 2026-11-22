@@ -3946,22 +3946,60 @@ app.get('/api/candidates', async (req, res) => {
         cleanSource = isGoogle ? 'Google Authentication (Gmail Verified)' : 'Candidate Portal Registration';
       }
 
-      // Preserve actual registered role, NOT applied vacancy title
+      // Preserve actual registered role, NOT applied vacancy title or avatar URL
       let effectiveRole = prof?.currentRole || r.currentRole || 'Executive Candidate';
       const appliedTitles = new Set(userApps.map(a => (a.jobTitle || '').toLowerCase().trim()).filter(Boolean));
-      if (appliedTitles.has(effectiveRole.toLowerCase().trim()) || effectiveRole.toLowerCase().startsWith('applied for:') || effectiveRole.includes(' - Luxury Resort')) {
-        effectiveRole = (prof?.currentRole && !appliedTitles.has(prof.currentRole.toLowerCase().trim()) && !prof.currentRole.includes(' - Luxury Resort'))
+      if (
+        !effectiveRole ||
+        effectiveRole.startsWith('http') ||
+        effectiveRole.includes('googleusercontent') ||
+        effectiveRole.includes('dicebear') ||
+        effectiveRole.startsWith('[') ||
+        appliedTitles.has(effectiveRole.toLowerCase().trim()) ||
+        effectiveRole.toLowerCase().startsWith('applied for:') ||
+        effectiveRole.includes(' - Luxury Resort')
+      ) {
+        effectiveRole = (prof?.currentRole && !prof.currentRole.startsWith('http') && !prof.currentRole.includes('googleusercontent') && !prof.currentRole.startsWith('[') && !appliedTitles.has(prof.currentRole.toLowerCase().trim()) && !prof.currentRole.includes(' - Luxury Resort'))
           ? prof.currentRole
           : 'Executive Candidate';
       }
 
-      // Preserve actual registered employer, NOT applied hiring company
+      // Preserve actual registered employer, NOT applied hiring company or Google sub ID
       let effectiveEmployer = prof?.currentEmployer || r.currentEmployer || 'Revival International Candidate';
       const appliedCompanies = new Set(userApps.map(a => (a.company || '').toLowerCase().trim()).filter(Boolean));
-      if (appliedCompanies.has(effectiveEmployer.toLowerCase().trim()) || effectiveEmployer === 'Atlantis Resorts & Hotels') {
-        effectiveEmployer = (prof?.currentEmployer && !appliedCompanies.has(prof.currentEmployer.toLowerCase().trim()) && prof.currentEmployer !== 'Atlantis Resorts & Hotels')
+      if (
+        !effectiveEmployer ||
+        effectiveEmployer.startsWith('http') ||
+        effectiveEmployer.includes('googleusercontent') ||
+        /^\d{12,}$/.test(effectiveEmployer) ||
+        effectiveEmployer.startsWith('[') ||
+        appliedCompanies.has(effectiveEmployer.toLowerCase().trim()) ||
+        effectiveEmployer === 'Atlantis Resorts & Hotels'
+      ) {
+        effectiveEmployer = (prof?.currentEmployer && !prof.currentEmployer.startsWith('http') && !prof.currentEmployer.includes('googleusercontent') && !/^\d{12,}$/.test(prof.currentEmployer) && !prof.currentEmployer.startsWith('[') && !appliedCompanies.has(prof.currentEmployer.toLowerCase().trim()) && prof.currentEmployer !== 'Atlantis Resorts & Hotels')
           ? prof.currentEmployer
-          : 'Revival International Candidate';
+          : 'Revival International Talent Pool';
+      }
+
+      // Sanitize phone to ensure avatar URLs never leak into contact field
+      let cleanPhone = r.phone || prof?.phone || '';
+      if (cleanPhone.startsWith('http') || cleanPhone.includes('googleusercontent') || cleanPhone.includes('dicebear') || cleanPhone.startsWith('[')) {
+        cleanPhone = '';
+      }
+
+      // Recover genuine candidate avatar photo
+      const candidateAvatarCandidates = [
+        r.avatar,
+        prof?.avatar,
+        (r.phone && r.phone.startsWith('http')) ? r.phone : null,
+        (r.currentRole && r.currentRole.startsWith('http')) ? r.currentRole : null
+      ];
+      let cleanAvatar = null;
+      for (const av of candidateAvatarCandidates) {
+        if (typeof av === 'string' && (av.startsWith('http://') || av.startsWith('https://') || av.startsWith('data:image')) && !av.includes('images.unsplash.com') && av !== '[]' && av.length > 10) {
+          cleanAvatar = av;
+          break;
+        }
       }
 
       let effectiveStage = prof?.stage || (r.stage === 'applied' ? 'lead' : r.stage) || 'lead';
@@ -3985,6 +4023,7 @@ app.get('/api/candidates', async (req, res) => {
 
       return {
         ...r,
+        phone: cleanPhone,
         createdAt: guaranteedCreatedAt,
         registeredAt: guaranteedCreatedAt,
         skills: parseArray(r.skills || prof?.skills),
@@ -3995,7 +4034,7 @@ app.get('/api/candidates', async (req, res) => {
         source: cleanSource,
         aiSummary: cleanAiSummary,
         score: safeScore,
-        avatar: (r.avatar && !r.avatar.includes('images.unsplash.com')) ? r.avatar : ((prof?.avatar && !prof.avatar.includes('images.unsplash.com')) ? prof.avatar : null),
+        avatar: cleanAvatar,
         currentSalary: r.currentSalary || prof?.currentSalary || '',
         expectedSalary: r.expectedSalary || prof?.expectedSalary || '',
         noticePeriod: r.noticePeriod || prof?.noticePeriod || '',

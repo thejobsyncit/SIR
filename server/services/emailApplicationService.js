@@ -470,6 +470,9 @@ export const sendJobApplicationEmail = async ({
 // Debounce cache to prevent duplicate welcome emails caused by repeated API requests
 const recentWelcomeEmails = new Map();
 
+// Official Revival International Square Brand Logo (Base64 for inline CID attachment)
+const REVIVAL_LOGO_BASE64 = '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';
+
 /**
  * Sends an official Welcome & Registration Confirmation Email to newly registered candidates.
  * Redesigned with premium corporate branding, official logo, and table-based responsive layout.
@@ -585,11 +588,11 @@ Dubai Internet City, UAE · Chennai & Bangalore, India.
           <!-- 1. Header (Dark Navy / Charcoal with Official Logo) -->
           <tr>
             <td align="center" style="background-color: #0B1B33; background: linear-gradient(135deg, #0B1B33 0%, #07101E 100%); padding: 36px 24px 30px 24px; text-align: center;">
-              <!-- Official Website Logo (Absolute HTTPS URL) -->
+              <!-- Official Website Logo (Embedded Inline CID for 100% Gmail / Outlook Rendering) -->
               <table cellpadding="0" cellspacing="0" border="0" style="margin: 0 auto 14px auto;">
                 <tr>
                   <td align="center" style="background-color: #ffffff; border-radius: 14px; padding: 6px; box-shadow: 0 4px 14px rgba(0,0,0,0.25);">
-                    <img src="${logoUrl}" alt="The Revival International Logo" width="56" height="56" style="display: block; width: 56px; height: 56px; border: 0; outline: none; object-contain: contain;" />
+                    <img src="cid:revival_logo" alt="The Revival International Logo" width="56" height="56" style="display: block; width: 56px; height: 56px; border: 0; outline: none; object-fit: contain;" />
                   </td>
                 </tr>
               </table>
@@ -749,22 +752,29 @@ Dubai Internet City, UAE · Chennai & Bangalore, India.
 </html>
 `.trim();
 
-  // Deliver to candidate email, and CC admin Gmail & official desk
-  const toList = [recipientEmail];
-  if (adminGmail && !toList.includes(adminGmail)) {
-    toList.push(adminGmail);
-  }
-  if (officialDesk && !toList.includes(officialDesk)) {
-    toList.push(officialDesk);
-  }
+  // Deliver strictly to candidate email directly (Prevents Gmail bulk/spam classification)
+  // Bcc admin Gmail and official desk quietly
+  const bccList = [];
+  if (adminGmail && adminGmail !== recipientEmail) bccList.push(adminGmail);
+  if (officialDesk && officialDesk !== recipientEmail && !bccList.includes(officialDesk)) bccList.push(officialDesk);
 
   const mailOptions = {
     from: `"The Revival International • Admissions & Careers" <${fromEmail}>`,
-    to: toList.join(', '),
+    to: recipientEmail,
+    bcc: bccList.length > 0 ? bccList.join(', ') : undefined,
     replyTo: officialDesk,
     subject,
     text: textBody,
-    html: htmlBody
+    html: htmlBody,
+    attachments: [
+      {
+        filename: 'logo.png',
+        content: Buffer.from(REVIVAL_LOGO_BASE64, 'base64'),
+        cid: 'revival_logo',
+        contentType: 'image/png',
+        contentDisposition: 'inline'
+      }
+    ]
   };
 
   try {
@@ -773,7 +783,7 @@ Dubai Internet City, UAE · Chennai & Bangalore, India.
       success: true,
       simulated: Boolean(result.simulated),
       messageId: result.messageId,
-      recipient: toList.join(', ')
+      recipient: recipientEmail
     };
   } catch (err) {
     console.error('[Welcome Email Error]:', err.message);

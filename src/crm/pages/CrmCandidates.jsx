@@ -77,23 +77,34 @@ const getCleanAiSummary = (cand) => {
 };
 
 // Sanitizes candidate role to ensure applied job titles do not overwrite professional profile credentials
+// Sanitizes candidate role to ensure applied vacancy titles or avatar URLs never overwrite true executive specialization
 const getCleanCandidateRole = (cand) => {
   if (!cand) return 'Executive Candidate';
-  const role = cand.currentRole || cand.title || '';
-  if (!role || role.startsWith('http') || role.toLowerCase().startsWith('applied for:') || role.includes(' - Luxury Resort')) {
+  const rawRole = cand.currentRole || cand.role || cand.title || '';
+  const role = String(rawRole).trim();
+  if (!role || role.startsWith('http') || role.includes('googleusercontent') || role.includes('dicebear') || role.startsWith('[') || role.toLowerCase().startsWith('applied for:') || role.includes(' - Luxury Resort') || role.toLowerCase() === 'candidate') {
     return 'Executive Candidate';
   }
   return role;
 };
 
-// Sanitizes employer to ensure hiring vacancy companies do not overwrite candidate's registered organization
+// Sanitizes employer to ensure hiring vacancy companies or Google IDs do not overwrite candidate's registered organization
 const getCleanCandidateEmployer = (cand) => {
   if (!cand) return 'Revival International Candidate';
-  const emp = cand.currentEmployer || '';
-  if (!emp || emp === 'Atlantis Resorts & Hotels' || emp.toLowerCase().includes('resort')) {
+  const rawEmp = cand.currentEmployer || '';
+  const emp = String(rawEmp).trim();
+  if (!emp || emp.startsWith('http') || emp.includes('googleusercontent') || /^\d{12,}$/.test(emp) || emp.startsWith('[') || emp === 'Atlantis Resorts & Hotels' || emp.toLowerCase().includes('resort')) {
     return 'Revival International Candidate';
   }
   return emp;
+};
+
+// Sanitizes candidate phone to prevent URLs or avatar tokens from displaying
+const getCleanCandidatePhone = (cand) => {
+  if (!cand) return '';
+  const p = String(cand.phone || '').trim();
+  if (!p || p.startsWith('http') || p.includes('googleusercontent') || p.includes('dicebear') || p.startsWith('[')) return '';
+  return p;
 };
 
 // Extracts numeric milliseconds timestamp for strict descending sorting (#1 latest)
@@ -445,11 +456,12 @@ export const CrmCandidates = () => {
   };
 
   const renderCandidateAvatar = (c, sizeClasses = "w-12 h-12 text-sm") => {
-    const isRealPhoto = c?.avatar && !c.avatar.includes('unsplash.com');
+    const rawAvatar = c?.avatar || (typeof c?.photo === 'string' ? c.photo : null) || (typeof c?.phone === 'string' && c.phone.startsWith('http') ? c.phone : null) || (typeof c?.currentRole === 'string' && c.currentRole.startsWith('http') ? c.currentRole : null);
+    const isRealPhoto = typeof rawAvatar === 'string' && (rawAvatar.startsWith('http://') || rawAvatar.startsWith('https://') || rawAvatar.startsWith('data:image')) && !rawAvatar.includes('unsplash.com') && rawAvatar !== '[]' && rawAvatar.length > 10;
     if (isRealPhoto) {
       return (
         <img
-          src={c.avatar}
+          src={rawAvatar}
           alt={c.name || 'Candidate'}
           className={`${sizeClasses} rounded-2xl object-cover border-2 border-gold-500 shadow-md shrink-0`}
         />
@@ -989,8 +1001,8 @@ export const CrmCandidates = () => {
                         </td>
                         <td className="py-3 px-4">
                           <div className="text-slate-700 dark:text-slate-300 font-mono text-[11px]">{cand.email}</div>
-                          {cand.phone && (
-                            <div className="text-slate-400 font-mono text-[10px]">{cand.phone}</div>
+                          {getCleanCandidatePhone(cand) && (
+                            <div className="text-slate-400 font-mono text-[10px]">{getCleanCandidatePhone(cand)}</div>
                           )}
                         </td>
                         <td className="py-3 px-4 whitespace-nowrap">
@@ -1147,10 +1159,10 @@ export const CrmCandidates = () => {
                             <Mail className="w-3 h-3 text-gold-500 shrink-0" />
                             <span className="truncate">{cand.email}</span>
                           </div>
-                          {cand.phone && !cand.phone.startsWith('http') && (
-                            <div className="flex items-center gap-1 text-slate-500 dark:text-slate-400 font-mono text-[10px] shrink-0" title={cand.phone}>
+                          {getCleanCandidatePhone(cand) && (
+                            <div className="flex items-center gap-1 text-slate-500 dark:text-slate-400 font-mono text-[10px] shrink-0" title={getCleanCandidatePhone(cand)}>
                               <Phone className="w-2.5 h-2.5 text-emerald-500 shrink-0" />
-                              <span>{cand.phone}</span>
+                              <span>{getCleanCandidatePhone(cand)}</span>
                             </div>
                           )}
                         </div>
@@ -1465,9 +1477,15 @@ export const CrmCandidates = () => {
                 </div>
                 <div className="min-w-0">
                   <p className="text-[10px] text-slate-500 uppercase font-bold">Phone Number</p>
-                  <a href={`tel:${activeCand.phone}`} className="font-semibold text-slate-900 dark:text-white hover:text-gold-600 truncate block font-mono text-[11px]">
-                    {activeCand.phone}
-                  </a>
+                  {getCleanCandidatePhone(activeCand) ? (
+                    <a href={`tel:${getCleanCandidatePhone(activeCand)}`} className="font-semibold text-slate-900 dark:text-white hover:text-gold-600 truncate block font-mono text-[11px]">
+                      {getCleanCandidatePhone(activeCand)}
+                    </a>
+                  ) : (
+                    <span className="font-semibold text-slate-400 dark:text-slate-500 truncate block text-[11px] italic">
+                      Not specified
+                    </span>
+                  )}
                 </div>
               </div>
 

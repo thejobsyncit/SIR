@@ -1828,6 +1828,9 @@ const initDb = async (db) => {
 
     CREATE INDEX IF NOT EXISTS idx_role_login_time ON role_login_logs(loginTime DESC);
     CREATE INDEX IF NOT EXISTS idx_role_login_status ON role_login_logs(lateApprovalStatus);
+    CREATE UNIQUE INDEX IF NOT EXISTS idx_users_email_lower ON users(LOWER(TRIM(email)));
+    CREATE UNIQUE INDEX IF NOT EXISTS idx_candidates_email_lower ON candidates(LOWER(TRIM(email))) WHERE email IS NOT NULL;
+    CREATE UNIQUE INDEX IF NOT EXISTS idx_candidate_profiles_email_lower ON candidate_profiles(LOWER(TRIM(email))) WHERE email IS NOT NULL;
   `);
 
   // Safe column migration for lateApprovalStatus on attendance_records & taskStatus on leads
