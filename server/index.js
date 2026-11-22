@@ -4450,7 +4450,7 @@ app.delete('/api/candidates/:id', async (req, res) => {
       entityId: id,
       details: {
         name: candName,
-        email: candEmail
+        email: targetEmail
       },
       ip: clientIp
     });
