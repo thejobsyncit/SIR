@@ -489,19 +489,7 @@ export const AppProvider = ({ children }) => {
     }
 
     // Strict 1-Time Candidate Registration: Prevent duplicate registration via "Sign up with Google"
-    if (mode === 'register') {
-      try {
-        const db = getCandidateDB();
-        if (db[normalizedEmail] && db[normalizedEmail].isRegistered) {
-          return {
-            success: false,
-            code: 'DUPLICATE_EMAIL',
-            message: 'An account with this email address already exists. Please sign in to your existing account.'
-          };
-        }
-      } catch (_) {}
-    }
-
+    // Authoritative check is performed directly via backend API and Supabase cloud database
     let backendUser = null;
     let backendToken = null;
 

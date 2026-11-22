@@ -90,7 +90,21 @@ export const UnifiedAuth = ({ defaultMode = 'login', defaultRole = 'candidate', 
   const handleModeSwitch = (newMode) => {
     setAuthMode(newMode);
     setError('');
+    setGoogleError('');
   };
+
+  // Reset errors and purge stale local cache when entering register mode
+  useEffect(() => {
+    setError('');
+    setGoogleError('');
+    try {
+      const sessStr = localStorage.getItem('sir_user_session');
+      const sess = sessStr ? JSON.parse(sessStr) : null;
+      if (!sess || !sess.email) {
+        localStorage.removeItem('sir_candidates_db');
+      }
+    } catch {}
+  }, [authMode]);
 
   // Strict Enterprise Email Validation (Disallowing fake/disposable/dummy addresses - Bug #12)
   const isValidEmail = (emailStr) => {
@@ -190,16 +204,6 @@ export const UnifiedAuth = ({ defaultMode = 'login', defaultRole = 'candidate', 
             body: JSON.stringify({ email: cleanGoogleEmail })
           });
           if (checkRes.status === 409) {
-            setGoogleLoading(false);
-            setGoogleError('');
-            setError('An account with this email address already exists. Please sign in to your existing account.');
-            return;
-          }
-        } catch (_) {}
-
-        try {
-          const localDb = JSON.parse(localStorage.getItem('sir_candidates_db') || '{}');
-          if (localDb[cleanGoogleEmail] && localDb[cleanGoogleEmail].isRegistered) {
             setGoogleLoading(false);
             setGoogleError('');
             setError('An account with this email address already exists. Please sign in to your existing account.');
@@ -411,16 +415,6 @@ export const UnifiedAuth = ({ defaultMode = 'login', defaultRole = 'candidate', 
                       body: JSON.stringify({ email: cleanGoogleEmail })
                     });
                     if (checkRes.status === 409) {
-                      setGoogleLoading(false);
-                      setGoogleError('');
-                      setError('An account with this email address already exists. Please sign in to your existing account.');
-                      return;
-                    }
-                  } catch (_) {}
-
-                  try {
-                    const localDb = JSON.parse(localStorage.getItem('sir_candidates_db') || '{}');
-                    if (localDb[cleanGoogleEmail] && localDb[cleanGoogleEmail].isRegistered) {
                       setGoogleLoading(false);
                       setGoogleError('');
                       setError('An account with this email address already exists. Please sign in to your existing account.');
@@ -903,6 +897,7 @@ export const UnifiedAuth = ({ defaultMode = 'login', defaultRole = 'candidate', 
                     maxLength={50}
                     value={candidateReg.fullName}
                     onChange={(e) => {
+                      if (error) setError('');
                       const lettersOnly = e.target.value.replace(/[^a-zA-Z\s\.\'-]/g, '').slice(0, 50);
                       setCandidateReg({ ...candidateReg, fullName: lettersOnly });
                     }}
@@ -923,7 +918,10 @@ export const UnifiedAuth = ({ defaultMode = 'login', defaultRole = 'candidate', 
                     required
                     maxLength={80}
                     value={candidateReg.email}
-                    onChange={(e) => setCandidateReg({ ...candidateReg, email: e.target.value.slice(0, 80) })}
+                    onChange={(e) => {
+                      if (error) setError('');
+                      setCandidateReg({ ...candidateReg, email: e.target.value.slice(0, 80) });
+                    }}
                     onBlur={() => {
                       const clean = (candidateReg.email || '').trim().toLowerCase();
                       if (clean && validateCandidateEmail(clean).isValid) {
@@ -1030,6 +1028,7 @@ export const UnifiedAuth = ({ defaultMode = 'login', defaultRole = 'candidate', 
                           required
                           value={candidateReg.phone}
                           onChange={(e) => {
+                            if (error) setError('');
                             const digitsOnly = e.target.value.replace(/\D/g, '').slice(0, maxDigits);
                             setCandidateReg({ ...candidateReg, phone: digitsOnly });
                           }}
@@ -1062,7 +1061,10 @@ export const UnifiedAuth = ({ defaultMode = 'login', defaultRole = 'candidate', 
                     type={showRegPassword ? "text" : "password"}
                     required
                     value={candidateReg.password}
-                    onChange={(e) => setCandidateReg({ ...candidateReg, password: e.target.value })}
+                    onChange={(e) => {
+                      if (error) setError('');
+                      setCandidateReg({ ...candidateReg, password: e.target.value });
+                    }}
                     placeholder="Min. 8 chars"
                     className="w-full pl-7 pr-7 py-1.5 text-xs bg-white dark:bg-navy-900 border-2 border-slate-300 dark:border-navy-600 rounded-xl focus:outline-none focus:border-gold-500 focus:ring-1 focus:ring-gold-500 text-slate-900 dark:text-white font-semibold placeholder:text-slate-500 dark:placeholder:text-slate-400 placeholder:font-medium shadow-xs"
                   />
@@ -1087,7 +1089,10 @@ export const UnifiedAuth = ({ defaultMode = 'login', defaultRole = 'candidate', 
                     type={showRegConfirmPassword ? "text" : "password"}
                     required
                     value={candidateReg.confirmPassword}
-                    onChange={(e) => setCandidateReg({ ...candidateReg, confirmPassword: e.target.value })}
+                    onChange={(e) => {
+                      if (error) setError('');
+                      setCandidateReg({ ...candidateReg, confirmPassword: e.target.value });
+                    }}
                     placeholder="Re-enter password"
                     className="w-full pl-7 pr-7 py-1.5 text-xs bg-white dark:bg-navy-900 border-2 border-slate-300 dark:border-navy-600 rounded-xl focus:outline-none focus:border-gold-500 focus:ring-1 focus:ring-gold-500 text-slate-900 dark:text-white font-semibold placeholder:text-slate-500 dark:placeholder:text-slate-400 placeholder:font-medium shadow-xs"
                   />

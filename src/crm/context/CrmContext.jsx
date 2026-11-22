@@ -185,9 +185,11 @@ export const CrmProvider = ({ children }) => {
   });
   const isDummyCandidate = (c) => {
     if (!c) return true;
-    const name = (c.name || '').toLowerCase();
-    const id = (c.id || '').toUpperCase();
-    const email = (c.email || '').toLowerCase();
+    const name = (c.name || c.applicantName || c.fullName || '').toLowerCase().trim();
+    const id = (c.id || c.candidateId || '').toUpperCase().trim();
+    const email = (c.email || c.applicantEmail || '').toLowerCase().trim();
+    if (!email || !email.includes('@')) return true;
+    if (name === 'candidate' || name.startsWith('candidate ri-cand-') || name === 'applicant') return true;
     const dummyIds = [
       'REV-CAN-101', 'REV-CAN-102', 'REV-CAN-103', 'REV-CAN-104', 'REV-CAN-105', 'REV-CAN-106',
       'REV-CAN-4526', 'REV-CAN-4699', 'REV-CAN-5176', 'REV-CAN-9727', 'REV-CAN-3945',
@@ -197,7 +199,7 @@ export const CrmProvider = ({ children }) => {
       'REV-CAN-5032', 'REV-CAN-1517', 'REV-CAN-4093', 'REV-CAN-7506', 'REV-CAN-5974',
       'REV-CAN-4404', 'REV-CAN-4539', 'REV-CAN-9000', 'REV-CAN-4378', 'REV-CAN-4043',
       'REV-CAN-5868', 'REV-CAN-8915', 'REV-CAN-3362', 'REV-CAN-53106', 'RI-CAND-777', 'RI-CAND-391',
-      'RI-CAND-001', 'RI-CAND-005'
+      'RI-CAND-001', 'RI-CAND-005', 'RI-APP-28093', 'RI-APP-98803'
     ];
     if (dummyIds.some(d => id.startsWith(d) || id === d)) return true;
     if (name === 'kavya' || email === 'junejoe@gmail.com') return true;

@@ -137,6 +137,8 @@ export const CrmJobApplications = () => {
       // Only accept applications with real candidate email
       if (!email || !email.includes('@')) return;
       if (a.id === 'RI-APP-28093' || a.id === 'RI-APP-98803') return; // ignore seed dummies
+      const name = (a.applicantName || '').toLowerCase().trim();
+      if (name === 'candidate' || name.startsWith('candidate ri-cand-') || name === 'applicant') return;
       const comp = `${String(a.jobId).trim()}_${email}`;
       if (deletedSet.has(comp)) return;
 
