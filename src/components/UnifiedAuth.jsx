@@ -1127,7 +1127,7 @@ export const UnifiedAuth = ({ defaultMode = 'login', defaultRole = 'candidate', 
                   >
                     Privacy Policy
                   </button>{' '}
-                  and Terms. Placement is 100% free of charge.
+                  and Terms.
                 </span>
               </label>
             </div>

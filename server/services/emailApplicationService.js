@@ -534,7 +534,6 @@ Candidate Name:     ${displayName}
 Candidate ID:       ${cid}
 Registered Email:   ${recipientEmail}
 Account Status:     Active & Verified
-Placement Services: 100% Free of Charge
 --------------------------------------------------
 
 What You Can Do Now:
@@ -543,9 +542,6 @@ What You Can Do Now:
 3. Upload and manage your CV and candidate profile.
 4. Track your job applications and interview progress.
 5. Receive important updates about your applications.
-
-Our Zero Placement Fee Commitment:
-The Revival International is committed to ethical international recruitment. We do not charge candidates any placement or registration fees.
 
 Explore International Opportunities:
 https://www.therevivalinternational.com/#jobs
@@ -588,11 +584,11 @@ Dubai Internet City, UAE · Chennai & Bangalore, India.
           <!-- 1. Header (Dark Navy / Charcoal with Official Logo) -->
           <tr>
             <td align="center" style="background-color: #0B1B33; background: linear-gradient(135deg, #0B1B33 0%, #07101E 100%); padding: 36px 24px 30px 24px; text-align: center;">
-              <!-- Official Website Logo (Embedded Inline CID for 100% Gmail / Outlook Rendering) -->
+              <!-- Official Website Logo (Public HTTPS URL + Inline CID Fallback) -->
               <table cellpadding="0" cellspacing="0" border="0" style="margin: 0 auto 14px auto;">
                 <tr>
                   <td align="center" style="background-color: #ffffff; border-radius: 14px; padding: 6px; box-shadow: 0 4px 14px rgba(0,0,0,0.25);">
-                    <img src="cid:revival_logo" alt="The Revival International Logo" width="56" height="56" style="display: block; width: 56px; height: 56px; border: 0; outline: none; object-fit: contain;" />
+                    <img src="https://www.therevivalinternational.com/images/logo.png" alt="The Revival International Logo" width="56" height="56" style="display: block; width: 56px; height: 56px; border: 0; outline: none; object-fit: contain;" />
                   </td>
                 </tr>
               </table>
@@ -663,10 +659,6 @@ Dubai Internet City, UAE · Chennai & Bangalore, India.
                         <td style="padding: 6px 0; color: #64748b; font-size: 13px; font-weight: 600; border-top: 1px dashed #e2e8f0;">Account Status:</td>
                         <td style="padding: 6px 0; color: #059669; font-size: 13px; font-weight: 700;" align="right">&#10003; Active &amp; Verified</td>
                       </tr>
-                      <tr>
-                        <td style="padding: 6px 0; color: #64748b; font-size: 13px; font-weight: 600; border-top: 1px dashed #e2e8f0;">Placement Services:</td>
-                        <td style="padding: 6px 0; color: #059669; font-size: 13px; font-weight: 700;" align="right">100% Free of Charge</td>
-                      </tr>
                     </table>
                   </td>
                 </tr>
@@ -676,7 +668,7 @@ Dubai Internet City, UAE · Chennai & Bangalore, India.
               <h3 style="margin: 0 0 14px 0; color: #0B1B33; font-family: Georgia, 'Times New Roman', serif; font-size: 16px; font-weight: 700;">
                 What You Can Do Now
               </h3>
-              <table width="100%" cellpadding="0" cellspacing="0" border="0" style="margin: 0 0 24px 0; background-color: #f8fafc; border-radius: 12px; border: 1px solid #e2e8f0; padding: 14px 16px;">
+              <table width="100%" cellpadding="0" cellspacing="0" border="0" style="margin: 0 0 28px 0; background-color: #f8fafc; border-radius: 12px; border: 1px solid #e2e8f0; padding: 14px 16px;">
                 <tr>
                   <td style="padding: 4px 0; color: #334155; font-size: 13px; line-height: 1.6;">
                     <ol style="margin: 0; padding-left: 20px;">
@@ -690,21 +682,7 @@ Dubai Internet City, UAE · Chennai & Bangalore, India.
                 </tr>
               </table>
 
-              <!-- 5. Zero Placement Fee Policy -->
-              <table width="100%" cellpadding="0" cellspacing="0" border="0" style="background-color: #fffbeb; border: 1px solid #fde68a; border-radius: 12px; margin: 0 0 28px 0;">
-                <tr>
-                  <td style="padding: 16px 20px;">
-                    <div style="font-size: 13.5px; font-weight: 800; color: #92400e; margin-bottom: 6px;">
-                      &ldquo;Our Zero Placement Fee Commitment&rdquo;
-                    </div>
-                    <div style="font-size: 13px; color: #78350f; line-height: 1.55;">
-                      The Revival International is committed to ethical international recruitment. We do not charge candidates any placement or registration fees.
-                    </div>
-                  </td>
-                </tr>
-              </table>
-
-              <!-- 6. Call-to-Action Button -->
+              <!-- 5. Call-to-Action Button -->
               <table width="100%" cellpadding="0" cellspacing="0" border="0" style="margin: 0 0 28px 0;">
                 <tr>
                   <td align="center">

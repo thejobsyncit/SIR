@@ -621,7 +621,7 @@ export const ContactUsPage = () => {
                     >
                       Privacy Policy
                     </button>{' '}
-                    and UAE PDPL / India DPDP Act 2023. I understand that candidate placement is 100% free of charge.
+                    and UAE PDPL / India DPDP Act 2023.
                   </span>
                 </label>
               </div>

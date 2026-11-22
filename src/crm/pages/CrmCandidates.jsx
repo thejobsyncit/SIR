@@ -194,15 +194,20 @@ export const CrmCandidates = () => {
     }
   }, [fetchCandidates]);
 
-  // Real-time synchronization across browser tabs and user interactions
+  // Real-time synchronization across browser tabs and user interactions (debounced & smooth)
   useEffect(() => {
+    let lastSync = 0;
     const handleSync = () => {
+      const now = Date.now();
+      if (now - lastSync < 2000) return; // Prevent spamming fetches within 2s
+      lastSync = now;
       setSyncTick(t => t + 1);
       if (fetchCandidates) fetchCandidates();
     };
 
     const handleDeletedEvent = () => {
       setSyncTick(t => t + 1);
+      if (fetchCandidates) fetchCandidates();
     };
 
     window.addEventListener('focus', handleSync);
@@ -893,8 +898,13 @@ export const CrmCandidates = () => {
           <h3 className="font-serif text-base font-bold text-slate-900 dark:text-white flex items-center gap-2">
             <span>Registered Profiles:</span>
             <span className="text-amber-600 dark:text-gold-400 font-extrabold">
-              {loadingCandidates ? 'Synchronizing...' : `${filtered.length} Candidates`}
+              {filtered.length} Candidates
             </span>
+            {loadingCandidates && candidates && candidates.length > 0 && (
+              <span className="text-[10px] text-amber-500 font-sans font-medium flex items-center gap-1" title="Synchronizing updates in background">
+                <RefreshCw className="w-2.5 h-2.5 animate-spin inline" />
+              </span>
+            )}
           </h3>
           <span className="text-xs font-sans font-semibold text-slate-500 dark:text-slate-400">
             • Sorted by: <strong className="text-gold-600 dark:text-gold-400 font-bold">{sortBy === 'newest' ? 'Newest Registered First (#1)' : sortBy === 'oldest' ? 'Oldest Registered First' : sortBy === 'name' ? 'Name A-Z' : 'Score'}</strong>
@@ -907,7 +917,7 @@ export const CrmCandidates = () => {
 
       {/* CANDIDATES PROFILE CARDS / TABLE (PURE CANDIDATE PROFILES ONLY) */}
       <ScrollReveal>
-        {loadingCandidates ? (
+        {loadingCandidates && (!candidates || candidates.length === 0) ? (
           <div className="bg-white dark:bg-navy-900 border border-slate-200 dark:border-navy-800 rounded-3xl p-16 text-center space-y-4 shadow-sm">
             <div className="w-14 h-14 rounded-2xl bg-amber-500/10 text-amber-500 flex items-center justify-center mx-auto">
               <RefreshCw className="w-7 h-7 animate-spin" />

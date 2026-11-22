@@ -338,7 +338,6 @@ export const CrmProvider = ({ children }) => {
     }
   };
 
-  const [loadingCandidates, setLoadingCandidates] = useState(true);
   const [candidates, setCandidates] = useState(() => {
     try {
       const saved = localStorage.getItem('crm_candidates');
@@ -351,6 +350,20 @@ export const CrmProvider = ({ children }) => {
     } catch { }
     return [];
   });
+  const [loadingCandidates, setLoadingCandidates] = useState(() => {
+    try {
+      const saved = localStorage.getItem('crm_candidates');
+      if (saved) {
+        const parsed = JSON.parse(saved);
+        if (Array.isArray(parsed) && parsed.length > 0) return false;
+      }
+    } catch { }
+    return true;
+  });
+  const candidatesRef = useRef(candidates);
+  useEffect(() => {
+    candidatesRef.current = candidates;
+  }, [candidates]);
   const [applications, setApplications] = useState(() => {
     try {
       const saved = localStorage.getItem('sir_job_applications');
@@ -542,9 +555,12 @@ export const CrmProvider = ({ children }) => {
     }
   };
 
-  const fetchCandidates = useCallback(async () => {
+  const fetchCandidates = useCallback(async (forceLoading = false) => {
     try {
-      setLoadingCandidates(true);
+      // Only show full loading spinner if candidates are completely empty or explicitly requested
+      if (forceLoading || !candidatesRef.current || candidatesRef.current.length === 0) {
+        setLoadingCandidates(true);
+      }
       const res = await fetch('/api/candidates');
       if (res.ok) {
         const data = await res.json();
