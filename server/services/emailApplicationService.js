@@ -446,27 +446,35 @@ export const sendJobApplicationEmail = async ({
  * Sends an official Welcome & Registration Confirmation Email to newly registered candidates.
  * Dispatches directly to the candidate's email (Gmail, etc.) and notifies admin desk.
  */
-export const sendCandidateWelcomeEmail = async ({
-  name = '',
-  email = '',
-  phone = '',
-  candidateId = '',
-  authProvider = 'email',
-  preferredCountry = ''
-}) => {
+export const sendCandidateWelcomeEmail = async (params = {}) => {
+  const {
+    name = '',
+    candidateName = '',
+    fullName = '',
+    email = '',
+    toEmail = '',
+    phone = '',
+    candidateId = '',
+    authProvider = 'email',
+    preferredCountry = '',
+    country = '',
+    desiredRole = ''
+  } = params;
+
   const transporter = getTransporter();
   const fromEmail = transporter.user || 'enquiry@therevivalinternational.com';
   const adminGmail = 'thejobsyncit@gmail.com';
   const officialDesk = 'enquiry@therevivalinternational.com';
 
-  const recipientEmail = (email || '').trim().toLowerCase();
+  const recipientEmail = (email || toEmail || '').trim().toLowerCase();
   if (!recipientEmail || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(recipientEmail)) {
     return { success: false, reason: 'Invalid or missing candidate email address' };
   }
 
-  const displayName = (name || '').trim() || recipientEmail.split('@')[0];
+  const displayName = (name || candidateName || fullName || '').trim() || recipientEmail.split('@')[0];
   const cid = candidateId || `RI-CAND-${Math.floor(100 + Math.random() * 900)}`;
   const methodLabel = authProvider === 'google' ? 'Google OAuth 2.0 (Verified)' : 'Direct Candidate Registration';
+  const targetCountry = preferredCountry || country || 'UAE';
 
   const subject = `Welcome to The Revival International – Candidate Registration Confirmed (${cid})`;
 
@@ -644,5 +652,276 @@ Dubai Internet City, UAE & Chennai, India
       success: false,
       error: err.message
     };
+  }
+};
+
+/**
+ * Sends an application confirmation email to the candidate and alerts admin desk.
+ */
+export const sendCandidateApplicationConfirmationEmail = async ({
+  applicantName = '',
+  applicantEmail = '',
+  applicantPhone = '',
+  candidateId = '',
+  jobId = '',
+  jobTitle = '',
+  company = '',
+  location = '',
+  resumeName = '',
+  applicationId = ''
+} = {}) => {
+  const transporter = getTransporter();
+  const fromEmail = transporter.user || 'enquiry@therevivalinternational.com';
+  const adminGmail = 'thejobsyncit@gmail.com';
+  const officialDesk = 'enquiry@therevivalinternational.com';
+
+  const recipientEmail = (applicantEmail || '').trim().toLowerCase();
+  if (!recipientEmail || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(recipientEmail)) {
+    return { success: false, reason: 'Invalid or missing candidate email address' };
+  }
+
+  const displayName = (applicantName || '').trim() || recipientEmail.split('@')[0];
+  const appId = applicationId || `RI-APP-${Math.floor(10000 + Math.random() * 90000)}`;
+  const title = jobTitle || 'International Vacancy';
+  const comp = company || 'The Revival International Corporate Client';
+  const loc = location || 'UAE / GCC';
+
+  const subject = `Application Received: ${title} at ${comp} (App ID: ${appId})`;
+
+  const textBody = `
+Dear ${displayName},
+
+Thank you for applying through The Revival International portal!
+
+Your application details:
+--------------------------------------------------
+Application ID:    ${appId}
+Position:          ${title}
+Company / Mandate: ${comp}
+Location:          ${loc}
+Applicant Name:    ${displayName}
+Applicant Email:   ${recipientEmail}
+${applicantPhone ? `Phone / WhatsApp:  ${applicantPhone}\n` : ''}${resumeName ? `Attached CV:       ${resumeName}\n` : ''}Status:            Under Review & Verification
+--------------------------------------------------
+
+What happens next?
+1. Our recruitment and talent acquisition team is reviewing your profile and credentials.
+2. Shortlisted candidates are contacted directly via email and WhatsApp to schedule technical and HR interviews.
+3. You can track your real-time status under your Candidate Dashboard on the portal.
+
+Zero Fee Policy:
+The Revival International adheres strictly to global ethical recruitment standards. We never charge jobseekers or candidates any placement, registration, or visa processing fees.
+
+Need Support?
+Official Desk: enquiry@therevivalinternational.com
+Helpline:      +91 90034 75405
+Website:       https://www.therevivalinternational.com
+
+Sincerely,
+The Revival International Recruitment & Talent Acquisition Team
+Dubai Internet City, UAE & Chennai, India
+`.trim();
+
+  const htmlBody = `
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Application Received</title>
+  <style>
+    body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif; line-height: 1.6; color: #1e293b; background-color: #f8fafc; margin: 0; padding: 20px; }
+    .container { max-width: 620px; margin: 0 auto; background: #ffffff; border: 1px solid #e2e8f0; border-radius: 16px; padding: 32px; box-shadow: 0 4px 12px rgba(0,0,0,0.03); }
+    .header { text-align: center; border-bottom: 2px solid #f1f5f9; padding-bottom: 20px; margin-bottom: 24px; }
+    .brand-title { font-size: 22px; font-weight: 800; color: #0f172a; margin: 0; }
+    .brand-subtitle { font-size: 10px; text-transform: uppercase; letter-spacing: 1.5px; color: #d97706; font-weight: bold; margin-top: 4px; }
+    .badge { display: inline-block; background-color: #ecfdf5; color: #059669; border: 1px solid #a7f3d0; font-size: 11px; font-weight: bold; padding: 5px 12px; border-radius: 9999px; margin-top: 12px; text-transform: uppercase; }
+    h2 { margin: 0 0 14px 0; color: #0f172a; font-size: 19px; }
+    p { margin: 0 0 14px 0; font-size: 13.5px; color: #334155; }
+    .card { background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 12px; padding: 18px; margin: 18px 0; }
+    .row { display: flex; justify-content: space-between; padding: 6px 0; border-bottom: 1px dashed #e2e8f0; font-size: 12.5px; }
+    .row:last-child { border-bottom: none; }
+    .label { color: #64748b; font-weight: 600; }
+    .value { color: #0f172a; font-weight: 700; text-align: right; }
+    .cta-container { text-align: center; margin: 24px 0 18px 0; }
+    .cta-btn { display: inline-block; background: linear-gradient(135deg, #d97706, #b45309); color: #ffffff !important; text-decoration: none; font-weight: bold; font-size: 13.5px; padding: 12px 28px; border-radius: 10px; }
+    .footer { margin-top: 28px; padding-top: 18px; border-top: 1px solid #e2e8f0; font-size: 11px; color: #94a3b8; text-align: center; }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <div class="header">
+      <div class="brand-title">The Revival International</div>
+      <div class="brand-subtitle">Tier-1 International Manpower & Recruitment Firm • UAE • GCC • Worldwide</div>
+      <div class="badge">✓ Job Application Submitted</div>
+    </div>
+    <h2>Application Received, ${displayName}!</h2>
+    <p>We have successfully received your application for <strong>${title}</strong> at <strong>${comp}</strong>.</p>
+    <div class="card">
+      <div class="row"><span class="label">Application Reference:</span><span class="value">${appId}</span></div>
+      <div class="row"><span class="label">Job Role:</span><span class="value">${title}</span></div>
+      <div class="row"><span class="label">Company / Client:</span><span class="value">${comp}</span></div>
+      <div class="row"><span class="label">Location:</span><span class="value">${loc}</span></div>
+      ${applicantPhone ? `<div class="row"><span class="label">Phone:</span><span class="value">${applicantPhone}</span></div>` : ''}
+      ${resumeName ? `<div class="row"><span class="label">Submitted CV:</span><span class="value">${resumeName}</span></div>` : ''}
+      <div class="row"><span class="label">Current Status:</span><span class="value" style="color: #059669;">Under Review</span></div>
+    </div>
+    <div class="cta-container">
+      <a href="https://www.therevivalinternational.com/#candidate-dashboard" class="cta-btn">View Candidate Portal &rarr;</a>
+    </div>
+    <div class="footer">
+      &copy; ${new Date().getFullYear()} The Revival International. Dubai, UAE &bull; Chennai & Bangalore, India.
+    </div>
+  </div>
+</body>
+</html>
+`.trim();
+
+  const toList = [recipientEmail];
+  if (adminGmail && !toList.includes(adminGmail)) toList.push(adminGmail);
+  if (officialDesk && !toList.includes(officialDesk)) toList.push(officialDesk);
+
+  try {
+    const result = await transporter.sendMail({
+      from: `"The Revival International • Careers" <${fromEmail}>`,
+      to: toList.join(', '),
+      replyTo: officialDesk,
+      subject,
+      text: textBody,
+      html: htmlBody
+    });
+    return { success: true, messageId: result.messageId };
+  } catch (err) {
+    console.error('[Application Email Error]:', err.message);
+    return { success: false, error: err.message };
+  }
+};
+
+/**
+ * Sends a service enquiry acknowledgement email to the client and alerts admin desk.
+ */
+export const sendServiceEnquiryConfirmationEmail = async ({
+  name = '',
+  email = '',
+  phone = '',
+  company = '',
+  serviceTitle = '',
+  serviceId = '',
+  message = '',
+  referenceNumber = '',
+  countryInterest = '',
+  consultationDate = '',
+  consultationTime = '',
+  consultationMode = ''
+} = {}) => {
+  const transporter = getTransporter();
+  const fromEmail = transporter.user || 'enquiry@therevivalinternational.com';
+  const adminGmail = 'thejobsyncit@gmail.com';
+  const officialDesk = 'enquiry@therevivalinternational.com';
+
+  const recipientEmail = (email || '').trim().toLowerCase();
+  if (!recipientEmail || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(recipientEmail)) {
+    return { success: false, reason: 'Invalid or missing client email address' };
+  }
+
+  const displayName = (name || '').trim() || recipientEmail.split('@')[0];
+  const refCode = referenceNumber || `REV-${Date.now().toString(36).toUpperCase()}`;
+  const sTitle = serviceTitle || 'International Consulting & Recruitment Service';
+
+  const subject = `Enquiry Acknowledged: ${sTitle} (Ref: ${refCode}) – The Revival International`;
+
+  const textBody = `
+Dear ${displayName},
+
+Thank you for reaching out to The Revival International!
+
+We have successfully received your service enquiry:
+--------------------------------------------------
+Reference Number:  ${refCode}
+Requested Service: ${sTitle}
+Client Name:       ${displayName}
+${company ? `Organization:       ${company}\n` : ''}Email:             ${recipientEmail}
+${phone ? `Contact Number:    ${phone}\n` : ''}${countryInterest ? `Country/Region:    ${countryInterest}\n` : ''}${consultationDate ? `Appointment Date:  ${consultationDate} at ${consultationTime || 'Scheduled'} (${consultationMode || 'Virtual'})\n` : ''}${message ? `Enquiry Brief:     ${message}\n` : ''}Status:            Assigned to Senior Advisor (Dhanalakshimi)
+--------------------------------------------------
+
+Our executive advisory team will review your requirements and get in touch with you within 24 business hours.
+
+Official Enquiry Desk: enquiry@therevivalinternational.com
+Helpline / WhatsApp:   +91 90034 75405
+Website:               https://www.therevivalinternational.com
+
+Sincerely,
+The Revival International Advisory Services
+Dubai Internet City, UAE & Chennai, India
+`.trim();
+
+  const htmlBody = `
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Service Enquiry Acknowledged</title>
+  <style>
+    body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif; line-height: 1.6; color: #1e293b; background-color: #f8fafc; margin: 0; padding: 20px; }
+    .container { max-width: 620px; margin: 0 auto; background: #ffffff; border: 1px solid #e2e8f0; border-radius: 16px; padding: 32px; box-shadow: 0 4px 12px rgba(0,0,0,0.03); }
+    .header { text-align: center; border-bottom: 2px solid #f1f5f9; padding-bottom: 20px; margin-bottom: 24px; }
+    .brand-title { font-size: 22px; font-weight: 800; color: #0f172a; margin: 0; }
+    .brand-subtitle { font-size: 10px; text-transform: uppercase; letter-spacing: 1.5px; color: #d97706; font-weight: bold; margin-top: 4px; }
+    .badge { display: inline-block; background-color: #fef3c7; color: #b45309; border: 1px solid #fde68a; font-size: 11px; font-weight: bold; padding: 5px 12px; border-radius: 9999px; margin-top: 12px; text-transform: uppercase; }
+    h2 { margin: 0 0 14px 0; color: #0f172a; font-size: 19px; }
+    p { margin: 0 0 14px 0; font-size: 13.5px; color: #334155; }
+    .card { background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 12px; padding: 18px; margin: 18px 0; }
+    .row { display: flex; justify-content: space-between; padding: 6px 0; border-bottom: 1px dashed #e2e8f0; font-size: 12.5px; }
+    .row:last-child { border-bottom: none; }
+    .label { color: #64748b; font-weight: 600; }
+    .value { color: #0f172a; font-weight: 700; text-align: right; }
+    .footer { margin-top: 28px; padding-top: 18px; border-top: 1px solid #e2e8f0; font-size: 11px; color: #94a3b8; text-align: center; }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <div class="header">
+      <div class="brand-title">The Revival International</div>
+      <div class="brand-subtitle">Executive Search • Global Manpower • Corporate Advisory</div>
+      <div class="badge">✓ Consultation Enquiry Received</div>
+    </div>
+    <h2>Thank you for your enquiry, ${displayName}!</h2>
+    <p>We have successfully received your enquiry for <strong>${sTitle}</strong>. Our senior advisory desk is reviewing your requirements.</p>
+    <div class="card">
+      <div class="row"><span class="label">Reference ID:</span><span class="value">${refCode}</span></div>
+      <div class="row"><span class="label">Service Requested:</span><span class="value">${sTitle}</span></div>
+      ${company ? `<div class="row"><span class="label">Organization:</span><span class="value">${company}</span></div>` : ''}
+      ${phone ? `<div class="row"><span class="label">Phone:</span><span class="value">${phone}</span></div>` : ''}
+      ${countryInterest ? `<div class="row"><span class="label">Country of Interest:</span><span class="value">${countryInterest}</span></div>` : ''}
+      ${consultationDate ? `<div class="row"><span class="label">Appointment:</span><span class="value">${consultationDate} ${consultationTime || ''} (${consultationMode || 'Virtual'})</span></div>` : ''}
+      <div class="row"><span class="label">Assigned Advisor:</span><span class="value" style="color: #d97706;">Dhanalakshimi (Lead Advisor)</span></div>
+    </div>
+    <p style="font-size: 13px; color: #64748b;">Our lead consultant will contact you via your preferred communication channel within 24 business hours.</p>
+    <div class="footer">
+      &copy; ${new Date().getFullYear()} The Revival International. Dubai, UAE &bull; Chennai & Bangalore, India.
+    </div>
+  </div>
+</body>
+</html>
+`.trim();
+
+  const toList = [recipientEmail];
+  if (adminGmail && !toList.includes(adminGmail)) toList.push(adminGmail);
+  if (officialDesk && !toList.includes(officialDesk)) toList.push(officialDesk);
+
+  try {
+    const result = await transporter.sendMail({
+      from: `"The Revival International • Advisory Desk" <${fromEmail}>`,
+      to: toList.join(', '),
+      replyTo: officialDesk,
+      subject,
+      text: textBody,
+      html: htmlBody
+    });
+    return { success: true, messageId: result.messageId };
+  } catch (err) {
+    console.error('[Enquiry Email Error]:', err.message);
+    return { success: false, error: err.message };
   }
 };

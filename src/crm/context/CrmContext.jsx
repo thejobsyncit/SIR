@@ -201,23 +201,6 @@ export const CrmProvider = ({ children }) => {
     if (dummyIds.some(d => id.startsWith(d) || id === d)) return true;
     if (name === 'kavya' || email === 'junejoe@gmail.com') return true;
 
-    // Check permanently deleted candidates blacklist from localStorage
-    try {
-      const deletedStr = localStorage.getItem('sir_deleted_candidates');
-      if (deletedStr) {
-        const deletedArr = JSON.parse(deletedStr);
-        if (Array.isArray(deletedArr)) {
-          const idLower = id.toLowerCase().trim();
-          const emailLower = email.trim();
-          if (deletedArr.some(d => {
-            const dl = String(d).toLowerCase().trim();
-            return dl === idLower || (emailLower && dl === emailLower);
-          })) {
-            return true;
-          }
-        }
-      }
-    } catch { }
     if (name.includes('alexander wright') || name.includes('sarah al-mansoori') || name.includes('mohamed tariq') ||
       name.includes('elena rostova') || name.includes('david chen') || name.includes('fatima al-zahra') ||
       name.includes('real candidate') || name.includes('test candidate') || name.includes('fake user') ||
@@ -557,22 +540,8 @@ export const CrmProvider = ({ children }) => {
       if (res.ok) {
         const data = await res.json();
         if (data && data.success && Array.isArray(data.data)) {
-          let deletedSet = new Set();
-          try {
-            const deletedStr = localStorage.getItem('sir_deleted_candidates');
-            if (deletedStr) {
-              const arr = JSON.parse(deletedStr);
-              if (Array.isArray(arr)) {
-                arr.forEach(s => deletedSet.add(String(s).toLowerCase().trim()));
-              }
-            }
-          } catch { }
-
           const finalCandidates = data.data.filter(c => {
             if (!c || isDummyCandidate(c)) return false;
-            const cid = (c.id || '').toLowerCase().trim();
-            const cEmail = (c.email || '').toLowerCase().trim();
-            if (deletedSet.has(cid) || (cEmail && deletedSet.has(cEmail))) return false;
             return true;
           });
           // Always sort candidates descending by newest registration timestamp (#1 latest)

@@ -28,24 +28,6 @@ const isDummyCandidate = (c) => {
   ];
   if (dummyIds.some(d => id.startsWith(d) || id === d)) return true;
   if (name === 'kavya' || email === 'junejoe@gmail.com') return true;
-
-  // Check permanently deleted candidates blacklist from localStorage
-  try {
-    const deletedStr = localStorage.getItem('sir_deleted_candidates');
-    if (deletedStr) {
-      const deletedArr = JSON.parse(deletedStr);
-      if (Array.isArray(deletedArr)) {
-        const idLower = id.toLowerCase().trim();
-        const emailLower = email.trim();
-        if (deletedArr.some(d => {
-          const dl = String(d).toLowerCase().trim();
-          return dl === idLower || (emailLower && dl === emailLower);
-        })) {
-          return true;
-        }
-      }
-    }
-  } catch { }
   if (name.includes('alexander wright') || name.includes('sarah al-mansoori') || name.includes('mohamed tariq') ||
       name.includes('elena rostova') || name.includes('david chen') || name.includes('fatima al-zahra') ||
       name.includes('real candidate') || name.includes('test candidate') || name.includes('fake user') ||

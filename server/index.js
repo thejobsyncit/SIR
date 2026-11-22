@@ -10,7 +10,11 @@ import { registerAttendanceRoutes } from './routes/attendanceRoutes.js';
 import { registerHrCandidateRoutes } from './routes/hrCandidateRoutes.js';
 import { registerDocumentationRoutes } from './routes/documentationRoutes.js';
 import { registerEmailApplicationRoutes } from './routes/emailApplicationRoutes.js';
-import { sendCandidateWelcomeEmail } from './services/emailApplicationService.js';
+import {
+  sendCandidateWelcomeEmail,
+  sendCandidateApplicationConfirmationEmail,
+  sendServiceEnquiryConfirmationEmail
+} from './services/emailApplicationService.js';
 import { COURSES_CATALOGUE } from './data/coursesCatalogueData.js';
 import nodemailer from 'nodemailer';
 import dotenv from 'dotenv';
@@ -1792,13 +1796,18 @@ app.post('/api/candidate/register', async (req, res) => {
       token: `revival_jwt_cand_${Buffer.from(cleanEmail).toString('base64')}_${Date.now()}`
     };
 
-    // Asynchronously send welcome email if configured
+    // Un-blacklist candidate from memory set so they immediately display in CRM
+    deletedCandidatesMemorySet.delete(cleanEmail.toLowerCase().trim());
+    deletedCandidatesMemorySet.delete(candidateId.toLowerCase().trim());
+
+    // Asynchronously send welcome email to candidate & alert admin
     sendCandidateWelcomeEmail({
-      toEmail: cleanEmail,
-      candidateName: candidateName,
+      email: cleanEmail,
+      name: candidateName,
       candidateId: candidateId,
       desiredRole: formattedRole,
-      country: formattedCountry
+      preferredCountry: formattedCountry,
+      phone: rawPhone
     }).catch(err => console.warn('Candidate welcome email notice:', err.message));
 
     return res.status(201).json({
@@ -2675,6 +2684,20 @@ app.post('/api/candidate/applications', async (req, res) => {
       'Application Submitted',
       `Your application for "${jobTitle}" at ${company} was successfully submitted with your attached CV and is under review.`
     ]);
+
+    // Asynchronously dispatch application confirmation email to candidate & alert admin
+    sendCandidateApplicationConfirmationEmail({
+      applicantName: resolvedName,
+      applicantEmail: resolvedEmail,
+      applicantPhone: resolvedPhone,
+      candidateId: effectiveCid,
+      jobId,
+      jobTitle: targetJob?.title || jobTitle,
+      company: targetJob?.company || company,
+      location: targetJob?.location || location,
+      resumeName,
+      applicationId: appId
+    }).catch(mailErr => console.warn('[Application Email Async Notice]:', mailErr.message));
 
     const created = await db.get('SELECT * FROM candidate_applications WHERE id = ?', [appId]);
     res.json({ success: true, message: 'Application submitted successfully with attached CV', data: created });
@@ -4429,9 +4452,10 @@ app.delete('/api/candidates/:id', async (req, res) => {
     // Delete from interviews table
     await db.run('DELETE FROM interviews WHERE candidateId = ?', [id]).catch(() => { });
 
-    // If candidate has an account in users table with role 'candidate', delete it so it cannot recreate
+    // Delete account from users and google_auth_accounts so they can re-register freshly
     if (candEmail) {
-      await db.run("DELETE FROM users WHERE LOWER(email) = LOWER(?) AND role = 'candidate'", [candEmail]).catch(() => { });
+      await db.run("DELETE FROM users WHERE LOWER(email) = LOWER(?)", [candEmail]).catch(() => { });
+      await db.run("DELETE FROM google_auth_accounts WHERE LOWER(email) = LOWER(?)", [candEmail]).catch(() => { });
     }
 
     // Add to memory blacklist so this ID/email is never resurrected in GET /api/candidates
@@ -5888,6 +5912,22 @@ app.post(['/api/leads', '/api/consulting/enquiries', '/api/career-guidance/enqui
       customFields: customFields || null,
       createdAt: new Date().toISOString()
     };
+
+    // Asynchronously dispatch enquiry confirmation email to client & alert admin desk
+    sendServiceEnquiryConfirmationEmail({
+      name: name.trim(),
+      email: email.trim(),
+      phone: phone.trim(),
+      company: safeCompany,
+      serviceTitle: safeServiceTitle,
+      serviceId: safeServiceId,
+      message: message || '',
+      referenceNumber: refCode,
+      countryInterest,
+      consultationDate,
+      consultationTime,
+      consultationMode
+    }).catch(mailErr => console.warn('[Service Enquiry Email Async Notice]:', mailErr.message));
 
     res.status(201).json({
       success: true,
