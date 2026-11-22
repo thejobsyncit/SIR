@@ -15,8 +15,17 @@ import { COURSES_CATALOGUE } from './data/coursesCatalogueData.js';
 import nodemailer from 'nodemailer';
 import dotenv from 'dotenv';
 import { handleAIAdvisorQuery, REVIVAL_KNOWLEDGE_BASE } from './services/aiAdvisorEngine.js';
+import {
+  supabase,
+  fetchSupabaseCandidates,
+  syncCandidateToSupabase,
+  syncUserToSupabase,
+  deleteCandidateFromSupabase
+} from './supabase.js';
 
 dotenv.config();
+
+const deletedCandidatesMemorySet = new Set(['ri-cand-391', 'junejoe@gmail.com']);
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -1700,6 +1709,33 @@ app.post('/api/candidate/register', async (req, res) => {
       );
 
       await db.run('COMMIT');
+
+      // 6b. Cloud Sync: Persist candidate and user to Supabase PostgreSQL cloud database
+      try {
+        await syncUserToSupabase({
+          id: userId,
+          name: candidateName,
+          email: cleanEmail,
+          phone: rawPhone,
+          role: 'candidate',
+          status: 'active'
+        });
+        await syncCandidateToSupabase({
+          id: candidateId,
+          name: candidateName,
+          email: cleanEmail,
+          phone: rawPhone,
+          nationality: formattedCountry,
+          score: 90,
+          stage: 'lead',
+          skills: formattedSkills,
+          source: 'Candidate Portal Registration',
+          passport: 'Verified',
+          experience: experience || '3-5 Years'
+        });
+      } catch (sbErr) {
+        console.warn('[Register Candidate] Supabase cloud sync warning:', sbErr.message);
+      }
     } catch (insertErr) {
       await db.run('ROLLBACK').catch(() => {});
       if (insertErr.message && insertErr.message.includes('UNIQUE constraint failed')) {
@@ -3796,6 +3832,36 @@ app.get('/api/candidates', async (req, res) => {
     const db = await getDb();
     let rows = await db.all('SELECT * FROM candidates ORDER BY createdAt DESC');
 
+    // 1. Fetch real cloud candidates from Supabase PostgreSQL
+    try {
+      const supabaseCandidates = await fetchSupabaseCandidates();
+      if (Array.isArray(supabaseCandidates) && supabaseCandidates.length > 0) {
+        const existingIdSet = new Set(rows.map(r => r.id));
+        const existingEmailSet = new Set(rows.map(r => (r.email || '').toLowerCase().trim()).filter(Boolean));
+        for (const sc of supabaseCandidates) {
+          const scEmail = (sc.email || '').toLowerCase().trim();
+          if (!existingIdSet.has(sc.id) && (!scEmail || !existingEmailSet.has(scEmail))) {
+            rows.unshift({
+              ...sc,
+              createdAt: sc.created_at || sc.createdAt || new Date().toISOString()
+            });
+            existingIdSet.add(sc.id);
+            if (scEmail) existingEmailSet.add(scEmail);
+          }
+        }
+      }
+    } catch (_) { }
+
+    // 2. Filter out permanently deleted candidates
+    rows = rows.filter(r => {
+      const cid = (r.id || '').toLowerCase().trim();
+      const cEmail = (r.email || '').toLowerCase().trim();
+      if (deletedCandidatesMemorySet.has(cid) || (cEmail && deletedCandidatesMemorySet.has(cEmail))) {
+        return false;
+      }
+      return true;
+    });
+
     // Fetch registered users & google auth accounts to distinguish registered candidate profiles from external job applicants
     const users = await db.all('SELECT id, email FROM users').catch(() => []);
     const userEmailSet = new Set(users.map(u => (u.email || '').toLowerCase().trim()).filter(Boolean));
@@ -4355,6 +4421,17 @@ app.delete('/api/candidates/:id', async (req, res) => {
     // If candidate has an account in users table with role 'candidate', delete it so it cannot recreate
     if (candEmail) {
       await db.run("DELETE FROM users WHERE LOWER(email) = LOWER(?) AND role = 'candidate'", [candEmail]).catch(() => { });
+    }
+
+    // Add to memory blacklist so this ID/email is never resurrected in GET /api/candidates
+    deletedCandidatesMemorySet.add(id.toLowerCase().trim());
+    if (candEmail) deletedCandidatesMemorySet.add(candEmail.toLowerCase().trim());
+
+    // Cascade deletion to Supabase cloud database
+    try {
+      await deleteCandidateFromSupabase(id, candEmail);
+    } catch (sbErr) {
+      console.warn('[Delete Candidate] Supabase delete warning:', sbErr.message);
     }
 
     await logAuditTrail(db, {

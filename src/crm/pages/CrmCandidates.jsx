@@ -24,9 +24,28 @@ const isDummyCandidate = (c) => {
     'REV-CAN-8645', 'REV-CAN-5223', 'REV-CAN-3393', 'REV-CAN-9398', 'REV-CAN-3073',
     'REV-CAN-5032', 'REV-CAN-1517', 'REV-CAN-4093', 'REV-CAN-7506', 'REV-CAN-5974',
     'REV-CAN-4404', 'REV-CAN-4539', 'REV-CAN-9000', 'REV-CAN-4378', 'REV-CAN-4043',
-    'REV-CAN-5868', 'REV-CAN-8915', 'REV-CAN-3362', 'REV-CAN-53106', 'RI-CAND-777'
+    'REV-CAN-5868', 'REV-CAN-8915', 'REV-CAN-3362', 'REV-CAN-53106', 'RI-CAND-777', 'RI-CAND-391'
   ];
   if (dummyIds.some(d => id.startsWith(d) || id === d)) return true;
+  if (name === 'kavya' || email === 'junejoe@gmail.com') return true;
+
+  // Check permanently deleted candidates blacklist from localStorage
+  try {
+    const deletedStr = localStorage.getItem('sir_deleted_candidates');
+    if (deletedStr) {
+      const deletedArr = JSON.parse(deletedStr);
+      if (Array.isArray(deletedArr)) {
+        const idLower = id.toLowerCase().trim();
+        const emailLower = email.trim();
+        if (deletedArr.some(d => {
+          const dl = String(d).toLowerCase().trim();
+          return dl === idLower || (emailLower && dl === emailLower);
+        })) {
+          return true;
+        }
+      }
+    }
+  } catch { }
   if (name.includes('alexander wright') || name.includes('sarah al-mansoori') || name.includes('mohamed tariq') ||
       name.includes('elena rostova') || name.includes('david chen') || name.includes('fatima al-zahra') ||
       name.includes('real candidate') || name.includes('test candidate') || name.includes('fake user') ||
@@ -188,10 +207,14 @@ export const CrmCandidates = () => {
       if (fetchCandidates) fetchCandidates();
     };
 
+    const handleDeletedEvent = () => {
+      setSyncTick(t => t + 1);
+    };
+
     window.addEventListener('focus', handleSync);
     window.addEventListener('storage', handleSync);
     window.addEventListener('candidate-registered', handleSync);
-    window.addEventListener('candidate-deleted', handleSync);
+    window.addEventListener('candidate-deleted', handleDeletedEvent);
     window.addEventListener('candidate-profile-updated', handleSync);
     const handleVis = () => {
       if (typeof document !== 'undefined' && document.visibilityState === 'visible') {
@@ -204,7 +227,7 @@ export const CrmCandidates = () => {
       window.removeEventListener('focus', handleSync);
       window.removeEventListener('storage', handleSync);
       window.removeEventListener('candidate-registered', handleSync);
-      window.removeEventListener('candidate-deleted', handleSync);
+      window.removeEventListener('candidate-deleted', handleDeletedEvent);
       window.removeEventListener('candidate-profile-updated', handleSync);
       document.removeEventListener('visibilitychange', handleVis);
     };

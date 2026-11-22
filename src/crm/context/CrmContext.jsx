@@ -196,9 +196,28 @@ export const CrmProvider = ({ children }) => {
       'REV-CAN-8645', 'REV-CAN-5223', 'REV-CAN-3393', 'REV-CAN-9398', 'REV-CAN-3073',
       'REV-CAN-5032', 'REV-CAN-1517', 'REV-CAN-4093', 'REV-CAN-7506', 'REV-CAN-5974',
       'REV-CAN-4404', 'REV-CAN-4539', 'REV-CAN-9000', 'REV-CAN-4378', 'REV-CAN-4043',
-      'REV-CAN-5868', 'REV-CAN-8915', 'REV-CAN-3362', 'REV-CAN-53106', 'RI-CAND-777'
+      'REV-CAN-5868', 'REV-CAN-8915', 'REV-CAN-3362', 'REV-CAN-53106', 'RI-CAND-777', 'RI-CAND-391'
     ];
     if (dummyIds.some(d => id.startsWith(d) || id === d)) return true;
+    if (name === 'kavya' || email === 'junejoe@gmail.com') return true;
+
+    // Check permanently deleted candidates blacklist from localStorage
+    try {
+      const deletedStr = localStorage.getItem('sir_deleted_candidates');
+      if (deletedStr) {
+        const deletedArr = JSON.parse(deletedStr);
+        if (Array.isArray(deletedArr)) {
+          const idLower = id.toLowerCase().trim();
+          const emailLower = email.trim();
+          if (deletedArr.some(d => {
+            const dl = String(d).toLowerCase().trim();
+            return dl === idLower || (emailLower && dl === emailLower);
+          })) {
+            return true;
+          }
+        }
+      }
+    } catch { }
     if (name.includes('alexander wright') || name.includes('sarah al-mansoori') || name.includes('mohamed tariq') ||
       name.includes('elena rostova') || name.includes('david chen') || name.includes('fatima al-zahra') ||
       name.includes('real candidate') || name.includes('test candidate') || name.includes('fake user') ||
@@ -538,7 +557,24 @@ export const CrmProvider = ({ children }) => {
       if (res.ok) {
         const data = await res.json();
         if (data && data.success && Array.isArray(data.data)) {
-          const finalCandidates = data.data.filter(c => !isDummyCandidate(c));
+          let deletedSet = new Set();
+          try {
+            const deletedStr = localStorage.getItem('sir_deleted_candidates');
+            if (deletedStr) {
+              const arr = JSON.parse(deletedStr);
+              if (Array.isArray(arr)) {
+                arr.forEach(s => deletedSet.add(String(s).toLowerCase().trim()));
+              }
+            }
+          } catch { }
+
+          const finalCandidates = data.data.filter(c => {
+            if (!c || isDummyCandidate(c)) return false;
+            const cid = (c.id || '').toLowerCase().trim();
+            const cEmail = (c.email || '').toLowerCase().trim();
+            if (deletedSet.has(cid) || (cEmail && deletedSet.has(cEmail))) return false;
+            return true;
+          });
           // Always sort candidates descending by newest registration timestamp (#1 latest)
           finalCandidates.sort((a, b) => {
             const timeA = new Date(a.createdAt || a.registeredAt || a.updatedAt || 0).getTime();
@@ -2114,19 +2150,7 @@ export const CrmProvider = ({ children }) => {
         }
       } catch { }
 
-      // 5. Update CRM candidates state & crm_candidates localStorage
-      setCandidates(prev => {
-        const updated = (prev || []).filter(c => c.id !== candidateId && (candEmail ? c.email?.toLowerCase().trim() !== candEmail : true));
-        try {
-          localStorage.setItem('crm_candidates', JSON.stringify(updated));
-        } catch { }
-        return updated;
-      });
-
-      // 6. Broadcast candidate-deleted event across window and tabs
-      window.dispatchEvent(new CustomEvent('candidate-deleted', { detail: { candidateId, email: candEmail } }));
-
-      // 7. Send DELETE request to backend
+      // 5. Send DELETE request to backend & cloud database first
       const res = await fetch(`/api/candidates/${candidateId}`, {
         method: 'DELETE',
         headers: {
@@ -2137,6 +2161,19 @@ export const CrmProvider = ({ children }) => {
         }
       });
       const data = res.ok ? await res.json().catch(() => ({})) : {};
+
+      // 6. Update CRM candidates state & crm_candidates localStorage
+      setCandidates(prev => {
+        const updated = (prev || []).filter(c => c.id !== candidateId && (candEmail ? c.email?.toLowerCase().trim() !== candEmail : true));
+        try {
+          localStorage.setItem('crm_candidates', JSON.stringify(updated));
+        } catch { }
+        return updated;
+      });
+
+      // 7. Broadcast candidate-deleted event across window and tabs
+      window.dispatchEvent(new CustomEvent('candidate-deleted', { detail: { candidateId, email: candEmail } }));
+
       logAuditAction(`Permanently deleted candidate '${candidateId}' (${metadata.name || ''}).`);
       return data;
     } catch (err) {

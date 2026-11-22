@@ -773,6 +773,11 @@ export const AppProvider = ({ children }) => {
       setUser(candidateUser);
       setActiveTab('candidates');
 
+      // Dispatch global registration event for instant CRM synchronization
+      if (typeof window !== 'undefined') {
+        window.dispatchEvent(new CustomEvent('candidate-registered', { detail: candidateUser }));
+      }
+
       if (crm && crm.fetchCandidates) {
         crm.fetchCandidates();
       }
