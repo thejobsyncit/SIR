@@ -1991,13 +1991,19 @@ export const CrmProvider = ({ children }) => {
       const activeUserId = user?.id || 'usr-superadmin';
       const candEmail = (metadata.email || '').toLowerCase().trim();
 
-      // 1. Permanently blacklist in sir_deleted_candidates (prevents zombie restored profiles)
+      // 1. Wipe candidate from deleted candidates blacklist so they can freshly re-register from scratch
       try {
         const deletedStr = localStorage.getItem('sir_deleted_candidates');
-        const deletedArr = deletedStr ? JSON.parse(deletedStr) : [];
-        if (candidateId) deletedArr.push(candidateId.toLowerCase().trim());
-        if (candEmail) deletedArr.push(candEmail);
-        localStorage.setItem('sir_deleted_candidates', JSON.stringify([...new Set(deletedArr)]));
+        if (deletedStr) {
+          const deletedArr = JSON.parse(deletedStr);
+          if (Array.isArray(deletedArr)) {
+            const cleaned = deletedArr.filter(x => {
+              const str = String(x).toLowerCase().trim();
+              return str !== candidateId.toLowerCase().trim() && (candEmail ? str !== candEmail : true);
+            });
+            localStorage.setItem('sir_deleted_candidates', JSON.stringify(cleaned));
+          }
+        }
       } catch { }
 
       // 2. Eradicate from sir_candidates_db so it can never resurrect
@@ -2044,15 +2050,21 @@ export const CrmProvider = ({ children }) => {
         }
       } catch { }
 
-      // 5. Send DELETE request to backend & cloud database first
-      const res = await fetch(`/api/candidates/${candidateId}`, {
+      // 5. Send DELETE request to backend & cloud database with authoritative candidate ID & email
+      const deleteUrl = `/api/candidates/${encodeURIComponent(candidateId)}${candEmail ? `?email=${encodeURIComponent(candEmail)}` : ''}`;
+      const res = await fetch(deleteUrl, {
         method: 'DELETE',
         headers: {
           'Content-Type': 'application/json',
           'X-CRM-Role': activeRole,
           'X-CRM-User': activeUserName,
           'X-CRM-User-Id': activeUserId
-        }
+        },
+        body: JSON.stringify({
+          id: candidateId,
+          email: candEmail,
+          name: metadata.name || ''
+        })
       });
       const data = res.ok ? await res.json().catch(() => ({})) : {};
 

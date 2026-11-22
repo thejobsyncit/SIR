@@ -4010,10 +4010,29 @@ app.get('/api/candidates', async (req, res) => {
           : 'Revival International Candidate';
       }
 
-      const effectiveStage = prof?.stage || (r.stage === 'applied' ? 'lead' : r.stage) || 'lead';
+      let effectiveStage = prof?.stage || (r.stage === 'applied' ? 'lead' : r.stage) || 'lead';
+      if (typeof effectiveStage === 'string' && effectiveStage.includes('T') && effectiveStage.includes('Z')) {
+        effectiveStage = 'lead';
+      }
+
+      let safeResumeName = resumeName;
+      if (safeResumeName && safeResumeName.includes('T') && safeResumeName.includes('Z')) {
+        safeResumeName = null;
+      }
+
+      let safeScore = r.score || prof?.score || 90;
+      if (typeof safeScore !== 'number') {
+        const parsedScore = parseInt(safeScore, 10);
+        safeScore = isNaN(parsedScore) ? 90 : parsedScore;
+      }
+
+      // Guarantee authoritative registration timestamp for CRM timeframe filters & sorting
+      const guaranteedCreatedAt = r.createdAt || prof?.createdAt || (typeof r.stage === 'string' && r.stage.includes('T') ? r.stage : null) || (typeof r.resumeName === 'string' && r.resumeName.includes('T') ? r.resumeName : null) || new Date().toISOString();
 
       return {
         ...r,
+        createdAt: guaranteedCreatedAt,
+        registeredAt: guaranteedCreatedAt,
         skills: parseArray(r.skills || prof?.skills),
         assignedRecruiter: r.assignedRecruiter || 'Dhanalakshimi (Lead Advisor)',
         stage: effectiveStage,
@@ -4021,13 +4040,13 @@ app.get('/api/candidates', async (req, res) => {
         currentEmployer: effectiveEmployer,
         source: cleanSource,
         aiSummary: cleanAiSummary,
-        score: r.score || prof?.score || 88,
+        score: safeScore,
         avatar: (r.avatar && !r.avatar.includes('images.unsplash.com')) ? r.avatar : ((prof?.avatar && !prof.avatar.includes('images.unsplash.com')) ? prof.avatar : null),
         currentSalary: r.currentSalary || prof?.currentSalary || '',
         expectedSalary: r.expectedSalary || prof?.expectedSalary || '',
         noticePeriod: r.noticePeriod || prof?.noticePeriod || '',
         passport: r.passport || 'Verified',
-        resumeName,
+        resumeName: safeResumeName,
         resumeUrl,
         resumeSize,
         citizenship,
@@ -4419,26 +4438,26 @@ app.delete('/api/candidates/:id', async (req, res) => {
     // 1. Locate candidate across candidates and candidate_profiles to retrieve all keys
     const candRow = await db.get('SELECT * FROM candidates WHERE id = ?', [id]).catch(() => null);
     const profRow = await db.get('SELECT * FROM candidate_profiles WHERE id = ?', [id]).catch(() => null);
-    const candEmail = (candRow?.email || profRow?.email || '').toLowerCase().trim();
-    const candName = candRow?.name || profRow?.name || id;
+    const targetEmail = (req.body?.email || req.query?.email || candRow?.email || profRow?.email || '').toLowerCase().trim();
+    const candName = req.body?.name || candRow?.name || profRow?.name || id;
 
     // 2. Full cascade deletion across ALL tables:
     // Delete from candidates table
     await db.run('DELETE FROM candidates WHERE id = ?', [id]).catch(() => { });
-    if (candEmail) {
-      await db.run('DELETE FROM candidates WHERE LOWER(email) = LOWER(?)', [candEmail]).catch(() => { });
+    if (targetEmail) {
+      await db.run('DELETE FROM candidates WHERE LOWER(email) = LOWER(?)', [targetEmail]).catch(() => { });
     }
 
     // Delete from candidate_profiles table
     await db.run('DELETE FROM candidate_profiles WHERE id = ?', [id]).catch(() => { });
-    if (candEmail) {
-      await db.run('DELETE FROM candidate_profiles WHERE LOWER(email) = LOWER(?)', [candEmail]).catch(() => { });
+    if (targetEmail) {
+      await db.run('DELETE FROM candidate_profiles WHERE LOWER(email) = LOWER(?)', [targetEmail]).catch(() => { });
     }
 
     // Delete from candidate_applications table
     await db.run('DELETE FROM candidate_applications WHERE candidateId = ?', [id]).catch(() => { });
-    if (candEmail) {
-      await db.run('DELETE FROM candidate_applications WHERE LOWER(applicantEmail) = LOWER(?)', [candEmail]).catch(() => { });
+    if (targetEmail) {
+      await db.run('DELETE FROM candidate_applications WHERE LOWER(applicantEmail) = LOWER(?)', [targetEmail]).catch(() => { });
     }
 
     // Delete from candidate_documents table
@@ -4450,19 +4469,20 @@ app.delete('/api/candidates/:id', async (req, res) => {
     // Delete from interviews table
     await db.run('DELETE FROM interviews WHERE candidateId = ?', [id]).catch(() => { });
 
-    // Delete account from users and google_auth_accounts so they can re-register freshly
-    if (candEmail) {
-      await db.run("DELETE FROM users WHERE LOWER(email) = LOWER(?)", [candEmail]).catch(() => { });
-      await db.run("DELETE FROM google_auth_accounts WHERE LOWER(email) = LOWER(?)", [candEmail]).catch(() => { });
+    // Delete account from users, google_auth_accounts, and leads so they can re-register freshly from scratch
+    if (targetEmail) {
+      await db.run("DELETE FROM users WHERE LOWER(email) = LOWER(?)", [targetEmail]).catch(() => { });
+      await db.run("DELETE FROM google_auth_accounts WHERE LOWER(email) = LOWER(?)", [targetEmail]).catch(() => { });
+      await db.run("DELETE FROM leads WHERE LOWER(email) = LOWER(?)", [targetEmail]).catch(() => { });
     }
 
-    // Add to memory blacklist so this ID/email is never resurrected in GET /api/candidates
-    deletedCandidatesMemorySet.add(id.toLowerCase().trim());
-    if (candEmail) deletedCandidatesMemorySet.add(candEmail.toLowerCase().trim());
+    // Remove from memory blacklist so re-registration is immediately permitted
+    deletedCandidatesMemorySet.delete(id.toLowerCase().trim());
+    if (targetEmail) deletedCandidatesMemorySet.delete(targetEmail);
 
     // Cascade deletion to Supabase cloud database
     try {
-      await deleteCandidateFromSupabase(id, candEmail);
+      await deleteCandidateFromSupabase(id, targetEmail);
     } catch (sbErr) {
       console.warn('[Delete Candidate] Supabase delete warning:', sbErr.message);
     }

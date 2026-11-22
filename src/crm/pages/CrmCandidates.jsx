@@ -259,11 +259,6 @@ export const CrmCandidates = () => {
   const candidatePool = useMemo(() => {
     return (candidates || []).filter(c => {
       if (!c || isDummyCandidate(c)) return false;
-      // Filter out pure job application submissions that do not belong to a registered profile
-      const isJobAppOnly = c.source === 'Quick Apply / Job Application' || (c.source && c.source.startsWith('Applied for:'));
-      if (isJobAppOnly && !c.userId && !c.registeredAt && !c.createdAt) {
-        return false;
-      }
       return true;
     });
   }, [candidates]);
@@ -553,10 +548,10 @@ export const CrmCandidates = () => {
     const valid = candidatePool.filter(c => !isDummyCandidate(c));
     return {
       all: valid.length,
-      day: valid.filter(c => matchesTimeframe(c.createdAt || c.registeredAt, 'day')).length,
-      week: valid.filter(c => matchesTimeframe(c.createdAt || c.registeredAt, 'week')).length,
-      month: valid.filter(c => matchesTimeframe(c.createdAt || c.registeredAt, 'month')).length,
-      year: valid.filter(c => matchesTimeframe(c.createdAt || c.registeredAt, 'year')).length
+      day: valid.filter(c => matchesTimeframe(c.createdAt || c.registeredAt || c.updatedAt, 'day')).length,
+      week: valid.filter(c => matchesTimeframe(c.createdAt || c.registeredAt || c.updatedAt, 'week')).length,
+      month: valid.filter(c => matchesTimeframe(c.createdAt || c.registeredAt || c.updatedAt, 'month')).length,
+      year: valid.filter(c => matchesTimeframe(c.createdAt || c.registeredAt || c.updatedAt, 'year')).length
     };
   }, [candidatePool]);
 
