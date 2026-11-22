@@ -605,6 +605,8 @@ export const UnifiedAuth = ({ defaultMode = 'login', defaultRole = 'candidate', 
         setError(data.message || (field === 'email'
           ? 'An account with this email address already exists. Please sign in to your existing account.'
           : 'An account with this phone number is already registered. Please sign in using your existing account.'));
+      } else {
+        setError(prev => (prev && prev.includes('already exists')) ? '' : prev);
       }
     } catch (_) {}
   };

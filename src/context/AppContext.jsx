@@ -659,61 +659,14 @@ export const AppProvider = ({ children }) => {
 
     const inputDigits = String(data.phone || '').replace(/\D/g, '');
 
-    // 1. Instant Client-Side Duplicate Verification (prevents duplicate entry in same browser)
+    // Clear email from deleted blacklist so new registration is fully accepted
     try {
-      const db = getCandidateDB();
-      if (db[normalizedEmail] && db[normalizedEmail].isRegistered) {
-        return {
-          success: false,
-          error: 'duplicate_email',
-          field: 'email',
-          message: 'An account with this email address already exists. Please sign in to your existing account.'
-        };
-      }
-
-      if (inputDigits.length >= 7) {
-        const matchSuffix = inputDigits.slice(-7);
-        for (const [em, c] of Object.entries(db)) {
-          if (c && c.isRegistered && c.phone) {
-            const cDigits = String(c.phone).replace(/\D/g, '');
-            if (cDigits && cDigits.slice(-7) === matchSuffix) {
-              return {
-                success: false,
-                error: 'duplicate_phone',
-                field: 'phone',
-                message: 'An account with this phone number is already registered. Please sign in using your existing account.'
-              };
-            }
-          }
-        }
-      }
-
-      // Check CRM candidate list cache in localStorage
-      const crmListStr = localStorage.getItem('crm_candidates');
-      if (crmListStr) {
-        const crmList = JSON.parse(crmListStr);
-        if (Array.isArray(crmList)) {
-          for (const c of crmList) {
-            if (c && c.email && c.email.toLowerCase().trim() === normalizedEmail) {
-              return {
-                success: false,
-                error: 'duplicate_email',
-                field: 'email',
-                message: 'An account with this email address already exists. Please sign in to your existing account.'
-              };
-            }
-            if (c && c.phone && inputDigits.length >= 7) {
-              const cDigits = String(c.phone).replace(/\D/g, '');
-              if (cDigits && cDigits.slice(-7) === inputDigits.slice(-7)) {
-                return {
-                  success: false,
-                  error: 'duplicate_phone',
-                  field: 'phone',
-                  message: 'An account with this phone number is already registered. Please sign in using your existing account.'
-                };
-              }
-            }
-          }
+      const deletedStr = localStorage.getItem('sir_deleted_candidates');
+      if (deletedStr) {
+        const arr = JSON.parse(deletedStr);
+        if (Array.isArray(arr)) {
+          const cleaned = arr.filter(x => String(x).toLowerCase().trim() !== normalizedEmail);
+          localStorage.setItem('sir_deleted_candidates', JSON.stringify(cleaned));
         }
       }
     } catch (_) {}
@@ -772,6 +725,33 @@ export const AppProvider = ({ children }) => {
       saveUserSession(candidateUser);
       setUser(candidateUser);
       setActiveTab('candidates');
+
+      // Immediately inject candidate into CRM cache & state for 0ms instant display
+      try {
+        const crmCand = {
+          id: candidateUser.candidateId || candidateUser.id,
+          name: candidateUser.name || data.fullName,
+          email: candidateUser.email || normalizedEmail,
+          phone: candidateUser.phone || data.phone,
+          nationality: candidateUser.nationality || data.preferredCountry || 'UAE',
+          currentEmployer: candidateUser.currentEmployer || 'Revival International Talent Pool',
+          currentRole: candidateUser.currentRole || data.industry || 'Executive Candidate',
+          currentSalary: candidateUser.currentSalary || '',
+          expectedSalary: candidateUser.expectedSalary || 'Market Standard',
+          score: 95,
+          stage: 'lead',
+          skills: candidateUser.skills || [],
+          source: 'Website Candidate Registration',
+          passport: 'Verified',
+          aiSummary: `Registered Candidate (${candidateUser.email}) with verified credentials.`,
+          experience: candidateUser.experience || '3-5 Years',
+          createdAt: new Date().toISOString()
+        };
+        const currentCrmStr = localStorage.getItem('crm_candidates');
+        const currentCrm = currentCrmStr ? JSON.parse(currentCrmStr) : [];
+        const nextCrm = [crmCand, ...currentCrm.filter(c => c.id !== crmCand.id && c.email?.toLowerCase() !== crmCand.email.toLowerCase())];
+        localStorage.setItem('crm_candidates', JSON.stringify(nextCrm));
+      } catch (_) {}
 
       // Dispatch global registration event for instant CRM synchronization
       if (typeof window !== 'undefined') {

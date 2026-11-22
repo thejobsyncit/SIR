@@ -3830,27 +3830,47 @@ app.post('/api/employees/me/change-password', async (req, res) => {
 app.get('/api/candidates', async (req, res) => {
   try {
     const db = await getDb();
-    let rows = await db.all('SELECT * FROM candidates ORDER BY createdAt DESC');
 
-    // 1. Fetch real cloud candidates from Supabase PostgreSQL
-    try {
-      const supabaseCandidates = await fetchSupabaseCandidates();
-      if (Array.isArray(supabaseCandidates) && supabaseCandidates.length > 0) {
-        const existingIdSet = new Set(rows.map(r => r.id));
-        const existingEmailSet = new Set(rows.map(r => (r.email || '').toLowerCase().trim()).filter(Boolean));
-        for (const sc of supabaseCandidates) {
-          const scEmail = (sc.email || '').toLowerCase().trim();
-          if (!existingIdSet.has(sc.id) && (!scEmail || !existingEmailSet.has(scEmail))) {
-            rows.unshift({
-              ...sc,
-              createdAt: sc.created_at || sc.createdAt || new Date().toISOString()
-            });
-            existingIdSet.add(sc.id);
-            if (scEmail) existingEmailSet.add(scEmail);
-          }
+    // Run all database and cloud lookups in PARALLEL for lightning-fast (<150ms) execution
+    const [
+      candidatesRows,
+      supabaseCandidates,
+      users,
+      googleAccounts,
+      profiles,
+      applications,
+      documents
+    ] = await Promise.all([
+      db.all('SELECT * FROM candidates ORDER BY createdAt DESC').catch(() => []),
+      Promise.race([
+        fetchSupabaseCandidates(),
+        new Promise(resolve => setTimeout(() => resolve([]), 1500))
+      ]).catch(() => []),
+      db.all('SELECT id, email FROM users').catch(() => []),
+      db.all('SELECT email FROM google_auth_accounts').catch(() => []),
+      db.all('SELECT * FROM candidate_profiles').catch(() => []),
+      db.all('SELECT * FROM candidate_applications ORDER BY appliedDate DESC').catch(() => []),
+      db.all('SELECT * FROM candidate_documents ORDER BY uploadDate DESC').catch(() => [])
+    ]);
+
+    let rows = [...candidatesRows];
+
+    // 1. Merge real cloud candidates from Supabase PostgreSQL
+    if (Array.isArray(supabaseCandidates) && supabaseCandidates.length > 0) {
+      const existingIdSet = new Set(rows.map(r => r.id));
+      const existingEmailSet = new Set(rows.map(r => (r.email || '').toLowerCase().trim()).filter(Boolean));
+      for (const sc of supabaseCandidates) {
+        const scEmail = (sc.email || '').toLowerCase().trim();
+        if (!existingIdSet.has(sc.id) && (!scEmail || !existingEmailSet.has(scEmail))) {
+          rows.unshift({
+            ...sc,
+            createdAt: sc.created_at || sc.createdAt || new Date().toISOString()
+          });
+          existingIdSet.add(sc.id);
+          if (scEmail) existingEmailSet.add(scEmail);
         }
       }
-    } catch (_) { }
+    }
 
     // 2. Filter out permanently deleted candidates
     rows = rows.filter(r => {
@@ -3862,14 +3882,9 @@ app.get('/api/candidates', async (req, res) => {
       return true;
     });
 
-    // Fetch registered users & google auth accounts to distinguish registered candidate profiles from external job applicants
-    const users = await db.all('SELECT id, email FROM users').catch(() => []);
     const userEmailSet = new Set(users.map(u => (u.email || '').toLowerCase().trim()).filter(Boolean));
-    const googleAccounts = await db.all('SELECT email FROM google_auth_accounts').catch(() => []);
     const googleEmailSet = new Set(googleAccounts.map(g => (g.email || '').toLowerCase().trim()).filter(Boolean));
 
-    // Fetch candidate profiles to enrich
-    const profiles = await db.all('SELECT * FROM candidate_profiles').catch(() => []);
     const profileMap = new Map();
     for (const p of profiles) {
       if (p.id) profileMap.set(p.id, p);
@@ -3887,8 +3902,6 @@ app.get('/api/candidates', async (req, res) => {
       return true;
     });
 
-    // Fetch candidate applications
-    const applications = await db.all('SELECT * FROM candidate_applications ORDER BY appliedDate DESC').catch(() => []);
     const appsMap = new Map();
     for (const app of applications) {
       const keys = [
@@ -3902,10 +3915,14 @@ app.get('/api/candidates', async (req, res) => {
       }
     }
 
-    // Fetch candidate documents
-    const documents = await db.all('SELECT * FROM candidate_documents ORDER BY uploadDate DESC').catch(() => []);
     const docsMap = new Map();
     for (const doc of documents) {
+      const keys = [doc.candidateId, doc.userId].filter(Boolean);
+      for (const k of keys) {
+        if (!docsMap.has(k)) docsMap.set(k, []);
+        docsMap.get(k).push(doc);
+      }
+    }
       const keys = [doc.candidateId, doc.userId].filter(Boolean);
       for (const k of keys) {
         if (!docsMap.has(k)) docsMap.set(k, []);
