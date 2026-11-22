@@ -6,7 +6,7 @@ import {
   CLIENT_PORTAL_SERVICES_CATALOG,
   getServiceCatalogItem,
   getWorkflowForService
-} from '../src/data/clientPortalWorkflows.js';
+} from './data/clientPortalWorkflows.js';
 
 const TOKEN_SECRET = process.env.CLIENT_PORTAL_SECRET || 'revival-intl-client-portal-hmac-secret-2026';
 

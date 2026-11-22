@@ -815,16 +815,39 @@ export const JobsPage = () => {
 
   // Keep applied job status in sync with database for candidate
   const syncAppliedJobsFromDb = useCallback(() => {
-    if (user?.email) {
-      fetch(`/api/jobs/apply-email/history?email=${encodeURIComponent(user.email.toLowerCase().trim())}`)
+    const deletedAppSet = new Set();
+    try {
+      const delStr = localStorage.getItem('sir_deleted_applications');
+      if (delStr) {
+        const arr = JSON.parse(delStr);
+        if (Array.isArray(arr)) arr.forEach(d => { if (d) deletedAppSet.add(String(d)); });
+      }
+    } catch {}
+
+    if (user?.email || user?.candidateId) {
+      const emailParam = user?.email ? encodeURIComponent(user.email.toLowerCase().trim()) : '';
+      const cidParam = user?.candidateId ? encodeURIComponent(user.candidateId) : '';
+      fetch(`/api/jobs/apply-email/history?email=${emailParam}&candidateId=${cidParam}`)
         .then(r => r.json())
         .then(d => {
           if (d?.data && Array.isArray(d.data)) {
-            const ids = new Set(d.data.map(app => String(app.jobId)));
+            const ids = new Set();
+            d.data.forEach(app => {
+              const strJobId = String(app.jobId);
+              const appId = String(app.id || '');
+              const composite = `${strJobId}_${(user?.email || '').toLowerCase().trim()}`;
+              if (!deletedAppSet.has(strJobId) && !deletedAppSet.has(appId) && !deletedAppSet.has(composite)) {
+                ids.add(strJobId);
+              }
+            });
             setDbAppliedJobIds(ids);
+          } else {
+            setDbAppliedJobIds(new Set());
           }
         })
-        .catch(() => {});
+        .catch(() => {
+          setDbAppliedJobIds(new Set());
+        });
     } else {
       setDbAppliedJobIds(new Set());
     }
@@ -832,12 +855,41 @@ export const JobsPage = () => {
 
   useEffect(() => {
     syncAppliedJobsFromDb();
-  }, [syncAppliedJobsFromDb]);
+
+    const handleSync = () => {
+      syncAppliedJobsFromDb();
+    };
+    window.addEventListener('candidate-deleted', handleSync);
+    window.addEventListener('application-deleted', handleSync);
+    window.addEventListener('application-submitted', handleSync);
+    window.addEventListener('storage', handleSync);
+    return () => {
+      window.removeEventListener('candidate-deleted', handleSync);
+      window.removeEventListener('application-deleted', handleSync);
+      window.removeEventListener('application-submitted', handleSync);
+      window.removeEventListener('storage', handleSync);
+    };
+  }, [syncAppliedJobsFromDb, applications]);
 
   const isApplied = (jobId) => {
     if (!jobId) return false;
     const strId = String(jobId);
-    return dbAppliedJobIds.has(strId) || applications.some(a => String(a.jobId) === strId);
+
+    // If blacklisted as deleted, allow re-application immediately
+    try {
+      const delStr = localStorage.getItem('sir_deleted_applications');
+      if (delStr) {
+        const arr = JSON.parse(delStr);
+        const userEmail = (user?.email || '').toLowerCase().trim();
+        if (Array.isArray(arr)) {
+          if (arr.includes(strId) || (userEmail && arr.includes(`${strId}_${userEmail}`))) {
+            return false;
+          }
+        }
+      }
+    } catch {}
+
+    return dbAppliedJobIds.has(strId) || (Array.isArray(applications) && applications.some(a => String(a.jobId) === strId));
   };
   const isSaved = (jobId) => Boolean(savedJobs && savedJobs.includes(jobId));
 

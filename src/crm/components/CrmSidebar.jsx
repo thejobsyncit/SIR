@@ -51,6 +51,7 @@ export const CrmSidebar = ({ collapsed, setCollapsed }) => {
     currentRole,
     user,
     leads = [],
+    isDummyLead,
     applications = [],
     consultingServiceFilter = 'all',
     setConsultingServiceFilter
@@ -91,8 +92,9 @@ export const CrmSidebar = ({ collapsed, setCollapsed }) => {
 
   const getServiceCount = (srvId) => {
     if (!Array.isArray(leads)) return 0;
+    const realLeads = leads.filter(l => l && (isDummyLead ? !isDummyLead(l) : true));
     if (srvId === 'all') {
-      return leads.filter(l =>
+      return realLeads.filter(l =>
         l && (
           l.consultationDate ||
           l.status === 'Consultation Scheduled' ||
@@ -108,7 +110,7 @@ export const CrmSidebar = ({ collapsed, setCollapsed }) => {
         )
       ).length;
     }
-    return leads.filter(l => {
+    return realLeads.filter(l => {
       if (!l) return false;
       const sId = (l.serviceId || '').toLowerCase();
       const title = (l.serviceTitle || '').toLowerCase();

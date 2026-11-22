@@ -22,7 +22,7 @@ const DISPOSABLE_EMAIL_DOMAINS = new Set([
 const DUMMY_LOCAL_PARTS = new Set([
   'asdf', 'qwerty', 'test', 'testing', 'fake', 'dummy', 'sample', 'temp', 'admin', 'user',
   'nobody', 'noreply', 'no-reply', '12345', '123456', 'abcdef', 'foo', 'bar', 'testuser',
-  'candidate', 'xyz', 'aaaa', 'bbbb', 'cccc'
+  'xyz', 'aaaa', 'bbbb', 'cccc'
 ]);
 
 const DUMMY_DOMAIN_NAMES = new Set([

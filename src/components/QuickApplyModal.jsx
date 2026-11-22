@@ -190,6 +190,13 @@ export const QuickApplyModal = ({ job, isOpen, onClose, onSuccess }) => {
           size: resumeFile.size,
           base64: base64Data
         };
+        try {
+          if (typeof window !== 'undefined') {
+            localStorage.setItem('sir_active_resume', base64Data);
+            localStorage.setItem('sir_active_resume_name', resumeFile.name);
+            if (email) localStorage.setItem(`sir_resume_${email.trim().toLowerCase()}`, base64Data);
+          }
+        } catch {}
       }
 
       const generatedRef = `RI-APP-${Math.floor(100000 + Math.random() * 900000)}`;
@@ -250,9 +257,18 @@ export const QuickApplyModal = ({ job, isOpen, onClose, onSuccess }) => {
         console.warn('Leads queue sync note:', crmErr);
       }
 
-      // Update client context
+      // Update client context with actual uploaded resume
       if (applyForJob) {
-        await applyForJob(job);
+        await applyForJob(job, {
+          referenceNumber: result.applicationId || generatedRef,
+          resumeName: resumeFile ? resumeFile.name : (user?.resumeName || null),
+          resumeUrl: cvPayload?.base64 || user?.resumeUrl || (typeof window !== 'undefined' ? localStorage.getItem('sir_active_resume') : null) || null,
+          resumeSize: resumeFile ? `${Math.round(resumeFile.size / 1024)} KB` : (user?.resumeSize || null),
+          applicantName: fullName.trim(),
+          applicantEmail: email.trim().toLowerCase(),
+          applicantPhone: phone.trim() || user?.phone || '',
+          saveToProfile: true
+        });
       }
 
       setSuccessResult({
