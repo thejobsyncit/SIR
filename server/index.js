@@ -3923,12 +3923,6 @@ app.get('/api/candidates', async (req, res) => {
         docsMap.get(k).push(doc);
       }
     }
-      const keys = [doc.candidateId, doc.userId].filter(Boolean);
-      for (const k of keys) {
-        if (!docsMap.has(k)) docsMap.set(k, []);
-        docsMap.get(k).push(doc);
-      }
-    }
 
     const seenIds = new Set();
     const candidateList = rows.map(r => {
