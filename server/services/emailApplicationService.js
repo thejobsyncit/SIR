@@ -398,7 +398,32 @@ export const getTransporter = () => {
   return {
     isConfigured: true,
     user,
-    sendMail: (options) => transporter.sendMail(options)
+    sendMail: async (options) => {
+      try {
+        return await transporter.sendMail(options);
+      } catch (err) {
+        if (err.message && err.message.includes('UnblockMe')) {
+          console.error('[CRITICAL ZOHO BLOCK]: Zoho Mail outgoing SMTP is locked due to unusual activity. The admin MUST unblock it at https://mail.zoho.in/UnblockMe');
+        }
+        // Resilient fallback: If secondary Gmail App Password is configured, try sending via Gmail
+        const fallbackPass = (process.env.FALLBACK_SMTP_PASS || process.env.GMAIL_APP_PASSWORD || '').replace(/\s+/g, '');
+        const fallbackUser = process.env.FALLBACK_SMTP_USER || process.env.GMAIL_USER || 'thejobsyncit@gmail.com';
+        if (fallbackPass && fallbackUser && fallbackUser !== user) {
+          try {
+            console.log('[SMTP Fallback] Attempting delivery via secondary transporter:', fallbackUser);
+            const secondaryTransporter = nodemailer.createTransport({
+              service: 'gmail',
+              auth: { user: fallbackUser, pass: fallbackPass }
+            });
+            const secondaryOptions = { ...options, from: `"The Revival International" <${fallbackUser}>` };
+            return await secondaryTransporter.sendMail(secondaryOptions);
+          } catch (secErr) {
+            console.error('[SMTP Fallback Failed]:', secErr.message);
+          }
+        }
+        throw err;
+      }
+    }
   };
 };
 

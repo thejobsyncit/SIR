@@ -103,7 +103,21 @@ export const CrmJobApplications = () => {
     };
   }, [fetchApplications]);
 
-  // Multi-store application aggregator for instant, zero-latency rendering & cross-tab sync
+  // Auto-clean any corrupt legacy ghost applications from localStorage on mount
+  useEffect(() => {
+    try {
+      const raw = localStorage.getItem('sir_job_applications');
+      if (raw) {
+        const parsed = JSON.parse(raw);
+        if (Array.isArray(parsed) && (parsed.length > 50 || parsed.some(a => !a || !a.applicantEmail || !a.applicantEmail.includes('@')))) {
+          localStorage.removeItem('sir_job_applications');
+          if (fetchApplications) fetchApplications();
+        }
+      }
+    } catch {}
+  }, [fetchApplications]);
+
+  // Genuine application aggregator synchronized directly with CRM context & live backend
   const applicationPool = useMemo(() => {
     const deletedSet = new Set();
     try {
@@ -120,6 +134,9 @@ export const CrmJobApplications = () => {
       const appId = String(a.id || '');
       if (appId && deletedSet.has(appId)) return;
       const email = (a.applicantEmail || a.email || '').toLowerCase().trim();
+      // Only accept applications with real candidate email
+      if (!email || !email.includes('@')) return;
+      if (a.id === 'RI-APP-28093' || a.id === 'RI-APP-98803') return; // ignore seed dummies
       const comp = `${String(a.jobId).trim()}_${email}`;
       if (deletedSet.has(comp)) return;
 
@@ -129,56 +146,9 @@ export const CrmJobApplications = () => {
       }
     };
 
-    // 1. Applications from CRM context
     if (Array.isArray(applications)) applications.forEach(addApp);
 
-    // 2. Applications from localStorage sir_job_applications
-    try {
-      const stored = localStorage.getItem('sir_job_applications');
-      if (stored) {
-        const parsed = JSON.parse(stored);
-        if (Array.isArray(parsed)) parsed.forEach(addApp);
-      }
-    } catch {}
-
-    // 3. Applications from candidate portal DB (sir_candidates_db)
-    try {
-      const dbStr = localStorage.getItem('sir_candidates_db');
-      if (dbStr) {
-        const db = JSON.parse(dbStr);
-        Object.values(db).forEach(u => {
-          if (Array.isArray(u?.applications)) {
-            u.applications.forEach(a => addApp({
-              ...a,
-              applicantName: a.applicantName || u.name,
-              applicantEmail: a.applicantEmail || u.email,
-              applicantPhone: a.applicantPhone || u.phone,
-              candidateId: a.candidateId || u.candidateId || u.id,
-              resumeUrl: a.resumeUrl || u.resumeUrl,
-              resumeName: a.resumeName || u.resumeName,
-              resumeSize: a.resumeSize || u.resumeSize
-            }));
-          }
-        });
-      }
-    } catch {}
-
-    // 4. Applications from scoped candidate storage keys (sir_applications_*)
-    try {
-      if (typeof window !== 'undefined' && window.localStorage) {
-        for (let i = 0; i < localStorage.length; i++) {
-          const key = localStorage.key(i);
-          if (key && key.startsWith('sir_applications_')) {
-            try {
-              const subApps = JSON.parse(localStorage.getItem(key) || '[]');
-              if (Array.isArray(subApps)) subApps.forEach(addApp);
-            } catch {}
-          }
-        }
-      }
-    } catch {}
-
-    return Array.from(map.values()).sort((a, b) => new Date(b.appliedDate || 0) - new Date(a.appliedDate || 0));
+    return Array.from(map.values()).sort((a, b) => new Date(b.appliedDate || b.createdAt || 0) - new Date(a.appliedDate || a.createdAt || 0));
   }, [applications, syncTick]);
 
   // Compute unique jobs and companies for dropdown filters
@@ -735,10 +705,10 @@ export const CrmJobApplications = () => {
             </div>
           ) : layoutStyle === 'table' ? (
             /* ENTERPRISE TABLE VIEW (Exact Style from Image 1) */
-            <div className="glass-card bg-white dark:bg-navy-900 rounded-2xl border border-slate-200 dark:border-navy-800 shadow-sm overflow-hidden">
-              <div className="overflow-x-auto scrollbar-thin scrollbar-thumb-gold-500/40 hover:scrollbar-thumb-gold-500 scrollbar-track-slate-100 dark:scrollbar-track-navy-950">
+            <div className="glass-card bg-white dark:bg-navy-900 rounded-2xl border border-slate-200 dark:border-navy-800 shadow-sm overflow-hidden flex flex-col">
+              <div className="overflow-x-auto overflow-y-auto max-h-[65vh] scrollbar-thin scrollbar-thumb-gold-500/50 hover:scrollbar-thumb-gold-500 scrollbar-track-slate-100 dark:scrollbar-track-navy-950">
                 <table className="w-full text-left text-xs border-collapse">
-                  <thead>
+                  <thead className="sticky top-0 z-20 shadow-xs">
                     <tr className="bg-slate-100 dark:bg-navy-950 text-slate-700 dark:text-gold-400 font-serif uppercase tracking-wider text-[10px] border-b border-slate-200 dark:border-navy-800">
                       <th className="px-2 py-2.5 font-extrabold w-10 text-center">#</th>
                       <th className="px-3 py-2.5 font-extrabold whitespace-nowrap">REFERENCE ID</th>

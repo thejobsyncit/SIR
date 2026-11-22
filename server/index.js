@@ -1229,15 +1229,13 @@ app.post('/api/auth/google', async (req, res) => {
 
     // Step 2: Ensure Candidate Profile exists (Create individual candidate profile if new)
     if (!candidateProfile) {
-      // Generate unique Candidate ID: RI-CAND-001, RI-CAND-002, etc.
-      const countRow = await db.get('SELECT COUNT(*) as count FROM candidate_profiles');
-      const nextSeq = (countRow?.count || 0) + 1;
-      candidateId = `RI-CAND-${String(nextSeq).padStart(3, '0')}`;
+      // Generate unique Candidate ID: RI-CAND-100 to RI-CAND-999
+      candidateId = `RI-CAND-${Math.floor(100 + Math.random() * 900)}`;
 
       // Check for collision and adjust if needed
       const existingCand = await db.get('SELECT id FROM candidate_profiles WHERE id = ?', [candidateId]);
       if (existingCand) {
-        candidateId = `RI-CAND-${String(nextSeq).padStart(3, '0')}-${Math.floor(10 + Math.random() * 90)}`;
+        candidateId = `RI-CAND-${Date.now().toString().slice(-4)}${Math.floor(10 + Math.random() * 90)}`;
       }
 
       const defaultSkills = JSON.stringify([]);

@@ -196,7 +196,8 @@ export const CrmProvider = ({ children }) => {
       'REV-CAN-8645', 'REV-CAN-5223', 'REV-CAN-3393', 'REV-CAN-9398', 'REV-CAN-3073',
       'REV-CAN-5032', 'REV-CAN-1517', 'REV-CAN-4093', 'REV-CAN-7506', 'REV-CAN-5974',
       'REV-CAN-4404', 'REV-CAN-4539', 'REV-CAN-9000', 'REV-CAN-4378', 'REV-CAN-4043',
-      'REV-CAN-5868', 'REV-CAN-8915', 'REV-CAN-3362', 'REV-CAN-53106', 'RI-CAND-777', 'RI-CAND-391'
+      'REV-CAN-5868', 'REV-CAN-8915', 'REV-CAN-3362', 'REV-CAN-53106', 'RI-CAND-777', 'RI-CAND-391',
+      'RI-CAND-001', 'RI-CAND-005'
     ];
     if (dummyIds.some(d => id.startsWith(d) || id === d)) return true;
     if (name === 'kavya' || email === 'junejoe@gmail.com') return true;
@@ -353,7 +354,13 @@ export const CrmProvider = ({ children }) => {
       const saved = localStorage.getItem('sir_job_applications');
       if (saved) {
         const parsed = JSON.parse(saved);
-        if (Array.isArray(parsed) && parsed.length > 0) return parsed;
+        if (Array.isArray(parsed)) {
+          const valid = parsed.filter(a => a && a.id && a.jobId && a.applicantEmail && a.applicantEmail.includes('@') && !isDummyCandidate(a));
+          if (valid.length !== parsed.length) {
+            try { localStorage.setItem('sir_job_applications', JSON.stringify(valid)); } catch {}
+          }
+          return valid;
+        }
       }
     } catch { }
     return [];
@@ -569,115 +576,16 @@ export const CrmProvider = ({ children }) => {
     try {
       setLoadingApplications(true);
 
-      // 0. Deleted applications blacklist (prevents zombie restored applications)
       const deletedAppSet = new Set();
       try {
         const deletedStr = localStorage.getItem('sir_deleted_applications');
         if (deletedStr) {
           const arr = JSON.parse(deletedStr);
-          if (Array.isArray(arr)) {
-            arr.forEach(d => { if (d) deletedAppSet.add(String(d)); });
-          }
+          if (Array.isArray(arr)) arr.forEach(d => { if (d) deletedAppSet.add(String(d)); });
         }
       } catch { }
 
-      // 1. Gather all local applications from all possible stores
-      const localAppsMap = new Map();
-      const registerLocalApp = (app) => {
-        if (!app || !app.jobId) return;
-        const appId = String(app.id || '');
-        if (appId && deletedAppSet.has(appId)) return;
-
-        const email = (app.applicantEmail || app.email || '').toLowerCase().trim();
-        const jobId = String(app.jobId).trim();
-        const compositeKey = `${jobId}_${email}`.toLowerCase();
-        if (deletedAppSet.has(compositeKey)) return;
-
-        const effectiveId = appId || `RI-APP-${Math.floor(10000 + Math.random() * 90000)}`;
-
-        const normalizedApp = {
-          id: effectiveId,
-          candidateId: app.candidateId || `RI-CAND-${effectiveId.slice(-3)}`,
-          userId: app.userId || '',
-          jobId: app.jobId,
-          jobTitle: app.jobTitle || 'Executive Opening',
-          company: app.company || 'Revival International',
-          location: app.location || 'UAE',
-          appliedDate: app.appliedDate || app.createdAt || new Date().toISOString(),
-          status: app.status || 'Under Review',
-          stage: app.stage || 'Applied',
-          resumeName: app.resumeName || null,
-          resumeUrl: app.resumeUrl || null,
-          resumeSize: app.resumeSize || null,
-          coverNote: app.coverNote || '',
-          noticePeriod: app.noticePeriod || 'Immediate',
-          expectedSalary: app.expectedSalary || 'Market Standard',
-          applicantName: app.applicantName || app.name || 'Candidate',
-          applicantEmail: email,
-          applicantPhone: app.applicantPhone || app.phone || '',
-          candidateNationality: app.candidateNationality || app.nationality || 'UAE'
-        };
-
-        const mapKey = appId || compositeKey;
-        if (!localAppsMap.has(mapKey)) {
-          localAppsMap.set(mapKey, normalizedApp);
-        }
-      };
-
-      try {
-        // Source A: 'sir_job_applications' in localStorage
-        const globalStr = localStorage.getItem('sir_job_applications');
-        if (globalStr) {
-          const parsed = JSON.parse(globalStr);
-          if (Array.isArray(parsed)) parsed.forEach(registerLocalApp);
-        }
-
-        // Source B: 'sir_candidates_db' in localStorage
-        const dbStr = localStorage.getItem('sir_candidates_db');
-        if (dbStr) {
-          const db = JSON.parse(dbStr);
-          Object.values(db).forEach(u => {
-            if (Array.isArray(u?.applications)) {
-              u.applications.forEach(app => registerLocalApp({
-                ...app,
-                applicantName: app.applicantName || u.name,
-                applicantEmail: app.applicantEmail || u.email,
-                applicantPhone: app.applicantPhone || u.phone,
-                candidateId: app.candidateId || u.candidateId || u.id,
-                resumeUrl: app.resumeUrl || u.resumeUrl,
-                resumeName: app.resumeName || u.resumeName,
-                resumeSize: app.resumeSize || u.resumeSize
-              }));
-            }
-          });
-        }
-
-        // Source C: Active user session applications
-        const sessStr = localStorage.getItem('sir_user_session');
-        if (sessStr) {
-          const sess = JSON.parse(sessStr);
-          if (Array.isArray(sess?.applications)) {
-            sess.applications.forEach(registerLocalApp);
-          }
-        }
-
-        // Source D: Scoped candidate applications (keys like sir_applications_*)
-        if (typeof window !== 'undefined' && window.localStorage) {
-          for (let i = 0; i < localStorage.length; i++) {
-            const key = localStorage.key(i);
-            if (key && key.startsWith('sir_applications_')) {
-              try {
-                const subApps = JSON.parse(localStorage.getItem(key) || '[]');
-                if (Array.isArray(subApps)) subApps.forEach(registerLocalApp);
-              } catch { }
-            }
-          }
-        }
-      } catch (readErr) {
-        console.warn('Local applications read notice:', readErr);
-      }
-
-      // 2. Fetch server applications
+      // 1. Fetch genuine applications directly from backend API
       let serverApps = [];
       try {
         const res = await fetch('/api/candidate/applications');
@@ -685,9 +593,11 @@ export const CrmProvider = ({ children }) => {
           const data = await res.json();
           if (data && data.success && Array.isArray(data.data)) {
             serverApps = data.data.filter(a => {
+              if (!a || !a.jobId || !a.applicantEmail || !a.applicantEmail.includes('@')) return false;
               if (deletedAppSet.has(String(a.id))) return false;
               const composite = `${String(a.jobId).trim()}_${(a.applicantEmail || '').trim().toLowerCase()}`;
               if (deletedAppSet.has(composite)) return false;
+              if (isDummyCandidate(a)) return false;
               return true;
             });
           }
@@ -696,31 +606,44 @@ export const CrmProvider = ({ children }) => {
         console.warn('Server applications fetch notice:', netErr.message);
       }
 
-      // 3. Bidirectional merge: server applications + local applications
+      // 2. Active candidate portal session applications (if current candidate just applied)
+      const currentCandidateApps = [];
+      try {
+        const sessStr = localStorage.getItem('sir_user_session');
+        if (sessStr) {
+          const sess = JSON.parse(sessStr);
+          if (sess && sess.email && Array.isArray(sess.applications)) {
+            sess.applications.forEach(app => {
+              const email = (app.applicantEmail || sess.email || '').toLowerCase().trim();
+              if (app && app.jobId && email && email.includes('@') && !deletedAppSet.has(String(app.id))) {
+                currentCandidateApps.push({
+                  ...app,
+                  applicantName: app.applicantName || sess.name || 'Candidate',
+                  applicantEmail: email,
+                  applicantPhone: app.applicantPhone || sess.phone || '',
+                  candidateId: app.candidateId || sess.candidateId || sess.id
+                });
+              }
+            });
+          }
+        }
+      } catch {}
+
       const mergedMap = new Map();
       serverApps.forEach(sa => {
         const key = String(sa.id || `${String(sa.jobId).trim()}_${(sa.applicantEmail || '').trim().toLowerCase()}`);
         mergedMap.set(key, sa);
       });
 
-      localAppsMap.forEach((la, key) => {
-        const compositeKey = `${String(la.jobId).trim()}_${(la.applicantEmail || '').trim().toLowerCase()}`;
-        if (!mergedMap.has(key) && !mergedMap.has(compositeKey)) {
-          mergedMap.set(key, la);
-        } else {
-          // If local has real resume file and server doesn't, enrich server record
-          const existing = mergedMap.get(key) || mergedMap.get(compositeKey);
-          if (existing) {
-            if ((!existing.resumeUrl || existing.resumeUrl.length < 200) && la.resumeUrl && la.resumeUrl.length > 200) {
-              existing.resumeUrl = la.resumeUrl;
-              existing.resumeName = la.resumeName || existing.resumeName;
-              existing.resumeSize = la.resumeSize || existing.resumeSize;
-            }
-          }
+      currentCandidateApps.forEach(ca => {
+        const email = (ca.applicantEmail || '').toLowerCase().trim();
+        const key = String(ca.id || `${String(ca.jobId).trim()}_${email}`);
+        if (!mergedMap.has(key)) {
+          mergedMap.set(key, ca);
         }
       });
 
-      const finalApps = Array.from(mergedMap.values()).sort((a, b) => new Date(b.appliedDate || 0) - new Date(a.appliedDate || 0));
+      const finalApps = Array.from(mergedMap.values()).sort((a, b) => new Date(b.appliedDate || b.createdAt || 0) - new Date(a.appliedDate || a.createdAt || 0));
       setApplications(finalApps);
       try {
         localStorage.setItem('sir_job_applications', JSON.stringify(finalApps));
