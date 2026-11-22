@@ -24,7 +24,8 @@ import {
   fetchSupabaseCandidates,
   syncCandidateToSupabase,
   syncUserToSupabase,
-  deleteCandidateFromSupabase
+  deleteCandidateFromSupabase,
+  checkSupabaseCandidateExists
 } from './supabase.js';
 
 dotenv.config();
@@ -1500,46 +1501,23 @@ app.post('/api/candidate/check-exists', async (req, res) => {
     const cleanEmail = normalizeEmail(email);
     const normalizedPhone = normalizePhone(phone);
 
-    // 1. Check if email already registered (Case-Insensitive)
-    if (cleanEmail) {
-      const existingEmail = await db.get(
-        `SELECT id, name, email FROM candidate_profiles WHERE LOWER(email) = LOWER(?)
-         UNION
-         SELECT id, name, email FROM candidates WHERE LOWER(email) = LOWER(?)
-         UNION
-         SELECT id, name, email FROM users WHERE LOWER(email) = LOWER(?) AND role = 'candidate'`,
-        [cleanEmail, cleanEmail, cleanEmail]
-      );
-      if (existingEmail) {
-        return res.status(409).json({
-          exists: true,
-          field: 'email',
-          message: 'An account with this email address already exists. Please sign in to your existing account.'
-        });
-      }
+    // 1. Authoritative check via Supabase Cloud (Single Source of Truth across serverless containers)
+    const sbCheck = await checkSupabaseCandidateExists(cleanEmail, normalizedPhone);
+    if (sbCheck.exists) {
+      return res.status(409).json({
+        exists: true,
+        field: sbCheck.field,
+        message: sbCheck.field === 'email'
+          ? 'An account with this email address already exists. Please sign in to your existing account.'
+          : 'An account with this phone number is already registered. Please sign in using your existing account.'
+      });
     }
 
-    // 2. Check if phone number already registered (Normalized digits)
-    if (normalizedPhone && normalizedPhone.length >= 7) {
-      const matchSuffix = `%${normalizedPhone.slice(-7)}`;
-      const existingPhone = await db.get(
-        `SELECT id, name, phone FROM candidate_profiles 
-         WHERE normalizedPhone = ? OR (phone IS NOT NULL AND REPLACE(REPLACE(REPLACE(REPLACE(phone, ' ', ''), '-', ''), '+', ''), '(', '') LIKE ?)
-         UNION
-         SELECT id, name, phone FROM candidates 
-         WHERE normalizedPhone = ? OR (phone IS NOT NULL AND REPLACE(REPLACE(REPLACE(REPLACE(phone, ' ', ''), '-', ''), '+', ''), '(', '') LIKE ?)
-         UNION
-         SELECT id, name, phone FROM users 
-         WHERE normalizedPhone = ? OR (phone IS NOT NULL AND REPLACE(REPLACE(REPLACE(REPLACE(phone, ' ', ''), '-', ''), '+', ''), '(', '') LIKE ?)`,
-        [normalizedPhone, matchSuffix, normalizedPhone, matchSuffix, normalizedPhone, matchSuffix]
-      );
-      if (existingPhone) {
-        return res.status(409).json({
-          exists: true,
-          field: 'phone',
-          message: 'An account with this phone number is already registered. Please sign in using your existing account.'
-        });
-      }
+    // If Supabase confirms account does NOT exist, clean up any ghost SQLite rows on this container!
+    if (cleanEmail) {
+      await db.run('DELETE FROM users WHERE LOWER(email) = LOWER(?)', [cleanEmail]).catch(() => {});
+      await db.run('DELETE FROM candidates WHERE LOWER(email) = LOWER(?)', [cleanEmail]).catch(() => {});
+      await db.run('DELETE FROM candidate_profiles WHERE LOWER(email) = LOWER(?)', [cleanEmail]).catch(() => {});
     }
 
     return res.json({ exists: false });
@@ -1602,47 +1580,23 @@ app.post('/api/candidate/register', async (req, res) => {
 
     const db = await getDb();
 
-    // 2. Duplicate Email Check (Case-Insensitive) -> HTTP 409
-    const existingEmail = await db.get(
-      `SELECT id, name, email FROM candidate_profiles WHERE LOWER(email) = LOWER(?)
-       UNION
-       SELECT id, name, email FROM candidates WHERE LOWER(email) = LOWER(?)
-       UNION
-       SELECT id, name, email FROM users WHERE LOWER(email) = LOWER(?) AND role = 'candidate'`,
-      [cleanEmail, cleanEmail, cleanEmail]
-    );
-
-    if (existingEmail) {
+    // 2. Authoritative Duplicate Check via Supabase Cloud Database (Single Source of Truth)
+    const sbCheck = await checkSupabaseCandidateExists(cleanEmail, normalizedPhone);
+    if (sbCheck.exists) {
       return res.status(409).json({
         success: false,
-        error: 'duplicate_email',
-        field: 'email',
-        message: 'An account with this email address already exists. Please sign in to your existing account.'
+        error: `duplicate_${sbCheck.field}`,
+        field: sbCheck.field,
+        message: sbCheck.field === 'email'
+          ? 'An account with this email address already exists. Please sign in to your existing account.'
+          : 'An account with this phone number is already registered. Please sign in using your existing account.'
       });
     }
 
-    // 3. Duplicate Phone Check (Normalized digits) -> HTTP 409
-    const phoneSuffix = `%${normalizedPhone.slice(-7)}`;
-    const existingPhone = await db.get(
-      `SELECT id, name, phone FROM candidate_profiles 
-       WHERE normalizedPhone = ? OR (phone IS NOT NULL AND REPLACE(REPLACE(REPLACE(REPLACE(phone, ' ', ''), '-', ''), '+', ''), '(', '') LIKE ?)
-       UNION
-       SELECT id, name, phone FROM candidates 
-       WHERE normalizedPhone = ? OR (phone IS NOT NULL AND REPLACE(REPLACE(REPLACE(REPLACE(phone, ' ', ''), '-', ''), '+', ''), '(', '') LIKE ?)
-       UNION
-       SELECT id, name, phone FROM users
-       WHERE normalizedPhone = ? OR (phone IS NOT NULL AND REPLACE(REPLACE(REPLACE(REPLACE(phone, ' ', ''), '-', ''), '+', ''), '(', '') LIKE ?)`,
-      [normalizedPhone, phoneSuffix, normalizedPhone, phoneSuffix, normalizedPhone, phoneSuffix]
-    );
-
-    if (existingPhone) {
-      return res.status(409).json({
-        success: false,
-        error: 'duplicate_phone',
-        field: 'phone',
-        message: 'An account with this phone number is already registered. Please sign in using your existing account.'
-      });
-    }
+    // Since candidate does NOT exist in Supabase cloud, clear any local stale ghost rows in SQLite!
+    await db.run('DELETE FROM users WHERE LOWER(email) = LOWER(?)', [cleanEmail]).catch(() => {});
+    await db.run('DELETE FROM candidates WHERE LOWER(email) = LOWER(?)', [cleanEmail]).catch(() => {});
+    await db.run('DELETE FROM candidate_profiles WHERE LOWER(email) = LOWER(?)', [cleanEmail]).catch(() => {});
 
     // 4. Secure Password Hashing
     const { hash: passwordHash, salt: passwordSalt } = hashPassword(password);

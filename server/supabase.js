@@ -139,6 +139,39 @@ export async function syncUserToSupabase(user) {
 }
 
 /**
+ * Check if candidate email or phone exists in Supabase PostgreSQL
+ */
+export async function checkSupabaseCandidateExists(email, phone = '') {
+  const client = getSupabaseClient();
+  if (!client) return { exists: false };
+  try {
+    const cleanEmail = (email || '').toLowerCase().trim();
+    if (cleanEmail) {
+      const { data: usersByEmail } = await client.from('users').select('id, email').ilike('email', cleanEmail).limit(1);
+      if (usersByEmail && usersByEmail.length > 0) return { exists: true, field: 'email', user: usersByEmail[0] };
+
+      const { data: candsByEmail } = await client.from('candidates').select('id, email').ilike('email', cleanEmail).limit(1);
+      if (candsByEmail && candsByEmail.length > 0) return { exists: true, field: 'email', candidate: candsByEmail[0] };
+    }
+
+    const cleanPhone = (phone || '').replace(/\D/g, '');
+    if (cleanPhone && cleanPhone.length >= 7) {
+      const phoneSuffix = cleanPhone.slice(-7);
+      const { data: usersByPhone } = await client.from('users').select('id, phone').like('phone', `%${phoneSuffix}`).limit(1);
+      if (usersByPhone && usersByPhone.length > 0) return { exists: true, field: 'phone', user: usersByPhone[0] };
+
+      const { data: candsByPhone } = await client.from('candidates').select('id, phone').like('phone', `%${phoneSuffix}`).limit(1);
+      if (candsByPhone && candsByPhone.length > 0) return { exists: true, field: 'phone', candidate: candsByPhone[0] };
+    }
+
+    return { exists: false };
+  } catch (err) {
+    console.warn('[Supabase] checkCandidateExists warning:', err.message);
+    return { exists: false };
+  }
+}
+
+/**
  * Permanently delete candidate from Supabase
  */
 export async function deleteCandidateFromSupabase(candidateId, email = '') {
