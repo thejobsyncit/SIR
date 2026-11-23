@@ -2052,19 +2052,11 @@ export const CrmProvider = ({ children }) => {
         }
       } catch { }
 
-      // 4. Wipe candidate application cache so job mandates re-show "Apply for Position" (Apply Now)
+      // 4. Wipe candidate application session cache while preserving central sir_job_applications for CRM registry
       try {
         localStorage.removeItem(`sir_applications_${candidateId}`);
         if (candEmail) {
           localStorage.removeItem(`sir_applications_${candEmail}`);
-        }
-        const appStr = localStorage.getItem('sir_job_applications');
-        if (appStr) {
-          const apps = JSON.parse(appStr);
-          if (Array.isArray(apps)) {
-            const filtered = apps.filter(a => a.candidateId !== candidateId && (candEmail ? a.applicantEmail?.toLowerCase().trim() !== candEmail : true));
-            localStorage.setItem('sir_job_applications', JSON.stringify(filtered));
-          }
         }
       } catch { }
 

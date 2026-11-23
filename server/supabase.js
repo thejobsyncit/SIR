@@ -225,13 +225,7 @@ export async function deleteCandidateFromSupabase(candidateId, email = '', phone
       await client.from('users').delete().like('phone', `%${phoneSuffix}`);
     }
 
-    // 3. Delete from candidate_applications
-    if (candidateId) {
-      await client.from('candidate_applications').delete().eq('candidateId', candidateId);
-    }
-    if (cleanEmail) {
-      await client.from('candidate_applications').delete().ilike('applicantEmail', cleanEmail);
-    }
+    // Note: candidate_applications are intentionally preserved in Supabase for audit and recruitment pipeline tracking
 
     return { success: true };
   } catch (err) {

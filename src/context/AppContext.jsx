@@ -544,6 +544,7 @@ export const AppProvider = ({ children }) => {
       if (!res.ok || !data?.success) {
         return {
           success: false,
+          code: data?.code || (res.status === 404 ? 'ACCOUNT_NOT_FOUND' : 'AUTH_ERROR'),
           message: data?.message || 'Google authentication failed.'
         };
       }

@@ -255,7 +255,13 @@ export const UnifiedAuth = ({ defaultMode = 'login', defaultRole = 'candidate', 
       });
 
       if (!result || !result.success) {
-        if (result?.code === 'DUPLICATE_EMAIL' || result?.message?.includes('already exists')) {
+        if (result?.code === 'ACCOUNT_NOT_FOUND' || result?.message?.includes('register') || result?.message?.includes('No candidate account') || result?.message?.includes('not found')) {
+          setError(result?.message || 'No candidate account found for this Google email. Please register to create your candidate account first.');
+          if (cleanGoogleEmail) {
+            setCandidateReg(prev => ({ ...prev, email: cleanGoogleEmail }));
+          }
+          setGoogleError('');
+        } else if (result?.code === 'DUPLICATE_EMAIL' || result?.message?.includes('already exists')) {
           setError(result?.message || 'An account with this email address or phone number already exists. Please sign in to your existing account.');
           if (cleanGoogleEmail) {
             setCandidateLogin(prev => ({ ...prev, email: cleanGoogleEmail }));
@@ -451,7 +457,13 @@ export const UnifiedAuth = ({ defaultMode = 'login', defaultRole = 'candidate', 
                 });
 
                 if (!result || !result.success) {
-                  if (result?.code === 'DUPLICATE_EMAIL' || result?.message?.includes('already exists')) {
+                  if (result?.code === 'ACCOUNT_NOT_FOUND' || result?.message?.includes('register') || result?.message?.includes('No candidate account') || result?.message?.includes('not found')) {
+                    setError(result?.message || 'No candidate account found for this Google email. Please register to create your candidate account first.');
+                    if (cleanGoogleEmail) {
+                      setCandidateReg(prev => ({ ...prev, email: cleanGoogleEmail }));
+                    }
+                    setGoogleError('');
+                  } else if (result?.code === 'DUPLICATE_EMAIL' || result?.message?.includes('already exists')) {
                     setError(result?.message || 'An account with this email address or phone number already exists. Please sign in to your existing account.');
                     if (cleanGoogleEmail) {
                       setCandidateLogin(prev => ({ ...prev, email: cleanGoogleEmail }));
@@ -915,6 +927,16 @@ export const UnifiedAuth = ({ defaultMode = 'login', defaultRole = 'candidate', 
                       className="inline-flex items-center gap-1 font-bold text-amber-800 dark:text-amber-300 underline hover:text-amber-950 dark:hover:text-amber-100 text-[11px] cursor-pointer mt-0.5 transition"
                     >
                       <span>Sign In to your existing account</span>
+                      <ArrowRight className="w-3 h-3" />
+                    </button>
+                  )}
+                  {(error.includes('register') || error.includes('No candidate account') || error.includes('not found') || error.includes('create')) && authMode === 'login' && (
+                    <button
+                      type="button"
+                      onClick={() => handleModeSwitch('register')}
+                      className="inline-flex items-center gap-1 font-bold text-amber-800 dark:text-amber-300 underline hover:text-amber-950 dark:hover:text-amber-100 text-[11px] cursor-pointer mt-0.5 transition"
+                    >
+                      <span>Create Candidate Account →</span>
                       <ArrowRight className="w-3 h-3" />
                     </button>
                   )}

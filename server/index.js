@@ -1314,6 +1314,34 @@ app.post('/api/auth/google', async (req, res) => {
       }
     }
 
+    // STRICT REGISTRATION REQUIREMENT:
+    // If the candidate clicked "Sign in with Google" (req.body.mode !== 'register'):
+    // An existing registered account is REQUIRED! Unregistered users cannot sign in directly.
+    // They must use "Create Candidate Account" / "Sign up with Google" first.
+    if (req.body?.mode === 'login' || !req.body?.mode) {
+      const sbClient = getSupabaseClient();
+      let hasAccount = Boolean(userRecord);
+
+      if (!hasAccount && sbClient) {
+        const sbCheck = await checkSupabaseCandidateExists(cleanEmail);
+        if (sbCheck && sbCheck.exists) hasAccount = true;
+      }
+
+      if (!hasAccount) {
+        const candRow = await db.get('SELECT id FROM candidate_profiles WHERE LOWER(email) = LOWER(?)', [cleanEmail]) ||
+                        await db.get('SELECT id FROM candidates WHERE LOWER(email) = LOWER(?)', [cleanEmail]);
+        if (candRow) hasAccount = true;
+      }
+
+      if (!hasAccount) {
+        return res.status(404).json({
+          success: false,
+          code: 'ACCOUNT_NOT_FOUND',
+          message: 'No candidate account found for this Google email. Please register to create your candidate account first.'
+        });
+      }
+    }
+
     // Google OAuth authenticates candidate and loads their profile and session
     let userId = userRecord?.id;
     let candidateProfile = null;
@@ -4754,11 +4782,7 @@ app.delete('/api/candidates/:id', async (req, res) => {
       }
     }
 
-    // Delete from candidate_applications table
-    await db.run('DELETE FROM candidate_applications WHERE candidateId = ?', [id]).catch(() => { });
-    if (targetEmail) {
-      await db.run('DELETE FROM candidate_applications WHERE LOWER(applicantEmail) = LOWER(?)', [targetEmail]).catch(() => { });
-    }
+    // Note: candidate_applications are intentionally PRESERVED for audit and recruitment pipeline tracking
 
     // Delete from candidate_documents table
     await db.run('DELETE FROM candidate_documents WHERE candidateId = ?', [id]).catch(() => { });
