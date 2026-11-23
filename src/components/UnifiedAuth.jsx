@@ -898,24 +898,6 @@ export const UnifiedAuth = ({ defaultMode = 'login', defaultRole = 'candidate', 
           </p>
         </div>
 
-        {/* Position Application Banner (if gated from Apply Now) */}
-        {pendingJobToApply && (
-          <div className="mb-2 p-2 bg-gold-500/10 border border-gold-500/40 rounded-xl flex items-start gap-2 text-left text-xs">
-            <div className="p-1 rounded-lg bg-gold-500/20 text-gold-500 font-bold shrink-0 mt-0.5">
-              <Briefcase className="w-3.5 h-3.5" />
-            </div>
-            <div className="space-y-0.5 leading-tight">
-              <span className="text-[9px] font-bold uppercase tracking-wider text-gold-600 dark:text-gold-400">Position Application</span>
-              <h4 className="font-serif text-xs font-bold text-navy-900 dark:text-white">
-                {pendingJobToApply.title}
-              </h4>
-              <p className="text-[10px] text-slate-500 dark:text-slate-400">
-                {pendingJobToApply.company} • {pendingJobToApply.location} ({pendingJobToApply.country})
-              </p>
-            </div>
-          </div>
-        )}
-
         {/* Error Notification */}
         {error && (
           <div className="mb-2 p-2.5 bg-amber-50 dark:bg-amber-950/40 border border-amber-300 dark:border-amber-700/60 rounded-xl text-slate-900 dark:text-slate-100 text-xs shadow-xs animate-in fade-in duration-200">
