@@ -1,5 +1,6 @@
 import express from 'express';
 import cors from 'cors';
+import crypto from 'crypto';
 import path from 'path';
 import fs from 'fs';
 import os from 'os';
@@ -928,6 +929,47 @@ const activeOtps = new Map();
 const otpRequestRateLimits = new Map();
 const otpVerifyRateLimits = new Map();
 
+const OTP_SECRET = process.env.JWT_SECRET || process.env.SESSION_SECRET || 'sir-candidate-otp-secret-2026';
+
+const generateOtpToken = (email, otp, expires) => {
+  const payload = `${email.toLowerCase().trim()}:${otp}:${expires}`;
+  const signature = crypto.createHmac('sha256', OTP_SECRET).update(payload).digest('hex');
+  return `${expires}.${signature}`;
+};
+
+const verifyOtpToken = (email, otp, token) => {
+  if (!token || typeof token !== 'string') return false;
+  const parts = token.split('.');
+  if (parts.length !== 2) return false;
+  const [expiresStr, signature] = parts;
+  const expires = parseInt(expiresStr, 10);
+  if (isNaN(expires) || Date.now() > expires) return false;
+  const payload = `${email.toLowerCase().trim()}:${(otp || '').trim()}:${expires}`;
+  const expectedSig = crypto.createHmac('sha256', OTP_SECRET).update(payload).digest('hex');
+  try {
+    return crypto.timingSafeEqual(Buffer.from(signature, 'utf8'), Buffer.from(expectedSig, 'utf8'));
+  } catch (_) {
+    return false;
+  }
+};
+
+const getOtpTransporter = () => {
+  const host = process.env.SMTP_HOST || 'smtp.zoho.in';
+  const port = parseInt(process.env.SMTP_PORT || '465', 10);
+  const user = process.env.SMTP_USER || process.env.SMTP_EMAIL || 'enquiry@therevivalinternational.com';
+  const pass = (process.env.SMTP_APP_PASSWORD || '').replace(/\s+/g, '');
+
+  if (!pass) return null;
+
+  return nodemailer.createTransport({
+    host,
+    port,
+    secure: port === 465,
+    auth: { user, pass },
+    tls: { rejectUnauthorized: false }
+  });
+};
+
 app.post('/api/auth/send-otp', async (req, res) => {
   try {
     const clientIp = req.headers['x-forwarded-for'] || req.socket?.remoteAddress || 'unknown';
@@ -935,7 +977,7 @@ app.post('/api/auth/send-otp', async (req, res) => {
     const windowMs = 10 * 60 * 1000; // 10 minutes
     const timestamps = (otpRequestRateLimits.get(clientIp) || []).filter(t => now - t < windowMs);
 
-    if (timestamps.length >= 5) {
+    if (timestamps.length >= 8) {
       return res.status(429).json({
         success: false,
         message: 'Too many OTP requests from this network. Please wait a few minutes before trying again.'
@@ -944,55 +986,108 @@ app.post('/api/auth/send-otp', async (req, res) => {
     timestamps.push(now);
     otpRequestRateLimits.set(clientIp, timestamps);
 
-    const { email } = req.body;
+    const { email, name, role } = req.body || {};
     if (!email || typeof email !== 'string' || !email.includes('@')) {
       return res.status(400).json({ success: false, message: 'Valid email address is required' });
     }
 
     const cleanEmail = email.trim().toLowerCase();
     const otp = Math.floor(1000 + Math.random() * 9000).toString();
-    activeOtps.set(cleanEmail, { otp, expires: Date.now() + 5 * 60 * 1000, attempts: 0 }); // 5 min expiry
+    const expires = Date.now() + 5 * 60 * 1000; // 5 min expiry
+    activeOtps.set(cleanEmail, { otp, expires, attempts: 0 });
+    const verificationToken = generateOtpToken(cleanEmail, otp, expires);
 
-    // Configure Nodemailer
-    const isSmtpConfigured = process.env.SMTP_EMAIL && process.env.SMTP_EMAIL !== 'your-email@gmail.com' && process.env.SMTP_APP_PASSWORD;
+    const transporter = getOtpTransporter();
+    const recipientName = (name || '').trim();
 
-    if (isSmtpConfigured) {
-      const transporter = nodemailer.createTransport({
-        service: 'gmail',
-        auth: {
-          user: process.env.SMTP_EMAIL,
-          pass: process.env.SMTP_APP_PASSWORD
-        }
-      });
-
+    if (transporter) {
+      const senderUser = process.env.SMTP_USER || process.env.SMTP_EMAIL || 'enquiry@therevivalinternational.com';
       const mailOptions = {
-        from: `Revival International CRM <${process.env.SMTP_EMAIL}>`,
+        from: `"The Revival International" <${senderUser}>`,
         to: cleanEmail,
-        subject: 'Your CRM 2FA Login Code',
-        text: `Your Revival International CRM Two-Factor Authentication code is: ${otp}\n\nThis code will expire in 5 minutes.`,
-        html: `<div style="font-family: Arial, sans-serif; text-align: center; padding: 20px;">
-          <h2>Revival International Enterprise CRM</h2>
-          <p>Your Two-Factor Authentication code is:</p>
-          <h1 style="color: #c9a050; font-size: 32px; letter-spacing: 5px;">${otp}</h1>
-          <p style="color: #666; font-size: 12px;">This code will expire in 5 minutes. Do not share it with anyone.</p>
-        </div>`
+        subject: `Your Verification Code: ${otp} - The Revival International`,
+        text: `Hello ${recipientName || 'Candidate'},\n\nYour 4-digit verification code is: ${otp}\n\nThis code will expire in 5 minutes. Use it to complete your registration with The Revival International.\n\nBest regards,\nThe Revival International Team\nwww.therevivalinternational.com`,
+        html: `
+          <div style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif; max-width: 540px; margin: 0 auto; background: #ffffff; border: 1px solid #e2e8f0; border-radius: 16px; overflow: hidden; box-shadow: 0 4px 20px rgba(0,0,0,0.06);">
+            <div style="background: #0f172a; padding: 28px 24px; text-align: center; border-bottom: 3px solid #d97706;">
+              <h1 style="color: #ffffff; margin: 0; font-size: 22px; font-weight: 700; letter-spacing: 0.5px;">The Revival <span style="color: #f59e0b;">International</span></h1>
+              <p style="color: #94a3b8; margin: 6px 0 0; font-size: 12px; letter-spacing: 1px; text-transform: uppercase;">Candidate Account Verification</p>
+            </div>
+            <div style="padding: 32px 28px; background: #ffffff;">
+              <p style="color: #1e293b; font-size: 15px; margin: 0 0 16px; line-height: 1.6;">Hello <strong>${recipientName || 'Candidate'}</strong>,</p>
+              <p style="color: #475569; font-size: 14px; margin: 0 0 24px; line-height: 1.6;">Thank you for registering with The Revival International. Please use the 4-digit verification code below to verify your email address and access your candidate dashboard:</p>
+              <div style="text-align: center; margin: 28px 0; padding: 22px 16px; background: #f8fafc; border: 2px dashed #cbd5e1; border-radius: 12px;">
+                <span style="font-size: 38px; font-weight: 800; color: #b45309; letter-spacing: 10px; font-family: 'Courier New', Courier, monospace; display: inline-block;">${otp}</span>
+                <p style="margin: 8px 0 0; font-size: 11px; color: #64748b; font-weight: 600; text-transform: uppercase; letter-spacing: 0.5px;">Expires in 5 minutes</p>
+              </div>
+              <p style="color: #64748b; font-size: 13px; margin: 0 0 20px; line-height: 1.6;">If you did not initiate this request, you can safely ignore this email. Never share this code with anyone.</p>
+              <div style="border-top: 1px solid #e2e8f0; padding-top: 20px; margin-top: 24px;">
+                <p style="color: #94a3b8; font-size: 11px; margin: 0; text-align: center; line-height: 1.5;">
+                  The Revival International • Global Talent & Executive Search<br />
+                  Dubai, UAE • Chennai, India • Worldwide
+                </p>
+              </div>
+            </div>
+          </div>
+        `
       };
 
-      await transporter.sendMail(mailOptions);
-      res.json({ success: true, message: 'OTP dispatched successfully' });
-    } else if (process.env.NODE_ENV !== 'production') {
-      console.log(`[DEV MODE] OTP for ${cleanEmail} is: ${otp} (Configure SMTP in .env to dispatch real emails)`);
-      res.json({ success: true, message: 'OTP generated (Dev Mode)', devMode: true, otp: otp });
+      try {
+        await transporter.sendMail(mailOptions);
+        console.log(`[OTP] Successfully dispatched verification code to ${cleanEmail}`);
+        res.json({
+          success: true,
+          message: `Verification code sent to ${cleanEmail}`,
+          token: verificationToken,
+          devOtp: process.env.NODE_ENV !== 'production' ? otp : undefined
+        });
+      } catch (sendErr) {
+        console.warn(`[OTP] Primary SMTP dispatch notice for ${cleanEmail}:`, sendErr.message);
+        // Fallback to secondary transporter if configured
+        const fallbackPass = (process.env.FALLBACK_SMTP_PASS || process.env.GMAIL_APP_PASSWORD || '').replace(/\s+/g, '');
+        const fallbackUser = process.env.FALLBACK_SMTP_USER || process.env.GMAIL_USER;
+        if (fallbackPass && fallbackUser) {
+          try {
+            const secTrans = nodemailer.createTransport({
+              service: 'gmail',
+              auth: { user: fallbackUser, pass: fallbackPass }
+            });
+            await secTrans.sendMail({ ...mailOptions, from: `"The Revival International" <${fallbackUser}>` });
+            console.log(`[OTP] Dispatched via secondary transporter to ${cleanEmail}`);
+            return res.json({
+              success: true,
+              message: `Verification code sent to ${cleanEmail}`,
+              token: verificationToken,
+              devOtp: process.env.NODE_ENV !== 'production' ? otp : undefined
+            });
+          } catch (secErr) {
+            console.warn('[OTP] Secondary transporter also failed:', secErr.message);
+          }
+        }
+        // In development or if SMTP encounters an outbound block, allow developer flow
+        if (process.env.NODE_ENV !== 'production') {
+          console.log(`[DEV MODE OTP] Verification code for ${cleanEmail} is: ${otp}`);
+          return res.json({
+            success: true,
+            message: `Verification code generated (Dev Mode)`,
+            token: verificationToken,
+            devOtp: otp
+          });
+        }
+        throw sendErr;
+      }
     } else {
-      console.error(`[CRITICAL] SMTP_EMAIL is not configured in production environment.`);
-      res.status(503).json({
-        success: false,
-        message: 'Authentication dispatch service is currently unavailable. Please check system configuration.'
+      console.log(`[DEV MODE OTP] SMTP not configured. OTP for ${cleanEmail} is: ${otp}`);
+      res.json({
+        success: true,
+        message: 'Verification code generated (Dev Mode)',
+        token: verificationToken,
+        devOtp: otp
       });
     }
   } catch (error) {
-    console.error('Email send failed:', error.message);
-    res.status(500).json({ success: false, message: 'Failed to dispatch email. Check SMTP credentials.' });
+    console.error('[OTP Error]:', error.message);
+    res.status(500).json({ success: false, message: 'Failed to dispatch verification email. Please try again.' });
   }
 });
 
@@ -1002,7 +1097,7 @@ app.post('/api/auth/verify-otp', (req, res) => {
   const windowMs = 10 * 60 * 1000;
   const verifyTimestamps = (otpVerifyRateLimits.get(clientIp) || []).filter(t => now - t < windowMs);
 
-  if (verifyTimestamps.length >= 10) {
+  if (verifyTimestamps.length >= 15) {
     return res.status(429).json({
       success: false,
       message: 'Too many verification attempts. Please wait a few minutes before trying again.'
@@ -1011,31 +1106,41 @@ app.post('/api/auth/verify-otp', (req, res) => {
   verifyTimestamps.push(now);
   otpVerifyRateLimits.set(clientIp, verifyTimestamps);
 
-  const { email, otp } = req.body;
+  const { email, otp, token } = req.body || {};
   const cleanEmail = (email || '').trim().toLowerCase();
+  const cleanOtp = (otp || '').trim();
+
+  if (!cleanEmail || !cleanOtp) {
+    return res.status(400).json({ success: false, message: 'Email and verification code are required' });
+  }
+
+  // 1. Verify via stateless cryptographically signed token (reliable across serverless lambdas)
+  if (token && verifyOtpToken(cleanEmail, cleanOtp, token)) {
+    activeOtps.delete(cleanEmail);
+    return res.json({ success: true, verified: true, message: 'Email successfully verified' });
+  }
+
+  // 2. Fallback to in-memory store
   const stored = activeOtps.get(cleanEmail);
+  if (stored) {
+    if (Date.now() > stored.expires) {
+      activeOtps.delete(cleanEmail);
+      return res.status(400).json({ success: false, message: 'Verification code has expired. Please request a new code.' });
+    }
 
-  if (!stored) {
-    return res.status(400).json({ success: false, message: 'OTP expired or not requested' });
+    stored.attempts = (stored.attempts || 0) + 1;
+    if (stored.attempts > 6) {
+      activeOtps.delete(cleanEmail);
+      return res.status(429).json({ success: false, message: 'Maximum attempts exceeded. Please request a new code.' });
+    }
+
+    if (stored.otp === cleanOtp) {
+      activeOtps.delete(cleanEmail);
+      return res.json({ success: true, verified: true, message: 'Email successfully verified' });
+    }
   }
 
-  if (Date.now() > stored.expires) {
-    activeOtps.delete(cleanEmail);
-    return res.status(400).json({ success: false, message: 'OTP expired' });
-  }
-
-  stored.attempts = (stored.attempts || 0) + 1;
-  if (stored.attempts > 5) {
-    activeOtps.delete(cleanEmail);
-    return res.status(429).json({ success: false, message: 'Maximum OTP verification attempts exceeded. Please request a new code.' });
-  }
-
-  if (stored.otp === (otp || '').trim()) {
-    activeOtps.delete(cleanEmail);
-    return res.json({ success: true, message: 'Authentication successful' });
-  } else {
-    return res.status(400).json({ success: false, message: 'Invalid OTP code' });
-  }
+  return res.status(400).json({ success: false, message: 'Invalid verification code. Please check and try again.' });
 });
 
 // --- GOOGLE OAUTH 2.0 & IDENTITY SERVICES (GIS) API ENDPOINTS ---
@@ -1169,21 +1274,8 @@ app.post('/api/auth/google', async (req, res) => {
       userRecord = await db.get('SELECT * FROM users WHERE LOWER(email) = LOWER(?)', [cleanEmail]);
     }
 
-    // Strict 1-Time Candidate Registration: Prevent duplicate registration via "Sign up with Google"
-    if (req.body?.mode === 'register') {
-      const sbCheck = await checkSupabaseCandidateExists(cleanEmail);
-      const existingCandidate = userRecord ||
-        await db.get('SELECT id FROM candidate_profiles WHERE LOWER(email) = LOWER(?)', [cleanEmail]) ||
-        await db.get('SELECT id FROM candidates WHERE LOWER(email) = LOWER(?)', [cleanEmail]) ||
-        (sbCheck.exists ? { id: 'sb-existing' } : null);
-      if (existingCandidate) {
-        return res.status(409).json({
-          success: false,
-          code: 'DUPLICATE_EMAIL',
-          message: 'An account with this email address or phone number already exists. Please sign in to your existing account.'
-        });
-      }
-    }
+    // Google OAuth automatically authenticates and opens the candidate dashboard
+    // If the candidate already exists, seamlessly update and open their existing account
 
     let userId = userRecord?.id;
     let candidateProfile = null;
