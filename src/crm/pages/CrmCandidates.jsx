@@ -412,12 +412,12 @@ export const CrmCandidates = () => {
 
       try {
         if (cand.email) {
-          const stored = localStorage.getItem(`sir_resume_${cand.email.toLowerCase().trim()}`);
+          const stored = (window.sessionStorage && sessionStorage.getItem(`sir_resume_${cand.email.toLowerCase().trim()}`)) || (window.localStorage && localStorage.getItem(`sir_resume_${cand.email.toLowerCase().trim()}`));
           if (stored && stored.length > 200) url = stored;
         }
         if (!url || url.length < 200) {
-          const active = localStorage.getItem('sir_active_resume');
-          const activeName = localStorage.getItem('sir_active_resume_name');
+          const active = (window.sessionStorage && sessionStorage.getItem('sir_active_resume')) || (window.localStorage && localStorage.getItem('sir_active_resume'));
+          const activeName = (window.sessionStorage && sessionStorage.getItem('sir_active_resume_name')) || (window.localStorage && localStorage.getItem('sir_active_resume_name'));
           if (active && active.length > 200) {
             url = active;
             if (activeName) name = activeName;
