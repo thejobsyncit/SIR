@@ -2,7 +2,7 @@ import React, { useState, useEffect, useRef } from 'react';
 import { createPortal } from 'react-dom';
 import { useApp } from '../context/AppContext';
 import { BrandLogoIcon } from './BrandLogoIcon';
-import { Briefcase, ArrowRight, User, Lock, Mail, Phone, Sparkles, CheckCircle2, X, Settings, ExternalLink, Eye, EyeOff, UserPlus, ChevronRight, AlertCircle, LogIn } from 'lucide-react';
+import { Briefcase, ArrowRight, User, Lock, Mail, Phone, Sparkles, CheckCircle2, X, Settings, ExternalLink, Eye, EyeOff, UserPlus, ChevronRight, AlertCircle, LogIn, ShieldCheck, RefreshCw } from 'lucide-react';
 import { validateCandidateEmail } from '../utils/emailValidation';
 
 export const COUNTRY_PHONE_CONFIG = [
@@ -86,11 +86,59 @@ export const UnifiedAuth = ({ defaultMode = 'login', defaultRole = 'candidate', 
     consentAgreed: false
   });
 
+  // Candidate Registration OTP Verification Flow
+  const [regStep, setRegStep] = useState('form'); // 'form' | 'otp'
+  const [otpCode, setOtpCode] = useState('');
+  const [otpToken, setOtpToken] = useState('');
+  const [otpLoading, setOtpLoading] = useState(false);
+  const [otpError, setOtpError] = useState('');
+  const [otpSuccess, setOtpSuccess] = useState('');
+  const [otpCooldown, setOtpCooldown] = useState(0);
+  const [devOtpHint, setDevOtpHint] = useState('');
+  const [emailDuplicate, setEmailDuplicate] = useState(false);
+  const [checkingDuplicate, setCheckingDuplicate] = useState(false);
+
+  // OTP Resend Cooldown Timer
+  useEffect(() => {
+    let timer;
+    if (otpCooldown > 0) {
+      timer = setInterval(() => {
+        setOtpCooldown(prev => (prev > 0 ? prev - 1 : 0));
+      }, 1000);
+    }
+    return () => clearInterval(timer);
+  }, [otpCooldown]);
+
+  // Debounced duplicate email check on typing
+  useEffect(() => {
+    if (authMode !== 'register' || regStep !== 'form') return;
+    const clean = (candidateReg.email || '').trim().toLowerCase();
+    if (!clean || clean.length < 5 || !clean.includes('@') || !clean.includes('.')) {
+      setEmailDuplicate(false);
+      return;
+    }
+    const emailCheck = validateCandidateEmail(clean);
+    if (!emailCheck.isValid) {
+      setEmailDuplicate(false);
+      return;
+    }
+
+    const timer = setTimeout(() => {
+      checkDuplicateCandidate('email', clean);
+    }, 500);
+
+    return () => clearTimeout(timer);
+  }, [candidateReg.email, authMode, regStep]);
+
   // Reset error when switching states
   const handleModeSwitch = (newMode) => {
     setAuthMode(newMode);
+    setRegStep('form');
     setError('');
     setGoogleError('');
+    setOtpError('');
+    setOtpSuccess('');
+    setEmailDuplicate(false);
   };
 
   // Reset errors and purge stale local cache when entering register mode
@@ -195,23 +243,6 @@ export const UnifiedAuth = ({ defaultMode = 'login', defaultRole = 'candidate', 
 
       const cleanGoogleEmail = (profile.email || '').toLowerCase().trim();
 
-      // Strict 1-Time Registration: If clicking "Sign up with Google", prevent duplicate account creation
-      if (authMode === 'register') {
-        try {
-          const checkRes = await fetch('/api/candidate/check-exists', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ email: cleanGoogleEmail })
-          });
-          if (checkRes.status === 409) {
-            setGoogleLoading(false);
-            setGoogleError('');
-            setError('An account with this email address already exists. Please sign in to your existing account.');
-            return;
-          }
-        } catch (_) {}
-      }
-
       const result = await loginWithGoogle({
         idToken: response.credential,
         credential: response.credential,
@@ -224,8 +255,17 @@ export const UnifiedAuth = ({ defaultMode = 'login', defaultRole = 'candidate', 
       });
 
       if (!result || !result.success) {
-        if (result?.code === 'DUPLICATE_EMAIL' || result?.message?.includes('already exists')) {
-          setError(result?.message || 'An account with this email address already exists. Please sign in to your existing account.');
+        if (result?.code === 'ACCOUNT_NOT_FOUND' || result?.message?.includes('register') || result?.message?.includes('No candidate account') || result?.message?.includes('not found')) {
+          setError(result?.message || 'No candidate account found for this Google email. Please register to create your candidate account first.');
+          if (cleanGoogleEmail) {
+            setCandidateReg(prev => ({ ...prev, email: cleanGoogleEmail }));
+          }
+          setGoogleError('');
+        } else if (result?.code === 'DUPLICATE_EMAIL' || result?.message?.includes('already exists')) {
+          setError(result?.message || 'An account with this email address or phone number already exists. Please sign in to your existing account.');
+          if (cleanGoogleEmail) {
+            setCandidateLogin(prev => ({ ...prev, email: cleanGoogleEmail }));
+          }
           setGoogleError('');
         } else {
           setGoogleError(result?.message || 'Google authentication failed.');
@@ -406,23 +446,6 @@ export const UnifiedAuth = ({ defaultMode = 'login', defaultRole = 'candidate', 
               if (userInfo?.email) {
                 const cleanGoogleEmail = (userInfo.email || '').toLowerCase().trim();
 
-                // Strict 1-Time Registration: If clicking "Sign up with Google", prevent duplicate account creation
-                if (authMode === 'register') {
-                  try {
-                    const checkRes = await fetch('/api/candidate/check-exists', {
-                      method: 'POST',
-                      headers: { 'Content-Type': 'application/json' },
-                      body: JSON.stringify({ email: cleanGoogleEmail })
-                    });
-                    if (checkRes.status === 409) {
-                      setGoogleLoading(false);
-                      setGoogleError('');
-                      setError('An account with this email address already exists. Please sign in to your existing account.');
-                      return;
-                    }
-                  } catch (_) {}
-                }
-
                 const result = await loginWithGoogle({
                   accessToken: tokenResponse.access_token,
                   email: userInfo.email,
@@ -434,8 +457,17 @@ export const UnifiedAuth = ({ defaultMode = 'login', defaultRole = 'candidate', 
                 });
 
                 if (!result || !result.success) {
-                  if (result?.code === 'DUPLICATE_EMAIL' || result?.message?.includes('already exists')) {
-                    setError(result?.message || 'An account with this email address already exists. Please sign in to your existing account.');
+                  if (result?.code === 'ACCOUNT_NOT_FOUND' || result?.message?.includes('register') || result?.message?.includes('No candidate account') || result?.message?.includes('not found')) {
+                    setError(result?.message || 'No candidate account found for this Google email. Please register to create your candidate account first.');
+                    if (cleanGoogleEmail) {
+                      setCandidateReg(prev => ({ ...prev, email: cleanGoogleEmail }));
+                    }
+                    setGoogleError('');
+                  } else if (result?.code === 'DUPLICATE_EMAIL' || result?.message?.includes('already exists')) {
+                    setError(result?.message || 'An account with this email address or phone number already exists. Please sign in to your existing account.');
+                    if (cleanGoogleEmail) {
+                      setCandidateLogin(prev => ({ ...prev, email: cleanGoogleEmail }));
+                    }
                     setGoogleError('');
                   } else {
                     setGoogleError(result?.message || 'Google authentication failed.');
@@ -588,6 +620,7 @@ export const UnifiedAuth = ({ defaultMode = 'login', defaultRole = 'candidate', 
   const checkDuplicateCandidate = async (field, val) => {
     if (!val) return;
     try {
+      setCheckingDuplicate(true);
       const payload = field === 'email' ? { email: val } : { phone: val };
       const res = await fetch('/api/candidate/check-exists', {
         method: 'POST',
@@ -596,16 +629,20 @@ export const UnifiedAuth = ({ defaultMode = 'login', defaultRole = 'candidate', 
       });
       if (res.status === 409) {
         const data = await res.json();
-        setError(data.message || (field === 'email'
-          ? 'An account with this email address already exists. Please sign in to your existing account.'
-          : 'An account with this phone number is already registered. Please sign in using your existing account.'));
+        const msg = data.message || 'An account with this email address or phone number already exists. Please sign in to your existing account.';
+        setError(msg);
+        if (field === 'email') setEmailDuplicate(true);
       } else {
+        if (field === 'email') setEmailDuplicate(false);
         setError(prev => (prev && prev.includes('already exists')) ? '' : prev);
       }
-    } catch (_) {}
+    } catch (_) {
+    } finally {
+      setCheckingDuplicate(false);
+    }
   };
 
-  // Submit Candidate Registration
+  // Submit Candidate Registration - Initiates Email Verification Code Dispatch
   const handleCandidateRegSubmit = async (e) => {
     e.preventDefault();
     setError('');
@@ -626,7 +663,7 @@ export const UnifiedAuth = ({ defaultMode = 'login', defaultRole = 'candidate', 
     }
 
     // 2. Strict Email check (Valid format, max 80 chars)
-    const cleanEmail = candidateReg.email.trim();
+    const cleanEmail = candidateReg.email.trim().toLowerCase();
     if (cleanEmail.length > 80) {
       setError('Email address cannot exceed 80 characters.');
       return;
@@ -654,7 +691,7 @@ export const UnifiedAuth = ({ defaultMode = 'login', defaultRole = 'candidate', 
       }
     }
 
-    // 4. Password validation (Issue #4: Minimum 8 chars with complexity)
+    // 4. Password validation (Minimum 8 chars with complexity)
     if (!candidateReg.password || candidateReg.password.length < 8) {
       setError('Password must be at least 8 characters long.');
       return;
@@ -672,38 +709,170 @@ export const UnifiedAuth = ({ defaultMode = 'login', defaultRole = 'candidate', 
       return;
     }
 
-    // 5. Consent validation (Issue #4 & UAE PDPL / India DPDP Act)
+    // 5. Consent validation (UAE PDPL / India DPDP Act)
     if (!candidateReg.consentAgreed) {
       setError('You must provide mandatory consent under the Privacy Policy & Candidate Consent Notice.');
       return;
     }
 
-    const result = await registerCandidate({
-      fullName: candidateReg.fullName.trim(),
-      email: cleanEmail,
-      password: candidateReg.password,
-      phone: `${candidateReg.countryCode || '+91'} ${digitsOnly}`,
-      preferredCountry: candidateReg.preferredCountry,
-      industry: candidateReg.industry,
-      resumeName: candidateReg.resumeName || 'Uploaded_CV.pdf',
-      consentGivenAt: new Date().toISOString(),
-      consentVersion: 'v2.0-nov2026'
-    });
+    // 6. Pre-flight check: ensure email or phone not already registered
+    try {
+      const checkRes = await fetch('/api/candidate/check-exists', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email: cleanEmail, phone: `${candidateReg.countryCode || '+91'} ${digitsOnly}` })
+      });
+      if (checkRes.status === 409) {
+        const checkData = await checkRes.json();
+        setError(checkData.message || 'An account with this email address or phone number already exists. Please sign in to your existing account.');
+        setEmailDuplicate(true);
+        return;
+      }
+    } catch (_) {}
 
-    if (!result || !result.success) {
-      setError(result?.message || 'Registration failed. Please try again.');
+    // 7. Dispatch Email Verification OTP
+    setOtpLoading(true);
+    setOtpError('');
+    setOtpSuccess('');
+
+    try {
+      const otpRes = await fetch('/api/auth/send-otp', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          email: cleanEmail,
+          name: trimmedFullName,
+          role: 'candidate'
+        })
+      });
+
+      const otpData = await otpRes.json();
+      if (!otpRes.ok || !otpData.success) {
+        setError(otpData.message || 'Failed to dispatch verification code. Please check your email and try again.');
+        setOtpLoading(false);
+        return;
+      }
+
+      setOtpToken(otpData.token || '');
+      setDevOtpHint(otpData.devOtp || '');
+      setOtpCooldown(60);
+      setRegStep('otp');
+      setOtpCode('');
+      setOtpLoading(false);
+    } catch (err) {
+      console.error('OTP send failed:', err);
+      setError('Unable to send verification code. Please check your connection and try again.');
+      setOtpLoading(false);
+    }
+  };
+
+  // Resend OTP handler
+  const handleResendOtp = async () => {
+    if (otpCooldown > 0 || otpLoading) return;
+    setOtpLoading(true);
+    setOtpError('');
+    setOtpSuccess('');
+
+    try {
+      const cleanEmail = candidateReg.email.trim().toLowerCase();
+      const res = await fetch('/api/auth/send-otp', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          email: cleanEmail,
+          name: candidateReg.fullName.trim(),
+          role: 'candidate'
+        })
+      });
+
+      const data = await res.json();
+      if (!res.ok || !data.success) {
+        setOtpError(data.message || 'Failed to resend code. Please wait a moment.');
+        setOtpLoading(false);
+        return;
+      }
+
+      setOtpToken(data.token || '');
+      setDevOtpHint(data.devOtp || '');
+      setOtpCooldown(60);
+      setOtpSuccess(`A fresh verification code has been dispatched to ${cleanEmail}`);
+      setTimeout(() => setOtpSuccess(''), 4000);
+      setOtpLoading(false);
+    } catch (err) {
+      setOtpError('Failed to resend verification code. Please check your network.');
+      setOtpLoading(false);
+    }
+  };
+
+  // Verify OTP and Complete Registration -> Automatically Opens Dashboard
+  const handleVerifyOtpAndRegister = async (e) => {
+    if (e) e.preventDefault();
+    const cleanOtp = (otpCode || '').trim();
+    if (!cleanOtp || cleanOtp.length !== 4) {
+      setOtpError('Please enter the complete 4-digit verification code.');
       return;
     }
 
-    if (pendingJobToApply) {
-      navigateTo('jobs');
-      window.location.hash = 'jobs';
-    } else {
-      navigateTo('candidates');
-    }
+    setOtpLoading(true);
+    setOtpError('');
 
-    if (onSuccess) onSuccess();
-    setActiveModal(null);
+    try {
+      const cleanEmail = candidateReg.email.trim().toLowerCase();
+      const verifyRes = await fetch('/api/auth/verify-otp', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          email: cleanEmail,
+          otp: cleanOtp,
+          token: otpToken
+        })
+      });
+
+      const verifyData = await verifyRes.json();
+      if (!verifyRes.ok || !verifyData.success) {
+        setOtpError(verifyData.message || 'Invalid or expired verification code. Please check and try again.');
+        setOtpLoading(false);
+        return;
+      }
+
+      setOtpSuccess('Email verified! Activating your candidate account and opening dashboard...');
+
+      const digitsOnly = candidateReg.phone.replace(/\D/g, '');
+      const result = await registerCandidate({
+        fullName: candidateReg.fullName.trim(),
+        email: cleanEmail,
+        password: candidateReg.password,
+        phone: `${candidateReg.countryCode || '+91'} ${digitsOnly}`,
+        preferredCountry: candidateReg.preferredCountry,
+        industry: candidateReg.industry,
+        resumeName: candidateReg.resumeName || 'Uploaded_CV.pdf',
+        consentGivenAt: new Date().toISOString(),
+        consentVersion: 'v2.0-nov2026'
+      });
+
+      if (!result || !result.success) {
+        setOtpError(result?.message || 'Registration failed. Please try again.');
+        setOtpLoading(false);
+        return;
+      }
+
+      setTimeout(() => {
+        setActiveModal(null);
+        if (pendingJobToApply) {
+          navigateTo('jobs');
+          window.location.hash = 'jobs';
+        } else {
+          navigateTo('candidates');
+          window.location.hash = 'candidates';
+        }
+        window.scrollTo({ top: 0, behavior: 'smooth' });
+        if (onSuccess) onSuccess();
+      }, 700);
+    } catch (err) {
+      console.error('OTP verification error:', err);
+      setOtpError('Network error while verifying code. Please check your connection.');
+      setOtpLoading(false);
+    }
   };
 
   return (
@@ -726,32 +895,20 @@ export const UnifiedAuth = ({ defaultMode = 'login', defaultRole = 'candidate', 
         <div className="flex flex-col items-center text-center mb-2">
           <BrandLogoIcon className="w-8 h-8 sm:w-9 sm:h-9 shadow-luxury mb-1" />
           <h2 className="font-serif text-base sm:text-lg font-bold text-slate-900 dark:text-white tracking-tight leading-tight">
-            {authMode === 'login' ? 'Sign In to Your Account' : 'Create Your Candidate Account'}
+            {authMode === 'login' 
+              ? 'Sign In to Your Account' 
+              : regStep === 'otp'
+                ? 'Verify Your Email Address'
+                : 'Create Your Candidate Account'}
           </h2>
           <p className="text-[11px] text-slate-700 dark:text-slate-300 font-medium mt-0.5">
             {authMode === 'login' 
               ? 'Access your Candidate Portal to track job applications and interview updates.'
-              : 'Register with verified credentials to apply for international vacancies.'}
+              : regStep === 'otp'
+                ? 'Enter the 4-digit code sent to your email to activate your account.'
+                : 'Register with verified credentials to apply for international vacancies.'}
           </p>
         </div>
-
-        {/* Position Application Banner (if gated from Apply Now) */}
-        {pendingJobToApply && (
-          <div className="mb-2 p-2 bg-gold-500/10 border border-gold-500/40 rounded-xl flex items-start gap-2 text-left text-xs">
-            <div className="p-1 rounded-lg bg-gold-500/20 text-gold-500 font-bold shrink-0 mt-0.5">
-              <Briefcase className="w-3.5 h-3.5" />
-            </div>
-            <div className="space-y-0.5 leading-tight">
-              <span className="text-[9px] font-bold uppercase tracking-wider text-gold-600 dark:text-gold-400">Position Application</span>
-              <h4 className="font-serif text-xs font-bold text-navy-900 dark:text-white">
-                {pendingJobToApply.title}
-              </h4>
-              <p className="text-[10px] text-slate-500 dark:text-slate-400">
-                {pendingJobToApply.company} • {pendingJobToApply.location} ({pendingJobToApply.country})
-              </p>
-            </div>
-          </div>
-        )}
 
         {/* Error Notification */}
         {error && (
@@ -759,9 +916,31 @@ export const UnifiedAuth = ({ defaultMode = 'login', defaultRole = 'candidate', 
             <div className="flex items-start justify-between gap-2">
               <div className="flex items-start gap-2">
                 <AlertCircle className="w-4 h-4 text-amber-600 dark:text-amber-400 shrink-0 mt-0.5" />
-                <p className="text-amber-950 dark:text-amber-100 font-bold text-xs leading-snug">
-                  {error}
-                </p>
+                <div className="space-y-1">
+                  <p className="text-amber-950 dark:text-amber-100 font-bold text-xs leading-snug">
+                    {error}
+                  </p>
+                  {(error.includes('already exists') || error.includes('sign in')) && authMode === 'register' && (
+                    <button
+                      type="button"
+                      onClick={() => handleModeSwitch('login')}
+                      className="inline-flex items-center gap-1 font-bold text-amber-800 dark:text-amber-300 underline hover:text-amber-950 dark:hover:text-amber-100 text-[11px] cursor-pointer mt-0.5 transition"
+                    >
+                      <span>Sign In to your existing account</span>
+                      <ArrowRight className="w-3 h-3" />
+                    </button>
+                  )}
+                  {(error.includes('register') || error.includes('No candidate account') || error.includes('not found') || error.includes('create')) && authMode === 'login' && (
+                    <button
+                      type="button"
+                      onClick={() => handleModeSwitch('register')}
+                      className="inline-flex items-center gap-1 font-bold text-amber-800 dark:text-amber-300 underline hover:text-amber-950 dark:hover:text-amber-100 text-[11px] cursor-pointer mt-0.5 transition"
+                    >
+                      <span>Create Candidate Account →</span>
+                      <ArrowRight className="w-3 h-3" />
+                    </button>
+                  )}
+                </div>
               </div>
               <button
                 type="button"
@@ -793,40 +972,42 @@ export const UnifiedAuth = ({ defaultMode = 'login', defaultRole = 'candidate', 
         )}
 
         {/* 1-CLICK UNIFIED GOOGLE AUTHENTICATION BUTTON */}
-        <div className="mb-2">
-          <button
-            type="button"
-            onClick={handleTriggerGoogleAuth}
-            disabled={googleLoading}
-            className="w-full py-2 px-3 bg-white dark:bg-navy-900 hover:bg-slate-50 dark:hover:bg-navy-800 border-2 border-slate-300 dark:border-navy-600 hover:border-slate-400 rounded-xl flex items-center justify-center gap-2 transition shadow-xs font-bold text-slate-900 dark:text-white text-xs cursor-pointer group disabled:opacity-60 disabled:cursor-not-allowed"
-          >
-            {googleLoading ? (
-              <>
-                <div className="w-3.5 h-3.5 border-2 border-blue-500 border-t-transparent rounded-full animate-spin shrink-0" />
-                <span className="text-xs font-semibold">Opening Google Chooser...</span>
-              </>
-            ) : (
-              <>
-                <svg className="w-4 h-4 shrink-0" viewBox="0 0 24 24">
-                  <path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z" />
-                  <path fill="#34A853" d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z" />
-                  <path fill="#FBBC05" d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.06H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.94l2.85-2.22.81-.63z" />
-                  <path fill="#EA4335" d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.06l3.66 2.84c.87-2.6 3.3-4.52 6.16-4.52z" />
-                </svg>
-                <span className="text-xs font-bold">{authMode === 'login' ? 'Sign in with Google' : 'Sign up with Google'}</span>
-              </>
-            )}
-          </button>
+        {regStep !== 'otp' && (
+          <div className="mb-2">
+            <button
+              type="button"
+              onClick={handleTriggerGoogleAuth}
+              disabled={googleLoading}
+              className="w-full py-2 px-3 bg-white dark:bg-navy-900 hover:bg-slate-50 dark:hover:bg-navy-800 border-2 border-slate-300 dark:border-navy-600 hover:border-slate-400 rounded-xl flex items-center justify-center gap-2 transition shadow-xs font-bold text-slate-900 dark:text-white text-xs cursor-pointer group disabled:opacity-60 disabled:cursor-not-allowed"
+            >
+              {googleLoading ? (
+                <>
+                  <div className="w-3.5 h-3.5 border-2 border-blue-500 border-t-transparent rounded-full animate-spin shrink-0" />
+                  <span className="text-xs font-semibold">Opening Google Chooser...</span>
+                </>
+              ) : (
+                <>
+                  <svg className="w-4 h-4 shrink-0" viewBox="0 0 24 24">
+                    <path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z" />
+                    <path fill="#34A853" d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z" />
+                    <path fill="#FBBC05" d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.06H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.94l2.85-2.22.81-.63z" />
+                    <path fill="#EA4335" d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.06l3.66 2.84c.87-2.6 3.3-4.52 6.16-4.52z" />
+                  </svg>
+                  <span className="text-xs font-bold">{authMode === 'login' ? 'Sign in with Google' : 'Sign up with Google'}</span>
+                </>
+              )}
+            </button>
 
-          <div className="relative text-center my-1.5">
-            <div className="absolute inset-0 flex items-center">
-              <div className="w-full border-t border-slate-200 dark:border-navy-800" />
+            <div className="relative text-center my-1.5">
+              <div className="absolute inset-0 flex items-center">
+                <div className="w-full border-t border-slate-200 dark:border-navy-800" />
+              </div>
+              <span className="relative bg-white dark:bg-navy-950 px-2.5 text-[10px] font-extrabold uppercase tracking-wider text-slate-600 dark:text-slate-300">
+                Or continue with email
+              </span>
             </div>
-            <span className="relative bg-white dark:bg-navy-950 px-2.5 text-[10px] font-extrabold uppercase tracking-wider text-slate-600 dark:text-slate-300">
-              Or continue with email
-            </span>
           </div>
-        </div>
+        )}
 
         {/* CANDIDATE AUTH FORM */}
         {authMode === 'login' ? (
@@ -881,6 +1062,107 @@ export const UnifiedAuth = ({ defaultMode = 'login', defaultRole = 'candidate', 
               <ArrowRight className="w-4 h-4" />
             </button>
           </form>
+        ) : regStep === 'otp' ? (
+          <div className="py-2 animate-in fade-in zoom-in-95 duration-200">
+            <div className="text-center mb-3">
+              <div className="w-12 h-12 mx-auto mb-2 rounded-2xl bg-gold-500/10 border border-gold-500/30 flex items-center justify-center text-gold-500 shadow-md">
+                <ShieldCheck className="w-6 h-6" />
+              </div>
+              <p className="text-[11px] text-slate-600 dark:text-slate-300">
+                We sent a 4-digit verification code to
+              </p>
+              <div className="inline-flex items-center gap-1.5 mt-1 px-3 py-1 rounded-full bg-slate-100 dark:bg-navy-900 border border-slate-200 dark:border-navy-700 text-xs font-bold text-slate-900 dark:text-gold-400 max-w-full truncate">
+                <Mail className="w-3.5 h-3.5 text-gold-500 shrink-0" />
+                <span className="truncate">{candidateReg.email.trim().toLowerCase()}</span>
+              </div>
+            </div>
+
+            {otpError && (
+              <div className="mb-2.5 p-2 rounded-xl bg-rose-50 dark:bg-rose-950/60 border border-rose-300 dark:border-rose-500/50 text-rose-700 dark:text-rose-200 text-xs flex items-center gap-2">
+                <AlertCircle className="w-4 h-4 shrink-0" />
+                <span className="text-[11px] font-semibold">{otpError}</span>
+              </div>
+            )}
+
+            {otpSuccess && (
+              <div className="mb-2.5 p-2 rounded-xl bg-emerald-50 dark:bg-emerald-950/60 border border-emerald-300 dark:border-emerald-500/50 text-emerald-700 dark:text-emerald-200 text-xs flex items-center gap-2">
+                <CheckCircle2 className="w-4 h-4 shrink-0" />
+                <span className="text-[11px] font-semibold">{otpSuccess}</span>
+              </div>
+            )}
+
+            {devOtpHint && (
+              <div className="mb-2 p-1.5 rounded-lg bg-amber-50 dark:bg-amber-950/40 border border-amber-300 dark:border-amber-500/40 text-amber-800 dark:text-amber-300 text-[11px] text-center font-mono font-bold">
+                Verification Code: <span className="underline tracking-widest">{devOtpHint}</span>
+              </div>
+            )}
+
+            <form onSubmit={handleVerifyOtpAndRegister} className="space-y-3">
+              <div>
+                <label className="block text-center text-[11px] font-bold text-slate-700 dark:text-slate-200 mb-1.5">
+                  Enter 4-Digit Code
+                </label>
+                <div className="flex justify-center">
+                  <input
+                    type="text"
+                    inputMode="numeric"
+                    pattern="[0-9]*"
+                    maxLength={4}
+                    autoFocus
+                    value={otpCode}
+                    onChange={(e) => {
+                      const val = e.target.value.replace(/\D/g, '').slice(0, 4);
+                      setOtpCode(val);
+                      if (otpError) setOtpError('');
+                    }}
+                    placeholder="••••"
+                    className="w-44 py-2 text-center text-2xl font-mono font-bold tracking-[0.4em] bg-white dark:bg-navy-900 border-2 border-slate-300 dark:border-navy-600 rounded-xl focus:outline-none focus:border-gold-500 focus:ring-2 focus:ring-gold-500/30 text-slate-900 dark:text-white shadow-xs"
+                  />
+                </div>
+              </div>
+
+              <button
+                type="submit"
+                disabled={otpLoading || otpCode.length !== 4}
+                className="w-full py-2.5 px-4 rounded-xl font-bold text-xs uppercase tracking-wider text-slate-950 bg-gradient-to-r from-amber-500 via-gold-500 to-amber-600 hover:from-amber-600 hover:to-amber-700 disabled:opacity-50 disabled:cursor-not-allowed transition shadow-md flex items-center justify-center gap-2 cursor-pointer"
+              >
+                {otpLoading ? (
+                  <>
+                    <RefreshCw className="w-3.5 h-3.5 animate-spin" />
+                    <span>Verifying Code...</span>
+                  </>
+                ) : (
+                  <>
+                    <span>Verify Code & Open Dashboard</span>
+                    <ArrowRight className="w-3.5 h-3.5" />
+                  </>
+                )}
+              </button>
+
+              <div className="flex items-center justify-between pt-2 border-t border-slate-100 dark:border-navy-800 text-[11px]">
+                <button
+                  type="button"
+                  onClick={handleResendOtp}
+                  disabled={otpCooldown > 0 || otpLoading}
+                  className="text-gold-600 dark:text-gold-400 hover:underline font-bold disabled:text-slate-400 disabled:no-underline cursor-pointer disabled:cursor-not-allowed"
+                >
+                  {otpCooldown > 0 ? `Resend code in ${otpCooldown}s` : 'Resend Code'}
+                </button>
+
+                <button
+                  type="button"
+                  onClick={() => {
+                    setRegStep('form');
+                    setOtpError('');
+                    setOtpCode('');
+                  }}
+                  className="text-slate-500 dark:text-slate-400 hover:text-slate-700 dark:hover:text-slate-200 underline font-semibold cursor-pointer"
+                >
+                  Change Email / Edit Details
+                </button>
+              </div>
+            </form>
+          </div>
         ) : (
           <form onSubmit={handleCandidateRegSubmit} className="space-y-2 text-xs">
             {/* Row 1: Full Name & Email side-by-side ALWAYS in 2 columns */}
@@ -920,7 +1202,9 @@ export const UnifiedAuth = ({ defaultMode = 'login', defaultRole = 'candidate', 
                     value={candidateReg.email}
                     onChange={(e) => {
                       if (error) setError('');
-                      setCandidateReg({ ...candidateReg, email: e.target.value.slice(0, 80) });
+                      const val = e.target.value.slice(0, 80);
+                      setCandidateReg({ ...candidateReg, email: val });
+                      setEmailDuplicate(false);
                     }}
                     onBlur={() => {
                       const clean = (candidateReg.email || '').trim().toLowerCase();
@@ -929,9 +1213,31 @@ export const UnifiedAuth = ({ defaultMode = 'login', defaultRole = 'candidate', 
                       }
                     }}
                     placeholder="candidate@gmail.com"
-                    className="w-full pl-7 pr-2 py-1.5 text-xs bg-white dark:bg-navy-900 border-2 border-slate-300 dark:border-navy-600 rounded-xl focus:outline-none focus:border-gold-500 focus:ring-1 focus:ring-gold-500 text-slate-900 dark:text-white font-semibold placeholder:text-slate-500 dark:placeholder:text-slate-400 placeholder:font-medium shadow-xs"
+                    className={`w-full pl-7 pr-7 py-1.5 text-xs bg-white dark:bg-navy-900 border-2 ${
+                      emailDuplicate 
+                        ? 'border-amber-500 dark:border-amber-500 focus:border-amber-500 focus:ring-amber-500' 
+                        : 'border-slate-300 dark:border-navy-600 focus:border-gold-500 focus:ring-gold-500'
+                    } rounded-xl focus:outline-none focus:ring-1 text-slate-900 dark:text-white font-semibold placeholder:text-slate-500 dark:placeholder:text-slate-400 placeholder:font-medium shadow-xs transition`}
                   />
+                  {checkingDuplicate && (
+                    <RefreshCw className="w-3.5 h-3.5 text-slate-400 animate-spin absolute right-2.5 top-2 pointer-events-none" />
+                  )}
+                  {!checkingDuplicate && candidateReg.email && validateCandidateEmail(candidateReg.email.trim()).isValid && !emailDuplicate && (
+                    <CheckCircle2 className="w-3.5 h-3.5 text-emerald-500 absolute right-2.5 top-2 pointer-events-none" />
+                  )}
                 </div>
+                {emailDuplicate && (
+                  <div className="mt-1 flex items-center justify-between text-[10.5px] leading-tight">
+                    <span className="text-amber-600 dark:text-amber-400 font-bold">Already registered</span>
+                    <button
+                      type="button"
+                      onClick={() => handleModeSwitch('login')}
+                      className="text-gold-600 dark:text-gold-400 hover:underline font-bold cursor-pointer"
+                    >
+                      Sign In →
+                    </button>
+                  </div>
+                )}
               </div>
             </div>
 
@@ -1135,55 +1441,69 @@ export const UnifiedAuth = ({ defaultMode = 'login', defaultRole = 'candidate', 
             {/* Complete Registration Button */}
             <button
               type="submit"
-              className="w-full py-2 sm:py-2.5 bg-gradient-to-r from-amber-500 via-gold-500 to-amber-600 hover:from-amber-600 hover:to-amber-700 text-slate-950 font-extrabold rounded-xl shadow-md transition flex items-center justify-center gap-2 text-xs sm:text-sm font-sans tracking-wide cursor-pointer mt-0.5"
+              disabled={otpLoading}
+              className="w-full py-2 sm:py-2.5 bg-gradient-to-r from-amber-500 via-gold-500 to-amber-600 hover:from-amber-600 hover:to-amber-700 text-slate-950 font-extrabold rounded-xl shadow-md transition flex items-center justify-center gap-2 text-xs sm:text-sm font-sans tracking-wide cursor-pointer mt-0.5 disabled:opacity-60 disabled:cursor-not-allowed"
             >
-              <span>Complete Candidate Registration</span>
-              <ArrowRight className="w-3.5 h-3.5" />
+              {otpLoading ? (
+                <>
+                  <RefreshCw className="w-3.5 h-3.5 animate-spin" />
+                  <span>Sending Verification Code...</span>
+                </>
+              ) : (
+                <>
+                  <span>Complete Candidate Registration</span>
+                  <ArrowRight className="w-3.5 h-3.5" />
+                </>
+              )}
             </button>
           </form>
         )}
 
         {/* Bottom Switch between Sign In and Register */}
-        <div className="border-t border-slate-100 dark:border-navy-800 pt-1.5 mt-1.5 text-center text-xs font-medium">
-          {authMode === 'login' ? (
-            <p className="text-slate-700 dark:text-slate-300 text-xs font-semibold">
-              Don't have an account yet?{' '}
-              <button
-                type="button"
-                onClick={() => handleModeSwitch('register')}
-                className="text-amber-600 dark:text-gold-400 hover:text-amber-700 font-extrabold transition inline-flex items-center gap-1 cursor-pointer hover:underline"
-              >
-                Create Candidate Account →
-              </button>
-            </p>
-          ) : (
-            <p className="text-slate-700 dark:text-slate-300 text-xs font-semibold">
-              Already registered?{' '}
-              <button
-                type="button"
-                onClick={() => handleModeSwitch('login')}
-                className="text-amber-600 dark:text-gold-400 hover:text-amber-700 font-extrabold transition inline-flex items-center gap-1 cursor-pointer hover:underline"
-              >
-                Sign In to Candidate Portal →
-              </button>
-            </p>
-          )}
-        </div>
+        {regStep !== 'otp' && (
+          <div className="border-t border-slate-100 dark:border-navy-800 pt-1.5 mt-1.5 text-center text-xs font-medium">
+            {authMode === 'login' ? (
+              <p className="text-slate-700 dark:text-slate-300 text-xs font-semibold">
+                Don't have an account yet?{' '}
+                <button
+                  type="button"
+                  onClick={() => handleModeSwitch('register')}
+                  className="text-amber-600 dark:text-gold-400 hover:text-amber-700 font-extrabold transition inline-flex items-center gap-1 cursor-pointer hover:underline"
+                >
+                  Create Candidate Account →
+                </button>
+              </p>
+            ) : (
+              <p className="text-slate-700 dark:text-slate-300 text-xs font-semibold">
+                Already registered?{' '}
+                <button
+                  type="button"
+                  onClick={() => handleModeSwitch('login')}
+                  className="text-amber-600 dark:text-gold-400 hover:text-amber-700 font-extrabold transition inline-flex items-center gap-1 cursor-pointer hover:underline"
+                >
+                  Sign In to Candidate Portal →
+                </button>
+              </p>
+            )}
+          </div>
+        )}
 
         {/* Google OAuth Client ID config link */}
-        <div className="mt-1 text-center">
-          <button
-            type="button"
-            onClick={() => {
-              setTempClientId(googleClientId || '');
-              setShowClientIdConfig(true);
-            }}
-            className="text-[9px] text-slate-400 hover:text-slate-600 dark:hover:text-slate-300 transition inline-flex items-center gap-1 cursor-pointer"
-          >
-            <Settings className="w-2.5 h-2.5" />
-            <span>Google OAuth Configuration</span>
-          </button>
-        </div>
+        {regStep !== 'otp' && (
+          <div className="mt-1 text-center">
+            <button
+              type="button"
+              onClick={() => {
+                setTempClientId(googleClientId || '');
+                setShowClientIdConfig(true);
+              }}
+              className="text-[9px] text-slate-400 hover:text-slate-600 dark:hover:text-slate-300 transition inline-flex items-center gap-1 cursor-pointer"
+            >
+              <Settings className="w-2.5 h-2.5" />
+              <span>Google OAuth Configuration</span>
+            </button>
+          </div>
+        )}
 
       </div>
 

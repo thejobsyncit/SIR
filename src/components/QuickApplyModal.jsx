@@ -192,9 +192,10 @@ export const QuickApplyModal = ({ job, isOpen, onClose, onSuccess }) => {
         };
         try {
           if (typeof window !== 'undefined') {
-            localStorage.setItem('sir_active_resume', base64Data);
+            sessionStorage.setItem('sir_active_resume', base64Data);
+            sessionStorage.setItem('sir_active_resume_name', resumeFile.name);
+            if (email) sessionStorage.setItem(`sir_resume_${email.trim().toLowerCase()}`, base64Data);
             localStorage.setItem('sir_active_resume_name', resumeFile.name);
-            if (email) localStorage.setItem(`sir_resume_${email.trim().toLowerCase()}`, base64Data);
           }
         } catch {}
       }
@@ -262,7 +263,7 @@ export const QuickApplyModal = ({ job, isOpen, onClose, onSuccess }) => {
         await applyForJob(job, {
           referenceNumber: result.applicationId || generatedRef,
           resumeName: resumeFile ? resumeFile.name : (user?.resumeName || null),
-          resumeUrl: cvPayload?.base64 || user?.resumeUrl || (typeof window !== 'undefined' ? localStorage.getItem('sir_active_resume') : null) || null,
+          resumeUrl: cvPayload?.base64 || user?.resumeUrl || (typeof window !== 'undefined' ? (sessionStorage.getItem('sir_active_resume') || localStorage.getItem('sir_active_resume')) : null) || null,
           resumeSize: resumeFile ? `${Math.round(resumeFile.size / 1024)} KB` : (user?.resumeSize || null),
           applicantName: fullName.trim(),
           applicantEmail: email.trim().toLowerCase(),

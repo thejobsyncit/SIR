@@ -743,16 +743,7 @@ Dubai Internet City, UAE · Chennai & Bangalore, India.
     replyTo: officialDesk,
     subject,
     text: textBody,
-    html: htmlBody,
-    attachments: [
-      {
-        filename: 'logo.png',
-        content: Buffer.from(REVIVAL_LOGO_BASE64, 'base64'),
-        cid: 'revival_logo',
-        contentType: 'image/png',
-        contentDisposition: 'inline'
-      }
-    ]
+    html: htmlBody
   };
 
   try {
@@ -884,7 +875,7 @@ Dubai Internet City, UAE & Chennai, India
       <div class="row"><span class="label">Current Status:</span><span class="value" style="color: #059669;">Under Review</span></div>
     </div>
     <div class="cta-container">
-      <a href="https://www.therevivalinternational.com/#candidate-dashboard" class="cta-btn">View Candidate Portal &rarr;</a>
+      <a href="https://www.therevivalinternational.com/candidates#candidates" class="cta-btn">View Candidate Portal &rarr;</a>
     </div>
     <div class="footer">
       &copy; ${new Date().getFullYear()} The Revival International. Dubai, UAE &bull; Chennai & Bangalore, India.

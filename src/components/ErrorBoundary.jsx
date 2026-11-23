@@ -53,6 +53,10 @@ export class ErrorBoundary extends React.Component {
       localStorage.removeItem('sir_crm_session');
       localStorage.removeItem('sir_user_session');
       localStorage.removeItem('sir_erp_session');
+      localStorage.removeItem('sir_candidates_db');
+      localStorage.removeItem('sir_job_applications');
+      localStorage.removeItem('crm_candidates');
+      sessionStorage.clear();
     } catch (_) {}
     this.setState({ hasError: false, error: null });
     if (typeof window !== 'undefined') {

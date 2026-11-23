@@ -61,7 +61,19 @@ export function App() {
     return <CrmApp />;
   }
 
-  const isCandidatePortalRoute = (activeTab === 'candidates' || (typeof window !== 'undefined' && (window.location.pathname.replace(/^\/+|\/+$/g, '') === 'candidates' || window.location.hash === '#candidates'))) && user && user.role === 'candidate';
+  const isCandidatePortalRoute = (
+    activeTab === 'candidates' ||
+    activeTab === 'candidate-dashboard' ||
+    activeTab === 'candidate-portal' ||
+    (typeof window !== 'undefined' && (
+      window.location.pathname.replace(/^\/+|\/+$/g, '') === 'candidates' ||
+      window.location.pathname.replace(/^\/+|\/+$/g, '') === 'candidate-dashboard' ||
+      window.location.pathname.replace(/^\/+|\/+$/g, '') === 'candidate-portal' ||
+      window.location.hash === '#candidates' ||
+      window.location.hash === '#candidate-dashboard' ||
+      window.location.hash === '#candidate-portal'
+    ))
+  ) && user && user.role === 'candidate';
 
   if (isCandidatePortalRoute) {
     return (
@@ -213,7 +225,10 @@ export function App() {
         return <JobsPage />;
       case 'employers':
         return <EmployerPortal />;
-            case 'candidates':
+      case 'candidates':
+      case 'candidate-dashboard':
+      case 'candidate-portal':
+      case 'candidate':
         return <CandidatePortal />;
       case 'login':
         return (

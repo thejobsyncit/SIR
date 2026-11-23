@@ -232,14 +232,14 @@ export const resolveResumeUrl = (cand) => {
       // 3. Check direct key stores
       if (cand.email) {
         const emailKey = cand.email.toLowerCase().trim();
-        const storedForEmail = localStorage.getItem(`sir_resume_${emailKey}`);
+        const storedForEmail = (typeof sessionStorage !== 'undefined' && sessionStorage.getItem(`sir_resume_${emailKey}`)) || localStorage.getItem(`sir_resume_${emailKey}`);
         if (storedForEmail && storedForEmail.length > 200) {
           url = storedForEmail;
         }
       }
       if (!url || url.length < 200) {
-        const activeResume = localStorage.getItem('sir_active_resume');
-        const activeName = localStorage.getItem('sir_active_resume_name');
+        const activeResume = (typeof sessionStorage !== 'undefined' && sessionStorage.getItem('sir_active_resume')) || localStorage.getItem('sir_active_resume');
+        const activeName = (typeof sessionStorage !== 'undefined' && sessionStorage.getItem('sir_active_resume_name')) || localStorage.getItem('sir_active_resume_name');
         if (activeResume && activeResume.length > 200) {
           url = activeResume;
           if (activeName) name = activeName;

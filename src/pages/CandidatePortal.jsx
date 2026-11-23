@@ -306,9 +306,12 @@ export const CandidatePortal = () => {
                 resumeSize: prof.resumeSize || prev.resumeSize
               }));
               try {
-                localStorage.setItem('sir_active_resume', prof.resumeUrl);
-                if (prof.resumeName) localStorage.setItem('sir_active_resume_name', prof.resumeName);
-                if (user.email) localStorage.setItem(`sir_resume_${user.email.toLowerCase().trim()}`, prof.resumeUrl);
+                sessionStorage.setItem('sir_active_resume', prof.resumeUrl);
+                if (prof.resumeName) {
+                  sessionStorage.setItem('sir_active_resume_name', prof.resumeName);
+                  localStorage.setItem('sir_active_resume_name', prof.resumeName);
+                }
+                if (user.email) sessionStorage.setItem(`sir_resume_${user.email.toLowerCase().trim()}`, prof.resumeUrl);
               } catch {}
             }
           }
@@ -588,13 +591,14 @@ export const CandidatePortal = () => {
 
       // Cache in client storage so preview and download work immediately across all tabs
       try {
-        localStorage.setItem('sir_active_resume', dataUrl);
+        sessionStorage.setItem('sir_active_resume', dataUrl);
+        sessionStorage.setItem('sir_active_resume_name', file.name);
         localStorage.setItem('sir_active_resume_name', file.name);
         if (user?.email) {
-          localStorage.setItem(`sir_resume_${user.email.toLowerCase().trim()}`, dataUrl);
+          sessionStorage.setItem(`sir_resume_${user.email.toLowerCase().trim()}`, dataUrl);
         }
       } catch (storeErr) {
-        console.warn('Local resume cache warning:', storeErr);
+        console.warn('Session resume cache warning:', storeErr);
       }
 
       // Synchronize directly to backend database so CRM receives the actual uploaded CV
@@ -661,13 +665,13 @@ export const CandidatePortal = () => {
   const handlePreviewActiveResume = async () => {
     let activeUrl = profileForm.resumeUrl ||
       user?.resumeUrl ||
-      (typeof window !== 'undefined' ? localStorage.getItem('sir_active_resume') : null) ||
-      (user?.email && typeof window !== 'undefined' ? localStorage.getItem(`sir_resume_${user.email.toLowerCase().trim()}`) : null) ||
+      (typeof window !== 'undefined' ? (sessionStorage.getItem('sir_active_resume') || localStorage.getItem('sir_active_resume')) : null) ||
+      (user?.email && typeof window !== 'undefined' ? (sessionStorage.getItem(`sir_resume_${user.email.toLowerCase().trim()}`) || localStorage.getItem(`sir_resume_${user.email.toLowerCase().trim()}`)) : null) ||
       (documents.find(d => d.documentType === 'Resume / CV' || (d.fileName && d.fileName.toLowerCase().endsWith('.pdf')))?.fileUrl);
 
     let activeName = profileForm.resumeName || 
       user?.resumeName || 
-      (typeof window !== 'undefined' ? localStorage.getItem('sir_active_resume_name') : null) || 
+      (typeof window !== 'undefined' ? (sessionStorage.getItem('sir_active_resume_name') || localStorage.getItem('sir_active_resume_name')) : null) || 
       'Candidate_Resume.pdf';
 
     // If still missing, attempt fetching from backend profile directly
@@ -699,13 +703,13 @@ export const CandidatePortal = () => {
   const handleDownloadActiveResume = async () => {
     let activeUrl = profileForm.resumeUrl ||
       user?.resumeUrl ||
-      (typeof window !== 'undefined' ? localStorage.getItem('sir_active_resume') : null) ||
-      (user?.email && typeof window !== 'undefined' ? localStorage.getItem(`sir_resume_${user.email.toLowerCase().trim()}`) : null) ||
+      (typeof window !== 'undefined' ? (sessionStorage.getItem('sir_active_resume') || localStorage.getItem('sir_active_resume')) : null) ||
+      (user?.email && typeof window !== 'undefined' ? (sessionStorage.getItem(`sir_resume_${user.email.toLowerCase().trim()}`) || localStorage.getItem(`sir_resume_${user.email.toLowerCase().trim()}`)) : null) ||
       (documents.find(d => d.documentType === 'Resume / CV' || (d.fileName && d.fileName.toLowerCase().endsWith('.pdf')))?.fileUrl);
 
     let activeName = profileForm.resumeName || 
       user?.resumeName || 
-      (typeof window !== 'undefined' ? localStorage.getItem('sir_active_resume_name') : null) || 
+      (typeof window !== 'undefined' ? (sessionStorage.getItem('sir_active_resume_name') || localStorage.getItem('sir_active_resume_name')) : null) || 
       `${(profileForm.name || user?.name || 'Candidate').replace(/\s+/g, '_')}_CV.pdf`;
 
     if (!activeUrl || activeUrl.length < 100) {

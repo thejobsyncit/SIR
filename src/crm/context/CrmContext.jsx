@@ -1389,7 +1389,6 @@ export const CrmProvider = ({ children }) => {
     } catch (_) { }
 
     // Call backend API
-    let resJson = null;
     try {
       const tok = await getOrFetchActiveToken(activeRole, activeUser);
       if (tok) {
@@ -1401,43 +1400,7 @@ export const CrmProvider = ({ children }) => {
           },
           body: JSON.stringify({ notes: notes || 'Automated Portal Login Check-In' })
         });
-        resJson = await res.json().catch(() => null);
-
-        if (resJson?.success && resJson?.data) {
-          const sRec = resJson.data;
-          const sIn = sRec.checkInAt ? new Date(sRec.checkInAt) : now;
-          const sFormatted = formatAttendanceClockTime(sIn);
-          const sOut = sRec.checkOutAt ? new Date(sRec.checkOutAt) : null;
-          const sFormattedOut = sOut ? formatAttendanceClockTime(sOut) : null;
-          const sLate = Number(sRec.lateMinutes || 0) > 0;
-
-          const syncedPunch = {
-            status: sLate ? 'Late' : (sRec.status || 'Present'),
-            checkInAt: sRec.checkInAt || checkInIso,
-            checkOutAt: sRec.checkOutAt || null,
-            checkInFormatted: sFormatted,
-            checkOutFormatted: sFormattedOut,
-            isOnBreak: Boolean(sRec.isOnBreak),
-            breakType: sRec.breakType || null,
-            breakStartedAt: sRec.breakStartedAt || null,
-            totalBreakMinutes: Number(sRec.totalBreakMinutes || 0),
-            workDate: sRec.workDate || today,
-            liveWorkedSeconds: sRec.checkOutAt ? 0 : Math.max(1, Math.floor((Date.now() - new Date(sRec.checkInAt).getTime()) / 1000)),
-            liveBreakSeconds: 0,
-            lateMinutes: Number(sRec.lateMinutes || 0),
-            isLate: sLate,
-            shiftName: sRec.shiftName || newPunch.shiftName,
-            userEmail: activeUser?.email,
-            userName: activeUser?.name,
-            employeeId: sRec.employeeId || activeUser?.employeeId || activeUser?.id
-          };
-
-          setAttendancePunch(syncedPunch);
-          try {
-            localStorage.setItem('sir_crm_my_attendance_active', JSON.stringify(syncedPunch));
-          } catch (_) {}
-        }
-
+        const resJson = await res.json();
         if (resJson?.data?.lateApprovalStatus) {
           const status = resJson.data.lateApprovalStatus;
           if (status === 'PENDING' && activeRole !== 'Super Admin' && activeRole !== 'Admin') {
@@ -1552,27 +1515,6 @@ export const CrmProvider = ({ children }) => {
     const checkOutIso = now.toISOString();
     const formattedOut = formatAttendanceClockTime(now);
 
-    // Call backend API first to persist checkout to SQLite database before session teardown
-    try {
-      const tok = await getOrFetchActiveToken(activeRole, activeUser);
-      if (tok) {
-        const res = await fetch('/api/hr-ops/attendance/check-out', {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-            Authorization: `Bearer ${tok}`
-          },
-          body: JSON.stringify({ notes: 'Portal Logout Check-Out' })
-        });
-        const resJson = await res.json().catch(() => ({}));
-        if (!res.ok && res.status !== 409) {
-          console.warn('Backend checkout non-ok response:', res.status, resJson);
-        }
-      }
-    } catch (err) {
-      console.error('Failed to save attendance check-out on backend:', err);
-    }
-
     setAttendancePunch(prev => {
       const totalMins = prev?.checkInAt ? Math.max(0, Math.floor((now.getTime() - new Date(prev.checkInAt).getTime()) / 60000) - (prev.totalBreakMinutes || 0)) : 0;
       const hrs = (totalMins / 60).toFixed(1);
@@ -1616,6 +1558,7 @@ export const CrmProvider = ({ children }) => {
 
       return updated;
     });
+
     try {
       const tok = await getOrFetchActiveToken(activeRole, activeUser);
       if (tok) {
@@ -1711,6 +1654,7 @@ export const CrmProvider = ({ children }) => {
       window.removeEventListener('beforeunload', handleBeforeUnload);
     };
   }, [crmToken, currentRole]);
+
   const hasPermission = (moduleName) => {
     if (!moduleName) return true;
     if (moduleName === 'my-profile') return true;
@@ -1905,36 +1849,6 @@ export const CrmProvider = ({ children }) => {
                 if (isAdminAccount) {
                   setSuperAdminToken(data.token);
                 }
-                if (data.attendance) {
-                  try {
-                    const att = data.attendance;
-                    const sIn = att.checkInAt ? new Date(att.checkInAt) : new Date();
-                    const sFormatted = formatAttendanceClockTime(sIn);
-                    const isLate = Number(att.lateMinutes || 0) > 0;
-                    const punch = {
-                      status: att.status || (isLate ? 'Late' : 'Present'),
-                      checkInAt: att.checkInAt,
-                      checkOutAt: null,
-                      checkInFormatted: sFormatted,
-                      checkOutFormatted: null,
-                      isOnBreak: Boolean(att.isOnBreak),
-                      breakType: null,
-                      breakStartedAt: null,
-                      totalBreakMinutes: Number(att.totalBreakMinutes || 0),
-                      workDate: att.workDate || getAttendanceTodayDateStr(),
-                      liveWorkedSeconds: Math.max(1, Math.floor((Date.now() - sIn.getTime()) / 1000)),
-                      liveBreakSeconds: 0,
-                      lateMinutes: Number(att.lateMinutes || 0),
-                      isLate,
-                      shiftName: 'General Day Shift (09:00 AM - 06:00 PM)',
-                      userEmail: userData?.email,
-                      userName: userData?.name,
-                      employeeId: userData?.employeeId || userData?.id
-                    };
-                    setAttendancePunch(punch);
-                    localStorage.setItem('sir_crm_my_attendance_active', JSON.stringify(punch));
-                  } catch (_) {}
-                }
                 try {
                   const cur = JSON.parse(localStorage.getItem('sir_crm_session') || '{}');
                   if (cur && cur.isAuthenticated) {
@@ -1978,16 +1892,14 @@ export const CrmProvider = ({ children }) => {
   const [isLoggingOut, setIsLoggingOut] = useState(false);
   const logoutLockRef = useRef(false);
 
-  const logout = async () => {
+  const logout = () => {
     // If user is a non-executive employee and has active unlocked workspace, automatically clock them out upon logout.
     // If they are currently gated at the late arrival gate, do NOT record a workday checkout.
     const isExecutive = currentRole === 'Super Admin' || currentRole === 'Admin';
     if (!isExecutive && user && !lateApprovalGate?.isBlocked) {
       try {
-        await clockOut(user, currentRole);
-      } catch (err) {
-        console.error('Logout attendance check-out error:', err);
-      }
+        clockOut(user, currentRole);
+      } catch (_) { }
     }
 
     setIsAuthenticated(false);
@@ -2001,7 +1913,6 @@ export const CrmProvider = ({ children }) => {
     try {
       localStorage.removeItem('sir_crm_late_approval_gate');
       localStorage.removeItem('sir_crm_session');
-      localStorage.removeItem('sir_crm_my_attendance_active');
       if (typeof window !== 'undefined') {
         const url = new URL(window.location.href);
         if (url.searchParams.has('candidateKey')) {
@@ -2010,12 +1921,12 @@ export const CrmProvider = ({ children }) => {
         }
       }
     } catch (e) { }
-    logAuditAction(`User ${user?.name || 'Employee'} logged out.`);
+    logAuditAction(`User ${user.name} logged out.`);
   };
 
   const requestLogout = () => {
     if (logoutLockRef.current) return;
-    if (currentRole === 'HR Operations' || currentRole === 'HR Lead') {
+    if (currentRole === 'HR Operations') {
       setLogoutConfirmOpen(true);
       return;
     }
@@ -2027,16 +1938,18 @@ export const CrmProvider = ({ children }) => {
     setLogoutConfirmOpen(false);
   };
 
-  const confirmLogout = async () => {
+  const confirmLogout = () => {
     if (logoutLockRef.current) return;
     logoutLockRef.current = true;
     setIsLoggingOut(true);
     try {
-      await logout();
+      logout();
     } finally {
       setLogoutConfirmOpen(false);
-      logoutLockRef.current = false;
-      setIsLoggingOut(false);
+      window.setTimeout(() => {
+        logoutLockRef.current = false;
+        setIsLoggingOut(false);
+      }, 0);
     }
   };
 
@@ -2139,24 +2052,21 @@ export const CrmProvider = ({ children }) => {
         }
       } catch { }
 
-      // 4. Wipe candidate application cache so job mandates re-show "Apply for Position" (Apply Now)
+      // 4. Wipe candidate application session cache while preserving central sir_job_applications for CRM registry
       try {
         localStorage.removeItem(`sir_applications_${candidateId}`);
         if (candEmail) {
           localStorage.removeItem(`sir_applications_${candEmail}`);
         }
-        const appStr = localStorage.getItem('sir_job_applications');
-        if (appStr) {
-          const apps = JSON.parse(appStr);
-          if (Array.isArray(apps)) {
-            const filtered = apps.filter(a => a.candidateId !== candidateId && (candEmail ? a.applicantEmail?.toLowerCase().trim() !== candEmail : true));
-            localStorage.setItem('sir_job_applications', JSON.stringify(filtered));
-          }
-        }
       } catch { }
 
       // 5. Send DELETE request to backend & cloud database with authoritative candidate ID & email
-      const deleteUrl = `/api/candidates/${encodeURIComponent(candidateId)}${candEmail ? `?email=${encodeURIComponent(candEmail)}` : ''}`;
+      const candPhone = (metadata.phone || '').trim();
+      const queryParams = new URLSearchParams();
+      if (candEmail) queryParams.set('email', candEmail);
+      if (candPhone) queryParams.set('phone', candPhone);
+      const queryString = queryParams.toString();
+      const deleteUrl = `/api/candidates/${encodeURIComponent(candidateId)}${queryString ? `?${queryString}` : ''}`;
       const res = await fetch(deleteUrl, {
         method: 'DELETE',
         headers: {
@@ -2168,6 +2078,7 @@ export const CrmProvider = ({ children }) => {
         body: JSON.stringify({
           id: candidateId,
           email: candEmail,
+          phone: candPhone,
           name: metadata.name || ''
         })
       });
@@ -2286,7 +2197,7 @@ export const CrmProvider = ({ children }) => {
     const ROLE_PERSONAS = {
       'Super Admin': { id: 'emp-tariq', employeeId: 'REV-EMP-000', name: 'Tariq Mansoor', email: 'tariq.admin@revivalinternational.com', altEmail: 'thejobsyncit@gmail.com', avatar: 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=150&auto=format&fit=crop&q=80', department: 'Executive Management' },
       'Admin': { id: 'emp-2', employeeId: 'REV-EMP-002', name: 'Sarah Jenkins', email: 'sarah.admin@revivalinternational.com', avatar: 'https://images.unsplash.com/photo-1573496359142-b8d87734a5a2?w=150&auto=format&fit=crop&q=80', department: 'Administration' },
-      'HR Lead': { id: 'emp-3', employeeId: 'REV-EMP-003', name: 'Priya Sharma', email: 'priya.lead@revivalinternational.com', avatar: '', department: 'Human Resources', designation: 'Head of Global HR & Operations' },
+      'HR Lead': { id: 'emp-3', employeeId: 'REV-EMP-003', name: 'Sarah Al Zaabi', email: 'sarah.hr@revivalinternational.com', avatar: 'https://images.unsplash.com/photo-1573496359142-b8d87734a5a2?w=150&auto=format&fit=crop&q=80', department: 'Human Resources' },
       'Recruiter': { id: 'emp-4', employeeId: 'REV-EMP-004', name: 'Kishore Kumar', email: 'kishore.recruiter@revivalinternational.com', avatar: 'https://images.unsplash.com/photo-1580489944761-15a19d654956?w=150&auto=format&fit=crop&q=80', department: 'Recruitment & ATS' },
       'Placement Coordinator': { id: 'emp-5', employeeId: 'REV-EMP-005', name: 'Dhanalakshimi', email: 'dhana.jasync@gmail.com', altEmail: 'dhanalakshimi@revivalinternational.com', avatar: 'https://images.unsplash.com/photo-1567532939604-b6b5b0db2604?w=150&auto=format&fit=crop&q=80', department: 'Placement & Industry Relations' },
       'HR Operations': { id: 'emp-6', employeeId: 'REV-EMP-006', name: 'Balavarshini S.', email: 'balavarshini.s@revivalinternational.com', altEmail: 'balavarshini2223@gmail.com', avatar: '', department: 'International HR Operations', operationTeam: 'International HR Operations', designation: 'Lead HR Operations Specialist' }

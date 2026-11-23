@@ -6,6 +6,13 @@ import { useCrm } from '../crm/context/CrmContext';
 import { trackPageView, trackFunnelStep } from '../services/analytics';
 import { getAttributionData } from '../utils/attribution';
 import { validateCandidateEmail } from '../utils/emailValidation';
+import {
+  safeStorageSetItem,
+  safeStorageGetItem,
+  safeStorageRemoveItem,
+  stripBulkyDataForStorage,
+  pruneBulkyStorage
+} from '../utils/safeStorage';
 
 // Keep a single AppContext instance across Vite Fast Refresh so mounted consumers
 // stay subscribed to the active AppProvider instead of receiving undefined.
@@ -71,6 +78,7 @@ export const AppProvider = ({ children }) => {
       const hash = rawHash.split('?')[0];
       if (path === 'crm' || path.startsWith('crm/') || hash === 'crm') return 'crm';
       if (path === 'superadmin-erp' || path === 'erp' || hash === 'erp' || hash === 'superadmin-erp') return 'erp';
+      if (path === 'candidate-dashboard' || path === 'candidate-portal' || path === 'candidates' || hash === 'candidate-dashboard' || hash === 'candidate-portal' || hash === 'candidates') return 'candidates';
       if (path && path !== '' && path !== 'index.html') return path;
       if (hash) return hash;
     }
@@ -83,7 +91,11 @@ export const AppProvider = ({ children }) => {
         const rawHash = window.location.hash.replace('#', '');
         const hash = rawHash.split('?')[0];
         if (hash) {
-          setActiveTab(hash);
+          if (hash === 'candidate-dashboard' || hash === 'candidate-portal' || hash === 'candidates') {
+            setActiveTab('candidates');
+          } else {
+            setActiveTab(hash);
+          }
         }
       }
     };
@@ -126,7 +138,7 @@ export const AppProvider = ({ children }) => {
   // Auth State Management & Candidate Profile Database Persistence
   const getCandidateDB = () => {
     try {
-      const saved = localStorage.getItem('sir_candidates_db');
+      const saved = safeStorageGetItem('sir_candidates_db');
       return saved ? JSON.parse(saved) : {};
     } catch {
       return {};
@@ -136,17 +148,18 @@ export const AppProvider = ({ children }) => {
   const saveCandidateToDB = (candidateObj) => {
     if (!candidateObj || !candidateObj.email) return;
     const normalizedEmail = candidateObj.email.toLowerCase().trim();
+    const sanitizedObj = stripBulkyDataForStorage(candidateObj);
     const db = getCandidateDB();
     db[normalizedEmail] = {
       ...db[normalizedEmail],
-      ...candidateObj,
+      ...sanitizedObj,
       lastUpdated: new Date().toISOString()
     };
-    localStorage.setItem('sir_candidates_db', JSON.stringify(db));
+    safeStorageSetItem('sir_candidates_db', db);
 
     // Synchronize directly with CRM Talent Pool local storage & dispatch live event
     try {
-      const crmSaved = localStorage.getItem('crm_candidates');
+      const crmSaved = safeStorageGetItem('crm_candidates');
       let crmList = crmSaved ? JSON.parse(crmSaved) : [];
       if (!Array.isArray(crmList)) crmList = [];
       const idx = crmList.findIndex(c => (c.id && (c.id === candidateObj.candidateId || c.id === candidateObj.id)) || (c.email && c.email.toLowerCase().trim() === normalizedEmail));
@@ -170,7 +183,7 @@ export const AppProvider = ({ children }) => {
         experience: candidateObj.experience || '3-5 Years',
         avatar: candidateObj.avatar || null,
         resumeName: candidateObj.resumeName || null,
-        resumeUrl: candidateObj.resumeUrl || null,
+        resumeUrl: null, // do not store raw base64 data URIs in CRM localStorage
         resumeSize: candidateObj.resumeSize || null,
         assignedRecruiter: 'Dhanalakshimi (Lead Advisor)',
         createdAt: candidateObj.registeredAt || candidateObj.createdAt || new Date().toISOString()
@@ -180,21 +193,21 @@ export const AppProvider = ({ children }) => {
       } else {
         crmList.unshift(crmEntry);
       }
-      localStorage.setItem('crm_candidates', JSON.stringify(crmList));
+      safeStorageSetItem('crm_candidates', crmList);
       window.dispatchEvent(new CustomEvent('candidate-registered', { detail: crmEntry }));
     } catch {}
   };
 
   const [user, setUser] = useState(() => {
     try {
-      const savedUser = localStorage.getItem('sir_user_session');
+      const savedUser = safeStorageGetItem('sir_user_session');
       if (savedUser) {
         const parsed = JSON.parse(savedUser);
         if (parsed && parsed.email && parsed.role === 'candidate') {
           const db = getCandidateDB();
           const storedProfile = db[parsed.email.toLowerCase().trim()];
-          const resumeFromCache = (parsed.email && localStorage.getItem(`sir_resume_${parsed.email.toLowerCase().trim()}`)) || localStorage.getItem('sir_active_resume');
-          const resumeNameFromCache = localStorage.getItem('sir_active_resume_name');
+          const resumeFromCache = (parsed.email && (safeStorageGetItem(`sir_resume_${parsed.email.toLowerCase().trim()}`) || sessionStorage.getItem(`sir_resume_${parsed.email.toLowerCase().trim()}`))) || sessionStorage.getItem('sir_active_resume');
+          const resumeNameFromCache = sessionStorage.getItem('sir_active_resume_name') || safeStorageGetItem('sir_active_resume_name');
           const combined = storedProfile ? { ...parsed, ...storedProfile } : parsed;
           if (!combined.resumeUrl && resumeFromCache) combined.resumeUrl = resumeFromCache;
           if (!combined.resumeName && resumeNameFromCache) combined.resumeName = resumeNameFromCache;
@@ -275,17 +288,17 @@ export const AppProvider = ({ children }) => {
           if (d?.success && Array.isArray(d?.data)) {
             if (d.data.length > 0) {
               setApplications(d.data);
-              try {
-                if (user.candidateId) localStorage.setItem(`sir_applications_${user.candidateId}`, JSON.stringify(d.data));
-                if (userEmail) {
-                  localStorage.setItem(`sir_applications_${userEmail}`, JSON.stringify(d.data));
+              if (user.candidateId) safeStorageSetItem(`sir_applications_${user.candidateId}`, d.data);
+              if (userEmail) {
+                safeStorageSetItem(`sir_applications_${userEmail}`, d.data);
+                try {
                   const db = getCandidateDB();
                   if (db[userEmail]) {
-                    db[userEmail].applications = d.data;
-                    localStorage.setItem('sir_candidates_db', JSON.stringify(db));
+                    db[userEmail].applications = stripBulkyDataForStorage(d.data);
+                    safeStorageSetItem('sir_candidates_db', db);
                   }
-                }
-              } catch { }
+                } catch { }
+              }
             } else {
               // Check global sir_job_applications or initialApps fallback to prevent accidental empty overrides
               let fallbackApps = [];
@@ -395,12 +408,18 @@ export const AppProvider = ({ children }) => {
   const saveUserSession = (userData) => {
     setUser(userData);
     if (userData) {
-      localStorage.setItem('sir_user_session', JSON.stringify(userData));
+      try {
+        if (userData.email && userData.resumeUrl && typeof userData.resumeUrl === 'string' && userData.resumeUrl.length > 500) {
+          sessionStorage.setItem(`sir_resume_${userData.email.toLowerCase().trim()}`, userData.resumeUrl);
+          if (userData.resumeName) sessionStorage.setItem('sir_active_resume_name', userData.resumeName);
+        }
+      } catch (_) {}
+      safeStorageSetItem('sir_user_session', userData);
       if (userData.role === 'candidate' && userData.email) {
         saveCandidateToDB(userData);
       }
     } else {
-      localStorage.removeItem('sir_user_session');
+      safeStorageRemoveItem('sir_user_session');
     }
   };
 
@@ -489,7 +508,7 @@ export const AppProvider = ({ children }) => {
     }
 
     // Strict 1-Time Candidate Registration: Prevent duplicate registration via "Sign up with Google"
-    // Authoritative check is performed directly via backend API and Supabase cloud database
+    // Authoritative check is verified directly on backend API against Supabase Cloud Database
     let backendUser = null;
     let backendToken = null;
 
@@ -512,16 +531,25 @@ export const AppProvider = ({ children }) => {
       });
 
       if (res.status === 409) {
-        const conflictData = await res.json();
+        // Candidate already registered: return duplicate error so UI displays notice and prompts sign-in
+        const conflictData = await res.json().catch(() => ({}));
         return {
           success: false,
           code: 'DUPLICATE_EMAIL',
-          message: conflictData.message || 'An account with this email address already exists. Please sign in to your existing account.'
+          message: conflictData.message || 'An account with this email address or phone number already exists. Please sign in to your existing account.'
         };
       }
 
-      const data = await res.json();
-      if (data?.success && data?.user) {
+      const data = await res.json().catch(() => null);
+      if (!res.ok || !data?.success) {
+        return {
+          success: false,
+          code: data?.code || (res.status === 404 ? 'ACCOUNT_NOT_FOUND' : 'AUTH_ERROR'),
+          message: data?.message || 'Google authentication failed.'
+        };
+      }
+
+      if (data?.user) {
         backendUser = data.user;
         backendToken = data.token;
         if (backendUser.email) normalizedEmail = backendUser.email.toLowerCase().trim();
@@ -1040,38 +1068,35 @@ export const AppProvider = ({ children }) => {
       const filtered = prev.filter(a => a.jobId !== job.id);
       const next = [newApp, ...filtered];
       if (cid) {
-        try {
-          localStorage.setItem(`sir_applications_${cid}`, JSON.stringify(next));
-        } catch { }
+        safeStorageSetItem(`sir_applications_${cid}`, next);
       }
       if (userEmail) {
-        try {
-          localStorage.setItem(`sir_applications_${userEmail}`, JSON.stringify(next));
-        } catch { }
+        safeStorageSetItem(`sir_applications_${userEmail}`, next);
         try {
           const db = getCandidateDB();
           if (db[userEmail]) {
-            db[userEmail].applications = next;
-            localStorage.setItem('sir_candidates_db', JSON.stringify(db));
+            db[userEmail].applications = stripBulkyDataForStorage(next);
+            safeStorageSetItem('sir_candidates_db', db);
           }
         } catch { }
       }
       // Update global sir_job_applications so CRM immediately shows application
       try {
-        const globalApps = JSON.parse(localStorage.getItem('sir_job_applications') || '[]');
+        const globalStr = safeStorageGetItem('sir_job_applications');
+        const globalApps = globalStr ? JSON.parse(globalStr) : [];
         const filteredGlobal = Array.isArray(globalApps)
           ? globalApps.filter(a => a.id !== newApp.id && !(String(a.jobId) === String(job.id) && (a.applicantEmail || '').toLowerCase().trim() === userEmail))
           : [];
         const nextGlobal = [newApp, ...filteredGlobal];
-        localStorage.setItem('sir_job_applications', JSON.stringify(nextGlobal));
+        safeStorageSetItem('sir_job_applications', nextGlobal);
 
         // Clear from deleted applications blacklist if candidate re-applies
-        const delStr = localStorage.getItem('sir_deleted_applications');
+        const delStr = safeStorageGetItem('sir_deleted_applications');
         if (delStr) {
           const delArr = JSON.parse(delStr);
           if (Array.isArray(delArr)) {
             const filteredDel = delArr.filter(d => d !== newApp.id && d !== String(job.id) && d !== `${String(job.id)}_${userEmail}`);
-            localStorage.setItem('sir_deleted_applications', JSON.stringify(filteredDel));
+            safeStorageSetItem('sir_deleted_applications', filteredDel);
           }
         }
       } catch { }
@@ -1136,9 +1161,7 @@ export const AppProvider = ({ children }) => {
         }
         return app;
       });
-      try {
-        localStorage.setItem('sir_job_applications', JSON.stringify(updated));
-      } catch { }
+      safeStorageSetItem('sir_job_applications', updated);
       return updated;
     });
   };
@@ -1154,40 +1177,40 @@ export const AppProvider = ({ children }) => {
 
     // 1. Blacklist in sir_deleted_applications so it stays deleted across all tabs & reloads
     try {
-      const delStr = localStorage.getItem('sir_deleted_applications');
+      const delStr = safeStorageGetItem('sir_deleted_applications');
       const delArr = delStr ? JSON.parse(delStr) : [];
       if (Array.isArray(delArr)) {
         delArr.push(appId);
-        localStorage.setItem('sir_deleted_applications', JSON.stringify([...new Set(delArr)]));
+        safeStorageSetItem('sir_deleted_applications', [...new Set(delArr)]);
       }
     } catch { }
 
     // 2. Wipe from global sir_job_applications
     try {
-      const globalStr = localStorage.getItem('sir_job_applications');
+      const globalStr = safeStorageGetItem('sir_job_applications');
       if (globalStr) {
         const globalApps = JSON.parse(globalStr);
         if (Array.isArray(globalApps)) {
           const filtered = globalApps.filter(a => a.id !== appId && String(a.jobId) !== String(appId));
-          localStorage.setItem('sir_job_applications', JSON.stringify(filtered));
+          safeStorageSetItem('sir_job_applications', filtered);
         }
       }
     } catch { }
 
     setApplications(prev => {
       const updated = prev.filter(a => a.id !== appId && String(a.jobId) !== String(appId));
-      try {
-        if (user?.candidateId) localStorage.setItem(`sir_applications_${user.candidateId}`, JSON.stringify(updated));
-        const userEmail = (user?.email || '').toLowerCase().trim();
-        if (userEmail) {
-          localStorage.setItem(`sir_applications_${userEmail}`, JSON.stringify(updated));
+      if (user?.candidateId) safeStorageSetItem(`sir_applications_${user.candidateId}`, updated);
+      const userEmail = (user?.email || '').toLowerCase().trim();
+      if (userEmail) {
+        safeStorageSetItem(`sir_applications_${userEmail}`, updated);
+        try {
           const db = getCandidateDB();
           if (db[userEmail]) {
-            db[userEmail].applications = updated;
-            localStorage.setItem('sir_candidates_db', JSON.stringify(db));
+            db[userEmail].applications = stripBulkyDataForStorage(updated);
+            safeStorageSetItem('sir_candidates_db', db);
           }
-        }
-      } catch { }
+        } catch { }
+      }
       return updated;
     });
 
@@ -1209,6 +1232,8 @@ export const AppProvider = ({ children }) => {
         setActiveTab('crm');
       } else if (path === 'superadmin-erp' || path === 'erp' || hash === 'erp' || hash === 'superadmin-erp') {
         setActiveTab('erp');
+      } else if (path === 'candidate-dashboard' || path === 'candidate-portal' || path === 'candidates' || hash === 'candidate-dashboard' || hash === 'candidate-portal' || hash === 'candidates') {
+        setActiveTab('candidates');
       } else if (path && path !== '' && path !== 'index.html') {
         setActiveTab(path);
       } else if (hash) {

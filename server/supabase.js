@@ -3,7 +3,7 @@ import dotenv from 'dotenv';
 
 dotenv.config();
 
-function getSupabaseClient() {
+export function getSupabaseClient() {
   const supabaseUrl = process.env.VITE_SUPABASE_URL || process.env.SUPABASE_URL;
   const supabaseKey = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.SUPABASE_ANON_KEY || process.env.VITE_SUPABASE_ANON_KEY || process.env.SUPABASE_KEY;
 
@@ -24,18 +24,26 @@ export async function fetchSupabaseCandidates() {
   const client = getSupabaseClient();
   if (!client) return [];
   try {
-    const { data, error } = await client
-      .from('candidates')
-      .select('*')
-      .order('id', { ascending: false });
+    const [{ data: cands, error: errC }, { data: users, error: errU }] = await Promise.all([
+      client.from('candidates').select('*').order('createdat', { ascending: false }).limit(200),
+      client.from('users').select('id, email, phone, avatar, createdat').eq('role', 'candidate').limit(200)
+    ]);
 
-    if (error) {
-      console.warn('[Supabase] fetch candidates warning:', error.message);
+    if (errC) {
+      console.warn('[Supabase] fetch candidates warning:', errC.message);
       return [];
     }
 
+    const userAvatarMap = new Map();
+    if (Array.isArray(users)) {
+      for (const u of users) {
+        if (u.email && u.avatar) userAvatarMap.set(u.email.toLowerCase().trim(), u.avatar);
+        if (u.id && u.avatar) userAvatarMap.set(u.id, u.avatar);
+      }
+    }
+
     // Normalize lowercase PostgreSQL column names to camelCase for frontend & CRM consistency
-    return (data || []).map(c => {
+    return (cands || []).map(c => {
       let parsedSkills = [];
       try {
         if (typeof c.skills === 'string') {
@@ -47,11 +55,15 @@ export async function fetchSupabaseCandidates() {
         parsedSkills = c.skills ? [c.skills] : [];
       }
 
+      const emailKey = (c.email || '').toLowerCase().trim();
+      const resolvedAvatar = userAvatarMap.get(emailKey) || (c.id ? userAvatarMap.get(c.id) : null);
+
       return {
         id: c.id,
         name: c.name,
         email: c.email,
         phone: c.phone,
+        avatar: resolvedAvatar || null,
         nationality: c.nationality || 'UAE',
         currentEmployer: c.currentemployer || c.currentEmployer || 'Revival International Talent Pool',
         currentRole: c.currentrole || c.currentRole || 'Executive Candidate',
@@ -64,7 +76,8 @@ export async function fetchSupabaseCandidates() {
         passport: c.passport || 'Verified',
         aiSummary: c.aisummary || c.aiSummary || `Registered Candidate (${c.email || c.name}) with international credentials.`,
         experience: c.experience || '3-5 Years',
-        createdAt: c.createdat || c.createdAt || new Date().toISOString()
+        createdAt: c.createdat || c.createdAt || null,
+        registeredAt: c.createdat || c.createdAt || null
       };
     });
   } catch (err) {
@@ -93,6 +106,9 @@ export async function syncCandidateToSupabase(cand) {
       passport: cand.passport || 'Verified',
       experience: cand.experience || '3-5 Years'
     };
+    if (cand.createdAt || cand.createdat) {
+      candidateRow.createdat = cand.createdAt || cand.createdat;
+    }
 
     const { data, error } = await client
       .from('candidates')
@@ -121,8 +137,12 @@ export async function syncUserToSupabase(user) {
       email: (user.email || '').toLowerCase().trim(),
       phone: user.phone || '',
       role: user.role || 'candidate',
-      status: user.status || 'active'
+      status: user.status || 'active',
+      avatar: user.avatar !== undefined ? user.avatar : null
     };
+    if (user.createdAt || user.createdat) {
+      userRow.createdat = user.createdAt || user.createdat;
+    }
 
     const { data, error } = await client
       .from('users')
@@ -174,11 +194,12 @@ export async function checkSupabaseCandidateExists(email, phone = '') {
 /**
  * Permanently delete candidate from Supabase
  */
-export async function deleteCandidateFromSupabase(candidateId, email = '') {
+export async function deleteCandidateFromSupabase(candidateId, email = '', phone = '') {
   const client = getSupabaseClient();
   if (!client) return { success: true };
   try {
     const cleanEmail = (email || '').toLowerCase().trim();
+    const cleanPhone = (phone || '').replace(/\D/g, '');
 
     // 1. Delete from candidates table
     if (candidateId) {
@@ -186,6 +207,10 @@ export async function deleteCandidateFromSupabase(candidateId, email = '') {
     }
     if (cleanEmail) {
       await client.from('candidates').delete().ilike('email', cleanEmail);
+    }
+    if (cleanPhone && cleanPhone.length >= 7) {
+      const phoneSuffix = cleanPhone.slice(-7);
+      await client.from('candidates').delete().like('phone', `%${phoneSuffix}`);
     }
 
     // 2. Delete from users table if candidate
@@ -195,14 +220,12 @@ export async function deleteCandidateFromSupabase(candidateId, email = '') {
     if (cleanEmail) {
       await client.from('users').delete().ilike('email', cleanEmail);
     }
+    if (cleanPhone && cleanPhone.length >= 7) {
+      const phoneSuffix = cleanPhone.slice(-7);
+      await client.from('users').delete().like('phone', `%${phoneSuffix}`);
+    }
 
-    // 3. Delete from candidate_applications
-    if (candidateId) {
-      await client.from('candidate_applications').delete().eq('candidateId', candidateId);
-    }
-    if (cleanEmail) {
-      await client.from('candidate_applications').delete().ilike('applicantEmail', cleanEmail);
-    }
+    // Note: candidate_applications are intentionally preserved in Supabase for audit and recruitment pipeline tracking
 
     return { success: true };
   } catch (err) {

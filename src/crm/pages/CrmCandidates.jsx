@@ -110,7 +110,7 @@ const getCleanCandidatePhone = (cand) => {
 // Extracts numeric milliseconds timestamp for strict descending sorting (#1 latest)
 const getCandidateTimestamp = (cand) => {
   if (!cand) return 0;
-  const raw = cand.createdAt || cand.registeredAt || cand.updatedAt;
+  const raw = cand.createdAt || cand.registeredAt || cand.createdat;
   if (!raw) return 0;
   try {
     const str = String(raw).trim();
@@ -251,6 +251,7 @@ export const CrmCandidates = () => {
         await deleteCandidate(deleteConfirmCand.id, {
           name: deleteConfirmCand.name,
           email: deleteConfirmCand.email,
+          phone: deleteConfirmCand.phone,
           nationality: deleteConfirmCand.nationality
         });
       }
@@ -411,12 +412,12 @@ export const CrmCandidates = () => {
 
       try {
         if (cand.email) {
-          const stored = localStorage.getItem(`sir_resume_${cand.email.toLowerCase().trim()}`);
+          const stored = (window.sessionStorage && sessionStorage.getItem(`sir_resume_${cand.email.toLowerCase().trim()}`)) || (window.localStorage && localStorage.getItem(`sir_resume_${cand.email.toLowerCase().trim()}`));
           if (stored && stored.length > 200) url = stored;
         }
         if (!url || url.length < 200) {
-          const active = localStorage.getItem('sir_active_resume');
-          const activeName = localStorage.getItem('sir_active_resume_name');
+          const active = (window.sessionStorage && sessionStorage.getItem('sir_active_resume')) || (window.localStorage && localStorage.getItem('sir_active_resume'));
+          const activeName = (window.sessionStorage && sessionStorage.getItem('sir_active_resume_name')) || (window.localStorage && localStorage.getItem('sir_active_resume_name'));
           if (active && active.length > 200) {
             url = active;
             if (activeName) name = activeName;
@@ -461,7 +462,31 @@ export const CrmCandidates = () => {
   };
 
   const renderCandidateAvatar = (c, sizeClasses = "w-12 h-12 text-sm") => {
-    const rawAvatar = c?.avatar || (typeof c?.photo === 'string' ? c.photo : null) || (typeof c?.phone === 'string' && c.phone.startsWith('http') ? c.phone : null) || (typeof c?.currentRole === 'string' && c.currentRole.startsWith('http') ? c.currentRole : null);
+    let rawAvatar = c?.avatar || (typeof c?.photo === 'string' ? c.photo : null) || (typeof c?.phone === 'string' && c.phone.startsWith('http') ? c.phone : null) || (typeof c?.currentRole === 'string' && c.currentRole.startsWith('http') ? c.currentRole : null);
+    
+    // Check client localStorage candidate stores as immediate real-time fallback
+    if (!rawAvatar && typeof window !== 'undefined' && window.localStorage && c?.email) {
+      try {
+        const dbStr = localStorage.getItem('sir_candidates_db');
+        if (dbStr) {
+          const db = JSON.parse(dbStr);
+          const local = db[c.email.toLowerCase().trim()];
+          if (local?.avatar) rawAvatar = local.avatar;
+        }
+      } catch (_) {}
+      if (!rawAvatar) {
+        try {
+          const sessStr = localStorage.getItem('sir_user_session');
+          if (sessStr) {
+            const sess = JSON.parse(sessStr);
+            if (sess?.avatar && (sess?.email?.toLowerCase().trim() === c.email.toLowerCase().trim() || sess?.candidateId === c.id)) {
+              rawAvatar = sess.avatar;
+            }
+          }
+        } catch (_) {}
+      }
+    }
+
     const isRealPhoto = typeof rawAvatar === 'string' && (rawAvatar.startsWith('http://') || rawAvatar.startsWith('https://') || rawAvatar.startsWith('data:image')) && !rawAvatar.includes('unsplash.com') && rawAvatar !== '[]' && rawAvatar.length > 10;
     if (isRealPhoto) {
       return (
@@ -508,7 +533,7 @@ export const CrmCandidates = () => {
       if (isDummyCandidate(c)) return false;
 
       // 1. Timeframe Filter: All Time | Today (Day) | Weekly | Monthly | Yearly
-      const regDate = c.createdAt || c.registeredAt || c.updatedAt;
+      const regDate = c.createdAt || c.registeredAt || c.createdat;
       if (!matchesTimeframe(regDate, timeframe)) {
         return false;
       }
@@ -565,10 +590,10 @@ export const CrmCandidates = () => {
     const valid = candidatePool.filter(c => !isDummyCandidate(c));
     return {
       all: valid.length,
-      day: valid.filter(c => matchesTimeframe(c.createdAt || c.registeredAt || c.updatedAt, 'day')).length,
-      week: valid.filter(c => matchesTimeframe(c.createdAt || c.registeredAt || c.updatedAt, 'week')).length,
-      month: valid.filter(c => matchesTimeframe(c.createdAt || c.registeredAt || c.updatedAt, 'month')).length,
-      year: valid.filter(c => matchesTimeframe(c.createdAt || c.registeredAt || c.updatedAt, 'year')).length
+      day: valid.filter(c => matchesTimeframe(c.createdAt || c.registeredAt || c.createdat, 'day')).length,
+      week: valid.filter(c => matchesTimeframe(c.createdAt || c.registeredAt || c.createdat, 'week')).length,
+      month: valid.filter(c => matchesTimeframe(c.createdAt || c.registeredAt || c.createdat, 'month')).length,
+      year: valid.filter(c => matchesTimeframe(c.createdAt || c.registeredAt || c.createdat, 'year')).length
     };
   }, [candidatePool]);
 
@@ -972,7 +997,7 @@ export const CrmCandidates = () => {
                 </thead>
                 <tbody className="divide-y divide-slate-100 dark:divide-navy-800/60 font-medium">
                   {filtered.map((cand, index) => {
-                    const regDateTime = cand.createdAt || cand.registeredAt || cand.updatedAt;
+                    const regDateTime = cand.createdAt || cand.registeredAt || cand.createdat;
                     const hasCv = !!(cand.resumeUrl || cand.resumeName);
 
                     return (
@@ -1084,7 +1109,7 @@ export const CrmCandidates = () => {
           /* LUXURY GRID CARDS VIEW */
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
             {filtered.map((cand, index) => {
-              const regDateTime = cand.createdAt || cand.registeredAt || cand.updatedAt;
+              const regDateTime = cand.createdAt || cand.registeredAt || cand.createdat;
               const hasCv = !!(cand.resumeUrl || cand.resumeName);
 
               return (
