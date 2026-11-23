@@ -1616,8 +1616,6 @@ export const CrmProvider = ({ children }) => {
 
       return updated;
     });
-<<<<<<< Updated upstream
-
     try {
       const tok = await getOrFetchActiveToken(activeRole, activeUser);
       if (tok) {
@@ -1713,11 +1711,6 @@ export const CrmProvider = ({ children }) => {
       window.removeEventListener('beforeunload', handleBeforeUnload);
     };
   }, [crmToken, currentRole]);
-
-=======
-  };
-
->>>>>>> Stashed changes
   const hasPermission = (moduleName) => {
     if (!moduleName) return true;
     if (moduleName === 'my-profile') return true;
@@ -1991,15 +1984,10 @@ export const CrmProvider = ({ children }) => {
     const isExecutive = currentRole === 'Super Admin' || currentRole === 'Admin';
     if (!isExecutive && user && !lateApprovalGate?.isBlocked) {
       try {
-<<<<<<< Updated upstream
-        clockOut(user, currentRole);
-      } catch (_) { }
-=======
         await clockOut(user, currentRole);
       } catch (err) {
         console.error('Logout attendance check-out error:', err);
       }
->>>>>>> Stashed changes
     }
 
     setIsAuthenticated(false);

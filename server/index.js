@@ -10,18 +10,13 @@ import { registerAttendanceRoutes } from './routes/attendanceRoutes.js';
 import { registerHrCandidateRoutes } from './routes/hrCandidateRoutes.js';
 import { registerDocumentationRoutes } from './routes/documentationRoutes.js';
 import { registerEmailApplicationRoutes } from './routes/emailApplicationRoutes.js';
-<<<<<<< Updated upstream
+import { registerAnnouncementRoutes } from './routes/announcementRoutes.js';
 import {
   sendCandidateWelcomeEmail,
   sendCandidateApplicationConfirmationEmail,
   sendServiceEnquiryConfirmationEmail
 } from './services/emailApplicationService.js';
 import { COURSES_CATALOGUE } from './data/coursesCatalogueData.js';
-=======
-import { registerAnnouncementRoutes } from './routes/announcementRoutes.js';
-import { sendCandidateWelcomeEmail } from './services/emailApplicationService.js';
-import { COURSES_CATALOGUE } from '../src/data/coursesCatalogueData.js';
->>>>>>> Stashed changes
 import nodemailer from 'nodemailer';
 import dotenv from 'dotenv';
 import { handleAIAdvisorQuery, REVIVAL_KNOWLEDGE_BASE } from './services/aiAdvisorEngine.js';
@@ -5097,9 +5092,6 @@ app.post('/api/hr-operations/assign', async (req, res) => {
             assignedBy,
             now
           ]
-<<<<<<< Updated upstream
-        ).catch(() => { });
-=======
         ).catch(() => {});
       } else {
         // Also support assigning candidate job applications
@@ -5150,7 +5142,6 @@ app.post('/api/hr-operations/assign', async (req, res) => {
             ).catch(() => {});
           }
         }
->>>>>>> Stashed changes
       }
     }
 
@@ -7452,6 +7443,7 @@ function analyzeResumeDeterministic(resumeText = '', fileName = '', targetRole =
     industry: targetIndustry || matchedDomain.name,
     matchLevel: finalScore >= 80 ? 'Excellent Match' : 'Strong Candidate',
     extractedSkills: matchedDomain.skills,
+    keywordsFound: matchedDomain.skills,
     missingKeywords: matchedDomain.missingKeywords,
     summary,
     data: {
@@ -7461,6 +7453,7 @@ function analyzeResumeDeterministic(resumeText = '', fileName = '', targetRole =
       industry: targetIndustry || matchedDomain.name,
       matchLevel: finalScore >= 80 ? 'Excellent Match' : 'Strong Candidate',
       extractedSkills: matchedDomain.skills,
+      keywordsFound: matchedDomain.skills,
       missingKeywords: matchedDomain.missingKeywords,
       summary
     }
