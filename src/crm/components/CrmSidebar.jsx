@@ -71,9 +71,9 @@ export const CrmSidebar = ({ collapsed, setCollapsed }) => {
     return cleanName.charAt(0).toUpperCase() || 'H';
   }, [user?.name, currentRole]);
 
-  // For HR Operations: if user removes photo (or has stock preset), show default profile (first letter of name).
+  // For HR Operations & HR Lead: if user removes photo (or has stock preset), show default profile (first letter of name).
   // If user uploaded a custom photo, display the uploaded photo.
-  const showUserInitial = isHrOperationsRole
+  const showUserInitial = (isHrOperationsRole || isHrLeadRole)
     ? !hasUploadedPhoto(user?.avatar)
     : (!user?.avatar || user.avatar.trim() === '');
 
@@ -271,7 +271,6 @@ export const CrmSidebar = ({ collapsed, setCollapsed }) => {
     { id: 'my-attendance', label: 'My Attendance', icon: CalendarCheck },
     { id: 'hr-leave', label: 'Leave Approvals', icon: Calendar },
     { id: 'hr-employees', label: 'Workforce Directory', icon: Users },
-    { id: 'hr-performance', label: 'Performance Metrics', icon: TrendingUp },
     { id: 'hr-recruitment', label: 'Onboarding & Hiring', icon: UserPlus },
     { id: 'hr-announcements', label: 'Company Announcements', icon: Bell },
     { id: 'hr-shifts', label: 'Shift Management', icon: CalendarCheck },
@@ -491,8 +490,8 @@ export const CrmSidebar = ({ collapsed, setCollapsed }) => {
       roleBadge = 'Campus Drives';
     } else if (isHrLeadRole) {
       currentList = hrLeadMenuItems;
-      roleSectionTitle = 'HR Lead Suite';
-      roleBadge = 'Workforce';
+      roleSectionTitle = '';
+      roleBadge = '';
     } else if (isInterviewerRole) {
       currentList = interviewerMenuItems;
       roleSectionTitle = 'Interviewer Desk';
@@ -511,9 +510,11 @@ export const CrmSidebar = ({ collapsed, setCollapsed }) => {
               <span className="text-[10px] font-bold tracking-wider uppercase text-amber-900 dark:text-gold-400">
                 {roleSectionTitle}
               </span>
-              <span className="font-mono bg-amber-100 text-amber-900 dark:bg-gold-500/20 dark:text-gold-300 px-1.5 py-0.2 rounded-full text-[10px] font-semibold border border-amber-300 dark:border-gold-500/30">
-                {roleBadge}
-              </span>
+              {roleBadge ? (
+                <span className="font-mono bg-amber-100 text-amber-900 dark:bg-gold-500/20 dark:text-gold-300 px-1.5 py-0.2 rounded-full text-[10px] font-semibold border border-amber-300 dark:border-gold-500/30">
+                  {roleBadge}
+                </span>
+              ) : null}
             </div>
           </div>
         )}

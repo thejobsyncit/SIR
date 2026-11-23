@@ -10,12 +10,18 @@ import { registerAttendanceRoutes } from './routes/attendanceRoutes.js';
 import { registerHrCandidateRoutes } from './routes/hrCandidateRoutes.js';
 import { registerDocumentationRoutes } from './routes/documentationRoutes.js';
 import { registerEmailApplicationRoutes } from './routes/emailApplicationRoutes.js';
+<<<<<<< Updated upstream
 import {
   sendCandidateWelcomeEmail,
   sendCandidateApplicationConfirmationEmail,
   sendServiceEnquiryConfirmationEmail
 } from './services/emailApplicationService.js';
 import { COURSES_CATALOGUE } from './data/coursesCatalogueData.js';
+=======
+import { registerAnnouncementRoutes } from './routes/announcementRoutes.js';
+import { sendCandidateWelcomeEmail } from './services/emailApplicationService.js';
+import { COURSES_CATALOGUE } from '../src/data/coursesCatalogueData.js';
+>>>>>>> Stashed changes
 import nodemailer from 'nodemailer';
 import dotenv from 'dotenv';
 import { handleAIAdvisorQuery, REVIVAL_KNOWLEDGE_BASE } from './services/aiAdvisorEngine.js';
@@ -5091,7 +5097,60 @@ app.post('/api/hr-operations/assign', async (req, res) => {
             assignedBy,
             now
           ]
+<<<<<<< Updated upstream
         ).catch(() => { });
+=======
+        ).catch(() => {});
+      } else {
+        // Also support assigning candidate job applications
+        const currentApp = await db.get('SELECT * FROM candidate_applications WHERE id = ? LIMIT 1', [enqId]);
+        if (currentApp) {
+          const appRes = await db.run(
+            `UPDATE candidate_applications SET
+              assignedEmployee = ?,
+              assignedEmployeeId = ?,
+              assignedEmployeeEmail = ?,
+              priority = ?,
+              status = 'Assigned',
+              assignmentNotes = ?,
+              assignedDate = ?,
+              updatedAt = ?
+            WHERE id = ?`,
+            [canonicalName, canonicalId, canonicalEmail, priority, instructions, now, now, enqId]
+          );
+          if (appRes && appRes.changes > 0) {
+            updatedCount += appRes.changes;
+            await db.run(
+              `INSERT OR REPLACE INTO hr_task_assignments (
+                id, enquiryId, referenceNumber, operationTeam, assignedEmployeeId,
+                assignedEmployeeName, assignedById, assignedByName, assignedAt,
+                assignmentStatus, taskStatus, priority, notes, serviceId, serviceTitle,
+                customerName, customerEmail, customerPhone, createdAt, updatedAt
+              ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, 'Assigned', 'To Do', ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+              [
+                `TASK-${enqId}`,
+                enqId,
+                enqId,
+                effectiveTeam || 'Jobs Enquiry Operations',
+                canonicalId,
+                canonicalName,
+                assignedById,
+                assignedBy,
+                now,
+                priority,
+                instructions || 'Follow up with candidate regarding job application details.',
+                currentApp.jobId || 'job-app',
+                currentApp.jobTitle || 'Job Application',
+                currentApp.applicantName || 'Candidate',
+                currentApp.applicantEmail || '',
+                currentApp.applicantPhone || '',
+                now,
+                now
+              ]
+            ).catch(() => {});
+          }
+        }
+>>>>>>> Stashed changes
       }
     }
 
@@ -7917,6 +7976,7 @@ registerAttendanceRoutes(app, { getDb, getClientIp });
 registerHrCandidateRoutes(app, { getDb, getClientIp, logAuditTrail });
 registerDocumentationRoutes(app, { getDb, getClientIp, logAuditTrail });
 registerEmailApplicationRoutes(app, { getDb, getClientIp, logAuditTrail });
+registerAnnouncementRoutes(app, { getDb, getClientIp, logAuditTrail });
 
 // Serve Vite frontend production bundle if dist directory exists (non-Vercel standalone mode)
 const distPath = path.join(__dirname, '..', 'dist');

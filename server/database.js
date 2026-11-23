@@ -1249,6 +1249,22 @@ const initDb = async (db) => {
       createdAt DATETIME DEFAULT CURRENT_TIMESTAMP,
       updatedAt DATETIME DEFAULT CURRENT_TIMESTAMP
     );
+
+    CREATE TABLE IF NOT EXISTS company_announcements (
+      id TEXT PRIMARY KEY,
+      title TEXT NOT NULL,
+      description TEXT NOT NULL,
+      category TEXT NOT NULL DEFAULT 'General Notice',
+      target_audience TEXT NOT NULL DEFAULT 'All Employees',
+      status TEXT NOT NULL DEFAULT 'Published',
+      created_by TEXT,
+      created_by_name TEXT,
+      created_by_role TEXT,
+      created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+      published_at DATETIME,
+      expires_at TEXT,
+      updated_at DATETIME DEFAULT CURRENT_TIMESTAMP
+    );
   `);
 
   const ensureColumns = async (tableName, columnDefs) => {
@@ -1329,6 +1345,80 @@ const initDb = async (db) => {
     }
   } catch (err) {
     console.warn('Employee table seeding notice:', err.message);
+  }
+
+  // Seed default corporate announcements if table is empty
+  try {
+    const existingAnn = await db.get('SELECT COUNT(*) as count FROM company_announcements');
+    if (!existingAnn || existingAnn.count === 0) {
+      const defaultAnnouncements = [
+        {
+          id: 'ANN-2026-001',
+          title: 'Annual Performance & Appraisal Cycle 2026-27 Announced',
+          description: 'The annual appraisal and self-evaluation window for FY 2026-27 is officially open. All team members must complete their self-assessment forms in the HR portal before the end of the month. Department heads will conduct one-on-one review meetings during the first week of next month.',
+          category: 'HR Policy',
+          target_audience: 'All Employees',
+          status: 'Published',
+          created_by: 'REV-EMP-006',
+          created_by_name: 'Priya Sharma',
+          created_by_role: 'HR Lead',
+          created_at: '2026-11-15 09:30:00',
+          published_at: '2026-11-15 09:30:00',
+          expires_at: null
+        },
+        {
+          id: 'ANN-2026-002',
+          title: 'Standard Operating Procedures for International Candidate KYC',
+          description: 'HR Operations team is advised to mandate 3-point credential verification for all international healthcare and IT applicants before scheduling technical interviews. Ensure passport validity, educational degree attestation, and police clearance certificates are logged in the candidate dossier.',
+          category: 'Important Update',
+          target_audience: 'HR Operations',
+          status: 'Published',
+          created_by: 'REV-EMP-006',
+          created_by_name: 'Priya Sharma',
+          created_by_role: 'HR Lead',
+          created_at: '2026-11-18 11:00:00',
+          published_at: '2026-11-18 11:00:00',
+          expires_at: null
+        },
+        {
+          id: 'ANN-2026-003',
+          title: 'Upcoming Corporate Holiday — UAE National Day Observance',
+          description: 'Our Dubai and international advisory branches will observe public holiday for UAE National Day on December 2nd and 3rd, 2026. Normal operations will resume on December 4th at 09:00 AM. On-call emergency visa support will remain active for active travel candidates.',
+          category: 'Holiday',
+          target_audience: 'All Employees',
+          status: 'Published',
+          created_by: 'REV-EMP-006',
+          created_by_name: 'Priya Sharma',
+          created_by_role: 'HR Lead',
+          created_at: '2026-11-20 14:15:00',
+          published_at: '2026-11-20 14:15:00',
+          expires_at: null
+        }
+      ];
+
+      for (const ann of defaultAnnouncements) {
+        await db.run(
+          `INSERT INTO company_announcements (id, title, description, category, target_audience, status, created_by, created_by_name, created_by_role, created_at, published_at, expires_at)
+           VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+          [
+            ann.id,
+            ann.title,
+            ann.description,
+            ann.category,
+            ann.target_audience,
+            ann.status,
+            ann.created_by,
+            ann.created_by_name,
+            ann.created_by_role,
+            ann.created_at,
+            ann.published_at,
+            ann.expires_at
+          ]
+        );
+      }
+    }
+  } catch (err) {
+    console.warn('Company announcements table seeding notice:', err.message);
   }
 
   await ensureColumns('leads', [
@@ -1465,7 +1555,14 @@ const initDb = async (db) => {
     { name: 'expectedSalary', type: 'TEXT' },
     { name: 'applicantName', type: 'TEXT' },
     { name: 'applicantEmail', type: 'TEXT' },
-    { name: 'applicantPhone', type: 'TEXT' }
+    { name: 'applicantPhone', type: 'TEXT' },
+    { name: 'assignedEmployee', type: 'TEXT' },
+    { name: 'assignedEmployeeId', type: 'TEXT' },
+    { name: 'assignedEmployeeEmail', type: 'TEXT' },
+    { name: 'priority', type: "TEXT DEFAULT 'Normal'" },
+    { name: 'assignmentNotes', type: 'TEXT' },
+    { name: 'assignedDate', type: 'TEXT' },
+    { name: 'updatedAt', type: 'TEXT' }
   ]);
 
   // Seed default verified candidate applications if missing
@@ -1671,7 +1768,7 @@ const initDb = async (db) => {
       overtimeEnabled INTEGER DEFAULT 1,
       overtimeThresholdMinutes INTEGER DEFAULT 480,
       absentCutoffHour INTEGER DEFAULT 14,
-      weeklyOffDays TEXT DEFAULT '[0,6]',
+      weeklyOffDays TEXT DEFAULT '[0]',
       timezone TEXT DEFAULT 'Asia/Kolkata',
       isActive INTEGER DEFAULT 1,
       createdAt DATETIME DEFAULT CURRENT_TIMESTAMP
@@ -1858,7 +1955,7 @@ const initDb = async (db) => {
         overtimeEnabled: 1,
         overtimeThresholdMinutes: 480,
         absentCutoffHour: 14,
-        weeklyOffDays: '[0,6]'
+        weeklyOffDays: '[0]'
       },
       {
         id: 'SHIFT-MORNING',
@@ -1871,7 +1968,7 @@ const initDb = async (db) => {
         overtimeEnabled: 1,
         overtimeThresholdMinutes: 480,
         absentCutoffHour: 13,
-        weeklyOffDays: '[0,6]'
+        weeklyOffDays: '[0]'
       },
       {
         id: 'SHIFT-UK-ME',
@@ -1884,7 +1981,7 @@ const initDb = async (db) => {
         overtimeEnabled: 1,
         overtimeThresholdMinutes: 480,
         absentCutoffHour: 17,
-        weeklyOffDays: '[0,6]'
+        weeklyOffDays: '[0]'
       },
       {
         id: 'SHIFT-NIGHT',
@@ -1897,7 +1994,7 @@ const initDb = async (db) => {
         overtimeEnabled: 1,
         overtimeThresholdMinutes: 480,
         absentCutoffHour: 23,
-        weeklyOffDays: '[0,6]'
+        weeklyOffDays: '[0]'
       }
     ];
 
@@ -1908,6 +2005,9 @@ const initDb = async (db) => {
         [sh.id, sh.name, sh.startTime, sh.endTime, sh.graceMinutes, sh.isOvernight, sh.breakTrackingEnabled, sh.overtimeEnabled, sh.overtimeThresholdMinutes, sh.absentCutoffHour, sh.weeklyOffDays]
       );
     }
+
+    // Ensure all shift_configs have Saturday configured as a regular working day (weeklyOffDays = '[0]')
+    await db.run("UPDATE shift_configs SET weeklyOffDays = '[0]' WHERE weeklyOffDays LIKE '%6%'");
 
     // Seed sample role login logs if empty
     const existingLogsCount = (await db.get('SELECT COUNT(*) as c FROM role_login_logs'))?.c || 0;

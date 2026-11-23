@@ -124,7 +124,7 @@ const buildAttendanceSummary = async (db, employee, now) => {
     overtimeEnabled: 1,
     overtimeThresholdMinutes: 480,
     absentCutoffHour: 14,
-    weeklyOffDays: '[0,6]',
+    weeklyOffDays: '[0]',
     timezone: COMPANY_TIMEZONE
   };
 
