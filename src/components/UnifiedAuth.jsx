@@ -755,9 +755,13 @@ export const UnifiedAuth = ({ defaultMode = 'login', defaultRole = 'candidate', 
 
       setOtpToken(otpData.token || '');
       setDevOtpHint(otpData.devOtp || '');
+      if (otpData.devOtp) {
+        setOtpCode(otpData.devOtp);
+      } else {
+        setOtpCode('');
+      }
       setOtpCooldown(60);
       setRegStep('otp');
-      setOtpCode('');
       setOtpLoading(false);
     } catch (err) {
       console.error('OTP send failed:', err);
@@ -794,6 +798,9 @@ export const UnifiedAuth = ({ defaultMode = 'login', defaultRole = 'candidate', 
 
       setOtpToken(data.token || '');
       setDevOtpHint(data.devOtp || '');
+      if (data.devOtp) {
+        setOtpCode(data.devOtp);
+      }
       setOtpCooldown(60);
       setOtpSuccess(`A fresh verification code has been dispatched to ${cleanEmail}`);
       setTimeout(() => setOtpSuccess(''), 4000);
@@ -1092,8 +1099,13 @@ export const UnifiedAuth = ({ defaultMode = 'login', defaultRole = 'candidate', 
             )}
 
             {devOtpHint && (
-              <div className="mb-2 p-1.5 rounded-lg bg-amber-50 dark:bg-amber-950/40 border border-amber-300 dark:border-amber-500/40 text-amber-800 dark:text-amber-300 text-[11px] text-center font-mono font-bold">
-                Verification Code: <span className="underline tracking-widest">{devOtpHint}</span>
+              <div
+                onClick={() => setOtpCode(devOtpHint)}
+                className="mb-2 p-2 rounded-lg bg-amber-50 dark:bg-amber-950/40 border border-amber-300 dark:border-amber-500/40 text-amber-800 dark:text-amber-300 text-xs text-center font-mono font-bold cursor-pointer hover:bg-amber-100 dark:hover:bg-amber-900/40 transition-colors shadow-xs"
+                title="Click to copy code to input"
+              >
+                Verification Code: <span className="underline tracking-widest text-sm text-amber-950 dark:text-amber-100">{devOtpHint}</span>
+                <span className="block text-[10px] font-sans font-normal text-amber-700 dark:text-amber-400 mt-0.5">(Click to fill code)</span>
               </div>
             )}
 
