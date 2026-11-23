@@ -71,6 +71,7 @@ export const AppProvider = ({ children }) => {
       const hash = rawHash.split('?')[0];
       if (path === 'crm' || path.startsWith('crm/') || hash === 'crm') return 'crm';
       if (path === 'superadmin-erp' || path === 'erp' || hash === 'erp' || hash === 'superadmin-erp') return 'erp';
+      if (path === 'candidate-dashboard' || path === 'candidate-portal' || path === 'candidates' || hash === 'candidate-dashboard' || hash === 'candidate-portal' || hash === 'candidates') return 'candidates';
       if (path && path !== '' && path !== 'index.html') return path;
       if (hash) return hash;
     }
@@ -83,7 +84,11 @@ export const AppProvider = ({ children }) => {
         const rawHash = window.location.hash.replace('#', '');
         const hash = rawHash.split('?')[0];
         if (hash) {
-          setActiveTab(hash);
+          if (hash === 'candidate-dashboard' || hash === 'candidate-portal' || hash === 'candidates') {
+            setActiveTab('candidates');
+          } else {
+            setActiveTab(hash);
+          }
         }
       }
     };
@@ -1209,6 +1214,8 @@ export const AppProvider = ({ children }) => {
         setActiveTab('crm');
       } else if (path === 'superadmin-erp' || path === 'erp' || hash === 'erp' || hash === 'superadmin-erp') {
         setActiveTab('erp');
+      } else if (path === 'candidate-dashboard' || path === 'candidate-portal' || path === 'candidates' || hash === 'candidate-dashboard' || hash === 'candidate-portal' || hash === 'candidates') {
+        setActiveTab('candidates');
       } else if (path && path !== '' && path !== 'index.html') {
         setActiveTab(path);
       } else if (hash) {
