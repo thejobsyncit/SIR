@@ -257,6 +257,9 @@ export const UnifiedAuth = ({ defaultMode = 'login', defaultRole = 'candidate', 
       if (!result || !result.success) {
         if (result?.code === 'DUPLICATE_EMAIL' || result?.message?.includes('already exists')) {
           setError(result?.message || 'An account with this email address or phone number already exists. Please sign in to your existing account.');
+          if (cleanGoogleEmail) {
+            setCandidateLogin(prev => ({ ...prev, email: cleanGoogleEmail }));
+          }
           setGoogleError('');
         } else {
           setGoogleError(result?.message || 'Google authentication failed.');
@@ -450,6 +453,9 @@ export const UnifiedAuth = ({ defaultMode = 'login', defaultRole = 'candidate', 
                 if (!result || !result.success) {
                   if (result?.code === 'DUPLICATE_EMAIL' || result?.message?.includes('already exists')) {
                     setError(result?.message || 'An account with this email address or phone number already exists. Please sign in to your existing account.');
+                    if (cleanGoogleEmail) {
+                      setCandidateLogin(prev => ({ ...prev, email: cleanGoogleEmail }));
+                    }
                     setGoogleError('');
                   } else {
                     setGoogleError(result?.message || 'Google authentication failed.');

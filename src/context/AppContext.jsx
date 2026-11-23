@@ -508,7 +508,18 @@ export const AppProvider = ({ children }) => {
     }
 
     // Strict 1-Time Candidate Registration: Prevent duplicate registration via "Sign up with Google"
-    // Authoritative check is performed directly via backend API and Supabase cloud database
+    if (mode === 'register') {
+      const localDb = getCandidateDB();
+      const existingInLocal = localDb[normalizedEmail];
+      if (existingInLocal && (existingInLocal.id || existingInLocal.email)) {
+        return {
+          success: false,
+          code: 'DUPLICATE_EMAIL',
+          message: 'An account with this email address or phone number already exists. Please sign in to your existing account.'
+        };
+      }
+    }
+
     let backendUser = null;
     let backendToken = null;
 
@@ -531,35 +542,27 @@ export const AppProvider = ({ children }) => {
       });
 
       if (res.status === 409) {
-        // Candidate already registered: automatically log into existing account and open dashboard
-        const loginRes = await fetch('/api/auth/google', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            idToken: googleUser.idToken || googleUser.credential,
-            accessToken: googleUser.accessToken,
-            mode: 'login',
-            profile: googleUser.profile || {
-              email: normalizedEmail,
-              name: googleUser.name,
-              picture: googleUser.avatar,
-              sub: googleUser.googleId || googleUser.googleSub
-            }
-          })
-        });
-        const loginData = await loginRes.json();
-        if (loginData?.success && loginData?.user) {
-          backendUser = loginData.user;
-          backendToken = loginData.token;
-          if (backendUser.email) normalizedEmail = backendUser.email.toLowerCase().trim();
-        }
-      } else {
-        const data = await res.json();
-        if (data?.success && data?.user) {
-          backendUser = data.user;
-          backendToken = data.token;
-          if (backendUser.email) normalizedEmail = backendUser.email.toLowerCase().trim();
-        }
+        // Candidate already registered: return duplicate error so UI displays notice and prompts sign-in
+        const conflictData = await res.json().catch(() => ({}));
+        return {
+          success: false,
+          code: 'DUPLICATE_EMAIL',
+          message: conflictData.message || 'An account with this email address or phone number already exists. Please sign in to your existing account.'
+        };
+      }
+
+      const data = await res.json().catch(() => null);
+      if (!res.ok || !data?.success) {
+        return {
+          success: false,
+          message: data?.message || 'Google authentication failed.'
+        };
+      }
+
+      if (data?.user) {
+        backendUser = data.user;
+        backendToken = data.token;
+        if (backendUser.email) normalizedEmail = backendUser.email.toLowerCase().trim();
       }
     } catch (apiErr) {
       console.warn('Backend /api/auth/google verification notice:', apiErr.message);

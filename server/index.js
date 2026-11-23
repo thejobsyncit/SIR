@@ -1274,9 +1274,29 @@ app.post('/api/auth/google', async (req, res) => {
       userRecord = await db.get('SELECT * FROM users WHERE LOWER(email) = LOWER(?)', [cleanEmail]);
     }
 
-    // Google OAuth automatically authenticates and opens the candidate dashboard
-    // If the candidate already exists, seamlessly update and open their existing account
+    // STRICT 1-TIME REGISTRATION RULE:
+    // If the candidate clicked "Sign up with Google" (req.body.mode === 'register'):
+    // If the candidate is already registered in the system, REJECT with 409 DUPLICATE_EMAIL!
+    // They are only allowed to create an account once. If already registered, they must use "Sign In".
+    // (Exception: If the candidate was deleted from the CRM Candidates page, they are wiped from all tables,
+    // so existingCandidate will be null and they can register anew).
+    if (req.body?.mode === 'register') {
+      const sbCheck = await checkSupabaseCandidateExists(cleanEmail);
+      const existingCandidate = userRecord ||
+        await db.get('SELECT id FROM candidate_profiles WHERE LOWER(email) = LOWER(?)', [cleanEmail]) ||
+        await db.get('SELECT id FROM candidates WHERE LOWER(email) = LOWER(?)', [cleanEmail]) ||
+        (sbCheck && sbCheck.exists ? { id: 'sb-existing' } : null);
 
+      if (existingCandidate) {
+        return res.status(409).json({
+          success: false,
+          code: 'DUPLICATE_EMAIL',
+          message: 'An account with this email address or phone number already exists. Please sign in to your existing account.'
+        });
+      }
+    }
+
+    // Google OAuth authenticates candidate and loads their profile and session
     let userId = userRecord?.id;
     let candidateProfile = null;
     let candidateId = null;
@@ -4708,6 +4728,11 @@ app.delete('/api/candidates/:id', async (req, res) => {
     await db.run('DELETE FROM interviews WHERE candidateId = ?', [id]).catch(() => { });
 
     // Delete account from users, google_auth_accounts, and leads so they can re-register freshly from scratch
+    const targetUserId = profRow?.userId || candRow?.userId;
+    if (targetUserId) {
+      await db.run("DELETE FROM users WHERE id = ?", [targetUserId]).catch(() => { });
+      await db.run("DELETE FROM google_auth_accounts WHERE userId = ?", [targetUserId]).catch(() => { });
+    }
     if (targetEmail) {
       await db.run("DELETE FROM users WHERE LOWER(email) = LOWER(?)", [targetEmail]).catch(() => { });
       await db.run("DELETE FROM google_auth_accounts WHERE LOWER(email) = LOWER(?)", [targetEmail]).catch(() => { });
