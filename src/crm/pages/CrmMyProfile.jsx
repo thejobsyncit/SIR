@@ -23,7 +23,9 @@ const hasUploadedPhoto = (avatarUrl) => {
 export const CrmMyProfile = () => {
   const { currentEmployee, currentRole, user, updateUserProfile, logout, requestLogout, setActiveModule } = useCrm();
 
-  const isHrOperations = currentRole === 'HR Operations';
+  const isHrOperations = currentRole === 'HR Operations' || user?.role === 'HR Operations' || user?.designation === 'HR Operations';
+  const isHrLead = currentRole === 'HR Lead' || user?.role === 'HR Lead' || user?.designation === 'HR Lead';
+  const isSimplifiedHrProfile = isHrOperations || isHrLead;
   const fileInputRef = useRef(null);
 
   // Profile data state
@@ -72,16 +74,16 @@ export const CrmMyProfile = () => {
 
   // Resolved identity dynamically based on authenticated user session (Bug #11)
   const activeEmployeeId = useMemo(() => {
-    return currentEmployee?.employeeId || currentEmployee?.id || user?.employeeId || user?.id || 'REV-EMP-001';
-  }, [currentEmployee, user]);
+    return currentEmployee?.employeeId || currentEmployee?.id || user?.employeeId || user?.id || (isHrLead ? 'REV-EMP-003' : 'REV-EMP-001');
+  }, [currentEmployee, user, isHrLead]);
 
   const activeEmployeeEmail = useMemo(() => {
-    return currentEmployee?.email || user?.email || 'admin@revivalinternational.com';
-  }, [currentEmployee, user]);
+    return currentEmployee?.email || user?.email || (isHrLead ? 'priya.lead@revivalinternational.com' : 'admin@revivalinternational.com');
+  }, [currentEmployee, user, isHrLead]);
 
   const activeEmployeeName = useMemo(() => {
-    return currentEmployee?.name || user?.name || 'Administrator';
-  }, [currentEmployee, user]);
+    return currentEmployee?.name || user?.name || (isHrLead ? 'Priya Sharma' : 'Administrator');
+  }, [currentEmployee, user, isHrLead]);
 
   // Dynamic first letter of employee's name for default avatar
   const employeeInitial = useMemo(() => {
@@ -133,17 +135,17 @@ export const CrmMyProfile = () => {
           employeeId: activeEmployeeId,
           name: activeEmployeeName,
           email: activeEmployeeEmail,
-          phone: currentEmployee?.phone || user?.phone || '+971 4 123 4567',
-          role: currentRole || user?.role || 'Super Admin',
-          department: currentEmployee?.department || user?.department || 'Executive Management',
-          designation: currentEmployee?.designation || user?.designation || (currentRole === 'Super Admin' ? 'Senior Executive Director' : 'Operations Specialist'),
-          operationTeam: currentEmployee?.operationTeam || user?.operationTeam || 'Enterprise Management',
-          assignedBranch: currentEmployee?.assignedBranch || user?.assignedBranch || 'Global Headquarters, Dubai UAE',
-          reportingManager: currentEmployee?.reportingManager || 'Executive Board of Directors',
-          joiningDate: currentEmployee?.joiningDate || user?.joiningDate || '2023-01-15',
+          phone: currentEmployee?.phone || user?.phone || (isHrLead ? '+91 98400 11003' : (isHrOperations ? '+91 9876543214' : '+971 4 123 4567')),
+          role: currentRole || user?.role || (isHrLead ? 'HR Lead' : (isHrOperations ? 'HR Operations' : 'Super Admin')),
+          department: currentEmployee?.department || user?.department || (isHrLead ? 'Human Resources' : (isHrOperations ? 'International HR Operations' : 'Executive Management')),
+          designation: currentEmployee?.designation || user?.designation || (isHrLead ? 'Head of Global HR & Operations' : (isHrOperations ? 'Lead HR Operations Specialist' : (currentRole === 'Super Admin' ? 'Senior Executive Director' : 'Operations Specialist'))),
+          operationTeam: currentEmployee?.operationTeam || user?.operationTeam || (isHrLead ? 'Central Operations' : (isHrOperations ? 'International HR Operations' : 'Enterprise Management')),
+          assignedBranch: currentEmployee?.assignedBranch || user?.assignedBranch || (isHrLead ? 'Central HR Executive Console, Dubai' : (isHrOperations ? 'Branch A: International HR Operations' : 'Global Headquarters, Dubai UAE')),
+          reportingManager: currentEmployee?.reportingManager || (isHrLead ? 'Dhanalakshimi (Super Admin)' : (isHrOperations ? 'Priya Sharma (HR Lead)' : 'Executive Board of Directors')),
+          joiningDate: currentEmployee?.joiningDate || user?.joiningDate || (isHrLead ? '2023-06-01' : (isHrOperations ? '2023-08-10' : '2023-01-15')),
           employmentStatus: 'Full-Time (Active)',
-          dateOfBirth: currentEmployee?.dateOfBirth || user?.dateOfBirth || '1990-05-20',
-          address: currentEmployee?.address || user?.address || 'Dubai Internet City, Dubai, UAE',
+          dateOfBirth: currentEmployee?.dateOfBirth || user?.dateOfBirth || (isHrLead ? '1990-12-05' : (isHrOperations ? '1996-11-14' : '1990-05-20')),
+          address: currentEmployee?.address || user?.address || (isHrLead ? 'Al Barsha 1, Dubai, UAE' : (isHrOperations ? 'OMR IT Corridor, Chennai, India' : 'Dubai Internet City, Dubai, UAE')),
           avatar: hasUploadedPhoto(currentEmployee?.avatar || user?.avatar) ? (currentEmployee?.avatar || user?.avatar) : '',
           status: 'Active',
           stats: {
@@ -534,7 +536,7 @@ export const CrmMyProfile = () => {
                   {employeeInitial}
                 </div>
               )}
-              {!isHrOperations && (
+              {!isSimplifiedHrProfile && (
                 <span
                   className="absolute -bottom-1 -right-1 w-5 h-5 bg-emerald-500 border-2 border-white dark:border-[#070c1e] rounded-full shadow-md animate-pulse"
                   title="Account Status: Active & Authenticated"
@@ -548,7 +550,7 @@ export const CrmMyProfile = () => {
                   {p.name}
                 </h1>
 
-                {!isHrOperations && (
+                {!isSimplifiedHrProfile && (
                   <span className="font-mono text-xs font-black px-2.5 py-0.5 rounded-full bg-gold-500/15 text-gold-700 dark:text-gold-300 border border-gold-500/40 uppercase tracking-wider">
                     {p.employeeId}
                   </span>
@@ -561,10 +563,10 @@ export const CrmMyProfile = () => {
               </div>
 
               <p className="text-sm font-semibold text-amber-700 dark:text-gold-400">
-                {isHrOperations ? 'International HR Operations' : p.designation}
+                {isHrLead ? (p.designation || 'Head of Global HR & Operations') : (isHrOperations ? 'International HR Operations' : p.designation)}
               </p>
 
-              {!isHrOperations && (
+              {!isSimplifiedHrProfile && (
                 <div className="flex flex-wrap items-center gap-y-1 gap-x-4 text-xs text-slate-500 dark:text-slate-400 pt-1">
                   <div className="flex items-center gap-1.5 font-mono text-[11px]">
                     <Clock className="w-3.5 h-3.5 text-slate-400 shrink-0" />
@@ -577,7 +579,7 @@ export const CrmMyProfile = () => {
 
           {/* Right: Actions */}
           <div className="flex flex-wrap items-center gap-3">
-            {!isHrOperations && (
+            {!isSimplifiedHrProfile && (
               <button
                 onClick={() => fetchProfileData(true)}
                 disabled={refreshing}
@@ -600,49 +602,51 @@ export const CrmMyProfile = () => {
         </div>
 
         {/* Navigation Tabs */}
-        <div className="flex items-center gap-2 border-t border-slate-100 dark:border-navy-800/80 pt-4 mt-6 overflow-x-auto text-xs font-semibold">
-          <button
-            onClick={() => setActiveTab('overview')}
-            className={`px-4 py-2 rounded-xl transition cursor-pointer shrink-0 ${activeTab === 'overview'
-                ? 'bg-gold-500 text-navy-950 font-bold shadow-xs'
-                : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white hover:bg-slate-100 dark:hover:bg-navy-900'
-              }`}
-          >
-            Overview
-          </button>
-          <button
-            onClick={() => setActiveTab('work-info')}
-            className={`px-4 py-2 rounded-xl transition cursor-pointer shrink-0 ${activeTab === 'work-info'
-                ? 'bg-gold-500 text-navy-950 font-bold shadow-xs'
-                : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white hover:bg-slate-100 dark:hover:bg-navy-900'
-              }`}
-          >
-            Role and Organization
-          </button>
-          <button
-            onClick={() => setActiveTab('security')}
-            className={`px-4 py-2 rounded-xl transition cursor-pointer shrink-0 ${activeTab === 'security'
-                ? 'bg-gold-500 text-navy-950 font-bold shadow-xs'
-                : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white hover:bg-slate-100 dark:hover:bg-navy-900'
-              }`}
-          >
-            Account Security & Password
-          </button>
-          <button
-            onClick={() => setActiveTab('notifications')}
-            className={`px-4 py-2 rounded-xl transition cursor-pointer shrink-0 ${activeTab === 'notifications'
-                ? 'bg-gold-500 text-navy-950 font-bold shadow-xs'
-                : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white hover:bg-slate-100 dark:hover:bg-navy-900'
-              }`}
-          >
-            Notification Preferences
-          </button>
-        </div>
+        {!isSimplifiedHrProfile && (
+          <div className="flex items-center gap-2 border-t border-slate-100 dark:border-navy-800/80 pt-4 mt-6 overflow-x-auto text-xs font-semibold">
+            <button
+              onClick={() => setActiveTab('overview')}
+              className={`px-4 py-2 rounded-xl transition cursor-pointer shrink-0 ${activeTab === 'overview'
+                  ? 'bg-gold-500 text-navy-950 font-bold shadow-xs'
+                  : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white hover:bg-slate-100 dark:hover:bg-navy-900'
+                }`}
+            >
+              Overview
+            </button>
+            <button
+              onClick={() => setActiveTab('work-info')}
+              className={`px-4 py-2 rounded-xl transition cursor-pointer shrink-0 ${activeTab === 'work-info'
+                  ? 'bg-gold-500 text-navy-950 font-bold shadow-xs'
+                  : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white hover:bg-slate-100 dark:hover:bg-navy-900'
+                }`}
+            >
+              Role and Organization
+            </button>
+            <button
+              onClick={() => setActiveTab('security')}
+              className={`px-4 py-2 rounded-xl transition cursor-pointer shrink-0 ${activeTab === 'security'
+                  ? 'bg-gold-500 text-navy-950 font-bold shadow-xs'
+                  : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white hover:bg-slate-100 dark:hover:bg-navy-900'
+                }`}
+            >
+              Account Security & Password
+            </button>
+            <button
+              onClick={() => setActiveTab('notifications')}
+              className={`px-4 py-2 rounded-xl transition cursor-pointer shrink-0 ${activeTab === 'notifications'
+                  ? 'bg-gold-500 text-navy-950 font-bold shadow-xs'
+                  : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white hover:bg-slate-100 dark:hover:bg-navy-900'
+                }`}
+            >
+              Notification Preferences
+            </button>
+          </div>
+        )}
 
       </div>
 
-      {/* 2. WORK SUMMARY STATS CARDS (5 METRICS) - Excluded for HR Operations */}
-      {!isHrOperations && (
+      {/* 2. WORK SUMMARY STATS CARDS (5 METRICS) - Excluded for HR Operations & HR Lead */}
+      {!isSimplifiedHrProfile && (
         <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-4">
 
           {/* 1. Total Assigned Tasks */}
@@ -768,7 +772,7 @@ export const CrmMyProfile = () => {
       {/* 3. MAIN SECTION CARDS (Based on Active Tab) */}
 
       {/* TAB 1: OVERVIEW & PERSONAL INFORMATION */}
-      {(activeTab === 'overview' || activeTab === 'work-info') && (
+      {(isSimplifiedHrProfile || activeTab === 'overview' || activeTab === 'work-info') && (
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
 
           {/* Card A: Personal Information */}
@@ -791,16 +795,16 @@ export const CrmMyProfile = () => {
               {/* Full Name */}
               <div className="flex flex-col sm:flex-row sm:items-center justify-between p-3 rounded-2xl bg-slate-50 dark:bg-navy-900/60 border border-slate-100 dark:border-navy-800 gap-1">
                 <span className="text-slate-500 font-medium">Full Legal Name</span>
-                <span className="font-bold text-slate-900 dark:text-white sm:text-right">{p.name}</span>
+                <span className="font-bold text-slate-900 dark:text-white sm:text-right">{p.name || (isHrLead ? 'Priya Sharma' : 'Balavarshini S.')}</span>
               </div>
 
               {/* Employee ID */}
               <div className="flex flex-col sm:flex-row sm:items-center justify-between p-3 rounded-2xl bg-slate-50 dark:bg-navy-900/60 border border-slate-100 dark:border-navy-800 gap-1">
                 <span className="text-slate-500 font-medium">Employee ID</span>
                 <div className="flex items-center gap-2">
-                  <span className="font-mono font-bold text-gold-600 dark:text-gold-400">{p.employeeId}</span>
+                  <span className="font-mono font-bold text-gold-600 dark:text-gold-400">{p.employeeId || (isHrLead ? 'REV-EMP-003' : 'REV-EMP-006')}</span>
                   <button
-                    onClick={() => handleCopy(p.employeeId, 'empId')}
+                    onClick={() => handleCopy(p.employeeId || (isHrLead ? 'REV-EMP-003' : 'REV-EMP-006'), 'empId')}
                     className="text-slate-400 hover:text-gold-500 p-1"
                     title="Copy Employee ID"
                   >
@@ -813,11 +817,11 @@ export const CrmMyProfile = () => {
               <div className="flex flex-col sm:flex-row sm:items-center justify-between p-3 rounded-2xl bg-slate-50 dark:bg-navy-900/60 border border-slate-100 dark:border-navy-800 gap-1">
                 <span className="text-slate-500 font-medium">Corporate Email Address</span>
                 <div className="flex items-center gap-2 truncate">
-                  <a href={`mailto:${p.email}`} className="font-mono font-bold text-slate-900 dark:text-white hover:text-gold-500 truncate">
-                    {p.email}
+                  <a href={`mailto:${p.email || (isHrLead ? 'priya.lead@revivalinternational.com' : 'balavarshini.s@revivalinternational.com')}`} className="font-mono font-bold text-slate-900 dark:text-white hover:text-gold-500 truncate">
+                    {p.email || (isHrLead ? 'priya.lead@revivalinternational.com' : 'balavarshini.s@revivalinternational.com')}
                   </a>
                   <button
-                    onClick={() => handleCopy(p.email, 'email')}
+                    onClick={() => handleCopy(p.email || (isHrLead ? 'priya.lead@revivalinternational.com' : 'balavarshini.s@revivalinternational.com'), 'email')}
                     className="text-slate-400 hover:text-gold-500 p-1 shrink-0"
                     title="Copy Email Address"
                   >
@@ -829,9 +833,9 @@ export const CrmMyProfile = () => {
               {/* Phone Number */}
               <div className="flex flex-col sm:flex-row sm:items-center justify-between p-3 rounded-2xl bg-slate-50 dark:bg-navy-900/60 border border-slate-100 dark:border-navy-800 gap-1">
                 <span className="text-slate-500 font-medium">Phone Number</span>
-                <a href={`tel:${p.phone}`} className="font-mono font-bold text-slate-900 dark:text-white hover:text-emerald-500 flex items-center gap-1.5">
+                <a href={`tel:${p.phone || (isHrLead ? '+91 98400 11003' : '')}`} className="font-mono font-bold text-slate-900 dark:text-white hover:text-emerald-500 flex items-center gap-1.5">
                   <Phone className="w-3.5 h-3.5 text-emerald-500 shrink-0" />
-                  <span>{p.phone || 'Not Specified'}</span>
+                  <span>{p.phone || (isHrLead ? '+91 98400 11003' : 'Not Specified')}</span>
                 </a>
               </div>
 
@@ -839,7 +843,7 @@ export const CrmMyProfile = () => {
               <div className="flex flex-col sm:flex-row sm:items-center justify-between p-3 rounded-2xl bg-slate-50 dark:bg-navy-900/60 border border-slate-100 dark:border-navy-800 gap-1">
                 <span className="text-slate-500 font-medium">Date of Birth</span>
                 <span className="font-semibold text-slate-800 dark:text-slate-200">
-                  {p.dateOfBirth ? new Date(p.dateOfBirth).toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' }) : 'November 14, 1996'}
+                  {p.dateOfBirth ? new Date(p.dateOfBirth).toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' }) : (isHrLead ? 'December 5, 1990' : 'November 14, 1996')}
                 </span>
               </div>
 
@@ -848,7 +852,7 @@ export const CrmMyProfile = () => {
                 <span className="text-slate-500 font-medium shrink-0">Official Address</span>
                 <div className="flex items-start gap-1.5 sm:text-right text-slate-800 dark:text-slate-200 font-medium">
                   <MapPin className="w-3.5 h-3.5 text-rose-500 shrink-0 mt-0.5" />
-                  <span>{p.address || 'OMR IT Corridor, Chennai, India'}</span>
+                  <span>{p.address || (isHrLead ? 'Al Barsha 1, Dubai, UAE' : 'OMR IT Corridor, Chennai, India')}</span>
                 </div>
               </div>
 
@@ -876,21 +880,39 @@ export const CrmMyProfile = () => {
               <div className="flex flex-col sm:flex-row sm:items-center justify-between p-3 rounded-2xl bg-slate-50 dark:bg-navy-900/60 border border-slate-100 dark:border-navy-800 gap-1">
                 <span className="text-slate-500 font-medium">Role</span>
                 <span className="font-bold text-slate-900 dark:text-white sm:text-right">
-                  {isHrOperations ? 'International HR Operations' : p.designation}
+                  {isHrLead ? 'Head of Global HR & Operations' : (isHrOperations ? 'International HR Operations' : p.designation)}
+                </span>
+              </div>
+
+              {/* Department */}
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between p-3 rounded-2xl bg-slate-50 dark:bg-navy-900/60 border border-slate-100 dark:border-navy-800 gap-1">
+                <span className="text-slate-500 font-medium">Department</span>
+                <span className="font-bold text-slate-900 dark:text-white sm:text-right">
+                  {p.department || (isHrLead ? 'Human Resources' : 'International HR Operations')}
                 </span>
               </div>
 
               {/* Reporting Manager */}
               <div className="flex flex-col sm:flex-row sm:items-center justify-between p-3 rounded-2xl bg-slate-50 dark:bg-navy-900/60 border border-slate-100 dark:border-navy-800 gap-1">
                 <span className="text-slate-500 font-medium">Reporting Manager</span>
-                <span className="font-bold text-slate-900 dark:text-white sm:text-right">{p.reportingManager || 'Priya Sharma (HR Lead)'}</span>
+                <span className="font-bold text-slate-900 dark:text-white sm:text-right">
+                  {p.reportingManager || (isHrLead ? 'Dhanalakshimi (Super Admin)' : 'Priya Sharma (HR Lead)')}
+                </span>
               </div>
 
               {/* Date of Joining */}
               <div className="flex flex-col sm:flex-row sm:items-center justify-between p-3 rounded-2xl bg-slate-50 dark:bg-navy-900/60 border border-slate-100 dark:border-navy-800 gap-1">
                 <span className="text-slate-500 font-medium">Date of Joining</span>
                 <span className="font-semibold text-slate-800 dark:text-slate-200">
-                  {p.joiningDate ? new Date(p.joiningDate).toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' }) : 'August 10, 2023'}
+                  {p.joiningDate ? new Date(p.joiningDate).toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' }) : (isHrLead ? 'June 1, 2023' : 'August 10, 2023')}
+                </span>
+              </div>
+
+              {/* Assigned Console / Division */}
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between p-3 rounded-2xl bg-slate-50 dark:bg-navy-900/60 border border-slate-100 dark:border-navy-800 gap-1">
+                <span className="text-slate-500 font-medium">Assigned Console / Division</span>
+                <span className="font-bold text-slate-900 dark:text-white sm:text-right">
+                  {p.assignedBranch || (isHrLead ? 'Central HR Executive Console, Dubai' : resolvedBranchName)}
                 </span>
               </div>
 
@@ -909,7 +931,7 @@ export const CrmMyProfile = () => {
       )}
 
       {/* TAB 2: ACCOUNT SECURITY & CHANGE PASSWORD */}
-      {(activeTab === 'overview' || activeTab === 'security') && (
+      {(isSimplifiedHrProfile || activeTab === 'overview' || activeTab === 'security') && (
         <div className="bg-white dark:bg-[#070c1e] border border-slate-200 dark:border-navy-800 rounded-3xl p-6 sm:p-8 shadow-sm space-y-6">
           <div className="flex items-center justify-between border-b border-slate-100 dark:border-navy-800 pb-4">
             <div className="flex items-center space-x-3">
@@ -1072,7 +1094,7 @@ export const CrmMyProfile = () => {
       )}
 
       {/* TAB 3: NOTIFICATION PREFERENCES */}
-      {(activeTab === 'overview' || activeTab === 'notifications') && (
+      {(isSimplifiedHrProfile || activeTab === 'overview' || activeTab === 'notifications') && (
         <div className="bg-white dark:bg-[#070c1e] border border-slate-200 dark:border-navy-800 rounded-3xl p-6 sm:p-8 shadow-sm space-y-6">
           <div className="flex items-center justify-between border-b border-slate-100 dark:border-navy-800 pb-4">
             <div className="flex items-center space-x-3">
@@ -1101,9 +1123,13 @@ export const CrmMyProfile = () => {
             {/* Pref 1: Task Assignment Alerts */}
             <div className="p-4 rounded-2xl bg-slate-50 dark:bg-navy-900/60 border border-slate-100 dark:border-navy-800 flex items-start justify-between gap-4">
               <div className="space-y-1">
-                <h4 className="font-bold text-slate-900 dark:text-white">New Task Assignment Notifications</h4>
+                <h4 className="font-bold text-slate-900 dark:text-white">
+                  {isHrLead ? 'Team Task & Allocation Alerts' : 'New Task Assignment Notifications'}
+                </h4>
                 <p className="text-[11px] text-slate-500 dark:text-slate-400 leading-relaxed">
-                  Receive instant alerts whenever the HR Lead or Super Admin allocates new candidate enquiries to your queue.
+                  {isHrLead
+                    ? 'Receive instant alerts when specialists update candidate enquiries or complete assignments.'
+                    : 'Receive instant alerts whenever the HR Lead or Super Admin allocates new candidate enquiries to your queue.'}
                 </p>
               </div>
               <label className="relative inline-flex items-center cursor-pointer shrink-0 mt-1">
@@ -1120,9 +1146,13 @@ export const CrmMyProfile = () => {
             {/* Pref 2: Urgent Follow-Up Alerts */}
             <div className="p-4 rounded-2xl bg-slate-50 dark:bg-navy-900/60 border border-slate-100 dark:border-navy-800 flex items-start justify-between gap-4">
               <div className="space-y-1">
-                <h4 className="font-bold text-slate-900 dark:text-white">Approaching Follow-Up Alerts</h4>
+                <h4 className="font-bold text-slate-900 dark:text-white">
+                  {isHrLead ? 'Approaching Escalation & Follow-Up Alerts' : 'Approaching Follow-Up Alerts'}
+                </h4>
                 <p className="text-[11px] text-slate-500 dark:text-slate-400 leading-relaxed">
-                  Receive timely reminders 30 minutes before a scheduled candidate consultation call or dossier verification due date.
+                  {isHrLead
+                    ? 'Receive timely reminders 30 minutes before team follow-up SLA deadlines or pending leave request cut-offs.'
+                    : 'Receive timely reminders 30 minutes before a scheduled candidate consultation call or dossier verification due date.'}
                 </p>
               </div>
               <label className="relative inline-flex items-center cursor-pointer shrink-0 mt-1">
@@ -1139,9 +1169,13 @@ export const CrmMyProfile = () => {
             {/* Pref 3: Daily Morning Queue Summary */}
             <div className="p-4 rounded-2xl bg-slate-50 dark:bg-navy-900/60 border border-slate-100 dark:border-navy-800 flex items-start justify-between gap-4">
               <div className="space-y-1">
-                <h4 className="font-bold text-slate-900 dark:text-white">Daily Morning Queue Digest</h4>
+                <h4 className="font-bold text-slate-900 dark:text-white">
+                  {isHrLead ? 'Daily Morning Team & Operations Digest' : 'Daily Morning Queue Digest'}
+                </h4>
                 <p className="text-[11px] text-slate-500 dark:text-slate-400 leading-relaxed">
-                  Receive a consolidated digest of pending tasks and pending enquiries every morning at 08:30 AM GST.
+                  {isHrLead
+                    ? 'Receive a consolidated digest of team attendance, open branch queues, and pending leaves every morning at 08:30 AM GST.'
+                    : 'Receive a consolidated digest of pending tasks and pending enquiries every morning at 08:30 AM GST.'}
                 </p>
               </div>
               <label className="relative inline-flex items-center cursor-pointer shrink-0 mt-1">
@@ -1160,7 +1194,9 @@ export const CrmMyProfile = () => {
               <div className="space-y-1">
                 <h4 className="font-bold text-slate-900 dark:text-white">HR & Corporate Circulars</h4>
                 <p className="text-[11px] text-slate-500 dark:text-slate-400 leading-relaxed">
-                  Receive company-wide policy updates, shift change alerts, and executive notices issued by HR Lead Priya Sharma.
+                  {isHrLead
+                    ? 'Receive executive notices, company-wide policy updates, and board circulars issued to the HR Lead.'
+                    : 'Receive company-wide policy updates, shift change alerts, and executive notices issued by HR Lead Priya Sharma.'}
                 </p>
               </div>
               <label className="relative inline-flex items-center cursor-pointer shrink-0 mt-1">
@@ -1194,7 +1230,7 @@ export const CrmMyProfile = () => {
 
             <button
               type="button"
-              onClick={() => (currentRole === 'HR Operations' && requestLogout ? requestLogout() : logout())}
+              onClick={() => (isSimplifiedHrProfile && requestLogout ? requestLogout() : logout())}
               className="px-5 py-2 rounded-xl bg-rose-600 hover:bg-rose-500 text-white font-bold text-xs transition duration-200 shadow-sm flex items-center gap-2 shrink-0 cursor-pointer"
             >
               <LogOut className="w-3.5 h-3.5" />
