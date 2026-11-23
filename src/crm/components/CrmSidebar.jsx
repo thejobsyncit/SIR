@@ -51,6 +51,7 @@ export const CrmSidebar = ({ collapsed, setCollapsed }) => {
     currentRole,
     user,
     leads = [],
+    isDummyLead,
     applications = [],
     consultingServiceFilter = 'all',
     setConsultingServiceFilter
@@ -70,9 +71,9 @@ export const CrmSidebar = ({ collapsed, setCollapsed }) => {
     return cleanName.charAt(0).toUpperCase() || 'H';
   }, [user?.name, currentRole]);
 
-  // For HR Operations & HR Lead: if user removes photo (or has stock preset), show default profile (first letter of name).
+  // For HR Operations: if user removes photo (or has stock preset), show default profile (first letter of name).
   // If user uploaded a custom photo, display the uploaded photo.
-  const showUserInitial = (isHrOperationsRole || isHrLeadRole)
+  const showUserInitial = isHrOperationsRole
     ? !hasUploadedPhoto(user?.avatar)
     : (!user?.avatar || user.avatar.trim() === '');
 
@@ -91,8 +92,9 @@ export const CrmSidebar = ({ collapsed, setCollapsed }) => {
 
   const getServiceCount = (srvId) => {
     if (!Array.isArray(leads)) return 0;
+    const realLeads = leads.filter(l => l && (isDummyLead ? !isDummyLead(l) : true));
     if (srvId === 'all') {
-      return leads.filter(l =>
+      return realLeads.filter(l =>
         l && (
           l.consultationDate ||
           l.status === 'Consultation Scheduled' ||
@@ -108,7 +110,7 @@ export const CrmSidebar = ({ collapsed, setCollapsed }) => {
         )
       ).length;
     }
-    return leads.filter(l => {
+    return realLeads.filter(l => {
       if (!l) return false;
       const sId = (l.serviceId || '').toLowerCase();
       const title = (l.serviceTitle || '').toLowerCase();
@@ -269,6 +271,7 @@ export const CrmSidebar = ({ collapsed, setCollapsed }) => {
     { id: 'my-attendance', label: 'My Attendance', icon: CalendarCheck },
     { id: 'hr-leave', label: 'Leave Approvals', icon: Calendar },
     { id: 'hr-employees', label: 'Workforce Directory', icon: Users },
+    { id: 'hr-performance', label: 'Performance Metrics', icon: TrendingUp },
     { id: 'hr-recruitment', label: 'Onboarding & Hiring', icon: UserPlus },
     { id: 'hr-announcements', label: 'Company Announcements', icon: Bell },
     { id: 'hr-shifts', label: 'Shift Management', icon: CalendarCheck },
@@ -488,8 +491,8 @@ export const CrmSidebar = ({ collapsed, setCollapsed }) => {
       roleBadge = 'Campus Drives';
     } else if (isHrLeadRole) {
       currentList = hrLeadMenuItems;
-      roleSectionTitle = '';
-      roleBadge = '';
+      roleSectionTitle = 'HR Lead Suite';
+      roleBadge = 'Workforce';
     } else if (isInterviewerRole) {
       currentList = interviewerMenuItems;
       roleSectionTitle = 'Interviewer Desk';
@@ -508,11 +511,9 @@ export const CrmSidebar = ({ collapsed, setCollapsed }) => {
               <span className="text-[10px] font-bold tracking-wider uppercase text-amber-900 dark:text-gold-400">
                 {roleSectionTitle}
               </span>
-              {roleBadge ? (
-                <span className="font-mono bg-amber-100 text-amber-900 dark:bg-gold-500/20 dark:text-gold-300 px-1.5 py-0.2 rounded-full text-[10px] font-semibold border border-amber-300 dark:border-gold-500/30">
-                  {roleBadge}
-                </span>
-              ) : null}
+              <span className="font-mono bg-amber-100 text-amber-900 dark:bg-gold-500/20 dark:text-gold-300 px-1.5 py-0.2 rounded-full text-[10px] font-semibold border border-amber-300 dark:border-gold-500/30">
+                {roleBadge}
+              </span>
             </div>
           </div>
         )}

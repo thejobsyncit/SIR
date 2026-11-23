@@ -310,18 +310,13 @@ const CrmAppContent = () => {
       case 'hr-performance':
       case 'hr-recruitment':
       case 'hr-payroll':
+      case 'hr-announcements':
       case 'hr-shifts':
       case 'hr-documents':
       case 'hr-grievances':
       case 'hr-approvals':
       case 'hr-reports':
         return <CrmHrLeadDashboard initialSection={activeModule} />;
-
-      case 'hr-announcements':
-        if (currentRole === 'HR Operations') {
-          return <CrmHrOperationsDashboard initialSection="announcements" />;
-        }
-        return <CrmHrLeadDashboard initialSection="hr-announcements" />;
 
       case 'hr-tasks':
         if (currentRole === 'HR Operations') {

@@ -190,6 +190,13 @@ export const QuickApplyModal = ({ job, isOpen, onClose, onSuccess }) => {
           size: resumeFile.size,
           base64: base64Data
         };
+        try {
+          if (typeof window !== 'undefined') {
+            localStorage.setItem('sir_active_resume', base64Data);
+            localStorage.setItem('sir_active_resume_name', resumeFile.name);
+            if (email) localStorage.setItem(`sir_resume_${email.trim().toLowerCase()}`, base64Data);
+          }
+        } catch {}
       }
 
       const generatedRef = `RI-APP-${Math.floor(100000 + Math.random() * 900000)}`;
@@ -250,9 +257,18 @@ export const QuickApplyModal = ({ job, isOpen, onClose, onSuccess }) => {
         console.warn('Leads queue sync note:', crmErr);
       }
 
-      // Update client context
+      // Update client context with actual uploaded resume
       if (applyForJob) {
-        await applyForJob(job);
+        await applyForJob(job, {
+          referenceNumber: result.applicationId || generatedRef,
+          resumeName: resumeFile ? resumeFile.name : (user?.resumeName || null),
+          resumeUrl: cvPayload?.base64 || user?.resumeUrl || (typeof window !== 'undefined' ? localStorage.getItem('sir_active_resume') : null) || null,
+          resumeSize: resumeFile ? `${Math.round(resumeFile.size / 1024)} KB` : (user?.resumeSize || null),
+          applicantName: fullName.trim(),
+          applicantEmail: email.trim().toLowerCase(),
+          applicantPhone: phone.trim() || user?.phone || '',
+          saveToProfile: true
+        });
       }
 
       setSuccessResult({
@@ -296,7 +312,7 @@ export const QuickApplyModal = ({ job, isOpen, onClose, onSuccess }) => {
           </button>
 
           <span className="text-[10px] uppercase font-black tracking-widest text-gold-400 bg-gold-400/10 px-2.5 py-0.5 rounded-full inline-block mb-1.5">
-            INSTANT QUICK APPLY • 100% FREE PLACEMENT
+            INSTANT QUICK APPLY • VERIFIED MANDATE
           </span>
           <h2 className="text-lg sm:text-xl font-bold text-white line-clamp-1 pr-8">{job.title}</h2>
           <p className="text-xs text-slate-300 mt-0.5 flex items-center gap-1.5 flex-wrap">
@@ -484,7 +500,7 @@ export const QuickApplyModal = ({ job, isOpen, onClose, onSuccess }) => {
                     >
                       Candidate Consent Notice
                     </button>
-                    . I acknowledge that placement services are 100% free of charge.
+                    .
                   </span>
                 </label>
               </div>

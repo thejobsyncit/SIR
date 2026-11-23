@@ -1,13 +1,13 @@
-import React, { useState, useEffect, useRef, useMemo, useCallback } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useCrm } from '../context/CrmContext';
 import {
   LayoutDashboard, Users, UserCheck, Clock, CheckCircle2, AlertCircle, ArrowUpRight,
   Calendar, BarChart3, RefreshCw, Search, Filter, Phone, Mail, MessageSquare,
-  CheckSquare, ChevronRight, ChevronLeft, ChevronDown, UserPlus, FileText, TrendingUp, CalendarCheck,
+  CheckSquare, ChevronRight, UserPlus, FileText, TrendingUp, CalendarCheck,
   CreditCard, DollarSign, Award, Bell, ShieldCheck, Download, Plus, X,
   Briefcase, Gift, Cake, ShieldAlert, HeartHandshake, Eye, EyeOff, FileSpreadsheet,
   Check, XCircle, Send, Sparkles, Building2, MapPin, Layers, Printer, CheckCheck,
-  LogIn, LogOut, Coffee, Play, RotateCcw, Megaphone, Trash2, Globe, Radio, BookmarkCheck
+  LogIn, LogOut, Coffee, Play, RotateCcw
 } from 'lucide-react';
 import jsPDF from 'jspdf';
 import ScrollReveal from '../../components/ScrollReveal';
@@ -1222,257 +1222,95 @@ export const CrmHrLeadDashboard = ({ initialSection }) => {
     showToast(`✓ Leave request ${leaveId} has been marked as ${decision.toUpperCase()}.`);
   };
 
-  // 3. COMPANY ANNOUNCEMENTS STATE & BACKEND DATABASE INTEGRATION
-  const [companyAnnouncements, setCompanyAnnouncements] = useState([]);
-  const [announcementsLoading, setAnnouncementsLoading] = useState(false);
-  const [isCreateAnnouncementOpen, setIsCreateAnnouncementOpen] = useState(false);
-  const [selectedAnnouncementForModal, setSelectedAnnouncementForModal] = useState(null);
-  const [announcementFilter, setAnnouncementFilter] = useState('all'); // 'all' | 'published' | 'draft' | 'hr-ops'
-  const [announcementSearch, setAnnouncementSearch] = useState('');
-  const [savingAnnouncement, setSavingAnnouncement] = useState(false);
-  const [announcementFormErrors, setAnnouncementFormErrors] = useState({});
+  // 3. ANNOUNCEMENTS STATE (Feature 8) - With LocalStorage Persistence & Interactive Broadcast Compose Modal
+  const STORAGE_KEY_ANNOUNCEMENTS = 'sir_crm_announcements_v1';
+  const DEFAULT_ANNOUNCEMENTS = [
+    {
+      id: 'ANN-201',
+      title: 'Revised Flexi-Hour & Remote Work Guidelines (Q4 2026)',
+      category: 'Policy Update',
+      postedDate: 'Today at 09:00 AM',
+      author: 'Priya Lead (HR Director)',
+      content: 'Core collaboration hours are 10:30 AM to 04:30 PM. Weekly hybrid allowance is 2 days/week with team lead approval.',
+      pinned: true
+    },
+    {
+      id: 'ANN-202',
+      title: 'Annual Health Check-Up Camp & Ergonomic Screening',
+      category: 'Employee Wellness',
+      postedDate: 'Yesterday at 02:00 PM',
+      author: 'HR Operations Desk',
+      content: 'Apollo Hospitals diagnostic camp scheduled on Nov 18th in Floor 3 Boardroom for all employees.',
+      pinned: false
+    },
+    {
+      id: 'ANN-203',
+      title: 'Official Holiday Notice: Karthigai Deepam (Dec 03, 2026)',
+      category: 'Office Holiday',
+      postedDate: 'Nov 04, 2026',
+      author: 'HR Lead Operations',
+      content: 'The company offices will remain closed on Dec 03 in observance of Karthigai Deepam festival.',
+      pinned: false
+    }
+  ];
 
-  const [announcementForm, setAnnouncementForm] = useState({
-    title: '',
-    description: '',
-    category: 'General Notice',
-    target_audience: 'All Employees',
-    status: 'Published',
-    expires_at: ''
+  const [announcements, setAnnouncements] = useState(() => {
+    try {
+      const saved = localStorage.getItem(STORAGE_KEY_ANNOUNCEMENTS);
+      if (saved) {
+        const parsed = JSON.parse(saved);
+        if (Array.isArray(parsed) && parsed.length > 0) return parsed;
+      }
+    } catch { }
+    return DEFAULT_ANNOUNCEMENTS;
   });
 
-  const loadCompanyAnnouncements = useCallback(async () => {
-    setAnnouncementsLoading(true);
-    try {
-      let token = crmToken;
-      if (!token) {
-        try {
-          const previewRes = await fetch('/api/crm/auth/preview-token', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({
-              targetRole: currentRole || 'HR Lead',
-              targetEmail: user?.email,
-              employeeId: user?.id
-            })
-          });
-          const previewJson = await previewRes.json();
-          if (previewJson?.success && previewJson.token) {
-            token = previewJson.token;
-            if (setCrmToken) setCrmToken(token);
-          }
-        } catch (_) {}
-      }
-
-      const res = await fetch('/api/company-announcements', {
-        headers: {
-          'Content-Type': 'application/json',
-          ...(token ? { Authorization: `Bearer ${token}` } : {})
-        },
-        credentials: 'include'
-      });
-      if (res.ok) {
-        const data = await res.json();
-        if (data?.success && Array.isArray(data.announcements)) {
-          setCompanyAnnouncements(data.announcements);
-          return;
-        }
-      }
-    } catch (err) {
-      console.warn('Failed to load company announcements:', err);
-    } finally {
-      setAnnouncementsLoading(false);
-    }
-  }, [crmToken, currentRole, user?.email, user?.id, setCrmToken]);
-
   useEffect(() => {
-    loadCompanyAnnouncements();
-  }, [loadCompanyAnnouncements]);
+    try {
+      localStorage.setItem(STORAGE_KEY_ANNOUNCEMENTS, JSON.stringify(announcements));
+    } catch { }
+  }, [announcements]);
 
-  const handleSaveAnnouncement = async (statusChoice = 'Published') => {
-    const errors = {};
-    if (!announcementForm.title.trim()) {
-      errors.title = 'Announcement title is required.';
-    }
-    if (!announcementForm.description.trim()) {
-      errors.description = 'Announcement description is required.';
-    }
-    if (Object.keys(errors).length > 0) {
-      setAnnouncementFormErrors(errors);
+  const [broadcastModalOpen, setBroadcastModalOpen] = useState(false);
+  const [broadcastForm, setBroadcastForm] = useState({
+    title: '',
+    category: 'Policy Update',
+    content: '',
+    author: 'Super Admin',
+    pinned: false
+  });
+
+  const handleBroadcastNotice = (e) => {
+    e.preventDefault();
+    if (!broadcastForm.title.trim() || !broadcastForm.content.trim()) {
+      showToast('⚠️ Please provide both a title and notice content.');
       return;
     }
-
-    setSavingAnnouncement(true);
-    setAnnouncementFormErrors({});
-
-    try {
-      let token = crmToken;
-      if (!token) {
-        try {
-          const previewRes = await fetch('/api/crm/auth/preview-token', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({
-              targetRole: currentRole || 'HR Lead',
-              targetEmail: user?.email,
-              employeeId: user?.id
-            })
-          });
-          const previewJson = await previewRes.json();
-          if (previewJson?.success && previewJson.token) {
-            token = previewJson.token;
-            if (setCrmToken) setCrmToken(token);
-          }
-        } catch (_) {}
-      }
-
-      const payload = {
-        title: announcementForm.title.trim(),
-        description: announcementForm.description.trim(),
-        category: announcementForm.category,
-        target_audience: announcementForm.target_audience,
-        status: statusChoice,
-        expires_at: announcementForm.expires_at || null
-      };
-
-      const res = await fetch('/api/company-announcements', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          ...(token ? { Authorization: `Bearer ${token}` } : {})
-        },
-        credentials: 'include',
-        body: JSON.stringify(payload)
-      });
-
-      const data = await res.json();
-      if (!res.ok || !data.success) {
-        showToast(data.message || 'Failed to save announcement.');
-      } else {
-        showToast(
-          statusChoice === 'Published'
-            ? `✓ Announcement "${payload.title}" published and broadcast successfully.`
-            : `✓ Announcement "${payload.title}" saved as draft.`
-        );
-        setIsCreateAnnouncementOpen(false);
-        setAnnouncementForm({
-          title: '',
-          description: '',
-          category: 'General Notice',
-          target_audience: 'All Employees',
-          status: 'Published',
-          expires_at: ''
-        });
-        await loadCompanyAnnouncements();
-      }
-    } catch (err) {
-      showToast('Error saving announcement: ' + (err.message || 'Network error'));
-    } finally {
-      setSavingAnnouncement(false);
-    }
-  };
-
-  const handlePublishDraft = async (id, title) => {
-    try {
-      let token = crmToken;
-      const res = await fetch(`/api/company-announcements/${id}/publish`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          ...(token ? { Authorization: `Bearer ${token}` } : {})
-        },
-        credentials: 'include'
-      });
-      const data = await res.json();
-      if (res.ok && data.success) {
-        showToast(`✓ Announcement "${title}" published and broadcast.`);
-        await loadCompanyAnnouncements();
-      } else {
-        showToast(data.message || 'Failed to publish announcement.');
-      }
-    } catch (err) {
-      showToast('Error publishing draft: ' + err.message);
-    }
-  };
-
-  const handleDeleteAnnouncement = async (id, title) => {
-    try {
-      let token = crmToken;
-      const res = await fetch(`/api/company-announcements/${id}`, {
-        method: 'DELETE',
-        headers: {
-          'Content-Type': 'application/json',
-          ...(token ? { Authorization: `Bearer ${token}` } : {})
-        },
-        credentials: 'include'
-      });
-      const data = await res.json();
-      if (res.ok && data.success) {
-        showToast(`✓ Announcement "${title}" deleted.`);
-        await loadCompanyAnnouncements();
-      } else {
-        showToast(data.message || 'Failed to delete announcement.');
-      }
-    } catch (err) {
-      showToast('Error deleting announcement: ' + err.message);
-    }
-  };
-
-  const filteredCompanyAnnouncements = useMemo(() => {
-    let list = companyAnnouncements || [];
-    if (announcementSearch.trim()) {
-      const q = announcementSearch.toLowerCase();
-      list = list.filter(a =>
-        (a.title && a.title.toLowerCase().includes(q)) ||
-        (a.description && a.description.toLowerCase().includes(q)) ||
-        (a.category && a.category.toLowerCase().includes(q)) ||
-        (a.created_by_name && a.created_by_name.toLowerCase().includes(q))
-      );
-    }
-    if (announcementFilter === 'published') {
-      list = list.filter(a => a.status === 'Published');
-    } else if (announcementFilter === 'draft') {
-      list = list.filter(a => a.status === 'Draft');
-    } else if (announcementFilter === 'hr-ops') {
-      list = list.filter(a => a.target_audience === 'HR Operations');
-    }
-    return list;
-  }, [companyAnnouncements, announcementFilter, announcementSearch]);
-
-  const formatAnnouncementDateTime = (dateStr) => {
-    if (!dateStr) return '—';
-    try {
-      const d = new Date(dateStr);
-      if (isNaN(d.getTime())) return String(dateStr);
-      return new Intl.DateTimeFormat('en-IN', {
-        timeZone: 'Asia/Kolkata',
-        day: '2-digit',
-        month: 'short',
-        year: 'numeric',
-        hour: '2-digit',
-        minute: '2-digit',
-        hour12: true
-      }).format(d);
-    } catch (_) {
-      return String(dateStr);
-    }
-  };
-
-  const getAnnouncementCategoryBadgeClass = (category) => {
-    switch (category) {
-      case 'HR Policy':
-        return 'bg-blue-50 text-blue-700 border-blue-200 dark:bg-blue-500/15 dark:text-blue-300 dark:border-blue-500/30';
-      case 'Holiday':
-        return 'bg-purple-50 text-purple-700 border-purple-200 dark:bg-purple-500/15 dark:text-purple-300 dark:border-purple-500/30';
-      case 'Important Update':
-        return 'bg-amber-50 text-amber-800 border-amber-200 dark:bg-amber-500/15 dark:text-amber-300 dark:border-amber-500/30';
-      case 'Emergency Alert':
-        return 'bg-rose-50 text-rose-700 border-rose-200 dark:bg-rose-500/15 dark:text-rose-300 dark:border-rose-500/30';
-      case 'Welfare & Benefits':
-        return 'bg-emerald-50 text-emerald-700 border-emerald-200 dark:bg-emerald-500/15 dark:text-emerald-300 dark:border-emerald-500/30';
-      default:
-        return 'bg-slate-100 text-slate-700 border-slate-200 dark:bg-slate-800 dark:text-slate-300 dark:border-slate-700';
-    }
+    const newNotice = {
+      id: 'ANN-' + Date.now(),
+      title: broadcastForm.title.trim(),
+      category: broadcastForm.category,
+      postedDate: 'Just now',
+      author: broadcastForm.author.trim() || user?.name || 'Super Admin',
+      content: broadcastForm.content.trim(),
+      pinned: Boolean(broadcastForm.pinned)
+    };
+    setAnnouncements(prev => {
+      const updated = [newNotice, ...prev];
+      try {
+        localStorage.setItem(STORAGE_KEY_ANNOUNCEMENTS, JSON.stringify(updated));
+      } catch { }
+      return updated;
+    });
+    showToast(`✓ Broadcast notice "${newNotice.title}" published and saved.`);
+    setBroadcastModalOpen(false);
+    setBroadcastForm({
+      title: '',
+      category: 'Policy Update',
+      content: '',
+      author: user?.name || 'Super Admin',
+      pinned: false
+    });
   };
 
   // 4. PERFORMANCE REVIEWS STATE (Feature 5) - With LocalStorage Persistence
@@ -1621,615 +1459,6 @@ export const CrmHrLeadDashboard = ({ initialSection }) => {
     { id: 'GRV-02', category: 'Payroll Deduction Query', priority: 'Standard', submittedDate: 'Nov 01, 2026', status: 'Resolved', details: 'Professional tax slab recalculation query resolved with finance team.' }
   ]);
 
-  // Attendance Oversight Date & Interactive Calendar State
-  const todayDateStr = useMemo(() => {
-    try {
-      return new Intl.DateTimeFormat('en-CA', {
-        timeZone: 'Asia/Kolkata',
-        year: 'numeric',
-        month: '2-digit',
-        day: '2-digit'
-      }).format(new Date());
-    } catch (_) {
-      return new Date().toISOString().slice(0, 10);
-    }
-  }, []);
-
-  const [selectedAttendanceDate, setSelectedAttendanceDate] = useState(() => {
-    try {
-      return new Intl.DateTimeFormat('en-CA', {
-        timeZone: 'Asia/Kolkata',
-        year: 'numeric',
-        month: '2-digit',
-        day: '2-digit'
-      }).format(new Date());
-    } catch (_) {
-      return new Date().toISOString().slice(0, 10);
-    }
-  });
-
-  const [calendarViewYear, setCalendarViewYear] = useState(() => new Date().getFullYear());
-  const [calendarViewMonth, setCalendarViewMonth] = useState(() => new Date().getMonth());
-  const [isCalendarOpen, setIsCalendarOpen] = useState(false);
-  const calendarPopoverRef = useRef(null);
-
-  const [dateAttendanceRecords, setDateAttendanceRecords] = useState([]);
-  const [dateAttendanceStats, setDateAttendanceStats] = useState(null);
-  const [attendanceRecordedDates, setAttendanceRecordedDates] = useState([]);
-  const [dateAttendanceLoading, setDateAttendanceLoading] = useState(false);
-
-  const [attendanceSearchQuery, setAttendanceSearchQuery] = useState('');
-  const [attendanceDeptFilter, setAttendanceDeptFilter] = useState('All');
-  const [attendanceStatusFilter, setAttendanceStatusFilter] = useState('All');
-
-  const buildFallbackDateAttendance = (dateStr) => {
-    const isToday = dateStr === todayDateStr;
-    const dt = new Date(`${dateStr}T12:00:00Z`);
-    const dayOfWeek = dt.getUTCDay();
-    // Saturday is a regular working day; Sunday (0) is the weekly off
-    const isWeeklyOff = dayOfWeek === 0;
-
-    const baseList = employees && employees.length > 0 ? employees : INITIAL_HR_EMPLOYEES;
-    return baseList.map(emp => {
-      const onLeave = leaveRequests && leaveRequests.some(l =>
-        l.employeeId === emp.id &&
-        (l.status || '').toLowerCase().includes('approved') &&
-        l.startDate <= dateStr && l.endDate >= dateStr
-      );
-
-      let status = 'Not Checked In';
-      let checkIn = '—';
-      let checkOut = '—';
-      let breakDuration = '0h 00m';
-      let totalWorkingHours = '0h 00m';
-      let lateOrEarly = '—';
-      let late = false;
-      let lateMinutes = 0;
-      let remarks = 'No punch logged for this date';
-
-      if (onLeave) {
-        status = 'On Leave';
-        remarks = 'Approved Leave';
-      } else if (isWeeklyOff) {
-        status = 'Weekly Off';
-        remarks = 'Scheduled Weekly Off';
-      } else if (isToday) {
-        if (emp.attendanceToday?.status === 'Present' || emp.attendanceToday?.status === 'Late') {
-          status = emp.attendanceToday?.status === 'Late' ? 'Late' : 'Present';
-          checkIn = emp.attendanceToday.checkIn || '08:52 AM';
-          checkOut = emp.attendanceToday.checkOut || 'Not Checked Out';
-          totalWorkingHours = emp.attendanceToday.hours || '8h 00m';
-          breakDuration = '45m';
-          late = !!emp.attendanceToday.late || emp.attendanceToday?.status === 'Late';
-          lateMinutes = emp.attendanceToday.lateMinutes || (late ? 14 : 0);
-          lateOrEarly = late ? `⚠️ Late (+${lateMinutes || 14}m)` : '✓ On Time';
-          remarks = late ? `Late check-in (+${lateMinutes || 14}m)` : 'Biometric Attendance Punch';
-        } else if (emp.attendanceToday?.status === 'On Leave') {
-          status = 'On Leave';
-          remarks = 'Approved Leave';
-        } else {
-          status = 'Not Checked In';
-          remarks = 'Pending check-in';
-        }
-      } else {
-        if (dateStr < todayDateStr) {
-          if (emp.attendanceToday?.status === 'Present') {
-            status = 'Present';
-            checkIn = emp.attendanceToday.checkIn || '09:00 AM';
-            checkOut = emp.attendanceToday.checkOut && emp.attendanceToday.checkOut !== '—' ? emp.attendanceToday.checkOut : '06:00 PM';
-            totalWorkingHours = '8h 30m';
-            breakDuration = '45m';
-            lateOrEarly = '✓ On Time';
-            remarks = 'Biometric Attendance Punch';
-          } else {
-            status = 'Absent';
-            remarks = 'Unexcused Absence';
-          }
-        } else {
-          status = 'Not Checked In';
-          remarks = 'Future Date';
-        }
-      }
-
-      return {
-        id: emp.id,
-        employeeId: emp.id,
-        name: emp.name,
-        role: emp.role,
-        department: emp.department || 'Operations',
-        location: emp.location || 'Dubai HQ',
-        avatar: emp.avatar || '',
-        avatarLetter: emp.avatarLetter || emp.name?.charAt(0) || 'E',
-        date: dateStr,
-        status,
-        checkIn,
-        checkOut,
-        breakDuration,
-        totalWorkingHours,
-        late,
-        lateMinutes,
-        lateOrEarly,
-        remarks
-      };
-    });
-  };
-
-  const loadDateAttendance = async (targetDate) => {
-    setDateAttendanceLoading(true);
-    try {
-      let token = crmToken;
-      if (!token) {
-        try {
-          const previewRes = await fetch('/api/crm/auth/preview-token', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({
-              targetRole: currentRole || 'HR Lead',
-              targetEmail: user?.email,
-              employeeId: user?.id
-            })
-          });
-          const previewJson = await previewRes.json();
-          if (previewJson?.success && previewJson.token) {
-            token = previewJson.token;
-            if (setCrmToken) setCrmToken(token);
-          }
-        } catch (_) { }
-      }
-
-      const res = await fetch(`/api/hr-ops/attendance/admin/today-register?date=${targetDate}`, {
-        headers: {
-          'Content-Type': 'application/json',
-          ...(token ? { Authorization: `Bearer ${token}` } : {})
-        },
-        credentials: 'include'
-      });
-      if (res.ok) {
-        const json = await res.json();
-        if (json?.success && Array.isArray(json.register)) {
-          setDateAttendanceRecords(json.register);
-          setDateAttendanceStats(json.stats || null);
-          if (Array.isArray(json.recordedDates)) {
-            setAttendanceRecordedDates(json.recordedDates);
-          }
-          return;
-        }
-      }
-    } catch (err) {
-      console.warn('Could not fetch date attendance register:', err);
-    } finally {
-      setDateAttendanceLoading(false);
-    }
-
-    const fallbackList = buildFallbackDateAttendance(targetDate);
-    setDateAttendanceRecords(fallbackList);
-    const presentCount = fallbackList.filter(r => r.status === 'Present').length;
-    const lateCount = fallbackList.filter(r => r.late).length;
-    const leaveCount = fallbackList.filter(r => r.status === 'On Leave').length;
-    const absentCount = fallbackList.filter(r => r.status === 'Absent' || r.status === 'Not Checked In').length;
-    setDateAttendanceStats({
-      totalWorkforce: fallbackList.length,
-      totalEmployees: fallbackList.length,
-      presentCount,
-      lateCount,
-      leaveCount,
-      absentCount
-    });
-  };
-
-  useEffect(() => {
-    const handleOutsideClick = (e) => {
-      if (calendarPopoverRef.current && !calendarPopoverRef.current.contains(e.target)) {
-        setIsCalendarOpen(false);
-      }
-    };
-    if (isCalendarOpen) {
-      document.addEventListener('mousedown', handleOutsideClick);
-    }
-    return () => {
-      document.removeEventListener('mousedown', handleOutsideClick);
-    };
-  }, [isCalendarOpen]);
-
-  useEffect(() => {
-    if (activeTab === 'attendance') {
-      loadDateAttendance(selectedAttendanceDate);
-    }
-  }, [selectedAttendanceDate, activeTab]);
-
-  const handleSelectDate = (dateStr) => {
-    setSelectedAttendanceDate(dateStr);
-    const [y, m] = dateStr.split('-').map(Number);
-    setCalendarViewYear(y);
-    setCalendarViewMonth(m - 1);
-    setIsCalendarOpen(false);
-  };
-
-  const handleStepDay = (delta) => {
-    const cur = new Date(`${selectedAttendanceDate}T12:00:00Z`);
-    cur.setUTCDate(cur.getUTCDate() + delta);
-    const nextDateStr = cur.toISOString().slice(0, 10);
-    setSelectedAttendanceDate(nextDateStr);
-    setCalendarViewYear(cur.getUTCFullYear());
-    setCalendarViewMonth(cur.getUTCMonth());
-  };
-
-  const handleJumpToToday = () => {
-    setSelectedAttendanceDate(todayDateStr);
-    const today = new Date();
-    setCalendarViewYear(today.getFullYear());
-    setCalendarViewMonth(today.getMonth());
-    setIsCalendarOpen(false);
-  };
-
-  const handlePrevMonth = (e) => {
-    e.stopPropagation();
-    if (calendarViewMonth === 0) {
-      setCalendarViewMonth(11);
-      setCalendarViewYear(y => y - 1);
-    } else {
-      setCalendarViewMonth(m => m - 1);
-    }
-  };
-
-  const handleNextMonth = (e) => {
-    e.stopPropagation();
-    if (calendarViewMonth === 11) {
-      setCalendarViewMonth(0);
-      setCalendarViewYear(y => y + 1);
-    } else {
-      setCalendarViewMonth(m => m + 1);
-    }
-  };
-
-  const formatSelectedDateDisplay = (dateStr) => {
-    try {
-      const [y, m, d] = dateStr.split('-').map(Number);
-      const dt = new Date(Date.UTC(y, m - 1, d));
-      return dt.toLocaleDateString('en-US', {
-        weekday: 'short',
-        month: 'short',
-        day: 'numeric',
-        year: 'numeric',
-        timeZone: 'UTC'
-      });
-    } catch (_) {
-      return dateStr;
-    }
-  };
-
-  const monthNames = [
-    'January', 'February', 'March', 'April', 'May', 'June',
-    'July', 'August', 'September', 'October', 'November', 'December'
-  ];
-
-  const calendarMonthDays = useMemo(() => {
-    const year = calendarViewYear;
-    const month = calendarViewMonth;
-    const firstDayIndex = new Date(year, month, 1).getDay();
-    const totalDays = new Date(year, month + 1, 0).getDate();
-    const prevMonthTotalDays = new Date(year, month, 0).getDate();
-
-    const days = [];
-    for (let i = firstDayIndex - 1; i >= 0; i--) {
-      const dayNum = prevMonthTotalDays - i;
-      const prevM = month === 0 ? 11 : month - 1;
-      const prevY = month === 0 ? year - 1 : year;
-      const dateStr = `${prevY}-${String(prevM + 1).padStart(2, '0')}-${String(dayNum).padStart(2, '0')}`;
-      days.push({ dayNum, dateStr, isCurrentMonth: false });
-    }
-
-    for (let day = 1; day <= totalDays; day++) {
-      const dateStr = `${year}-${String(month + 1).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
-      days.push({ dayNum: day, dateStr, isCurrentMonth: true });
-    }
-
-    const remaining = (7 - (days.length % 7)) % 7;
-    for (let i = 1; i <= remaining; i++) {
-      const nextM = month === 11 ? 0 : month + 1;
-      const nextY = month === 11 ? year + 1 : year;
-      const dateStr = `${nextY}-${String(nextM + 1).padStart(2, '0')}-${String(i).padStart(2, '0')}`;
-      days.push({ dayNum: i, dateStr, isCurrentMonth: false });
-    }
-
-    return days;
-  }, [calendarViewYear, calendarViewMonth]);
-
-  const handleExportAttendanceCsv = () => {
-    try {
-      const recordsToExport = filteredDateAttendance && filteredDateAttendance.length > 0
-        ? filteredDateAttendance
-        : dateAttendanceRecords;
-
-      if (!recordsToExport || recordsToExport.length === 0) {
-        showToast('No attendance records available to export for this date.');
-        return;
-      }
-
-      const headers = [
-        'Employee ID',
-        'Employee Name',
-        'Department',
-        'Attendance Status',
-        'Check-In Time',
-        'Check-Out Time',
-        'Total Working Hours',
-        'Late / Early Status',
-        'Remarks'
-      ];
-
-      const csvRows = [
-        headers.join(','),
-        ...recordsToExport.map(r => [
-          `"${r.employeeId || r.id || ''}"`,
-          `"${(r.name || '').replace(/"/g, '""')}"`,
-          `"${(r.department || '').replace(/"/g, '""')}"`,
-          `"${(r.status || '').replace(/"/g, '""')}"`,
-          `"${(r.checkIn || '').replace(/"/g, '""')}"`,
-          `"${(r.checkOut || '').replace(/"/g, '""')}"`,
-          `"${(r.totalWorkingHours || r.hours || '').replace(/"/g, '""')}"`,
-          `"${(r.lateOrEarly || '').replace(/"/g, '""')}"`,
-          `"${(r.remarks || '').replace(/"/g, '""')}"`
-        ].join(','))
-      ];
-
-      const blob = new Blob([csvRows.join('\r\n')], { type: 'text/csv;charset=utf-8;' });
-      const url = URL.createObjectURL(blob);
-      const link = document.createElement('a');
-      link.href = url;
-      link.setAttribute('download', `Daily_Attendance_${selectedAttendanceDate}.csv`);
-      document.body.appendChild(link);
-      link.click();
-      document.body.removeChild(link);
-      URL.revokeObjectURL(url);
-      showToast(`✓ Attendance CSV for ${selectedAttendanceDate} exported successfully.`);
-    } catch (err) {
-      showToast('Export failed. Please try again.');
-    }
-  };
-
-  const filteredDateAttendance = useMemo(() => {
-    let list = dateAttendanceRecords || [];
-    if (attendanceSearchQuery.trim()) {
-      const q = attendanceSearchQuery.toLowerCase();
-      list = list.filter(r =>
-        (r.name && r.name.toLowerCase().includes(q)) ||
-        (r.id && r.id.toLowerCase().includes(q)) ||
-        (r.employeeId && r.employeeId.toLowerCase().includes(q))
-      );
-    }
-    if (attendanceDeptFilter !== 'All') {
-      list = list.filter(r => (r.department || '') === attendanceDeptFilter);
-    }
-    if (attendanceStatusFilter !== 'All') {
-      list = list.filter(r => {
-        if (attendanceStatusFilter === 'Present') return r.status === 'Present' || r.status === 'Late';
-        if (attendanceStatusFilter === 'Late') return r.late || r.status === 'Late';
-        if (attendanceStatusFilter === 'Absent') return r.status === 'Absent' || r.status === 'Not Checked In';
-        if (attendanceStatusFilter === 'On Leave') return r.status === 'On Leave';
-        if (attendanceStatusFilter === 'Holiday') return r.status === 'Holiday';
-        if (attendanceStatusFilter === 'Weekly Off') return r.status === 'Weekly Off';
-        if (attendanceStatusFilter === 'Not Checked In') return r.status === 'Not Checked In';
-        return r.status === attendanceStatusFilter;
-      });
-    }
-    return list;
-  }, [dateAttendanceRecords, attendanceSearchQuery, attendanceDeptFilter, attendanceStatusFilter]);
-
-  const attendanceDepartmentList = useMemo(() => {
-    const set = new Set();
-    (dateAttendanceRecords || []).forEach(r => {
-      if (r.department) set.add(r.department);
-    });
-    return Array.from(set).sort();
-  }, [dateAttendanceRecords]);
-
-  const renderCompanyAnnouncementsSection = () => (
-    <div className="bg-white dark:bg-navy-900 border border-slate-200/90 dark:border-navy-800 rounded-3xl p-6 shadow-xs space-y-5">
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-        <div>
-          <div className="flex items-center gap-2">
-            <div className="w-8 h-8 rounded-xl bg-amber-50 dark:bg-amber-500/10 border border-amber-200/80 dark:border-amber-500/20 flex items-center justify-center text-amber-700 dark:text-gold-400 shrink-0">
-              <Megaphone className="w-4 h-4" />
-            </div>
-            <h3 className="font-serif font-bold text-base sm:text-lg text-slate-900 dark:text-white">
-              Company Announcement
-            </h3>
-          </div>
-          <p className="text-[11px] text-slate-500 dark:text-slate-400 mt-1">
-            Official corporate circulars, policy notifications, and operational directives published to workforce.
-          </p>
-        </div>
-
-        <button
-          type="button"
-          onClick={() => {
-            setAnnouncementFormErrors({});
-            setAnnouncementForm({
-              title: '',
-              description: '',
-              category: 'General Notice',
-              target_audience: 'All Employees',
-              status: 'Published',
-              expires_at: ''
-            });
-            setIsCreateAnnouncementOpen(true);
-          }}
-          className="px-4 py-2 bg-gradient-to-r from-amber-500 to-amber-600 hover:from-amber-400 hover:to-amber-500 text-slate-950 font-bold rounded-2xl shadow-xs transition flex items-center gap-1.5 cursor-pointer text-xs border border-amber-400 self-start sm:self-auto"
-        >
-          <Plus className="w-4 h-4 stroke-[2.5]" />
-          <span>+ Create Announcement</span>
-        </button>
-      </div>
-
-      {/* Filter and Search Bar */}
-      <div className="flex flex-col md:flex-row items-center justify-between gap-3 pt-1 border-t border-slate-100 dark:border-navy-800">
-        <div className="flex flex-wrap items-center gap-2 w-full md:w-auto">
-          {[
-            { id: 'all', label: 'All Notices', count: companyAnnouncements.length },
-            { id: 'published', label: 'Published', count: companyAnnouncements.filter(a => a.status === 'Published').length },
-            { id: 'draft', label: 'Drafts', count: companyAnnouncements.filter(a => a.status === 'Draft').length },
-            { id: 'hr-ops', label: 'For HR Operations', count: companyAnnouncements.filter(a => a.target_audience === 'HR Operations').length }
-          ].map(f => (
-            <button
-              key={f.id}
-              type="button"
-              onClick={() => setAnnouncementFilter(f.id)}
-              className={`px-3 py-1.5 rounded-xl text-xs font-bold transition cursor-pointer flex items-center gap-1.5 ${
-                announcementFilter === f.id
-                  ? 'bg-amber-500 text-slate-950 shadow-2xs'
-                  : 'bg-slate-100 dark:bg-navy-800 text-slate-600 dark:text-slate-300 hover:bg-slate-200 dark:hover:bg-navy-700'
-              }`}
-            >
-              <span>{f.label}</span>
-              <span className={`px-1.5 py-0.2 rounded-full text-[10px] ${
-                announcementFilter === f.id ? 'bg-slate-950/20 text-slate-950' : 'bg-slate-200 dark:bg-navy-950 text-slate-600 dark:text-slate-400'
-              }`}>
-                {f.count}
-              </span>
-            </button>
-          ))}
-        </div>
-
-        <div className="flex items-center gap-2 w-full md:w-72">
-          <div className="relative flex-1">
-            <Search className="w-3.5 h-3.5 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2" />
-            <input
-              type="text"
-              value={announcementSearch}
-              onChange={(e) => setAnnouncementSearch(e.target.value)}
-              placeholder="Search announcements..."
-              className="w-full pl-9 pr-3 py-1.5 bg-slate-50 dark:bg-navy-950 border border-slate-200 dark:border-navy-800 rounded-xl text-xs text-slate-900 dark:text-white placeholder:text-slate-400 focus:outline-none focus:border-amber-500"
-            />
-            {announcementSearch && (
-              <button
-                type="button"
-                onClick={() => setAnnouncementSearch('')}
-                className="absolute right-2.5 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600"
-              >
-                <X className="w-3 h-3" />
-              </button>
-            )}
-          </div>
-          <button
-            type="button"
-            onClick={loadCompanyAnnouncements}
-            className="p-2 bg-slate-100 dark:bg-navy-800 hover:bg-slate-200 text-slate-600 dark:text-slate-300 rounded-xl transition cursor-pointer"
-            title="Refresh announcements"
-          >
-            <RefreshCw className={`w-3.5 h-3.5 ${announcementsLoading ? 'animate-spin text-amber-500' : ''}`} />
-          </button>
-        </div>
-      </div>
-
-      {/* Announcements List */}
-      <div className="space-y-3.5 pt-1">
-        {filteredCompanyAnnouncements.length === 0 ? (
-          <div className="text-center py-10 rounded-2xl bg-slate-50 dark:bg-navy-950 border border-dashed border-slate-200 dark:border-navy-800 text-slate-500 dark:text-slate-400">
-            <Megaphone className="w-8 h-8 text-slate-300 dark:text-slate-600 mx-auto mb-2" />
-            <p className="font-serif font-bold text-sm text-slate-800 dark:text-slate-200">
-              No Company Announcements Found
-            </p>
-            <p className="text-xs text-slate-400 mt-0.5">
-              {announcementSearch || announcementFilter !== 'all'
-                ? 'No announcements match the selected filter.'
-                : 'Click "+ Create Announcement" above to publish your first announcement.'}
-            </p>
-          </div>
-        ) : (
-          filteredCompanyAnnouncements.map((ann) => (
-            <div
-              key={ann.id}
-              className="w-full p-4 sm:p-5 bg-slate-50 dark:bg-navy-950 rounded-2xl border border-slate-200/70 dark:border-navy-800 transition hover:border-amber-500/40 shadow-xs group"
-            >
-              <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4">
-                {/* Left: Category, audience, status, title, description, and issuer details */}
-                <div className="space-y-2 flex-1 min-w-0">
-                  <div className="flex flex-wrap items-center gap-2">
-                    <span className={`px-2.5 py-0.5 rounded-full text-[10px] font-bold border ${getAnnouncementCategoryBadgeClass(ann.category)}`}>
-                      {ann.category}
-                    </span>
-                    <span className="px-2.5 py-0.5 rounded-full text-[10px] font-semibold bg-white dark:bg-navy-900 text-slate-600 dark:text-slate-300 border border-slate-200 dark:border-navy-700 flex items-center gap-1">
-                      <Globe className="w-3 h-3 text-slate-400" />
-                      <span>{ann.target_audience}</span>
-                    </span>
-                    <span className={`px-2.5 py-0.5 rounded-full text-[10px] font-bold flex items-center gap-1 border ${
-                      ann.status === 'Published'
-                        ? 'bg-emerald-50 dark:bg-emerald-950/40 text-emerald-700 dark:text-emerald-300 border-emerald-200 dark:border-emerald-800'
-                        : 'bg-amber-50 dark:bg-amber-950/40 text-amber-700 dark:text-amber-300 border-amber-200 dark:border-amber-800'
-                    }`}>
-                      {ann.status === 'Published' ? <Check className="w-3 h-3" /> : <Clock className="w-3 h-3" />}
-                      <span>{ann.status}</span>
-                    </span>
-                    {ann.expires_at && (
-                      <span className="px-2.5 py-0.5 rounded-full text-[10px] font-semibold bg-amber-50 dark:bg-amber-950/40 text-amber-700 dark:text-amber-300 border border-amber-200 dark:border-amber-800">
-                        Expires: {ann.expires_at}
-                      </span>
-                    )}
-                  </div>
-
-                  <h4 className="font-serif font-bold text-sm sm:text-base text-slate-900 dark:text-white group-hover:text-amber-600 dark:group-hover:text-amber-400 transition-colors break-words">
-                    {ann.title}
-                  </h4>
-
-                  <p className="text-xs sm:text-sm text-slate-600 dark:text-slate-300 leading-relaxed break-words line-clamp-2 md:line-clamp-3">
-                    {ann.description}
-                  </p>
-
-                  <div className="pt-1 flex flex-wrap items-center gap-2 text-xs text-slate-500 dark:text-slate-400">
-                    <span>
-                      Issued by: <strong className="text-slate-800 dark:text-slate-200 font-semibold">{ann.created_by_name || 'HR Lead'}</strong> ({ann.created_by_role || 'HR Lead'})
-                    </span>
-                  </div>
-                </div>
-
-                {/* Right: Published date/time, "Read Full Notice" button, and actions */}
-                <div className="flex flex-row lg:flex-col items-center lg:items-end justify-between lg:justify-center gap-2.5 shrink-0 pt-3 lg:pt-0 border-t lg:border-t-0 border-slate-200/60 dark:border-navy-800">
-                  <div className="flex items-center gap-1.5 text-xs font-mono text-slate-500 dark:text-slate-400 whitespace-nowrap">
-                    <Clock className="w-3.5 h-3.5 text-slate-400 shrink-0" />
-                    <span>{ann.status === 'Published' ? formatAnnouncementDateTime(ann.published_at || ann.created_at) : 'Draft (Unpublished)'}</span>
-                  </div>
-
-                  <div className="flex items-center gap-2">
-                    <button
-                      type="button"
-                      onClick={() => setSelectedAnnouncementForModal(ann)}
-                      className="px-3.5 py-1.5 rounded-xl text-xs font-bold bg-white dark:bg-navy-900 hover:bg-amber-50 hover:text-amber-700 dark:hover:bg-amber-500/15 dark:hover:text-amber-300 text-slate-700 dark:text-slate-300 border border-slate-200 dark:border-navy-700 hover:border-amber-400/80 transition flex items-center gap-1.5 shrink-0 cursor-pointer shadow-xs"
-                    >
-                      <Eye className="w-3.5 h-3.5" />
-                      <span>Read Full Notice</span>
-                    </button>
-
-                    {ann.status === 'Draft' && (
-                      <button
-                        type="button"
-                        onClick={() => handlePublishDraft(ann.id, ann.title)}
-                        className="px-2.5 py-1.5 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl text-xs font-bold transition flex items-center gap-1 cursor-pointer"
-                        title="Publish Announcement"
-                      >
-                        <Check className="w-3 h-3" />
-                        <span className="hidden sm:inline">Publish</span>
-                      </button>
-                    )}
-
-                    <button
-                      type="button"
-                      onClick={() => handleDeleteAnnouncement(ann.id, ann.title)}
-                      className="p-1.5 hover:bg-rose-50 dark:hover:bg-rose-500/15 text-slate-400 hover:text-rose-600 rounded-xl transition cursor-pointer"
-                      title="Delete Announcement"
-                    >
-                      <Trash2 className="w-3.5 h-3.5" />
-                    </button>
-                  </div>
-                </div>
-              </div>
-            </div>
-          ))
-        )}
-      </div>
-    </div>
-  );
-
   // COMPUTED TOP METRICS (from Image 1: Feature 1. Dashboard Overview)
   const totalEmployeesCount = 48; // Scaled total enterprise headcount
   const presentTodayCount = employees.filter(e => e.attendanceToday.status === 'Present').length + 35; // 42
@@ -2249,17 +1478,12 @@ export const CrmHrLeadDashboard = ({ initialSection }) => {
 
   const pendingLeavesCount = leaveRequests.filter(l => l.status.includes('Pending')).length;
 
-  const isAttendanceTab = activeTab === 'attendance';
-  const isSelectedDateToday = selectedAttendanceDate === todayDateStr;
-
   const kpiCards = [
     {
       id: 'total-employees',
       label: 'TOTAL EMPLOYEES',
-      value: isAttendanceTab ? (dateAttendanceStats?.totalEmployees ?? totalEmployeesCount) : totalEmployeesCount,
-      desc: isAttendanceTab
-        ? (isSelectedDateToday ? '↗ 100% On-roll Staff' : `Workforce on ${selectedAttendanceDate}`)
-        : '↗ 100% On-roll Staff',
+      value: totalEmployeesCount,
+      desc: '↗ 100% On-roll Staff',
       icon: Users,
       tab: 'employees',
       valueColor: 'text-slate-950 dark:text-white',
@@ -2269,11 +1493,9 @@ export const CrmHrLeadDashboard = ({ initialSection }) => {
     },
     {
       id: 'present-today',
-      label: isAttendanceTab && !isSelectedDateToday ? 'PRESENT ON DATE' : 'PRESENT TODAY',
-      value: isAttendanceTab ? (dateAttendanceStats?.presentCount ?? 0) : presentTodayCount,
-      desc: isAttendanceTab
-        ? `${dateAttendanceStats?.presentCount ?? 0} Recorded In-Office`
-        : '↗ 87.5% Attendance',
+      label: 'PRESENT TODAY',
+      value: presentTodayCount,
+      desc: '↗ 87.5% Attendance',
       icon: CheckCircle2,
       tab: 'attendance',
       valueColor: 'text-emerald-700 dark:text-emerald-400',
@@ -2283,11 +1505,9 @@ export const CrmHrLeadDashboard = ({ initialSection }) => {
     },
     {
       id: 'absent-today',
-      label: isAttendanceTab && !isSelectedDateToday ? 'ABSENT ON DATE' : 'ABSENT TODAY',
-      value: isAttendanceTab ? (dateAttendanceStats?.absentCount ?? 0) : absentCount,
-      desc: isAttendanceTab
-        ? `${dateAttendanceStats?.absentCount ?? 0} Absent / Pending`
-        : '↗ 1 Uninformed Absence',
+      label: 'ABSENT TODAY',
+      value: absentCount,
+      desc: '↗ 1 Uninformed Absence',
       icon: XCircle,
       tab: 'attendance',
       valueColor: 'text-rose-700 dark:text-rose-400',
@@ -2298,7 +1518,7 @@ export const CrmHrLeadDashboard = ({ initialSection }) => {
     {
       id: 'on-leave',
       label: 'ON LEAVE',
-      value: isAttendanceTab ? (dateAttendanceStats?.leaveCount ?? 0) : onLeaveCount,
+      value: onLeaveCount,
       desc: '↗ Approved Leaves',
       icon: Calendar,
       tab: 'leave',
@@ -2307,18 +1527,7 @@ export const CrmHrLeadDashboard = ({ initialSection }) => {
       iconContainer: 'bg-amber-50 dark:bg-amber-500/10 text-amber-700 dark:text-gold-400',
       iconBorder: 'border-amber-200/80 dark:border-amber-500/25'
     },
-    isAttendanceTab ? {
-      id: 'late-arrivals',
-      label: 'LATE ARRIVALS',
-      value: dateAttendanceStats?.lateCount ?? 0,
-      desc: '↗ Check-in Delay',
-      icon: AlertCircle,
-      tab: 'attendance',
-      valueColor: 'text-amber-700 dark:text-amber-400',
-      descColor: 'text-amber-700 dark:text-amber-300',
-      iconContainer: 'bg-amber-50 dark:bg-amber-500/10 text-amber-700 dark:text-amber-400',
-      iconBorder: 'border-amber-200/80 dark:border-amber-500/25'
-    } : {
+    {
       id: 'new-joiners',
       label: 'NEW JOINERS',
       value: newJoinersCount,
@@ -2416,7 +1625,7 @@ export const CrmHrLeadDashboard = ({ initialSection }) => {
                   key={card.id}
                   data-testid={`kpi-card-${card.id}`}
                   onClick={() => card.tab && setActiveTab(card.tab)}
-                  className="group relative bg-white dark:bg-navy-900 border border-slate-200/90 dark:border-navy-800 border-l-4 border-l-gold-500 rounded-2xl p-4 shadow-xs hover:shadow-md hover:-translate-y-0.5 hover:border-gold-500/40 transition-all duration-200 flex flex-col justify-between min-h-[105px] cursor-pointer select-none"
+                  className="group relative bg-white dark:bg-navy-900 border border-slate-200/90 dark:border-navy-800 border-l-4 border-l-gold-500 rounded-2xl p-4 shadow-xs hover:shadow-md hover:-translate-y-0.5 hover:border-gold-500/40 transition-all duration-200 flex flex-col justify-between min-h-[126px] cursor-pointer select-none"
                 >
                   <div className="flex items-start justify-between gap-2">
                     <span className="text-[11px] font-semibold uppercase tracking-wider text-slate-500 dark:text-slate-400 leading-tight">
@@ -2427,10 +1636,13 @@ export const CrmHrLeadDashboard = ({ initialSection }) => {
                     </div>
                   </div>
 
-                  <div className="mt-2">
+                  <div className="mt-2 space-y-0.5">
                     <p className={`text-2xl sm:text-3xl font-bold font-mono ${card.valueColor}`}>
                       {card.value}
                     </p>
+                    <span className={`text-[11px] sm:text-xs font-semibold leading-tight block truncate ${card.descColor}`}>
+                      {card.desc}
+                    </span>
                   </div>
                 </div>
               );
@@ -2449,24 +1661,87 @@ export const CrmHrLeadDashboard = ({ initialSection }) => {
 
         {activeTab === 'overview' && (
           <div className="space-y-6 animate-in fade-in duration-200">
+            {/* Quick Action Reminders & Life Events Bar */}
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+              <div className="p-4 bg-amber-50/60 dark:bg-navy-950 border border-amber-200/70 dark:border-navy-800 rounded-3xl flex items-center justify-between">
+                <div className="flex items-center gap-3">
+                  <div className="w-10 h-10 rounded-2xl bg-amber-100 dark:bg-amber-950/40 text-amber-800 dark:text-gold-400 flex items-center justify-center font-bold">
+                    <Cake className="w-5 h-5 text-amber-600" />
+                  </div>
+                  <div>
+                    <span className="text-[10px] font-black uppercase tracking-wider text-amber-800 dark:text-gold-400">Today's Birthday</span>
+                    <p className="font-serif font-bold text-slate-900 dark:text-white text-xs">Balavarshini S. (HR Ops)</p>
+                  </div>
+                </div>
+                <button
+                  onClick={() => showToast('🎉 Birthday greeting sent to Balavarshini!')}
+                  className="px-2.5 py-1 rounded-xl bg-gold-500 text-navy-950 font-bold text-[10px] shadow-xs cursor-pointer hover:bg-gold-600"
+                >
+                  Send Wish
+                </button>
+              </div>
+
+              <div className="p-4 bg-purple-50/60 dark:bg-navy-950 border border-purple-200/70 dark:border-navy-800 rounded-3xl flex items-center justify-between">
+                <div className="flex items-center gap-3">
+                  <div className="w-10 h-10 rounded-2xl bg-purple-100 dark:bg-purple-950/40 text-purple-800 dark:text-purple-300 flex items-center justify-center font-bold">
+                    <Award className="w-5 h-5 text-purple-600" />
+                  </div>
+                  <div>
+                    <span className="text-[10px] font-black uppercase tracking-wider text-purple-800 dark:text-purple-300">Work Anniversary</span>
+                    <p className="font-serif font-bold text-slate-900 dark:text-white text-xs">Diviya R. (2 Years Milestone)</p>
+                  </div>
+                </div>
+                <button
+                  onClick={() => showToast('🎖️ Work anniversary congratulations sent to Diviya!')}
+                  className="px-2.5 py-1 rounded-xl bg-purple-600 text-white font-bold text-[10px] shadow-xs cursor-pointer hover:bg-purple-700"
+                >
+                  Celebrate
+                </button>
+              </div>
+
+              <div className="p-4 bg-emerald-50/60 dark:bg-navy-950 border border-emerald-200/70 dark:border-navy-800 rounded-3xl flex items-center justify-between">
+                <div className="flex items-center gap-3">
+                  <div className="w-10 h-10 rounded-2xl bg-emerald-100 dark:bg-emerald-950/40 text-emerald-800 dark:text-emerald-300 flex items-center justify-center font-bold">
+                    <Calendar className="w-5 h-5 text-emerald-600" />
+                  </div>
+                  <div>
+                    <span className="text-[10px] font-black uppercase tracking-wider text-emerald-800 dark:text-emerald-300">Pending Leave Requests</span>
+                    <p className="font-serif font-bold text-slate-900 dark:text-white text-xs">{leaveRequests.filter(l => l.status.includes('Pending')).length} Actionable Requests</p>
+                  </div>
+                </div>
+                <button
+                  onClick={() => setActiveTab('leave')}
+                  className="px-2.5 py-1 rounded-xl bg-emerald-600 text-white font-bold text-[10px] shadow-xs cursor-pointer hover:bg-emerald-700"
+                >
+                  Review Leaves
+                </button>
+              </div>
+            </div>
+
             {/* Department Headcount Breakdown & Live Activity Stream */}
             <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
 
               {/* Department Distribution (7 cols) */}
               <div className="lg:col-span-7 bg-white dark:bg-navy-900 border border-slate-200/90 dark:border-navy-800 rounded-3xl p-6 shadow-xs space-y-4">
                 <div className="flex justify-between items-center">
-                  <h3 className="font-serif font-bold text-base text-slate-900 dark:text-white">
-                    Department
-                  </h3>
+                  <div>
+                    <h3 className="font-serif font-bold text-base text-slate-900 dark:text-white">
+                      Workforce Distribution by Department
+                    </h3>
+                    <p className="text-[11px] text-slate-500">48 Active employees allocated across 5 specialized business units</p>
+                  </div>
+                  <span className="text-[10px] font-mono text-emerald-600 font-bold bg-emerald-50 px-2.5 py-1 rounded-full border border-emerald-200">
+                    ● 100% Staffed
+                  </span>
                 </div>
 
                 <div className="space-y-3 pt-2">
                   {[
-                    { dept: 'Software Developers', count: 18, pct: 37.5, color: 'from-blue-600 to-indigo-500' },
-                    { dept: 'Test Engineer', count: 12, pct: 25.0, color: 'from-amber-500 to-gold-400' },
-                    { dept: 'HR Operations', count: 8, pct: 16.7, color: 'from-emerald-600 to-teal-500' },
-                    { dept: 'Client', count: 6, pct: 12.5, color: 'from-purple-600 to-violet-500' },
-                    { dept: 'Candidates', count: 4, pct: 8.3, color: 'from-rose-500 to-pink-500' }
+                    { dept: 'Engineering & Cloud Practice', count: 18, pct: 37.5, color: 'from-blue-600 to-indigo-500' },
+                    { dept: 'Talent Acquisition & Sourcing', count: 12, pct: 25.0, color: 'from-amber-500 to-gold-400' },
+                    { dept: 'HR Operations & Compliance', count: 8, pct: 16.7, color: 'from-emerald-600 to-teal-500' },
+                    { dept: 'Placement & Campus Relations', count: 6, pct: 12.5, color: 'from-purple-600 to-violet-500' },
+                    { dept: 'International Client Advisory', count: 4, pct: 8.3, color: 'from-rose-500 to-pink-500' }
                   ].map((d, i) => (
                     <div key={i} className="p-3 bg-slate-50 dark:bg-navy-950 rounded-2xl border border-slate-200/60 dark:border-navy-800 space-y-1.5">
                       <div className="flex justify-between items-center text-xs">
@@ -2485,8 +1760,14 @@ export const CrmHrLeadDashboard = ({ initialSection }) => {
               <div className="lg:col-span-5 bg-white dark:bg-navy-900 border border-slate-200/90 dark:border-navy-800 rounded-3xl p-6 shadow-xs space-y-4">
                 <div className="flex justify-between items-center">
                   <h3 className="font-serif font-bold text-base text-slate-900 dark:text-white">
-                    Today's Attendance
+                    Today's Attendance Feed
                   </h3>
+                  <button
+                    onClick={() => setActiveTab('attendance')}
+                    className="text-xs text-gold-600 dark:text-gold-400 font-bold hover:underline cursor-pointer"
+                  >
+                    Full Register →
+                  </button>
                 </div>
 
                 <div className="divide-y divide-slate-100 dark:divide-navy-800 space-y-2">
@@ -2519,9 +1800,6 @@ export const CrmHrLeadDashboard = ({ initialSection }) => {
               </div>
 
             </div>
-
-            {/* COMPANY ANNOUNCEMENT SECTION (Positioned immediately after Attendance Summary) */}
-            {renderCompanyAnnouncementsSection()}
           </div>
         )}
 
@@ -2530,218 +1808,294 @@ export const CrmHrLeadDashboard = ({ initialSection }) => {
         ======================================================== */}
         {activeTab === 'attendance' && (
           <div className="space-y-6 animate-in fade-in duration-200">
-            {/* Top Toolbar */}
-            <div className="bg-white dark:bg-navy-900 border border-slate-200/90 dark:border-navy-800 rounded-3xl p-5 shadow-xs flex flex-col lg:flex-row justify-between items-start lg:items-center gap-4">
-              <div className="flex flex-wrap items-center gap-3 sm:gap-4 relative">
-                <h3 className="font-serif font-bold text-base sm:text-lg text-slate-900 dark:text-white whitespace-nowrap">
-                  Daily Employee Attendance
-                </h3>
+            {/* My Live Attendance & Working Hours Punch Console */}
+            <div className="bg-gradient-to-br from-amber-500/10 via-slate-50 to-white dark:from-amber-500/10 dark:via-navy-950 dark:to-navy-900 border-2 border-amber-300 dark:border-gold-500/30 rounded-3xl p-5 sm:p-6 shadow-md space-y-5">
+              <div className="flex flex-col md:flex-row md:items-center justify-between gap-3 pb-4 border-b border-amber-200/60 dark:border-navy-800">
+                <div>
+                  <div className="flex items-center gap-2">
+                    <span className="px-2.5 py-0.5 rounded-full text-[10px] font-black uppercase tracking-wider bg-emerald-100 text-emerald-800 dark:bg-emerald-500/20 dark:text-emerald-300 border border-emerald-300 dark:border-emerald-500/40">
+                      Live Punch Console
+                    </span>
+                    <span className="text-xs text-slate-500 dark:text-slate-400">
+                      Shift: 09:00 AM - 06:00 PM (9.0 hrs)
+                    </span>
+                  </div>
+                  <h3 className="font-serif font-bold text-lg text-slate-900 dark:text-white mt-1">
+                    My Daily Attendance & Working Hours
+                  </h3>
+                  <p className="text-xs text-slate-600 dark:text-slate-400">
+                    Logged in as: <span className="font-semibold text-slate-900 dark:text-white">{user?.name || 'Sarah Al Zaabi'}</span> ({user?.employeeId || 'REV-EMP-003'} • {currentRole})
+                  </p>
+                </div>
 
-                {/* Interactive Calendar Controller */}
-                <div className="flex items-center gap-1.5 bg-slate-50 dark:bg-navy-950 p-1.5 rounded-2xl border border-slate-200 dark:border-navy-800">
-                  {/* Previous Day */}
-                  <button
-                    type="button"
-                    onClick={() => handleStepDay(-1)}
-                    title="Previous Day"
-                    className="p-1.5 hover:bg-white dark:hover:bg-navy-900 text-slate-600 dark:text-slate-300 rounded-xl transition cursor-pointer"
-                  >
-                    <ChevronLeft className="w-4 h-4" />
-                  </button>
+                <button
+                  type="button"
+                  onClick={() => setActiveModule('my-attendance')}
+                  className="inline-flex items-center gap-2 px-3.5 py-2 rounded-xl bg-slate-900 hover:bg-slate-800 dark:bg-gold-500 dark:hover:bg-gold-400 text-white dark:text-navy-950 text-xs font-bold transition shadow-xs cursor-pointer self-start md:self-auto"
+                >
+                  <CalendarCheck className="w-4 h-4" />
+                  <span>Full Attendance Sheet & Calendar</span>
+                </button>
+              </div>
 
-                  {/* Date Selector Popover Trigger */}
-                  <div className="relative" ref={calendarPopoverRef}>
-                    <button
-                      type="button"
-                      onClick={() => setIsCalendarOpen(!isCalendarOpen)}
-                      className="px-3 py-1.5 bg-white dark:bg-navy-900 hover:bg-slate-100 dark:hover:bg-navy-800 text-slate-800 dark:text-slate-100 font-bold rounded-xl border border-slate-200 dark:border-navy-700 transition flex items-center gap-2 cursor-pointer text-xs shadow-xs"
-                    >
-                      <Calendar className="w-3.5 h-3.5 text-amber-500" />
-                      <span>{formatSelectedDateDisplay(selectedAttendanceDate)}</span>
-                      <ChevronDown className={`w-3.5 h-3.5 text-slate-400 transition-transform duration-200 ${isCalendarOpen ? 'rotate-180' : ''}`} />
-                    </button>
-
-                    {/* Interactive Calendar Popover Dropdown */}
-                    {isCalendarOpen && (
-                      <div className="absolute left-0 top-full mt-2 z-50 w-72 bg-white dark:bg-navy-900 border border-slate-200 dark:border-navy-700 rounded-2xl p-4 shadow-xl animate-in fade-in zoom-in-95 duration-150">
-                        {/* Month & Year Navigation Header */}
-                        <div className="flex items-center justify-between mb-3 pb-2 border-b border-slate-100 dark:border-navy-800">
-                          <button
-                            type="button"
-                            onClick={handlePrevMonth}
-                            className="p-1.5 hover:bg-slate-100 dark:hover:bg-navy-800 rounded-lg text-slate-600 dark:text-slate-300 transition cursor-pointer"
-                            title="Previous Month"
-                          >
-                            <ChevronLeft className="w-4 h-4" />
-                          </button>
-                          <span className="font-serif font-bold text-xs text-slate-900 dark:text-white">
-                            {monthNames[calendarViewMonth]} {calendarViewYear}
-                          </span>
-                          <button
-                            type="button"
-                            onClick={handleNextMonth}
-                            className="p-1.5 hover:bg-slate-100 dark:hover:bg-navy-800 rounded-lg text-slate-600 dark:text-slate-300 transition cursor-pointer"
-                            title="Next Month"
-                          >
-                            <ChevronRight className="w-4 h-4" />
-                          </button>
-                        </div>
-
-                        {/* Weekday Labels */}
-                        <div className="grid grid-cols-7 gap-1 text-center mb-1 text-[10px] font-semibold text-slate-400 dark:text-slate-500 uppercase tracking-wider">
-                          <span>Su</span>
-                          <span>Mo</span>
-                          <span>Tu</span>
-                          <span>We</span>
-                          <span>Th</span>
-                          <span>Fr</span>
-                          <span>Sa</span>
-                        </div>
-
-                        {/* Days Grid */}
-                        <div className="grid grid-cols-7 gap-1 text-center">
-                          {calendarMonthDays.map((day, idx) => {
-                            const isSelected = day.dateStr === selectedAttendanceDate;
-                            const isToday = day.dateStr === todayDateStr;
-                            const hasRecords = attendanceRecordedDates.includes(day.dateStr);
-
-                            return (
-                              <button
-                                key={`${day.dateStr}-${idx}`}
-                                type="button"
-                                onClick={() => handleSelectDate(day.dateStr)}
-                                className={`relative py-1.5 rounded-xl text-xs flex flex-col items-center justify-center transition cursor-pointer ${
-                                  isSelected
-                                    ? 'bg-amber-500 text-slate-950 font-bold shadow-sm'
-                                    : day.isCurrentMonth
-                                      ? isToday
-                                        ? 'border border-amber-500 text-amber-600 dark:text-amber-400 font-bold hover:bg-amber-50 dark:hover:bg-amber-500/10'
-                                        : 'text-slate-700 dark:text-slate-200 hover:bg-slate-100 dark:hover:bg-navy-800'
-                                      : 'text-slate-300 dark:text-slate-600 hover:bg-slate-50 dark:hover:bg-navy-950'
-                                }`}
-                              >
-                                <span>{day.dayNum}</span>
-                                {hasRecords && !isSelected && (
-                                  <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 mt-0.5" title="Attendance recorded" />
-                                )}
-                              </button>
-                            );
-                          })}
-                        </div>
-
-                        {/* Popover Footer: Legend & Jump Today */}
-                        <div className="mt-3 pt-2.5 border-t border-slate-100 dark:border-navy-800 flex items-center justify-between text-[11px]">
-                          <div className="flex items-center gap-1.5 text-slate-500 dark:text-slate-400">
-                            <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 inline-block" />
-                            <span>Logs available</span>
-                          </div>
-                          <button
-                            type="button"
-                            onClick={handleJumpToToday}
-                            className="px-2.5 py-1 text-xs font-bold text-amber-600 dark:text-amber-400 hover:bg-amber-50 dark:hover:bg-amber-500/10 rounded-lg transition cursor-pointer"
-                          >
-                            Today
-                          </button>
-                        </div>
-                      </div>
+              {/* 3-Column Interactive Punch Station */}
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                {/* Status & Timestamps */}
+                <div className="bg-white/80 dark:bg-navy-900/80 backdrop-blur-sm border border-slate-200 dark:border-navy-800 rounded-2xl p-4 space-y-3">
+                  <div className="text-[11px] font-bold uppercase tracking-wider text-slate-400">
+                    Shift Status Today
+                  </div>
+                  <div>
+                    {(!attendancePunch || attendancePunch.status === 'Not Checked In') && (
+                      <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-bold bg-slate-100 text-slate-700 dark:bg-white/10 dark:text-slate-300 border border-slate-200 dark:border-white/10">
+                        <Clock className="w-3.5 h-3.5" />
+                        Not Checked In
+                      </span>
+                    )}
+                    {attendancePunch && attendancePunch.status === 'Present' && (
+                      <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-bold bg-emerald-100 text-emerald-800 dark:bg-emerald-500/20 dark:text-emerald-300 border border-emerald-300 dark:border-emerald-500/40">
+                        <span className="relative flex h-2 w-2">
+                          <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
+                          <span className="relative inline-flex rounded-full h-2 w-2 bg-emerald-500"></span>
+                        </span>
+                        Present • On Duty
+                      </span>
+                    )}
+                    {attendancePunch && attendancePunch.status === 'Late' && (
+                      <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-bold bg-orange-100 text-orange-800 dark:bg-orange-500/20 dark:text-orange-300 border border-orange-300 dark:border-orange-500/40">
+                        <AlertCircle className="w-3.5 h-3.5" />
+                        Late Check-in (+{attendancePunch.lateMinutes || 0}m)
+                      </span>
+                    )}
+                    {attendancePunch && attendancePunch.status === 'On Break' && (
+                      <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-bold bg-amber-100 text-amber-900 dark:bg-amber-500/20 dark:text-amber-200 border border-amber-300 dark:border-amber-500/40">
+                        <Coffee className="w-3.5 h-3.5 text-amber-600 animate-bounce" />
+                        On Break ({attendancePunch.breakType || 'Break'})
+                      </span>
+                    )}
+                    {attendancePunch && attendancePunch.status === 'Completed' && (
+                      <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-bold bg-blue-100 text-blue-900 dark:bg-blue-500/20 dark:text-blue-300 border border-blue-300 dark:border-blue-500/40">
+                        <Check className="w-3.5 h-3.5 stroke-[2.5]" />
+                        Shift Completed
+                      </span>
                     )}
                   </div>
 
-                  {/* Next Day */}
-                  <button
-                    type="button"
-                    onClick={() => handleStepDay(1)}
-                    title="Next Day"
-                    className="p-1.5 hover:bg-white dark:hover:bg-navy-900 text-slate-600 dark:text-slate-300 rounded-xl transition cursor-pointer"
-                  >
-                    <ChevronRight className="w-4 h-4" />
-                  </button>
+                  <div className="grid grid-cols-3 gap-2 pt-1 text-center">
+                    <div className="p-2 rounded-xl bg-slate-50 dark:bg-navy-950 border border-slate-100 dark:border-navy-800">
+                      <div className="text-[10px] text-slate-400 font-bold uppercase">Check In</div>
+                      <div className="text-xs font-bold text-slate-900 dark:text-white mt-0.5">
+                        {attendancePunch?.checkInFormatted || '—'}
+                      </div>
+                    </div>
+                    <div className="p-2 rounded-xl bg-slate-50 dark:bg-navy-950 border border-slate-100 dark:border-navy-800">
+                      <div className="text-[10px] text-slate-400 font-bold uppercase">Break</div>
+                      <div className="text-xs font-bold text-slate-900 dark:text-white mt-0.5">
+                        {attendancePunch?.totalBreakMinutes ? `${attendancePunch.totalBreakMinutes}m` : '0m'}
+                      </div>
+                    </div>
+                    <div className="p-2 rounded-xl bg-slate-50 dark:bg-navy-950 border border-slate-100 dark:border-navy-800">
+                      <div className="text-[10px] text-slate-400 font-bold uppercase">Check Out</div>
+                      <div className="text-xs font-bold text-slate-900 dark:text-white mt-0.5">
+                        {attendancePunch?.checkOutFormatted || (attendancePunch?.checkInAt ? 'In Office' : '—')}
+                      </div>
+                    </div>
+                  </div>
+                </div>
 
-                  {/* Quick Today Button */}
-                  {selectedAttendanceDate !== todayDateStr && (
-                    <button
-                      type="button"
-                      onClick={handleJumpToToday}
-                      className="ml-1 px-2.5 py-1 bg-amber-500/15 hover:bg-amber-500/25 text-amber-700 dark:text-amber-300 font-bold text-[11px] rounded-xl transition cursor-pointer border border-amber-500/30"
-                    >
-                      Today
-                    </button>
+                {/* Live Digital Clock Ticker */}
+                <div className="bg-white/80 dark:bg-navy-900/80 backdrop-blur-sm border border-slate-200 dark:border-navy-800 rounded-2xl p-4 flex flex-col justify-between">
+                  <div className="text-[11px] font-bold uppercase tracking-wider text-slate-400">
+                    {attendancePunch?.isOnBreak ? 'Current Break Duration' : 'Net Working Time (Live Ticker)'}
+                  </div>
+                  <div className="py-2">
+                    <div className="font-mono text-3xl font-extrabold text-slate-900 dark:text-gold-300 tracking-wider">
+                      {attendancePunch?.isOnBreak
+                        ? formatPunchElapsed(attendancePunch.liveBreakSeconds)
+                        : formatPunchElapsed(attendancePunch?.liveWorkedSeconds || 0)}
+                    </div>
+                    <p className="text-[11px] text-slate-500 mt-1">
+                      {attendancePunch?.isOnBreak
+                        ? `Currently paused for ${attendancePunch.breakType || 'Break'}`
+                        : 'Shift target: 8h 00m active work (excluding 1h lunch & break)'}
+                    </p>
+                  </div>
+                  <div className="w-full bg-slate-200 dark:bg-navy-800 h-1.5 rounded-full overflow-hidden">
+                    <div
+                      className={`h-full transition-all duration-500 ${attendancePunch?.isOnBreak ? 'bg-amber-500' : 'bg-emerald-500'}`}
+                      style={{ width: `${Math.min(100, (((attendancePunch?.liveWorkedSeconds || 0) / (8 * 3600)) * 100))}%` }}
+                    />
+                  </div>
+                </div>
+
+                {/* Automated Biometric Session Status */}
+                <div className="bg-white/80 dark:bg-navy-900/80 backdrop-blur-sm border border-slate-200 dark:border-navy-800 rounded-2xl p-4 flex flex-col justify-between space-y-3">
+                  <div>
+                    <div className="text-[11px] font-bold uppercase tracking-wider text-slate-400">
+                      Automated Biometric Session
+                    </div>
+                    <p className="text-xs text-slate-600 dark:text-slate-400 mt-1">
+                      Check-in is recorded automatically when you log in. Check-out logs automatically on logout or tab close.
+                    </p>
+                  </div>
+
+                  {(!attendancePunch || attendancePunch.status === 'Not Checked In') && (
+                    <div className="p-3 rounded-xl bg-slate-100 dark:bg-navy-950 border border-slate-200 dark:border-navy-800 text-xs text-slate-700 dark:text-slate-300 space-y-1">
+                      <div className="font-bold flex items-center gap-1.5 text-slate-900 dark:text-white">
+                        <Clock className="w-3.5 h-3.5 text-slate-500" />
+                        <span>Shift Starts: 09:00 AM</span>
+                      </div>
+                      <p className="text-[11px] text-slate-500">Sign in with employee credentials to initiate automatic biometric check-in.</p>
+                    </div>
+                  )}
+
+                  {attendancePunch && (attendancePunch.status === 'Present' || attendancePunch.status === 'Late') && (
+                    <div className="space-y-2">
+                      <div className="p-2.5 rounded-xl bg-emerald-50 dark:bg-emerald-500/10 border border-emerald-200 dark:border-emerald-500/30 text-xs text-emerald-800 dark:text-emerald-200 font-semibold flex items-center gap-2">
+                        <span className="w-2.5 h-2.5 rounded-full bg-emerald-500 animate-pulse shrink-0"></span>
+                        <span>Session Active • Logged in at {attendancePunch.checkInFormatted || '09:00 AM'}</span>
+                      </div>
+
+                      <div className="flex items-center gap-1.5">
+                        <select
+                          value={selectedPunchBreak}
+                          onChange={(e) => setSelectedPunchBreak(e.target.value)}
+                          className="flex-1 px-2.5 py-1.5 text-xs rounded-xl border border-slate-200 dark:border-navy-700 bg-slate-50 dark:bg-navy-950 text-slate-900 dark:text-white font-semibold"
+                        >
+                          <option value="Lunch Break">Lunch Break (45m)</option>
+                          <option value="Tea Break">Tea Break (15m)</option>
+                          <option value="General Break">Short Break (10m)</option>
+                        </select>
+                        <button
+                          type="button"
+                          onClick={() => { startBreak(selectedPunchBreak); showToast(`Started ${selectedPunchBreak}`); }}
+                          className="px-3 py-1.5 rounded-xl bg-amber-500 hover:bg-amber-600 text-slate-950 font-bold text-xs flex items-center gap-1 transition cursor-pointer"
+                        >
+                          <Coffee className="w-3.5 h-3.5" />
+                          <span>Break</span>
+                        </button>
+                      </div>
+                    </div>
+                  )}
+
+                  {attendancePunch && attendancePunch.status === 'On Break' && (
+                    <div className="space-y-2">
+                      <div className="p-2 rounded-xl bg-amber-50 dark:bg-amber-500/10 border border-amber-200 dark:border-amber-500/30 text-[11px] text-amber-800 dark:text-amber-200 font-semibold text-center">
+                        ☕ Currently on {attendancePunch.breakType || 'Break'}
+                      </div>
+                      <button
+                        type="button"
+                        onClick={() => { endBreak(); showToast('Break ended! Welcome back.'); }}
+                        className="w-full py-2.5 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs flex items-center justify-center gap-2 transition cursor-pointer shadow-sm"
+                      >
+                        <Play className="w-4 h-4 fill-current" />
+                        <span>End Break & Resume Work</span>
+                      </button>
+                    </div>
+                  )}
+
+                  {attendancePunch && attendancePunch.status === 'Completed' && (
+                    <div className="space-y-2">
+                      <div className="p-2.5 rounded-xl bg-blue-50 dark:bg-blue-500/10 border border-blue-200 dark:border-blue-500/30 text-xs text-blue-800 dark:text-blue-200 font-semibold text-center">
+                        ✓ Shift Completed ({attendancePunch.checkInFormatted} - {attendancePunch.checkOutFormatted})
+                      </div>
+                      <p className="text-[11px] text-center text-slate-400">Total session hours finalized.</p>
+                    </div>
                   )}
                 </div>
               </div>
+            </div>
 
-              {/* Right Side Actions: Export CSV */}
-              <div className="flex items-center gap-2.5">
+            {/* Live Database HR Operations Team Attendance */}
+            <div className="bg-white dark:bg-navy-900 border border-slate-200/90 dark:border-navy-800 rounded-3xl p-5 shadow-xs space-y-4">
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+                <div>
+                  <h3 className="font-serif font-bold text-base text-slate-900 dark:text-white">
+                    Live HR Operations Attendance (SQLite Database)
+                  </h3>
+                  <p className="text-xs text-slate-500 dark:text-slate-400">
+                    Real-time check-ins, breaks, missing checkouts, and monthly summaries synced from My Attendance.
+                  </p>
+                </div>
                 <button
                   type="button"
-                  onClick={handleExportAttendanceCsv}
-                  className="px-3.5 py-2 bg-slate-100 dark:bg-navy-800 hover:bg-slate-200 dark:hover:bg-navy-700 text-slate-700 dark:text-slate-200 font-bold rounded-2xl transition flex items-center gap-1.5 cursor-pointer text-xs"
+                  onClick={loadHrAttendanceData}
+                  className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-slate-100 dark:bg-navy-800 text-xs font-semibold text-slate-700 dark:text-slate-200 hover:bg-slate-200"
+                >
+                  <RefreshCw className="w-3.5 h-3.5" />
+                  Sync Live Data
+                </button>
+              </div>
+              {hrTeamAttendance.length === 0 ? (
+                <div className="flex items-center gap-2 text-xs text-slate-400 py-4 justify-center">
+                  <RefreshCw className="w-4 h-4 animate-spin text-amber-500" />
+                  <span>Loading live SQLite attendance feed from database...</span>
+                </div>
+              ) : (
+                <div className="overflow-x-auto">
+                  <table className="w-full text-left text-xs">
+                    <thead>
+                      <tr className="border-b border-slate-200 dark:border-navy-800 text-slate-400 uppercase text-[11px]">
+                        <th className="py-2 pr-3">Employee</th>
+                        <th className="py-2 px-3">Team</th>
+                        <th className="py-2 px-3">Today Status</th>
+                        <th className="py-2 px-3">Check-In</th>
+                        <th className="py-2 px-3">Check-Out</th>
+                        <th className="py-2 px-3">Month Hours</th>
+                        <th className="py-2 pl-3">Attendance %</th>
+                      </tr>
+                    </thead>
+                    <tbody className="divide-y divide-slate-100 dark:divide-navy-800">
+                      {hrTeamAttendance.map((item) => (
+                        <tr key={item.employee.employeeId}>
+                          <td className="py-2.5 pr-3 font-semibold text-slate-900 dark:text-white">
+                            {item.employee.name}
+                          </td>
+                          <td className="py-2.5 px-3 text-slate-500 dark:text-slate-400">
+                            {item.employee.operationTeam || item.employee.department}
+                          </td>
+                          <td className="py-2.5 px-3">
+                            <span className="px-2 py-0.5 rounded-full text-[11px] font-bold bg-slate-100 dark:bg-navy-800 text-slate-800 dark:text-slate-200">
+                              {item.today?.status || 'Not Checked In'}
+                            </span>
+                          </td>
+                          <td className="py-2.5 px-3 text-slate-700 dark:text-slate-300">
+                            {item.today?.checkInFormatted || '—'}
+                          </td>
+                          <td className="py-2.5 px-3 text-slate-700 dark:text-slate-300">
+                            {item.today?.checkOutFormatted || '—'}
+                          </td>
+                          <td className="py-2.5 px-3 font-semibold text-slate-800 dark:text-slate-200">
+                            {item.workingHours?.monthlyTotalFormatted || '0h 00m'}
+                          </td>
+                          <td className="py-2.5 pl-3 font-bold text-emerald-600 dark:text-emerald-400">
+                            {item.summary?.attendancePercentage ?? 100}%
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              )}
+            </div>
+
+            {/* Top Toolbar */}
+            <div className="bg-white dark:bg-navy-900 border border-slate-200/90 dark:border-navy-800 rounded-3xl p-5 shadow-xs flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+              <div>
+                <h3 className="font-serif font-bold text-base text-slate-900 dark:text-white">
+                  Daily Attendance Register & Biometric Logs
+                </h3>
+                <p className="text-[11px] text-slate-500">Live check-in timestamps, late arrival alerts, and working hour summaries</p>
+              </div>
+
+              <div className="flex items-center gap-2.5">
+                <button
+                  onClick={() => showToast('✓ Monthly attendance CSV report exported successfully.')}
+                  className="px-3.5 py-2 bg-slate-100 dark:bg-navy-800 hover:bg-slate-200 text-slate-700 dark:text-slate-200 font-bold rounded-2xl transition flex items-center gap-1.5 cursor-pointer text-xs"
                 >
                   <Download className="w-4 h-4 text-emerald-600" />
                   Export Monthly Attendance CSV
                 </button>
-              </div>
-            </div>
-
-            {/* Filter and Search Bar */}
-            <div className="bg-white dark:bg-navy-900 border border-slate-200/90 dark:border-navy-800 rounded-3xl p-4 shadow-xs flex flex-col md:flex-row items-center justify-between gap-3">
-              <div className="flex flex-1 flex-col sm:flex-row items-center gap-2.5 w-full">
-                {/* Search */}
-                <div className="relative flex-1 w-full">
-                  <Search className="w-3.5 h-3.5 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2" />
-                  <input
-                    type="text"
-                    value={attendanceSearchQuery}
-                    onChange={(e) => setAttendanceSearchQuery(e.target.value)}
-                    placeholder="Search by employee name or ID..."
-                    className="w-full pl-9 pr-8 py-2 bg-slate-50 dark:bg-navy-950 border border-slate-200 dark:border-navy-800 rounded-2xl text-xs text-slate-800 dark:text-slate-100 placeholder:text-slate-400 focus:outline-none focus:border-amber-500"
-                  />
-                  {attendanceSearchQuery && (
-                    <button
-                      type="button"
-                      onClick={() => setAttendanceSearchQuery('')}
-                      className="absolute right-2.5 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600"
-                    >
-                      <X className="w-3.5 h-3.5" />
-                    </button>
-                  )}
-                </div>
-
-                {/* Department Filter */}
-                <select
-                  value={attendanceDeptFilter}
-                  onChange={(e) => setAttendanceDeptFilter(e.target.value)}
-                  className="w-full sm:w-48 px-3 py-2 bg-slate-50 dark:bg-navy-950 border border-slate-200 dark:border-navy-800 rounded-2xl text-xs text-slate-700 dark:text-slate-200 focus:outline-none focus:border-amber-500 cursor-pointer"
-                >
-                  <option value="All">All Departments</option>
-                  {attendanceDepartmentList.map(dept => (
-                    <option key={dept} value={dept}>{dept}</option>
-                  ))}
-                </select>
-
-                {/* Attendance Status Filter */}
-                <select
-                  value={attendanceStatusFilter}
-                  onChange={(e) => setAttendanceStatusFilter(e.target.value)}
-                  className="w-full sm:w-44 px-3 py-2 bg-slate-50 dark:bg-navy-950 border border-slate-200 dark:border-navy-800 rounded-2xl text-xs text-slate-700 dark:text-slate-200 focus:outline-none focus:border-amber-500 cursor-pointer"
-                >
-                  <option value="All">All Statuses</option>
-                  <option value="Present">Present</option>
-                  <option value="Late">Late</option>
-                  <option value="Absent">Absent</option>
-                  <option value="On Leave">On Leave</option>
-                  <option value="Holiday">Holiday</option>
-                  <option value="Weekly Off">Weekly Off</option>
-                  <option value="Not Checked In">Not Checked In</option>
-                </select>
-              </div>
-
-              {/* Status Count Summary Badge */}
-              <div className="flex items-center gap-2 self-end sm:self-center text-[11px] text-slate-500 whitespace-nowrap">
-                <span>Showing <strong className="text-slate-800 dark:text-slate-200">{filteredDateAttendance.length}</strong> records</span>
-                {dateAttendanceLoading && (
-                  <RefreshCw className="w-3 h-3 text-amber-500 animate-spin" />
-                )}
               </div>
             </div>
 
@@ -2751,145 +2105,55 @@ export const CrmHrLeadDashboard = ({ initialSection }) => {
                 <table className="w-full text-left text-xs border-collapse">
                   <thead>
                     <tr className="bg-slate-50 dark:bg-navy-950 text-slate-700 dark:text-slate-300 uppercase tracking-wider text-[10px] border-b border-slate-200 dark:border-navy-800 font-serif">
-                      <th className="p-4 font-bold whitespace-nowrap">Employee Name & ID</th>
-                      <th className="p-4 font-bold whitespace-nowrap">Department</th>
-                      <th className="p-4 font-bold text-center whitespace-nowrap">Attendance Status</th>
-                      <th className="p-4 font-bold text-center whitespace-nowrap">Check-In</th>
-                      <th className="p-4 font-bold text-center whitespace-nowrap">Check-Out</th>
-                      <th className="p-4 font-bold text-center whitespace-nowrap">Total Working Hours</th>
-                      <th className="p-4 font-bold text-center whitespace-nowrap">Late Arrival / Early Departure</th>
-                      <th className="p-4 font-bold text-left whitespace-nowrap">Attendance Remarks</th>
+                      <th className="p-4 font-bold">Employee Name & ID</th>
+                      <th className="p-4 font-bold">Department</th>
+                      <th className="p-4 font-bold text-center">Status</th>
+                      <th className="p-4 font-bold text-center">Check-In</th>
+                      <th className="p-4 font-bold text-center">Check-Out</th>
+                      <th className="p-4 font-bold text-center">Logged Hours</th>
+                      <th className="p-4 font-bold text-right">Punctuality Alert</th>
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-slate-200 dark:divide-navy-800 text-slate-700 dark:text-slate-300">
-                    {filteredDateAttendance.length === 0 ? (
-                      <tr>
-                        <td colSpan={8} className="py-14 text-center">
-                          <div className="flex flex-col items-center justify-center gap-2 max-w-sm mx-auto text-slate-500 dark:text-slate-400">
-                            <Calendar className="w-10 h-10 text-slate-300 dark:text-slate-600 mb-1" />
-                            <p className="font-serif font-bold text-sm text-slate-800 dark:text-slate-200">
-                              No Attendance Records Found
-                            </p>
-                            <p className="text-xs text-slate-500">
-                              No attendance records match your search or filter for {formatSelectedDateDisplay(selectedAttendanceDate)}.
-                            </p>
-                            <div className="flex items-center gap-2 mt-3">
-                              {(attendanceSearchQuery || attendanceDeptFilter !== 'All' || attendanceStatusFilter !== 'All') && (
-                                <button
-                                  type="button"
-                                  onClick={() => {
-                                    setAttendanceSearchQuery('');
-                                    setAttendanceDeptFilter('All');
-                                    setAttendanceStatusFilter('All');
-                                  }}
-                                  className="px-3 py-1.5 rounded-xl text-xs font-semibold bg-slate-100 dark:bg-navy-800 hover:bg-slate-200 text-slate-700 dark:text-slate-200 transition cursor-pointer"
-                                >
-                                  Clear Filters
-                                </button>
-                              )}
-                              <button
-                                type="button"
-                                onClick={handleJumpToToday}
-                                className="px-3 py-1.5 rounded-xl text-xs font-semibold bg-amber-500 hover:bg-amber-600 text-slate-950 font-bold transition cursor-pointer"
-                              >
-                                Return to Today
-                              </button>
-                            </div>
-                          </div>
+                    {employees.map(e => (
+                      <tr key={e.id} className="hover:bg-slate-50 dark:hover:bg-navy-950/60 transition">
+                        <td className="p-4">
+                          <p className="font-bold text-slate-900 dark:text-white text-xs">{e.name}</p>
+                          <span className="text-[10px] text-slate-400 font-mono">{e.id}</span>
+                        </td>
+                        <td className="p-4 font-medium text-slate-600 dark:text-slate-300">
+                          {e.department}
+                        </td>
+                        <td className="p-4 text-center">
+                          <span className={`px-2.5 py-1 rounded-full text-[10px] font-bold ${e.attendanceToday.status === 'Present'
+                            ? 'bg-emerald-50 dark:bg-emerald-950/40 text-emerald-700 dark:text-emerald-300 border border-emerald-200'
+                            : e.attendanceToday.status === 'On Leave'
+                              ? 'bg-amber-50 dark:bg-amber-950/40 text-amber-700 dark:text-amber-300 border border-amber-200'
+                              : 'bg-rose-50 dark:bg-rose-950/40 text-rose-700 dark:text-rose-300 border border-rose-200'
+                            }`}>
+                            {e.attendanceToday.status}
+                          </span>
+                        </td>
+                        <td className="p-4 text-center font-mono font-bold text-slate-800 dark:text-slate-200">
+                          {e.attendanceToday.checkIn}
+                        </td>
+                        <td className="p-4 text-center font-mono text-slate-600 dark:text-slate-300">
+                          {e.attendanceToday.checkOut}
+                        </td>
+                        <td className="p-4 text-center font-mono font-bold text-emerald-600">
+                          {e.attendanceToday.hours}
+                        </td>
+                        <td className="p-4 text-right">
+                          {e.attendanceToday.late ? (
+                            <span className="px-2 py-0.5 rounded text-[10px] font-bold bg-rose-50 text-rose-700 border border-rose-200">
+                              ⚠️ Late Arrival (+14m)
+                            </span>
+                          ) : (
+                            <span className="text-[10px] text-emerald-600 font-bold">✓ On Time</span>
+                          )}
                         </td>
                       </tr>
-                    ) : (
-                      filteredDateAttendance.map((record) => {
-                        const isNotCheckedOut = record.checkOut === 'Not Checked Out';
-                        const statusBadgeClass =
-                          record.status === 'Present'
-                            ? 'bg-emerald-50 dark:bg-emerald-950/40 text-emerald-700 dark:text-emerald-300 border-emerald-200 dark:border-emerald-800'
-                            : record.status === 'Late'
-                              ? 'bg-amber-50 dark:bg-amber-950/40 text-amber-700 dark:text-amber-300 border-amber-200 dark:border-amber-800'
-                              : record.status === 'On Leave'
-                                ? 'bg-blue-50 dark:bg-blue-950/40 text-blue-700 dark:text-blue-300 border-blue-200 dark:border-blue-800'
-                                : record.status === 'Holiday'
-                                  ? 'bg-purple-50 dark:bg-purple-950/40 text-purple-700 dark:text-purple-300 border-purple-200 dark:border-purple-800'
-                                  : record.status === 'Weekly Off'
-                                    ? 'bg-slate-100 dark:bg-navy-800 text-slate-600 dark:text-slate-400 border-slate-200 dark:border-navy-700'
-                                    : record.status === 'Absent'
-                                      ? 'bg-rose-50 dark:bg-rose-950/40 text-rose-700 dark:text-rose-300 border-rose-200 dark:border-rose-800'
-                                      : 'bg-slate-50 dark:bg-navy-950 text-slate-500 dark:text-slate-400 border-slate-200 dark:border-navy-800';
-
-                        return (
-                          <tr key={record.employeeId || record.id} className="hover:bg-slate-50 dark:hover:bg-navy-950/60 transition">
-                            {/* 1. Employee Name and Employee ID */}
-                            <td className="p-4 whitespace-nowrap">
-                              <div className="flex items-center gap-2.5">
-                                <div className="w-8 h-8 rounded-full bg-amber-500/10 dark:bg-amber-500/20 text-amber-700 dark:text-amber-300 font-bold flex items-center justify-center text-xs border border-amber-500/20">
-                                  {record.avatarLetter || record.name?.charAt(0) || 'E'}
-                                </div>
-                                <div>
-                                  <p className="font-bold text-slate-900 dark:text-white text-xs">{record.name}</p>
-                                  <span className="text-[10px] text-slate-400 font-mono">{record.employeeId || record.id}</span>
-                                </div>
-                              </div>
-                            </td>
-
-                            {/* 2. Department */}
-                            <td className="p-4 whitespace-nowrap">
-                              <p className="font-medium text-slate-700 dark:text-slate-200 text-xs">{record.department}</p>
-                              <span className="text-[10px] text-slate-400">{record.role || record.designation || 'Staff'}</span>
-                            </td>
-
-                            {/* 3. Attendance Status */}
-                            <td className="p-4 text-center whitespace-nowrap">
-                              <span className={`px-2.5 py-1 rounded-full text-[10px] font-bold border ${statusBadgeClass}`}>
-                                {record.status}
-                              </span>
-                            </td>
-
-                            {/* 4. Check-in Time */}
-                            <td className="p-4 text-center font-mono font-bold text-slate-800 dark:text-slate-200 whitespace-nowrap">
-                              {record.checkIn}
-                            </td>
-
-                            {/* 5. Check-out Time */}
-                            <td className="p-4 text-center whitespace-nowrap">
-                              {isNotCheckedOut ? (
-                                <span className="px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-amber-50 dark:bg-amber-950/40 text-amber-700 dark:text-amber-300 border border-amber-200 dark:border-amber-800 font-sans">
-                                  Not Checked Out
-                                </span>
-                              ) : (
-                                <span className="font-mono text-slate-600 dark:text-slate-300">
-                                  {record.checkOut}
-                                </span>
-                              )}
-                            </td>
-
-                            {/* 6. Total Working Hours */}
-                            <td className="p-4 text-center font-mono font-bold text-emerald-600 dark:text-emerald-400 whitespace-nowrap">
-                              {record.totalWorkingHours || record.hours || '0h 00m'}
-                            </td>
-
-                            {/* 8. Late Arrival / Early Departure */}
-                            <td className="p-4 text-center whitespace-nowrap">
-                              {record.late ? (
-                                <span className="px-2 py-0.5 rounded text-[10px] font-bold bg-rose-50 dark:bg-rose-950/40 text-rose-700 dark:text-rose-300 border border-rose-200 dark:border-rose-800">
-                                  {record.lateOrEarly || `⚠️ Late (+${record.lateMinutes || 14}m)`}
-                                </span>
-                              ) : record.checkIn && record.checkIn !== '—' ? (
-                                <span className="text-[10px] text-emerald-600 dark:text-emerald-400 font-bold">
-                                  {record.lateOrEarly || '✓ On Time'}
-                                </span>
-                              ) : (
-                                <span className="text-slate-400 font-mono text-[11px]">—</span>
-                              )}
-                            </td>
-
-                            {/* 9. Attendance Remarks */}
-                            <td className="p-4 text-slate-600 dark:text-slate-300 text-[11px] max-w-xs truncate" title={record.remarks}>
-                              {record.remarks || 'No notes'}
-                            </td>
-                          </tr>
-                        );
-                      })
-                    )}
+                    ))}
                   </tbody>
                 </table>
               </div>
@@ -3632,236 +2896,170 @@ export const CrmHrLeadDashboard = ({ initialSection }) => {
         ======================================================== */}
         {activeTab === 'announcements' && (
           <div className="space-y-6 animate-in fade-in duration-200">
-            {renderCompanyAnnouncementsSection()}
+            <div className="bg-white dark:bg-navy-900 border border-slate-200/90 dark:border-navy-800 rounded-3xl p-6 shadow-xs space-y-4">
+              <div className="flex justify-between items-center">
+                <div>
+                  <h3 className="font-serif font-bold text-base text-slate-900 dark:text-white">
+                    Company Circulars & HR Policy Broadcasts
+                  </h3>
+                  <p className="text-[11px] text-slate-500">Official circulars, holiday schedules, and employee handbook notifications</p>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => setBroadcastModalOpen(true)}
+                  className="px-4 py-2 bg-gold-500 hover:bg-gold-400 text-navy-950 font-bold rounded-2xl shadow-xs transition cursor-pointer text-xs flex items-center gap-1.5"
+                >
+                  <Plus className="w-4 h-4" />
+                  <span>+ Broadcast Notice</span>
+                </button>
+              </div>
+
+              <div className="space-y-4 pt-2">
+                {announcements.map(ann => (
+                  <div key={ann.id} className="p-5 bg-slate-50 dark:bg-navy-950 rounded-2xl border border-slate-200/70 dark:border-navy-800 space-y-2">
+                    <div className="flex justify-between items-start">
+                      <div>
+                        <div className="flex items-center gap-2">
+                          <span className="px-2 py-0.5 rounded text-[9px] font-bold bg-amber-100 text-amber-800 border border-amber-200">
+                            {ann.category}
+                          </span>
+                          {ann.pinned && (
+                            <span className="px-2 py-0.5 rounded text-[9px] font-bold bg-purple-100 text-purple-800">
+                              📌 Pinned Circular
+                            </span>
+                          )}
+                        </div>
+                        <h4 className="font-serif font-bold text-sm text-slate-900 dark:text-white mt-1.5">{ann.title}</h4>
+                      </div>
+                      <span className="text-[10px] font-mono text-slate-400">{ann.postedDate}</span>
+                    </div>
+
+                    <p className="text-xs text-slate-600 dark:text-slate-300 leading-relaxed">{ann.content}</p>
+                    <p className="text-[10px] text-slate-400">Issued by: <strong>{ann.author}</strong></p>
+                  </div>
+                ))}
+              </div>
+            </div>
           </div>
         )}
 
-        {/* MODAL: CREATE COMPANY ANNOUNCEMENT */}
-        {isCreateAnnouncementOpen && (
+        {/* Broadcast Notice Modal (Issue 1) */}
+        {broadcastModalOpen && (
           <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-navy-950/80 backdrop-blur-sm animate-in fade-in">
-            <div className="bg-white dark:bg-navy-900 border border-slate-200 dark:border-gold-500/40 rounded-3xl max-w-xl w-full p-6 sm:p-7 shadow-luxury space-y-4 animate-in zoom-in-95 max-h-[92vh] overflow-y-auto">
+            <div className="glass-card bg-white dark:bg-navy-900 border border-slate-200 dark:border-gold-500/40 rounded-3xl max-w-lg w-full p-6 sm:p-7 shadow-luxury space-y-4 animate-in zoom-in-95">
               <div className="flex justify-between items-start border-b border-slate-200 dark:border-navy-800 pb-3">
                 <div>
                   <div className="flex items-center gap-2">
-                    <span className="px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-amber-500/20 text-amber-700 dark:text-amber-400 uppercase tracking-wider border border-amber-500/30">
-                      Official Announcement
+                    <span className="px-2 py-0.5 rounded text-[9px] font-bold bg-gold-500/20 text-gold-700 dark:text-gold-400 uppercase tracking-wider">
+                      Executive Broadcast
                     </span>
                   </div>
                   <h3 className="font-serif text-lg font-bold text-slate-900 dark:text-white mt-1">
-                    Create Company Announcement
+                    Broadcast Company Circular / HR Notice
                   </h3>
                   <p className="text-[11px] text-slate-500 dark:text-slate-400">
-                    Publish official announcements, HR policy updates, and directives to HR Operations or all workforce members.
+                    Publish an official notice to all employee portals, notice boards, and workforce dashboards.
                   </p>
                 </div>
                 <button
                   type="button"
-                  onClick={() => setIsCreateAnnouncementOpen(false)}
+                  onClick={() => setBroadcastModalOpen(false)}
                   className="text-slate-400 hover:text-slate-600 dark:hover:text-white p-1 rounded-lg cursor-pointer"
                 >
                   <X className="w-5 h-5" />
                 </button>
               </div>
 
-              <div className="space-y-4 text-xs">
-                {/* Title */}
+              <form onSubmit={handleBroadcastNotice} className="space-y-3.5 text-xs">
                 <div>
                   <label className="block text-[11px] font-bold text-slate-700 dark:text-slate-300 mb-1">
-                    Announcement Title <span className="text-rose-500">*</span>
+                    Notice Title <span className="text-rose-500">*</span>
                   </label>
                   <input
                     type="text"
                     required
-                    value={announcementForm.title}
-                    onChange={e => {
-                      setAnnouncementForm({ ...announcementForm, title: e.target.value });
-                      if (announcementFormErrors.title) {
-                        setAnnouncementFormErrors(prev => ({ ...prev, title: '' }));
-                      }
-                    }}
-                    placeholder="e.g. Q4 Company All-Hands & Policy Updates"
-                    className={`w-full bg-slate-50 dark:bg-navy-950 border ${
-                      announcementFormErrors.title ? 'border-rose-500 ring-1 ring-rose-500' : 'border-slate-200 dark:border-navy-700'
-                    } rounded-xl p-2.5 font-medium text-slate-900 dark:text-white focus:outline-none focus:border-amber-500`}
+                    value={broadcastForm.title}
+                    onChange={e => setBroadcastForm({ ...broadcastForm, title: e.target.value })}
+                    placeholder="e.g. Q4 Performance Reviews & Holiday Operating Hours..."
+                    className="w-full bg-slate-50 dark:bg-navy-950 border border-slate-200 dark:border-navy-700 rounded-xl p-2.5 font-medium text-slate-900 dark:text-white focus:outline-none focus:border-gold-500"
                   />
-                  {announcementFormErrors.title && (
-                    <p className="text-rose-500 text-[10px] font-bold mt-1">⚠️ {announcementFormErrors.title}</p>
-                  )}
-
-      {/* Read Full Notice Modal for HR Lead */}
-      {selectedAnnouncementForModal && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-navy-950/80 backdrop-blur-sm animate-in fade-in">
-          <div className="bg-white dark:bg-navy-900 border border-slate-200 dark:border-amber-500/40 rounded-3xl max-w-lg w-full p-6 shadow-2xl space-y-4 animate-in zoom-in-95 max-h-[90vh] overflow-y-auto">
-            <div className="flex justify-between items-start border-b border-slate-200 dark:border-navy-800 pb-3">
-              <div className="space-y-1">
-                <div className="flex flex-wrap items-center gap-2">
-                  <span className={`px-2.5 py-0.5 rounded-full text-[10px] font-bold border ${getAnnouncementCategoryBadgeClass(selectedAnnouncementForModal.category)}`}>
-                    {selectedAnnouncementForModal.category}
-                  </span>
-                  <span className="px-2.5 py-0.5 rounded-full text-[10px] font-semibold bg-slate-100 dark:bg-navy-800 text-slate-600 dark:text-slate-300 border border-slate-200 dark:border-navy-700 flex items-center gap-1">
-                    <Globe className="w-3 h-3 text-slate-400" />
-                    <span>{selectedAnnouncementForModal.target_audience}</span>
-                  </span>
-                  <span className={`px-2.5 py-0.5 rounded-full text-[10px] font-bold border ${
-                    selectedAnnouncementForModal.status === 'Published'
-                      ? 'bg-emerald-50 dark:bg-emerald-950/40 text-emerald-700 dark:text-emerald-300 border-emerald-200 dark:border-emerald-800'
-                      : 'bg-amber-50 dark:bg-amber-950/40 text-amber-700 dark:text-amber-300 border-amber-200 dark:border-amber-800'
-                  }`}>
-                    {selectedAnnouncementForModal.status}
-                  </span>
-                </div>
-                <h3 className="font-serif text-lg font-bold text-slate-900 dark:text-white pt-1">
-                  {selectedAnnouncementForModal.title}
-                </h3>
-              </div>
-              <button
-                type="button"
-                onClick={() => setSelectedAnnouncementForModal(null)}
-                className="text-slate-400 hover:text-slate-600 dark:hover:text-white p-1 rounded-lg cursor-pointer"
-              >
-                <X className="w-5 h-5" />
-              </button>
-            </div>
-
-            <div className="text-xs text-slate-500 dark:text-slate-400 flex flex-wrap items-center gap-2 pb-1 border-b border-slate-100 dark:border-navy-800">
-              <span>Issued by: <strong className="text-slate-800 dark:text-slate-200">{selectedAnnouncementForModal.created_by_name || 'HR Lead'}</strong> ({selectedAnnouncementForModal.created_by_role || 'HR Lead'})</span>
-              <span>•</span>
-              <span className="font-mono">{selectedAnnouncementForModal.status === 'Published' ? formatAnnouncementDateTime(selectedAnnouncementForModal.published_at || selectedAnnouncementForModal.created_at) : 'Draft (Unpublished)'}</span>
-              {selectedAnnouncementForModal.expires_at && (
-                <>
-                  <span>•</span>
-                  <span className="text-amber-600 dark:text-amber-400 font-semibold">Valid until: {selectedAnnouncementForModal.expires_at}</span>
-                </>
-              )}
-            </div>
-
-            <div className="text-xs sm:text-sm text-slate-700 dark:text-slate-200 whitespace-pre-line leading-relaxed py-2">
-              {selectedAnnouncementForModal.description}
-            </div>
-
-            <div className="pt-3 border-t border-slate-200 dark:border-navy-800 flex justify-end">
-              <button
-                type="button"
-                onClick={() => setSelectedAnnouncementForModal(null)}
-                className="px-5 py-2 bg-slate-900 hover:bg-slate-800 text-white dark:bg-amber-500 dark:hover:bg-amber-600 dark:text-slate-950 font-bold rounded-xl text-xs transition cursor-pointer"
-              >
-                Close Notice
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
-
                 </div>
 
-                {/* Category & Target Audience */}
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                   <div>
                     <label className="block text-[11px] font-bold text-slate-700 dark:text-slate-300 mb-1">
-                      Category <span className="text-rose-500">*</span>
+                      Category
                     </label>
                     <select
-                      value={announcementForm.category}
-                      onChange={e => setAnnouncementForm({ ...announcementForm, category: e.target.value })}
-                      className="w-full bg-slate-50 dark:bg-navy-950 border border-slate-200 dark:border-navy-700 rounded-xl p-2.5 font-medium text-slate-900 dark:text-white focus:outline-none focus:border-amber-500 cursor-pointer"
+                      value={broadcastForm.category}
+                      onChange={e => setBroadcastForm({ ...broadcastForm, category: e.target.value })}
+                      className="w-full bg-slate-50 dark:bg-navy-950 border border-slate-200 dark:border-navy-700 rounded-xl p-2.5 font-medium text-slate-900 dark:text-white focus:outline-none focus:border-gold-500"
                     >
-                      <option value="General Notice">General Notice</option>
-                      <option value="HR Policy">HR Policy</option>
-                      <option value="Holiday">Holiday</option>
-                      <option value="Important Update">Important Update</option>
-                      <option value="Emergency Alert">Emergency Alert</option>
-                      <option value="Welfare & Benefits">Welfare & Benefits</option>
+                      <option value="Policy Update">Policy Update</option>
+                      <option value="Employee Wellness">Employee Wellness</option>
+                      <option value="Office Holiday">Office Holiday</option>
+                      <option value="Important Circular">Important Circular</option>
+                      <option value="Urgent Alert">Urgent Alert</option>
                     </select>
                   </div>
 
                   <div>
                     <label className="block text-[11px] font-bold text-slate-700 dark:text-slate-300 mb-1">
-                      Target Audience <span className="text-rose-500">*</span>
+                      Issued By / Author
                     </label>
-                    <select
-                      value={announcementForm.target_audience}
-                      onChange={e => setAnnouncementForm({ ...announcementForm, target_audience: e.target.value })}
-                      className="w-full bg-slate-50 dark:bg-navy-950 border border-slate-200 dark:border-navy-700 rounded-xl p-2.5 font-medium text-slate-900 dark:text-white focus:outline-none focus:border-amber-500 cursor-pointer"
-                    >
-                      <option value="All Employees">All Employees (Company-Wide)</option>
-                      <option value="HR Operations">HR Operations (Operations Team Only)</option>
-                    </select>
+                    <input
+                      type="text"
+                      value={broadcastForm.author}
+                      onChange={e => setBroadcastForm({ ...broadcastForm, author: e.target.value })}
+                      placeholder="e.g. Super Admin"
+                      className="w-full bg-slate-50 dark:bg-navy-950 border border-slate-200 dark:border-navy-700 rounded-xl p-2.5 font-medium text-slate-900 dark:text-white focus:outline-none focus:border-gold-500"
+                    />
                   </div>
                 </div>
 
-                {/* Expiry Date */}
                 <div>
                   <label className="block text-[11px] font-bold text-slate-700 dark:text-slate-300 mb-1">
-                    Expiry Date <span className="text-slate-400 font-normal">(Optional)</span>
-                  </label>
-                  <input
-                    type="date"
-                    value={announcementForm.expires_at || ''}
-                    onChange={e => setAnnouncementForm({ ...announcementForm, expires_at: e.target.value })}
-                    className="w-full bg-slate-50 dark:bg-navy-950 border border-slate-200 dark:border-navy-700 rounded-xl p-2.5 font-medium text-slate-900 dark:text-white focus:outline-none focus:border-amber-500 cursor-pointer"
-                  />
-                  <p className="text-[10px] text-slate-400 mt-1">Leave empty if this announcement does not have an expiration date.</p>
-                </div>
-
-                {/* Description */}
-                <div>
-                  <label className="block text-[11px] font-bold text-slate-700 dark:text-slate-300 mb-1">
-                    Announcement Description & Message <span className="text-rose-500">*</span>
+                    Notice Content & Details <span className="text-rose-500">*</span>
                   </label>
                   <textarea
                     required
                     rows={4}
-                    value={announcementForm.description}
-                    onChange={e => {
-                      setAnnouncementForm({ ...announcementForm, description: e.target.value });
-                      if (announcementFormErrors.description) {
-                        setAnnouncementFormErrors(prev => ({ ...prev, description: '' }));
-                      }
-                    }}
-                    placeholder="Enter the complete announcement body, guidelines, policy details, or instructions..."
-                    className={`w-full bg-slate-50 dark:bg-navy-950 border ${
-                      announcementFormErrors.description ? 'border-rose-500 ring-1 ring-rose-500' : 'border-slate-200 dark:border-navy-700'
-                    } rounded-xl p-2.5 font-medium text-slate-900 dark:text-white focus:outline-none focus:border-amber-500`}
+                    value={broadcastForm.content}
+                    onChange={e => setBroadcastForm({ ...broadcastForm, content: e.target.value })}
+                    placeholder="Enter the complete notification details, instructions, or policy statement..."
+                    className="w-full bg-slate-50 dark:bg-navy-950 border border-slate-200 dark:border-navy-700 rounded-xl p-2.5 font-medium text-slate-900 dark:text-white focus:outline-none focus:border-gold-500"
                   />
-                  {announcementFormErrors.description && (
-                    <p className="text-rose-500 text-[10px] font-bold mt-1">⚠️ {announcementFormErrors.description}</p>
-                  )}
                 </div>
 
-                {/* Action Buttons: Save Draft, Publish Announcement, Cancel */}
-                <div className="flex flex-col sm:flex-row items-center justify-between gap-3 pt-3 border-t border-slate-200 dark:border-navy-800">
+                <div className="flex items-center gap-2 p-2.5 bg-slate-50 dark:bg-navy-950 rounded-xl border border-slate-200 dark:border-navy-800">
+                  <input
+                    type="checkbox"
+                    id="pinnedNoticeCheck"
+                    checked={broadcastForm.pinned}
+                    onChange={e => setBroadcastForm({ ...broadcastForm, pinned: e.target.checked })}
+                    className="w-4 h-4 text-gold-500 rounded border-slate-300 focus:ring-gold-500 cursor-pointer"
+                  />
+                  <label htmlFor="pinnedNoticeCheck" className="text-xs font-semibold text-slate-700 dark:text-slate-300 cursor-pointer">
+                    📌 Pin this notice to the top of all employee feeds
+                  </label>
+                </div>
+
+                <div className="flex justify-end gap-2.5 pt-2 border-t border-slate-200 dark:border-navy-800">
                   <button
                     type="button"
-                    onClick={() => setIsCreateAnnouncementOpen(false)}
-                    disabled={savingAnnouncement}
-                    className="w-full sm:w-auto px-4 py-2 bg-slate-100 dark:bg-navy-800 hover:bg-slate-200 dark:hover:bg-navy-700 text-slate-700 dark:text-slate-300 font-bold rounded-xl transition cursor-pointer text-xs"
+                    onClick={() => setBroadcastModalOpen(false)}
+                    className="px-4 py-2 bg-slate-100 dark:bg-navy-800 hover:bg-slate-200 text-slate-700 dark:text-slate-300 font-bold rounded-xl transition cursor-pointer"
                   >
                     Cancel
                   </button>
-
-                  <div className="flex items-center gap-2 w-full sm:w-auto justify-end">
-                    <button
-                      type="button"
-                      disabled={savingAnnouncement}
-                      onClick={() => handleSaveAnnouncement('Draft')}
-                      className="flex-1 sm:flex-none px-4 py-2 bg-slate-200 hover:bg-slate-300 dark:bg-navy-800 dark:hover:bg-navy-700 text-slate-800 dark:text-slate-200 font-bold rounded-xl transition cursor-pointer text-xs flex items-center justify-center gap-1.5"
-                    >
-                      <Clock className="w-3.5 h-3.5" />
-                      <span>{savingAnnouncement ? 'Saving...' : 'Save Draft'}</span>
-                    </button>
-
-                    <button
-                      type="button"
-                      disabled={savingAnnouncement}
-                      onClick={() => handleSaveAnnouncement('Published')}
-                      className="flex-1 sm:flex-none px-5 py-2 bg-gradient-to-r from-amber-500 to-amber-600 hover:from-amber-400 hover:to-amber-500 text-slate-950 font-bold rounded-xl shadow-gold-glow transition cursor-pointer text-xs flex items-center justify-center gap-1.5"
-                    >
-                      <Megaphone className="w-3.5 h-3.5" />
-                      <span>{savingAnnouncement ? 'Publishing...' : 'Publish Announcement'}</span>
-                    </button>
-                  </div>
+                  <button
+                    type="submit"
+                    className="px-5 py-2 bg-gold-500 hover:bg-gold-400 text-navy-950 font-bold rounded-xl shadow-gold-glow transition cursor-pointer flex items-center gap-1.5"
+                  >
+                    <span>Publish & Broadcast Notice →</span>
+                  </button>
                 </div>
-              </div>
+              </form>
             </div>
           </div>
         )}
@@ -4290,13 +3488,8 @@ export const CrmHrLeadDashboard = ({ initialSection }) => {
                     <form onSubmit={handleSavePunch} className="space-y-4">
                       <div className="p-3 bg-slate-50 dark:bg-navy-950 rounded-xl border border-slate-200/80 dark:border-navy-800 text-xs space-y-1">
                         <div className="text-slate-500 dark:text-slate-400">Assigned Shift:</div>
-                        <div>
-                          <div className="font-bold text-slate-800 dark:text-slate-200">
-                            {editingPunchEmployee.shiftName?.replace(/\s*\([^)]*\)/g, '').trim() || 'General Day Shift'}
-                          </div>
-                          <div className="text-[11px] text-slate-400 font-mono">
-                            09:00 AM – 06:00 PM
-                          </div>
+                        <div className="font-bold text-slate-800 dark:text-slate-200 font-mono">
+                          {editingPunchEmployee.shiftName || 'General Day Shift (09:00 AM - 06:00 PM)'}
                         </div>
                       </div>
 

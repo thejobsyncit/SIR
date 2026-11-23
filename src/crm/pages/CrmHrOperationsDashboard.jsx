@@ -3,23 +3,18 @@ import {
   Activity,
   AlertTriangle,
   ArrowRight,
-  Bell,
   Briefcase,
   Calendar,
   CalendarClock,
-  Check,
   CheckCircle2,
   Clock,
-  Eye,
   FileCheck2,
   Filter,
-  Globe,
   Inbox,
   ListTodo,
   LogIn,
   LogOut,
   Mail,
-  Megaphone,
   Phone,
   RefreshCw,
   Search,
@@ -133,23 +128,6 @@ const getAttendanceBadgeClass = (status) => {
   }
 };
 
-const getAnnouncementCategoryBadgeClass = (category) => {
-  switch (category) {
-    case 'HR Policy':
-      return 'bg-purple-50 text-purple-700 border-purple-200 dark:bg-purple-950/40 dark:text-purple-300 dark:border-purple-800';
-    case 'Holiday':
-      return 'bg-emerald-50 text-emerald-700 border-emerald-200 dark:bg-emerald-950/40 dark:text-emerald-300 dark:border-emerald-800';
-    case 'Important Update':
-      return 'bg-amber-50 text-amber-700 border-amber-200 dark:bg-amber-950/40 dark:text-amber-300 dark:border-amber-800';
-    case 'Emergency Alert':
-      return 'bg-rose-50 text-rose-700 border-rose-200 dark:bg-rose-950/40 dark:text-rose-300 dark:border-rose-800';
-    case 'Welfare & Benefits':
-      return 'bg-indigo-50 text-indigo-700 border-indigo-200 dark:bg-indigo-950/40 dark:text-indigo-300 dark:border-indigo-800';
-    default:
-      return 'bg-blue-50 text-blue-700 border-blue-200 dark:bg-blue-950/40 dark:text-blue-300 dark:border-blue-800';
-  }
-};
-
 const getPriorityBadgeClass = (priority) => {
   switch (priority) {
     case 'Urgent':
@@ -232,14 +210,7 @@ const CrmHrOperationsDashboard = ({ initialSection } = {}) => {
   const [followUpForm, setFollowUpForm] = useState({ title: '', purpose: 'Call', dueDateTime: '' });
   const [savingModal, setSavingModal] = useState(false);
 
-  // Company Announcements State (Published by HR Lead)
-  const [companyAnnouncements, setCompanyAnnouncements] = useState([]);
-  const [announcementsLoading, setAnnouncementsLoading] = useState(false);
-  const [announcementCategoryFilter, setAnnouncementCategoryFilter] = useState('all');
-  const [announcementSearch, setAnnouncementSearch] = useState('');
-  const [selectedAnnouncementForModal, setSelectedAnnouncementForModal] = useState(null);
-
-  const isHrOpsSession = currentRole === 'HR Operations' || currentRole === 'HR Lead' || currentRole === 'Super Admin' || currentRole === 'Admin';
+  const isHrOpsSession = currentRole === 'HR Operations';
 
   const fetchDashboardSummary = useCallback(async (isManualRefresh = false) => {
     if (!isHrOpsSession) {
@@ -271,10 +242,10 @@ const CrmHrOperationsDashboard = ({ initialSection } = {}) => {
               if (cur && cur.isAuthenticated) {
                 localStorage.setItem('sir_crm_session', JSON.stringify({ ...cur, crmToken: tokData.token }));
               }
-            } catch (_) { }
+            } catch (_) {}
           }
         }
-      } catch (_) { }
+      } catch (_) {}
     }
 
     if (!activeToken) {
@@ -322,7 +293,7 @@ const CrmHrOperationsDashboard = ({ initialSection } = {}) => {
                 if (cur && cur.isAuthenticated) {
                   localStorage.setItem('sir_crm_session', JSON.stringify({ ...cur, crmToken: tokData.token }));
                 }
-              } catch (_) { }
+              } catch (_) {}
               const retryRes = await fetch('/api/hr-ops/dashboard/summary', {
                 headers: { Authorization: `Bearer ${tokData.token}` }
               });
@@ -333,7 +304,7 @@ const CrmHrOperationsDashboard = ({ initialSection } = {}) => {
               }
             }
           }
-        } catch (_) { }
+        } catch (_) {}
 
         setErrorState({
           code: 403,
@@ -357,78 +328,9 @@ const CrmHrOperationsDashboard = ({ initialSection } = {}) => {
     }
   }, [authTokenLoading, crmToken, isHrOpsSession]);
 
-  const fetchCompanyAnnouncements = useCallback(async () => {
-    setAnnouncementsLoading(true);
-    try {
-      let token = crmToken;
-      if (!token) {
-        try {
-          const tokRes = await fetch('/api/crm/auth/preview-token', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ targetRole: 'HR Operations' })
-          });
-          if (tokRes.ok) {
-            const tokData = await tokRes.json();
-            if (tokData?.success && tokData.token) {
-              token = tokData.token;
-              setCrmToken?.(tokData.token);
-            }
-          }
-        } catch (_) { }
-      }
-
-      const res = await fetch('/api/company-announcements', {
-        headers: {
-          'Content-Type': 'application/json',
-          ...(token ? { Authorization: `Bearer ${token}` } : {})
-        },
-        credentials: 'include'
-      });
-      if (res.ok) {
-        const data = await res.json();
-        if (data?.success && Array.isArray(data.announcements)) {
-          setCompanyAnnouncements(data.announcements);
-        }
-      }
-    } catch (err) {
-      console.warn('Failed to fetch company announcements:', err);
-    } finally {
-      setAnnouncementsLoading(false);
-    }
-  }, [crmToken, setCrmToken]);
-
   useEffect(() => {
     fetchDashboardSummary(false);
-    fetchCompanyAnnouncements();
-  }, [fetchDashboardSummary, fetchCompanyAnnouncements]);
-
-  useEffect(() => {
-    if (initialSection === 'announcements') {
-      setTimeout(() => {
-        const el = document.getElementById('hr-company-announcements');
-        if (el) {
-          el.scrollIntoView({ behavior: 'smooth', block: 'start' });
-        }
-      }, 350);
-    }
-  }, [initialSection]);
-
-  const filteredCompanyAnnouncements = useMemo(() => {
-    let list = companyAnnouncements || [];
-    if (announcementCategoryFilter !== 'all') {
-      list = list.filter(a => a.category === announcementCategoryFilter);
-    }
-    if (announcementSearch.trim()) {
-      const q = announcementSearch.toLowerCase();
-      list = list.filter(a =>
-        (a.title && a.title.toLowerCase().includes(q)) ||
-        (a.description && a.description.toLowerCase().includes(q)) ||
-        (a.created_by_name && a.created_by_name.toLowerCase().includes(q))
-      );
-    }
-    return list;
-  }, [companyAnnouncements, announcementCategoryFilter, announcementSearch]);
+  }, [fetchDashboardSummary]);
 
   const showToast = (type, message) => {
     setActionFeedback({ type, message });
@@ -746,6 +648,12 @@ const CrmHrOperationsDashboard = ({ initialSection } = {}) => {
       icon: CalendarClock
     },
     {
+      key: 'overdueFollowUps',
+      label: 'Overdue Follow-ups',
+      value: metrics.overdueFollowUps,
+      icon: AlertTriangle
+    },
+    {
       key: 'completedEnquiriesThisMonth',
       label: 'Completed Enquiries This Month',
       value: metrics.completedEnquiriesThisMonth,
@@ -760,8 +668,8 @@ const CrmHrOperationsDashboard = ({ initialSection } = {}) => {
     return (
       <div className="space-y-6 animate-pulse" data-testid="hr-ops-dashboard-loading">
         <div className="h-32 rounded-2xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800" />
-        <div className="grid grid-cols-2 md:grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
-          {Array.from({ length: 4 }).map((_, idx) => (
+        <div className="grid grid-cols-2 md:grid-cols-3 xl:grid-cols-5 gap-3 sm:gap-4">
+          {Array.from({ length: 5 }).map((_, idx) => (
             <div key={idx} className="h-28 rounded-2xl bg-white dark:bg-slate-900 border border-slate-200/80 dark:border-slate-800 border-l-4 border-l-amber-500/40" />
           ))}
         </div>
@@ -819,12 +727,12 @@ const CrmHrOperationsDashboard = ({ initialSection } = {}) => {
                           if (cur && cur.isAuthenticated) {
                             localStorage.setItem('sir_crm_session', JSON.stringify({ ...cur, crmToken: data.token }));
                           }
-                        } catch (_) { }
+                        } catch (_) {}
                         fetchDashboardSummary(true);
                         return;
                       }
                     }
-                  } catch (_) { }
+                  } catch (_) {}
                   fetchDashboardSummary(true);
                 }}
                 className="px-4 py-2.5 rounded-xl text-sm font-semibold bg-emerald-600 hover:bg-emerald-700 text-white transition-colors cursor-pointer shadow-sm"
@@ -859,10 +767,11 @@ const CrmHrOperationsDashboard = ({ initialSection } = {}) => {
       {actionFeedback && (
         <div
           role="status"
-          className={`flex items-center justify-between gap-3 px-4 py-3 rounded-xl border text-sm font-medium shadow-sm ${actionFeedback.type === 'error'
-            ? 'bg-rose-50 border-rose-200 text-rose-800 dark:bg-rose-500/15 dark:border-rose-500/30 dark:text-rose-200'
-            : 'bg-emerald-50 border-emerald-200 text-emerald-800 dark:bg-emerald-500/15 dark:border-emerald-500/30 dark:text-emerald-200'
-            }`}
+          className={`flex items-center justify-between gap-3 px-4 py-3 rounded-xl border text-sm font-medium shadow-sm ${
+            actionFeedback.type === 'error'
+              ? 'bg-rose-50 border-rose-200 text-rose-800 dark:bg-rose-500/15 dark:border-rose-500/30 dark:text-rose-200'
+              : 'bg-emerald-50 border-emerald-200 text-emerald-800 dark:bg-emerald-500/15 dark:border-emerald-500/30 dark:text-emerald-200'
+          }`}
         >
           <span>{actionFeedback.message}</span>
           <button
@@ -921,9 +830,9 @@ const CrmHrOperationsDashboard = ({ initialSection } = {}) => {
         </div>
       </header>
 
-      {/* 2. Redesigned KPI Cards for HR Operations */}
+      {/* 2. Redesigned Five KPI Cards for HR Operations */}
       <section aria-label="Employee Operations Metrics">
-        <div className="grid grid-cols-2 md:grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
+        <div className="grid grid-cols-2 md:grid-cols-3 xl:grid-cols-5 gap-3 sm:gap-4">
           {summaryCards.map((card) => {
             const Icon = card.icon;
             return (
@@ -1014,6 +923,11 @@ const CrmHrOperationsDashboard = ({ initialSection } = {}) => {
                   <span className="w-1.5 h-1.5 rounded-full bg-current" />
                   {attendanceToday?.status || 'Not Checked In'}
                 </span>
+                {attendanceToday?.isOnBreak && (
+                  <span className="text-[10px] font-semibold px-1.5 py-0.2 rounded-full bg-amber-100 text-amber-800 dark:bg-amber-500/20 dark:text-amber-300">
+                    On Break
+                  </span>
+                )}
               </div>
             </div>
 
@@ -1053,165 +967,6 @@ const CrmHrOperationsDashboard = ({ initialSection } = {}) => {
         </section>
       )}
 
-      {/* 3b. Company Announcements Section (Published by HR Lead) */}
-      {!isEnquiriesPage && (
-        <section
-          id="hr-company-announcements"
-          aria-label="Company Announcement"
-          data-testid="hr-dashboard-company-announcements"
-          className="rounded-2xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 p-4 sm:p-5 shadow-xs space-y-4"
-        >
-          <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 border-b border-slate-100 dark:border-slate-800 pb-3.5">
-            <div className="flex items-center gap-3">
-              <div className="w-9 h-9 sm:w-10 sm:h-10 rounded-xl bg-amber-50 dark:bg-amber-500/15 border border-amber-200/80 dark:border-amber-500/30 flex items-center justify-center text-amber-600 dark:text-amber-400 shrink-0">
-                <Megaphone className="w-5 h-5" />
-              </div>
-              <div>
-                <div className="flex flex-wrap items-center gap-2">
-                  <h2 className="text-sm sm:text-base font-bold text-slate-900 dark:text-white font-serif">
-                    Company Announcement
-                  </h2>
-                  <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-amber-100 dark:bg-amber-950/40 text-amber-800 dark:text-amber-300 border border-amber-200 dark:border-amber-800">
-                    Official Notice Board
-                  </span>
-                </div>
-                <p className="text-xs text-slate-500 dark:text-slate-400">
-                  Corporate circulars, HR policies, and urgent announcements published by HR Leadership
-                </p>
-              </div>
-            </div>
-
-            <div className="flex items-center gap-2 self-end sm:self-auto">
-              <button
-                type="button"
-                onClick={fetchCompanyAnnouncements}
-                className="p-1.5 sm:px-2.5 sm:py-1.5 bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 text-slate-600 dark:text-slate-300 rounded-xl transition cursor-pointer text-xs flex items-center gap-1.5"
-                title="Refresh Announcements"
-              >
-                <RefreshCw className={`w-3.5 h-3.5 ${announcementsLoading ? 'animate-spin text-amber-500' : ''}`} />
-                <span className="hidden sm:inline">Refresh</span>
-              </button>
-            </div>
-          </div>
-
-          {/* Search and Category Filter Bar */}
-          <div className="flex flex-col md:flex-row items-center justify-between gap-3">
-            <div className="flex flex-wrap items-center gap-1.5 w-full md:w-auto">
-              {['all', 'General Notice', 'HR Policy', 'Holiday', 'Important Update'].map(cat => (
-                <button
-                  key={cat}
-                  type="button"
-                  onClick={() => setAnnouncementCategoryFilter(cat)}
-                  className={`px-2.5 py-1 rounded-lg text-xs font-semibold transition cursor-pointer ${announcementCategoryFilter === cat
-                    ? 'bg-amber-500 text-slate-950 font-bold'
-                    : 'bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 hover:bg-slate-200 dark:hover:bg-slate-700'
-                    }`}
-                >
-                  {cat === 'all' ? 'All Notices' : cat}
-                </button>
-              ))}
-            </div>
-
-            <div className="relative w-full md:w-64">
-              <Search className="w-3.5 h-3.5 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2" />
-              <input
-                type="text"
-                value={announcementSearch}
-                onChange={e => setAnnouncementSearch(e.target.value)}
-                placeholder="Search notices..."
-                className="w-full pl-9 pr-7 py-1.5 bg-slate-50 dark:bg-slate-800/80 border border-slate-200 dark:border-slate-700 rounded-xl text-xs text-slate-900 dark:text-white placeholder:text-slate-400 focus:outline-none focus:border-amber-500"
-              />
-              {announcementSearch && (
-                <button
-                  type="button"
-                  onClick={() => setAnnouncementSearch('')}
-                  className="absolute right-2.5 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600"
-                >
-                  <X className="w-3 h-3" />
-                </button>
-              )}
-            </div>
-          </div>
-
-          {/* Announcements Cards */}
-          {filteredCompanyAnnouncements.length === 0 ? (
-            <div className="text-center py-10 rounded-2xl bg-slate-50 dark:bg-slate-800/40 border border-dashed border-slate-200 dark:border-slate-700/80 text-slate-500 dark:text-slate-400">
-              <Megaphone className="w-8 h-8 text-slate-300 dark:text-slate-600 mx-auto mb-2" />
-              <p className="font-serif font-bold text-sm text-slate-800 dark:text-slate-200">
-                No company announcements available.
-              </p>
-              <p className="text-xs text-slate-400 mt-0.5">
-                {announcementSearch || announcementCategoryFilter !== 'all'
-                  ? 'No announcements match the selected filter.'
-                  : 'New announcements published by HR Lead will appear here automatically.'}
-              </p>
-            </div>
-          ) : (
-            <div className="flex flex-col gap-3.5 w-full">
-              {filteredCompanyAnnouncements.map((ann) => (
-                <div
-                  key={ann.id}
-                  className="w-full p-4 sm:p-5 rounded-2xl bg-slate-50 dark:bg-slate-800/50 border border-slate-200/80 dark:border-slate-700/80 hover:border-amber-500/40 transition group shadow-xs"
-                >
-                  <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4">
-                    {/* Left: Category, audience, title, description, and issuer details */}
-                    <div className="space-y-2 flex-1 min-w-0">
-                      <div className="flex flex-wrap items-center gap-2">
-                        <span className={`px-2.5 py-0.5 rounded-full text-[10px] font-bold border ${getAnnouncementCategoryBadgeClass(ann.category)}`}>
-                          {ann.category}
-                        </span>
-                        <span className="px-2.5 py-0.5 rounded-full text-[10px] font-semibold bg-white dark:bg-slate-800 text-slate-600 dark:text-slate-300 border border-slate-200 dark:border-slate-700 flex items-center gap-1">
-                          <Globe className="w-3 h-3 text-slate-400" />
-                          <span>{ann.target_audience}</span>
-                        </span>
-                        {ann.expires_at && (
-                          <span className="px-2.5 py-0.5 rounded-full text-[10px] font-semibold bg-amber-50 dark:bg-amber-950/40 text-amber-700 dark:text-amber-300 border border-amber-200 dark:border-amber-800">
-                            Expires: {ann.expires_at}
-                          </span>
-                        )}
-                      </div>
-
-                      <h3 className="font-serif font-bold text-sm sm:text-base text-slate-900 dark:text-white group-hover:text-amber-600 dark:group-hover:text-amber-400 transition-colors break-words">
-                        {ann.title}
-                      </h3>
-
-                      <p className="text-xs sm:text-sm text-slate-600 dark:text-slate-300 leading-relaxed break-words line-clamp-2 md:line-clamp-3">
-                        {ann.description}
-                      </p>
-
-                      <div className="pt-1 flex flex-wrap items-center gap-1.5 text-xs text-slate-500 dark:text-slate-400">
-                        <span>Issued by:</span>
-                        <strong className="text-slate-800 dark:text-slate-200 font-semibold">
-                          {ann.created_by_name || 'HR Lead'}
-                        </strong>
-                        <span className="text-[11px] text-slate-400">({ann.created_by_role || 'HR Lead'})</span>
-                      </div>
-                    </div>
-
-                    {/* Right: Published date/time and “Read Full Notice” button, aligned neatly */}
-                    <div className="flex flex-row lg:flex-col items-center lg:items-end justify-between lg:justify-center gap-3 shrink-0 pt-3 lg:pt-0 border-t lg:border-t-0 border-slate-200/60 dark:border-slate-700/60">
-                      <div className="flex items-center gap-1.5 text-xs font-mono text-slate-500 dark:text-slate-400 whitespace-nowrap">
-                        <Clock className="w-3.5 h-3.5 text-slate-400 shrink-0" />
-                        <span>{formatDateTimeShort(ann.published_at || ann.created_at)}</span>
-                      </div>
-
-                      <button
-                        type="button"
-                        onClick={() => setSelectedAnnouncementForModal(ann)}
-                        className="px-4 py-2 rounded-xl text-xs font-bold bg-white dark:bg-slate-800 hover:bg-amber-50 hover:text-amber-700 dark:hover:bg-amber-500/15 dark:hover:text-amber-300 text-slate-700 dark:text-slate-300 border border-slate-200 dark:border-slate-700 hover:border-amber-400/80 transition flex items-center gap-1.5 shrink-0 cursor-pointer shadow-xs"
-                      >
-                        <Eye className="w-3.5 h-3.5" />
-                        <span>Read Full Notice</span>
-                      </button>
-                    </div>
-                  </div>
-                </div>
-              ))}
-            </div>
-          )}
-        </section>
-      )}
-
       {/* 4. Interactive Employee Workspace (Enquiries / Follow-ups / Tasks) - Shown on My Assigned Enquiries only */}
       {isEnquiriesPage && (
         <section
@@ -1219,481 +974,488 @@ const CrmHrOperationsDashboard = ({ initialSection } = {}) => {
           id="hr-ops-workspace"
           className="rounded-2xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 shadow-sm overflow-hidden"
         >
-          {/* Tab Bar + Search */}
-          <div className="p-4 sm:p-5 border-b border-slate-200 dark:border-slate-800 flex flex-col md:flex-row md:items-center justify-between gap-3 sm:gap-4">
-            <div className="flex items-center gap-2 shrink-0" role="tablist" aria-label="Operational queues">
-              <button
-                type="button"
-                role="tab"
-                aria-selected={activeTab === 'enquiries'}
-                onClick={() => setActiveTab('enquiries')}
-                data-testid="tab-enquiries"
-                className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs sm:text-[13px] font-semibold transition-colors shrink-0 ${activeTab === 'enquiries'
+        {/* Tab Bar + Search */}
+        <div className="p-4 sm:p-5 border-b border-slate-200 dark:border-slate-800 flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4">
+          <div className="flex flex-wrap items-center gap-2" role="tablist" aria-label="Operational queues">
+            <button
+              type="button"
+              role="tab"
+              aria-selected={activeTab === 'enquiries'}
+              onClick={() => setActiveTab('enquiries')}
+              data-testid="tab-enquiries"
+              className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs sm:text-[13px] font-semibold transition-colors ${
+                activeTab === 'enquiries'
                   ? 'bg-slate-900 text-white dark:bg-amber-500 dark:text-slate-950'
                   : 'bg-slate-100 text-slate-700 hover:bg-slate-200 dark:bg-slate-800 dark:text-slate-300 dark:hover:bg-slate-700'
-                  }`}
-              >
-                <Inbox className="w-3.5 h-3.5" />
-                <span>Assigned Enquiries</span>
-                <span className="px-1.5 py-0.2 rounded-md text-[10px] font-bold bg-black/10 dark:bg-white/10 font-mono">
-                  {assignedEnquiries.length}
-                </span>
-              </button>
+              }`}
+            >
+              <Inbox className="w-3.5 h-3.5" />
+              <span>Assigned Enquiries</span>
+              <span className="px-1.5 py-0.2 rounded-md text-[10px] font-bold bg-black/10 dark:bg-white/10 font-mono">
+                {assignedEnquiries.length}
+              </span>
+            </button>
 
-              <button
-                type="button"
-                role="tab"
-                aria-selected={activeTab === 'followups'}
-                onClick={() => setActiveTab('followups')}
-                data-testid="tab-followups"
-                className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs sm:text-[13px] font-semibold transition-colors shrink-0 ${activeTab === 'followups'
+            <button
+              type="button"
+              role="tab"
+              aria-selected={activeTab === 'followups'}
+              onClick={() => setActiveTab('followups')}
+              data-testid="tab-followups"
+              className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs sm:text-[13px] font-semibold transition-colors ${
+                activeTab === 'followups'
                   ? 'bg-slate-900 text-white dark:bg-amber-500 dark:text-slate-950'
                   : 'bg-slate-100 text-slate-700 hover:bg-slate-200 dark:bg-slate-800 dark:text-slate-300 dark:hover:bg-slate-700'
-                  }`}
-              >
-                <CalendarClock className="w-3.5 h-3.5" />
-                <span>Follow-ups</span>
-                <span className="px-1.5 py-0.2 rounded-md text-[10px] font-bold bg-black/10 dark:bg-white/10 font-mono">
-                  {followUps.length}
-                </span>
-              </button>
-            </div>
+              }`}
+            >
+              <CalendarClock className="w-3.5 h-3.5" />
+              <span>Follow-ups</span>
+              <span className="px-1.5 py-0.2 rounded-md text-[10px] font-bold bg-black/10 dark:bg-white/10 font-mono">
+                {followUps.length}
+              </span>
+            </button>
+          </div>
 
-            <div className="flex-1 flex items-center justify-end gap-2 min-w-0 w-full md:w-auto">
-              <div className="relative flex-1 w-full min-w-0">
-                <Search className="w-3.5 h-3.5 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2 pointer-events-none" />
-                <input
-                  type="text"
-                  value={searchQuery}
-                  onChange={(e) => setSearchQuery(e.target.value)}
-                  placeholder="Search candidate..."
-                  className="w-full pl-8 pr-7 py-1.5 rounded-xl text-xs border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 text-slate-900 dark:text-white placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-amber-500/40"
-                />
-                {searchQuery && (
-                  <button
-                    type="button"
-                    onClick={() => setSearchQuery('')}
-                    className="absolute right-2 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 dark:hover:text-slate-200"
-                    aria-label="Clear search"
-                  >
-                    <X className="w-3 h-3" />
-                  </button>
-                )}
-              </div>
-
-              {!isEnquiriesPage && (
+          <div className="flex flex-wrap items-center gap-2">
+            <div className="relative flex-1 sm:flex-initial min-w-[200px]">
+              <Search className="w-3.5 h-3.5 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2 pointer-events-none" />
+              <input
+                type="text"
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                placeholder="Search candidate, ref #, service..."
+                className="w-full pl-8 pr-7 py-1.5 rounded-xl text-xs border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 text-slate-900 dark:text-white placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-amber-500/40"
+              />
+              {searchQuery && (
                 <button
                   type="button"
-                  onClick={() => setActiveModule?.('hr-tasks')}
-                  className="inline-flex items-center gap-1 px-2.5 py-1.5 rounded-xl text-xs font-semibold border border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-800 transition-colors shrink-0 whitespace-nowrap"
+                  onClick={() => setSearchQuery('')}
+                  className="absolute right-2 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 dark:hover:text-slate-200"
+                  aria-label="Clear search"
                 >
-                  <span>Enquiries Desk</span>
-                  <ArrowRight className="w-3 h-3" />
+                  <X className="w-3 h-3" />
                 </button>
               )}
             </div>
-          </div>
 
-          {/* Sub-filters */}
-          <div className="px-4 sm:px-5 py-3 bg-slate-50/70 dark:bg-slate-800/30 border-b border-slate-200 dark:border-slate-800 flex flex-wrap items-center justify-between gap-3">
-            {activeTab === 'enquiries' && (
-              <>
-                <div className="flex flex-wrap items-center gap-1.5">
-                  {[
-                    { id: 'all', label: 'All Enquiries' },
-                    { id: 'pending', label: `Pending (${metrics.pendingEnquiries})` },
-                    { id: 'completed-month', label: `Completed This Month (${metrics.completedEnquiriesThisMonth})` },
-                    { id: 'completed', label: 'All Completed' }
-                  ].map((opt) => (
-                    <button
-                      key={opt.id}
-                      type="button"
-                      onClick={() => {
-                        setEnquiryQuickFilter(opt.id);
-                        setStatusFilter('all');
-                      }}
-                      className={`px-3 py-1.5 rounded-lg text-xs font-semibold transition-colors ${enquiryQuickFilter === opt.id
+            {!isEnquiriesPage && (
+              <button
+                type="button"
+                onClick={() => setActiveModule?.('hr-tasks')}
+                className="inline-flex items-center gap-1 px-2.5 py-1.5 rounded-xl text-xs font-semibold border border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-800 transition-colors"
+              >
+                <span>Enquiries Desk</span>
+                <ArrowRight className="w-3 h-3" />
+              </button>
+            )}
+          </div>
+        </div>
+
+        {/* Sub-filters */}
+        <div className="px-4 sm:px-5 py-3 bg-slate-50/70 dark:bg-slate-800/30 border-b border-slate-200 dark:border-slate-800 flex flex-wrap items-center justify-between gap-3">
+          {activeTab === 'enquiries' && (
+            <>
+              <div className="flex flex-wrap items-center gap-1.5">
+                {[
+                  { id: 'all', label: 'All Enquiries' },
+                  { id: 'pending', label: `Pending (${metrics.pendingEnquiries})` },
+                  { id: 'completed-month', label: `Completed This Month (${metrics.completedEnquiriesThisMonth})` },
+                  { id: 'completed', label: 'All Completed' }
+                ].map((opt) => (
+                  <button
+                    key={opt.id}
+                    type="button"
+                    onClick={() => {
+                      setEnquiryQuickFilter(opt.id);
+                      setStatusFilter('all');
+                    }}
+                    className={`px-3 py-1.5 rounded-lg text-xs font-semibold transition-colors ${
+                      enquiryQuickFilter === opt.id
                         ? 'bg-amber-500/15 text-amber-700 dark:text-amber-300 border border-amber-500/30'
                         : 'text-slate-600 dark:text-slate-300 hover:bg-slate-200/60 dark:hover:bg-slate-800 border border-transparent'
-                        }`}
-                    >
-                      {opt.label}
-                    </button>
-                  ))}
-                </div>
-                <div className="flex flex-wrap items-center gap-2">
-                  <div className="flex items-center gap-1.5 text-xs text-slate-500 dark:text-slate-400">
-                    <Filter className="w-3.5 h-3.5" />
-                    <select
-                      aria-label="Filter by enquiry status"
-                      value={statusFilter}
-                      onChange={(e) => setStatusFilter(e.target.value)}
-                      className="px-2.5 py-1.5 rounded-lg text-xs font-medium border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-700 dark:text-slate-200 focus:outline-none"
-                    >
-                      <option value="all">All Statuses</option>
-                      {statusOptions.map((st) => (
-                        <option key={st} value={st}>{st}</option>
-                      ))}
-                    </select>
-                  </div>
-
-                  {availableTeams.length > 1 && (
-                    <select
-                      aria-label="Filter by operation team"
-                      value={teamFilter}
-                      onChange={(e) => setTeamFilter(e.target.value)}
-                      className="px-2.5 py-1.5 rounded-lg text-xs font-medium border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-700 dark:text-slate-200 focus:outline-none"
-                    >
-                      <option value="all">All Assigned Teams</option>
-                      {availableTeams.map((tm) => (
-                        <option key={tm} value={tm}>{tm}</option>
-                      ))}
-                    </select>
-                  )}
-                </div>
-              </>
-            )}
-
-            {activeTab === 'followups' && (
-              <div className="flex flex-wrap items-center gap-1.5">
-                {[
-                  { id: 'all', label: `All (${followUps.length})` },
-                  { id: 'overdue', label: `Overdue (${metrics.overdueFollowUps})` },
-                  { id: 'today', label: `Due Today (${metrics.followUpsDueToday})` },
-                  { id: 'upcoming', label: 'Upcoming' },
-                  { id: 'completed', label: 'Completed' }
-                ].map((opt) => (
-                  <button
-                    key={opt.id}
-                    type="button"
-                    onClick={() => setFollowUpBucketFilter(opt.id)}
-                    className={`px-3 py-1.5 rounded-lg text-xs font-semibold transition-colors ${followUpBucketFilter === opt.id
-                      ? 'bg-amber-500/15 text-amber-700 dark:text-amber-300 border border-amber-500/30'
-                      : 'text-slate-600 dark:text-slate-300 hover:bg-slate-200/60 dark:hover:bg-slate-800 border border-transparent'
-                      }`}
+                    }`}
                   >
                     {opt.label}
                   </button>
                 ))}
               </div>
-            )}
+              <div className="flex flex-wrap items-center gap-2">
+                <div className="flex items-center gap-1.5 text-xs text-slate-500 dark:text-slate-400">
+                  <Filter className="w-3.5 h-3.5" />
+                  <select
+                    aria-label="Filter by enquiry status"
+                    value={statusFilter}
+                    onChange={(e) => setStatusFilter(e.target.value)}
+                    className="px-2.5 py-1.5 rounded-lg text-xs font-medium border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-700 dark:text-slate-200 focus:outline-none"
+                  >
+                    <option value="all">All Statuses</option>
+                    {statusOptions.map((st) => (
+                      <option key={st} value={st}>{st}</option>
+                    ))}
+                  </select>
+                </div>
 
-            {activeTab === 'tasks' && (
-              <div className="flex flex-wrap items-center gap-1.5">
-                {[
-                  { id: 'pending', label: `Pending (${metrics.pendingTasks})` },
-                  { id: 'completed', label: 'Completed' },
-                  { id: 'all', label: `All Tasks (${tasks.length})` }
-                ].map((opt) => (
-                  <button
-                    key={opt.id}
-                    type="button"
-                    onClick={() => setTaskFilter(opt.id)}
-                    className={`px-3 py-1.5 rounded-lg text-xs font-semibold transition-colors ${taskFilter === opt.id
+                {availableTeams.length > 1 && (
+                  <select
+                    aria-label="Filter by operation team"
+                    value={teamFilter}
+                    onChange={(e) => setTeamFilter(e.target.value)}
+                    className="px-2.5 py-1.5 rounded-lg text-xs font-medium border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-700 dark:text-slate-200 focus:outline-none"
+                  >
+                    <option value="all">All Assigned Teams</option>
+                    {availableTeams.map((tm) => (
+                      <option key={tm} value={tm}>{tm}</option>
+                    ))}
+                  </select>
+                )}
+              </div>
+            </>
+          )}
+
+          {activeTab === 'followups' && (
+            <div className="flex flex-wrap items-center gap-1.5">
+              {[
+                { id: 'all', label: `All (${followUps.length})` },
+                { id: 'overdue', label: `Overdue (${metrics.overdueFollowUps})` },
+                { id: 'today', label: `Due Today (${metrics.followUpsDueToday})` },
+                { id: 'upcoming', label: 'Upcoming' },
+                { id: 'completed', label: 'Completed' }
+              ].map((opt) => (
+                <button
+                  key={opt.id}
+                  type="button"
+                  onClick={() => setFollowUpBucketFilter(opt.id)}
+                  className={`px-3 py-1.5 rounded-lg text-xs font-semibold transition-colors ${
+                    followUpBucketFilter === opt.id
                       ? 'bg-amber-500/15 text-amber-700 dark:text-amber-300 border border-amber-500/30'
                       : 'text-slate-600 dark:text-slate-300 hover:bg-slate-200/60 dark:hover:bg-slate-800 border border-transparent'
-                      }`}
-                  >
-                    {opt.label}
-                  </button>
-                ))}
+                  }`}
+                >
+                  {opt.label}
+                </button>
+              ))}
+            </div>
+          )}
+
+          {activeTab === 'tasks' && (
+            <div className="flex flex-wrap items-center gap-1.5">
+              {[
+                { id: 'pending', label: `Pending (${metrics.pendingTasks})` },
+                { id: 'completed', label: 'Completed' },
+                { id: 'all', label: `All Tasks (${tasks.length})` }
+              ].map((opt) => (
+                <button
+                  key={opt.id}
+                  type="button"
+                  onClick={() => setTaskFilter(opt.id)}
+                  className={`px-3 py-1.5 rounded-lg text-xs font-semibold transition-colors ${
+                    taskFilter === opt.id
+                      ? 'bg-amber-500/15 text-amber-700 dark:text-amber-300 border border-amber-500/30'
+                      : 'text-slate-600 dark:text-slate-300 hover:bg-slate-200/60 dark:hover:bg-slate-800 border border-transparent'
+                  }`}
+                >
+                  {opt.label}
+                </button>
+              ))}
+            </div>
+          )}
+        </div>
+
+        {/* Workspace Content */}
+        <div className="p-4 sm:p-5">
+          {activeTab === 'enquiries' && (
+            filteredEnquiries.length === 0 ? (
+              <div className="py-12 text-center">
+                <Inbox className="w-10 h-10 mx-auto text-slate-300 dark:text-slate-600 mb-3" />
+                <p className="text-sm font-semibold text-slate-700 dark:text-slate-200">
+                  No assigned enquiries match the selected filters
+                </p>
+                <p className="text-xs text-slate-500 dark:text-slate-400 mt-1">
+                  Try switching filters or clearing the search box.
+                </p>
               </div>
-            )}
-          </div>
-
-          {/* Workspace Content */}
-          <div className="p-4 sm:p-5">
-            {activeTab === 'enquiries' && (
-              filteredEnquiries.length === 0 ? (
-                <div className="py-12 text-center">
-                  <Inbox className="w-10 h-10 mx-auto text-slate-300 dark:text-slate-600 mb-3" />
-                  <p className="text-sm font-semibold text-slate-700 dark:text-slate-200">
-                    No assigned enquiries match the selected filters
-                  </p>
-                  <p className="text-xs text-slate-500 dark:text-slate-400 mt-1">
-                    Try switching filters or clearing the search box.
-                  </p>
-                </div>
-              ) : (
-                <div className="space-y-3" data-testid="enquiries-list">
-                  {filteredEnquiries.map((enq) => (
-                    <div
-                      key={enq.id}
-                      className="rounded-xl border border-slate-200 dark:border-slate-800 p-4 bg-white dark:bg-slate-900/80 hover:border-slate-300 dark:hover:border-slate-700 transition-colors"
-                    >
-                      <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4">
-                        <div className="space-y-1.5 min-w-0">
-                          <div className="flex flex-wrap items-center gap-2">
-                            <span className="font-mono text-xs font-semibold px-2 py-0.5 rounded-md bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300">
-                              {enq.referenceNumber}
-                            </span>
-                            <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-semibold border ${getEnquiryStatusBadgeClass(enq.status)}`}>
-                              {enq.status}
-                            </span>
-                            <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-[11px] font-semibold border ${getPriorityBadgeClass(enq.priority)}`}>
-                              {enq.priority || 'Normal'}
-                            </span>
-                            {enq.operationTeam && (
-                              <span className="text-xs font-medium text-slate-500 dark:text-slate-400">
-                                {enq.operationTeam}
-                              </span>
-                            )}
-                          </div>
-
-                          <div className="flex flex-wrap items-center gap-x-3 gap-y-1">
-                            {enq.candidateKey ? (
-                              <button
-                                type="button"
-                                onClick={() => handleOpenCandidateProfile(enq.candidateKey)}
-                                className="text-base font-bold text-slate-900 dark:text-white hover:text-amber-600 dark:hover:text-amber-400 transition-colors text-left"
-                              >
-                                {enq.candidateName}
-                              </button>
-                            ) : (
-                              <span className="text-base font-bold text-slate-900 dark:text-white">
-                                {enq.candidateName}
-                              </span>
-                            )}
-                            <span className="text-xs font-medium text-slate-500 dark:text-slate-400">
-                              {enq.serviceTitle}
-                            </span>
-                          </div>
-
-                          <div className="flex flex-wrap items-center gap-x-4 gap-y-1 text-xs text-slate-500 dark:text-slate-400">
-                            {enq.phone && (
-                              <span className="inline-flex items-center gap-1">
-                                <Phone className="w-3.5 h-3.5" />
-                                {enq.phone}
-                              </span>
-                            )}
-                            {enq.email && (
-                              <span className="inline-flex items-center gap-1">
-                                <Mail className="w-3.5 h-3.5" />
-                                {enq.email}
-                              </span>
-                            )}
-                            <span>Assigned: {formatDateShort(enq.assignedAt || enq.createdAt)}</span>
-                            {enq.nextAction && (
-                              <span className="text-indigo-600 dark:text-indigo-400 font-medium">
-                                Next: {enq.nextAction}
-                                {enq.nextActionDate ? ` (${formatDateShort(enq.nextActionDate)})` : ''}
-                              </span>
-                            )}
-                          </div>
-
-                          {(enq.assignmentNotes || enq.internalNotes) && (
-                            <p className="text-xs text-slate-600 dark:text-slate-300 bg-slate-50 dark:bg-slate-800/70 rounded-lg px-3 py-2 border border-slate-200/60 dark:border-slate-700/60 mt-1">
-                              {enq.assignmentNotes || enq.internalNotes}
-                            </p>
-                          )}
-                        </div>
-
-                        <div className="flex flex-wrap items-center gap-2 shrink-0">
-                          <button
-                            type="button"
-                            onClick={() => openStatusModal(enq)}
-                            className="px-3 py-1.5 rounded-lg text-xs font-semibold border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-700 dark:text-slate-200 hover:bg-slate-50 dark:hover:bg-slate-700 transition-colors"
-                          >
-                            Update Status
-                          </button>
-                          <button
-                            type="button"
-                            onClick={() => openFollowUpModal(enq)}
-                            className="px-3 py-1.5 rounded-lg text-xs font-semibold border border-indigo-200 dark:border-indigo-500/30 bg-indigo-50 dark:bg-indigo-500/10 text-indigo-700 dark:text-indigo-300 hover:bg-indigo-100 dark:hover:bg-indigo-500/20 transition-colors"
-                          >
-                            Schedule Follow-up
-                          </button>
-                          {!enq.isResolved && (
-                            <button
-                              type="button"
-                              disabled={mutatingId === enq.id}
-                              onClick={() => handleQuickCompleteEnquiry(enq)}
-                              className="inline-flex items-center gap-1 px-3 py-1.5 rounded-lg text-xs font-semibold bg-emerald-600 hover:bg-emerald-700 text-white transition-colors disabled:opacity-60"
-                            >
-                              <CheckCircle2 className="w-3.5 h-3.5" />
-                              <span>{mutatingId === enq.id ? 'Saving...' : 'Complete'}</span>
-                            </button>
-                          )}
-                        </div>
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              )
-            )}
-
-            {activeTab === 'followups' && (
-              filteredFollowUps.length === 0 ? (
-                <div className="py-12 text-center">
-                  <CalendarClock className="w-10 h-10 mx-auto text-slate-300 dark:text-slate-600 mb-3" />
-                  <p className="text-sm font-semibold text-slate-700 dark:text-slate-200">
-                    No follow-ups found for this filter
-                  </p>
-                  <p className="text-xs text-slate-500 dark:text-slate-400 mt-1">
-                    Schedule follow-ups directly from any assigned enquiry.
-                  </p>
-                </div>
-              ) : (
-                <div className="space-y-3" data-testid="followups-list">
-                  {filteredFollowUps.map((fu) => {
-                    const badge = getFollowUpBucketBadge(fu.bucket);
-                    const isCompleted = fu.bucket === 'completed';
-                    return (
-                      <div
-                        key={fu.id}
-                        className="rounded-xl border border-slate-200 dark:border-slate-800 p-4 bg-white dark:bg-slate-900/80 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4"
-                      >
-                        <div className="space-y-1.5 min-w-0">
-                          <div className="flex flex-wrap items-center gap-2">
-                            <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-semibold border ${badge.classes}`}>
-                              {badge.label}
-                            </span>
-                            <span className="font-mono text-xs font-semibold text-slate-500 dark:text-slate-400">
-                              {fu.enquiryReference}
-                            </span>
-                            <span className="text-xs px-2 py-0.5 rounded-md bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 font-medium">
-                              {fu.purpose}
-                            </span>
-                          </div>
-                          <div className="text-sm font-bold text-slate-900 dark:text-white">
-                            {fu.title}
-                          </div>
-                          <div className="flex flex-wrap items-center gap-x-3 gap-y-1 text-xs text-slate-500 dark:text-slate-400">
-                            {fu.candidateKey ? (
-                              <button
-                                type="button"
-                                onClick={() => handleOpenCandidateProfile(fu.candidateKey)}
-                                className="font-semibold text-amber-600 dark:text-amber-400 hover:underline"
-                              >
-                                {fu.candidateName}
-                              </button>
-                            ) : (
-                              <span className="font-semibold">{fu.candidateName}</span>
-                            )}
-                            <span>Due: {formatDateTimeShort(fu.dueDateTime)}</span>
-                          </div>
-                          {fu.completionNotes && (
-                            <p className="text-xs text-emerald-700 dark:text-emerald-300">
-                              Note: {fu.completionNotes}
-                            </p>
-                          )}
-                        </div>
-
-                        {!isCompleted && (
-                          <button
-                            type="button"
-                            disabled={mutatingId === fu.id}
-                            onClick={() => handleCompleteFollowUp(fu)}
-                            className="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-xl text-xs font-semibold bg-emerald-600 hover:bg-emerald-700 text-white transition-colors shrink-0 disabled:opacity-60"
-                          >
-                            <CheckCircle2 className="w-3.5 h-3.5" />
-                            <span>
-                              {mutatingId === fu.id
-                                ? 'Updating...'
-                                : fu.source === 'lead_next_action'
-                                  ? 'Update Enquiry'
-                                  : 'Mark Completed'}
-                            </span>
-                          </button>
-                        )}
-                      </div>
-                    );
-                  })}
-                </div>
-              )
-            )}
-
-            {activeTab === 'tasks' && (
-              filteredTasks.length === 0 ? (
-                <div className="py-12 text-center">
-                  <FileCheck2 className="w-10 h-10 mx-auto text-slate-300 dark:text-slate-600 mb-3" />
-                  <p className="text-sm font-semibold text-slate-700 dark:text-slate-200">
-                    No assigned tasks in this view
-                  </p>
-                  <p className="text-xs text-slate-500 dark:text-slate-400 mt-1">
-                    Tasks assigned to you by HR Lead appear here automatically.
-                  </p>
-                </div>
-              ) : (
-                <div className="space-y-3" data-testid="tasks-list">
-                  {filteredTasks.map((t) => (
-                    <div
-                      key={t.id}
-                      className="rounded-xl border border-slate-200 dark:border-slate-800 p-4 bg-white dark:bg-slate-900/80 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4"
-                    >
+            ) : (
+              <div className="space-y-3" data-testid="enquiries-list">
+                {filteredEnquiries.map((enq) => (
+                  <div
+                    key={enq.id}
+                    className="rounded-xl border border-slate-200 dark:border-slate-800 p-4 bg-white dark:bg-slate-900/80 hover:border-slate-300 dark:hover:border-slate-700 transition-colors"
+                  >
+                    <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4">
                       <div className="space-y-1.5 min-w-0">
                         <div className="flex flex-wrap items-center gap-2">
                           <span className="font-mono text-xs font-semibold px-2 py-0.5 rounded-md bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300">
-                            {t.referenceNumber}
+                            {enq.referenceNumber}
                           </span>
-                          <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-semibold border ${t.isCompleted
-                            ? 'bg-emerald-50 text-emerald-700 border-emerald-200 dark:bg-emerald-500/15 dark:text-emerald-300 dark:border-emerald-500/30'
-                            : 'bg-violet-50 text-violet-700 border-violet-200 dark:bg-violet-500/15 dark:text-violet-300 dark:border-violet-500/30'
-                            }`}>
-                            {t.taskStatus}
+                          <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-semibold border ${getEnquiryStatusBadgeClass(enq.status)}`}>
+                            {enq.status}
                           </span>
-                          <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-[11px] font-semibold border ${getPriorityBadgeClass(t.priority)}`}>
-                            {t.priority}
+                          <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-[11px] font-semibold border ${getPriorityBadgeClass(enq.priority)}`}>
+                            {enq.priority || 'Normal'}
                           </span>
-                        </div>
-
-                        <div className="flex flex-wrap items-center gap-x-2.5 gap-y-1">
-                          {t.candidateKey ? (
-                            <button
-                              type="button"
-                              onClick={() => handleOpenCandidateProfile(t.candidateKey)}
-                              className="text-sm font-bold text-slate-900 dark:text-white hover:text-amber-600 dark:hover:text-amber-400"
-                            >
-                              {t.customerName}
-                            </button>
-                          ) : (
-                            <span className="text-sm font-bold text-slate-900 dark:text-white">
-                              {t.customerName}
+                          {enq.operationTeam && (
+                            <span className="text-xs font-medium text-slate-500 dark:text-slate-400">
+                              {enq.operationTeam}
                             </span>
                           )}
-                          <span className="text-xs text-slate-500 dark:text-slate-400">
-                            • {t.serviceTitle}
+                        </div>
+
+                        <div className="flex flex-wrap items-center gap-x-3 gap-y-1">
+                          {enq.candidateKey ? (
+                            <button
+                              type="button"
+                              onClick={() => handleOpenCandidateProfile(enq.candidateKey)}
+                              className="text-base font-bold text-slate-900 dark:text-white hover:text-amber-600 dark:hover:text-amber-400 transition-colors text-left"
+                            >
+                              {enq.candidateName}
+                            </button>
+                          ) : (
+                            <span className="text-base font-bold text-slate-900 dark:text-white">
+                              {enq.candidateName}
+                            </span>
+                          )}
+                          <span className="text-xs font-medium text-slate-500 dark:text-slate-400">
+                            {enq.serviceTitle}
                           </span>
                         </div>
 
                         <div className="flex flex-wrap items-center gap-x-4 gap-y-1 text-xs text-slate-500 dark:text-slate-400">
-                          <span>Assigned by: {t.assignedByName}</span>
-                          <span>Assigned: {formatDateShort(t.assignedAt)}</span>
-                          {t.dueDate && <span>Due: {formatDateShort(t.dueDate)}</span>}
+                          {enq.phone && (
+                            <span className="inline-flex items-center gap-1">
+                              <Phone className="w-3.5 h-3.5" />
+                              {enq.phone}
+                            </span>
+                          )}
+                          {enq.email && (
+                            <span className="inline-flex items-center gap-1">
+                              <Mail className="w-3.5 h-3.5" />
+                              {enq.email}
+                            </span>
+                          )}
+                          <span>Assigned: {formatDateShort(enq.assignedAt || enq.createdAt)}</span>
+                          {enq.nextAction && (
+                            <span className="text-indigo-600 dark:text-indigo-400 font-medium">
+                              Next: {enq.nextAction}
+                              {enq.nextActionDate ? ` (${formatDateShort(enq.nextActionDate)})` : ''}
+                            </span>
+                          )}
                         </div>
 
-                        {t.notes && (
-                          <p className="text-xs text-slate-600 dark:text-slate-300 mt-1">
-                            {t.notes}
+                        {(enq.assignmentNotes || enq.internalNotes) && (
+                          <p className="text-xs text-slate-600 dark:text-slate-300 bg-slate-50 dark:bg-slate-800/70 rounded-lg px-3 py-2 border border-slate-200/60 dark:border-slate-700/60 mt-1">
+                            {enq.assignmentNotes || enq.internalNotes}
                           </p>
                         )}
                       </div>
 
-                      <button
-                        type="button"
-                        disabled={mutatingId === t.id}
-                        onClick={() => handleToggleTaskStatus(t)}
-                        className={`inline-flex items-center gap-1.5 px-3.5 py-2 rounded-xl text-xs font-semibold transition-colors shrink-0 disabled:opacity-60 ${t.isCompleted
+                      <div className="flex flex-wrap items-center gap-2 shrink-0">
+                        <button
+                          type="button"
+                          onClick={() => openStatusModal(enq)}
+                          className="px-3 py-1.5 rounded-lg text-xs font-semibold border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-700 dark:text-slate-200 hover:bg-slate-50 dark:hover:bg-slate-700 transition-colors"
+                        >
+                          Update Status
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => openFollowUpModal(enq)}
+                          className="px-3 py-1.5 rounded-lg text-xs font-semibold border border-indigo-200 dark:border-indigo-500/30 bg-indigo-50 dark:bg-indigo-500/10 text-indigo-700 dark:text-indigo-300 hover:bg-indigo-100 dark:hover:bg-indigo-500/20 transition-colors"
+                        >
+                          Schedule Follow-up
+                        </button>
+                        {!enq.isResolved && (
+                          <button
+                            type="button"
+                            disabled={mutatingId === enq.id}
+                            onClick={() => handleQuickCompleteEnquiry(enq)}
+                            className="inline-flex items-center gap-1 px-3 py-1.5 rounded-lg text-xs font-semibold bg-emerald-600 hover:bg-emerald-700 text-white transition-colors disabled:opacity-60"
+                          >
+                            <CheckCircle2 className="w-3.5 h-3.5" />
+                            <span>{mutatingId === enq.id ? 'Saving...' : 'Complete'}</span>
+                          </button>
+                        )}
+                      </div>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )
+          )}
+
+          {activeTab === 'followups' && (
+            filteredFollowUps.length === 0 ? (
+              <div className="py-12 text-center">
+                <CalendarClock className="w-10 h-10 mx-auto text-slate-300 dark:text-slate-600 mb-3" />
+                <p className="text-sm font-semibold text-slate-700 dark:text-slate-200">
+                  No follow-ups found for this filter
+                </p>
+                <p className="text-xs text-slate-500 dark:text-slate-400 mt-1">
+                  Schedule follow-ups directly from any assigned enquiry.
+                </p>
+              </div>
+            ) : (
+              <div className="space-y-3" data-testid="followups-list">
+                {filteredFollowUps.map((fu) => {
+                  const badge = getFollowUpBucketBadge(fu.bucket);
+                  const isCompleted = fu.bucket === 'completed';
+                  return (
+                    <div
+                      key={fu.id}
+                      className="rounded-xl border border-slate-200 dark:border-slate-800 p-4 bg-white dark:bg-slate-900/80 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4"
+                    >
+                      <div className="space-y-1.5 min-w-0">
+                        <div className="flex flex-wrap items-center gap-2">
+                          <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-semibold border ${badge.classes}`}>
+                            {badge.label}
+                          </span>
+                          <span className="font-mono text-xs font-semibold text-slate-500 dark:text-slate-400">
+                            {fu.enquiryReference}
+                          </span>
+                          <span className="text-xs px-2 py-0.5 rounded-md bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 font-medium">
+                            {fu.purpose}
+                          </span>
+                        </div>
+                        <div className="text-sm font-bold text-slate-900 dark:text-white">
+                          {fu.title}
+                        </div>
+                        <div className="flex flex-wrap items-center gap-x-3 gap-y-1 text-xs text-slate-500 dark:text-slate-400">
+                          {fu.candidateKey ? (
+                            <button
+                              type="button"
+                              onClick={() => handleOpenCandidateProfile(fu.candidateKey)}
+                              className="font-semibold text-amber-600 dark:text-amber-400 hover:underline"
+                            >
+                              {fu.candidateName}
+                            </button>
+                          ) : (
+                            <span className="font-semibold">{fu.candidateName}</span>
+                          )}
+                          <span>Due: {formatDateTimeShort(fu.dueDateTime)}</span>
+                        </div>
+                        {fu.completionNotes && (
+                          <p className="text-xs text-emerald-700 dark:text-emerald-300">
+                            Note: {fu.completionNotes}
+                          </p>
+                        )}
+                      </div>
+
+                      {!isCompleted && (
+                        <button
+                          type="button"
+                          disabled={mutatingId === fu.id}
+                          onClick={() => handleCompleteFollowUp(fu)}
+                          className="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-xl text-xs font-semibold bg-emerald-600 hover:bg-emerald-700 text-white transition-colors shrink-0 disabled:opacity-60"
+                        >
+                          <CheckCircle2 className="w-3.5 h-3.5" />
+                          <span>
+                            {mutatingId === fu.id
+                              ? 'Updating...'
+                              : fu.source === 'lead_next_action'
+                                ? 'Update Enquiry'
+                                : 'Mark Completed'}
+                          </span>
+                        </button>
+                      )}
+                    </div>
+                  );
+                })}
+              </div>
+            )
+          )}
+
+          {activeTab === 'tasks' && (
+            filteredTasks.length === 0 ? (
+              <div className="py-12 text-center">
+                <FileCheck2 className="w-10 h-10 mx-auto text-slate-300 dark:text-slate-600 mb-3" />
+                <p className="text-sm font-semibold text-slate-700 dark:text-slate-200">
+                  No assigned tasks in this view
+                </p>
+                <p className="text-xs text-slate-500 dark:text-slate-400 mt-1">
+                  Tasks assigned to you by HR Lead appear here automatically.
+                </p>
+              </div>
+            ) : (
+              <div className="space-y-3" data-testid="tasks-list">
+                {filteredTasks.map((t) => (
+                  <div
+                    key={t.id}
+                    className="rounded-xl border border-slate-200 dark:border-slate-800 p-4 bg-white dark:bg-slate-900/80 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4"
+                  >
+                    <div className="space-y-1.5 min-w-0">
+                      <div className="flex flex-wrap items-center gap-2">
+                        <span className="font-mono text-xs font-semibold px-2 py-0.5 rounded-md bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300">
+                          {t.referenceNumber}
+                        </span>
+                        <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-semibold border ${
+                          t.isCompleted
+                            ? 'bg-emerald-50 text-emerald-700 border-emerald-200 dark:bg-emerald-500/15 dark:text-emerald-300 dark:border-emerald-500/30'
+                            : 'bg-violet-50 text-violet-700 border-violet-200 dark:bg-violet-500/15 dark:text-violet-300 dark:border-violet-500/30'
+                        }`}>
+                          {t.taskStatus}
+                        </span>
+                        <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-[11px] font-semibold border ${getPriorityBadgeClass(t.priority)}`}>
+                          {t.priority}
+                        </span>
+                      </div>
+
+                      <div className="flex flex-wrap items-center gap-x-2.5 gap-y-1">
+                        {t.candidateKey ? (
+                          <button
+                            type="button"
+                            onClick={() => handleOpenCandidateProfile(t.candidateKey)}
+                            className="text-sm font-bold text-slate-900 dark:text-white hover:text-amber-600 dark:hover:text-amber-400"
+                          >
+                            {t.customerName}
+                          </button>
+                        ) : (
+                          <span className="text-sm font-bold text-slate-900 dark:text-white">
+                            {t.customerName}
+                          </span>
+                        )}
+                        <span className="text-xs text-slate-500 dark:text-slate-400">
+                          • {t.serviceTitle}
+                        </span>
+                      </div>
+
+                      <div className="flex flex-wrap items-center gap-x-4 gap-y-1 text-xs text-slate-500 dark:text-slate-400">
+                        <span>Assigned by: {t.assignedByName}</span>
+                        <span>Assigned: {formatDateShort(t.assignedAt)}</span>
+                        {t.dueDate && <span>Due: {formatDateShort(t.dueDate)}</span>}
+                      </div>
+
+                      {t.notes && (
+                        <p className="text-xs text-slate-600 dark:text-slate-300 mt-1">
+                          {t.notes}
+                        </p>
+                      )}
+                    </div>
+
+                    <button
+                      type="button"
+                      disabled={mutatingId === t.id}
+                      onClick={() => handleToggleTaskStatus(t)}
+                      className={`inline-flex items-center gap-1.5 px-3.5 py-2 rounded-xl text-xs font-semibold transition-colors shrink-0 disabled:opacity-60 ${
+                        t.isCompleted
                           ? 'border border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-200 hover:bg-slate-50 dark:hover:bg-slate-800'
                           : 'bg-emerald-600 hover:bg-emerald-700 text-white'
-                          }`}
-                      >
-                        {t.isCompleted ? <Sparkles className="w-3.5 h-3.5" /> : <CheckCircle2 className="w-3.5 h-3.5" />}
-                        <span>
-                          {mutatingId === t.id
-                            ? 'Saving...'
-                            : t.isCompleted
-                              ? 'Mark To Do'
-                              : 'Mark Completed'}
-                        </span>
-                      </button>
-                    </div>
-                  ))}
-                </div>
-              )
-            )}
-          </div>
-        </section>
+                      }`}
+                    >
+                      {t.isCompleted ? <Sparkles className="w-3.5 h-3.5" /> : <CheckCircle2 className="w-3.5 h-3.5" />}
+                      <span>
+                        {mutatingId === t.id
+                          ? 'Saving...'
+                          : t.isCompleted
+                            ? 'Mark To Do'
+                            : 'Mark Completed'}
+                      </span>
+                    </button>
+                  </div>
+                ))}
+              </div>
+            )
+          )}
+        </div>
+      </section>
       )}
 
       {/* Update Enquiry Status Modal */}
@@ -1892,63 +1654,6 @@ const CrmHrOperationsDashboard = ({ initialSection } = {}) => {
                 </button>
               </div>
             </form>
-          </div>
-        </div>
-      )}
-
-      {/* Read-Only View Announcement Modal for HR Operations */}
-      {selectedAnnouncementForModal && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-navy-950/80 backdrop-blur-sm animate-in fade-in">
-          <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-amber-500/40 rounded-3xl max-w-lg w-full p-6 shadow-2xl space-y-4 animate-in zoom-in-95 max-h-[90vh] overflow-y-auto">
-            <div className="flex justify-between items-start border-b border-slate-200 dark:border-slate-800 pb-3">
-              <div className="space-y-1">
-                <div className="flex flex-wrap items-center gap-2">
-                  <span className={`px-2.5 py-0.5 rounded-full text-[10px] font-bold border ${getAnnouncementCategoryBadgeClass(selectedAnnouncementForModal.category)}`}>
-                    {selectedAnnouncementForModal.category}
-                  </span>
-                  <span className="px-2 py-0.5 rounded-full text-[10px] font-semibold bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 border border-slate-200 dark:border-slate-700 flex items-center gap-1">
-                    <Globe className="w-3 h-3 text-slate-400" />
-                    <span>{selectedAnnouncementForModal.target_audience}</span>
-                  </span>
-                </div>
-                <h3 className="font-serif text-lg font-bold text-slate-900 dark:text-white pt-1">
-                  {selectedAnnouncementForModal.title}
-                </h3>
-              </div>
-              <button
-                type="button"
-                onClick={() => setSelectedAnnouncementForModal(null)}
-                className="text-slate-400 hover:text-slate-600 dark:hover:text-white p-1 rounded-lg cursor-pointer"
-              >
-                <X className="w-5 h-5" />
-              </button>
-            </div>
-
-            <div className="text-xs text-slate-500 dark:text-slate-400 flex flex-wrap items-center gap-2 pb-1 border-b border-slate-100 dark:border-slate-800">
-              <span>Published by: <strong className="text-slate-800 dark:text-slate-200">{selectedAnnouncementForModal.created_by_name || 'HR Lead'}</strong> ({selectedAnnouncementForModal.created_by_role || 'HR Lead'})</span>
-              <span>•</span>
-              <span className="font-mono">{formatDateTimeShort(selectedAnnouncementForModal.published_at || selectedAnnouncementForModal.created_at)}</span>
-              {selectedAnnouncementForModal.expires_at && (
-                <>
-                  <span>•</span>
-                  <span className="text-amber-600 dark:text-amber-400 font-semibold">Valid until: {selectedAnnouncementForModal.expires_at}</span>
-                </>
-              )}
-            </div>
-
-            <div className="text-xs sm:text-sm text-slate-700 dark:text-slate-200 whitespace-pre-line leading-relaxed py-2">
-              {selectedAnnouncementForModal.description}
-            </div>
-
-            <div className="pt-3 border-t border-slate-200 dark:border-slate-800 flex justify-end">
-              <button
-                type="button"
-                onClick={() => setSelectedAnnouncementForModal(null)}
-                className="px-5 py-2 bg-slate-900 hover:bg-slate-800 text-white dark:bg-amber-500 dark:hover:bg-amber-600 dark:text-slate-950 font-bold rounded-xl text-xs transition cursor-pointer"
-              >
-                Close Notice
-              </button>
-            </div>
           </div>
         </div>
       )}

@@ -1,7 +1,6 @@
 import React from 'react';
 import { useApp } from '../context/AppContext';
 import { UnifiedAuth } from './UnifiedAuth';
-import { X } from 'lucide-react';
 
 export const UnifiedAuthModal = () => {
   const { activeModal, setActiveModal, authModalConfig } = useApp();
@@ -12,18 +11,23 @@ export const UnifiedAuthModal = () => {
   const role = authModalConfig?.role || null;
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/70 dark:bg-navy-950/70 backdrop-blur-md overflow-y-auto animate-in fade-in duration-200">
-      <div className="relative w-full max-w-4xl max-h-[90vh] overflow-y-auto rounded-3xl">
-        <button
-          onClick={() => setActiveModal(null)}
-          className="absolute top-6 right-6 z-10 p-2.5 rounded-full bg-slate-100 dark:bg-navy-800 text-slate-500 hover:text-slate-900 dark:hover:text-slate-900 dark:text-white transition shadow-md"
-          title="Close Modal"
-        >
-          <X className="w-5 h-5" />
-        </button>
-
-        <UnifiedAuth defaultMode={mode} defaultRole={role} onSuccess={() => setActiveModal(null)} />
+    <div 
+      className="fixed inset-0 z-50 flex items-center justify-center p-2 sm:p-4 bg-slate-900/75 dark:bg-navy-950/85 backdrop-blur-md overflow-hidden animate-in fade-in duration-200"
+      onClick={(e) => {
+        if (e.target === e.currentTarget) {
+          setActiveModal(null);
+        }
+      }}
+    >
+      <div className="relative w-full max-w-lg my-auto max-h-[98vh] flex flex-col justify-center">
+        <UnifiedAuth 
+          defaultMode={mode} 
+          defaultRole={role} 
+          onSuccess={() => setActiveModal(null)} 
+          onClose={() => setActiveModal(null)} 
+        />
       </div>
     </div>
   );
 };
+

@@ -402,7 +402,7 @@ export const CrmHrOpsCandidateDirectory = () => {
     const hasEditableEnquiry = enquiries.some((e) => e.canEditThisEnquiry);
 
     return (
-      <div className="w-full space-y-6 pb-8">
+      <div className="p-4 sm:p-6 max-w-7xl mx-auto space-y-5">
         {/* Top Back Navigation */}
         <div className="flex flex-wrap items-center justify-between gap-3">
           <button
@@ -1276,25 +1276,28 @@ export const CrmHrOpsCandidateDirectory = () => {
   const endEntry = Math.min(currentPage * pageSize, totalCount);
 
   return (
-    <div className="w-full space-y-6 pb-8">
-      {/* Directory Header Box */}
-      <header className="w-full rounded-2xl bg-white dark:bg-slate-900 border border-slate-200/90 dark:border-slate-800 px-5 py-4 sm:px-6 sm:py-4.5 shadow-xs flex items-center justify-between gap-4">
-        <h1 className="text-xl sm:text-2xl font-bold tracking-tight text-slate-900 dark:text-white">
-          Candidates
-        </h1>
-
-        <div className="flex items-center gap-2.5 shrink-0">
-          <button
-            type="button"
-            onClick={fetchDirectory}
-            disabled={dirLoading}
-            className="inline-flex items-center gap-2 px-3.5 py-2 rounded-xl text-xs font-bold border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-800 dark:text-slate-200 hover:bg-slate-50 dark:hover:bg-slate-700/80 transition-colors disabled:opacity-60 cursor-pointer shadow-xs shrink-0"
-          >
-            <RefreshCw className={`w-3.5 h-3.5 ${dirLoading ? 'animate-spin text-amber-500' : 'text-slate-500 dark:text-slate-400'}`} />
-            <span>{dirLoading ? 'Refreshing...' : 'Refresh'}</span>
-          </button>
+    <div className="p-4 sm:p-6 max-w-6xl mx-auto space-y-5">
+      {/* Directory Header */}
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+        <div>
+          <h1 className="text-xl sm:text-2xl font-bold text-slate-900 dark:text-white tracking-tight">
+            Candidates
+          </h1>
+          <p className="text-sm text-slate-500 dark:text-slate-400 mt-0.5">
+            Select a candidate to view complete profile details, associated enquiries, follow-ups, and activity history.
+          </p>
         </div>
-      </header>
+
+        <button
+          type="button"
+          onClick={fetchDirectory}
+          disabled={dirLoading}
+          className="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-xl text-xs font-semibold bg-white dark:bg-navy-900 border border-slate-200 dark:border-white/10 text-slate-700 dark:text-slate-200 hover:bg-slate-50 dark:hover:bg-white/5 shadow-sm self-start sm:self-auto"
+        >
+          <RefreshCw className={`w-3.5 h-3.5 ${dirLoading ? 'animate-spin' : ''}`} />
+          Refresh
+        </button>
+      </div>
 
       {/* Search & Controls Bar */}
       <div className="bg-white dark:bg-navy-900 border border-slate-200 dark:border-white/10 rounded-2xl p-4 shadow-sm flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3">

@@ -227,18 +227,15 @@ export const resolveRegularizationTimestamps = (workDate, requestedCheckInHHMM, 
 };
 
 /**
- * Parses employee shift weeklyOffDays safely (default Sunday [0]; Saturday is a working day).
+ * Parses employee shift weeklyOffDays safely (default Sat/Sun [0, 6]).
  */
 export const parseWeeklyOffDays = (weeklyOffJson) => {
-  if (!weeklyOffJson) return [0];
+  if (!weeklyOffJson) return [0, 6];
   try {
     const parsed = JSON.parse(weeklyOffJson);
-    if (Array.isArray(parsed)) {
-      // Saturday (6) is a regular working day; filter out 6 if present
-      return parsed.map(Number).filter((d) => d !== 6);
-    }
+    if (Array.isArray(parsed)) return parsed.map(Number);
   } catch (_) {}
-  return [0];
+  return [0, 6];
 };
 
 /**

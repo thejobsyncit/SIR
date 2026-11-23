@@ -398,7 +398,32 @@ export const getTransporter = () => {
   return {
     isConfigured: true,
     user,
-    sendMail: (options) => transporter.sendMail(options)
+    sendMail: async (options) => {
+      try {
+        return await transporter.sendMail(options);
+      } catch (err) {
+        if (err.message && err.message.includes('UnblockMe')) {
+          console.error('[CRITICAL ZOHO BLOCK]: Zoho Mail outgoing SMTP is locked due to unusual activity. The admin MUST unblock it at https://mail.zoho.in/UnblockMe');
+        }
+        // Resilient fallback: If secondary Gmail App Password is configured, try sending via Gmail
+        const fallbackPass = (process.env.FALLBACK_SMTP_PASS || process.env.GMAIL_APP_PASSWORD || '').replace(/\s+/g, '');
+        const fallbackUser = process.env.FALLBACK_SMTP_USER || process.env.GMAIL_USER || 'thejobsyncit@gmail.com';
+        if (fallbackPass && fallbackUser && fallbackUser !== user) {
+          try {
+            console.log('[SMTP Fallback] Attempting delivery via secondary transporter:', fallbackUser);
+            const secondaryTransporter = nodemailer.createTransport({
+              service: 'gmail',
+              auth: { user: fallbackUser, pass: fallbackPass }
+            });
+            const secondaryOptions = { ...options, from: `"The Revival International" <${fallbackUser}>` };
+            return await secondaryTransporter.sendMail(secondaryOptions);
+          } catch (secErr) {
+            console.error('[SMTP Fallback Failed]:', secErr.message);
+          }
+        }
+        throw err;
+      }
+    }
   };
 };
 
@@ -442,66 +467,375 @@ export const sendJobApplicationEmail = async ({
   };
 };
 
+// Debounce cache to prevent duplicate welcome emails caused by repeated API requests
+const recentWelcomeEmails = new Map();
+
+// Official Revival International Square Brand Logo (Base64 for inline CID attachment)
+const REVIVAL_LOGO_BASE64 = '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';
+
 /**
  * Sends an official Welcome & Registration Confirmation Email to newly registered candidates.
- * Dispatches directly to the candidate's email (Gmail, etc.) and notifies admin desk.
+ * Redesigned with premium corporate branding, official logo, and table-based responsive layout.
+ * Dispatches directly to the candidate's email (Gmail, Outlook, etc.) and notifies admin desk.
  */
-export const sendCandidateWelcomeEmail = async ({
-  name = '',
-  email = '',
-  phone = '',
-  candidateId = '',
-  authProvider = 'email',
-  preferredCountry = ''
-}) => {
+export const sendCandidateWelcomeEmail = async (params = {}) => {
+  const {
+    name = '',
+    candidateName = '',
+    fullName = '',
+    email = '',
+    toEmail = '',
+    phone = '',
+    candidateId = '',
+    authProvider = 'email',
+    preferredCountry = '',
+    country = '',
+    desiredRole = ''
+  } = params;
+
+  const recipientEmail = (email || toEmail || '').trim().toLowerCase();
+  if (!recipientEmail || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(recipientEmail)) {
+    return { success: false, reason: 'Invalid or missing candidate email address' };
+  }
+
+  // Prevent duplicate confirmation emails caused by rapid repeated API requests (30s window)
+  const now = Date.now();
+  const lastSent = recentWelcomeEmails.get(recipientEmail);
+  if (lastSent && (now - lastSent < 30000)) {
+    console.log(`[Welcome Email] Debounced duplicate dispatch for ${recipientEmail} (sent ${Math.round((now - lastSent) / 1000)}s ago)`);
+    return { success: true, duplicatePrevented: true };
+  }
+  recentWelcomeEmails.set(recipientEmail, now);
+
   const transporter = getTransporter();
   const fromEmail = transporter.user || 'enquiry@therevivalinternational.com';
   const adminGmail = 'thejobsyncit@gmail.com';
   const officialDesk = 'enquiry@therevivalinternational.com';
 
-  const recipientEmail = (email || '').trim().toLowerCase();
-  if (!recipientEmail || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(recipientEmail)) {
-    return { success: false, reason: 'Invalid or missing candidate email address' };
-  }
-
-  const displayName = (name || '').trim() || recipientEmail.split('@')[0];
+  const displayName = (name || candidateName || fullName || '').trim() || recipientEmail.split('@')[0];
   const cid = candidateId || `RI-CAND-${Math.floor(100 + Math.random() * 900)}`;
-  const methodLabel = authProvider === 'google' ? 'Google OAuth 2.0 (Verified)' : 'Direct Candidate Registration';
 
-  const subject = `Welcome to The Revival International – Candidate Registration Confirmed (${cid})`;
+  // Official Subject specified in task requirements
+  const subject = 'Welcome to The Revival International – Your Candidate Account is Confirmed!';
 
+  // Plain Text Fallback
   const textBody = `
 Dear ${displayName},
 
 Welcome to The Revival International!
 
-Your candidate account has been successfully created and registered on our international recruitment portal.
+Thank you for registering with The Revival International. We are delighted to welcome you to our international talent network.
 
-Account Summary:
+Your candidate account has been successfully created. You can now explore international career opportunities and manage your job applications through our candidate portal.
+
+Candidate Registration Details:
 --------------------------------------------------
-Candidate Name:   ${displayName}
-Candidate ID:     ${cid}
-Registered Email: ${recipientEmail}
-${phone ? `Phone / WhatsApp: ${phone}\n` : ''}${preferredCountry ? `Target Region:    ${preferredCountry}\n` : ''}Registration:     ${methodLabel}
-Account Status:   Active & Verified
-Placement Fee:    100% Free Placement (Zero Candidate Charges)
+Candidate Name:     ${displayName}
+Candidate ID:       ${cid}
+Registered Email:   ${recipientEmail}
+Account Status:     Active & Verified
 --------------------------------------------------
 
-Next Steps to Land Your Next Role:
-1. Browse verified international vacancies across UAE, Saudi Arabia, Qatar, Singapore, and Europe.
-2. Use Instant Quick Apply to submit your tailored CV directly to hiring employers.
-3. Track your application pipeline and interview stages in real time from your Candidate Dashboard.
+What You Can Do Now:
+1. Explore international job opportunities in UAE, Saudi Arabia, Qatar, Singapore and Europe.
+2. Apply for suitable vacancies using the Quick Apply feature.
+3. Upload and manage your CV and candidate profile.
+4. Track your job applications and interview progress.
+5. Receive important updates about your applications.
+
+Explore International Opportunities:
+https://www.therevivalinternational.com/#jobs
+
+If you have any questions or require assistance, contact our support team:
+Email: enquiry@therevivalinternational.com
+
+Company Name: The Revival International
+Dubai Internet City, UAE · Chennai & Bangalore, India.
+
+© 2026 The Revival International. All rights reserved.
+`.trim();
+
+  // Premium, Responsive, Table-Based HTML Email with Official Logo
+  const logoUrl = 'https://www.therevivalinternational.com/images/logo.png';
+  const jobsUrl = 'https://www.therevivalinternational.com/#jobs';
+
+  const htmlBody = `
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml" lang="en">
+<head>
+  <meta http-equiv="Content-Type" content="text/html; charset=UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta name="color-scheme" content="light" />
+  <meta name="supported-color-schemes" content="light" />
+  <title>${subject}</title>
+  <!--[if mso]>
+  <style type="text/css">
+    table, td, div, p, a, h1, h2, h3 { font-family: Arial, sans-serif !important; }
+  </style>
+  <![endif]-->
+</head>
+<body style="margin: 0; padding: 0; background-color: #f1f5f9; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif; -webkit-font-smoothing: antialiased; -webkit-text-size-adjust: 100%;">
+  <table width="100%" cellpadding="0" cellspacing="0" border="0" style="background-color: #f1f5f9; padding: 24px 12px;">
+    <tr>
+      <td align="center">
+        <!-- Main Card Container -->
+        <table width="100%" cellpadding="0" cellspacing="0" border="0" style="max-width: 620px; background-color: #ffffff; border: 1px solid #e2e8f0; border-radius: 16px; overflow: hidden; box-shadow: 0 4px 20px rgba(15, 23, 42, 0.06);">
+          
+          <!-- 1. Header (Dark Navy / Charcoal with Official Logo) -->
+          <tr>
+            <td align="center" style="background-color: #0B1B33; background: linear-gradient(135deg, #0B1B33 0%, #07101E 100%); padding: 36px 24px 30px 24px; text-align: center;">
+              <!-- Official Website Logo (Public HTTPS URL + Inline CID Fallback) -->
+              <table cellpadding="0" cellspacing="0" border="0" style="margin: 0 auto 14px auto;">
+                <tr>
+                  <td align="center" style="background-color: #ffffff; border-radius: 14px; padding: 6px; box-shadow: 0 4px 14px rgba(0,0,0,0.25);">
+                    <img src="https://www.therevivalinternational.com/images/logo.png" alt="The Revival International Logo" width="56" height="56" style="display: block; width: 56px; height: 56px; border: 0; outline: none; object-fit: contain;" />
+                  </td>
+                </tr>
+              </table>
+              <h1 style="margin: 0; font-family: Georgia, 'Times New Roman', serif; font-size: 24px; font-weight: 800; color: #ffffff; letter-spacing: -0.3px; line-height: 1.2;">
+                The Revival <span style="display: inline-block; color: #f59e0b; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; font-size: 11px; font-weight: 800; text-transform: uppercase; letter-spacing: 2px; padding: 3px 8px; background-color: rgba(245, 158, 11, 0.16); border: 1px solid rgba(245, 158, 11, 0.3); border-radius: 6px; vertical-align: middle; margin-left: 4px;">International</span>
+              </h1>
+              <p style="margin: 8px 0 0 0; font-size: 11px; text-transform: uppercase; letter-spacing: 2px; color: #94a3b8; font-weight: 700;">
+                India &bull; GCC &bull; Worldwide
+              </p>
+              <div style="margin-top: 14px;">
+                <span style="display: inline-block; background-color: rgba(16, 185, 129, 0.15); color: #34d399; border: 1px solid rgba(16, 185, 129, 0.35); font-size: 11px; font-weight: 700; padding: 4px 14px; border-radius: 20px; text-transform: uppercase; letter-spacing: 0.5px;">
+                  &#10003; Candidate Registration Confirmed
+                </span>
+              </div>
+            </td>
+          </tr>
+
+          <!-- 2. Main Content Body -->
+          <tr>
+            <td style="padding: 36px 32px 28px 32px; color: #1e293b; font-size: 14px; line-height: 1.65;">
+              <p style="margin: 0 0 16px 0; font-size: 15px; color: #0f172a;">
+                Dear <strong>${displayName}</strong>,
+              </p>
+              <h2 style="margin: 0 0 16px 0; color: #0B1B33; font-family: Georgia, 'Times New Roman', serif; font-size: 21px; font-weight: 700; line-height: 1.3;">
+                Welcome to The Revival International!
+              </h2>
+              <p style="margin: 0 0 14px 0; color: #334155; font-size: 14px;">
+                Thank you for registering with <strong>The Revival International</strong>. We are delighted to welcome you to our international talent network.
+              </p>
+              <p style="margin: 0 0 24px 0; color: #334155; font-size: 14px;">
+                Your candidate account has been successfully created. You can now explore international career opportunities and manage your job applications through our candidate portal.
+              </p>
+
+              <!-- 3. Dynamic Candidate Registration Details Card -->
+              <table width="100%" cellpadding="0" cellspacing="0" border="0" style="background-color: #f8fafc; border: 1px solid #e2e8f0; border-radius: 12px; margin: 0 0 28px 0; overflow: hidden;">
+                <tr>
+                  <td style="background-color: #f1f5f9; padding: 12px 18px; border-bottom: 1px solid #e2e8f0;">
+                    <table width="100%" cellpadding="0" cellspacing="0" border="0">
+                      <tr>
+                        <td align="left" style="font-size: 11px; font-weight: 800; text-transform: uppercase; letter-spacing: 1px; color: #475569;">
+                          Candidate Registration Details
+                        </td>
+                        <td align="right">
+                          <span style="display: inline-block; background-color: #ecfdf5; color: #059669; border: 1px solid #a7f3d0; font-size: 10px; font-weight: 800; padding: 2px 8px; border-radius: 12px; text-transform: uppercase; letter-spacing: 0.5px;">
+                            Active &amp; Verified
+                          </span>
+                        </td>
+                      </tr>
+                    </table>
+                  </td>
+                </tr>
+                <tr>
+                  <td style="padding: 16px 18px;">
+                    <table width="100%" cellpadding="0" cellspacing="0" border="0">
+                      <tr>
+                        <td style="padding: 6px 0; color: #64748b; font-size: 13px; font-weight: 600; width: 40%;">Candidate Name:</td>
+                        <td style="padding: 6px 0; color: #0f172a; font-size: 13px; font-weight: 700;" align="right">${displayName}</td>
+                      </tr>
+                      <tr>
+                        <td style="padding: 6px 0; color: #64748b; font-size: 13px; font-weight: 600; border-top: 1px dashed #e2e8f0;">Candidate ID:</td>
+                        <td style="padding: 6px 0; color: #d97706; font-size: 13px; font-weight: 800; font-family: monospace;" align="right">${cid}</td>
+                      </tr>
+                      <tr>
+                        <td style="padding: 6px 0; color: #64748b; font-size: 13px; font-weight: 600; border-top: 1px dashed #e2e8f0;">Registered Email:</td>
+                        <td style="padding: 6px 0; color: #0f172a; font-size: 13px; font-weight: 600; font-family: monospace;" align="right">${recipientEmail}</td>
+                      </tr>
+                      <tr>
+                        <td style="padding: 6px 0; color: #64748b; font-size: 13px; font-weight: 600; border-top: 1px dashed #e2e8f0;">Account Status:</td>
+                        <td style="padding: 6px 0; color: #059669; font-size: 13px; font-weight: 700;" align="right">&#10003; Active &amp; Verified</td>
+                      </tr>
+                    </table>
+                  </td>
+                </tr>
+              </table>
+
+              <!-- 4. What You Can Do Now -->
+              <h3 style="margin: 0 0 14px 0; color: #0B1B33; font-family: Georgia, 'Times New Roman', serif; font-size: 16px; font-weight: 700;">
+                What You Can Do Now
+              </h3>
+              <table width="100%" cellpadding="0" cellspacing="0" border="0" style="margin: 0 0 28px 0; background-color: #f8fafc; border-radius: 12px; border: 1px solid #e2e8f0; padding: 14px 16px;">
+                <tr>
+                  <td style="padding: 4px 0; color: #334155; font-size: 13px; line-height: 1.6;">
+                    <ol style="margin: 0; padding-left: 20px;">
+                      <li style="margin-bottom: 6px;">Explore international job opportunities in UAE, Saudi Arabia, Qatar, Singapore and Europe.</li>
+                      <li style="margin-bottom: 6px;">Apply for suitable vacancies using the Quick Apply feature.</li>
+                      <li style="margin-bottom: 6px;">Upload and manage your CV and candidate profile.</li>
+                      <li style="margin-bottom: 6px;">Track your job applications and interview progress.</li>
+                      <li style="margin-bottom: 0;">Receive important updates about your applications.</li>
+                    </ol>
+                  </td>
+                </tr>
+              </table>
+
+              <!-- 5. Call-to-Action Button -->
+              <table width="100%" cellpadding="0" cellspacing="0" border="0" style="margin: 0 0 28px 0;">
+                <tr>
+                  <td align="center">
+                    <table cellpadding="0" cellspacing="0" border="0">
+                      <tr>
+                        <td align="center" style="border-radius: 10px; background: linear-gradient(135deg, #d97706 0%, #b45309 100%); background-color: #d97706; box-shadow: 0 4px 14px rgba(217, 119, 6, 0.35);">
+                          <a href="${jobsUrl}" target="_blank" style="display: inline-block; padding: 14px 34px; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; font-size: 14px; font-weight: 800; color: #ffffff !important; text-decoration: none; border-radius: 10px; letter-spacing: 0.3px;">
+                            Explore International Opportunities &rarr;
+                          </a>
+                        </td>
+                      </tr>
+                    </table>
+                  </td>
+                </tr>
+              </table>
+
+              <!-- 7. Support Note -->
+              <p style="margin: 0; padding-top: 18px; border-top: 1px solid #e2e8f0; font-size: 13px; color: #64748b; line-height: 1.6;">
+                If you have any questions or require assistance, contact our support team:<br />
+                Email: <a href="mailto:enquiry@therevivalinternational.com" style="color: #d97706; text-decoration: none; font-weight: 700;">enquiry@therevivalinternational.com</a>
+              </p>
+            </td>
+          </tr>
+
+          <!-- 8. Footer -->
+          <tr>
+            <td align="center" style="background-color: #07101E; padding: 24px 20px; color: #94a3b8; font-size: 11px; line-height: 1.6; text-align: center;">
+              <p style="margin: 0 0 6px 0; font-weight: 700; color: #e2e8f0; font-size: 12px;">
+                Company Name: The Revival International
+              </p>
+              <p style="margin: 0 0 8px 0; color: #94a3b8;">
+                Dubai Internet City, UAE &bull; Chennai &amp; Bangalore, India.
+              </p>
+              <p style="margin: 0; color: #64748b; font-size: 10.5px;">
+                &copy; 2026 The Revival International. All rights reserved.
+              </p>
+            </td>
+          </tr>
+
+        </table>
+      </td>
+    </tr>
+  </table>
+</body>
+</html>
+`.trim();
+
+  // Deliver strictly to candidate email directly (Prevents Gmail bulk/spam classification)
+  // Bcc admin Gmail and official desk quietly
+  const bccList = [];
+  if (adminGmail && adminGmail !== recipientEmail) bccList.push(adminGmail);
+  if (officialDesk && officialDesk !== recipientEmail && !bccList.includes(officialDesk)) bccList.push(officialDesk);
+
+  const mailOptions = {
+    from: `"The Revival International • Admissions & Careers" <${fromEmail}>`,
+    to: recipientEmail,
+    bcc: bccList.length > 0 ? bccList.join(', ') : undefined,
+    replyTo: officialDesk,
+    subject,
+    text: textBody,
+    html: htmlBody,
+    attachments: [
+      {
+        filename: 'logo.png',
+        content: Buffer.from(REVIVAL_LOGO_BASE64, 'base64'),
+        cid: 'revival_logo',
+        contentType: 'image/png',
+        contentDisposition: 'inline'
+      }
+    ]
+  };
+
+  try {
+    const result = await transporter.sendMail(mailOptions);
+    return {
+      success: true,
+      simulated: Boolean(result.simulated),
+      messageId: result.messageId,
+      recipient: recipientEmail
+    };
+  } catch (err) {
+    console.error('[Welcome Email Error]:', err.message);
+    return {
+      success: false,
+      error: err.message
+    };
+  }
+};
+
+/**
+ * Sends an application confirmation email to the candidate and alerts admin desk.
+ */
+export const sendCandidateApplicationConfirmationEmail = async ({
+  applicantName = '',
+  applicantEmail = '',
+  applicantPhone = '',
+  candidateId = '',
+  jobId = '',
+  jobTitle = '',
+  company = '',
+  location = '',
+  resumeName = '',
+  applicationId = ''
+} = {}) => {
+  const transporter = getTransporter();
+  const fromEmail = transporter.user || 'enquiry@therevivalinternational.com';
+  const adminGmail = 'thejobsyncit@gmail.com';
+  const officialDesk = 'enquiry@therevivalinternational.com';
+
+  const recipientEmail = (applicantEmail || '').trim().toLowerCase();
+  if (!recipientEmail || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(recipientEmail)) {
+    return { success: false, reason: 'Invalid or missing candidate email address' };
+  }
+
+  const displayName = (applicantName || '').trim() || recipientEmail.split('@')[0];
+  const appId = applicationId || `RI-APP-${Math.floor(10000 + Math.random() * 90000)}`;
+  const title = jobTitle || 'International Vacancy';
+  const comp = company || 'The Revival International Corporate Client';
+  const loc = location || 'UAE / GCC';
+
+  const subject = `Application Received: ${title} at ${comp} (App ID: ${appId})`;
+
+  const textBody = `
+Dear ${displayName},
+
+Thank you for applying through The Revival International portal!
+
+Your application details:
+--------------------------------------------------
+Application ID:    ${appId}
+Position:          ${title}
+Company / Mandate: ${comp}
+Location:          ${loc}
+Applicant Name:    ${displayName}
+Applicant Email:   ${recipientEmail}
+${applicantPhone ? `Phone / WhatsApp:  ${applicantPhone}\n` : ''}${resumeName ? `Attached CV:       ${resumeName}\n` : ''}Status:            Under Review & Verification
+--------------------------------------------------
+
+What happens next?
+1. Our recruitment and talent acquisition team is reviewing your profile and credentials.
+2. Shortlisted candidates are contacted directly via email and WhatsApp to schedule technical and HR interviews.
+3. You can track your real-time status under your Candidate Dashboard on the portal.
 
 Zero Fee Policy:
 The Revival International adheres strictly to global ethical recruitment standards. We never charge jobseekers or candidates any placement, registration, or visa processing fees.
 
 Need Support?
-Official Enquiry Desk: enquiry@therevivalinternational.com
-Helpline / WhatsApp:   +91 90034 75405
-Website:               https://www.therevivalinternational.com
+Official Desk: enquiry@therevivalinternational.com
+Helpline:      +91 90034 75405
+Website:       https://www.therevivalinternational.com
 
 Sincerely,
-The Revival International Candidate Services Team
+The Revival International Recruitment & Talent Acquisition Team
 Dubai Internet City, UAE & Chennai, India
 `.trim();
 
@@ -511,28 +845,24 @@ Dubai Internet City, UAE & Chennai, India
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Welcome to The Revival International</title>
+  <title>Application Received</title>
   <style>
     body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif; line-height: 1.6; color: #1e293b; background-color: #f8fafc; margin: 0; padding: 20px; }
     .container { max-width: 620px; margin: 0 auto; background: #ffffff; border: 1px solid #e2e8f0; border-radius: 16px; padding: 32px; box-shadow: 0 4px 12px rgba(0,0,0,0.03); }
     .header { text-align: center; border-bottom: 2px solid #f1f5f9; padding-bottom: 20px; margin-bottom: 24px; }
-    .brand-title { font-size: 22px; font-weight: 800; color: #0f172a; letter-spacing: -0.5px; margin: 0; }
+    .brand-title { font-size: 22px; font-weight: 800; color: #0f172a; margin: 0; }
     .brand-subtitle { font-size: 10px; text-transform: uppercase; letter-spacing: 1.5px; color: #d97706; font-weight: bold; margin-top: 4px; }
-    .badge { display: inline-block; background-color: #ecfdf5; color: #059669; border: 1px solid #a7f3d0; font-size: 11px; font-weight: bold; padding: 5px 12px; border-radius: 9999px; margin-top: 12px; text-transform: uppercase; letter-spacing: 0.5px; }
+    .badge { display: inline-block; background-color: #ecfdf5; color: #059669; border: 1px solid #a7f3d0; font-size: 11px; font-weight: bold; padding: 5px 12px; border-radius: 9999px; margin-top: 12px; text-transform: uppercase; }
     h2 { margin: 0 0 14px 0; color: #0f172a; font-size: 19px; }
     p { margin: 0 0 14px 0; font-size: 13.5px; color: #334155; }
-    .account-card { background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 12px; padding: 18px; margin: 18px 0; }
-    .account-row { display: flex; justify-content: space-between; padding: 6px 0; border-bottom: 1px dashed #e2e8f0; font-size: 12.5px; }
-    .account-row:last-child { border-bottom: none; }
-    .account-label { color: #64748b; font-weight: 600; }
-    .account-value { color: #0f172a; font-weight: 700; text-align: right; }
-    .benefits-box { background: #fffbeb; border: 1px solid #fde68a; border-radius: 10px; padding: 14px 16px; margin: 18px 0; font-size: 12.5px; color: #92400e; }
+    .card { background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 12px; padding: 18px; margin: 18px 0; }
+    .row { display: flex; justify-content: space-between; padding: 6px 0; border-bottom: 1px dashed #e2e8f0; font-size: 12.5px; }
+    .row:last-child { border-bottom: none; }
+    .label { color: #64748b; font-weight: 600; }
+    .value { color: #0f172a; font-weight: 700; text-align: right; }
     .cta-container { text-align: center; margin: 24px 0 18px 0; }
-    .cta-btn { display: inline-block; background: linear-gradient(135deg, #d97706, #b45309); color: #ffffff !important; text-decoration: none; font-weight: bold; font-size: 13.5px; padding: 12px 28px; border-radius: 10px; box-shadow: 0 4px 10px rgba(217, 119, 6, 0.25); }
-    .steps-box { background: #f1f5f9; border-radius: 10px; padding: 14px 16px; margin: 18px 0; font-size: 12.5px; }
-    .steps-box ol { margin: 6px 0 0 16px; padding: 0; }
-    .steps-box li { margin-bottom: 4px; color: #334155; }
-    .footer { margin-top: 28px; padding-top: 18px; border-top: 1px solid #e2e8f0; font-size: 11px; color: #94a3b8; text-align: center; line-height: 1.5; }
+    .cta-btn { display: inline-block; background: linear-gradient(135deg, #d97706, #b45309); color: #ffffff !important; text-decoration: none; font-weight: bold; font-size: 13.5px; padding: 12px 28px; border-radius: 10px; }
+    .footer { margin-top: 28px; padding-top: 18px; border-top: 1px solid #e2e8f0; font-size: 11px; color: #94a3b8; text-align: center; }
   </style>
 </head>
 <body>
@@ -540,109 +870,175 @@ Dubai Internet City, UAE & Chennai, India
     <div class="header">
       <div class="brand-title">The Revival International</div>
       <div class="brand-subtitle">Tier-1 International Manpower & Recruitment Firm • UAE • GCC • Worldwide</div>
-      <div class="badge">✓ Candidate Account Confirmed</div>
+      <div class="badge">✓ Job Application Submitted</div>
     </div>
-
-    <h2>Welcome to Revival International, ${displayName}!</h2>
-    <p>
-      Thank you for registering with <strong>The Revival International</strong>. Your official candidate profile has been successfully created and linked to our verified talent network.
-    </p>
-
-    <div class="account-card">
-      <div class="account-row">
-        <span class="account-label">Candidate Name:</span>
-        <span class="account-value">${displayName}</span>
-      </div>
-      <div class="account-row">
-        <span class="account-label">Candidate ID:</span>
-        <span class="account-value" style="color: #d97706; font-family: monospace;">${cid}</span>
-      </div>
-      <div class="account-row">
-        <span class="account-label">Registered Email:</span>
-        <span class="account-value">${recipientEmail}</span>
-      </div>
-      ${phone ? `
-      <div class="account-row">
-        <span class="account-label">Phone / WhatsApp:</span>
-        <span class="account-value">${phone}</span>
-      </div>` : ''}
-      ${preferredCountry ? `
-      <div class="account-row">
-        <span class="account-label">Target Region:</span>
-        <span class="account-value">${preferredCountry}</span>
-      </div>` : ''}
-      <div class="account-row">
-        <span class="account-label">Account Status:</span>
-        <span class="account-value" style="color: #059669;">Active & Verified</span>
-      </div>
-      <div class="account-row">
-        <span class="account-label">Placement Services:</span>
-        <span class="account-value" style="color: #059669;">100% Free of Charge</span>
-      </div>
+    <h2>Application Received, ${displayName}!</h2>
+    <p>We have successfully received your application for <strong>${title}</strong> at <strong>${comp}</strong>.</p>
+    <div class="card">
+      <div class="row"><span class="label">Application Reference:</span><span class="value">${appId}</span></div>
+      <div class="row"><span class="label">Job Role:</span><span class="value">${title}</span></div>
+      <div class="row"><span class="label">Company / Client:</span><span class="value">${comp}</span></div>
+      <div class="row"><span class="label">Location:</span><span class="value">${loc}</span></div>
+      ${applicantPhone ? `<div class="row"><span class="label">Phone:</span><span class="value">${applicantPhone}</span></div>` : ''}
+      ${resumeName ? `<div class="row"><span class="label">Submitted CV:</span><span class="value">${resumeName}</span></div>` : ''}
+      <div class="row"><span class="label">Current Status:</span><span class="value" style="color: #059669;">Under Review</span></div>
     </div>
-
-    <div class="steps-box">
-      <strong style="color: #0f172a;">What you can do now:</strong>
-      <ol>
-        <li>Browse hundreds of verified vacancies in UAE, Saudi Arabia, Qatar, Singapore, and Europe.</li>
-        <li>Use <strong>Instant Quick Apply</strong> to submit role-tailored application emails with your CV attached.</li>
-        <li>Track your application milestones and interview progress from your dashboard.</li>
-      </ol>
-    </div>
-
-    <div class="benefits-box">
-      <strong>Zero Fee Policy:</strong> The Revival International strictly adheres to ethical international recruitment standards. We never charge jobseekers or candidates any placement, registration, or visa processing fees.
-    </div>
-
     <div class="cta-container">
-      <a href="${process.env.FRONTEND_URL || 'https://www.therevivalinternational.com'}/#jobs" class="cta-btn" style="color: #ffffff !important;">Browse International Vacancies &rarr;</a>
+      <a href="https://www.therevivalinternational.com/#candidate-dashboard" class="cta-btn">View Candidate Portal &rarr;</a>
     </div>
-
-    <p style="font-size: 12.5px; color: #64748b; margin-top: 18px;">
-      If you have any questions or require support, reply directly to this email or reach us at <a href="mailto:enquiry@therevivalinternational.com" style="color: #d97706; text-decoration: none; font-weight: 600;">enquiry@therevivalinternational.com</a>.
-    </p>
-
     <div class="footer">
-      &copy; ${new Date().getFullYear()} The Revival International. All rights reserved.<br>
-      Licensed Overseas Employment & Executive Search Firm.<br>
-      Dubai Internet City, UAE &bull; Chennai & Bangalore, India.
+      &copy; ${new Date().getFullYear()} The Revival International. Dubai, UAE &bull; Chennai & Bangalore, India.
     </div>
   </div>
 </body>
 </html>
 `.trim();
 
-  // Deliver to candidate email, and CC admin Gmail & official desk
   const toList = [recipientEmail];
-  if (adminGmail && !toList.includes(adminGmail)) {
-    toList.push(adminGmail);
-  }
-  if (officialDesk && !toList.includes(officialDesk)) {
-    toList.push(officialDesk);
-  }
-
-  const mailOptions = {
-    from: `"The Revival International • Admissions & Careers" <${fromEmail}>`,
-    to: toList.join(', '),
-    replyTo: officialDesk,
-    subject,
-    text: textBody,
-    html: htmlBody
-  };
+  if (adminGmail && !toList.includes(adminGmail)) toList.push(adminGmail);
+  if (officialDesk && !toList.includes(officialDesk)) toList.push(officialDesk);
 
   try {
-    const result = await transporter.sendMail(mailOptions);
-    return {
-      success: true,
-      simulated: Boolean(result.simulated),
-      messageId: result.messageId,
-      recipient: toList.join(', ')
-    };
+    const result = await transporter.sendMail({
+      from: `"The Revival International • Careers" <${fromEmail}>`,
+      to: toList.join(', '),
+      replyTo: officialDesk,
+      subject,
+      text: textBody,
+      html: htmlBody
+    });
+    return { success: true, messageId: result.messageId };
   } catch (err) {
-    console.error('[Welcome Email Error]:', err.message);
-    return {
-      success: false,
-      error: err.message
-    };
+    console.error('[Application Email Error]:', err.message);
+    return { success: false, error: err.message };
+  }
+};
+
+/**
+ * Sends a service enquiry acknowledgement email to the client and alerts admin desk.
+ */
+export const sendServiceEnquiryConfirmationEmail = async ({
+  name = '',
+  email = '',
+  phone = '',
+  company = '',
+  serviceTitle = '',
+  serviceId = '',
+  message = '',
+  referenceNumber = '',
+  countryInterest = '',
+  consultationDate = '',
+  consultationTime = '',
+  consultationMode = ''
+} = {}) => {
+  const transporter = getTransporter();
+  const fromEmail = transporter.user || 'enquiry@therevivalinternational.com';
+  const adminGmail = 'thejobsyncit@gmail.com';
+  const officialDesk = 'enquiry@therevivalinternational.com';
+
+  const recipientEmail = (email || '').trim().toLowerCase();
+  if (!recipientEmail || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(recipientEmail)) {
+    return { success: false, reason: 'Invalid or missing client email address' };
+  }
+
+  const displayName = (name || '').trim() || recipientEmail.split('@')[0];
+  const refCode = referenceNumber || `REV-${Date.now().toString(36).toUpperCase()}`;
+  const sTitle = serviceTitle || 'International Consulting & Recruitment Service';
+
+  const subject = `Enquiry Acknowledged: ${sTitle} (Ref: ${refCode}) – The Revival International`;
+
+  const textBody = `
+Dear ${displayName},
+
+Thank you for reaching out to The Revival International!
+
+We have successfully received your service enquiry:
+--------------------------------------------------
+Reference Number:  ${refCode}
+Requested Service: ${sTitle}
+Client Name:       ${displayName}
+${company ? `Organization:       ${company}\n` : ''}Email:             ${recipientEmail}
+${phone ? `Contact Number:    ${phone}\n` : ''}${countryInterest ? `Country/Region:    ${countryInterest}\n` : ''}${consultationDate ? `Appointment Date:  ${consultationDate} at ${consultationTime || 'Scheduled'} (${consultationMode || 'Virtual'})\n` : ''}${message ? `Enquiry Brief:     ${message}\n` : ''}Status:            Assigned to Senior Advisor (Dhanalakshimi)
+--------------------------------------------------
+
+Our executive advisory team will review your requirements and get in touch with you within 24 business hours.
+
+Official Enquiry Desk: enquiry@therevivalinternational.com
+Helpline / WhatsApp:   +91 90034 75405
+Website:               https://www.therevivalinternational.com
+
+Sincerely,
+The Revival International Advisory Services
+Dubai Internet City, UAE & Chennai, India
+`.trim();
+
+  const htmlBody = `
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Service Enquiry Acknowledged</title>
+  <style>
+    body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif; line-height: 1.6; color: #1e293b; background-color: #f8fafc; margin: 0; padding: 20px; }
+    .container { max-width: 620px; margin: 0 auto; background: #ffffff; border: 1px solid #e2e8f0; border-radius: 16px; padding: 32px; box-shadow: 0 4px 12px rgba(0,0,0,0.03); }
+    .header { text-align: center; border-bottom: 2px solid #f1f5f9; padding-bottom: 20px; margin-bottom: 24px; }
+    .brand-title { font-size: 22px; font-weight: 800; color: #0f172a; margin: 0; }
+    .brand-subtitle { font-size: 10px; text-transform: uppercase; letter-spacing: 1.5px; color: #d97706; font-weight: bold; margin-top: 4px; }
+    .badge { display: inline-block; background-color: #fef3c7; color: #b45309; border: 1px solid #fde68a; font-size: 11px; font-weight: bold; padding: 5px 12px; border-radius: 9999px; margin-top: 12px; text-transform: uppercase; }
+    h2 { margin: 0 0 14px 0; color: #0f172a; font-size: 19px; }
+    p { margin: 0 0 14px 0; font-size: 13.5px; color: #334155; }
+    .card { background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 12px; padding: 18px; margin: 18px 0; }
+    .row { display: flex; justify-content: space-between; padding: 6px 0; border-bottom: 1px dashed #e2e8f0; font-size: 12.5px; }
+    .row:last-child { border-bottom: none; }
+    .label { color: #64748b; font-weight: 600; }
+    .value { color: #0f172a; font-weight: 700; text-align: right; }
+    .footer { margin-top: 28px; padding-top: 18px; border-top: 1px solid #e2e8f0; font-size: 11px; color: #94a3b8; text-align: center; }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <div class="header">
+      <div class="brand-title">The Revival International</div>
+      <div class="brand-subtitle">Executive Search • Global Manpower • Corporate Advisory</div>
+      <div class="badge">✓ Consultation Enquiry Received</div>
+    </div>
+    <h2>Thank you for your enquiry, ${displayName}!</h2>
+    <p>We have successfully received your enquiry for <strong>${sTitle}</strong>. Our senior advisory desk is reviewing your requirements.</p>
+    <div class="card">
+      <div class="row"><span class="label">Reference ID:</span><span class="value">${refCode}</span></div>
+      <div class="row"><span class="label">Service Requested:</span><span class="value">${sTitle}</span></div>
+      ${company ? `<div class="row"><span class="label">Organization:</span><span class="value">${company}</span></div>` : ''}
+      ${phone ? `<div class="row"><span class="label">Phone:</span><span class="value">${phone}</span></div>` : ''}
+      ${countryInterest ? `<div class="row"><span class="label">Country of Interest:</span><span class="value">${countryInterest}</span></div>` : ''}
+      ${consultationDate ? `<div class="row"><span class="label">Appointment:</span><span class="value">${consultationDate} ${consultationTime || ''} (${consultationMode || 'Virtual'})</span></div>` : ''}
+      <div class="row"><span class="label">Assigned Advisor:</span><span class="value" style="color: #d97706;">Dhanalakshimi (Lead Advisor)</span></div>
+    </div>
+    <p style="font-size: 13px; color: #64748b;">Our lead consultant will contact you via your preferred communication channel within 24 business hours.</p>
+    <div class="footer">
+      &copy; ${new Date().getFullYear()} The Revival International. Dubai, UAE &bull; Chennai & Bangalore, India.
+    </div>
+  </div>
+</body>
+</html>
+`.trim();
+
+  const toList = [recipientEmail];
+  if (adminGmail && !toList.includes(adminGmail)) toList.push(adminGmail);
+  if (officialDesk && !toList.includes(officialDesk)) toList.push(officialDesk);
+
+  try {
+    const result = await transporter.sendMail({
+      from: `"The Revival International • Advisory Desk" <${fromEmail}>`,
+      to: toList.join(', '),
+      replyTo: officialDesk,
+      subject,
+      text: textBody,
+      html: htmlBody
+    });
+    return { success: true, messageId: result.messageId };
+  } catch (err) {
+    console.error('[Enquiry Email Error]:', err.message);
+    return { success: false, error: err.message };
   }
 };

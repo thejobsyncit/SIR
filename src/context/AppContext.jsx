@@ -22,7 +22,7 @@ export const AppProvider = ({ children }) => {
   const [localDarkMode, setLocalDarkMode] = useState(() => {
     try {
       const saved = localStorage.getItem('sir_theme_mode');
-      return true;
+      return saved === 'dark';
     } catch {
       return false;
     }
@@ -143,6 +143,46 @@ export const AppProvider = ({ children }) => {
       lastUpdated: new Date().toISOString()
     };
     localStorage.setItem('sir_candidates_db', JSON.stringify(db));
+
+    // Synchronize directly with CRM Talent Pool local storage & dispatch live event
+    try {
+      const crmSaved = localStorage.getItem('crm_candidates');
+      let crmList = crmSaved ? JSON.parse(crmSaved) : [];
+      if (!Array.isArray(crmList)) crmList = [];
+      const idx = crmList.findIndex(c => (c.id && (c.id === candidateObj.candidateId || c.id === candidateObj.id)) || (c.email && c.email.toLowerCase().trim() === normalizedEmail));
+      const crmEntry = {
+        id: candidateObj.candidateId || candidateObj.id || ('RI-CAND-' + Math.floor(100 + Math.random() * 900)),
+        name: candidateObj.name || candidateObj.fullName || 'Candidate',
+        email: normalizedEmail,
+        phone: candidateObj.phone || '',
+        nationality: candidateObj.nationality || candidateObj.preferredCountry || 'UAE',
+        currentEmployer: candidateObj.currentEmployer || 'Revival International Candidate',
+        currentRole: candidateObj.title || candidateObj.currentRole || 'Executive Candidate',
+        currentSalary: candidateObj.currentSalary || '',
+        expectedSalary: candidateObj.expectedSalary || '',
+        noticePeriod: candidateObj.noticePeriod || 'Immediate',
+        score: candidateObj.score || 92,
+        stage: candidateObj.stage || 'lead',
+        skills: Array.isArray(candidateObj.skills) ? candidateObj.skills : [],
+        source: candidateObj.source || 'Candidate Portal Registration',
+        passport: 'Verified',
+        aiSummary: `Portal registered candidate (${normalizedEmail}).`,
+        experience: candidateObj.experience || '3-5 Years',
+        avatar: candidateObj.avatar || null,
+        resumeName: candidateObj.resumeName || null,
+        resumeUrl: candidateObj.resumeUrl || null,
+        resumeSize: candidateObj.resumeSize || null,
+        assignedRecruiter: 'Dhanalakshimi (Lead Advisor)',
+        createdAt: candidateObj.registeredAt || candidateObj.createdAt || new Date().toISOString()
+      };
+      if (idx >= 0) {
+        crmList[idx] = { ...crmList[idx], ...crmEntry };
+      } else {
+        crmList.unshift(crmEntry);
+      }
+      localStorage.setItem('crm_candidates', JSON.stringify(crmList));
+      window.dispatchEvent(new CustomEvent('candidate-registered', { detail: crmEntry }));
+    } catch {}
   };
 
   const [user, setUser] = useState(() => {
@@ -153,7 +193,12 @@ export const AppProvider = ({ children }) => {
         if (parsed && parsed.email && parsed.role === 'candidate') {
           const db = getCandidateDB();
           const storedProfile = db[parsed.email.toLowerCase().trim()];
-          return storedProfile ? { ...parsed, ...storedProfile } : parsed;
+          const resumeFromCache = (parsed.email && localStorage.getItem(`sir_resume_${parsed.email.toLowerCase().trim()}`)) || localStorage.getItem('sir_active_resume');
+          const resumeNameFromCache = localStorage.getItem('sir_active_resume_name');
+          const combined = storedProfile ? { ...parsed, ...storedProfile } : parsed;
+          if (!combined.resumeUrl && resumeFromCache) combined.resumeUrl = resumeFromCache;
+          if (!combined.resumeName && resumeNameFromCache) combined.resumeName = resumeNameFromCache;
+          return combined;
         }
         return parsed;
       }
@@ -190,13 +235,31 @@ export const AppProvider = ({ children }) => {
         const localByEmail = userEmail ? localStorage.getItem(`sir_applications_${userEmail}`) : null;
         const apps = localByCid || localByEmail;
         if (apps) {
-          initialApps = JSON.parse(apps);
-          if (Array.isArray(initialApps) && initialApps.length > 0) {
-            setApplications(initialApps);
+          const parsed = JSON.parse(apps);
+          if (Array.isArray(parsed) && parsed.length > 0) initialApps = parsed;
+        }
+        
+        // Also check global sir_job_applications if specific cache is empty
+        if (initialApps.length === 0) {
+          const globalAppsStr = localStorage.getItem('sir_job_applications');
+          if (globalAppsStr) {
+            const parsedGlobal = JSON.parse(globalAppsStr);
+            if (Array.isArray(parsedGlobal)) {
+              initialApps = parsedGlobal.filter(a => {
+                const aEmail = (a.applicantEmail || a.email || '').toLowerCase().trim();
+                const aCid = (a.candidateId || '').trim();
+                return (userEmail && aEmail === userEmail) || (cid && aCid === cid);
+              });
+            }
           }
-        } else if (user.applications && Array.isArray(user.applications) && user.applications.length > 0) {
+        }
+
+        if (initialApps.length === 0 && user.applications && Array.isArray(user.applications) && user.applications.length > 0) {
           initialApps = user.applications;
-          setApplications(user.applications);
+        }
+
+        if (initialApps.length > 0) {
+          setApplications(initialApps);
         }
       } catch { }
 
@@ -214,26 +277,52 @@ export const AppProvider = ({ children }) => {
               setApplications(d.data);
               try {
                 if (user.candidateId) localStorage.setItem(`sir_applications_${user.candidateId}`, JSON.stringify(d.data));
-                if (userEmail) localStorage.setItem(`sir_applications_${userEmail}`, JSON.stringify(d.data));
+                if (userEmail) {
+                  localStorage.setItem(`sir_applications_${userEmail}`, JSON.stringify(d.data));
+                  const db = getCandidateDB();
+                  if (db[userEmail]) {
+                    db[userEmail].applications = d.data;
+                    localStorage.setItem('sir_candidates_db', JSON.stringify(db));
+                  }
+                }
               } catch { }
-            } else if (initialApps.length > 0) {
-              // Local cache has applications not yet returned by server; preserve them and sync to backend
-              setApplications(initialApps);
-              initialApps.forEach(app => {
-                fetch('/api/candidate/applications', {
-                  method: 'POST',
-                  headers: { 'Content-Type': 'application/json' },
-                  body: JSON.stringify({
-                    ...app,
-                    candidateId: user.candidateId || cid,
-                    userId: user.userId || '',
-                    applicantEmail: userEmail,
-                    applicantName: user.name || app.applicantName
-                  })
-                }).catch(() => { });
-              });
             } else {
-              setApplications([]);
+              // Check global sir_job_applications or initialApps fallback to prevent accidental empty overrides
+              let fallbackApps = [];
+              try {
+                const globalApps = JSON.parse(localStorage.getItem('sir_job_applications') || '[]');
+                if (Array.isArray(globalApps)) {
+                  fallbackApps = globalApps.filter(a => {
+                    const aEmail = (a.applicantEmail || a.email || '').toLowerCase().trim();
+                    const aCid = (a.candidateId || '').trim();
+                    return (userEmail && aEmail === userEmail) || (user.candidateId && aCid === user.candidateId) || (cid && aCid === cid);
+                  });
+                }
+              } catch { }
+
+              if (fallbackApps.length === 0 && initialApps.length > 0) {
+                fallbackApps = initialApps;
+              }
+
+              if (fallbackApps.length > 0) {
+                setApplications(fallbackApps);
+                // Sync back to backend SQLite database so they are stored permanently!
+                fallbackApps.forEach(fbApp => {
+                  fetch('/api/candidate/applications', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                      ...fbApp,
+                      candidateId: user.candidateId || fbApp.candidateId || cid,
+                      userId: user.userId || fbApp.userId || '',
+                      applicantEmail: userEmail || fbApp.applicantEmail,
+                      applicantName: user.name || fbApp.applicantName
+                    })
+                  }).catch(() => { });
+                });
+              } else {
+                setApplications([]);
+              }
             }
           }
         })
@@ -281,6 +370,28 @@ export const AppProvider = ({ children }) => {
     }
   }, [user?.candidateId, user?.email]);
 
+  // Handle immediate application clearing when candidate is deleted in CRM
+  useEffect(() => {
+    const handleCandDeleted = (e) => {
+      const { candidateId, email } = e?.detail || {};
+      const currentCid = user?.candidateId || user?.id;
+      const currentEmail = (user?.email || '').toLowerCase().trim();
+      if ((candidateId && currentCid === candidateId) || (email && currentEmail === email.toLowerCase().trim())) {
+        setApplications([]);
+        setUser(null);
+        try {
+          localStorage.removeItem('sir_user_session');
+          if (candidateId) localStorage.removeItem(`sir_applications_${candidateId}`);
+          if (email) localStorage.removeItem(`sir_applications_${email.toLowerCase().trim()}`);
+        } catch {}
+      } else {
+        setApplications(prev => (prev || []).filter(a => a.candidateId !== candidateId && (!email || a.applicantEmail?.toLowerCase().trim() !== email.toLowerCase().trim())));
+      }
+    };
+    window.addEventListener('candidate-deleted', handleCandDeleted);
+    return () => window.removeEventListener('candidate-deleted', handleCandDeleted);
+  }, [user]);
+
   const saveUserSession = (userData) => {
     setUser(userData);
     if (userData) {
@@ -293,23 +404,58 @@ export const AppProvider = ({ children }) => {
     }
   };
 
-  const loginCandidate = (email, password) => {
+  const loginCandidate = async (email, password) => {
     const normalizedEmail = (email || '').toLowerCase().trim();
     if (!normalizedEmail || !password) {
       return { success: false, message: 'Please provide both email and password.' };
     }
 
-    const db = getCandidateDB();
-    let candidateUser = db[normalizedEmail];
+    try {
+      const res = await fetch('/api/candidate/login', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email: normalizedEmail, password })
+      });
+      const data = await res.json();
+      if (!res.ok || !data.success) {
+        return {
+          success: false,
+          error: data.error,
+          message: data.message || 'Login failed. Please check your credentials.'
+        };
+      }
 
-    // Predefined thejobsync candidate account
-    if (normalizedEmail === 'thejobsyncit@gmail.com' && password === 'Thejobsync@26') {
-      if (!candidateUser) {
-        candidateUser = {
+      const candidateUser = data.user;
+      saveCandidateToDB(candidateUser);
+      saveUserSession(candidateUser);
+      setUser(candidateUser);
+      if (candidateUser.applications && Array.isArray(candidateUser.applications)) {
+        setApplications(candidateUser.applications);
+      }
+      if (candidateUser.savedJobs && Array.isArray(candidateUser.savedJobs)) {
+        setSavedJobs(candidateUser.savedJobs);
+      }
+
+      const pendingAcademy = typeof getPendingStudentAcademyEnquiry === 'function' ? getPendingStudentAcademyEnquiry() : null;
+      const pendingCareer = typeof getPendingCareerEnquiry === 'function' ? getPendingCareerEnquiry() : null;
+      const targetTab = (pendingAcademy && pendingAcademy.route)
+        ? pendingAcademy.route
+        : ((pendingCareer && pendingCareer.route) ? pendingCareer.route : 'candidates');
+      setActiveTab(targetTab);
+      if (typeof window !== 'undefined' && targetTab !== 'candidates') {
+        window.location.hash = targetTab;
+      }
+      return { success: true, user: candidateUser };
+    } catch (err) {
+      console.warn('Backend login notice, checking local cache:', err.message);
+      // Predefined thejobsync candidate account offline fallback
+      if (normalizedEmail === 'thejobsyncit@gmail.com' && password === 'Thejobsync@26') {
+        const db = getCandidateDB();
+        let candidateUser = db[normalizedEmail] || {
           name: 'thejobsync',
           email: 'thejobsyncit@gmail.com',
           password: 'Thejobsync@26',
-          phone: '+91 9876543210',
+          phone: '+971 52 445 8890',
           title: 'Executive Director & Candidate',
           location: 'Chennai, India',
           preferredCountry: 'UAE',
@@ -321,80 +467,29 @@ export const AppProvider = ({ children }) => {
           candidateId: 'REV-CAN-THEJOBSYNC',
           loginTime: new Date().toISOString()
         };
-      } else {
-        candidateUser = { ...candidateUser, isRegistered: true, password: 'Thejobsync@26', loginTime: new Date().toISOString() };
+        saveCandidateToDB(candidateUser);
+        saveUserSession(candidateUser);
+        setUser(candidateUser);
+        setActiveTab('candidates');
+        return { success: true, user: candidateUser };
       }
-
-      saveCandidateToDB(candidateUser);
-      saveUserSession(candidateUser);
-      const savedAppsPredefined = localStorage.getItem(`sir_applications_${candidateUser.candidateId}`) ||
-        localStorage.getItem(`sir_applications_${normalizedEmail}`);
-      if (savedAppsPredefined) {
-        try {
-          const parsed = JSON.parse(savedAppsPredefined);
-          if (Array.isArray(parsed) && parsed.length > 0) setApplications(parsed);
-        } catch { }
-      } else if (candidateUser.applications && Array.isArray(candidateUser.applications)) {
-        setApplications(candidateUser.applications);
-      }
-      const pendingAcademy = typeof getPendingStudentAcademyEnquiry === 'function' ? getPendingStudentAcademyEnquiry() : null;
-      const pendingCareer = typeof getPendingCareerEnquiry === 'function' ? getPendingCareerEnquiry() : null;
-      const targetTab = (pendingAcademy && pendingAcademy.route)
-        ? pendingAcademy.route
-        : ((pendingCareer && pendingCareer.route) ? pendingCareer.route : 'candidates');
-      setActiveTab(targetTab);
-      if (typeof window !== 'undefined' && targetTab !== 'candidates') {
-        window.location.hash = targetTab;
-      }
-      return { success: true, user: candidateUser };
-    }
-
-    // Regular users MUST be registered first
-    if (!candidateUser || !candidateUser.isRegistered) {
       return {
         success: false,
-        message: 'No registered account found with this email. Please click "Create Candidate Account" below to register first.'
+        message: 'Could not connect to authentication server. Please check your connection and try again.'
       };
     }
-
-    // Verify password
-    if (candidateUser.password && candidateUser.password !== password) {
-      return {
-        success: false,
-        message: 'Incorrect password. Please verify and try again.'
-      };
-    }
-
-    candidateUser = { ...candidateUser, loginTime: new Date().toISOString() };
-    saveCandidateToDB(candidateUser);
-    saveUserSession(candidateUser);
-
-    const savedAppsRegular = localStorage.getItem(`sir_applications_${candidateUser.candidateId}`) ||
-      localStorage.getItem(`sir_applications_${normalizedEmail}`);
-    if (savedAppsRegular) {
-      try {
-        const parsed = JSON.parse(savedAppsRegular);
-        if (Array.isArray(parsed) && parsed.length > 0) setApplications(parsed);
-      } catch { }
-    } else if (candidateUser.applications && Array.isArray(candidateUser.applications)) {
-      setApplications(candidateUser.applications);
-    }
-
-    const pendingAcademy = typeof getPendingStudentAcademyEnquiry === 'function' ? getPendingStudentAcademyEnquiry() : null;
-    const pendingCareer = typeof getPendingCareerEnquiry === 'function' ? getPendingCareerEnquiry() : null;
-    const targetTab = (pendingAcademy && pendingAcademy.route)
-      ? pendingAcademy.route
-      : ((pendingCareer && pendingCareer.route) ? pendingCareer.route : 'candidates');
-    setActiveTab(targetTab);
-    if (typeof window !== 'undefined' && targetTab !== 'candidates') {
-      window.location.hash = targetTab;
-    }
-    return { success: true, user: candidateUser };
   };
 
   const loginWithGoogle = async (googleUser) => {
     let normalizedEmail = (googleUser?.email || googleUser?.profile?.email || '').toLowerCase().trim();
+    const mode = googleUser?.mode || 'login';
 
+    if (!normalizedEmail) {
+      return { success: false, message: 'Valid Google email is required.' };
+    }
+
+    // Strict 1-Time Candidate Registration: Prevent duplicate registration via "Sign up with Google"
+    // Authoritative check is performed directly via backend API and Supabase cloud database
     let backendUser = null;
     let backendToken = null;
 
@@ -406,6 +501,7 @@ export const AppProvider = ({ children }) => {
         body: JSON.stringify({
           idToken: googleUser.idToken || googleUser.credential,
           accessToken: googleUser.accessToken,
+          mode: mode,
           profile: googleUser.profile || {
             email: normalizedEmail,
             name: googleUser.name,
@@ -414,6 +510,16 @@ export const AppProvider = ({ children }) => {
           }
         })
       });
+
+      if (res.status === 409) {
+        const conflictData = await res.json();
+        return {
+          success: false,
+          code: 'DUPLICATE_EMAIL',
+          message: conflictData.message || 'An account with this email address already exists. Please sign in to your existing account.'
+        };
+      }
+
       const data = await res.json();
       if (data?.success && data?.user) {
         backendUser = data.user;
@@ -464,6 +570,9 @@ export const AppProvider = ({ children }) => {
       profileCompletion: backendUser?.profileCompletion || existing.profileCompletion || 65,
       stage: backendUser?.stage || existing.stage || 'lead',
       score: backendUser?.score || existing.score || 88,
+      resumeName: backendUser?.resumeName || existing.resumeName || (typeof window !== 'undefined' ? localStorage.getItem('sir_active_resume_name') : null) || null,
+      resumeUrl: backendUser?.resumeUrl || existing.resumeUrl || (typeof window !== 'undefined' ? (localStorage.getItem(`sir_resume_${normalizedEmail}`) || localStorage.getItem('sir_active_resume')) : null) || null,
+      resumeSize: backendUser?.resumeSize || existing.resumeSize || null,
       registeredAt: existing.registeredAt || new Date().toISOString(),
       loginTime: new Date().toISOString(),
       token: backendToken || existing.token || `revival_jwt_gis_${Date.now()}`
@@ -501,7 +610,10 @@ export const AppProvider = ({ children }) => {
         score: 92,
         stage: 'lead',
         nationality: candidateUser.preferredCountry,
-        skills: candidateUser.skills
+        skills: candidateUser.skills,
+        resumeName: candidateUser.resumeName,
+        resumeUrl: candidateUser.resumeUrl,
+        resumeSize: candidateUser.resumeSize
       });
     }
 
@@ -533,158 +645,119 @@ export const AppProvider = ({ children }) => {
       };
     }
 
-    const db = getCandidateDB();
-    const existing = db[normalizedEmail] || {};
+    const inputDigits = String(data.phone || '').replace(/\D/g, '');
 
-    if (existing && existing.isRegistered) {
-      return {
-        success: false,
-        message: 'An account with this email is already registered. Please sign in.'
-      };
-    }
-
-    const candidateId = existing.candidateId || ('RI-CAND-' + Math.floor(100 + Math.random() * 900));
-    const userId = existing.userId || (`USR-${Date.now().toString(36).toUpperCase()}`);
-
-    const candidateUser = {
-      ...existing,
-      id: candidateId,
-      candidateId: candidateId,
-      userId: userId,
-      name: data.fullName || existing.name || '',
-      email: normalizedEmail,
-      password: data.password,
-      phone: data.phone || existing.phone || '',
-      dob: existing.dob || '',
-      gender: existing.gender || '',
-      nationality: data.nationality || existing.nationality || '',
-      citizenship: data.citizenship || existing.citizenship || '',
-      title: data.title || existing.title || '',
-      location: data.location || existing.location || '',
-      preferredCountry: data.preferredCountry || existing.preferredCountry || '',
-      experience: data.experience || existing.experience || '',
-      qualification: data.qualification || existing.qualification || '',
-      skills: existing.skills && existing.skills.length > 0 ? existing.skills : (data.industry ? [data.industry] : []),
-      currentSalary: data.currentSalary || existing.currentSalary || '',
-      expectedSalary: data.expectedSalary || existing.expectedSalary || '',
-      noticePeriod: data.noticePeriod || existing.noticePeriod || '',
-      avatar: (existing.avatar && !existing.avatar.includes('dicebear')) ? existing.avatar : '',
-      role: 'candidate',
-      isRegistered: true,
-      resumeUploaded: !!data.resumeName || existing.resumeUploaded || false,
-      resumeName: data.resumeName || existing.resumeName || '',
-      resumeUrl: data.resumeUrl || existing.resumeUrl || null,
-      resumeSize: data.resumeSize || existing.resumeSize || null,
-      mohreAttested: existing.mohreAttested || false,
-      consentGivenAt: data.consentGivenAt || new Date().toISOString(),
-      consentVersion: data.consentVersion || 'v2.0-nov2026',
-      registeredAt: existing.registeredAt || new Date().toISOString(),
-      loginTime: new Date().toISOString()
-    };
-
-    saveCandidateToDB(candidateUser);
-    saveUserSession(candidateUser);
-    setUser(candidateUser);
-    setActiveTab('candidates');
-
-    // Post to backend Candidates API to persist into SQLite database & CRM leads
+    // Clear email from deleted blacklist so new registration is fully accepted
     try {
-      await fetch('/api/candidates', {
+      const deletedStr = localStorage.getItem('sir_deleted_candidates');
+      if (deletedStr) {
+        const arr = JSON.parse(deletedStr);
+        if (Array.isArray(arr)) {
+          const cleaned = arr.filter(x => String(x).toLowerCase().trim() !== normalizedEmail);
+          localStorage.setItem('sir_deleted_candidates', JSON.stringify(cleaned));
+        }
+      }
+    } catch (_) {}
+
+    // 2. Authoritative Database-Level Duplicate Verification via Backend API
+    try {
+      const regRes = await fetch('/api/candidate/register', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          id: candidateUser.candidateId,
-          name: candidateUser.name,
-          email: candidateUser.email,
-          phone: candidateUser.phone,
-          nationality: candidateUser.preferredCountry,
-          currentEmployer: 'Revival International Talent Pool',
-          currentRole: candidateUser.title,
-          currentSalary: candidateUser.currentSalary,
-          expectedSalary: candidateUser.expectedSalary,
-          noticePeriod: candidateUser.noticePeriod,
-          resumeName: candidateUser.resumeName,
-          resumeUrl: candidateUser.resumeUrl,
-          resumeSize: candidateUser.resumeSize,
-          stage: 'lead',
-          score: 85,
-          skills: candidateUser.skills,
-          source: 'Website Candidate Registration',
-          aiSummary: `Candidate registered online for ${candidateUser.preferredCountry || 'international'} opportunities.`
+          fullName: data.fullName || data.name || '',
+          email: normalizedEmail,
+          password: data.password,
+          phone: data.phone,
+          preferredCountry: data.preferredCountry,
+          nationality: data.nationality || data.preferredCountry,
+          citizenship: data.citizenship,
+          title: data.title || data.industry,
+          currentRole: data.title || data.industry,
+          currentEmployer: data.currentEmployer || 'Revival International Talent Pool',
+          experience: data.experience,
+          qualification: data.qualification,
+          education: data.education,
+          currentSalary: data.currentSalary,
+          expectedSalary: data.expectedSalary,
+          noticePeriod: data.noticePeriod,
+          skills: data.skills || (data.industry ? [data.industry] : []),
+          resumeName: data.resumeName,
+          resumeUrl: data.resumeUrl,
+          resumeSize: data.resumeSize,
+          consentGivenAt: data.consentGivenAt || new Date().toISOString(),
+          consentVersion: data.consentVersion || 'v2.0-nov2026'
         })
       });
 
-      // Synchronize to candidate_profiles table
-      fetch('/api/candidate/profile', {
-        method: 'PUT',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          candidateId: candidateUser.candidateId,
-          email: candidateUser.email,
-          fullName: candidateUser.name,
-          phone: candidateUser.phone,
-          nationality: candidateUser.nationality,
-          preferredCountry: candidateUser.preferredCountry,
-          currentRole: candidateUser.title,
-          currentEmployer: 'Revival International Talent Pool',
-          currentSalary: candidateUser.currentSalary,
-          expectedSalary: candidateUser.expectedSalary,
-          noticePeriod: candidateUser.noticePeriod,
-          resumeName: candidateUser.resumeName,
-          resumeUrl: candidateUser.resumeUrl,
-          resumeSize: candidateUser.resumeSize,
-          skills: candidateUser.skills
-        })
-      }).catch(() => {});
-
-      if (candidateUser.resumeUrl) {
-        fetch('/api/candidate/documents', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            candidateId: candidateUser.candidateId,
-            email: candidateUser.email,
-            documentType: 'Resume / CV',
-            fileName: candidateUser.resumeName || 'Candidate_CV.pdf',
-            fileUrl: candidateUser.resumeUrl
-          })
-        }).catch(() => {});
+      let regData = {};
+      try {
+        regData = await regRes.json();
+      } catch (_) {
+        regData = { message: 'Server communication error' };
       }
 
-      // Dispatch Welcome Email directly to candidate's Gmail inbox
-      fetch('/api/auth/welcome-email', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          name: candidateUser.name,
-          email: candidateUser.email,
-          phone: candidateUser.phone,
-          candidateId: candidateUser.candidateId,
-          authProvider: 'email',
-          preferredCountry: candidateUser.preferredCountry
-        })
-      }).catch(mailErr => console.warn('Welcome email trigger note:', mailErr));
+      if (!regRes.ok || !regData?.success) {
+        return {
+          success: false,
+          error: regData?.error || 'registration_blocked',
+          field: regData?.field,
+          message: regData?.message || (regRes.status === 409
+            ? 'An account with this email address or phone number already exists. Please sign in to your existing account.'
+            : 'Registration failed. Please try again.')
+        };
+      }
+
+      const candidateUser = regData.user;
+      saveCandidateToDB(candidateUser);
+      saveUserSession(candidateUser);
+      setUser(candidateUser);
+      setActiveTab('candidates');
+
+      // Immediately inject candidate into CRM cache & state for 0ms instant display
+      try {
+        const crmCand = {
+          id: candidateUser.candidateId || candidateUser.id,
+          name: candidateUser.name || data.fullName,
+          email: candidateUser.email || normalizedEmail,
+          phone: candidateUser.phone || data.phone,
+          nationality: candidateUser.nationality || data.preferredCountry || 'UAE',
+          currentEmployer: candidateUser.currentEmployer || 'Revival International Talent Pool',
+          currentRole: candidateUser.currentRole || data.industry || 'Executive Candidate',
+          currentSalary: candidateUser.currentSalary || '',
+          expectedSalary: candidateUser.expectedSalary || 'Market Standard',
+          score: 95,
+          stage: 'lead',
+          skills: candidateUser.skills || [],
+          source: 'Website Candidate Registration',
+          passport: 'Verified',
+          aiSummary: `Registered Candidate (${candidateUser.email}) with verified credentials.`,
+          experience: candidateUser.experience || '3-5 Years',
+          createdAt: new Date().toISOString()
+        };
+        const currentCrmStr = localStorage.getItem('crm_candidates');
+        const currentCrm = currentCrmStr ? JSON.parse(currentCrmStr) : [];
+        const nextCrm = [crmCand, ...currentCrm.filter(c => c.id !== crmCand.id && c.email?.toLowerCase() !== crmCand.email.toLowerCase())];
+        localStorage.setItem('crm_candidates', JSON.stringify(nextCrm));
+      } catch (_) {}
+
+      // Dispatch global registration event for instant CRM synchronization
+      if (typeof window !== 'undefined') {
+        window.dispatchEvent(new CustomEvent('candidate-registered', { detail: candidateUser }));
+      }
+
+      if (crm && crm.fetchCandidates) {
+        crm.fetchCandidates();
+      }
+
+      return { success: true, user: candidateUser };
     } catch (err) {
-      console.error('Failed to sync registered candidate to backend:', err);
+      console.error('Candidate registration network error:', err);
+      return {
+        success: false,
+        message: 'Unable to connect to registration server. Please check your network and try again.'
+      };
     }
-
-    // CRM Integration: Add candidate to internal CRM database
-    if (crm && crm.addCandidate) {
-      crm.addCandidate({
-        id: candidateUser.candidateId,
-        name: candidateUser.name,
-        email: candidateUser.email,
-        phone: candidateUser.phone,
-        title: candidateUser.title,
-        status: 'Web Lead',
-        score: 85,
-        stage: 'lead',
-        nationality: candidateUser.preferredCountry,
-        skills: candidateUser.skills
-      });
-    }
-
-    return { success: true, user: candidateUser };
   };
 
   const updateUserProfile = (profileData) => {
@@ -730,9 +803,9 @@ export const AppProvider = ({ children }) => {
           experience: activeUser?.experience || '3-5 Years',
           education: activeUser?.qualification || activeUser?.education || 'Bachelor Degree / Professional Diploma',
           skills: activeUser?.skills || [],
-          resumeName: activeUser?.resumeName,
-          resumeUrl: activeUser?.resumeUrl,
-          resumeSize: activeUser?.resumeSize,
+          resumeName: profileData?.resumeName || activeUser?.resumeName,
+          resumeUrl: profileData?.resumeUrl || activeUser?.resumeUrl,
+          resumeSize: profileData?.resumeSize || activeUser?.resumeSize,
           dob: activeUser?.dob,
           gender: activeUser?.gender,
           location: activeUser?.location,
@@ -983,6 +1056,31 @@ export const AppProvider = ({ children }) => {
           }
         } catch { }
       }
+      // Update global sir_job_applications so CRM immediately shows application
+      try {
+        const globalApps = JSON.parse(localStorage.getItem('sir_job_applications') || '[]');
+        const filteredGlobal = Array.isArray(globalApps)
+          ? globalApps.filter(a => a.id !== newApp.id && !(String(a.jobId) === String(job.id) && (a.applicantEmail || '').toLowerCase().trim() === userEmail))
+          : [];
+        const nextGlobal = [newApp, ...filteredGlobal];
+        localStorage.setItem('sir_job_applications', JSON.stringify(nextGlobal));
+
+        // Clear from deleted applications blacklist if candidate re-applies
+        const delStr = localStorage.getItem('sir_deleted_applications');
+        if (delStr) {
+          const delArr = JSON.parse(delStr);
+          if (Array.isArray(delArr)) {
+            const filteredDel = delArr.filter(d => d !== newApp.id && d !== String(job.id) && d !== `${String(job.id)}_${userEmail}`);
+            localStorage.setItem('sir_deleted_applications', JSON.stringify(filteredDel));
+          }
+        }
+      } catch { }
+
+      // Dispatch real-time global event for CRM and vacancy cards
+      if (typeof window !== 'undefined') {
+        window.dispatchEvent(new CustomEvent('application-submitted', { detail: newApp }));
+      }
+
       return next;
     });
 
@@ -1022,42 +1120,6 @@ export const AppProvider = ({ children }) => {
     } catch (err) {
       console.warn('Failed to sync application to candidate_applications:', err);
     }
-
-    // Also mirror to legacy /api/candidates for CRM recruiters
-    try {
-      await fetch('/api/candidates', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          id: cid,
-          name: applicantName,
-          email: userEmail,
-          phone: applicantPhone,
-          nationality: user?.nationality || user?.preferredCountry || job.country || 'UAE',
-          citizenship: user?.citizenship,
-          currentEmployer: 'Revival International Candidate',
-          currentRole: job.title,
-          expectedSalary: expectedSalary,
-          source: `Applied for: ${job.title} (${job.company})`,
-          stage: 'applied',
-          score: 90,
-          skills: user?.skills && user.skills.length > 0 ? user.skills : (job.skills || ['Executive Candidate']),
-          aiSummary: `Candidate applied for ${job.title} at ${job.company}. Submitted CV: ${resumeName || 'Attached'}`,
-          resumeName,
-          resumeUrl,
-          resumeSize,
-          dob: user?.dob,
-          gender: user?.gender,
-          location: user?.location,
-          preferredCountry: user?.preferredCountry,
-          education: user?.qualification || user?.education,
-          mohreAttested: user?.mohreAttested,
-          avatar: user?.avatar
-        })
-      });
-    } catch (err) {
-      console.warn('Failed to sync application to CRM:', err);
-    }
   };
 
   const updateApplicationStatus = (appId, newStatus, step, interviewDetails = null, notShortlistedDetails = null) => {
@@ -1079,6 +1141,62 @@ export const AppProvider = ({ children }) => {
       } catch { }
       return updated;
     });
+  };
+
+  const deleteApplication = async (appId) => {
+    try {
+      await fetch(`/api/candidate/applications/${appId}`, {
+        method: 'DELETE'
+      });
+    } catch (err) {
+      console.warn('Backend delete application notice:', err);
+    }
+
+    // 1. Blacklist in sir_deleted_applications so it stays deleted across all tabs & reloads
+    try {
+      const delStr = localStorage.getItem('sir_deleted_applications');
+      const delArr = delStr ? JSON.parse(delStr) : [];
+      if (Array.isArray(delArr)) {
+        delArr.push(appId);
+        localStorage.setItem('sir_deleted_applications', JSON.stringify([...new Set(delArr)]));
+      }
+    } catch { }
+
+    // 2. Wipe from global sir_job_applications
+    try {
+      const globalStr = localStorage.getItem('sir_job_applications');
+      if (globalStr) {
+        const globalApps = JSON.parse(globalStr);
+        if (Array.isArray(globalApps)) {
+          const filtered = globalApps.filter(a => a.id !== appId && String(a.jobId) !== String(appId));
+          localStorage.setItem('sir_job_applications', JSON.stringify(filtered));
+        }
+      }
+    } catch { }
+
+    setApplications(prev => {
+      const updated = prev.filter(a => a.id !== appId && String(a.jobId) !== String(appId));
+      try {
+        if (user?.candidateId) localStorage.setItem(`sir_applications_${user.candidateId}`, JSON.stringify(updated));
+        const userEmail = (user?.email || '').toLowerCase().trim();
+        if (userEmail) {
+          localStorage.setItem(`sir_applications_${userEmail}`, JSON.stringify(updated));
+          const db = getCandidateDB();
+          if (db[userEmail]) {
+            db[userEmail].applications = updated;
+            localStorage.setItem('sir_candidates_db', JSON.stringify(db));
+          }
+        }
+      } catch { }
+      return updated;
+    });
+
+    // 3. Dispatch real-time global event so JobsPage immediately shows "Apply Now"
+    if (typeof window !== 'undefined') {
+      window.dispatchEvent(new CustomEvent('application-deleted', { detail: { appId } }));
+    }
+
+    return true;
   };
 
   // Sync URL pathname & hash routing
@@ -1177,7 +1295,7 @@ export const AppProvider = ({ children }) => {
     try {
       await fetch('/api/jobs', {
         method: 'POST',
-        headers: {
+        headers: { 
           'Content-Type': 'application/json',
           'x-crm-role': user?.role || 'Employer',
           'x-user-role': user?.role || 'Employer'
@@ -1342,6 +1460,8 @@ export const AppProvider = ({ children }) => {
         applications,
         applyForJob,
         updateApplicationStatus,
+        deleteApplication,
+        withdrawApplication: deleteApplication,
         postedJobs,
         addJob,
         deleteJob,

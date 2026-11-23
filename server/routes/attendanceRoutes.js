@@ -8,7 +8,6 @@ import {
   resolveCheckInWorkDate,
   computeCheckInMetrics,
   computeCheckOutMetrics,
-  formatMinutesDuration,
   resolveRegularizationTimestamps,
   buildAttendanceDataset
 } from '../services/attendanceService.js';
@@ -100,7 +99,7 @@ const getEmployeeShift = async (db, employee) => {
       overtimeEnabled: 1,
       overtimeThresholdMinutes: 480,
       absentCutoffHour: 14,
-      weeklyOffDays: '[0]',
+      weeklyOffDays: '[0,6]',
       timezone: COMPANY_TIMEZONE
     }
   );
@@ -383,82 +382,10 @@ export const registerAttendanceRoutes = (app, { getDb, getClientIp }) => {
       await db.run('UPDATE employees SET lastLogin = CURRENT_TIMESTAMP WHERE id = ?', [employee.id]);
       const token = createCrmSessionToken(employee);
 
-      // Automatic Attendance Check-In on Login for HR Lead, HR Operations, and staff
-      let attendanceSession = null;
-      if (employee.role === 'HR Lead' || employee.role === 'HR Operations' || (employee.role !== 'Super Admin' && employee.role !== 'Admin')) {
-        try {
-          const now = new Date();
-          const nowParts = getCompanyDateTimeParts(now);
-          const shiftConfig = await getEmployeeShift(db, employee);
-          const workDate = resolveCheckInWorkDate(nowParts, shiftConfig);
-
-          // Check for existing open attendance session (checkOutAt IS NULL)
-          const openActive = await db.get(
-            `SELECT * FROM attendance_records WHERE employeeId = ? AND checkOutAt IS NULL AND status IN ('In Progress', 'Late') ORDER BY checkInAt DESC LIMIT 1`,
-            [employee.employeeId]
-          );
-
-          if (openActive) {
-            // Resume existing active session without creating duplicate records
-            attendanceSession = { ...openActive, resumed: true };
-          } else {
-            const existingToday = await db.get(
-              `SELECT * FROM attendance_records WHERE employeeId = ? AND workDate = ?`,
-              [employee.employeeId, workDate]
-            );
-
-            if (existingToday && existingToday.checkOutAt) {
-              // Reopen existing shift if employee logs in again on same workday
-              await db.run(
-                `UPDATE attendance_records SET checkOutAt = NULL, status = 'In Progress', updatedAt = CURRENT_TIMESTAMP WHERE id = ?`,
-                [existingToday.id]
-              );
-              attendanceSession = await db.get('SELECT * FROM attendance_records WHERE id = ?', [existingToday.id]);
-            } else if (!existingToday) {
-              const { lateMinutes, isLate } = computeCheckInMetrics(now, workDate, shiftConfig);
-              const lateApprovalStatus = isLate ? 'PENDING' : 'APPROVED';
-              const attId = makeId('ATT');
-              const checkInAt = now.toISOString();
-
-              await db.run(
-                `INSERT INTO attendance_records (
-                  id, employeeId, employeeName, department, operationTeam, workDate,
-                  shiftId, shiftName, shiftStart, shiftEnd, isOvernightShift,
-                  checkInAt, status, lateMinutes, totalBreakMinutes, grossMinutes, netWorkMinutes, overtimeMinutes, source, notes, lateApprovalStatus, role
-                ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'In Progress', ?, 0, 0, 0, 0, 'CRM Login', 'Automated Check-In on Login', ?, ?)`,
-                [
-                  attId,
-                  employee.employeeId,
-                  employee.name,
-                  employee.department || 'Operations',
-                  employee.operationTeam || employee.department || 'Operations',
-                  workDate,
-                  shiftConfig.id,
-                  shiftConfig.name,
-                  shiftConfig.startTime,
-                  shiftConfig.endTime,
-                  shiftConfig.isOvernight ? 1 : 0,
-                  checkInAt,
-                  lateMinutes,
-                  lateApprovalStatus,
-                  employee.role
-                ]
-              );
-              attendanceSession = await db.get('SELECT * FROM attendance_records WHERE id = ?', [attId]);
-            } else {
-              attendanceSession = existingToday;
-            }
-          }
-        } catch (attErr) {
-          console.warn('Auto attendance check-in during login warning:', attErr);
-        }
-      }
-
       res.json({
         success: true,
         token,
-        employee: sanitizeEmployee(employee),
-        attendance: attendanceSession
+        employee: sanitizeEmployee(employee)
       });
     } catch (error) {
       console.error('CRM auth login failed:', error);
@@ -853,21 +780,9 @@ export const registerAttendanceRoutes = (app, { getDb, getClientIp }) => {
         [employee.employeeId]
       );
       if (openActive) {
-        const isLateRec = Number(openActive.lateMinutes || 0) > 0;
-        const isExecutive = employee.role === 'Super Admin' || employee.role === 'Admin';
-        const approval = isExecutive ? 'EXEMPT' : (openActive.lateApprovalStatus || (isLateRec ? 'PENDING' : 'APPROVED'));
-        return res.json({
-          success: true,
-          resumed: true,
-          message: `Active attendance session resumed for ${openActive.workDate}.`,
-          data: {
-            ...openActive,
-            isLate: isLateRec,
-            lateMinutes: Number(openActive.lateMinutes || 0),
-            lateApprovalStatus: approval,
-            shiftName: openActive.shiftName,
-            shiftStart: openActive.shiftStart
-          }
+        return res.status(409).json({
+          success: false,
+          message: `You already have an active check-in for shift ${openActive.workDate}. Please check out first.`
         });
       }
 
@@ -1201,18 +1116,14 @@ export const registerAttendanceRoutes = (app, { getDb, getClientIp }) => {
           [employee.employeeId, workDate]
         );
         if (existingToday && existingToday.checkOutAt) {
-          return res.json({
-            success: true,
-            alreadyCheckedOut: true,
-            message: `Already checked out for ${workDate}.`,
-            data: existingToday
+          return res.status(409).json({
+            success: false,
+            message: `You have already checked out for ${workDate}.`
           });
         }
-        return res.json({
-          success: true,
-          alreadyCheckedOut: true,
-          message: 'No active check-in found.',
-          data: null
+        return res.status(400).json({
+          success: false,
+          message: 'No active check-in found. Please check in before checking out.'
         });
       }
 
@@ -1254,20 +1165,6 @@ export const registerAttendanceRoutes = (app, { getDb, getClientIp }) => {
       );
 
       const updated = await db.get('SELECT * FROM attendance_records WHERE id = ?', [activeRec.id]);
-
-      try {
-        await db.run(
-          `UPDATE role_login_logs 
-           SET logoutTime = ?, totalDuration = ?
-           WHERE employeeId = ? AND loginTime LIKE ? AND logoutTime IS NULL`,
-          [
-            checkOutAt,
-            formatMinutesDuration(metrics.netWorkMinutes),
-            employee.employeeId,
-            `${activeRec.workDate}%`
-          ]
-        );
-      } catch (_) {}
 
       await writeAttendanceAudit(db, {
         attendanceId: activeRec.id,
@@ -2363,10 +2260,7 @@ export const registerAttendanceRoutes = (app, { getDb, getClientIp }) => {
     try {
       const db = await getDb();
       const nowParts = getCompanyDateTimeParts(new Date());
-      const todayDateStr = /^\d{4}-\d{2}-\d{2}$/.test(req.query?.date || '')
-        ? req.query.date
-        : nowParts.dateStr;
-      const isSelectedDateToday = todayDateStr === nowParts.dateStr;
+      const todayDateStr = nowParts.dateStr;
 
       // 1. Fetch active employees
       const emps = await db.all(
@@ -2383,41 +2277,17 @@ export const registerAttendanceRoutes = (app, { getDb, getClientIp }) => {
          END, id ASC`
       );
 
-      // 2. Fetch attendance_records for the selected workDate
+      // 2. Fetch all today's attendance_records
       const todayRecords = await db.all(
         `SELECT * FROM attendance_records WHERE workDate = ? ORDER BY checkInAt DESC`,
         [todayDateStr]
       );
 
-      // 3. Fetch role_login_logs for the selected workDate
+      // 3. Fetch all today's role_login_logs
       const todayLogins = await db.all(
         `SELECT * FROM role_login_logs WHERE loginTime LIKE ? ORDER BY loginTime DESC`,
         [`${todayDateStr}%`]
       );
-
-      // 4. Fetch approved employee leave requests covering this date
-      const approvedLeaves = await db.all(
-        `SELECT * FROM employee_leave_requests 
-         WHERE LOWER(COALESCE(status, '')) LIKE '%approved%' 
-           AND startDate <= ? AND endDate >= ?`,
-        [todayDateStr, todayDateStr]
-      );
-      const leaveMap = new Map();
-      approvedLeaves.forEach((l) => {
-        if (l.employeeId) leaveMap.set(l.employeeId, l);
-      });
-
-      // 5. Fetch company holiday for this date if any
-      const holiday = await db.get(
-        `SELECT * FROM company_holidays WHERE holidayDate = ? LIMIT 1`,
-        [todayDateStr]
-      );
-
-      // 6. Fetch all distinct recorded dates in database for calendar indicators
-      const distinctWorkDates = await db.all(
-        `SELECT DISTINCT workDate FROM attendance_records WHERE workDate IS NOT NULL`
-      );
-      const recordedDates = distinctWorkDates.map((r) => r.workDate);
 
       // Map today's records by employeeId
       const recordMap = new Map();
@@ -2431,24 +2301,20 @@ export const registerAttendanceRoutes = (app, { getDb, getClientIp }) => {
         if (l.email && !loginMap.has(l.email.toLowerCase())) loginMap.set(l.email.toLowerCase(), l);
       });
 
-      // 7. Combine into complete unified workforce roster
+      // 4. Combine into complete unified workforce roster
       const unifiedRegister = emps.map((emp) => {
         const att = recordMap.get(emp.employeeId);
-        const login = isSelectedDateToday
-          ? (loginMap.get(emp.employeeId) || (emp.email ? loginMap.get(emp.email.toLowerCase()) : null))
-          : null;
+        const login = loginMap.get(emp.employeeId) || (emp.email ? loginMap.get(emp.email.toLowerCase()) : null);
 
         let checkIn = '—';
         let checkOut = '—';
         let status = 'Not Clocked In';
         let hours = '0 hrs';
-        let breakDuration = '0h 00m';
-        let lateOrEarly = '—';
         let isLate = false;
         let lateMinutes = 0;
         let lateApprovalStatus = 'NONE';
         let attendanceId = null;
-        let remarks = 'No punch logged for this date';
+        let remarks = 'No punch logged today';
         let isLive = false;
         let shiftName = 'General Day Shift (09:00 AM - 06:00 PM)';
 
@@ -2484,27 +2350,15 @@ export const registerAttendanceRoutes = (app, { getDb, getClientIp }) => {
             } catch (_) {
               checkOut = att.checkOutAt;
             }
-            const mins = att.netWorkMinutes || 0;
-            hours = mins > 0 ? `${Math.floor(mins / 60)}h ${String(mins % 60).padStart(2, '0')}m` : '0h 00m';
+            hours = att.netWorkMinutes ? `${(att.netWorkMinutes / 60).toFixed(1)} hrs` : '0 hrs';
             status = att.status || (isLate ? 'Late' : 'Present');
           } else {
-            // Explicit requirement: If an employee has not checked out, display Not Checked Out instead of inventing a time
-            checkOut = 'Not Checked Out';
+            checkOut = 'Active / In Office';
             hours = 'In Progress';
             status = isLate ? 'Late' : 'Present';
           }
 
-          if (att.totalBreakMinutes) {
-            breakDuration = `${att.totalBreakMinutes}m`;
-          }
-
-          if (isLate) {
-            lateOrEarly = `⚠️ Late (+${lateMinutes}m)`;
-          } else if (att.checkInAt) {
-            lateOrEarly = '✓ On Time';
-          }
-
-          remarks = att.notes || (isLate ? `Late check-in (+${lateMinutes}m)` : 'Biometric Attendance Punch');
+          remarks = att.notes || (isLate ? `Late check-in (+${lateMinutes}m)` : 'Live Biometric Punch');
         } else if (login) {
           isLive = true;
           shiftName = login.shiftName || shiftName;
@@ -2512,42 +2366,18 @@ export const registerAttendanceRoutes = (app, { getDb, getClientIp }) => {
           isLate = login.punctuality === 'Late' || lateMinutes > 0;
           lateApprovalStatus = login.lateApprovalStatus || (isLate ? 'PENDING' : 'APPROVED');
           checkIn = login.checkInTime || (login.loginTime ? login.loginTime.slice(11, 16) : '—');
-          checkOut = 'Not Checked Out';
+          checkOut = 'Active / In Office';
           hours = 'In Progress';
           status = isLate ? 'Late' : 'Present';
-          lateOrEarly = isLate ? `⚠️ Late (+${lateMinutes}m)` : '✓ On Time';
           remarks = `Portal SSO Login (${login.shiftName || 'General Shift'})`;
-        } else {
-          // Employee has no punch on this date
-          if (leaveMap.has(emp.employeeId)) {
-            status = 'On Leave';
-            remarks = `Approved Leave (${leaveMap.get(emp.employeeId).leaveType || 'Annual Leave'})`;
-          } else if (holiday) {
-            status = 'Holiday';
-            remarks = holiday.holidayName || 'Public Holiday';
-          } else {
-            const dt = new Date(`${todayDateStr}T12:00:00Z`);
-            const dayOfWeek = dt.getUTCDay();
-            // Saturday is a regular working day; Sunday (0) is weekly off
-            if (dayOfWeek === 0) {
-              status = 'Weekly Off';
-              remarks = 'Scheduled Weekly Off';
-            } else if (todayDateStr < nowParts.dateStr) {
-              status = 'Absent';
-              remarks = 'Unexcused Absence';
-            } else {
-              status = 'Not Checked In';
-              remarks = 'Pending check-in';
-            }
-          }
         }
 
-        // Executive role governance session
+        // Executive role exemption
         if (emp.role === 'Super Admin' || emp.role === 'Admin') {
-          if (status === 'Not Clocked In' || status === 'Not Checked In') {
+          if (status === 'Not Clocked In') {
             status = 'Executive Active';
             checkIn = '09:00 AM';
-            checkOut = isSelectedDateToday ? 'Active Session' : '06:00 PM';
+            checkOut = 'Active Session';
             hours = 'Executive';
             remarks = 'Executive Governance Session';
           }
@@ -2555,25 +2385,21 @@ export const registerAttendanceRoutes = (app, { getDb, getClientIp }) => {
 
         return {
           id: emp.employeeId,
-          employeeId: emp.employeeId,
           attendanceId,
           name: emp.name,
           role: emp.role,
           designation: emp.designation || emp.role,
-          department: emp.department || 'Operations',
-          location: emp.branch || 'Dubai HQ',
+          department: emp.department || 'General',
+          location: emp.branch || 'Chennai HQ',
           avatar: emp.avatar || '',
           email: emp.email,
           date: todayDateStr,
           checkIn,
           checkOut,
-          breakDuration,
           hours,
-          totalWorkingHours: hours,
           status,
           late: isLate,
           lateMinutes,
-          lateOrEarly,
           lateApprovalStatus,
           shiftName,
           remarks,
@@ -2585,16 +2411,15 @@ export const registerAttendanceRoutes = (app, { getDb, getClientIp }) => {
       const lateCount = unifiedRegister.filter((r) => r.late).length;
       const leaveCount = unifiedRegister.filter((r) => r.status === 'On Leave').length;
       const pendingApprovalCount = unifiedRegister.filter((r) => r.lateApprovalStatus === 'PENDING').length;
-      const absentCount = unifiedRegister.filter((r) => r.status === 'Absent' || r.status === 'Not Clocked In' || r.status === 'Not Checked In').length;
+      const absentCount = unifiedRegister.filter((r) => r.status === 'Not Clocked In' || r.status === 'Absent').length;
 
       res.json({
         success: true,
         date: todayDateStr,
         register: unifiedRegister,
-        recordedDates,
+        roleLogins: todayLogins,
         stats: {
           totalWorkforce: unifiedRegister.length,
-          totalEmployees: unifiedRegister.length,
           presentCount,
           lateCount,
           leaveCount,
@@ -2603,8 +2428,8 @@ export const registerAttendanceRoutes = (app, { getDb, getClientIp }) => {
         }
       });
     } catch (err) {
-      console.error('Failed to get attendance register:', err);
-      res.status(500).json({ success: false, message: 'Failed to retrieve attendance register.' });
+      console.error('Failed to get today register:', err);
+      res.status(500).json({ success: false, message: 'Failed to retrieve today attendance register.' });
     }
   });
 

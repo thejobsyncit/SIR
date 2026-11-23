@@ -1,11 +1,11 @@
 import React, { useState, useMemo, useEffect } from 'react';
 import { useCrm } from '../context/CrmContext';
 import {
-  Globe, GraduationCap, Compass, Plane, CheckSquare, Search, Filter,
-  Send, UserCheck, CheckCircle2, Clock, AlertCircle, ArrowRight,
+  Globe, GraduationCap, Compass, Plane, CheckSquare, Search, Filter, 
+  Send, UserCheck, CheckCircle2, Clock, AlertCircle, ArrowRight, 
   ChevronLeft, ChevronRight, Sparkles, ShieldCheck, ShieldAlert,
   Calendar, Phone, Mail, MessageSquare, Tag, Eye, RefreshCw,
-  FileText, Check, AlertTriangle, Layers, BookOpen, School, X, Edit3, User, Briefcase
+  FileText, Check, AlertTriangle, Layers, BookOpen, School, X, Edit3, User
 } from 'lucide-react';
 
 // Team members strictly classified by operation as defined in the flowchart
@@ -62,7 +62,7 @@ const INITIAL_BASELINE_ENQUIRIES = [
 ];
 
 export const CrmHrTaskAssignment = () => {
-  const { currentRole, user, applications, fetchApplications } = useCrm();
+  const { currentRole, user } = useCrm();
 
   // Strict role differentiation: Task Assignment available to HR Lead, Super Admin, and Admin
   const isAuthorizedToAssign = ['HR Lead', 'Super Admin', 'Admin'].includes(currentRole);
@@ -85,7 +85,7 @@ export const CrmHrTaskAssignment = () => {
         const parsed = JSON.parse(saved);
         if (Array.isArray(parsed) && parsed.length > 0) return parsed;
       }
-    } catch (e) { }
+    } catch (e) {}
     return INITIAL_BASELINE_ENQUIRIES;
   });
 
@@ -94,104 +94,14 @@ export const CrmHrTaskAssignment = () => {
     setTaskData(newTasks);
     try {
       localStorage.setItem(STORAGE_KEY, JSON.stringify(newTasks));
-    } catch (e) { }
+    } catch (e) {}
   };
-
-  // Real candidate job applications state
-  const [jobApplicationsList, setJobApplicationsList] = useState([]);
-  const [loadingJobApps, setLoadingJobApps] = useState(false);
-
-  useEffect(() => {
-    let isMounted = true;
-    const loadApplications = async () => {
-      try {
-        setLoadingJobApps(true);
-        const res = await fetch('/api/candidate/applications');
-        const data = await res.json();
-        if (isMounted) {
-          if (data && data.success && Array.isArray(data.data)) {
-            setJobApplicationsList(data.data);
-          } else if (Array.isArray(applications) && applications.length > 0) {
-            setJobApplicationsList(applications);
-          }
-        }
-      } catch (err) {
-        if (isMounted && Array.isArray(applications) && applications.length > 0) {
-          setJobApplicationsList(applications);
-        }
-      } finally {
-        if (isMounted) setLoadingJobApps(false);
-      }
-    };
-    loadApplications();
-    if (typeof fetchApplications === 'function') {
-      fetchApplications();
-    }
-    return () => { isMounted = false; };
-  }, [applications]);
-
-  // Normalized and merged job application enquiries
-  const mergedJobApplications = useMemo(() => {
-    return (jobApplicationsList || []).map(app => {
-      const assignedInfo = taskData.find(t => t.id === app.id || (app.id && t.referenceNumber === app.id));
-      if (assignedInfo) {
-        return {
-          ...app,
-          referenceNumber: app.id,
-          name: app.applicantName || app.name || assignedInfo.name || 'Candidate',
-          phone: app.applicantPhone || app.phone || assignedInfo.phone || '',
-          email: app.applicantEmail || app.email || assignedInfo.email || '',
-          serviceTitle: app.jobTitle || assignedInfo.serviceTitle || 'Job Application',
-          jobTitle: app.jobTitle || assignedInfo.serviceTitle || 'Job Application',
-          company: app.company || assignedInfo.company || 'The Revival International',
-          location: app.location || assignedInfo.location || '',
-          status: assignedInfo.status || app.status || 'Under Review',
-          assignedEmployee: assignedInfo.assignedEmployee || app.assignedEmployee || '',
-          assignedEmployeeId: assignedInfo.assignedEmployeeId || app.assignedEmployeeId || '',
-          assignedEmployeeRole: assignedInfo.assignedEmployeeRole || app.assignedEmployeeRole || '',
-          priority: assignedInfo.priority || app.priority || 'Normal',
-          assignmentNotes: assignedInfo.assignmentNotes || app.notes || '',
-          appliedDate: app.appliedDate || app.createdAt,
-          createdAt: app.appliedDate || app.createdAt,
-          isJobApplication: true
-        };
-      }
-      return {
-        ...app,
-        referenceNumber: app.id,
-        name: app.applicantName || app.name || 'Candidate',
-        phone: app.applicantPhone || app.phone || '',
-        email: app.applicantEmail || app.email || '',
-        serviceTitle: app.jobTitle || 'Job Application',
-        jobTitle: app.jobTitle || 'Job Application',
-        company: app.company || 'The Revival International',
-        location: app.location || '',
-        status: app.status || 'Under Review',
-        assignedEmployee: app.assignedEmployee || '',
-        priority: app.priority || 'Normal',
-        assignmentNotes: app.notes || '',
-        appliedDate: app.appliedDate || app.createdAt,
-        createdAt: app.appliedDate || app.createdAt,
-        isJobApplication: true
-      };
-    });
-  }, [jobApplicationsList, taskData]);
-
-  // Unique job titles for filter dropdown
-  const uniqueJobsList = useMemo(() => {
-    const set = new Set();
-    mergedJobApplications.forEach(app => {
-      if (app.jobTitle) set.add(app.jobTitle);
-      else if (app.serviceTitle) set.add(app.serviceTitle);
-    });
-    return Array.from(set);
-  }, [mergedJobApplications]);
 
   // Sync from backend API on mount and role change
   useEffect(() => {
     const fetchLiveLeads = async () => {
       try {
-        const url = isHrOperations
+        const url = isHrOperations 
           ? `/api/leads?assignedEmployee=${encodeURIComponent(currentEmployeeName)}&userRole=HR+Operations`
           : '/api/leads?limit=150';
         const res = await fetch(url, {
@@ -267,11 +177,11 @@ export const CrmHrTaskAssignment = () => {
     const title = (item.serviceTitle || '').toLowerCase();
     const ref = (item.referenceNumber || '').toUpperCase();
     return (
-      sId === 'intl-adm' ||
-      sId === 'intl-consult' ||
-      sId.includes('intl-adm') ||
-      sId.includes('intl-consult') ||
-      ref.startsWith('REV-INT') ||
+      sId === 'intl-adm' || 
+      sId === 'intl-consult' || 
+      sId.includes('intl-adm') || 
+      sId.includes('intl-consult') || 
+      ref.startsWith('REV-INT') || 
       ref.startsWith('REV-ADM') ||
       title.includes('international')
     );
@@ -300,7 +210,7 @@ export const CrmHrTaskAssignment = () => {
   // Check if an enquiry is assigned to the current employee
   const isAssignedToCurrentUser = (item) => {
     if (!item.assignedEmployee && !item.assignedEmployeeId && !item.assignedEmployeeEmail) return false;
-
+    
     const assignedLower = String(item.assignedEmployee || '').toLowerCase().trim();
     const currentLower = String(currentEmployeeName || user?.name || '').toLowerCase().trim();
     const assignedClean = assignedLower.replace(/[^a-z]/g, '');
@@ -351,14 +261,6 @@ export const CrmHrTaskAssignment = () => {
 
   // Filter enquiries for the active operation branch
   const branchEnquiries = useMemo(() => {
-    if (operationTab === 'jobs-enquiry') {
-      let list = mergedJobApplications;
-      if (isHrOperations) {
-        list = list.filter(isAssignedToCurrentUser);
-      }
-      return list;
-    }
-
     let list = taskData;
     // CRITICAL: HR Operations employees see ONLY candidates assigned to them by HR Lead
     if (isHrOperations) {
@@ -370,7 +272,7 @@ export const CrmHrTaskAssignment = () => {
       return list.filter(isEnquirySource);
     }
     return list;
-  }, [taskData, mergedJobApplications, operationTab, isHrOperations, currentEmployeeName]);
+  }, [taskData, operationTab, isHrOperations, currentEmployeeName]);
 
   // Apply search & dropdown filters
   const filteredEnquiries = useMemo(() => {
@@ -378,33 +280,24 @@ export const CrmHrTaskAssignment = () => {
       // Search text
       if (searchQuery.trim()) {
         const q = searchQuery.toLowerCase();
-        const matchesName = (item.name || item.applicantName || '').toLowerCase().includes(q);
-        const matchesRef = (item.referenceNumber || item.id || '').toLowerCase().includes(q);
-        const matchesEmail = (item.email || item.applicantEmail || '').toLowerCase().includes(q);
-        const matchesPhone = (item.phone || item.applicantPhone || '').toLowerCase().includes(q);
-        const matchesCountry = (item.country || item.location || '').toLowerCase().includes(q);
-        const matchesService = (item.serviceTitle || item.jobTitle || item.company || '').toLowerCase().includes(q);
-        if (!matchesName && !matchesRef && !matchesEmail && !matchesPhone && !matchesCountry && !matchesService) return false;
+        const matchesName = (item.name || '').toLowerCase().includes(q);
+        const matchesRef = (item.referenceNumber || '').toLowerCase().includes(q);
+        const matchesEmail = (item.email || '').toLowerCase().includes(q);
+        const matchesPhone = (item.phone || '').toLowerCase().includes(q);
+        const matchesCountry = (item.country || '').toLowerCase().includes(q);
+        if (!matchesName && !matchesRef && !matchesEmail && !matchesPhone && !matchesCountry) return false;
       }
-      // Service / Job filter
+      // Service filter
       if (selectedService !== 'all') {
-        const sId = (item.serviceId || item.jobId || '').toLowerCase();
-        const sTitle = (item.serviceTitle || item.jobTitle || '').toLowerCase();
-        const filterVal = selectedService.toLowerCase();
-        if (!sId.includes(filterVal) && !sTitle.includes(filterVal)) return false;
+        const sId = (item.serviceId || '').toLowerCase();
+        if (!sId.includes(selectedService.toLowerCase())) return false;
       }
       // Status filter
       if (selectedStatus !== 'all') {
-        const itemStatus = item.status || 'New';
-        if (selectedStatus === 'New' && itemStatus !== 'New' && itemStatus !== 'New Enquiry' && itemStatus !== 'Under Review') return false;
-        if (selectedStatus === 'Assigned' && itemStatus !== 'Assigned') return false;
-        if (selectedStatus === 'In Progress' && itemStatus !== 'In Progress') return false;
-        if (selectedStatus === 'Completed' && itemStatus !== 'Completed') return false;
-        if (selectedStatus === 'Under Review' && itemStatus !== 'Under Review') return false;
-        if (selectedStatus === 'Shortlisted' && itemStatus !== 'Shortlisted') return false;
-        if (selectedStatus === 'Interviewing' && itemStatus !== 'Interviewing') return false;
-        if (selectedStatus === 'Selected' && itemStatus !== 'Selected') return false;
-        if (selectedStatus === 'Rejected' && itemStatus !== 'Rejected') return false;
+        if (selectedStatus === 'New' && item.status !== 'New' && item.status !== 'New Enquiry') return false;
+        if (selectedStatus === 'Assigned' && item.status !== 'Assigned') return false;
+        if (selectedStatus === 'In Progress' && item.status !== 'In Progress') return false;
+        if (selectedStatus === 'Completed' && item.status !== 'Completed') return false;
       }
       return true;
     });
@@ -420,7 +313,7 @@ export const CrmHrTaskAssignment = () => {
   // Handle single enquiry selection (HR Lead only)
   const handleToggleSelectOne = (id) => {
     if (!isHrLead) return;
-    setSelectedEnquiryIds(prev =>
+    setSelectedEnquiryIds(prev => 
       prev.includes(id) ? prev.filter(item => item !== id) : [...prev, id]
     );
   };
@@ -438,9 +331,7 @@ export const CrmHrTaskAssignment = () => {
   };
 
   // Team list for active branch
-  const activeTeamList = operationTab === 'intl-ops'
-    ? INTL_HR_OPERATIONS_TEAM
-    : (operationTab === 'enq-ops' ? ENQUIRY_HR_OPERATIONS_TEAM : [...INTL_HR_OPERATIONS_TEAM, ...ENQUIRY_HR_OPERATIONS_TEAM]);
+  const activeTeamList = operationTab === 'intl-ops' ? INTL_HR_OPERATIONS_TEAM : ENQUIRY_HR_OPERATIONS_TEAM;
 
   // Execute assignment to selected team member (HR Lead only)
   const handleAssignSubmit = async (e) => {
@@ -474,9 +365,7 @@ export const CrmHrTaskAssignment = () => {
           canonicalEmployeeId: assignedMember.employeeId || 'REV-EMP-006',
           employeeName: assignedMember.name,
           employeeEmail: assignedMember.email,
-          operationTeam: operationTab === 'intl-ops'
-            ? 'International HR Operations'
-            : (operationTab === 'enq-ops' ? 'Enquiry HR Operations' : 'Jobs Enquiry Operations'),
+          operationTeam: operationTab === 'intl-ops' ? 'International HR Operations' : 'Enquiry HR Operations',
           priority: selectedPriority,
           instructions: assignmentInstructions || 'Follow up immediately with candidate regarding application status.',
           assignedBy: user?.name || 'HR Lead',
@@ -505,39 +394,6 @@ export const CrmHrTaskAssignment = () => {
       }
       return item;
     });
-
-    if (operationTab === 'jobs-enquiry') {
-      selectedEnquiryIds.forEach(appId => {
-        const targetApp = mergedJobApplications.find(a => a.id === appId);
-        if (targetApp && !updated.some(t => t.id === appId)) {
-          updated.unshift({
-            ...targetApp,
-            status: 'Assigned',
-            assignedEmployee: assignedMember.name,
-            assignedEmployeeId: assignedMember.id,
-            assignedEmployeeRole: assignedMember.role,
-            assignedEmployeeAvatar: assignedMember.avatar,
-            priority: selectedPriority,
-            assignmentNotes: assignmentInstructions || 'Follow up immediately with candidate regarding application status.',
-            assignedDate: nowIso,
-            assignedBy: user?.name || 'HR Lead'
-          });
-        }
-      });
-      setJobApplicationsList(prev => prev.map(a => {
-        if (selectedEnquiryIds.includes(a.id)) {
-          return {
-            ...a,
-            status: 'Assigned',
-            assignedEmployee: assignedMember.name,
-            assignedEmployeeId: assignedMember.id,
-            priority: selectedPriority,
-            assignmentNotes: assignmentInstructions || 'Follow up immediately with candidate regarding application status.'
-          };
-        }
-        return a;
-      }));
-    }
 
     saveTasks(updated);
     setAssigningLoading(false);
@@ -693,7 +549,6 @@ export const CrmHrTaskAssignment = () => {
   const intlUnassignedCount = taskData.filter(e => isIntlSource(e) && e.status === 'New').length;
   const enqTotalCount = taskData.filter(isEnquirySource).length;
   const enqUnassignedCount = taskData.filter(e => isEnquirySource(e) && e.status === 'New').length;
-  const jobsTotalCount = mergedJobApplications.length;
   const totalCompletedTasks = taskData.filter(e => e.status === 'Completed').length;
   const totalPendingTasks = taskData.filter(e => e.status === 'Assigned').length;
 
@@ -701,7 +556,6 @@ export const CrmHrTaskAssignment = () => {
   const myAssignedTotal = taskData.filter(isAssignedToCurrentUser).length;
   const myIntlCount = taskData.filter(e => isIntlSource(e) && isAssignedToCurrentUser(e)).length;
   const myEnqCount = taskData.filter(e => isEnquirySource(e) && isAssignedToCurrentUser(e)).length;
-  const myJobsCount = mergedJobApplications.filter(isAssignedToCurrentUser).length;
   const myCompletedCount = taskData.filter(e => isAssignedToCurrentUser(e) && e.status === 'Completed').length;
   const myPendingCount = taskData.filter(e => isAssignedToCurrentUser(e) && e.status !== 'Completed').length;
 
@@ -727,28 +581,28 @@ export const CrmHrTaskAssignment = () => {
 
   return (
     <div className="space-y-6 pb-12 font-sans animate-in fade-in duration-300">
-
+      
       {/* HEADER TITLE & SUMMARY */}
       <div className="glass-card bg-white dark:bg-navy-900/90 rounded-2xl p-6 border border-slate-200 dark:border-gold-500/30 shadow-luxury flex flex-col md:flex-row md:items-center justify-between gap-4">
         <div className="space-y-1">
-          {!isHrLead && (
-            <div className="flex items-center space-x-2">
-              <span className="px-2.5 py-0.5 rounded-full text-[10px] font-black uppercase tracking-wider bg-gold-500 text-navy-950 shadow-xs">
-                My Dashboard
-              </span>
-              <span className="text-xs text-slate-500 dark:text-slate-400 font-semibold">
-                Revival International CRM • Assigned Enquiries Desk
-              </span>
-            </div>
-          )}
+          <div className="flex items-center space-x-2">
+            <span className="px-2.5 py-0.5 rounded-full text-[10px] font-black uppercase tracking-wider bg-gold-500 text-navy-950 shadow-xs">
+              {isHrLead ? 'HR Lead Assignment Hub' : 'My Dashboard'}
+            </span>
+            <span className="text-xs text-slate-500 dark:text-slate-400 font-semibold">
+              Revival International CRM • {isHrLead ? 'Central Task Engine' : 'Assigned Enquiries Desk'}
+            </span>
+          </div>
           <h1 className="font-serif text-2xl md:text-3xl font-bold text-slate-900 dark:text-white tracking-tight">
             {isHrLead ? 'HR Operations Task Assignment' : 'My Assigned Enquiries & Tasks'}
           </h1>
-          {!isHrLead && (
-            <p className="text-xs md:text-sm text-slate-600 dark:text-slate-300 max-w-3xl">
-              Logged in as <strong className="text-slate-900 dark:text-white">{currentEmployeeName}</strong> • Showing only enquiries assigned to you by the HR Lead. Review candidate details, manage follow-ups, and update task statuses.
-            </p>
-          )}
+          <p className="text-xs md:text-sm text-slate-600 dark:text-slate-300 max-w-3xl">
+            {isHrLead ? (
+              <>Choose operation branch (<strong>International HR Operations</strong> or <strong>Enquiry HR Operations</strong>), select candidates, point out specific instructions, and assign to specialists.</>
+            ) : (
+              <>Logged in as <strong className="text-slate-900 dark:text-white">{currentEmployeeName}</strong> • Showing only enquiries assigned to you by the HR Lead. Review candidate details, manage follow-ups, and update task statuses.</>
+            )}
+          </p>
         </div>
 
         {/* Live Status Counters */}
@@ -800,138 +654,109 @@ export const CrmHrTaskAssignment = () => {
         </div>
       )}
 
-      {/* BRANCH TABS & ACTIONS */}
-      <div className="space-y-3 border-b border-slate-200 dark:border-navy-800 pb-3">
-        {/* ROW 1: Branch A, Branch B, Jobs Enquiry, and Task Assign in one horizontal row */}
-        <div className="flex flex-wrap items-center gap-3">
-          {/* Branch A: International HR Operations */}
-          <button
-            type="button"
-            onClick={() => {
-              setOperationTab('intl-ops');
-              setCurrentPage(1);
-              setSelectedEnquiryIds([]);
-              setSelectedService('all');
-              setSelectedStatus('all');
-            }}
-            className={`flex items-center space-x-2.5 px-4 py-2.5 rounded-xl font-bold text-xs transition duration-200 cursor-pointer shadow-sm ${operationTab === 'intl-ops'
+      {/* BRANCH TABS: Choose Operation */}
+      <div className="flex flex-wrap items-center gap-3 border-b border-slate-200 dark:border-navy-800 pb-3">
+        {/* Branch A: International HR Operations */}
+        <button
+          type="button"
+          onClick={() => {
+            setOperationTab('intl-ops');
+            setCurrentPage(1);
+            setSelectedEnquiryIds([]);
+            setSelectedService('all');
+            setSelectedStatus('all');
+          }}
+          className={`flex items-center space-x-2.5 px-4 py-2.5 rounded-xl font-bold text-xs transition duration-200 cursor-pointer shadow-sm ${
+            operationTab === 'intl-ops'
               ? 'bg-gradient-to-r from-blue-600 to-indigo-600 text-white ring-2 ring-blue-500/40 shadow-blue-500/20'
               : 'bg-white dark:bg-navy-900 text-slate-700 dark:text-slate-300 hover:bg-blue-50 dark:hover:bg-navy-800 border border-slate-200 dark:border-navy-800'
-              }`}
-          >
-            <Globe className="w-4 h-4 shrink-0" />
-            <span>{isHrLead ? 'Branch A: International HR Operations' : 'International HR Operations'}</span>
-            <span className={`px-2 py-0.5 rounded-full text-[10px] font-mono ${operationTab === 'intl-ops' ? 'bg-white/20 text-white' : 'bg-blue-100 dark:bg-blue-950 text-blue-700 dark:text-blue-300'
-              }`}>
-              {isHrLead ? `${intlTotalCount} Enquiries` : `${myIntlCount} Assigned to Me`}
-            </span>
-          </button>
+          }`}
+        >
+          <Globe className="w-4 h-4 shrink-0" />
+          <span>{isHrLead ? 'Branch A: International HR Operations' : 'International HR Operations'}</span>
+          <span className={`px-2 py-0.5 rounded-full text-[10px] font-mono ${
+            operationTab === 'intl-ops' ? 'bg-white/20 text-white' : 'bg-blue-100 dark:bg-blue-950 text-blue-700 dark:text-blue-300'
+          }`}>
+            {isHrLead ? `${intlTotalCount} Enquiries` : `${myIntlCount} Assigned to Me`}
+          </span>
+        </button>
 
-          {/* Branch B: Enquiry HR Operations */}
-          <button
-            type="button"
-            onClick={() => {
-              setOperationTab('enq-ops');
-              setCurrentPage(1);
-              setSelectedEnquiryIds([]);
-              setSelectedService('all');
-              setSelectedStatus('all');
-            }}
-            className={`flex items-center space-x-2.5 px-4 py-2.5 rounded-xl font-bold text-xs transition duration-200 cursor-pointer shadow-sm ${operationTab === 'enq-ops'
+        {/* Branch B: Enquiry HR Operations */}
+        <button
+          type="button"
+          onClick={() => {
+            setOperationTab('enq-ops');
+            setCurrentPage(1);
+            setSelectedEnquiryIds([]);
+            setSelectedService('all');
+            setSelectedStatus('all');
+          }}
+          className={`flex items-center space-x-2.5 px-4 py-2.5 rounded-xl font-bold text-xs transition duration-200 cursor-pointer shadow-sm ${
+            operationTab === 'enq-ops'
               ? 'bg-gradient-to-r from-emerald-600 to-teal-600 text-white ring-2 ring-emerald-500/40 shadow-emerald-500/20'
               : 'bg-white dark:bg-navy-900 text-slate-700 dark:text-slate-300 hover:bg-emerald-50 dark:hover:bg-navy-800 border border-slate-200 dark:border-navy-800'
-              }`}
-          >
-            <GraduationCap className="w-4 h-4 shrink-0" />
-            <span>{isHrLead ? 'Branch B: Enquiry HR Operations' : 'Enquiry HR Operations'}</span>
-            <span className={`px-2 py-0.5 rounded-full text-[10px] font-mono ${operationTab === 'enq-ops' ? 'bg-white/20 text-white' : 'bg-emerald-100 dark:bg-emerald-950 text-emerald-700 dark:text-emerald-300'
-              }`}>
-              {isHrLead ? `${enqTotalCount} Enquiries` : `${myEnqCount} Assigned to Me`}
-            </span>
-          </button>
+          }`}
+        >
+          <GraduationCap className="w-4 h-4 shrink-0" />
+          <span>{isHrLead ? 'Branch B: Enquiry HR Operations' : 'Enquiry HR Operations'}</span>
+          <span className={`px-2 py-0.5 rounded-full text-[10px] font-mono ${
+            operationTab === 'enq-ops' ? 'bg-white/20 text-white' : 'bg-emerald-100 dark:bg-emerald-950 text-emerald-700 dark:text-emerald-300'
+          }`}>
+            {isHrLead ? `${enqTotalCount} Enquiries` : `${myEnqCount} Assigned to Me`}
+          </span>
+        </button>
 
-          {/* Jobs Enquiry button matching branch tab design with orange shade theme */}
+        {/* 1. NEW: Task Assign button for authorized roles (HR Lead, Super Admin, Admin) */}
+        {isAuthorizedToAssign && operationTab !== 'tracker' && (
           <button
             type="button"
-            onClick={() => {
-              setOperationTab('jobs-enquiry');
-              setCurrentPage(1);
-              setSelectedEnquiryIds([]);
-              setSelectedService('all');
-              setSelectedStatus('all');
-            }}
-            className={`flex items-center space-x-2.5 px-4 py-2.5 rounded-xl font-bold text-xs transition duration-200 cursor-pointer shadow-sm ${operationTab === 'jobs-enquiry'
-              ? 'bg-gradient-to-r from-orange-500 via-amber-500 to-orange-600 text-white ring-2 ring-orange-500/40 shadow-orange-500/20'
-              : 'bg-white dark:bg-navy-900 text-slate-700 dark:text-slate-300 hover:bg-orange-50 dark:hover:bg-navy-800 border border-slate-200 dark:border-navy-800'
-              }`}
-          >
-            <Briefcase className="w-4 h-4 shrink-0" />
-            <span>Jobs Enquiry</span>
-            <span className={`px-2 py-0.5 rounded-full text-[10px] font-mono ${operationTab === 'jobs-enquiry' ? 'bg-white/20 text-white' : 'bg-orange-100 dark:bg-orange-950/60 text-orange-800 dark:text-orange-300'
-              }`}>
-              {isHrLead ? `${jobsTotalCount} Enquiries` : `${myJobsCount} Assigned to Me`}
-            </span>
-          </button>
-
-          {/* Task Assign button - positioned on the right side of Jobs Enquiry in the same horizontal row */}
-          {isAuthorizedToAssign && operationTab !== 'tracker' && (
-            <button
-              type="button"
-              onClick={() => setIsAssignModalOpen(true)}
-              className={`flex items-center space-x-2 px-4 py-2.5 rounded-xl font-bold text-xs transition-all duration-200 cursor-pointer shadow-md ${selectedEnquiryIds.length > 0
+            onClick={() => setIsAssignModalOpen(true)}
+            className={`flex items-center space-x-2 px-4 py-2.5 rounded-xl font-bold text-xs transition-all duration-200 cursor-pointer shadow-md ${
+              selectedEnquiryIds.length > 0
                 ? 'bg-gradient-to-r from-gold-500 via-amber-500 to-yellow-500 hover:from-gold-600 hover:to-amber-600 text-navy-950 ring-2 ring-gold-400/60 shadow-gold-500/30 scale-[1.02]'
                 : 'bg-gradient-to-r from-amber-500 to-gold-500 hover:from-amber-600 hover:to-gold-600 text-navy-950 shadow-sm border border-gold-400/40'
-                }`}
-              title="Open Task Assignment Dialog"
-            >
-              <UserCheck className="w-4 h-4 shrink-0 text-navy-950" />
-              <span className="tracking-wide">Task Assign</span>
-              <span className="px-2 py-0.5 rounded-full text-[10px] font-mono bg-navy-950 text-gold-400 font-extrabold shadow-xs">
-                {selectedEnquiryIds.length}
-              </span>
-            </button>
-          )}
-        </div>
-
-        {/* ROW 2: Task Completion Tracker positioned below the branch-button row (Hidden for HR Lead) */}
-        {!isHrLead && (
-          <div className="flex items-center justify-end">
-            <button
-              type="button"
-              onClick={() => setOperationTab('tracker')}
-              className={`flex items-center space-x-2 px-4 py-2.5 rounded-xl font-bold text-xs transition duration-200 cursor-pointer shadow-sm ${operationTab === 'tracker'
-                ? 'bg-gradient-to-r from-gold-500 to-amber-500 text-navy-950 ring-2 ring-gold-500/40'
-                : 'bg-white dark:bg-navy-900 text-slate-700 dark:text-slate-300 hover:bg-gold-500/10 border border-slate-200 dark:border-navy-800'
-                }`}
-            >
-              <CheckSquare className="w-4 h-4 shrink-0 text-gold-600 dark:text-gold-400" />
-              <span>My Task Completion Tracker</span>
-              <span className="px-2 py-0.5 rounded-full text-[10px] font-mono bg-navy-950 text-gold-400">
-                {`${myPendingCount} Pending`}
-              </span>
-            </button>
-          </div>
+            }`}
+            title="Open Task Assignment Dialog"
+          >
+            <UserCheck className="w-4 h-4 shrink-0 text-navy-950" />
+            <span className="tracking-wide">Task Assign</span>
+            <span className="px-2 py-0.5 rounded-full text-[10px] font-mono bg-navy-950 text-gold-400 font-extrabold shadow-xs">
+              {selectedEnquiryIds.length}
+            </span>
+          </button>
         )}
+
+        {/* Branch C: Live Task Completion Tracker */}
+        <button
+          type="button"
+          onClick={() => setOperationTab('tracker')}
+          className={`ml-auto flex items-center space-x-2 px-4 py-2.5 rounded-xl font-bold text-xs transition duration-200 cursor-pointer shadow-sm ${
+            operationTab === 'tracker'
+              ? 'bg-gradient-to-r from-gold-500 to-amber-500 text-navy-950 ring-2 ring-gold-500/40'
+              : 'bg-white dark:bg-navy-900 text-slate-700 dark:text-slate-300 hover:bg-gold-500/10 border border-slate-200 dark:border-navy-800'
+          }`}
+        >
+          <CheckSquare className="w-4 h-4 shrink-0 text-gold-600 dark:text-gold-400" />
+          <span>{isHrLead ? 'Task Completion Tracker' : 'My Task Completion Tracker'}</span>
+          <span className="px-2 py-0.5 rounded-full text-[10px] font-mono bg-navy-950 text-gold-400">
+            {isHrLead ? `${allAssignedTasks.length} Active` : `${myPendingCount} Pending`}
+          </span>
+        </button>
       </div>
 
       {/* VIEW FOR BRANCH A & B: ENQUIRIES LIST (15 records per page, Full Width) */}
       {operationTab !== 'tracker' && (
         <div className="w-full space-y-4">
-
+          
           {/* ENQUIRIES LIST TABLE (Full width for all roles) */}
           <div className="w-full space-y-4">
-
+            
             {/* Branch Summary & Filter Toolbar */}
             <div className="bg-white dark:bg-navy-900 p-4 rounded-2xl border border-slate-200 dark:border-navy-800 shadow-sm space-y-3">
               <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
                 <div>
                   <h3 className="text-sm font-bold text-slate-900 dark:text-white flex items-center gap-2">
-                    {operationTab === 'jobs-enquiry' ? (
-                      <>
-                        <Briefcase className="w-4 h-4 text-orange-500" />
-                        <span>{isHrLead ? 'View Enquiries List — Candidate Job Applications' : 'My Assigned Job Enquiries'}</span>
-                      </>
-                    ) : operationTab === 'intl-ops' ? (
+                    {operationTab === 'intl-ops' ? (
                       <>
                         <Globe className="w-4 h-4 text-blue-500" />
                         <span>{isHrLead ? 'View Enquiries List — International HR Operations' : 'My International HR Operations Enquiries'}</span>
@@ -945,9 +770,7 @@ export const CrmHrTaskAssignment = () => {
                   </h3>
                   <p className="text-[11px] text-slate-500">
                     Enquiry Sources:{' '}
-                    {operationTab === 'jobs-enquiry' ? (
-                      <span className="font-semibold text-orange-600 dark:text-orange-400">Recruitment Website Applications, Verified Candidate Vacancy Submissions</span>
-                    ) : operationTab === 'intl-ops' ? (
+                    {operationTab === 'intl-ops' ? (
                       <span className="font-semibold text-blue-600 dark:text-blue-400">International Admissions, International Consulting</span>
                     ) : (
                       <span className="font-semibold text-emerald-600 dark:text-emerald-400">Career Guidance, School Student Academy, College Admission</span>
@@ -982,7 +805,7 @@ export const CrmHrTaskAssignment = () => {
                     type="text"
                     value={searchQuery}
                     onChange={(e) => { setSearchQuery(e.target.value); setCurrentPage(1); }}
-                    placeholder="Search candidate, email, phone, ref, job..."
+                    placeholder="Search candidate, email, phone, ref..."
                     className="w-full pl-9 pr-3 py-1.5 text-xs bg-slate-50 dark:bg-navy-950 border border-slate-200 dark:border-navy-800 rounded-xl text-slate-800 dark:text-slate-200 focus:outline-none focus:border-gold-500"
                   />
                 </div>
@@ -993,12 +816,8 @@ export const CrmHrTaskAssignment = () => {
                     onChange={(e) => { setSelectedService(e.target.value); setCurrentPage(1); }}
                     className="w-full px-3 py-1.5 text-xs bg-slate-50 dark:bg-navy-950 border border-slate-200 dark:border-navy-800 rounded-xl text-slate-800 dark:text-slate-200 focus:outline-none focus:border-gold-500 font-semibold cursor-pointer"
                   >
-                    <option value="all">{operationTab === 'jobs-enquiry' ? 'All Jobs / Vacancies' : 'All Services in Branch'}</option>
-                    {operationTab === 'jobs-enquiry' ? (
-                      uniqueJobsList.map(job => (
-                        <option key={job} value={job}>{job}</option>
-                      ))
-                    ) : operationTab === 'intl-ops' ? (
+                    <option value="all">All Services in Branch</option>
+                    {operationTab === 'intl-ops' ? (
                       <>
                         <option value="intl-consult">International Consulting</option>
                         <option value="intl-adm">International Admissions</option>
@@ -1020,24 +839,10 @@ export const CrmHrTaskAssignment = () => {
                     className="w-full px-3 py-1.5 text-xs bg-slate-50 dark:bg-navy-950 border border-slate-200 dark:border-navy-800 rounded-xl text-slate-800 dark:text-slate-200 focus:outline-none focus:border-gold-500 font-semibold cursor-pointer"
                   >
                     <option value="all">All Statuses</option>
-                    {operationTab === 'jobs-enquiry' ? (
-                      <>
-                        <option value="Under Review">Under Review</option>
-                        <option value="Assigned">Assigned (Active)</option>
-                        <option value="Shortlisted">Shortlisted</option>
-                        <option value="Interviewing">Interviewing</option>
-                        <option value="Selected">Selected</option>
-                        <option value="Rejected">Rejected</option>
-                        <option value="Completed">Completed</option>
-                      </>
-                    ) : (
-                      <>
-                        {isHrLead && <option value="New">New / Unassigned</option>}
-                        <option value="Assigned">Assigned (Active)</option>
-                        <option value="In Progress">In Progress</option>
-                        <option value="Completed">Completed</option>
-                      </>
-                    )}
+                    {isHrLead && <option value="New">New / Unassigned</option>}
+                    <option value="Assigned">Assigned (Active)</option>
+                    <option value="In Progress">In Progress</option>
+                    <option value="Completed">Completed</option>
                   </select>
                 </div>
               </div>
@@ -1091,10 +896,10 @@ export const CrmHrTaskAssignment = () => {
                       <th className="p-3 whitespace-nowrap">Candidate Name</th>
                       <th className="p-3 whitespace-nowrap">Phone Number</th>
                       <th className="p-3 whitespace-nowrap">Email Address</th>
-                      <th className="p-3 whitespace-nowrap">{operationTab === 'jobs-enquiry' ? 'Job Title / Position' : 'Enquiry Service'}</th>
-                      <th className="p-3 whitespace-nowrap">{operationTab === 'jobs-enquiry' ? 'Application Date' : 'Priority & Assigned Date'}</th>
+                      <th className="p-3 whitespace-nowrap">Enquiry Service</th>
+                      <th className="p-3 whitespace-nowrap">Priority & Assigned Date</th>
                       <th className="p-3 whitespace-nowrap">Status</th>
-                      <th className="p-3 min-w-[200px]">{operationTab === 'jobs-enquiry' ? 'Cover Note / Instructions' : 'HR Lead Instructions'}</th>
+                      <th className="p-3 min-w-[200px]">HR Lead Instructions</th>
                       {isHrLead && (
                         <th className="p-3 whitespace-nowrap">Assigned To</th>
                       )}
@@ -1107,8 +912,8 @@ export const CrmHrTaskAssignment = () => {
                         <td colSpan={isHrLead ? 11 : 9} className="p-10 text-center text-slate-400 space-y-2">
                           <AlertCircle className="w-8 h-8 mx-auto opacity-40 text-slate-400" />
                           <div className="font-bold text-sm text-slate-700 dark:text-slate-300">
-                            {isHrOperations
-                              ? `No enquiries assigned to you in ${operationTab === 'jobs-enquiry' ? 'Jobs Enquiry' : (operationTab === 'intl-ops' ? 'International HR Operations' : 'Enquiry HR Operations')}.`
+                            {isHrOperations 
+                              ? `No enquiries assigned to you in ${operationTab === 'intl-ops' ? 'International HR Operations' : 'Enquiry HR Operations'}.`
                               : 'No enquiries found matching your search or filters.'}
                           </div>
                           {isHrOperations && (
@@ -1122,12 +927,13 @@ export const CrmHrTaskAssignment = () => {
                       paginatedEnquiries.map((enq) => {
                         const isSelected = selectedEnquiryIds.includes(enq.id);
                         return (
-                          <tr
+                          <tr 
                             key={enq.id}
-                            className={`transition duration-150 ${isSelected
-                              ? 'bg-gold-500/10 dark:bg-gold-500/15'
-                              : 'hover:bg-slate-50/80 dark:hover:bg-navy-800/40'
-                              }`}
+                            className={`transition duration-150 ${
+                              isSelected 
+                                ? 'bg-gold-500/10 dark:bg-gold-500/15' 
+                                : 'hover:bg-slate-50/80 dark:hover:bg-navy-800/40'
+                            }`}
                           >
                             {/* Checkbox cell ONLY for HR Lead */}
                             {isHrLead && (
@@ -1187,59 +993,42 @@ export const CrmHrTaskAssignment = () => {
                             {/* Service / Source */}
                             <td className="p-3">
                               <div className="font-semibold text-slate-800 dark:text-slate-200">
-                                {enq.serviceTitle || enq.jobTitle || enq.serviceName || 'Academic Enquiry'}
+                                {enq.serviceTitle || enq.serviceName || 'Academic Enquiry'}
                               </div>
                               <div className="text-[10px] text-slate-400 truncate max-w-[180px]">
-                                {enq.company || enq.courseName || enq.streamName || enq.country || enq.countryInterest || 'General'}
+                                {enq.courseName || enq.streamName || enq.country || enq.countryInterest || 'General'}
                               </div>
                             </td>
 
                             {/* Priority & Assigned Date */}
                             <td className="p-3">
-                              {operationTab === 'jobs-enquiry' ? (
-                                <>
-                                  <div className="font-mono text-xs text-slate-700 dark:text-slate-300 font-semibold">
-                                    {enq.appliedDate ? new Date(enq.appliedDate).toLocaleDateString(undefined, { year: 'numeric', month: 'short', day: 'numeric' }) : (enq.createdAt ? new Date(enq.createdAt).toLocaleDateString() : 'Recent')}
-                                  </div>
-                                  {enq.noticePeriod && (
-                                    <div className="text-[10px] text-slate-400 font-mono mt-0.5">
-                                      Notice: {enq.noticePeriod}
-                                    </div>
-                                  )}
-                                </>
-                              ) : (
-                                <>
-                                  <div className="flex items-center gap-1.5">
-                                    <span className={`px-2 py-0.5 rounded text-[10px] font-black uppercase font-mono ${enq.priority === 'Urgent'
-                                      ? 'bg-red-500 text-white'
-                                      : enq.priority === 'High'
-                                        ? 'bg-amber-500 text-navy-950 font-bold'
-                                        : 'bg-blue-100 text-blue-700 dark:bg-blue-950 dark:text-blue-300'
-                                      }`}>
-                                      {enq.priority || 'Normal'}
-                                    </span>
-                                  </div>
-                                  <div className="text-[10px] text-slate-400 font-mono mt-1">
-                                    {enq.assignedDate ? new Date(enq.assignedDate).toLocaleDateString() : (enq.createdAt ? new Date(enq.createdAt).toLocaleDateString() : 'Recent')}
-                                  </div>
-                                </>
-                              )}
+                              <div className="flex items-center gap-1.5">
+                                <span className={`px-2 py-0.5 rounded text-[10px] font-black uppercase font-mono ${
+                                  enq.priority === 'Urgent'
+                                    ? 'bg-red-500 text-white'
+                                    : enq.priority === 'High'
+                                    ? 'bg-amber-500 text-navy-950 font-bold'
+                                    : 'bg-blue-100 text-blue-700 dark:bg-blue-950 dark:text-blue-300'
+                                }`}>
+                                  {enq.priority || 'Normal'}
+                                </span>
+                              </div>
+                              <div className="text-[10px] text-slate-400 font-mono mt-1">
+                                {enq.assignedDate ? new Date(enq.assignedDate).toLocaleDateString() : (enq.createdAt ? new Date(enq.createdAt).toLocaleDateString() : 'Recent')}
+                              </div>
                             </td>
 
                             {/* Status */}
                             <td className="p-3">
-                              <span className={`px-2.5 py-0.5 rounded-full text-[10px] font-extrabold ${enq.status === 'Completed' || enq.status === 'Selected'
-                                ? 'bg-emerald-100 text-emerald-700 dark:bg-emerald-950/60 dark:text-emerald-400 border border-emerald-300'
-                                : enq.status === 'Assigned'
+                              <span className={`px-2.5 py-0.5 rounded-full text-[10px] font-extrabold ${
+                                enq.status === 'Completed'
+                                  ? 'bg-emerald-100 text-emerald-700 dark:bg-emerald-950/60 dark:text-emerald-400 border border-emerald-300'
+                                  : enq.status === 'Assigned'
                                   ? 'bg-blue-100 text-blue-700 dark:bg-blue-950/60 dark:text-blue-400 border border-blue-300'
-                                  : enq.status === 'In Progress' || enq.status === 'Interviewing'
-                                    ? 'bg-purple-100 text-purple-700 dark:bg-purple-950/60 dark:text-purple-400 border border-purple-300'
-                                    : enq.status === 'Shortlisted'
-                                      ? 'bg-indigo-100 text-indigo-700 dark:bg-indigo-950/60 dark:text-indigo-400 border border-indigo-300'
-                                      : enq.status === 'Rejected'
-                                        ? 'bg-red-100 text-red-700 dark:bg-red-950/60 dark:text-red-400 border border-red-300'
-                                        : 'bg-amber-100 text-amber-800 dark:bg-amber-950/60 dark:text-amber-400 border border-amber-300'
-                                }`}>
+                                  : enq.status === 'In Progress'
+                                  ? 'bg-purple-100 text-purple-700 dark:bg-purple-950/60 dark:text-purple-400 border border-purple-300'
+                                  : 'bg-amber-100 text-amber-800 dark:bg-amber-950/60 dark:text-amber-400 border border-amber-300'
+                              }`}>
                                 {enq.status}
                               </span>
                             </td>
@@ -1248,7 +1037,7 @@ export const CrmHrTaskAssignment = () => {
                             <td className="p-3 max-w-[240px]">
                               <div className="p-2 rounded-lg bg-amber-50 dark:bg-navy-950/80 border border-amber-200/80 dark:border-navy-700 text-[11px] text-slate-700 dark:text-slate-300 leading-tight">
                                 <span className="font-bold text-amber-700 dark:text-gold-400">📌 </span>
-                                <span className="line-clamp-2">{enq.assignmentNotes || enq.notes || enq.coverNote || (enq.expectedSalary ? `Expected: ${enq.expectedSalary}` : 'Follow up with candidate regarding application.')}</span>
+                                <span className="line-clamp-2">{enq.assignmentNotes || enq.notes || 'Follow up with candidate regarding enquiry details.'}</span>
                               </div>
                             </td>
 
@@ -1281,7 +1070,7 @@ export const CrmHrTaskAssignment = () => {
                                 >
                                   <Eye className="w-3.5 h-3.5" />
                                 </button>
-
+                                
                                 <button
                                   type="button"
                                   onClick={() => {
@@ -1337,10 +1126,11 @@ export const CrmHrTaskAssignment = () => {
                     <button
                       key={pg}
                       onClick={() => setCurrentPage(pg)}
-                      className={`w-7 h-7 rounded-lg text-xs font-bold transition cursor-pointer ${currentPage === pg
-                        ? 'bg-gold-500 text-navy-950 shadow-xs'
-                        : 'bg-white dark:bg-navy-900 text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-navy-800 border border-slate-200 dark:border-navy-800'
-                        }`}
+                      className={`w-7 h-7 rounded-lg text-xs font-bold transition cursor-pointer ${
+                        currentPage === pg
+                          ? 'bg-gold-500 text-navy-950 shadow-xs'
+                          : 'bg-white dark:bg-navy-900 text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-navy-800 border border-slate-200 dark:border-navy-800'
+                      }`}
                     >
                       {pg}
                     </button>
@@ -1365,36 +1155,32 @@ export const CrmHrTaskAssignment = () => {
       {/* TASK ASSIGNMENT MODAL / POP-UP PANEL (Available to HR Lead, Super Admin, Admin) */}
       {isAssignModalOpen && isAuthorizedToAssign && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-navy-950/80 backdrop-blur-sm animate-in fade-in duration-200">
-          <div className={`bg-white dark:bg-navy-900 border rounded-3xl max-w-xl w-full p-6 sm:p-7 shadow-2xl space-y-4 max-h-[92vh] overflow-y-auto relative ${operationTab === 'jobs-enquiry'
-            ? 'border-gold-500/40 ring-1 ring-gold-500/20'
-            : operationTab === 'intl-ops'
+          <div className={`bg-white dark:bg-navy-900 border rounded-3xl max-w-xl w-full p-6 sm:p-7 shadow-2xl space-y-4 max-h-[92vh] overflow-y-auto relative ${
+            operationTab === 'intl-ops'
               ? 'border-blue-500/40 ring-1 ring-blue-500/20'
               : 'border-emerald-500/40 ring-1 ring-emerald-500/20'
-            }`}>
-
+          }`}>
+            
             {/* Modal Header */}
             <div className="flex items-start justify-between border-b border-slate-100 dark:border-navy-800 pb-3">
               <div className="space-y-1">
                 <div className="flex items-center space-x-2">
-                  <span className={`px-2 py-0.5 rounded text-[9px] font-extrabold uppercase tracking-wide ${operationTab === 'jobs-enquiry'
-                    ? 'bg-gold-500 text-navy-950 font-black'
-                    : operationTab === 'intl-ops' ? 'bg-blue-600 text-white' : 'bg-emerald-600 text-white'
-                    }`}>
-                    {operationTab === 'jobs-enquiry' ? 'Jobs Enquiry' : 'Flowchart Action'}
+                  <span className={`px-2 py-0.5 rounded text-[9px] font-extrabold uppercase tracking-wide text-white ${
+                    operationTab === 'intl-ops' ? 'bg-blue-600' : 'bg-emerald-600'
+                  }`}>
+                    Flowchart Action
                   </span>
                   <span className="text-[11px] text-slate-400 font-semibold">
-                    {operationTab === 'jobs-enquiry' ? 'Candidate Applications' : (operationTab === 'intl-ops' ? 'Branch A' : 'Branch B')}
+                    {operationTab === 'intl-ops' ? 'Branch A' : 'Branch B'}
                   </span>
                 </div>
                 <h3 className="font-serif text-xl font-bold text-slate-900 dark:text-white">
-                  Assign to {operationTab === 'jobs-enquiry' ? 'HR Specialist or Recruiter' : (operationTab === 'intl-ops' ? 'International HR Operations' : 'Enquiry HR Operations')}
+                  Assign to {operationTab === 'intl-ops' ? 'International HR Operations' : 'Enquiry HR Operations'}
                 </h3>
                 <p className="text-[11px] text-slate-500 dark:text-slate-400">
-                  {operationTab === 'jobs-enquiry'
-                    ? 'Select an HR Specialist or Recruiter, point out instructions, and click Send / Assign.'
-                    : operationTab === 'intl-ops'
-                      ? 'Show only International HR Operations team members, select an HR member, point out instructions, and click Send / Assign.'
-                      : 'Show only Enquiry HR Operations team members, select an HR member, point out instructions, and click Send / Assign.'}
+                  {operationTab === 'intl-ops'
+                    ? 'Show only International HR Operations team members, select an HR member, point out instructions, and click Send / Assign.'
+                    : 'Show only Enquiry HR Operations team members, select an HR member, point out instructions, and click Send / Assign.'}
                 </p>
               </div>
 
@@ -1481,14 +1267,15 @@ export const CrmHrTaskAssignment = () => {
                       key={pri}
                       type="button"
                       onClick={() => setSelectedPriority(pri)}
-                      className={`py-1.5 px-2 rounded-lg text-xs font-bold transition cursor-pointer border ${selectedPriority === pri
-                        ? pri === 'Urgent'
-                          ? 'bg-red-600 text-white border-red-500 shadow-xs'
-                          : pri === 'High'
+                      className={`py-1.5 px-2 rounded-lg text-xs font-bold transition cursor-pointer border ${
+                        selectedPriority === pri
+                          ? pri === 'Urgent'
+                            ? 'bg-red-600 text-white border-red-500 shadow-xs'
+                            : pri === 'High'
                             ? 'bg-amber-500 text-navy-950 border-amber-400 shadow-xs'
                             : 'bg-blue-600 text-white border-blue-500 shadow-xs'
-                        : 'bg-slate-50 dark:bg-navy-950 text-slate-600 dark:text-slate-400 border-slate-200 dark:border-navy-800'
-                        }`}
+                          : 'bg-slate-50 dark:bg-navy-950 text-slate-600 dark:text-slate-400 border-slate-200 dark:border-navy-800'
+                      }`}
                     >
                       {pri}
                     </button>
@@ -1512,7 +1299,7 @@ export const CrmHrTaskAssignment = () => {
                   className="w-full p-2.5 text-xs bg-slate-50 dark:bg-navy-950 border border-slate-300 dark:border-navy-700 rounded-xl text-slate-900 dark:text-white focus:outline-none focus:border-gold-500 resize-none"
                 />
 
-                {/* Quick presets for Branch A: International HR Operations */}
+                {/* Quick presets (Only for Branch A: International HR Operations) */}
                 {operationTab === 'intl-ops' && (
                   <div className="space-y-1 pt-1">
                     <div className="text-[10px] font-extrabold uppercase tracking-wider text-slate-400">Quick Presets:</div>
@@ -1541,36 +1328,6 @@ export const CrmHrTaskAssignment = () => {
                     </div>
                   </div>
                 )}
-
-                {/* Quick presets for Jobs Enquiry */}
-                {operationTab === 'jobs-enquiry' && (
-                  <div className="space-y-1 pt-1">
-                    <div className="text-[10px] font-extrabold uppercase tracking-wider text-slate-400">Quick Presets:</div>
-                    <div className="flex flex-wrap gap-1.5">
-                      <button
-                        type="button"
-                        onClick={() => setPresetInstruction('Verify candidate CV, screening questionnaire, and schedule initial phone screen.')}
-                        className="px-2 py-1 rounded text-[10px] bg-slate-100 dark:bg-navy-950 hover:bg-gold-500 hover:text-navy-950 text-slate-700 dark:text-slate-300 transition cursor-pointer border border-slate-200 dark:border-navy-800"
-                      >
-                        📞 Phone Screening
-                      </button>
-                      <button
-                        type="button"
-                        onClick={() => setPresetInstruction('Review expected salary and present candidate dossier to employer hiring desk.')}
-                        className="px-2 py-1 rounded text-[10px] bg-slate-100 dark:bg-navy-950 hover:bg-gold-500 hover:text-navy-950 text-slate-700 dark:text-slate-300 transition cursor-pointer border border-slate-200 dark:border-navy-800"
-                      >
-                        💼 Employer Submission
-                      </button>
-                      <button
-                        type="button"
-                        onClick={() => setPresetInstruction('Shortlist candidate and coordinate technical interview round.')}
-                        className="px-2 py-1 rounded text-[10px] bg-slate-100 dark:bg-navy-950 hover:bg-gold-500 hover:text-navy-950 text-slate-700 dark:text-slate-300 transition cursor-pointer border border-slate-200 dark:border-navy-800"
-                      >
-                        📅 Interview Coordination
-                      </button>
-                    </div>
-                  </div>
-                )}
               </div>
 
               {/* 4. Click Send / Assign */}
@@ -1585,24 +1342,23 @@ export const CrmHrTaskAssignment = () => {
                 <button
                   type="submit"
                   disabled={assigningLoading || selectedEnquiryIds.length === 0 || !selectedMemberId}
-                  className={`w-2/3 py-3 px-4 rounded-xl font-bold text-xs tracking-wide transition-all duration-200 flex items-center justify-center space-x-2 shadow-lg cursor-pointer ${selectedEnquiryIds.length === 0 || !selectedMemberId
-                    ? 'opacity-50 cursor-not-allowed bg-slate-400 dark:bg-navy-700 text-slate-200'
-                    : operationTab === 'jobs-enquiry'
-                      ? 'bg-gradient-to-r from-amber-500 via-gold-500 to-yellow-500 hover:from-amber-400 hover:to-gold-400 text-navy-950 font-bold shadow-gold-500/20'
+                  className={`w-2/3 py-3 px-4 rounded-xl font-bold text-xs tracking-wide text-white transition-all duration-200 flex items-center justify-center space-x-2 shadow-lg cursor-pointer ${
+                    selectedEnquiryIds.length === 0 || !selectedMemberId
+                      ? 'opacity-50 cursor-not-allowed bg-slate-400 dark:bg-navy-700 text-slate-200'
                       : operationTab === 'intl-ops'
-                        ? 'bg-gradient-to-r from-blue-600 via-indigo-600 to-blue-700 hover:from-blue-500 hover:to-indigo-500 text-white shadow-blue-500/20'
-                        : 'bg-gradient-to-r from-emerald-600 via-teal-600 to-emerald-700 hover:from-emerald-500 hover:to-teal-500 text-white shadow-emerald-500/20'
-                    }`}
+                      ? 'bg-gradient-to-r from-blue-600 via-indigo-600 to-blue-700 hover:from-blue-500 hover:to-indigo-500 shadow-blue-500/20'
+                      : 'bg-gradient-to-r from-emerald-600 via-teal-600 to-emerald-700 hover:from-emerald-500 hover:to-teal-500 shadow-emerald-500/20'
+                  }`}
                 >
                   <Send className="w-4 h-4" />
                   <span>
                     {assigningLoading
                       ? 'Assigning...'
                       : selectedEnquiryIds.length === 0
-                        ? 'Select Enquiries First'
-                        : !selectedMemberId
-                          ? 'Choose Specialist'
-                          : `Click Send / Assign (${selectedEnquiryIds.length})`}
+                      ? 'Select Enquiries First'
+                      : !selectedMemberId
+                      ? 'Choose Specialist'
+                      : `Click Send / Assign (${selectedEnquiryIds.length})`}
                   </span>
                 </button>
               </div>
@@ -1626,7 +1382,7 @@ export const CrmHrTaskAssignment = () => {
       {/* VIEW FOR TRACKER TAB */}
       {operationTab === 'tracker' && (
         <div className="space-y-6">
-
+          
           {/* Tracker Metrics Overview */}
           <div className="grid grid-cols-1 sm:grid-cols-4 gap-4">
             <div className="glass-card bg-white dark:bg-navy-900 p-4 rounded-2xl border border-slate-200 dark:border-navy-800 shadow-sm">
@@ -1680,28 +1436,31 @@ export const CrmHrTaskAssignment = () => {
             <div className="flex items-center space-x-2">
               <button
                 onClick={() => setTrackerFilterStatus('all')}
-                className={`px-3 py-1.5 rounded-xl text-xs font-bold transition cursor-pointer ${trackerFilterStatus === 'all'
-                  ? 'bg-gold-500 text-navy-950 shadow-xs'
-                  : 'text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-navy-800'
-                  }`}
+                className={`px-3 py-1.5 rounded-xl text-xs font-bold transition cursor-pointer ${
+                  trackerFilterStatus === 'all'
+                    ? 'bg-gold-500 text-navy-950 shadow-xs'
+                    : 'text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-navy-800'
+                }`}
               >
                 All Tasks ({allAssignedTasks.length})
               </button>
               <button
                 onClick={() => setTrackerFilterStatus('pending')}
-                className={`px-3 py-1.5 rounded-xl text-xs font-bold transition cursor-pointer ${trackerFilterStatus === 'pending'
-                  ? 'bg-amber-500 text-navy-950 shadow-xs'
-                  : 'text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-navy-800'
-                  }`}
+                className={`px-3 py-1.5 rounded-xl text-xs font-bold transition cursor-pointer ${
+                  trackerFilterStatus === 'pending'
+                    ? 'bg-amber-500 text-navy-950 shadow-xs'
+                    : 'text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-navy-800'
+                }`}
               >
                 In Progress ({isHrLead ? totalPendingTasks : myPendingCount})
               </button>
               <button
                 onClick={() => setTrackerFilterStatus('completed')}
-                className={`px-3 py-1.5 rounded-xl text-xs font-bold transition cursor-pointer ${trackerFilterStatus === 'completed'
-                  ? 'bg-emerald-600 text-white shadow-xs'
-                  : 'text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-navy-800'
-                  }`}
+                className={`px-3 py-1.5 rounded-xl text-xs font-bold transition cursor-pointer ${
+                  trackerFilterStatus === 'completed'
+                    ? 'bg-emerald-600 text-white shadow-xs'
+                    : 'text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-navy-800'
+                }`}
               >
                 Completed Tasks ({isHrLead ? totalCompletedTasks : myCompletedCount})
               </button>
@@ -1732,19 +1491,20 @@ export const CrmHrTaskAssignment = () => {
                 <CheckSquare className="w-8 h-8 mx-auto opacity-50" />
                 <div className="font-bold text-sm">No tasks in this category</div>
                 <div className="text-xs">
-                  {isHrOperations
+                  {isHrOperations 
                     ? 'Tasks assigned to you by the HR Lead will appear here with instructions and action buttons.'
                     : 'Tasks assigned via Branch A or Branch B will appear here with pointed-out instructions.'}
                 </div>
               </div>
             ) : (
               filteredTrackerTasks.map((task) => (
-                <div
-                  key={task.id}
-                  className={`glass-card p-5 rounded-2xl border transition duration-200 space-y-3.5 shadow-sm ${task.status === 'Completed'
-                    ? 'bg-emerald-500/5 dark:bg-emerald-950/20 border-emerald-500/30'
-                    : 'bg-white dark:bg-navy-900 border-slate-200 dark:border-navy-800 hover:border-gold-500/40'
-                    }`}
+                <div 
+                  key={task.id} 
+                  className={`glass-card p-5 rounded-2xl border transition duration-200 space-y-3.5 shadow-sm ${
+                    task.status === 'Completed'
+                      ? 'bg-emerald-500/5 dark:bg-emerald-950/20 border-emerald-500/30'
+                      : 'bg-white dark:bg-navy-900 border-slate-200 dark:border-navy-800 hover:border-gold-500/40'
+                  }`}
                 >
                   {/* Top Row: Candidate + Reference + Priority */}
                   <div className="flex items-start justify-between gap-2">
@@ -1753,12 +1513,13 @@ export const CrmHrTaskAssignment = () => {
                         <h4 className="font-bold text-slate-900 dark:text-white text-sm">
                           {task.name}
                         </h4>
-                        <span className={`px-2 py-0.2 rounded text-[10px] font-black uppercase font-mono ${task.priority === 'Urgent'
-                          ? 'bg-red-500 text-white'
-                          : task.priority === 'High'
+                        <span className={`px-2 py-0.2 rounded text-[10px] font-black uppercase font-mono ${
+                          task.priority === 'Urgent'
+                            ? 'bg-red-500 text-white'
+                            : task.priority === 'High'
                             ? 'bg-amber-500 text-navy-950'
                             : 'bg-blue-100 text-blue-700 dark:bg-blue-950 dark:text-blue-300'
-                          }`}>
+                        }`}>
                           {task.priority || 'Normal'}
                         </span>
                       </div>
@@ -1767,10 +1528,11 @@ export const CrmHrTaskAssignment = () => {
                       </div>
                     </div>
 
-                    <span className={`px-2.5 py-0.5 rounded-full text-[10px] font-extrabold ${task.status === 'Completed'
-                      ? 'bg-emerald-100 text-emerald-700 dark:bg-emerald-950 dark:text-emerald-400 border border-emerald-300'
-                      : 'bg-amber-100 text-amber-700 dark:bg-amber-950 dark:text-amber-400 border border-amber-300'
-                      }`}>
+                    <span className={`px-2.5 py-0.5 rounded-full text-[10px] font-extrabold ${
+                      task.status === 'Completed'
+                        ? 'bg-emerald-100 text-emerald-700 dark:bg-emerald-950 dark:text-emerald-400 border border-emerald-300'
+                        : 'bg-amber-100 text-amber-700 dark:bg-amber-950 dark:text-amber-400 border border-amber-300'
+                    }`}>
                       {task.status}
                     </span>
                   </div>
@@ -1884,7 +1646,7 @@ export const CrmHrTaskAssignment = () => {
                   </div>
                 </div>
               </div>
-              <button
+              <button 
                 onClick={() => setSelectedCandidateModal(null)}
                 className="p-1 rounded-lg text-slate-400 hover:text-slate-900 dark:hover:text-white hover:bg-slate-100 dark:hover:bg-navy-800 cursor-pointer"
               >
@@ -1954,56 +1716,6 @@ export const CrmHrTaskAssignment = () => {
                     </div>
                   )}
                 </div>
-              </div>
-            )}
-
-            {/* Job Application Details */}
-            {(selectedCandidateModal.jobTitle || selectedCandidateModal.company || selectedCandidateModal.resumeUrl || selectedCandidateModal.expectedSalary || selectedCandidateModal.noticePeriod) && (
-              <div className="p-3.5 rounded-2xl bg-amber-500/10 dark:bg-gold-500/10 border border-amber-500/30 dark:border-gold-500/30 text-xs space-y-2">
-                <div className="text-[10px] font-extrabold uppercase tracking-wider text-amber-800 dark:text-gold-400 flex items-center gap-1.5">
-                  <Briefcase className="w-3.5 h-3.5" />
-                  <span>Job Application Details</span>
-                </div>
-                <div className="grid grid-cols-2 gap-2">
-                  {selectedCandidateModal.jobTitle && (
-                    <div>
-                      <span className="text-slate-400">Position Applied: </span>
-                      <strong className="text-gold-600 dark:text-gold-400">{selectedCandidateModal.jobTitle}</strong>
-                    </div>
-                  )}
-                  {selectedCandidateModal.company && (
-                    <div>
-                      <span className="text-slate-400">Company: </span>
-                      <strong className="text-slate-900 dark:text-white">{selectedCandidateModal.company}</strong>
-                    </div>
-                  )}
-                  {selectedCandidateModal.expectedSalary && (
-                    <div>
-                      <span className="text-slate-400">Expected Salary: </span>
-                      <strong className="text-slate-900 dark:text-white">{selectedCandidateModal.expectedSalary}</strong>
-                    </div>
-                  )}
-                  {selectedCandidateModal.noticePeriod && (
-                    <div>
-                      <span className="text-slate-400">Notice Period: </span>
-                      <strong className="text-slate-900 dark:text-white">{selectedCandidateModal.noticePeriod}</strong>
-                    </div>
-                  )}
-                </div>
-                {selectedCandidateModal.resumeUrl && (
-                  <div className="pt-2 border-t border-amber-500/20 flex items-center justify-between">
-                    <span className="text-[11px] text-slate-500">Resume Attached ({selectedCandidateModal.resumeName || 'CV.pdf'} - {selectedCandidateModal.resumeSize || 'Verified'})</span>
-                    <a
-                      href={selectedCandidateModal.resumeUrl}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="inline-flex items-center gap-1.5 px-3 py-1 bg-gold-500 text-navy-950 font-bold rounded-lg text-xs hover:bg-gold-400 transition"
-                    >
-                      <FileText className="w-3.5 h-3.5" />
-                      <span>Download / View CV</span>
-                    </a>
-                  </div>
-                )}
               </div>
             )}
 
@@ -2082,7 +1794,7 @@ export const CrmHrTaskAssignment = () => {
                   Update Enquiry Status &amp; Log Follow-up
                 </h3>
               </div>
-              <button
+              <button 
                 onClick={() => setStatusUpdateModalLead(null)}
                 className="text-slate-400 hover:text-slate-900 dark:hover:text-white cursor-pointer"
               >
@@ -2164,7 +1876,7 @@ export const CrmHrTaskAssignment = () => {
                   Mark Task as Completed
                 </h3>
               </div>
-              <button
+              <button 
                 onClick={() => setCompletingTask(null)}
                 className="text-slate-400 hover:text-slate-900 dark:hover:text-white cursor-pointer"
               >
