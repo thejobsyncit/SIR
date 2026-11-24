@@ -9,7 +9,7 @@ import {
 } from 'lucide-react';
 import ScrollReveal from '../../components/ScrollReveal';
 import { downloadCandidateResumePdf, openCandidateResumeInNewTab } from '../../services/candidateResumePdfService';
-import { getCandidateAvatar, getCandidateFallbackAvatar } from '../../utils/candidateAvatars';
+import { DashboardCandidateAvatar } from '../../utils/candidateAvatars';
 
 export const CrmJobApplications = () => {
   const {
@@ -762,14 +762,9 @@ export const CrmJobApplications = () => {
                           {/* 2. Candidate Name & Avatar (Matching Image 1) */}
                           <td className="px-3 py-2.5 whitespace-nowrap">
                             <div className="flex items-center space-x-2.5">
-                              <img
-                                src={getCandidateAvatar({ ...app, name: app.applicantName, email: app.applicantEmail, id: app.candidateId, avatar: app.candidateAvatar })}
-                                alt={app.applicantName || 'Candidate'}
-                                onError={(e) => {
-                                  e.currentTarget.onerror = null;
-                                  e.currentTarget.src = getCandidateFallbackAvatar(app.applicantName || 'Candidate');
-                                }}
-                                className="w-8 h-8 rounded-full object-cover border-2 border-gold-500 shrink-0"
+                              <DashboardCandidateAvatar
+                                candidate={{ ...app, name: app.applicantName, email: app.applicantEmail, id: app.candidateId, avatar: app.candidateAvatar }}
+                                sizeClasses="w-8 h-8 rounded-full text-xs"
                               />
                               <div>
                                 <div className="font-bold text-slate-900 dark:text-white text-xs">
@@ -1021,14 +1016,9 @@ export const CrmJobApplications = () => {
                       <div className="space-y-2 lg:w-1/3 p-3 bg-slate-50 dark:bg-[#070b1a] rounded-xl border border-slate-200 dark:border-slate-800/80">
                         <div className="flex items-center justify-between">
                           <div className="flex items-center space-x-2.5">
-                            <img
-                              src={getCandidateAvatar({ ...app, name: app.applicantName, email: app.applicantEmail, id: app.candidateId, avatar: app.candidateAvatar })}
-                              alt={app.applicantName || 'Candidate'}
-                              onError={(e) => {
-                                e.currentTarget.onerror = null;
-                                e.currentTarget.src = getCandidateFallbackAvatar(app.applicantName || 'Candidate');
-                              }}
-                              className="w-9 h-9 rounded-full object-cover border-2 border-gold-500 shrink-0"
+                            <DashboardCandidateAvatar
+                              candidate={{ ...app, name: app.applicantName, email: app.applicantEmail, id: app.candidateId, avatar: app.candidateAvatar }}
+                              sizeClasses="w-9 h-9 rounded-full text-xs"
                             />
                             <div>
                               <h4 className="font-bold text-xs text-slate-900 dark:text-white leading-tight">
@@ -1232,14 +1222,9 @@ export const CrmJobApplications = () => {
                               >
                                 <div className="flex items-start justify-between">
                                   <div className="flex items-center space-x-2.5">
-                                    <img
-                                      src={getCandidateAvatar({ ...app, name: app.applicantName, email: app.applicantEmail, id: app.candidateId, avatar: app.candidateAvatar })}
-                                      alt={app.applicantName || 'Applicant'}
-                                      onError={(e) => {
-                                        e.currentTarget.onerror = null;
-                                        e.currentTarget.src = getCandidateFallbackAvatar(app.applicantName || 'Applicant');
-                                      }}
-                                      className="w-8 h-8 rounded-full object-cover border-2 border-gold-500 shrink-0"
+                                    <DashboardCandidateAvatar
+                                      candidate={{ ...app, name: app.applicantName, email: app.applicantEmail, id: app.candidateId, avatar: app.candidateAvatar }}
+                                      sizeClasses="w-8 h-8 rounded-full text-xs"
                                     />
                                     <div>
                                       <h4 className="font-bold text-xs text-slate-900 dark:text-white">
@@ -1335,14 +1320,9 @@ export const CrmJobApplications = () => {
             {/* Modal Header */}
             <div className="flex justify-between items-start border-b border-slate-200 dark:border-slate-800 pb-4">
               <div className="flex items-center space-x-4">
-                <img
-                  src={getCandidateAvatar(viewCand)}
-                  alt={viewCand.name}
-                  onError={(e) => {
-                    e.currentTarget.onerror = null;
-                    e.currentTarget.src = getCandidateFallbackAvatar(viewCand);
-                  }}
-                  className="w-14 h-14 rounded-full object-cover border-2 border-gold-500 shrink-0"
+                <DashboardCandidateAvatar
+                  candidate={viewCand}
+                  sizeClasses="w-14 h-14 rounded-full text-base"
                 />
                 <div>
                   <div className="flex items-center space-x-2">

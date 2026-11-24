@@ -5,7 +5,7 @@ import {
   Award, CheckCircle2, FileText, Calendar, RotateCcw, Download, Sparkles 
 } from 'lucide-react';
 import ScrollReveal from '../../components/ScrollReveal';
-import { getCandidateAvatar, getCandidateFallbackAvatar } from '../../utils/candidateAvatars';
+import { DashboardCandidateAvatar } from '../../utils/candidateAvatars';
 
 export const CrmSearchFilters = () => {
   const { candidates = [], setActiveModule, setSelectedCandidate, addInterview } = useCrm();
@@ -282,15 +282,7 @@ export const CrmSearchFilters = () => {
             >
               <div className="flex justify-between items-start">
                 <div className="flex items-center space-x-3">
-                  <img
-                    src={getCandidateAvatar(cand)}
-                    alt={cand.name || 'Candidate'}
-                    onError={(e) => {
-                      e.currentTarget.onerror = null;
-                      e.currentTarget.src = getCandidateFallbackAvatar(cand);
-                    }}
-                    className="w-11 h-11 rounded-2xl object-cover border border-gold-500/40 shadow-sm shrink-0"
-                  />
+                  <DashboardCandidateAvatar candidate={cand} sizeClasses="w-11 h-11 text-xs" />
                   <div>
                     <h4 className="font-bold text-slate-900 dark:text-white text-xs">{cand.name}</h4>
                     <p className="text-[11px] text-slate-500 dark:text-slate-400">{cand.currentRole || 'Executive Candidate'}</p>

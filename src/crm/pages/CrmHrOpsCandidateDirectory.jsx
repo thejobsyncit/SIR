@@ -41,7 +41,7 @@ import {
   AddInternalNoteModal,
   CompleteFollowUpModal
 } from '../components/hrCandidate/HrCandidateModals';
-import { getCandidateAvatar, getCandidateFallbackAvatar } from '../../utils/candidateAvatars';
+import { DashboardCandidateAvatar } from '../../utils/candidateAvatars';
 
 const PROFILE_TABS = [
   { id: 'overview', label: 'Overview', icon: Layers },
@@ -523,15 +523,7 @@ export const CrmHrOpsCandidateDirectory = () => {
             <div className="bg-white dark:bg-navy-900 border border-slate-200 dark:border-white/10 rounded-2xl p-5 sm:p-6 shadow-sm space-y-5">
               <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
                 <div className="flex items-center gap-4 min-w-0">
-                  <img
-                    src={getCandidateAvatar({ ...cand, name: cand.fullName })}
-                    alt={cand.fullName}
-                    onError={(e) => {
-                      e.currentTarget.onerror = null;
-                      e.currentTarget.src = getCandidateFallbackAvatar(cand.fullName);
-                    }}
-                    className="w-16 h-16 rounded-2xl object-cover border border-slate-200 dark:border-white/15 shrink-0 shadow-sm"
-                  />
+                  <DashboardCandidateAvatar candidate={{ ...cand, name: cand.fullName }} sizeClasses="w-16 h-16 text-xl" />
                   <div className="min-w-0">
                     <div className="flex flex-wrap items-center gap-2">
                       <h1 className="text-xl sm:text-2xl font-bold text-slate-900 dark:text-white truncate">

@@ -513,28 +513,57 @@ export const CandidatePortal = () => {
     setSkillPillList(skillPillList.filter(s => s !== skillToRemove));
   };
 
-  // Avatar upload with immediate profile synchronization
+  // Avatar upload with immediate profile synchronization and automatic offscreen canvas optimization
   const handleAvatarFile = (e) => {
     const file = e.target.files?.[0];
     if (!file) return;
-    if (file.size > 5 * 1024 * 1024) {
-      alert('Photo size exceeds 5MB limit. Please choose a smaller image.');
+    if (file.size > 10 * 1024 * 1024) {
+      alert('Photo size exceeds 10MB limit. Please choose a smaller image.');
       return;
     }
     const reader = new FileReader();
     reader.onload = (event) => {
-      const dataUrl = event.target.result;
-      setProfileForm(prev => ({ ...prev, avatar: dataUrl }));
-      updateUserProfile({ avatar: dataUrl });
-      fetch('/api/candidate/profile', {
-        method: 'PUT',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          candidateId: user?.candidateId || user?.email || 'REV-CAN',
-          email: user?.email,
-          avatar: dataUrl
-        })
-      }).catch(() => {});
+      const rawData = event.target.result;
+      const img = new Image();
+      img.onload = () => {
+        const maxDim = 320;
+        let width = img.width;
+        let height = img.height;
+        if (width > height) {
+          if (width > maxDim) {
+            height = Math.round((height * maxDim) / width);
+            width = maxDim;
+          }
+        } else {
+          if (height > maxDim) {
+            width = Math.round((width * maxDim) / height);
+            height = maxDim;
+          }
+        }
+        const canvas = document.createElement('canvas');
+        canvas.width = width;
+        canvas.height = height;
+        const ctx = canvas.getContext('2d');
+        ctx.drawImage(img, 0, 0, width, height);
+        const optimizedUrl = canvas.toDataURL('image/jpeg', 0.85);
+
+        setProfileForm(prev => ({ ...prev, avatar: optimizedUrl }));
+        updateUserProfile({ avatar: optimizedUrl });
+        fetch('/api/candidate/profile', {
+          method: 'PUT',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            candidateId: user?.candidateId || user?.email || 'REV-CAN',
+            email: user?.email,
+            avatar: optimizedUrl
+          })
+        }).catch(() => {});
+      };
+      img.onerror = () => {
+        setProfileForm(prev => ({ ...prev, avatar: rawData }));
+        updateUserProfile({ avatar: rawData });
+      };
+      img.src = rawData;
     };
     reader.readAsDataURL(file);
   };

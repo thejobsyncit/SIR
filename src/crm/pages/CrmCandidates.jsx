@@ -10,7 +10,7 @@ import {
 import { CrmAddCandidateModal } from '../components/CrmAddCandidateModal';
 import ScrollReveal from '../../components/ScrollReveal';
 import { downloadCandidateResumePdf, openCandidateResumeInNewTab } from '../../services/candidateResumePdfService';
-import { getCandidateAvatar, getCandidateFallbackAvatar } from '../../utils/candidateAvatars';
+import { DashboardCandidateAvatar } from '../../utils/candidateAvatars';
 
 const isDummyCandidate = (c) => {
   if (!c) return true;
@@ -463,20 +463,7 @@ export const CrmCandidates = () => {
   };
 
   const renderCandidateAvatar = (c, sizeClasses = "w-12 h-12 text-sm") => {
-    const avatarUrl = getCandidateAvatar(c);
-    const fallbackUrl = getCandidateFallbackAvatar(c);
-
-    return (
-      <img
-        src={avatarUrl}
-        alt={c?.name || 'Candidate'}
-        onError={(e) => {
-          e.currentTarget.onerror = null;
-          e.currentTarget.src = fallbackUrl;
-        }}
-        className={`${sizeClasses} rounded-2xl object-cover border-2 border-gold-500 shadow-md shrink-0`}
-      />
-    );
+    return <DashboardCandidateAvatar candidate={c} sizeClasses={sizeClasses} />;
   };
 
   // Dynamically extract distinct candidate roles for fast recruiter filtering

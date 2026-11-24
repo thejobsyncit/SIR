@@ -41,8 +41,8 @@ export const stripBulkyDataForStorage = (data) => {
     clean.dataUrl = null;
   }
 
-  // Strip oversized avatar data URIs (> 50KB)
-  if (typeof clean.avatar === 'string' && clean.avatar.startsWith('data:') && clean.avatar.length > 50000) {
+  // Strip oversized avatar data URIs (> 250KB)
+  if (typeof clean.avatar === 'string' && clean.avatar.startsWith('data:') && clean.avatar.length > 250000) {
     clean.avatar = null;
   }
 
