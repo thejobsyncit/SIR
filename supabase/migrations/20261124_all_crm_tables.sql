@@ -913,7 +913,10 @@ transportation TEXT,
 livingallowancesdetails TEXT,
 visasponsorship TEXT,
 visasupportdetails TEXT,
-closingdate TEXT
+closingdate TEXT,
+  status TEXT DEFAULT 'Active',
+  createdat TIMESTAMPTZ DEFAULT NOW(),
+  updatedat TIMESTAMPTZ DEFAULT NOW()
 );
 
 -- ------------------------------------------------------------------------------
