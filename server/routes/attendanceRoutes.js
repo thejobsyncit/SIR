@@ -1898,7 +1898,7 @@ export const registerAttendanceRoutes = (app, { getDb, getClientIp }) => {
   // Pre-Login Shift Late Verification & Ingress Gatekeeper
   app.post('/api/crm/auth/record-late-login', async (req, res) => {
     try {
-      const { email, password } = req.body || {};
+      const { email, password, role: reqRole, employeeId: reqEmpId, name: reqName, department: reqDept } = req.body || {};
       const cleanEmail = String(email || '').toLowerCase().trim();
       if (!cleanEmail || !password) {
         return res.status(400).json({ success: false, message: 'Email and password required.' });
@@ -1908,6 +1908,26 @@ export const registerAttendanceRoutes = (app, { getDb, getClientIp }) => {
         'SELECT * FROM employees WHERE LOWER(email) = ? OR LOWER(altEmail) = ?',
         [cleanEmail, cleanEmail]
       );
+
+      // Auto-provision or link default account into employees table if missing
+      if (!employee) {
+        const def = (DEFAULT_CRM_EMPLOYEES || []).find(e => 
+          (e.email && e.email.toLowerCase() === cleanEmail) || 
+          (e.altEmail && e.altEmail.toLowerCase() === cleanEmail)
+        );
+        const empId = def?.employeeId || reqEmpId || `REV-EMP-${Math.floor(100 + Math.random() * 900)}`;
+        const empName = def?.name || reqName || cleanEmail.split('@')[0].replace(/[._-]/g, ' ').replace(/\b\w/g, c => c.toUpperCase());
+        const empRole = def?.role || reqRole || 'Staff';
+        const empDept = def?.department || reqDept || 'Operations';
+        const newId = makeId('emp');
+        await db.run(
+          `INSERT OR IGNORE INTO employees (id, employeeId, name, email, altEmail, phone, role, department, password, status, shiftId)
+           VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, 'Active', 'SHIFT-GENERAL')`,
+          [newId, empId, empName, cleanEmail, def?.altEmail ? def.altEmail.toLowerCase() : null, def?.phone || '', empRole, empDept, password]
+        );
+        employee = await db.get('SELECT * FROM employees WHERE LOWER(email) = ? OR LOWER(altEmail) = ?', [cleanEmail, cleanEmail]);
+      }
+
       if (!employee) {
         return res.status(401).json({ success: false, message: 'Account not found.' });
       }
@@ -2170,6 +2190,53 @@ export const registerAttendanceRoutes = (app, { getDb, getClientIp }) => {
       }
 
       if (!activeRecord) {
+        const shiftConfig = employee ? await getEmployeeShift(db, employee) : null;
+        const now = new Date();
+        const { isLate, lateMinutes } = shiftConfig
+          ? computeCheckInMetrics(now, workDate, shiftConfig)
+          : { isLate: true, lateMinutes: 30 };
+
+        if (isLate) {
+          // If late and no approved record exists today, status is strictly PENDING
+          let pendingAtt = null;
+          if (employee?.employeeId) {
+            const attId = makeId('ATT');
+            await db.run(
+              `INSERT OR IGNORE INTO attendance_records (
+                id, employeeId, employeeName, department, operationTeam, workDate,
+                shiftId, shiftName, shiftStart, shiftEnd, isOvernightShift,
+                checkInAt, status, lateMinutes, totalBreakMinutes, grossMinutes, netWorkMinutes, overtimeMinutes, source, notes, lateApprovalStatus, role
+              ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 0, ?, 'In Progress', ?, 0, 0, 0, 0, 'Late Gate Auto', 'Shift Late Ingress pending authorization', 'PENDING', ?)`,
+              [
+                attId,
+                employee.employeeId,
+                employee.name,
+                employee.department || 'Operations',
+                employee.operationTeam || 'Operations',
+                workDate,
+                shiftConfig?.id || 'SHIFT-GENERAL',
+                shiftConfig?.name || 'General Shift',
+                shiftConfig?.startTime || '09:00',
+                shiftConfig?.endTime || '18:00',
+                now.toISOString(),
+                lateMinutes,
+                employee.role || 'Staff'
+              ]
+            );
+            pendingAtt = await db.get('SELECT * FROM attendance_records WHERE id = ?', [attId]);
+          }
+
+          return res.json({
+            success: true,
+            isLate: true,
+            lateApprovalStatus: 'PENDING',
+            lateMinutes,
+            attendanceId: pendingAtt?.id,
+            employeeName: employee?.name || 'Staff Specialist',
+            role: employee?.role || 'Employee'
+          });
+        }
+
         return res.json({
           success: true,
           isLate: false,

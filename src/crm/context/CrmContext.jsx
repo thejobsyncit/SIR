@@ -1271,9 +1271,14 @@ export const CrmProvider = ({ children }) => {
   const checkLateApprovalStatus = async () => {
     try {
       const tok = await getOrFetchActiveToken(currentRole, user);
-      if (!tok) return null;
-      const res = await fetch('/api/hr-ops/attendance/late-approval-status', {
-        headers: { Authorization: `Bearer ${tok}` }
+      const cleanEmail = (user?.email || '').trim().toLowerCase();
+      const res = await fetch(`/api/hr-ops/attendance/late-approval-status?email=${encodeURIComponent(cleanEmail)}`, {
+        headers: {
+          'Content-Type': 'application/json',
+          'x-crm-role': currentRole || user?.role || 'Employee',
+          'x-employee-email': cleanEmail,
+          ...(tok ? { Authorization: `Bearer ${tok}` } : {})
+        }
       });
       const data = await res.json();
       if (data && data.success) {

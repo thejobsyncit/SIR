@@ -38,7 +38,7 @@ export const LateArrivalApprovalGateway = ({
     }
   };
 
-  // 3-second automatic polling for real-time unlock once Super Admin approves
+  // 1.5-second automatic polling for real-time unlock once Super Admin or HR Lead approves
   useEffect(() => {
     if (status === 'APPROVED') return;
 
@@ -47,16 +47,16 @@ export const LateArrivalApprovalGateway = ({
         const res = await checkStatus();
         if (res === 'APPROVED') {
           setStatus('APPROVED');
-          setStatusMessage('✓ Super Admin Executive Authorization Granted. Initializing workspace session...');
+          setStatusMessage('✓ Authorization Granted! Initializing workspace session...');
           setTimeout(() => {
             if (onApproved) onApproved();
-          }, 1200);
+          }, 300);
         } else if (res === 'REJECTED') {
           setStatus('REJECTED');
-          setStatusMessage('✕ Late arrival access declined by Super Admin. Please contact HR Leadership.');
+          setStatusMessage('✕ Late arrival access declined. Please contact HR Leadership.');
         }
       }
-    }, 3000);
+    }, 1500);
 
     return () => clearInterval(interval);
   }, [checkStatus, onApproved, status]);
@@ -69,15 +69,15 @@ export const LateArrivalApprovalGateway = ({
         const res = await checkStatus();
         if (res === 'APPROVED') {
           setStatus('APPROVED');
-          setStatusMessage('✓ Super Admin Executive Authorization Granted. Initializing workspace session...');
+          setStatusMessage('✓ Authorization Granted! Initializing workspace session...');
           setTimeout(() => {
             if (onApproved) onApproved();
-          }, 1200);
+          }, 300);
         } else if (res === 'REJECTED') {
           setStatus('REJECTED');
-          setStatusMessage('✕ Late arrival access declined by Super Admin. Please consult HR.');
+          setStatusMessage('✕ Late arrival access declined. Please consult HR.');
         } else {
-          setStatusMessage('Super Admin review is currently pending in Executive Command Center.');
+          setStatusMessage('Review is currently pending in Command Center.');
         }
       }
     } catch (_) {
@@ -91,30 +91,21 @@ export const LateArrivalApprovalGateway = ({
     e.preventDefault();
     setSubmittingJustification(true);
     try {
-      const endpoints = [
-        '/api/hr-ops/attendance/late-justification',
-        'http://localhost:5000/api/hr-ops/attendance/late-justification'
-      ];
-      for (const ep of endpoints) {
-        try {
-          const res = await fetch(ep, {
-            method: 'POST',
-            headers: {
-              'Content-Type': 'application/json',
-              ...(crmToken ? { Authorization: `Bearer ${crmToken}` } : {})
-            },
-            body: JSON.stringify({
-              attendanceId: gate?.attendanceId,
-              reasonCategory,
-              reasonDetails
-            })
-          });
-          if (res.ok) {
-            setJustificationSubmitted(true);
-            setStatusMessage('✓ Formal justification registered in compliance audit log. Dispatched to Super Admin.');
-            break;
-          }
-        } catch (_) {}
+      const res = await fetch('/api/hr-ops/attendance/late-justification', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          ...(crmToken ? { Authorization: `Bearer ${crmToken}` } : {})
+        },
+        body: JSON.stringify({
+          attendanceId: gate?.attendanceId,
+          reasonCategory,
+          reasonDetails
+        })
+      });
+      if (res.ok) {
+        setJustificationSubmitted(true);
+        setStatusMessage('✓ Formal justification registered in compliance audit log.');
       }
     } catch (err) {
       console.error('Error submitting justification:', err);
@@ -130,6 +121,8 @@ export const LateArrivalApprovalGateway = ({
   const shiftStartTime = gate?.shiftStart || '09:00 AM';
   const checkInTimeFormatted = gate?.checkInAt || 'Current Session';
   const delayFormatted = formatLateDelay(gate?.lateMinutes || 18);
+  const isTargetHrLead = String(employeeRole || '').toLowerCase().includes('lead');
+  const approverLabel = isTargetHrLead ? 'Super Admin' : 'Super Admin or HR Lead';
 
   return (
     <div className="fixed inset-0 z-50 bg-[#020512]/95 backdrop-blur-md flex items-center justify-center p-3 sm:p-6 overflow-y-auto font-sans selection:bg-gold-500 selection:text-navy-950">
@@ -228,7 +221,7 @@ export const LateArrivalApprovalGateway = ({
                     In accordance with Revival International Corporate Attendance & Punctuality Policy (Standard Ref: RI-HR-04), all rostered staff members are required to log into the corporate portal within their designated shift window. A mandatory 15-minute standard grace period is provided (concluding at 09:15 AM IST for General Shift).
                   </p>
                   <p className="text-xs text-slate-600 dark:text-slate-300 leading-relaxed font-medium">
-                    Your workday check-in occurred after the allowable grace threshold. Pursuant to corporate governance, portal workspace access is temporarily restricted until authorized by <strong className="text-slate-900 dark:text-white">Super Admin</strong>.
+                    Your workday check-in occurred after the allowable grace threshold. Pursuant to corporate governance, portal workspace access is temporarily restricted until authorized by <strong className="text-slate-900 dark:text-white">{approverLabel}</strong>.
                   </p>
                 </div>
               </div>
@@ -282,7 +275,7 @@ export const LateArrivalApprovalGateway = ({
                 </div>
                 <div className="flex items-center justify-center gap-1.5 text-blue-600 dark:text-blue-400 animate-pulse">
                   <Clock className="w-3.5 h-3.5" />
-                  <span>3. Super Admin Review</span>
+                  <span>3. {isTargetHrLead ? 'Super Admin Review' : 'Super Admin / HR Lead Review'}</span>
                 </div>
               </div>
             </div>
@@ -304,7 +297,7 @@ export const LateArrivalApprovalGateway = ({
                 )}
               </div>
               <p className="text-[11px] text-slate-500 dark:text-slate-400 leading-normal">
-                To expedite executive authorization, submit a brief formal explanation to accompany this attendance exception record for the Super Admin's review.
+                To expedite authorization, submit a brief formal explanation to accompany this attendance exception record for {approverLabel}'s review.
               </p>
 
               {!justificationSubmitted ? (
@@ -348,7 +341,7 @@ export const LateArrivalApprovalGateway = ({
                       className="px-3.5 py-1.5 rounded-xl bg-slate-800 hover:bg-slate-900 dark:bg-navy-800 dark:hover:bg-navy-700 text-white text-xs font-bold transition flex items-center gap-1.5 shadow-xs cursor-pointer disabled:opacity-50"
                     >
                       <Send className="w-3 h-3" />
-                      <span>{submittingJustification ? 'Submitting...' : 'Submit Justification to Super Admin'}</span>
+                      <span>{submittingJustification ? 'Submitting...' : `Submit Justification to ${approverLabel}`}</span>
                     </button>
                   </div>
                 </form>
@@ -356,7 +349,7 @@ export const LateArrivalApprovalGateway = ({
                 <div className="p-3 bg-emerald-50 dark:bg-emerald-500/10 border border-emerald-200 dark:border-emerald-500/30 rounded-xl text-xs text-emerald-800 dark:text-emerald-300 font-medium flex items-center gap-2">
                   <CheckCircle2 className="w-4 h-4 text-emerald-600 shrink-0" />
                   <span>
-                    Your justification (<strong>{reasonCategory}</strong>{reasonDetails ? ` - ${reasonDetails}` : ''}) has been attached to your attendance docket for Super Admin authorization.
+                    Your justification (<strong>{reasonCategory}</strong>{reasonDetails ? ` - ${reasonDetails}` : ''}) has been attached to your attendance docket for {approverLabel} authorization.
                   </span>
                 </div>
               )}
@@ -370,9 +363,9 @@ export const LateArrivalApprovalGateway = ({
                     <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-amber-400 opacity-75"></span>
                     <span className="relative inline-flex rounded-full h-3 w-3 bg-amber-500"></span>
                   </span>
-                  <span>Awaiting Super Admin Authorization in Executive Command Console...</span>
+                  <span>Awaiting {approverLabel} Authorization in Command Center...</span>
                 </span>
-                <span className="text-[11px] text-slate-400 font-mono">Auto-sync active (3s)</span>
+                <span className="text-[11px] text-slate-400 font-mono">Auto-sync active (1.5s)</span>
               </div>
 
               {statusMessage && (

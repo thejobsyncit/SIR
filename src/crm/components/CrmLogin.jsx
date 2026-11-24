@@ -463,40 +463,14 @@ export const CrmLogin = () => {
 
     setIsAuthenticating(false);
 
-    // If server says allowed (e.g. on time or already approved by Super Admin)
-    if (checkResult?.allowed || (!isShiftLate && (!checkResult || checkResult.allowed !== false))) {
-      login(userAccount.email, password, userAccount.role || 'HR Operations', userAccount);
-      return;
-    }
-
+    // If rejected by Super Admin/HR Lead
     if (checkResult?.lateApprovalStatus === 'REJECTED') {
-      setAuthErrorMsg('❌ Access Declined: Super Admin has rejected your late arrival check-in for today. Contact HR Operations.');
+      setAuthErrorMsg('❌ Access Declined: Late arrival request was rejected for today\'s shift. Contact HR Operations.');
       return;
     }
 
-    // Display the Late Arrival Notice Banner right at the top of the login card!
-    const loginTimeStr = new Intl.DateTimeFormat('en-US', {
-      timeZone: 'Asia/Kolkata',
-      hour: '2-digit',
-      minute: '2-digit',
-      hour12: true
-    }).format(now);
-
-    setLoginLateGate({
-      isLate: true,
-      status: 'PENDING',
-      employeeName: userAccount.name,
-      role: userAccount.role,
-      employeeId: userAccount.employeeId,
-      shiftStart: checkResult?.shiftStart || '09:00 AM',
-      shiftName: checkResult?.shiftName || 'General Shift (09:00 AM - 06:00 PM)',
-      loginTime: checkResult?.loginTime || loginTimeStr,
-      lateMinutes: checkResult?.lateMinutes || computedLateMinutes,
-      attendanceId: checkResult?.attendanceId,
-      userAccount,
-      password
-    });
-    setLateApprovalMsg('Super Admin review is pending in Executive Command Console. Please wait a moment.');
+    // Engage the full Corporate Late Arrival Ingress Gate in CrmApp
+    login(userAccount.email, password, userAccount.role || 'HR Operations', userAccount);
   };
 
   const handleDirectResetPassword = async (e) => {
