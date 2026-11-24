@@ -223,63 +223,81 @@ export const CrmLogin = () => {
     return `+${hrs}h ${rem}m Late (${m} mins)`;
   };
 
-  // Live auto-polling every 3 seconds for Super Admin approval while late gate is active
+  // Live rapid auto-polling (every 1s) for Super Admin / HR Lead approval while late gate is active
   useEffect(() => {
     if (!loginLateGate || loginLateGate.status !== 'PENDING') return;
 
+    let isMounted = true;
     const interval = setInterval(async () => {
       try {
         const cleanEmail = loginLateGate.userAccount.email.trim().toLowerCase();
-        const res = await fetch(`/api/hr-ops/attendance/late-approval-status?email=${encodeURIComponent(cleanEmail)}`);
-        if (res.ok) {
+        const role = loginLateGate.userAccount.role || 'Employee';
+        const res = await fetch(`/api/hr-ops/attendance/late-approval-status?email=${encodeURIComponent(cleanEmail)}`, {
+          headers: {
+            'Content-Type': 'application/json',
+            'x-employee-email': cleanEmail,
+            'x-crm-role': role
+          }
+        });
+        if (res.ok && isMounted) {
           const json = await res.json();
           if (json && json.success) {
             if (json.lateApprovalStatus === 'APPROVED' || json.lateApprovalStatus === 'EXEMPT') {
               setLoginLateGate(prev => ({ ...prev, status: 'APPROVED' }));
-              setLateApprovalMsg('✓ Super Admin Authorization Approved! Unlocking CRM workspace...');
+              setLateApprovalMsg('✓ Late Ingress Approved! Unlocking your CRM workspace...');
               clearInterval(interval);
               setTimeout(() => {
                 login(loginLateGate.userAccount.email, loginLateGate.password, loginLateGate.userAccount.role, loginLateGate.userAccount);
-              }, 1000);
+              }, 250);
             } else if (json.lateApprovalStatus === 'REJECTED') {
               setLoginLateGate(prev => ({ ...prev, status: 'REJECTED' }));
-              setLateApprovalMsg('❌ Access Declined: Super Admin rejected entry for today\'s shift.');
+              setLateApprovalMsg('❌ Access Declined: Late arrival entry was rejected for today.');
               clearInterval(interval);
             }
           }
         }
       } catch (_) {}
-    }, 3000);
+    }, 1000);
 
-    return () => clearInterval(interval);
+    return () => {
+      isMounted = false;
+      clearInterval(interval);
+    };
   }, [loginLateGate, login]);
 
   const handleManualCheckApproval = async () => {
     if (!loginLateGate) return;
     setIsCheckingApproval(true);
-    setLateApprovalMsg('Querying Super Admin decision from live database...');
+    setLateApprovalMsg('Querying approval decision from live database...');
     try {
       const cleanEmail = loginLateGate.userAccount.email.trim().toLowerCase();
-      const res = await fetch(`/api/hr-ops/attendance/late-approval-status?email=${encodeURIComponent(cleanEmail)}`);
+      const role = loginLateGate.userAccount.role || 'Employee';
+      const res = await fetch(`/api/hr-ops/attendance/late-approval-status?email=${encodeURIComponent(cleanEmail)}`, {
+        headers: {
+          'Content-Type': 'application/json',
+          'x-employee-email': cleanEmail,
+          'x-crm-role': role
+        }
+      });
       if (res.ok) {
         const json = await res.json();
         if (json?.lateApprovalStatus === 'APPROVED' || json?.lateApprovalStatus === 'EXEMPT') {
           setLoginLateGate(prev => ({ ...prev, status: 'APPROVED' }));
-          setLateApprovalMsg('✓ Super Admin Authorization Approved! Unlocking CRM workspace...');
+          setLateApprovalMsg('✓ Authorization Approved! Unlocking CRM workspace...');
           setTimeout(() => {
             login(loginLateGate.userAccount.email, loginLateGate.password, loginLateGate.userAccount.role, loginLateGate.userAccount);
-          }, 800);
+          }, 200);
         } else if (json?.lateApprovalStatus === 'REJECTED') {
           setLoginLateGate(prev => ({ ...prev, status: 'REJECTED' }));
-          setLateApprovalMsg('❌ Super Admin has rejected this late entry request.');
+          setLateApprovalMsg('❌ Access Denied: Late arrival request was rejected.');
         } else {
-          setLateApprovalMsg('Super Admin review is still pending. Please wait or contact Super Admin.');
+          setLateApprovalMsg('Authorization review is still pending. Please wait a moment.');
         }
       } else {
-        setLateApprovalMsg('Super Admin review is still pending in Executive Command Console.');
+        setLateApprovalMsg('Authorization review is pending in Executive / HR Lead console.');
       }
     } catch (_) {
-      setLateApprovalMsg('Unable to connect to live server. Retrying...');
+      setLateApprovalMsg('Connecting to live server. Retrying...');
     } finally {
       setIsCheckingApproval(false);
     }

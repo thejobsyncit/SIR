@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { ShieldAlert, RefreshCw, Check, X, CheckCircle2, Crown, Clock } from 'lucide-react';
 
 export const ShiftLateArrivalApprovalSection = ({ currentRole = 'Super Admin', crmToken, onAuditClick }) => {
@@ -7,90 +7,130 @@ export const ShiftLateArrivalApprovalSection = ({ currentRole = 'Super Admin', c
   const [approvingId, setApprovingId] = useState(null);
   const [lateApprovalNotice, setLateApprovalNotice] = useState('');
 
+  // Keep references updated to prevent interval teardown and duplicate fetches
+  const roleRef = useRef(currentRole);
+  const tokenRef = useRef(crmToken);
+  const isFetchingRef = useRef(false);
+  const recentlyHandledIds = useRef(new Set());
+
+  useEffect(() => {
+    roleRef.current = currentRole;
+    tokenRef.current = crmToken;
+  }, [currentRole, crmToken]);
+
   const isSuperAdmin = currentRole === 'Super Admin' || currentRole === 'Admin';
   const isHrLead = currentRole === 'HR Lead';
 
-  const fetchPendingLateApprovals = useCallback(async () => {
-    if (!isSuperAdmin && !isHrLead) return;
-    try {
+  // Stable, flicker-free fetcher
+  const fetchPendingLateApprovals = useCallback(async (isManual = false) => {
+    const activeRole = roleRef.current || 'Super Admin';
+    const isLeadership = activeRole === 'Super Admin' || activeRole === 'Admin' || activeRole === 'HR Lead';
+    if (!isLeadership) return;
+
+    if (isFetchingRef.current) return;
+    isFetchingRef.current = true;
+
+    if (isManual) {
       setLoadingLateApprovals(true);
-      const endpoints = [
-        '/api/hr-ops/attendance/late-approvals/pending',
-        'http://localhost:5000/api/hr-ops/attendance/late-approvals/pending'
-      ];
-      for (const ep of endpoints) {
-        try {
-          const res = await fetch(ep, {
-            headers: {
-              'Content-Type': 'application/json',
-              'x-crm-role': currentRole || 'Super Admin',
-              ...(crmToken ? { Authorization: `Bearer ${crmToken}` } : {})
+    }
+
+    try {
+      const res = await fetch('/api/hr-ops/attendance/late-approvals/pending', {
+        headers: {
+          'Content-Type': 'application/json',
+          'x-crm-role': activeRole,
+          ...(tokenRef.current ? { Authorization: `Bearer ${tokenRef.current}` } : {})
+        }
+      });
+
+      if (res.ok) {
+        const json = await res.json();
+        if (json?.success && Array.isArray(json.data)) {
+          // Filter out items that were just approved or rejected in this local session
+          const cleanData = json.data.filter(item => !recentlyHandledIds.current.has(item.id));
+
+          // Deep signature check: avoid re-rendering if data is unchanged
+          setPendingLateApprovals(prev => {
+            const prevSignature = prev.map(p => `${p.id}:${p.lateApprovalStatus}:${p.lateMinutes}`).join('|');
+            const newSignature = cleanData.map(p => `${p.id}:${p.lateApprovalStatus}:${p.lateMinutes}`).join('|');
+            if (prevSignature === newSignature) {
+              return prev; // Exact match: keep reference to prevent flicker
             }
+            return cleanData;
           });
-          if (res.ok) {
-            const json = await res.json();
-            if (json?.success && Array.isArray(json.data)) {
-              setPendingLateApprovals(json.data);
-              break;
-            }
-          }
-        } catch (_) {}
+        }
       }
     } catch (e) {
       console.error('Error fetching pending late approvals:', e);
     } finally {
-      setLoadingLateApprovals(false);
+      isFetchingRef.current = false;
+      if (isManual) {
+        setLoadingLateApprovals(false);
+      }
     }
-  }, [currentRole, crmToken, isSuperAdmin, isHrLead]);
+  }, []);
 
+  // Stable interval: run silently in the background every 3 seconds without clearing or resetting state
   useEffect(() => {
-    fetchPendingLateApprovals();
-    const interval = setInterval(fetchPendingLateApprovals, 3500);
+    fetchPendingLateApprovals(false);
+    const interval = setInterval(() => {
+      fetchPendingLateApprovals(false);
+    }, 3000);
     return () => clearInterval(interval);
   }, [fetchPendingLateApprovals]);
 
+  // Instant 0ms Optimistic UI updates on decision
   const handleLateApprovalDecision = async (attendanceId, decision, employeeName = 'Employee') => {
+    const isApprove = decision === 'APPROVED';
+
+    // 1. Immediately remove from local state for 0ms instantaneous feedback
+    recentlyHandledIds.current.add(attendanceId);
+    setPendingLateApprovals(prev => prev.filter(req => req.id !== attendanceId));
+    setApprovingId(attendanceId);
+
+    setLateApprovalNotice(
+      isApprove 
+        ? `✓ Authorized late workspace entry for ${employeeName}. Access unlocked.`
+        : `✕ Rejected late arrival entry for ${employeeName}. Access restricted.`
+    );
+
+    setTimeout(() => {
+      setLateApprovalNotice(prev => (prev.includes(employeeName) ? '' : prev));
+    }, 5000);
+
+    // 2. Dispatch background server request
     try {
-      setApprovingId(attendanceId);
-      const isApprove = decision === 'APPROVED';
-      const endpoints = [
-        `/api/hr-ops/attendance/late-approvals/${attendanceId}/decision`,
-        `http://localhost:5000/api/hr-ops/attendance/late-approvals/${attendanceId}/decision`
-      ];
-      for (const ep of endpoints) {
-        try {
-          const res = await fetch(ep, {
-            method: 'POST',
-            headers: {
-              'Content-Type': 'application/json',
-              'x-crm-role': currentRole || 'Super Admin',
-              ...(crmToken ? { Authorization: `Bearer ${crmToken}` } : {})
-            },
-            body: JSON.stringify({
-              decision,
-              approvedBy: `${currentRole} (${isSuperAdmin ? 'Executive Console' : 'HR Leadership Console'})`,
-              notes: isApprove
-                ? `Authorized late entry by ${currentRole}`
-                : `Access denied by ${currentRole}`
-            })
-          });
-          if (res.ok) {
-            const data = await res.json();
-            if (data?.success) {
-              setLateApprovalNotice(
-                isApprove 
-                  ? `✓ Authorized late workspace entry for ${employeeName}. Access unlocked.`
-                  : `✕ Rejected late arrival entry for ${employeeName}. Access restricted.`
-              );
-              setTimeout(() => setLateApprovalNotice(''), 6000);
-              await fetchPendingLateApprovals();
-              break;
-            }
-          }
-        } catch (_) {}
+      const activeRole = roleRef.current || 'Super Admin';
+      const res = await fetch(`/api/hr-ops/attendance/late-approvals/${attendanceId}/decision`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'x-crm-role': activeRole,
+          ...(tokenRef.current ? { Authorization: `Bearer ${tokenRef.current}` } : {})
+        },
+        body: JSON.stringify({
+          decision,
+          approvedBy: `${activeRole} (${activeRole.includes('Lead') ? 'HR Leadership Console' : 'Executive Console'})`,
+          notes: isApprove
+            ? `Authorized late entry by ${activeRole}`
+            : `Access denied by ${activeRole}`
+        })
+      });
+
+      if (!res.ok) {
+        const errJson = await res.json().catch(() => ({}));
+        throw new Error(errJson?.message || 'Server returned failure response');
       }
+
+      // Retain in recentlyHandledIds for 12 seconds so server synchronization catches up cleanly
+      setTimeout(() => {
+        recentlyHandledIds.current.delete(attendanceId);
+      }, 12000);
     } catch (err) {
       console.error('Failed to submit late approval decision:', err);
+      recentlyHandledIds.current.delete(attendanceId);
+      setLateApprovalNotice(`⚠️ Could not save decision for ${employeeName}: ${err.message || 'Network error'}. Retrying...`);
+      fetchPendingLateApprovals(true);
     } finally {
       setApprovingId(null);
     }
@@ -155,7 +195,7 @@ export const ShiftLateArrivalApprovalSection = ({ currentRole = 'Super Admin', c
 
         <div className="flex items-center gap-2 self-end sm:self-auto">
           <button
-            onClick={fetchPendingLateApprovals}
+            onClick={() => fetchPendingLateApprovals(true)}
             disabled={loadingLateApprovals}
             className="px-3 py-1.5 bg-white/80 dark:bg-navy-950/80 hover:bg-white dark:hover:bg-navy-950 border border-slate-300 dark:border-navy-700 text-slate-700 dark:text-slate-200 rounded-xl text-xs font-bold transition flex items-center gap-1.5 shadow-xs cursor-pointer"
             title="Refresh approval queue"

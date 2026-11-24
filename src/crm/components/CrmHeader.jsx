@@ -342,37 +342,37 @@ export const CrmHeader = ({ collapsed, setCollapsed }) => {
     }
   };
 
-  // Auto-poll pending late arrivals count for Super Admin
+  // Auto-poll pending late arrivals count for Super Admin & HR Lead
   useEffect(() => {
-    if (currentRole !== 'Super Admin') {
+    const isLeadership = currentRole === 'Super Admin' || currentRole === 'Admin' || currentRole === 'HR Lead';
+    if (!isLeadership) {
       setPendingLateCount(0);
       return;
     }
+    let isMounted = true;
     const fetchPendingCount = async () => {
       try {
-        const endpoints = ['/api/hr-ops/attendance/late-approvals/pending', 'http://localhost:5000/api/hr-ops/attendance/late-approvals/pending'];
-        for (const ep of endpoints) {
-          try {
-            const res = await fetch(ep, {
-              headers: {
-                'x-crm-role': 'Super Admin',
-                ...(crmToken ? { Authorization: `Bearer ${crmToken}` } : {})
-              }
-            });
-            if (res.ok) {
-              const data = await res.json();
-              if (data && typeof data.count === 'number') {
-                setPendingLateCount(data.count);
-                break;
-              }
-            }
-          } catch (_) {}
+        const res = await fetch('/api/hr-ops/attendance/late-approvals/pending', {
+          headers: {
+            'Content-Type': 'application/json',
+            'x-crm-role': currentRole || 'Super Admin',
+            ...(crmToken ? { Authorization: `Bearer ${crmToken}` } : {})
+          }
+        });
+        if (res.ok && isMounted) {
+          const data = await res.json();
+          if (data && typeof data.count === 'number') {
+            setPendingLateCount(data.count);
+          }
         }
       } catch (_) {}
     };
     fetchPendingCount();
     const interval = setInterval(fetchPendingCount, 4000);
-    return () => clearInterval(interval);
+    return () => {
+      isMounted = false;
+      clearInterval(interval);
+    };
   }, [currentRole, crmToken]);
 
   // Close role dropdown when clicking outside
