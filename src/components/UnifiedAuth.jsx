@@ -94,7 +94,6 @@ export const UnifiedAuth = ({ defaultMode = 'login', defaultRole = 'candidate', 
   const [otpError, setOtpError] = useState('');
   const [otpSuccess, setOtpSuccess] = useState('');
   const [otpCooldown, setOtpCooldown] = useState(0);
-  const [devOtpHint, setDevOtpHint] = useState('');
   const [emailDuplicate, setEmailDuplicate] = useState(false);
   const [checkingDuplicate, setCheckingDuplicate] = useState(false);
 
@@ -754,12 +753,7 @@ export const UnifiedAuth = ({ defaultMode = 'login', defaultRole = 'candidate', 
       }
 
       setOtpToken(otpData.token || '');
-      setDevOtpHint(otpData.devOtp || '');
-      if (otpData.devOtp) {
-        setOtpCode(otpData.devOtp);
-      } else {
-        setOtpCode('');
-      }
+      setOtpCode('');
       setOtpCooldown(60);
       setRegStep('otp');
       setOtpLoading(false);
@@ -797,10 +791,6 @@ export const UnifiedAuth = ({ defaultMode = 'login', defaultRole = 'candidate', 
       }
 
       setOtpToken(data.token || '');
-      setDevOtpHint(data.devOtp || '');
-      if (data.devOtp) {
-        setOtpCode(data.devOtp);
-      }
       setOtpCooldown(60);
       setOtpSuccess(`A fresh verification code has been dispatched to ${cleanEmail}`);
       setTimeout(() => setOtpSuccess(''), 4000);
@@ -1095,17 +1085,6 @@ export const UnifiedAuth = ({ defaultMode = 'login', defaultRole = 'candidate', 
               <div className="mb-2.5 p-2 rounded-xl bg-emerald-50 dark:bg-emerald-950/60 border border-emerald-300 dark:border-emerald-500/50 text-emerald-700 dark:text-emerald-200 text-xs flex items-center gap-2">
                 <CheckCircle2 className="w-4 h-4 shrink-0" />
                 <span className="text-[11px] font-semibold">{otpSuccess}</span>
-              </div>
-            )}
-
-            {devOtpHint && (
-              <div
-                onClick={() => setOtpCode(devOtpHint)}
-                className="mb-2 p-2 rounded-lg bg-amber-50 dark:bg-amber-950/40 border border-amber-300 dark:border-amber-500/40 text-amber-800 dark:text-amber-300 text-xs text-center font-mono font-bold cursor-pointer hover:bg-amber-100 dark:hover:bg-amber-900/40 transition-colors shadow-xs"
-                title="Click to copy code to input"
-              >
-                Verification Code: <span className="underline tracking-widest text-sm text-amber-950 dark:text-amber-100">{devOtpHint}</span>
-                <span className="block text-[10px] font-sans font-normal text-amber-700 dark:text-amber-400 mt-0.5">(Click to fill code)</span>
               </div>
             )}
 

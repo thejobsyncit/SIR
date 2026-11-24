@@ -1021,11 +1021,10 @@ app.post('/api/auth/send-otp', async (req, res) => {
     try {
       const sendRes = await safeSendMail(mailOptions);
       console.log(`[OTP] Successfully dispatched verification code to ${cleanEmail} via ${sendRes.provider || 'gateway'}`);
-      res.json({
+      return res.json({
         success: true,
         message: `Verification code sent to ${cleanEmail}`,
-        token: verificationToken,
-        devOtp: process.env.NODE_ENV !== 'production' ? otp : undefined
+        token: verificationToken
       });
     } catch (sendErr) {
       console.warn(`[OTP] Outgoing SMTP dispatch notice for ${cleanEmail}:`, sendErr.message);
@@ -1033,8 +1032,6 @@ app.post('/api/auth/send-otp', async (req, res) => {
         console.error('[CRITICAL ZOHO BLOCK]: Zoho Mail outgoing SMTP is locked due to unusual sending activity. The admin MUST unblock it at https://mail.zoho.in/UnblockMe');
       }
 
-      // Resilient Fail-Safe: If outgoing SMTP is locked (e.g. Zoho UnblockMe) or unavailable,
-      // provide the verification code so candidate registration is NEVER blocked with a 500 error!
       console.log(`[OTP Fallback] Verification code generated for ${cleanEmail}: ${otp}`);
       return res.json({
         success: true,
@@ -1042,12 +1039,7 @@ app.post('/api/auth/send-otp', async (req, res) => {
           ? 'Verification code generated (Email delivery temporarily delayed).'
           : 'Verification code generated.',
         token: verificationToken,
-        devOtp: otp,
         isBlockedByZoho: Boolean(sendErr.message && sendErr.message.includes('UnblockMe'))
-      });
-    }
-        token: verificationToken,
-        devOtp: otp
       });
     }
   } catch (error) {
@@ -1061,8 +1053,7 @@ app.post('/api/auth/send-otp', async (req, res) => {
       return res.json({
         success: true,
         message: 'Verification code generated.',
-        token: emergencyToken,
-        devOtp: emergencyOtp
+        token: emergencyToken
       });
     }
     res.status(500).json({ success: false, message: 'Failed to dispatch verification email. Please try again.' });
@@ -1897,14 +1888,18 @@ app.post('/api/candidate/register', async (req, res) => {
         ]
       );
 
-      // Record in leads registry
-      const leadId = `LEAD-CAN-${Date.now().toString(36).toUpperCase()}`;
-      await db.run(
-        `INSERT OR IGNORE INTO leads (
-          id, name, email, phone, service, country, message, status, source, createdAt, updatedAt
-        ) VALUES (?, ?, ?, ?, 'Candidate Registration', ?, 'Candidate registered online for overseas placements.', 'new', 'Candidate Portal', ?, ?)`,
-        [leadId, candidateName, cleanEmail, rawPhone, formattedCountry, nowIso, nowIso]
-      );
+      // Record in leads registry (isolated safely so lead tracking never blocks account creation)
+      try {
+        const leadId = `LEAD-CAN-${Date.now().toString(36).toUpperCase()}`;
+        await db.run(
+          `INSERT OR IGNORE INTO leads (
+            id, name, email, phone, serviceTitle, countryInterest, message, status, utmSource, createdAt, updatedAt
+          ) VALUES (?, ?, ?, ?, 'Candidate Registration', ?, 'Candidate registered online for overseas placements.', 'new', 'Candidate Portal', ?, ?)`,
+          [leadId, candidateName, cleanEmail, rawPhone, formattedCountry, nowIso, nowIso]
+        );
+      } catch (leadErr) {
+        console.warn('[Register Candidate] Leads entry notice:', leadErr.message);
+      }
 
       await db.run('COMMIT');
 
