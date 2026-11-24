@@ -2539,7 +2539,10 @@ app.get('/api/candidate/applications', async (req, res) => {
           c.avatar as candidateAvatar,
           c.skills as candidateSkills,
           c.experience as candidateExperience,
-          c.currentRole as candidateCurrentRole
+          c.currentRole as candidateCurrentRole,
+          COALESCE(NULLIF(ca.offerDetails, ''), c.offerDetails) as offerDetails,
+          c.placementStatus as candidatePlacementStatus,
+          COALESCE(NULLIF(ca.stage, ''), c.stage) as candidateStage
         FROM candidate_applications ca
         LEFT JOIN candidates c ON LOWER(c.email) = LOWER(ca.applicantEmail) OR c.id = ca.candidateId
         WHERE ${whereSql}
@@ -2558,7 +2561,10 @@ app.get('/api/candidate/applications', async (req, res) => {
           c.avatar as candidateAvatar,
           c.skills as candidateSkills,
           c.experience as candidateExperience,
-          c.currentRole as candidateCurrentRole
+          c.currentRole as candidateCurrentRole,
+          COALESCE(NULLIF(ca.offerDetails, ''), c.offerDetails) as offerDetails,
+          c.placementStatus as candidatePlacementStatus,
+          COALESCE(NULLIF(ca.stage, ''), c.stage) as candidateStage
         FROM candidate_applications ca
         LEFT JOIN candidates c ON LOWER(c.email) = LOWER(ca.applicantEmail) OR c.id = ca.candidateId
         ORDER BY ca.appliedDate DESC
@@ -5170,6 +5176,277 @@ app.delete('/api/interviews/:id', requireSuperAdmin, async (req, res) => {
     res.json({ success: true, message: `Interview for '${existingInterview.candidateName}' deleted successfully`, id });
   } catch (error) {
     res.status(500).json({ success: false, message: 'Failed to delete interview: ' + error.message });
+  }
+});
+
+// Update interview record (Scorecard, Feedback, Conduct, and Selection)
+app.put('/api/interviews/:id', async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { status, feedback, rating, result, meetingLink, panelists, roundType } = req.body;
+    const db = await getDb();
+
+    const existing = await db.get('SELECT * FROM interviews WHERE id = ?', [id]);
+    if (!existing) {
+      return res.status(404).json({ success: false, message: 'Interview record not found' });
+    }
+
+    const updatedStatus = status || existing.status;
+    const updatedFeedback = feedback !== undefined ? feedback : existing.feedback;
+    const updatedRating = rating !== undefined ? Number(rating) : existing.rating;
+    const updatedResult = result !== undefined ? result : existing.result;
+    const updatedMeetingLink = meetingLink !== undefined ? meetingLink : existing.meetingLink;
+    const updatedPanelists = Array.isArray(panelists) ? panelists.join(', ') : (panelists || existing.panelists);
+    const updatedRoundType = roundType || existing.roundType || 'Technical Round';
+
+    await db.run(
+      `UPDATE interviews SET 
+        status = ?, feedback = ?, rating = ?, result = ?, meetingLink = ?, panelists = ?, roundType = ?
+       WHERE id = ?`,
+      [updatedStatus, updatedFeedback, updatedRating, updatedResult, updatedMeetingLink, updatedPanelists, updatedRoundType, id]
+    );
+
+    // If result is Selected or Passed, advance candidate to 'selected' stage in pipeline & placement pool
+    let candidateUpdated = false;
+    const isSelected = updatedResult === 'Selected' || updatedResult === 'Passed' || updatedStatus === 'Passed';
+    if (isSelected && existing.candidateId) {
+      await db.run(`UPDATE candidates SET stage = 'selected' WHERE id = ?`, [existing.candidateId]).catch(() => {});
+      await db.run(`UPDATE candidate_profiles SET stage = 'selected' WHERE id = ? OR userId = ?`, [existing.candidateId, existing.candidateId]).catch(() => {});
+      await db.run(`UPDATE candidate_applications SET stage = 'Selected', status = 'Selected' WHERE candidateId = ?`, [existing.candidateId]).catch(() => {});
+      candidateUpdated = true;
+    } else if ((updatedResult === 'Rejected' || updatedStatus === 'Rejected') && existing.candidateId) {
+      await db.run(`UPDATE candidates SET stage = 'rejected' WHERE id = ?`, [existing.candidateId]).catch(() => {});
+      await db.run(`UPDATE candidate_profiles SET stage = 'rejected' WHERE id = ? OR userId = ?`, [existing.candidateId, existing.candidateId]).catch(() => {});
+      await db.run(`UPDATE candidate_applications SET stage = 'Rejected', status = 'Rejected' WHERE candidateId = ?`, [existing.candidateId]).catch(() => {});
+    }
+
+    const updated = await db.get('SELECT * FROM interviews WHERE id = ?', [id]);
+    res.json({ success: true, data: updated, candidateAdvancedToPlacement: isSelected });
+  } catch (error) {
+    console.error('Error updating interview:', error);
+    res.status(500).json({ success: false, message: 'Failed to update interview: ' + error.message });
+  }
+});
+
+// Issue Offer Letter or Admission Letter & Dispatch Official Email + Dashboard Notification
+app.post('/api/candidates/:id/issue-offer', async (req, res) => {
+  try {
+    const { id } = req.params;
+    const {
+      offerType = 'job_offer', // 'job_offer' | 'college_admission'
+      companyName,
+      institutionName,
+      designation,
+      courseName,
+      compensation,
+      tuitionFee,
+      joiningDate,
+      commencementDate,
+      workLocation,
+      campusLocation,
+      termsAndConditions,
+      sendEmail = true
+    } = req.body;
+
+    const db = await getDb();
+    const candidate = await db.get('SELECT * FROM candidates WHERE id = ?', [id]) ||
+                      await db.get('SELECT * FROM candidate_profiles WHERE id = ?', [id]);
+
+    if (!candidate) {
+      return res.status(404).json({ success: false, message: 'Candidate not found' });
+    }
+
+    const isAdmission = offerType === 'college_admission';
+    const targetEntity = isAdmission ? (institutionName || 'Partner University') : (companyName || 'Revival Partner Corporation');
+    const targetRole = isAdmission ? (courseName || 'Admitted Degree Program') : (designation || 'Appointed Specialist');
+    const targetComp = isAdmission ? (tuitionFee || 'Market Standard Tuition') : (compensation || 'Market Standard CTC');
+    const targetDate = isAdmission ? (commencementDate || 'Upcoming Intake Term') : (joiningDate || 'Immediate / 30 Days Notice');
+    const targetLocation = isAdmission ? (campusLocation || 'Main Academic Campus') : (workLocation || 'UAE / Global');
+
+    const offerDetailsObj = {
+      offerId: `OFFER-${Math.floor(10000 + Math.random() * 90000)}`,
+      offerType,
+      targetEntity,
+      targetRole,
+      targetComp,
+      targetDate,
+      targetLocation,
+      termsAndConditions: termsAndConditions || 'Standard enterprise placement terms apply.',
+      issuedAt: new Date().toISOString(),
+      status: 'Offer Released',
+      acceptanceStatus: 'Pending Candidate Review'
+    };
+
+    const offerDetailsJson = JSON.stringify(offerDetailsObj);
+
+    // Update in candidates table
+    await db.run(
+      `UPDATE candidates SET stage = 'offer_released', offerDetails = ?, placementStatus = ? WHERE id = ?`,
+      [offerDetailsJson, 'Offered', id]
+    ).catch(() => {});
+
+    // Update in candidate_profiles table
+    await db.run(
+      `UPDATE candidate_profiles SET stage = 'offer_released', offerDetails = ? WHERE id = ? OR userId = ?`,
+      [offerDetailsJson, id, id]
+    ).catch(() => {});
+
+    // Update in candidate_applications table
+    await db.run(
+      `UPDATE candidate_applications SET stage = 'Offer Released', status = 'Offered', offerDetails = ? WHERE candidateId = ?`,
+      [offerDetailsJson, id]
+    ).catch(() => {});
+
+    // Also sync to Supabase if client is available
+    try {
+      const sbClient = getSupabaseClient();
+      if (sbClient) {
+        await sbClient.from('candidates').update({ stage: 'offer_released' }).eq('id', id);
+        await sbClient.from('candidate_applications').update({ stage: 'Offer Released', status: 'Offered' }).eq('candidateid', id);
+      }
+    } catch (sbErr) {
+      console.warn('[Offer Dispatch] Supabase sync notice:', sbErr.message);
+    }
+
+    // Send Official Email Dispatch via Zoho SMTP Gateway
+    let emailDispatched = false;
+    let emailError = null;
+    if (sendEmail && candidate.email) {
+      try {
+        const portalUrl = (process.env.FRONTEND_URL || 'https://www.therevivalinternational.com') + '/#candidate-portal';
+        const docTitle = isAdmission ? 'Official Letter of Admission' : 'Formal Employment Offer Letter';
+
+        const emailHtml = `
+          <div style="font-family: Arial, sans-serif; background-color: #f8fafc; padding: 24px; color: #0f172a;">
+            <div style="max-width: 600px; margin: 0 auto; background: #ffffff; border-radius: 16px; overflow: hidden; border: 1px solid #e2e8f0; box-shadow: 0 4px 6px -1px rgba(0,0,0,0.1);">
+              <div style="background: linear-gradient(135deg, #0a1329 0%, #172554 100%); padding: 32px 24px; text-align: center; border-bottom: 3px solid #d97706;">
+                <h1 style="color: #f59e0b; margin: 0; font-size: 24px; font-weight: bold; letter-spacing: 0.5px;">THE REVIVAL INTERNATIONAL</h1>
+                <p style="color: #94a3b8; margin: 6px 0 0 0; font-size: 13px; text-transform: uppercase; letter-spacing: 1px;">Executive Recruitment & Global Academic Advisory</p>
+              </div>
+              <div style="padding: 32px 24px;">
+                <h2 style="color: #0f172a; margin-top: 0; font-size: 20px;">Congratulations, ${candidate.name || 'Candidate'}!</h2>
+                <p style="font-size: 14px; line-height: 1.6; color: #334155;">
+                  We are delighted to formally notify you that following your successful interview evaluation, your ${docTitle} has been officially approved and released!
+                </p>
+                
+                <div style="background-color: #f1f5f9; border-radius: 12px; padding: 20px; margin: 24px 0; border-left: 4px solid #d97706;">
+                  <table style="width: 100%; border-collapse: collapse; font-size: 13px;">
+                    <tr>
+                      <td style="padding: 6px 0; color: #64748b; font-weight: bold; width: 40%;">${isAdmission ? 'Institution / University:' : 'Hiring Organization:'}</td>
+                      <td style="padding: 6px 0; color: #0f172a; font-weight: bold;">${targetEntity}</td>
+                    </tr>
+                    <tr>
+                      <td style="padding: 6px 0; color: #64748b; font-weight: bold;">${isAdmission ? 'Admitted Program:' : 'Position / Role:'}</td>
+                      <td style="padding: 6px 0; color: #0f172a; font-weight: bold;">${targetRole}</td>
+                    </tr>
+                    <tr>
+                      <td style="padding: 6px 0; color: #64748b; font-weight: bold;">${isAdmission ? 'Annual / Semester Fee:' : 'Compensation / CTC:'}</td>
+                      <td style="padding: 6px 0; color: #059669; font-weight: bold;">${targetComp}</td>
+                    </tr>
+                    <tr>
+                      <td style="padding: 6px 0; color: #64748b; font-weight: bold;">${isAdmission ? 'Academic Commencement:' : 'Target Joining Date:'}</td>
+                      <td style="padding: 6px 0; color: #0f172a;">${targetDate}</td>
+                    </tr>
+                    <tr>
+                      <td style="padding: 6px 0; color: #64748b; font-weight: bold;">Location / Campus:</td>
+                      <td style="padding: 6px 0; color: #0f172a;">${targetLocation}</td>
+                    </tr>
+                  </table>
+                </div>
+
+                <div style="text-align: center; margin: 32px 0;">
+                  <a href="${portalUrl}" style="background: linear-gradient(135deg, #d97706 0%, #b45309 100%); color: #ffffff; text-decoration: none; padding: 14px 28px; border-radius: 10px; font-weight: bold; font-size: 14px; display: inline-block; box-shadow: 0 4px 12px rgba(217, 119, 6, 0.3);">
+                    Access Candidate Dashboard & Review Offer →
+                  </a>
+                </div>
+
+                <p style="font-size: 12px; color: #64748b; line-height: 1.5; margin-bottom: 0;">
+                  Please log in to your verified candidate portal to review terms, download the PDF documentation, and electronically confirm your acceptance.
+                </p>
+              </div>
+              <div style="background-color: #f8fafc; padding: 16px 24px; text-align: center; border-top: 1px solid #e2e8f0; font-size: 11px; color: #94a3b8;">
+                The Revival International Enterprise Portal • Automated Recruitment & Advisory Dispatch
+              </div>
+            </div>
+          </div>
+        `;
+
+        await safeSendMail({
+          to: candidate.email,
+          subject: `🎉 Congratulations! ${docTitle} from ${targetEntity} - The Revival International`,
+          html: emailHtml
+        });
+        emailDispatched = true;
+      } catch (mailErr) {
+        console.error('[Offer Email] Dispatch error:', mailErr);
+        emailError = mailErr.message;
+      }
+    }
+
+    res.json({
+      success: true,
+      message: `${isAdmission ? 'Admission Letter' : 'Offer Letter'} successfully issued!`,
+      offerDetails: offerDetailsObj,
+      emailDispatched,
+      emailError
+    });
+  } catch (error) {
+    console.error('Error issuing offer:', error);
+    res.status(500).json({ success: false, message: 'Failed to issue offer letter: ' + error.message });
+  }
+});
+
+// Candidate Offer Response (Accept or Decline)
+app.post('/api/candidates/:id/respond-offer', async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { action, reason } = req.body; // 'accept' | 'decline'
+    const db = await getDb();
+
+    const candidate = await db.get('SELECT * FROM candidates WHERE id = ?', [id]) ||
+                      await db.get('SELECT * FROM candidate_profiles WHERE id = ?', [id]);
+    if (!candidate) {
+      return res.status(404).json({ success: false, message: 'Candidate not found' });
+    }
+
+    const isAccepted = action === 'accept';
+    const newStage = isAccepted ? 'offer_accepted' : 'rejected';
+    const newStatus = isAccepted ? 'Offer Accepted' : 'Declined';
+
+    let offerObj = {};
+    try {
+      offerObj = candidate.offerDetails ? JSON.parse(candidate.offerDetails) : {};
+    } catch (_) {}
+
+    offerObj.acceptanceStatus = isAccepted ? 'Accepted by Candidate' : 'Declined by Candidate';
+    offerObj.respondedAt = new Date().toISOString();
+    if (reason) offerObj.declineReason = reason;
+
+    const updatedJson = JSON.stringify(offerObj);
+
+    await db.run(
+      `UPDATE candidates SET stage = ?, offerDetails = ?, placementStatus = ? WHERE id = ?`,
+      [newStage, updatedJson, newStatus, id]
+    ).catch(() => {});
+
+    await db.run(
+      `UPDATE candidate_profiles SET stage = ?, offerDetails = ? WHERE id = ? OR userId = ?`,
+      [newStage, updatedJson, id, id]
+    ).catch(() => {});
+
+    await db.run(
+      `UPDATE candidate_applications SET stage = ?, status = ?, offerDetails = ? WHERE candidateId = ?`,
+      [isAccepted ? 'Offer Accepted' : 'Offer Declined', newStatus, updatedJson, id]
+    ).catch(() => {});
+
+    res.json({
+      success: true,
+      message: isAccepted ? 'Offer accepted successfully! Welcome to the team.' : 'Offer declined.',
+      newStage,
+      offerDetails: offerObj
+    });
+  } catch (error) {
+    res.status(500).json({ success: false, message: 'Failed to process offer response: ' + error.message });
   }
 });
 

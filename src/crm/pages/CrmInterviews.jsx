@@ -8,25 +8,27 @@ import {
 } from 'lucide-react';
 
 export const CrmInterviews = () => {
-  const { interviews, addInterview, updateInterview, isSuperAdmin, deleteInterview } = useCrm();
+  const { interviews, addInterview, updateInterview, isSuperAdmin, deleteInterview, candidates = [], setActiveModule } = useCrm();
   const [modalOpen, setModalOpen] = useState(false);
   const [feedbackModalOpen, setFeedbackModalOpen] = useState(null);
   const [deleteConfirmInterview, setDeleteConfirmInterview] = useState(null);
 
   // Form State
   const [newInterview, setNewInterview] = useState({
+    candidateId: '',
     candidateName: '',
     jobTitle: '',
     clientCompany: '',
     date: '2026-11-25',
     time: '15:00 GST',
     platform: 'Microsoft Teams',
-    panelists: ''
+    panelists: 'HR Lead, Technical Advisor'
   });
 
   // Feedback State
   const [feedbackText, setFeedbackText] = useState('');
   const [resultStatus, setResultStatus] = useState('Passed');
+  const [rating, setRating] = useState(5);
 
   // Superadmin Deletion State
   const [deleteModalOpen, setDeleteModalOpen] = useState(false);
@@ -59,14 +61,15 @@ export const CrmInterviews = () => {
     e.preventDefault();
     const interviewObj = {
       id: 'INT-' + Math.floor(800 + Math.random() * 200),
+      candidateId: newInterview.candidateId || null,
       candidateName: newInterview.candidateName,
       jobTitle: newInterview.jobTitle,
-      clientCompany: newInterview.clientCompany,
+      clientCompany: newInterview.clientCompany || 'Revival Placement Partner',
       date: newInterview.date,
       time: newInterview.time,
       platform: newInterview.platform,
       meetingLink: `https://${newInterview.platform.toLowerCase().replace(' ', '')}.com/sir-recruitment-${Math.floor(100 + Math.random() * 900)}`,
-      panelists: newInterview.panelists.split(','),
+      panelists: typeof newInterview.panelists === 'string' ? newInterview.panelists.split(',') : (newInterview.panelists || ['HR Lead']),
       status: 'Scheduled',
       feedback: 'Pending Panel Conduct',
       candidateConfirmed: true,
@@ -74,6 +77,8 @@ export const CrmInterviews = () => {
       recordingLink: `https://${newInterview.platform.toLowerCase().replace(' ', '')}.com/rec-link`
     };
     addInterview(interviewObj);
+    setStatusNotice(`✓ Interview scheduled for ${newInterview.candidateName}. Advanced to Interview Stage.`);
+    setTimeout(() => setStatusNotice(''), 4000);
     setModalOpen(false);
   };
 
@@ -83,11 +88,19 @@ export const CrmInterviews = () => {
 
     const itemToUpdate = interviews.find(item => item.id === feedbackModalOpen.id);
     if (itemToUpdate) {
+      const isPassed = resultStatus === 'Passed';
       updateInterview({
         ...itemToUpdate,
-        status: resultStatus === 'Passed' ? 'Completed' : resultStatus,
+        status: isPassed ? 'Completed' : resultStatus,
+        result: isPassed ? 'Selected' : resultStatus,
+        rating: Number(rating),
         feedback: feedbackText
       });
+      setStatusNotice(isPassed
+        ? `✓ Candidate "${itemToUpdate.candidateName}" PASSED! Successfully advanced to Placement & Offer Queue.`
+        : `✓ Interview feedback saved for "${itemToUpdate.candidateName}".`
+      );
+      setTimeout(() => setStatusNotice(''), 5000);
     }
 
     setFeedbackModalOpen(null);
@@ -179,6 +192,16 @@ export const CrmInterviews = () => {
                   Submit Feedback
                 </button>
 
+                {(item.status === 'Completed' || item.result === 'Selected' || item.status === 'Passed') && (
+                  <button
+                    onClick={() => setActiveModule && setActiveModule('offers')}
+                    className="px-3 py-2 bg-emerald-600 hover:bg-emerald-500 text-white font-bold rounded-xl transition flex items-center gap-1 cursor-pointer"
+                    title="Proceed to Placement & Release Offer Letter"
+                  >
+                    <span>Placement & Offer →</span>
+                  </button>
+                )}
+
                 <button
                   onClick={() => sendReminderNotification(item.id)}
                   className="p-2 bg-navy-800 hover:bg-gold-500 hover:text-navy-950 text-gold-400 rounded-xl transition cursor-pointer"
@@ -211,6 +234,35 @@ export const CrmInterviews = () => {
 
               <form onSubmit={handleCreateInterview} className="space-y-3 text-xs">
                 <div>
+                  <label className="block text-[11px] font-extrabold text-slate-700 dark:text-slate-300 mb-1">
+                    Select Candidate (From Verified Pool)
+                  </label>
+                  <select
+                    value={newInterview.candidateId || ''}
+                    onChange={e => {
+                      const cand = candidates.find(c => c.id === e.target.value);
+                      if (cand) {
+                        setNewInterview({
+                          ...newInterview,
+                          candidateId: cand.id,
+                          candidateName: cand.name,
+                          jobTitle: cand.currentRole || 'Executive Candidate'
+                        });
+                      } else {
+                        setNewInterview({ ...newInterview, candidateId: e.target.value });
+                      }
+                    }}
+                    className="w-full bg-slate-100 dark:bg-navy-950 border border-slate-300 dark:border-navy-700 text-slate-900 dark:text-white rounded-lg p-2.5 font-bold focus:outline-none focus:border-gold-500 mb-2"
+                  >
+                    <option value="">-- Choose Candidate from Pool or Enter Manually --</option>
+                    {candidates.map(c => (
+                      <option key={c.id} value={c.id}>
+                        {c.name} ({c.id}) - {c.currentRole || 'Candidate'} [{c.stage || 'lead'}]
+                      </option>
+                    ))}
+                  </select>
+                </div>
+                <div>
                   <label className="block text-[11px] font-extrabold text-slate-700 dark:text-slate-300 mb-1">Candidate Name</label>
                   <input required type="text" value={newInterview.candidateName} onChange={e => setNewInterview({ ...newInterview, candidateName: e.target.value })} className="w-full bg-slate-100 dark:bg-navy-950 border border-slate-300 dark:border-navy-700 text-slate-900 dark:text-white rounded-lg p-2.5 font-bold focus:outline-none focus:border-gold-500" />
                 </div>
@@ -220,7 +272,7 @@ export const CrmInterviews = () => {
                     <input required type="text" value={newInterview.jobTitle} onChange={e => setNewInterview({ ...newInterview, jobTitle: e.target.value })} className="w-full bg-slate-100 dark:bg-navy-950 border border-slate-300 dark:border-navy-700 text-slate-900 dark:text-white rounded-lg p-2.5 font-bold focus:outline-none focus:border-gold-500" />
                   </div>
                   <div>
-                    <label className="block text-[11px] font-extrabold text-slate-700 dark:text-slate-300 mb-1">Client Company</label>
+                    <label className="block text-[11px] font-extrabold text-slate-700 dark:text-slate-300 mb-1">Client Company / Institution</label>
                     <input required type="text" value={newInterview.clientCompany} onChange={e => setNewInterview({ ...newInterview, clientCompany: e.target.value })} className="w-full bg-slate-100 dark:bg-navy-950 border border-slate-300 dark:border-navy-700 text-slate-900 dark:text-white rounded-lg p-2.5 font-bold focus:outline-none focus:border-gold-500" />
                   </div>
                 </div>
@@ -251,18 +303,41 @@ export const CrmInterviews = () => {
           <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-navy-950/80 backdrop-blur-sm animate-in fade-in">
             <div className="glass-card bg-white dark:bg-navy-900 border border-slate-200 dark:border-gold-500/40 rounded-2xl max-w-md w-full p-6 shadow-luxury space-y-4">
               <div className="flex justify-between items-start border-b border-slate-200 dark:border-navy-800 pb-3">
-                <h3 className="font-serif text-lg font-bold text-slate-900 dark:text-white">Submit Interview Feedback & Result</h3>
+                <h3 className="font-serif text-lg font-bold text-slate-900 dark:text-white">Submit Interview Feedback & Scorecard</h3>
                 <button onClick={() => setFeedbackModalOpen(null)} className="text-slate-500 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white p-1 cursor-pointer"><X className="w-5 h-5" /></button>
               </div>
 
               <form onSubmit={handleSaveFeedback} className="space-y-3 text-xs">
                 <div>
-                  <label className="block text-[11px] font-extrabold text-slate-700 dark:text-slate-300 mb-1">Interview Result Outcome</label>
+                  <label className="block text-[11px] font-extrabold text-slate-700 dark:text-slate-300 mb-1">Score / Evaluation Rating</label>
+                  <div className="flex gap-2 items-center">
+                    {[1, 2, 3, 4, 5].map(star => (
+                      <button
+                        key={star}
+                        type="button"
+                        onClick={() => setRating(star)}
+                        className={`px-3 py-1.5 rounded-lg font-bold text-xs border cursor-pointer transition ${
+                          rating >= star
+                            ? 'bg-amber-500 text-navy-950 border-amber-600'
+                            : 'bg-slate-100 dark:bg-navy-950 text-slate-400 border-slate-300 dark:border-navy-800'
+                        }`}
+                      >
+                        ★ {star}
+                      </button>
+                    ))}
+                    <span className="text-[10px] text-slate-500 dark:text-slate-400 font-bold ml-1">
+                      {rating === 5 ? 'Exceptional (A+)' : rating >= 4 ? 'Strong Fit' : rating === 3 ? 'Satisfactory' : 'Needs Review'}
+                    </span>
+                  </div>
+                </div>
+
+                <div>
+                  <label className="block text-[11px] font-extrabold text-slate-700 dark:text-slate-300 mb-1">Interview Decision Outcome</label>
                   <select value={resultStatus} onChange={e => setResultStatus(e.target.value)} className="w-full bg-slate-100 dark:bg-navy-950 border border-slate-300 dark:border-navy-700 text-slate-900 dark:text-white rounded-lg p-2.5 font-bold focus:outline-none focus:border-gold-500">
-                    <option value="Passed">Passed (Recommend Offer)</option>
-                    <option value="Rescheduled">Rescheduled</option>
-                    <option value="Rejected">Rejected</option>
-                    <option value="Hold">On Hold</option>
+                    <option value="Passed">🟢 Selected / Passed (Advance to Placement & Offer)</option>
+                    <option value="Rescheduled">🟡 Reschedule Interview</option>
+                    <option value="Rejected">🔴 Rejected</option>
+                    <option value="Hold">⚪ Put on Hold</option>
                   </select>
                 </div>
                 <div>
@@ -273,11 +348,11 @@ export const CrmInterviews = () => {
                     value={feedbackText}
                     onChange={e => setFeedbackText(e.target.value)}
                     className="w-full bg-slate-100 dark:bg-navy-950 border border-slate-300 dark:border-navy-700 text-slate-900 dark:text-white rounded-lg p-2.5 font-medium focus:outline-none focus:border-gold-500"
-                    placeholder="Candidate demonstrated exceptional technical depth..."
+                    placeholder="Candidate demonstrated exceptional technical depth and professional communication..."
                   />
                 </div>
                 <button type="submit" className="w-full py-3 bg-gold-shimmer text-navy-950 font-extrabold rounded-xl shadow-gold-glow hover:opacity-95 transition cursor-pointer">
-                  Save Feedback Result
+                  Save Scorecard & Update Pipeline
                 </button>
               </form>
             </div>

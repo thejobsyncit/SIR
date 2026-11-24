@@ -273,6 +273,28 @@ export const CrmCandidates = () => {
     }
   };
 
+  const handleMoveToInterview = async (cand) => {
+    if (!cand) return;
+    try {
+      await fetch(`/api/candidates/${cand.id}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ stage: 'hr_interview', status: 'Verified' })
+      }).catch(() => {});
+
+      setStatusNotice(`✓ Candidate ${cand.name} verified and advanced to Interview Stage!`);
+      setTimeout(() => setStatusNotice(''), 4000);
+      setViewCand(null);
+      if (setSelectedCandidate) setSelectedCandidate(null);
+
+      if (setActiveModule) {
+        setActiveModule('interviews');
+      }
+    } catch (err) {
+      console.error('Error advancing candidate to interview:', err);
+    }
+  };
+
   // Centralized Candidate Pool: Sourced directly from production database (Pure registered profiles)
   const candidatePool = useMemo(() => {
     return (candidates || []).filter(c => {
@@ -1590,6 +1612,15 @@ export const CrmCandidates = () => {
               >
                 <Download className="w-3.5 h-3.5" />
                 <span>Download Resume (PDF)</span>
+              </button>
+
+              <button
+                type="button"
+                onClick={() => handleMoveToInterview(activeCand)}
+                className="py-2.5 px-5 bg-emerald-600 hover:bg-emerald-500 text-white font-bold rounded-xl transition flex items-center gap-1.5 shadow-md cursor-pointer text-xs"
+              >
+                <CheckCircle2 className="w-3.5 h-3.5" />
+                <span>Verify & Schedule Interview</span>
               </button>
 
               <button

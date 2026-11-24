@@ -92,7 +92,27 @@ const InfoItem = ({ icon: Icon, label, value }) => {
 };
 
 export const CrmHrOpsCandidateDirectory = () => {
-  const { crmToken, setCrmToken, currentRole, authTokenLoading, logout } = useCrm();
+  const { crmToken, setCrmToken, currentRole, authTokenLoading, logout, setActiveModule } = useCrm();
+
+  const handleMoveToInterview = async (candidateObj) => {
+    try {
+      const target = candidateObj || profileData?.candidate;
+      const targetId = target?.id || target?.candidateKey || target?.candidateReferenceNumber || target?.email;
+      if (targetId) {
+        await fetch(`/api/candidates/${targetId}`, {
+          method: 'PUT',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ stage: 'hr_interview', status: 'Verified' })
+        }).catch(() => {});
+      }
+      setFeedback({ type: 'success', message: '✓ Candidate verified! Advanced to Interview Stage.' });
+      if (setActiveModule) {
+        setActiveModule('interviews');
+      }
+    } catch (err) {
+      console.error('Error advancing candidate to interview:', err);
+    }
+  };
 
   // Directory state (preserved across opening & returning from candidate profile)
   const [searchInput, setSearchInput] = useState('');
@@ -544,6 +564,13 @@ export const CrmHrOpsCandidateDirectory = () => {
                           <MapPin className="w-3.5 h-3.5" /> {cand.location}
                         </span>
                       )}
+                      <button
+                        type="button"
+                        onClick={() => handleMoveToInterview(cand)}
+                        className="inline-flex items-center gap-1.5 px-3 py-1 rounded-xl text-xs font-semibold bg-emerald-600 hover:bg-emerald-700 text-white shadow-sm transition-colors cursor-pointer"
+                      >
+                        <UserCheck className="w-3.5 h-3.5" /> Verify & Move to Interview
+                      </button>
                     </div>
                   </div>
                 </div>
@@ -1170,6 +1197,7 @@ export const CrmHrOpsCandidateDirectory = () => {
           onUpdateStatus={(eq) => setStatusModalEnquiry(eq)}
           onAddNote={(eq) => setNoteModalState({ open: true, enquiryId: eq.id })}
           onScheduleFollowUp={(eq) => setFollowUpModalState({ open: true, enquiryId: eq.id })}
+          onScheduleInterview={handleMoveToInterview}
         />
 
         {/* Permitted Employee Action Modals */}

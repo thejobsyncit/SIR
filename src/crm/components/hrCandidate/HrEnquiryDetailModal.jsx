@@ -36,7 +36,8 @@ export const HrEnquiryDetailModal = ({
   onClose,
   onUpdateStatus,
   onAddNote,
-  onScheduleFollowUp
+  onScheduleFollowUp,
+  onScheduleInterview
 }) => {
   if (!enquiry) return null;
 
@@ -326,6 +327,15 @@ export const HrEnquiryDetailModal = ({
                 >
                   <StickyNote className="w-3.5 h-3.5" /> Add Note
                 </button>
+                {onScheduleInterview && (
+                  <button
+                    type="button"
+                    onClick={() => onScheduleInterview(enquiry)}
+                    className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-semibold bg-emerald-600 text-white hover:bg-emerald-700 transition-colors"
+                  >
+                    <CalendarPlus className="w-3.5 h-3.5" /> Verify & Move to Interview
+                  </button>
+                )}
               </>
             )}
           </div>

@@ -2142,19 +2142,106 @@ export const CrmProvider = ({ children }) => {
     await fetchConsultingMetrics();
   };
 
-  const addInterview = (newInterview) => {
-    const interviewToAdd = { ...newInterview, id: `INT-${Math.floor(Math.random() * 9000) + 1000}` };
+  const addInterview = async (newInterview) => {
+    const interviewToAdd = { ...newInterview, id: newInterview.id || `INT-${Math.floor(Math.random() * 9000) + 1000}` };
     setInterviews(prev => [interviewToAdd, ...prev]);
     setCalendarEvents(prev => [
       ...prev,
-      { id: Date.now(), title: `${interviewToAdd.candidateName} ${interviewToAdd.platform} Interview`, time: interviewToAdd.time, type: 'Interview', candidate: interviewToAdd.candidateName, date: interviewToAdd.date }
+      { id: Date.now(), title: `${interviewToAdd.candidateName} ${interviewToAdd.platform || 'Interview'}`, time: interviewToAdd.time, type: 'Interview', candidate: interviewToAdd.candidateName, date: interviewToAdd.date }
     ]);
     logAuditAction(`Scheduled new interview for ${interviewToAdd.candidateName}.`);
+
+    if (interviewToAdd.candidateId) {
+      updateCandidateStage(interviewToAdd.candidateId, 'hr_interview');
+    }
+
+    try {
+      await fetch('/api/interviews', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(interviewToAdd)
+      });
+    } catch (err) {
+      console.warn('Failed to sync added interview to backend:', err);
+    }
   };
 
-  const updateInterview = (updatedInterview) => {
+  const updateInterview = async (updatedInterview) => {
     setInterviews(prev => prev.map(i => i.id === updatedInterview.id ? updatedInterview : i));
     logAuditAction(`Updated interview record ${updatedInterview.id}.`);
+
+    const isSelected = updatedInterview.result === 'Selected' || updatedInterview.result === 'Passed' || updatedInterview.status === 'Passed' || updatedInterview.status === 'Selected';
+    if (isSelected && updatedInterview.candidateId) {
+      updateCandidateStage(updatedInterview.candidateId, 'selected');
+    } else if ((updatedInterview.result === 'Rejected' || updatedInterview.status === 'Rejected') && updatedInterview.candidateId) {
+      updateCandidateStage(updatedInterview.candidateId, 'rejected');
+    }
+
+    try {
+      await fetch(`/api/interviews/${updatedInterview.id}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(updatedInterview)
+      });
+    } catch (err) {
+      console.warn('Failed to sync updated interview to backend:', err);
+    }
+  };
+
+  const issueOfferLetter = async (candidateId, offerData) => {
+    try {
+      const res = await fetch(`/api/candidates/${candidateId}/issue-offer`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(offerData)
+      });
+      const data = await res.json().catch(() => ({}));
+      if (data.success) {
+        updateCandidateStage(candidateId, 'offer_released');
+        setCandidates(prev => prev.map(c => c.id === candidateId ? {
+          ...c,
+          stage: 'offer_released',
+          offerDetails: data.offerDetails,
+          placementStatus: 'Offered'
+        } : c));
+        logAuditAction(`Issued official ${offerData.offerType === 'college_admission' ? 'Admission' : 'Offer'} Letter to candidate ${candidateId}.`);
+      }
+      return data;
+    } catch (err) {
+      console.error('Failed to issue offer letter:', err);
+      updateCandidateStage(candidateId, 'offer_released');
+      setCandidates(prev => prev.map(c => c.id === candidateId ? {
+        ...c,
+        stage: 'offer_released',
+        offerDetails: offerData,
+        placementStatus: 'Offered'
+      } : c));
+      return { success: true, fallback: true };
+    }
+  };
+
+  const respondToOffer = async (candidateId, action, reason = '') => {
+    try {
+      const res = await fetch(`/api/candidates/${candidateId}/respond-offer`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ action, reason })
+      });
+      const data = await res.json().catch(() => ({}));
+      const nextStage = action === 'accept' ? 'offer_accepted' : 'rejected';
+      updateCandidateStage(candidateId, nextStage);
+      setCandidates(prev => prev.map(c => c.id === candidateId ? {
+        ...c,
+        stage: nextStage,
+        placementStatus: action === 'accept' ? 'Offer Accepted' : 'Declined'
+      } : c));
+      logAuditAction(`Candidate ${candidateId} ${action === 'accept' ? 'Accepted' : 'Declined'} offer.`);
+      return data;
+    } catch (err) {
+      const nextStage = action === 'accept' ? 'offer_accepted' : 'rejected';
+      updateCandidateStage(candidateId, nextStage);
+      return { success: true, nextStage };
+    }
   };
 
   const deleteInterview = async (interviewId, metadata = {}) => {
@@ -2706,6 +2793,8 @@ export const CrmProvider = ({ children }) => {
         addInterview,
         updateInterview,
         deleteInterview,
+        issueOfferLetter,
+        respondToOffer,
         calendarEvents,
         addCalendarEvent,
         removeCalendarEvent,

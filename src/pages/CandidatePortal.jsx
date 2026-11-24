@@ -111,14 +111,19 @@ export const CandidateAvatar = ({ name, avatar, size = 'md', className = '', onC
 };
 
 export const CandidatePortal = () => {
-  const { user, updateUserProfile, applications, savedJobs, toggleSaveJob, applyForJob, postedJobs, deleteApplication, withdrawApplication, setActiveModal, navigateTo, logout, darkMode, toggleDarkMode } = useApp();
+  const { user, updateUserProfile, applications, savedJobs, toggleSaveJob, applyForJob, postedJobs, deleteApplication, withdrawApplication, respondToOffer, setActiveModal, navigateTo, logout, darkMode, toggleDarkMode } = useApp();
 
-  // Navigation tab state: 'dashboard' | 'profile' | 'resume' | 'saved-jobs' | 'applications' | 'application-status' | 'interviews' | 'documents' | 'settings'
+  // Navigation tab state: 'dashboard' | 'profile' | 'resume' | 'saved-jobs' | 'applications' | 'application-status' | 'interviews' | 'offers' | 'documents' | 'settings'
   const [activeTab, setActiveTab] = useState('dashboard');
   const [mobileSidebarOpen, setMobileSidebarOpen] = useState(false);
   const [profileDropdownOpen, setProfileDropdownOpen] = useState(false);
   const [notificationsOpen, setNotificationsOpen] = useState(false);
   const [showSignOutModal, setShowSignOutModal] = useState(false);
+
+  // Offer and Admission letter state
+  const [viewOfferModalOpen, setViewOfferModalOpen] = useState(false);
+  const [isRespondingOffer, setIsRespondingOffer] = useState(false);
+  const [offerSuccessNotice, setOfferSuccessNotice] = useState('');
 
   // Notifications state
   const [notifications, setNotifications] = useState([
@@ -418,6 +423,57 @@ export const CandidatePortal = () => {
           }
         }
       ] : []);
+
+  // Active Offer / Admission Letter resolution
+  const candidateOffer = (() => {
+    if (user?.offerDetails) {
+      try {
+        const parsed = typeof user.offerDetails === 'string' ? JSON.parse(user.offerDetails) : user.offerDetails;
+        if (parsed && (parsed.targetEntity || parsed.targetRole || parsed.offerId)) return parsed;
+      } catch (_) {}
+    }
+    const appWithOffer = candidateApplications.find(a => 
+      a.offerDetails || a.status === 'Offered' || a.stage === 'Offer Released' || a.stage === 'offer_released' || a.status === 'Offer Accepted'
+    );
+    if (appWithOffer?.offerDetails) {
+      try {
+        const parsed = typeof appWithOffer.offerDetails === 'string' ? JSON.parse(appWithOffer.offerDetails) : appWithOffer.offerDetails;
+        if (parsed && (parsed.targetEntity || parsed.targetRole || parsed.offerId)) return parsed;
+      } catch (_) {}
+    }
+    if (appWithOffer && (appWithOffer.status === 'Offered' || appWithOffer.status === 'Offer Accepted')) {
+      return {
+        offerId: `OFF-${appWithOffer.id}`,
+        offerType: 'job_offer',
+        targetEntity: appWithOffer.company || 'Revival Partner Corporation',
+        targetRole: appWithOffer.jobTitle || 'Appointed Specialist',
+        targetComp: 'Executive Benchmark CTC',
+        targetDate: 'Immediate / 30 Days Notice',
+        targetLocation: appWithOffer.location || 'Dubai, UAE',
+        termsAndConditions: 'Standard executive placement & visa processing terms apply.',
+        issuedAt: appWithOffer.appliedDate || new Date().toISOString(),
+        status: appWithOffer.status === 'Offer Accepted' ? 'Accepted' : 'Offer Released',
+        acceptanceStatus: appWithOffer.status === 'Offer Accepted' ? 'Accepted by Candidate' : 'Pending Candidate Review'
+      };
+    }
+    return null;
+  })();
+
+  const handleCandidateOfferAction = async (action, reason = '') => {
+    setIsRespondingOffer(true);
+    const targetId = user?.candidateId || user?.id || (candidateApplications[0]?.candidateId);
+    if (respondToOffer) {
+      const res = await respondToOffer(targetId, action, reason);
+      if (res.success) {
+        setOfferSuccessNotice(action === 'accept' ? '🎉 Congratulations! You have formally accepted the offer. Our placement advisor will coordinate the next onboarding steps.' : 'Offer declined.');
+        setTimeout(() => setOfferSuccessNotice(''), 7000);
+        setViewOfferModalOpen(false);
+      } else {
+        alert(res.message);
+      }
+    }
+    setIsRespondingOffer(false);
+  };
 
   // Selected application for Application Status tab
   const activeStatusApp = candidateApplications.find(a => a.id === selectedStatusAppId) || candidateApplications[0] || null;
@@ -984,6 +1040,7 @@ export const CandidatePortal = () => {
     { id: 'applications', label: 'My Applications', icon: Send, badge: candidateApplications.length },
     { id: 'application-status', label: 'Application Status', icon: Clock },
     { id: 'interviews', label: 'Interview Schedule', icon: Calendar, badge: candidateApplications.filter(a => a.status === 'Interview Scheduled').length },
+    { id: 'offers', label: 'Offers & Admissions', icon: Award, badge: candidateOffer ? 1 : 0 },
     { id: 'documents', label: 'Documents', icon: Shield },
     { id: 'settings', label: 'Account Settings', icon: Settings }
   ];
@@ -1334,8 +1391,111 @@ export const CandidatePortal = () => {
                 </div>
               </div>
 
-              {/* Statistics Cards (5 Cards) */}
-              <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-4">
+              {/* Offer Response Success Alert */}
+              {offerSuccessNotice && (
+                <div className="p-4 rounded-2xl bg-emerald-500/15 border border-emerald-500/40 text-emerald-800 dark:text-emerald-300 font-bold text-xs flex items-center gap-2.5 animate-in fade-in">
+                  <CheckCircle2 className="w-5 h-5 text-emerald-500 shrink-0" />
+                  <span>{offerSuccessNotice}</span>
+                </div>
+              )}
+
+              {/* CELEBRATORY OFFICIAL OFFER / ADMISSION LETTER HERO CARD */}
+              {candidateOffer && (
+                <div className="bg-gradient-to-r from-amber-500/15 via-gold-500/10 to-emerald-500/10 border-2 border-gold-500/60 rounded-3xl p-6 sm:p-7 shadow-luxury space-y-4 animate-in fade-in">
+                  <div className="flex flex-col sm:flex-row justify-between sm:items-center gap-3 pb-3 border-b border-gold-500/30">
+                    <div className="flex items-center gap-3">
+                      <div className="w-12 h-12 rounded-2xl bg-gold-500 text-navy-950 flex items-center justify-center font-bold text-xl shadow-gold-glow shrink-0">
+                        <Award className="w-6 h-6" />
+                      </div>
+                      <div>
+                        <span className="text-[10px] uppercase tracking-widest font-extrabold text-gold-600 dark:text-gold-400 flex items-center gap-1.5">
+                          <Sparkles className="w-3.5 h-3.5" />
+                          {candidateOffer.offerType === 'college_admission' ? 'University Admission Letter Approved' : 'Formal Employment Offer Released'}
+                        </span>
+                        <h3 className="font-serif text-xl sm:text-2xl font-bold text-navy-950 dark:text-white">
+                          Congratulations, {user?.name || 'Candidate'}!
+                        </h3>
+                      </div>
+                    </div>
+
+                    <div className="flex items-center gap-2">
+                      <span className={`px-3 py-1 rounded-full text-xs font-bold border ${
+                        candidateOffer.acceptanceStatus?.includes('Accepted') || candidateOffer.status === 'Accepted'
+                          ? 'bg-emerald-500/20 text-emerald-700 dark:text-emerald-300 border-emerald-500/40'
+                          : 'bg-gold-500/20 text-gold-700 dark:text-gold-300 border-gold-500/40'
+                      }`}>
+                        {candidateOffer.acceptanceStatus || 'Pending Candidate Review'}
+                      </span>
+                    </div>
+                  </div>
+
+                  {/* Key Details Grid */}
+                  <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 text-xs">
+                    <div className="p-3 bg-white/70 dark:bg-navy-900/70 rounded-xl border border-gold-500/20">
+                      <span className="text-[10px] text-slate-500 font-bold uppercase">{candidateOffer.offerType === 'college_admission' ? 'Institution' : 'Organization'}</span>
+                      <p className="font-bold text-navy-950 dark:text-white mt-0.5">{candidateOffer.targetEntity}</p>
+                    </div>
+                    <div className="p-3 bg-white/70 dark:bg-navy-900/70 rounded-xl border border-gold-500/20">
+                      <span className="text-[10px] text-slate-500 font-bold uppercase">{candidateOffer.offerType === 'college_admission' ? 'Program' : 'Appointed Role'}</span>
+                      <p className="font-bold text-navy-950 dark:text-white mt-0.5">{candidateOffer.targetRole}</p>
+                    </div>
+                    <div className="p-3 bg-white/70 dark:bg-navy-900/70 rounded-xl border border-gold-500/20">
+                      <span className="text-[10px] text-slate-500 font-bold uppercase">{candidateOffer.offerType === 'college_admission' ? 'Fee Structure' : 'Compensation Package'}</span>
+                      <p className="font-bold text-emerald-600 dark:text-emerald-400 mt-0.5">{candidateOffer.targetComp}</p>
+                    </div>
+                    <div className="p-3 bg-white/70 dark:bg-navy-900/70 rounded-xl border border-gold-500/20">
+                      <span className="text-[10px] text-slate-500 font-bold uppercase">{candidateOffer.offerType === 'college_admission' ? 'Commencement' : 'Joining Date'}</span>
+                      <p className="font-bold text-navy-950 dark:text-white mt-0.5">{candidateOffer.targetDate}</p>
+                    </div>
+                  </div>
+
+                  {/* Actions */}
+                  <div className="flex flex-wrap items-center justify-between gap-3 pt-2">
+                    <div className="text-xs text-slate-600 dark:text-slate-300">
+                      Ref: <strong className="font-mono text-gold-600 dark:text-gold-400">{candidateOffer.offerId}</strong> • Location: <strong>{candidateOffer.targetLocation}</strong>
+                    </div>
+
+                    <div className="flex items-center gap-2">
+                      <button
+                        type="button"
+                        onClick={() => setViewOfferModalOpen(true)}
+                        className="px-4 py-2 rounded-xl bg-slate-900 dark:bg-navy-800 text-white font-bold text-xs hover:bg-slate-800 transition flex items-center gap-1.5 cursor-pointer border border-slate-700 dark:border-navy-700"
+                      >
+                        <FileText className="w-3.5 h-3.5 text-gold-400" />
+                        <span>View Official Letter & PDF</span>
+                      </button>
+
+                      {!(candidateOffer.acceptanceStatus?.includes('Accepted') || candidateOffer.status === 'Accepted') && (
+                        <>
+                          <button
+                            type="button"
+                            disabled={isRespondingOffer}
+                            onClick={() => handleCandidateOfferAction('accept')}
+                            className="px-4 py-2 rounded-xl bg-gradient-to-r from-emerald-600 to-teal-500 hover:from-emerald-500 hover:to-teal-400 text-white font-bold text-xs shadow-md transition flex items-center gap-1.5 cursor-pointer disabled:opacity-50"
+                          >
+                            <Check className="w-3.5 h-3.5" />
+                            <span>{isRespondingOffer ? 'Processing...' : 'Accept Offer'}</span>
+                          </button>
+                          <button
+                            type="button"
+                            disabled={isRespondingOffer}
+                            onClick={() => {
+                              const reason = prompt('Please share the reason for declining this offer (optional):');
+                              if (reason !== null) handleCandidateOfferAction('decline', reason);
+                            }}
+                            className="px-3 py-2 rounded-xl border border-slate-300 dark:border-navy-700 hover:bg-rose-50 dark:hover:bg-rose-950/30 text-rose-600 dark:text-rose-400 font-bold text-xs transition cursor-pointer"
+                          >
+                            Decline
+                          </button>
+                        </>
+                      )}
+                    </div>
+                  </div>
+                </div>
+              )}
+
+              {/* Statistics Cards (6 Cards) */}
+              <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-4">
                 
                 {/* 1. Applications */}
                 <div
@@ -1411,7 +1571,32 @@ export const CandidatePortal = () => {
                   </div>
                 </div>
 
-                {/* 5. Saved Jobs */}
+                {/* 5. Offers & Admissions */}
+                <div
+                  onClick={() => setActiveTab('offers')}
+                  className={`border-2 rounded-2xl p-4 shadow-xs hover:shadow-md transition cursor-pointer ${
+                    candidateOffer
+                      ? 'bg-gradient-to-br from-amber-500/10 to-emerald-500/10 border-gold-500/60 shadow-gold-glow/20'
+                      : 'bg-white dark:bg-slate-900 border-slate-200 dark:border-slate-800'
+                  }`}
+                >
+                  <div className="flex items-center justify-between">
+                    <span className="text-[11px] font-bold text-slate-500 uppercase tracking-wider">Offers & Adm.</span>
+                    <div className={`w-8 h-8 rounded-xl flex items-center justify-center ${
+                      candidateOffer ? 'bg-gold-500 text-navy-950 font-bold' : 'bg-emerald-500/15 text-emerald-500'
+                    }`}>
+                      <Award className="w-4 h-4" />
+                    </div>
+                  </div>
+                  <div className="mt-2 flex items-baseline gap-2">
+                    <span className={`text-2xl font-serif font-black ${candidateOffer ? 'text-gold-600 dark:text-gold-400' : 'text-slate-950 dark:text-white'}`}>
+                      {candidateOffer ? 1 : 0}
+                    </span>
+                    <span className="text-[10px] text-emerald-500 font-bold">{candidateOffer ? 'Released!' : 'Pending'}</span>
+                  </div>
+                </div>
+
+                {/* 6. Saved Jobs */}
                 <div
                   onClick={() => setActiveTab('saved-jobs')}
                   className="bg-white dark:bg-navy-900 border border-slate-200 dark:border-navy-800 rounded-2xl p-4 shadow-sm hover:border-gold-500/40 transition cursor-pointer"
@@ -2295,16 +2480,22 @@ export const CandidatePortal = () => {
                       { step: 1, label: '1. Submitted', desc: 'Application Received' },
                       { step: 2, label: '2. Under Review', desc: 'ATS Screening' },
                       { step: 3, label: '3. Shortlisted', desc: 'Employer Committee' },
-                      { step: 4, label: '4. Interview', desc: 'Technical Round' },
-                      { step: 5, label: '5. Final Decision', desc: 'Offer & Visa' }
+                      { step: 4, label: '4. Interview', desc: 'Technical Panel Round' },
+                      { step: 5, label: '5. Final Decision', desc: 'Offer & Placement' }
                     ].map(st => {
-                      const isComplete = (activeStatusApp.status === 'Shortlisted' && st.step <= 3) ||
-                                         (activeStatusApp.status === 'Interview Scheduled' && st.step <= 4) ||
-                                         (activeStatusApp.status === 'Placed' && st.step <= 5) ||
+                      const appStatus = activeStatusApp.status || '';
+                      const appStage = activeStatusApp.stage || '';
+                      const hasAppOffer = appStatus === 'Offered' || appStatus === 'Offer Accepted' || appStage === 'Offer Released' || appStatus === 'Placed' || activeStatusApp.offerDetails || Boolean(candidateOffer);
+                      const isInterviewPassed = appStatus === 'Selected' || hasAppOffer;
+
+                      const isComplete = (appStatus === 'Shortlisted' && st.step <= 3) ||
+                                         ((appStatus === 'Interview Scheduled' || isInterviewPassed) && st.step <= 4) ||
+                                         (hasAppOffer && st.step <= 5) ||
                                          st.step === 1;
-                      const isCurrent = (activeStatusApp.status === 'Under Review' && st.step === 2) ||
-                                        (activeStatusApp.status === 'Shortlisted' && st.step === 3) ||
-                                        (activeStatusApp.status === 'Interview Scheduled' && st.step === 4);
+                      const isCurrent = (appStatus === 'Under Review' && st.step === 2) ||
+                                        (appStatus === 'Shortlisted' && st.step === 3) ||
+                                        (appStatus === 'Interview Scheduled' && !isInterviewPassed && st.step === 4) ||
+                                        (hasAppOffer && st.step === 5);
 
                       return (
                         <div
@@ -2330,6 +2521,50 @@ export const CandidatePortal = () => {
                       );
                     })}
                   </div>
+
+                  {/* Active Offer Notification Bar */}
+                  {candidateOffer && (
+                    <div className="mt-4 p-4 rounded-2xl bg-gradient-to-r from-amber-500/15 via-gold-500/10 to-emerald-500/10 border-2 border-gold-500/40 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3">
+                      <div className="flex items-center gap-3">
+                        <div className="w-10 h-10 rounded-xl bg-gold-500 text-navy-950 flex items-center justify-center font-bold shadow-gold-glow shrink-0">
+                          <Award className="w-5 h-5" />
+                        </div>
+                        <div>
+                          <h5 className="font-serif font-bold text-sm text-navy-950 dark:text-white flex items-center gap-2">
+                            <span>🎉 Official {candidateOffer.offerType === 'college_admission' ? 'Admission' : 'Offer'} Letter Released!</span>
+                            <span className="text-[10px] bg-emerald-500/20 text-emerald-600 dark:text-emerald-400 font-extrabold px-2 py-0.5 rounded-full border border-emerald-500/30">
+                              {candidateOffer.acceptanceStatus || 'Action Required'}
+                            </span>
+                          </h5>
+                          <p className="text-xs text-slate-600 dark:text-slate-300">
+                            <strong>{candidateOffer.targetEntity}</strong> • {candidateOffer.targetRole} • Package: <strong className="text-emerald-600 dark:text-emerald-400">{candidateOffer.targetComp}</strong>
+                          </p>
+                        </div>
+                      </div>
+
+                      <div className="flex items-center gap-2 shrink-0">
+                        <button
+                          type="button"
+                          onClick={() => setViewOfferModalOpen(true)}
+                          className="px-4 py-2 bg-slate-900 dark:bg-navy-800 text-white font-bold text-xs rounded-xl hover:bg-slate-800 transition flex items-center gap-1.5 cursor-pointer border border-slate-700"
+                        >
+                          <FileText className="w-3.5 h-3.5 text-gold-400" />
+                          <span>Review Letter</span>
+                        </button>
+                        {!(candidateOffer.acceptanceStatus?.includes('Accepted') || candidateOffer.status === 'Accepted') && (
+                          <button
+                            type="button"
+                            onClick={() => handleCandidateOfferAction('accept')}
+                            disabled={isRespondingOffer}
+                            className="px-4 py-2 bg-gradient-to-r from-emerald-600 to-teal-500 text-white font-bold text-xs rounded-xl shadow-md hover:opacity-95 transition flex items-center gap-1.5 cursor-pointer disabled:opacity-50"
+                          >
+                            <Check className="w-3.5 h-3.5" />
+                            <span>Accept Offer</span>
+                          </button>
+                        )}
+                      </div>
+                    </div>
+                  )}
                 </div>
 
                 {/* Status History Timeline Log */}
@@ -2454,6 +2689,190 @@ export const CandidatePortal = () => {
                 </div>
               </div>
 
+            </div>
+          )}
+
+          {/* ========================================================== */}
+          {/* TAB: OFFERS & ADMISSIONS PAGE */}
+          {/* ========================================================== */}
+          {activeTab === 'offers' && (
+            <div className="space-y-6 text-left animate-in fade-in">
+              <div className="bg-white dark:bg-navy-900 border border-slate-200 dark:border-navy-800 rounded-3xl p-6 sm:p-8 shadow-sm">
+                <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+                  <div>
+                    <h2 className="font-serif text-2xl font-bold text-navy-950 dark:text-white flex items-center gap-2">
+                      <Award className="w-6 h-6 text-gold-500" />
+                      Offers & University Admissions
+                    </h2>
+                    <p className="text-xs text-slate-500 dark:text-slate-400 mt-1">
+                      Official letters of employment, executive appointment contracts, and higher-education admission notifications.
+                    </p>
+                  </div>
+                  {candidateOffer && (
+                    <button
+                      type="button"
+                      onClick={() => setViewOfferModalOpen(true)}
+                      className="px-5 py-2.5 bg-gradient-to-r from-gold-500 to-amber-400 text-navy-950 font-extrabold text-xs rounded-xl shadow-gold-glow hover:opacity-95 transition flex items-center gap-2 cursor-pointer shrink-0"
+                    >
+                      <FileText className="w-4 h-4" />
+                      <span>View Official Letterhead (PDF)</span>
+                    </button>
+                  )}
+                </div>
+              </div>
+
+              {!candidateOffer ? (
+                <div className="bg-white dark:bg-navy-900 border border-slate-200 dark:border-navy-800 rounded-3xl p-12 text-center space-y-4">
+                  <div className="w-16 h-16 rounded-2xl bg-gold-500/10 text-gold-500 flex items-center justify-center mx-auto">
+                    <Award className="w-8 h-8" />
+                  </div>
+                  <h3 className="font-serif text-xl font-bold text-navy-950 dark:text-white">
+                    No Active Offers or Admissions Yet
+                  </h3>
+                  <p className="text-xs text-slate-500 max-w-md mx-auto leading-relaxed">
+                    Once your verification and panel interviews are completed, the hiring committee or admissions board will release your formal letter and financial terms directly into this portal.
+                  </p>
+                  <button
+                    onClick={() => setActiveTab('interviews')}
+                    className="px-5 py-2.5 bg-slate-900 dark:bg-navy-800 text-white font-bold text-xs rounded-xl hover:bg-slate-800 transition cursor-pointer"
+                  >
+                    View Interview Schedule →
+                  </button>
+                </div>
+              ) : (
+                <div className="space-y-6">
+                  {/* Hero Offer Summary Card */}
+                  <div className="bg-white dark:bg-navy-900 border-2 border-gold-500/50 rounded-3xl p-6 sm:p-8 shadow-luxury space-y-6">
+                    <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 pb-4 border-b border-slate-100 dark:border-navy-800">
+                      <div>
+                        <span className="text-[10px] font-mono font-bold text-gold-600 dark:text-gold-400 uppercase tracking-widest">
+                          Official Reference: {candidateOffer.offerId}
+                        </span>
+                        <h3 className="font-serif text-2xl font-bold text-navy-950 dark:text-white mt-1">
+                          {candidateOffer.targetRole}
+                        </h3>
+                        <p className="text-xs text-slate-600 dark:text-slate-400 mt-0.5">
+                          Issued by <strong className="text-slate-900 dark:text-white">{candidateOffer.targetEntity}</strong> • Validated via Revival International
+                        </p>
+                      </div>
+
+                      <div className="flex items-center gap-2">
+                        <span className={`px-4 py-1.5 rounded-full text-xs font-bold border ${
+                          candidateOffer.acceptanceStatus?.includes('Accepted') || candidateOffer.status === 'Accepted'
+                            ? 'bg-emerald-500/20 text-emerald-700 dark:text-emerald-300 border-emerald-500/40'
+                            : 'bg-gold-500/20 text-gold-700 dark:text-gold-300 border-gold-500/40'
+                        }`}>
+                          {candidateOffer.acceptanceStatus || 'Pending Candidate Review'}
+                        </span>
+                      </div>
+                    </div>
+
+                    {/* Detailed Compensation & Terms Grid */}
+                    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 text-xs">
+                      <div className="p-4 rounded-2xl bg-slate-50 dark:bg-navy-950 border border-slate-200 dark:border-navy-800 space-y-1">
+                        <span className="text-[10px] uppercase font-bold text-slate-400 tracking-wider">
+                          {candidateOffer.offerType === 'college_admission' ? 'Annual Tuition Fee' : 'Total Compensation (CTC)'}
+                        </span>
+                        <p className="font-serif text-lg font-bold text-emerald-600 dark:text-emerald-400">
+                          {candidateOffer.targetComp}
+                        </p>
+                        <span className="text-[10px] text-slate-500">Tax-free GCC package / Verified schedule</span>
+                      </div>
+
+                      <div className="p-4 rounded-2xl bg-slate-50 dark:bg-navy-950 border border-slate-200 dark:border-navy-800 space-y-1">
+                        <span className="text-[10px] uppercase font-bold text-slate-400 tracking-wider">
+                          {candidateOffer.offerType === 'college_admission' ? 'Intake Term' : 'Joining / Start Date'}
+                        </span>
+                        <p className="font-serif text-lg font-bold text-navy-950 dark:text-white">
+                          {candidateOffer.targetDate}
+                        </p>
+                        <span className="text-[10px] text-slate-500">Subject to standard entry permit</span>
+                      </div>
+
+                      <div className="p-4 rounded-2xl bg-slate-50 dark:bg-navy-950 border border-slate-200 dark:border-navy-800 space-y-1">
+                        <span className="text-[10px] uppercase font-bold text-slate-400 tracking-wider">
+                          Workplace / Campus
+                        </span>
+                        <p className="font-serif text-lg font-bold text-navy-950 dark:text-white">
+                          {candidateOffer.targetLocation}
+                        </p>
+                        <span className="text-[10px] text-slate-500">On-site executive facility</span>
+                      </div>
+
+                      <div className="p-4 rounded-2xl bg-slate-50 dark:bg-navy-950 border border-slate-200 dark:border-navy-800 space-y-1">
+                        <span className="text-[10px] uppercase font-bold text-slate-400 tracking-wider">
+                          Documentation & Visa
+                        </span>
+                        <p className="font-serif text-lg font-bold text-emerald-600 dark:text-emerald-400">
+                          Employer Sponsored
+                        </p>
+                        <span className="text-[10px] text-slate-500">Includes residency & healthcare</span>
+                      </div>
+                    </div>
+
+                    {/* Terms & Conditions Block */}
+                    <div className="p-5 rounded-2xl bg-slate-50 dark:bg-navy-950 border border-slate-200 dark:border-navy-800 space-y-2">
+                      <h4 className="font-bold text-xs uppercase tracking-wider text-slate-700 dark:text-slate-300 flex items-center gap-1.5">
+                        <FileText className="w-3.5 h-3.5 text-gold-500" />
+                        Official Conditions & Entitlements
+                      </h4>
+                      <p className="text-xs text-slate-600 dark:text-slate-300 leading-relaxed font-sans">
+                        {candidateOffer.termsAndConditions || 'Standard 30-day notice period, medical insurance coverage (Tier A), annual return flights to home country, and GCC residency visa processing apply upon signature.'}
+                      </p>
+                    </div>
+
+                    {/* Action Confirmation Banner */}
+                    <div className="pt-2 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+                      <div className="text-xs text-slate-500">
+                        {candidateOffer.acceptanceStatus?.includes('Accepted') || candidateOffer.status === 'Accepted' ? (
+                          <span className="text-emerald-600 dark:text-emerald-400 font-bold flex items-center gap-1.5">
+                            <CheckCircle2 className="w-4 h-4" />
+                            Offer Accepted on {new Date(candidateOffer.respondedAt || Date.now()).toLocaleDateString('en-GB')}. Your placement officer is processing onboarding.
+                          </span>
+                        ) : (
+                          <span>Please review the terms above and confirm your decision. An onboarding advisor will reach out upon acceptance.</span>
+                        )}
+                      </div>
+
+                      <div className="flex items-center gap-3 w-full sm:w-auto">
+                        <button
+                          type="button"
+                          onClick={() => setViewOfferModalOpen(true)}
+                          className="flex-1 sm:flex-none px-4 py-2.5 rounded-xl border border-slate-300 dark:border-navy-700 hover:bg-slate-100 dark:hover:bg-navy-800 text-slate-700 dark:text-slate-200 font-bold text-xs transition flex items-center justify-center gap-1.5 cursor-pointer"
+                        >
+                          <FileText className="w-4 h-4 text-gold-500" />
+                          <span>View Full Document</span>
+                        </button>
+
+                        {!(candidateOffer.acceptanceStatus?.includes('Accepted') || candidateOffer.status === 'Accepted') && (
+                          <>
+                            <button
+                              type="button"
+                              disabled={isRespondingOffer}
+                              onClick={() => handleCandidateOfferAction('accept')}
+                              className="flex-1 sm:flex-none px-5 py-2.5 rounded-xl bg-gradient-to-r from-emerald-600 to-teal-500 hover:from-emerald-500 hover:to-teal-400 text-white font-bold text-xs shadow-md transition flex items-center justify-center gap-1.5 cursor-pointer disabled:opacity-50"
+                            >
+                              <Check className="w-4 h-4" />
+                              <span>{isRespondingOffer ? 'Confirming...' : 'Accept Offer'}</span>
+                            </button>
+                            <button
+                              type="button"
+                              disabled={isRespondingOffer}
+                              onClick={() => {
+                                const reason = prompt('Please share the reason for declining this offer (optional):');
+                                if (reason !== null) handleCandidateOfferAction('decline', reason);
+                              }}
+                              className="px-4 py-2.5 rounded-xl border border-rose-300 dark:border-rose-900 hover:bg-rose-50 dark:hover:bg-rose-950/30 text-rose-600 dark:text-rose-400 font-bold text-xs transition cursor-pointer"
+                            >
+                              Decline
+                            </button>
+                          </>
+                        )}
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              )}
             </div>
           )}
 
@@ -3153,6 +3572,166 @@ export const CandidatePortal = () => {
                 {isDeletingAccount ? 'Deleting...' : 'Confirm Delete'}
               </button>
             </div>
+          </div>
+        </div>
+      )}
+
+      {/* 8. OFFICIAL LETTERHEAD MODAL (OFFER / ADMISSION) */}
+      {viewOfferModalOpen && candidateOffer && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-navy-950/85 backdrop-blur-md animate-in fade-in overflow-y-auto">
+          <div className="bg-white dark:bg-[#070f24] rounded-3xl max-w-2xl w-full p-6 sm:p-8 space-y-6 border-2 border-gold-500/50 shadow-2xl text-left my-8">
+            
+            {/* Top Toolbar */}
+            <div className="flex justify-between items-center pb-3 border-b border-slate-200 dark:border-navy-800">
+              <span className="text-[10px] font-mono font-bold text-gold-600 dark:text-gold-400 uppercase tracking-widest flex items-center gap-1.5">
+                <Award className="w-4 h-4 text-gold-500" />
+                Verified Electronic Document • {candidateOffer.offerId}
+              </span>
+              <button
+                type="button"
+                onClick={() => setViewOfferModalOpen(false)}
+                className="p-1.5 text-slate-400 hover:text-slate-900 dark:hover:text-white rounded-xl transition cursor-pointer"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+
+            {/* Printable Formal Letter Document */}
+            <div id="revival-official-letter" className="space-y-6 text-slate-800 dark:text-slate-200 font-sans p-2">
+              
+              {/* Header Crest Banner */}
+              <div className="text-center pb-5 border-b-2 border-gold-500/30 space-y-1">
+                <h2 className="font-serif text-2xl sm:text-3xl font-extrabold tracking-wider text-slate-950 dark:text-white">
+                  THE REVIVAL INTERNATIONAL
+                </h2>
+                <p className="text-[11px] uppercase tracking-widest text-gold-600 dark:text-gold-400 font-bold">
+                  Executive Recruitment & Global University Advisory Directorate
+                </p>
+                <p className="text-[10px] text-slate-400">
+                  Dubai • Doha • Riyadh • Singapore • London • Global Operations
+                </p>
+              </div>
+
+              {/* Document Subject Banner */}
+              <div className="p-3 bg-gradient-to-r from-amber-500/15 to-emerald-500/15 rounded-xl border border-gold-500/30 text-center">
+                <span className="font-serif font-black text-xs sm:text-sm tracking-wide text-navy-950 dark:text-white uppercase">
+                  {candidateOffer.offerType === 'college_admission'
+                    ? 'Official Letter of Academic Admission'
+                    : 'Formal Letter of Employment Offer & Appointment'}
+                </span>
+              </div>
+
+              {/* Meta strip */}
+              <div className="flex flex-wrap justify-between text-xs font-mono text-slate-500 dark:text-slate-400 py-1">
+                <div>Date of Issuance: <strong className="text-slate-900 dark:text-white">{new Date(candidateOffer.issuedAt || Date.now()).toLocaleDateString('en-GB', { day: 'numeric', month: 'long', year: 'numeric' })}</strong></div>
+                <div>Document Ref: <strong className="text-gold-600 dark:text-gold-400">{candidateOffer.offerId}</strong></div>
+              </div>
+
+              {/* Salutation & Formal Text */}
+              <div className="space-y-3 text-xs leading-relaxed text-slate-700 dark:text-slate-300">
+                <p>
+                  Dear <strong className="text-slate-950 dark:text-white">{user?.name || 'Candidate'}</strong>,
+                </p>
+                <p>
+                  On behalf of <strong className="text-slate-950 dark:text-white">{candidateOffer.targetEntity}</strong> and The Revival International Executive Committee, we are honored to formally confirm your selection and present this official letter for the following appointment:
+                </p>
+              </div>
+
+              {/* Specification Table */}
+              <div className="rounded-2xl border border-slate-200 dark:border-navy-800 overflow-hidden text-xs">
+                <table className="w-full border-collapse">
+                  <tbody>
+                    <tr className="border-b border-slate-100 dark:border-navy-800 bg-slate-50/70 dark:bg-navy-950/70">
+                      <td className="p-3 font-bold text-slate-500 w-1/3">{candidateOffer.offerType === 'college_admission' ? 'University / Institution:' : 'Hiring Organization:'}</td>
+                      <td className="p-3 font-extrabold text-slate-950 dark:text-white">{candidateOffer.targetEntity}</td>
+                    </tr>
+                    <tr className="border-b border-slate-100 dark:border-navy-800">
+                      <td className="p-3 font-bold text-slate-500">{candidateOffer.offerType === 'college_admission' ? 'Admitted Degree Program:' : 'Position / Title:'}</td>
+                      <td className="p-3 font-extrabold text-navy-950 dark:text-white">{candidateOffer.targetRole}</td>
+                    </tr>
+                    <tr className="border-b border-slate-100 dark:border-navy-800 bg-slate-50/70 dark:bg-navy-950/70">
+                      <td className="p-3 font-bold text-slate-500">{candidateOffer.offerType === 'college_admission' ? 'Tuition Fee Structure:' : 'Total Remuneration (CTC):'}</td>
+                      <td className="p-3 font-extrabold text-emerald-600 dark:text-emerald-400">{candidateOffer.targetComp}</td>
+                    </tr>
+                    <tr className="border-b border-slate-100 dark:border-navy-800">
+                      <td className="p-3 font-bold text-slate-500">{candidateOffer.offerType === 'college_admission' ? 'Academic Commencement:' : 'Target Joining Date:'}</td>
+                      <td className="p-3 font-bold text-slate-900 dark:text-white">{candidateOffer.targetDate}</td>
+                    </tr>
+                    <tr>
+                      <td className="p-3 font-bold text-slate-500">Location / Facility:</td>
+                      <td className="p-3 font-bold text-slate-900 dark:text-white">{candidateOffer.targetLocation}</td>
+                    </tr>
+                  </tbody>
+                </table>
+              </div>
+
+              {/* Terms Paragraph */}
+              <div className="space-y-1.5 text-xs text-slate-600 dark:text-slate-400">
+                <strong className="text-slate-900 dark:text-white block">Terms & Special Conditions:</strong>
+                <p className="leading-relaxed bg-slate-50 dark:bg-navy-950 p-3 rounded-xl border border-slate-200 dark:border-navy-800">
+                  {candidateOffer.termsAndConditions}
+                </p>
+              </div>
+
+              {/* Attestation & Seals */}
+              <div className="grid grid-cols-2 gap-4 pt-4 border-t border-slate-200 dark:border-navy-800 text-center">
+                <div className="p-3 rounded-xl bg-slate-50 dark:bg-navy-950 border border-slate-200 dark:border-navy-800 space-y-1">
+                  <div className="w-8 h-8 rounded-full bg-emerald-500/15 text-emerald-500 mx-auto flex items-center justify-center font-bold">
+                    ✓
+                  </div>
+                  <span className="block text-[10px] font-bold text-slate-500 uppercase">Revival Global Seal</span>
+                  <span className="text-[11px] font-bold text-emerald-600 dark:text-emerald-400">Digitally Verified & Certified</span>
+                </div>
+
+                <div className="p-3 rounded-xl bg-slate-50 dark:bg-navy-950 border border-slate-200 dark:border-navy-800 space-y-1">
+                  <div className="w-8 h-8 rounded-full bg-gold-500/15 text-gold-500 mx-auto flex items-center justify-center font-bold">
+                    ★
+                  </div>
+                  <span className="block text-[10px] font-bold text-slate-500 uppercase">Executive Director</span>
+                  <span className="text-[11px] font-bold text-slate-900 dark:text-white">Talent & Placement Board</span>
+                </div>
+              </div>
+
+            </div>
+
+            {/* Modal Actions */}
+            <div className="flex flex-wrap items-center justify-between gap-3 pt-4 border-t border-slate-200 dark:border-navy-800">
+              <button
+                type="button"
+                onClick={() => window.print()}
+                className="px-4 py-2.5 rounded-xl border border-slate-300 dark:border-navy-700 hover:bg-slate-100 dark:hover:bg-navy-800 font-bold text-xs text-slate-700 dark:text-slate-200 transition flex items-center gap-1.5 cursor-pointer"
+              >
+                <Download className="w-4 h-4 text-gold-500" />
+                <span>Print / Save PDF</span>
+              </button>
+
+              <div className="flex items-center gap-2">
+                {!(candidateOffer.acceptanceStatus?.includes('Accepted') || candidateOffer.status === 'Accepted') ? (
+                  <button
+                    type="button"
+                    disabled={isRespondingOffer}
+                    onClick={() => handleCandidateOfferAction('accept')}
+                    className="px-5 py-2.5 rounded-xl bg-gradient-to-r from-emerald-600 to-teal-500 hover:from-emerald-500 hover:to-teal-400 text-white font-bold text-xs shadow-md transition flex items-center gap-1.5 cursor-pointer disabled:opacity-50"
+                  >
+                    <Check className="w-4 h-4" />
+                    <span>{isRespondingOffer ? 'Processing...' : 'Accept This Offer'}</span>
+                  </button>
+                ) : (
+                  <span className="text-xs font-bold text-emerald-600 dark:text-emerald-400 flex items-center gap-1 px-3 py-1.5 bg-emerald-500/15 rounded-xl border border-emerald-500/30">
+                    <CheckCircle2 className="w-4 h-4" /> Accepted & Active
+                  </span>
+                )}
+
+                <button
+                  type="button"
+                  onClick={() => setViewOfferModalOpen(false)}
+                  className="px-4 py-2.5 rounded-xl bg-slate-200 dark:bg-navy-800 text-slate-700 dark:text-slate-300 font-bold text-xs hover:bg-slate-300 dark:hover:bg-navy-700 transition cursor-pointer"
+                >
+                  Close
+                </button>
+              </div>
+            </div>
+
           </div>
         </div>
       )}

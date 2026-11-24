@@ -1940,6 +1940,36 @@ const initDb = async (db) => {
   try {
     await db.exec(`ALTER TABLE leads ADD COLUMN taskStatus TEXT`);
   } catch (_) { }
+  try {
+    await db.exec(`ALTER TABLE interviews ADD COLUMN feedback TEXT`);
+  } catch (_) { }
+  try {
+    await db.exec(`ALTER TABLE interviews ADD COLUMN rating INTEGER DEFAULT 5`);
+  } catch (_) { }
+  try {
+    await db.exec(`ALTER TABLE interviews ADD COLUMN result TEXT DEFAULT 'Pending'`);
+  } catch (_) { }
+  try {
+    await db.exec(`ALTER TABLE interviews ADD COLUMN meetingLink TEXT`);
+  } catch (_) { }
+  try {
+    await db.exec(`ALTER TABLE interviews ADD COLUMN panelists TEXT`);
+  } catch (_) { }
+  try {
+    await db.exec(`ALTER TABLE interviews ADD COLUMN roundType TEXT DEFAULT 'Technical Round'`);
+  } catch (_) { }
+  try {
+    await db.exec(`ALTER TABLE candidates ADD COLUMN offerDetails TEXT`);
+  } catch (_) { }
+  try {
+    await db.exec(`ALTER TABLE candidates ADD COLUMN placementStatus TEXT`);
+  } catch (_) { }
+  try {
+    await db.exec(`ALTER TABLE candidate_profiles ADD COLUMN offerDetails TEXT`);
+  } catch (_) { }
+  try {
+    await db.exec(`ALTER TABLE candidate_applications ADD COLUMN offerDetails TEXT`);
+  } catch (_) { }
 
   // Seed Shift Policies (Policy data only — no fabricated employee attendance records)
   try {

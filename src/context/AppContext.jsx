@@ -597,6 +597,8 @@ export const AppProvider = ({ children }) => {
       notifications: backendUser?.notifications || existing.notifications || [],
       profileCompletion: backendUser?.profileCompletion || existing.profileCompletion || 65,
       stage: backendUser?.stage || existing.stage || 'lead',
+      offerDetails: backendUser?.offerDetails || existing.offerDetails || null,
+      placementStatus: backendUser?.placementStatus || existing.placementStatus || null,
       score: backendUser?.score || existing.score || 88,
       resumeName: backendUser?.resumeName || existing.resumeName || (typeof window !== 'undefined' ? localStorage.getItem('sir_active_resume_name') : null) || null,
       resumeUrl: backendUser?.resumeUrl || existing.resumeUrl || (typeof window !== 'undefined' ? (localStorage.getItem(`sir_resume_${normalizedEmail}`) || localStorage.getItem('sir_active_resume')) : null) || null,
@@ -1222,6 +1224,49 @@ export const AppProvider = ({ children }) => {
     return true;
   };
 
+  const respondToOffer = async (candidateId, action, reason = '') => {
+    try {
+      const targetId = candidateId || user?.candidateId || user?.id;
+      if (!targetId) throw new Error('Candidate identifier not found.');
+      const res = await fetch(`/api/candidates/${targetId}/respond-offer`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ action, reason })
+      });
+      const data = await res.json();
+      if (data.success) {
+        setUser(prev => {
+          if (!prev) return prev;
+          const next = {
+            ...prev,
+            stage: data.newStage,
+            offerDetails: data.offerDetails
+          };
+          saveUserSession(next);
+          return next;
+        });
+
+        setApplications(prev => prev.map(a => {
+          const cid = a.candidateId || a.id;
+          if (cid === targetId || a.id === targetId || a.applicantEmail?.toLowerCase() === user?.email?.toLowerCase()) {
+            return {
+              ...a,
+              stage: action === 'accept' ? 'Offer Accepted' : 'Offer Declined',
+              status: action === 'accept' ? 'Offer Accepted' : 'Declined',
+              offerDetails: data.offerDetails
+            };
+          }
+          return a;
+        }));
+
+        return { success: true, message: data.message };
+      }
+      return { success: false, message: data.message || 'Failed to submit response' };
+    } catch (err) {
+      return { success: false, message: err.message };
+    }
+  };
+
   // Sync URL pathname & hash routing
   useEffect(() => {
     const handleUrlSync = () => {
@@ -1487,6 +1532,7 @@ export const AppProvider = ({ children }) => {
         updateApplicationStatus,
         deleteApplication,
         withdrawApplication: deleteApplication,
+        respondToOffer,
         postedJobs,
         addJob,
         deleteJob,

@@ -2,58 +2,114 @@ import React, { useState } from 'react';
 import { useCrm } from '../context/CrmContext';
 import { 
   Award, CheckCircle2, Clock, Calendar, AlertCircle, FileText, 
-  Download, Send, Users, DollarSign, Building2, MapPin, CheckSquare 
+  Download, Send, Users, DollarSign, Building2, MapPin, CheckSquare, Plus, X, Sparkles, GraduationCap 
 } from 'lucide-react';
 import ScrollReveal from '../../components/ScrollReveal';
 
 export const CrmOffersJoining = () => {
-  const [offers, setOffers] = useState([]);
+  const { candidates = [], issueOfferLetter, updateCandidateStage } = useCrm();
 
   const [filterStatus, setFilterStatus] = useState('all');
   const [notification, setNotification] = useState('');
+
+  // Selected candidates for offer modal
+  const [offerModalCandidate, setOfferModalCandidate] = useState(null);
+  const [offerForm, setOfferForm] = useState({
+    offerType: 'job_offer', // 'job_offer' | 'college_admission'
+    companyName: 'Al Habtoor Engineering Group',
+    institutionName: 'Revival Partner University',
+    designation: 'Senior Project Engineer',
+    courseName: 'B.Tech Computer Science & AI',
+    compensation: 'AED 16,500 / Month + Family Visa',
+    tuitionFee: 'USD 8,500 / Academic Year',
+    joiningDate: '2026-12-15',
+    commencementDate: 'Fall Intake (Sep 2026)',
+    workLocation: 'Dubai, UAE',
+    campusLocation: 'Academic City Campus, Dubai',
+    termsAndConditions: 'Standard 30-day probation, medical insurance tier A, annual return flight tickets included.'
+  });
+  const [isSubmittingOffer, setIsSubmittingOffer] = useState(false);
 
   const showToast = (msg) => {
     setNotification(msg);
     setTimeout(() => setNotification(''), 4000);
   };
 
-  const handleUpdateOfferStatus = (offerId, newStatus) => {
-    setOffers(prev => prev.map(o => {
-      if (o.id === offerId) {
-        return {
-          ...o,
-          status: newStatus,
-          joiningConfirmed: newStatus === 'Joining Confirmed' ? true : o.joiningConfirmed
-        };
-      }
-      return o;
+  // Candidates who passed the interview and are selected
+  const selectedCandidates = candidates.filter(c => c.stage === 'selected');
+
+  // Derive offers from candidates who have offers issued or joined
+  const candidateOffers = candidates
+    .filter(c => c.stage === 'offer_released' || c.stage === 'offer_accepted' || c.stage === 'joined' || c.offerDetails)
+    .map(c => {
+      let details = {};
+      try {
+        details = typeof c.offerDetails === 'string' ? JSON.parse(c.offerDetails) : (c.offerDetails || {});
+      } catch (_) {}
+
+      return {
+        id: details.offerId || `OFF-${c.id}`,
+        candidateId: c.id,
+        candidateName: c.name,
+        role: details.targetRole || c.currentRole || 'Appointed Specialist',
+        company: details.targetEntity || details.companyName || 'Revival Partner Corporation',
+        package: details.targetComp || c.expectedSalary || 'AED 15,000 / Month',
+        offerDate: details.issuedAt ? new Date(details.issuedAt).toLocaleDateString() : 'Recent',
+        joiningDate: details.targetDate || 'Immediate / 30 Days',
+        location: details.targetLocation || c.location || 'UAE / Global',
+        status: c.stage === 'joined' ? 'Joining Confirmed' : (c.stage === 'offer_accepted' ? 'Accepted' : 'Offered'),
+        joiningConfirmed: c.stage === 'joined',
+        visaStatus: 'Processed',
+        offerType: details.offerType || 'job_offer'
+      };
+    });
+
+  const handleOpenOfferModal = (cand) => {
+    setOfferModalCandidate(cand);
+    setOfferForm(prev => ({
+      ...prev,
+      designation: cand.currentRole || 'Executive Candidate',
+      workLocation: cand.location || cand.preferredCountry || 'Dubai, UAE'
     }));
-    showToast(`✓ Offer ${offerId} status updated to "${newStatus}"`);
   };
 
-  const handleToggleConfirmJoining = (offerId) => {
-    setOffers(prev => prev.map(o => {
-      if (o.id === offerId) {
-        const nextConfirmed = !o.joiningConfirmed;
-        return {
-          ...o,
-          joiningConfirmed: nextConfirmed,
-          status: nextConfirmed ? 'Joining Confirmed' : 'Accepted'
-        };
+  const handleDispatchOffer = async (e) => {
+    e.preventDefault();
+    if (!offerModalCandidate) return;
+
+    setIsSubmittingOffer(true);
+    try {
+      if (issueOfferLetter) {
+        await issueOfferLetter(offerModalCandidate.id, offerForm);
       }
-      return o;
-    }));
-    showToast(`✓ Candidate joining status toggled`);
+      showToast(`✓ Official ${offerForm.offerType === 'college_admission' ? 'Admission' : 'Offer'} Letter issued and emailed to ${offerModalCandidate.name}!`);
+      setOfferModalCandidate(null);
+    } catch (err) {
+      showToast(`⚠️ Error issuing offer: ${err.message}`);
+    } finally {
+      setIsSubmittingOffer(false);
+    }
   };
 
-  const filteredOffers = offers.filter(o => 
+  const handleUpdateOfferStatus = (candidateId, newStatus) => {
+    if (newStatus === 'Joining Confirmed') {
+      updateCandidateStage(candidateId, 'joined');
+    } else if (newStatus === 'Accepted') {
+      updateCandidateStage(candidateId, 'offer_accepted');
+    } else if (newStatus === 'Declined') {
+      updateCandidateStage(candidateId, 'rejected');
+    }
+    showToast(`✓ Candidate status updated to "${newStatus}"`);
+  };
+
+  const filteredOffers = candidateOffers.filter(o => 
     filterStatus === 'all' || o.status.toLowerCase() === filterStatus.toLowerCase()
   );
 
-  const totalOffers = offers.length;
-  const acceptedOffers = offers.filter(o => o.status === 'Accepted').length;
-  const pendingOffers = offers.filter(o => o.status === 'Offered').length;
-  const confirmedJoiners = offers.filter(o => o.status === 'Joining Confirmed' || o.joiningConfirmed).length;
+  const totalOffers = candidateOffers.length;
+  const acceptedOffers = candidateOffers.filter(o => o.status === 'Accepted').length;
+  const pendingOffers = candidateOffers.filter(o => o.status === 'Offered').length;
+  const confirmedJoiners = candidateOffers.filter(o => o.status === 'Joining Confirmed').length;
 
   return (
     <ScrollReveal>
@@ -115,6 +171,283 @@ export const CrmOffersJoining = () => {
             </div>
           </div>
         </div>
+
+        {/* Selected Candidates Awaiting Placement / Offer Release */}
+        <div className="bg-white dark:bg-navy-900 border border-gold-500/30 rounded-3xl p-6 shadow-sm space-y-4">
+          <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-2 border-b border-slate-200 dark:border-navy-800 pb-3">
+            <div>
+              <div className="flex items-center gap-2">
+                <Sparkles className="w-4 h-4 text-gold-500" />
+                <h2 className="font-serif text-lg font-bold text-slate-900 dark:text-white">
+                  Candidates Selected in Interview (Ready for Offer / Admission)
+                </h2>
+              </div>
+              <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">
+                These candidates have passed interview evaluations and are ready for official Offer Letter or University Admission dispatch.
+              </p>
+            </div>
+            <span className="px-3 py-1 bg-amber-500/20 text-amber-700 dark:text-amber-400 border border-amber-500/30 text-xs font-bold rounded-full">
+              {selectedCandidates.length} Pending Placement
+            </span>
+          </div>
+
+          {selectedCandidates.length === 0 ? (
+            <div className="p-6 bg-slate-50 dark:bg-navy-950 rounded-2xl text-center space-y-2 border border-slate-200 dark:border-navy-800">
+              <CheckCircle2 className="w-8 h-8 text-emerald-500 mx-auto" />
+              <p className="text-xs font-bold text-slate-700 dark:text-slate-300">
+                All selected candidates have been processed with official offers!
+              </p>
+              <p className="text-[11px] text-slate-500 max-w-md mx-auto">
+                When an interviewer marks a candidate as "Passed / Selected" in the Interview Center, they will automatically appear here for offer generation and email dispatch.
+              </p>
+            </div>
+          ) : (
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+              {selectedCandidates.map(c => (
+                <div key={c.id} className="p-4 bg-slate-50 dark:bg-navy-950 border border-gold-500/30 rounded-2xl space-y-3 hover:border-gold-500 transition shadow-xs">
+                  <div className="flex justify-between items-start">
+                    <div>
+                      <h4 className="font-serif font-bold text-slate-900 dark:text-white text-sm">{c.name}</h4>
+                      <p className="text-slate-500 text-[11px]">{c.currentRole || 'Candidate'} • <span className="text-gold-600 dark:text-gold-400 font-mono font-bold">{c.id}</span></p>
+                    </div>
+                    <span className="px-2 py-0.5 rounded text-[10px] font-extrabold bg-emerald-500/20 text-emerald-700 dark:text-emerald-400 border border-emerald-500/30">
+                      ★ Selected
+                    </span>
+                  </div>
+
+                  <div className="text-[11px] text-slate-600 dark:text-slate-400 space-y-1">
+                    <p><strong>Email:</strong> {c.email || 'N/A'}</p>
+                    <p><strong>Location:</strong> {c.location || c.preferredCountry || 'UAE'}</p>
+                    <p><strong>Expected:</strong> {c.expectedSalary || 'Market Standard'}</p>
+                  </div>
+
+                  <button
+                    onClick={() => handleOpenOfferModal(c)}
+                    className="w-full py-2 bg-gradient-to-r from-gold-500 to-amber-400 text-navy-950 font-extrabold text-xs rounded-xl shadow-gold-glow hover:opacity-95 transition flex items-center justify-center gap-1.5 cursor-pointer"
+                  >
+                    <FileText className="w-3.5 h-3.5" />
+                    <span>Issue Offer / Admission Letter →</span>
+                  </button>
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
+
+        {/* Issue Offer / Admission Modal */}
+        {offerModalCandidate && (
+          <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-navy-950/80 backdrop-blur-sm animate-in fade-in">
+            <div className="glass-card bg-white dark:bg-navy-900 border border-gold-500/40 rounded-3xl max-w-xl w-full p-6 sm:p-8 shadow-luxury space-y-5 max-h-[90vh] overflow-y-auto">
+              <div className="flex justify-between items-start border-b border-slate-200 dark:border-navy-800 pb-3">
+                <div>
+                  <span className="px-2 py-0.5 rounded text-[10px] font-bold bg-gold-500/20 text-gold-600 dark:text-gold-400 uppercase tracking-wider">
+                    Official Document Dispatch
+                  </span>
+                  <h3 className="font-serif text-xl font-bold text-slate-900 dark:text-white mt-1">
+                    Issue Placement Letter for {offerModalCandidate.name}
+                  </h3>
+                  <p className="text-xs text-slate-500 dark:text-slate-400">
+                    Candidate will receive an official email notification via Zoho Mail, and the letter will be published to their Candidate Dashboard.
+                  </p>
+                </div>
+                <button
+                  onClick={() => setOfferModalCandidate(null)}
+                  className="text-slate-400 hover:text-slate-900 dark:hover:text-white p-1 cursor-pointer"
+                >
+                  <X className="w-5 h-5" />
+                </button>
+              </div>
+
+              {/* Offer Type Selector */}
+              <div className="flex rounded-xl p-1 bg-slate-100 dark:bg-navy-950 border border-slate-200 dark:border-navy-800">
+                <button
+                  type="button"
+                  onClick={() => setOfferForm({ ...offerForm, offerType: 'job_offer' })}
+                  className={`flex-1 py-2 rounded-lg font-bold text-xs transition flex items-center justify-center gap-1.5 cursor-pointer ${
+                    offerForm.offerType === 'job_offer'
+                      ? 'bg-gold-500 text-navy-950 shadow-sm'
+                      : 'text-slate-600 dark:text-slate-400 hover:text-navy-950 dark:hover:text-white'
+                  }`}
+                >
+                  <Building2 className="w-3.5 h-3.5" />
+                  <span>Job Offer Letter (Corporate)</span>
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setOfferForm({ ...offerForm, offerType: 'college_admission' })}
+                  className={`flex-1 py-2 rounded-lg font-bold text-xs transition flex items-center justify-center gap-1.5 cursor-pointer ${
+                    offerForm.offerType === 'college_admission'
+                      ? 'bg-gold-500 text-navy-950 shadow-sm'
+                      : 'text-slate-600 dark:text-slate-400 hover:text-navy-950 dark:hover:text-white'
+                  }`}
+                >
+                  <GraduationCap className="w-3.5 h-3.5" />
+                  <span>University Admission Letter (Academic)</span>
+                </button>
+              </div>
+
+              <form onSubmit={handleDispatchOffer} className="space-y-4 text-xs">
+                {offerForm.offerType === 'job_offer' ? (
+                  <>
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                      <div>
+                        <label className="block text-[11px] font-extrabold text-slate-700 dark:text-slate-300 mb-1">Hiring Corporation / Employer</label>
+                        <input
+                          required
+                          type="text"
+                          value={offerForm.companyName}
+                          onChange={e => setOfferForm({ ...offerForm, companyName: e.target.value })}
+                          className="w-full bg-slate-100 dark:bg-navy-950 border border-slate-300 dark:border-navy-700 text-slate-900 dark:text-white rounded-xl p-2.5 font-bold focus:outline-none focus:border-gold-500"
+                        />
+                      </div>
+                      <div>
+                        <label className="block text-[11px] font-extrabold text-slate-700 dark:text-slate-300 mb-1">Designation / Job Title</label>
+                        <input
+                          required
+                          type="text"
+                          value={offerForm.designation}
+                          onChange={e => setOfferForm({ ...offerForm, designation: e.target.value })}
+                          className="w-full bg-slate-100 dark:bg-navy-950 border border-slate-300 dark:border-navy-700 text-slate-900 dark:text-white rounded-xl p-2.5 font-bold focus:outline-none focus:border-gold-500"
+                        />
+                      </div>
+                    </div>
+
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                      <div>
+                        <label className="block text-[11px] font-extrabold text-slate-700 dark:text-slate-300 mb-1">Compensation / Monthly CTC</label>
+                        <input
+                          required
+                          type="text"
+                          value={offerForm.compensation}
+                          onChange={e => setOfferForm({ ...offerForm, compensation: e.target.value })}
+                          className="w-full bg-slate-100 dark:bg-navy-950 border border-slate-300 dark:border-navy-700 text-slate-900 dark:text-white rounded-xl p-2.5 font-bold focus:outline-none focus:border-gold-500"
+                        />
+                      </div>
+                      <div>
+                        <label className="block text-[11px] font-extrabold text-slate-700 dark:text-slate-300 mb-1">Target Joining Date</label>
+                        <input
+                          required
+                          type="text"
+                          value={offerForm.joiningDate}
+                          onChange={e => setOfferForm({ ...offerForm, joiningDate: e.target.value })}
+                          className="w-full bg-slate-100 dark:bg-navy-950 border border-slate-300 dark:border-navy-700 text-slate-900 dark:text-white rounded-xl p-2.5 font-bold focus:outline-none focus:border-gold-500"
+                        />
+                      </div>
+                    </div>
+
+                    <div>
+                      <label className="block text-[11px] font-extrabold text-slate-700 dark:text-slate-300 mb-1">Work Location</label>
+                      <input
+                        required
+                        type="text"
+                        value={offerForm.workLocation}
+                        onChange={e => setOfferForm({ ...offerForm, workLocation: e.target.value })}
+                        className="w-full bg-slate-100 dark:bg-navy-950 border border-slate-300 dark:border-navy-700 text-slate-900 dark:text-white rounded-xl p-2.5 font-bold focus:outline-none focus:border-gold-500"
+                      />
+                    </div>
+                  </>
+                ) : (
+                  <>
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                      <div>
+                        <label className="block text-[11px] font-extrabold text-slate-700 dark:text-slate-300 mb-1">Partner University / Institution</label>
+                        <input
+                          required
+                          type="text"
+                          value={offerForm.institutionName}
+                          onChange={e => setOfferForm({ ...offerForm, institutionName: e.target.value })}
+                          className="w-full bg-slate-100 dark:bg-navy-950 border border-slate-300 dark:border-navy-700 text-slate-900 dark:text-white rounded-xl p-2.5 font-bold focus:outline-none focus:border-gold-500"
+                        />
+                      </div>
+                      <div>
+                        <label className="block text-[11px] font-extrabold text-slate-700 dark:text-slate-300 mb-1">Enrolled Degree / Program</label>
+                        <input
+                          required
+                          type="text"
+                          value={offerForm.courseName}
+                          onChange={e => setOfferForm({ ...offerForm, courseName: e.target.value })}
+                          className="w-full bg-slate-100 dark:bg-navy-950 border border-slate-300 dark:border-navy-700 text-slate-900 dark:text-white rounded-xl p-2.5 font-bold focus:outline-none focus:border-gold-500"
+                        />
+                      </div>
+                    </div>
+
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                      <div>
+                        <label className="block text-[11px] font-extrabold text-slate-700 dark:text-slate-300 mb-1">Annual / Semester Tuition Fee</label>
+                        <input
+                          required
+                          type="text"
+                          value={offerForm.tuitionFee}
+                          onChange={e => setOfferForm({ ...offerForm, tuitionFee: e.target.value })}
+                          className="w-full bg-slate-100 dark:bg-navy-950 border border-slate-300 dark:border-navy-700 text-slate-900 dark:text-white rounded-xl p-2.5 font-bold focus:outline-none focus:border-gold-500"
+                        />
+                      </div>
+                      <div>
+                        <label className="block text-[11px] font-extrabold text-slate-700 dark:text-slate-300 mb-1">Academic Intake Commencement</label>
+                        <input
+                          required
+                          type="text"
+                          value={offerForm.commencementDate}
+                          onChange={e => setOfferForm({ ...offerForm, commencementDate: e.target.value })}
+                          className="w-full bg-slate-100 dark:bg-navy-950 border border-slate-300 dark:border-navy-700 text-slate-900 dark:text-white rounded-xl p-2.5 font-bold focus:outline-none focus:border-gold-500"
+                        />
+                      </div>
+                    </div>
+
+                    <div>
+                      <label className="block text-[11px] font-extrabold text-slate-700 dark:text-slate-300 mb-1">Campus Location</label>
+                      <input
+                        required
+                        type="text"
+                        value={offerForm.campusLocation}
+                        onChange={e => setOfferForm({ ...offerForm, campusLocation: e.target.value })}
+                        className="w-full bg-slate-100 dark:bg-navy-950 border border-slate-300 dark:border-navy-700 text-slate-900 dark:text-white rounded-xl p-2.5 font-bold focus:outline-none focus:border-gold-500"
+                      />
+                    </div>
+                  </>
+                )}
+
+                <div>
+                  <label className="block text-[11px] font-extrabold text-slate-700 dark:text-slate-300 mb-1">Terms, Benefits & Formal Instructions</label>
+                  <textarea
+                    rows={3}
+                    value={offerForm.termsAndConditions}
+                    onChange={e => setOfferForm({ ...offerForm, termsAndConditions: e.target.value })}
+                    className="w-full bg-slate-100 dark:bg-navy-950 border border-slate-300 dark:border-navy-700 text-slate-900 dark:text-white rounded-xl p-2.5 font-medium focus:outline-none focus:border-gold-500"
+                  />
+                </div>
+
+                <div className="pt-2 flex gap-3">
+                  <button
+                    type="button"
+                    onClick={() => setOfferModalCandidate(null)}
+                    disabled={isSubmittingOffer}
+                    className="flex-1 py-3 rounded-xl border border-slate-300 dark:border-navy-700 hover:bg-slate-100 dark:hover:bg-navy-800 text-slate-700 dark:text-slate-300 font-bold text-xs transition cursor-pointer"
+                  >
+                    Cancel
+                  </button>
+                  <button
+                    type="submit"
+                    disabled={isSubmittingOffer}
+                    className="flex-1 py-3 bg-gradient-to-r from-gold-500 to-amber-400 hover:from-gold-400 hover:to-amber-300 text-navy-950 font-extrabold text-xs rounded-xl shadow-gold-glow transition flex items-center justify-center gap-2 cursor-pointer disabled:opacity-50"
+                  >
+                    {isSubmittingOffer ? (
+                      <>
+                        <Send className="w-4 h-4 animate-spin" />
+                        <span>Dispatching Letter & Email...</span>
+                      </>
+                    ) : (
+                      <>
+                        <Send className="w-4 h-4" />
+                        <span>Dispatch Official Letter & Notify Candidate</span>
+                      </>
+                    )}
+                  </button>
+                </div>
+              </form>
+            </div>
+          </div>
+        )}
 
         {/* Filter Controls Bar */}
         <div className="bg-white dark:bg-navy-900 border border-slate-200 dark:border-navy-800 p-4 rounded-2xl flex justify-between items-center shadow-sm">
