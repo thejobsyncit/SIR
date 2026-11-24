@@ -1,5 +1,6 @@
 import React from 'react';
 import { AlertTriangle, RefreshCw, Home, ShieldAlert } from 'lucide-react';
+import { pruneBulkyStorage, stripBulkyDataForStorage } from '../utils/safeStorage';
 
 export class ErrorBoundary extends React.Component {
   constructor(props) {
@@ -8,6 +9,18 @@ export class ErrorBoundary extends React.Component {
   }
 
   static getDerivedStateFromError(error) {
+    // If it's a storage quota exceeded error, automatically prune bulky storage items immediately
+    if (typeof window !== 'undefined' && error?.message && (error.message.includes('quota') || error.message.includes('Storage'))) {
+      try {
+        pruneBulkyStorage();
+        const rawSess = localStorage.getItem('sir_user_session');
+        if (rawSess) {
+          const parsed = JSON.parse(rawSess);
+          const sanitized = stripBulkyDataForStorage(parsed);
+          localStorage.setItem('sir_user_session', JSON.stringify(sanitized));
+        }
+      } catch (_) {}
+    }
     return { hasError: true, error };
   }
 
@@ -23,9 +36,9 @@ export class ErrorBoundary extends React.Component {
             url: window.location.href,
             timestamp: new Date().toISOString()
           })
-        }).catch(() => {});
+        }).catch(() => { });
       }
-    } catch (_) {}
+    } catch (_) { }
 
     if (process.env.NODE_ENV !== 'production') {
       console.error('[ErrorBoundary caught error]', error, errorInfo);
@@ -50,14 +63,20 @@ export class ErrorBoundary extends React.Component {
 
   handleClearAndReset = () => {
     try {
-      localStorage.removeItem('sir_crm_session');
-      localStorage.removeItem('sir_user_session');
-      localStorage.removeItem('sir_erp_session');
-      localStorage.removeItem('sir_candidates_db');
-      localStorage.removeItem('sir_job_applications');
-      localStorage.removeItem('crm_candidates');
+      pruneBulkyStorage();
+      // Safely sanitize session instead of destroying genuine candidate databases
+      const rawSess = localStorage.getItem('sir_user_session');
+      if (rawSess) {
+        try {
+          const parsed = JSON.parse(rawSess);
+          const sanitized = stripBulkyDataForStorage(parsed);
+          localStorage.setItem('sir_user_session', JSON.stringify(sanitized));
+        } catch (_) {
+          localStorage.removeItem('sir_user_session');
+        }
+      }
       sessionStorage.clear();
-    } catch (_) {}
+    } catch (_) { }
     this.setState({ hasError: false, error: null });
     if (typeof window !== 'undefined') {
       window.location.reload();

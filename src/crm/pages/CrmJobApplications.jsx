@@ -9,6 +9,7 @@ import {
 } from 'lucide-react';
 import ScrollReveal from '../../components/ScrollReveal';
 import { downloadCandidateResumePdf, openCandidateResumeInNewTab } from '../../services/candidateResumePdfService';
+import { getCandidateAvatar, getCandidateFallbackAvatar } from '../../utils/candidateAvatars';
 
 export const CrmJobApplications = () => {
   const {
@@ -103,20 +104,6 @@ export const CrmJobApplications = () => {
     };
   }, [fetchApplications]);
 
-  // Auto-clean any corrupt legacy ghost applications from localStorage on mount
-  useEffect(() => {
-    try {
-      const raw = localStorage.getItem('sir_job_applications');
-      if (raw) {
-        const parsed = JSON.parse(raw);
-        if (Array.isArray(parsed) && (parsed.length > 50 || parsed.some(a => !a || !a.applicantEmail || !a.applicantEmail.includes('@')))) {
-          localStorage.removeItem('sir_job_applications');
-          if (fetchApplications) fetchApplications();
-        }
-      }
-    } catch {}
-  }, [fetchApplications]);
-
   // Genuine application aggregator synchronized directly with CRM context & live backend
   const applicationPool = useMemo(() => {
     const deletedSet = new Set();
@@ -137,21 +124,41 @@ export const CrmJobApplications = () => {
       // Only accept applications with real candidate email
       if (!email || !email.includes('@')) return;
       if (a.id === 'RI-APP-28093' || a.id === 'RI-APP-98803') return; // ignore seed dummies
-      const name = (a.applicantName || '').toLowerCase().trim();
-      if (name === 'candidate' || name.startsWith('candidate ri-cand-') || name === 'applicant') return;
       const comp = `${String(a.jobId).trim()}_${email}`;
       if (deletedSet.has(comp)) return;
 
       const key = appId || comp;
       if (!map.has(key)) {
-        map.set(key, { ...a, applicantEmail: email });
+        // Resolve applicant name if missing or placeholder
+        let effectiveName = a.applicantName;
+        if (!effectiveName || effectiveName.trim().toLowerCase() === 'candidate' || effectiveName.trim().toLowerCase() === 'applicant') {
+          const matchCand = candidates?.find(c => (c.email && c.email.toLowerCase().trim() === email) || (c.id && c.id === a.candidateId));
+          if (matchCand?.name) {
+            effectiveName = matchCand.name;
+          } else {
+            const prefix = email.split('@')[0].replace(/[._]/g, ' ');
+            effectiveName = prefix.charAt(0).toUpperCase() + prefix.slice(1);
+          }
+        }
+        map.set(key, { ...a, applicantName: effectiveName, applicantEmail: email });
       }
     };
 
-    if (Array.isArray(applications)) applications.forEach(addApp);
+    if (Array.isArray(applications) && applications.length > 0) {
+      applications.forEach(addApp);
+    } else {
+      // Resilient fallback: Use cached applications so the screen never blinks or clears on reload
+      try {
+        const cachedStr = localStorage.getItem('sir_job_applications');
+        if (cachedStr) {
+          const cached = JSON.parse(cachedStr);
+          if (Array.isArray(cached)) cached.forEach(addApp);
+        }
+      } catch {}
+    }
 
     return Array.from(map.values()).sort((a, b) => new Date(b.appliedDate || b.createdAt || 0) - new Date(a.appliedDate || a.createdAt || 0));
-  }, [applications, syncTick]);
+  }, [applications, candidates, syncTick]);
 
   // Compute unique jobs and companies for dropdown filters
   const uniqueJobs = useMemo(() => {
@@ -756,8 +763,12 @@ export const CrmJobApplications = () => {
                           <td className="px-3 py-2.5 whitespace-nowrap">
                             <div className="flex items-center space-x-2.5">
                               <img
-                                src={app.candidateAvatar || `https://api.dicebear.com/7.x/initials/svg?seed=${encodeURIComponent(app.applicantName || 'Applicant')}`}
-                                alt={app.applicantName}
+                                src={getCandidateAvatar({ ...app, name: app.applicantName, email: app.applicantEmail, id: app.candidateId, avatar: app.candidateAvatar })}
+                                alt={app.applicantName || 'Candidate'}
+                                onError={(e) => {
+                                  e.currentTarget.onerror = null;
+                                  e.currentTarget.src = getCandidateFallbackAvatar(app.applicantName || 'Candidate');
+                                }}
                                 className="w-8 h-8 rounded-full object-cover border-2 border-gold-500 shrink-0"
                               />
                               <div>
@@ -1011,8 +1022,12 @@ export const CrmJobApplications = () => {
                         <div className="flex items-center justify-between">
                           <div className="flex items-center space-x-2.5">
                             <img
-                              src={app.candidateAvatar || `https://api.dicebear.com/7.x/initials/svg?seed=${encodeURIComponent(app.applicantName || 'Applicant')}`}
-                              alt={app.applicantName}
+                              src={getCandidateAvatar({ ...app, name: app.applicantName, email: app.applicantEmail, id: app.candidateId, avatar: app.candidateAvatar })}
+                              alt={app.applicantName || 'Candidate'}
+                              onError={(e) => {
+                                e.currentTarget.onerror = null;
+                                e.currentTarget.src = getCandidateFallbackAvatar(app.applicantName || 'Candidate');
+                              }}
                               className="w-9 h-9 rounded-full object-cover border-2 border-gold-500 shrink-0"
                             />
                             <div>
@@ -1218,8 +1233,12 @@ export const CrmJobApplications = () => {
                                 <div className="flex items-start justify-between">
                                   <div className="flex items-center space-x-2.5">
                                     <img
-                                      src={app.candidateAvatar || `https://api.dicebear.com/7.x/initials/svg?seed=${encodeURIComponent(app.applicantName || 'Applicant')}`}
-                                      alt={app.applicantName}
+                                      src={getCandidateAvatar({ ...app, name: app.applicantName, email: app.applicantEmail, id: app.candidateId, avatar: app.candidateAvatar })}
+                                      alt={app.applicantName || 'Applicant'}
+                                      onError={(e) => {
+                                        e.currentTarget.onerror = null;
+                                        e.currentTarget.src = getCandidateFallbackAvatar(app.applicantName || 'Applicant');
+                                      }}
                                       className="w-8 h-8 rounded-full object-cover border-2 border-gold-500 shrink-0"
                                     />
                                     <div>
@@ -1317,8 +1336,12 @@ export const CrmJobApplications = () => {
             <div className="flex justify-between items-start border-b border-slate-200 dark:border-slate-800 pb-4">
               <div className="flex items-center space-x-4">
                 <img
-                  src={viewCand.avatar || `https://api.dicebear.com/7.x/initials/svg?seed=${encodeURIComponent(viewCand.name || 'Candidate')}`}
+                  src={getCandidateAvatar(viewCand)}
                   alt={viewCand.name}
+                  onError={(e) => {
+                    e.currentTarget.onerror = null;
+                    e.currentTarget.src = getCandidateFallbackAvatar(viewCand);
+                  }}
                   className="w-14 h-14 rounded-full object-cover border-2 border-gold-500 shrink-0"
                 />
                 <div>

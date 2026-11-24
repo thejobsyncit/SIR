@@ -28,7 +28,10 @@ import {
   syncCandidateToSupabase,
   syncUserToSupabase,
   deleteCandidateFromSupabase,
-  checkSupabaseCandidateExists
+  checkSupabaseCandidateExists,
+  fetchSupabaseApplications,
+  syncApplicationToSupabase,
+  deleteApplicationFromSupabase
 } from './supabase.js';
 
 dotenv.config();
@@ -2611,8 +2614,35 @@ app.get('/api/candidate/applications', async (req, res) => {
         LEFT JOIN candidates c ON LOWER(c.email) = LOWER(ca.applicantEmail) OR c.id = ca.candidateId
         ORDER BY ca.appliedDate DESC
       `);
-
     }
+
+    // Merge persistent cloud applications from Supabase PostgreSQL
+    try {
+      const sbApps = await fetchSupabaseApplications();
+      if (Array.isArray(sbApps) && sbApps.length > 0) {
+        const mergedMap = new Map();
+        (rows || []).forEach(r => {
+          const key = String(r.id || `${String(r.jobId).trim()}_${(r.applicantEmail || '').trim().toLowerCase()}`);
+          mergedMap.set(key, r);
+        });
+
+        sbApps.forEach(sa => {
+          const key = String(sa.id || `${String(sa.jobId).trim()}_${(sa.applicantEmail || '').trim().toLowerCase()}`);
+          if (!mergedMap.has(key)) {
+            mergedMap.set(key, sa);
+          } else {
+            // Fill any missing metadata from Supabase
+            const existing = mergedMap.get(key);
+            mergedMap.set(key, { ...sa, ...existing });
+          }
+        });
+
+        rows = Array.from(mergedMap.values()).sort((a, b) => new Date(b.appliedDate || b.createdAt || 0) - new Date(a.appliedDate || a.createdAt || 0));
+      }
+    } catch (sbAppErr) {
+      console.warn('[Supabase Applications Sync Notice]:', sbAppErr.message);
+    }
+
     res.json({ success: true, data: rows || [] });
   } catch (error) {
     console.error('Failed to fetch candidate applications:', error);
@@ -2681,6 +2711,7 @@ const deleteApplicationHandler = async (req, res) => {
 
     // 2. Delete application from candidate_applications
     await db.run('DELETE FROM candidate_applications WHERE id = ?', [id]);
+    deleteApplicationFromSupabase(id).catch(() => {});
 
     // Also delete any matching records in email_job_applications so candidate can re-apply
     if (app && app.jobId && app.applicantEmail) {
@@ -2970,6 +3001,9 @@ app.post('/api/candidate/applications', async (req, res) => {
     }).catch(mailErr => console.warn('[Application Email Async Notice]:', mailErr.message));
 
     const created = await db.get('SELECT * FROM candidate_applications WHERE id = ?', [appId]);
+    if (created) {
+      syncApplicationToSupabase(created).catch(sbErr => console.warn('[Supabase Sync App Notice]:', sbErr.message));
+    }
     res.json({ success: true, message: 'Application submitted successfully with attached CV', data: created });
   } catch (error) {
     console.error('Failed to submit application:', error);
@@ -4137,7 +4171,7 @@ app.get('/api/candidates', async (req, res) => {
       db.all('SELECT * FROM candidates ORDER BY createdAt DESC').catch(() => []),
       Promise.race([
         fetchSupabaseCandidates(),
-        new Promise(resolve => setTimeout(() => resolve([]), 1500))
+        new Promise(resolve => setTimeout(() => resolve([]), 10000))
       ]).catch(() => []),
       db.all('SELECT id, email, avatar, phone, name, createdAt FROM users').catch(() => []),
       db.all('SELECT email FROM google_auth_accounts').catch(() => []),

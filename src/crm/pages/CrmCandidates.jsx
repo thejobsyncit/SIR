@@ -10,6 +10,7 @@ import {
 import { CrmAddCandidateModal } from '../components/CrmAddCandidateModal';
 import ScrollReveal from '../../components/ScrollReveal';
 import { downloadCandidateResumePdf, openCandidateResumeInNewTab } from '../../services/candidateResumePdfService';
+import { getCandidateAvatar, getCandidateFallbackAvatar } from '../../utils/candidateAvatars';
 
 const isDummyCandidate = (c) => {
   if (!c) return true;
@@ -462,55 +463,19 @@ export const CrmCandidates = () => {
   };
 
   const renderCandidateAvatar = (c, sizeClasses = "w-12 h-12 text-sm") => {
-    let rawAvatar = c?.avatar || (typeof c?.photo === 'string' ? c.photo : null) || (typeof c?.phone === 'string' && c.phone.startsWith('http') ? c.phone : null) || (typeof c?.currentRole === 'string' && c.currentRole.startsWith('http') ? c.currentRole : null);
-    
-    // Check client localStorage candidate stores as immediate real-time fallback
-    if (!rawAvatar && typeof window !== 'undefined' && window.localStorage && c?.email) {
-      try {
-        const dbStr = localStorage.getItem('sir_candidates_db');
-        if (dbStr) {
-          const db = JSON.parse(dbStr);
-          const local = db[c.email.toLowerCase().trim()];
-          if (local?.avatar) rawAvatar = local.avatar;
-        }
-      } catch (_) {}
-      if (!rawAvatar) {
-        try {
-          const sessStr = localStorage.getItem('sir_user_session');
-          if (sessStr) {
-            const sess = JSON.parse(sessStr);
-            if (sess?.avatar && (sess?.email?.toLowerCase().trim() === c.email.toLowerCase().trim() || sess?.candidateId === c.id)) {
-              rawAvatar = sess.avatar;
-            }
-          }
-        } catch (_) {}
-      }
-    }
-
-    const isRealPhoto = typeof rawAvatar === 'string' && (rawAvatar.startsWith('http://') || rawAvatar.startsWith('https://') || rawAvatar.startsWith('data:image')) && !rawAvatar.includes('unsplash.com') && rawAvatar !== '[]' && rawAvatar.length > 10;
-    if (isRealPhoto) {
-      return (
-        <img
-          src={rawAvatar}
-          alt={c.name || 'Candidate'}
-          className={`${sizeClasses} rounded-2xl object-cover border-2 border-gold-500 shadow-md shrink-0`}
-        />
-      );
-    }
-    const initials = (c?.name || 'C')
-      .split(' ')
-      .filter(Boolean)
-      .map(p => p[0])
-      .slice(0, 2)
-      .join('')
-      .toUpperCase() || 'RI';
+    const avatarUrl = getCandidateAvatar(c);
+    const fallbackUrl = getCandidateFallbackAvatar(c);
 
     return (
-      <div
-        className={`${sizeClasses} rounded-2xl bg-gradient-to-br from-[#0a1120] to-[#1e293b] text-gold-400 font-extrabold flex items-center justify-center border-2 border-gold-500/70 shadow-md shrink-0 select-none`}
-      >
-        {initials}
-      </div>
+      <img
+        src={avatarUrl}
+        alt={c?.name || 'Candidate'}
+        onError={(e) => {
+          e.currentTarget.onerror = null;
+          e.currentTarget.src = fallbackUrl;
+        }}
+        className={`${sizeClasses} rounded-2xl object-cover border-2 border-gold-500 shadow-md shrink-0`}
+      />
     );
   };
 

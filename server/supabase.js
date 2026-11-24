@@ -233,3 +233,105 @@ export async function deleteCandidateFromSupabase(candidateId, email = '', phone
     return { success: false, error: err.message };
   }
 }
+
+/**
+ * Fetch all candidate applications from Supabase Cloud
+ */
+export async function fetchSupabaseApplications() {
+  const client = getSupabaseClient();
+  if (!client) return [];
+  try {
+    const [{ data: apps, error: errA }, { data: cands, error: errC }] = await Promise.all([
+      client.from('candidate_applications').select('*').order('applieddate', { ascending: false }).limit(300),
+      client.from('candidates').select('id, name, email, phone, nationality, experience').limit(300)
+    ]);
+
+    if (errA) {
+      console.warn('[Supabase] fetch applications warning:', errA.message);
+      return [];
+    }
+
+    const candMap = new Map();
+    if (Array.isArray(cands)) {
+      cands.forEach(c => {
+        if (c.id) candMap.set(c.id, c);
+        if (c.email) candMap.set(c.email.toLowerCase().trim(), c);
+      });
+    }
+
+    return (apps || []).map(a => {
+      const emailKey = (a.applicantemail || '').toLowerCase().trim();
+      const cand = (a.candidateid ? candMap.get(a.candidateid) : null) || (emailKey ? candMap.get(emailKey) : null);
+
+      return {
+        id: a.id,
+        candidateId: a.candidateid || cand?.id || null,
+        userId: a.userid || null,
+        jobId: a.jobid,
+        jobTitle: a.jobtitle || 'Job Opening',
+        company: a.company || 'Revival International',
+        location: a.location || 'UAE',
+        appliedDate: a.applieddate || a.createdat,
+        status: a.status || 'Under Review',
+        stage: 'Applied',
+        applicantName: a.applicantname || cand?.name || 'Candidate',
+        applicantEmail: a.applicantemail || cand?.email || '',
+        applicantPhone: a.applicantphone || cand?.phone || '',
+        candidateNationality: cand?.nationality || 'UAE',
+        candidateExperience: cand?.experience || '3-5 Years',
+        createdAt: a.createdat || a.applieddate
+      };
+    });
+  } catch (err) {
+    console.warn('[Supabase] fetch applications exception:', err.message);
+    return [];
+  }
+}
+
+/**
+ * Upsert candidate application into Supabase Cloud
+ */
+export async function syncApplicationToSupabase(app) {
+  const client = getSupabaseClient();
+  if (!client || !app) return null;
+  try {
+    const row = {
+      id: app.id,
+      candidateid: app.candidateId || null,
+      userid: app.userId || null,
+      jobid: String(app.jobId),
+      jobtitle: app.jobTitle || 'Job Opening',
+      company: app.company || 'Revival International',
+      location: app.location || 'UAE',
+      applieddate: app.appliedDate || app.createdAt || new Date().toISOString(),
+      status: app.status || 'Under Review'
+    };
+
+    const { data, error } = await client
+      .from('candidate_applications')
+      .upsert([row], { onConflict: 'id' });
+
+    if (error) {
+      console.warn('[Supabase] sync application warning:', error.message);
+    }
+    return data;
+  } catch (err) {
+    console.warn('[Supabase] sync application exception:', err.message);
+    return null;
+  }
+}
+
+/**
+ * Delete candidate application from Supabase Cloud
+ */
+export async function deleteApplicationFromSupabase(appId) {
+  const client = getSupabaseClient();
+  if (!client || !appId) return { success: true };
+  try {
+    await client.from('candidate_applications').delete().eq('id', appId);
+    return { success: true };
+  } catch (err) {
+    console.warn('[Supabase] delete application warning:', err.message);
+    return { success: false };
+  }
+}

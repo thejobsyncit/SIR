@@ -41,6 +41,7 @@ import {
   AddInternalNoteModal,
   CompleteFollowUpModal
 } from '../components/hrCandidate/HrCandidateModals';
+import { getCandidateAvatar, getCandidateFallbackAvatar } from '../../utils/candidateAvatars';
 
 const PROFILE_TABS = [
   { id: 'overview', label: 'Overview', icon: Layers },
@@ -522,17 +523,15 @@ export const CrmHrOpsCandidateDirectory = () => {
             <div className="bg-white dark:bg-navy-900 border border-slate-200 dark:border-white/10 rounded-2xl p-5 sm:p-6 shadow-sm space-y-5">
               <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
                 <div className="flex items-center gap-4 min-w-0">
-                  {cand.avatar ? (
-                    <img
-                      src={cand.avatar}
-                      alt={cand.fullName}
-                      className="w-16 h-16 rounded-2xl object-cover border border-slate-200 dark:border-white/15 shrink-0"
-                    />
-                  ) : (
-                    <div className="w-16 h-16 rounded-2xl bg-gradient-to-br from-indigo-600 to-navy-800 text-white font-bold text-xl flex items-center justify-center shrink-0 shadow-sm">
-                      {getInitials(cand.fullName)}
-                    </div>
-                  )}
+                  <img
+                    src={getCandidateAvatar({ ...cand, name: cand.fullName })}
+                    alt={cand.fullName}
+                    onError={(e) => {
+                      e.currentTarget.onerror = null;
+                      e.currentTarget.src = getCandidateFallbackAvatar(cand.fullName);
+                    }}
+                    className="w-16 h-16 rounded-2xl object-cover border border-slate-200 dark:border-white/15 shrink-0 shadow-sm"
+                  />
                   <div className="min-w-0">
                     <div className="flex flex-wrap items-center gap-2">
                       <h1 className="text-xl sm:text-2xl font-bold text-slate-900 dark:text-white truncate">

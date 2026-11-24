@@ -662,10 +662,23 @@ export const CrmProvider = ({ children }) => {
       });
 
       const finalApps = Array.from(mergedMap.values()).sort((a, b) => new Date(b.appliedDate || b.createdAt || 0) - new Date(a.appliedDate || a.createdAt || 0));
-      setApplications(finalApps);
-      try {
-        localStorage.setItem('sir_job_applications', JSON.stringify(finalApps));
-      } catch { }
+      if (finalApps.length > 0) {
+        setApplications(finalApps);
+        try {
+          localStorage.setItem('sir_job_applications', JSON.stringify(finalApps));
+        } catch { }
+      } else {
+        // Resilient retention: If backend returned empty due to serverless latency, keep existing cached applications
+        try {
+          const cachedStr = localStorage.getItem('sir_job_applications');
+          if (cachedStr) {
+            const cached = JSON.parse(cachedStr);
+            if (Array.isArray(cached) && cached.length > 0) {
+              setApplications(cached);
+            }
+          }
+        } catch { }
+      }
     } catch (err) {
       console.error('Failed to fetch applications from backend:', err);
     } finally {
