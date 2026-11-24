@@ -226,22 +226,6 @@ export const CrmDashboard = () => {
       </div>
       </ScrollReveal>
 
-      {/* Toast Feedback for Late Approval Actions */}
-      {lateApprovalNotice && (
-        <div className="p-4 bg-emerald-100 dark:bg-emerald-500/20 border-2 border-emerald-400 dark:border-emerald-500/50 text-emerald-900 dark:text-emerald-200 font-bold rounded-2xl flex items-center justify-between shadow-md animate-in fade-in">
-          <div className="flex items-center space-x-2">
-            <CheckCircle2 className="w-5 h-5 text-emerald-600 dark:text-emerald-400 shrink-0" />
-            <span className="text-xs sm:text-sm">{lateApprovalNotice}</span>
-          </div>
-          <button 
-            onClick={() => setLateApprovalNotice('')}
-            className="p-1 hover:bg-emerald-200/50 dark:hover:bg-emerald-500/30 rounded-lg text-emerald-800 dark:text-emerald-300 cursor-pointer"
-          >
-            <X className="w-4 h-4" />
-          </button>
-        </div>
-      )}
-
       {/* EXECUTIVE SHIFT LATE ARRIVAL APPROVALS (SUPER ADMIN / ADMIN PRIORITY BANNER) */}
       {(currentRole === 'Super Admin' || currentRole === 'Admin') && (
         <ScrollReveal>
