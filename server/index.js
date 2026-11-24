@@ -19,6 +19,7 @@ import {
 } from './services/emailApplicationService.js';
 import { COURSES_CATALOGUE } from './data/coursesCatalogueData.js';
 import nodemailer from 'nodemailer';
+import { safeSendMail } from './services/emailGateway.js';
 import dotenv from 'dotenv';
 import { handleAIAdvisorQuery, REVIVAL_KNOWLEDGE_BASE } from './services/aiAdvisorEngine.js';
 import {
@@ -958,23 +959,6 @@ const verifyOtpToken = (email, otp, token) => {
   }
 };
 
-const getOtpTransporter = () => {
-  const host = process.env.SMTP_HOST || 'smtp.zoho.in';
-  const port = parseInt(process.env.SMTP_PORT || '465', 10);
-  const user = process.env.SMTP_USER || process.env.SMTP_EMAIL || 'enquiry@therevivalinternational.com';
-  const pass = (process.env.SMTP_APP_PASSWORD || '').replace(/\s+/g, '');
-
-  if (!pass) return null;
-
-  return nodemailer.createTransport({
-    host,
-    port,
-    secure: port === 465,
-    auth: { user, pass },
-    tls: { rejectUnauthorized: false }
-  });
-};
-
 app.post('/api/auth/send-otp', async (req, res) => {
   try {
     const clientIp = req.headers['x-forwarded-for'] || req.socket?.remoteAddress || 'unknown';
@@ -1002,96 +986,66 @@ app.post('/api/auth/send-otp', async (req, res) => {
     activeOtps.set(cleanEmail, { otp, expires, attempts: 0 });
     const verificationToken = generateOtpToken(cleanEmail, otp, expires);
 
-    const transporter = getOtpTransporter();
     const recipientName = (name || '').trim();
-
-    if (transporter) {
-      const senderUser = process.env.SMTP_USER || process.env.SMTP_EMAIL || 'enquiry@therevivalinternational.com';
-      const mailOptions = {
-        from: `"The Revival International" <${senderUser}>`,
-        to: cleanEmail,
-        subject: `Your Verification Code: ${otp} - The Revival International`,
-        text: `Hello ${recipientName || 'Candidate'},\n\nYour 4-digit verification code is: ${otp}\n\nThis code will expire in 5 minutes. Use it to complete your registration with The Revival International.\n\nBest regards,\nThe Revival International Team\nwww.therevivalinternational.com`,
-        html: `
-          <div style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif; max-width: 540px; margin: 0 auto; background: #ffffff; border: 1px solid #e2e8f0; border-radius: 16px; overflow: hidden; box-shadow: 0 4px 20px rgba(0,0,0,0.06);">
-            <div style="background: #0f172a; padding: 28px 24px; text-align: center; border-bottom: 3px solid #d97706;">
-              <h1 style="color: #ffffff; margin: 0; font-size: 22px; font-weight: 700; letter-spacing: 0.5px;">The Revival <span style="color: #f59e0b;">International</span></h1>
-              <p style="color: #94a3b8; margin: 6px 0 0; font-size: 12px; letter-spacing: 1px; text-transform: uppercase;">Candidate Account Verification</p>
+    const senderUser = process.env.SMTP_USER || process.env.SMTP_EMAIL || 'enquiry@therevivalinternational.com';
+    const mailOptions = {
+      from: `"The Revival International" <${senderUser}>`,
+      to: cleanEmail,
+      subject: `Your Verification Code: ${otp} - The Revival International`,
+      text: `Hello ${recipientName || 'Candidate'},\n\nYour 4-digit verification code is: ${otp}\n\nThis code will expire in 5 minutes. Use it to complete your registration with The Revival International.\n\nBest regards,\nThe Revival International Team\nwww.therevivalinternational.com`,
+      html: `
+        <div style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif; max-width: 540px; margin: 0 auto; background: #ffffff; border: 1px solid #e2e8f0; border-radius: 16px; overflow: hidden; box-shadow: 0 4px 20px rgba(0,0,0,0.06);">
+          <div style="background: #0f172a; padding: 28px 24px; text-align: center; border-bottom: 3px solid #d97706;">
+            <h1 style="color: #ffffff; margin: 0; font-size: 22px; font-weight: 700; letter-spacing: 0.5px;">The Revival <span style="color: #f59e0b;">International</span></h1>
+            <p style="color: #94a3b8; margin: 6px 0 0; font-size: 12px; letter-spacing: 1px; text-transform: uppercase;">Candidate Account Verification</p>
+          </div>
+          <div style="padding: 32px 28px; background: #ffffff;">
+            <p style="color: #1e293b; font-size: 15px; margin: 0 0 16px; line-height: 1.6;">Hello <strong>${recipientName || 'Candidate'}</strong>,</p>
+            <p style="color: #475569; font-size: 14px; margin: 0 0 24px; line-height: 1.6;">Thank you for registering with The Revival International. Please use the 4-digit verification code below to verify your email address and access your candidate dashboard:</p>
+            <div style="text-align: center; margin: 28px 0; padding: 22px 16px; background: #f8fafc; border: 2px dashed #cbd5e1; border-radius: 12px;">
+              <span style="font-size: 38px; font-weight: 800; color: #b45309; letter-spacing: 10px; font-family: 'Courier New', Courier, monospace; display: inline-block;">${otp}</span>
+              <p style="margin: 8px 0 0; font-size: 11px; color: #64748b; font-weight: 600; text-transform: uppercase; letter-spacing: 0.5px;">Expires in 5 minutes</p>
             </div>
-            <div style="padding: 32px 28px; background: #ffffff;">
-              <p style="color: #1e293b; font-size: 15px; margin: 0 0 16px; line-height: 1.6;">Hello <strong>${recipientName || 'Candidate'}</strong>,</p>
-              <p style="color: #475569; font-size: 14px; margin: 0 0 24px; line-height: 1.6;">Thank you for registering with The Revival International. Please use the 4-digit verification code below to verify your email address and access your candidate dashboard:</p>
-              <div style="text-align: center; margin: 28px 0; padding: 22px 16px; background: #f8fafc; border: 2px dashed #cbd5e1; border-radius: 12px;">
-                <span style="font-size: 38px; font-weight: 800; color: #b45309; letter-spacing: 10px; font-family: 'Courier New', Courier, monospace; display: inline-block;">${otp}</span>
-                <p style="margin: 8px 0 0; font-size: 11px; color: #64748b; font-weight: 600; text-transform: uppercase; letter-spacing: 0.5px;">Expires in 5 minutes</p>
-              </div>
-              <p style="color: #64748b; font-size: 13px; margin: 0 0 20px; line-height: 1.6;">If you did not initiate this request, you can safely ignore this email. Never share this code with anyone.</p>
-              <div style="border-top: 1px solid #e2e8f0; padding-top: 20px; margin-top: 24px;">
-                <p style="color: #94a3b8; font-size: 11px; margin: 0; text-align: center; line-height: 1.5;">
-                  The Revival International • Global Talent & Executive Search<br />
-                  Dubai, UAE • Chennai, India • Worldwide
-                </p>
-              </div>
+            <p style="color: #64748b; font-size: 13px; margin: 0 0 20px; line-height: 1.6;">If you did not initiate this request, you can safely ignore this email. Never share this code with anyone.</p>
+            <div style="border-top: 1px solid #e2e8f0; padding-top: 20px; margin-top: 24px;">
+              <p style="color: #94a3b8; font-size: 11px; margin: 0; text-align: center; line-height: 1.5;">
+                The Revival International • Global Talent & Executive Search<br />
+                Dubai, UAE • Chennai, India • Worldwide
+              </p>
             </div>
           </div>
-        `
-      };
+        </div>
+      `
+    };
 
-      try {
-        await transporter.sendMail(mailOptions);
-        console.log(`[OTP] Successfully dispatched verification code to ${cleanEmail}`);
-        res.json({
-          success: true,
-          message: `Verification code sent to ${cleanEmail}`,
-          token: verificationToken,
-          devOtp: process.env.NODE_ENV !== 'production' ? otp : undefined
-        });
-      } catch (sendErr) {
-        console.warn(`[OTP] Primary SMTP dispatch notice for ${cleanEmail}:`, sendErr.message);
-        if (sendErr.message && sendErr.message.includes('UnblockMe')) {
-          console.error('[CRITICAL ZOHO BLOCK]: Zoho Mail outgoing SMTP is locked due to unusual sending activity. The admin MUST unblock it at https://mail.zoho.in/UnblockMe');
-        }
-
-        // Fallback to secondary transporter if configured
-        const fallbackPass = (process.env.FALLBACK_SMTP_PASS || process.env.GMAIL_APP_PASSWORD || '').replace(/\s+/g, '');
-        const fallbackUser = process.env.FALLBACK_SMTP_USER || process.env.GMAIL_USER || 'thejobsyncit@gmail.com';
-        if (fallbackPass && fallbackUser && fallbackUser !== senderUser) {
-          try {
-            const secTrans = nodemailer.createTransport({
-              service: 'gmail',
-              auth: { user: fallbackUser, pass: fallbackPass }
-            });
-            await secTrans.sendMail({ ...mailOptions, from: `"The Revival International" <${fallbackUser}>` });
-            console.log(`[OTP] Dispatched via secondary transporter to ${cleanEmail}`);
-            return res.json({
-              success: true,
-              message: `Verification code sent to ${cleanEmail}`,
-              token: verificationToken,
-              devOtp: process.env.NODE_ENV !== 'production' ? otp : undefined
-            });
-          } catch (secErr) {
-            console.warn('[OTP] Secondary transporter also failed:', secErr.message);
-          }
-        }
-
-        // Resilient Fail-Safe: If outgoing SMTP is locked (e.g. Zoho UnblockMe) or unavailable,
-        // provide the verification code so candidate registration is NEVER blocked with a 500 error!
-        console.log(`[OTP Fallback] Verification code generated for ${cleanEmail}: ${otp}`);
-        return res.json({
-          success: true,
-          message: sendErr.message && sendErr.message.includes('UnblockMe')
-            ? 'Verification code generated (Email delivery temporarily delayed).'
-            : 'Verification code generated.',
-          token: verificationToken,
-          devOtp: otp,
-          isBlockedByZoho: Boolean(sendErr.message && sendErr.message.includes('UnblockMe'))
-        });
-      }
-    } else {
-      console.log(`[DEV MODE OTP] SMTP not configured. OTP for ${cleanEmail} is: ${otp}`);
+    try {
+      const sendRes = await safeSendMail(mailOptions);
+      console.log(`[OTP] Successfully dispatched verification code to ${cleanEmail} via ${sendRes.provider || 'gateway'}`);
       res.json({
         success: true,
-        message: 'Verification code generated (Dev Mode)',
+        message: `Verification code sent to ${cleanEmail}`,
+        token: verificationToken,
+        devOtp: process.env.NODE_ENV !== 'production' ? otp : undefined
+      });
+    } catch (sendErr) {
+      console.warn(`[OTP] Outgoing SMTP dispatch notice for ${cleanEmail}:`, sendErr.message);
+      if (sendErr.message && sendErr.message.includes('UnblockMe')) {
+        console.error('[CRITICAL ZOHO BLOCK]: Zoho Mail outgoing SMTP is locked due to unusual sending activity. The admin MUST unblock it at https://mail.zoho.in/UnblockMe');
+      }
+
+      // Resilient Fail-Safe: If outgoing SMTP is locked (e.g. Zoho UnblockMe) or unavailable,
+      // provide the verification code so candidate registration is NEVER blocked with a 500 error!
+      console.log(`[OTP Fallback] Verification code generated for ${cleanEmail}: ${otp}`);
+      return res.json({
+        success: true,
+        message: sendErr.message && sendErr.message.includes('UnblockMe')
+          ? 'Verification code generated (Email delivery temporarily delayed).'
+          : 'Verification code generated.',
+        token: verificationToken,
+        devOtp: otp,
+        isBlockedByZoho: Boolean(sendErr.message && sendErr.message.includes('UnblockMe'))
+      });
+    }
         token: verificationToken,
         devOtp: otp
       });

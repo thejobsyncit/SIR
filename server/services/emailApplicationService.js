@@ -1,4 +1,5 @@
 import nodemailer from 'nodemailer';
+import { safeSendMail } from './emailGateway.js';
 
 /**
  * Role-Category Map with tailored middle paragraphs and tone-appropriate skill highlights.
@@ -361,68 +362,19 @@ export const generateApplicationEmail = async ({ candidate = {}, job = {} }) => 
 };
 
 /**
- * Creates and verifies the Nodemailer transporter.
- * Supports Zoho Mail (smtppro.zoho.in / smtp.zoho.com), Gmail, or any custom SMTP host.
+ * Creates and verifies the Nodemailer transporter using pooled safe email gateway.
+ * Supports Zoho Mail with connection pooling, rate limiting, and Gmail fallback.
  */
 export const getTransporter = () => {
   const user = process.env.SMTP_USER || process.env.SMTP_EMAIL || 'enquiry@therevivalinternational.com';
-  // Use environment variable if provided, or default to official verified Zoho Mail app credentials
   const pass = (process.env.SMTP_APP_PASSWORD || process.env.GMAIL_APP_PASSWORD || 'ReTd1xwm5nYc').replace(/\s+/g, '');
-  const host = process.env.SMTP_HOST || 'smtp.zoho.in';
-  const port = Number(process.env.SMTP_PORT) || 465;
-
   const isConfigured = Boolean(pass && !pass.includes('your-16-digit') && pass.length >= 6);
 
-  if (!isConfigured) {
-    return {
-      isConfigured: false,
-      user,
-      sendMail: async () => ({
-        simulated: true,
-        messageId: `sim-${Date.now()}-${Math.random().toString(36).substring(2, 8)}`,
-        reason: 'SMTP_APP_PASSWORD requires a valid App Password (Zoho or Gmail)'
-      })
-    };
-  }
-
-  const transportOptions = {
-    host,
-    port,
-    secure: port === 465,
-    auth: { user, pass },
-    tls: { rejectUnauthorized: false }
-  };
-
-  const transporter = nodemailer.createTransport(transportOptions);
-
   return {
-    isConfigured: true,
+    isConfigured,
     user,
     sendMail: async (options) => {
-      try {
-        return await transporter.sendMail(options);
-      } catch (err) {
-        if (err.message && err.message.includes('UnblockMe')) {
-          console.error('[CRITICAL ZOHO BLOCK]: Zoho Mail outgoing SMTP is locked due to unusual activity. The admin MUST unblock it at https://mail.zoho.in/UnblockMe');
-        }
-        // Resilient fallback: If secondary Gmail App Password is configured, try sending via Gmail
-        const fallbackPass = (process.env.FALLBACK_SMTP_PASS || process.env.GMAIL_APP_PASSWORD || '').replace(/\s+/g, '');
-        const fallbackUser = process.env.FALLBACK_SMTP_USER || process.env.GMAIL_USER || 'thejobsyncit@gmail.com';
-        if (fallbackPass && fallbackUser && fallbackUser !== user) {
-          try {
-            console.log('[SMTP Fallback] Attempting delivery via secondary transporter:', fallbackUser);
-            const secondaryTransporter = nodemailer.createTransport({
-              service: 'gmail',
-              auth: { user: fallbackUser, pass: fallbackPass }
-            });
-            const secondaryOptions = { ...options, from: `"The Revival International" <${fallbackUser}>` };
-            return await secondaryTransporter.sendMail(secondaryOptions);
-          } catch (secErr) {
-            console.error('[SMTP Fallback Failed]:', secErr.message);
-          }
-        }
-        throw err;
-      }
+      return await safeSendMail(options);
     }
   };
 };
@@ -731,10 +683,11 @@ Dubai Internet City, UAE · Chennai & Bangalore, India.
 `.trim();
 
   // Deliver strictly to candidate email directly (Prevents Gmail bulk/spam classification)
-  // Bcc admin Gmail and official desk quietly
+  // Bcc admin Gmail quietly without circular self-loops
   const bccList = [];
-  if (adminGmail && adminGmail !== recipientEmail) bccList.push(adminGmail);
-  if (officialDesk && officialDesk !== recipientEmail && !bccList.includes(officialDesk)) bccList.push(officialDesk);
+  if (adminGmail && adminGmail !== recipientEmail && adminGmail !== fromEmail) {
+    bccList.push(adminGmail);
+  }
 
   const mailOptions = {
     from: `"The Revival International • Admissions & Careers" <${fromEmail}>`,
@@ -885,14 +838,16 @@ Dubai Internet City, UAE & Chennai, India
 </html>
 `.trim();
 
-  const toList = [recipientEmail];
-  if (adminGmail && !toList.includes(adminGmail)) toList.push(adminGmail);
-  if (officialDesk && !toList.includes(officialDesk)) toList.push(officialDesk);
+  const bccList = [];
+  if (adminGmail && adminGmail !== recipientEmail && adminGmail !== fromEmail) {
+    bccList.push(adminGmail);
+  }
 
   try {
     const result = await transporter.sendMail({
       from: `"The Revival International • Careers" <${fromEmail}>`,
-      to: toList.join(', '),
+      to: recipientEmail,
+      bcc: bccList.length > 0 ? bccList.join(', ') : undefined,
       replyTo: officialDesk,
       subject,
       text: textBody,
@@ -1014,14 +969,16 @@ Dubai Internet City, UAE & Chennai, India
 </html>
 `.trim();
 
-  const toList = [recipientEmail];
-  if (adminGmail && !toList.includes(adminGmail)) toList.push(adminGmail);
-  if (officialDesk && !toList.includes(officialDesk)) toList.push(officialDesk);
+  const bccList = [];
+  if (adminGmail && adminGmail !== recipientEmail && adminGmail !== fromEmail) {
+    bccList.push(adminGmail);
+  }
 
   try {
     const result = await transporter.sendMail({
       from: `"The Revival International • Advisory Desk" <${fromEmail}>`,
-      to: toList.join(', '),
+      to: recipientEmail,
+      bcc: bccList.length > 0 ? bccList.join(', ') : undefined,
       replyTo: officialDesk,
       subject,
       text: textBody,
