@@ -12,6 +12,7 @@ import {
 import jsPDF from 'jspdf';
 import ScrollReveal from '../../components/ScrollReveal';
 import CrmHrTaskAssignment from '../components/CrmHrTaskAssignment';
+import { ShiftLateArrivalApprovalSection } from '../components/ShiftLateArrivalApprovalSection';
 
 // Initial Workforce Directory Constants & Shift Configurations
 export const SHIFT_CONFIGS = [
@@ -2449,6 +2450,13 @@ export const CrmHrLeadDashboard = ({ initialSection }) => {
 
         {activeTab === 'overview' && (
           <div className="space-y-6 animate-in fade-in duration-200">
+            {/* Shift Late Arrival Approvals (HR Lead & Super Admin Authorization) */}
+            <ShiftLateArrivalApprovalSection
+              currentRole={currentRole || 'HR Lead'}
+              crmToken={crmToken}
+              onAuditClick={() => setActiveTab('attendance')}
+            />
+
             {/* Department Headcount Breakdown & Live Activity Stream */}
             <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
 
@@ -2530,6 +2538,13 @@ export const CrmHrLeadDashboard = ({ initialSection }) => {
         ======================================================== */}
         {activeTab === 'attendance' && (
           <div className="space-y-6 animate-in fade-in duration-200">
+            {/* Shift Late Arrival Approvals (HR Lead & Super Admin Authorization) */}
+            <ShiftLateArrivalApprovalSection
+              currentRole={currentRole || 'HR Lead'}
+              crmToken={crmToken}
+              onAuditClick={() => setActiveTab('attendance')}
+            />
+
             {/* Top Toolbar */}
             <div className="bg-white dark:bg-navy-900 border border-slate-200/90 dark:border-navy-800 rounded-3xl p-5 shadow-xs flex flex-col lg:flex-row justify-between items-start lg:items-center gap-4">
               <div className="flex flex-wrap items-center gap-3 sm:gap-4 relative">
@@ -4533,8 +4548,15 @@ export const CrmHrLeadDashboard = ({ initialSection }) => {
         {/* ========================================================
             TAB 12: CENTRAL APPROVAL CENTER (Advanced Feature 6)
         ======================================================== */}
-        {false && activeTab === 'approvals' && (
+        {activeTab === 'approvals' && (
           <div className="space-y-6 animate-in fade-in duration-200">
+            {/* Shift Late Arrival Approvals (HR Lead & Super Admin Authorization) */}
+            <ShiftLateArrivalApprovalSection
+              currentRole={currentRole || 'HR Lead'}
+              crmToken={crmToken}
+              onAuditClick={() => setActiveTab('attendance')}
+            />
+
             {/* Live Database Attendance Regularization Approvals */}
             <div className="bg-white dark:bg-navy-900 border border-slate-200/90 dark:border-navy-800 rounded-3xl p-6 shadow-xs space-y-4">
               <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3 border-b border-slate-100 dark:border-navy-800 pb-4">

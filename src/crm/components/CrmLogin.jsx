@@ -577,7 +577,7 @@ export const CrmLogin = () => {
                 <div className="flex items-center gap-2 min-w-0">
                   <AlertTriangle className="w-4 h-4 text-rose-400 shrink-0" />
                   <span className="text-[11px] font-semibold text-rose-100">
-                    Late Arrival ({loginLateGate.delayTag || `+${loginLateGate.lateMinutes}m`}) • Super Admin approval required
+                    Late Arrival ({loginLateGate.delayTag || `+${loginLateGate.lateMinutes}m`}) • {String(loginLateGate.role || '').toLowerCase().includes('lead') ? 'Super Admin' : 'HR Lead / Super Admin'} approval required
                   </span>
                 </div>
                 <span className="flex items-center gap-1.5 text-[10px] text-rose-300 font-mono shrink-0 font-bold">
@@ -591,7 +591,7 @@ export const CrmLogin = () => {
             {loginLateGate && loginLateGate.status === 'APPROVED' && (
               <div className="py-2.5 px-3 bg-emerald-950/80 border border-emerald-500/70 text-emerald-200 rounded-xl text-xs flex items-center gap-2 shadow-sm animate-in fade-in">
                 <CheckCircle2 className="w-4 h-4 text-emerald-400 shrink-0" />
-                <span className="text-[11px] font-bold text-emerald-100">✓ Super Admin Approved! Logging in...</span>
+                <span className="text-[11px] font-bold text-emerald-100">✓ Access Approved! Logging in...</span>
               </div>
             )}
 
@@ -599,7 +599,7 @@ export const CrmLogin = () => {
             {loginLateGate && loginLateGate.status === 'REJECTED' && (
               <div className="py-2.5 px-3 bg-rose-950/80 border border-rose-500/70 text-rose-200 rounded-xl text-xs flex items-center gap-2 shadow-sm animate-in fade-in">
                 <AlertCircle className="w-4 h-4 text-rose-400 shrink-0" />
-                <span className="text-[11px] font-bold text-rose-100">❌ Access Declined by Super Admin</span>
+                <span className="text-[11px] font-bold text-rose-100">❌ Access Declined: Check-in rejected for today</span>
               </div>
             )}
 
