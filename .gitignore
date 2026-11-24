@@ -26,12 +26,14 @@ Thumbs.db
 E:\npm-cache
 vite.config.js.timestamp-*
 
-# SQLite temporary journal files & backups
+# Database files (SQLite completely removed - Supabase Cloud PostgreSQL is the sole primary database)
+*.db
 *.db-shm
 *.db-wal
+*.sqlite
+server/*.db
 server/*.backup.db
 backups/
-*.sqlite
 server/*.sqlite
 
 # User uploads
