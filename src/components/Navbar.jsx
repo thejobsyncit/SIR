@@ -123,14 +123,14 @@ export const Navbar = () => {
                   <div
                     onMouseEnter={() => handleMenuEnter(item.hasMega)}
                     onMouseLeave={() => handleMenuLeave()}
-                    className={`absolute top-full pt-2 z-50 animate-in fade-in slide-in-from-top-1 duration-150 left-1/2 -translate-x-1/2 w-[90vw] ${item.hasMega === 'industries' ? 'sm:w-[400px] md:w-[420px]' : 'sm:w-[460px] md:w-[470px]'
+                    className={`absolute top-full pt-2 z-50 animate-in fade-in slide-in-from-top-1 duration-150 left-1/2 -translate-x-1/2 w-[90vw] ${item.hasMega === 'industries' ? 'sm:w-[400px] md:w-[420px]' : 'sm:w-[320px] md:w-[340px]'
                       } max-w-[94vw]`}
                   >
                     <div className="relative bg-white dark:bg-[#0a1628] rounded-2xl p-3.5 sm:p-4 shadow-2xl border border-slate-200/90 dark:border-navy-700/90 overflow-hidden">
                       {/* Slim Gold Accent Indicator */}
                       <div className="absolute top-0 left-0 right-0 h-[2px] bg-gradient-to-r from-gold-500/10 via-gold-500 to-gold-500/10" />
 
-                      {/* SERVICES DROPDOWN - COMPACT 2-COLUMN (MATCHING INDUSTRIES SIZE) */}
+                      {/* SERVICES DROPDOWN - ACADEMIC ADVISORY */}
                       {item.hasMega === 'services' && (
                         <div>
                           {/* Slim Header matching Industries */}
@@ -140,73 +140,38 @@ export const Navbar = () => {
                               <span>Services</span>
                             </span>
                             <span className="text-[10px] font-bold text-gold-600 dark:text-gold-400 bg-gold-500/10 px-2 py-0.5 rounded-full border border-gold-500/20 font-mono">
-                              24 Services
+                              Academic Advisory
                             </span>
                           </div>
 
-                          {/* 2-Column Compact Grid */}
-                          <div className="grid grid-cols-2 gap-2 text-xs">
-
-                            {/* Column 1: Academic Advisory */}
-                            <div className="space-y-0.5">
-                              <div className="px-1.5 py-1 text-[10px] font-black uppercase tracking-wider text-gold-700 dark:text-gold-400 flex items-center gap-1 border-b border-gold-500/15 mb-1">
-                                <GraduationCap className="w-3 h-3 text-gold-500 shrink-0" />
-                                <span className="truncate">Academic Advisory</span>
-                              </div>
-                              {[
-                                { id: 'intl-consult', title: 'International Consulting', href: '/international-consulting', tab: 'international-consulting' },
-                                { id: 'college-adm', title: 'College Admission Assistance', href: '/education/college-admission-assistance', tab: 'education-college-adm' },
-                                { id: 'school-career', title: 'School Student Career Guidance', href: '/education/school-student-career-guidance', tab: 'education-school-career' },
-                                { id: 'intl-adm', title: 'International Admissions', href: '/education/international-admissions', tab: 'education-intl-adm' },
-                                { id: 'school-academy', title: 'Academy for School Students', href: '/education/academy-for-school-students', tab: 'education-school-academy' },
-                                { id: 'exec-seminars-lang', title: 'Executive Seminars & Language Prep', href: '/education/executive-seminars-and-language-test-preparation', tab: 'education-exec-seminars-lang' }
-                              ].map((srv) => (
-                                <a
-                                  key={srv.id}
-                                  href={srv.href}
-                                  onClick={(e) => {
-                                    e.preventDefault();
-                                    navigateTo(srv.tab);
-                                    setMegaMenuType(null);
-                                  }}
-                                  className="w-full text-left px-1.5 py-1 rounded-md hover:bg-gold-50 dark:hover:bg-navy-800/80 text-slate-700 dark:text-slate-200 hover:text-gold-600 dark:hover:text-gold-400 font-medium transition flex items-center justify-between group cursor-pointer"
-                                >
-                                  <span className="text-[11px] leading-snug line-clamp-1 group-hover:text-gold-600 dark:group-hover:text-gold-400 font-medium">• {srv.title}</span>
-                                  <ChevronRight className="w-3 h-3 text-slate-300 dark:text-slate-600 group-hover:text-gold-500 opacity-0 group-hover:opacity-100 transition shrink-0 ml-1" />
-                                </a>
-                              ))}
+                          {/* Academic Advisory Services Column */}
+                          <div className="space-y-0.5 text-xs">
+                            <div className="px-1.5 py-1 text-[10px] font-black uppercase tracking-wider text-gold-700 dark:text-gold-400 flex items-center gap-1 border-b border-gold-500/15 mb-1">
+                              <GraduationCap className="w-3 h-3 text-gold-500 shrink-0" />
+                              <span className="truncate">Academic Advisory</span>
                             </div>
-
-                            {/* Column 2: Executive & HR */}
-                            <div className="space-y-0.5">
-                              <div className="px-1.5 py-1 text-[10px] font-black uppercase tracking-wider text-slate-700 dark:text-slate-300 flex items-center gap-1 border-b border-slate-200 dark:border-navy-700 mb-1">
-                                <Briefcase className="w-3 h-3 text-gold-500 shrink-0" />
-                                <span className="truncate">Executive & HR</span>
-                              </div>
-                              {[
-                                { id: 'exec-search', title: 'Executive Search', tab: 'exec-search' },
-                                { id: 'intl-rec', title: 'International Recruitment', tab: 'intl-rec' },
-                                { id: 'dom-rec', title: 'Domestic Recruitment', tab: 'dom-rec' },
-                                { id: 'perm-staff', title: 'Permanent Staffing', tab: 'perm-staff' },
-                                { id: 'contract-staff', title: 'Contract Staffing', tab: 'contract-staff' },
-                                { id: 'visa-assist', title: 'Visa Assistance & Permits', tab: 'visa-assist' }
-                              ].map((srv) => (
-                                <a
-                                  key={srv.id}
-                                  href="#services"
-                                  onClick={(e) => {
-                                    e.preventDefault();
-                                    navigateToService(srv.tab);
-                                    setMegaMenuType(null);
-                                  }}
-                                  className="w-full text-left px-1.5 py-1 rounded-md hover:bg-gold-50 dark:hover:bg-navy-800/80 text-slate-700 dark:text-slate-200 hover:text-gold-600 dark:hover:text-gold-400 font-medium transition flex items-center justify-between group cursor-pointer"
-                                >
-                                  <span className="text-[11px] leading-snug line-clamp-1 group-hover:text-gold-600 dark:group-hover:text-gold-400 font-medium">• {srv.title}</span>
-                                  <ChevronRight className="w-3 h-3 text-slate-300 dark:text-slate-600 group-hover:text-gold-500 opacity-0 group-hover:opacity-100 transition shrink-0 ml-1" />
-                                </a>
-                              ))}
-                            </div>
-
+                            {[
+                              { id: 'intl-consult', title: 'International Consulting', href: '/international-consulting', tab: 'international-consulting' },
+                              { id: 'college-adm', title: 'College Admission Assistance', href: '/education/college-admission-assistance', tab: 'education-college-adm' },
+                              { id: 'school-career', title: 'School Student Career Guidance', href: '/education/school-student-career-guidance', tab: 'education-school-career' },
+                              { id: 'intl-adm', title: 'International Admissions', href: '/education/international-admissions', tab: 'education-intl-adm' },
+                              { id: 'school-academy', title: 'Academy for School Students', href: '/education/academy-for-school-students', tab: 'education-school-academy' },
+                              { id: 'exec-seminars-lang', title: 'Executive Seminars & Language Prep', href: '/education/executive-seminars-and-language-test-preparation', tab: 'education-exec-seminars-lang' }
+                            ].map((srv) => (
+                              <a
+                                key={srv.id}
+                                href={srv.href}
+                                onClick={(e) => {
+                                  e.preventDefault();
+                                  navigateTo(srv.tab);
+                                  setMegaMenuType(null);
+                                }}
+                                className="w-full text-left px-2 py-1 rounded-md hover:bg-gold-50 dark:hover:bg-navy-800/80 text-slate-700 dark:text-slate-200 hover:text-gold-600 dark:hover:text-gold-400 font-medium transition flex items-center justify-between group cursor-pointer"
+                              >
+                                <span className="text-[11px] leading-snug line-clamp-1 group-hover:text-gold-600 dark:group-hover:text-gold-400 font-medium">• {srv.title}</span>
+                                <ChevronRight className="w-3 h-3 text-slate-300 dark:text-slate-600 group-hover:text-gold-500 opacity-0 group-hover:opacity-100 transition shrink-0 ml-1" />
+                              </a>
+                            ))}
                           </div>
 
                           {/* Slim Bottom Link */}
@@ -218,7 +183,7 @@ export const Navbar = () => {
                               }}
                               className="text-[11px] font-bold text-gold-700 dark:text-gold-400 hover:underline flex items-center gap-1 cursor-pointer"
                             >
-                              <span>Explore All 24 Services</span>
+                              <span>Explore All Services</span>
                               <ArrowRight className="w-3 h-3" />
                             </button>
                             <button
