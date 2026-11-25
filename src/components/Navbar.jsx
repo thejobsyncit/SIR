@@ -133,39 +133,39 @@ export const Navbar = () => {
                   <div
                     onMouseEnter={() => handleMenuEnter(item.hasMega)}
                     onMouseLeave={() => handleMenuLeave()}
-                    className={`absolute top-full pt-2 z-50 animate-in fade-in slide-in-from-top-1 duration-150 left-1/2 -translate-x-1/2 w-[92vw] ${item.hasMega === 'industries' ? 'sm:w-[400px] md:w-[420px]' : item.hasMega === 'services' ? 'sm:w-[580px] md:w-[620px]' : 'sm:w-[320px] md:w-[340px]'
+                    className={`absolute top-full pt-2 z-50 animate-in fade-in slide-in-from-top-1 duration-150 left-1/2 -translate-x-1/2 w-[92vw] ${item.hasMega === 'industries' ? 'sm:w-[400px] md:w-[420px]' : item.hasMega === 'services' ? 'sm:w-[470px] md:w-[500px]' : 'sm:w-[320px] md:w-[340px]'
                       } max-w-[95vw]`}
                   >
-                    <div className="relative bg-white/95 dark:bg-[#0a1628]/95 backdrop-blur-md rounded-2xl p-4 shadow-2xl border border-slate-200/90 dark:border-navy-700/90 overflow-hidden">
+                    <div className="relative bg-white/95 dark:bg-[#0a1628]/95 backdrop-blur-md rounded-2xl p-3.5 shadow-2xl border border-slate-200/90 dark:border-navy-700/90 overflow-hidden">
                       {/* Slim Gold Accent Indicator */}
                       <div className="absolute top-0 left-0 right-0 h-[2px] bg-gradient-to-r from-gold-500/20 via-gold-500 to-gold-500/20" />
 
                       {/* SERVICES DROPDOWN - 6 CORE ACADEMIC & ADVISORY SERVICES */}
                       {item.hasMega === 'services' && (
-                        <div className="space-y-3">
+                        <div className="space-y-2.5">
                           {/* Elegant Header */}
-                          <div className="flex items-center justify-between pb-2.5 border-b border-slate-100 dark:border-navy-800">
+                          <div className="flex items-center justify-between pb-2 border-b border-slate-100 dark:border-navy-800">
                             <div className="flex items-center gap-2">
                               <div className="w-6 h-6 rounded-lg bg-gold-500/10 border border-gold-500/25 flex items-center justify-center text-gold-600 dark:text-gold-400">
                                 <GraduationCap className="w-3.5 h-3.5" />
                               </div>
                               <div>
-                                <span className="text-[11px] font-black uppercase tracking-wider text-navy-950 dark:text-white block leading-tight">
+                                <span className="text-[10.5px] font-black uppercase tracking-wider text-navy-950 dark:text-white block leading-tight">
                                   Academic & Global Advisory
                                 </span>
-                                <span className="text-[10px] text-slate-400 font-medium block">
+                                <span className="text-[9.5px] text-slate-400 font-medium block">
                                   Certified International Education & Executive Pathways
                                 </span>
                               </div>
                             </div>
-                            <span className="text-[10px] font-extrabold text-gold-600 dark:text-gold-400 bg-gold-500/10 px-2.5 py-0.5 rounded-full border border-gold-500/20 font-mono flex items-center gap-1.5 shrink-0">
+                            <span className="text-[9.5px] font-extrabold text-gold-600 dark:text-gold-400 bg-gold-500/10 px-2 py-0.5 rounded-full border border-gold-500/20 font-mono flex items-center gap-1.5 shrink-0">
                               <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
-                              <span>6 Core Services</span>
+                              <span>6 Services</span>
                             </span>
                           </div>
 
                           {/* 6 Services Grid (2 Columns x 3 Rows) */}
-                          <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                          <div className="grid grid-cols-1 sm:grid-cols-2 gap-1.5">
                             {[
                               {
                                 id: 'intl-consult',
@@ -232,25 +232,19 @@ export const Navbar = () => {
                                     navigateTo(srv.tab);
                                     setMegaMenuType(null);
                                   }}
-                                  className="p-2.5 rounded-xl border border-slate-100/80 dark:border-navy-800/80 hover:border-gold-500/40 bg-slate-50/50 dark:bg-navy-900/50 hover:bg-gold-500/10 dark:hover:bg-navy-800 transition-all duration-200 group flex items-start gap-2.5 cursor-pointer text-left"
+                                  className="p-2 rounded-xl border border-slate-100/80 dark:border-navy-800/80 hover:border-gold-500/40 bg-slate-50/50 dark:bg-navy-900/50 hover:bg-gold-500/10 dark:hover:bg-navy-800 transition-all duration-200 group flex items-center gap-2 cursor-pointer text-left"
                                 >
-                                  <div className="w-8 h-8 rounded-lg bg-gold-500/10 dark:bg-gold-500/15 border border-gold-500/20 text-gold-600 dark:text-gold-400 group-hover:bg-gold-500 group-hover:text-navy-950 transition-colors flex items-center justify-center shrink-0 mt-0.5">
-                                    <SrvIcon className="w-4 h-4" />
+                                  <div className="w-7 h-7 rounded-lg bg-gold-500/10 dark:bg-gold-500/15 border border-gold-500/20 text-gold-600 dark:text-gold-400 group-hover:bg-gold-500 group-hover:text-navy-950 transition-colors flex items-center justify-center shrink-0">
+                                    <SrvIcon className="w-3.5 h-3.5" />
                                   </div>
                                   <div className="flex-1 min-w-0">
-                                    <div className="flex items-center justify-between gap-1">
-                                      <span className="text-[11.5px] font-bold text-navy-950 dark:text-slate-100 group-hover:text-gold-600 dark:group-hover:text-gold-400 transition-colors truncate">
-                                        {srv.title}
-                                      </span>
-                                      <span className="text-[9px] font-mono font-semibold px-1 py-0.2 rounded bg-slate-200/60 dark:bg-navy-800 text-slate-500 dark:text-slate-400 group-hover:text-gold-500 shrink-0">
-                                        {srv.badge}
-                                      </span>
-                                    </div>
-                                    <p className="text-[10px] text-slate-500 dark:text-slate-400 group-hover:text-slate-700 dark:group-hover:text-slate-300 transition-colors truncate mt-0.5">
+                                    <span className="text-[11px] font-bold text-navy-950 dark:text-slate-100 group-hover:text-gold-600 dark:group-hover:text-gold-400 transition-colors block leading-tight">
+                                      {srv.title}
+                                    </span>
+                                    <p className="text-[9.5px] text-slate-500 dark:text-slate-400 group-hover:text-slate-700 dark:group-hover:text-slate-300 transition-colors truncate mt-0.5">
                                       {srv.tagline}
                                     </p>
                                   </div>
-                                  <ChevronRight className="w-3.5 h-3.5 text-slate-300 dark:text-slate-600 group-hover:text-gold-500 group-hover:translate-x-0.5 transition shrink-0 self-center opacity-0 group-hover:opacity-100" />
                                 </a>
                               );
                             })}
