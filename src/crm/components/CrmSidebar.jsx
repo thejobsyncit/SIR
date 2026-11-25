@@ -168,7 +168,6 @@ export const CrmSidebar = ({ collapsed, setCollapsed }) => {
         { id: 'candidates', label: 'Candidates', icon: Users },
         { id: 'job-applications', label: 'Job Applications', icon: FileCheck, badge: applications.length || null },
         { id: 'pipeline', label: 'Recruitment Pipeline', icon: GitMerge },
-        { id: 'workspace', label: 'Recruiter Workspace', icon: UserCheck },
         { id: 'domestic', label: 'Domestic Hiring', icon: Home },
         { id: 'international', label: 'International Hiring', icon: Globe }
       ]
