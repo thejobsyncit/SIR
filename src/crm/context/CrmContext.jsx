@@ -156,7 +156,7 @@ export const CrmProvider = ({ children }) => {
       const saved = localStorage.getItem('sir_crm_session');
       if (saved) {
         const parsed = JSON.parse(saved);
-        if (parsed && parsed.user && typeof parsed.user === 'object' && parsed.user.role !== 'Interviewer') {
+        if (parsed && parsed.user && typeof parsed.user === 'object') {
           return { ...DEFAULT_USER, ...parsed.user };
         }
       }
@@ -169,7 +169,7 @@ export const CrmProvider = ({ children }) => {
       const saved = localStorage.getItem('sir_crm_session');
       if (saved) {
         const parsed = JSON.parse(saved);
-        if (parsed && parsed.currentRole && parsed.currentRole !== 'Interviewer') return parsed.currentRole;
+        if (parsed && parsed.currentRole) return parsed.currentRole;
       }
     } catch { }
     return 'Super Admin';
@@ -2305,7 +2305,8 @@ export const CrmProvider = ({ children }) => {
       'HR Lead': { id: 'emp-3', employeeId: 'REV-EMP-003', name: 'Sarah Al Zaabi', email: 'sarah.hr@revivalinternational.com', avatar: 'https://images.unsplash.com/photo-1573496359142-b8d87734a5a2?w=150&auto=format&fit=crop&q=80', department: 'Human Resources' },
       'Recruiter': { id: 'emp-4', employeeId: 'REV-EMP-004', name: 'Kishore Kumar', email: 'kishore.recruiter@revivalinternational.com', avatar: 'https://images.unsplash.com/photo-1580489944761-15a19d654956?w=150&auto=format&fit=crop&q=80', department: 'Recruitment & ATS' },
       'Placement Coordinator': { id: 'emp-5', employeeId: 'REV-EMP-005', name: 'Dhanalakshimi', email: 'dhana.jasync@gmail.com', altEmail: 'dhanalakshimi@revivalinternational.com', avatar: 'https://images.unsplash.com/photo-1567532939604-b6b5b0db2604?w=150&auto=format&fit=crop&q=80', department: 'Placement & Industry Relations' },
-      'HR Operations': { id: 'emp-6', employeeId: 'REV-EMP-006', name: 'Balavarshini S.', email: 'balavarshini.s@revivalinternational.com', altEmail: 'balavarshini2223@gmail.com', avatar: '', department: 'International HR Operations', operationTeam: 'International HR Operations', designation: 'Lead HR Operations Specialist' }
+      'HR Operations': { id: 'emp-6', employeeId: 'REV-EMP-006', name: 'Balavarshini S.', email: 'balavarshini.s@revivalinternational.com', altEmail: 'balavarshini2223@gmail.com', avatar: '', department: 'International HR Operations', operationTeam: 'International HR Operations', designation: 'Lead HR Operations Specialist' },
+      'Interviewer': { id: 'emp-tariq', employeeId: 'REV-EMP-007', name: 'Dr. Tariq Al-Hashimi', email: 'tariq.interviewer@revivalinternational.com', avatar: 'https://images.unsplash.com/photo-1500648767791-00dcc994a43e?w=150&auto=format&fit=crop&q=80', department: 'Technical & Academic Assessment Panel', designation: 'Senior Technical Interviewer & Panellist' }
     };
 
     const persona = ROLE_PERSONAS[newRole] || { id: 'EMP-001', name: newRole, email: `${newRole.toLowerCase().replace(/\s+/g, '.')}@revivalinternational.com` };

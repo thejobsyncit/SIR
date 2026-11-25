@@ -218,6 +218,26 @@ export const DEFAULT_CRM_EMPLOYEES = [
     createdAt: '2026-11-01 09:00:00'
   },
   {
+    id: 'emp-tariq',
+    employeeId: 'REV-EMP-007',
+    name: 'Dr. Tariq Al-Hashimi',
+    email: 'tariq.interviewer@revivalinternational.com',
+    phone: '+971 50 456 7890',
+    role: 'Interviewer',
+    department: 'Technical & Academic Assessment Panel',
+    designation: 'Senior Technical Interviewer & Panellist',
+    reportingManager: 'Dhanalakshimi (Super Admin)',
+    joiningDate: '2023-11-01',
+    assignedBranch: 'Dubai Knowledge Park, UAE',
+    employmentStatus: 'Full-Time (Active)',
+    dateOfBirth: '1985-04-12',
+    address: 'Dubai Silicon Oasis, Dubai, UAE',
+    avatar: 'https://images.unsplash.com/photo-1500648767791-00dcc994a43e?w=150&auto=format&fit=crop&q=80',
+    password: 'Password123!',
+    status: 'Active',
+    createdAt: '2026-11-01 09:00:00'
+  },
+  {
     id: 'emp-fatima',
     employeeId: 'REV-EMP-107',
     name: 'Fatima',

@@ -130,6 +130,16 @@ export const DEFAULT_CRM_ACCOUNTS = [
     operationTeam: 'Enquiry HR Operations',
     designation: 'HR Operations Specialist',
     employeeId: 'REV-EMP-108'
+  },
+  { 
+    name: 'Dr. Tariq Al-Hashimi', 
+    email: 'tariq.interviewer@revivalinternational.com', 
+    password: 'Password123!', 
+    role: 'Interviewer', 
+    phone: '+971 50 456 7890', 
+    department: 'Technical & Academic Assessment Panel',
+    designation: 'Senior Technical Interviewer & Panellist',
+    employeeId: 'REV-EMP-007'
   }
 ];
 
@@ -173,7 +183,7 @@ export const CrmLogin = () => {
       try { 
         const parsed = JSON.parse(saved);
         if (Array.isArray(parsed) && parsed.length > 0) {
-          users = parsed.filter(u => u.role !== 'Interviewer');
+          users = parsed;
           // Merge DEFAULT_CRM_ACCOUNTS and ensure credentials are up to date
           DEFAULT_CRM_ACCOUNTS.forEach(def => {
             const idx = users.findIndex(u => matchesUser(u, def.email.toLowerCase()));

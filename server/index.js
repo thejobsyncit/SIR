@@ -3624,7 +3624,7 @@ app.delete('/api/jobs/:id', requireSuperAdmin, async (req, res) => {
 });
 
 // ==========================================
-// API Routes - EMPLOYEES & ROLE MANAGEMENT (6 OFFICIAL ROLES)
+// API Routes - EMPLOYEES & ROLE MANAGEMENT (7 OFFICIAL ROLES)
 // ==========================================
 const VALID_CRM_ROLES = [
   'Super Admin',
@@ -3632,7 +3632,8 @@ const VALID_CRM_ROLES = [
   'HR Lead',
   'Recruiter',
   'Placement Coordinator',
-  'HR Operations'
+  'HR Operations',
+  'Interviewer'
 ];
 
 app.get('/api/employees', async (req, res) => {

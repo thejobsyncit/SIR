@@ -1,7 +1,7 @@
 import React, { useState, useRef, useEffect, useMemo } from 'react';
 import { useCrm } from '../context/CrmContext';
 import { 
-  Search, Bell, Sparkles, UserCheck, ShieldCheck, Menu, Moon, Sun, Lock, Plus, X, Clock, AlertTriangle, LogOut, ChevronDown, Check, Sliders, Users, Target, Briefcase, CheckSquare, Layers, Shield, FileText, ChevronRight, ShieldAlert, CheckCircle2
+  Search, Bell, Sparkles, UserCheck, ShieldCheck, Menu, Moon, Sun, Lock, Plus, X, Clock, AlertTriangle, LogOut, ChevronDown, Check, Sliders, Users, Target, Briefcase, CheckSquare, Layers, Shield, FileText, ChevronRight, ShieldAlert, CheckCircle2, Award
 } from 'lucide-react';
 import { CRM_ROLES } from '../data/mockCrmData';
 
@@ -185,6 +185,15 @@ const ROLE_DETAILS = [
     color: 'text-teal-700 dark:text-teal-400',
     bg: 'bg-teal-100 dark:bg-teal-500/20 border-teal-300 dark:border-teal-500/30',
     dot: 'bg-teal-500'
+  },
+  {
+    role: 'Interviewer',
+    badge: 'Technical & Panel',
+    desc: 'Evaluations, scorecard grading & feedback',
+    icon: Award,
+    color: 'text-amber-700 dark:text-gold-400',
+    bg: 'bg-amber-100 dark:bg-gold-500/20 border-amber-300 dark:border-gold-500/30',
+    dot: 'bg-amber-500'
   }
 ];
 
@@ -537,7 +546,7 @@ export const CrmHeader = ({ collapsed, setCollapsed }) => {
                   </p>
                 </div>
                 <span className="text-[10px] font-mono px-2 py-0.5 rounded-full bg-amber-100 text-amber-900 dark:bg-gold-500/20 dark:text-gold-300 border border-amber-300 dark:border-gold-500/40 font-bold">
-                  6 Roles
+                  {ROLE_DETAILS.length} Roles
                 </span>
               </div>
 
