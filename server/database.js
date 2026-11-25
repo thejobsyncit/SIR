@@ -905,7 +905,14 @@ export const SUPABASE_KEY_MAP = {
   overtimeminutes: 'overtimeMinutes',
   isovernightshift: 'isOvernightShift',
   employeename: 'employeeName',
-  operationteam: 'operationTeam'
+  operationteam: 'operationTeam',
+  leavetype: 'leaveType',
+  startdate: 'startDate',
+  enddate: 'endDate',
+  reviewedby: 'reviewedBy',
+  reviewedat: 'reviewedAt',
+  submittedat: 'submittedAt',
+  reviewnotes: 'reviewNotes'
 };
 
 export const normalizeSupabaseRow = (raw) => {

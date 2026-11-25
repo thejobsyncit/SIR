@@ -3395,5 +3395,358 @@ export const registerAttendanceRoutes = (app, { getDb, getClientIp }) => {
       res.status(500).json({ success: false, message: 'Failed to record login.' });
     }
   });
+
+  // =========================================================================
+  // Workforce Leave Management & Employee Leave Applications
+  // =========================================================================
+
+  // Helper to seed initial leave requests if table is empty
+  const ensureInitialLeaveRequests = async (db) => {
+    try {
+      const existing = await db.all('SELECT id FROM employee_leave_requests LIMIT 1');
+      if (!existing || existing.length === 0) {
+        const emps = await db.all("SELECT employeeId, name, role, department FROM employees WHERE LOWER(COALESCE(status, 'Active')) != 'inactive'");
+        const kishore = emps.find(e => (e.name || '').includes('Kishore')) || emps[1];
+        const bala = emps.find(e => (e.name || '').includes('Balavarshini')) || emps[3];
+        const sreeja = emps.find(e => (e.name || '').includes('Sreeja')) || emps[2];
+
+        if (kishore) {
+          await db.run(
+            `INSERT INTO employee_leave_requests (id, employeeId, employeeName, leaveType, startDate, endDate, days, reason, status, createdAt)
+             VALUES (?, ?, ?, 'Casual Leave', '2026-11-26', '2026-11-27', 2, 'Attending family wedding ceremony and personal travel', 'Pending', CURRENT_TIMESTAMP)`,
+            [makeId('LEV'), kishore.employeeId, kishore.name]
+          );
+        }
+        if (bala) {
+          await db.run(
+            `INSERT INTO employee_leave_requests (id, employeeId, employeeName, leaveType, startDate, endDate, days, reason, status, createdAt)
+             VALUES (?, ?, ?, 'Sick Leave', '2026-11-28', '2026-11-28', 1, 'Consultation with physician and medical rest for seasonal fever', 'Pending', CURRENT_TIMESTAMP)`,
+            [makeId('LEV'), bala.employeeId, bala.name]
+          );
+        }
+        if (sreeja) {
+          await db.run(
+            `INSERT INTO employee_leave_requests (id, employeeId, employeeName, leaveType, startDate, endDate, days, reason, status, reviewedBy, reviewedAt, createdAt)
+             VALUES (?, ?, ?, 'Privilege / Earned Leave', '2026-11-20', '2026-11-22', 3, 'Pre-planned annual family vacation leave', 'Approved', 'Super Admin (Dhanalakshimi)', CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)`,
+            [makeId('LEV'), sreeja.employeeId, sreeja.name]
+          );
+        }
+      }
+    } catch (_) {}
+  };
+
+  // 1. Fetch Leave Applications (All for Super Admin / HR Lead; own for staff)
+  app.get('/api/hr-ops/leaves', async (req, res) => {
+    try {
+      const db = await getDb();
+      await ensureInitialLeaveRequests(db);
+
+      const callerRole = String(req.query?.role || req.headers['x-crm-role'] || '').toLowerCase();
+      const callerEmail = String(req.query?.email || req.headers['x-employee-email'] || '').toLowerCase().trim();
+      const myOnly = req.query?.myOnly === 'true';
+
+      const isExecutiveOrHr = callerRole === 'super admin' || callerRole === 'admin' || callerRole === 'hr lead';
+
+      const leaves = await db.all('SELECT * FROM employee_leave_requests ORDER BY createdAt DESC');
+      const allEmps = await db.all('SELECT employeeId, name, role, department, avatar, email FROM employees');
+      const empMap = new Map();
+      allEmps.forEach(e => {
+        if (e.employeeId) empMap.set(e.employeeId, e);
+      });
+
+      const enriched = leaves.map(l => {
+        const emp = empMap.get(l.employeeId);
+        return {
+          id: l.id,
+          employeeId: l.employeeId,
+          name: l.employeeName || emp?.name || 'Employee',
+          role: emp?.role || 'Workforce Specialist',
+          department: emp?.department || 'Operations',
+          avatar: emp?.avatar || '',
+          email: emp?.email || '',
+          type: l.leaveType,
+          leaveType: l.leaveType,
+          startDate: l.startDate,
+          endDate: l.endDate,
+          days: Number(l.days || 1),
+          reason: l.reason || 'Personal / Medical Leave',
+          status: l.status || 'Pending',
+          reviewedBy: l.reviewedBy || null,
+          reviewedAt: l.reviewedAt || null,
+          reviewNotes: l.reviewNotes || null,
+          submittedAt: l.createdAt ? new Date(l.createdAt).toLocaleDateString('en-US', { month: 'short', day: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit' }) : 'Recently',
+          createdAt: l.createdAt
+        };
+      });
+
+      // Filter if requested or if caller is a non-leadership staff querying own leaves
+      let resultLeaves = enriched;
+      if (myOnly || (!isExecutiveOrHr && callerEmail)) {
+        const myEmp = allEmps.find(e => (e.email && e.email.toLowerCase() === callerEmail) || (e.employeeId === req.query?.employeeId));
+        if (myEmp) {
+          resultLeaves = enriched.filter(l => l.employeeId === myEmp.employeeId);
+        }
+      }
+
+      const pendingCount = enriched.filter(l => String(l.status).toLowerCase().includes('pending')).length;
+      const approvedCount = enriched.filter(l => String(l.status).toLowerCase() === 'approved').length;
+      const declinedCount = enriched.filter(l => String(l.status).toLowerCase().includes('decline') || String(l.status).toLowerCase().includes('reject')).length;
+
+      res.json({
+        success: true,
+        leaves: resultLeaves,
+        allLeaves: isExecutiveOrHr ? enriched : resultLeaves,
+        stats: {
+          pendingCount,
+          approvedCount,
+          declinedCount,
+          totalCount: enriched.length
+        }
+      });
+    } catch (err) {
+      console.error('Failed to get leave applications:', err);
+      res.status(500).json({ success: false, message: 'Failed to retrieve leave applications.' });
+    }
+  });
+
+  // 2. Submit Leave Application (Any CRM role)
+  app.post('/api/hr-ops/leaves/apply', async (req, res) => {
+    try {
+      const db = await getDb();
+      const {
+        leaveType,
+        startDate,
+        endDate,
+        days: reqDays,
+        reason,
+        employeeId: reqEmpId,
+        email: reqEmail
+      } = req.body || {};
+
+      const cleanEmail = String(reqEmail || req.headers['x-employee-email'] || '').toLowerCase().trim();
+      const cleanEmpId = String(reqEmpId || req.headers['x-employee-id'] || '').trim();
+
+      let employee = null;
+      if (cleanEmpId) {
+        employee = await db.get('SELECT * FROM employees WHERE employeeId = ? LIMIT 1', [cleanEmpId]);
+      }
+      if (!employee && cleanEmail) {
+        employee = await db.get('SELECT * FROM employees WHERE LOWER(email) = ? OR LOWER(altEmail) = ? LIMIT 1', [cleanEmail, cleanEmail]);
+      }
+      if (!employee) {
+        employee = {
+          employeeId: cleanEmpId || 'REV-EMP-004',
+          name: cleanEmail ? cleanEmail.split('@')[0] : 'Employee',
+          role: req.headers['x-crm-role'] || 'Staff Specialist',
+          department: 'Talent Acquisition'
+        };
+      }
+
+      if (!leaveType || !startDate || !endDate || !reason) {
+        return res.status(400).json({
+          success: false,
+          message: 'Leave type, start date, end date, and reason / message are required.'
+        });
+      }
+
+      let days = Number(reqDays);
+      if (!days || isNaN(days) || days <= 0) {
+        const d1 = new Date(startDate);
+        const d2 = new Date(endDate);
+        const diffMs = Math.max(0, d2.getTime() - d1.getTime());
+        days = Math.max(1, Math.round(diffMs / (1000 * 60 * 60 * 24)) + 1);
+      }
+
+      const id = makeId('LEV');
+
+      await db.run(
+        `INSERT INTO employee_leave_requests (
+          id, employeeId, employeeName, leaveType, startDate, endDate, days, reason, status, createdAt
+        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, 'Pending', CURRENT_TIMESTAMP)`,
+        [id, employee.employeeId, employee.name, leaveType, startDate, endDate, days, reason]
+      );
+
+      // Notify Super Admin and HR Lead of the new leave message
+      try {
+        const managers = await db.all("SELECT employeeId FROM employees WHERE role IN ('Super Admin', 'Admin', 'HR Lead')");
+        const targets = managers && managers.length ? managers : [{ employeeId: 'REV-EMP-001' }];
+        for (const m of targets) {
+          if (m.employeeId !== employee.employeeId) {
+            await createNotification(db, {
+              employeeId: m.employeeId,
+              type: 'Leave Application Alert',
+              title: `📋 New Leave Request: ${employee.name} (${employee.role || 'Staff'})`,
+              message: `${employee.name} applied for ${days} days of ${leaveType} (${startDate} to ${endDate}). Reason: "${reason}"`,
+              severity: 'info',
+              relatedId: id
+            });
+          }
+        }
+      } catch (_) {}
+
+      res.status(201).json({
+        success: true,
+        message: 'Leave application submitted successfully. Managerial review is pending.',
+        leave: {
+          id,
+          employeeId: employee.employeeId,
+          name: employee.name,
+          role: employee.role,
+          department: employee.department,
+          leaveType,
+          startDate,
+          endDate,
+          days,
+          reason,
+          status: 'Pending',
+          submittedAt: 'Just now'
+        }
+      });
+    } catch (err) {
+      console.error('Failed to submit leave request:', err);
+      res.status(500).json({ success: false, message: 'Failed to apply for leave.' });
+    }
+  });
+
+  // 3. Managerial Decision: Approve or Reject Leave (Super Admin / HR Lead)
+  app.post('/api/hr-ops/leaves/:id/decision', requireCrmAuth, requireHrLeadershipRole, async (req, res) => {
+    try {
+      const db = await getDb();
+      const reviewer = req.authEmployee;
+      const { id } = req.params;
+      const { decision, notes } = req.body || {};
+
+      const statusValue = String(decision).toUpperCase() === 'APPROVED' ? 'Approved' : 'Declined';
+      const targetLeave = await db.get('SELECT * FROM employee_leave_requests WHERE id = ? LIMIT 1', [id]);
+
+      if (!targetLeave) {
+        return res.status(404).json({ success: false, message: 'Leave request not found.' });
+      }
+
+      // Check hierarchy: if applicant is HR Lead, only Super Admin can approve/decline
+      const applicant = await db.get('SELECT role FROM employees WHERE employeeId = ?', [targetLeave.employeeId]);
+      const applicantRole = String(applicant?.role || '').toLowerCase();
+      const isApplicantHrLead = applicantRole === 'hr lead' || applicantRole.includes('lead');
+
+      const reviewerRole = String(reviewer?.role || '').toLowerCase();
+      const isReviewerSuperAdmin = reviewerRole === 'super admin' || reviewerRole === 'admin';
+
+      if (isApplicantHrLead && !isReviewerSuperAdmin) {
+        return res.status(403).json({
+          success: false,
+          message: 'Access Denied: Only Super Admin has authority to sanction or decline leave for HR Lead.'
+        });
+      }
+
+      // Self-review restriction
+      if (reviewer?.employeeId && targetLeave.employeeId === reviewer.employeeId) {
+        return res.status(403).json({
+          success: false,
+          message: 'Access Denied: You cannot approve or decline your own leave request.'
+        });
+      }
+
+      const reviewerName = `${reviewer.name} (${reviewer.role})`;
+      await db.run(
+        `UPDATE employee_leave_requests SET
+          status = ?,
+          reviewedBy = ?,
+          reviewedAt = CURRENT_TIMESTAMP
+         WHERE id = ?`,
+        [statusValue, reviewerName, id]
+      );
+
+      // If approved and the leave covers today's date, update attendance to 'On Leave'
+      if (statusValue === 'Approved') {
+        const nowParts = getCompanyDateTimeParts(new Date());
+        const todayStr = nowParts.dateStr;
+        if (targetLeave.startDate <= todayStr && targetLeave.endDate >= todayStr) {
+          const existingAtt = await db.get('SELECT id FROM attendance_records WHERE employeeId = ? AND workDate = ?', [targetLeave.employeeId, todayStr]);
+          if (existingAtt) {
+            await db.run(
+              `UPDATE attendance_records SET status = 'On Leave', notes = ?, updatedAt = CURRENT_TIMESTAMP WHERE id = ?`,
+              [`Sanctioned ${targetLeave.leaveType}`, existingAtt.id]
+            );
+          }
+        }
+      }
+
+      // Audit log
+      await writeAttendanceAudit(db, {
+        attendanceId: null,
+        employeeId: targetLeave.employeeId,
+        workDate: targetLeave.startDate,
+        action: statusValue === 'Approved' ? 'APPROVE_LEAVE_REQUEST' : 'DECLINE_LEAVE_REQUEST',
+        actor: reviewer,
+        beforeState: { status: targetLeave.status },
+        afterState: { status: statusValue, reviewedBy: reviewerName },
+        details: `Leave application for ${targetLeave.employeeName} (${targetLeave.leaveType}, ${targetLeave.days}d) marked as ${statusValue} by ${reviewerName}. ${notes ? 'Notes: ' + notes : ''}`,
+        ipAddress: getClientIp(req)
+      });
+
+      // Notify the applicant of the managerial decision in real time
+      await createNotification(db, {
+        employeeId: targetLeave.employeeId,
+        type: 'Leave Application Decision',
+        title: statusValue === 'Approved' ? `✓ Leave Request Approved!` : `✕ Leave Request Declined`,
+        message: statusValue === 'Approved'
+          ? `Your ${targetLeave.leaveType} for ${targetLeave.startDate} to ${targetLeave.endDate} (${targetLeave.days} days) has been APPROVED by ${reviewerName}. Status: Approved ✓.`
+          : `Your ${targetLeave.leaveType} request for ${targetLeave.startDate} to ${targetLeave.endDate} was DECLINED by ${reviewerName}. ${notes ? 'Remarks: ' + notes : 'Status: Declined ✕.'}`,
+        severity: statusValue === 'Approved' ? 'success' : 'error',
+        relatedId: id
+      });
+
+      res.json({
+        success: true,
+        message: `Leave request for ${targetLeave.employeeName} has been ${statusValue.toLowerCase()}.`,
+        status: statusValue
+      });
+    } catch (err) {
+      console.error('Failed to decide leave request:', err);
+      res.status(500).json({ success: false, message: 'Failed to process leave decision.' });
+    }
+  });
+
+  // 4. Leave Quota Balances
+  app.get('/api/hr-ops/leaves/balances', async (req, res) => {
+    try {
+      const db = await getDb();
+      const employees = await db.all("SELECT employeeId, name, role, department FROM employees WHERE LOWER(COALESCE(status, 'Active')) != 'inactive' ORDER BY name ASC");
+      const approvedLeaves = await db.all("SELECT employeeId, leaveType, days FROM employee_leave_requests WHERE status = 'Approved'");
+
+      const usedMap = new Map();
+      approvedLeaves.forEach(l => {
+        if (!usedMap.has(l.employeeId)) usedMap.set(l.employeeId, { casual: 0, sick: 0, paid: 0 });
+        const cur = usedMap.get(l.employeeId);
+        const t = String(l.leaveType || '').toLowerCase();
+        const d = Number(l.days || 1);
+        if (t.includes('sick') || t.includes('medical')) cur.sick += d;
+        else if (t.includes('casual')) cur.casual += d;
+        else cur.paid += d;
+      });
+
+      const balances = employees.map(e => {
+        const used = usedMap.get(e.employeeId) || { casual: 0, sick: 0, paid: 0 };
+        const casualQuota = Math.max(0, 8 - used.casual);
+        const sickQuota = Math.max(0, 10 - used.sick);
+        const paidQuota = Math.max(0, 15 - used.paid);
+        return {
+          id: e.employeeId,
+          name: e.name,
+          role: e.role,
+          department: e.department || 'Operations',
+          casual: casualQuota,
+          sick: sickQuota,
+          paid: paidQuota,
+          total: casualQuota + sickQuota + paidQuota
+        };
+      });
+
+      res.json({ success: true, balances });
+    } catch (err) {
+      console.error('Failed to fetch leave balances:', err);
+      res.status(500).json({ success: false, message: 'Failed to retrieve leave balances.' });
+    }
+  });
 };
 
