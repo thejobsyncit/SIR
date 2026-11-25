@@ -93,6 +93,61 @@ export const getDbPath = () => {
   return path.join(__dirname, 'sir_recruitment.db');
 };
 
+export const DEFAULT_SHIFTS = [
+  {
+    id: 'SHIFT-GENERAL',
+    name: 'General Day Shift (09:00 AM - 06:00 PM)',
+    startTime: '09:00',
+    endTime: '18:00',
+    graceMinutes: 15,
+    isOvernight: 0,
+    breakTrackingEnabled: 1,
+    overtimeEnabled: 1,
+    overtimeThresholdMinutes: 480,
+    absentCutoffHour: 14,
+    weeklyOffDays: '[0]'
+  },
+  {
+    id: 'SHIFT-MORNING',
+    name: 'Early Morning Shift (08:00 AM - 04:30 PM)',
+    startTime: '08:00',
+    endTime: '16:30',
+    graceMinutes: 15,
+    isOvernight: 0,
+    breakTrackingEnabled: 1,
+    overtimeEnabled: 1,
+    overtimeThresholdMinutes: 480,
+    absentCutoffHour: 13,
+    weeklyOffDays: '[0]'
+  },
+  {
+    id: 'SHIFT-UK-ME',
+    name: 'UK & Middle East Overlap (01:00 PM - 09:30 PM)',
+    startTime: '13:00',
+    endTime: '21:30',
+    graceMinutes: 15,
+    isOvernight: 0,
+    breakTrackingEnabled: 1,
+    overtimeEnabled: 1,
+    overtimeThresholdMinutes: 480,
+    absentCutoffHour: 17,
+    weeklyOffDays: '[0]'
+  },
+  {
+    id: 'SHIFT-NIGHT',
+    name: 'Overnight Global Desk (10:00 PM - 07:00 AM)',
+    startTime: '22:00',
+    endTime: '07:00',
+    graceMinutes: 15,
+    isOvernight: 1,
+    breakTrackingEnabled: 1,
+    overtimeEnabled: 1,
+    overtimeThresholdMinutes: 480,
+    absentCutoffHour: 23,
+    weeklyOffDays: '[0]'
+  }
+];
+
 export const DEFAULT_CRM_EMPLOYEES = [
   {
     id: 'emp-1',
@@ -560,7 +615,16 @@ const createFallbackDb = () => {
     client_notifications: [],
     client_invoices: [],
     career_departments: [],
-    audit_logs: []
+    audit_logs: [],
+    attendance_records: [],
+    shift_configs: [...DEFAULT_SHIFTS],
+    company_holidays: [],
+    employee_leave_requests: [],
+    attendance_breaks: [],
+    attendance_regularizations: [],
+    attendance_audit_logs: [],
+    employee_notifications: [],
+    role_login_logs: []
   };
 
   let store = { ...defaultStore };
@@ -756,7 +820,16 @@ export const SUPABASE_ALL_TABLES = [
   'client_notifications',
   'client_invoices',
   'career_departments',
-  'audit_logs'
+  'audit_logs',
+  'attendance_records',
+  'shift_configs',
+  'company_holidays',
+  'employee_leave_requests',
+  'attendance_breaks',
+  'attendance_regularizations',
+  'attendance_audit_logs',
+  'employee_notifications',
+  'role_login_logs'
 ];
 
 export const SUPABASE_KEY_MAP = {
@@ -854,6 +927,11 @@ export const createSupabaseDb = async (client) => {
   // Ensure default employees in store if empty
   if ((!store.employees || store.employees.length === 0) && DEFAULT_CRM_EMPLOYEES?.length) {
     store.employees = [...DEFAULT_CRM_EMPLOYEES];
+  }
+
+  // Ensure default shifts in store if empty
+  if ((!store.shift_configs || store.shift_configs.length === 0) && DEFAULT_SHIFTS?.length) {
+    store.shift_configs = [...DEFAULT_SHIFTS];
   }
 
   const getTableName = (sql) => {

@@ -1,4 +1,5 @@
 import crypto from 'crypto';
+import { DEFAULT_SHIFTS } from '../database.js';
 import {
   COMPANY_TIMEZONE,
   getCompanyDateTimeParts,
@@ -34,6 +35,40 @@ const sanitizeEmployee = (emp) => {
   if (!emp) return null;
   const { password, ...safe } = emp;
   return safe;
+};
+
+export const safeFormatTime = (timeVal) => {
+  if (!timeVal || timeVal === '—' || timeVal === '-' || timeVal === 'null') return '—';
+  if (typeof timeVal === 'string') {
+    const trimmed = timeVal.trim();
+    if (/^\d{1,2}:\d{2}\s*(?:AM|PM)$/i.test(trimmed)) {
+      return trimmed.toUpperCase();
+    }
+    if (/^\d{1,2}:\d{2}$/.test(trimmed)) {
+      const [h, m] = trimmed.split(':').map(Number);
+      const ampm = h >= 12 ? 'PM' : 'AM';
+      const h12 = h % 12 || 12;
+      return `${String(h12).padStart(2, '0')}:${String(m).padStart(2, '0')} ${ampm}`;
+    }
+    if (/^\d{4}-\d{2}-\d{2}\s+\d{2}:\d{2}/.test(trimmed)) {
+      const parts = trimmed.split(/\s+/);
+      const timePart = parts[1].slice(0, 5);
+      const [h, m] = timePart.split(':').map(Number);
+      const ampm = h >= 12 ? 'PM' : 'AM';
+      const h12 = h % 12 || 12;
+      return `${String(h12).padStart(2, '0')}:${String(m).padStart(2, '0')} ${ampm}`;
+    }
+    const d = new Date(trimmed);
+    if (!isNaN(d.getTime())) {
+      return d.toLocaleTimeString('en-US', {
+        timeZone: 'Asia/Kolkata',
+        hour: '2-digit',
+        minute: '2-digit',
+        hour12: true
+      });
+    }
+  }
+  return timeVal;
 };
 
 export const createCrmSessionToken = (emp) => {
@@ -2697,7 +2732,7 @@ export const registerAttendanceRoutes = (app, { getDb, getClientIp }) => {
         let shiftName = 'General Day Shift (09:00 AM - 06:00 PM)';
 
         if (att) {
-          isLive = true;
+          isLive = !att.checkOutAt && (att.status === 'In Progress' || att.status === 'Present' || att.status === 'Late' || att.status === 'Executive Active');
           attendanceId = att.id;
           shiftName = att.shiftName || shiftName;
           lateMinutes = Number(att.lateMinutes) || 0;
@@ -2705,34 +2740,15 @@ export const registerAttendanceRoutes = (app, { getDb, getClientIp }) => {
           lateApprovalStatus = att.lateApprovalStatus || (isLate ? 'PENDING' : 'APPROVED');
 
           if (att.checkInAt) {
-            try {
-              checkIn = new Date(att.checkInAt).toLocaleTimeString('en-US', {
-                timeZone: 'Asia/Kolkata',
-                hour: '2-digit',
-                minute: '2-digit',
-                hour12: true
-              });
-            } catch (_) {
-              checkIn = att.checkInAt;
-            }
+            checkIn = safeFormatTime(att.checkInAt);
           }
 
           if (att.checkOutAt) {
-            try {
-              checkOut = new Date(att.checkOutAt).toLocaleTimeString('en-US', {
-                timeZone: 'Asia/Kolkata',
-                hour: '2-digit',
-                minute: '2-digit',
-                hour12: true
-              });
-            } catch (_) {
-              checkOut = att.checkOutAt;
-            }
+            checkOut = safeFormatTime(att.checkOutAt);
             const mins = att.netWorkMinutes || 0;
             hours = mins > 0 ? `${Math.floor(mins / 60)}h ${String(mins % 60).padStart(2, '0')}m` : '0h 00m';
             status = att.status || (isLate ? 'Late' : 'Present');
           } else {
-            // Explicit requirement: If an employee has not checked out, display Not Checked Out instead of inventing a time
             checkOut = 'Not Checked Out';
             hours = 'In Progress';
             status = isLate ? 'Late' : 'Present';
@@ -2755,7 +2771,7 @@ export const registerAttendanceRoutes = (app, { getDb, getClientIp }) => {
           lateMinutes = Number(login.lateMinutes) || 0;
           isLate = login.punctuality === 'Late' || lateMinutes > 0;
           lateApprovalStatus = login.lateApprovalStatus || (isLate ? 'PENDING' : 'APPROVED');
-          checkIn = login.checkInTime || (login.loginTime ? login.loginTime.slice(11, 16) : '—');
+          checkIn = safeFormatTime(login.checkInTime || login.loginTime);
           checkOut = 'Not Checked Out';
           hours = 'In Progress';
           status = isLate ? 'Late' : 'Present';
@@ -2772,7 +2788,6 @@ export const registerAttendanceRoutes = (app, { getDb, getClientIp }) => {
           } else {
             const dt = new Date(`${todayDateStr}T12:00:00Z`);
             const dayOfWeek = dt.getUTCDay();
-            // Saturday is a regular working day; Sunday (0) is weekly off
             if (dayOfWeek === 0) {
               status = 'Weekly Off';
               remarks = 'Scheduled Weekly Off';
@@ -2794,7 +2809,44 @@ export const registerAttendanceRoutes = (app, { getDb, getClientIp }) => {
             checkOut = isSelectedDateToday ? 'Active Session' : '06:00 PM';
             hours = 'Executive';
             remarks = 'Executive Governance Session';
+            isLive = isSelectedDateToday;
           }
+        }
+
+        // Calculate dynamic running hours for active/checked-in sessions
+        let runningMinutes = 0;
+        let runningHours = '0h 00m';
+        if (isLive) {
+          const rawCheckIn = att?.checkInAt || (login?.loginTime);
+          if (rawCheckIn) {
+            const checkInEpoch = new Date(rawCheckIn).getTime();
+            if (!isNaN(checkInEpoch)) {
+              runningMinutes = Math.max(0, Math.floor((Date.now() - checkInEpoch) / 60000));
+              runningHours = formatMinutesDuration(runningMinutes);
+            }
+          }
+        }
+
+        // Determine Punctuality display
+        let punctuality = '—';
+        if (isLate || status === 'Late') {
+          punctuality = `Late (+${lateMinutes || 15}m)`;
+        } else if (status === 'Present' || status === 'Executive Active' || (checkIn !== '—' && checkIn !== 'Not Checked In')) {
+          punctuality = 'On Time';
+        }
+
+        // Determine Real Attendance Alerts
+        let attendanceAlerts = 'None';
+        if (lateApprovalStatus === 'PENDING') {
+          attendanceAlerts = `Pending Authorization (+${lateMinutes}m)`;
+        } else if (isLate || status === 'Late') {
+          attendanceAlerts = `Late Arrival (+${lateMinutes}m)`;
+        } else if (status === 'Not Checked In' && nowParts.hour >= 10 && isSelectedDateToday) {
+          attendanceAlerts = 'Employee Has Not Checked In';
+        } else if (checkOut === 'Not Checked Out' && nowParts.hour >= 19 && isSelectedDateToday) {
+          attendanceAlerts = 'Employee Has Not Checked Out';
+        } else if (status === 'Absent') {
+          attendanceAlerts = 'Unexcused Absence';
         }
 
         return {
@@ -2802,9 +2854,10 @@ export const registerAttendanceRoutes = (app, { getDb, getClientIp }) => {
           employeeId: emp.employeeId,
           attendanceId,
           name: emp.name,
+          employeeName: emp.name,
           role: emp.role,
           designation: emp.designation || emp.role,
-          department: emp.department || 'Operations',
+          department: emp.department || 'Operations Management',
           location: emp.branch || 'Dubai HQ',
           avatar: emp.avatar || '',
           email: emp.email,
@@ -2814,28 +2867,42 @@ export const registerAttendanceRoutes = (app, { getDb, getClientIp }) => {
           breakDuration,
           hours,
           totalWorkingHours: hours,
+          runningHours,
+          runningMinutes,
           status,
           late: isLate,
           lateMinutes,
           lateOrEarly,
           lateApprovalStatus,
           shiftName,
+          shiftStart: att?.shiftStart || '09:00',
+          shiftEnd: att?.shiftEnd || '18:00',
+          punctuality,
+          attendanceAlerts,
           remarks,
           isLive
         };
       });
 
       const presentCount = unifiedRegister.filter((r) => r.status === 'Present' || r.status === 'Late' || r.status === 'Executive Active').length;
-      const lateCount = unifiedRegister.filter((r) => r.late).length;
+      const lateCount = unifiedRegister.filter((r) => r.late || r.status === 'Late').length;
       const leaveCount = unifiedRegister.filter((r) => r.status === 'On Leave').length;
       const pendingApprovalCount = unifiedRegister.filter((r) => r.lateApprovalStatus === 'PENDING').length;
-      const absentCount = unifiedRegister.filter((r) => r.status === 'Absent' || r.status === 'Not Clocked In' || r.status === 'Not Checked In').length;
+      const absentCount = unifiedRegister.filter((r) => r.status === 'Absent').length;
+      const notCheckedInCount = unifiedRegister.filter((r) => r.status === 'Not Checked In' || r.status === 'Not Clocked In').length;
+      const checkedOutCount = unifiedRegister.filter((r) => r.checkOut && r.checkOut !== '—' && r.checkOut !== 'Not Checked Out' && r.checkOut !== 'Active Session').length;
+      const liveCount = unifiedRegister.filter((r) => r.isLive).length;
+
+      const departments = Array.from(new Set(emps.map(e => e.department).filter(Boolean))).sort();
+      const roles = Array.from(new Set(emps.map(e => e.role).filter(Boolean))).sort();
 
       res.json({
         success: true,
         date: todayDateStr,
         register: unifiedRegister,
         recordedDates,
+        departments,
+        roles,
         stats: {
           totalWorkforce: unifiedRegister.length,
           totalEmployees: unifiedRegister.length,
@@ -2843,12 +2910,361 @@ export const registerAttendanceRoutes = (app, { getDb, getClientIp }) => {
           lateCount,
           leaveCount,
           pendingApprovalCount,
-          absentCount
+          absentCount,
+          notCheckedInCount,
+          checkedOutCount,
+          liveCount
         }
       });
     } catch (err) {
       console.error('Failed to get attendance register:', err);
       res.status(500).json({ success: false, message: 'Failed to retrieve attendance register.' });
+    }
+  });
+
+  // Individual Employee Attendance Details & History (Day, Week, Month, Overall)
+  app.get('/api/hr-ops/attendance/employee/:employeeId/history', requireCrmAuth, async (req, res) => {
+    try {
+      const db = await getDb();
+      const { employeeId } = req.params;
+      const { range = 'month', date, startDate, endDate } = req.query || {};
+
+      const emp = await db.get(
+        'SELECT * FROM employees WHERE employeeId = ? OR id = ? LIMIT 1',
+        [employeeId, employeeId]
+      );
+      if (!emp) {
+        return res.status(404).json({ success: false, message: 'Employee not found.' });
+      }
+
+      const now = new Date();
+      const nowParts = getCompanyDateTimeParts(now);
+      const shiftConfig = await getEmployeeShift(db, emp);
+
+      let calculatedStart = '';
+      let calculatedEnd = '';
+
+      if (range === 'day') {
+        const targetDate = /^\d{4}-\d{2}-\d{2}$/.test(date || '') ? date : nowParts.dateStr;
+        calculatedStart = targetDate;
+        calculatedEnd = targetDate;
+      } else if (range === 'week') {
+        const refDate = /^\d{4}-\d{2}-\d{2}$/.test(date || '') ? new Date(date) : now;
+        const refParts = getCompanyDateTimeParts(refDate);
+        const dayOfWeek = refParts.dayOfWeek;
+        const diffToMon = dayOfWeek === 0 ? -6 : 1 - dayOfWeek;
+        calculatedStart = addDaysToDateStr(refParts.dateStr, diffToMon);
+        calculatedEnd = addDaysToDateStr(calculatedStart, 6);
+      } else if (range === 'month') {
+        const targetMonth = /^\d{4}-\d{2}$/.test(date || '') ? date : `${nowParts.year}-${String(nowParts.month).padStart(2, '0')}`;
+        const [y, m] = targetMonth.split('-').map(Number);
+        const lastDay = new Date(Date.UTC(y, m, 0)).getUTCDate();
+        calculatedStart = `${targetMonth}-01`;
+        calculatedEnd = `${targetMonth}-${String(lastDay).padStart(2, '0')}`;
+      } else {
+        calculatedStart = /^\d{4}-\d{2}-\d{2}$/.test(startDate || '')
+          ? startDate
+          : (emp.joiningDate && emp.joiningDate <= nowParts.dateStr ? emp.joiningDate : addDaysToDateStr(nowParts.dateStr, -60));
+        calculatedEnd = /^\d{4}-\d{2}-\d{2}$/.test(endDate || '')
+          ? endDate
+          : nowParts.dateStr;
+      }
+
+      const dbRecords = await db.all(
+        `SELECT * FROM attendance_records WHERE employeeId = ? AND workDate >= ? AND workDate <= ? ORDER BY workDate ASC`,
+        [emp.employeeId, calculatedStart, calculatedEnd]
+      );
+
+      const holidays = await db.all(
+        `SELECT * FROM company_holidays WHERE holidayDate >= ? AND holidayDate <= ?`,
+        [calculatedStart, calculatedEnd]
+      );
+
+      const leaveRequests = await db.all(
+        `SELECT * FROM employee_leave_requests WHERE employeeId = ? AND (
+          (startDate >= ? AND startDate <= ?) OR
+          (endDate >= ? AND endDate <= ?) OR
+          (startDate <= ? AND endDate >= ?)
+        )`,
+        [emp.employeeId, calculatedStart, calculatedEnd, calculatedStart, calculatedEnd, calculatedStart, calculatedEnd]
+      );
+
+      const dataset = buildAttendanceDataset({
+        employee: emp,
+        shiftConfig,
+        dbRecords,
+        holidays,
+        leaveRequests,
+        startDateStr: calculatedStart,
+        endDateStr: calculatedEnd,
+        now
+      });
+
+      const historyRows = dataset.days.map(d => {
+        let punctuality = '—';
+        if (d.status === 'Present' || d.status === 'Executive Active') {
+          punctuality = d.lateMinutes > 0 ? `Late (+${d.lateMinutes}m)` : 'On Time';
+        } else if (d.status === 'Late') {
+          punctuality = `Late (+${d.lateMinutes || 15}m)`;
+        }
+
+        return {
+          id: d.id,
+          date: d.date,
+          day: d.day,
+          shift: d.shiftName || shiftConfig.name,
+          shiftTiming: d.shiftTiming,
+          checkIn: safeFormatTime(d.checkInFormatted || d.checkInAt) || '—',
+          checkOut: d.checkOutAt ? safeFormatTime(d.checkOutFormatted || d.checkOutAt) : (d.checkInAt ? 'Not Checked Out' : '—'),
+          loggedHours: d.netWorkMinutes > 0 ? formatMinutesDuration(d.netWorkMinutes) : (d.checkInAt && !d.checkOutAt ? 'In Progress' : '—'),
+          status: d.status,
+          punctuality,
+          notes: d.notes || ''
+        };
+      }).reverse();
+
+      res.json({
+        success: true,
+        employee: {
+          id: emp.id,
+          employeeId: emp.employeeId,
+          name: emp.name,
+          role: emp.role,
+          designation: emp.designation || emp.role,
+          department: emp.department || 'Operations Management',
+          location: emp.assignedBranch || 'Dubai HQ',
+          email: emp.email,
+          phone: emp.phone,
+          avatar: emp.avatar || ''
+        },
+        shift: shiftConfig,
+        summary: {
+          totalWorkingDays: dataset.summary.totalWorkingDays || 0,
+          presentDays: dataset.summary.presentDays || 0,
+          absentDays: dataset.summary.absentDays || 0,
+          lateDays: dataset.summary.lateDays || 0,
+          halfDays: dataset.summary.halfDays || 0,
+          leaveDays: dataset.summary.leaveDays || 0,
+          totalLoggedHours: dataset.workingHours.totalNetHours || '0h 00m',
+          averageWorkingHours: dataset.workingHours.avgDailyHours || '0h 00m',
+          punctualityPercentage: dataset.summary.punctualityPercentage || 100,
+          attendancePercentage: dataset.summary.attendancePercentage || 0
+        },
+        history: historyRows,
+        range,
+        startDate: calculatedStart,
+        endDate: calculatedEnd
+      });
+    } catch (err) {
+      console.error('Failed to get employee attendance history:', err);
+      res.status(500).json({ success: false, message: 'Failed to retrieve attendance history.' });
+    }
+  });
+
+  // Shift Roster Management: View all employees with shift assignments
+  app.get('/api/hr-ops/attendance/shift-roster', requireCrmAuth, requireHrLeadershipRole, async (req, res) => {
+    try {
+      const db = await getDb();
+      const emps = await db.all(
+        `SELECT employeeId, name, email, role, department, designation, assignedBranch, shiftId, status 
+         FROM employees 
+         WHERE LOWER(COALESCE(status, 'Active')) != 'inactive' 
+         ORDER BY name ASC`
+      );
+      let shifts = await db.all('SELECT * FROM shift_configs WHERE isActive = 1 OR isActive IS NULL');
+      if (!shifts || shifts.length === 0) {
+        shifts = DEFAULT_SHIFTS;
+      }
+      const shiftMap = new Map();
+      shifts.forEach(s => shiftMap.set(s.id, s));
+
+      const defaultShift = shiftMap.get('SHIFT-GENERAL') || shifts[0];
+
+      const roster = emps.map(emp => {
+        const assignedShift = (emp.shiftId && shiftMap.get(emp.shiftId)) || defaultShift;
+        return {
+          id: emp.employeeId,
+          employeeId: emp.employeeId,
+          employeeName: emp.name,
+          name: emp.name,
+          department: emp.department || 'Operations Management',
+          role: emp.role,
+          designation: emp.designation || emp.role,
+          assignedShift: assignedShift.name,
+          shiftId: assignedShift.id,
+          shiftStartTime: assignedShift.startTime || '09:00',
+          shiftEndTime: assignedShift.endTime || '18:00',
+          workingDays: 'Monday - Saturday',
+          weeklyOff: 'Sunday',
+          shiftStatus: 'Active'
+        };
+      });
+
+      res.json({
+        success: true,
+        roster,
+        shifts
+      });
+    } catch (err) {
+      console.error('Failed to get shift roster:', err);
+      res.status(500).json({ success: false, message: 'Failed to retrieve shift roster.' });
+    }
+  });
+
+  // Assign / Update Employee Shift
+  app.put('/api/hr-ops/attendance/shift-roster/:employeeId', requireCrmAuth, requireHrLeadershipRole, async (req, res) => {
+    try {
+      const db = await getDb();
+      const { employeeId } = req.params;
+      const { shiftId } = req.body || {};
+      if (!shiftId) {
+        return res.status(400).json({ success: false, message: 'shiftId is required.' });
+      }
+      const emp = await db.get('SELECT * FROM employees WHERE employeeId = ? LIMIT 1', [employeeId]);
+      if (!emp) {
+        return res.status(404).json({ success: false, message: 'Employee not found.' });
+      }
+      await db.run('UPDATE employees SET shiftId = ?, updatedAt = CURRENT_TIMESTAMP WHERE employeeId = ?', [shiftId, employeeId]);
+      res.json({ success: true, message: `Shift updated successfully for ${emp.name}.` });
+    } catch (err) {
+      console.error('Failed to update employee shift:', err);
+      res.status(500).json({ success: false, message: 'Failed to update employee shift.' });
+    }
+  });
+
+  // Multi-Filter Attendance Reports for Export
+  app.get('/api/hr-ops/attendance/reports', requireCrmAuth, requireHrLeadershipRole, async (req, res) => {
+    try {
+      const db = await getDb();
+      const {
+        employeeId = 'all',
+        department = 'all',
+        role = 'all',
+        range = 'month',
+        date,
+        startDate,
+        endDate
+      } = req.query || {};
+
+      const now = new Date();
+      const nowParts = getCompanyDateTimeParts(now);
+
+      let calculatedStart = '';
+      let calculatedEnd = '';
+
+      if (range === 'day') {
+        const targetDate = /^\d{4}-\d{2}-\d{2}$/.test(date || '') ? date : nowParts.dateStr;
+        calculatedStart = targetDate;
+        calculatedEnd = targetDate;
+      } else if (range === 'week') {
+        const refDate = /^\d{4}-\d{2}-\d{2}$/.test(date || '') ? new Date(date) : now;
+        const refParts = getCompanyDateTimeParts(refDate);
+        const dayOfWeek = refParts.dayOfWeek;
+        const diffToMon = dayOfWeek === 0 ? -6 : 1 - dayOfWeek;
+        calculatedStart = addDaysToDateStr(refParts.dateStr, diffToMon);
+        calculatedEnd = addDaysToDateStr(calculatedStart, 6);
+      } else if (range === 'month') {
+        const targetMonth = /^\d{4}-\d{2}$/.test(date || '') ? date : `${nowParts.year}-${String(nowParts.month).padStart(2, '0')}`;
+        const [y, m] = targetMonth.split('-').map(Number);
+        const lastDay = new Date(Date.UTC(y, m, 0)).getUTCDate();
+        calculatedStart = `${targetMonth}-01`;
+        calculatedEnd = `${targetMonth}-${String(lastDay).padStart(2, '0')}`;
+      } else {
+        calculatedStart = /^\d{4}-\d{2}-\d{2}$/.test(startDate || '') ? startDate : addDaysToDateStr(nowParts.dateStr, -30);
+        calculatedEnd = /^\d{4}-\d{2}-\d{2}$/.test(endDate || '') ? endDate : nowParts.dateStr;
+      }
+
+      let empQuery = `SELECT * FROM employees WHERE LOWER(COALESCE(status, 'Active')) != 'inactive'`;
+      const empParams = [];
+
+      if (employeeId && employeeId !== 'all') {
+        empQuery += ` AND employeeId = ?`;
+        empParams.push(employeeId);
+      }
+      if (department && department !== 'all') {
+        empQuery += ` AND department = ?`;
+        empParams.push(department);
+      }
+      if (role && role !== 'all') {
+        empQuery += ` AND role = ?`;
+        empParams.push(role);
+      }
+
+      empQuery += ` ORDER BY name ASC`;
+      const emps = await db.all(empQuery, empParams);
+
+      const holidays = await db.all(
+        `SELECT * FROM company_holidays WHERE holidayDate >= ? AND holidayDate <= ?`,
+        [calculatedStart, calculatedEnd]
+      );
+
+      const reportRows = [];
+      for (const rawEmp of emps) {
+        const emp = sanitizeEmployee(rawEmp);
+        const shiftConfig = await getEmployeeShift(db, emp);
+
+        const dbRecords = await db.all(
+          `SELECT * FROM attendance_records WHERE employeeId = ? AND workDate >= ? AND workDate <= ?`,
+          [emp.employeeId, calculatedStart, calculatedEnd]
+        );
+
+        const leaveRequests = await db.all(
+          `SELECT * FROM employee_leave_requests WHERE employeeId = ?`,
+          [emp.employeeId]
+        );
+
+        const dataset = buildAttendanceDataset({
+          employee: emp,
+          shiftConfig,
+          dbRecords,
+          holidays,
+          leaveRequests,
+          startDateStr: calculatedStart,
+          endDateStr: calculatedEnd,
+          now
+        });
+
+        const singleDay = range === 'day' ? dataset.days[0] : null;
+        const latestDayWithPunch = dataset.days.slice().reverse().find(d => d.checkInAt) || dataset.days[dataset.days.length - 1];
+
+        reportRows.push({
+          employeeName: emp.name,
+          employeeId: emp.employeeId,
+          department: emp.department || 'Operations Management',
+          role: emp.role,
+          designation: emp.designation || emp.role,
+          workingDays: dataset.summary.totalWorkingDays || 0,
+          presentDays: dataset.summary.presentDays || 0,
+          absentDays: dataset.summary.absentDays || 0,
+          lateDays: dataset.summary.lateDays || 0,
+          halfDays: dataset.summary.halfDays || 0,
+          leaveDays: dataset.summary.leaveDays || 0,
+          checkInTime: singleDay ? (safeFormatTime(singleDay.checkInFormatted || singleDay.checkInAt) || '—') : (latestDayWithPunch ? (safeFormatTime(latestDayWithPunch.checkInFormatted || latestDayWithPunch.checkInAt) || '—') : '—'),
+          checkOutTime: singleDay ? (singleDay.checkOutAt ? safeFormatTime(singleDay.checkOutFormatted || singleDay.checkOutAt) : (singleDay.checkInAt ? 'Not Checked Out' : '—')) : (latestDayWithPunch && latestDayWithPunch.checkOutAt ? safeFormatTime(latestDayWithPunch.checkOutFormatted || latestDayWithPunch.checkOutAt) : '—'),
+          totalLoggedHours: dataset.workingHours.totalNetHours || '0h 00m',
+          punctuality: `${dataset.summary.punctualityPercentage || 100}%`,
+          attendancePercentage: `${dataset.summary.attendancePercentage || 0}%`
+        });
+      }
+
+      res.json({
+        success: true,
+        report: reportRows,
+        dateRange: {
+          range,
+          startDate: calculatedStart,
+          endDate: calculatedEnd
+        },
+        filters: {
+          employeeId,
+          department,
+          role
+        },
+        generatedAt: new Date().toISOString()
+      });
+    } catch (err) {
+      console.error('Failed to generate attendance report:', err);
+      res.status(500).json({ success: false, message: 'Failed to generate attendance report.' });
     }
   });
 
