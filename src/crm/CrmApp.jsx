@@ -361,7 +361,6 @@ const CrmAppContent = () => {
       // HR Lead Suite (Centralized Workspace)
       case 'hr-overview':
       case 'hr-attendance':
-      case 'hr-leave':
       case 'hr-employees':
       case 'hr-performance':
       case 'hr-recruitment':
@@ -393,6 +392,7 @@ const CrmAppContent = () => {
       case 'attendance':
         return <CrmAttendanceManagement isSuperAdmin={currentRole === 'Super Admin'} currentRole={currentRole} />;
       case 'leave':
+      case 'hr-leave':
         return <CrmLeaveManagement isSuperAdmin={currentRole === 'Super Admin'} currentRole={currentRole} />;
 
       // Standard & Recruiter Modules

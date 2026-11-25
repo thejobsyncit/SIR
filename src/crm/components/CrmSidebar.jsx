@@ -205,6 +205,7 @@ export const CrmSidebar = ({ collapsed, setCollapsed }) => {
     { id: 'hr-tasks', label: 'My Assigned Enquiries', icon: CheckSquare },
     { id: 'candidates', label: 'Candidates', icon: Users },
     { id: 'my-attendance', label: 'My Attendance', icon: CalendarCheck },
+    { id: 'leave', label: 'Leave Requests', icon: Calendar },
     { id: 'documentation', label: 'Document Verification & KYC', icon: FileText },
     { id: 'visa', label: 'Visa & Verification', icon: ShieldCheck },
     { id: 'my-profile', label: 'My Profile', icon: User }
@@ -222,6 +223,7 @@ export const CrmSidebar = ({ collapsed, setCollapsed }) => {
     { id: 'offers', label: 'Offers & Joining', icon: Award },
     { id: 'reports', label: 'Recruiter Analytics', icon: BarChart3 },
     { id: 'my-attendance', label: 'My Attendance', icon: CalendarCheck },
+    { id: 'leave', label: 'Leave Requests', icon: Calendar },
     { id: 'my-profile', label: 'My Profile', icon: User }
   ];
 
@@ -239,6 +241,7 @@ export const CrmSidebar = ({ collapsed, setCollapsed }) => {
     { id: 'plc-reports', label: 'Reports & Exports', icon: BarChart3 },
     { id: 'plc-approvals', label: 'Access & Approvals', icon: ShieldCheck },
     { id: 'my-attendance', label: 'My Attendance', icon: CalendarCheck },
+    { id: 'leave', label: 'Leave Requests', icon: Calendar },
     { id: 'my-profile', label: 'My Profile', icon: User }
   ];
 
@@ -257,6 +260,7 @@ export const CrmSidebar = ({ collapsed, setCollapsed }) => {
     { id: 'int-calendar', label: 'Availability Calendar', icon: CalendarCheck },
     { id: 'int-permissions', label: 'Confidentiality & Access', icon: Lock },
     { id: 'my-attendance', label: 'My Attendance', icon: CalendarCheck },
+    { id: 'leave', label: 'Leave Requests', icon: Calendar },
     { id: 'my-profile', label: 'My Profile', icon: User }
   ];
 

@@ -289,7 +289,7 @@ const generateFallbackAttendanceDashboard = (employee, selectedMonth, attendance
 };
 
 export const CrmMyAttendance = () => {
-  const { currentRole, user, crmToken, setCrmToken, authTokenLoading, logout, syncAttendanceNotifications, attendancePunch } = useCrm();
+  const { currentRole, user, crmToken, setCrmToken, authTokenLoading, logout, syncAttendanceNotifications, attendancePunch, setActiveModule } = useCrm();
 
   const [activeTab, setActiveTab] = useState('overview'); // 'overview' | 'calendar' | 'hours'
   const [selectedMonth, setSelectedMonth] = useState(getInitialMonth);
@@ -926,11 +926,20 @@ export const CrmMyAttendance = () => {
             </p>
           </div>
 
-          <div className="bg-white dark:bg-navy-900 border border-slate-200 dark:border-white/10 rounded-2xl p-4 shadow-sm">
-            <p className="text-xs font-medium text-slate-500 dark:text-slate-400">Leave Days</p>
-            <p className="text-2xl font-bold text-blue-600 dark:text-blue-400 mt-1">
-              {summary.leaveDays ?? 0}
-            </p>
+          <div className="bg-white dark:bg-navy-900 border border-slate-200 dark:border-white/10 rounded-2xl p-4 shadow-sm flex flex-col justify-between">
+            <div>
+              <p className="text-xs font-medium text-slate-500 dark:text-slate-400">Leave Days</p>
+              <p className="text-2xl font-bold text-blue-600 dark:text-blue-400 mt-1">
+                {summary.leaveDays ?? 0}
+              </p>
+            </div>
+            <button
+              type="button"
+              onClick={() => setActiveModule && setActiveModule('leave')}
+              className="mt-2 text-[11px] font-bold text-blue-600 dark:text-blue-400 hover:underline flex items-center gap-1 cursor-pointer text-left"
+            >
+              <span>Apply / View Leave Status →</span>
+            </button>
           </div>
 
           <div className="bg-white dark:bg-navy-900 border border-slate-200 dark:border-white/10 rounded-2xl p-4 shadow-sm">
