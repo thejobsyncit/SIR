@@ -532,15 +532,8 @@ export const ContactUsPage = () => {
                   className="w-full bg-slate-50 dark:bg-navy-950 border border-slate-300 dark:border-navy-700 rounded-xl p-2.5 text-navy-900 dark:text-white text-xs focus:outline-none focus:ring-2 focus:ring-gold-500"
                 >
                   <option value="">-- General Inquiry (No specific service) --</option>
-                  <optgroup label="Education & Admissions">
-                    {SERVICES_LIST.filter(s => s.category === 'Education' || s.subCategory === 'Education').map((srv) => (
-                      <option key={srv.id} value={srv.id}>
-                        {srv.title}
-                      </option>
-                    ))}
-                  </optgroup>
-                  <optgroup label="Consulting & Recruitment">
-                    {SERVICES_LIST.filter(s => s.category !== 'Education' && s.subCategory !== 'Education').map((srv) => (
+                  <optgroup label="Academic & Global Advisory (6 Core Services)">
+                    {SERVICES_LIST.map((srv) => (
                       <option key={srv.id} value={srv.id}>
                         {srv.title}
                       </option>
