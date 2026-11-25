@@ -624,7 +624,9 @@ const createFallbackDb = () => {
     attendance_regularizations: [],
     attendance_audit_logs: [],
     employee_notifications: [],
-    role_login_logs: []
+    role_login_logs: [],
+    candidate_visa_assessments: [],
+    candidate_verifications: []
   };
 
   let store = { ...defaultStore };
@@ -829,7 +831,9 @@ export const SUPABASE_ALL_TABLES = [
   'attendance_regularizations',
   'attendance_audit_logs',
   'employee_notifications',
-  'role_login_logs'
+  'role_login_logs',
+  'candidate_visa_assessments',
+  'candidate_verifications'
 ];
 
 export const SUPABASE_KEY_MAP = {
@@ -2327,6 +2331,48 @@ const initDb = async (db) => {
     );
 
     CREATE INDEX IF NOT EXISTS idx_emp_notif_emp ON employee_notifications(employeeId, createdAt);
+
+    
+    CREATE TABLE IF NOT EXISTS candidate_visa_assessments (
+      id TEXT PRIMARY KEY,
+      candidateId TEXT,
+      candidateEmail TEXT,
+      candidateName TEXT,
+      targetCountry TEXT NOT NULL,
+      qualification TEXT,
+      experience TEXT,
+      dob TEXT,
+      language TEXT,
+      score INTEGER DEFAULT 0,
+      status TEXT,
+      readiness TEXT,
+      reasons TEXT,
+      checklist TEXT,
+      createdAt DATETIME DEFAULT CURRENT_TIMESTAMP,
+      updatedAt DATETIME DEFAULT CURRENT_TIMESTAMP
+    );
+    CREATE INDEX IF NOT EXISTS idx_visa_assessments_candidate ON candidate_visa_assessments(candidateId);
+
+    CREATE TABLE IF NOT EXISTS candidate_verifications (
+      id TEXT PRIMARY KEY,
+      caseId TEXT UNIQUE NOT NULL,
+      candidateId TEXT,
+      candidateName TEXT NOT NULL,
+      candidateEmail TEXT,
+      passportNumber TEXT,
+      verificationPackage TEXT NOT NULL,
+      packageItems TEXT,
+      overallStatus TEXT NOT NULL DEFAULT 'Submitted',
+      attestationPipeline TEXT,
+      employmentMilestones TEXT,
+      documentsAttached TEXT,
+      consentAccepted INTEGER DEFAULT 1,
+      remarks TEXT,
+      createdAt DATETIME DEFAULT CURRENT_TIMESTAMP,
+      updatedAt DATETIME DEFAULT CURRENT_TIMESTAMP
+    );
+    CREATE INDEX IF NOT EXISTS idx_verifications_case ON candidate_verifications(caseId);
+    CREATE INDEX IF NOT EXISTS idx_verifications_candidate ON candidate_verifications(candidateId);
 
     CREATE TABLE IF NOT EXISTS role_login_logs (
       id TEXT PRIMARY KEY,

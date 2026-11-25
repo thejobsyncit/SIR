@@ -61,11 +61,21 @@ export const Navbar = () => {
     { id: 'home', label: t('nav.home') },
     { id: 'jobs', label: t('nav.jobs') },
     { id: 'services', label: t('nav.services'), hasMega: 'services' },
-    { id: 'visa-eligibility', label: t('nav.visa') },
-    { id: 'background-verification', label: t('nav.verification') },
+    { id: 'visa-verification', label: 'Visa & Verification' },
     { id: 'about', label: t('nav.about') },
     { id: 'contact', label: t('nav.contact') }
   ];
+
+  const isNavActive = (itemId) => {
+    if (activeTab === itemId) return true;
+    if (itemId === 'visa-verification' && (
+      activeTab === 'visa-eligibility' ||
+      activeTab === 'background-verification' ||
+      activeTab === 'visa-and-verification' ||
+      activeTab === 'verification'
+    )) return true;
+    return false;
+  };
 
   return (
     <header className="sticky top-0 z-50 transition-all duration-300">
@@ -107,7 +117,7 @@ export const Navbar = () => {
                       navigateTo(item.id);
                     }
                   }}
-                  className={`px-2 xl:px-3 py-2 rounded-lg text-[11px] xl:text-xs font-semibold tracking-wide transition flex items-center space-x-1 cursor-pointer select-none whitespace-nowrap ${activeTab === item.id
+                  className={`px-2 xl:px-3 py-2 rounded-lg text-[11px] xl:text-xs font-semibold tracking-wide transition flex items-center space-x-1 cursor-pointer select-none whitespace-nowrap ${isNavActive(item.id)
                     ? 'text-gold-500 bg-gold-500/10 dark:bg-gold-500/20 font-bold'
                     : 'text-[#0B1B33] dark:text-slate-100 hover:text-gold-500 hover:bg-slate-100 dark:hover:bg-navy-800'
                     }`}
@@ -565,7 +575,7 @@ export const Navbar = () => {
                     navigateTo(item.id);
                     setMobileMenuOpen(false);
                   }}
-                  className={`p-3.5 rounded-xl text-xs sm:text-sm font-semibold text-center transition-all duration-300 active:scale-95 shadow-sm block ${activeTab === item.id
+                  className={`p-3.5 rounded-xl text-xs sm:text-sm font-semibold text-center transition-all duration-300 active:scale-95 shadow-sm block ${isNavActive(item.id)
                     ? 'bg-gradient-to-r from-gold-500 to-gold-400 text-slate-900 dark:text-white font-bold shadow-gold-glow'
                     : 'bg-slate-50 dark:bg-navy-800/80 text-navy-900 dark:text-slate-200 border border-slate-200 dark:border-navy-700 hover:border-slate-200 dark:border-gold-500/50'
                     }`}

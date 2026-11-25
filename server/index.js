@@ -8,6 +8,7 @@ import { fileURLToPath } from 'url';
 import { getDb, closeDb, checkDbHealth, logAuditTrail, DEFAULT_CRM_EMPLOYEES, DEFAULT_CRM_CANDIDATES, DEFAULT_CRM_PROFILES, DEFAULT_CRM_APPLICATIONS, DEFAULT_CRM_LEADS, normalizeEmail, normalizePhone, hashPassword, verifyPassword } from './database.js';
 import { registerClientPortalRoutes } from './clientPortalRoutes.js';
 import { registerAttendanceRoutes } from './routes/attendanceRoutes.js';
+import { visaVerificationRouter } from './routes/visaVerificationRoutes.js';
 import { registerHrCandidateRoutes } from './routes/hrCandidateRoutes.js';
 import { registerDocumentationRoutes } from './routes/documentationRoutes.js';
 import { registerEmailApplicationRoutes } from './routes/emailApplicationRoutes.js';
@@ -7671,153 +7672,18 @@ app.get('/api/analytics/service-performance', async (req, res) => {
   }
 });
 
-// Visa check and assessment
-app.get('/api/visa/countries-matrix', (req, res) => {
-  res.json({ success: true, data: VISA_MATRIX_DATA });
+// Visa & Verification Unified Routes
+app.use('/api/visa', visaVerificationRouter);
+app.use('/api/verification', visaVerificationRouter);
+app.get('/api/crm/verifications', (req, res) => {
+  req.url = '/crm/cases';
+  visaVerificationRouter(req, res);
+});
+app.put('/api/crm/verifications/:caseId', (req, res) => {
+  req.url = '/crm/cases/' + req.params.caseId;
+  visaVerificationRouter(req, res);
 });
 
-app.post('/api/visa/check', (req, res) => {
-  const { country, qualification, experience, age, language } = req.body;
-  const targetCountryData = VISA_MATRIX_DATA.find(c => c.country.toLowerCase() === (country || 'uae').toLowerCase()) || VISA_MATRIX_DATA[0];
-
-  const target = (country || 'uae').toLowerCase();
-  const ageVal = parseInt(age) || 30;
-  const expVal = parseInt(experience) || 2;
-  const qualStr = (qualification || '').toLowerCase();
-  const langStr = (language || '').toLowerCase();
-
-  let baseScore = 20;
-  const reasons = [];
-
-  let ageScore = 0;
-  if (target === 'australia') {
-    if (ageVal < 18) {
-      ageScore = 0;
-      reasons.push('Below minimum working age (18) for Australia independent visa.');
-    } else if (ageVal <= 24) {
-      ageScore = 25;
-      reasons.push('Age 18-24 grants 25 points on Australia Skilled Points Grid.');
-    } else if (ageVal <= 32) {
-      ageScore = 30;
-      reasons.push('Peak Age Bracket (25-32) grants maximum 30 points for Australia Visa.');
-    } else if (ageVal <= 39) {
-      ageScore = 25;
-      reasons.push('Age 33-39 grants 25 points on Australia Migration Grid.');
-    } else if (ageVal <= 44) {
-      ageScore = 15;
-      reasons.push('Age 40-44 grants 15 points on Australia Skilled Migration.');
-    } else {
-      ageScore = -25;
-      reasons.push('Exceeds Australia Skilled Migration age threshold (Maximum 45 years limit). Employer sponsorship pathway required.');
-    }
-  } else if (target === 'canada') {
-    if (ageVal >= 20 && ageVal <= 29) {
-      ageScore = 30;
-      reasons.push('Peak age bracket (20-29) yields maximum CRS points for Canada Express Entry.');
-    } else if (ageVal >= 30 && ageVal <= 44) {
-      const reduction = (ageVal - 29) * 2;
-      ageScore = Math.max(10, 30 - reduction);
-      reasons.push(`Age ${ageVal} receives moderate CRS score points for Canadian immigration.`);
-    } else {
-      ageScore = 5;
-      reasons.push('Age over 45 receives reduced CRS points; provincial nomination or LMIA job offer strongly recommended.');
-    }
-  } else {
-    if (ageVal >= 21 && ageVal <= 50) {
-      ageScore = 25;
-      reasons.push(`Optimal working age (${ageVal} years) meets GCC labor permit standards.`);
-    } else {
-      ageScore = 10;
-      reasons.push(`Age ${ageVal} subject to additional labor approval protocols.`);
-    }
-  }
-
-  let expScore = 0;
-  if (expVal >= 5) {
-    expScore = 25;
-    reasons.push(`Extensive career experience (${expVal}+ years) qualifies for senior specialist quotas.`);
-  } else if (expVal >= 2) {
-    expScore = 18;
-    reasons.push(`Mid-level experience (${expVal} years) fulfills standard skilled visa criteria.`);
-  } else {
-    expScore = 10;
-    reasons.push('Entry-level experience: employer-sponsored training visa pathway recommended.');
-  }
-
-  let qualScore = 0;
-  if (qualStr.includes('master') || qualStr.includes('phd') || qualStr.includes('doctorate')) {
-    qualScore = 25;
-    reasons.push('Postgraduate credentials provide maximum qualification rating and fast-track processing eligibility.');
-  } else if (qualStr.includes('bachelor') || qualStr.includes('degree') || qualStr.includes('engineer')) {
-    qualScore = 20;
-    reasons.push("Attested Bachelor's Degree fulfills Tier-1 skilled work permit criteria across all GCC jurisdictions.");
-  } else if (qualStr.includes('diploma')) {
-    qualScore = 15;
-    reasons.push('Technical / Vocational Diploma eligible for specialized trade and technician visa categories.');
-  } else {
-    qualScore = 10;
-    reasons.push('Secondary qualification eligible for general labor, hospitality, & service visas in GCC.');
-  }
-
-  let langScore = 0;
-  if (langStr.includes('native') || langStr.includes('fluent') || langStr.includes('c1') || langStr.includes('c2') || langStr.includes('ielts') || langStr.includes('oet') || langStr.includes('det')) {
-    langScore = 15;
-    reasons.push('Verified language proficiency (Native / Fluent) satisfies international visa standards and employer criteria.');
-  } else if (langStr.includes('advance') || langStr.includes('b2')) {
-    langScore = 13;
-    reasons.push('Advanced language proficiency fulfills skilled professional visa benchmarks.');
-  } else if (langStr.includes('speaking') || langStr.includes('conversational') || langStr.includes('b1')) {
-    langScore = 11;
-    reasons.push('Conversational speaking ability satisfies standard regional workplace criteria.');
-  } else if (langStr.includes('basic') || langStr.includes('a1') || langStr.includes('a2')) {
-    langScore = 8;
-    reasons.push('Basic language proficiency acceptable for regional employer sponsorship.');
-  } else {
-    langScore = 14;
-    reasons.push(`Standard ${language || 'language'} proficiency verified for target country employment visas.`);
-  }
-
-  // Bonus for bilingual combination in GCC corridor (e.g. English + Arabic)
-  if ((langStr.includes('arabic') && langStr.includes('english')) || (langStr.includes('+ arabic') || langStr.includes('+ english'))) {
-    langScore = Math.min(20, langScore + 5);
-    reasons.push('Bilingual proficiency in English & Arabic provides premium priority for GCC executive and government liaison visas.');
-  }
-
-  const finalScore = Math.min(100, Math.max(15, baseScore + ageScore + expScore + qualScore + langScore));
-  let eligibilityStatus = 'Low';
-  if (finalScore >= 75) eligibilityStatus = 'High';
-  else if (finalScore >= 50) eligibilityStatus = 'Moderate';
-
-  res.json({
-    success: true,
-    score: finalScore,
-    status: eligibilityStatus,
-    targetCountry: targetCountryData.country,
-    countryData: { country: targetCountryData.country, name: targetCountryData.country },
-    visaName: targetCountryData.commonVisa,
-    processingTime: targetCountryData.processingTime,
-    estimatedCost: targetCountryData.avgCost,
-    sponsorship: targetCountryData.sponsorship,
-    reasons,
-    documentChecklist: targetCountryData.documentChecklist || [],
-    checklist: targetCountryData.documentChecklist || [
-      'Valid Passport (6+ Months Validity)',
-      'Attested Degree Certificates & Transcripts',
-      'Police Clearance Certificate (PCC)',
-      'Medical Fitness Assessment Report',
-      'Employment Offer Letter & Job Contract',
-      'Passport Sized Photographs (White Background)'
-    ],
-    recommendedJobs: [
-      { id: 'REC-JOB-01', title: 'Senior Project Manager', company: 'Emaar Group', salary: 'AED 28,000 / mo' },
-      { id: 'REC-JOB-02', title: 'Site Mechanical Engineer', company: 'Al Habtoor Contracting', salary: 'AED 18,500 / mo' },
-      { id: 'REC-JOB-03', title: 'Financial Controller', company: 'Emirates NBD', salary: 'AED 32,000 / mo' }
-    ]
-  });
-});
-
-// ==============================================================================
-// DETERMINISTIC ATS RESUME ANALYZER ENGINE
 // ==============================================================================
 const ATS_DOMAINS = [
   {
