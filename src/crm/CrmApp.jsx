@@ -68,7 +68,63 @@ import { CrmHrOpsCandidateDirectory } from './pages/CrmHrOpsCandidateDirectory';
 import { HrLogoutConfirmModal } from './components/HrLogoutConfirmModal';
 import { LateArrivalApprovalGateway } from './components/LateArrivalApprovalGateway';
 
-import { Search, Sparkles, X, Send, Bot, Loader2, Copy, Check, RotateCcw } from 'lucide-react';
+import { Search, Sparkles, X, Send, Bot, Loader2, Copy, Check, RotateCcw, ShieldCheck } from 'lucide-react';
+
+// Unified Visa & Verification Workspace Hub for CRM
+const CrmVisaVerificationHub = ({ initialTab = 'visa' }) => {
+  const [subTab, setSubTab] = useState(initialTab);
+
+  return (
+    <div className="space-y-6 text-left">
+      <div className="bg-white dark:bg-navy-900 border border-slate-200 dark:border-navy-800 rounded-3xl p-6 sm:p-8 shadow-sm">
+        <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 pb-6 border-b border-slate-100 dark:border-navy-800">
+          <div>
+            <div className="flex items-center gap-2 mb-1.5">
+              <span className="px-2.5 py-0.5 rounded-full text-[10px] font-extrabold uppercase tracking-wider bg-gold-500/15 text-gold-600 dark:text-gold-400 border border-gold-500/30">
+                Operations & Compliance
+              </span>
+              <span className="text-xs text-slate-400">• Enterprise Verification Hub</span>
+            </div>
+            <h2 className="font-serif text-2xl font-bold text-navy-950 dark:text-white flex items-center gap-2">
+              <ShieldCheck className="w-6 h-6 text-gold-500" />
+              Visa & Verification
+            </h2>
+            <p className="text-xs text-slate-500 dark:text-slate-400 mt-1 max-w-2xl">
+              Manage overseas candidate work permit clearances, consular certificate attestation pipelines, and background verification records.
+            </p>
+          </div>
+        </div>
+
+        <div className="flex items-center gap-8 pt-5">
+          <button
+            type="button"
+            onClick={() => setSubTab('visa')}
+            className={`font-serif text-xl sm:text-2xl font-bold pb-3 relative transition-all cursor-pointer ${
+              subTab === 'visa'
+                ? 'text-navy-950 dark:text-white border-b-2 border-gold-500'
+                : 'text-slate-400 hover:text-slate-700 dark:text-slate-500 dark:hover:text-slate-200 border-b-2 border-transparent'
+            }`}
+          >
+            <span>Visa Eligibility & Processing</span>
+          </button>
+          <button
+            type="button"
+            onClick={() => setSubTab('verification')}
+            className={`font-serif text-xl sm:text-2xl font-bold pb-3 relative transition-all cursor-pointer ${
+              subTab === 'verification'
+                ? 'text-navy-950 dark:text-white border-b-2 border-gold-500'
+                : 'text-slate-400 hover:text-slate-700 dark:text-slate-500 dark:hover:text-slate-200 border-b-2 border-transparent'
+            }`}
+          >
+            <span>Verification & BGV Checks</span>
+          </button>
+        </div>
+      </div>
+
+      {subTab === 'visa' ? <CrmVisaProcessing /> : <CrmBackgroundVerification />}
+    </div>
+  );
+};
 
 const CrmAppContent = () => {
   const { 
@@ -354,8 +410,9 @@ const CrmAppContent = () => {
       case 'workspace': return <CrmRecruiterWorkspace />;
       case 'interviews': return <CrmInterviews />;
       case 'documentation': return <CrmDocumentation />;
-      case 'visa': return <CrmVisaProcessing />;
-      case 'verification': return <CrmBackgroundVerification />;
+      case 'visa':
+      case 'verification':
+        return <CrmVisaVerificationHub initialTab={activeModule === 'verification' ? 'verification' : 'visa'} />;
       case 'accounts': return <CrmAccounts />;
       case 'reports': return <CrmReports />;
       case 'ai-suite': return <CrmAiSuite />;
@@ -430,7 +487,7 @@ const CrmAppContent = () => {
                 className="p-2.5 bg-slate-100 dark:bg-navy-950 rounded-xl hover:bg-slate-200 dark:hover:bg-navy-800 cursor-pointer flex justify-between items-center border border-slate-200 dark:border-navy-800 font-semibold"
               >
                 <span className="text-slate-900 dark:text-white">🛡️ UK Passport Scan GB98210452</span>
-                <span className="text-[10px] text-amber-700 dark:text-gold-400 font-bold">Visa Processing</span>
+                <span className="text-[10px] text-amber-700 dark:text-gold-400 font-bold">Visa & Verification</span>
               </div>
             </div>
           </div>

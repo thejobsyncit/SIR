@@ -113,8 +113,10 @@ export const CandidateAvatar = ({ name, avatar, size = 'md', className = '', onC
 export const CandidatePortal = () => {
   const { user, updateUserProfile, applications, savedJobs, toggleSaveJob, applyForJob, postedJobs, deleteApplication, withdrawApplication, respondToOffer, setActiveModal, navigateTo, logout, darkMode, toggleDarkMode } = useApp();
 
-  // Navigation tab state: 'dashboard' | 'profile' | 'resume' | 'saved-jobs' | 'applications' | 'application-status' | 'interviews' | 'offers' | 'documents' | 'settings'
+  // Navigation tab state: 'dashboard' | 'profile' | 'resume' | 'saved-jobs' | 'applications' | 'application-status' | 'interviews' | 'offers' | 'visa-verification' | 'documents' | 'settings'
   const [activeTab, setActiveTab] = useState('dashboard');
+  const [visaVerificationSubTab, setVisaVerificationSubTab] = useState('visa'); // 'visa' | 'verification'
+  const [selectedVisaDestCountry, setSelectedVisaDestCountry] = useState('UAE');
   const [mobileSidebarOpen, setMobileSidebarOpen] = useState(false);
   const [profileDropdownOpen, setProfileDropdownOpen] = useState(false);
   const [notificationsOpen, setNotificationsOpen] = useState(false);
@@ -1041,7 +1043,7 @@ export const CandidatePortal = () => {
     { id: 'application-status', label: 'Application Status', icon: Clock },
     { id: 'interviews', label: 'Interview Schedule', icon: Calendar, badge: candidateApplications.filter(a => a.status === 'Interview Scheduled').length },
     { id: 'offers', label: 'Offers & Admissions', icon: Award, badge: candidateOffer ? 1 : 0 },
-    { id: 'documents', label: 'Documents', icon: Shield },
+    { id: 'visa-verification', label: 'Visa & Verification', icon: ShieldCheck, badge: documents.filter(d => d.verificationStatus === 'Verified').length > 0 ? `${documents.filter(d => d.verificationStatus === 'Verified').length} Verified` : null },
     { id: 'settings', label: 'Account Settings', icon: Settings }
   ];
 
@@ -2877,114 +2879,449 @@ export const CandidatePortal = () => {
           )}
 
           {/* ========================================================== */}
-          {/* TAB 8: SECURE DOCUMENT UPLOAD PAGE */}
+          {/* TAB 8: VISA & VERIFICATION UNIFIED HUB */}
           {/* ========================================================== */}
-          {activeTab === 'documents' && (
+          {(activeTab === 'visa-verification' || activeTab === 'documents') && (
             <div className="space-y-6 text-left">
               
+              {/* Header Banner & Sub-Tab Bar */}
               <div className="bg-white dark:bg-navy-900 border border-slate-200 dark:border-navy-800 rounded-3xl p-6 sm:p-8 shadow-sm">
-                <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+                <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 pb-6 border-b border-slate-100 dark:border-navy-800">
                   <div>
-                    <h2 className="font-serif text-2xl font-bold text-navy-950 dark:text-white flex items-center gap-2">
-                      <Shield className="w-5 h-5 text-gold-500" />
-                      Secure Document Upload & Verification
+                    <div className="flex items-center gap-2 mb-1.5">
+                      <span className="px-2.5 py-0.5 rounded-full text-[10px] font-extrabold uppercase tracking-wider bg-gold-500/15 text-gold-600 dark:text-gold-400 border border-gold-500/30">
+                        Overseas Mobility & Compliance
+                      </span>
+                      <span className="text-xs text-slate-400">• Verified Portal</span>
+                    </div>
+                    <h2 className="font-serif text-2xl sm:text-3xl font-bold text-navy-950 dark:text-white flex items-center gap-2">
+                      <ShieldCheck className="w-6 h-6 text-gold-500" />
+                      Visa & Verification
                     </h2>
-                    <p className="text-xs text-slate-500 dark:text-slate-400 mt-1">
-                      Private, encrypted document vault for MOHRE work permits, consular attestation, and residency sponsorship.
+                    <p className="text-xs text-slate-500 dark:text-slate-400 mt-1 max-w-2xl">
+                      Evaluate overseas work visa eligibility, monitor consular certificate attestation (HRD, MEA, Embassy, MOFA), and manage encrypted employment credentials.
                     </p>
                   </div>
+                  
+                  {visaVerificationSubTab === 'verification' ? (
+                    <button
+                      onClick={() => setUploadDocModalOpen(true)}
+                      className="px-4 py-2.5 bg-gradient-to-r from-gold-500 to-amber-400 text-navy-950 font-extrabold text-xs rounded-xl shadow-gold-glow hover:opacity-95 transition flex items-center gap-1.5 cursor-pointer"
+                    >
+                      <Upload className="w-4 h-4" />
+                      <span>Upload New Document</span>
+                    </button>
+                  ) : (
+                    <div className="flex items-center gap-2">
+                      <span className="px-3 py-1.5 bg-emerald-500/15 text-emerald-600 dark:text-emerald-400 border border-emerald-500/30 rounded-xl text-xs font-bold flex items-center gap-1.5">
+                        <CheckCircle2 className="w-3.5 h-3.5" />
+                        MOHRE Tier-1 Eligible
+                      </span>
+                    </div>
+                  )}
+                </div>
+
+                {/* Sub-Tabs Matching User Cropped Screenshot Exactly */}
+                <div className="flex items-center gap-8 pt-5">
                   <button
-                    onClick={() => setUploadDocModalOpen(true)}
-                    className="px-4 py-2.5 bg-gradient-to-r from-gold-500 to-amber-400 text-navy-950 font-extrabold text-xs rounded-xl shadow-gold-glow hover:opacity-95 transition flex items-center gap-1.5 cursor-pointer"
+                    type="button"
+                    onClick={() => setVisaVerificationSubTab('visa')}
+                    className={`font-serif text-xl sm:text-2xl font-bold pb-3 relative transition-all cursor-pointer ${
+                      visaVerificationSubTab === 'visa'
+                        ? 'text-navy-950 dark:text-white border-b-2 border-gold-500'
+                        : 'text-slate-400 hover:text-slate-700 dark:text-slate-500 dark:hover:text-slate-200 border-b-2 border-transparent'
+                    }`}
                   >
-                    <Upload className="w-4 h-4" />
-                    <span>Upload New Document</span>
+                    <span>Visa Eligibility</span>
+                  </button>
+
+                  <button
+                    type="button"
+                    onClick={() => setVisaVerificationSubTab('verification')}
+                    className={`font-serif text-xl sm:text-2xl font-bold pb-3 relative transition-all cursor-pointer ${
+                      visaVerificationSubTab === 'verification'
+                        ? 'text-navy-950 dark:text-white border-b-2 border-gold-500'
+                        : 'text-slate-400 hover:text-slate-700 dark:text-slate-500 dark:hover:text-slate-200 border-b-2 border-transparent'
+                    }`}
+                  >
+                    <span>Verification</span>
                   </button>
                 </div>
               </div>
 
-              {/* Documents Table / Cards */}
-              <div className="bg-white dark:bg-navy-900 border border-slate-200 dark:border-navy-800 rounded-3xl overflow-hidden shadow-sm">
-                <div className="divide-y divide-slate-100 dark:divide-navy-800">
-                  {DEFAULT_DOC_TYPES.map(docType => {
-                    const uploadedDoc = documents.find(d => d.documentType === docType.type);
-                    const isUploaded = !!uploadedDoc;
-                    const status = uploadedDoc?.verificationStatus || 'Pending Upload';
+              {/* ========================================================== */}
+              {/* SUB-TAB 1: VISA ELIGIBILITY */}
+              {/* ========================================================== */}
+              {visaVerificationSubTab === 'visa' && (
+                <div className="space-y-6">
+                  {/* Country Selector */}
+                  <div className="bg-white dark:bg-navy-900 border border-slate-200 dark:border-navy-800 rounded-3xl p-6 shadow-sm">
+                    <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3 mb-4">
+                      <div>
+                        <h3 className="font-serif text-base font-bold text-navy-950 dark:text-white flex items-center gap-2">
+                          <Globe className="w-4 h-4 text-gold-500" />
+                          Target Destination Country Assessment
+                        </h3>
+                        <p className="text-xs text-slate-500">
+                          Select a destination country to calculate your work permit eligibility, ministry skill level, and quota requirements.
+                        </p>
+                      </div>
+                      <span className="text-[11px] font-mono font-bold text-slate-400">
+                        Citizen: <strong>{profileForm.citizenship || 'India'}</strong>
+                      </span>
+                    </div>
 
-                    return (
-                      <div key={docType.type} className="p-6 flex flex-col md:flex-row justify-between items-start md:items-center gap-4 hover:bg-slate-50/50 dark:hover:bg-navy-950/40 transition">
-                        <div className="flex items-start gap-4">
-                          <div className={`w-11 h-11 rounded-2xl flex items-center justify-center shrink-0 ${
-                            status === 'Verified' ? 'bg-emerald-500/15 text-emerald-500' :
-                            isUploaded ? 'bg-amber-500/15 text-amber-500' :
-                            'bg-slate-100 dark:bg-navy-800 text-slate-400'
-                          }`}>
-                            <FileText className="w-5 h-5" />
-                          </div>
-                          <div>
-                            <div className="flex items-center gap-2">
-                              <h3 className="font-bold text-xs text-navy-950 dark:text-white">{docType.type}</h3>
-                              <span className={`text-[9px] font-extrabold px-2 py-0.5 rounded-full ${
-                                status === 'Verified' ? 'bg-emerald-500/15 text-emerald-600 dark:text-emerald-400 border border-emerald-500/30' :
-                                isUploaded ? 'bg-amber-500/15 text-amber-600 dark:text-amber-400 border border-amber-500/30' :
-                                'bg-slate-200 dark:bg-navy-800 text-slate-500'
-                              }`}>
-                                {status}
-                              </span>
-                            </div>
-                            <p className="text-[11px] text-slate-500 mt-0.5 max-w-lg">{docType.desc}</p>
-                            {isUploaded && (
-                              <p className="text-[10px] text-gold-500 font-mono mt-1">
-                                File: <strong>{uploadedDoc.fileName}</strong> • Uploaded: {uploadedDoc.uploadDate}
-                              </p>
-                            )}
-                          </div>
+                    <div className="flex flex-wrap gap-2">
+                      {[
+                        { code: 'UAE', label: 'UAE (Dubai / Abu Dhabi)', flag: '🇦🇪' },
+                        { code: 'Saudi Arabia', label: 'Saudi Arabia (Riyadh)', flag: '🇸🇦' },
+                        { code: 'Qatar', label: 'Qatar (Doha)', flag: '🇶🇦' },
+                        { code: 'Germany', label: 'Germany (EU Blue Card)', flag: '🇩🇪' },
+                        { code: 'UK', label: 'United Kingdom (Skilled Worker)', flag: '🇬🇧' },
+                        { code: 'Singapore', label: 'Singapore (EP / S-Pass)', flag: '🇸🇬' },
+                        { code: 'Canada', label: 'Canada (Express Entry)', flag: '🇨🇦' }
+                      ].map(cnt => (
+                        <button
+                          key={cnt.code}
+                          type="button"
+                          onClick={() => setSelectedVisaDestCountry(cnt.code)}
+                          className={`px-3.5 py-2 rounded-xl text-xs font-bold transition flex items-center gap-2 cursor-pointer ${
+                            selectedVisaDestCountry === cnt.code
+                              ? 'bg-gold-500 text-navy-950 font-extrabold shadow-sm'
+                              : 'bg-slate-100 dark:bg-navy-800 text-slate-700 dark:text-slate-300 hover:bg-slate-200 dark:hover:bg-navy-700'
+                          }`}
+                        >
+                          <span>{cnt.flag}</span>
+                          <span>{cnt.label}</span>
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+
+                  {/* Live Points Scorecard */}
+                  <div className="bg-gradient-to-br from-navy-900 via-navy-950 to-slate-900 border border-gold-500/30 rounded-3xl p-6 sm:p-8 text-white shadow-xl relative overflow-hidden">
+                    <div className="absolute top-0 right-0 w-96 h-96 bg-gold-500/10 rounded-full blur-3xl pointer-events-none" />
+                    
+                    <div className="relative z-10 flex flex-col md:flex-row justify-between items-start md:items-center gap-6">
+                      <div className="space-y-2 max-w-xl">
+                        <div className="flex items-center gap-2">
+                          <span className="w-2.5 h-2.5 rounded-full bg-emerald-400 animate-pulse" />
+                          <span className="text-xs font-mono font-bold uppercase tracking-wider text-gold-400">
+                            {selectedVisaDestCountry} Work Visa Evaluation
+                          </span>
                         </div>
+                        <h3 className="font-serif text-2xl sm:text-3xl font-bold text-white">
+                          Highly Eligible for Work Permit Sponsorship
+                        </h3>
+                        <p className="text-xs text-slate-300 leading-relaxed">
+                          Based on your accredited education ({profileForm.qualification || "Bachelor's Degree"}), verified experience ({profileForm.experience || '5-8 Years'}), and clean background check, you meet all primary requirements for commercial employment entry.
+                        </p>
+                      </div>
 
-                        <div className="flex items-center gap-2 w-full md:w-auto justify-end">
-                          {isUploaded ? (
-                            <>
-                              <button
-                                onClick={() => setPreviewDoc(uploadedDoc)}
-                                className="px-3 py-1.5 bg-slate-200 dark:bg-navy-800 text-slate-700 dark:text-slate-200 font-bold text-xs rounded-xl hover:bg-slate-300 transition"
-                              >
-                                View
-                              </button>
-                              <button
-                                onClick={() => alert(`Downloading "${uploadedDoc.fileName}"...`)}
-                                className="px-3 py-1.5 bg-slate-200 dark:bg-navy-800 text-slate-700 dark:text-slate-200 font-bold text-xs rounded-xl hover:bg-slate-300 transition"
-                              >
-                                Download
-                              </button>
-                              <button
-                                onClick={() => { setSelectedDocType(docType.type); setUploadDocModalOpen(true); }}
-                                className="px-3 py-1.5 bg-navy-950 dark:bg-white text-white dark:text-navy-950 font-bold text-xs rounded-xl hover:opacity-90 transition"
-                              >
-                                Replace
-                              </button>
-                              <button
-                                onClick={() => handleDeleteDocument(uploadedDoc.id)}
-                                className="p-2 text-rose-500 hover:bg-rose-500/10 rounded-xl transition"
-                                title="Delete document"
-                              >
-                                <Trash2 className="w-3.5 h-3.5" />
-                              </button>
-                            </>
-                          ) : (
-                            <button
-                              onClick={() => { setSelectedDocType(docType.type); setUploadDocModalOpen(true); }}
-                              className="px-4 py-2 bg-gradient-to-r from-gold-500 to-amber-400 text-navy-950 font-bold text-xs rounded-xl shadow-gold-glow hover:opacity-95 transition flex items-center gap-1.5"
-                            >
-                              <Upload className="w-3.5 h-3.5" />
-                              <span>Upload File</span>
-                            </button>
-                          )}
+                      <div className="flex items-center gap-4 bg-white/5 border border-white/10 rounded-2xl p-4 sm:p-5 backdrop-blur-sm shrink-0">
+                        <div className="text-center">
+                          <div className="font-serif text-4xl sm:text-5xl font-black text-gold-400">88</div>
+                          <div className="text-[10px] uppercase font-bold text-slate-400 tracking-wider">Out of 100 Pts</div>
+                        </div>
+                        <div className="h-12 w-px bg-white/15" />
+                        <div className="text-left space-y-0.5">
+                          <div className="text-xs font-extrabold text-emerald-400 flex items-center gap-1">
+                            <CheckCircle2 className="w-3.5 h-3.5" />
+                            Approved
+                          </div>
+                          <div className="text-[11px] text-slate-300">Fast-Track Quota</div>
+                          <div className="text-[10px] text-slate-400">7 - 14 Days ETA</div>
                         </div>
                       </div>
-                    );
-                  })}
+                    </div>
+
+                    {/* Breakdown Matrix */}
+                    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 pt-6 mt-6 border-t border-white/10 text-xs">
+                      <div className="bg-white/5 rounded-xl p-3 border border-white/5">
+                        <span className="text-[10px] text-slate-400 font-bold block uppercase">Age & Demographics</span>
+                        <div className="flex items-center justify-between mt-1">
+                          <span className="font-bold text-white">Prime Age (28 Yrs)</span>
+                          <span className="text-gold-400 font-mono font-bold">25 / 25</span>
+                        </div>
+                        <p className="text-[10px] text-slate-400 mt-0.5">Max points awarded for 21-50 bracket.</p>
+                      </div>
+
+                      <div className="bg-white/5 rounded-xl p-3 border border-white/5">
+                        <span className="text-[10px] text-slate-400 font-bold block uppercase">Education Level</span>
+                        <div className="flex items-center justify-between mt-1">
+                          <span className="font-bold text-white truncate max-w-[130px]">{profileForm.qualification || "Bachelor's"}</span>
+                          <span className="text-gold-400 font-mono font-bold">25 / 25</span>
+                        </div>
+                        <p className="text-[10px] text-slate-400 mt-0.5">MOHRE Tier-1 accredited degree.</p>
+                      </div>
+
+                      <div className="bg-white/5 rounded-xl p-3 border border-white/5">
+                        <span className="text-[10px] text-slate-400 font-bold block uppercase">Verified Experience</span>
+                        <div className="flex items-center justify-between mt-1">
+                          <span className="font-bold text-white">{profileForm.experience || '5-8 Years'}</span>
+                          <span className="text-gold-400 font-mono font-bold">20 / 25</span>
+                        </div>
+                        <p className="text-[10px] text-slate-400 mt-0.5">Backed by service letters & contracts.</p>
+                      </div>
+
+                      <div className="bg-white/5 rounded-xl p-3 border border-white/5">
+                        <span className="text-[10px] text-slate-400 font-bold block uppercase">Language & Compliance</span>
+                        <div className="flex items-center justify-between mt-1">
+                          <span className="font-bold text-white">English (Fluent)</span>
+                          <span className="text-gold-400 font-mono font-bold">18 / 20</span>
+                        </div>
+                        <p className="text-[10px] text-slate-400 mt-0.5">PCC and medical clearances clear.</p>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* GCC Work Permit Milestone Roadmap */}
+                  <div className="bg-white dark:bg-navy-900 border border-slate-200 dark:border-navy-800 rounded-3xl p-6 sm:p-8 shadow-sm space-y-6">
+                    <div>
+                      <h3 className="font-serif text-lg font-bold text-navy-950 dark:text-white flex items-center gap-2">
+                        <Clock className="w-5 h-5 text-gold-500" />
+                        Overseas Employment & Visa Milestone Roadmap
+                      </h3>
+                      <p className="text-xs text-slate-500 mt-1">
+                        5-stage workflow tracking your work permit from employer quota approval through residency stamping.
+                      </p>
+                    </div>
+
+                    <div className="grid grid-cols-1 md:grid-cols-5 gap-3">
+                      {[
+                        { step: '01', title: 'Quota & Offer Clearance', desc: 'Employer quota reserved & digital contract signed', status: 'Completed', color: 'emerald' },
+                        { step: '02', title: 'Degree Attestation', desc: 'HRD, MEA, and Consular Embassy stamping', status: 'Verified', color: 'emerald' },
+                        { step: '03', title: 'Entry Permit (Pink Visa)', desc: 'Ministry electronic entry permit issued for travel', status: 'Active', color: 'gold' },
+                        { step: '04', title: 'Medical & Biometrics', desc: 'Blood test, chest X-ray & national fingerprinting', status: 'Scheduled', color: 'slate' },
+                        { step: '05', title: 'Residency & National ID', desc: 'Visa stamped in passport & ID card dispatched', status: 'Pending', color: 'slate' }
+                      ].map((m, idx) => (
+                        <div
+                          key={m.step}
+                          className={`p-4 rounded-2xl border transition ${
+                            m.status === 'Completed' || m.status === 'Verified'
+                              ? 'bg-emerald-500/5 border-emerald-500/20'
+                              : m.status === 'Active'
+                              ? 'bg-gold-500/10 border-gold-500/30 shadow-xs'
+                              : 'bg-slate-50 dark:bg-navy-950 border-slate-200 dark:border-navy-800'
+                          }`}
+                        >
+                          <div className="flex items-center justify-between mb-2">
+                            <span className="font-mono text-xs font-bold text-slate-400">STEP {m.step}</span>
+                            <span className={`text-[10px] font-extrabold px-2 py-0.5 rounded-full ${
+                              m.status === 'Completed' || m.status === 'Verified'
+                                ? 'bg-emerald-500/15 text-emerald-600 dark:text-emerald-400'
+                                : m.status === 'Active'
+                                ? 'bg-gold-500/20 text-gold-600 dark:text-gold-400'
+                                : 'bg-slate-200 dark:bg-navy-800 text-slate-500'
+                            }`}>
+                              {m.status}
+                            </span>
+                          </div>
+                          <h4 className="font-bold text-xs text-navy-950 dark:text-white">{m.title}</h4>
+                          <p className="text-[11px] text-slate-500 mt-1 leading-relaxed">{m.desc}</p>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+
+                  {/* Destination Country Compliance Details */}
+                  <div className="bg-white dark:bg-navy-900 border border-slate-200 dark:border-navy-800 rounded-3xl p-6 shadow-sm">
+                    <h3 className="font-serif text-base font-bold text-navy-950 dark:text-white flex items-center gap-2 mb-3">
+                      <Award className="w-4 h-4 text-gold-500" />
+                      {selectedVisaDestCountry} Visa Regulations & MOHRE Requirements
+                    </h3>
+                    <div className="grid grid-cols-1 md:grid-cols-3 gap-4 text-xs">
+                      <div className="p-4 bg-slate-50 dark:bg-navy-950 rounded-2xl border border-slate-200 dark:border-navy-800">
+                        <strong className="block text-navy-950 dark:text-white mb-1">MOHRE Skill Level 1</strong>
+                        <p className="text-slate-500 leading-relaxed">
+                          Requires a recognized University Degree with full consular attestation. Grants eligibility for manager/executive titles and family residency sponsorship.
+                        </p>
+                      </div>
+                      <div className="p-4 bg-slate-50 dark:bg-navy-950 rounded-2xl border border-slate-200 dark:border-navy-800">
+                        <strong className="block text-navy-950 dark:text-white mb-1">Mandatory Police Clearance (PCC)</strong>
+                        <p className="text-slate-500 leading-relaxed">
+                          Criminal background check certificate issued by Passport Seva Kendra / Local Police Dept, valid within 6 months of filing.
+                        </p>
+                      </div>
+                      <div className="p-4 bg-slate-50 dark:bg-navy-950 rounded-2xl border border-slate-200 dark:border-navy-800">
+                        <strong className="block text-navy-950 dark:text-white mb-1">Medical Fitness Test</strong>
+                        <p className="text-slate-500 leading-relaxed">
+                          Screening for communicable diseases (HIV, Hepatitis B/C, Tuberculosis) conducted at authorized government fitness centers upon entry.
+                        </p>
+                      </div>
+                    </div>
+                  </div>
                 </div>
-              </div>
+              )}
+
+              {/* ========================================================== */}
+              {/* SUB-TAB 2: VERIFICATION */}
+              {/* ========================================================== */}
+              {visaVerificationSubTab === 'verification' && (
+                <div className="space-y-6">
+                  {/* 4-Stage Consular Attestation Roadmap */}
+                  <div className="bg-white dark:bg-navy-900 border border-slate-200 dark:border-navy-800 rounded-3xl p-6 sm:p-8 shadow-sm space-y-4">
+                    <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-2">
+                      <div>
+                        <h3 className="font-serif text-lg font-bold text-navy-950 dark:text-white flex items-center gap-2">
+                          <ShieldCheck className="w-5 h-5 text-gold-500" />
+                          Consular Degree Attestation Pipeline
+                        </h3>
+                        <p className="text-xs text-slate-500 mt-0.5">
+                          Official chain of governmental authentications required before international work permit issuance.
+                        </p>
+                      </div>
+                      <span className="text-xs font-mono font-bold text-gold-500 bg-gold-500/10 px-3 py-1 rounded-xl">
+                        Step 3 in Progress
+                      </span>
+                    </div>
+
+                    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 pt-2">
+                      <div className="p-4 bg-emerald-500/5 border border-emerald-500/20 rounded-2xl">
+                        <div className="flex items-center justify-between mb-1.5">
+                          <span className="text-[10px] font-mono font-bold text-slate-400">STAGE 1</span>
+                          <span className="text-[10px] font-extrabold text-emerald-600 dark:text-emerald-400 bg-emerald-500/15 px-2 py-0.5 rounded-full">
+                            Verified
+                          </span>
+                        </div>
+                        <h4 className="font-bold text-xs text-navy-950 dark:text-white">State HRD / Home Dept</h4>
+                        <p className="text-[11px] text-slate-500 mt-1">Regional university record verification completed.</p>
+                      </div>
+
+                      <div className="p-4 bg-emerald-500/5 border border-emerald-500/20 rounded-2xl">
+                        <div className="flex items-center justify-between mb-1.5">
+                          <span className="text-[10px] font-mono font-bold text-slate-400">STAGE 2</span>
+                          <span className="text-[10px] font-extrabold text-emerald-600 dark:text-emerald-400 bg-emerald-500/15 px-2 py-0.5 rounded-full">
+                            Verified
+                          </span>
+                        </div>
+                        <h4 className="font-bold text-xs text-navy-950 dark:text-white">MEA Apostille / Attestation</h4>
+                        <p className="text-[11px] text-slate-500 mt-1">Ministry of External Affairs New Delhi authentication stamped.</p>
+                      </div>
+
+                      <div className="p-4 bg-gold-500/10 border border-gold-500/30 rounded-2xl">
+                        <div className="flex items-center justify-between mb-1.5">
+                          <span className="text-[10px] font-mono font-bold text-slate-400">STAGE 3</span>
+                          <span className="text-[10px] font-extrabold text-gold-600 dark:text-gold-400 bg-gold-500/20 px-2 py-0.5 rounded-full">
+                            In Progress
+                          </span>
+                        </div>
+                        <h4 className="font-bold text-xs text-navy-950 dark:text-white">Consular Embassy Attestation</h4>
+                        <p className="text-[11px] text-slate-500 mt-1">Destination embassy consular seal being processed.</p>
+                      </div>
+
+                      <div className="p-4 bg-slate-50 dark:bg-navy-950 border border-slate-200 dark:border-navy-800 rounded-2xl">
+                        <div className="flex items-center justify-between mb-1.5">
+                          <span className="text-[10px] font-mono font-bold text-slate-400">STAGE 4</span>
+                          <span className="text-[10px] font-bold text-slate-400 bg-slate-200 dark:bg-navy-800 px-2 py-0.5 rounded-full">
+                            Pending Final Visa
+                          </span>
+                        </div>
+                        <h4 className="font-bold text-xs text-navy-950 dark:text-white">MOFA Digital Stamping</h4>
+                        <p className="text-[11px] text-slate-500 mt-1">Digital QR code authentication upon arrival in destination.</p>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Documents Table / Cards */}
+                  <div className="bg-white dark:bg-navy-900 border border-slate-200 dark:border-navy-800 rounded-3xl overflow-hidden shadow-sm">
+                    <div className="p-6 border-b border-slate-100 dark:border-navy-800 flex justify-between items-center">
+                      <div>
+                        <h3 className="font-serif text-lg font-bold text-navy-950 dark:text-white flex items-center gap-2">
+                          <FolderCheck className="w-5 h-5 text-gold-500" />
+                          Encrypted Document Vault & Compliance Checklist
+                        </h3>
+                        <p className="text-xs text-slate-500 mt-0.5">
+                          All files stored with 256-bit AES encryption for employer verification and consular visa submission.
+                        </p>
+                      </div>
+                      <span className="text-xs font-bold text-emerald-600 dark:text-emerald-400 bg-emerald-500/10 px-3 py-1 rounded-xl">
+                        {documents.filter(d => d.verificationStatus === 'Verified').length} of {DEFAULT_DOC_TYPES.length} Verified
+                      </span>
+                    </div>
+
+                    <div className="divide-y divide-slate-100 dark:divide-navy-800">
+                      {DEFAULT_DOC_TYPES.map(docType => {
+                        const uploadedDoc = documents.find(d => d.documentType === docType.type);
+                        const isUploaded = !!uploadedDoc;
+                        const status = uploadedDoc?.verificationStatus || 'Pending Upload';
+
+                        return (
+                          <div key={docType.type} className="p-6 flex flex-col md:flex-row justify-between items-start md:items-center gap-4 hover:bg-slate-50/50 dark:hover:bg-navy-950/40 transition">
+                            <div className="flex items-start gap-4">
+                              <div className={`w-11 h-11 rounded-2xl flex items-center justify-center shrink-0 ${
+                                status === 'Verified' ? 'bg-emerald-500/15 text-emerald-500' :
+                                isUploaded ? 'bg-amber-500/15 text-amber-500' :
+                                'bg-slate-100 dark:bg-navy-800 text-slate-400'
+                              }`}>
+                                <FileText className="w-5 h-5" />
+                              </div>
+                              <div>
+                                <div className="flex items-center gap-2">
+                                  <h3 className="font-bold text-xs text-navy-950 dark:text-white">{docType.type}</h3>
+                                  <span className={`text-[9px] font-extrabold px-2 py-0.5 rounded-full ${
+                                    status === 'Verified' ? 'bg-emerald-500/15 text-emerald-600 dark:text-emerald-400 border border-emerald-500/30' :
+                                    isUploaded ? 'bg-amber-500/15 text-amber-600 dark:text-amber-400 border border-amber-500/30' :
+                                    'bg-slate-200 dark:bg-navy-800 text-slate-500'
+                                  }`}>
+                                    {status}
+                                  </span>
+                                </div>
+                                <p className="text-[11px] text-slate-500 mt-0.5 max-w-lg">{docType.desc}</p>
+                                {isUploaded && (
+                                  <p className="text-[10px] text-gold-500 font-mono mt-1">
+                                    File: <strong>{uploadedDoc.fileName}</strong> • Uploaded: {uploadedDoc.uploadDate}
+                                  </p>
+                                )}
+                              </div>
+                            </div>
+
+                            <div className="flex items-center gap-2 w-full md:w-auto justify-end">
+                              {isUploaded ? (
+                                <>
+                                  <button
+                                    onClick={() => setPreviewDoc(uploadedDoc)}
+                                    className="px-3 py-1.5 bg-slate-200 dark:bg-navy-800 text-slate-700 dark:text-slate-200 font-bold text-xs rounded-xl hover:bg-slate-300 transition cursor-pointer"
+                                  >
+                                    View
+                                  </button>
+                                  <button
+                                    onClick={() => alert(`Downloading "${uploadedDoc.fileName}"...`)}
+                                    className="px-3 py-1.5 bg-slate-200 dark:bg-navy-800 text-slate-700 dark:text-slate-200 font-bold text-xs rounded-xl hover:bg-slate-300 transition cursor-pointer"
+                                  >
+                                    Download
+                                  </button>
+                                  <button
+                                    onClick={() => { setSelectedDocType(docType.type); setUploadDocModalOpen(true); }}
+                                    className="px-3 py-1.5 bg-navy-950 dark:bg-white text-white dark:text-navy-950 font-bold text-xs rounded-xl hover:opacity-90 transition cursor-pointer"
+                                  >
+                                    Replace
+                                  </button>
+                                  <button
+                                    onClick={() => handleDeleteDocument(uploadedDoc.id)}
+                                    className="p-2 text-rose-500 hover:bg-rose-500/10 rounded-xl transition cursor-pointer"
+                                    title="Delete document"
+                                  >
+                                    <Trash2 className="w-3.5 h-3.5" />
+                                  </button>
+                                </>
+                              ) : (
+                                <button
+                                  onClick={() => { setSelectedDocType(docType.type); setUploadDocModalOpen(true); }}
+                                  className="px-4 py-2 bg-gradient-to-r from-gold-500 to-amber-400 text-navy-950 font-bold text-xs rounded-xl shadow-gold-glow hover:opacity-95 transition flex items-center gap-1.5 cursor-pointer"
+                                >
+                                  <Upload className="w-3.5 h-3.5" />
+                                  <span>Upload File</span>
+                                </button>
+                              )}
+                            </div>
+                          </div>
+                        );
+                      })}
+                    </div>
+                  </div>
+                </div>
+              )}
 
             </div>
           )}

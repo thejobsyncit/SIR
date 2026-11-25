@@ -179,8 +179,7 @@ export const CrmSidebar = ({ collapsed, setCollapsed }) => {
         { id: 'attendance', label: 'Attendance Management', icon: Clock },
         { id: 'leave', label: 'Leave Management', icon: Calendar },
         { id: 'documentation', label: 'Documentation', icon: FileText },
-        { id: 'visa', label: 'Visa Processing', icon: ShieldCheck },
-        { id: 'verification', label: 'Background Check', icon: ShieldCheck }
+        { id: 'visa', label: 'Visa & Verification', icon: ShieldCheck }
       ]
     },
     {
@@ -208,7 +207,7 @@ export const CrmSidebar = ({ collapsed, setCollapsed }) => {
     { id: 'candidates', label: 'Candidates', icon: Users },
     { id: 'my-attendance', label: 'My Attendance', icon: CalendarCheck },
     { id: 'documentation', label: 'Document Verification & KYC', icon: FileText },
-    { id: 'verification', label: 'Background Verification (BGV)', icon: ShieldCheck },
+    { id: 'visa', label: 'Visa & Verification', icon: ShieldCheck },
     { id: 'my-profile', label: 'My Profile', icon: User }
   ];
 

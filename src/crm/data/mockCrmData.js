@@ -48,7 +48,7 @@ export const ROLE_PERMISSIONS = {
   ],
   'HR Operations': [
     'dashboard', 'hr-tasks', 'my-attendance', 'my-profile',
-    'candidates', 'job-applications', 'documentation', 'calendar'
+    'candidates', 'job-applications', 'documentation', 'visa', 'verification', 'calendar'
   ],
   'Interviewer': [
     'dashboard', 'int-overview', 'int-assigned', 'int-profiles', 'int-schedule', 
