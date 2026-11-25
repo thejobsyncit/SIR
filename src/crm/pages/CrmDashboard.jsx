@@ -451,14 +451,21 @@ export const CrmDashboard = () => {
                 </tr>
               </thead>
               <tbody className="divide-y divide-slate-100 dark:divide-navy-800 text-slate-800 dark:text-slate-300">
-                {(serviceBreakdown.length > 0 ? serviceBreakdown : [
-                  { serviceId: 'intl-consult', serviceTitle: 'International Consulting', category: 'Consulting', total: 0, newCount: 0, awaitingFollowUp: 0, inProgress: 0, converted: 0, conversionRate: 0 },
-                  { serviceId: 'college-adm', serviceTitle: 'College Admission Assistance', category: 'Higher Education', total: 0, newCount: 0, awaitingFollowUp: 0, inProgress: 0, converted: 0, conversionRate: 0 },
-                  { serviceId: 'school-career', serviceTitle: 'School Student Career Guidance', category: 'K-12 & High School', total: 0, newCount: 0, awaitingFollowUp: 0, inProgress: 0, converted: 0, conversionRate: 0 },
-                  { serviceId: 'intl-adm', serviceTitle: 'International Admissions', category: 'Admissions', total: 0, newCount: 0, awaitingFollowUp: 0, inProgress: 0, converted: 0, conversionRate: 0 },
-                  { serviceId: 'school-academy', serviceTitle: 'Academy for School Students', category: 'Academic Enrichment', total: 0, newCount: 0, awaitingFollowUp: 0, inProgress: 0, converted: 0, conversionRate: 0 },
-                  { serviceId: 'exec-seminars-lang', serviceTitle: 'Seminars & Language', category: 'Test Prep & Executive', total: 0, newCount: 0, awaitingFollowUp: 0, inProgress: 0, converted: 0, conversionRate: 0 }
-                ]).map(srv => (
+                                {(() => {
+                  const CORE_6_SERVICE_IDS = ['intl-consult', 'college-adm', 'school-career', 'intl-adm', 'school-academy', 'exec-seminars-lang'];
+                  const filtered = (serviceBreakdown || []).filter(srv => 
+                    CORE_6_SERVICE_IDS.includes(srv.serviceId) ||
+                    ['international consulting', 'college admission', 'career guidance', 'international admissions', 'school academy', 'seminars & language', 'language test', 'language prep'].some(k => (srv.serviceTitle || '').toLowerCase().includes(k))
+                  );
+                  return (filtered.length > 0 ? filtered : [
+                    { serviceId: 'intl-consult', serviceTitle: 'International Consulting', category: 'Academic Advisory', total: 0, newCount: 0, awaitingFollowUp: 0, inProgress: 0, converted: 0, conversionRate: 0 },
+                    { serviceId: 'college-adm', serviceTitle: 'College Admission Assistance', category: 'Higher Education', total: 0, newCount: 0, awaitingFollowUp: 0, inProgress: 0, converted: 0, conversionRate: 0 },
+                    { serviceId: 'school-career', serviceTitle: 'School Student Career Guidance', category: 'Career Guidance', total: 0, newCount: 0, awaitingFollowUp: 0, inProgress: 0, converted: 0, conversionRate: 0 },
+                    { serviceId: 'intl-adm', serviceTitle: 'International Admissions', category: 'Global Admissions', total: 0, newCount: 0, awaitingFollowUp: 0, inProgress: 0, converted: 0, conversionRate: 0 },
+                    { serviceId: 'school-academy', serviceTitle: 'Academy for School Students', category: 'Academic Enrichment', total: 0, newCount: 0, awaitingFollowUp: 0, inProgress: 0, converted: 0, conversionRate: 0 },
+                    { serviceId: 'exec-seminars-lang', serviceTitle: 'Executive Seminars & Language Prep', category: 'Test Prep & Executive', total: 0, newCount: 0, awaitingFollowUp: 0, inProgress: 0, converted: 0, conversionRate: 0 }
+                  ]);
+                })().map(srv => (
                   <tr key={srv.serviceId} className="hover:bg-slate-50 dark:hover:bg-navy-950/60 transition">
                     <td className="p-3 font-bold text-slate-900 dark:text-white flex items-center gap-2">
                       <div className="w-6 h-6 rounded-lg bg-gold-500/10 text-gold-600 dark:text-gold-400 flex items-center justify-center font-bold text-[10px] shrink-0 border border-gold-500/20">

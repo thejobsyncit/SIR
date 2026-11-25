@@ -1461,17 +1461,6 @@ export const CrmSuperAdmin = () => {
                     className="w-full bg-slate-100 dark:bg-navy-950 border border-slate-300 dark:border-navy-700 text-slate-900 dark:text-white px-2.5 py-1.5 rounded-xl text-xs focus:outline-none focus:border-gold-500 font-semibold cursor-pointer"
                   >
                     <option value="all">All Services ({leads.length})</option>
-                    <optgroup label="Workforce & Recruitment Services">
-                      <option value="dom-rec">🏢 Domestic Recruitment</option>
-                      <option value="intl-rec">🌐 International Recruitment</option>
-                      <option value="exec-search">👔 Executive Search</option>
-                      <option value="perm-staff">💼 Permanent Staffing</option>
-                      <option value="contract-staff">⏱️ Contract Staffing</option>
-                      <option value="bulk-hiring">👥 Bulk Hiring</option>
-                      <option value="overseas-place">✈️ Overseas Placement</option>
-                      <option value="visa-assist">📄 Visa Assistance</option>
-                      <option value="work-permit">🏅 Work Permit Guidance</option>
-                    </optgroup>
                     <optgroup label="Academic & Strategic Advisory">
                       <option value="intl-consult">🎓 International Consulting</option>
                       <option value="college-adm">College Admission Assistance</option>

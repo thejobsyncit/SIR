@@ -6107,21 +6107,12 @@ app.get(['/api/admin/leads/metrics', '/api/crm/leads/dashboard-metrics'], async 
 
     // 2. Service-Wise Breakdown across Master Services
     const MASTER_SERVICES = [
-      { id: 'dom-rec', title: 'Domestic Recruitment', category: 'Recruitment' },
-      { id: 'intl-rec', title: 'International Recruitment', category: 'Recruitment' },
-      { id: 'exec-search', title: 'Executive Search', category: 'Executive' },
-      { id: 'perm-staff', title: 'Permanent Staffing', category: 'Staffing' },
-      { id: 'contract-staff', title: 'Contract Staffing', category: 'Staffing' },
-      { id: 'bulk-hiring', title: 'Bulk Hiring', category: 'Recruitment' },
-      { id: 'overseas-place', title: 'Overseas Placement', category: 'Placement' },
-      { id: 'visa-assist', title: 'Visa Assistance', category: 'Visa & Legal' },
-      { id: 'work-permit', title: 'Work Permit Guidance', category: 'Visa & Legal' },
-      { id: 'intl-consult', title: 'International Consulting', category: 'Consulting' },
+      { id: 'intl-consult', title: 'International Consulting', category: 'Academic Advisory' },
       { id: 'college-adm', title: 'College Admission Assistance', category: 'Higher Education' },
-      { id: 'school-career', title: 'School Student Career Guidance', category: 'K-12 & High School' },
-      { id: 'intl-adm', title: 'International Admissions', category: 'Admissions' },
+      { id: 'school-career', title: 'School Student Career Guidance', category: 'Career Guidance' },
+      { id: 'intl-adm', title: 'International Admissions', category: 'Global Admissions' },
       { id: 'school-academy', title: 'Academy for School Students', category: 'Academic Enrichment' },
-      { id: 'exec-seminars-lang', title: 'Executive Seminars & Language Test Preparation', category: 'Test Prep & Executive' }
+      { id: 'exec-seminars-lang', title: 'Executive Seminars & Language Prep', category: 'Test Prep & Executive' }
     ];
 
     const allLeadsInScope = await db.all(
@@ -7539,21 +7530,12 @@ app.get('/api/analytics/service-performance', async (req, res) => {
 
     // 1. Defined master services catalog
     const MASTER_SERVICES = [
-      { id: 'dom-rec', title: 'Domestic Recruitment', category: 'Recruitment' },
-      { id: 'intl-rec', title: 'International Recruitment', category: 'Recruitment' },
-      { id: 'exec-search', title: 'Executive Search', category: 'Executive' },
-      { id: 'perm-staff', title: 'Permanent Staffing', category: 'Staffing' },
-      { id: 'contract-staff', title: 'Contract Staffing', category: 'Staffing' },
-      { id: 'bulk-hiring', title: 'Bulk Hiring', category: 'Recruitment' },
-      { id: 'overseas-place', title: 'Overseas Placement', category: 'Placement' },
-      { id: 'visa-assist', title: 'Visa Assistance', category: 'Visa & Legal' },
-      { id: 'work-permit', title: 'Work Permit Guidance', category: 'Visa & Legal' },
-      { id: 'intl-consult', title: 'International Consulting', category: 'Consulting' },
+      { id: 'intl-consult', title: 'International Consulting', category: 'Academic Advisory' },
       { id: 'college-adm', title: 'College Admission Assistance', category: 'Higher Education' },
-      { id: 'school-career', title: 'School Student Career Guidance', category: 'K-12 & High School' },
-      { id: 'intl-adm', title: 'International Admissions', category: 'Admissions' },
+      { id: 'school-career', title: 'School Student Career Guidance', category: 'Career Guidance' },
+      { id: 'intl-adm', title: 'International Admissions', category: 'Global Admissions' },
       { id: 'school-academy', title: 'Academy for School Students', category: 'Academic Enrichment' },
-      { id: 'exec-seminars-lang', title: 'Executive Seminars & Language Test Preparation', category: 'Test Prep & Executive' }
+      { id: 'exec-seminars-lang', title: 'Executive Seminars & Language Prep', category: 'Test Prep & Executive' }
     ];
 
     // 2. Fetch all real inbound leads from database
