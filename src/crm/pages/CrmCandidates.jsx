@@ -295,10 +295,20 @@ export const CrmCandidates = () => {
     }
   };
 
-  // Centralized Candidate Pool: Sourced directly from production database (Pure registered profiles)
+  // Centralized Candidate Pool: Sourced directly from production database (Strictly 1 Profile per Email Address)
   const candidatePool = useMemo(() => {
+    const seenEmails = new Set();
+    const seenIds = new Set();
     return (candidates || []).filter(c => {
       if (!c || isDummyCandidate(c)) return false;
+      if (c.id && seenIds.has(c.id)) return false;
+      if (c.id) seenIds.add(c.id);
+
+      const emailKey = (c.email || '').toLowerCase().trim();
+      if (emailKey) {
+        if (seenEmails.has(emailKey)) return false;
+        seenEmails.add(emailKey);
+      }
       return true;
     });
   }, [candidates]);

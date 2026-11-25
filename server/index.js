@@ -1251,22 +1251,18 @@ app.post('/api/auth/google', async (req, res) => {
     // so existingCandidate will be null and they can register anew).
     if (req.body?.mode === 'register') {
       const sbClient = getSupabaseClient();
-      let isDuplicate = false;
+      let isDuplicate = Boolean(userRecord);
 
-      if (sbClient) {
-        const sbCheck = await checkSupabaseCandidateExists(cleanEmail);
-        if (sbCheck && sbCheck.exists) {
-          isDuplicate = true;
-        } else {
-          // Candidate does not exist in Supabase Cloud (e.g. was deleted from CRM)
-          // Purge any stale ghost records from SQLite so they can freshly register:
-          await db.run('DELETE FROM users WHERE LOWER(TRIM(email)) = LOWER(?)', [cleanEmail]).catch(() => {});
-          await db.run('DELETE FROM candidate_profiles WHERE LOWER(TRIM(email)) = LOWER(?)', [cleanEmail]).catch(() => {});
-          await db.run('DELETE FROM candidates WHERE LOWER(TRIM(email)) = LOWER(?)', [cleanEmail]).catch(() => {});
-          await db.run('DELETE FROM google_auth_accounts WHERE LOWER(TRIM(email)) = LOWER(?)', [cleanEmail]).catch(() => {});
-          userRecord = null;
-        }
-      } else {
+      if (!isDuplicate && sbClient) {
+        try {
+          const sbCheck = await checkSupabaseCandidateExists(cleanEmail);
+          if (sbCheck && sbCheck.exists) {
+            isDuplicate = true;
+          }
+        } catch (_) {}
+      }
+
+      if (!isDuplicate) {
         const existingCandidate = userRecord ||
           await db.get('SELECT id FROM candidate_profiles WHERE LOWER(email) = LOWER(?)', [cleanEmail]) ||
           await db.get('SELECT id FROM candidates WHERE LOWER(email) = LOWER(?)', [cleanEmail]);
@@ -1358,13 +1354,31 @@ app.post('/api/auth/google', async (req, res) => {
 
     // Step 2: Ensure Candidate Profile exists (Create individual candidate profile if new)
     if (!candidateProfile) {
-      // Generate unique Candidate ID: RI-CAND-100 to RI-CAND-999
-      candidateId = `RI-CAND-${Math.floor(100 + Math.random() * 900)}`;
+      // Check if candidate already has an ID in candidates table or in Supabase Cloud to avoid duplicate IDs
+      const existingInCand = await db.get('SELECT id FROM candidates WHERE LOWER(email) = LOWER(?)', [cleanEmail]);
+      if (existingInCand && existingInCand.id) {
+        candidateId = existingInCand.id;
+      } else {
+        const sbClient = getSupabaseClient();
+        if (sbClient) {
+          try {
+            const { data: sbCands } = await sbClient.from('candidates').select('id').ilike('email', cleanEmail).limit(1);
+            if (sbCands && sbCands.length > 0 && sbCands[0].id) {
+              candidateId = sbCands[0].id;
+            }
+          } catch (_) {}
+        }
+      }
 
-      // Check for collision and adjust if needed
-      const existingCand = await db.get('SELECT id FROM candidate_profiles WHERE id = ?', [candidateId]);
-      if (existingCand) {
-        candidateId = `RI-CAND-${Date.now().toString().slice(-4)}${Math.floor(10 + Math.random() * 90)}`;
+      if (!candidateId) {
+        // Generate unique Candidate ID: RI-CAND-100 to RI-CAND-999
+        candidateId = `RI-CAND-${Math.floor(100 + Math.random() * 900)}`;
+
+        // Check for collision and adjust if needed
+        const existingCand = await db.get('SELECT id FROM candidate_profiles WHERE id = ?', [candidateId]);
+        if (existingCand) {
+          candidateId = `RI-CAND-${Date.now().toString().slice(-4)}${Math.floor(10 + Math.random() * 90)}`;
+        }
       }
 
       const defaultSkills = JSON.stringify([]);
@@ -1656,61 +1670,61 @@ app.post('/api/candidate/check-exists', async (req, res) => {
     const cleanEmail = normalizeEmail(email);
     const normalizedPhone = normalizePhone(phone);
 
+    let isDuplicate = false;
+    let dupField = 'email';
+
     // 1. Authoritative check via Supabase Cloud (Single Source of Truth across serverless containers)
     const sbClient = getSupabaseClient();
     if (sbClient) {
-      const sbCheck = await checkSupabaseCandidateExists(cleanEmail, normalizedPhone);
-      if (sbCheck && sbCheck.exists) {
-        return res.status(409).json({
-          exists: true,
-          field: sbCheck.field,
-          message: 'An account with this email address or phone number already exists. Please sign in to your existing account.'
-        });
-      }
-
-      // If Supabase confirms candidate does NOT exist (e.g. was deleted from CRM),
-      // purge any stale ghost records from SQLite so local DB stays clean and in sync with Supabase:
-      if (cleanEmail) {
-        await db.run('DELETE FROM users WHERE LOWER(TRIM(email)) = LOWER(?)', [cleanEmail]).catch(() => {});
-        await db.run('DELETE FROM candidate_profiles WHERE LOWER(TRIM(email)) = LOWER(?)', [cleanEmail]).catch(() => {});
-        await db.run('DELETE FROM candidates WHERE LOWER(TRIM(email)) = LOWER(?)', [cleanEmail]).catch(() => {});
-        await db.run('DELETE FROM google_auth_accounts WHERE LOWER(TRIM(email)) = LOWER(?)', [cleanEmail]).catch(() => {});
-      }
-      return res.json({ exists: false });
-    }
-
-    // 2. Fallback check in SQLite if Supabase is not configured
-    if (cleanEmail) {
-      const sqliteUser = await db.get(
-        'SELECT id, email FROM users WHERE LOWER(TRIM(email)) = LOWER(?) UNION SELECT id, email FROM candidate_profiles WHERE LOWER(TRIM(email)) = LOWER(?) UNION SELECT id, email FROM candidates WHERE LOWER(TRIM(email)) = LOWER(?) LIMIT 1',
-        [cleanEmail, cleanEmail, cleanEmail]
-      );
-      if (sqliteUser) {
-        return res.status(409).json({
-          exists: true,
-          field: 'email',
-          message: 'An account with this email address or phone number already exists. Please sign in to your existing account.'
-        });
+      try {
+        const sbCheck = await checkSupabaseCandidateExists(cleanEmail, normalizedPhone);
+        if (sbCheck && sbCheck.exists) {
+          isDuplicate = true;
+          dupField = sbCheck.field || 'email';
+        }
+      } catch (sbErr) {
+        console.warn('Supabase check exists warning:', sbErr.message);
       }
     }
 
-    if (normalizedPhone && normalizedPhone.length >= 7) {
-      const phoneSuffix = `%${normalizedPhone.slice(-7)}`;
-      const sqlitePhone = await db.get(
-        `SELECT id, phone FROM users WHERE phone IS NOT NULL AND REPLACE(REPLACE(REPLACE(REPLACE(phone, ' ', ''), '-', ''), '+', ''), '(', '') LIKE ?
-         UNION
-         SELECT id, phone FROM candidate_profiles WHERE phone IS NOT NULL AND REPLACE(REPLACE(REPLACE(REPLACE(phone, ' ', ''), '-', ''), '+', ''), '(', '') LIKE ?
-         UNION
-         SELECT id, phone FROM candidates WHERE phone IS NOT NULL AND REPLACE(REPLACE(REPLACE(REPLACE(phone, ' ', ''), '-', ''), '+', ''), '(', '') LIKE ? LIMIT 1`,
-        [phoneSuffix, phoneSuffix, phoneSuffix]
-      );
-      if (sqlitePhone) {
-        return res.status(409).json({
-          exists: true,
-          field: 'phone',
-          message: 'An account with this email address or phone number already exists. Please sign in to your existing account.'
-        });
-      }
+    // 2. Comprehensive check in database (users, candidate_profiles, candidates)
+    if (!isDuplicate && cleanEmail) {
+      try {
+        const sqliteUser = await db.get(
+          'SELECT id, email FROM users WHERE LOWER(TRIM(email)) = LOWER(?) UNION SELECT id, email FROM candidate_profiles WHERE LOWER(TRIM(email)) = LOWER(?) UNION SELECT id, email FROM candidates WHERE LOWER(TRIM(email)) = LOWER(?) LIMIT 1',
+          [cleanEmail, cleanEmail, cleanEmail]
+        );
+        if (sqliteUser) {
+          isDuplicate = true;
+          dupField = 'email';
+        }
+      } catch (_) {}
+    }
+
+    if (!isDuplicate && normalizedPhone && normalizedPhone.length >= 7) {
+      try {
+        const phoneSuffix = `%${normalizedPhone.slice(-7)}`;
+        const sqlitePhone = await db.get(
+          `SELECT id, phone FROM users WHERE phone IS NOT NULL AND REPLACE(REPLACE(REPLACE(REPLACE(phone, ' ', ''), '-', ''), '+', ''), '(', '') LIKE ?
+           UNION
+           SELECT id, phone FROM candidate_profiles WHERE phone IS NOT NULL AND REPLACE(REPLACE(REPLACE(REPLACE(phone, ' ', ''), '-', ''), '+', ''), '(', '') LIKE ?
+           UNION
+           SELECT id, phone FROM candidates WHERE phone IS NOT NULL AND REPLACE(REPLACE(REPLACE(REPLACE(phone, ' ', ''), '-', ''), '+', ''), '(', '') LIKE ? LIMIT 1`,
+          [phoneSuffix, phoneSuffix, phoneSuffix]
+        );
+        if (sqlitePhone) {
+          isDuplicate = true;
+          dupField = 'phone';
+        }
+      } catch (_) {}
+    }
+
+    if (isDuplicate) {
+      return res.status(409).json({
+        exists: true,
+        field: dupField,
+        message: 'An account with this email address or phone number already exists. Please sign in to your existing account.'
+      });
     }
 
     return res.json({ exists: false });
@@ -1773,44 +1787,40 @@ app.post('/api/candidate/register', async (req, res) => {
 
     const db = await getDb();
 
-    // 2. Authoritative Duplicate Check via Supabase Cloud Database (Single Source of Truth)
+    // 2. Strict One-Time Candidate Registration: Check Supabase Cloud AND Database
+    let isDuplicate = false;
+    let dupField = 'email';
+
+    // A. Check Supabase Cloud
     const sbClient = getSupabaseClient();
     if (sbClient) {
-      const sbCheck = await checkSupabaseCandidateExists(cleanEmail, normalizedPhone);
-      if (sbCheck && sbCheck.exists) {
-        return res.status(409).json({
-          success: false,
-          error: `duplicate_${sbCheck.field}`,
-          field: sbCheck.field,
-          message: 'An account with this email address or phone number already exists. Please sign in to your existing account.'
-        });
+      try {
+        const sbCheck = await checkSupabaseCandidateExists(cleanEmail, normalizedPhone);
+        if (sbCheck && sbCheck.exists) {
+          isDuplicate = true;
+          dupField = sbCheck.field || 'email';
+        }
+      } catch (sbErr) {
+        console.warn('Supabase duplicate check warning:', sbErr.message);
       }
+    }
 
-      // If Supabase confirms candidate does NOT exist, purge any stale ghost records from SQLite:
-      if (cleanEmail) {
-        await db.run('DELETE FROM users WHERE LOWER(TRIM(email)) = LOWER(?)', [cleanEmail]).catch(() => {});
-        await db.run('DELETE FROM candidate_profiles WHERE LOWER(TRIM(email)) = LOWER(?)', [cleanEmail]).catch(() => {});
-        await db.run('DELETE FROM candidates WHERE LOWER(TRIM(email)) = LOWER(?)', [cleanEmail]).catch(() => {});
-        await db.run('DELETE FROM google_auth_accounts WHERE LOWER(TRIM(email)) = LOWER(?)', [cleanEmail]).catch(() => {});
-      }
-    } else {
-      // Fallback check in SQLite if Supabase is not configured
-      if (cleanEmail) {
+    // B. Check database tables
+    if (!isDuplicate && cleanEmail) {
+      try {
         const sqliteUser = await db.get(
           'SELECT id, email FROM users WHERE LOWER(TRIM(email)) = LOWER(?) UNION SELECT id, email FROM candidate_profiles WHERE LOWER(TRIM(email)) = LOWER(?) UNION SELECT id, email FROM candidates WHERE LOWER(TRIM(email)) = LOWER(?) LIMIT 1',
           [cleanEmail, cleanEmail, cleanEmail]
         );
         if (sqliteUser) {
-          return res.status(409).json({
-            success: false,
-            error: 'duplicate_email',
-            field: 'email',
-            message: 'An account with this email address or phone number already exists. Please sign in to your existing account.'
-          });
+          isDuplicate = true;
+          dupField = 'email';
         }
-      }
+      } catch (_) {}
+    }
 
-      if (normalizedPhone && normalizedPhone.length >= 7) {
+    if (!isDuplicate && normalizedPhone && normalizedPhone.length >= 7) {
+      try {
         const phoneSuffix = `%${normalizedPhone.slice(-7)}`;
         const sqlitePhone = await db.get(
           `SELECT id, phone FROM users WHERE phone IS NOT NULL AND REPLACE(REPLACE(REPLACE(REPLACE(phone, ' ', ''), '-', ''), '+', ''), '(', '') LIKE ?
@@ -1821,14 +1831,20 @@ app.post('/api/candidate/register', async (req, res) => {
           [phoneSuffix, phoneSuffix, phoneSuffix]
         );
         if (sqlitePhone) {
-          return res.status(409).json({
-            success: false,
-            error: 'duplicate_phone',
-            field: 'phone',
-            message: 'An account with this email address or phone number already exists. Please sign in to your existing account.'
-          });
+          isDuplicate = true;
+          dupField = 'phone';
         }
-      }
+      } catch (_) {}
+    }
+
+    if (isDuplicate) {
+      return res.status(409).json({
+        success: false,
+        error: `duplicate_${dupField}`,
+        code: 'DUPLICATE_EMAIL',
+        field: dupField,
+        message: 'An account with this email address or phone number already exists. Please sign in to your existing account.'
+      });
     }
 
     // 4. Secure Password Hashing
@@ -2049,11 +2065,23 @@ app.post('/api/candidate/login', async (req, res) => {
       [cleanEmail]
     );
 
-    if (!userRow && !profileRow && !candRow) {
+    let hasAccount = Boolean(userRow || profileRow || candRow);
+    const sbClient = getSupabaseClient();
+    if (!hasAccount && sbClient) {
+      try {
+        const sbCheck = await checkSupabaseCandidateExists(cleanEmail);
+        if (sbCheck && sbCheck.exists) {
+          hasAccount = true;
+        }
+      } catch (_) {}
+    }
+
+    if (!hasAccount) {
       return res.status(404).json({
         success: false,
         error: 'account_not_found',
-        message: 'No registered account found with this email address. Please create a candidate account first.'
+        code: 'ACCOUNT_NOT_FOUND',
+        message: 'No registered account found with this email. Please register to create your candidate account first.'
       });
     }
 
@@ -4466,9 +4494,22 @@ app.get('/api/candidates', async (req, res) => {
       return timeB - timeA;
     });
 
+    // STRICT 1 CANDIDATE PER EMAIL RULE:
+    // Deduplicate candidateList so that each unique email address appears at most ONCE in the CRM directory
+    const seenEmails = new Set();
+    const uniqueCandidateList = [];
+    for (const c of candidateList) {
+      const emailKey = (c.email || '').toLowerCase().trim();
+      if (emailKey) {
+        if (seenEmails.has(emailKey)) continue;
+        seenEmails.add(emailKey);
+      }
+      uniqueCandidateList.push(c);
+    }
+
     res.json({
       success: true,
-      data: candidateList
+      data: uniqueCandidateList
     });
   } catch (error) {
     console.error('Failed to fetch candidates:', error);

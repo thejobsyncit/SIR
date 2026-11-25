@@ -598,7 +598,18 @@ export const UnifiedAuth = ({ defaultMode = 'login', defaultRole = 'candidate', 
 
     const result = await loginCandidate(cleanEmail, candidateLogin.password);
     if (!result || !result.success) {
-      setError(result?.message || 'Invalid credentials. Please register if you do not have an account.');
+      if (
+        result?.error === 'account_not_found' ||
+        result?.code === 'ACCOUNT_NOT_FOUND' ||
+        result?.message?.includes('not found') ||
+        result?.message?.includes('register') ||
+        result?.message?.includes('create a candidate account')
+      ) {
+        setError('No candidate account found with this email. Please register to create your candidate account first.');
+        setCandidateReg(prev => ({ ...prev, email: cleanEmail }));
+      } else {
+        setError(result?.message || 'Invalid credentials. Please register if you do not have an account.');
+      }
       return;
     }
 

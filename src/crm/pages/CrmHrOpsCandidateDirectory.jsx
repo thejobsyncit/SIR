@@ -227,7 +227,19 @@ export const CrmHrOpsCandidateDirectory = () => {
         setDirErrorCode(res.status);
         throw new Error(json.message || 'Unable to fetch candidates.');
       }
-      setDirectoryRows(json.data?.candidates || []);
+      // Deduplicate rows by email: strictly 1 profile per email address
+      const rawCands = json.data?.candidates || [];
+      const seenEmails = new Set();
+      const dedupedCands = [];
+      for (const c of rawCands) {
+        const e = (c.email || '').toLowerCase().trim();
+        if (e) {
+          if (seenEmails.has(e)) continue;
+          seenEmails.add(e);
+        }
+        dedupedCands.push(c);
+      }
+      setDirectoryRows(dedupedCands);
       setPagination(json.data?.pagination || { page: currentPage, limit: pageSize, totalCount: 0, totalPages: 1 });
     } catch (err) {
       setDirError(err.message || 'Failed to load candidates.');

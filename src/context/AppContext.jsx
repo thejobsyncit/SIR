@@ -440,6 +440,7 @@ export const AppProvider = ({ children }) => {
         return {
           success: false,
           error: data.error,
+          code: data.code,
           message: data.message || 'Login failed. Please check your credentials.'
         };
       }

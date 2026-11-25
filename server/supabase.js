@@ -42,8 +42,20 @@ export async function fetchSupabaseCandidates() {
       }
     }
 
+    // Deduplicate candidates by lowercase email: STRICTLY 1 Profile per Email Address
+    const seenEmails = new Set();
+    const uniqueCands = [];
+    for (const c of (cands || [])) {
+      const emailKey = (c.email || '').toLowerCase().trim();
+      if (emailKey) {
+        if (seenEmails.has(emailKey)) continue;
+        seenEmails.add(emailKey);
+      }
+      uniqueCands.push(c);
+    }
+
     // Normalize lowercase PostgreSQL column names to camelCase for frontend & CRM consistency
-    return (cands || []).map(c => {
+    return uniqueCands.map(c => {
       let parsedSkills = [];
       try {
         if (typeof c.skills === 'string') {
@@ -93,10 +105,11 @@ export async function syncCandidateToSupabase(cand) {
   const client = getSupabaseClient();
   if (!client || !cand) return null;
   try {
+    const cleanEmail = (cand.email || '').toLowerCase().trim();
     const candidateRow = {
       id: cand.id,
       name: cand.name,
-      email: (cand.email || '').toLowerCase().trim(),
+      email: cleanEmail,
       phone: cand.phone || '',
       nationality: cand.nationality || 'UAE',
       score: Number(cand.score) || 90,
@@ -108,6 +121,18 @@ export async function syncCandidateToSupabase(cand) {
     };
     if (cand.createdAt || cand.createdat) {
       candidateRow.createdat = cand.createdAt || cand.createdat;
+    }
+
+    // STRICT 1 CANDIDATE PER EMAIL: If this email already exists in Supabase, reuse existing ID to prevent duplicate profiles
+    if (cleanEmail) {
+      const { data: existingCand } = await client
+        .from('candidates')
+        .select('id')
+        .ilike('email', cleanEmail)
+        .limit(1);
+      if (existingCand && existingCand.length > 0 && existingCand[0].id) {
+        candidateRow.id = existingCand[0].id;
+      }
     }
 
     const { data, error } = await client
