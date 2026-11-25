@@ -448,7 +448,7 @@ export const registerAttendanceRoutes = (app, { getDb, getClientIp }) => {
 
           // Check for existing open attendance session (checkOutAt IS NULL)
           const openActive = await db.get(
-            `SELECT * FROM attendance_records WHERE employeeId = ? AND checkOutAt IS NULL AND status IN ('In Progress', 'Late') ORDER BY checkInAt DESC LIMIT 1`,
+            `SELECT * FROM attendance_records WHERE employeeId = ? AND checkOutAt IS NULL AND status IN ('In Progress', 'Late', 'Present') ORDER BY checkInAt DESC LIMIT 1`,
             [employee.employeeId]
           );
 
@@ -2124,10 +2124,20 @@ export const registerAttendanceRoutes = (app, { getDb, getClientIp }) => {
         );
       } catch (_) {}
 
-      // Create high-priority Super Admin notification
+      // Create high-priority Super Admin & HR Lead notifications
       try {
         const superAdmins = await db.all("SELECT id, employeeId FROM employees WHERE role = 'Super Admin'");
         const targets = superAdmins && superAdmins.length ? superAdmins : [{ employeeId: 'REV-EMP-001' }];
+        
+        // If employee is not HR Lead, also notify HR Lead
+        const isTargetHrLead = String(employee.role || '').toLowerCase().includes('lead');
+        if (!isTargetHrLead) {
+          const hrLeads = await db.all("SELECT id, employeeId FROM employees WHERE role = 'HR Lead'");
+          if (hrLeads && hrLeads.length) {
+            targets.push(...hrLeads);
+          }
+        }
+
         for (const sa of targets) {
           await createNotification(db, {
             employeeId: sa.employeeId,
@@ -2380,6 +2390,13 @@ export const registerAttendanceRoutes = (app, { getDb, getClientIp }) => {
             [loginLog.employeeId]
           );
         }
+      }
+      if (!att) {
+        // Also locate pending attendance record by employeeId directly
+        att = await db.get(
+          `SELECT * FROM attendance_records WHERE employeeId = ? AND lateApprovalStatus = 'PENDING' ORDER BY checkInAt DESC LIMIT 1`,
+          [id]
+        );
       }
       if (!att) {
         return res.status(404).json({ success: false, message: 'Attendance record not found.' });

@@ -9,9 +9,12 @@ import {
 } from 'lucide-react';
 
 export const CrmAttendanceManagement = ({ isSuperAdmin, currentRole }) => {
-  const { crmToken, currentRole: ctxRole, setActiveModule } = useCrm();
+  const { crmToken, currentRole: ctxRole, user, setActiveModule } = useCrm();
   const effectiveRole = currentRole || ctxRole || 'Super Admin';
-  const canEdit = isSuperAdmin || effectiveRole === 'Super Admin';
+  const isSuperAdminOrAdmin = isSuperAdmin || effectiveRole === 'Super Admin' || effectiveRole === 'Admin';
+  const isHrLead = effectiveRole === 'HR Lead';
+  const canEdit = isSuperAdminOrAdmin;
+  const canManageRoster = isSuperAdminOrAdmin || isHrLead;
 
   // Primary attendance register state — 100% database backed, zero dummy records
   const [records, setRecords] = useState([]);
@@ -99,7 +102,7 @@ export const CrmAttendanceManagement = ({ isSuperAdmin, currentRole }) => {
   const getAuthHeaders = () => ({
     'Content-Type': 'application/json',
     'x-crm-role': effectiveRole || 'Super Admin',
-    'x-employee-email': 'thejobsyncit@gmail.com',
+    'x-employee-email': user?.email || (isHrLead ? 'priya@therevival.ae' : 'thejobsyncit@gmail.com'),
     ...(crmToken ? { Authorization: `Bearer ${crmToken}` } : {})
   });
 
@@ -171,7 +174,7 @@ export const CrmAttendanceManagement = ({ isSuperAdmin, currentRole }) => {
 
   // 4. Save Reassigned Shift
   const handleSaveShiftAssignment = async () => {
-    if (!reassignModalEmp || !newShiftId || !canEdit) return;
+    if (!reassignModalEmp || !newShiftId || !canManageRoster) return;
     try {
       const res = await fetch(`/api/hr-ops/attendance/shift-roster/${encodeURIComponent(reassignModalEmp.employeeId)}`, {
         method: 'PUT',
@@ -240,8 +243,8 @@ export const CrmAttendanceManagement = ({ isSuperAdmin, currentRole }) => {
     }
   };
 
-  // Super Admin Approval of Late Arrival Access
-  const handleApproveLateEntry = async (attendanceId, empId, empName) => {
+  // Super Admin & HR Lead Approval of Late Arrival Access
+  const handleApproveLateEntry = async (attendanceId, empId, empName, empRole) => {
     try {
       setApprovingId(attendanceId || empId);
       const targetId = attendanceId || empId;
@@ -250,16 +253,20 @@ export const CrmAttendanceManagement = ({ isSuperAdmin, currentRole }) => {
         headers: getAuthHeaders(),
         body: JSON.stringify({
           decision: 'APPROVED',
-          approvedBy: 'Super Admin (Attendance Management)',
+          approvedBy: `${effectiveRole} (Attendance Management)`,
           notes: 'Authorized from Attendance Management Register'
         })
       });
-      if (res.ok) {
+      const data = await res.json().catch(() => ({}));
+      if (res.ok && data.success) {
         showToast(`✓ Approved late arrival entry for ${empName}. Workspace unlocked.`);
         await fetchLiveRegister();
+      } else {
+        showToast(data.message || 'Failed to approve late arrival entry.', 'error');
       }
     } catch (err) {
       console.error('Approve error:', err);
+      showToast('Error communicating with database.', 'error');
     } finally {
       setApprovingId(null);
     }
@@ -1043,22 +1050,41 @@ export const CrmAttendanceManagement = ({ isSuperAdmin, currentRole }) => {
 
                           {/* 10. Attendance Alerts */}
                           <td className="p-3.5">
-                            {isPending ? (
-                              <div className="flex items-center gap-1.5">
-                                <span className="px-2 py-0.5 rounded text-[10px] font-black bg-rose-100 text-rose-800 dark:bg-rose-500/20 dark:text-rose-300 border border-rose-300 dark:border-rose-500/40 animate-pulse">
-                                  ▲ Gated (+{r.lateMinutes}m)
-                                </span>
-                                {canEdit && (
-                                  <button
-                                    onClick={() => handleApproveLateEntry(r.attendanceId, r.id, r.name)}
-                                    disabled={approvingId === (r.attendanceId || r.id)}
-                                    className="px-2 py-0.5 bg-emerald-600 hover:bg-emerald-500 text-white rounded text-[10px] font-bold shadow-xs cursor-pointer disabled:opacity-50"
-                                  >
-                                    {approvingId === (r.attendanceId || r.id) ? '...' : 'Approve'}
-                                  </button>
-                                )}
-                              </div>
-                            ) : r.attendanceAlerts && r.attendanceAlerts !== 'None' ? (
+                            {isPending ? (() => {
+                              const isTargetHrLead = String(r.role || '').toLowerCase().includes('lead');
+                              const isSelf = user?.employeeId && (r.id === user.employeeId || r.employeeId === user.employeeId);
+                              const canApproveThisRow = isSuperAdminOrAdmin ? !isSelf : (isHrLead && !isTargetHrLead && !isSelf);
+
+                              return (
+                                <div className="flex items-center gap-1.5 flex-wrap">
+                                  <span className="px-2 py-0.5 rounded text-[10px] font-black bg-rose-100 text-rose-800 dark:bg-rose-500/20 dark:text-rose-300 border border-rose-300 dark:border-rose-500/40 animate-pulse">
+                                    ▲ Gated (+{r.lateMinutes}m)
+                                  </span>
+                                  {canApproveThisRow ? (
+                                    <button
+                                      onClick={() => handleApproveLateEntry(r.attendanceId, r.id, r.name, r.role)}
+                                      disabled={approvingId === (r.attendanceId || r.id)}
+                                      className="px-2.5 py-1 bg-emerald-600 hover:bg-emerald-500 text-white rounded-lg text-[10px] font-bold shadow-xs cursor-pointer disabled:opacity-50 transition"
+                                      title={`Authorize late arrival for ${r.name}`}
+                                    >
+                                      {approvingId === (r.attendanceId || r.id) ? '...' : 'Approve'}
+                                    </button>
+                                  ) : isTargetHrLead && isHrLead ? (
+                                    <span className="text-[10px] text-amber-700 dark:text-amber-400 font-bold bg-amber-50 dark:bg-amber-950/40 px-2 py-0.5 rounded border border-amber-300 dark:border-amber-700/40" title="Only Super Admin has authority to approve HR Lead">
+                                      Requires Super Admin
+                                    </span>
+                                  ) : isSelf ? (
+                                    <span className="text-[10px] text-slate-400 font-semibold italic">
+                                      Self-Approval Restricted
+                                    </span>
+                                  ) : (
+                                    <span className="text-[10px] text-rose-600 dark:text-rose-400 font-bold">
+                                      Pending Auth
+                                    </span>
+                                  )}
+                                </div>
+                              );
+                            })() : r.attendanceAlerts && r.attendanceAlerts !== 'None' ? (
                               <span className="px-2 py-0.5 rounded text-[10px] font-bold bg-amber-50 dark:bg-amber-950/40 text-amber-800 dark:text-gold-400 border border-amber-200 dark:border-amber-800/40 inline-flex items-center gap-1">
                                 <AlertTriangle className="w-2.5 h-2.5 text-amber-600" />
                                 {r.attendanceAlerts}
@@ -1262,7 +1288,7 @@ export const CrmAttendanceManagement = ({ isSuperAdmin, currentRole }) => {
                     <th className="p-3.5 font-bold text-center">Working Days</th>
                     <th className="p-3.5 font-bold text-center">Weekly Off</th>
                     <th className="p-3.5 font-bold text-center">Shift Status</th>
-                    {canEdit && <th className="p-3.5 font-bold text-right">Action</th>}
+                    {canManageRoster && <th className="p-3.5 font-bold text-right">Action</th>}
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-slate-200 dark:divide-navy-800 text-slate-700 dark:text-slate-300">
@@ -1306,7 +1332,7 @@ export const CrmAttendanceManagement = ({ isSuperAdmin, currentRole }) => {
                           {s.shiftStatus}
                         </span>
                       </td>
-                      {canEdit && (
+                      {canManageRoster && (
                         <td className="p-3.5 text-right">
                           <button
                             onClick={() => {

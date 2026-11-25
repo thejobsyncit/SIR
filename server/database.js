@@ -882,7 +882,30 @@ export const SUPABASE_KEY_MAP = {
   interviewdate: 'interviewDate',
   interviewtime: 'interviewTime',
   interviewername: 'interviewerName',
-  interviewtype: 'interviewType'
+  interviewtype: 'interviewType',
+  shiftid: 'shiftId',
+  shiftname: 'shiftName',
+  shiftstart: 'shiftStart',
+  shiftend: 'shiftEnd',
+  starttime: 'startTime',
+  endtime: 'endTime',
+  graceminutes: 'graceMinutes',
+  isovernight: 'isOvernight',
+  lateapprovalstatus: 'lateApprovalStatus',
+  lateminutes: 'lateMinutes',
+  workdate: 'workDate',
+  checkinat: 'checkInAt',
+  checkoutat: 'checkOutAt',
+  approvedby: 'approvedBy',
+  approvedat: 'approvedAt',
+  rejectionreason: 'rejectionReason',
+  totalbreakminutes: 'totalBreakMinutes',
+  grossminutes: 'grossMinutes',
+  networkminutes: 'netWorkMinutes',
+  overtimeminutes: 'overtimeMinutes',
+  isovernightshift: 'isOvernightShift',
+  employeename: 'employeeName',
+  operationteam: 'operationTeam'
 };
 
 export const normalizeSupabaseRow = (raw) => {
@@ -1017,7 +1040,7 @@ export const createSupabaseDb = async (client) => {
           let count = 0;
           store[table] = store[table].map(r => {
             const matches =
-              (whereCol === 'id' && (r.id === whereVal || r.employeeId === whereVal)) ||
+              (whereCol.toLowerCase() === 'id' && (r.id === whereVal || r.employeeId === whereVal || r.employeeid === whereVal)) || (whereCol.toLowerCase() === 'employeeid' && (r.employeeId === whereVal || r.employeeid === whereVal || r.id === whereVal)) ||
               (/email/i.test(whereCol) && String(r.email).toLowerCase().trim() === String(whereVal).toLowerCase().trim()) ||
               (r[whereCol] === whereVal);
             if (matches) {

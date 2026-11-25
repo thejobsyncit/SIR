@@ -1407,6 +1407,7 @@ export const CrmProvider = ({ children }) => {
     } catch (_) { }
 
     // Call backend API
+    let resJson = null;
     try {
       const tok = await getOrFetchActiveToken(activeRole, activeUser);
       if (tok) {
@@ -1418,7 +1419,7 @@ export const CrmProvider = ({ children }) => {
           },
           body: JSON.stringify({ notes: notes || 'Automated Portal Login Check-In' })
         });
-        const resJson = await res.json();
+        resJson = await res.json();
         if (resJson?.data?.lateApprovalStatus) {
           const status = resJson.data.lateApprovalStatus;
           if (status === 'PENDING' && activeRole !== 'Super Admin' && activeRole !== 'Admin') {
