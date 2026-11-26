@@ -59,6 +59,12 @@ export const ContactUsPage = () => {
     name: '',
     email: '',
     type: 'individual',
+    purpose: 'callback',
+    preferredOffice: 'dubai_hq',
+    contactChannel: 'phone',
+    preferredTime: 'anytime',
+    visitDate: '',
+    subject: '',
     message: ''
   });
 
@@ -124,6 +130,40 @@ export const ContactUsPage = () => {
 
     const attribution = getAttributionData();
 
+    const purposeLabels = {
+      callback: 'Request a Callback',
+      office_visit: 'Schedule Office Visit',
+      partnership: 'Corporate / Institutional Partnership',
+      case_support: 'Existing Application / Visa Case Support',
+      general: 'Media, Press & General Support'
+    };
+    const officeLabels = {
+      dubai_hq: 'Dubai Global HQ (UAE)',
+      india_hub: 'India Operations Hub (Chennai)',
+      nearest: 'Nearest Available Desk'
+    };
+    const channelLabels = {
+      phone: 'Phone Call',
+      whatsapp: 'WhatsApp',
+      video: 'Video Consultation (Zoom/Meet)',
+      email: 'Email Reply'
+    };
+    const timeLabels = {
+      morning: 'Morning (9:00 AM - 12:00 PM)',
+      afternoon: 'Afternoon (12:00 PM - 4:00 PM)',
+      evening: 'Evening (4:00 PM - 7:00 PM)',
+      anytime: 'Anytime During Business Hours'
+    };
+
+    const metaSummary = [
+      `Purpose: ${purposeLabels[formData.purpose] || 'General Support'}`,
+      `Preferred Office: ${officeLabels[formData.preferredOffice] || 'Dubai Global HQ'}`,
+      `Contact Method: ${channelLabels[formData.contactChannel] || 'Phone Call'}`,
+      `Preferred Time: ${timeLabels[formData.preferredTime] || 'Anytime'}`,
+      ...(formData.purpose === 'office_visit' && formData.visitDate ? [`Preferred Visit Date: ${formData.visitDate}`] : []),
+      ...(formData.subject.trim() ? [`Subject: ${formData.subject.trim()}`] : [])
+    ].join(' | ');
+
     const payload = {
       name: formData.name.trim(),
       email: formData.email.trim(),
@@ -132,10 +172,10 @@ export const ContactUsPage = () => {
       serviceTitle: activeService ? activeService.title : null,
       company: activeService
         ? `Service Inquiry: ${activeService.title}`
-        : (formData.type === 'employer' ? 'Corporate Inquiry' : 'Individual'),
+        : `${purposeLabels[formData.purpose] || 'Contact Desk'} (${officeLabels[formData.preferredOffice] || 'Global'})`,
       message: activeService
-        ? `[Inquiring about: ${activeService.title} (${activeService.category})]\n\n${formData.message.trim()}`
-        : formData.message.trim(),
+        ? `[Inquiring about: ${activeService.title} (${activeService.category})]\n[${metaSummary}]\n\n${formData.message.trim()}`
+        : `[${metaSummary}]\n\n${formData.message.trim()}`,
       utmSource: attribution.utmSource,
       utmMedium: attribution.utmMedium,
       utmCampaign: attribution.utmCampaign,
@@ -163,6 +203,12 @@ export const ContactUsPage = () => {
         name: '',
         email: '',
         type: 'individual',
+        purpose: 'callback',
+        preferredOffice: 'dubai_hq',
+        contactChannel: 'phone',
+        preferredTime: 'anytime',
+        visitDate: '',
+        subject: '',
         message: ''
       });
 
@@ -353,10 +399,10 @@ export const ContactUsPage = () => {
         <div className="lg:col-span-7 glass-card bg-white dark:bg-navy-900 border border-slate-200 dark:border-navy-800 p-6 sm:p-8 rounded-3xl space-y-4 shadow-luxury text-xs">
           <div>
             <h3 className="font-serif text-xl font-bold text-navy-900 dark:text-white">
-              Send Direct Inquiry or Consultation Request
+              Request a Callback, Office Visit or Partnership
             </h3>
             <p className="text-slate-600 dark:text-slate-400 text-xs mt-0.5">
-              Please provide your details below. Our advisory and recruitment team will review your requirements and get in touch promptly.
+              Connect with our Dubai Global HQ or Chennai Operations Hub for direct callbacks, scheduled office meetings, corporate partnerships, or application support.
             </p>
           </div>
 
@@ -497,49 +543,110 @@ export const ContactUsPage = () => {
                 </div>
 
                 <div>
-                  <label htmlFor="contact-type" className="block font-bold text-slate-700 dark:text-slate-200 mb-1">
-                    Inquiry Profile Category
+                  <label htmlFor="contact-purpose" className="block font-bold text-slate-700 dark:text-slate-200 mb-1">
+                    Purpose of Contact
                   </label>
                   <select
-                    id="contact-type"
-                    name="type"
-                    value={formData.type}
-                    onChange={(e) => handleInputChange('type', e.target.value)}
+                    id="contact-purpose"
+                    name="purpose"
+                    value={formData.purpose}
+                    onChange={(e) => handleInputChange('purpose', e.target.value)}
                     className="w-full bg-slate-50 dark:bg-navy-950 border border-slate-300 dark:border-navy-700 rounded-xl p-2.5 text-navy-900 dark:text-white text-xs focus:outline-none focus:ring-2 focus:ring-gold-500"
                   >
-                    <option value="individual">Individual Candidate or Career Seeker</option>
-                    <option value="corporate">Institutional or Corporate Advisory Inquiry</option>
-                    <option value="student_parent">Student or Parent seeking Academic Guidance</option>
-                    <option value="verification">Requesting Background & Credential Verification</option>
-                    <option value="visa">Inquiring about GCC Visa Processing & Attestation</option>
+                    <option value="callback">Request a Direct Callback</option>
+                    <option value="office_visit">Schedule an Office Visit (Dubai / Chennai)</option>
+                    <option value="partnership">Corporate / University Partnership</option>
+                    <option value="case_support">Existing Application / Visa Case Support</option>
+                    <option value="general">Media, Press & General Support</option>
                   </select>
                 </div>
               </div>
 
-              {/* Service Selection Dropdown */}
+              {/* Regional Office & Contact Channel */}
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                <div>
+                  <label htmlFor="contact-office" className="block font-bold text-slate-700 dark:text-slate-200 mb-1">
+                    Preferred Regional Desk
+                  </label>
+                  <select
+                    id="contact-office"
+                    value={formData.preferredOffice}
+                    onChange={(e) => handleInputChange('preferredOffice', e.target.value)}
+                    className="w-full bg-slate-50 dark:bg-navy-950 border border-slate-300 dark:border-navy-700 rounded-xl p-2.5 text-navy-900 dark:text-white text-xs focus:outline-none focus:ring-2 focus:ring-gold-500"
+                  >
+                    <option value="dubai_hq">Dubai Global HQ (UAE & GCC)</option>
+                    <option value="india_hub">India Operations Hub (Chennai, India)</option>
+                    <option value="nearest">Nearest Available Desk</option>
+                  </select>
+                </div>
+
+                <div>
+                  <label htmlFor="contact-channel" className="block font-bold text-slate-700 dark:text-slate-200 mb-1">
+                    Preferred Contact Method
+                  </label>
+                  <select
+                    id="contact-channel"
+                    value={formData.contactChannel}
+                    onChange={(e) => handleInputChange('contactChannel', e.target.value)}
+                    className="w-full bg-slate-50 dark:bg-navy-950 border border-slate-300 dark:border-navy-700 rounded-xl p-2.5 text-navy-900 dark:text-white text-xs focus:outline-none focus:ring-2 focus:ring-gold-500"
+                  >
+                    <option value="phone">Direct Phone Call</option>
+                    <option value="whatsapp">WhatsApp Message / Call</option>
+                    <option value="video">Video Consultation (Zoom / Meet)</option>
+                    <option value="email">Email Correspondence</option>
+                  </select>
+                </div>
+              </div>
+
+              {/* Callback Time Window & Conditional Office Visit Date */}
+              <div className={`grid grid-cols-1 ${formData.purpose === 'office_visit' ? 'sm:grid-cols-2' : ''} gap-3`}>
+                <div>
+                  <label htmlFor="contact-time" className="block font-bold text-slate-700 dark:text-slate-200 mb-1">
+                    Preferred Time Window
+                  </label>
+                  <select
+                    id="contact-time"
+                    value={formData.preferredTime}
+                    onChange={(e) => handleInputChange('preferredTime', e.target.value)}
+                    className="w-full bg-slate-50 dark:bg-navy-950 border border-slate-300 dark:border-navy-700 rounded-xl p-2.5 text-navy-900 dark:text-white text-xs focus:outline-none focus:ring-2 focus:ring-gold-500"
+                  >
+                    <option value="anytime">Anytime During Business Hours</option>
+                    <option value="morning">Morning (9:00 AM – 12:00 PM)</option>
+                    <option value="afternoon">Afternoon (12:00 PM – 4:00 PM)</option>
+                    <option value="evening">Evening (4:00 PM – 7:00 PM)</option>
+                  </select>
+                </div>
+
+                {formData.purpose === 'office_visit' && (
+                  <div>
+                    <label htmlFor="contact-visit-date" className="block font-bold text-slate-700 dark:text-slate-200 mb-1">
+                      Preferred Office Visit Date
+                    </label>
+                    <input
+                      id="contact-visit-date"
+                      type="date"
+                      min={new Date().toISOString().split('T')[0]}
+                      value={formData.visitDate}
+                      onChange={(e) => handleInputChange('visitDate', e.target.value)}
+                      className="w-full bg-slate-50 dark:bg-navy-950 border border-slate-300 dark:border-navy-700 rounded-xl p-2.5 text-navy-900 dark:text-white text-xs focus:outline-none focus:ring-2 focus:ring-gold-500"
+                    />
+                  </div>
+                )}
+              </div>
+
+              {/* Subject Line */}
               <div>
-                <label htmlFor="contact-service" className="block font-bold text-slate-700 dark:text-slate-200 mb-1">
-                  Specific Service Requirement
+                <label htmlFor="contact-subject" className="block font-bold text-slate-700 dark:text-slate-200 mb-1">
+                  Subject / Topic
                 </label>
-                <select
-                  id="contact-service"
-                  value={activeServiceId}
-                  onChange={(e) => {
-                    const newId = e.target.value;
-                    setActiveServiceId(newId);
-                    if (setSelectedServiceId) setSelectedServiceId(newId || null);
-                  }}
+                <input
+                  id="contact-subject"
+                  type="text"
+                  placeholder="e.g. Callback request for Dubai office meeting / Institutional collaboration"
+                  value={formData.subject}
+                  onChange={(e) => handleInputChange('subject', e.target.value)}
                   className="w-full bg-slate-50 dark:bg-navy-950 border border-slate-300 dark:border-navy-700 rounded-xl p-2.5 text-navy-900 dark:text-white text-xs focus:outline-none focus:ring-2 focus:ring-gold-500"
-                >
-                  <option value="">-- General Inquiry (No specific service) --</option>
-                  <optgroup label="Academic & Global Advisory (6 Core Services)">
-                    {SERVICES_LIST.map((srv) => (
-                      <option key={srv.id} value={srv.id}>
-                        {srv.title}
-                      </option>
-                    ))}
-                  </optgroup>
-                </select>
+                />
               </div>
 
               <div>
