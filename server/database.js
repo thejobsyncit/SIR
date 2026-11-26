@@ -1185,25 +1185,30 @@ export const createSupabaseDb = async (client) => {
 
       if (/^INSERT\s+INTO/i.test(s)) {
         const colMatch = s.match(/\(([^)]+)\)\s*VALUES/i);
-        const row = { id: params[0] || `REC-${Date.now()}`, createdAt: new Date().toISOString() };
-        if (colMatch) {
-          const cols = colMatch[1].split(',').map(c => c.trim());
-          cols.forEach((col, idx) => {
-            row[col] = params[idx] !== undefined ? params[idx] : null;
-          });
+        const cols = colMatch ? colMatch[1].split(',').map(c => c.trim()) : [];
+        const isPipelineTable = table === 'recruitment_pipeline_records';
+        const row = {};
+        if (!isPipelineTable && (cols.length === 0 || cols.includes('id'))) {
+          row.id = params[0] || `REC-${Date.now()}`;
         }
-        if (params[0] && !row.id) row.id = params[0];
+        if (cols.length === 0 || (!cols.includes('created_at') && !cols.includes('createdAt'))) {
+          row.createdAt = new Date().toISOString();
+        }
+        cols.forEach((col, idx) => {
+          row[col] = params[idx] !== undefined ? params[idx] : null;
+        });
 
         // Persist directly to Supabase Cloud PostgreSQL
         try {
           const sbRow = toSupabasePayload(row);
-          await client.from(table).upsert([sbRow], { onConflict: 'id' });
+          const conflictCol = isPipelineTable ? 'candidateid' : 'id';
+          await client.from(table).upsert([sbRow], { onConflict: conflictCol });
         } catch (sbErr) {
           console.warn(`[Supabase DB] Write notice for ${table}:`, sbErr.message);
         }
 
         store[table].unshift(normalizeSupabaseRow(row));
-        return { changes: 1, lastID: row.id };
+        return { changes: 1, lastID: row.id || row.candidateId };
       }
 
       if (/^UPDATE/i.test(s)) {
