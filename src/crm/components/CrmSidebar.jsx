@@ -7,16 +7,16 @@ import {
   GraduationCap, Compass, School, Languages, Plane,
   Briefcase, Search, Tag, MessageSquare, Users2,
   CheckCircle2, Bell, CheckSquare, Clock, AlertCircle, BookOpen,
-  TrendingUp, UserPlus, Mail, User, FolderCheck, FileCheck
+  TrendingUp, UserPlus, Mail, User, FolderCheck, FileCheck, Megaphone
 } from 'lucide-react';
 
 export const HR_OPERATIONS_MENU_ORDER = [
   'dashboard',
   'hr-tasks',
   'candidates',
+  'hr-shifts',
   'my-attendance',
-  'documentation',
-  'verification',
+  'hr-announcements',
   'my-profile'
 ];
 
@@ -57,7 +57,8 @@ export const CrmSidebar = ({ collapsed, setCollapsed }) => {
     setConsultingServiceFilter
   } = useCrm();
 
-  const isHrOperationsRole = currentRole === 'HR Operations' || user?.role === 'HR Operations' || user?.designation === 'HR Operations';
+  const normCurrentRole = (currentRole || user?.role || user?.designation || '').toLowerCase().replace(/[-_]/g, ' ').trim();
+  const isHrOperationsRole = currentRole === 'HR Operations' || user?.role === 'HR Operations' || user?.designation === 'HR Operations' || normCurrentRole === 'hr operations' || normCurrentRole.includes('operations');
   const isRecruiterRole = currentRole === 'Recruiter' || currentRole === 'Domestic Recruiter' || currentRole === 'International Recruiter';
   const isPlacementRole = currentRole === 'Placement Coordinator';
   const isInterviewerRole = currentRole === 'Interviewer';
@@ -204,10 +205,15 @@ export const CrmSidebar = ({ collapsed, setCollapsed }) => {
   const hrOpsMenuItems = [
     { id: 'dashboard', label: 'My Dashboard', icon: LayoutDashboard },
     { id: 'hr-tasks', label: 'My Assigned Enquiries', icon: CheckSquare },
-    { id: 'candidates', label: 'Candidates', icon: Users },
+    { id: 'candidates', label: 'My Candidates', icon: Users },
+    { id: 'hr-shifts', label: 'My Shift', icon: Clock },
     { id: 'my-attendance', label: 'My Attendance', icon: CalendarCheck },
+<<<<<<< HEAD
     { id: 'documentation', label: 'Document Verification & KYC', icon: FileText },
     { id: 'visa', label: 'Visa & Verification', icon: ShieldCheck },
+=======
+    { id: 'hr-announcements', label: 'Company Announcement', icon: Megaphone },
+>>>>>>> a8ad67d8 (Update HR Operations on 26.11.2026)
     { id: 'my-profile', label: 'My Profile', icon: User }
   ];
 
@@ -268,11 +274,10 @@ export const CrmSidebar = ({ collapsed, setCollapsed }) => {
     { id: 'hr-attendance', label: 'Attendance Oversight', icon: Clock },
     { id: 'my-attendance', label: 'My Attendance', icon: CalendarCheck },
     { id: 'hr-leave', label: 'Leave Approvals', icon: Calendar },
-    { id: 'hr-employees', label: 'Workforce Directory', icon: Users },
+    { id: 'hr-employees', label: 'Employees', icon: Users },
     { id: 'hr-recruitment', label: 'Onboarding & Hiring', icon: UserPlus },
     { id: 'hr-announcements', label: 'Company Announcements', icon: Bell },
     { id: 'hr-shifts', label: 'Shift Management', icon: CalendarCheck },
-    { id: 'hr-documents', label: 'Document Repository', icon: FileText },
     { id: 'my-profile', label: 'My Profile', icon: User }
   ];
 

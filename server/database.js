@@ -3,7 +3,11 @@ import fs from 'fs';
 import os from 'os';
 import crypto from 'crypto';
 import { fileURLToPath } from 'url';
+<<<<<<< HEAD
 import { getSupabaseClient } from './supabase.js';
+=======
+import { INITIAL_BASELINE_ENQUIRIES } from './data/baselineEnquiries.js';
+>>>>>>> a8ad67d8 (Update HR Operations on 26.11.2026)
 
 export const normalizeEmail = (email) => {
   return (email || '').trim().toLowerCase();
@@ -306,7 +310,126 @@ export const DEFAULT_CRM_CANDIDATES = [];
 
 export const DEFAULT_CRM_PROFILES = [];
 
-export const DEFAULT_CRM_APPLICATIONS = [];
+export const DEFAULT_CRM_APPLICATIONS = [
+  {
+    id: 'RI-APP-98803',
+    candidateId: 'RI-CAND-004',
+    userId: 'USR-MW6KIP1V-492',
+    jobId: 'job-102',
+    jobTitle: 'Offshore Drilling Engineer',
+    company: 'Gulf Petroleum Resources',
+    location: 'Dhahran / Offshore',
+    appliedDate: '2026-11-14T04:29:41.670Z',
+    status: 'Assigned',
+    stage: 'Applied',
+    applicantName: 'Kishore Kumar',
+    applicantEmail: 'kishorekumaroffl@gmail.com',
+    applicantPhone: '+971 50 123 4567',
+    assignedEmployee: 'Balavarshini S.',
+    assignedEmployeeId: 'REV-EMP-006',
+    assignedEmployeeEmail: 'balavarshini.s@revivalinternational.com',
+    priority: 'High',
+    assignmentNotes: 'Review offshore safety certifications & HUET clearance.',
+    assignedDate: '2026-11-20T10:00:00.000Z',
+    noticePeriod: 'Immediate',
+    expectedSalary: 'SAR 38,000 - 52,000 / month'
+  },
+  {
+    id: 'REV-EMAIL-APP-1795186167468-LRUAS',
+    candidateId: 'RI-CAND-804380',
+    userId: 'USR-MW6CF773-428',
+    jobId: 'job-104',
+    jobTitle: 'Executive Chef - Luxury Resort',
+    company: 'Atlantis Resorts & Hotels',
+    location: 'Dubai, Palm Jumeirah',
+    appliedDate: '2026-11-20T14:49:28.283Z',
+    status: 'Assigned',
+    stage: 'Applied',
+    applicantName: 'JAYA PRAKASH',
+    applicantEmail: 'jaganbjp2526@gmail.com',
+    applicantPhone: '+91 9361151257',
+    assignedEmployee: 'Praveen Kumar',
+    assignedEmployeeId: 'REV-EMP-108',
+    assignedEmployeeEmail: 'praveen.enq@revivalinternational.com',
+    priority: 'Normal',
+    assignmentNotes: 'Evaluate luxury resort culinary portfolio & menu testing.',
+    assignedDate: '2026-11-21T09:30:00.000Z',
+    noticePeriod: '15 Days',
+    expectedSalary: 'AED 18,000 - 24,000 / month'
+  },
+  {
+    id: 'RI-APP-10101',
+    candidateId: 'RI-CAND-005',
+    userId: 'USR-MWBXPKFO-769',
+    jobId: 'job-101',
+    jobTitle: 'Senior Civil Project Manager',
+    company: 'Al Habtoor Contracting LLC',
+    location: 'Dubai, Business Bay',
+    appliedDate: '2026-11-18T10:15:00.000Z',
+    status: 'Under Review',
+    stage: 'Applied',
+    applicantName: 'Tariq Mansoor',
+    applicantEmail: 'thejobsyncit@gmail.com',
+    applicantPhone: '+971 52 445 8890',
+    priority: 'Normal',
+    noticePeriod: '30 Days',
+    expectedSalary: 'AED 32,000 - 45,000 / month'
+  },
+  {
+    id: 'RI-APP-10302',
+    candidateId: 'RI-CAND-103',
+    userId: 'USR-AISHA-103',
+    jobId: 'job-103',
+    jobTitle: 'Senior ICU Registered Nurse',
+    company: 'King Faisal Specialist Hospital',
+    location: 'Riyadh',
+    appliedDate: '2026-11-19T08:30:00.000Z',
+    status: 'Under Review',
+    stage: 'Applied',
+    applicantName: 'Dr. Aisha Siddiqui',
+    applicantEmail: 'aisha.icu@gmail.com',
+    applicantPhone: '+966 50 234 5678',
+    priority: 'High',
+    noticePeriod: 'Immediate',
+    expectedSalary: 'SAR 22,000 - 28,000 / month'
+  },
+  {
+    id: 'RI-APP-10503',
+    candidateId: 'RI-CAND-105',
+    userId: 'USR-VIKRAM-105',
+    jobId: 'job-105',
+    jobTitle: 'Lead Cloud Solutions Architect (AWS / Azure)',
+    company: 'TechVision International',
+    location: 'Marina Bay Financial Centre',
+    appliedDate: '2026-11-20T11:45:00.000Z',
+    status: 'Under Review',
+    stage: 'Applied',
+    applicantName: 'Vikram Malhotra',
+    applicantEmail: 'vikram.cloud@gmail.com',
+    applicantPhone: '+65 9123 4567',
+    priority: 'High',
+    noticePeriod: '1 Month',
+    expectedSalary: 'SGD 14,000 - 18,000 / month'
+  },
+  {
+    id: 'RI-APP-10604',
+    candidateId: 'RI-CAND-106',
+    userId: 'USR-SAMEER-106',
+    jobId: 'job-106',
+    jobTitle: 'Senior Mechanical Maintenance Engineer',
+    company: 'Emirates Global Aluminium',
+    location: 'Abu Dhabi, KIZAD',
+    appliedDate: '2026-11-21T09:20:00.000Z',
+    status: 'Under Review',
+    stage: 'Applied',
+    applicantName: 'Sameer Al-Hashimi',
+    applicantEmail: 'sameer.maintenance@gmail.com',
+    applicantPhone: '+971 55 987 6543',
+    priority: 'Normal',
+    noticePeriod: 'Immediate',
+    expectedSalary: 'AED 25,000 - 32,000 / month'
+  }
+];
 
 export const DEFAULT_CRM_LEADS = [
   {
@@ -1423,6 +1546,7 @@ const initDb = async (db) => {
       customerName TEXT,
       customerEmail TEXT,
       customerPhone TEXT,
+      serviceId TEXT,
       serviceTitle TEXT,
       operationTeam TEXT,
       assignedEmployeeId TEXT,
@@ -1432,8 +1556,11 @@ const initDb = async (db) => {
       assignedByName TEXT,
       priority TEXT DEFAULT 'Normal',
       dueDate TEXT,
+      assignmentStatus TEXT DEFAULT 'Assigned',
       taskStatus TEXT DEFAULT 'To Do',
       notes TEXT,
+      isCompleted INTEGER DEFAULT 0,
+      completionNotes TEXT,
       assignedAt DATETIME DEFAULT CURRENT_TIMESTAMP,
       completedAt DATETIME,
       createdAt DATETIME DEFAULT CURRENT_TIMESTAMP,
@@ -1613,7 +1740,27 @@ const initDb = async (db) => {
       created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
       published_at DATETIME,
       expires_at TEXT,
-      updated_at DATETIME DEFAULT CURRENT_TIMESTAMP
+      updated_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+      is_deleted INTEGER DEFAULT 0,
+      deleted_at DATETIME,
+      deleted_by TEXT,
+      deleted_by_name TEXT,
+      deleted_by_role TEXT,
+      deletion_reason TEXT,
+      was_published INTEGER DEFAULT 0
+    );
+
+    CREATE TABLE IF NOT EXISTS company_announcement_audit_logs (
+      id TEXT PRIMARY KEY,
+      announcement_id TEXT NOT NULL,
+      action TEXT NOT NULL,
+      actor_id TEXT,
+      actor_name TEXT,
+      actor_role TEXT,
+      details TEXT,
+      reason TEXT,
+      snapshot_json TEXT,
+      created_at DATETIME DEFAULT CURRENT_TIMESTAMP
     );
   `);
 
@@ -1648,6 +1795,20 @@ const initDb = async (db) => {
     { name: 'altEmail', type: 'TEXT' },
     { name: 'shiftId', type: "TEXT DEFAULT 'SHIFT-GENERAL'" }
   ]);
+
+  await ensureColumns('company_announcements', [
+    { name: 'is_deleted', type: 'INTEGER DEFAULT 0' },
+    { name: 'deleted_at', type: 'DATETIME' },
+    { name: 'deleted_by', type: 'TEXT' },
+    { name: 'deleted_by_name', type: 'TEXT' },
+    { name: 'deleted_by_role', type: 'TEXT' },
+    { name: 'deletion_reason', type: 'TEXT' },
+    { name: 'was_published', type: 'INTEGER DEFAULT 0' }
+  ]);
+
+  await db.run(
+    `UPDATE company_announcements SET was_published = 1 WHERE COALESCE(was_published, 0) = 0 AND (published_at IS NOT NULL OR status IN ('Published', 'Scheduled', 'Expired'))`
+  ).catch(() => {});
 
   // Ensure new international job details columns exist on jobs table
   await ensureColumns('jobs', [
@@ -1697,79 +1858,7 @@ const initDb = async (db) => {
     console.warn('Employee table seeding notice:', err.message);
   }
 
-  // Seed default corporate announcements if table is empty
-  try {
-    const existingAnn = await db.get('SELECT COUNT(*) as count FROM company_announcements');
-    if (!existingAnn || existingAnn.count === 0) {
-      const defaultAnnouncements = [
-        {
-          id: 'ANN-2026-001',
-          title: 'Annual Performance & Appraisal Cycle 2026-27 Announced',
-          description: 'The annual appraisal and self-evaluation window for FY 2026-27 is officially open. All team members must complete their self-assessment forms in the HR portal before the end of the month. Department heads will conduct one-on-one review meetings during the first week of next month.',
-          category: 'HR Policy',
-          target_audience: 'All Employees',
-          status: 'Published',
-          created_by: 'REV-EMP-006',
-          created_by_name: 'Priya Sharma',
-          created_by_role: 'HR Lead',
-          created_at: '2026-11-15 09:30:00',
-          published_at: '2026-11-15 09:30:00',
-          expires_at: null
-        },
-        {
-          id: 'ANN-2026-002',
-          title: 'Standard Operating Procedures for International Candidate KYC',
-          description: 'HR Operations team is advised to mandate 3-point credential verification for all international healthcare and IT applicants before scheduling technical interviews. Ensure passport validity, educational degree attestation, and police clearance certificates are logged in the candidate dossier.',
-          category: 'Important Update',
-          target_audience: 'HR Operations',
-          status: 'Published',
-          created_by: 'REV-EMP-006',
-          created_by_name: 'Priya Sharma',
-          created_by_role: 'HR Lead',
-          created_at: '2026-11-18 11:00:00',
-          published_at: '2026-11-18 11:00:00',
-          expires_at: null
-        },
-        {
-          id: 'ANN-2026-003',
-          title: 'Upcoming Corporate Holiday — UAE National Day Observance',
-          description: 'Our Dubai and international advisory branches will observe public holiday for UAE National Day on December 2nd and 3rd, 2026. Normal operations will resume on December 4th at 09:00 AM. On-call emergency visa support will remain active for active travel candidates.',
-          category: 'Holiday',
-          target_audience: 'All Employees',
-          status: 'Published',
-          created_by: 'REV-EMP-006',
-          created_by_name: 'Priya Sharma',
-          created_by_role: 'HR Lead',
-          created_at: '2026-11-20 14:15:00',
-          published_at: '2026-11-20 14:15:00',
-          expires_at: null
-        }
-      ];
-
-      for (const ann of defaultAnnouncements) {
-        await db.run(
-          `INSERT INTO company_announcements (id, title, description, category, target_audience, status, created_by, created_by_name, created_by_role, created_at, published_at, expires_at)
-           VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
-          [
-            ann.id,
-            ann.title,
-            ann.description,
-            ann.category,
-            ann.target_audience,
-            ann.status,
-            ann.created_by,
-            ann.created_by_name,
-            ann.created_by_role,
-            ann.created_at,
-            ann.published_at,
-            ann.expires_at
-          ]
-        );
-      }
-    }
-  } catch (err) {
-    console.warn('Company announcements table seeding notice:', err.message);
-  }
+  // Default corporate announcements auto-seeding disabled so empty state is preserved.
 
   await ensureColumns('leads', [
     { name: 'serviceId', type: 'TEXT' },
@@ -1938,16 +2027,20 @@ const initDb = async (db) => {
           INSERT INTO candidate_applications (
             id, candidateId, userId, jobId, jobTitle, company, location,
             appliedDate, status, stage, resumeName, resumeUrl, resumeSize,
-            applicantName, applicantEmail, applicantPhone
-          ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+            applicantName, applicantEmail, applicantPhone,
+            assignedEmployee, assignedEmployeeId, assignedEmployeeEmail,
+            priority, assignmentNotes, assignedDate, updatedAt
+          ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
         `, [
           app.id, effectiveCandidateId, effectiveUserId, app.jobId,
           app.jobTitle, app.company, app.location, app.appliedDate,
           app.status || 'Under Review', app.stage || 'Applied',
-          app.resumeName || candProfile?.resumeName || 'Kishore kumar Cv.pdf',
+          app.resumeName || candProfile?.resumeName || 'Candidate_CV.pdf',
           app.resumeUrl || candProfile?.resumeUrl || '',
           app.resumeSize || candProfile?.resumeSize || '161 KB',
-          effectiveName, app.applicantEmail, effectivePhone
+          effectiveName, app.applicantEmail, effectivePhone,
+          app.assignedEmployee || null, app.assignedEmployeeId || null, app.assignedEmployeeEmail || null,
+          app.priority || 'Normal', app.assignmentNotes || null, app.assignedDate || null, app.appliedDate || new Date().toISOString()
         ]);
       } else {
         await db.run(`
@@ -2124,6 +2217,61 @@ const initDb = async (db) => {
       createdAt DATETIME DEFAULT CURRENT_TIMESTAMP
     );
 
+    CREATE TABLE IF NOT EXISTS employee_shift_assignments (
+      id TEXT PRIMARY KEY,
+      employeeId TEXT NOT NULL,
+      employeeName TEXT NOT NULL,
+      shiftId TEXT NOT NULL,
+      shiftName TEXT NOT NULL,
+      scheduledStartTime TEXT NOT NULL,
+      scheduledEndTime TEXT NOT NULL,
+      scheduledLoginTime TEXT NOT NULL,
+      scheduledLogoutTime TEXT NOT NULL,
+      frequency TEXT DEFAULT 'one_day',
+      startDate TEXT NOT NULL,
+      endDate TEXT,
+      applicableDays TEXT DEFAULT '[1,2,3,4,5,6]',
+      assignedBy TEXT,
+      assignedByName TEXT,
+      assignedByRole TEXT,
+      assignedAt DATETIME DEFAULT CURRENT_TIMESTAMP,
+      status TEXT DEFAULT 'Active',
+      notes TEXT,
+      createdAt DATETIME DEFAULT CURRENT_TIMESTAMP,
+      updatedAt DATETIME DEFAULT CURRENT_TIMESTAMP
+    );
+
+    CREATE INDEX IF NOT EXISTS idx_emp_shift_dates ON employee_shift_assignments(employeeId, startDate, endDate);
+    CREATE INDEX IF NOT EXISTS idx_emp_shift_status ON employee_shift_assignments(status);
+
+    CREATE TABLE IF NOT EXISTS late_login_approval_requests (
+      id TEXT PRIMARY KEY,
+      attendanceId TEXT,
+      employeeId TEXT NOT NULL,
+      employeeName TEXT NOT NULL,
+      department TEXT,
+      role TEXT,
+      shiftId TEXT NOT NULL,
+      shiftName TEXT NOT NULL,
+      scheduledLoginTime TEXT NOT NULL,
+      scheduledLogoutTime TEXT NOT NULL,
+      actualClockInTime TEXT NOT NULL,
+      attendanceDate TEXT NOT NULL,
+      delayMinutes INTEGER DEFAULT 0,
+      explanation TEXT,
+      status TEXT DEFAULT 'Pending Approval',
+      approverId TEXT,
+      approverName TEXT,
+      approverRole TEXT,
+      decisionTimestamp DATETIME,
+      rejectionReason TEXT,
+      createdAt DATETIME DEFAULT CURRENT_TIMESTAMP,
+      updatedAt DATETIME DEFAULT CURRENT_TIMESTAMP
+    );
+
+    CREATE INDEX IF NOT EXISTS idx_late_req_emp ON late_login_approval_requests(employeeId, attendanceDate);
+    CREATE INDEX IF NOT EXISTS idx_late_req_status ON late_login_approval_requests(status);
+
     CREATE TABLE IF NOT EXISTS company_holidays (
       id TEXT PRIMARY KEY,
       holidayDate TEXT UNIQUE NOT NULL,
@@ -2171,6 +2319,8 @@ const initDb = async (db) => {
       source TEXT DEFAULT 'Web Portal',
       notes TEXT,
       isLocked INTEGER DEFAULT 0,
+      sessionId TEXT,
+      sessionStatus TEXT DEFAULT 'ACTIVE',
       createdAt DATETIME DEFAULT CURRENT_TIMESTAMP,
       updatedAt DATETIME DEFAULT CURRENT_TIMESTAMP
     );
@@ -2269,6 +2419,9 @@ const initDb = async (db) => {
       approvedBy TEXT,
       approvedAt TEXT,
       rejectionReason TEXT,
+      logoutTime TEXT,
+      totalDuration TEXT,
+      sessionId TEXT,
       ipAddress TEXT,
       userAgent TEXT
     );
@@ -2280,7 +2433,13 @@ const initDb = async (db) => {
     CREATE UNIQUE INDEX IF NOT EXISTS idx_candidate_profiles_email_lower ON candidate_profiles(LOWER(TRIM(email))) WHERE email IS NOT NULL;
   `);
 
-  // Safe column migration for lateApprovalStatus on attendance_records & taskStatus on leads
+  // Safe column migration for hr_task_assignments, attendance_records, and leads
+  try {
+    await db.exec(`ALTER TABLE employee_shift_assignments ADD COLUMN updatedAt DATETIME DEFAULT CURRENT_TIMESTAMP`);
+  } catch (_) { }
+  try {
+    await db.exec(`ALTER TABLE employee_shift_assignments ADD COLUMN createdAt DATETIME DEFAULT CURRENT_TIMESTAMP`);
+  } catch (_) { }
   try {
     await db.exec(`ALTER TABLE attendance_records ADD COLUMN lateApprovalStatus TEXT DEFAULT 'APPROVED'`);
   } catch (_) { }
@@ -2288,9 +2447,25 @@ const initDb = async (db) => {
     await db.exec(`ALTER TABLE attendance_records ADD COLUMN role TEXT`);
   } catch (_) { }
   try {
+    await db.exec(`ALTER TABLE attendance_records ADD COLUMN sessionId TEXT`);
+  } catch (_) { }
+  try {
+    await db.exec(`ALTER TABLE attendance_records ADD COLUMN sessionStatus TEXT DEFAULT 'ACTIVE'`);
+  } catch (_) { }
+  try {
+    await db.exec(`ALTER TABLE role_login_logs ADD COLUMN logoutTime TEXT`);
+  } catch (_) { }
+  try {
+    await db.exec(`ALTER TABLE role_login_logs ADD COLUMN totalDuration TEXT`);
+  } catch (_) { }
+  try {
+    await db.exec(`ALTER TABLE role_login_logs ADD COLUMN sessionId TEXT`);
+  } catch (_) { }
+  try {
     await db.exec(`ALTER TABLE leads ADD COLUMN taskStatus TEXT`);
   } catch (_) { }
   try {
+<<<<<<< HEAD
     await db.exec(`ALTER TABLE interviews ADD COLUMN feedback TEXT`);
   } catch (_) { }
   try {
@@ -2319,6 +2494,39 @@ const initDb = async (db) => {
   } catch (_) { }
   try {
     await db.exec(`ALTER TABLE candidate_applications ADD COLUMN offerDetails TEXT`);
+=======
+    await db.exec(`ALTER TABLE leads ADD COLUMN assignedEmployeeId TEXT`);
+  } catch (_) { }
+  try {
+    await db.exec(`ALTER TABLE leads ADD COLUMN assignedEmployeeEmail TEXT`);
+  } catch (_) { }
+  try {
+    await db.exec(`ALTER TABLE leads ADD COLUMN operationTeam TEXT`);
+  } catch (_) { }
+  try {
+    await db.exec(`ALTER TABLE leads ADD COLUMN assignedBy TEXT`);
+  } catch (_) { }
+  try {
+    await db.exec(`ALTER TABLE leads ADD COLUMN assignedAt DATETIME`);
+  } catch (_) { }
+  try {
+    await db.exec(`ALTER TABLE leads ADD COLUMN assignmentStatus TEXT`);
+  } catch (_) { }
+  try {
+    await db.exec(`ALTER TABLE leads ADD COLUMN assignmentNotes TEXT`);
+  } catch (_) { }
+  try {
+    await db.exec(`ALTER TABLE hr_task_assignments ADD COLUMN assignmentStatus TEXT DEFAULT 'Assigned'`);
+  } catch (_) { }
+  try {
+    await db.exec(`ALTER TABLE hr_task_assignments ADD COLUMN serviceId TEXT`);
+  } catch (_) { }
+  try {
+    await db.exec(`ALTER TABLE hr_task_assignments ADD COLUMN isCompleted INTEGER DEFAULT 0`);
+  } catch (_) { }
+  try {
+    await db.exec(`ALTER TABLE hr_task_assignments ADD COLUMN completionNotes TEXT`);
+>>>>>>> a8ad67d8 (Update HR Operations on 26.11.2026)
   } catch (_) { }
 
   // Seed Shift Policies (Policy data only — no fabricated employee attendance records)
@@ -2326,7 +2534,7 @@ const initDb = async (db) => {
     const seedShifts = [
       {
         id: 'SHIFT-GENERAL',
-        name: 'General Day Shift (09:00 AM - 06:00 PM)',
+        name: 'General Shift (09:00 AM - 06:00 PM)',
         startTime: '09:00',
         endTime: '18:00',
         graceMinutes: 15,
@@ -2339,15 +2547,28 @@ const initDb = async (db) => {
       },
       {
         id: 'SHIFT-MORNING',
-        name: 'Early Morning Shift (08:00 AM - 04:30 PM)',
-        startTime: '08:00',
-        endTime: '16:30',
+        name: 'Morning Shift (07:00 AM - 02:00 PM)',
+        startTime: '07:00',
+        endTime: '14:00',
         graceMinutes: 15,
         isOvernight: 0,
         breakTrackingEnabled: 1,
         overtimeEnabled: 1,
-        overtimeThresholdMinutes: 480,
+        overtimeThresholdMinutes: 420,
         absentCutoffHour: 13,
+        weeklyOffDays: '[0]'
+      },
+      {
+        id: 'SHIFT-EVENING',
+        name: 'Evening Shift (02:00 PM - 09:00 PM)',
+        startTime: '14:00',
+        endTime: '21:00',
+        graceMinutes: 15,
+        isOvernight: 0,
+        breakTrackingEnabled: 1,
+        overtimeEnabled: 1,
+        overtimeThresholdMinutes: 420,
+        absentCutoffHour: 18,
         weeklyOffDays: '[0]'
       },
       {
@@ -2385,6 +2606,11 @@ const initDb = async (db) => {
         [sh.id, sh.name, sh.startTime, sh.endTime, sh.graceMinutes, sh.isOvernight, sh.breakTrackingEnabled, sh.overtimeEnabled, sh.overtimeThresholdMinutes, sh.absentCutoffHour, sh.weeklyOffDays]
       );
     }
+
+    // Ensure predefined shifts have exact required scheduled working hours
+    await db.run("UPDATE shift_configs SET name = 'General Shift (09:00 AM - 06:00 PM)', startTime = '09:00', endTime = '18:00' WHERE id = 'SHIFT-GENERAL'");
+    await db.run("UPDATE shift_configs SET name = 'Morning Shift (07:00 AM - 02:00 PM)', startTime = '07:00', endTime = '14:00' WHERE id = 'SHIFT-MORNING'");
+    await db.run("UPDATE shift_configs SET name = 'Evening Shift (02:00 PM - 09:00 PM)', startTime = '14:00', endTime = '21:00' WHERE id = 'SHIFT-EVENING'");
 
     // Ensure all shift_configs have Saturday configured as a regular working day (weeklyOffDays = '[0]')
     await db.run("UPDATE shift_configs SET weeklyOffDays = '[0]' WHERE weeklyOffDays LIKE '%6%'");
@@ -2787,13 +3013,95 @@ const initDb = async (db) => {
          OR LOWER(email) LIKE '%test%'
     `);
 
-    await db.run(`
-      DELETE FROM hr_task_assignments
-      WHERE enquiryId NOT IN (SELECT id FROM leads)
-         OR id LIKE 'TASK-OPS-%'
-    `);
+    // Retain all genuine HR task assignments across server restarts
+    // Removed destructive deletion of hr_task_assignments
   } catch (cleanDummyErr) {
     console.warn('Dummy cleanup warning:', cleanDummyErr.message);
+  }
+
+  // Seed baseline enquiries into leads & hr_task_assignments if not already present
+  try {
+    for (const enq of INITIAL_BASELINE_ENQUIRIES) {
+      const existing = await db.get('SELECT id FROM leads WHERE id = ? OR referenceNumber = ?', [enq.id, enq.referenceNumber]);
+      if (!existing) {
+        await db.run(
+          `INSERT INTO leads (
+            id, referenceNumber, name, email, phone, company, serviceId, serviceTitle,
+            countryInterest, status, assignedEmployee, assignedEmployeeId, assignedEmployeeEmail,
+            priority, assignmentNotes, internalNotes, assignedBy, assignedAt, assignmentStatus,
+            taskStatus, createdAt, updatedAt
+          ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+          [
+            enq.id,
+            enq.referenceNumber,
+            enq.name,
+            enq.email,
+            enq.phone,
+            enq.company || 'Individual Candidate',
+            enq.serviceId,
+            enq.serviceTitle,
+            enq.country || 'India',
+            enq.status,
+            enq.assignedEmployee || null,
+            enq.assignedEmployeeId || null,
+            enq.assignedEmployeeEmail || null,
+            enq.priority || 'Normal',
+            enq.assignmentNotes || null,
+            enq.notes || enq.assignmentNotes || null,
+            enq.assignedEmployee ? 'Priya Sharma (HR Lead)' : null,
+            enq.assignedDate || (enq.assignedEmployee ? enq.createdAt : null),
+            enq.status === 'Assigned' ? 'Assigned' : (enq.status === 'Completed' ? 'Completed' : 'New'),
+            enq.status === 'Completed' ? 'Completed' : (enq.status === 'Assigned' ? 'To Do' : null),
+            enq.createdAt,
+            enq.createdAt
+          ]
+        );
+      }
+
+      // If enquiry is assigned or completed, seed corresponding task into hr_task_assignments
+      if (enq.assignedEmployee && (enq.status === 'Assigned' || enq.status === 'Completed')) {
+        const taskId = `TASK-${enq.id}`;
+        const existingTask = await db.get('SELECT id FROM hr_task_assignments WHERE id = ? OR enquiryId = ?', [taskId, enq.id]);
+        if (!existingTask) {
+          await db.run(
+            `INSERT INTO hr_task_assignments (
+              id, enquiryId, referenceNumber, customerName, customerEmail, customerPhone,
+              serviceId, serviceTitle, operationTeam, assignedEmployeeId, assignedEmployeeName,
+              assignedEmployeeEmail, assignedById, assignedByName, priority, dueDate,
+              assignmentStatus, taskStatus, notes, isCompleted, assignedAt, completedAt, createdAt, updatedAt
+            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+            [
+              taskId,
+              enq.id,
+              enq.referenceNumber,
+              enq.name,
+              enq.email,
+              enq.phone,
+              enq.serviceId,
+              enq.serviceTitle,
+              enq.operationTeam || (['intl-adm', 'intl-consult'].includes(enq.serviceId) ? 'International HR Operations' : 'Enquiry HR Operations'),
+              enq.assignedEmployeeId,
+              enq.assignedEmployee,
+              enq.assignedEmployeeEmail,
+              'REV-EMP-003',
+              'Priya Sharma (HR Lead)',
+              enq.priority || 'Normal',
+              null,
+              enq.status === 'Completed' ? 'Completed' : 'Assigned',
+              enq.status === 'Completed' ? 'Completed' : 'To Do',
+              enq.assignmentNotes || enq.notes || 'Follow up with candidate.',
+              enq.status === 'Completed' ? 1 : 0,
+              enq.assignedDate || enq.createdAt,
+              enq.completedDate || null,
+              enq.createdAt,
+              enq.createdAt
+            ]
+          );
+        }
+      }
+    }
+  } catch (seedErr) {
+    console.warn('Baseline enquiries seed notice:', seedErr.message);
   }
 
   console.log('Database initialized successfully with SQLite.');

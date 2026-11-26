@@ -11,48 +11,53 @@ export const CRM_ROLES = [
 export const ROLE_PERMISSIONS = {
   'Super Admin': ['all'],
   'Admin': [
-    'dashboard', 'consulting', 'career-guidance', 'student-academy', 
-    'candidates', 'job-applications', 'pipeline', 'domestic', 'international', 'clients', 
-    'workspace', 'interviews', 'documentation', 'visa', 'verification', 
+    'dashboard', 'consulting', 'career-guidance', 'student-academy',
+    'candidates', 'job-applications', 'pipeline', 'domestic', 'international', 'clients',
+    'workspace', 'interviews', 'documentation', 'visa', 'verification',
     'accounts', 'reports', 'ai-suite', 'calendar', 'settings',
     'vacancies', 'search-filters', 'notes-tags', 'communication', 'offers', 'collaboration',
-    'plc-overview', 'plc-students', 'plc-eligibility', 'plc-companies', 'plc-drives', 
-    'plc-registration', 'plc-applications', 'plc-events', 'plc-offers', 'plc-announcements', 
+    'plc-overview', 'plc-students', 'plc-eligibility', 'plc-companies', 'plc-drives',
+    'plc-registration', 'plc-applications', 'plc-events', 'plc-offers', 'plc-announcements',
     'plc-reports', 'plc-approvals',
-    'int-overview', 'int-assigned', 'int-profiles', 'int-schedule', 'int-evaluation', 
-    'int-feedback', 'int-decision', 'int-status', 'int-reminders', 'int-context', 
+    'int-overview', 'int-assigned', 'int-profiles', 'int-schedule', 'int-evaluation',
+    'int-feedback', 'int-decision', 'int-status', 'int-reminders', 'int-context',
     'int-calendar', 'int-permissions',
-    'hr-overview', 'hr-attendance', 'hr-leave', 'hr-employees', 'hr-performance', 
-    'hr-recruitment', 'hr-payroll', 'hr-announcements', 'hr-shifts', 'hr-documents', 
-    'hr-grievances', 'hr-approvals', 'hr-reports', 'hr-tasks', 'my-profile'
+    'hr-overview', 'hr-attendance', 'hr-leave', 'hr-employees', 'hr-performance',
+    'hr-recruitment', 'hr-payroll', 'hr-announcements', 'hr-shifts', 'hr-documents',
+    'hr-grievances', 'hr-approvals', 'hr-reports', 'hr-tasks', 'my-profile', 'visa-verification'
   ],
   'HR Lead': [
-    'dashboard', 'consulting', 'career-guidance', 'student-academy', 
-    'candidates', 'job-applications', 'pipeline', 'workspace', 'interviews', 'reports', 
+    'dashboard', 'consulting', 'career-guidance', 'student-academy',
+    'candidates', 'job-applications', 'pipeline', 'workspace', 'interviews', 'reports',
     'calendar', 'vacancies', 'offers', 'collaboration',
-    'hr-overview', 'hr-attendance', 'hr-leave', 'hr-employees', 'hr-performance', 
-    'hr-recruitment', 'hr-payroll', 'hr-announcements', 'hr-shifts', 'hr-documents', 
-    'hr-grievances', 'hr-approvals', 'hr-reports', 'hr-tasks', 'my-profile'
+    'hr-overview', 'hr-attendance', 'hr-leave', 'hr-employees', 'hr-performance',
+    'hr-recruitment', 'hr-payroll', 'hr-announcements', 'hr-shifts', 'hr-documents',
+    'hr-grievances', 'hr-approvals', 'hr-reports', 'hr-tasks', 'my-profile', 'visa-verification'
   ],
   'Recruiter': [
-    'dashboard', 'vacancies', 'job-applications', 'candidates', 'search-filters', 'pipeline', 
-    'documentation', 'notes-tags', 'interviews', 'communication', 'offers', 
-    'reports', 'collaboration', 'workspace', 'domestic', 'international', 
+    'dashboard', 'vacancies', 'job-applications', 'candidates', 'search-filters', 'pipeline',
+    'documentation', 'notes-tags', 'interviews', 'communication', 'offers',
+    'reports', 'collaboration', 'workspace', 'domestic', 'international',
     'clients', 'calendar'
   ],
   'Placement Coordinator': [
-    'dashboard', 'plc-overview', 'plc-students', 'plc-eligibility', 'plc-companies', 
-    'plc-drives', 'plc-registration', 'plc-applications', 'plc-events', 'plc-offers', 
+    'dashboard', 'plc-overview', 'plc-students', 'plc-eligibility', 'plc-companies',
+    'plc-drives', 'plc-registration', 'plc-applications', 'plc-events', 'plc-offers',
     'plc-announcements', 'plc-reports', 'plc-approvals',
     'candidates', 'job-applications', 'pipeline', 'clients', 'interviews', 'workspace', 'calendar'
   ],
   'HR Operations': [
     'dashboard', 'hr-tasks', 'my-attendance', 'my-profile',
+<<<<<<< HEAD
     'candidates', 'job-applications', 'documentation', 'visa', 'verification', 'calendar'
+=======
+    'candidates', 'job-applications', 'calendar',
+    'hr-announcements', 'hr-shifts'
+>>>>>>> a8ad67d8 (Update HR Operations on 26.11.2026)
   ],
   'Interviewer': [
-    'dashboard', 'int-overview', 'int-assigned', 'int-profiles', 'int-schedule', 
-    'int-evaluation', 'int-feedback', 'int-decision', 'int-status', 'int-reminders', 
+    'dashboard', 'int-overview', 'int-assigned', 'int-profiles', 'int-schedule',
+    'int-evaluation', 'int-feedback', 'int-decision', 'int-status', 'int-reminders',
     'int-context', 'int-calendar', 'int-permissions',
     'candidates', 'interviews', 'calendar'
   ],

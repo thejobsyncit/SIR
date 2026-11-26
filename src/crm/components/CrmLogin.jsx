@@ -473,9 +473,20 @@ export const CrmLogin = () => {
 
     setIsAuthenticating(false);
 
+<<<<<<< HEAD
     // If rejected by Super Admin/HR Lead
     if (checkResult?.lateApprovalStatus === 'REJECTED') {
       setAuthErrorMsg('❌ Access Declined: Late arrival request was rejected for today\'s shift. Contact HR Operations.');
+=======
+    if (checkResult?.lateApprovalStatus === 'REJECTED') {
+      setAuthErrorMsg('❌ Access Declined: Super Admin has rejected your late arrival check-in for today. Contact HR Operations.');
+      return;
+    }
+
+    // Allow user to enter workspace and work
+    if (checkResult?.allowed || checkResult?.allowed !== false || !isShiftLate) {
+      login(userAccount.email, password, userAccount.role || 'HR Operations', userAccount);
+>>>>>>> a8ad67d8 (Update HR Operations on 26.11.2026)
       return;
     }
 

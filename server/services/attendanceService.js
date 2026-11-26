@@ -115,7 +115,7 @@ export const getShiftWindowMs = (workDate, shiftConfig) => {
 export const isStaleMissingCheckout = (attendanceRow, nowMs = Date.now(), shiftConfig = null) => {
   if (!attendanceRow || attendanceRow.checkOutAt || !attendanceRow.checkInAt) return false;
   if (attendanceRow.status === 'Missing Checkout') return true;
-  if (attendanceRow.status !== 'In Progress' && attendanceRow.status !== 'Late') return false;
+  if (attendanceRow.status === 'Completed') return false;
 
   const isOvernight = Number(attendanceRow.isOvernightShift || shiftConfig?.isOvernight || 0) === 1;
   const endTime = attendanceRow.shiftEnd || shiftConfig?.endTime || '18:00';

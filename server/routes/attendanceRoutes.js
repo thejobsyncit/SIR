@@ -82,28 +82,169 @@ export const verifyCrmSessionToken = (token) => {
   }
 };
 
-const getEmployeeShift = async (db, employee) => {
-  const shiftId = employee?.shiftId || 'SHIFT-GENERAL';
+export const formatHHMMTo12Hour = (hhmm) => {
+  if (!hhmm) return '9:00 AM';
+  const clean = String(hhmm).trim();
+  if (clean.includes('AM') || clean.includes('PM')) return clean;
+  const [hStr, mStr] = clean.split(':');
+  let h = parseInt(hStr, 10);
+  const m = mStr ? mStr.slice(0, 2) : '00';
+  const ampm = h >= 12 ? 'PM' : 'AM';
+  h = h % 12;
+  if (h === 0) h = 12;
+  return `${h}:${m} ${ampm}`;
+};
+
+const getFallbackDefaultShift = (db) => ({
+  id: 'SHIFT-GENERAL',
+  name: 'General Shift (09:00 AM - 06:00 PM)',
+  startTime: '09:00',
+  endTime: '18:00',
+  graceMinutes: 15,
+  isOvernight: 0,
+  breakTrackingEnabled: 1,
+  overtimeEnabled: 1,
+  overtimeThresholdMinutes: 480,
+  absentCutoffHour: 14,
+  weeklyOffDays: '[0]',
+  timezone: COMPANY_TIMEZONE
+});
+
+export const resolveEmployeeShiftForDate = async (db, employee, targetWorkDate = null) => {
+  if (!targetWorkDate) {
+    const nowParts = getCompanyDateTimeParts(new Date());
+    targetWorkDate = nowParts.dateStr;
+  }
+  const employeeId = employee?.employeeId || employee?.id || (typeof employee === 'string' ? employee : null);
+  if (!employeeId) {
+    return getFallbackDefaultShift(db);
+  }
+
+  // 1. Check employee_shift_assignments active on targetWorkDate
+  try {
+    const assignments = await db.all(
+      `SELECT * FROM employee_shift_assignments 
+       WHERE employeeId = ? AND status = 'Active' 
+         AND startDate <= ? 
+         AND (endDate IS NULL OR endDate = '' OR endDate >= ?)
+       ORDER BY 
+         CASE WHEN frequency = 'one_day' THEN 1 WHEN frequency = 'weekly' THEN 2 ELSE 3 END ASC,
+         assignedAt DESC,
+         rowid DESC`,
+      [employeeId, targetWorkDate, targetWorkDate]
+    );
+
+    if (assignments && assignments.length > 0) {
+      let targetDayOfWeek = 0;
+      try {
+        const [y, m, d] = targetWorkDate.split('-').map(Number);
+        targetDayOfWeek = new Date(y, m - 1, d).getDay(); // 0 = Sun, 1 = Mon ... 6 = Sat
+      } catch (_) {
+        const targetDateObj = new Date(`${targetWorkDate}T00:00:00Z`);
+        targetDayOfWeek = targetDateObj.getUTCDay();
+      }
+
+      for (const asgn of assignments) {
+        let isMatch = false;
+        if (asgn.frequency === 'one_day') {
+          isMatch = asgn.startDate <= targetWorkDate && (!asgn.endDate || asgn.endDate >= targetWorkDate);
+        } else if (asgn.frequency === 'weekly' || asgn.frequency === 'monthly') {
+          let days = [1, 2, 3, 4, 5, 6];
+          try {
+            if (asgn.applicableDays) {
+              days = typeof asgn.applicableDays === 'string' ? JSON.parse(asgn.applicableDays) : asgn.applicableDays;
+            }
+          } catch (_) {}
+          isMatch = Array.isArray(days) && days.includes(targetDayOfWeek);
+        } else {
+          isMatch = true;
+        }
+
+        if (isMatch) {
+          let shift = await db.get('SELECT * FROM shift_configs WHERE id = ?', [asgn.shiftId]);
+          if (!shift) {
+            shift = {
+              id: asgn.shiftId,
+              name: asgn.shiftName,
+              startTime: asgn.scheduledStartTime || '09:00',
+              endTime: asgn.scheduledEndTime || '18:00',
+              graceMinutes: 15,
+              isOvernight: 0,
+              breakTrackingEnabled: 1,
+              overtimeEnabled: 1,
+              overtimeThresholdMinutes: 480,
+              absentCutoffHour: 14,
+              weeklyOffDays: '[0]',
+              timezone: COMPANY_TIMEZONE
+            };
+          }
+          let cleanName = asgn.shiftName || shift.shiftName || shift.name || 'General Shift';
+          if (cleanName.includes('(')) cleanName = cleanName.split('(')[0].trim();
+          return {
+            ...shift,
+            shiftName: cleanName,
+            assignmentId: asgn.id,
+            frequency: asgn.frequency,
+            startDate: asgn.startDate,
+            endDate: asgn.endDate,
+            applicableDays: asgn.applicableDays,
+            scheduledLoginTime: asgn.scheduledLoginTime || formatHHMMTo12Hour(shift.startTime),
+            scheduledLogoutTime: asgn.scheduledLogoutTime || formatHHMMTo12Hour(shift.endTime)
+          };
+        }
+      }
+    }
+  } catch (err) {
+    console.warn('Error resolving employee shift assignment:', err?.message);
+  }
+
+  // 2. Check if target date is Sunday (0) -> default Weekly Off unless explicitly scheduled above
+  let dayOfWeek = 0;
+  try {
+    const [y, m, d] = targetWorkDate.split('-').map(Number);
+    dayOfWeek = new Date(y, m - 1, d).getDay();
+  } catch (_) {
+    dayOfWeek = new Date(`${targetWorkDate}T00:00:00Z`).getUTCDay();
+  }
+  if (dayOfWeek === 0) {
+    return {
+      id: 'SHIFT-OFF',
+      name: 'Weekly Off',
+      shiftName: 'Weekly Off',
+      timing: 'Rest Day',
+      startTime: '00:00',
+      endTime: '00:00',
+      scheduledLoginTime: '—',
+      scheduledLogoutTime: '—',
+      isOff: true
+    };
+  }
+
+  // 3. Fallback to employee.shiftId from employees record
+  let shiftId = employee?.shiftId;
+  if (!shiftId && employeeId) {
+    const empRow = await db.get('SELECT shiftId FROM employees WHERE employeeId = ?', [employeeId]);
+    shiftId = empRow?.shiftId;
+  }
+  shiftId = shiftId || 'SHIFT-GENERAL';
+
   let shift = await db.get('SELECT * FROM shift_configs WHERE id = ?', [shiftId]);
   if (!shift) {
     shift = await db.get("SELECT * FROM shift_configs WHERE id = 'SHIFT-GENERAL'");
   }
-  return (
-    shift || {
-      id: 'SHIFT-GENERAL',
-      name: 'General Shift (09:00 AM - 06:00 PM)',
-      startTime: '09:00',
-      endTime: '18:00',
-      graceMinutes: 15,
-      isOvernight: 0,
-      breakTrackingEnabled: 1,
-      overtimeEnabled: 1,
-      overtimeThresholdMinutes: 480,
-      absentCutoffHour: 14,
-      weeklyOffDays: '[0]',
-      timezone: COMPANY_TIMEZONE
-    }
-  );
+  const finalShift = shift || getFallbackDefaultShift(db);
+  let cleanName = finalShift.shiftName || finalShift.name || 'General Shift';
+  if (cleanName.includes('(')) cleanName = cleanName.split('(')[0].trim();
+  return {
+    ...finalShift,
+    shiftName: cleanName,
+    scheduledLoginTime: finalShift.scheduledLoginTime || formatHHMMTo12Hour(finalShift.startTime),
+    scheduledLogoutTime: finalShift.scheduledLogoutTime || formatHHMMTo12Hour(finalShift.endTime)
+  };
+};
+
+export const getEmployeeShift = async (db, employee, targetWorkDate = null) => {
+  return resolveEmployeeShiftForDate(db, employee, targetWorkDate);
 };
 
 const writeAttendanceAudit = async (
@@ -160,16 +301,99 @@ const createNotification = async (
   return { id, employeeId, type, title, message, severity, relatedId, isRead: 0 };
 };
 
+export const ensureLateLoginApprovalRequest = async (db, {
+  attendanceId = null,
+  employee,
+  shiftConfig,
+  workDate,
+  clockInTimeStr,
+  lateMinutes,
+  explanation = null
+}) => {
+  if (!lateMinutes || Number(lateMinutes) <= 0) return null;
+  const isExecutive = employee.role === 'Super Admin' || employee.role === 'Admin';
+  if (isExecutive) return null;
+
+  try {
+    let existing = null;
+    if (attendanceId) {
+      existing = await db.get('SELECT * FROM late_login_approval_requests WHERE attendanceId = ?', [attendanceId]);
+    }
+    if (!existing && employee.employeeId && workDate) {
+      existing = await db.get(
+        'SELECT * FROM late_login_approval_requests WHERE employeeId = ? AND attendanceDate = ?',
+        [employee.employeeId, workDate]
+      );
+    }
+
+    if (existing) {
+      if (explanation && !existing.explanation) {
+        await db.run('UPDATE late_login_approval_requests SET explanation = ?, updatedAt = CURRENT_TIMESTAMP WHERE id = ?', [explanation, existing.id]);
+      }
+      return existing;
+    }
+
+    const reqId = makeId('LAR');
+    const scheduledLoginTime = shiftConfig?.scheduledLoginTime || formatHHMMTo12Hour(shiftConfig?.startTime);
+    const scheduledLogoutTime = shiftConfig?.scheduledLogoutTime || formatHHMMTo12Hour(shiftConfig?.endTime);
+
+    await db.run(
+      `INSERT INTO late_login_approval_requests (
+        id, attendanceId, employeeId, employeeName, department, role,
+        shiftId, shiftName, scheduledLoginTime, scheduledLogoutTime,
+        actualClockInTime, attendanceDate, delayMinutes, explanation, status
+      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'Pending Approval')`,
+      [
+        reqId,
+        attendanceId || null,
+        employee.employeeId,
+        employee.name,
+        employee.department || 'Operations',
+        employee.role || 'Staff',
+        shiftConfig.id || 'SHIFT-GENERAL',
+        shiftConfig.name || 'General Shift',
+        scheduledLoginTime,
+        scheduledLogoutTime,
+        clockInTimeStr,
+        workDate,
+        Number(lateMinutes),
+        explanation
+      ]
+    );
+
+    // Notify authorized approvers (HR Lead, Admin, Super Admin)
+    const approvers = await db.all("SELECT id, employeeId FROM employees WHERE role IN ('Super Admin', 'Admin', 'HR Lead')");
+    const targets = approvers && approvers.length ? approvers : [{ employeeId: 'REV-EMP-001' }, { employeeId: 'REV-EMP-003' }];
+    for (const apprv of targets) {
+      if (apprv.employeeId !== employee.employeeId) {
+        await createNotification(db, {
+          employeeId: apprv.employeeId,
+          type: 'Late Arrival Approval Request',
+          title: `⚠️ Late Login Approval: ${employee.name} (${employee.role})`,
+          message: `${employee.name} clocked in at ${clockInTimeStr} (${lateMinutes}m late for ${shiftConfig.name || 'shift'}). Late-login review pending in Shift Management.`,
+          severity: 'warning',
+          relatedId: reqId
+        });
+      }
+    }
+
+    return await db.get('SELECT * FROM late_login_approval_requests WHERE id = ?', [reqId]);
+  } catch (err) {
+    console.warn('Failed to ensure late login approval request:', err?.message);
+    return null;
+  }
+};
+
 const autoFlagStaleMissingCheckouts = async (db, employee, shiftConfig, ipAddress) => {
   const openRows = await db.all(
-    `SELECT * FROM attendance_records WHERE employeeId = ? AND checkOutAt IS NULL AND status IN ('In Progress', 'Late')`,
+    `SELECT * FROM attendance_records WHERE employeeId = ? AND checkOutAt IS NULL`,
     [employee.employeeId]
   );
   const nowMs = Date.now();
   for (const row of openRows) {
     if (isStaleMissingCheckout(row, nowMs, shiftConfig)) {
       await db.run(
-        `UPDATE attendance_records SET status = 'Missing Checkout', updatedAt = CURRENT_TIMESTAMP WHERE id = ?`,
+        `UPDATE attendance_records SET status = 'Missing Checkout', sessionStatus = 'COMPLETED', updatedAt = CURRENT_TIMESTAMP WHERE id = ?`,
         [row.id]
       );
       await writeAttendanceAudit(db, {
@@ -227,6 +451,29 @@ export const registerAttendanceRoutes = (app, { getDb, getClientIp }) => {
         token = String(req.query.token).trim();
       }
       if (!token) {
+        if (req.headers['x-user-data']) {
+          try {
+            const parsedUserData = typeof req.headers['x-user-data'] === 'string'
+              ? JSON.parse(req.headers['x-user-data'])
+              : req.headers['x-user-data'];
+            const db = await getDb();
+            const targetId = parsedUserData.employeeId || parsedUserData.id || '';
+            const targetEmail = String(parsedUserData.email || '').toLowerCase().trim();
+            const empFallback = await db.get(
+              `SELECT * FROM employees 
+               WHERE (employeeId = ? OR id = ? OR LOWER(email) = ?)
+                 AND LOWER(COALESCE(status, 'Active')) != 'inactive' 
+               LIMIT 1`,
+              [targetId, targetId, targetEmail]
+            );
+            if (empFallback) {
+              req.authEmployee = sanitizeEmployee(empFallback);
+              return next();
+            }
+          } catch (e) {
+            // fallback to next handlers
+          }
+        }
         const roleFallback = req.headers['x-crm-role'] || req.query?.role;
         const emailFallback = req.headers['x-employee-email'] || req.query?.email;
         if (roleFallback || emailFallback) {
@@ -250,6 +497,7 @@ export const registerAttendanceRoutes = (app, { getDb, getClientIp }) => {
         });
       }
       const payload = verifyCrmSessionToken(token);
+<<<<<<< HEAD
       if (!payload || !payload.employeeId) {
         // Fallback to role / email headers if token was expired or invalidated
         const roleFallback = req.headers['x-crm-role'] || req.query?.role;
@@ -273,13 +521,78 @@ export const registerAttendanceRoutes = (app, { getDb, getClientIp }) => {
           success: false,
           message: 'Invalid or expired CRM session token. Please sign in again.'
         });
+=======
+      let emp = null;
+      const db = await getDb();
+
+      if (payload && payload.employeeId) {
+        emp = await db.get(
+          'SELECT * FROM employees WHERE employeeId = ? OR id = ? OR LOWER(email) = LOWER(?)',
+          [payload.employeeId, payload.id || '', payload.email || payload.employeeId || '']
+        );
+        if (!emp && payload.email) {
+          emp = await db.get('SELECT * FROM employees WHERE LOWER(email) = LOWER(?)', [payload.email.trim()]);
+        }
+        if (!emp && payload.role) {
+          emp = await db.get(
+            'SELECT * FROM employees WHERE LOWER(role) = LOWER(?) AND LOWER(COALESCE(status, "Active")) != "inactive" LIMIT 1',
+            [payload.role.trim()]
+          );
+        }
       }
 
-      const db = await getDb();
-      const emp = await db.get(
-        'SELECT * FROM employees WHERE employeeId = ? OR id = ?',
-        [payload.employeeId, payload.id || '']
-      );
+      // Check client override / switcher role if present
+      const roleOverride = req.headers['x-crm-role'] || req.query?.role;
+      if (roleOverride) {
+        const roleEmp = await db.get(
+          'SELECT * FROM employees WHERE (LOWER(role) = LOWER(?) OR LOWER(designation) = LOWER(?)) AND LOWER(COALESCE(status, "Active")) != "inactive" ORDER BY id ASC LIMIT 1',
+          [roleOverride, roleOverride]
+        );
+        if (roleEmp) {
+          emp = roleEmp;
+        }
+      }
+
+      // If token verification didn't yield an employee, check header fallbacks before returning 401
+      if (!emp) {
+        const userDataHeader = req.headers['x-user-data'];
+        if (userDataHeader) {
+          try {
+            const parsedUserData = typeof userDataHeader === 'string' ? JSON.parse(userDataHeader) : userDataHeader;
+            const targetId = parsedUserData.employeeId || parsedUserData.id || '';
+            const targetEmail = String(parsedUserData.email || '').toLowerCase().trim();
+            const targetRole = parsedUserData.role;
+            let empFallback = await db.get(
+              `SELECT * FROM employees 
+               WHERE (employeeId = ? OR id = ? OR LOWER(email) = ?)
+                 AND LOWER(COALESCE(status, 'Active')) != 'inactive' 
+               LIMIT 1`,
+              [targetId, targetId, targetEmail]
+            );
+            if (!empFallback && targetRole) {
+              empFallback = await db.get(
+                `SELECT * FROM employees WHERE LOWER(role) = LOWER(?) AND LOWER(COALESCE(status, 'Active')) != 'inactive' LIMIT 1`,
+                [targetRole]
+              );
+            }
+            if (empFallback) {
+              emp = empFallback;
+            }
+          } catch (e) { }
+        }
+      }
+
+      if (!emp) {
+        const emailFallback = req.headers['x-employee-email'] || req.query?.email;
+        if (emailFallback) {
+          emp = await db.get(
+            'SELECT * FROM employees WHERE LOWER(email) = ? AND LOWER(COALESCE(status, \'Active\')) != \'inactive\' LIMIT 1',
+            [String(emailFallback).toLowerCase().trim()]
+          );
+        }
+>>>>>>> a8ad67d8 (Update HR Operations on 26.11.2026)
+      }
+
       if (!emp || String(emp.status || 'Active').toLowerCase() === 'inactive') {
         return res.status(401).json({
           success: false,
@@ -308,10 +621,35 @@ export const registerAttendanceRoutes = (app, { getDb, getClientIp }) => {
   };
 
   const requireHrLeadershipRole = (req, res, next) => {
-    if (!HR_LEADERSHIP_ROLES.includes(req.authEmployee?.role)) {
+    const rawRole = String(req.authEmployee?.role || req.headers['x-crm-role'] || '').trim();
+    const norm = rawRole.toUpperCase().replace(/[_\s]+/g, ' ');
+    const isLead =
+      norm.includes('LEAD') ||
+      norm.includes('ADMIN') ||
+      norm.includes('SUPER') ||
+      HR_LEADERSHIP_ROLES.some((r) => r.toUpperCase() === norm);
+    if (!isLead) {
       return res.status(403).json({
         success: false,
         message: 'Forbidden: This endpoint requires HR Lead, Admin, or Super Admin authorization.'
+      });
+    }
+    next();
+  };
+
+  const requireHrStaffRole = (req, res, next) => {
+    const rawRole = String(req.authEmployee?.role || req.headers['x-crm-role'] || '').trim();
+    const norm = rawRole.toUpperCase().replace(/[_\s]+/g, ' ');
+    const isAllowed =
+      norm.includes('LEAD') ||
+      norm.includes('ADMIN') ||
+      norm.includes('SUPER') ||
+      norm.includes('OPERATIONS') ||
+      HR_LEADERSHIP_ROLES.some((r) => r.toUpperCase() === norm);
+    if (!isAllowed) {
+      return res.status(403).json({
+        success: false,
+        message: 'Forbidden: This endpoint requires HR authorization.'
       });
     }
     next();
@@ -402,23 +740,33 @@ export const registerAttendanceRoutes = (app, { getDb, getClientIp }) => {
       await db.run('UPDATE employees SET lastLogin = CURRENT_TIMESTAMP WHERE id = ?', [employee.id]);
       const token = createCrmSessionToken(employee);
 
-      // Automatic Attendance Check-In on Login for HR Lead, HR Operations, and staff
+      // Automatic Attendance Check-In on Login for HR Lead, HR Operations, Admin, and staff
       let attendanceSession = null;
-      if (employee.role === 'HR Lead' || employee.role === 'HR Operations' || (employee.role !== 'Super Admin' && employee.role !== 'Admin')) {
+      if (employee.role && employee.role !== 'Super Admin') {
         try {
           const now = new Date();
           const nowParts = getCompanyDateTimeParts(now);
           const shiftConfig = await getEmployeeShift(db, employee);
           const workDate = resolveCheckInWorkDate(nowParts, shiftConfig);
 
-          // Check for existing open attendance session (checkOutAt IS NULL)
+          // Auto-flag any prior-day shifts that were never checked out as Missing Checkout
+          await autoFlagStaleMissingCheckouts(db, employee, shiftConfig, req.ip);
+
+          // Check for existing open attendance session for the current shift workDate
           const openActive = await db.get(
-            `SELECT * FROM attendance_records WHERE employeeId = ? AND checkOutAt IS NULL AND status IN ('In Progress', 'Late') ORDER BY checkInAt DESC LIMIT 1`,
-            [employee.employeeId]
+            `SELECT * FROM attendance_records WHERE employeeId = ? AND workDate = ? AND checkOutAt IS NULL ORDER BY checkInAt DESC LIMIT 1`,
+            [employee.employeeId, workDate]
           );
 
           if (openActive) {
-            // Resume existing active session without creating duplicate records
+            // Ensure sessionId exists and is active
+            if (!openActive.sessionId) {
+              const sessId = makeId('SESS');
+              await db.run('UPDATE attendance_records SET sessionId = ?, sessionStatus = "ACTIVE" WHERE id = ?', [sessId, openActive.id]);
+              openActive.sessionId = sessId;
+              openActive.sessionStatus = 'ACTIVE';
+            }
+            // Resume existing active session without modifying original checkInAt or creating duplicate records
             attendanceSession = { ...openActive, resumed: true };
           } else {
             const existingToday = await db.get(
@@ -427,9 +775,9 @@ export const registerAttendanceRoutes = (app, { getDb, getClientIp }) => {
             );
 
             if (existingToday && existingToday.checkOutAt) {
-              // Reopen existing shift if employee logs in again on same workday
+              // Reopen existing shift if employee logs in again on same workday, preserving original checkInAt
               await db.run(
-                `UPDATE attendance_records SET checkOutAt = NULL, status = 'In Progress', updatedAt = CURRENT_TIMESTAMP WHERE id = ?`,
+                `UPDATE attendance_records SET checkOutAt = NULL, status = 'In Progress', sessionStatus = 'ACTIVE', updatedAt = CURRENT_TIMESTAMP WHERE id = ?`,
                 [existingToday.id]
               );
               attendanceSession = await db.get('SELECT * FROM attendance_records WHERE id = ?', [existingToday.id]);
@@ -437,14 +785,16 @@ export const registerAttendanceRoutes = (app, { getDb, getClientIp }) => {
               const { lateMinutes, isLate } = computeCheckInMetrics(now, workDate, shiftConfig);
               const lateApprovalStatus = isLate ? 'PENDING' : 'APPROVED';
               const attId = makeId('ATT');
+              const sessId = makeId('SESS');
               const checkInAt = now.toISOString();
 
               await db.run(
                 `INSERT INTO attendance_records (
                   id, employeeId, employeeName, department, operationTeam, workDate,
                   shiftId, shiftName, shiftStart, shiftEnd, isOvernightShift,
-                  checkInAt, status, lateMinutes, totalBreakMinutes, grossMinutes, netWorkMinutes, overtimeMinutes, source, notes, lateApprovalStatus, role
-                ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'In Progress', ?, 0, 0, 0, 0, 'CRM Login', 'Automated Check-In on Login', ?, ?)`,
+                  checkInAt, status, lateMinutes, totalBreakMinutes, grossMinutes, netWorkMinutes, overtimeMinutes,
+                  source, notes, lateApprovalStatus, role, sessionId, sessionStatus
+                ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'In Progress', ?, 0, 0, 0, 0, 'CRM Login', 'Automated Check-In on Login', ?, ?, ?, 'ACTIVE')`,
                 [
                   attId,
                   employee.employeeId,
@@ -460,10 +810,42 @@ export const registerAttendanceRoutes = (app, { getDb, getClientIp }) => {
                   checkInAt,
                   lateMinutes,
                   lateApprovalStatus,
-                  employee.role
+                  employee.role,
+                  sessId
                 ]
               );
               attendanceSession = await db.get('SELECT * FROM attendance_records WHERE id = ?', [attId]);
+
+              // Record login & check-in in role_login_logs
+              try {
+                await db.run(
+                  `INSERT INTO role_login_logs (
+                    id, employeeId, employeeName, email, role, department,
+                    shiftId, shiftName, shiftStart, shiftEnd, loginTime, checkInTime,
+                    punctuality, lateMinutes, lateApprovalStatus, ipAddress, sessionId
+                  ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, CURRENT_TIMESTAMP, ?, ?, ?, ?, ?, ?)`,
+                  [
+                    makeId('LOG'),
+                    employee.employeeId,
+                    employee.name,
+                    employee.email,
+                    employee.role,
+                    employee.department || 'Operations',
+                    shiftConfig.id,
+                    shiftConfig.name,
+                    shiftConfig.startTime,
+                    shiftConfig.endTime,
+                    nowParts.timeStr,
+                    isLate ? 'Late' : 'On Time',
+                    lateMinutes,
+                    lateApprovalStatus,
+                    req.ip || '127.0.0.1',
+                    sessId
+                  ]
+                );
+              } catch (logErr) {
+                console.warn('Role login logging notice:', logErr.message);
+              }
             } else {
               attendanceSession = existingToday;
             }
@@ -512,8 +894,22 @@ export const registerAttendanceRoutes = (app, { getDb, getClientIp }) => {
     }
   });
 
-  app.get('/api/crm/auth/me', requireCrmAuth, (req, res) => {
-    res.json({ success: true, employee: req.authEmployee });
+  app.get('/api/crm/auth/me', requireCrmAuth, async (req, res) => {
+    try {
+      const db = await getDb();
+      const employee = req.authEmployee;
+      const activeAttendance = await db.get(
+        `SELECT * FROM attendance_records WHERE employeeId = ? AND checkOutAt IS NULL ORDER BY checkInAt DESC LIMIT 1`,
+        [employee.employeeId]
+      );
+      res.json({
+        success: true,
+        employee,
+        attendance: activeAttendance || null
+      });
+    } catch (_) {
+      res.json({ success: true, employee: req.authEmployee, attendance: null });
+    }
   });
 
   // Super-Admin-only role-switcher token exchange so Super Admin can preview
@@ -603,10 +999,16 @@ export const registerAttendanceRoutes = (app, { getDb, getClientIp }) => {
         });
       }
 
+      const activeAttendance = await db.get(
+        `SELECT * FROM attendance_records WHERE employeeId = ? AND checkOutAt IS NULL ORDER BY checkInAt DESC LIMIT 1`,
+        [targetEmp.employeeId]
+      );
+
       return res.json({
         success: true,
         token: createCrmSessionToken(targetEmp),
-        employee: sanitizeEmployee(targetEmp)
+        employee: sanitizeEmployee(targetEmp),
+        attendance: activeAttendance || null
       });
     } catch (error) {
       console.error('CRM preview role switch failed:', error);
@@ -663,10 +1065,16 @@ export const registerAttendanceRoutes = (app, { getDb, getClientIp }) => {
         return res.status(404).json({ success: false, message: `No active employee found for role ${targetRole || 'default'}.` });
       }
 
+      const activeAttendance = await db.get(
+        `SELECT * FROM attendance_records WHERE employeeId = ? AND checkOutAt IS NULL ORDER BY checkInAt DESC LIMIT 1`,
+        [targetEmp.employeeId]
+      );
+
       return res.json({
         success: true,
         token: createCrmSessionToken(targetEmp),
-        employee: sanitizeEmployee(targetEmp)
+        employee: sanitizeEmployee(targetEmp),
+        attendance: activeAttendance || null
       });
     } catch (error) {
       console.error('CRM preview token generation failed:', error);
@@ -868,7 +1276,7 @@ export const registerAttendanceRoutes = (app, { getDb, getClientIp }) => {
       await autoFlagStaleMissingCheckouts(db, employee, shiftConfig, ipAddress);
 
       const openActive = await db.get(
-        `SELECT * FROM attendance_records WHERE employeeId = ? AND checkOutAt IS NULL AND status IN ('In Progress', 'Late')`,
+        `SELECT * FROM attendance_records WHERE employeeId = ? AND checkOutAt IS NULL AND status IN ('In Progress', 'Late', 'Present')`,
         [employee.employeeId]
       );
       if (openActive) {
@@ -900,9 +1308,9 @@ export const registerAttendanceRoutes = (app, { getDb, getClientIp }) => {
       );
       if (existingSameShift) {
         if (existingSameShift.checkOutAt) {
-          // Re-open shift for further work if employee clocked out earlier
+          // Re-open shift for further work if employee clocked out earlier, preserving original checkInAt
           await db.run(
-            `UPDATE attendance_records SET checkOutAt = NULL, status = 'In Progress', updatedAt = CURRENT_TIMESTAMP WHERE id = ?`,
+            `UPDATE attendance_records SET checkOutAt = NULL, status = 'In Progress', sessionStatus = 'ACTIVE', updatedAt = CURRENT_TIMESTAMP WHERE id = ?`,
             [existingSameShift.id]
           );
           await writeAttendanceAudit(db, {
@@ -942,6 +1350,7 @@ export const registerAttendanceRoutes = (app, { getDb, getClientIp }) => {
       const isExecutive = employee.role === 'Super Admin' || employee.role === 'Admin';
       const lateApprovalStatus = (!isExecutive && isLate) ? 'PENDING' : (isExecutive ? 'EXEMPT' : 'APPROVED');
       const id = makeId('ATT');
+      const sessId = makeId('SESS');
       const checkInAt = now.toISOString();
       const source = req.body?.source || 'Web Portal';
       const notes = req.body?.notes ? String(req.body.notes).slice(0, 300) : '';
@@ -950,8 +1359,9 @@ export const registerAttendanceRoutes = (app, { getDb, getClientIp }) => {
         `INSERT INTO attendance_records (
           id, employeeId, employeeName, department, operationTeam, workDate,
           shiftId, shiftName, shiftStart, shiftEnd, isOvernightShift,
-          checkInAt, status, lateMinutes, totalBreakMinutes, grossMinutes, netWorkMinutes, overtimeMinutes, source, notes, lateApprovalStatus, role
-        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'In Progress', ?, 0, 0, 0, 0, ?, ?, ?, ?)`,
+          checkInAt, status, lateMinutes, totalBreakMinutes, grossMinutes, netWorkMinutes, overtimeMinutes, source, notes, lateApprovalStatus, role,
+          sessionId, sessionStatus
+        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'In Progress', ?, 0, 0, 0, 0, ?, ?, ?, ?, ?, 'ACTIVE')`,
         [
           id,
           employee.employeeId,
@@ -969,7 +1379,8 @@ export const registerAttendanceRoutes = (app, { getDb, getClientIp }) => {
           source,
           notes,
           lateApprovalStatus,
-          employee.role || 'HR Operations'
+          employee.role || 'HR Operations',
+          sessId
         ]
       );
 
@@ -979,8 +1390,8 @@ export const registerAttendanceRoutes = (app, { getDb, getClientIp }) => {
           `INSERT INTO role_login_logs (
             id, employeeId, employeeName, email, role, department,
             shiftId, shiftName, shiftStart, shiftEnd, loginTime, checkInTime,
-            punctuality, lateMinutes, lateApprovalStatus, ipAddress
-          ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, CURRENT_TIMESTAMP, ?, ?, ?, ?, ?)`,
+            punctuality, lateMinutes, lateApprovalStatus, ipAddress, sessionId
+          ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, CURRENT_TIMESTAMP, ?, ?, ?, ?, ?, ?)`,
           [
             makeId('LOG'),
             employee.employeeId,
@@ -996,28 +1407,26 @@ export const registerAttendanceRoutes = (app, { getDb, getClientIp }) => {
             isLate ? 'Late' : (isExecutive ? 'Exempt' : 'On Time'),
             lateMinutes,
             lateApprovalStatus,
-            ipAddress
+            ipAddress,
+            sessId
           ]
         );
       } catch (logErr) {
         console.warn('Role login logging notice:', logErr.message);
       }
 
-      // If late, notify Super Admin immediately for authorization
+      // If late, record late-login approval request and notify approvers immediately
       if (lateApprovalStatus === 'PENDING') {
         try {
-          const superAdmins = await db.all("SELECT id, employeeId FROM employees WHERE role = 'Super Admin'");
-          const targets = superAdmins && superAdmins.length ? superAdmins : [{ employeeId: 'REV-EMP-001' }];
-          for (const sa of targets) {
-            await createNotification(db, {
-              employeeId: sa.employeeId,
-              type: 'Late Arrival Authorization',
-              title: `⚠️ Late Arrival: ${employee.name} (${employee.role})`,
-              message: `${employee.name} (${employee.role}) logged in at ${nowParts.timeStr} (${lateMinutes}m late for ${shiftConfig.name}). Awaiting Super Admin authorization before portal access is granted.`,
-              severity: 'warning',
-              relatedId: `late_auth_${id}`
-            });
-          }
+          await ensureLateLoginApprovalRequest(db, {
+            attendanceId: id,
+            employee,
+            shiftConfig,
+            workDate,
+            clockInTimeStr: nowParts.timeStr,
+            lateMinutes,
+            explanation: notes
+          });
         } catch (_) {}
       }
 
@@ -1086,7 +1495,7 @@ export const registerAttendanceRoutes = (app, { getDb, getClientIp }) => {
       }
 
       const activeRec = await db.get(
-        `SELECT * FROM attendance_records WHERE employeeId = ? AND checkOutAt IS NULL AND status IN ('In Progress', 'Late') ORDER BY checkInAt DESC LIMIT 1`,
+        `SELECT * FROM attendance_records WHERE employeeId = ? AND checkOutAt IS NULL ORDER BY checkInAt DESC LIMIT 1`,
         [employee.employeeId]
       );
       if (!activeRec) {
@@ -1206,7 +1615,7 @@ export const registerAttendanceRoutes = (app, { getDb, getClientIp }) => {
       const shiftConfig = await getEmployeeShift(db, employee);
 
       const activeRec = await db.get(
-        `SELECT * FROM attendance_records WHERE employeeId = ? AND checkOutAt IS NULL AND status IN ('In Progress', 'Late') ORDER BY checkInAt DESC LIMIT 1`,
+        `SELECT * FROM attendance_records WHERE employeeId = ? AND checkOutAt IS NULL ORDER BY checkInAt DESC LIMIT 1`,
         [employee.employeeId]
       );
 
@@ -1259,7 +1668,7 @@ export const registerAttendanceRoutes = (app, { getDb, getClientIp }) => {
 
       await db.run(
         `UPDATE attendance_records
-         SET checkOutAt = ?, totalBreakMinutes = ?, grossMinutes = ?, netWorkMinutes = ?, overtimeMinutes = ?, status = ?, updatedAt = CURRENT_TIMESTAMP
+         SET checkOutAt = ?, sessionStatus = 'COMPLETED', totalBreakMinutes = ?, grossMinutes = ?, netWorkMinutes = ?, overtimeMinutes = ?, status = ?, updatedAt = CURRENT_TIMESTAMP
          WHERE id = ?`,
         [
           checkOutAt,
@@ -1278,12 +1687,11 @@ export const registerAttendanceRoutes = (app, { getDb, getClientIp }) => {
         await db.run(
           `UPDATE role_login_logs 
            SET logoutTime = ?, totalDuration = ?
-           WHERE employeeId = ? AND loginTime LIKE ? AND logoutTime IS NULL`,
+           WHERE employeeId = ? AND logoutTime IS NULL`,
           [
             checkOutAt,
             formatMinutesDuration(metrics.netWorkMinutes),
-            employee.employeeId,
-            `${activeRec.workDate}%`
+            employee.employeeId
           ]
         );
       } catch (_) {}
@@ -2011,9 +2419,15 @@ export const registerAttendanceRoutes = (app, { getDb, getClientIp }) => {
 
         return res.json({
           success: true,
+<<<<<<< HEAD
           allowed: false,
           isLate: true,
           lateApprovalStatus: 'PENDING',
+=======
+          allowed: !rejected,
+          isLate: Number(existing.lateMinutes || 0) > 0,
+          lateApprovalStatus: existing.lateApprovalStatus || (isLate ? 'PENDING' : 'APPROVED'),
+>>>>>>> a8ad67d8 (Update HR Operations on 26.11.2026)
           attendanceId: existing.id,
           lateMinutes: updatedLateMinutes,
           shiftStart: existing.shiftStart || shiftConfig.startTime,
@@ -2089,25 +2503,21 @@ export const registerAttendanceRoutes = (app, { getDb, getClientIp }) => {
         );
       } catch (_) {}
 
-      // Create high-priority Super Admin notification
+      // Create or ensure single late-login approval request
       try {
-        const superAdmins = await db.all("SELECT id, employeeId FROM employees WHERE role = 'Super Admin'");
-        const targets = superAdmins && superAdmins.length ? superAdmins : [{ employeeId: 'REV-EMP-001' }];
-        for (const sa of targets) {
-          await createNotification(db, {
-            employeeId: sa.employeeId,
-            type: 'Late Arrival Alert',
-            title: `⚠️ Late Shift Login: ${employee.name} (${employee.role})`,
-            message: `${employee.name} attempted CRM portal sign-in at ${nowParts.timeStr} (+${lateMinutes}m late). Action required in Executive Command Center.`,
-            severity: 'warning',
-            relatedId: attId
-          });
-        }
+        await ensureLateLoginApprovalRequest(db, {
+          attendanceId: attId,
+          employee,
+          shiftConfig,
+          workDate,
+          clockInTimeStr: nowParts.timeStr,
+          lateMinutes
+        });
       } catch (_) {}
 
       return res.json({
         success: true,
-        allowed: false,
+        allowed: true,
         isLate: true,
         lateApprovalStatus: 'PENDING',
         attendanceId: attId,
@@ -2454,11 +2864,12 @@ export const registerAttendanceRoutes = (app, { getDb, getClientIp }) => {
         employee = await db.get('SELECT * FROM employees WHERE LOWER(email) = ?', [String(email).toLowerCase().trim()]);
       }
       if (!employee) {
-        const token = getBearerToken(req);
+        const authHeader = req.headers['authorization'] || req.headers['Authorization'] || '';
+        const token = authHeader.startsWith('Bearer ') ? authHeader.slice(7).trim() : null;
         if (token) {
           const payload = verifyCrmSessionToken(token);
           if (payload?.employeeId) {
-            employee = await db.get('SELECT * FROM employees WHERE employeeId = ?', [payload.employeeId]);
+            employee = await db.get('SELECT * FROM employees WHERE employeeId = ? OR id = ? OR LOWER(email) = LOWER(?)', [payload.employeeId, payload.id || '', payload.email || '']);
           }
         }
       }
@@ -2685,7 +3096,7 @@ export const registerAttendanceRoutes = (app, { getDb, getClientIp }) => {
         let checkIn = '—';
         let checkOut = '—';
         let status = 'Not Clocked In';
-        let hours = '0 hrs';
+        let hours = '—';
         let breakDuration = '0h 00m';
         let lateOrEarly = '—';
         let isLate = false;
@@ -2695,6 +3106,14 @@ export const registerAttendanceRoutes = (app, { getDb, getClientIp }) => {
         let remarks = 'No punch logged for this date';
         let isLive = false;
         let shiftName = 'General Day Shift (09:00 AM - 06:00 PM)';
+        let checkInAt = null;
+        let checkOutAt = null;
+        let totalBreakMinutes = 0;
+
+        const formatWorkedDuration = (mins) => {
+          const safe = Math.max(0, Math.floor(Number(mins) || 0));
+          return `${Math.floor(safe / 60)}h ${String(safe % 60).padStart(2, '0')}m`;
+        };
 
         if (att) {
           isLive = true;
@@ -2703,6 +3122,9 @@ export const registerAttendanceRoutes = (app, { getDb, getClientIp }) => {
           lateMinutes = Number(att.lateMinutes) || 0;
           isLate = lateMinutes > 0;
           lateApprovalStatus = att.lateApprovalStatus || (isLate ? 'PENDING' : 'APPROVED');
+          checkInAt = att.checkInAt || null;
+          checkOutAt = att.checkOutAt || null;
+          totalBreakMinutes = Number(att.totalBreakMinutes) || 0;
 
           if (att.checkInAt) {
             try {
@@ -2728,18 +3150,30 @@ export const registerAttendanceRoutes = (app, { getDb, getClientIp }) => {
             } catch (_) {
               checkOut = att.checkOutAt;
             }
-            const mins = att.netWorkMinutes || 0;
-            hours = mins > 0 ? `${Math.floor(mins / 60)}h ${String(mins % 60).padStart(2, '0')}m` : '0h 00m';
+            let mins = Number(att.netWorkMinutes) || 0;
+            if (mins <= 0 && att.checkInAt) {
+              const inMs = new Date(att.checkInAt).getTime();
+              const outMs = new Date(att.checkOutAt).getTime();
+              if (!isNaN(inMs) && !isNaN(outMs) && outMs > inMs) {
+                mins = Math.max(0, Math.floor((outMs - inMs) / 60000) - totalBreakMinutes);
+              }
+            }
+            hours = formatWorkedDuration(mins);
             status = att.status || (isLate ? 'Late' : 'Present');
-          } else {
-            // Explicit requirement: If an employee has not checked out, display Not Checked Out instead of inventing a time
+          } else if (att.checkInAt) {
             checkOut = 'Not Checked Out';
-            hours = 'In Progress';
+            const inMs = new Date(att.checkInAt).getTime();
+            const elapsedMins = !isNaN(inMs)
+              ? Math.max(0, Math.floor((Date.now() - inMs) / 60000) - totalBreakMinutes)
+              : (Number(att.netWorkMinutes) || 0);
+            hours = formatWorkedDuration(elapsedMins);
             status = isLate ? 'Late' : 'Present';
+          } else {
+            hours = '—';
           }
 
-          if (att.totalBreakMinutes) {
-            breakDuration = `${att.totalBreakMinutes}m`;
+          if (totalBreakMinutes) {
+            breakDuration = `${totalBreakMinutes}m`;
           }
 
           if (isLate) {
@@ -2756,8 +3190,12 @@ export const registerAttendanceRoutes = (app, { getDb, getClientIp }) => {
           isLate = login.punctuality === 'Late' || lateMinutes > 0;
           lateApprovalStatus = login.lateApprovalStatus || (isLate ? 'PENDING' : 'APPROVED');
           checkIn = login.checkInTime || (login.loginTime ? login.loginTime.slice(11, 16) : '—');
+          checkInAt = login.loginTime || null;
           checkOut = 'Not Checked Out';
-          hours = 'In Progress';
+          const loginMs = login.loginTime ? new Date(login.loginTime).getTime() : NaN;
+          hours = !isNaN(loginMs)
+            ? formatWorkedDuration(Math.max(0, Math.floor((Date.now() - loginMs) / 60000)))
+            : '0h 00m';
           status = isLate ? 'Late' : 'Present';
           lateOrEarly = isLate ? `⚠️ Late (+${lateMinutes}m)` : '✓ On Time';
           remarks = `Portal SSO Login (${login.shiftName || 'General Shift'})`;
@@ -2811,6 +3249,9 @@ export const registerAttendanceRoutes = (app, { getDb, getClientIp }) => {
           date: todayDateStr,
           checkIn,
           checkOut,
+          checkInAt,
+          checkOutAt,
+          totalBreakMinutes,
           breakDuration,
           hours,
           totalWorkingHours: hours,
@@ -2960,6 +3401,659 @@ export const registerAttendanceRoutes = (app, { getDb, getClientIp }) => {
     } catch (err) {
       console.error('Failed to log role login:', err);
       res.status(500).json({ success: false, message: 'Failed to record login.' });
+    }
+  });
+
+  // =========================================================================
+  // SHIFT MANAGEMENT & LATE APPROVAL WORKFLOW MODULE APIS (/api/crm/shifts/*)
+  // =========================================================================
+
+  const PREDEFINED_SHIFTS = [
+    {
+      id: 'SHIFT-GENERAL',
+      shiftName: 'General Shift',
+      name: 'General Shift (09:00 AM - 06:00 PM)',
+      timing: '9:00 AM – 6:00 PM',
+      startTime: '09:00',
+      endTime: '18:00',
+      scheduledLoginTime: '9:00 AM',
+      scheduledLogoutTime: '6:00 PM',
+      description: 'Standard business operations and core recruitment advisory.'
+    },
+    {
+      id: 'SHIFT-MORNING',
+      shiftName: 'Morning Shift',
+      name: 'Morning Shift (07:00 AM - 02:00 PM)',
+      timing: '7:00 AM – 2:00 PM',
+      startTime: '07:00',
+      endTime: '14:00',
+      scheduledLoginTime: '7:00 AM',
+      scheduledLogoutTime: '2:00 PM',
+      description: 'Early morning intake processing and regional screening.'
+    },
+    {
+      id: 'SHIFT-EVENING',
+      shiftName: 'Evening Shift',
+      name: 'Evening Shift (02:00 PM - 09:00 PM)',
+      timing: '2:00 PM – 9:00 PM',
+      startTime: '14:00',
+      endTime: '21:00',
+      scheduledLoginTime: '2:00 PM',
+      scheduledLogoutTime: '9:00 PM',
+      description: 'Evening corporate client coordination and overseas overlap.'
+    }
+  ];
+
+  // 1. GET /api/crm/shifts/configs - Predefined shifts with exact working hours
+  app.get('/api/crm/shifts/configs', async (_req, res) => {
+    res.json({
+      success: true,
+      data: PREDEFINED_SHIFTS,
+      shifts: PREDEFINED_SHIFTS
+    });
+  });
+
+  // 2. GET /api/crm/shifts/roster - Unified workforce shift roster for a selected date
+  app.get('/api/crm/shifts/roster', requireCrmAuth, requireHrStaffRole, async (req, res) => {
+    try {
+      const db = await getDb();
+      const nowParts = getCompanyDateTimeParts(new Date());
+      const selectedDate = /^\d{4}-\d{2}-\d{2}$/.test(req.query?.date || '')
+        ? req.query.date
+        : nowParts.dateStr;
+
+      // Fetch all active HR Operations employees (specifically for Shift Management)
+      const emps = await db.all(
+        `SELECT employeeId, name, email, phone, role, department, designation, assignedBranch AS branch, avatar, status, shiftId
+         FROM employees
+         WHERE LOWER(COALESCE(status, 'Active')) != 'inactive'
+           AND (
+             LOWER(role) = 'hr operations'
+             OR LOWER(role) LIKE '%operations%'
+             OR LOWER(department) LIKE '%operations%'
+           )
+           AND LOWER(role) NOT IN ('super admin', 'admin', 'hr lead', 'superadmin', 'hr_lead', 'recruiter', 'placement coordinator')
+           AND role NOT LIKE '%Admin%'
+           AND role NOT LIKE '%Super%'
+           AND role NOT LIKE '%HR Lead%'
+           AND role NOT LIKE '%Recruiter%'
+           AND role NOT LIKE '%Placement%'
+         ORDER BY name ASC`
+      );
+
+      // Fetch attendance records for selectedDate
+      const attRecords = await db.all(
+        `SELECT * FROM attendance_records WHERE workDate = ?`,
+        [selectedDate]
+      );
+      const attMap = new Map();
+      attRecords.forEach((r) => {
+        if (r.employeeId && !attMap.has(r.employeeId)) attMap.set(r.employeeId, r);
+      });
+
+      // Fetch approved leave requests for selectedDate
+      const approvedLeaves = await db.all(
+        `SELECT * FROM employee_leave_requests 
+         WHERE LOWER(COALESCE(status, '')) LIKE '%approved%' 
+           AND startDate <= ? AND endDate >= ?`,
+        [selectedDate, selectedDate]
+      );
+      const leaveMap = new Map();
+      approvedLeaves.forEach((l) => {
+        if (l.employeeId) leaveMap.set(l.employeeId, l);
+      });
+
+      // Fetch late approval requests for selectedDate
+      const lateRequests = await db.all(
+        `SELECT * FROM late_login_approval_requests WHERE attendanceDate = ?`,
+        [selectedDate]
+      );
+      const lateReqMap = new Map();
+      lateRequests.forEach((lr) => {
+        if (lr.employeeId && !lateReqMap.has(lr.employeeId)) lateReqMap.set(lr.employeeId, lr);
+        if (lr.attendanceId && !lateReqMap.has(lr.attendanceId)) lateReqMap.set(lr.attendanceId, lr);
+      });
+
+      // Construct unified roster for each employee on selectedDate
+      const roster = await Promise.all(
+        emps.map(async (emp) => {
+          const shift = await resolveEmployeeShiftForDate(db, emp, selectedDate);
+          const att = attMap.get(emp.employeeId);
+          const leave = leaveMap.get(emp.employeeId);
+          const lateReq = att ? (lateReqMap.get(att.id) || lateReqMap.get(emp.employeeId)) : lateReqMap.get(emp.employeeId);
+
+          const scheduledLoginTime = shift.scheduledLoginTime || formatHHMMTo12Hour(shift.startTime);
+          const scheduledLogoutTime = shift.scheduledLogoutTime || formatHHMMTo12Hour(shift.endTime);
+
+          let actualClockInTime = '—';
+          let actualClockOutTime = '—';
+          let loginStatus = 'Pending Clock-In';
+          let isLate = false;
+          let lateMinutes = 0;
+          let lateApprovalStatus = 'None';
+
+          if (leave) {
+            loginStatus = 'On Leave';
+          } else if (att && att.checkInAt) {
+            const checkInDate = new Date(att.checkInAt);
+            actualClockInTime = getCompanyDateTimeParts(checkInDate).timeStr;
+            if (att.checkOutAt) {
+              actualClockOutTime = getCompanyDateTimeParts(new Date(att.checkOutAt)).timeStr;
+            } else if (att.status === 'In Progress') {
+              actualClockOutTime = 'In Office';
+            }
+
+            lateMinutes = Number(att.lateMinutes || 0);
+            isLate = lateMinutes > 0;
+            if (isLate) {
+              loginStatus = `Late (${lateMinutes} mins)`;
+              lateApprovalStatus = lateReq?.status || att.lateApprovalStatus || 'Pending Approval';
+            } else {
+              loginStatus = 'On Time';
+              lateApprovalStatus = 'Approved';
+            }
+          }
+
+          let shiftAssignmentPeriod = 'Ongoing Default';
+          if (shift.assignmentId) {
+            if (shift.frequency === 'one_day') {
+              shiftAssignmentPeriod = `${shift.startDate} (One Day)`;
+            } else if (shift.frequency === 'weekly') {
+              shiftAssignmentPeriod = `${shift.startDate} – ${shift.endDate || 'Ongoing'} (Weekly)`;
+            } else if (shift.frequency === 'monthly') {
+              shiftAssignmentPeriod = `${shift.startDate} – ${shift.endDate || 'Ongoing'} (Monthly)`;
+            }
+          }
+
+          return {
+            id: emp.employeeId,
+            employeeId: emp.employeeId,
+            name: emp.name,
+            email: emp.email,
+            phone: emp.phone,
+            role: emp.role,
+            department: emp.department || 'Operations',
+            designation: emp.designation || emp.role,
+            avatar: emp.avatar,
+            assignedShiftId: shift.id,
+            shiftId: shift.id,
+            baseShiftId: emp.shiftId || 'SHIFT-GENERAL',
+            assignedShift: `${shift.shiftName || shift.name} (${scheduledLoginTime} – ${scheduledLogoutTime})`,
+            shiftName: shift.shiftName || shift.name,
+            scheduledLoginTime,
+            scheduledLogoutTime,
+            actualClockInTime,
+            actualClockOutTime,
+            loginStatus,
+            isLate,
+            lateMinutes,
+            lateApprovalStatus,
+            shiftAssignmentPeriod,
+            shiftPeriod: shiftAssignmentPeriod,
+            assignmentFrequency: shift.frequency || 'default',
+            assignmentId: shift.assignmentId || null,
+            attendanceId: att?.id || null,
+            explanation: lateReq?.explanation || att?.notes || null,
+            actions: ['assign_shift', 'view_history']
+          };
+        })
+      );
+
+      res.json({
+        success: true,
+        date: selectedDate,
+        employees: roster,
+        count: roster.length
+      });
+    } catch (err) {
+      console.error('Failed to get shift roster:', err);
+      res.status(500).json({ success: false, message: 'Failed to retrieve shift roster.' });
+    }
+  });
+
+  // 3. GET /api/crm/shifts/assignments - Shift assignments list & history
+  app.get('/api/crm/shifts/assignments', requireCrmAuth, requireHrStaffRole, async (req, res) => {
+    try {
+      const db = await getDb();
+      const { employeeId, status, startDate, endDate } = req.query || {};
+
+      let sql = `SELECT rowid, * FROM employee_shift_assignments WHERE 1=1`;
+      const params = [];
+
+      if (employeeId) {
+        sql += ` AND employeeId = ?`;
+        params.push(employeeId);
+      }
+      if (status) {
+        sql += ` AND status = ?`;
+        params.push(status);
+      }
+      if (startDate && endDate) {
+        sql += ` AND startDate <= ? AND (endDate IS NULL OR endDate >= ?)`;
+        params.push(endDate, startDate);
+      }
+
+      sql += ` ORDER BY assignedAt DESC, rowid DESC`;
+      const rows = await db.all(sql, params);
+
+      res.json({
+        success: true,
+        count: rows.length,
+        assignments: rows
+      });
+    } catch (err) {
+      console.error('Failed to get shift assignments:', err);
+      res.status(500).json({ success: false, message: 'Failed to retrieve shift assignments.' });
+    }
+  });
+
+  // 4. POST /api/crm/shifts/assign - Assign or bulk assign shifts to workforce
+  app.post('/api/crm/shifts/assign', requireCrmAuth, requireHrStaffRole, async (req, res) => {
+    try {
+      const db = await getDb();
+      const reviewer = req.authEmployee || {};
+      const reviewerEmpId = reviewer.employeeId || reviewer.id || 'HR-STAFF';
+      const reviewerName = reviewer.name || 'HR Management';
+      const reviewerRole = reviewer.role || 'HR';
+      const {
+        employeeIds = [],
+        shiftId = 'SHIFT-GENERAL',
+        startDate,
+        endDate = null,
+        frequency = 'one_day',
+        applicableDays = [1, 2, 3, 4, 5, 6],
+        notes = ''
+      } = req.body || {};
+
+      const targetEmpIds = Array.isArray(employeeIds)
+        ? employeeIds.filter(Boolean)
+        : (employeeIds ? [employeeIds] : []);
+
+      if (targetEmpIds.length === 0) {
+        return res.status(400).json({ success: false, message: 'Please select at least one employee.' });
+      }
+      if (!startDate || !/^\d{4}-\d{2}-\d{2}$/.test(startDate)) {
+        return res.status(400).json({ success: false, message: 'A valid start date (YYYY-MM-DD) is required.' });
+      }
+      if (endDate && !/^\d{4}-\d{2}-\d{2}$/.test(endDate)) {
+        return res.status(400).json({ success: false, message: 'Invalid end date format.' });
+      }
+      if (endDate && endDate < startDate) {
+        return res.status(400).json({ success: false, message: 'End date cannot be earlier than start date.' });
+      }
+
+      // Resolve predefined shift target
+      const sIdLower = String(shiftId).toLowerCase();
+      let targetShift = PREDEFINED_SHIFTS.find(s => s.id === shiftId);
+      if (!targetShift) {
+        if (sIdLower.includes('morning') || sIdLower.includes('07') || sIdLower.includes('7:00')) {
+          targetShift = PREDEFINED_SHIFTS[1];
+        } else if (sIdLower.includes('evening') || sIdLower.includes('14') || sIdLower.includes('2:00')) {
+          targetShift = PREDEFINED_SHIFTS[2];
+        } else {
+          targetShift = PREDEFINED_SHIFTS[0];
+        }
+      }
+
+      const assignedRecords = [];
+      const applicableDaysJson = JSON.stringify(Array.isArray(applicableDays) ? applicableDays : [1, 2, 3, 4, 5, 6]);
+
+      // Compute strict date bounds based on frequency so assignments never bleed into unintended dates
+      let effectiveEndDate = endDate || null;
+      if (frequency === 'one_day') {
+        effectiveEndDate = startDate;
+      } else if (frequency === 'weekly' && !effectiveEndDate) {
+        const [y, m, d] = startDate.split('-').map(Number);
+        const dt = new Date(Date.UTC(y, m - 1, d));
+        const dow = dt.getUTCDay();
+        const daysToSunday = dow === 0 ? 0 : 7 - dow;
+        dt.setUTCDate(dt.getUTCDate() + daysToSunday);
+        effectiveEndDate = dt.toISOString().slice(0, 10);
+      } else if (frequency === 'monthly' && !effectiveEndDate) {
+        const [y, m] = startDate.split('-').map(Number);
+        const lastDay = new Date(Date.UTC(y, m, 0));
+        effectiveEndDate = lastDay.toISOString().slice(0, 10);
+      }
+
+      for (const empId of targetEmpIds) {
+        let emp = await db.get(
+          'SELECT employeeId, name, role, department, status FROM employees WHERE employeeId = ? OR id = ? OR LOWER(email) = LOWER(?)',
+          [empId, empId, empId]
+        );
+        if (!emp || String(emp.status || 'Active').toLowerCase() === 'inactive') continue;
+
+        const canonicalEmpId = emp.employeeId;
+
+        // Supersede prior active assignments appropriately based on frequency
+        if (frequency === 'one_day') {
+          // A one-day assignment is an override for this specific date only.
+          // It only supersedes existing one_day assignments on that exact date.
+          await db.run(
+            `UPDATE employee_shift_assignments 
+             SET status = 'Superseded'
+             WHERE employeeId = ? AND status = 'Active' 
+               AND frequency = 'one_day'
+               AND startDate = ?`,
+            [canonicalEmpId, startDate]
+          );
+        } else {
+          // Weekly / Monthly recurring assignments:
+          // Supersede prior overlapping recurring assignments of the same or broader scope (not one-day overrides)
+          await db.run(
+            `UPDATE employee_shift_assignments 
+             SET status = 'Superseded'
+             WHERE employeeId = ? AND status = 'Active' 
+               AND frequency IN ('weekly', 'monthly')
+               AND startDate <= ? AND (endDate IS NULL OR endDate >= ?)`,
+            [canonicalEmpId, effectiveEndDate || startDate, startDate]
+          );
+        }
+
+        const assignmentId = makeId('SFA');
+        await db.run(
+          `INSERT INTO employee_shift_assignments (
+            id, employeeId, employeeName, shiftId, shiftName,
+            scheduledStartTime, scheduledEndTime, scheduledLoginTime, scheduledLogoutTime,
+            frequency, startDate, endDate, applicableDays,
+            assignedBy, assignedByName, assignedByRole, status, notes
+          ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'Active', ?)`,
+          [
+            assignmentId,
+            canonicalEmpId,
+            emp.name,
+            targetShift.id,
+            targetShift.shiftName,
+            targetShift.startTime,
+            targetShift.endTime,
+            targetShift.scheduledLoginTime,
+            targetShift.scheduledLogoutTime,
+            frequency,
+            startDate,
+            effectiveEndDate,
+            applicableDaysJson,
+            reviewerEmpId,
+            reviewerName,
+            reviewerRole,
+            notes || `Assigned ${targetShift.shiftName} (${frequency})`
+          ]
+        );
+
+        // Do NOT overwrite employees.shiftId globally for date/week/month assignments,
+        // so other unassigned dates keep their independent baseline shift.
+
+        // Audit log
+        await writeAttendanceAudit(db, {
+          employeeId: canonicalEmpId,
+          workDate: startDate,
+          action: 'ASSIGN_SHIFT',
+          actor: { ...reviewer, employeeId: reviewerEmpId, name: reviewerName, role: reviewerRole },
+          details: `Assigned ${targetShift.shiftName} (${targetShift.timing}) from ${startDate} to ${endDate || 'ongoing'} [Frequency: ${frequency}]`,
+          ipAddress: getClientIp(req)
+        });
+
+        // Notify employee of shift change
+        await createNotification(db, {
+          employeeId: canonicalEmpId,
+          type: 'Shift Assignment',
+          title: `📅 New Shift Assigned: ${targetShift.shiftName}`,
+          message: `${reviewerName} (${reviewerRole}) assigned you to ${targetShift.shiftName} (${targetShift.timing}) effective from ${startDate}.`,
+          severity: 'info',
+          relatedId: assignmentId
+        });
+
+        assignedRecords.push({
+          assignmentId,
+          employeeId: canonicalEmpId,
+          employeeName: emp.name,
+          shiftName: targetShift.shiftName,
+          timing: targetShift.timing
+        });
+      }
+
+      if (assignedRecords.length === 0) {
+        return res.status(400).json({
+          success: false,
+          message: 'Could not find matching employee records for the selected staff.'
+        });
+      }
+
+      res.status(201).json({
+        success: true,
+        message: `Successfully assigned ${targetShift.shiftName} to ${assignedRecords.length} employee(s).`,
+        count: assignedRecords.length,
+        assignments: assignedRecords
+      });
+    } catch (err) {
+      console.error('Failed to assign shift:', err);
+      res.status(500).json({ success: false, message: 'Failed to save shift assignment.' });
+    }
+  });
+
+  // 5. DELETE /api/crm/shifts/assignments/:id - Cancel an assignment
+  app.delete('/api/crm/shifts/assignments/:id', requireCrmAuth, requireHrStaffRole, async (req, res) => {
+    try {
+      const db = await getDb();
+      const reviewer = req.authEmployee;
+      const { id } = req.params;
+
+      const existing = await db.get('SELECT * FROM employee_shift_assignments WHERE id = ?', [id]);
+      if (!existing) {
+        return res.status(404).json({ success: false, message: 'Shift assignment not found.' });
+      }
+
+      await db.run(
+        `UPDATE employee_shift_assignments SET status = 'Cancelled' WHERE id = ?`,
+        [id]
+      );
+
+      await writeAttendanceAudit(db, {
+        employeeId: existing.employeeId,
+        workDate: existing.startDate,
+        action: 'CANCEL_SHIFT_ASSIGNMENT',
+        actor: reviewer,
+        details: `Cancelled assignment ${id} for ${existing.employeeName} (${existing.shiftName})`,
+        ipAddress: getClientIp(req)
+      });
+
+      res.json({
+        success: true,
+        message: 'Shift assignment cancelled successfully.'
+      });
+    } catch (err) {
+      console.error('Failed to cancel shift assignment:', err);
+      res.status(500).json({ success: false, message: 'Failed to cancel shift assignment.' });
+    }
+  });
+
+  // 6. GET /api/crm/shifts/late-approvals - Review queue for late arrivals
+  app.get('/api/crm/shifts/late-approvals', requireCrmAuth, requireHrLeadershipRole, async (req, res) => {
+    try {
+      const db = await getDb();
+      const statusFilter = req.query?.status;
+
+      let sql = `SELECT * FROM late_login_approval_requests WHERE 1=1`;
+      const params = [];
+      if (statusFilter) {
+        sql += ` AND status = ?`;
+        params.push(statusFilter);
+      }
+      sql += ` ORDER BY createdAt DESC`;
+
+      const rows = await db.all(sql, params);
+
+      // Enrich with employee profile details
+      const enriched = await Promise.all(
+        rows.map(async (r) => {
+          const emp = await db.get('SELECT email, avatar, designation FROM employees WHERE employeeId = ?', [r.employeeId]);
+          return {
+            ...r,
+            email: emp?.email || '',
+            avatar: emp?.avatar || '',
+            designation: emp?.designation || r.role || ''
+          };
+        })
+      );
+
+      res.json({
+        success: true,
+        count: enriched.length,
+        requests: enriched
+      });
+    } catch (err) {
+      console.error('Failed to get late approvals:', err);
+      res.status(500).json({ success: false, message: 'Failed to retrieve late approvals queue.' });
+    }
+  });
+
+  // 7. POST /api/crm/shifts/late-approvals/:id/decision - Approve or Reject late login
+  app.post('/api/crm/shifts/late-approvals/:id/decision', requireCrmAuth, requireHrLeadershipRole, async (req, res) => {
+    try {
+      const db = await getDb();
+      const reviewer = req.authEmployee;
+      const { id } = req.params;
+      const { decision, rejectionReason, notes } = req.body || {};
+
+      let lateReq = await db.get('SELECT * FROM late_login_approval_requests WHERE id = ?', [id]);
+      if (!lateReq) {
+        // Fallback by attendanceId
+        lateReq = await db.get('SELECT * FROM late_login_approval_requests WHERE attendanceId = ?', [id]);
+      }
+      if (!lateReq) {
+        return res.status(404).json({ success: false, message: 'Late-login approval request not found.' });
+      }
+
+      // Rule: Prevent unauthorized self-approval
+      if (reviewer.employeeId === lateReq.employeeId) {
+        return res.status(403).json({
+          success: false,
+          message: 'Access denied: You cannot approve or reject your own late-login request.'
+        });
+      }
+
+      const statusValue = String(decision).toLowerCase() === 'approved' ? 'Approved' : 'Rejected';
+      const reasonText = statusValue === 'Rejected'
+        ? (rejectionReason || notes || 'Late arrival rejected by HR Leadership')
+        : null;
+
+      // 1. Update late_login_approval_requests
+      await db.run(
+        `UPDATE late_login_approval_requests 
+         SET status = ?, approverId = ?, approverName = ?, approverRole = ?, 
+             decisionTimestamp = CURRENT_TIMESTAMP, rejectionReason = ?, updatedAt = CURRENT_TIMESTAMP 
+         WHERE id = ?`,
+        [statusValue, reviewer.employeeId, reviewer.name, reviewer.role, reasonText, lateReq.id]
+      );
+
+      // 2. Update attendance_records (preserves actual check-in & lateMinutes, updates disposition)
+      const attStatusValue = statusValue === 'Approved' ? 'APPROVED' : 'REJECTED';
+      if (lateReq.attendanceId) {
+        await db.run(
+          `UPDATE attendance_records 
+           SET lateApprovalStatus = ?, 
+               notes = COALESCE(notes || ' | ', '') || 'Late-login ${statusValue.toLowerCase()} by ${reviewer.name} (${reviewer.role})', 
+               updatedAt = CURRENT_TIMESTAMP 
+           WHERE id = ?`,
+          [attStatusValue, lateReq.attendanceId]
+        );
+      } else {
+        await db.run(
+          `UPDATE attendance_records 
+           SET lateApprovalStatus = ?, 
+               notes = COALESCE(notes || ' | ', '') || 'Late-login ${statusValue.toLowerCase()} by ${reviewer.name} (${reviewer.role})', 
+               updatedAt = CURRENT_TIMESTAMP 
+           WHERE employeeId = ? AND workDate = ?`,
+          [attStatusValue, lateReq.employeeId, lateReq.attendanceDate]
+        );
+      }
+
+      // 3. Update role_login_logs
+      try {
+        await db.run(
+          `UPDATE role_login_logs 
+           SET lateApprovalStatus = ?, approvedBy = ?, approvedAt = CURRENT_TIMESTAMP, rejectionReason = ? 
+           WHERE employeeId = ? AND (lateApprovalStatus = 'PENDING' OR loginTime LIKE ?)`,
+          [attStatusValue, `${reviewer.name} (${reviewer.role})`, reasonText, lateReq.employeeId, `${lateReq.attendanceDate}%`]
+        );
+      } catch (_) {}
+
+      // 4. Record decision in audit log
+      await writeAttendanceAudit(db, {
+        attendanceId: lateReq.attendanceId,
+        employeeId: lateReq.employeeId,
+        workDate: lateReq.attendanceDate,
+        action: statusValue === 'Approved' ? 'APPROVE_LATE_LOGIN' : 'REJECT_LATE_LOGIN',
+        actor: reviewer,
+        beforeState: { lateApprovalStatus: lateReq.status },
+        afterState: { lateApprovalStatus: statusValue },
+        details: `Late login on ${lateReq.attendanceDate} (${lateReq.delayMinutes}m delay) was ${statusValue.toLowerCase()} by ${reviewer.name} (${reviewer.role}). ${reasonText ? 'Reason: ' + reasonText : ''}`,
+        ipAddress: getClientIp(req)
+      });
+
+      // 5. Notify the employee of decision
+      await createNotification(db, {
+        employeeId: lateReq.employeeId,
+        type: 'Late Login Decision',
+        title: statusValue === 'Approved' ? '✓ Late Login Approved' : '✕ Late Login Rejected',
+        message: statusValue === 'Approved'
+          ? `Your late login for shift ${lateReq.attendanceDate} (${lateReq.shiftName}) was approved by ${reviewer.name} (${reviewer.role}).`
+          : `Your late login for shift ${lateReq.attendanceDate} (${lateReq.shiftName}) was rejected by ${reviewer.name}. ${reasonText || 'Please contact HR Leadership.'}`,
+        severity: statusValue === 'Approved' ? 'success' : 'error',
+        relatedId: lateReq.id
+      });
+
+      res.json({
+        success: true,
+        message: `Late login request successfully ${statusValue.toLowerCase()} for ${lateReq.employeeName}.`,
+        decision: statusValue,
+        status: statusValue,
+        request: {
+          id: lateReq.id,
+          employeeId: lateReq.employeeId,
+          status: statusValue
+        }
+      });
+    } catch (err) {
+      console.error('Failed to process late approval decision:', err);
+      res.status(500).json({ success: false, message: 'Failed to process late approval decision.' });
+    }
+  });
+
+  // 8. POST /api/crm/shifts/late-approvals/:id/explanation - Employee submits late justification
+  app.post('/api/crm/shifts/late-approvals/:id/explanation', requireCrmAuth, async (req, res) => {
+    try {
+      const db = await getDb();
+      const employee = req.authEmployee;
+      const { id } = req.params;
+      const { explanation } = req.body || {};
+
+      if (!explanation || !explanation.trim()) {
+        return res.status(400).json({ success: false, message: 'Please provide an explanation.' });
+      }
+
+      let lateReq = await db.get('SELECT * FROM late_login_approval_requests WHERE id = ?', [id]);
+      if (!lateReq) {
+        lateReq = await db.get('SELECT * FROM late_login_approval_requests WHERE attendanceId = ?', [id]);
+      }
+      if (!lateReq) {
+        return res.status(404).json({ success: false, message: 'Late-login request not found.' });
+      }
+
+      if (employee.employeeId !== lateReq.employeeId && !HR_LEADERSHIP_ROLES.includes(employee.role)) {
+        return res.status(403).json({ success: false, message: 'Access denied: You can only update your own explanation.' });
+      }
+
+      await db.run(
+        `UPDATE late_login_approval_requests SET explanation = ?, updatedAt = CURRENT_TIMESTAMP WHERE id = ?`,
+        [explanation.trim(), lateReq.id]
+      );
+
+      res.json({
+        success: true,
+        message: 'Explanation recorded successfully.'
+      });
+    } catch (err) {
+      console.error('Failed to record explanation:', err);
+      res.status(500).json({ success: false, message: 'Failed to record explanation.' });
     }
   });
 };

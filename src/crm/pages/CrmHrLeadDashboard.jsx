@@ -12,44 +12,62 @@ import {
 import jsPDF from 'jspdf';
 import ScrollReveal from '../../components/ScrollReveal';
 import CrmHrTaskAssignment from '../components/CrmHrTaskAssignment';
+<<<<<<< HEAD
 import { ShiftLateArrivalApprovalSection } from '../components/ShiftLateArrivalApprovalSection';
+=======
+import { SharedAnnouncementCalendar } from '../components/SharedAnnouncementCalendar';
+>>>>>>> a8ad67d8 (Update HR Operations on 26.11.2026)
 
 // Initial Workforce Directory Constants & Shift Configurations
 export const SHIFT_CONFIGS = [
   {
-    id: 'shift-9-6',
-    shiftName: 'General Day Shift',
-    timing: '09:00 AM - 06:00 PM',
+    id: 'SHIFT-GENERAL',
+    shiftName: 'General Shift',
+    timing: '9:00 AM – 6:00 PM',
     startTime: '09:00 AM',
     endTime: '06:00 PM',
+    scheduledLoginTime: '9:00 AM',
+    scheduledLogoutTime: '6:00 PM',
     badge: 'Core Operations',
-    description: 'Core operations, HR lead, client advisory, interviews, and student academy.'
+    description: 'Standard business operations, HR leadership, and client advisory.'
   },
   {
-    id: 'shift-10-7',
-    shiftName: 'Corporate Mid-Day Shift',
-    timing: '10:00 AM - 07:00 PM',
-    startTime: '10:00 AM',
-    endTime: '07:00 PM',
-    badge: 'Corporate Accounts',
+    id: 'SHIFT-MORNING',
+    shiftName: 'Morning Shift',
+    timing: '7:00 AM – 2:00 PM',
+    startTime: '07:00 AM',
+    endTime: '02:00 PM',
+    scheduledLoginTime: '7:00 AM',
+    scheduledLogoutTime: '2:00 PM',
+    badge: 'Early Desk',
+    description: 'Early morning candidate intake, regional interviews, and screening.'
+  },
+  {
+    id: 'SHIFT-EVENING',
+    shiftName: 'Evening Shift',
+    timing: '2:00 PM – 9:00 PM',
+    startTime: '02:00 PM',
+    endTime: '09:00 PM',
+    scheduledLoginTime: '2:00 PM',
+    scheduledLogoutTime: '9:00 PM',
+    badge: 'Overseas Overlap',
     description: 'Corporate client accounts, candidate evening debriefs, and global tech hiring.'
-  },
-  {
-    id: 'shift-1-930',
-    shiftName: 'UK & Middle East Overlap',
-    timing: '01:00 PM - 09:30 PM',
-    startTime: '01:00 PM',
-    endTime: '09:30 PM',
-    badge: 'GCC & EMEA',
-    description: 'Dubai, Riyadh and European corporate hiring partner coordination and visa desk.'
   }
 ];
+
+export const normalizeShiftId = (shiftId) => {
+  if (!shiftId) return 'SHIFT-GENERAL';
+  const clean = String(shiftId).toLowerCase();
+  if (clean === 'shift-10-7' || clean.includes('evening') || clean.includes('14') || clean.includes('uk-me')) return 'SHIFT-EVENING';
+  if (clean === 'shift-1-930' || clean.includes('morning') || clean.includes('07')) return 'SHIFT-MORNING';
+  return 'SHIFT-GENERAL';
+};
 
 export const computePunctuality = (checkInStr, shiftId) => {
   if (!checkInStr || checkInStr === '-' || checkInStr.toLowerCase().includes('pending')) {
     return { isLate: false, lateMinutes: 0, status: 'Pending Clock-In' };
   }
-  const shift = SHIFT_CONFIGS.find(s => s.id === shiftId) || SHIFT_CONFIGS[0];
+  const shift = SHIFT_CONFIGS.find(s => s.id === shiftId || s.id === normalizeShiftId(shiftId)) || SHIFT_CONFIGS[0];
   const [shiftHourStr, shiftMinPart] = shift.startTime.split(':');
   let shiftH = parseInt(shiftHourStr, 10);
   const shiftM = parseInt(shiftMinPart.slice(0, 2), 10);
@@ -330,14 +348,19 @@ export const INITIAL_PERFORMANCE_REVIEWS = [
   { id: 'REV-P-4', employee: 'Chentamilselvi M.', rating: 4.5, targetScore: '100% Achieved', tasksDone: '28/30', feedback: 'Clean background check records with zero documentation audit defects.', reviewer: 'Priya Lead' }
 ];
 
-export const CrmHrLeadDashboard = ({ initialSection }) => {
+export const CrmHrLeadDashboard = ({ initialSection, isReadOnly = false }) => {
   const {
-    candidates = [], setActiveModule, currentRole, crmToken, setCrmToken, user,
+    candidates = [], setActiveModule, currentRole, crmToken, setCrmToken, user, currentEmployee,
     attendancePunch, clockIn, startBreak, endBreak, clockOut
   } = useCrm();
 
+  const normRole = (currentRole || user?.role || user?.designation || '').toLowerCase().replace(/[-_]/g, ' ').trim();
+  const isHrOps = normRole === 'hr operations' || normRole.includes('operations');
+  const readOnlyMode = Boolean(isReadOnly || isHrOps || currentRole === 'HR Operations');
+
   // Helper to map route ID (e.g. 'hr-attendance') to internal tab id
   const getTabFromSection = (sec) => {
+    if (readOnlyMode) return 'shifts';
     switch (sec) {
       case 'hr-tasks': return 'tasks';
       case 'hr-attendance': return 'attendance';
@@ -358,7 +381,7 @@ export const CrmHrLeadDashboard = ({ initialSection }) => {
     }
   };
 
-  const [activeTab, setActiveTab] = useState(() => getTabFromSection(initialSection));
+  const [activeTab, setActiveTab] = useState(() => (readOnlyMode ? 'shifts' : getTabFromSection(initialSection)));
   const [toastMsg, setToastMsg] = useState('');
   const [refreshing, setRefreshing] = useState(false);
   const [maskSalary, setMaskSalary] = useState(true);
@@ -377,10 +400,12 @@ export const CrmHrLeadDashboard = ({ initialSection }) => {
 
   // Sync tab when initialSection changes
   useEffect(() => {
-    if (initialSection) {
+    if (readOnlyMode) {
+      setActiveTab('shifts');
+    } else if (initialSection) {
       setActiveTab(getTabFromSection(initialSection));
     }
-  }, [initialSection]);
+  }, [initialSection, readOnlyMode]);
 
   const showToast = (msg) => {
     setToastMsg(msg);
@@ -1225,20 +1250,27 @@ export const CrmHrLeadDashboard = ({ initialSection }) => {
 
   // 3. COMPANY ANNOUNCEMENTS STATE & BACKEND DATABASE INTEGRATION
   const [companyAnnouncements, setCompanyAnnouncements] = useState([]);
+  const [calendarAnnouncements, setCalendarAnnouncements] = useState([]);
   const [announcementsLoading, setAnnouncementsLoading] = useState(false);
   const [isCreateAnnouncementOpen, setIsCreateAnnouncementOpen] = useState(false);
+  const [showAnnouncementCalendar, setShowAnnouncementCalendar] = useState(false);
   const [selectedAnnouncementForModal, setSelectedAnnouncementForModal] = useState(null);
   const [announcementFilter, setAnnouncementFilter] = useState('all'); // 'all' | 'published' | 'draft' | 'hr-ops'
   const [announcementSearch, setAnnouncementSearch] = useState('');
   const [savingAnnouncement, setSavingAnnouncement] = useState(false);
   const [announcementFormErrors, setAnnouncementFormErrors] = useState({});
+  const [deleteConfirmAnnouncement, setDeleteConfirmAnnouncement] = useState(null);
+  const [deleteReason, setDeleteReason] = useState('');
+  const [deletingAnnouncement, setDeletingAnnouncement] = useState(false);
 
   const [announcementForm, setAnnouncementForm] = useState({
+    id: null,
     title: '',
     description: '',
     category: 'General Notice',
     target_audience: 'All Employees',
     status: 'Published',
+    publish_date: '',
     expires_at: ''
   });
 
@@ -1262,7 +1294,7 @@ export const CrmHrLeadDashboard = ({ initialSection }) => {
             token = previewJson.token;
             if (setCrmToken) setCrmToken(token);
           }
-        } catch (_) {}
+        } catch (_) { }
       }
 
       const res = await fetch('/api/company-announcements', {
@@ -1276,6 +1308,7 @@ export const CrmHrLeadDashboard = ({ initialSection }) => {
         const data = await res.json();
         if (data?.success && Array.isArray(data.announcements)) {
           setCompanyAnnouncements(data.announcements);
+          setCalendarAnnouncements(Array.isArray(data.calendarAnnouncements) ? data.calendarAnnouncements : data.announcements);
           return;
         }
       }
@@ -1324,7 +1357,7 @@ export const CrmHrLeadDashboard = ({ initialSection }) => {
             token = previewJson.token;
             if (setCrmToken) setCrmToken(token);
           }
-        } catch (_) {}
+        } catch (_) { }
       }
 
       const payload = {
@@ -1333,38 +1366,56 @@ export const CrmHrLeadDashboard = ({ initialSection }) => {
         category: announcementForm.category,
         target_audience: announcementForm.target_audience,
         status: statusChoice,
+        publish_date: announcementForm.publish_date || null,
         expires_at: announcementForm.expires_at || null
       };
 
-      const res = await fetch('/api/company-announcements', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          ...(token ? { Authorization: `Bearer ${token}` } : {})
-        },
-        credentials: 'include',
-        body: JSON.stringify(payload)
-      });
+      const isEdit = Boolean(announcementForm.id);
+      const res = await fetch(
+        isEdit ? `/api/company-announcements/${announcementForm.id}` : '/api/company-announcements',
+        {
+          method: isEdit ? 'PATCH' : 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            ...(token ? { Authorization: `Bearer ${token}` } : {})
+          },
+          credentials: 'include',
+          body: JSON.stringify(payload)
+        }
+      );
 
       const data = await res.json();
       if (!res.ok || !data.success) {
         showToast(data.message || 'Failed to save announcement.');
       } else {
         showToast(
-          statusChoice === 'Published'
-            ? `✓ Announcement "${payload.title}" published and broadcast successfully.`
-            : `✓ Announcement "${payload.title}" saved as draft.`
+          isEdit
+            ? `✓ Announcement "${payload.title}" updated successfully.`
+            : (statusChoice === 'Published'
+              ? `✓ Announcement "${payload.title}" published and broadcast successfully.`
+              : `✓ Announcement "${payload.title}" saved as draft.`)
         );
         setIsCreateAnnouncementOpen(false);
         setAnnouncementForm({
+          id: null,
           title: '',
           description: '',
           category: 'General Notice',
           target_audience: 'All Employees',
           status: 'Published',
+          publish_date: '',
           expires_at: ''
         });
         await loadCompanyAnnouncements();
+        try {
+          localStorage.setItem('sir_announcements_updated_at', String(Date.now()));
+          window.dispatchEvent(new Event('sir-announcements-updated'));
+          if (typeof BroadcastChannel !== 'undefined') {
+            const bc = new BroadcastChannel('sir_company_announcements');
+            bc.postMessage({ type: 'updated', at: Date.now() });
+            bc.close();
+          }
+        } catch (_) { }
       }
     } catch (err) {
       showToast('Error saving announcement: ' + (err.message || 'Network error'));
@@ -1388,6 +1439,15 @@ export const CrmHrLeadDashboard = ({ initialSection }) => {
       if (res.ok && data.success) {
         showToast(`✓ Announcement "${title}" published and broadcast.`);
         await loadCompanyAnnouncements();
+        try {
+          localStorage.setItem('sir_announcements_updated_at', String(Date.now()));
+          window.dispatchEvent(new Event('sir-announcements-updated'));
+          if (typeof BroadcastChannel !== 'undefined') {
+            const bc = new BroadcastChannel('sir_company_announcements');
+            bc.postMessage({ type: 'updated', at: Date.now() });
+            bc.close();
+          }
+        } catch (_) { }
       } else {
         showToast(data.message || 'Failed to publish announcement.');
       }
@@ -1396,7 +1456,8 @@ export const CrmHrLeadDashboard = ({ initialSection }) => {
     }
   };
 
-  const handleDeleteAnnouncement = async (id, title) => {
+  const handleDeleteAnnouncement = async (id, title, reason = '') => {
+    setDeletingAnnouncement(true);
     try {
       let token = crmToken;
       const res = await fetch(`/api/company-announcements/${id}`, {
@@ -1405,22 +1466,71 @@ export const CrmHrLeadDashboard = ({ initialSection }) => {
           'Content-Type': 'application/json',
           ...(token ? { Authorization: `Bearer ${token}` } : {})
         },
+        body: JSON.stringify({ reason: reason.trim() }),
         credentials: 'include'
       });
       const data = await res.json();
       if (res.ok && data.success) {
-        showToast(`✓ Announcement "${title}" deleted.`);
+        showToast(`✓ Announcement "${title}" moved to deleted history.`);
+        setDeleteConfirmAnnouncement(null);
+        setDeleteReason('');
         await loadCompanyAnnouncements();
+        try {
+          localStorage.setItem('sir_announcements_updated_at', String(Date.now()));
+          window.dispatchEvent(new Event('sir-announcements-updated'));
+          if (typeof BroadcastChannel !== 'undefined') {
+            const bc = new BroadcastChannel('sir_company_announcements');
+            bc.postMessage({ type: 'updated', at: Date.now() });
+            bc.close();
+          }
+        } catch (_) { }
       } else {
         showToast(data.message || 'Failed to delete announcement.');
       }
     } catch (err) {
       showToast('Error deleting announcement: ' + err.message);
+    } finally {
+      setDeletingAnnouncement(false);
+    }
+  };
+
+  const handleRestoreAnnouncement = async (id, title) => {
+    try {
+      let token = crmToken;
+      const res = await fetch(`/api/company-announcements/${id}/restore`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          ...(token ? { Authorization: `Bearer ${token}` } : {})
+        },
+        credentials: 'include'
+      });
+      const data = await res.json();
+      if (res.ok && data.success) {
+        showToast(`✓ Announcement "${title}" restored.`);
+        await loadCompanyAnnouncements();
+        try {
+          localStorage.setItem('sir_announcements_updated_at', String(Date.now()));
+          window.dispatchEvent(new Event('sir-announcements-updated'));
+          if (typeof BroadcastChannel !== 'undefined') {
+            const bc = new BroadcastChannel('sir_company_announcements');
+            bc.postMessage({ type: 'updated', at: Date.now() });
+            bc.close();
+          }
+        } catch (_) { }
+      } else {
+        showToast(data.message || 'Failed to restore announcement.');
+      }
+    } catch (err) {
+      showToast('Error restoring announcement: ' + err.message);
     }
   };
 
   const filteredCompanyAnnouncements = useMemo(() => {
-    let list = companyAnnouncements || [];
+    let list = announcementFilter === 'deleted'
+      ? (calendarAnnouncements || []).filter(a => a.isDeleted || a.status === 'Deleted')
+      : (companyAnnouncements || []).filter(a => !a.isDeleted && a.status !== 'Deleted' && !a.isExpired && a.status !== 'Expired');
+
     if (announcementSearch.trim()) {
       const q = announcementSearch.toLowerCase();
       list = list.filter(a =>
@@ -1431,19 +1541,23 @@ export const CrmHrLeadDashboard = ({ initialSection }) => {
       );
     }
     if (announcementFilter === 'published') {
-      list = list.filter(a => a.status === 'Published');
+      list = list.filter(a => a.status === 'Published' && !a.isExpired);
+    } else if (announcementFilter === 'scheduled') {
+      list = list.filter(a => a.status === 'Scheduled');
     } else if (announcementFilter === 'draft') {
       list = list.filter(a => a.status === 'Draft');
     } else if (announcementFilter === 'hr-ops') {
       list = list.filter(a => a.target_audience === 'HR Operations');
     }
     return list;
-  }, [companyAnnouncements, announcementFilter, announcementSearch]);
+  }, [companyAnnouncements, calendarAnnouncements, announcementFilter, announcementSearch]);
 
   const formatAnnouncementDateTime = (dateStr) => {
     if (!dateStr) return '—';
     try {
-      const d = new Date(dateStr);
+      const s = String(dateStr).trim();
+      const normalized = /^\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2}/.test(s) ? `${s.replace(' ', 'T')}Z` : s;
+      const d = new Date(normalized);
       if (isNaN(d.getTime())) return String(dateStr);
       return new Intl.DateTimeFormat('en-IN', {
         timeZone: 'Asia/Kolkata',
@@ -1531,9 +1645,406 @@ export const CrmHrLeadDashboard = ({ initialSection }) => {
     { id: 'EXP-102', employee: 'Sreeja Nair', category: 'Campus Drive Hospitality', amount: '₹8,200', receiptsAttached: 2, date: 'Nov 04, 2026', status: 'Pending Approval', description: 'Dinner hospitality for TechVision International campus recruitment panel.' }
   ]);
 
-  // 6. SHIFTS STATE (Advanced Feature 1: Shift Roster & Live Login Activity)
+  // 6. SHIFTS & ROSTER STATE (Dynamic Backend Integration & Shift Roster Table)
   const [shifts] = useState(SHIFT_CONFIGS);
-  const [selectedShiftId, setSelectedShiftId] = useState('shift-9-6');
+  const [shiftSelectedDate, setShiftSelectedDate] = useState(() => new Date().toISOString().slice(0, 10));
+  const [shiftViewMode, setShiftViewMode] = useState(readOnlyMode ? 'monthly' : 'table'); // 'table' | 'weekly' | 'monthly' | 'approvals'
+  const [shiftRosterData, setShiftRosterData] = useState([]);
+  const [shiftRosterLoading, setShiftRosterLoading] = useState(false);
+  const [shiftAssignmentsList, setShiftAssignmentsList] = useState([]);
+  const [lateApprovalsList, setLateApprovalsList] = useState([]);
+  const [shiftSearchQuery, setShiftSearchQuery] = useState('');
+  const [shiftFilterShift, setShiftFilterShift] = useState('all');
+  const [shiftFilterStatus, setShiftFilterStatus] = useState('all');
+  const [shiftFilterDept, setShiftFilterDept] = useState('all');
+  const [bulkSelectedEmpIds, setBulkSelectedEmpIds] = useState([]);
+  const [isAssignShiftOpen, setIsAssignShiftOpen] = useState(false);
+  const [assignEmpSearch, setAssignEmpSearch] = useState('');
+  const [isEmpDropdownOpen, setIsEmpDropdownOpen] = useState(false);
+  const [assignFormTarget, setAssignFormTarget] = useState({
+    employeeIds: [],
+    shiftId: 'SHIFT-GENERAL',
+    startDate: new Date().toISOString().slice(0, 10),
+    endDate: '',
+    frequency: 'one_day',
+    applicableDays: [1, 2, 3, 4, 5],
+    notes: ''
+  });
+  const [lateDecisionModal, setLateDecisionModal] = useState({
+    open: false,
+    request: null,
+    decision: 'Approved',
+    notes: ''
+  });
+  const [historyModalEmployee, setHistoryModalEmployee] = useState(null);
+  const [monthlyViewYear, setMonthlyViewYear] = useState(() => new Date().getFullYear());
+  const [monthlyViewMonth, setMonthlyViewMonth] = useState(() => new Date().getMonth());
+  const [monthlySelectedEmpId, setMonthlySelectedEmpId] = useState('all');
+  const [monthlyActiveDateStr, setMonthlyActiveDateStr] = useState(() => new Date().toISOString().slice(0, 10));
+  const [assignModalError, setAssignModalError] = useState('');
+  const [isSavingShift, setIsSavingShift] = useState(false);
+  const [shiftAssignmentSuccessBanner, setShiftAssignmentSuccessBanner] = useState('');
+
+  // Operational HR workforce for Shift Management (strictly HR Operations staff)
+  const displayEmployees = useMemo(() => {
+    const raw = (shiftRosterData && shiftRosterData.length > 0)
+      ? shiftRosterData
+      : employees.map((emp) => {
+        const normShiftId = normalizeShiftId(emp.shiftId);
+        const shiftObj = SHIFT_CONFIGS.find(s => s.id === normShiftId) || SHIFT_CONFIGS[0];
+        const att = emp.attendanceToday || {};
+        const isOnLeave = att.status === 'On Leave' || att.loginStatus === 'On Leave';
+        const isLate = !!(att.late || (att.loginStatus && att.loginStatus.startsWith('Late')));
+        const isPending = !att.checkIn || att.checkIn === '-' || att.loginStatus?.includes('Pending');
+        const loginStatus = isOnLeave ? 'On Leave' : (isPending ? 'Pending Clock-In' : (isLate ? `Late (${att.lateMinutes || 8} mins)` : 'On Time'));
+
+        return {
+          id: emp.id || emp.employeeId,
+          employeeId: emp.id || emp.employeeId,
+          name: emp.name,
+          email: emp.email,
+          phone: emp.phone,
+          role: emp.role,
+          department: emp.department || 'Operations',
+          designation: emp.role,
+          avatar: emp.avatar,
+          assignedShiftId: shiftObj.id,
+          baseShiftId: shiftObj.id,
+          assignedShift: `${shiftObj.shiftName} (${shiftObj.timing})`,
+          shiftName: shiftObj.shiftName,
+          scheduledLoginTime: shiftObj.scheduledLoginTime,
+          scheduledLogoutTime: shiftObj.scheduledLogoutTime,
+          actualClockInTime: isPending ? '—' : (isOnLeave ? '—' : (att.checkIn || '09:00 AM')),
+          actualClockOutTime: isPending ? '—' : (isOnLeave ? '—' : (att.checkOut || '06:00 PM')),
+          loginStatus,
+          isLate,
+          lateMinutes: att.lateMinutes || (isLate ? 8 : 0),
+          lateApprovalStatus: isLate ? 'Pending Approval' : 'None',
+          shiftAssignmentPeriod: 'Ongoing Default',
+          assignmentFrequency: 'default'
+        };
+      });
+
+    const hrOpsEmployees = raw.filter(emp => {
+      const r = (emp.role || '').toLowerCase();
+      const d = (emp.department || '').toLowerCase();
+      if (r.includes('admin') || r.includes('super') || r.includes('hr lead') || r === 'lead' || r === 'hr_lead') {
+        return false;
+      }
+      if (r.includes('recruiter') || r.includes('placement') || d.includes('placement') || d.includes('ats')) {
+        return false;
+      }
+      return r.includes('operations') || d.includes('operations');
+    });
+
+    // When viewed in Read-Only mode by HR Operations, strictly show ONLY the logged-in HR staff's record
+    if (readOnlyMode) {
+      const myId = (user?.employeeId || user?.id || currentEmployee?.employeeId || currentEmployee?.id || '').toString().trim().toLowerCase();
+      const myEmail = (user?.email || currentEmployee?.email || '').toLowerCase().trim();
+      const myName = (user?.name || currentEmployee?.name || '').toLowerCase().trim();
+
+      const selfRecord = hrOpsEmployees.filter(emp => {
+        const empId = (emp.employeeId || emp.id || '').toString().trim().toLowerCase();
+        const empEmail = (emp.email || '').toLowerCase().trim();
+        const empName = (emp.name || '').toLowerCase().trim();
+
+        if (myId && empId && (empId === myId || empId.includes(myId) || myId.includes(empId))) {
+          return true;
+        }
+        if (myEmail && empEmail && empEmail === myEmail) {
+          return true;
+        }
+        if (myName && empName && (empName === myName || empName.includes(myName) || myName.includes(empName))) {
+          return true;
+        }
+        return false;
+      });
+
+      if (selfRecord.length > 0) {
+        return selfRecord;
+      }
+      return hrOpsEmployees.slice(0, 1);
+    }
+
+    return hrOpsEmployees;
+  }, [shiftRosterData, employees, readOnlyMode, user, currentEmployee]);
+
+  const allAssignableEmployees = useMemo(() => {
+    const raw = (shiftRosterData && shiftRosterData.length > 0) ? shiftRosterData : employees;
+    const filtered = raw.filter(emp => {
+      const r = (emp.role || '').toLowerCase();
+      const d = (emp.department || '').toLowerCase();
+      if (r.includes('super') || r.includes('recruiter') || r.includes('placement') || d.includes('placement') || d.includes('ats')) {
+        return false;
+      }
+      return r.includes('lead') || r.includes('operations') || d.includes('operations') || d.includes('human resources') || d.includes('hr');
+    });
+    return filtered.length > 0 ? filtered : displayEmployees;
+  }, [shiftRosterData, employees, displayEmployees]);
+
+  const loadShiftRosterData = useCallback(async () => {
+    setShiftRosterLoading(true);
+    try {
+      let token = crmToken;
+      if (!token) {
+        try {
+          const previewRes = await fetch('/api/crm/auth/preview-token', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              targetRole: currentRole || 'HR Lead',
+              targetEmail: user?.email,
+              employeeId: user?.id
+            })
+          });
+          const previewJson = await previewRes.json();
+          if (previewJson?.success && previewJson.token) {
+            token = previewJson.token;
+            if (setCrmToken) setCrmToken(token);
+          }
+        } catch (_) { }
+      }
+
+      const headers = {
+        'Content-Type': 'application/json',
+        ...(token ? { Authorization: `Bearer ${token}` } : {}),
+        'x-user-data': JSON.stringify(user || { role: currentRole || 'HR Lead', email: user?.email }),
+        'x-employee-email': user?.email || '',
+        'x-crm-role': currentRole || 'HR Lead'
+      };
+
+      const [rosterRes, assignmentsRes, lateRes] = await Promise.all([
+        fetch(`/api/crm/shifts/roster?date=${shiftSelectedDate}`, { headers }),
+        fetch('/api/crm/shifts/assignments', { headers }),
+        fetch('/api/crm/shifts/late-approvals', { headers })
+      ]);
+
+      if (rosterRes.ok) {
+        const rosterJson = await rosterRes.json();
+        if (rosterJson?.success && Array.isArray(rosterJson.employees)) {
+          setShiftRosterData(rosterJson.employees);
+        }
+      }
+      if (assignmentsRes.ok) {
+        const asgnJson = await assignmentsRes.json();
+        if (asgnJson?.success && Array.isArray(asgnJson.assignments)) {
+          setShiftAssignmentsList(asgnJson.assignments);
+        }
+      }
+      if (lateRes.ok) {
+        const lateJson = await lateRes.json();
+        if (lateJson?.success && Array.isArray(lateJson.requests)) {
+          setLateApprovalsList(lateJson.requests);
+        }
+      }
+    } catch (err) {
+      console.warn('Failed to load shift roster from server:', err);
+    } finally {
+      setShiftRosterLoading(false);
+    }
+  }, [crmToken, currentRole, user?.email, user?.id, setCrmToken, shiftSelectedDate]);
+
+  useEffect(() => {
+    if (activeTab === 'shifts') {
+      loadShiftRosterData();
+    }
+  }, [activeTab, shiftSelectedDate, loadShiftRosterData]);
+
+  const handleOpenAssignModal = (employee = null) => {
+    setAssignEmpSearch('');
+    setAssignModalError('');
+    const targetEmp = employee || (readOnlyMode ? displayEmployees[0] : null);
+    if (targetEmp) {
+      setAssignFormTarget({
+        employeeIds: [targetEmp.employeeId || targetEmp.id],
+        shiftId: targetEmp.assignedShiftId || 'SHIFT-GENERAL',
+        startDate: shiftSelectedDate || new Date().toISOString().slice(0, 10),
+        endDate: '',
+        frequency: 'one_day',
+        applicableDays: [1, 2, 3, 4, 5],
+        notes: ''
+      });
+      setIsEmpDropdownOpen(false);
+    } else {
+      const selected = bulkSelectedEmpIds.length > 0 ? bulkSelectedEmpIds : [];
+      setAssignFormTarget({
+        employeeIds: selected,
+        shiftId: 'SHIFT-GENERAL',
+        startDate: shiftSelectedDate || new Date().toISOString().slice(0, 10),
+        endDate: '',
+        frequency: 'one_day',
+        applicableDays: [1, 2, 3, 4, 5],
+        notes: ''
+      });
+      setIsEmpDropdownOpen(selected.length === 0);
+    }
+    setIsAssignShiftOpen(true);
+  };
+
+  const handleSaveShiftAssignment = async (e) => {
+    e?.preventDefault();
+    setAssignModalError('');
+
+    if (assignFormTarget.employeeIds.length === 0) {
+      setAssignModalError('⚠️ Please select at least one employee from the list below.');
+      showToast('⚠️ Please select at least one employee.');
+      setIsEmpDropdownOpen(true);
+      return;
+    }
+    if (!assignFormTarget.startDate) {
+      setAssignModalError('⚠️ Assignment start date is required.');
+      showToast('⚠️ Assignment start date is required.');
+      return;
+    }
+    if (assignFormTarget.endDate && assignFormTarget.endDate < assignFormTarget.startDate) {
+      setAssignModalError('⚠️ End date cannot be earlier than start date.');
+      showToast('⚠️ End date cannot be earlier than start date.');
+      return;
+    }
+
+    setIsSavingShift(true);
+
+    try {
+      let token = crmToken;
+      if (!token) {
+        try {
+          const previewRes = await fetch('/api/crm/auth/preview-token', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              targetRole: currentRole || 'HR Lead',
+              targetEmail: user?.email,
+              employeeId: user?.id
+            })
+          });
+          const previewJson = await previewRes.json();
+          if (previewJson?.success && previewJson.token) {
+            token = previewJson.token;
+            if (setCrmToken) setCrmToken(token);
+          }
+        } catch (_) { }
+      }
+
+      const headers = {
+        'Content-Type': 'application/json',
+        ...(token ? { Authorization: `Bearer ${token}` } : {}),
+        'x-user-data': JSON.stringify(user || { role: currentRole || 'HR Lead', email: user?.email }),
+        'x-employee-email': user?.email || '',
+        'x-crm-role': currentRole || 'HR Lead'
+      };
+
+      let res = await fetch('/api/crm/shifts/assign', {
+        method: 'POST',
+        headers,
+        body: JSON.stringify({
+          employeeIds: assignFormTarget.employeeIds,
+          shiftId: assignFormTarget.shiftId,
+          startDate: assignFormTarget.startDate,
+          endDate: assignFormTarget.endDate || null,
+          frequency: assignFormTarget.frequency,
+          applicableDays: assignFormTarget.applicableDays,
+          notes: assignFormTarget.notes
+        })
+      });
+
+      if (!res.ok && (res.status === 401 || res.status === 403)) {
+        try {
+          const previewRes = await fetch('/api/crm/auth/preview-token', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              targetRole: currentRole || 'HR Lead',
+              targetEmail: user?.email,
+              employeeId: user?.id
+            })
+          });
+          const previewJson = await previewRes.json();
+          if (previewJson?.success && previewJson.token) {
+            token = previewJson.token;
+            if (setCrmToken) setCrmToken(token);
+            headers.Authorization = `Bearer ${token}`;
+            res = await fetch('/api/crm/shifts/assign', {
+              method: 'POST',
+              headers,
+              body: JSON.stringify({
+                employeeIds: assignFormTarget.employeeIds,
+                shiftId: assignFormTarget.shiftId,
+                startDate: assignFormTarget.startDate,
+                endDate: assignFormTarget.endDate || null,
+                frequency: assignFormTarget.frequency,
+                applicableDays: assignFormTarget.applicableDays,
+                notes: assignFormTarget.notes
+              })
+            });
+          }
+        } catch (_) { }
+      }
+
+      const data = await res.json();
+      if (res.ok && data?.success) {
+        const targetIds = Array.isArray(assignFormTarget?.employeeIds) ? assignFormTarget.employeeIds : [];
+        const rosterList = (typeof displayEmployees !== 'undefined' && Array.isArray(displayEmployees))
+          ? displayEmployees
+          : (Array.isArray(shiftRosterData) && shiftRosterData.length > 0 ? shiftRosterData : (Array.isArray(employees) ? employees : []));
+        const assignedNames = targetIds
+          .map(id => rosterList.find(e => (e.employeeId || e.id) === id)?.name || id)
+          .join(', ');
+        const successMessage = `✓ ${data.message || 'Shift assigned successfully.'}${assignedNames ? ` (${assignedNames})` : ''}`;
+        showToast(successMessage);
+        setShiftAssignmentSuccessBanner(successMessage);
+        setTimeout(() => setShiftAssignmentSuccessBanner(''), 8000);
+        setIsAssignShiftOpen(false);
+        setAssignEmpSearch('');
+        setIsEmpDropdownOpen(false);
+        setBulkSelectedEmpIds([]);
+        setAssignModalError('');
+        if (assignFormTarget.startDate) {
+          setShiftSelectedDate(assignFormTarget.startDate);
+          setMonthlyActiveDateStr(assignFormTarget.startDate);
+        }
+        await loadShiftRosterData();
+      } else {
+        const errMsg = data?.message || 'Failed to assign shift. Please check authorization.';
+        setAssignModalError(`⚠️ ${errMsg}`);
+        showToast(`⚠️ ${errMsg}`);
+      }
+    } catch (err) {
+      const errMsg = err.message || 'Unable to connect to server.';
+      setAssignModalError(`⚠️ Network error: ${errMsg}`);
+      showToast(`⚠️ Error: ${errMsg}`);
+    } finally {
+      setIsSavingShift(false);
+    }
+  };
+
+  const handleLateApprovalDecision = async (requestId, decision, notes = '') => {
+    try {
+      let token = crmToken;
+      const headers = {
+        'Content-Type': 'application/json',
+        ...(token ? { Authorization: `Bearer ${token}` } : {})
+      };
+
+      const res = await fetch(`/api/crm/shifts/late-approvals/${requestId}/decision`, {
+        method: 'POST',
+        headers,
+        body: JSON.stringify({ decision, notes })
+      });
+
+      const data = await res.json();
+      if (res.ok && data?.success) {
+        showToast(`✓ Late login ${decision.toLowerCase()} successfully.`);
+        setLateDecisionModal({ open: false, request: null, decision: 'Approved', notes: '' });
+        loadShiftRosterData();
+      } else {
+        showToast(`⚠️ ${data?.message || 'Failed to record decision.'}`);
+      }
+    } catch (err) {
+      showToast(`⚠️ Error: ${err.message}`);
+    }
+  };
+
+  const [selectedShiftId, setSelectedShiftId] = useState('SHIFT-GENERAL');
   const [shiftRosterSearch, setShiftRosterSearch] = useState('');
   const [shiftStatusFilter, setShiftStatusFilter] = useState('All');
   const [editingPunchEmployee, setEditingPunchEmployee] = useState(null);
@@ -1546,28 +2057,28 @@ export const CrmHrLeadDashboard = ({ initialSection }) => {
   });
   const [isAssignModalOpen, setIsAssignModalOpen] = useState(false);
 
-  const handleReassignShift = (employeeId, targetShiftId) => {
-    const targetShift = SHIFT_CONFIGS.find(s => s.id === targetShiftId);
-    if (!targetShift) return;
-
-    const updated = employees.map(emp => {
-      if (emp.id === employeeId) {
-        return {
-          ...emp,
-          shiftId: targetShift.id,
-          shiftName: `${targetShift.shiftName} (${targetShift.timing})`
-        };
-      }
-      return emp;
-    });
-
-    setEmployees(updated);
+  const handleReassignShift = async (employeeId, targetShiftId) => {
+    const targetShift = SHIFT_CONFIGS.find(s => s.id === targetShiftId) || SHIFT_CONFIGS[0];
     try {
-      localStorage.setItem(STORAGE_KEY_WORKFORCE, JSON.stringify(updated));
-    } catch (e) { }
+      let token = crmToken;
+      await fetch('/api/crm/shifts/assign', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          ...(token ? { Authorization: `Bearer ${token}` } : {})
+        },
+        body: JSON.stringify({
+          employeeIds: [employeeId],
+          shiftId: targetShift.id,
+          startDate: shiftSelectedDate,
+          frequency: 'one_day',
+          notes: `Quick reassigned to ${targetShift.shiftName}`
+        })
+      });
+      loadShiftRosterData();
+    } catch (_) { }
 
-    const empObj = employees.find(e => e.id === employeeId);
-    showToast(`✓ Shift updated: ${empObj?.name || 'Staff'} reassigned to ${targetShift.shiftName} (${targetShift.timing})`);
+    showToast(`✓ Shift updated: Reassigned to ${targetShift.shiftName} (${targetShift.timing})`);
   };
 
   const handleOpenEditPunch = (emp) => {
@@ -1658,6 +2169,13 @@ export const CrmHrLeadDashboard = ({ initialSection }) => {
   const [dateAttendanceStats, setDateAttendanceStats] = useState(null);
   const [attendanceRecordedDates, setAttendanceRecordedDates] = useState([]);
   const [dateAttendanceLoading, setDateAttendanceLoading] = useState(false);
+  const [attendanceNowMs, setAttendanceNowMs] = useState(() => Date.now());
+
+  useEffect(() => {
+    if (activeTab !== 'attendance') return;
+    const timer = setInterval(() => setAttendanceNowMs(Date.now()), 30000);
+    return () => clearInterval(timer);
+  }, [activeTab]);
 
   const [attendanceSearchQuery, setAttendanceSearchQuery] = useState('');
   const [attendanceDeptFilter, setAttendanceDeptFilter] = useState('All');
@@ -1682,7 +2200,7 @@ export const CrmHrLeadDashboard = ({ initialSection }) => {
       let checkIn = '—';
       let checkOut = '—';
       let breakDuration = '0h 00m';
-      let totalWorkingHours = '0h 00m';
+      let totalWorkingHours = '—';
       let lateOrEarly = '—';
       let late = false;
       let lateMinutes = 0;
@@ -2025,7 +2543,7 @@ export const CrmHrLeadDashboard = ({ initialSection }) => {
     return Array.from(set).sort();
   }, [dateAttendanceRecords]);
 
-  const renderCompanyAnnouncementsSection = () => (
+  const renderCompanyAnnouncementsSection = (showCreateButton = false) => (
     <div className="bg-white dark:bg-navy-900 border border-slate-200/90 dark:border-navy-800 rounded-3xl p-6 shadow-xs space-y-5">
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
@@ -2042,50 +2560,69 @@ export const CrmHrLeadDashboard = ({ initialSection }) => {
           </p>
         </div>
 
-        <button
-          type="button"
-          onClick={() => {
-            setAnnouncementFormErrors({});
-            setAnnouncementForm({
-              title: '',
-              description: '',
-              category: 'General Notice',
-              target_audience: 'All Employees',
-              status: 'Published',
-              expires_at: ''
-            });
-            setIsCreateAnnouncementOpen(true);
-          }}
-          className="px-4 py-2 bg-gradient-to-r from-amber-500 to-amber-600 hover:from-amber-400 hover:to-amber-500 text-slate-950 font-bold rounded-2xl shadow-xs transition flex items-center gap-1.5 cursor-pointer text-xs border border-amber-400 self-start sm:self-auto"
-        >
-          <Plus className="w-4 h-4 stroke-[2.5]" />
-          <span>+ Create Announcement</span>
-        </button>
+        <div className="flex flex-wrap items-center gap-2 self-start sm:self-auto">
+          <button
+            type="button"
+            onClick={() => setShowAnnouncementCalendar(prev => !prev)}
+            className={`px-3.5 py-2 rounded-2xl font-bold text-xs transition flex items-center gap-1.5 cursor-pointer border ${showAnnouncementCalendar
+              ? 'bg-slate-900 text-white dark:bg-amber-500 dark:text-slate-950 border-slate-900 dark:border-amber-400'
+              : 'bg-slate-100 dark:bg-navy-800 hover:bg-slate-200 dark:hover:bg-navy-700 text-slate-700 dark:text-slate-200 border-slate-200 dark:border-navy-700'
+              }`}
+            title="Toggle Announcement Calendar"
+          >
+            <Calendar className="w-3.5 h-3.5" />
+            <span>{showAnnouncementCalendar ? 'Hide Calendar' : 'Calendar'}</span>
+          </button>
+
+          {Boolean(showCreateButton) && (
+            <button
+              type="button"
+              onClick={() => {
+                setAnnouncementFormErrors({});
+                setAnnouncementForm({
+                  id: null,
+                  title: '',
+                  description: '',
+                  category: 'General Notice',
+                  target_audience: 'All Employees',
+                  status: 'Published',
+                  publish_date: '',
+                  expires_at: ''
+                });
+                setIsCreateAnnouncementOpen(true);
+              }}
+              className="px-4 py-2 bg-gradient-to-r from-amber-500 to-amber-600 hover:from-amber-400 hover:to-amber-500 text-slate-950 font-bold rounded-2xl shadow-xs transition flex items-center gap-1.5 cursor-pointer text-xs border border-amber-400"
+            >
+              <Plus className="w-4 h-4 stroke-[2.5]" />
+              <span>Create Announcement</span>
+            </button>
+          )}
+        </div>
       </div>
 
       {/* Filter and Search Bar */}
       <div className="flex flex-col md:flex-row items-center justify-between gap-3 pt-1 border-t border-slate-100 dark:border-navy-800">
         <div className="flex flex-wrap items-center gap-2 w-full md:w-auto">
           {[
-            { id: 'all', label: 'All Notices', count: companyAnnouncements.length },
-            { id: 'published', label: 'Published', count: companyAnnouncements.filter(a => a.status === 'Published').length },
-            { id: 'draft', label: 'Drafts', count: companyAnnouncements.filter(a => a.status === 'Draft').length },
-            { id: 'hr-ops', label: 'For HR Operations', count: companyAnnouncements.filter(a => a.target_audience === 'HR Operations').length }
+            { id: 'all', label: 'All Active', count: companyAnnouncements.filter(a => !a.isDeleted && a.status !== 'Deleted' && !a.isExpired && a.status !== 'Expired').length },
+            { id: 'published', label: 'Published', count: companyAnnouncements.filter(a => a.status === 'Published' && !a.isExpired && !a.isDeleted).length },
+            { id: 'scheduled', label: 'Scheduled', count: companyAnnouncements.filter(a => a.status === 'Scheduled' && !a.isDeleted).length },
+            { id: 'draft', label: 'Drafts', count: companyAnnouncements.filter(a => a.status === 'Draft' && !a.isDeleted).length },
+            { id: 'deleted', label: 'Deleted', count: calendarAnnouncements.filter(a => a.isDeleted || a.status === 'Deleted').length },
+            { id: 'hr-ops', label: 'For HR Operations', count: companyAnnouncements.filter(a => a.target_audience === 'HR Operations' && !a.isDeleted && !a.isExpired && a.status !== 'Expired').length }
           ].map(f => (
             <button
               key={f.id}
               type="button"
               onClick={() => setAnnouncementFilter(f.id)}
-              className={`px-3 py-1.5 rounded-xl text-xs font-bold transition cursor-pointer flex items-center gap-1.5 ${
-                announcementFilter === f.id
-                  ? 'bg-amber-500 text-slate-950 shadow-2xs'
-                  : 'bg-slate-100 dark:bg-navy-800 text-slate-600 dark:text-slate-300 hover:bg-slate-200 dark:hover:bg-navy-700'
-              }`}
+              className={`px-3 py-1.5 rounded-xl text-xs font-bold transition cursor-pointer flex items-center gap-1.5 ${announcementFilter === f.id
+                ? 'bg-amber-500 text-slate-950 shadow-2xs'
+                : 'bg-slate-100 dark:bg-navy-800 text-slate-600 dark:text-slate-300 hover:bg-slate-200 dark:hover:bg-navy-700'
+                }`}
             >
               <span>{f.label}</span>
-              <span className={`px-1.5 py-0.2 rounded-full text-[10px] ${
-                announcementFilter === f.id ? 'bg-slate-950/20 text-slate-950' : 'bg-slate-200 dark:bg-navy-950 text-slate-600 dark:text-slate-400'
-              }`}>
+              <span className={`px-1.5 py-0.2 rounded-full text-[10px] ${announcementFilter === f.id ? 'bg-slate-950/20 text-slate-950' : 'bg-slate-200 dark:bg-navy-950 text-slate-600 dark:text-slate-400'
+                }`}>
                 {f.count}
               </span>
             </button>
@@ -2134,7 +2671,7 @@ export const CrmHrLeadDashboard = ({ initialSection }) => {
             <p className="text-xs text-slate-400 mt-0.5">
               {announcementSearch || announcementFilter !== 'all'
                 ? 'No announcements match the selected filter.'
-                : 'Click "+ Create Announcement" above to publish your first announcement.'}
+                : 'No company announcements published at this time.'}
             </p>
           </div>
         ) : (
@@ -2154,17 +2691,22 @@ export const CrmHrLeadDashboard = ({ initialSection }) => {
                       <Globe className="w-3 h-3 text-slate-400" />
                       <span>{ann.target_audience}</span>
                     </span>
-                    <span className={`px-2.5 py-0.5 rounded-full text-[10px] font-bold flex items-center gap-1 border ${
-                      ann.status === 'Published'
-                        ? 'bg-emerald-50 dark:bg-emerald-950/40 text-emerald-700 dark:text-emerald-300 border-emerald-200 dark:border-emerald-800'
-                        : 'bg-amber-50 dark:bg-amber-950/40 text-amber-700 dark:text-amber-300 border-amber-200 dark:border-amber-800'
-                    }`}>
+                    <span className={`px-2.5 py-0.5 rounded-full text-[10px] font-bold flex items-center gap-1 border ${ann.status === 'Published'
+                      ? 'bg-emerald-50 dark:bg-emerald-950/40 text-emerald-700 dark:text-emerald-300 border-emerald-200 dark:border-emerald-800'
+                      : ann.status === 'Expired'
+                        ? 'bg-rose-50 dark:bg-rose-950/40 text-rose-700 dark:text-rose-300 border-rose-200 dark:border-rose-800'
+                        : ann.status === 'Scheduled'
+                          ? 'bg-indigo-50 dark:bg-indigo-950/40 text-indigo-700 dark:text-indigo-300 border-indigo-200 dark:border-indigo-800'
+                          : ann.isDeleted || ann.status === 'Deleted'
+                            ? 'bg-slate-200 dark:bg-slate-800 text-slate-700 dark:text-slate-300 border-slate-300 dark:border-slate-600'
+                            : 'bg-amber-50 dark:bg-amber-950/40 text-amber-700 dark:text-amber-300 border-amber-200 dark:border-amber-800'
+                      }`}>
                       {ann.status === 'Published' ? <Check className="w-3 h-3" /> : <Clock className="w-3 h-3" />}
-                      <span>{ann.status}</span>
+                      <span>{ann.isDeleted || ann.status === 'Deleted' ? 'Deleted' : ann.status}</span>
                     </span>
-                    {ann.expires_at && (
-                      <span className="px-2.5 py-0.5 rounded-full text-[10px] font-semibold bg-amber-50 dark:bg-amber-950/40 text-amber-700 dark:text-amber-300 border border-amber-200 dark:border-amber-800">
-                        Expires: {ann.expires_at}
+                    {(ann.isDeleted || ann.status === 'Deleted') && (
+                      <span className="px-2 py-0.5 rounded-full text-[10px] font-semibold bg-amber-50 dark:bg-amber-950/40 text-amber-700 dark:text-amber-300 border border-amber-200 dark:border-amber-800">
+                        {ann.wasPublished || ann.was_published || ann.published_at ? 'Previously Published' : 'Never Published'}
                       </span>
                     )}
                   </div>
@@ -2184,11 +2726,20 @@ export const CrmHrLeadDashboard = ({ initialSection }) => {
                   </div>
                 </div>
 
-                {/* Right: Published date/time, "Read Full Notice" button, and actions */}
-                <div className="flex flex-row lg:flex-col items-center lg:items-end justify-between lg:justify-center gap-2.5 shrink-0 pt-3 lg:pt-0 border-t lg:border-t-0 border-slate-200/60 dark:border-navy-800">
+                {/* Right: Expiry badge, Published date/time, "Read Full Notice" button, and actions */}
+                <div className="flex flex-row lg:flex-col items-center lg:items-end justify-between lg:justify-center gap-2 shrink-0 pt-3 lg:pt-0 border-t lg:border-t-0 border-slate-200/60 dark:border-navy-800">
+                  {ann.expires_at && (
+                    <span className={`px-2.5 py-0.5 rounded-full text-[10px] font-semibold border whitespace-nowrap ${ann.status === 'Expired'
+                      ? 'bg-rose-50 dark:bg-rose-950/40 text-rose-700 dark:text-rose-300 border-rose-200 dark:border-rose-800'
+                      : 'bg-amber-50 dark:bg-amber-950/40 text-amber-700 dark:text-amber-300 border-amber-200 dark:border-amber-800'
+                      }`}>
+                      Expires: {ann.expires_at}
+                    </span>
+                  )}
+
                   <div className="flex items-center gap-1.5 text-xs font-mono text-slate-500 dark:text-slate-400 whitespace-nowrap">
                     <Clock className="w-3.5 h-3.5 text-slate-400 shrink-0" />
-                    <span>{ann.status === 'Published' ? formatAnnouncementDateTime(ann.published_at || ann.created_at) : 'Draft (Unpublished)'}</span>
+                    <span>{ann.status === 'Draft' ? 'Draft (Unpublished)' : formatAnnouncementDateTime(ann.published_at || ann.created_at)}</span>
                   </div>
 
                   <div className="flex items-center gap-2">
@@ -2201,26 +2752,65 @@ export const CrmHrLeadDashboard = ({ initialSection }) => {
                       <span>Read Full Notice</span>
                     </button>
 
-                    {ann.status === 'Draft' && (
+                    {!(ann.isDeleted || ann.status === 'Deleted') ? (
+                      <>
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setAnnouncementFormErrors({});
+                            setAnnouncementForm({
+                              id: ann.id,
+                              title: ann.title || '',
+                              description: ann.description || '',
+                              category: ann.category || 'General Notice',
+                              target_audience: ann.target_audience || 'All Employees',
+                              status: ann.status || 'Published',
+                              publish_date: ann.publishDate || (ann.published_at ? String(ann.published_at).slice(0, 10) : ''),
+                              expires_at: ann.expires_at || ''
+                            });
+                            setIsCreateAnnouncementOpen(true);
+                          }}
+                          className="px-2.5 py-1.5 rounded-xl text-xs font-bold bg-white dark:bg-navy-900 hover:bg-slate-100 dark:hover:bg-navy-800 text-slate-600 dark:text-slate-300 border border-slate-200 dark:border-navy-700 transition cursor-pointer"
+                          title="Edit Announcement"
+                        >
+                          Edit
+                        </button>
+
+                        {ann.status === 'Draft' && (
+                          <button
+                            type="button"
+                            onClick={() => handlePublishDraft(ann.id, ann.title)}
+                            className="px-2.5 py-1.5 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl text-xs font-bold transition flex items-center gap-1 cursor-pointer"
+                            title="Publish Announcement"
+                          >
+                            <Check className="w-3 h-3" />
+                            <span className="hidden sm:inline">Publish</span>
+                          </button>
+                        )}
+
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setDeleteReason('');
+                            setDeleteConfirmAnnouncement(ann);
+                          }}
+                          className="p-1.5 hover:bg-rose-50 dark:hover:bg-rose-500/15 text-slate-400 hover:text-rose-600 rounded-xl transition cursor-pointer"
+                          title="Delete Announcement"
+                        >
+                          <Trash2 className="w-3.5 h-3.5" />
+                        </button>
+                      </>
+                    ) : (
                       <button
                         type="button"
-                        onClick={() => handlePublishDraft(ann.id, ann.title)}
+                        onClick={() => handleRestoreAnnouncement(ann.id, ann.title)}
                         className="px-2.5 py-1.5 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl text-xs font-bold transition flex items-center gap-1 cursor-pointer"
-                        title="Publish Announcement"
+                        title="Restore Announcement"
                       >
-                        <Check className="w-3 h-3" />
-                        <span className="hidden sm:inline">Publish</span>
+                        <RefreshCw className="w-3 h-3" />
+                        <span>Restore</span>
                       </button>
                     )}
-
-                    <button
-                      type="button"
-                      onClick={() => handleDeleteAnnouncement(ann.id, ann.title)}
-                      className="p-1.5 hover:bg-rose-50 dark:hover:bg-rose-500/15 text-slate-400 hover:text-rose-600 rounded-xl transition cursor-pointer"
-                      title="Delete Announcement"
-                    >
-                      <Trash2 className="w-3.5 h-3.5" />
-                    </button>
                   </div>
                 </div>
               </div>
@@ -2228,6 +2818,18 @@ export const CrmHrLeadDashboard = ({ initialSection }) => {
           ))
         )}
       </div>
+
+      {showAnnouncementCalendar && (
+        <SharedAnnouncementCalendar
+          announcements={calendarAnnouncements}
+          onSelectAnnouncement={(ann) => {
+            setShowAnnouncementCalendar(false);
+            setSelectedAnnouncementForModal(ann);
+          }}
+          onClose={() => setShowAnnouncementCalendar(false)}
+          title="Shared Announcement Calendar"
+        />
+      )}
     </div>
   );
 
@@ -2349,95 +2951,111 @@ export const CrmHrLeadDashboard = ({ initialSection }) => {
     <ScrollReveal>
       <div className="space-y-6 text-xs font-sans pb-10">
 
-        {/* TOP COMMAND BANNER */}
-        <div className="bg-white dark:bg-navy-900 border-2 border-slate-200 dark:border-navy-800 p-5 sm:p-6 rounded-3xl shadow-sm flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
-          <div>
-            <h1 className="font-serif text-xl sm:text-2xl font-bold text-slate-950 dark:text-white">
-              HR Lead
-            </h1>
-          </div>
-
-          <div className="flex flex-wrap items-center gap-2.5">
-            <div
-              className="flex items-center gap-2 px-3 py-1.5 rounded-xl bg-amber-50 dark:bg-amber-500/10 border border-amber-300 dark:border-amber-500/30"
-              data-testid="hr-lead-shift-timing"
-            >
-              <div className="w-6 h-6 rounded-md bg-amber-500/20 flex items-center justify-center text-amber-700 dark:text-amber-400 shrink-0 font-bold">
-                <Clock className="w-3.5 h-3.5" />
-              </div>
-              <div className="leading-tight">
-                <p className="text-[10px] font-bold uppercase tracking-wider text-amber-900 dark:text-amber-300">
-                  Today’s Shift • General Shift
-                </p>
-                <p className="text-xs font-bold text-slate-950 dark:text-white">
-                  09:00 AM – 06:00 PM
-                </p>
-              </div>
+        {/* TOP COMMAND BANNER (Hidden on Company Announcements and Shift Management views) */}
+        {activeTab !== 'announcements' && activeTab !== 'shifts' && (
+          <div className="bg-white dark:bg-navy-900 border-2 border-slate-200 dark:border-navy-800 p-5 sm:p-6 rounded-3xl shadow-sm flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+            <div>
+              <h1 className="font-serif text-xl sm:text-2xl font-bold text-slate-950 dark:text-white">
+                HR Lead
+              </h1>
             </div>
 
-            <button
-              type="button"
-              onClick={handleRefresh}
-              disabled={refreshing}
-              className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-bold border-2 border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-900 dark:text-slate-100 hover:bg-slate-100 dark:hover:bg-slate-700/70 transition-colors disabled:opacity-60 cursor-pointer shadow-xs"
-            >
-              <RefreshCw className={`w-3.5 h-3.5 ${refreshing ? 'animate-spin' : ''}`} />
-              <span>{refreshing ? 'Refreshing...' : 'Refresh'}</span>
-            </button>
-
-            {activeTab === 'employees' && (
-              <button
-                onClick={() => {
-                  setAddEmpErrors({});
-                  setIsAddEmployeeOpen(true);
-                }}
-                className="px-3 py-1.5 bg-gradient-to-r from-amber-500 to-amber-600 hover:from-amber-400 hover:to-amber-500 text-navy-950 font-bold rounded-xl shadow-xs transition flex items-center gap-1.5 cursor-pointer text-xs border border-amber-400"
+            <div className="flex flex-wrap items-center gap-2.5">
+              <div
+                className="flex items-center gap-2 px-3 py-1.5 rounded-xl bg-amber-50 dark:bg-amber-500/10 border border-amber-300 dark:border-amber-500/30"
+                data-testid="hr-lead-shift-timing"
               >
-                <UserPlus className="w-3.5 h-3.5 stroke-[2.5]" />
-                <span>Add Employee</span>
-              </button>
-            )}
-          </div>
-        </div>
+                <div className="w-6 h-6 rounded-md bg-amber-500/20 flex items-center justify-center text-amber-700 dark:text-amber-400 shrink-0 font-bold">
+                  <Clock className="w-3.5 h-3.5" />
+                </div>
+                <div className="leading-tight">
+                  <p className="text-[10px] font-bold uppercase tracking-wider text-amber-900 dark:text-amber-300">
+                    Today’s Shift • General Shift
+                  </p>
+                  <p className="text-xs font-bold text-slate-950 dark:text-white">
+                    09:00 AM – 06:00 PM
+                  </p>
+                </div>
+              </div>
 
-        {toastMsg && (
-          <div className="p-3 bg-emerald-500/15 border border-emerald-500/30 text-emerald-900 dark:text-emerald-200 rounded-xl text-xs font-bold animate-in fade-in flex items-center gap-2 shadow-xs">
-            <CheckCircle2 className="w-3.5 h-3.5 text-emerald-700 shrink-0" />
-            <span>{toastMsg}</span>
+              <button
+                type="button"
+                onClick={handleRefresh}
+                disabled={refreshing}
+                className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-bold border-2 border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-900 dark:text-slate-100 hover:bg-slate-100 dark:hover:bg-slate-700/70 transition-colors disabled:opacity-60 cursor-pointer shadow-xs"
+              >
+                <RefreshCw className={`w-3.5 h-3.5 ${refreshing ? 'animate-spin' : ''}`} />
+                <span>{refreshing ? 'Refreshing...' : 'Refresh'}</span>
+              </button>
+
+              {activeTab === 'employees' && (
+                <button
+                  onClick={() => {
+                    setAddEmpErrors({});
+                    setIsAddEmployeeOpen(true);
+                  }}
+                  className="px-3 py-1.5 bg-gradient-to-r from-amber-500 to-amber-600 hover:from-amber-400 hover:to-amber-500 text-navy-950 font-bold rounded-xl shadow-xs transition flex items-center gap-1.5 cursor-pointer text-xs border border-amber-400"
+                >
+                  <UserPlus className="w-3.5 h-3.5 stroke-[2.5]" />
+                  <span>Add Employee</span>
+                </button>
+              )}
+            </div>
           </div>
         )}
 
-        {/* 6 TOP EXECUTIVE KPI CARDS */}
-        <section aria-label="Workforce Key Performance Indicators">
-          <div className="grid grid-cols-2 sm:grid-cols-3 xl:grid-cols-6 gap-3 sm:gap-4">
-            {kpiCards.map((card) => {
-              const Icon = card.icon;
-              return (
-                <div
-                  key={card.id}
-                  data-testid={`kpi-card-${card.id}`}
-                  onClick={() => card.tab && setActiveTab(card.tab)}
-                  className="group relative bg-white dark:bg-navy-900 border border-slate-200/90 dark:border-navy-800 border-l-4 border-l-gold-500 rounded-2xl p-4 shadow-xs hover:shadow-md hover:-translate-y-0.5 hover:border-gold-500/40 transition-all duration-200 flex flex-col justify-between min-h-[105px] cursor-pointer select-none"
-                >
-                  <div className="flex items-start justify-between gap-2">
-                    <span className="text-[11px] font-semibold uppercase tracking-wider text-slate-500 dark:text-slate-400 leading-tight">
-                      {card.label}
-                    </span>
-                    <div className={`w-8 h-8 rounded-xl ${card.iconContainer} flex items-center justify-center shrink-0 border ${card.iconBorder} shadow-2xs group-hover:scale-105 transition-transform duration-200`}>
-                      <Icon className="w-4 h-4 stroke-[2.2]" />
+        {toastMsg && (
+          <div className="fixed top-6 right-6 z-[9999] max-w-md p-4 bg-white dark:bg-navy-900 border-2 border-emerald-500 text-slate-900 dark:text-white rounded-2xl shadow-2xl flex items-center gap-3 animate-in fade-in slide-in-from-top-4 duration-200">
+            <div className="w-8 h-8 rounded-full bg-emerald-500/20 text-emerald-600 dark:text-emerald-400 flex items-center justify-center shrink-0">
+              <CheckCircle2 className="w-5 h-5" />
+            </div>
+            <div className="text-xs font-bold leading-snug flex-1">
+              {toastMsg}
+            </div>
+            <button
+              type="button"
+              onClick={() => setToastMsg('')}
+              className="text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 cursor-pointer p-1"
+              title="Close notification"
+            >
+              <X className="w-4 h-4" />
+            </button>
+          </div>
+        )}
+
+        {/* 6 TOP EXECUTIVE KPI CARDS (Hidden on Company Announcements and Shift Management views) */}
+        {activeTab !== 'announcements' && activeTab !== 'shifts' && (
+          <section aria-label="Workforce Key Performance Indicators">
+            <div className="grid grid-cols-2 sm:grid-cols-3 xl:grid-cols-6 gap-3 sm:gap-4">
+              {kpiCards.map((card) => {
+                const Icon = card.icon;
+                return (
+                  <div
+                    key={card.id}
+                    data-testid={`kpi-card-${card.id}`}
+                    onClick={() => card.tab && setActiveTab(card.tab)}
+                    className="group relative bg-white dark:bg-navy-900 border border-slate-200/90 dark:border-navy-800 border-l-4 border-l-gold-500 rounded-2xl p-4 shadow-xs hover:shadow-md hover:-translate-y-0.5 hover:border-gold-500/40 transition-all duration-200 flex flex-col justify-between min-h-[105px] cursor-pointer select-none"
+                  >
+                    <div className="flex items-start justify-between gap-2">
+                      <span className="text-[11px] font-semibold uppercase tracking-wider text-slate-500 dark:text-slate-400 leading-tight">
+                        {card.label}
+                      </span>
+                      <div className={`w-8 h-8 rounded-xl ${card.iconContainer} flex items-center justify-center shrink-0 border ${card.iconBorder} shadow-2xs group-hover:scale-105 transition-transform duration-200`}>
+                        <Icon className="w-4 h-4 stroke-[2.2]" />
+                      </div>
+                    </div>
+
+                    <div className="mt-2">
+                      <p className={`text-2xl sm:text-3xl font-bold font-mono ${card.valueColor}`}>
+                        {card.value}
+                      </p>
                     </div>
                   </div>
-
-                  <div className="mt-2">
-                    <p className={`text-2xl sm:text-3xl font-bold font-mono ${card.valueColor}`}>
-                      {card.value}
-                    </p>
-                  </div>
-                </div>
-              );
-            })}
-          </div>
-        </section>
+                );
+              })}
+            </div>
+          </section>
+        )}
 
         {/* ========================================================
             TAB 1: DASHBOARD OVERVIEW (Feature 1)
@@ -2450,6 +3068,7 @@ export const CrmHrLeadDashboard = ({ initialSection }) => {
 
         {activeTab === 'overview' && (
           <div className="space-y-6 animate-in fade-in duration-200">
+<<<<<<< HEAD
             {/* Shift Late Arrival Approvals (HR Lead & Super Admin Authorization) */}
             <ShiftLateArrivalApprovalSection
               currentRole={currentRole || 'HR Lead'}
@@ -2530,6 +3149,10 @@ export const CrmHrLeadDashboard = ({ initialSection }) => {
 
             {/* COMPANY ANNOUNCEMENT SECTION (Positioned immediately after Attendance Summary) */}
             {renderCompanyAnnouncementsSection()}
+=======
+            {/* COMPANY ANNOUNCEMENT SECTION (View-only on Dashboard Overview) */}
+            {renderCompanyAnnouncementsSection(false)}
+>>>>>>> a8ad67d8 (Update HR Operations on 26.11.2026)
           </div>
         )}
 
@@ -2625,15 +3248,14 @@ export const CrmHrLeadDashboard = ({ initialSection }) => {
                                 key={`${day.dateStr}-${idx}`}
                                 type="button"
                                 onClick={() => handleSelectDate(day.dateStr)}
-                                className={`relative py-1.5 rounded-xl text-xs flex flex-col items-center justify-center transition cursor-pointer ${
-                                  isSelected
-                                    ? 'bg-amber-500 text-slate-950 font-bold shadow-sm'
-                                    : day.isCurrentMonth
-                                      ? isToday
-                                        ? 'border border-amber-500 text-amber-600 dark:text-amber-400 font-bold hover:bg-amber-50 dark:hover:bg-amber-500/10'
-                                        : 'text-slate-700 dark:text-slate-200 hover:bg-slate-100 dark:hover:bg-navy-800'
-                                      : 'text-slate-300 dark:text-slate-600 hover:bg-slate-50 dark:hover:bg-navy-950'
-                                }`}
+                                className={`relative py-1.5 rounded-xl text-xs flex flex-col items-center justify-center transition cursor-pointer ${isSelected
+                                  ? 'bg-amber-500 text-slate-950 font-bold shadow-sm'
+                                  : day.isCurrentMonth
+                                    ? isToday
+                                      ? 'border border-amber-500 text-amber-600 dark:text-amber-400 font-bold hover:bg-amber-50 dark:hover:bg-amber-500/10'
+                                      : 'text-slate-700 dark:text-slate-200 hover:bg-slate-100 dark:hover:bg-navy-800'
+                                    : 'text-slate-300 dark:text-slate-600 hover:bg-slate-50 dark:hover:bg-navy-950'
+                                  }`}
                               >
                                 <span>{day.dayNum}</span>
                                 {hasRecords && !isSelected && (
@@ -2878,8 +3500,38 @@ export const CrmHrLeadDashboard = ({ initialSection }) => {
                             </td>
 
                             {/* 6. Total Working Hours */}
-                            <td className="p-4 text-center font-mono font-bold text-emerald-600 dark:text-emerald-400 whitespace-nowrap">
-                              {record.totalWorkingHours || record.hours || '0h 00m'}
+                            <td className="p-4 text-center font-mono font-bold whitespace-nowrap">
+                              {(() => {
+                                const hasCheckIn = record.checkIn && record.checkIn !== '—';
+                                if (!hasCheckIn) {
+                                  return <span className="text-slate-400">—</span>;
+                                }
+                                let displayHours = record.totalWorkingHours || record.hours;
+                                if (record.checkInAt && !record.checkOutAt) {
+                                  const inMs = new Date(record.checkInAt).getTime();
+                                  if (!isNaN(inMs)) {
+                                    const breakMins = Number(record.totalBreakMinutes) || 0;
+                                    const elapsedMins = Math.max(0, Math.floor((attendanceNowMs - inMs) / 60000) - breakMins);
+                                    displayHours = `${Math.floor(elapsedMins / 60)}h ${String(elapsedMins % 60).padStart(2, '0')}m`;
+                                  }
+                                } else if (record.checkInAt && record.checkOutAt && (!displayHours || displayHours === 'In Progress')) {
+                                  const inMs = new Date(record.checkInAt).getTime();
+                                  const outMs = new Date(record.checkOutAt).getTime();
+                                  if (!isNaN(inMs) && !isNaN(outMs) && outMs >= inMs) {
+                                    const breakMins = Number(record.totalBreakMinutes) || 0;
+                                    const mins = Math.max(0, Math.floor((outMs - inMs) / 60000) - breakMins);
+                                    displayHours = `${Math.floor(mins / 60)}h ${String(mins % 60).padStart(2, '0')}m`;
+                                  }
+                                }
+                                if (!displayHours || displayHours === 'In Progress' || displayHours === '0 hrs') {
+                                  displayHours = '0h 00m';
+                                }
+                                return (
+                                  <span className="text-emerald-600 dark:text-emerald-400">
+                                    {displayHours}
+                                  </span>
+                                );
+                              })()}
                             </td>
 
                             {/* 8. Late Arrival / Early Departure */}
@@ -3647,7 +4299,7 @@ export const CrmHrLeadDashboard = ({ initialSection }) => {
         ======================================================== */}
         {activeTab === 'announcements' && (
           <div className="space-y-6 animate-in fade-in duration-200">
-            {renderCompanyAnnouncementsSection()}
+            {renderCompanyAnnouncementsSection(true)}
           </div>
         )}
 
@@ -3695,78 +4347,12 @@ export const CrmHrLeadDashboard = ({ initialSection }) => {
                       }
                     }}
                     placeholder="e.g. Q4 Company All-Hands & Policy Updates"
-                    className={`w-full bg-slate-50 dark:bg-navy-950 border ${
-                      announcementFormErrors.title ? 'border-rose-500 ring-1 ring-rose-500' : 'border-slate-200 dark:border-navy-700'
-                    } rounded-xl p-2.5 font-medium text-slate-900 dark:text-white focus:outline-none focus:border-amber-500`}
+                    className={`w-full bg-slate-50 dark:bg-navy-950 border ${announcementFormErrors.title ? 'border-rose-500 ring-1 ring-rose-500' : 'border-slate-200 dark:border-navy-700'
+                      } rounded-xl p-2.5 font-medium text-slate-900 dark:text-white focus:outline-none focus:border-amber-500`}
                   />
                   {announcementFormErrors.title && (
                     <p className="text-rose-500 text-[10px] font-bold mt-1">⚠️ {announcementFormErrors.title}</p>
                   )}
-
-      {/* Read Full Notice Modal for HR Lead */}
-      {selectedAnnouncementForModal && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-navy-950/80 backdrop-blur-sm animate-in fade-in">
-          <div className="bg-white dark:bg-navy-900 border border-slate-200 dark:border-amber-500/40 rounded-3xl max-w-lg w-full p-6 shadow-2xl space-y-4 animate-in zoom-in-95 max-h-[90vh] overflow-y-auto">
-            <div className="flex justify-between items-start border-b border-slate-200 dark:border-navy-800 pb-3">
-              <div className="space-y-1">
-                <div className="flex flex-wrap items-center gap-2">
-                  <span className={`px-2.5 py-0.5 rounded-full text-[10px] font-bold border ${getAnnouncementCategoryBadgeClass(selectedAnnouncementForModal.category)}`}>
-                    {selectedAnnouncementForModal.category}
-                  </span>
-                  <span className="px-2.5 py-0.5 rounded-full text-[10px] font-semibold bg-slate-100 dark:bg-navy-800 text-slate-600 dark:text-slate-300 border border-slate-200 dark:border-navy-700 flex items-center gap-1">
-                    <Globe className="w-3 h-3 text-slate-400" />
-                    <span>{selectedAnnouncementForModal.target_audience}</span>
-                  </span>
-                  <span className={`px-2.5 py-0.5 rounded-full text-[10px] font-bold border ${
-                    selectedAnnouncementForModal.status === 'Published'
-                      ? 'bg-emerald-50 dark:bg-emerald-950/40 text-emerald-700 dark:text-emerald-300 border-emerald-200 dark:border-emerald-800'
-                      : 'bg-amber-50 dark:bg-amber-950/40 text-amber-700 dark:text-amber-300 border-amber-200 dark:border-amber-800'
-                  }`}>
-                    {selectedAnnouncementForModal.status}
-                  </span>
-                </div>
-                <h3 className="font-serif text-lg font-bold text-slate-900 dark:text-white pt-1">
-                  {selectedAnnouncementForModal.title}
-                </h3>
-              </div>
-              <button
-                type="button"
-                onClick={() => setSelectedAnnouncementForModal(null)}
-                className="text-slate-400 hover:text-slate-600 dark:hover:text-white p-1 rounded-lg cursor-pointer"
-              >
-                <X className="w-5 h-5" />
-              </button>
-            </div>
-
-            <div className="text-xs text-slate-500 dark:text-slate-400 flex flex-wrap items-center gap-2 pb-1 border-b border-slate-100 dark:border-navy-800">
-              <span>Issued by: <strong className="text-slate-800 dark:text-slate-200">{selectedAnnouncementForModal.created_by_name || 'HR Lead'}</strong> ({selectedAnnouncementForModal.created_by_role || 'HR Lead'})</span>
-              <span>•</span>
-              <span className="font-mono">{selectedAnnouncementForModal.status === 'Published' ? formatAnnouncementDateTime(selectedAnnouncementForModal.published_at || selectedAnnouncementForModal.created_at) : 'Draft (Unpublished)'}</span>
-              {selectedAnnouncementForModal.expires_at && (
-                <>
-                  <span>•</span>
-                  <span className="text-amber-600 dark:text-amber-400 font-semibold">Valid until: {selectedAnnouncementForModal.expires_at}</span>
-                </>
-              )}
-            </div>
-
-            <div className="text-xs sm:text-sm text-slate-700 dark:text-slate-200 whitespace-pre-line leading-relaxed py-2">
-              {selectedAnnouncementForModal.description}
-            </div>
-
-            <div className="pt-3 border-t border-slate-200 dark:border-navy-800 flex justify-end">
-              <button
-                type="button"
-                onClick={() => setSelectedAnnouncementForModal(null)}
-                className="px-5 py-2 bg-slate-900 hover:bg-slate-800 text-white dark:bg-amber-500 dark:hover:bg-amber-600 dark:text-slate-950 font-bold rounded-xl text-xs transition cursor-pointer"
-              >
-                Close Notice
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
-
                 </div>
 
                 {/* Category & Target Audience */}
@@ -3804,18 +4390,33 @@ export const CrmHrLeadDashboard = ({ initialSection }) => {
                   </div>
                 </div>
 
-                {/* Expiry Date */}
-                <div>
-                  <label className="block text-[11px] font-bold text-slate-700 dark:text-slate-300 mb-1">
-                    Expiry Date <span className="text-slate-400 font-normal">(Optional)</span>
-                  </label>
-                  <input
-                    type="date"
-                    value={announcementForm.expires_at || ''}
-                    onChange={e => setAnnouncementForm({ ...announcementForm, expires_at: e.target.value })}
-                    className="w-full bg-slate-50 dark:bg-navy-950 border border-slate-200 dark:border-navy-700 rounded-xl p-2.5 font-medium text-slate-900 dark:text-white focus:outline-none focus:border-amber-500 cursor-pointer"
-                  />
-                  <p className="text-[10px] text-slate-400 mt-1">Leave empty if this announcement does not have an expiration date.</p>
+                {/* Publish Date & Expiry Date */}
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                  <div>
+                    <label className="block text-[11px] font-bold text-slate-700 dark:text-slate-300 mb-1">
+                      Publish Date <span className="text-slate-400 font-normal">(Optional)</span>
+                    </label>
+                    <input
+                      type="date"
+                      value={announcementForm.publish_date || ''}
+                      onChange={e => setAnnouncementForm({ ...announcementForm, publish_date: e.target.value })}
+                      className="w-full bg-slate-50 dark:bg-navy-950 border border-slate-200 dark:border-navy-700 rounded-xl p-2.5 font-medium text-slate-900 dark:text-white focus:outline-none focus:border-amber-500 cursor-pointer"
+                    />
+                    <p className="text-[10px] text-slate-400 mt-1">Future date automatically schedules the notice.</p>
+                  </div>
+
+                  <div>
+                    <label className="block text-[11px] font-bold text-slate-700 dark:text-slate-300 mb-1">
+                      Expiry Date <span className="text-slate-400 font-normal">(Optional)</span>
+                    </label>
+                    <input
+                      type="date"
+                      value={announcementForm.expires_at || ''}
+                      onChange={e => setAnnouncementForm({ ...announcementForm, expires_at: e.target.value })}
+                      className="w-full bg-slate-50 dark:bg-navy-950 border border-slate-200 dark:border-navy-700 rounded-xl p-2.5 font-medium text-slate-900 dark:text-white focus:outline-none focus:border-amber-500 cursor-pointer"
+                    />
+                    <p className="text-[10px] text-slate-400 mt-1">Leave empty if this announcement does not expire.</p>
+                  </div>
                 </div>
 
                 {/* Description */}
@@ -3834,9 +4435,8 @@ export const CrmHrLeadDashboard = ({ initialSection }) => {
                       }
                     }}
                     placeholder="Enter the complete announcement body, guidelines, policy details, or instructions..."
-                    className={`w-full bg-slate-50 dark:bg-navy-950 border ${
-                      announcementFormErrors.description ? 'border-rose-500 ring-1 ring-rose-500' : 'border-slate-200 dark:border-navy-700'
-                    } rounded-xl p-2.5 font-medium text-slate-900 dark:text-white focus:outline-none focus:border-amber-500`}
+                    className={`w-full bg-slate-50 dark:bg-navy-950 border ${announcementFormErrors.description ? 'border-rose-500 ring-1 ring-rose-500' : 'border-slate-200 dark:border-navy-700'
+                      } rounded-xl p-2.5 font-medium text-slate-900 dark:text-white focus:outline-none focus:border-amber-500`}
                   />
                   {announcementFormErrors.description && (
                     <p className="text-rose-500 text-[10px] font-bold mt-1">⚠️ {announcementFormErrors.description}</p>
@@ -3881,388 +4481,917 @@ export const CrmHrLeadDashboard = ({ initialSection }) => {
           </div>
         )}
 
+        {/* MODAL: READ FULL NOTICE & AUDIT HISTORY (HR LEAD) */}
+        {selectedAnnouncementForModal && (
+          <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-navy-950/80 backdrop-blur-sm animate-in fade-in">
+            <div className="bg-white dark:bg-navy-900 border border-slate-200 dark:border-amber-500/40 rounded-3xl max-w-lg w-full p-6 shadow-2xl space-y-4 animate-in zoom-in-95 max-h-[90vh] overflow-y-auto">
+              <div className="flex justify-between items-start border-b border-slate-200 dark:border-navy-800 pb-3">
+                <div className="space-y-1">
+                  <div className="flex flex-wrap items-center gap-2">
+                    <span className={`px-2.5 py-0.5 rounded-full text-[10px] font-bold border ${getAnnouncementCategoryBadgeClass(selectedAnnouncementForModal.category)}`}>
+                      {selectedAnnouncementForModal.category}
+                    </span>
+                    <span className="px-2.5 py-0.5 rounded-full text-[10px] font-semibold bg-slate-100 dark:bg-navy-800 text-slate-600 dark:text-slate-300 border border-slate-200 dark:border-navy-700 flex items-center gap-1">
+                      <Globe className="w-3 h-3 text-slate-400" />
+                      <span>{selectedAnnouncementForModal.target_audience}</span>
+                    </span>
+                    <span className={`px-2.5 py-0.5 rounded-full text-[10px] font-bold border ${
+                      selectedAnnouncementForModal.isDeleted || selectedAnnouncementForModal.status === 'Deleted'
+                        ? 'bg-slate-200 dark:bg-slate-800 text-slate-700 dark:text-slate-300 border-slate-300 dark:border-slate-600'
+                        : selectedAnnouncementForModal.status === 'Published'
+                          ? 'bg-emerald-50 dark:bg-emerald-950/40 text-emerald-700 dark:text-emerald-300 border-emerald-200 dark:border-emerald-800'
+                          : selectedAnnouncementForModal.status === 'Expired'
+                            ? 'bg-rose-50 dark:bg-rose-950/40 text-rose-700 dark:text-rose-300 border-rose-200 dark:border-rose-800'
+                            : selectedAnnouncementForModal.status === 'Scheduled'
+                              ? 'bg-indigo-50 dark:bg-indigo-950/40 text-indigo-700 dark:text-indigo-300 border-indigo-200 dark:border-indigo-800'
+                              : 'bg-amber-50 dark:bg-amber-950/40 text-amber-700 dark:text-amber-300 border-amber-200 dark:border-amber-800'
+                    }`}>
+                      {selectedAnnouncementForModal.isDeleted || selectedAnnouncementForModal.status === 'Deleted' ? 'Deleted' : selectedAnnouncementForModal.status}
+                    </span>
+                  </div>
+                  <h3 className="font-serif text-lg font-bold text-slate-900 dark:text-white pt-1">
+                    {selectedAnnouncementForModal.title}
+                  </h3>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => setSelectedAnnouncementForModal(null)}
+                  className="text-slate-400 hover:text-slate-600 dark:hover:text-white p-1 rounded-lg cursor-pointer"
+                >
+                  <X className="w-5 h-5" />
+                </button>
+              </div>
+
+              <div className="text-xs text-slate-500 dark:text-slate-400 flex flex-wrap items-center gap-2 pb-1 border-b border-slate-100 dark:border-navy-800">
+                <span>Issued by: <strong className="text-slate-800 dark:text-slate-200">{selectedAnnouncementForModal.created_by_name || 'HR Lead'}</strong> ({selectedAnnouncementForModal.created_by_role || 'HR Lead'})</span>
+                {selectedAnnouncementForModal.created_by && (
+                  <span className="font-mono text-[10px] text-slate-400">[{selectedAnnouncementForModal.created_by}]</span>
+                )}
+                <span>•</span>
+                <span className="font-mono">
+                  {selectedAnnouncementForModal.published_at
+                    ? formatAnnouncementDateTime(selectedAnnouncementForModal.published_at)
+                    : 'Draft (Never Published)'}
+                </span>
+                {selectedAnnouncementForModal.expires_at && (
+                  <>
+                    <span>•</span>
+                    <span className="text-amber-600 dark:text-amber-400 font-semibold">Valid until: {selectedAnnouncementForModal.expires_at}</span>
+                  </>
+                )}
+              </div>
+
+              {(selectedAnnouncementForModal.isDeleted || selectedAnnouncementForModal.is_deleted || selectedAnnouncementForModal.status === 'Deleted') && (
+                <div className="p-3 rounded-2xl bg-rose-50 dark:bg-rose-950/35 border border-rose-200 dark:border-rose-800/70 text-xs space-y-1">
+                  <div className="font-bold text-rose-800 dark:text-rose-200 text-[11px]">
+                    Soft-Deleted Announcement ({selectedAnnouncementForModal.wasPublished || selectedAnnouncementForModal.published_at ? 'Previously Published' : 'Never Published Draft'})
+                  </div>
+                  <div className="text-rose-900 dark:text-rose-100 text-[11px]">
+                    Deleted by <strong>{selectedAnnouncementForModal.deleted_by_name || 'HR Lead'}</strong>
+                    {selectedAnnouncementForModal.deleted_at ? ` on ${formatAnnouncementDateTime(selectedAnnouncementForModal.deleted_at)}` : ''}
+                  </div>
+                  <div className="text-rose-700 dark:text-rose-300 text-[11px] italic">
+                    Reason: {selectedAnnouncementForModal.deletion_reason || 'No reason recorded'}
+                  </div>
+                </div>
+              )}
+
+              <div className="text-xs sm:text-sm text-slate-700 dark:text-slate-200 whitespace-pre-line leading-relaxed py-2">
+                {selectedAnnouncementForModal.description}
+              </div>
+
+              {Array.isArray(selectedAnnouncementForModal.auditLogs) && selectedAnnouncementForModal.auditLogs.length > 0 && (
+                <div className="space-y-1.5 pt-2 border-t border-slate-100 dark:border-navy-800">
+                  <div className="text-[10px] font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400">
+                    Audit History ({selectedAnnouncementForModal.auditLogs.length})
+                  </div>
+                  <div className="max-h-36 overflow-y-auto space-y-1.5 pr-1">
+                    {selectedAnnouncementForModal.auditLogs.map((log) => (
+                      <div key={log.id} className="p-2 rounded-xl bg-slate-50 dark:bg-navy-950 border border-slate-200/70 dark:border-navy-800 text-[11px]">
+                        <div className="flex items-center justify-between gap-2">
+                          <span className="font-bold text-slate-800 dark:text-slate-100">{log.action}</span>
+                          <span className="font-mono text-[10px] text-slate-400">{formatAnnouncementDateTime(log.created_at)}</span>
+                        </div>
+                        <div className="text-slate-600 dark:text-slate-300">
+                          {log.actor_name || 'System'} ({log.actor_role || 'System'}) {log.details ? `— ${log.details}` : ''}
+                        </div>
+                        {log.reason && <div className="text-rose-600 dark:text-rose-300 italic">Reason: {log.reason}</div>}
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              <div className="pt-3 border-t border-slate-200 dark:border-navy-800 flex justify-end gap-2">
+                {(selectedAnnouncementForModal.isDeleted || selectedAnnouncementForModal.status === 'Deleted') && (
+                  <button
+                    type="button"
+                    onClick={() => {
+                      const ann = selectedAnnouncementForModal;
+                      setSelectedAnnouncementForModal(null);
+                      handleRestoreAnnouncement(ann.id, ann.title);
+                    }}
+                    className="px-4 py-2 bg-emerald-600 hover:bg-emerald-700 text-white font-bold rounded-xl text-xs transition cursor-pointer"
+                  >
+                    Restore Announcement
+                  </button>
+                )}
+                <button
+                  type="button"
+                  onClick={() => setSelectedAnnouncementForModal(null)}
+                  className="px-5 py-2 bg-slate-900 hover:bg-slate-800 text-white dark:bg-amber-500 dark:hover:bg-amber-600 dark:text-slate-950 font-bold rounded-xl text-xs transition cursor-pointer"
+                >
+                  Close Notice
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* MODAL: SOFT-DELETE CONFIRMATION WITH OPTIONAL REASON */}
+        {deleteConfirmAnnouncement && (
+          <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-navy-950/80 backdrop-blur-sm animate-in fade-in">
+            <div className="bg-white dark:bg-navy-900 border border-rose-200 dark:border-rose-500/40 rounded-3xl max-w-md w-full p-6 shadow-2xl space-y-4 animate-in zoom-in-95">
+              <div className="flex items-start justify-between gap-3 border-b border-slate-200 dark:border-navy-800 pb-3">
+                <div>
+                  <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-rose-100 text-rose-700 dark:bg-rose-900/50 dark:text-rose-200 uppercase">
+                    Confirm Soft Delete
+                  </span>
+                  <h3 className="font-serif text-base font-bold text-slate-900 dark:text-white mt-1.5">
+                    Delete “{deleteConfirmAnnouncement.title}”?
+                  </h3>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => setDeleteConfirmAnnouncement(null)}
+                  className="text-slate-400 hover:text-slate-600 dark:hover:text-white p-1 rounded-lg cursor-pointer"
+                >
+                  <X className="w-4 h-4" />
+                </button>
+              </div>
+
+              <p className="text-xs text-slate-600 dark:text-slate-300 leading-relaxed">
+                This announcement will be removed from the active dashboard, but its record and audit trail will be preserved in the Shared Announcement Calendar.
+              </p>
+
+              <div>
+                <label className="block text-[11px] font-bold text-slate-700 dark:text-slate-300 mb-1">
+                  Deletion Reason <span className="text-slate-400 font-normal">(Optional)</span>
+                </label>
+                <textarea
+                  rows={3}
+                  value={deleteReason}
+                  onChange={(e) => setDeleteReason(e.target.value)}
+                  placeholder="e.g. Superseded by updated circular, published in error..."
+                  className="w-full bg-slate-50 dark:bg-navy-950 border border-slate-200 dark:border-navy-700 rounded-xl p-2.5 text-xs text-slate-900 dark:text-white focus:outline-none focus:border-rose-500"
+                />
+              </div>
+
+              <div className="flex justify-end gap-2 pt-2 border-t border-slate-200 dark:border-navy-800">
+                <button
+                  type="button"
+                  disabled={deletingAnnouncement}
+                  onClick={() => setDeleteConfirmAnnouncement(null)}
+                  className="px-4 py-2 rounded-xl text-xs font-bold bg-slate-100 dark:bg-navy-800 text-slate-700 dark:text-slate-300 hover:bg-slate-200 dark:hover:bg-navy-700 cursor-pointer"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="button"
+                  disabled={deletingAnnouncement}
+                  onClick={() => handleDeleteAnnouncement(deleteConfirmAnnouncement.id, deleteConfirmAnnouncement.title, deleteReason)}
+                  className="px-4 py-2 rounded-xl text-xs font-bold bg-rose-600 hover:bg-rose-700 text-white cursor-pointer disabled:opacity-60"
+                >
+                  {deletingAnnouncement ? 'Deleting...' : 'Confirm Delete'}
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
+
         {/* ========================================================
-            TAB 9: SHIFTS & ROSTERS (Advanced Feature 1: Shift Roster & Login Time Tracking)
+            TAB 9: SHIFTS & ROSTERS (Complete Unified Shift Management Module)
         ======================================================== */}
         {activeTab === 'shifts' && (() => {
-          const selectedShift = SHIFT_CONFIGS.find(s => s.id === selectedShiftId) || SHIFT_CONFIGS[0];
-          const selectedShiftStaff = employees.filter(e => (e.shiftId || 'shift-9-6') === selectedShift.id);
-          const shiftOnTimeCount = selectedShiftStaff.filter(e => e.attendanceToday?.loginStatus === 'On Time').length;
-          const shiftLateCount = selectedShiftStaff.filter(e => e.attendanceToday?.late || (e.attendanceToday?.loginStatus && e.attendanceToday.loginStatus.startsWith('Late'))).length;
-          const shiftPendingCount = selectedShiftStaff.filter(e => !e.attendanceToday?.checkIn || e.attendanceToday?.checkIn === '-' || e.attendanceToday?.loginStatus?.includes('Pending')).length;
-          const shiftLeaveCount = selectedShiftStaff.filter(e => e.attendanceToday?.status === 'On Leave' || e.attendanceToday?.loginStatus === 'On Leave').length;
+          // Dynamic unique departments from workforce
+          const allDepartments = Array.from(
+            new Set(displayEmployees.map(e => e.department).filter(Boolean))
+          ).sort();
 
-          const filteredShiftStaff = selectedShiftStaff.filter(emp => {
-            const q = shiftRosterSearch.toLowerCase().trim();
-            const matchesSearch = !q ||
-              emp.name.toLowerCase().includes(q) ||
-              emp.id.toLowerCase().includes(q) ||
-              emp.role.toLowerCase().includes(q) ||
-              emp.department.toLowerCase().includes(q);
-
-            let matchesStatus = true;
-            if (shiftStatusFilter === 'On-Time') {
-              matchesStatus = emp.attendanceToday?.loginStatus === 'On Time';
-            } else if (shiftStatusFilter === 'Late') {
-              matchesStatus = emp.attendanceToday?.late || (emp.attendanceToday?.loginStatus && emp.attendanceToday.loginStatus.startsWith('Late'));
-            } else if (shiftStatusFilter === 'Pending') {
-              matchesStatus = !emp.attendanceToday?.checkIn || emp.attendanceToday?.checkIn === '-' || emp.attendanceToday?.loginStatus?.includes('Pending');
-            } else if (shiftStatusFilter === 'On Leave') {
-              matchesStatus = emp.attendanceToday?.status === 'On Leave' || emp.attendanceToday?.loginStatus === 'On Leave';
+          // Search and Filters
+          const filteredEmployees = displayEmployees.filter(emp => {
+            const q = shiftSearchQuery.trim().toLowerCase();
+            if (q) {
+              const matchesName = emp.name?.toLowerCase().includes(q);
+              const matchesId = (emp.employeeId || emp.id)?.toLowerCase().includes(q);
+              const matchesRole = emp.role?.toLowerCase().includes(q);
+              const matchesDept = emp.department?.toLowerCase().includes(q);
+              if (!matchesName && !matchesId && !matchesRole && !matchesDept) return false;
             }
 
-            return matchesSearch && matchesStatus;
+            if (shiftFilterShift !== 'all') {
+              const norm = normalizeShiftId(emp.assignedShiftId);
+              if (norm !== shiftFilterShift && emp.assignedShiftId !== shiftFilterShift) {
+                if (!emp.assignedShift?.toLowerCase().includes(shiftFilterShift.toLowerCase())) {
+                  return false;
+                }
+              }
+            }
+
+            if (shiftFilterStatus !== 'all') {
+              if (shiftFilterStatus === 'On Time' && emp.loginStatus !== 'On Time') return false;
+              if (shiftFilterStatus === 'Late' && !emp.loginStatus?.startsWith('Late') && !emp.isLate) return false;
+              if (shiftFilterStatus === 'Pending Clock-In' && !emp.loginStatus?.includes('Pending')) return false;
+              if (shiftFilterStatus === 'On Leave' && emp.loginStatus !== 'On Leave') return false;
+            }
+
+            if (shiftFilterDept !== 'all' && emp.department !== shiftFilterDept) {
+              return false;
+            }
+
+            return true;
           });
 
-          const unassignedOrOtherStaff = employees.filter(e => (e.shiftId || 'shift-9-6') !== selectedShift.id);
+          // Counts for summary pills
+          const onTimeCount = displayEmployees.filter(e => e.loginStatus === 'On Time').length;
+          const lateCount = displayEmployees.filter(e => e.isLate || e.loginStatus?.startsWith('Late')).length;
+          const pendingCount = displayEmployees.filter(e => e.loginStatus?.includes('Pending') || e.actualClockInTime === '—').length;
+          const leaveCount = displayEmployees.filter(e => e.loginStatus === 'On Leave').length;
+          const pendingLateApprovalsCount = lateApprovalsList.filter(r => r.status === 'Pending Approval').length;
+
+          // Helper to toggle bulk employee checkbox
+          const toggleBulkSelect = (empId) => {
+            setBulkSelectedEmpIds(prev =>
+              prev.includes(empId) ? prev.filter(id => id !== empId) : [...prev, empId]
+            );
+          };
+
+          const toggleSelectAll = () => {
+            if (bulkSelectedEmpIds.length === filteredEmployees.length) {
+              setBulkSelectedEmpIds([]);
+            } else {
+              setBulkSelectedEmpIds(filteredEmployees.map(e => e.employeeId || e.id));
+            }
+          };
+
+          // Weekly days generation (Monday - Sunday) around shiftSelectedDate
+          const getWeekDays = (selectedDateStr) => {
+            const date = new Date(`${selectedDateStr}T00:00:00Z`);
+            const dayOfWeek = date.getUTCDay(); // 0 is Sunday, 1 is Monday
+            const distanceToMonday = dayOfWeek === 0 ? -6 : 1 - dayOfWeek;
+            const monday = new Date(date);
+            monday.setUTCDate(date.getUTCDate() + distanceToMonday);
+
+            const days = [];
+            const dayNames = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
+            for (let i = 0; i < 7; i++) {
+              const current = new Date(monday);
+              current.setUTCDate(monday.getUTCDate() + i);
+              const iso = current.toISOString().slice(0, 10);
+              days.push({
+                iso,
+                dayName: dayNames[i],
+                dayNumber: current.getUTCDate(),
+                isCurrentSelected: iso === selectedDateStr
+              });
+            }
+            return days;
+          };
+          const weekDays = getWeekDays(shiftSelectedDate);
+
+          // Pure date-effective shift resolver for an employee on any given ISO date (Monday–Sunday)
+          const resolveShiftForEmpAndDate = (emp, dateIso) => {
+            let dayOfWeek = 0;
+            try {
+              const [y, m, d] = dateIso.split('-').map(Number);
+              dayOfWeek = new Date(y, m - 1, d).getDay(); // 0 = Sun, 1 = Mon ... 6 = Sat
+            } catch (_) {
+              dayOfWeek = new Date(`${dateIso}T00:00:00`).getDay();
+            }
+            const empId = emp.employeeId || emp.id;
+
+            const empAssignments = shiftAssignmentsList.filter(a =>
+              (a.employeeId === empId) && a.status === 'Active'
+            );
+
+            // 1. One day specific override (priority 1)
+            const oneDay = empAssignments.find(a =>
+              a.frequency === 'one_day' && a.startDate === dateIso
+            );
+            if (oneDay) {
+              const sc = SHIFT_CONFIGS.find(s => s.id === oneDay.shiftId) || {
+                id: oneDay.shiftId,
+                shiftName: oneDay.shiftName,
+                timing: `${oneDay.scheduledLoginTime || ''} – ${oneDay.scheduledLogoutTime || ''}`,
+                scheduledLoginTime: oneDay.scheduledLoginTime,
+                scheduledLogoutTime: oneDay.scheduledLogoutTime
+              };
+              return { ...sc, frequency: 'one_day', isOverride: true, assignmentId: oneDay.id };
+            }
+
+            // 2. Weekly recurring assignment (priority 2) then Monthly recurring assignment (priority 3)
+            const matchRecurring = (freqTarget) => {
+              for (const a of empAssignments) {
+                if (a.frequency === freqTarget) {
+                  const inRange = a.startDate <= dateIso && (!a.endDate || a.endDate >= dateIso);
+                  if (inRange) {
+                    let days = [1, 2, 3, 4, 5, 6];
+                    try {
+                      if (a.applicableDays) {
+                        days = typeof a.applicableDays === 'string' ? JSON.parse(a.applicableDays) : a.applicableDays;
+                      }
+                    } catch (e) { }
+
+                    if (Array.isArray(days) && days.includes(dayOfWeek)) {
+                      const sc = SHIFT_CONFIGS.find(s => s.id === a.shiftId) || {
+                        id: a.shiftId,
+                        shiftName: a.shiftName,
+                        timing: `${a.scheduledLoginTime || ''} – ${a.scheduledLogoutTime || ''}`,
+                        scheduledLoginTime: a.scheduledLoginTime,
+                        scheduledLogoutTime: a.scheduledLogoutTime
+                      };
+                      return { ...sc, frequency: a.frequency, isOverride: true, assignmentId: a.id };
+                    }
+                  }
+                }
+              }
+              return null;
+            };
+
+            const weeklyMatch = matchRecurring('weekly');
+            if (weeklyMatch) return weeklyMatch;
+
+            const monthlyMatch = matchRecurring('monthly');
+            if (monthlyMatch) return monthlyMatch;
+
+            // 3. Sunday weekly off (unless overridden)
+            if (dayOfWeek === 0) {
+              return {
+                id: 'OFF',
+                shiftName: 'Weekly Off',
+                timing: 'Rest Day',
+                scheduledLoginTime: '—',
+                scheduledLogoutTime: '—',
+                isOff: true
+              };
+            }
+
+            // 4. Default baseline shift (never use date-specific emp.assignedShiftId)
+            const baseShiftId = normalizeShiftId(emp.baseShiftId || (!emp.assignedShiftId ? emp.shiftId : null) || 'SHIFT-GENERAL');
+            const baseShift = SHIFT_CONFIGS.find(s => s.id === baseShiftId) || SHIFT_CONFIGS[0];
+            return { ...baseShift, isDefault: true };
+          };
+
+          const effectiveShiftViewMode = readOnlyMode ? 'monthly' : shiftViewMode;
+
+          const shiftMonthNames = [
+            'January', 'February', 'March', 'April', 'May', 'June',
+            'July', 'August', 'September', 'October', 'November', 'December'
+          ];
+          const shiftCurrentMonthLabel = `${shiftMonthNames[monthlyViewMonth]} ${monthlyViewYear}`;
+
+          const handleShiftPrevMonth = () => {
+            if (monthlyViewMonth === 0) {
+              setMonthlyViewMonth(11);
+              setMonthlyViewYear(prev => prev - 1);
+            } else {
+              setMonthlyViewMonth(prev => prev - 1);
+            }
+          };
+
+          const handleShiftNextMonth = () => {
+            if (monthlyViewMonth === 11) {
+              setMonthlyViewMonth(0);
+              setMonthlyViewYear(prev => prev + 1);
+            } else {
+              setMonthlyViewMonth(prev => prev + 1);
+            }
+          };
+
+          const handleShiftCurrentMonth = () => {
+            const now = new Date();
+            setMonthlyViewYear(now.getFullYear());
+            setMonthlyViewMonth(now.getMonth());
+            setMonthlyActiveDateStr(now.toISOString().slice(0, 10));
+          };
 
           return (
             <div className="space-y-6 animate-in fade-in duration-200">
-              <div className="bg-white dark:bg-navy-900 border border-slate-200/90 dark:border-navy-800 rounded-3xl p-6 shadow-xs space-y-6">
+              <div className={`bg-white dark:bg-navy-900 border border-slate-200/90 dark:border-navy-800 rounded-3xl shadow-xs ${readOnlyMode ? 'p-4 sm:p-5 space-y-4' : 'p-5 sm:p-6 space-y-6'}`}>
 
-                {/* Header with Instructions */}
-                <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3">
-                  <div>
-                    <h3 className="font-serif font-bold text-lg text-slate-900 dark:text-white flex items-center gap-2">
-                      <CalendarCheck className="w-5 h-5 text-gold-500" />
-                      <span>Working Hour Shifts & Schedule Roster</span>
-                    </h3>
-                    <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">
-                      Click any shift card below to inspect assigned personnel, live clock-in timestamps, punctuality status, and shift reassignments.
-                    </p>
-                  </div>
-                  <div className="flex items-center gap-2">
-                    <span className="text-[11px] font-bold text-slate-400 bg-slate-100 dark:bg-navy-800 px-3 py-1 rounded-full border border-slate-200 dark:border-navy-700">
-                      Total Workforce: {employees.length} Staff
-                    </span>
-                  </div>
-                </div>
-
-                {/* 3 Clickable Shift Cards */}
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                  {SHIFT_CONFIGS.map((s) => {
-                    const staffInShift = employees.filter(e => (e.shiftId || 'shift-9-6') === s.id);
-                    const isSelected = selectedShiftId === s.id;
-                    const onTime = staffInShift.filter(e => e.attendanceToday?.loginStatus === 'On Time').length;
-                    const late = staffInShift.filter(e => e.attendanceToday?.late || (e.attendanceToday?.loginStatus && e.attendanceToday.loginStatus.startsWith('Late'))).length;
-                    const pending = staffInShift.filter(e => !e.attendanceToday?.checkIn || e.attendanceToday?.checkIn === '-' || e.attendanceToday?.loginStatus?.includes('Pending')).length;
-
-                    return (
-                      <div
-                        key={s.id}
-                        onClick={() => setSelectedShiftId(s.id)}
-                        className={`p-5 rounded-2xl transition-all cursor-pointer space-y-3 relative text-left ${isSelected
-                          ? 'bg-amber-50/70 dark:bg-amber-950/25 border-2 border-amber-500 shadow-md ring-2 ring-amber-500/20'
-                          : 'bg-slate-50 dark:bg-navy-950 border border-slate-200/80 dark:border-navy-800 hover:border-amber-400/80 hover:shadow-xs'
-                          }`}
-                      >
-                        <div className="flex justify-between items-start gap-2">
-                          <div>
-                            <div className="flex items-center gap-1.5 mb-1">
-                              <span className="px-2 py-0.5 rounded text-[9px] font-bold uppercase tracking-wider bg-slate-200 dark:bg-navy-800 text-slate-700 dark:text-slate-300">
-                                {s.badge}
-                              </span>
-                              {isSelected && (
-                                <span className="px-2 py-0.5 rounded text-[9px] font-bold uppercase tracking-wider bg-amber-500 text-navy-950 flex items-center gap-1">
-                                  <Check className="w-2.5 h-2.5" /> Selected
-                                </span>
-                              )}
-                            </div>
-                            <h4 className="font-serif font-bold text-slate-900 dark:text-white text-sm">
-                              {s.shiftName}
-                            </h4>
-                          </div>
-                          <span className="px-2.5 py-0.5 rounded-full text-[11px] font-bold bg-amber-500/20 text-amber-800 dark:text-gold-400 font-mono shrink-0">
-                            {staffInShift.length} Staff
-                          </span>
-                        </div>
-
-                        <div className="p-2.5 bg-white dark:bg-navy-900 rounded-xl border border-slate-200/70 dark:border-navy-800 font-mono font-bold text-xs text-emerald-600 dark:text-emerald-400 flex items-center justify-between">
-                          <span className="flex items-center gap-1.5">
-                            <Clock className="w-3.5 h-3.5 text-emerald-600 dark:text-emerald-400" />
-                            {s.timing}
-                          </span>
-                          <span className="text-[10px] font-sans font-medium text-slate-400">
-                            Start: {s.startTime}
-                          </span>
-                        </div>
-
-                        <div className="flex items-center gap-2 text-[10px] font-semibold text-slate-600 dark:text-slate-400">
-                          <span className="text-emerald-700 dark:text-emerald-400 font-bold">🟢 {onTime} On Time</span>
-                          <span>•</span>
-                          <span className="text-amber-700 dark:text-amber-400 font-bold">🟡 {late} Late</span>
-                          <span>•</span>
-                          <span className="text-slate-500 dark:text-slate-400">⚪ {pending} Pending</span>
-                        </div>
-
-                        <p className="text-[11px] text-slate-500 dark:text-slate-400 leading-relaxed">
-                          {s.description}
-                        </p>
-
-                        <div className="pt-1">
-                          {isSelected ? (
-                            <div className="w-full text-center py-2 px-3 rounded-xl bg-amber-500 text-navy-950 font-bold text-[11px] shadow-xs flex items-center justify-center gap-1.5">
-                              <span>Viewing Assigned Roster ({staffInShift.length})</span>
-                              <span className="text-xs">▼</span>
-                            </div>
-                          ) : (
-                            <button
-                              type="button"
-                              className="w-full text-center py-2 px-3 rounded-xl bg-white dark:bg-navy-900 border border-slate-200 dark:border-navy-800 text-slate-700 dark:text-slate-300 font-bold text-[11px] hover:bg-slate-100 dark:hover:bg-navy-800 transition flex items-center justify-center gap-1.5 cursor-pointer"
-                            >
-                              <span>Click to View Assigned Staff ({staffInShift.length})</span>
-                              <span className="text-xs">→</span>
-                            </button>
-                          )}
-                        </div>
-                      </div>
-                    );
-                  })}
-                </div>
-
-                {/* ========================================================
-                    DETAILED ASSIGNED SHIFT ROSTER & LIVE LOGIN ACTIVITY
-                ======================================================== */}
-                <div className="mt-8 pt-6 border-t border-slate-200 dark:border-navy-800 space-y-4">
-
-                  {/* Shift Roster Header & Metric Summary */}
-                  <div className="flex flex-col lg:flex-row justify-between items-start lg:items-center gap-4 bg-slate-50 dark:bg-navy-950 p-4 rounded-2xl border border-slate-200/80 dark:border-navy-800">
-                    <div>
-                      <div className="flex items-center gap-2 mb-1">
-                        <span className="px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-amber-500/20 text-amber-800 dark:text-gold-400 border border-amber-500/30">
-                          Shift Timing • {selectedShift.timing}
-                        </span>
-                        <span className="text-[10px] text-slate-500 dark:text-slate-400 font-mono">
-                          Scheduled Login: {selectedShift.startTime}
-                        </span>
-                      </div>
-                      <h4 className="font-serif font-bold text-slate-900 dark:text-white text-base">
-                        Assigned Personnel & Daily Login Times: {selectedShift.shiftName}
-                      </h4>
-                      <p className="text-[11px] text-slate-500 dark:text-slate-400">
-                        Live clock-in timestamps, punch verification sources, and punctuality audit for this scheduled roster.
-                      </p>
+                {/* Dynamic Shift Assignment Success Banner */}
+                {shiftAssignmentSuccessBanner && (
+                  <div className="p-4 rounded-2xl bg-emerald-50 dark:bg-emerald-950/40 border-2 border-emerald-500/60 text-emerald-900 dark:text-emerald-200 text-xs font-bold flex items-center justify-between gap-3 shadow-sm animate-in fade-in slide-in-from-top-2">
+                    <div className="flex items-center gap-2.5">
+                      <CheckCircle2 className="w-5 h-5 text-emerald-600 dark:text-emerald-400 shrink-0" />
+                      <span>{shiftAssignmentSuccessBanner}</span>
                     </div>
+                    <button
+                      type="button"
+                      onClick={() => setShiftAssignmentSuccessBanner('')}
+                      className="text-emerald-600 hover:text-emerald-800 dark:hover:text-emerald-100 p-1 cursor-pointer"
+                      title="Dismiss confirmation"
+                    >
+                      <X className="w-4 h-4" />
+                    </button>
+                  </div>
+                )}
 
-                    {/* Summary Metric Pills for Selected Shift */}
+                {/* 1. Header with Title & Date / View Controls */}
+                <div className={`flex ${readOnlyMode ? 'flex-wrap items-center justify-between gap-3 pb-3' : 'flex-col lg:flex-row justify-between items-start lg:items-center gap-4 pb-5'} border-b border-slate-200 dark:border-navy-800`}>
+                  <div className="flex items-center gap-3">
+                    <div className={`${readOnlyMode ? 'w-9 h-9 rounded-xl' : 'w-10 h-10 rounded-2xl'} bg-amber-500/15 border border-amber-500/30 flex items-center justify-center text-amber-700 dark:text-gold-400 shrink-0 shadow-2xs`}>
+                      <Calendar className={`${readOnlyMode ? 'w-4 h-4' : 'w-5 h-5'} text-amber-500`} />
+                    </div>
+                    <div>
+                      <h3 className="font-serif font-bold text-lg sm:text-xl text-slate-900 dark:text-white flex items-center gap-2">
+                        <span>{readOnlyMode ? 'My Shift' : 'Shift Management'}</span>
+                      </h3>
+                      {!readOnlyMode && (
+                        <p className="text-[11px] text-slate-500 dark:text-slate-400 mt-0.5">
+                          Unified workforce schedules, recurring assignments &amp; roster management
+                        </p>
+                      )}
+                    </div>
+                  </div>
+
+                  {readOnlyMode ? (
                     <div className="flex flex-wrap items-center gap-2">
-                      <div className="px-3 py-1.5 rounded-xl bg-white dark:bg-navy-900 border border-slate-200 dark:border-navy-800 text-center">
-                        <div className="text-[9px] text-slate-400 font-bold uppercase tracking-wider">Assigned Staff</div>
-                        <div className="font-mono font-bold text-sm text-slate-900 dark:text-white">{selectedShiftStaff.length}</div>
-                      </div>
-                      <div className="px-3 py-1.5 rounded-xl bg-emerald-50 dark:bg-emerald-950/30 border border-emerald-200 dark:border-emerald-800 text-center">
-                        <div className="text-[9px] text-emerald-700 dark:text-emerald-400 font-bold uppercase tracking-wider">On Time</div>
-                        <div className="font-mono font-bold text-sm text-emerald-800 dark:text-emerald-300">{shiftOnTimeCount}</div>
-                      </div>
-                      <div className="px-3 py-1.5 rounded-xl bg-amber-50 dark:bg-amber-950/30 border border-amber-200 dark:border-amber-800 text-center">
-                        <div className="text-[9px] text-amber-700 dark:text-amber-400 font-bold uppercase tracking-wider">Late Login</div>
-                        <div className="font-mono font-bold text-sm text-amber-800 dark:text-amber-300">{shiftLateCount}</div>
-                      </div>
-                      <div className="px-3 py-1.5 rounded-xl bg-slate-100 dark:bg-navy-900 border border-slate-200 dark:border-navy-800 text-center">
-                        <div className="text-[9px] text-slate-500 dark:text-slate-400 font-bold uppercase tracking-wider">Pending</div>
-                        <div className="font-mono font-bold text-sm text-slate-700 dark:text-slate-300">{shiftPendingCount}</div>
+                      <button
+                        type="button"
+                        onClick={handleShiftPrevMonth}
+                        className="p-2 rounded-xl text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-navy-800 border border-slate-200 dark:border-navy-700 transition cursor-pointer shadow-2xs"
+                        title="Previous Month"
+                        aria-label="Previous Month"
+                      >
+                        <ChevronLeft className="w-4 h-4" />
+                      </button>
+                      <div className="px-3.5 py-1.5 rounded-xl bg-slate-50 dark:bg-navy-950 border border-slate-200/80 dark:border-navy-800 text-sm font-bold text-slate-900 dark:text-white flex items-center gap-2 select-none shadow-2xs">
+                        <Calendar className="w-3.5 h-3.5 text-amber-500" />
+                        <span>{shiftCurrentMonthLabel}</span>
                       </div>
                       <button
                         type="button"
-                        onClick={() => setIsAssignModalOpen(true)}
-                        className="px-3.5 py-2 bg-gradient-to-r from-amber-500 to-amber-600 hover:from-amber-400 hover:to-amber-500 text-navy-950 font-bold rounded-xl shadow-xs transition cursor-pointer flex items-center gap-1.5 text-xs"
+                        onClick={handleShiftNextMonth}
+                        className="p-2 rounded-xl text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-navy-800 border border-slate-200 dark:border-navy-700 transition cursor-pointer shadow-2xs"
+                        title="Next Month"
+                        aria-label="Next Month"
+                      >
+                        <ChevronRight className="w-4 h-4" />
+                      </button>
+                      <button
+                        type="button"
+                        onClick={handleShiftCurrentMonth}
+                        className="px-3 py-1.5 rounded-xl border border-slate-200 dark:border-navy-700 bg-slate-50 dark:bg-navy-950 hover:bg-slate-100 dark:hover:bg-navy-800 text-slate-800 dark:text-slate-200 font-bold text-xs transition cursor-pointer shadow-2xs flex items-center gap-1.5"
+                      >
+                        <Clock className="w-3.5 h-3.5 text-amber-500" />
+                        <span>Today</span>
+                      </button>
+                      <button
+                        type="button"
+                        onClick={loadShiftRosterData}
+                        disabled={shiftRosterLoading}
+                        className="p-2 rounded-xl border border-slate-200 dark:border-navy-700 bg-slate-50 dark:bg-navy-950 hover:bg-slate-100 dark:hover:bg-navy-800 text-slate-800 dark:text-slate-200 font-bold text-xs transition cursor-pointer shadow-2xs"
+                        title="Refresh Shift Data"
+                        aria-label="Refresh Shift Data"
+                      >
+                        <RefreshCw className={`w-4 h-4 text-slate-600 dark:text-slate-300 ${shiftRosterLoading ? 'animate-spin' : ''}`} />
+                      </button>
+                    </div>
+                  ) : (
+                    <div className="flex flex-wrap items-center gap-2.5 w-full lg:w-auto justify-start lg:justify-end">
+                      {/* Date Picker Filter (Only for HR Lead / Admin workforce inspection) */}
+                      <div className="h-10 flex items-center gap-1.5 bg-slate-50 dark:bg-navy-950 border border-slate-200 dark:border-navy-700 px-3 rounded-xl text-xs whitespace-nowrap shadow-2xs">
+                        <Calendar className="w-3.5 h-3.5 text-amber-500 shrink-0" />
+                        <span className="font-semibold text-slate-500 dark:text-slate-400">Date:</span>
+                        <input
+                          type="date"
+                          value={shiftSelectedDate}
+                          onChange={(e) => setShiftSelectedDate(e.target.value)}
+                          className="bg-transparent text-xs font-bold font-mono text-slate-900 dark:text-white focus:outline-none cursor-pointer"
+                          title="Select date to inspect shift roster"
+                        />
+                        <button
+                          type="button"
+                          onClick={() => setShiftSelectedDate(new Date().toISOString().slice(0, 10))}
+                          className="ml-1 text-[10px] font-bold text-amber-600 dark:text-amber-400 hover:underline cursor-pointer"
+                        >
+                          Today
+                        </button>
+                      </div>
+
+                      {/* View Switcher: Full selector for Leadership */}
+                      <div className="h-10 flex items-center bg-slate-100 dark:bg-navy-950 p-1 rounded-xl border border-slate-200 dark:border-navy-800 text-xs shadow-2xs">
+                        <button
+                          type="button"
+                          onClick={() => setShiftViewMode('table')}
+                          className={`h-8 px-3 rounded-lg font-bold text-xs transition cursor-pointer flex items-center gap-1.5 whitespace-nowrap ${effectiveShiftViewMode === 'table'
+                            ? 'bg-amber-500 text-navy-950 shadow-xs'
+                            : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white'
+                            }`}
+                        >
+                          <Users className="w-3.5 h-3.5" />
+                          <span>Daily Roster</span>
+                        </button>
+
+                        <button
+                          type="button"
+                          onClick={() => setShiftViewMode('weekly')}
+                          className={`h-8 px-3 rounded-lg font-bold text-xs transition cursor-pointer flex items-center gap-1.5 whitespace-nowrap ${effectiveShiftViewMode === 'weekly'
+                            ? 'bg-amber-500 text-navy-950 shadow-xs'
+                            : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white'
+                            }`}
+                        >
+                          <CalendarCheck className="w-3.5 h-3.5" />
+                          <span>Weekly</span>
+                        </button>
+
+                        <button
+                          type="button"
+                          onClick={() => setShiftViewMode('monthly')}
+                          className={`h-8 px-3 rounded-lg font-bold text-xs transition cursor-pointer flex items-center gap-1.5 whitespace-nowrap ${effectiveShiftViewMode === 'monthly'
+                            ? 'bg-amber-500 text-navy-950 shadow-xs'
+                            : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white'
+                            }`}
+                        >
+                          <Calendar className="w-3.5 h-3.5" />
+                          <span>Monthly</span>
+                        </button>
+
+                        <button
+                          type="button"
+                          onClick={() => setShiftViewMode('approvals')}
+                          className={`h-8 px-3 rounded-lg font-bold text-xs transition cursor-pointer flex items-center gap-1.5 whitespace-nowrap relative ${effectiveShiftViewMode === 'approvals'
+                            ? 'bg-amber-500 text-navy-950 shadow-xs'
+                            : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white'
+                            }`}
+                        >
+                          <AlertCircle className="w-3.5 h-3.5" />
+                          <span>Late Approvals</span>
+                          {pendingLateApprovalsCount > 0 && (
+                            <span className="ml-1 px-1.5 py-0.2 rounded-full text-[9px] font-bold bg-rose-600 text-white animate-pulse">
+                              {pendingLateApprovalsCount}
+                            </span>
+                          )}
+                        </button>
+                      </div>
+
+                      {/* Action: Assign Shift */}
+                      <button
+                        type="button"
+                        onClick={() => handleOpenAssignModal()}
+                        className="h-10 px-3.5 bg-gradient-to-r from-amber-500 to-amber-600 hover:from-amber-400 hover:to-amber-500 text-navy-950 font-bold rounded-xl shadow-xs transition cursor-pointer flex items-center gap-1.5 text-xs whitespace-nowrap"
                       >
                         <UserPlus className="w-3.5 h-3.5" />
-                        <span>Assign Staff to Shift</span>
+                        <span>Assign Shift</span>
+                      </button>
+
+                      {/* Refresh */}
+                      <button
+                        type="button"
+                        onClick={loadShiftRosterData}
+                        disabled={shiftRosterLoading}
+                        className="h-10 w-10 flex items-center justify-center rounded-xl border border-slate-200 dark:border-navy-700 bg-white dark:bg-navy-800 text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-navy-700 transition cursor-pointer shadow-2xs"
+                        title="Reload Shift Data from Server"
+                      >
+                        <RefreshCw className={`w-3.5 h-3.5 ${shiftRosterLoading ? 'animate-spin' : ''}`} />
+                      </button>
+                    </div>
+                  )}
+                </div>
+
+                {/* 3. Search, Filters, and Summary Counters (Leadership mode only) */}
+                {!readOnlyMode && (
+                  <div className="space-y-4">
+                    {/* Summary Metric Pills */}
+                    <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-3">
+                      <div className="px-3.5 py-3 rounded-2xl bg-slate-50 dark:bg-navy-950 border border-slate-200/80 dark:border-navy-800 flex flex-col justify-between min-h-[76px] shadow-2xs">
+                        <div className="text-[10px] text-slate-400 font-bold uppercase tracking-wider truncate">Total Workforce</div>
+                        <div className="font-mono font-bold text-base text-slate-900 dark:text-white mt-1 truncate">{displayEmployees.length} Staff</div>
+                      </div>
+                      <div className="px-3.5 py-3 rounded-2xl bg-emerald-50 dark:bg-emerald-950/30 border border-emerald-200 dark:border-emerald-800/60 flex flex-col justify-between min-h-[76px] shadow-2xs">
+                        <div className="text-[10px] text-emerald-700 dark:text-emerald-400 font-bold uppercase tracking-wider truncate">On Time</div>
+                        <div className="font-mono font-bold text-base text-emerald-800 dark:text-emerald-300 mt-1">{onTimeCount}</div>
+                      </div>
+                      <div className="px-3.5 py-3 rounded-2xl bg-amber-50 dark:bg-amber-950/30 border border-amber-200 dark:border-amber-800/60 flex flex-col justify-between min-h-[76px] shadow-2xs">
+                        <div className="text-[10px] text-amber-700 dark:text-amber-400 font-bold uppercase tracking-wider truncate">Late Login</div>
+                        <div className="font-mono font-bold text-base text-amber-800 dark:text-amber-300 mt-1">{lateCount}</div>
+                      </div>
+                      <div className="px-3.5 py-3 rounded-2xl bg-slate-100 dark:bg-navy-900 border border-slate-200 dark:border-navy-800 flex flex-col justify-between min-h-[76px] shadow-2xs">
+                        <div className="text-[10px] text-slate-500 dark:text-slate-400 font-bold uppercase tracking-wider truncate">Pending Clock-In</div>
+                        <div className="font-mono font-bold text-base text-slate-700 dark:text-slate-300 mt-1">{pendingCount}</div>
+                      </div>
+                      <div className="col-span-2 sm:col-span-1 lg:col-span-1 px-3.5 py-3 rounded-2xl bg-purple-50 dark:purple-950/30 border border-purple-200 dark:border-purple-800/60 flex flex-col justify-between min-h-[76px] shadow-2xs">
+                        <div className="text-[10px] text-purple-700 dark:text-purple-400 font-bold uppercase tracking-wider truncate">On Leave</div>
+                        <div className="font-mono font-bold text-base text-purple-800 dark:text-purple-300 mt-1">{leaveCount}</div>
+                      </div>
+                    </div>
+
+                    {/* Search and Filters Strip */}
+                    <div className="flex flex-col md:flex-row justify-between items-stretch md:items-center gap-3">
+                      {/* Search */}
+                      <div className="relative flex-1">
+                        <Search className="w-3.5 h-3.5 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2" />
+                        <input
+                          type="text"
+                          placeholder="Search workforce by name, employee ID, role, or department..."
+                          value={shiftSearchQuery}
+                          onChange={(e) => setShiftSearchQuery(e.target.value)}
+                          className="w-full pl-9 pr-3 py-2 bg-slate-50 dark:bg-navy-950 border border-slate-200 dark:border-navy-800 rounded-xl text-xs text-slate-800 dark:text-slate-200 focus:outline-none focus:border-amber-500"
+                        />
+                      </div>
+
+                      {/* Filter Dropdowns */}
+                      <div className="flex flex-wrap items-center gap-2">
+                        {/* Shift Filter */}
+                        <select
+                          value={shiftFilterShift}
+                          onChange={(e) => setShiftFilterShift(e.target.value)}
+                          className="py-2 px-3 rounded-xl bg-slate-50 dark:bg-navy-950 border border-slate-200 dark:border-navy-800 text-xs font-semibold text-slate-700 dark:text-slate-200 focus:outline-none focus:border-amber-500 cursor-pointer"
+                          title="Filter by Assigned Shift"
+                        >
+                          <option value="all">All Shifts</option>
+                          <option value="SHIFT-GENERAL">General Shift (9 AM – 6 PM)</option>
+                          <option value="SHIFT-MORNING">Morning Shift (7 AM – 2 PM)</option>
+                          <option value="SHIFT-EVENING">Evening Shift (2 PM – 9 PM)</option>
+                        </select>
+
+                        {/* Status Filter */}
+                        <select
+                          value={shiftFilterStatus}
+                          onChange={(e) => setShiftFilterStatus(e.target.value)}
+                          className="py-2 px-3 rounded-xl bg-slate-50 dark:bg-navy-950 border border-slate-200 dark:border-navy-800 text-xs font-semibold text-slate-700 dark:text-slate-200 focus:outline-none focus:border-amber-500 cursor-pointer"
+                          title="Filter by Login Status"
+                        >
+                          <option value="all">All Login Statuses</option>
+                          <option value="On Time">On Time</option>
+                          <option value="Late">Late Clock-In</option>
+                          <option value="Pending Clock-In">Pending Clock-In</option>
+                          <option value="On Leave">On Leave</option>
+                        </select>
+
+                        {/* Department Filter */}
+                        <select
+                          value={shiftFilterDept}
+                          onChange={(e) => setShiftFilterDept(e.target.value)}
+                          className="py-2 px-3 rounded-xl bg-slate-50 dark:bg-navy-950 border border-slate-200 dark:border-navy-800 text-xs font-semibold text-slate-700 dark:text-slate-200 focus:outline-none focus:border-amber-500 cursor-pointer"
+                          title="Filter by Department"
+                        >
+                          <option value="all">All Departments ({allDepartments.length})</option>
+                          {allDepartments.map(d => (
+                            <option key={d} value={d}>{d}</option>
+                          ))}
+                        </select>
+                      </div>
+                    </div>
+                  </div>
+                )}
+
+                {/* 4. Bulk Action Bar */}
+                {!readOnlyMode && bulkSelectedEmpIds.length > 0 && (
+                  <div className="bg-amber-500/15 border-2 border-amber-500/50 p-3 rounded-2xl flex items-center justify-between gap-3 animate-in fade-in duration-150">
+                    <div className="flex items-center gap-2">
+                      <span className="w-2.5 h-2.5 rounded-full bg-amber-500 animate-pulse" />
+                      <span className="font-bold text-xs text-amber-900 dark:text-gold-300">
+                        {bulkSelectedEmpIds.length} employee(s) selected for bulk assignment
+                      </span>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <button
+                        type="button"
+                        onClick={() => handleOpenAssignModal()}
+                        className="px-3 py-1.5 bg-amber-500 hover:bg-amber-400 text-navy-950 font-bold text-xs rounded-xl shadow-xs transition cursor-pointer flex items-center gap-1.5"
+                      >
+                        <UserPlus className="w-3.5 h-3.5" />
+                        <span>Bulk Assign Shift</span>
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => setBulkSelectedEmpIds([])}
+                        className="px-3 py-1.5 bg-slate-100 dark:bg-navy-800 hover:bg-slate-200 dark:hover:bg-navy-700 text-slate-700 dark:text-slate-300 font-bold text-xs rounded-xl transition cursor-pointer"
+                      >
+                        Deselect
                       </button>
                     </div>
                   </div>
+                )}
 
-                  {/* Filter and Search Bar */}
-                  <div className="flex flex-col sm:flex-row justify-between items-stretch sm:items-center gap-3">
-                    <div className="relative flex-1">
-                      <Search className="w-3.5 h-3.5 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2" />
-                      <input
-                        type="text"
-                        placeholder={`Search ${selectedShift.shiftName} staff by name, role, ID...`}
-                        value={shiftRosterSearch}
-                        onChange={(e) => setShiftRosterSearch(e.target.value)}
-                        className="w-full pl-9 pr-3 py-2 bg-slate-50 dark:bg-navy-950 border border-slate-200 dark:border-navy-800 rounded-xl text-xs text-slate-800 dark:text-slate-200 focus:outline-none focus:border-amber-500"
-                      />
-                    </div>
-
-                    <div className="flex items-center gap-1.5 overflow-x-auto pb-1 sm:pb-0">
-                      {[
-                        { key: 'All', label: `All (${selectedShiftStaff.length})` },
-                        { key: 'On-Time', label: `On Time (${shiftOnTimeCount})` },
-                        { key: 'Late', label: `Late (${shiftLateCount})` },
-                        { key: 'Pending', label: `Pending (${shiftPendingCount})` },
-                        { key: 'On Leave', label: `On Leave (${shiftLeaveCount})` }
-                      ].map(f => (
-                        <button
-                          key={f.key}
-                          onClick={() => setShiftStatusFilter(f.key)}
-                          className={`px-3 py-1.5 rounded-xl font-bold text-xs whitespace-nowrap transition cursor-pointer ${shiftStatusFilter === f.key
-                            ? 'bg-navy-950 text-white dark:bg-amber-500 dark:text-navy-950 shadow-xs'
-                            : 'bg-slate-100 dark:bg-navy-800 text-slate-600 dark:text-slate-400 hover:bg-slate-200 dark:hover:bg-navy-700'
-                            }`}
-                        >
-                          {f.label}
-                        </button>
-                      ))}
-                    </div>
-                  </div>
-
-                  {/* Roster & Login Times Table */}
+                {/* 5. VIEW A: UNIFIED EMPLOYEE SHIFT ROSTER TABLE (Leadership mode only) */}
+                {!readOnlyMode && effectiveShiftViewMode === 'table' && (
                   <div className="overflow-x-auto border border-slate-200/80 dark:border-navy-800 rounded-2xl shadow-xs">
                     <table className="w-full text-left text-xs border-collapse">
                       <thead className="bg-slate-100 dark:bg-navy-950/80 border-b border-slate-200 dark:border-navy-800 text-[11px] font-bold text-slate-600 dark:text-slate-300 uppercase tracking-wider">
                         <tr>
-                          <th className="py-3 px-4">Staff Member & ID</th>
-                          <th className="py-3 px-4">Role & Department</th>
-                          <th className="py-3 px-4">Login Time (Clock-In)</th>
-                          <th className="py-3 px-4">Punctuality Status</th>
-                          <th className="py-3 px-4">Clock-Out & Work Hours</th>
-                          <th className="py-3 px-4 text-right">Shift Reassignment / Actions</th>
+                          {!readOnlyMode && (
+                            <th className="py-3 px-3 w-10 text-center align-middle whitespace-nowrap">
+                              <input
+                                type="checkbox"
+                                checked={filteredEmployees.length > 0 && bulkSelectedEmpIds.length === filteredEmployees.length}
+                                onChange={toggleSelectAll}
+                                className="rounded border-slate-300 text-amber-600 focus:ring-amber-500 cursor-pointer"
+                                title="Select all employees"
+                              />
+                            </th>
+                          )}
+                          <th className="py-3 px-4 text-left align-middle whitespace-nowrap min-w-[200px]">Employee Name</th>
+                          <th className="py-3 px-3 text-left align-middle whitespace-nowrap min-w-[110px]">Employee ID</th>
+                          <th className="py-3 px-4 text-left align-middle whitespace-nowrap min-w-[160px]">Role & Department</th>
+                          <th className="py-3 px-4 text-left align-middle whitespace-nowrap min-w-[170px]">Assigned Shift</th>
+                          <th className="py-3 px-3 text-center align-middle whitespace-nowrap min-w-[120px]">Scheduled Login</th>
+                          <th className="py-3 px-3 text-center align-middle whitespace-nowrap min-w-[120px]">Actual Clock-In</th>
+                          <th className="py-3 px-4 text-center align-middle whitespace-nowrap min-w-[150px]">Login Status</th>
+                          <th className="py-3 px-4 text-center align-middle whitespace-nowrap min-w-[140px]">Shift Period</th>
+                          <th className="py-3 px-4 text-right align-middle whitespace-nowrap min-w-[120px]">Actions</th>
                         </tr>
                       </thead>
                       <tbody className="divide-y divide-slate-100 dark:divide-navy-800 bg-white dark:bg-navy-900">
-                        {filteredShiftStaff.length === 0 ? (
+                        {filteredEmployees.length === 0 ? (
                           <tr>
-                            <td colSpan="6" className="py-12 text-center text-slate-400 space-y-2">
-                              <Clock className="w-8 h-8 mx-auto text-slate-300 dark:text-navy-700" />
-                              <p className="font-bold text-sm text-slate-600 dark:text-slate-300">
-                                No employees found matching filter criteria in this shift.
+                            <td colSpan="10" className="py-16 text-center text-slate-400 space-y-2">
+                              <CalendarCheck className="w-10 h-10 mx-auto text-slate-300 dark:text-navy-700" />
+                              <p className="font-bold text-sm text-slate-700 dark:text-slate-300">
+                                No employees found matching the filter criteria.
                               </p>
                               <p className="text-xs text-slate-400">
-                                Assign staff using the button above or switch filters to view all members.
+                                Adjust your search keyword, shift filter, or department selection.
                               </p>
                             </td>
                           </tr>
                         ) : (
-                          filteredShiftStaff.map((emp) => {
-                            const att = emp.attendanceToday || {};
-                            const isLate = att.late || (att.loginStatus && att.loginStatus.startsWith('Late'));
-                            const isOnLeave = att.status === 'On Leave' || att.loginStatus === 'On Leave';
-                            const isPending = !att.checkIn || att.checkIn === '-' || att.loginStatus?.includes('Pending');
+                          filteredEmployees.map((emp) => {
+                            const isChecked = bulkSelectedEmpIds.includes(emp.employeeId || emp.id);
+                            const isLate = emp.isLate || (emp.loginStatus && emp.loginStatus.startsWith('Late'));
+                            const isOnLeave = emp.loginStatus === 'On Leave';
+                            const isPending = emp.loginStatus?.includes('Pending') || emp.actualClockInTime === '—';
 
                             return (
-                              <tr key={emp.id} className="hover:bg-slate-50/80 dark:hover:bg-navy-800/40 transition">
-                                {/* 1. Staff Member */}
-                                <td className="py-3.5 px-4">
+                              <tr
+                                key={emp.employeeId || emp.id}
+                                className={`hover:bg-slate-50/80 dark:hover:bg-navy-800/40 transition ${isChecked ? 'bg-amber-50/40 dark:bg-amber-950/20' : ''
+                                  }`}
+                              >
+                                {/* Checkbox */}
+                                {!readOnlyMode && (
+                                  <td className="py-3.5 px-3 text-center align-middle whitespace-nowrap">
+                                    <input
+                                      type="checkbox"
+                                      checked={isChecked}
+                                      onChange={() => toggleBulkSelect(emp.employeeId || emp.id)}
+                                      className="rounded border-slate-300 text-amber-600 focus:ring-amber-500 cursor-pointer"
+                                    />
+                                  </td>
+                                )}
+
+                                {/* 1. Employee Name */}
+                                <td className="py-3.5 px-4 text-left align-middle whitespace-nowrap">
                                   <div className="flex items-center gap-3">
                                     <div className="w-9 h-9 rounded-xl bg-gradient-to-br from-amber-400 to-amber-600 text-navy-950 font-black text-sm flex items-center justify-center shrink-0 shadow-xs">
-                                      {emp.avatarLetter || emp.name.charAt(0)}
+                                      {emp.avatarLetter || emp.name?.charAt(0) || 'E'}
                                     </div>
                                     <div>
-                                      <div className="font-bold text-slate-900 dark:text-white text-xs flex items-center gap-1.5">
-                                        <span>{emp.name}</span>
+                                      <div className="font-bold text-slate-900 dark:text-white text-xs">
+                                        {emp.name}
                                       </div>
-                                      <div className="text-[11px] text-slate-400">{emp.email}</div>
-                                      <div className="text-[10px] font-mono font-bold text-amber-700 dark:text-gold-400">
-                                        {emp.id}
+                                      <div className="text-[11px] text-slate-400 truncate max-w-[160px]">
+                                        {emp.email}
                                       </div>
                                     </div>
                                   </div>
                                 </td>
 
-                                {/* 2. Role & Department */}
-                                <td className="py-3.5 px-4">
+                                {/* 2. Employee ID */}
+                                <td className="py-3.5 px-3 text-left align-middle whitespace-nowrap">
+                                  <span className="font-mono font-bold text-amber-700 dark:text-gold-400 text-xs">
+                                    {emp.employeeId || emp.id}
+                                  </span>
+                                </td>
+
+                                {/* 3. Role & Department */}
+                                <td className="py-3.5 px-4 text-left align-middle whitespace-nowrap">
                                   <div className="font-bold text-slate-800 dark:text-slate-200 text-xs">
                                     {emp.role}
                                   </div>
-                                  <div className="flex items-center gap-1.5 mt-0.5">
-                                    <span className="px-2 py-0.5 rounded text-[10px] font-semibold bg-slate-100 dark:bg-navy-800 text-slate-600 dark:text-slate-300">
-                                      {emp.department}
-                                    </span>
-                                    <span className="text-[10px] text-slate-400">
-                                      • {emp.location || 'Chennai HQ'}
-                                    </span>
+                                  <div className="text-[11px] text-slate-500 dark:text-slate-400">
+                                    {emp.department}
                                   </div>
                                 </td>
 
-                                {/* 3. Login Time (Clock-In) */}
-                                <td className="py-3.5 px-4">
+                                {/* 4. Assigned Shift */}
+                                <td className="py-3.5 px-4 text-left align-middle whitespace-nowrap">
+                                  <div className="font-bold text-slate-900 dark:text-white text-xs flex items-center gap-1.5">
+                                    <span className="w-2 h-2 rounded-full bg-emerald-500" />
+                                    <span>{emp.shiftName || 'General Shift'}</span>
+                                  </div>
+                                  <div className="text-[10px] font-mono text-emerald-600 dark:text-emerald-400 font-semibold mt-0.5">
+                                    {emp.assignedShift?.includes('(') ? emp.assignedShift.split('(')[1]?.replace(')', '') : '09:00 AM – 06:00 PM'}
+                                  </div>
+                                </td>
+
+                                {/* 5. Scheduled Login Time */}
+                                <td className="py-3.5 px-3 text-center align-middle whitespace-nowrap">
+                                  <span className="font-mono font-bold text-slate-700 dark:text-slate-300 text-xs">
+                                    {emp.scheduledLoginTime || '9:00 AM'}
+                                  </span>
+                                </td>
+
+                                {/* 6. Actual Clock-in Time */}
+                                <td className="py-3.5 px-3 text-center align-middle whitespace-nowrap">
                                   {isPending ? (
-                                    <div className="flex items-center gap-1.5 text-slate-400 font-mono text-xs">
-                                      <Clock className="w-3.5 h-3.5" />
-                                      <span>Pending Clock-In</span>
-                                    </div>
+                                    <span className="text-slate-400 font-mono text-xs">—</span>
                                   ) : isOnLeave ? (
-                                    <div className="flex items-center gap-1.5 text-purple-600 font-mono text-xs">
-                                      <span>🏖️ On Approved Leave</span>
-                                    </div>
+                                    <span className="text-purple-600 font-mono text-xs font-bold">On Leave</span>
                                   ) : (
-                                    <div>
-                                      <div className="flex items-center gap-1.5 font-mono font-bold text-sm text-slate-900 dark:text-white">
-                                        <Clock className="w-3.5 h-3.5 text-emerald-600 dark:text-emerald-400" />
-                                        <span>{att.checkIn}</span>
-                                      </div>
-                                      <div className="text-[10px] text-slate-400 mt-0.5 flex items-center gap-1">
-                                        <span className="px-1.5 py-0.5 rounded bg-slate-100 dark:bg-navy-800 text-slate-600 dark:text-slate-400 font-sans">
-                                          {att.punchSource || 'Biometric Scanner #01'}
+                                    <span className="font-mono font-bold text-slate-900 dark:text-white text-xs">
+                                      {emp.actualClockInTime}
+                                    </span>
+                                  )}
+                                </td>
+
+                                {/* 7. Login Status */}
+                                <td className="py-3.5 px-4 text-center align-middle whitespace-nowrap">
+                                  <div className="flex items-center justify-center">
+                                    {isOnLeave ? (
+                                      <span className="px-2.5 py-1 rounded-full text-[10px] font-bold bg-purple-100 dark:bg-purple-950/40 text-purple-800 dark:text-purple-300 border border-purple-200">
+                                        🏖️ On Leave
+                                      </span>
+                                    ) : isPending ? (
+                                      <span className="px-2.5 py-1 rounded-full text-[10px] font-bold bg-slate-100 dark:bg-navy-800 text-slate-600 dark:text-slate-400 border border-slate-200">
+                                        ⏱️ Pending Clock-In
+                                      </span>
+                                    ) : isLate ? (
+                                      <div className="space-y-1 flex flex-col items-center">
+                                        <span className="px-2.5 py-1 rounded-full text-[10px] font-bold bg-amber-100 dark:bg-amber-950/40 text-amber-900 dark:text-amber-300 border border-amber-300 flex items-center gap-1 w-fit">
+                                          <AlertCircle className="w-3 h-3 text-amber-600 dark:text-amber-400" />
+                                          <span>Late ({emp.lateMinutes || 8}m)</span>
                                         </span>
+                                        {emp.lateApprovalStatus && emp.lateApprovalStatus !== 'None' && (
+                                          <div className="text-[10px] font-semibold text-slate-400">
+                                            Approval: <span className="font-bold text-amber-600 dark:text-amber-400">{emp.lateApprovalStatus}</span>
+                                          </div>
+                                        )}
                                       </div>
-                                    </div>
-                                  )}
-                                </td>
-
-                                {/* 4. Punctuality Status */}
-                                <td className="py-3.5 px-4">
-                                  {isOnLeave ? (
-                                    <span className="px-2.5 py-1 rounded-full text-[10px] font-bold bg-purple-100 dark:bg-purple-950/40 text-purple-800 dark:text-purple-300 border border-purple-200">
-                                      🏖️ On Leave
-                                    </span>
-                                  ) : isPending ? (
-                                    <span className="px-2.5 py-1 rounded-full text-[10px] font-bold bg-slate-100 dark:bg-navy-800 text-slate-600 dark:text-slate-400 border border-slate-200">
-                                      ⏱️ Pending Clock-In
-                                    </span>
-                                  ) : isLate ? (
-                                    <span className="px-2.5 py-1 rounded-full text-[10px] font-bold bg-amber-100 dark:bg-amber-950/40 text-amber-900 dark:text-amber-300 border border-amber-300 flex items-center gap-1 w-fit">
-                                      <AlertCircle className="w-3 h-3 text-amber-600 dark:text-amber-400" />
-                                      <span>Late ({att.lateMinutes || 8} mins)</span>
-                                    </span>
-                                  ) : (
-                                    <span className="px-2.5 py-1 rounded-full text-[10px] font-bold bg-emerald-100 dark:bg-emerald-950/40 text-emerald-800 dark:text-emerald-300 border border-emerald-200 flex items-center gap-1 w-fit">
-                                      <CheckCircle2 className="w-3 h-3 text-emerald-600 dark:text-emerald-400" />
-                                      <span>On Time</span>
-                                    </span>
-                                  )}
-                                </td>
-
-                                {/* 5. Clock-Out & Hours */}
-                                <td className="py-3.5 px-4">
-                                  <div className="font-mono text-xs text-slate-700 dark:text-slate-300">
-                                    Out: <span className="font-bold">{att.checkOut || '-'}</span>
-                                  </div>
-                                  <div className="text-[11px] text-slate-400 font-mono">
-                                    Duration: {att.hours || 'Active'}
+                                    ) : (
+                                      <span className="px-2.5 py-1 rounded-full text-[10px] font-bold bg-emerald-100 dark:bg-emerald-950/40 text-emerald-800 dark:text-emerald-300 border border-emerald-200 flex items-center gap-1 w-fit">
+                                        <CheckCircle2 className="w-3 h-3 text-emerald-600 dark:text-emerald-400" />
+                                        <span>On Time</span>
+                                      </span>
+                                    )}
                                   </div>
                                 </td>
 
-                                {/* 6. Shift Reassignment & Actions */}
-                                <td className="py-3.5 px-4 text-right">
-                                  <div className="flex items-center justify-end gap-2">
-                                    {/* Shift Reassign Dropdown */}
-                                    <div className="text-left">
-                                      <select
-                                        value={emp.shiftId || 'shift-9-6'}
-                                        onChange={(e) => handleReassignShift(emp.id, e.target.value)}
-                                        className="py-1 px-2.5 rounded-lg bg-slate-50 dark:bg-navy-950 border border-slate-200 dark:border-navy-700 text-[11px] font-bold text-slate-800 dark:text-slate-200 focus:outline-none focus:border-amber-500 cursor-pointer"
-                                        title="Change / Reassign Shift"
+                                {/* 8. Shift Assignment Period */}
+                                <td className="py-3.5 px-4 text-center align-middle whitespace-nowrap">
+                                  <span className="text-[11px] font-medium text-slate-600 dark:text-slate-300">
+                                    {emp.shiftAssignmentPeriod || 'Ongoing Default'}
+                                  </span>
+                                </td>
+
+                                {/* 9. Actions */}
+                                <td className="py-3.5 px-4 text-right align-middle whitespace-nowrap">
+                                  <div className="flex items-center justify-end gap-1.5">
+                                    {!readOnlyMode && (
+                                      <button
+                                        type="button"
+                                        onClick={() => handleOpenAssignModal(emp)}
+                                        className="px-2.5 py-1 rounded-lg bg-amber-500 hover:bg-amber-400 text-navy-950 font-bold text-[11px] transition cursor-pointer shadow-2xs"
+                                        title="Assign or Change Shift"
                                       >
-                                        {SHIFT_CONFIGS.map(sc => (
-                                          <option key={sc.id} value={sc.id}>
-                                            ⇄ {sc.timing} ({sc.shiftName})
-                                          </option>
-                                        ))}
-                                      </select>
-                                    </div>
+                                        Assign Shift
+                                      </button>
+                                    )}
 
-                                    {/* Edit Punch Button */}
                                     <button
                                       type="button"
-                                      onClick={() => handleOpenEditPunch(emp)}
-                                      className="p-1.5 rounded-lg border border-slate-200 dark:border-navy-700 hover:bg-slate-100 dark:hover:bg-navy-800 text-slate-700 dark:text-slate-300 transition cursor-pointer"
-                                      title="Edit / Record Login Punch"
+                                      onClick={() => setHistoryModalEmployee(emp)}
+                                      className="p-1.5 rounded-lg border border-slate-200 dark:border-navy-700 hover:bg-slate-100 dark:hover:bg-navy-800 text-slate-600 dark:text-slate-300 transition cursor-pointer shadow-2xs"
+                                      title="View Shift Assignment History"
                                     >
-                                      <Clock className="w-3.5 h-3.5" />
+                                      <FileText className="w-3.5 h-3.5" />
                                     </button>
+
+                                    {!readOnlyMode && isLate && emp.lateApprovalStatus === 'Pending Approval' && (
+                                      <button
+                                        type="button"
+                                        onClick={() => {
+                                          const req = lateApprovalsList.find(r => r.employeeId === emp.employeeId || r.attendanceId === emp.attendanceId) || {
+                                            id: emp.attendanceId,
+                                            employeeId: emp.employeeId,
+                                            employeeName: emp.name,
+                                            delayMinutes: emp.lateMinutes,
+                                            attendanceDate: shiftSelectedDate,
+                                            shiftName: emp.shiftName,
+                                            scheduledLoginTime: emp.scheduledLoginTime,
+                                            actualClockInTime: emp.actualClockInTime,
+                                            explanation: emp.explanation
+                                          };
+                                          setLateDecisionModal({ open: true, request: req, decision: 'Approved', notes: '' });
+                                        }}
+                                        className="px-2 py-1 rounded-lg bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-[10px] transition cursor-pointer shadow-2xs"
+                                        title="Review Late Login Request"
+                                      >
+                                        Review Late
+                                      </button>
+                                    )}
                                   </div>
                                 </td>
                               </tr>
@@ -4272,110 +5401,1172 @@ export const CrmHrLeadDashboard = ({ initialSection }) => {
                       </tbody>
                     </table>
                   </div>
-                </div>
+                )}
+
+                {/* 6. VIEW B: WEEKLY SCHEDULE VIEW (Leadership mode only) */}
+                {!readOnlyMode && effectiveShiftViewMode === 'weekly' && (
+                  <div className="space-y-4">
+                    <div className="flex items-center justify-between">
+                      <span className="font-bold text-xs text-slate-600 dark:text-slate-300">
+                        Weekly Roster Breakdown (Monday – Sunday)
+                      </span>
+                      <span className="text-[11px] text-slate-400">
+                        Click any date to switch to that day's roster view
+                      </span>
+                    </div>
+
+                    <div className="overflow-x-auto border border-slate-200 dark:border-navy-800 rounded-2xl shadow-xs">
+                      <table className="w-full text-left text-xs border-collapse">
+                        <thead className="bg-slate-100 dark:bg-navy-950 text-[11px] font-bold text-slate-600 dark:text-slate-300 uppercase">
+                          <tr>
+                            <th className="py-3 px-4 min-w-[200px] text-left align-middle whitespace-nowrap">Employee</th>
+                            {weekDays.map(d => (
+                              <th
+                                key={d.iso}
+                                onClick={() => setShiftSelectedDate(d.iso)}
+                                className={`py-2.5 px-3 text-center align-middle whitespace-nowrap cursor-pointer transition ${d.isCurrentSelected
+                                  ? 'bg-amber-500/20 text-amber-900 dark:text-gold-300 font-extrabold border-b-2 border-amber-500'
+                                  : 'hover:bg-slate-200 dark:hover:bg-navy-800'
+                                  }`}
+                              >
+                                <div>{d.dayName}</div>
+                                <div className="text-[10px] font-mono text-slate-400">{d.dayNumber}</div>
+                              </th>
+                            ))}
+                          </tr>
+                        </thead>
+                        <tbody className="divide-y divide-slate-100 dark:divide-navy-800 bg-white dark:bg-navy-900">
+                          {displayEmployees.map(emp => (
+                            <tr key={emp.employeeId || emp.id} className="hover:bg-slate-50/60 dark:hover:bg-navy-800/40">
+                              <td className="py-3 px-4 text-left align-middle whitespace-nowrap">
+                                <div className="flex items-center gap-2.5">
+                                  <div className="w-8 h-8 rounded-xl bg-amber-500/15 border border-amber-500/30 text-amber-800 dark:text-gold-400 font-bold text-xs flex items-center justify-center shrink-0 shadow-2xs">
+                                    {emp.avatarLetter || emp.name?.charAt(0) || 'E'}
+                                  </div>
+                                  <div>
+                                    <div className="font-bold text-slate-900 dark:text-white leading-tight text-xs">{emp.name}</div>
+                                    <div className="text-[10px] text-slate-400 font-normal mt-0.5">{emp.role}</div>
+                                  </div>
+                                </div>
+                              </td>
+                              {weekDays.map(d => {
+                                const shift = resolveShiftForEmpAndDate(emp, d.iso);
+                                const cleanName = (shift?.shiftName || 'General').replace(/\s*\([^)]*\)\s*$/, '');
+                                const isOff = shift?.isOff || shift?.id === 'OFF';
+                                const isMorning = shift?.id === 'SHIFT-MORNING' || cleanName.toLowerCase().includes('morning');
+                                const isEvening = shift?.id === 'SHIFT-EVENING' || cleanName.toLowerCase().includes('evening');
+                                const isNight = shift?.id === 'SHIFT-NIGHT' || cleanName.toLowerCase().includes('night');
+
+                                let badgeClass = 'bg-amber-50 text-amber-900 border-amber-200 dark:bg-amber-950/40 dark:text-amber-300 dark:border-amber-800/60';
+                                if (isOff) {
+                                  badgeClass = 'bg-slate-100 text-slate-500 border-slate-200 dark:bg-navy-950 dark:text-slate-400 dark:border-navy-800';
+                                } else if (isMorning) {
+                                  badgeClass = 'bg-emerald-50 text-emerald-800 border-emerald-200 dark:bg-emerald-950/40 dark:text-emerald-300 dark:border-emerald-800/60';
+                                } else if (isEvening) {
+                                  badgeClass = 'bg-indigo-50 text-indigo-800 border-indigo-200 dark:bg-indigo-950/40 dark:text-indigo-300 dark:border-indigo-800/60';
+                                } else if (isNight) {
+                                  badgeClass = 'bg-purple-50 text-purple-800 border-purple-200 dark:bg-purple-950/40 dark:text-purple-300 dark:border-purple-800/60';
+                                }
+
+                                return (
+                                  <td key={d.iso} className={`py-3 px-2 text-center align-middle whitespace-nowrap ${d.isCurrentSelected ? 'bg-amber-500/5 dark:bg-amber-500/10' : ''}`}>
+                                    <div className="flex items-center justify-center">
+                                      <span
+                                        title={`${emp.name}: ${cleanName} (${shift?.timing || ''})`}
+                                        className={`inline-flex items-center justify-center min-w-[84px] px-2.5 py-1 rounded-lg text-[10px] font-bold border whitespace-nowrap shadow-2xs ${badgeClass}`}
+                                      >
+                                        {cleanName}
+                                        {shift?.isOverride && (
+                                          <span className="ml-1 text-[8px] opacity-75 font-mono" title={`Assigned (${shift.frequency})`}>•</span>
+                                        )}
+                                      </span>
+                                    </div>
+                                  </td>
+                                );
+                              })}
+                            </tr>
+                          ))}
+                        </tbody>
+                      </table>
+                    </div>
+                  </div>
+                )}
+
+                {/* 7. VIEW C: MONTHLY SHIFT CALENDAR */}
+                {effectiveShiftViewMode === 'monthly' && (() => {
+                  const currentMonthLabel = shiftCurrentMonthLabel;
+                  const todayStr = new Date().toISOString().slice(0, 10);
+
+                  const handlePrevMonth = handleShiftPrevMonth;
+                  const handleNextMonth = handleShiftNextMonth;
+                  const handleCurrentMonth = handleShiftCurrentMonth;
+
+                  // Build 35 or 42 calendar cells
+                  const firstDayOfMonth = new Date(monthlyViewYear, monthlyViewMonth, 1);
+                  const startDayOfWeek = (firstDayOfMonth.getDay() + 6) % 7; // Mon = 0, Sun = 6
+                  const daysInMonth = new Date(monthlyViewYear, monthlyViewMonth + 1, 0).getDate();
+                  const daysInPrevMonth = new Date(monthlyViewYear, monthlyViewMonth, 0).getDate();
+
+                  const calendarDays = [];
+                  // Leading days from previous month
+                  for (let i = startDayOfWeek - 1; i >= 0; i--) {
+                    const dayNum = daysInPrevMonth - i;
+                    const prevM = monthlyViewMonth === 0 ? 11 : monthlyViewMonth - 1;
+                    const prevY = monthlyViewMonth === 0 ? monthlyViewYear - 1 : monthlyViewYear;
+                    const iso = `${prevY}-${String(prevM + 1).padStart(2, '0')}-${String(dayNum).padStart(2, '0')}`;
+                    calendarDays.push({ dayNumber: dayNum, iso, isCurrentMonth: false });
+                  }
+                  // Days in current month
+                  for (let dayNum = 1; dayNum <= daysInMonth; dayNum++) {
+                    const iso = `${monthlyViewYear}-${String(monthlyViewMonth + 1).padStart(2, '0')}-${String(dayNum).padStart(2, '0')}`;
+                    calendarDays.push({ dayNumber: dayNum, iso, isCurrentMonth: true });
+                  }
+                  // Trailing days from next month
+                  const targetTotalCells = calendarDays.length <= 35 ? 35 : 42;
+                  const remaining = targetTotalCells - calendarDays.length;
+                  for (let dayNum = 1; dayNum <= remaining; dayNum++) {
+                    const nextM = monthlyViewMonth === 11 ? 0 : monthlyViewMonth + 1;
+                    const nextY = monthlyViewMonth === 11 ? monthlyViewYear + 1 : monthlyViewYear;
+                    const iso = `${nextY}-${String(nextM + 1).padStart(2, '0')}-${String(dayNum).padStart(2, '0')}`;
+                    calendarDays.push({ dayNumber: dayNum, iso, isCurrentMonth: false });
+                  }
+
+                  const selectedEmp = readOnlyMode
+                    ? (displayEmployees[0] || null)
+                    : (monthlySelectedEmpId !== 'all'
+                      ? displayEmployees.find(e => (e.employeeId || e.id) === monthlySelectedEmpId)
+                      : (displayEmployees.length === 1 ? displayEmployees[0] : null));
+
+                  // Daily breakdown for monthlyActiveDateStr
+                  const activeDateDayRoster = displayEmployees.map(emp => {
+                    const shift = resolveShiftForEmpAndDate(emp, monthlyActiveDateStr);
+                    return { emp, shift };
+                  });
+
+                  return (
+                    <div className="space-y-4">
+                      {/* Month Navigation & Employee Filter (HR Lead only; HR Operations controls are in top header) */}
+                      {!readOnlyMode && (
+                        <div className="p-4 rounded-2xl bg-white dark:bg-navy-900 border border-slate-200 dark:border-navy-800 shadow-xs space-y-3">
+                          <div className="flex flex-col md:flex-row md:items-center justify-between gap-3">
+                            <div>
+                              <div className="flex items-center gap-2">
+                                <span className="px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-amber-500/20 text-amber-900 dark:text-gold-300">
+                                  Monthly Roster View
+                                </span>
+                                <span className="text-xs font-mono text-slate-400">
+                                  {calendarDays.filter(d => d.isCurrentMonth).length} Days in Cycle
+                                </span>
+                              </div>
+                              <h3 className="font-serif font-bold text-base text-slate-900 dark:text-white mt-1">
+                                Monthly Shift Calendar & Schedule
+                              </h3>
+                            </div>
+
+                            {/* Month Navigator Controls */}
+                            <div className="flex items-center gap-2">
+                              <div className="flex items-center bg-slate-50 dark:bg-navy-950 p-1 rounded-xl border border-slate-200 dark:border-navy-800 shadow-2xs">
+                                <button
+                                  type="button"
+                                  onClick={handlePrevMonth}
+                                  className="p-1.5 rounded-lg text-slate-600 dark:text-slate-300 hover:bg-slate-200 dark:hover:bg-navy-800 transition cursor-pointer"
+                                  title="Previous Month"
+                                >
+                                  <ChevronLeft className="w-4 h-4" />
+                                </button>
+                                <div className="px-3 font-serif font-bold text-xs text-slate-900 dark:text-white whitespace-nowrap min-w-[130px] text-center flex items-center justify-center gap-1.5">
+                                  <Calendar className="w-3.5 h-3.5 text-amber-500" />
+                                  <span>{currentMonthLabel}</span>
+                                </div>
+                                <button
+                                  type="button"
+                                  onClick={handleNextMonth}
+                                  className="p-1.5 rounded-lg text-slate-600 dark:text-slate-300 hover:bg-slate-200 dark:hover:bg-navy-800 transition cursor-pointer"
+                                  title="Next Month"
+                                >
+                                  <ChevronRight className="w-4 h-4" />
+                                </button>
+                              </div>
+                              <button
+                                type="button"
+                                onClick={handleCurrentMonth}
+                                className="px-3 py-1.5 rounded-xl border border-slate-200 dark:border-navy-800 bg-slate-50 dark:bg-navy-950 hover:bg-slate-100 text-slate-700 dark:text-slate-300 font-bold text-xs transition cursor-pointer shadow-2xs"
+                              >
+                                Today
+                              </button>
+                              <button
+                                type="button"
+                                onClick={loadShiftRosterData}
+                                disabled={shiftRosterLoading}
+                                className="p-2 rounded-xl border border-slate-200 dark:border-navy-800 bg-slate-50 dark:bg-navy-950 hover:bg-slate-100 text-slate-700 dark:text-slate-300 font-bold text-xs transition cursor-pointer shadow-2xs"
+                                title="Refresh Shift Data"
+                              >
+                                <RefreshCw className={`w-3.5 h-3.5 ${shiftRosterLoading ? 'animate-spin' : ''}`} />
+                              </button>
+                            </div>
+                          </div>
+
+                          {/* Shift Color Legend & Employee Filter (Filter for leadership only) */}
+                          <div className="pt-3 border-t border-slate-100 dark:border-navy-800 flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3">
+                            <div className="flex items-center gap-2 flex-1 max-w-md">
+                              <label className="text-[11px] font-bold text-slate-600 dark:text-slate-400 whitespace-nowrap flex items-center gap-1.5">
+                                <Users className="w-3.5 h-3.5 text-amber-500" />
+                                <span>Filter Employee:</span>
+                              </label>
+                              <select
+                                value={monthlySelectedEmpId}
+                                onChange={(e) => setMonthlySelectedEmpId(e.target.value)}
+                                className="flex-1 px-3 py-1.5 bg-slate-50 dark:bg-navy-950 border border-slate-200 dark:border-navy-700 rounded-xl text-xs font-semibold text-slate-900 dark:text-white focus:outline-none focus:border-amber-500 cursor-pointer transition"
+                              >
+                                <option value="all">👥 All Employees ({displayEmployees.length} Staff Overview)</option>
+                                {displayEmployees.map(e => (
+                                  <option key={e.employeeId || e.id} value={e.employeeId || e.id}>
+                                    👤 {e.name} — {e.role} ({e.department})
+                                  </option>
+                                ))}
+                              </select>
+                            </div>
+
+                            {/* Shift Color Legend */}
+                            <div className="flex flex-wrap items-center gap-2 text-[10px] font-semibold">
+                              <span className="text-slate-400">Legend:</span>
+                              <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md bg-amber-50 dark:bg-amber-950/40 text-amber-900 dark:text-gold-300 border border-amber-200 dark:border-amber-800">
+                                ☀️ General Shift (9am–6pm)
+                              </span>
+                              <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md bg-emerald-50 dark:bg-emerald-950/40 text-emerald-800 dark:text-emerald-300 border border-emerald-200 dark:border-emerald-800">
+                                🌅 Morning (7am–2pm)
+                              </span>
+                              <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md bg-indigo-50 dark:bg-indigo-950/40 text-indigo-800 dark:text-indigo-300 border border-indigo-200 dark:border-indigo-800">
+                                🌙 Evening (2pm–9pm)
+                              </span>
+                              <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md bg-slate-100 dark:bg-navy-950 text-slate-600 dark:text-slate-400 border border-slate-200 dark:border-navy-800">
+                                ☕ Weekly Off
+                              </span>
+                            </div>
+                          </div>
+
+                          {/* Selected Individual Employee Banner (Leadership mode only) */}
+                          {selectedEmp && (
+                            <div className="p-3.5 rounded-2xl bg-amber-50/70 dark:bg-amber-950/20 border border-amber-200 dark:border-amber-800/60 flex items-center justify-between gap-3 text-xs shadow-2xs">
+                              <div className="flex items-center gap-3 min-w-0">
+                                <div className="w-9 h-9 rounded-xl bg-amber-500/20 text-amber-800 dark:text-gold-400 font-bold text-xs flex items-center justify-center shrink-0 shadow-2xs">
+                                  {selectedEmp.name?.slice(0, 2).toUpperCase()}
+                                </div>
+                                <div className="min-w-0">
+                                  <div className="font-bold text-slate-900 dark:text-white truncate">
+                                    {selectedEmp.name}
+                                    <span className="text-slate-400 font-normal font-mono ml-2">
+                                      ({selectedEmp.employeeId || selectedEmp.id} • {selectedEmp.role})
+                                    </span>
+                                  </div>
+                                  <div className="text-[10px] text-amber-800 dark:text-gold-400 font-medium mt-0.5">
+                                    Viewing individual monthly shift calendar. Click any date to assign or update shifts.
+                                  </div>
+                                </div>
+                              </div>
+                              <div className="flex items-center gap-2 shrink-0">
+                                <button
+                                  type="button"
+                                  onClick={() => handleOpenAssignModal(selectedEmp)}
+                                  className="px-3 py-1.5 bg-amber-500 hover:bg-amber-400 text-navy-950 font-bold rounded-xl text-xs transition cursor-pointer shadow-2xs"
+                                >
+                                  Assign Shift
+                                </button>
+                                <button
+                                  type="button"
+                                  onClick={() => setMonthlySelectedEmpId('all')}
+                                  className="px-2.5 py-1 text-slate-500 hover:text-slate-700 dark:hover:text-white text-xs font-semibold cursor-pointer"
+                                >
+                                  View All
+                                </button>
+                              </div>
+                            </div>
+                          )}
+                        </div>
+                      )}
+
+                      {/* 7-Column Monthly Calendar Grid */}
+                      <div className="bg-white dark:bg-navy-900 border border-slate-200 dark:border-navy-800 rounded-2xl shadow-xs overflow-hidden">
+                        {/* Day of Week Headers: Uniform styling for all seven days, including Saturday */}
+                        <div className="grid grid-cols-7 border-b border-slate-200/80 dark:border-navy-800 bg-slate-100/90 dark:bg-navy-950 text-xs font-bold text-slate-700 dark:text-slate-300 uppercase tracking-wider text-center select-none">
+                          {['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'].map(dayName => (
+                            <div key={dayName} className="py-3 px-2 border-r last:border-r-0 border-slate-200/70 dark:border-navy-800">
+                              {dayName}
+                            </div>
+                          ))}
+                        </div>
+
+                        {/* Calendar Day Cells */}
+                        <div className="grid grid-cols-7 divide-x divide-y divide-slate-100 dark:divide-navy-800">
+                          {calendarDays.map((day, idx) => {
+                            const isToday = day.iso === todayStr;
+                            const isSelectedDate = day.iso === monthlyActiveDateStr;
+
+                            // Calculate shifts for this day
+                            let dayContent = null;
+                            if (selectedEmp) {
+                              const s = resolveShiftForEmpAndDate(selectedEmp, day.iso);
+                              dayContent = (
+                                <div className="mt-1.5 space-y-1">
+                                  {s.isOff ? (
+                                    <div className="py-2 px-1.5 rounded-lg bg-slate-100/90 dark:bg-navy-950/90 text-slate-600 dark:text-slate-400 text-[10px] font-semibold text-center border border-slate-200/80 dark:border-navy-800">
+                                      Weekly Off
+                                    </div>
+                                  ) : s.id === 'SHIFT-MORNING' ? (
+                                    <div className="p-2 rounded-lg bg-emerald-50 dark:bg-emerald-950/40 text-emerald-950 dark:text-emerald-200 border border-emerald-200/90 dark:border-emerald-800/80 text-[10px] leading-tight">
+                                      <div className="flex items-center justify-between gap-1">
+                                        <span className="font-semibold text-[11px] truncate">Morning Shift</span>
+                                        {s.isOverride ? (
+                                          <span className="text-[8px] font-bold px-1.5 py-0.5 rounded-full bg-emerald-200/90 text-emerald-950 dark:bg-emerald-800 dark:text-emerald-100 uppercase tracking-wider shrink-0">Active</span>
+                                        ) : (
+                                          <span className="text-[8px] font-bold px-1.5 py-0.5 rounded-full bg-emerald-100 text-emerald-800 dark:bg-emerald-900/60 dark:text-emerald-200 shrink-0">Active</span>
+                                        )}
+                                      </div>
+                                      <div className="text-[10px] font-medium text-emerald-800 dark:text-emerald-300/90 mt-1">
+                                        {s.scheduledLoginTime} – {s.scheduledLogoutTime}
+                                      </div>
+                                    </div>
+                                  ) : s.id === 'SHIFT-EVENING' ? (
+                                    <div className="p-2 rounded-lg bg-indigo-50 dark:bg-indigo-950/40 text-indigo-950 dark:text-indigo-200 border border-indigo-200/90 dark:border-indigo-800/80 text-[10px] leading-tight">
+                                      <div className="flex items-center justify-between gap-1">
+                                        <span className="font-semibold text-[11px] truncate">Evening Shift</span>
+                                        {s.isOverride ? (
+                                          <span className="text-[8px] font-bold px-1.5 py-0.5 rounded-full bg-indigo-200/90 text-indigo-950 dark:bg-indigo-800 dark:text-indigo-100 uppercase tracking-wider shrink-0">Active</span>
+                                        ) : (
+                                          <span className="text-[8px] font-bold px-1.5 py-0.5 rounded-full bg-indigo-100 text-indigo-800 dark:bg-indigo-900/60 dark:text-indigo-200 shrink-0">Active</span>
+                                        )}
+                                      </div>
+                                      <div className="text-[10px] font-medium text-indigo-800 dark:text-indigo-300/90 mt-1">
+                                        {s.scheduledLoginTime} – {s.scheduledLogoutTime}
+                                      </div>
+                                    </div>
+                                  ) : (
+                                    <div className="p-2 rounded-lg bg-amber-50 dark:bg-amber-950/40 text-amber-950 dark:text-amber-200 border border-amber-200/90 dark:border-amber-800/80 text-[10px] leading-tight">
+                                      <div className="flex items-center justify-between gap-1">
+                                        <span className="font-semibold text-[11px] truncate">General Shift</span>
+                                        {s.isOverride ? (
+                                          <span className="text-[8px] font-bold px-1.5 py-0.5 rounded-full bg-amber-200/90 text-amber-950 dark:bg-amber-800 dark:text-amber-100 uppercase tracking-wider shrink-0">Active</span>
+                                        ) : (
+                                          <span className="text-[8px] font-bold px-1.5 py-0.5 rounded-full bg-amber-100 text-amber-900 dark:bg-amber-900/60 dark:text-amber-200 shrink-0">Active</span>
+                                        )}
+                                      </div>
+                                      <div className="text-[10px] font-medium text-amber-900/90 dark:text-amber-300/90 mt-1">
+                                        {s.scheduledLoginTime} – {s.scheduledLogoutTime}
+                                      </div>
+                                    </div>
+                                  )}
+                                </div>
+                              );
+                            } else {
+                              // All employees summary for day (Leadership multi-employee view)
+                              let countGen = 0, countMorn = 0, countEve = 0, countOff = 0;
+                              displayEmployees.forEach(e => {
+                                const s = resolveShiftForEmpAndDate(e, day.iso);
+                                if (s.isOff) countOff++;
+                                else if (s.id === 'SHIFT-MORNING') countMorn++;
+                                else if (s.id === 'SHIFT-EVENING') countEve++;
+                                else countGen++;
+                              });
+
+                              dayContent = (
+                                <div className="mt-1 space-y-1">
+                                  {countOff === displayEmployees.length ? (
+                                    <div className="p-1 rounded-md bg-slate-100 dark:bg-navy-950 text-slate-500 dark:text-slate-400 text-[9px] font-semibold text-center">
+                                      Weekly Off
+                                    </div>
+                                  ) : (
+                                    <div className="space-y-0.5 text-[9px] font-semibold">
+                                      {countGen > 0 && (
+                                        <div className="px-1.5 py-0.5 rounded bg-amber-50 dark:bg-amber-950/30 text-amber-900 dark:text-gold-300 truncate">
+                                          ☀️ Gen: {countGen}
+                                        </div>
+                                      )}
+                                      {countMorn > 0 && (
+                                        <div className="px-1.5 py-0.5 rounded bg-emerald-50 dark:bg-emerald-950/30 text-emerald-800 dark:text-emerald-300 truncate">
+                                          🌅 Morn: {countMorn}
+                                        </div>
+                                      )}
+                                      {countEve > 0 && (
+                                        <div className="px-1.5 py-0.5 rounded bg-indigo-50 dark:bg-indigo-950/30 text-indigo-800 dark:text-indigo-300 truncate">
+                                          🌙 Eve: {countEve}
+                                        </div>
+                                      )}
+                                    </div>
+                                  )}
+                                </div>
+                              );
+                            }
+
+                            return (
+                              <div
+                                key={day.iso + idx}
+                                onClick={() => {
+                                  setMonthlyActiveDateStr(day.iso);
+                                  setShiftSelectedDate(day.iso);
+                                }}
+                                className={`min-h-[105px] p-2.5 transition cursor-pointer flex flex-col justify-between ${!day.isCurrentMonth
+                                  ? 'bg-slate-50/50 dark:bg-navy-950/40 opacity-45'
+                                  : 'bg-white dark:bg-navy-900 hover:bg-slate-50/80 dark:hover:bg-navy-800/50'
+                                  } ${isToday
+                                    ? 'ring-1 ring-inset ring-amber-400 bg-amber-50/25 dark:bg-amber-950/20'
+                                    : isSelectedDate
+                                    ? 'ring-1 ring-inset ring-amber-500 bg-amber-50/10'
+                                    : ''
+                                  }`}
+                              >
+                                <div className="flex items-center justify-between mb-1">
+                                  <span
+                                    className={`text-xs ${isToday
+                                      ? 'w-6 h-6 rounded-full bg-amber-500 text-slate-950 flex items-center justify-center font-bold shadow-xs'
+                                      : 'font-semibold text-slate-800 dark:text-slate-200 pl-0.5'
+                                      }`}
+                                  >
+                                    {day.dayNumber}
+                                  </span>
+                                  {isToday && (
+                                    <span className="text-[9px] font-bold px-1.5 py-0.5 rounded-full bg-amber-100 text-amber-900 border border-amber-300 dark:bg-amber-950 dark:text-amber-200 dark:border-amber-800">
+                                      Today
+                                    </span>
+                                  )}
+                                </div>
+
+                                {dayContent}
+
+                                <div className="h-1"></div>
+                              </div>
+                            );
+                          })}
+                        </div>
+                      </div>
+
+                      {/* Leadership Only: Daily Roster Breakdown & Shift Distribution Cards */}
+                      {!readOnlyMode && (
+                        <>
+                          {/* Daily Roster Breakdown for Clicked Date */}
+                          <div className="p-4 rounded-2xl bg-white dark:bg-navy-900 border border-slate-200 dark:border-navy-800 shadow-xs space-y-3">
+                            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 border-b border-slate-100 dark:border-navy-800 pb-3">
+                              <div>
+                                <div className="text-[10px] text-slate-400 font-bold uppercase tracking-wider">
+                                  Daily Workforce Allocation
+                                </div>
+                                <h4 className="font-serif font-bold text-sm text-slate-900 dark:text-white mt-0.5 flex items-center gap-2">
+                                  <span>Shift Schedule for {monthlyActiveDateStr}</span>
+                                  {monthlyActiveDateStr === todayStr && (
+                                    <span className="px-2 py-0.5 rounded-full bg-emerald-100 text-emerald-800 dark:bg-emerald-950 dark:text-emerald-300 text-[10px] font-bold">
+                                      Today
+                                    </span>
+                                  )}
+                                </h4>
+                              </div>
+
+                              <div className="flex items-center gap-2">
+                                <span className="text-xs text-slate-500 dark:text-slate-400">
+                                  {activeDateDayRoster.filter(r => !r.shift.isOff).length} Active on Shift
+                                </span>
+                                <button
+                                  type="button"
+                                  onClick={() => handleOpenAssignModal()}
+                                  className="px-3 py-1.5 bg-gradient-to-r from-amber-500 to-amber-600 hover:from-amber-400 hover:to-amber-500 text-navy-950 font-bold rounded-xl text-xs transition cursor-pointer flex items-center gap-1 shadow-2xs"
+                                >
+                                  <Plus className="w-3.5 h-3.5" />
+                                  <span>Assign Shift</span>
+                                </button>
+                              </div>
+                            </div>
+
+                            {/* Table of staff on selected date */}
+                            <div className="overflow-x-auto max-h-72 border border-slate-200/80 dark:border-navy-800 rounded-xl shadow-2xs">
+                              <table className="w-full text-left text-xs border-collapse">
+                                <thead className="bg-slate-50 dark:bg-navy-950/80 border-b border-slate-200 dark:border-navy-800 text-[10px] font-bold text-slate-600 dark:text-slate-400 uppercase tracking-wider sticky top-0">
+                                  <tr>
+                                    <th className="py-2.5 px-3 text-left align-middle whitespace-nowrap min-w-[180px]">Employee</th>
+                                    <th className="py-2.5 px-3 text-left align-middle whitespace-nowrap min-w-[140px]">Role & Dept</th>
+                                    <th className="py-2.5 px-3 text-left align-middle whitespace-nowrap min-w-[150px]">Assigned Shift</th>
+                                    <th className="py-2.5 px-3 text-center align-middle whitespace-nowrap min-w-[140px]">Working Hours</th>
+                                    <th className="py-2.5 px-3 text-center align-middle whitespace-nowrap min-w-[140px]">Assignment Type</th>
+                                    <th className="py-2.5 px-3 text-right align-middle whitespace-nowrap min-w-[110px]">Actions</th>
+                                  </tr>
+                                </thead>
+                                <tbody className="divide-y divide-slate-100 dark:divide-navy-800 bg-white dark:bg-navy-900">
+                                  {activeDateDayRoster.map(({ emp, shift }) => {
+                                    const isEmpActive = (monthlySelectedEmpId === (emp.employeeId || emp.id));
+                                    return (
+                                      <tr
+                                        key={emp.employeeId || emp.id}
+                                        className={`hover:bg-slate-50 dark:hover:bg-navy-800/40 transition ${isEmpActive ? 'bg-amber-50/40 dark:bg-amber-950/20' : ''
+                                          }`}
+                                      >
+                                        <td className="py-2.5 px-3 font-bold text-slate-900 dark:text-white text-left align-middle whitespace-nowrap">
+                                          <div className="flex items-center gap-2">
+                                            <div className="w-7 h-7 rounded-lg bg-amber-500/15 border border-amber-500/30 text-amber-800 dark:text-gold-400 font-bold text-[10px] flex items-center justify-center shrink-0 shadow-2xs">
+                                              {emp.name?.slice(0, 2).toUpperCase()}
+                                            </div>
+                                            <div>
+                                              <div className="leading-tight">{emp.name}</div>
+                                              <div className="text-[10px] text-slate-400 font-mono font-normal">
+                                                {emp.employeeId || emp.id}
+                                              </div>
+                                            </div>
+                                          </div>
+                                        </td>
+                                        <td className="py-2.5 px-3 text-slate-600 dark:text-slate-300 text-left align-middle whitespace-nowrap">
+                                          <div className="font-semibold text-slate-800 dark:text-slate-200">{emp.role}</div>
+                                          <div className="text-[10px] text-slate-400">{emp.department}</div>
+                                        </td>
+                                        <td className="py-2.5 px-3 text-left align-middle whitespace-nowrap">
+                                          {shift.isOff ? (
+                                            <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-slate-100 dark:bg-navy-800 text-slate-500 border border-slate-200">
+                                              Weekly Off
+                                            </span>
+                                          ) : shift.id === 'SHIFT-MORNING' ? (
+                                            <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-emerald-50 dark:bg-emerald-950/40 text-emerald-800 dark:text-emerald-300 border border-emerald-200 dark:border-emerald-800">
+                                              Morning Shift
+                                            </span>
+                                          ) : shift.id === 'SHIFT-EVENING' ? (
+                                            <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-indigo-50 dark:bg-indigo-950/40 text-indigo-800 dark:text-indigo-300 border border-indigo-200 dark:border-indigo-800">
+                                              Evening Shift
+                                            </span>
+                                          ) : (
+                                            <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-amber-50 dark:bg-amber-950/40 text-amber-900 dark:text-gold-300 border border-amber-200 dark:border-amber-800">
+                                              General Shift
+                                            </span>
+                                          )}
+                                        </td>
+                                        <td className="py-2.5 px-3 font-mono text-[11px] text-slate-700 dark:text-slate-300 text-center align-middle whitespace-nowrap">
+                                          {shift.timing || `${shift.scheduledLoginTime} – ${shift.scheduledLogoutTime}`}
+                                        </td>
+                                        <td className="py-2.5 px-3 text-center align-middle whitespace-nowrap">
+                                          {shift.isOverride ? (
+                                            <span className="px-2 py-0.5 rounded text-[10px] font-bold bg-amber-100 text-amber-800 dark:bg-amber-950 dark:text-gold-300 border border-amber-200">
+                                              Active Override ({shift.frequency})
+                                            </span>
+                                          ) : (
+                                            <span className="text-[10px] text-slate-400">Baseline Default</span>
+                                          )}
+                                        </td>
+                                        <td className="py-2.5 px-3 text-right align-middle whitespace-nowrap">
+                                          <div className="flex items-center justify-end gap-1.5">
+                                            <button
+                                              type="button"
+                                              onClick={() => setMonthlySelectedEmpId(emp.employeeId || emp.id)}
+                                              className="px-2 py-1 rounded-lg bg-slate-100 hover:bg-slate-200 dark:bg-navy-800 dark:hover:bg-navy-700 text-slate-700 dark:text-slate-300 text-[10px] font-semibold transition cursor-pointer shadow-2xs"
+                                              title="Filter monthly calendar to this employee"
+                                            >
+                                              View Month
+                                            </button>
+                                            <button
+                                              type="button"
+                                              onClick={() => handleOpenAssignModal(emp)}
+                                              className="px-2.5 py-1 rounded-lg bg-amber-500 hover:bg-amber-400 text-navy-950 text-[10px] font-bold transition cursor-pointer shadow-2xs"
+                                            >
+                                              Assign
+                                            </button>
+                                          </div>
+                                        </td>
+                                      </tr>
+                                    );
+                                  })}
+                                </tbody>
+                              </table>
+                            </div>
+                          </div>
+
+                          {/* Distribution Overview Cards */}
+                          <div className="p-4 rounded-2xl bg-slate-50 dark:bg-navy-950 border border-slate-200 dark:border-navy-800 space-y-3">
+                            <h4 className="font-serif font-bold text-sm text-slate-900 dark:text-white">
+                              Monthly Shift Distribution & Recurring Assignments
+                            </h4>
+                            <p className="text-xs text-slate-500 dark:text-slate-400 leading-relaxed">
+                              Recurring workforce schedules assigned across the current monthly cycle. Predefined shifts repeat according to weekly off-day policies (Sundays off, Saturdays active).
+                            </p>
+
+                            <div className="grid grid-cols-1 md:grid-cols-3 gap-3 pt-2">
+                              {SHIFT_CONFIGS.map(sc => {
+                                const count = displayEmployees.filter(e => normalizeShiftId(e.assignedShiftId) === sc.id).length;
+                                return (
+                                  <div key={sc.id} className="p-3.5 rounded-xl bg-white dark:bg-navy-900 border border-slate-200 dark:border-navy-800 space-y-1">
+                                    <div className="flex justify-between items-center">
+                                      <span className="font-bold text-xs text-slate-900 dark:text-white">{sc.shiftName}</span>
+                                      <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-amber-100 dark:bg-amber-950/40 text-amber-900 dark:text-gold-300 font-mono">
+                                        {count} Staff
+                                      </span>
+                                    </div>
+                                    <div className="text-[11px] font-mono font-semibold text-emerald-600 dark:text-emerald-400">
+                                      {sc.timing}
+                                    </div>
+                                    <p className="text-[10px] text-slate-400">{sc.description}</p>
+                                  </div>
+                                );
+                              })}
+                            </div>
+                          </div>
+                        </>
+                      )}
+                    </div>
+                  );
+                })()}
+
+                {/* 8. VIEW D: LATE-LOGIN APPROVALS QUEUE */}
+                {!readOnlyMode && effectiveShiftViewMode === 'approvals' && (
+                  <div className="space-y-4">
+                    <div className="flex justify-between items-center">
+                      <div>
+                        <h4 className="font-serif font-bold text-sm text-slate-900 dark:text-white">
+                          Late-Login Approvals Queue
+                        </h4>
+                        <p className="text-xs text-slate-500 dark:text-slate-400">
+                          Review employee clock-in delays, justifications, and record formal approval decisions with full audit tracking.
+                        </p>
+                      </div>
+                      <span className="px-3 py-1 rounded-full text-xs font-bold bg-amber-500/20 text-amber-900 dark:text-gold-300 border border-amber-500/30">
+                        {lateApprovalsList.length} Total Requests
+                      </span>
+                    </div>
+
+                    <div className="overflow-x-auto border border-slate-200 dark:border-navy-800 rounded-2xl">
+                      <table className="w-full text-left text-xs border-collapse">
+                        <thead className="bg-slate-100 dark:bg-navy-950 text-[11px] font-bold text-slate-600 dark:text-slate-300 uppercase">
+                          <tr>
+                            <th className="py-3 px-4">Employee</th>
+                            <th className="py-3 px-3">Date</th>
+                            <th className="py-3 px-4">Assigned Shift</th>
+                            <th className="py-3 px-3">Actual Clock-In</th>
+                            <th className="py-3 px-3">Delay Duration</th>
+                            <th className="py-3 px-4">Employee Explanation</th>
+                            <th className="py-3 px-3">Status</th>
+                            <th className="py-3 px-4 text-right">Decision</th>
+                          </tr>
+                        </thead>
+                        <tbody className="divide-y divide-slate-100 dark:divide-navy-800 bg-white dark:bg-navy-900">
+                          {lateApprovalsList.length === 0 ? (
+                            <tr>
+                              <td colSpan="8" className="py-12 text-center text-slate-400">
+                                <CheckCircle2 className="w-8 h-8 mx-auto text-emerald-500 mb-2" />
+                                <p className="font-bold text-sm text-slate-700 dark:text-slate-300">
+                                  No late-login approval requests in the queue.
+                                </p>
+                                <p className="text-xs text-slate-400">
+                                  All workforce clock-ins are currently on time or already reviewed.
+                                </p>
+                              </td>
+                            </tr>
+                          ) : (
+                            lateApprovalsList.map(req => {
+                              const isPending = req.status === 'Pending Approval';
+                              const isApproved = req.status === 'Approved';
+
+                              return (
+                                <tr key={req.id} className="hover:bg-slate-50/80 dark:hover:bg-navy-800/40">
+                                  <td className="py-3 px-4">
+                                    <div className="font-bold text-slate-900 dark:text-white text-xs">{req.employeeName}</div>
+                                    <div className="text-[10px] font-mono text-amber-700 dark:text-gold-400">{req.employeeId}</div>
+                                  </td>
+                                  <td className="py-3 px-3 font-mono font-semibold text-slate-700 dark:text-slate-300">
+                                    {req.attendanceDate}
+                                  </td>
+                                  <td className="py-3 px-4">
+                                    <div className="font-bold text-slate-900 dark:text-white">{req.shiftName}</div>
+                                    <div className="text-[10px] text-slate-400 font-mono">Scheduled: {req.scheduledLoginTime}</div>
+                                  </td>
+                                  <td className="py-3 px-3 font-mono font-bold text-slate-900 dark:text-white">
+                                    {req.actualClockInTime}
+                                  </td>
+                                  <td className="py-3 px-3">
+                                    <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-amber-100 text-amber-900 dark:bg-amber-950/40 dark:text-amber-300 border border-amber-300 font-mono">
+                                      +{req.delayMinutes} mins
+                                    </span>
+                                  </td>
+                                  <td className="py-3 px-4">
+                                    <span className="text-[11px] text-slate-600 dark:text-slate-300 italic">
+                                      {req.explanation || 'No reason provided'}
+                                    </span>
+                                  </td>
+                                  <td className="py-3 px-3">
+                                    <span className={`px-2 py-0.5 rounded-full text-[10px] font-bold border ${isApproved
+                                      ? 'bg-emerald-100 text-emerald-800 border-emerald-300 dark:bg-emerald-950/40 dark:text-emerald-300'
+                                      : isPending
+                                        ? 'bg-amber-100 text-amber-900 border-amber-300 dark:bg-amber-950/40 dark:text-amber-300'
+                                        : 'bg-rose-100 text-rose-800 border-rose-300 dark:bg-rose-950/40 dark:text-rose-300'
+                                      }`}>
+                                      {req.status}
+                                    </span>
+                                  </td>
+                                  <td className="py-3 px-4 text-right">
+                                    {isPending ? (
+                                      <div className="flex items-center justify-end gap-1.5">
+                                        <button
+                                          type="button"
+                                          onClick={() => setLateDecisionModal({ open: true, request: req, decision: 'Approved', notes: '' })}
+                                          className="px-2.5 py-1 bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-[10px] rounded-lg transition cursor-pointer"
+                                        >
+                                          Approve
+                                        </button>
+                                        <button
+                                          type="button"
+                                          onClick={() => setLateDecisionModal({ open: true, request: req, decision: 'Rejected', notes: '' })}
+                                          className="px-2.5 py-1 bg-rose-600 hover:bg-rose-500 text-white font-bold text-[10px] rounded-lg transition cursor-pointer"
+                                        >
+                                          Reject
+                                        </button>
+                                      </div>
+                                    ) : (
+                                      <span className="text-[10px] text-slate-400">
+                                        Reviewed by {req.approverName || 'Approver'}
+                                      </span>
+                                    )}
+                                  </td>
+                                </tr>
+                              );
+                            })
+                          )}
+                        </tbody>
+                      </table>
+                    </div>
+                  </div>
+                )}
+
               </div>
 
               {/* ========================================================
-                  MODAL 1: EDIT / RECORD LOGIN PUNCH TIME
+                  MODAL 1: ASSIGN SHIFT (Single & Bulk Assignment Form)
               ======================================================== */}
-              {editingPunchEmployee && (
+              {isAssignShiftOpen && (
                 <div className="fixed inset-0 z-50 bg-navy-950/70 backdrop-blur-xs flex items-center justify-center p-4">
-                  <div className="bg-white dark:bg-navy-900 border border-slate-200 dark:border-navy-800 rounded-3xl max-w-md w-full p-6 shadow-2xl space-y-4 animate-in fade-in zoom-in-95 duration-200">
+                  <div className="bg-white dark:bg-navy-900 border border-slate-200 dark:border-navy-800 rounded-3xl max-w-lg w-full p-6 shadow-2xl space-y-4 animate-in fade-in zoom-in-95 duration-200 max-h-[90vh] overflow-y-auto">
                     <div className="flex justify-between items-start border-b border-slate-200 dark:border-navy-800 pb-3">
                       <div>
                         <span className="px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-amber-500/20 text-amber-800 dark:text-gold-400">
-                          Attendance & Punch Adjustment
+                          Shift Roster Scheduling
                         </span>
                         <h3 className="font-serif font-bold text-base text-slate-900 dark:text-white mt-1">
-                          Record Login Punch: {editingPunchEmployee.name}
+                          {assignFormTarget.employeeIds.length > 1 ? `Bulk Assign Shift (${assignFormTarget.employeeIds.length} Staff)` : 'Assign Workforce Shift'}
                         </h3>
-                        <p className="text-xs text-slate-500 dark:text-slate-400 font-mono">
-                          {editingPunchEmployee.id} • {editingPunchEmployee.role}
+                        <p className="text-xs text-slate-500 dark:text-slate-400">
+                          Select the working shift hours, assignment frequency, and effective date range.
                         </p>
                       </div>
                       <button
                         type="button"
-                        onClick={() => setEditingPunchEmployee(null)}
+                        onClick={() => {
+                          setIsAssignShiftOpen(false);
+                          setIsEmpDropdownOpen(false);
+                          setAssignEmpSearch('');
+                        }}
                         className="p-1 rounded-xl text-slate-400 hover:text-slate-600 dark:hover:text-white hover:bg-slate-100 dark:hover:bg-navy-800 cursor-pointer"
                       >
                         <X className="w-5 h-5" />
                       </button>
                     </div>
 
-                    <form onSubmit={handleSavePunch} className="space-y-4">
-                      <div className="p-3 bg-slate-50 dark:bg-navy-950 rounded-xl border border-slate-200/80 dark:border-navy-800 text-xs space-y-1">
-                        <div className="text-slate-500 dark:text-slate-400">Assigned Shift:</div>
-                        <div>
-                          <div className="font-bold text-slate-800 dark:text-slate-200">
-                            {editingPunchEmployee.shiftName?.replace(/\s*\([^)]*\)/g, '').trim() || 'General Day Shift'}
+                    <form onSubmit={handleSaveShiftAssignment} className="space-y-4 text-xs">
+                      {/* In-Modal Error & Validation Banner */}
+                      {assignModalError && (
+                        <div className="p-3 rounded-2xl bg-rose-50 dark:bg-rose-950/40 border border-rose-300 dark:border-rose-800 text-rose-800 dark:text-rose-200 text-xs font-bold flex items-center gap-2 animate-in fade-in shadow-xs">
+                          <AlertCircle className="w-4 h-4 text-rose-600 dark:text-rose-400 shrink-0" />
+                          <span className="flex-1">{assignModalError}</span>
+                          <button
+                            type="button"
+                            onClick={() => setAssignModalError('')}
+                            className="text-rose-400 hover:text-rose-600 dark:hover:text-rose-200 p-0.5 cursor-pointer"
+                          >
+                            <X className="w-3.5 h-3.5" />
+                          </button>
+                        </div>
+                      )}
+
+                      {/* Employee Selection by Employee Name */}
+                      <div className="space-y-2">
+                        <div className="flex items-center justify-between">
+                          <label className="block text-[11px] font-bold text-slate-700 dark:text-slate-300">
+                            Target Employee(s) <span className="text-rose-500">*</span>
+                          </label>
+                          <div className="flex items-center gap-2">
+                            {assignFormTarget.employeeIds.length > 0 && (
+                              <button
+                                type="button"
+                                onClick={() => setAssignFormTarget(prev => ({ ...prev, employeeIds: [] }))}
+                                className="text-[10px] font-semibold text-rose-500 hover:text-rose-600 dark:hover:text-rose-400 cursor-pointer"
+                              >
+                                Clear All
+                              </button>
+                            )}
+                            <button
+                              type="button"
+                              onClick={() => {
+                                const q = assignEmpSearch.toLowerCase().trim();
+                                const matches = allAssignableEmployees.filter(e =>
+                                  !q ||
+                                  e.name?.toLowerCase().includes(q) ||
+                                  (e.employeeId || e.id || '').toLowerCase().includes(q)
+                                );
+                                const mIds = matches.map(e => e.employeeId || e.id);
+                                setAssignFormTarget(prev => ({
+                                  ...prev,
+                                  employeeIds: Array.from(new Set([...prev.employeeIds, ...mIds]))
+                                }));
+                              }}
+                              className="text-[10px] font-bold text-amber-600 dark:text-gold-400 hover:underline cursor-pointer"
+                            >
+                              Select All {assignEmpSearch ? 'Filtered' : `(${allAssignableEmployees.length})`}
+                            </button>
                           </div>
-                          <div className="text-[11px] text-slate-400 font-mono">
-                            09:00 AM – 06:00 PM
+                        </div>
+
+                        {/* Search Input */}
+                        <div className="relative">
+                          <Search className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 pointer-events-none" />
+                          <input
+                            type="text"
+                            value={assignEmpSearch}
+                            onChange={(e) => {
+                              setAssignEmpSearch(e.target.value);
+                              if (!isEmpDropdownOpen) setIsEmpDropdownOpen(true);
+                            }}
+                            onFocus={() => setIsEmpDropdownOpen(true)}
+                            placeholder="Type employee name to search and select..."
+                            className="w-full pl-9 pr-8 py-2 bg-slate-50 dark:bg-navy-950 border border-slate-200 dark:border-navy-700 rounded-xl text-xs text-slate-900 dark:text-white placeholder:text-slate-400 focus:outline-none focus:border-amber-500 transition"
+                          />
+                          {assignEmpSearch ? (
+                            <button
+                              type="button"
+                              onClick={() => setAssignEmpSearch('')}
+                              className="absolute right-2.5 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 cursor-pointer"
+                            >
+                              <X className="w-3.5 h-3.5" />
+                            </button>
+                          ) : (
+                            <button
+                              type="button"
+                              onClick={() => setIsEmpDropdownOpen(prev => !prev)}
+                              className="absolute right-2.5 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 cursor-pointer"
+                            >
+                              <ChevronDown className={`w-3.5 h-3.5 transition-transform duration-200 ${isEmpDropdownOpen ? 'rotate-180' : ''}`} />
+                            </button>
+                          )}
+                        </div>
+
+                        {/* Dropdown list of employees */}
+                        {isEmpDropdownOpen && (() => {
+                          const q = assignEmpSearch.toLowerCase().trim();
+                          const matches = allAssignableEmployees.filter(e =>
+                            !q ||
+                            e.name?.toLowerCase().includes(q) ||
+                            (e.employeeId || e.id || '').toLowerCase().includes(q) ||
+                            e.role?.toLowerCase().includes(q) ||
+                            e.department?.toLowerCase().includes(q)
+                          );
+
+                          return (
+                            <div className="max-h-48 overflow-y-auto rounded-xl border border-slate-200 dark:border-navy-700 bg-white dark:bg-navy-950 shadow-md divide-y divide-slate-100 dark:divide-navy-800">
+                              {matches.length === 0 ? (
+                                <div className="p-3 text-center text-xs text-slate-400">
+                                  No employee found matching "{assignEmpSearch}"
+                                </div>
+                              ) : (
+                                matches.map(emp => {
+                                  const eId = emp.employeeId || emp.id;
+                                  const isSelected = assignFormTarget.employeeIds.includes(eId);
+                                  return (
+                                    <div
+                                      key={eId}
+                                      onClick={() => {
+                                        setAssignFormTarget(prev => ({
+                                          ...prev,
+                                          employeeIds: isSelected
+                                            ? prev.employeeIds.filter(id => id !== eId)
+                                            : [...prev.employeeIds, eId]
+                                        }));
+                                      }}
+                                      className={`p-2.5 flex items-center justify-between cursor-pointer transition text-xs ${isSelected
+                                        ? 'bg-amber-500/15 dark:bg-amber-500/20'
+                                        : 'hover:bg-slate-50 dark:hover:bg-navy-900'
+                                        }`}
+                                    >
+                                      <div className="flex items-center gap-2.5 min-w-0">
+                                        <div className={`w-4 h-4 rounded border flex items-center justify-center shrink-0 transition ${isSelected
+                                          ? 'bg-amber-500 border-amber-500 text-navy-950'
+                                          : 'border-slate-300 dark:border-navy-600 bg-white dark:bg-navy-900'
+                                          }`}>
+                                          {isSelected && <Check className="w-3 h-3 stroke-[3]" />}
+                                        </div>
+                                        <div className="w-6 h-6 rounded-full bg-amber-500/20 text-amber-800 dark:text-gold-400 font-bold text-[10px] flex items-center justify-center shrink-0">
+                                          {emp.name?.slice(0, 2).toUpperCase()}
+                                        </div>
+                                        <div className="min-w-0 truncate">
+                                          <div className="font-bold text-slate-900 dark:text-white truncate">
+                                            {emp.name}
+                                          </div>
+                                          <div className="text-[10px] text-slate-400 font-mono truncate">
+                                            {eId} • {emp.department} • {emp.role}
+                                          </div>
+                                        </div>
+                                      </div>
+                                      <span className="text-[10px] font-mono text-slate-400 shrink-0 ml-2">
+                                        {emp.shiftName || 'General'}
+                                      </span>
+                                    </div>
+                                  );
+                                })
+                              )}
+                            </div>
+                          );
+                        })()}
+
+                        {/* Selected Staff Badge List */}
+                        <div className="p-2.5 bg-slate-50 dark:bg-navy-950 rounded-xl border border-slate-200 dark:border-navy-800 max-h-36 overflow-y-auto space-y-1.5">
+                          <div className="flex items-center justify-between text-[10px] text-slate-400 font-bold uppercase tracking-wider mb-1">
+                            <span>Selected Staff ({assignFormTarget.employeeIds.length}):</span>
+                            {assignFormTarget.employeeIds.length > 0 && !isEmpDropdownOpen && (
+                              <button
+                                type="button"
+                                onClick={() => setIsEmpDropdownOpen(true)}
+                                className="text-amber-600 dark:text-gold-400 hover:underline normal-case text-[10px] font-semibold cursor-pointer"
+                              >
+                                + Add more
+                              </button>
+                            )}
                           </div>
+                          {assignFormTarget.employeeIds.length === 0 ? (
+                            <div className="py-2 text-center text-[11px] text-slate-400">
+                              No employees selected yet. Search by name above to add employees to this shift.
+                            </div>
+                          ) : (
+                            <div className="flex flex-wrap gap-1.5">
+                              {assignFormTarget.employeeIds.map(eId => {
+                                const emp = allAssignableEmployees.find(e => (e.employeeId || e.id) === eId);
+                                return (
+                                  <span
+                                    key={eId}
+                                    className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-white dark:bg-navy-900 border border-slate-200 dark:border-navy-700 text-slate-900 dark:text-white font-medium text-xs shadow-2xs"
+                                  >
+                                    <span className="font-bold text-amber-700 dark:text-gold-400">{emp?.name || eId}</span>
+                                    {emp?.role && (
+                                      <span className="text-[10px] text-slate-400 font-mono">({emp.role})</span>
+                                    )}
+                                    <button
+                                      type="button"
+                                      onClick={() => setAssignFormTarget(prev => ({
+                                        ...prev,
+                                        employeeIds: prev.employeeIds.filter(id => id !== eId)
+                                      }))}
+                                      className="text-slate-400 hover:text-rose-500 ml-0.5 p-0.5 rounded cursor-pointer transition"
+                                      title="Remove employee"
+                                    >
+                                      <X className="w-3 h-3" />
+                                    </button>
+                                  </span>
+                                );
+                              })}
+                            </div>
+                          )}
                         </div>
                       </div>
 
+                      {/* Shift Selection: 3 Standard Shifts */}
+                      <div>
+                        <label className="block text-[11px] font-bold text-slate-700 dark:text-slate-300 mb-1">
+                          Select Working Shift <span className="text-rose-500">*</span>
+                        </label>
+                        <div className="grid grid-cols-1 gap-2.5">
+                          {SHIFT_CONFIGS.map(sc => {
+                            const isSelected = assignFormTarget.shiftId === sc.id;
+                            return (
+                              <div
+                                key={sc.id}
+                                onClick={() => setAssignFormTarget({ ...assignFormTarget, shiftId: sc.id })}
+                                className={`p-3 rounded-xl border-2 transition cursor-pointer flex items-center justify-between ${isSelected
+                                  ? 'border-amber-500 bg-amber-50/70 dark:bg-amber-950/30'
+                                  : 'border-slate-200 dark:border-navy-800 hover:border-amber-400/80 bg-white dark:bg-navy-950'
+                                  }`}
+                              >
+                                <div>
+                                  <div className="font-bold text-slate-900 dark:text-white text-xs flex items-center gap-2">
+                                    <span>{sc.shiftName}</span>
+                                    <span className="px-2 py-0.5 rounded text-[9px] font-bold bg-slate-100 dark:bg-navy-800 text-slate-600 dark:text-slate-300">
+                                      {sc.badge}
+                                    </span>
+                                  </div>
+                                  <div className="font-mono text-[11px] font-bold text-emerald-600 dark:text-emerald-400 mt-0.5">
+                                    {sc.timing}
+                                  </div>
+                                </div>
+                                <div className="text-right">
+                                  <span className="text-[10px] text-slate-400">Scheduled Login:</span>
+                                  <div className="font-mono font-bold text-slate-800 dark:text-slate-200 text-xs">
+                                    {sc.scheduledLoginTime}
+                                  </div>
+                                </div>
+                              </div>
+                            );
+                          })}
+                        </div>
+                      </div>
+
+                      {/* Frequency Selection */}
+                      <div>
+                        <label className="block text-[11px] font-bold text-slate-700 dark:text-slate-300 mb-1">
+                          Assignment Frequency <span className="text-rose-500">*</span>
+                        </label>
+                        <div className="grid grid-cols-3 gap-2">
+                          {[
+                            { key: 'one_day', label: 'One Day', desc: 'Single Specific Date' },
+                            { key: 'weekly', label: 'Weekly', desc: 'Recurring Weekdays' },
+                            { key: 'monthly', label: 'Monthly', desc: 'Recurring Monthly' }
+                          ].map(f => (
+                            <button
+                              key={f.key}
+                              type="button"
+                              onClick={() => {
+                                let nextEnd = '';
+                                if (f.key === 'weekly' && assignFormTarget.startDate) {
+                                  const [y, m, d] = assignFormTarget.startDate.split('-').map(Number);
+                                  const dt = new Date(Date.UTC(y, m - 1, d));
+                                  const dow = dt.getUTCDay();
+                                  const daysToSunday = dow === 0 ? 0 : 7 - dow;
+                                  dt.setUTCDate(dt.getUTCDate() + daysToSunday);
+                                  nextEnd = dt.toISOString().slice(0, 10);
+                                } else if (f.key === 'monthly' && assignFormTarget.startDate) {
+                                  const [y, m] = assignFormTarget.startDate.split('-').map(Number);
+                                  nextEnd = new Date(Date.UTC(y, m, 0)).toISOString().slice(0, 10);
+                                }
+                                setAssignFormTarget({
+                                  ...assignFormTarget,
+                                  frequency: f.key,
+                                  endDate: nextEnd
+                                });
+                              }}
+                              className={`p-2.5 rounded-xl border text-left transition cursor-pointer ${assignFormTarget.frequency === f.key
+                                ? 'bg-navy-950 text-white dark:bg-amber-500 dark:text-navy-950 border-amber-500 font-bold shadow-xs'
+                                : 'bg-slate-50 dark:bg-navy-950 text-slate-700 dark:text-slate-300 border-slate-200 dark:border-navy-800'
+                                }`}
+                            >
+                              <div className="font-bold text-xs">{f.label}</div>
+                              <div className="text-[9px] opacity-80">{f.desc}</div>
+                            </button>
+                          ))}
+                        </div>
+                      </div>
+
+                      {/* Dates */}
                       <div className="grid grid-cols-2 gap-3">
                         <div>
                           <label className="block text-[11px] font-bold text-slate-700 dark:text-slate-300 mb-1">
-                            Check-In (Login Time) <span className="text-rose-500">*</span>
+                            Effective Start Date <span className="text-rose-500">*</span>
                           </label>
                           <input
-                            type="text"
+                            type="date"
                             required
-                            placeholder="e.g. 08:55 AM or 09:15 AM"
-                            value={punchFormData.checkIn}
-                            onChange={(e) => setPunchFormData({ ...punchFormData, checkIn: e.target.value })}
-                            className="w-full px-3 py-2 bg-slate-50 dark:bg-navy-950 border border-slate-200 dark:border-navy-700 rounded-xl text-xs font-mono font-bold text-slate-900 dark:text-white focus:outline-none focus:border-amber-500"
+                            value={assignFormTarget.startDate}
+                            onChange={(e) => setAssignFormTarget({ ...assignFormTarget, startDate: e.target.value })}
+                            className="w-full px-3 py-2 bg-slate-50 dark:bg-navy-950 border border-slate-200 dark:border-navy-700 rounded-xl text-xs font-mono font-bold text-slate-900 dark:text-white focus:outline-none focus:border-amber-500 cursor-pointer"
                           />
                         </div>
 
-                        <div>
-                          <label className="block text-[11px] font-bold text-slate-700 dark:text-slate-300 mb-1">
-                            Check-Out Time
-                          </label>
-                          <input
-                            type="text"
-                            placeholder="e.g. 06:05 PM or In Office"
-                            value={punchFormData.checkOut}
-                            onChange={(e) => setPunchFormData({ ...punchFormData, checkOut: e.target.value })}
-                            className="w-full px-3 py-2 bg-slate-50 dark:bg-navy-950 border border-slate-200 dark:border-navy-700 rounded-xl text-xs font-mono font-bold text-slate-900 dark:text-white focus:outline-none focus:border-amber-500"
-                          />
-                        </div>
+                        {assignFormTarget.frequency !== 'one_day' && (
+                          <div>
+                            <label className="block text-[11px] font-bold text-slate-700 dark:text-slate-300 mb-1">
+                              End Date (Optional)
+                            </label>
+                            <input
+                              type="date"
+                              value={assignFormTarget.endDate}
+                              min={assignFormTarget.startDate}
+                              onChange={(e) => setAssignFormTarget({ ...assignFormTarget, endDate: e.target.value })}
+                              className="w-full px-3 py-2 bg-slate-50 dark:bg-navy-950 border border-slate-200 dark:border-navy-700 rounded-xl text-xs font-mono font-bold text-slate-900 dark:text-white focus:outline-none focus:border-amber-500 cursor-pointer"
+                            />
+                          </div>
+                        )}
                       </div>
 
+                      {/* Applicable Weekdays (for Weekly/Monthly recurring) */}
+                      {assignFormTarget.frequency !== 'one_day' && (
+                        <div>
+                          <label className="block text-[11px] font-bold text-slate-700 dark:text-slate-300 mb-1">
+                            Applicable Working Weekdays
+                          </label>
+                          <div className="grid grid-cols-7 gap-1 text-center">
+                            {[
+                              { dayNum: 1, label: 'Mon' },
+                              { dayNum: 2, label: 'Tue' },
+                              { dayNum: 3, label: 'Wed' },
+                              { dayNum: 4, label: 'Thu' },
+                              { dayNum: 5, label: 'Fri' },
+                              { dayNum: 6, label: 'Sat' },
+                              { dayNum: 0, label: 'Sun' }
+                            ].map(d => {
+                              const isChecked = assignFormTarget.applicableDays?.includes(d.dayNum);
+                              return (
+                                <button
+                                  key={d.dayNum}
+                                  type="button"
+                                  onClick={() => {
+                                    const current = assignFormTarget.applicableDays || [];
+                                    const updated = current.includes(d.dayNum)
+                                      ? current.filter(x => x !== d.dayNum)
+                                      : [...current, d.dayNum];
+                                    setAssignFormTarget({ ...assignFormTarget, applicableDays: updated });
+                                  }}
+                                  className={`py-1.5 rounded-lg font-bold text-[11px] transition cursor-pointer border ${isChecked
+                                    ? 'bg-amber-500 text-navy-950 border-amber-600 shadow-2xs'
+                                    : 'bg-slate-100 dark:bg-navy-800 text-slate-600 dark:text-slate-400 border-slate-200 dark:border-navy-700'
+                                    }`}
+                                >
+                                  {d.label}
+                                </button>
+                              );
+                            })}
+                          </div>
+                        </div>
+                      )}
+
+                      {/* Replacement Notice */}
+                      <div className="p-3 rounded-xl bg-amber-50 dark:bg-amber-950/20 border border-amber-200 dark:border-amber-800/60 text-[11px] text-amber-900 dark:text-gold-300 leading-relaxed">
+                        ⚠️ <strong>Notice:</strong> Saving this assignment will supersede any overlapping active assignments for the selected employee(s) during this effective date range. Historical attendance records will remain preserved for audit compliance.
+                      </div>
+
+                      {/* Notes */}
                       <div>
                         <label className="block text-[11px] font-bold text-slate-700 dark:text-slate-300 mb-1">
-                          Punch Verification Source
+                          Assignment Notes / Authorization Memo (Optional)
                         </label>
-                        <select
-                          value={punchFormData.punchSource}
-                          onChange={(e) => setPunchFormData({ ...punchFormData, punchSource: e.target.value })}
-                          className="w-full px-3 py-2 bg-slate-50 dark:bg-navy-950 border border-slate-200 dark:border-navy-700 rounded-xl text-xs font-medium text-slate-900 dark:text-white focus:outline-none focus:border-amber-500 cursor-pointer"
-                        >
-                          <option value="Biometric Scanner #01 (Main Gate)">Biometric Scanner #01 (Main Gate)</option>
-                          <option value="Biometric Scanner #02 (Floor 2)">Biometric Scanner #02 (Floor 2)</option>
-                          <option value="Face ID Terminal (Reception)">Face ID Terminal (Reception)</option>
-                          <option value="Web Portal SSO (Direct Login)">Web Portal SSO (Direct Login)</option>
-                          <option value="Mobile App GPS Punch">Mobile App GPS Punch</option>
-                          <option value="Manual HR Regularization Entry">Manual HR Regularization Entry</option>
-                        </select>
+                        <input
+                          type="text"
+                          placeholder="e.g. Approved shift adjustment for Q4 project milestone"
+                          value={assignFormTarget.notes}
+                          onChange={(e) => setAssignFormTarget({ ...assignFormTarget, notes: e.target.value })}
+                          className="w-full px-3 py-2 bg-slate-50 dark:bg-navy-950 border border-slate-200 dark:border-navy-700 rounded-xl text-xs text-slate-800 dark:text-slate-200 focus:outline-none focus:border-amber-500"
+                        />
                       </div>
 
                       <div className="flex justify-end gap-2.5 pt-3 border-t border-slate-200 dark:border-navy-800">
                         <button
                           type="button"
-                          onClick={() => setEditingPunchEmployee(null)}
-                          className="px-4 py-2 bg-slate-100 dark:bg-navy-800 hover:bg-slate-200 text-slate-700 dark:text-slate-300 font-bold rounded-xl transition cursor-pointer text-xs"
+                          onClick={() => {
+                            setIsAssignShiftOpen(false);
+                            setIsEmpDropdownOpen(false);
+                            setAssignEmpSearch('');
+                          }}
+                          className="px-4 py-2 bg-slate-100 dark:bg-navy-800 text-slate-700 dark:text-slate-300 font-bold rounded-xl text-xs hover:bg-slate-200 cursor-pointer"
                         >
                           Cancel
                         </button>
                         <button
                           type="submit"
-                          className="px-5 py-2 bg-gradient-to-r from-amber-500 to-amber-600 hover:from-amber-400 hover:to-amber-500 text-navy-950 font-bold rounded-xl shadow-xs transition cursor-pointer flex items-center gap-1.5 text-xs"
+                          disabled={isSavingShift}
+                          className={`px-5 py-2 bg-gradient-to-r from-amber-500 to-amber-600 hover:from-amber-400 hover:to-amber-500 text-navy-950 font-bold rounded-xl shadow-xs transition cursor-pointer flex items-center gap-1.5 text-xs ${isSavingShift ? 'opacity-70 cursor-not-allowed' : ''
+                            }`}
                         >
-                          <Check className="w-3.5 h-3.5" />
-                          <span>Update Punch & Reaudit</span>
+                          {isSavingShift ? (
+                            <>
+                              <RefreshCw className="w-3.5 h-3.5 animate-spin" />
+                              <span>Assigning Shift...</span>
+                            </>
+                          ) : (
+                            <>
+                              <Check className="w-3.5 h-3.5" />
+                              <span>Save & Apply Shift Assignment</span>
+                            </>
+                          )}
                         </button>
                       </div>
                     </form>
@@ -4384,88 +6575,220 @@ export const CrmHrLeadDashboard = ({ initialSection }) => {
               )}
 
               {/* ========================================================
-                  MODAL 2: QUICK ASSIGN STAFF TO THIS SHIFT
+                  MODAL 2: REVIEW LATE-LOGIN DECISION MODAL
               ======================================================== */}
-              {isAssignModalOpen && (
+              {lateDecisionModal.open && lateDecisionModal.request && (
                 <div className="fixed inset-0 z-50 bg-navy-950/70 backdrop-blur-xs flex items-center justify-center p-4">
-                  <div className="bg-white dark:bg-navy-900 border border-slate-200 dark:border-navy-800 rounded-3xl max-w-lg w-full p-6 shadow-2xl space-y-4 animate-in fade-in zoom-in-95 duration-200 max-h-[85vh] flex flex-col">
+                  <div className="bg-white dark:bg-navy-900 border border-slate-200 dark:border-navy-800 rounded-3xl max-w-md w-full p-6 shadow-2xl space-y-4 animate-in fade-in zoom-in-95 duration-200">
                     <div className="flex justify-between items-start border-b border-slate-200 dark:border-navy-800 pb-3">
                       <div>
                         <span className="px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-amber-500/20 text-amber-800 dark:text-gold-400">
-                          Shift Roster Assignment
+                          Late-Login Decision Review
                         </span>
                         <h3 className="font-serif font-bold text-base text-slate-900 dark:text-white mt-1">
-                          Assign Personnel to: {selectedShift.shiftName}
+                          {lateDecisionModal.decision === 'Approved' ? 'Approve Late Clock-In' : 'Reject Late Clock-In'}
                         </h3>
                         <p className="text-xs text-slate-500 dark:text-slate-400">
-                          Shift Hours: <span className="font-mono font-bold text-emerald-600">{selectedShift.timing}</span>
+                          {lateDecisionModal.request.employeeName} ({lateDecisionModal.request.employeeId})
                         </p>
                       </div>
                       <button
                         type="button"
-                        onClick={() => setIsAssignModalOpen(false)}
+                        onClick={() => setLateDecisionModal({ open: false, request: null, decision: 'Approved', notes: '' })}
                         className="p-1 rounded-xl text-slate-400 hover:text-slate-600 dark:hover:text-white hover:bg-slate-100 dark:hover:bg-navy-800 cursor-pointer"
                       >
                         <X className="w-5 h-5" />
                       </button>
                     </div>
 
-                    <div className="overflow-y-auto flex-1 pr-1 space-y-2.5">
-                      {unassignedOrOtherStaff.length === 0 ? (
-                        <div className="py-8 text-center text-slate-400 text-xs">
-                          All workforce personnel are currently assigned to this shift.
+                    <div className="space-y-3 text-xs">
+                      <div className="p-3 bg-slate-50 dark:bg-navy-950 rounded-xl border border-slate-200 dark:border-navy-800 space-y-1.5">
+                        <div className="flex justify-between">
+                          <span className="text-slate-500 dark:text-slate-400">Shift Date:</span>
+                          <span className="font-mono font-bold text-slate-900 dark:text-white">{lateDecisionModal.request.attendanceDate}</span>
                         </div>
-                      ) : (
-                        unassignedOrOtherStaff.map((emp) => (
-                          <div
-                            key={emp.id}
-                            className="p-3 bg-slate-50 dark:bg-navy-950 rounded-xl border border-slate-200/80 dark:border-navy-800 flex items-center justify-between gap-3 hover:border-amber-400/60 transition"
-                          >
-                            <div className="flex items-center gap-2.5">
-                              <div className="w-8 h-8 rounded-lg bg-amber-500/20 text-amber-800 dark:text-gold-400 font-bold text-xs flex items-center justify-center shrink-0">
-                                {emp.avatarLetter || emp.name.charAt(0)}
-                              </div>
-                              <div>
-                                <div className="font-bold text-slate-900 dark:text-white text-xs">
-                                  {emp.name}
-                                </div>
-                                <div className="text-[10px] text-slate-400 font-mono">
-                                  {emp.id} • {emp.role}
-                                </div>
-                                <div className="text-[9px] text-amber-700 dark:text-gold-400 font-medium">
-                                  Current: {emp.shiftName || 'General Day Shift'}
-                                </div>
-                              </div>
+                        <div className="flex justify-between">
+                          <span className="text-slate-500 dark:text-slate-400">Scheduled Login:</span>
+                          <span className="font-mono font-bold text-slate-900 dark:text-white">{lateDecisionModal.request.scheduledLoginTime}</span>
+                        </div>
+                        <div className="flex justify-between">
+                          <span className="text-slate-500 dark:text-slate-400">Actual Clock-In:</span>
+                          <span className="font-mono font-bold text-amber-600 dark:text-amber-400">{lateDecisionModal.request.actualClockInTime}</span>
+                        </div>
+                        <div className="flex justify-between">
+                          <span className="text-slate-500 dark:text-slate-400">Delay:</span>
+                          <span className="font-mono font-bold text-rose-600 dark:text-rose-400">+{lateDecisionModal.request.delayMinutes} mins</span>
+                        </div>
+                        {lateDecisionModal.request.explanation && (
+                          <div className="pt-1 border-t border-slate-200 dark:border-navy-800">
+                            <span className="text-[10px] text-slate-400">Employee Explanation:</span>
+                            <div className="italic text-slate-700 dark:text-slate-300 mt-0.5 font-sans">
+                              "{lateDecisionModal.request.explanation}"
                             </div>
-
-                            <button
-                              type="button"
-                              onClick={() => {
-                                handleReassignShift(emp.id, selectedShift.id);
-                                setIsAssignModalOpen(false);
-                              }}
-                              className="px-3 py-1.5 rounded-lg bg-amber-500 hover:bg-amber-400 text-navy-950 font-bold text-[11px] shadow-xs transition cursor-pointer shrink-0 flex items-center gap-1"
-                            >
-                              <span>Move to this Shift</span>
-                              <span>→</span>
-                            </button>
                           </div>
-                        ))
-                      )}
+                        )}
+                      </div>
+
+                      <div>
+                        <label className="block text-[11px] font-bold text-slate-700 dark:text-slate-300 mb-1">
+                          Reviewer Remarks / Audit Note (Optional)
+                        </label>
+                        <textarea
+                          rows={2}
+                          placeholder={lateDecisionModal.decision === 'Approved' ? 'Reason for approving late arrival...' : 'Reason for rejection...'}
+                          value={lateDecisionModal.notes}
+                          onChange={(e) => setLateDecisionModal({ ...lateDecisionModal, notes: e.target.value })}
+                          className="w-full px-3 py-2 bg-slate-50 dark:bg-navy-950 border border-slate-200 dark:border-navy-700 rounded-xl text-xs text-slate-800 dark:text-slate-200 focus:outline-none focus:border-amber-500 resize-none"
+                        />
+                      </div>
+
+                      <div className="flex justify-end gap-2.5 pt-2 border-t border-slate-200 dark:border-navy-800">
+                        <button
+                          type="button"
+                          onClick={() => setLateDecisionModal({ open: false, request: null, decision: 'Approved', notes: '' })}
+                          className="px-4 py-2 bg-slate-100 dark:bg-navy-800 text-slate-700 dark:text-slate-300 font-bold rounded-xl text-xs hover:bg-slate-200 cursor-pointer"
+                        >
+                          Cancel
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => handleLateApprovalDecision(lateDecisionModal.request.id, lateDecisionModal.decision, lateDecisionModal.notes)}
+                          className={`px-5 py-2 font-bold rounded-xl text-white text-xs shadow-xs transition cursor-pointer flex items-center gap-1.5 ${lateDecisionModal.decision === 'Approved'
+                            ? 'bg-emerald-600 hover:bg-emerald-500'
+                            : 'bg-rose-600 hover:bg-rose-500'
+                            }`}
+                        >
+                          <Check className="w-3.5 h-3.5" />
+                          <span>Confirm {lateDecisionModal.decision}</span>
+                        </button>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              )}
+
+              {/* ========================================================
+                  MODAL 3: SHIFT ASSIGNMENT HISTORY MODAL
+              ======================================================== */}
+              {historyModalEmployee && (
+                <div className="fixed inset-0 z-50 bg-navy-950/70 backdrop-blur-xs flex items-center justify-center p-4">
+                  <div className="bg-white dark:bg-navy-900 border border-slate-200 dark:border-navy-800 rounded-3xl max-w-lg w-full p-6 shadow-2xl space-y-4 animate-in fade-in zoom-in-95 duration-200 max-h-[85vh] flex flex-col">
+                    <div className="flex justify-between items-start border-b border-slate-200 dark:border-navy-800 pb-3">
+                      <div>
+                        <span className="px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-amber-500/20 text-amber-800 dark:text-gold-400">
+                          Shift Assignment Audit Log
+                        </span>
+                        <h3 className="font-serif font-bold text-base text-slate-900 dark:text-white mt-1">
+                          Historical Assignments: {historyModalEmployee.name}
+                        </h3>
+                        <p className="text-xs text-slate-500 dark:text-slate-400 font-mono">
+                          {historyModalEmployee.employeeId || historyModalEmployee.id} • {historyModalEmployee.role}
+                        </p>
+                      </div>
+                      <button
+                        type="button"
+                        onClick={() => setHistoryModalEmployee(null)}
+                        className="p-1 rounded-xl text-slate-400 hover:text-slate-600 dark:hover:text-white hover:bg-slate-100 dark:hover:bg-navy-800 cursor-pointer"
+                      >
+                        <X className="w-5 h-5" />
+                      </button>
+                    </div>
+
+                    <div className="overflow-y-auto flex-1 space-y-2.5 text-xs pr-1">
+                      {(() => {
+                        const history = [...shiftAssignmentsList]
+                          .filter(
+                            a => a.employeeId === (historyModalEmployee.employeeId || historyModalEmployee.id)
+                          )
+                          .sort((a, b) => {
+                            // The shift that was lastly assigned comes at the very top:
+                            const parseTime = (item) => {
+                              if (item.assignedAt) {
+                                const iso = String(item.assignedAt).replace(' ', 'T');
+                                const t = new Date(iso).getTime();
+                                if (!isNaN(t)) return t;
+                              }
+                              const idMatch = String(item.id || '').match(/SFA-(\d+)/);
+                              if (idMatch) return parseInt(idMatch[1], 10);
+                              return 0;
+                            };
+                            const timeA = parseTime(a);
+                            const timeB = parseTime(b);
+                            if (timeB !== timeA) return timeB - timeA;
+                            if (a.rowid && b.rowid && a.rowid !== b.rowid) return b.rowid - a.rowid;
+                            if (a.status === 'Active' && b.status !== 'Active') return -1;
+                            if (b.status === 'Active' && a.status !== 'Active') return 1;
+                            return (b.id || '').localeCompare(a.id || '');
+                          });
+                        if (history.length === 0) {
+                          return (
+                            <div className="py-12 text-center text-slate-400">
+                              <CalendarCheck className="w-8 h-8 mx-auto text-slate-300 dark:text-navy-700 mb-1" />
+                              <p className="font-bold text-xs text-slate-600 dark:text-slate-300">
+                                Operating on Default General Shift
+                              </p>
+                              <p className="text-[10px] text-slate-400">
+                                No custom shift overrides or recurring schedules have been configured yet.
+                              </p>
+                            </div>
+                          );
+                        }
+                        return history.map((asgn, index) => (
+                          <div
+                            key={asgn.id || index}
+                            className={`p-3 rounded-xl border space-y-1.5 transition ${index === 0
+                              ? 'bg-amber-500/10 dark:bg-amber-950/20 border-amber-300 dark:border-amber-700/60 shadow-xs'
+                              : 'bg-slate-50 dark:bg-navy-950 border-slate-200 dark:border-navy-800'
+                              }`}
+                          >
+                            <div className="flex justify-between items-center">
+                              <div className="flex items-center gap-2">
+                                <span className="font-bold text-xs text-slate-900 dark:text-white">{asgn.shiftName}</span>
+                                {index === 0 && (
+                                  <span className="px-2 py-0.5 rounded-full text-[9px] font-bold bg-amber-500 text-slate-950">
+                                    Lastly Assigned
+                                  </span>
+                                )}
+                              </div>
+                              <span className={`px-2 py-0.5 rounded-full text-[9px] font-bold border ${asgn.status === 'Active'
+                                ? 'bg-emerald-100 text-emerald-800 border-emerald-300 dark:bg-emerald-950/40 dark:text-emerald-300'
+                                : 'bg-slate-100 text-slate-600 border-slate-200 dark:bg-navy-800 dark:text-slate-400'
+                                }`}>
+                                {asgn.status}
+                              </span>
+                            </div>
+                            <div className="font-mono text-[11px] text-emerald-600 dark:text-emerald-400">
+                              Timing: {asgn.scheduledLoginTime} – {asgn.scheduledLogoutTime}
+                            </div>
+                            <div className="text-[10px] text-slate-500 dark:text-slate-400 flex items-center justify-between pt-1 border-t border-slate-200 dark:border-navy-800">
+                              <span>Period: {asgn.startDate} to {asgn.endDate || 'Ongoing'} ({asgn.frequency})</span>
+                              <span className="font-medium text-slate-700 dark:text-slate-300">
+                                By: {asgn.assignedByName || 'System'}
+                                {asgn.assignedAt && (
+                                  <span className="text-[9px] text-slate-400 font-mono ml-1.5">
+                                    • {asgn.assignedAt.slice(0, 16)}
+                                  </span>
+                                )}
+                              </span>
+                            </div>
+                          </div>
+                        ));
+                      })()}
                     </div>
 
                     <div className="pt-3 border-t border-slate-200 dark:border-navy-800 flex justify-end">
                       <button
                         type="button"
-                        onClick={() => setIsAssignModalOpen(false)}
+                        onClick={() => setHistoryModalEmployee(null)}
                         className="px-4 py-2 bg-slate-100 dark:bg-navy-800 text-slate-700 dark:text-slate-300 font-bold rounded-xl text-xs hover:bg-slate-200 cursor-pointer"
                       >
-                        Done
+                        Close
                       </button>
                     </div>
                   </div>
                 </div>
               )}
+
             </div>
           );
         })()}

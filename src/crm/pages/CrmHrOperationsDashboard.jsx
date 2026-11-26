@@ -30,6 +30,7 @@ import {
   X
 } from 'lucide-react';
 import { useCrm } from '../context/CrmContext';
+import { SharedAnnouncementCalendar } from '../components/SharedAnnouncementCalendar';
 
 const COMPANY_TIMEZONE = 'Asia/Kolkata';
 
@@ -207,8 +208,9 @@ const CrmHrOperationsDashboard = ({ initialSection } = {}) => {
   const [actionFeedback, setActionFeedback] = useState(null);
   const [mutatingId, setMutatingId] = useState(null);
 
-  // Determine whether this view is the dedicated "My Assigned Enquiries" page
+  // Determine whether this view is the dedicated "My Assigned Enquiries" page or "Company Announcements" page
   const isEnquiriesPage = initialSection === 'tasks' || initialSection === 'hr-tasks' || initialSection === 'enquiries';
+  const isAnnouncementsPage = initialSection === 'announcements' || initialSection === 'hr-announcements';
 
   // Interactive workspace tabs & filters
   const [activeTab, setActiveTab] = useState('enquiries'); // 'enquiries' | 'followups'
@@ -234,6 +236,8 @@ const CrmHrOperationsDashboard = ({ initialSection } = {}) => {
 
   // Company Announcements State (Published by HR Lead)
   const [companyAnnouncements, setCompanyAnnouncements] = useState([]);
+  const [calendarAnnouncements, setCalendarAnnouncements] = useState([]);
+  const [showAnnouncementCalendar, setShowAnnouncementCalendar] = useState(false);
   const [announcementsLoading, setAnnouncementsLoading] = useState(false);
   const [announcementCategoryFilter, setAnnouncementCategoryFilter] = useState('all');
   const [announcementSearch, setAnnouncementSearch] = useState('');
@@ -357,8 +361,8 @@ const CrmHrOperationsDashboard = ({ initialSection } = {}) => {
     }
   }, [authTokenLoading, crmToken, isHrOpsSession]);
 
-  const fetchCompanyAnnouncements = useCallback(async () => {
-    setAnnouncementsLoading(true);
+  const fetchCompanyAnnouncements = useCallback(async (silent = false) => {
+    if (!silent) setAnnouncementsLoading(true);
     try {
       let token = crmToken;
       if (!token) {
@@ -389,19 +393,63 @@ const CrmHrOperationsDashboard = ({ initialSection } = {}) => {
         const data = await res.json();
         if (data?.success && Array.isArray(data.announcements)) {
           setCompanyAnnouncements(data.announcements);
+          setCalendarAnnouncements(Array.isArray(data.calendarAnnouncements) ? data.calendarAnnouncements : data.announcements);
         }
       }
     } catch (err) {
       console.warn('Failed to fetch company announcements:', err);
     } finally {
-      setAnnouncementsLoading(false);
+      if (!silent) setAnnouncementsLoading(false);
     }
   }, [crmToken, setCrmToken]);
 
   useEffect(() => {
     fetchDashboardSummary(false);
-    fetchCompanyAnnouncements();
+    fetchCompanyAnnouncements(false);
   }, [fetchDashboardSummary, fetchCompanyAnnouncements]);
+
+  // Auto-refresh Company Announcements (polling every 10s + focus/visibility + cross-tab BroadcastChannel/storage)
+  useEffect(() => {
+    const intervalId = setInterval(() => {
+      fetchCompanyAnnouncements(true);
+    }, 10000);
+
+    const handleFocusOrSync = () => {
+      fetchCompanyAnnouncements(true);
+    };
+    const handleVisibility = () => {
+      if (document.visibilityState === 'visible') {
+        fetchCompanyAnnouncements(true);
+      }
+    };
+    const handleStorage = (e) => {
+      if (e.key === 'sir_announcements_updated_at') {
+        fetchCompanyAnnouncements(true);
+      }
+    };
+
+    window.addEventListener('focus', handleFocusOrSync);
+    window.addEventListener('sir-announcements-updated', handleFocusOrSync);
+    window.addEventListener('storage', handleStorage);
+    document.addEventListener('visibilitychange', handleVisibility);
+
+    let bc = null;
+    try {
+      if (typeof BroadcastChannel !== 'undefined') {
+        bc = new BroadcastChannel('sir_company_announcements');
+        bc.onmessage = () => fetchCompanyAnnouncements(true);
+      }
+    } catch (_) { }
+
+    return () => {
+      clearInterval(intervalId);
+      window.removeEventListener('focus', handleFocusOrSync);
+      window.removeEventListener('sir-announcements-updated', handleFocusOrSync);
+      window.removeEventListener('storage', handleStorage);
+      document.removeEventListener('visibilitychange', handleVisibility);
+      try { bc?.close(); } catch (_) { }
+    };
+  }, [fetchCompanyAnnouncements]);
 
   useEffect(() => {
     if (initialSection === 'announcements') {
@@ -877,112 +925,124 @@ const CrmHrOperationsDashboard = ({ initialSection } = {}) => {
       )}
 
       {/* 1. Dashboard / Assigned Enquiries Header */}
-      <header className="rounded-2xl bg-white dark:bg-slate-900 border-2 border-slate-200 dark:border-slate-800 p-4 sm:p-5 shadow-xs">
-        <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-3 sm:gap-4">
-          <div className="space-y-1 sm:space-y-1.5 min-w-0">
-            <h1 className="text-xl sm:text-2xl font-bold tracking-tight text-slate-950 dark:text-white">
-              {isEnquiriesPage ? 'My Assigned Enquiries' : 'My Dashboard'}
-            </h1>
-          </div>
+      {!isAnnouncementsPage && (
+        <header className="rounded-2xl bg-white dark:bg-slate-900 border-2 border-slate-200 dark:border-slate-800 p-4 sm:p-5 shadow-xs">
+          <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-3 sm:gap-4">
+            <div className="space-y-1 sm:space-y-1.5 min-w-0">
+              <h1 className="text-xl sm:text-2xl font-bold tracking-tight text-slate-950 dark:text-white">
+                {isEnquiriesPage ? 'My Assigned Enquiries' : 'My Dashboard'}
+              </h1>
+            </div>
 
-          <div className="flex flex-wrap items-center gap-2.5">
-            {!isEnquiriesPage && shiftInfo?.formattedTiming && (
-              <div
-                className="flex items-center gap-2 px-3 py-1.5 rounded-xl bg-amber-50 dark:bg-amber-500/10 border border-amber-300 dark:border-amber-500/30"
-                data-testid="hr-dashboard-shift-timing"
+            <div className="flex flex-wrap items-center gap-2.5">
+              {!isEnquiriesPage && shiftInfo?.formattedTiming && (
+                <div
+                  className="flex items-center gap-2 px-3 py-1.5 rounded-xl bg-amber-50 dark:bg-amber-500/10 border border-amber-300 dark:border-amber-500/30 cursor-pointer hover:border-amber-500 hover:shadow-xs transition"
+                  data-testid="hr-dashboard-shift-timing"
+                  onClick={() => setActiveModule?.('hr-shifts')}
+                  title="Click to view My Shift"
+                >
+                  <div className="w-6 h-6 rounded-md bg-amber-500/20 flex items-center justify-center text-amber-700 dark:text-amber-400 shrink-0 font-bold">
+                    <Clock className="w-3.5 h-3.5" />
+                  </div>
+                  <div className="leading-tight">
+                    <p className="text-[10px] font-bold uppercase tracking-wider text-amber-900 dark:text-amber-300">
+                      Today’s Shift
+                      {shiftInfo.name
+                        ? ` • ${shiftInfo.name.replace(/\s*\([^)]*\)\s*$/, '').trim()}`
+                        : ''}
+                    </p>
+                    <p className="text-xs font-bold text-slate-950 dark:text-white">
+                      {shiftInfo.formattedTiming}
+                    </p>
+                  </div>
+                </div>
+              )}
+
+              <button
+                type="button"
+                onClick={() => fetchDashboardSummary(true)}
+                disabled={refreshing}
+                className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-bold border-2 border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-900 dark:text-slate-100 hover:bg-slate-100 dark:hover:bg-slate-700/70 transition-colors disabled:opacity-60 cursor-pointer shadow-xs"
               >
-                <div className="w-6 h-6 rounded-md bg-amber-500/20 flex items-center justify-center text-amber-700 dark:text-amber-400 shrink-0 font-bold">
-                  <Clock className="w-3.5 h-3.5" />
-                </div>
-                <div className="leading-tight">
-                  <p className="text-[10px] font-bold uppercase tracking-wider text-amber-900 dark:text-amber-300">
-                    Today’s Shift
-                    {shiftInfo.name
-                      ? ` • ${shiftInfo.name.replace(/\s*\([^)]*\)\s*$/, '').trim()}`
-                      : ''}
-                  </p>
-                  <p className="text-xs font-bold text-slate-950 dark:text-white">
-                    {shiftInfo.formattedTiming}
-                  </p>
-                </div>
-              </div>
-            )}
-
-            <button
-              type="button"
-              onClick={() => fetchDashboardSummary(true)}
-              disabled={refreshing}
-              className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-bold border-2 border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-900 dark:text-slate-100 hover:bg-slate-100 dark:hover:bg-slate-700/70 transition-colors disabled:opacity-60 cursor-pointer shadow-xs"
-            >
-              <RefreshCw className={`w-3.5 h-3.5 ${refreshing ? 'animate-spin' : ''}`} />
-              <span>{refreshing ? 'Refreshing...' : 'Refresh'}</span>
-            </button>
+                <RefreshCw className={`w-3.5 h-3.5 ${refreshing ? 'animate-spin' : ''}`} />
+                <span>{refreshing ? 'Refreshing...' : 'Refresh'}</span>
+              </button>
+            </div>
           </div>
-        </div>
-      </header>
+        </header>
+      )}
 
       {/* 2. Redesigned KPI Cards for HR Operations */}
-      <section aria-label="Employee Operations Metrics">
-        <div className="grid grid-cols-2 md:grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
-          {summaryCards.map((card) => {
-            const Icon = card.icon;
-            return (
-              <div
-                key={card.key}
-                data-testid={`kpi-card-${card.key}`}
-                className="group relative rounded-2xl p-4 sm:p-4.5 bg-white dark:bg-slate-900 border border-slate-200/80 dark:border-slate-800 border-l-4 border-l-amber-500 dark:border-l-gold-500 shadow-xs hover:shadow-md hover:-translate-y-0.5 transition-all duration-200 flex flex-col items-center text-center justify-between min-h-[134px] select-none cursor-default"
-              >
-                {/* Top: Small, consistent icon in light-gold container */}
-                <div className="flex items-center justify-center mb-2.5">
-                  <div className="w-8 h-8 rounded-xl bg-amber-50 dark:bg-amber-500/10 border border-amber-200/80 dark:border-amber-500/20 flex items-center justify-center text-amber-700 dark:text-gold-400 shrink-0 shadow-2xs group-hover:scale-105 transition-transform duration-200">
-                    <Icon className="w-4 h-4 stroke-[2.2]" />
+      {!isAnnouncementsPage && (
+        <section aria-label="Employee Operations Metrics">
+          <div className="grid grid-cols-2 md:grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
+            {summaryCards.map((card) => {
+              const Icon = card.icon;
+              const isActionable = card.key === 'myAssignedEnquiries' || card.key === 'pendingEnquiries';
+              return (
+                <div
+                  key={card.key}
+                  data-testid={`kpi-card-${card.key}`}
+                  onClick={() => {
+                    if (isActionable && setActiveModule) {
+                      setActiveModule('hr-tasks');
+                      if (card.key === 'pendingEnquiries') {
+                        setEnquiryQuickFilter('pending');
+                      }
+                    }
+                  }}
+                  className={`group relative rounded-2xl p-4 sm:p-4.5 bg-white dark:bg-slate-900 border border-slate-200/80 dark:border-slate-800 border-l-4 border-l-amber-500 dark:border-l-gold-500 shadow-xs hover:shadow-md hover:-translate-y-0.5 transition-all duration-200 flex flex-col items-center text-center justify-between min-h-[134px] select-none ${
+                    isActionable ? 'cursor-pointer hover:border-amber-400/80' : 'cursor-default'
+                  }`}
+                >
+                  {/* Top: Small, consistent icon in light-gold container */}
+                  <div className="flex items-center justify-center mb-2.5">
+                    <div className="w-8 h-8 rounded-xl bg-amber-50 dark:bg-amber-500/10 border border-amber-200/80 dark:border-amber-500/20 flex items-center justify-center text-amber-700 dark:text-gold-400 shrink-0 shadow-2xs group-hover:scale-105 transition-transform duration-200">
+                      <Icon className="w-4 h-4 stroke-[2.2]" />
+                    </div>
                   </div>
-                </div>
 
-                {/* KPI Number prominently in bold, dark navy typography (centered), with label below */}
-                <div className="w-full flex flex-col items-center text-center">
-                  <div
-                    className="text-2xl sm:text-3xl font-extrabold text-navy-950 dark:text-white tabular-nums tracking-tight leading-none text-center"
-                    data-testid={`kpi-value-${card.key}`}
-                  >
-                    {card.value}
-                  </div>
-                  <div className="text-xs sm:text-[13px] font-semibold text-slate-600 dark:text-slate-300 mt-2 leading-snug text-center">
-                    {card.label}
+                  {/* KPI Number prominently in bold, dark navy typography (centered), with label below */}
+                  <div className="w-full flex flex-col items-center text-center">
+                    <div
+                      className="text-2xl sm:text-3xl font-extrabold text-navy-950 dark:text-white tabular-nums tracking-tight leading-none text-center"
+                      data-testid={`kpi-value-${card.key}`}
+                    >
+                      {card.value}
+                    </div>
+                    <div className="text-xs sm:text-[13px] font-semibold text-slate-600 dark:text-slate-300 mt-2 leading-snug text-center">
+                      {card.label}
+                    </div>
                   </div>
                 </div>
-              </div>
-            );
-          })}
-        </div>
-      </section>
+              );
+            })}
+          </div>
+        </section>
+      )}
 
       {/* 3. Attendance Summary (Shown on My Dashboard only) */}
-      {!isEnquiriesPage && (
+      {!isEnquiriesPage && !isAnnouncementsPage && (
         <section
           aria-label="Attendance Summary"
           data-testid="hr-dashboard-attendance-summary"
-          className="rounded-2xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 p-4 sm:p-5 shadow-xs"
+          className="rounded-2xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 p-3.5 sm:p-4 shadow-xs"
         >
-          <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 mb-3.5">
-            <div className="flex items-center gap-3">
-              <div className="w-9 h-9 rounded-xl bg-emerald-50 dark:bg-emerald-500/15 border border-emerald-200/70 dark:border-emerald-500/30 flex items-center justify-center text-emerald-600 dark:text-emerald-400 shrink-0">
-                <Activity className="w-4.5 h-4.5" />
+          <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2.5 mb-2.5">
+            <div className="flex items-center gap-2.5">
+              <div className="w-8 h-8 rounded-xl bg-emerald-50 dark:bg-emerald-500/15 border border-emerald-200/70 dark:border-emerald-500/30 flex items-center justify-center text-emerald-600 dark:text-emerald-400 shrink-0">
+                <Activity className="w-4 h-4" />
               </div>
-              <div>
-                <div className="flex flex-wrap items-center gap-2">
-                  <h2 className="text-sm sm:text-base font-bold text-slate-900 dark:text-white">
-                    Attendance Summary
-                  </h2>
-                  {attendanceToday?.workDate && (
-                    <span className="text-xs text-slate-500 dark:text-slate-400 font-medium">
-                      ({formatDateShort(attendanceToday.workDate)})
-                    </span>
-                  )}
-                </div>
-                <p className="text-xs text-slate-500 dark:text-slate-400">
-                  Live daily attendance status and logged working time for your profile
-                </p>
+              <div className="flex flex-wrap items-center gap-2">
+                <h2 className="text-sm font-bold text-slate-900 dark:text-white">
+                  Attendance Summary
+                </h2>
+                {attendanceToday?.workDate && (
+                  <span className="text-xs text-slate-500 dark:text-slate-400 font-medium">
+                    ({formatDateShort(attendanceToday.workDate)})
+                  </span>
+                )}
               </div>
             </div>
 
@@ -990,7 +1050,7 @@ const CrmHrOperationsDashboard = ({ initialSection } = {}) => {
               type="button"
               onClick={() => setActiveModule?.('my-attendance')}
               data-testid="link-open-my-attendance"
-              className="inline-flex items-center justify-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-semibold bg-slate-900 hover:bg-slate-800 text-white dark:bg-amber-500 dark:hover:bg-amber-600 dark:text-slate-950 transition-colors shrink-0"
+              className="inline-flex items-center justify-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-semibold bg-slate-900 hover:bg-slate-800 text-white dark:bg-amber-500 dark:hover:bg-amber-600 dark:text-slate-950 transition-colors shrink-0 self-start sm:self-auto"
             >
               <Calendar className="w-3.5 h-3.5" />
               <span>Open My Attendance</span>
@@ -998,54 +1058,36 @@ const CrmHrOperationsDashboard = ({ initialSection } = {}) => {
             </button>
           </div>
 
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
-            {/* Today's Status */}
-            <div className="rounded-xl p-3 bg-slate-50 dark:bg-slate-800/60 border border-slate-200/80 dark:border-slate-700/70">
-              <div className="text-xs font-medium text-slate-500 dark:text-slate-400 mb-1">
-                Attendance Status
-              </div>
-              <div className="flex items-center gap-2">
-                <span
-                  data-testid="attendance-summary-status"
-                  className={`inline-flex items-center gap-1.5 px-2 py-0.5 rounded-full text-xs font-semibold border ${getAttendanceBadgeClass(
-                    attendanceToday?.status
-                  )}`}
-                >
-                  <span className="w-1.5 h-1.5 rounded-full bg-current" />
-                  {attendanceToday?.status || 'Not Checked In'}
-                </span>
-              </div>
-            </div>
-
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-2.5">
             {/* Check-In Time */}
-            <div className="rounded-xl p-3 bg-slate-50 dark:bg-slate-800/60 border border-slate-200/80 dark:border-slate-700/70">
-              <div className="flex items-center gap-1.5 text-xs font-medium text-slate-500 dark:text-slate-400 mb-1">
+            <div className="rounded-xl p-2.5 bg-slate-50 dark:bg-slate-800/60 border border-slate-200/80 dark:border-slate-700/70">
+              <div className="flex items-center gap-1.5 text-[11px] font-medium text-slate-500 dark:text-slate-400 mb-0.5">
                 <LogIn className="w-3.5 h-3.5 text-emerald-500" />
                 <span>Check-In Time</span>
               </div>
-              <div className="text-sm sm:text-base font-bold text-slate-900 dark:text-white tabular-nums" data-testid="attendance-summary-checkin">
+              <div className="text-sm font-bold text-slate-900 dark:text-white tabular-nums" data-testid="attendance-summary-checkin">
                 {attendanceToday?.checkInTime || '—'}
               </div>
             </div>
 
             {/* Checkout Time */}
-            <div className="rounded-xl p-3 bg-slate-50 dark:bg-slate-800/60 border border-slate-200/80 dark:border-slate-700/70">
-              <div className="flex items-center gap-1.5 text-xs font-medium text-slate-500 dark:text-slate-400 mb-1">
+            <div className="rounded-xl p-2.5 bg-slate-50 dark:bg-slate-800/60 border border-slate-200/80 dark:border-slate-700/70">
+              <div className="flex items-center gap-1.5 text-[11px] font-medium text-slate-500 dark:text-slate-400 mb-0.5">
                 <LogOut className="w-3.5 h-3.5 text-amber-500" />
                 <span>Checkout Time</span>
               </div>
-              <div className="text-sm sm:text-base font-bold text-slate-900 dark:text-white tabular-nums" data-testid="attendance-summary-checkout">
+              <div className="text-sm font-bold text-slate-900 dark:text-white tabular-nums" data-testid="attendance-summary-checkout">
                 {attendanceToday?.checkOutTime || (attendanceToday?.isCheckedIn ? 'Active Shift' : '—')}
               </div>
             </div>
 
             {/* Working Hours */}
-            <div className="rounded-xl p-3 bg-slate-50 dark:bg-slate-800/60 border border-slate-200/80 dark:border-slate-700/70">
-              <div className="flex items-center gap-1.5 text-xs font-medium text-slate-500 dark:text-slate-400 mb-1">
+            <div className="rounded-xl p-2.5 bg-slate-50 dark:bg-slate-800/60 border border-slate-200/80 dark:border-slate-700/70">
+              <div className="flex items-center gap-1.5 text-[11px] font-medium text-slate-500 dark:text-slate-400 mb-0.5">
                 <Timer className="w-3.5 h-3.5 text-blue-500" />
                 <span>Working Hours</span>
               </div>
-              <div className="text-sm sm:text-base font-bold text-slate-900 dark:text-white tabular-nums" data-testid="attendance-summary-hours">
+              <div className="text-sm font-bold text-slate-900 dark:text-white tabular-nums" data-testid="attendance-summary-hours">
                 {attendanceToday?.workingHours || '0h 00m'}
               </div>
             </div>
@@ -1053,8 +1095,9 @@ const CrmHrOperationsDashboard = ({ initialSection } = {}) => {
         </section>
       )}
 
-      {/* 3b. Company Announcements Section (Published by HR Lead) */}
-      {!isEnquiriesPage && (
+      {/* 3b. Company Announcements Section (Dedicated Company Announcement Page) */}
+      {isAnnouncementsPage && (
+        <>
         <section
           id="hr-company-announcements"
           aria-label="Company Announcement"
@@ -1071,9 +1114,6 @@ const CrmHrOperationsDashboard = ({ initialSection } = {}) => {
                   <h2 className="text-sm sm:text-base font-bold text-slate-900 dark:text-white font-serif">
                     Company Announcement
                   </h2>
-                  <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-amber-100 dark:bg-amber-950/40 text-amber-800 dark:text-amber-300 border border-amber-200 dark:border-amber-800">
-                    Official Notice Board
-                  </span>
                 </div>
                 <p className="text-xs text-slate-500 dark:text-slate-400">
                   Corporate circulars, HR policies, and urgent announcements published by HR Leadership
@@ -1084,7 +1124,19 @@ const CrmHrOperationsDashboard = ({ initialSection } = {}) => {
             <div className="flex items-center gap-2 self-end sm:self-auto">
               <button
                 type="button"
-                onClick={fetchCompanyAnnouncements}
+                onClick={() => setShowAnnouncementCalendar(prev => !prev)}
+                className={`p-1.5 sm:px-3 sm:py-1.5 rounded-xl transition cursor-pointer text-xs font-bold flex items-center gap-1.5 border ${showAnnouncementCalendar
+                  ? 'bg-slate-900 text-white dark:bg-amber-500 dark:text-slate-950 border-slate-900 dark:border-amber-400'
+                  : 'bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 text-slate-700 dark:text-slate-200 border-slate-200 dark:border-slate-700'
+                  }`}
+                title="Toggle Announcement Calendar"
+              >
+                <Calendar className="w-3.5 h-3.5" />
+                <span>{showAnnouncementCalendar ? 'Hide Calendar' : 'Calendar'}</span>
+              </button>
+              <button
+                type="button"
+                onClick={() => fetchCompanyAnnouncements(false)}
                 className="p-1.5 sm:px-2.5 sm:py-1.5 bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 text-slate-600 dark:text-slate-300 rounded-xl transition cursor-pointer text-xs flex items-center gap-1.5"
                 title="Refresh Announcements"
               >
@@ -1164,11 +1216,6 @@ const CrmHrOperationsDashboard = ({ initialSection } = {}) => {
                           <Globe className="w-3 h-3 text-slate-400" />
                           <span>{ann.target_audience}</span>
                         </span>
-                        {ann.expires_at && (
-                          <span className="px-2.5 py-0.5 rounded-full text-[10px] font-semibold bg-amber-50 dark:bg-amber-950/40 text-amber-700 dark:text-amber-300 border border-amber-200 dark:border-amber-800">
-                            Expires: {ann.expires_at}
-                          </span>
-                        )}
                       </div>
 
                       <h3 className="font-serif font-bold text-sm sm:text-base text-slate-900 dark:text-white group-hover:text-amber-600 dark:group-hover:text-amber-400 transition-colors break-words">
@@ -1188,8 +1235,14 @@ const CrmHrOperationsDashboard = ({ initialSection } = {}) => {
                       </div>
                     </div>
 
-                    {/* Right: Published date/time and “Read Full Notice” button, aligned neatly */}
-                    <div className="flex flex-row lg:flex-col items-center lg:items-end justify-between lg:justify-center gap-3 shrink-0 pt-3 lg:pt-0 border-t lg:border-t-0 border-slate-200/60 dark:border-slate-700/60">
+                    {/* Right: Expiry badge, Published date/time and “Read Full Notice” button, aligned neatly */}
+                    <div className="flex flex-row lg:flex-col items-center lg:items-end justify-between lg:justify-center gap-2 shrink-0 pt-3 lg:pt-0 border-t lg:border-t-0 border-slate-200/60 dark:border-slate-700/60">
+                      {ann.expires_at && (
+                        <span className="px-2.5 py-0.5 rounded-full text-[10px] font-semibold bg-amber-50 dark:bg-amber-950/40 text-amber-700 dark:text-amber-300 border border-amber-200 dark:border-amber-800 whitespace-nowrap">
+                          Expires: {ann.expires_at}
+                        </span>
+                      )}
+
                       <div className="flex items-center gap-1.5 text-xs font-mono text-slate-500 dark:text-slate-400 whitespace-nowrap">
                         <Clock className="w-3.5 h-3.5 text-slate-400 shrink-0" />
                         <span>{formatDateTimeShort(ann.published_at || ann.created_at)}</span>
@@ -1210,6 +1263,19 @@ const CrmHrOperationsDashboard = ({ initialSection } = {}) => {
             </div>
           )}
         </section>
+
+        {showAnnouncementCalendar && (
+          <SharedAnnouncementCalendar
+            announcements={calendarAnnouncements}
+            onSelectAnnouncement={(ann) => {
+              setShowAnnouncementCalendar(false);
+              setSelectedAnnouncementForModal(ann);
+            }}
+            onClose={() => setShowAnnouncementCalendar(false)}
+            title="Shared Announcement Calendar"
+          />
+        )}
+        </>
       )}
 
       {/* 4. Interactive Employee Workspace (Enquiries / Follow-ups / Tasks) - Shown on My Assigned Enquiries only */}
@@ -1455,7 +1521,7 @@ const CrmHrOperationsDashboard = ({ initialSection } = {}) => {
                               </span>
                             )}
                             <span className="text-xs font-medium text-slate-500 dark:text-slate-400">
-                              {enq.serviceTitle}
+                              {enq.serviceTitle}{enq.company ? ` • ${enq.company}` : ''}
                             </span>
                           </div>
 
@@ -1910,6 +1976,19 @@ const CrmHrOperationsDashboard = ({ initialSection } = {}) => {
                     <Globe className="w-3 h-3 text-slate-400" />
                     <span>{selectedAnnouncementForModal.target_audience}</span>
                   </span>
+                  <span className={`px-2 py-0.5 rounded-full text-[10px] font-bold border ${
+                    selectedAnnouncementForModal.isDeleted || selectedAnnouncementForModal.status === 'Deleted'
+                      ? 'bg-slate-200 dark:bg-slate-800 text-slate-700 dark:text-slate-300 border-slate-300 dark:border-slate-600'
+                      : selectedAnnouncementForModal.status === 'Expired'
+                        ? 'bg-rose-50 dark:bg-rose-950/40 text-rose-700 dark:text-rose-300 border-rose-200 dark:border-rose-800'
+                        : selectedAnnouncementForModal.status === 'Scheduled'
+                          ? 'bg-indigo-50 dark:bg-indigo-950/40 text-indigo-700 dark:text-indigo-300 border-indigo-200 dark:border-indigo-800'
+                          : 'bg-emerald-50 dark:bg-emerald-950/40 text-emerald-700 dark:text-emerald-300 border-emerald-200 dark:border-emerald-800'
+                  }`}>
+                    {selectedAnnouncementForModal.isDeleted || selectedAnnouncementForModal.status === 'Deleted'
+                      ? 'Deleted'
+                      : (selectedAnnouncementForModal.status || 'Published')}
+                  </span>
                 </div>
                 <h3 className="font-serif text-lg font-bold text-slate-900 dark:text-white pt-1">
                   {selectedAnnouncementForModal.title}
@@ -1926,6 +2005,9 @@ const CrmHrOperationsDashboard = ({ initialSection } = {}) => {
 
             <div className="text-xs text-slate-500 dark:text-slate-400 flex flex-wrap items-center gap-2 pb-1 border-b border-slate-100 dark:border-slate-800">
               <span>Published by: <strong className="text-slate-800 dark:text-slate-200">{selectedAnnouncementForModal.created_by_name || 'HR Lead'}</strong> ({selectedAnnouncementForModal.created_by_role || 'HR Lead'})</span>
+              {selectedAnnouncementForModal.created_by && (
+                <span className="font-mono text-[10px] text-slate-400">[{selectedAnnouncementForModal.created_by}]</span>
+              )}
               <span>•</span>
               <span className="font-mono">{formatDateTimeShort(selectedAnnouncementForModal.published_at || selectedAnnouncementForModal.created_at)}</span>
               {selectedAnnouncementForModal.expires_at && (
@@ -1936,9 +2018,46 @@ const CrmHrOperationsDashboard = ({ initialSection } = {}) => {
               )}
             </div>
 
+            {(selectedAnnouncementForModal.isDeleted || selectedAnnouncementForModal.is_deleted || selectedAnnouncementForModal.status === 'Deleted') && (
+              <div className="p-3 rounded-2xl bg-rose-50 dark:bg-rose-950/35 border border-rose-200 dark:border-rose-800/70 text-xs space-y-1">
+                <div className="font-bold text-rose-800 dark:text-rose-200 text-[11px]">
+                  Soft-Deleted Announcement ({selectedAnnouncementForModal.wasPublished || selectedAnnouncementForModal.published_at ? 'Previously Published' : 'Never Published'})
+                </div>
+                <div className="text-rose-900 dark:text-rose-100 text-[11px]">
+                  Deleted by <strong>{selectedAnnouncementForModal.deleted_by_name || 'HR Lead'}</strong>
+                  {selectedAnnouncementForModal.deleted_at ? ` on ${formatDateTimeShort(selectedAnnouncementForModal.deleted_at)}` : ''}
+                </div>
+                <div className="text-rose-700 dark:text-rose-300 text-[11px] italic">
+                  Reason: {selectedAnnouncementForModal.deletion_reason || 'No reason recorded'}
+                </div>
+              </div>
+            )}
+
             <div className="text-xs sm:text-sm text-slate-700 dark:text-slate-200 whitespace-pre-line leading-relaxed py-2">
               {selectedAnnouncementForModal.description}
             </div>
+
+            {Array.isArray(selectedAnnouncementForModal.auditLogs) && selectedAnnouncementForModal.auditLogs.length > 0 && (
+              <div className="space-y-1.5 pt-2 border-t border-slate-100 dark:border-slate-800">
+                <div className="text-[10px] font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400">
+                  Audit History ({selectedAnnouncementForModal.auditLogs.length})
+                </div>
+                <div className="max-h-36 overflow-y-auto space-y-1.5 pr-1">
+                  {selectedAnnouncementForModal.auditLogs.map((log) => (
+                    <div key={log.id} className="p-2 rounded-xl bg-slate-50 dark:bg-slate-800/60 border border-slate-200/70 dark:border-slate-700/70 text-[11px]">
+                      <div className="flex items-center justify-between gap-2">
+                        <span className="font-bold text-slate-800 dark:text-slate-100">{log.action}</span>
+                        <span className="font-mono text-[10px] text-slate-400">{formatDateTimeShort(log.created_at)}</span>
+                      </div>
+                      <div className="text-slate-600 dark:text-slate-300">
+                        {log.actor_name || 'System'} ({log.actor_role || 'System'}) {log.details ? `— ${log.details}` : ''}
+                      </div>
+                      {log.reason && <div className="text-rose-600 dark:text-rose-300 italic">Reason: {log.reason}</div>}
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
 
             <div className="pt-3 border-t border-slate-200 dark:border-slate-800 flex justify-end">
               <button
