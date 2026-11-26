@@ -67,6 +67,7 @@ export const CrmAttendanceManagement = ({ isSuperAdmin, currentRole }) => {
   const [rosterLoading, setRosterLoading] = useState(false);
   const [reassignModalEmp, setReassignModalEmp] = useState(null);
   const [newShiftId, setNewShiftId] = useState('');
+  const [selectedShiftFilter, setSelectedShiftFilter] = useState('all');
 
   // Attendance Reports State
   const [reportFilterEmployee, setReportFilterEmployee] = useState('all');
@@ -1272,6 +1273,89 @@ export const CrmAttendanceManagement = ({ isSuperAdmin, currentRole }) => {
             </div>
           </div>
 
+          {/* Working Hour Shifts & Schedule Roster Cards */}
+          <div className="space-y-3">
+            <div className="flex justify-between items-center px-1">
+              <h4 className="font-serif text-base font-bold text-slate-900 dark:text-white">
+                Working Hour Shifts & Schedule Roster
+              </h4>
+              {selectedShiftFilter !== 'all' && (
+                <button
+                  onClick={() => setSelectedShiftFilter('all')}
+                  className="text-xs font-bold text-amber-700 dark:text-gold-400 hover:underline cursor-pointer"
+                >
+                  ✕ Clear Shift Filter (Show All)
+                </button>
+              )}
+            </div>
+
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+              {[
+                {
+                  id: 'SHIFT-GENERAL',
+                  title: 'General Day Shift',
+                  time: '09:00 AM - 06:00 PM',
+                  staffCount: shiftRoster.filter(s => !s.shiftId || s.shiftId === 'SHIFT-GENERAL').length,
+                  desc: 'Core operations, HR lead, client advisory and student academy.'
+                },
+                {
+                  id: 'SHIFT-MORNING',
+                  title: 'Early Morning Shift',
+                  time: '08:00 AM - 04:30 PM',
+                  staffCount: shiftRoster.filter(s => s.shiftId === 'SHIFT-MORNING').length,
+                  desc: 'Singapore & Far East candidate screening and hotline support.'
+                },
+                {
+                  id: 'SHIFT-UK-ME',
+                  title: 'UK & Middle East Overlap',
+                  time: '01:00 PM - 09:30 PM',
+                  staffCount: shiftRoster.filter(s => s.shiftId === 'SHIFT-UK-ME').length,
+                  desc: 'Dubai, Riyadh and European corporate hiring partner coordination.'
+                }
+              ].map((sh) => {
+                const isSelected = selectedShiftFilter === sh.id;
+                return (
+                  <div
+                    key={sh.id}
+                    onClick={() => setSelectedShiftFilter(isSelected ? 'all' : sh.id)}
+                    className={`glass-card p-5 rounded-3xl transition duration-200 cursor-pointer relative group border-2 ${
+                      isSelected
+                        ? 'bg-amber-50/60 dark:bg-gold-500/10 border-amber-500 dark:border-gold-500 shadow-md ring-2 ring-amber-400/30'
+                        : 'bg-white dark:bg-navy-900 border-slate-200 dark:border-navy-800 hover:border-amber-400/60 hover:shadow-sm'
+                    }`}
+                  >
+                    <div className="flex justify-between items-start mb-3">
+                      <h5 className="font-serif text-sm font-bold text-slate-900 dark:text-white">
+                        {sh.title}
+                      </h5>
+                      <span className="px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-amber-100 text-amber-900 dark:bg-gold-500/20 dark:text-gold-300 border border-amber-300 dark:border-gold-500/40">
+                        {sh.staffCount} Staff
+                      </span>
+                    </div>
+
+                    <div className="bg-slate-50 dark:bg-navy-950 p-2 rounded-xl border border-slate-200 dark:border-navy-800 mb-3 flex items-center gap-2">
+                      <Clock className="w-4 h-4 text-emerald-600 dark:text-emerald-400 shrink-0" />
+                      <span className="font-mono text-xs font-bold text-emerald-700 dark:text-emerald-400">
+                        {sh.time}
+                      </span>
+                    </div>
+
+                    <p className="text-xs text-slate-600 dark:text-slate-400 font-medium leading-relaxed">
+                      {sh.desc}
+                    </p>
+
+                    <div className="mt-3 pt-2 border-t border-slate-100 dark:border-navy-800 flex justify-between items-center text-[11px] font-bold">
+                      <span className={isSelected ? 'text-amber-800 dark:text-gold-300' : 'text-slate-500 dark:text-slate-400'}>
+                        {isSelected ? '✓ Filter Applied' : 'Click to filter staff'}
+                      </span>
+                      <ChevronRight className={`w-3.5 h-3.5 transition group-hover:translate-x-0.5 ${isSelected ? 'text-amber-700 dark:text-gold-400' : 'text-slate-400'}`} />
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+
           {/* Roster Table */}
           <div className="bg-white dark:bg-navy-900 border border-slate-200/90 dark:border-navy-800 rounded-3xl overflow-hidden shadow-xs">
             <div className="overflow-x-auto">
@@ -1298,7 +1382,7 @@ export const CrmAttendanceManagement = ({ isSuperAdmin, currentRole }) => {
                         Loading shift assignments from database...
                       </td>
                     </tr>
-                  ) : shiftRoster.map(s => (
+                  ) : shiftRoster.filter(s => selectedShiftFilter === 'all' || (s.shiftId || 'SHIFT-GENERAL') === selectedShiftFilter).map(s => (
                     <tr key={s.employeeId} className="hover:bg-slate-50 dark:hover:bg-navy-950/60 transition">
                       <td className="p-3.5 font-bold text-slate-900 dark:text-white">
                         {s.name}

@@ -3777,7 +3777,8 @@ app.put('/api/employees/:id', async (req, res) => {
     const { name, email, phone, role, department, password, status, employeeId } = req.body;
     const db = await getDb();
 
-    const existing = await db.get('SELECT * FROM employees WHERE id = ?', [id]);
+    let existing = await db.get('SELECT * FROM employees WHERE id = ?', [id]);
+    if (!existing) existing = await db.get('SELECT * FROM employees WHERE employeeId = ?', [id]);
     if (!existing) {
       return res.status(404).json({ success: false, message: 'Employee not found.' });
     }
@@ -3875,7 +3876,7 @@ app.delete('/api/employees/:id', async (req, res) => {
       return res.status(404).json({ success: false, message: 'Employee not found.' });
     }
 
-    await db.run('DELETE FROM employees WHERE id = ?', [id]);
+    await db.run('DELETE FROM employees WHERE id = ?', [existing.id]);
 
     const clientIp = getClientIp(req);
     const { crmUser, crmRole, crmUserId } = getCrmContext(req);
