@@ -10,9 +10,10 @@ import {
   Send,
   Eye,
   Trash2,
+  CheckCircle2,
+  PauseCircle,
   Sparkles,
-  Loader2,
-  Radio
+  Loader2
 } from 'lucide-react';
 
 const OCCASION_OPTIONS = [
@@ -52,7 +53,8 @@ const OCCASION_OPTIONS = [
 
 export const CrmAutomation = () => {
   const { user, currentEmployee, currentRole } = useCrm();
-  const [activePopup, setActivePopup] = useState(null);
+  const [popups, setPopups] = useState([]);
+  const [loading, setLoading] = useState(true);
   const [submitting, setSubmitting] = useState(false);
   const [feedback, setFeedback] = useState(null);
   const [previewPopup, setPreviewPopup] = useState(null);
@@ -63,21 +65,24 @@ export const CrmAutomation = () => {
     message: ''
   });
 
-  const loadActivePopup = useCallback(async () => {
+  const loadPopups = useCallback(async () => {
     try {
-      const res = await fetch('/api/crm-popups/active');
+      setLoading(true);
+      const res = await fetch('/api/crm-popups');
       const data = await res.json();
       if (res.ok && data.success) {
-        setActivePopup((data.popups && data.popups[0]) || null);
+        setPopups(data.popups || []);
       }
     } catch {
       // Ignore silent fetch error
+    } finally {
+      setLoading(false);
     }
   }, []);
 
   useEffect(() => {
-    loadActivePopup();
-  }, [loadActivePopup]);
+    loadPopups();
+  }, [loadPopups]);
 
   const notifyGlobalPopup = () => {
     window.dispatchEvent(new CustomEvent('crm-popup-updated'));
@@ -118,8 +123,8 @@ export const CrmAutomation = () => {
       }
 
       setForm({ occasion_type: form.occasion_type, title: '', message: '' });
-      setActivePopup(data.popup || null);
-      setFeedback({ type: 'success', text: 'Live popup sent! Everyone across all CRM roles will see it as a popup.' });
+      setFeedback({ type: 'success', text: 'Popup sent! All CRM roles will see it as a popup.' });
+      await loadPopups();
       notifyGlobalPopup();
     } catch {
       setFeedback({ type: 'error', text: 'Network error while sending popup.' });
@@ -128,15 +133,31 @@ export const CrmAutomation = () => {
     }
   };
 
-  const handleClearLivePopup = async () => {
-    if (!activePopup) return;
+  const handleToggleActive = async (popup) => {
     try {
-      const res = await fetch(`/api/crm-popups/${encodeURIComponent(activePopup.id)}`, {
+      const res = await fetch(`/api/crm-popups/${encodeURIComponent(popup.id)}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ is_active: popup.is_active ? 0 : 1 })
+      });
+      const data = await res.json();
+      if (res.ok && data.success) {
+        setPopups((prev) => prev.map((p) => (p.id === popup.id ? data.popup : p)));
+        notifyGlobalPopup();
+      }
+    } catch {
+      // Ignore
+    }
+  };
+
+  const handleDeletePopup = async (popup) => {
+    if (!window.confirm(`Delete "${popup.title}"?`)) return;
+    try {
+      const res = await fetch(`/api/crm-popups/${encodeURIComponent(popup.id)}`, {
         method: 'DELETE'
       });
       if (res.ok) {
-        setActivePopup(null);
-        setFeedback({ type: 'success', text: 'Live popup cleared.' });
+        setPopups((prev) => prev.filter((p) => p.id !== popup.id));
         notifyGlobalPopup();
       }
     } catch {
@@ -166,41 +187,6 @@ export const CrmAutomation = () => {
             </div>
           </div>
         </div>
-
-        {/* Currently Live Popup Strip (Only shown if a popup is currently live) */}
-        {activePopup && (
-          <div className="bg-emerald-50 dark:bg-emerald-500/10 border border-emerald-200 dark:border-emerald-500/30 rounded-2xl p-4 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 shadow-sm">
-            <div className="flex items-center gap-3">
-              <span className="w-9 h-9 rounded-xl bg-emerald-500 text-white flex items-center justify-center shrink-0 shadow-sm">
-                <Radio className="w-4 h-4 animate-pulse" />
-              </span>
-              <div>
-                <p className="text-[10px] font-extrabold uppercase tracking-wider text-emerald-700 dark:text-emerald-300">
-                  Currently Live Popup ({OCCASION_THEMES[activePopup.occasion_type]?.label || activePopup.occasion_type})
-                </p>
-                <p className="font-bold text-slate-900 dark:text-white text-sm">{activePopup.title}</p>
-              </div>
-            </div>
-            <div className="flex items-center gap-2 shrink-0">
-              <button
-                type="button"
-                onClick={() => setPreviewPopup(activePopup)}
-                className="px-3 py-1.5 rounded-xl bg-white dark:bg-navy-900 border border-slate-200 dark:border-navy-700 text-slate-700 dark:text-slate-200 font-bold hover:border-gold-500 transition flex items-center gap-1.5 cursor-pointer"
-              >
-                <Eye className="w-3.5 h-3.5" />
-                <span>View</span>
-              </button>
-              <button
-                type="button"
-                onClick={handleClearLivePopup}
-                className="px-3 py-1.5 rounded-xl bg-rose-50 dark:bg-rose-500/15 border border-rose-200 dark:border-rose-500/30 text-rose-700 dark:text-rose-300 font-bold hover:bg-rose-100 transition flex items-center gap-1.5 cursor-pointer"
-              >
-                <Trash2 className="w-3.5 h-3.5" />
-                <span>Stop Popup</span>
-              </button>
-            </div>
-          </div>
-        )}
 
         {/* Popup Composer Card */}
         <div className="bg-white dark:bg-navy-900 border border-slate-200 dark:border-navy-800 rounded-3xl p-6 sm:p-8 shadow-sm space-y-6">
@@ -305,6 +291,101 @@ export const CrmAutomation = () => {
               </button>
             </div>
           </form>
+        </div>
+
+        {/* Sent Popups Log (Visible here so sender can see what was sent) */}
+        <div className="bg-white dark:bg-navy-900 border border-slate-200 dark:border-navy-800 rounded-3xl p-6 shadow-sm space-y-4">
+          <div className="flex items-center justify-between border-b border-slate-100 dark:border-navy-800 pb-3">
+            <div>
+              <h3 className="font-serif text-lg font-bold text-slate-900 dark:text-white">
+                Sent Popups ({popups.length})
+              </h3>
+              <p className="text-slate-500 dark:text-slate-400">
+                Messages sent from here — other roles only see them as a popup.
+              </p>
+            </div>
+          </div>
+
+          {loading ? (
+            <div className="py-6 text-center text-slate-500 dark:text-slate-400 font-bold">
+              Loading sent popups...
+            </div>
+          ) : popups.length === 0 ? (
+            <div className="py-6 text-center text-slate-500 dark:text-slate-400 font-semibold bg-slate-50 dark:bg-navy-950 rounded-2xl border border-slate-200 dark:border-navy-800">
+              No popups sent yet. Messages you send above will appear here.
+            </div>
+          ) : (
+            <div className="space-y-3">
+              {popups.map((popup) => {
+                const theme = OCCASION_THEMES[popup.occasion_type] || OCCASION_THEMES.Festival;
+                const Icon = theme.icon;
+                const isActive = popup.is_active === 1;
+
+                return (
+                  <div
+                    key={popup.id}
+                    className="p-4 rounded-2xl bg-slate-50 dark:bg-navy-950 border border-slate-200 dark:border-navy-800 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 hover:border-gold-500/40 transition"
+                  >
+                    <div className="space-y-1.5 max-w-2xl">
+                      <div className="flex flex-wrap items-center gap-2">
+                        <span className={`inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[10px] font-extrabold border ${theme.badgeClass}`}>
+                          <Icon className="w-3 h-3" />
+                          {theme.label}
+                        </span>
+                        <span className={`px-2 py-0.5 rounded-full text-[10px] font-bold ${
+                          isActive
+                            ? 'bg-emerald-100 dark:bg-emerald-500/20 text-emerald-700 dark:text-emerald-300'
+                            : 'bg-slate-200 dark:bg-navy-800 text-slate-600 dark:text-slate-400'
+                        }`}>
+                          {isActive ? 'Live Popup' : 'Paused'}
+                        </span>
+                        <span className="text-[10px] text-slate-400 font-medium">
+                          {popup.created_at ? new Date(popup.created_at).toLocaleString() : ''}
+                        </span>
+                      </div>
+                      <h4 className="font-bold text-slate-900 dark:text-white text-sm">{popup.title}</h4>
+                      <p className="text-slate-600 dark:text-slate-300 whitespace-pre-wrap leading-relaxed">
+                        {popup.message}
+                      </p>
+                    </div>
+
+                    <div className="flex items-center gap-2 shrink-0">
+                      <button
+                        type="button"
+                        onClick={() => setPreviewPopup(popup)}
+                        className="px-3 py-2 rounded-xl bg-white dark:bg-navy-900 border border-slate-200 dark:border-navy-700 text-slate-700 dark:text-slate-200 font-bold hover:border-gold-500 transition flex items-center gap-1.5 cursor-pointer"
+                      >
+                        <Eye className="w-3.5 h-3.5" />
+                        <span>Preview</span>
+                      </button>
+
+                      <button
+                        type="button"
+                        onClick={() => handleToggleActive(popup)}
+                        className={`px-3 py-2 rounded-xl font-bold transition flex items-center gap-1.5 border cursor-pointer ${
+                          isActive
+                            ? 'bg-emerald-100 dark:bg-emerald-500/20 text-emerald-800 dark:text-emerald-300 border-emerald-300 dark:border-emerald-500/40'
+                            : 'bg-amber-50 dark:bg-amber-500/10 text-amber-700 dark:text-amber-300 border-amber-200 dark:border-amber-500/30'
+                        }`}
+                      >
+                        {isActive ? <CheckCircle2 className="w-3.5 h-3.5" /> : <PauseCircle className="w-3.5 h-3.5" />}
+                        <span>{isActive ? 'Active' : 'Activate'}</span>
+                      </button>
+
+                      <button
+                        type="button"
+                        onClick={() => handleDeletePopup(popup)}
+                        className="p-2 rounded-xl bg-rose-50 dark:bg-rose-500/10 hover:bg-rose-100 dark:hover:bg-rose-500/20 text-rose-600 dark:text-rose-400 border border-rose-200 dark:border-rose-500/30 transition cursor-pointer"
+                        title="Delete popup"
+                      >
+                        <Trash2 className="w-4 h-4" />
+                      </button>
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          )}
         </div>
       </div>
 
