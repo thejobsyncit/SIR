@@ -13,6 +13,7 @@ import jsPDF from 'jspdf';
 import ScrollReveal from '../../components/ScrollReveal';
 import CrmHrTaskAssignment from '../components/CrmHrTaskAssignment';
 import { SharedAnnouncementCalendar } from '../components/SharedAnnouncementCalendar';
+import { ShiftLateArrivalApprovalSection } from '../components/ShiftLateArrivalApprovalSection';
 
 // Initial Workforce Directory Constants & Shift Configurations
 export const SHIFT_CONFIGS = [

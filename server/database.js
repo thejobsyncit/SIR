@@ -2582,6 +2582,173 @@ const initDb = async (db) => {
     CREATE UNIQUE INDEX IF NOT EXISTS idx_users_email_lower ON users(LOWER(TRIM(email)));
     CREATE UNIQUE INDEX IF NOT EXISTS idx_candidates_email_lower ON candidates(LOWER(TRIM(email))) WHERE email IS NOT NULL;
     CREATE UNIQUE INDEX IF NOT EXISTS idx_candidate_profiles_email_lower ON candidate_profiles(LOWER(TRIM(email))) WHERE email IS NOT NULL;
+
+    CREATE TABLE IF NOT EXISTS crm_celebration_popups (
+      id TEXT PRIMARY KEY,
+      occasion_type TEXT NOT NULL DEFAULT 'Festival',
+      title TEXT NOT NULL,
+      message TEXT NOT NULL,
+      is_active INTEGER NOT NULL DEFAULT 1,
+      created_by TEXT,
+      created_by_role TEXT,
+      expires_at TEXT,
+      created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+      updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+    );
+
+    CREATE TABLE IF NOT EXISTS recruitment_pipeline_records (
+      candidateId TEXT PRIMARY KEY,
+      applicationId TEXT,
+      jobId TEXT,
+      jobTitle TEXT,
+      companyName TEXT,
+      jobLocation TEXT,
+      jobCategory TEXT,
+      pipelineStage TEXT NOT NULL DEFAULT 'HR Operations Approved',
+      hrApprovedAt TEXT,
+      hrApprovedBy TEXT,
+      hrScreeningResult TEXT DEFAULT 'Approved & Eligible',
+      hrCandidateInterest TEXT DEFAULT 'Confirmed',
+      hrRemarks TEXT,
+      hrEligibility TEXT DEFAULT 'Eligible',
+      docVerificationStatus TEXT DEFAULT 'Verified',
+      assignedInterviewerId TEXT,
+      assignedInterviewerName TEXT,
+      interviewStatus TEXT DEFAULT 'Pending',
+      latestInterviewResult TEXT,
+      latestInterviewScore REAL,
+      assignedCoordinatorId TEXT,
+      assignedCoordinatorName TEXT,
+      placementDecision TEXT,
+      placementRemarks TEXT,
+      placementDecidedBy TEXT,
+      placementDecidedAt TEXT,
+      finalPlacementStatus TEXT DEFAULT 'Placement In Progress',
+      rejectionReason TEXT,
+      createdAt TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+      updatedAt TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+    );
+
+    CREATE TABLE IF NOT EXISTS interview_rounds (
+      id TEXT PRIMARY KEY,
+      candidateId TEXT NOT NULL,
+      jobId TEXT,
+      jobTitle TEXT,
+      companyName TEXT,
+      roundNumber INTEGER DEFAULT 1,
+      roundName TEXT DEFAULT 'Round 1',
+      interviewerId TEXT,
+      interviewerName TEXT,
+      interviewDate TEXT,
+      interviewTime TEXT,
+      interviewMode TEXT DEFAULT 'Online',
+      meetingLink TEXT,
+      officeLocation TEXT,
+      instructions TEXT,
+      status TEXT DEFAULT 'Scheduled',
+      scoreCommunication INTEGER,
+      scoreTechnical INTEGER,
+      scoreJobKnowledge INTEGER,
+      scoreExperience INTEGER,
+      scoreProblemSolving INTEGER,
+      scoreConfidence INTEGER,
+      scoreOverall INTEGER,
+      averageScore REAL,
+      strengths TEXT,
+      areasOfImprovement TEXT,
+      interviewerRemarks TEXT,
+      finalRecommendation TEXT,
+      evaluatedBy TEXT,
+      evaluatedAt TEXT,
+      createdAt TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+      updatedAt TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+    );
+
+    CREATE TABLE IF NOT EXISTS employer_submissions (
+      id TEXT PRIMARY KEY,
+      candidateId TEXT NOT NULL,
+      companyName TEXT NOT NULL,
+      employerContactName TEXT,
+      employerEmail TEXT,
+      jobTitle TEXT NOT NULL,
+      jobLocation TEXT,
+      proposedSalary TEXT,
+      submissionDate TEXT,
+      submissionRemarks TEXT,
+      consentRecorded INTEGER DEFAULT 1,
+      status TEXT DEFAULT 'Submitted',
+      submittedBy TEXT,
+      createdAt TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+      updatedAt TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+    );
+
+    CREATE TABLE IF NOT EXISTS employer_interviews (
+      id TEXT PRIMARY KEY,
+      candidateId TEXT NOT NULL,
+      submissionId TEXT,
+      companyName TEXT NOT NULL,
+      jobRole TEXT NOT NULL,
+      interviewRound TEXT DEFAULT 'Round 1',
+      employerInterviewer TEXT,
+      interviewDate TEXT,
+      interviewTime TEXT,
+      interviewMode TEXT DEFAULT 'Online',
+      meetingLink TEXT,
+      instructions TEXT,
+      feedback TEXT DEFAULT 'Awaiting Feedback',
+      feedbackNotes TEXT,
+      nextInterviewDate TEXT,
+      createdBy TEXT,
+      createdAt TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+      updatedAt TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+    );
+
+    CREATE TABLE IF NOT EXISTS placement_offers (
+      id TEXT PRIMARY KEY,
+      candidateId TEXT NOT NULL,
+      submissionId TEXT,
+      offeredJobRole TEXT NOT NULL,
+      companyName TEXT NOT NULL,
+      salary TEXT,
+      currency TEXT DEFAULT 'AED',
+      benefits TEXT,
+      offerReleaseDate TEXT,
+      offerExpiryDate TEXT,
+      joiningDate TEXT,
+      offerLetterRef TEXT,
+      candidateAcceptance TEXT DEFAULT 'Pending',
+      offerStatus TEXT DEFAULT 'Pending',
+      finalPlacementStatus TEXT DEFAULT 'Placement In Progress',
+      joiningConfirmedAt TEXT,
+      createdBy TEXT,
+      createdAt TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+      updatedAt TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+    );
+
+    CREATE TABLE IF NOT EXISTS recruitment_activity_logs (
+      id TEXT PRIMARY KEY,
+      candidateId TEXT,
+      candidateName TEXT,
+      employeeName TEXT,
+      employeeRole TEXT,
+      action TEXT NOT NULL,
+      previousStatus TEXT,
+      newStatus TEXT,
+      remarks TEXT,
+      createdAt TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+    );
+
+    CREATE TABLE IF NOT EXISTS recruitment_notifications (
+      id TEXT PRIMARY KEY,
+      candidateId TEXT,
+      candidateName TEXT,
+      targetRole TEXT DEFAULT 'All',
+      title TEXT NOT NULL,
+      message TEXT NOT NULL,
+      type TEXT DEFAULT 'workflow',
+      isRead INTEGER DEFAULT 0,
+      createdAt TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+    );
   `);
 
   // Safe column migration for hr_task_assignments, attendance_records, and leads
