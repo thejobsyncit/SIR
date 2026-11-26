@@ -1143,11 +1143,89 @@ export const CrmProvider = ({ children }) => {
                 }));
               }
             } catch (_) { }
+
+            if (data.attendance && data.attendance.checkInAt && !data.attendance.checkOutAt) {
+              const att = data.attendance;
+              const sIn = new Date(att.checkInAt);
+              const formatted = formatAttendanceClockTime(sIn);
+              const isLate = Number(att.lateMinutes || 0) > 0;
+              const punch = {
+                status: isLate ? 'Late' : (att.status || 'Present'),
+                checkInAt: att.checkInAt,
+                checkOutAt: null,
+                checkInFormatted: formatted,
+                checkOutFormatted: null,
+                isOnBreak: false,
+                breakType: null,
+                breakStartedAt: null,
+                totalBreakMinutes: Number(att.totalBreakMinutes || 0),
+                workDate: att.workDate || getAttendanceTodayDateStr(),
+                liveWorkedSeconds: Math.max(1, Math.floor((Date.now() - sIn.getTime()) / 1000)),
+                liveBreakSeconds: 0,
+                lateMinutes: Number(att.lateMinutes || 0),
+                isLate,
+                shiftName: att.shiftName || 'General Day Shift (09:00 AM - 06:00 PM)',
+                userEmail: user?.email,
+                userName: user?.name,
+                employeeId: user?.employeeId || user?.id
+              };
+              setAttendancePunch(punch);
+              try {
+                localStorage.setItem('sir_crm_my_attendance_active', JSON.stringify(punch));
+              } catch (_) {}
+            }
           }
         })
         .catch(() => { });
     }
   }, [isAuthenticated, crmToken, currentRole, user]);
+
+  // Restore active attendance session directly from SQLite database on mount / token change
+  useEffect(() => {
+    if (!isAuthenticated || !crmToken || currentRole === 'Super Admin') return;
+    fetch('/api/crm/auth/me', {
+      headers: { Authorization: `Bearer ${crmToken}` }
+    })
+      .then((r) => r.json())
+      .then((data) => {
+        if (data?.success && data.attendance && data.attendance.checkInAt && !data.attendance.checkOutAt) {
+          const att = data.attendance;
+          const sIn = new Date(att.checkInAt);
+          const formatted = formatAttendanceClockTime(sIn);
+          const isLate = Number(att.lateMinutes || 0) > 0;
+          setAttendancePunch((prev) => {
+            if (prev && prev.checkInAt === att.checkInAt && prev.checkOutAt) {
+              return prev; // don't overwrite if explicitly checked out
+            }
+            const punch = {
+              status: isLate ? 'Late' : (att.status || 'Present'),
+              checkInAt: att.checkInAt,
+              checkOutAt: null,
+              checkInFormatted: formatted,
+              checkOutFormatted: null,
+              isOnBreak: false,
+              breakType: null,
+              breakStartedAt: null,
+              totalBreakMinutes: Number(att.totalBreakMinutes || 0),
+              workDate: att.workDate || getAttendanceTodayDateStr(),
+              liveWorkedSeconds: Math.max(1, Math.floor((Date.now() - sIn.getTime()) / 1000)),
+              liveBreakSeconds: 0,
+              lateMinutes: Number(att.lateMinutes || 0),
+              isLate,
+              shiftName: att.shiftName || 'General Day Shift (09:00 AM - 06:00 PM)',
+              userEmail: user?.email,
+              userName: user?.name,
+              employeeId: user?.employeeId || user?.id
+            };
+            try {
+              localStorage.setItem('sir_crm_my_attendance_active', JSON.stringify(punch));
+            } catch (_) {}
+            return punch;
+          });
+        }
+      })
+      .catch(() => {});
+  }, [isAuthenticated, crmToken, currentRole]);
 
   // =========================================================================
   // UNIVERSAL ATTENDANCE PUNCH STATE & CONTROLS (Clock In, Break, Clock Out)
@@ -1175,6 +1253,11 @@ export const CrmProvider = ({ children }) => {
       if (saved) {
         const p = JSON.parse(saved);
         if (p && p.workDate === today) {
+          if (p.checkInAt && !p.checkOutAt) {
+            const totalElapsed = Math.max(0, Math.floor((Date.now() - new Date(p.checkInAt).getTime()) / 1000));
+            const netSeconds = Math.max(0, totalElapsed - ((p.totalBreakMinutes || 0) * 60));
+            return { ...p, liveWorkedSeconds: netSeconds };
+          }
           return p;
         }
       }
@@ -1214,7 +1297,7 @@ export const CrmProvider = ({ children }) => {
           const breakSecs = Math.max(0, Math.floor((Date.now() - new Date(prev.breakStartedAt).getTime()) / 1000));
           return { ...prev, liveBreakSeconds: breakSecs };
         }
-        if (prev.status === 'Present' || prev.status === 'Late') {
+        if (!prev.checkOutAt && (prev.status === 'Present' || prev.status === 'Late' || prev.status === 'In Progress' || prev.checkInAt)) {
           const totalElapsed = Math.max(0, Math.floor((Date.now() - new Date(prev.checkInAt).getTime()) / 1000));
           const netSeconds = Math.max(0, totalElapsed - ((prev.totalBreakMinutes || 0) * 60));
           return { ...prev, liveWorkedSeconds: netSeconds };
@@ -1311,8 +1394,8 @@ export const CrmProvider = ({ children }) => {
     const activeUser = overrideUser || user;
     const activeRole = overrideRole || currentRole;
 
-    // Super Admin and Admin are executive management accounts; exempt from attendance check-in
-    if (activeRole === 'Super Admin' || activeRole === 'Admin') {
+    // Super Admin is system root; exempt from employee attendance check-in
+    if (activeRole === 'Super Admin') {
       return null;
     }
 
@@ -1526,7 +1609,7 @@ export const CrmProvider = ({ children }) => {
     const activeUser = overrideUser || user;
     const activeRole = overrideRole || currentRole;
 
-    if (activeRole === 'Super Admin' || activeRole === 'Admin') {
+    if (activeRole === 'Super Admin') {
       return null;
     }
 
@@ -1577,103 +1660,7 @@ export const CrmProvider = ({ children }) => {
 
       return updated;
     });
-
-    try {
-      const tok = await getOrFetchActiveToken(activeRole, activeUser);
-      if (tok) {
-        await fetch('/api/hr-ops/attendance/check-out', {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-            Authorization: `Bearer ${tok}`
-          },
-          body: JSON.stringify({ notes: 'Portal Logout Check-Out' })
-        });
-      }
-    } catch (_) { }
   };
-
-  // Automatic Check-Out on Browser Tab Close or Window Unload
-  useEffect(() => {
-    const handleBeforeUnload = () => {
-      try {
-        const sessionRaw = localStorage.getItem('sir_crm_session');
-        const session = sessionRaw ? JSON.parse(sessionRaw) : null;
-        if (!session || !session.isAuthenticated) return;
-        const role = session.currentRole || currentRole;
-        if (role === 'Super Admin' || role === 'Admin') return;
-
-        const savedPunch = localStorage.getItem('sir_crm_my_attendance_active');
-        const punch = savedPunch ? JSON.parse(savedPunch) : null;
-        if (punch && punch.checkInAt && !punch.checkOutAt) {
-          const now = new Date();
-          const checkOutIso = now.toISOString();
-          const formattedOut = formatAttendanceClockTime(now);
-          const totalMins = Math.max(0, Math.floor((now.getTime() - new Date(punch.checkInAt).getTime()) / 60000) - (punch.totalBreakMinutes || 0));
-          const hrs = (totalMins / 60).toFixed(1);
-
-          const updatedPunch = {
-            ...punch,
-            status: 'Completed',
-            checkOutAt: checkOutIso,
-            checkOutFormatted: formattedOut,
-            isOnBreak: false,
-            breakType: null,
-            breakStartedAt: null
-          };
-          localStorage.setItem('sir_crm_my_attendance_active', JSON.stringify(updatedPunch));
-
-          // Also update workforce directory cache
-          const savedDir = localStorage.getItem('sir_crm_workforce_directory_v2');
-          if (savedDir) {
-            const dir = JSON.parse(savedDir);
-            if (Array.isArray(dir)) {
-              const updatedDir = dir.map(emp => {
-                if (emp.email === session.user?.email || emp.name === session.user?.name || emp.role === role) {
-                  return {
-                    ...emp,
-                    attendanceToday: {
-                      ...emp.attendanceToday,
-                      checkOut: formattedOut,
-                      hours: `${hrs} hrs`,
-                      status: 'Present'
-                    }
-                  };
-                }
-                return emp;
-              });
-              localStorage.setItem('sir_crm_workforce_directory_v2', JSON.stringify(updatedDir));
-            }
-          }
-
-          // Asynchronously notify backend via beacon and keepalive fetch
-          const token = session.crmToken || crmToken;
-          if (token) {
-            if (typeof navigator !== 'undefined' && navigator.sendBeacon) {
-              navigator.sendBeacon(`/api/hr-ops/attendance/check-out?token=${encodeURIComponent(token)}`);
-            }
-            if (typeof fetch !== 'undefined') {
-              fetch('/api/hr-ops/attendance/check-out', {
-                method: 'POST',
-                headers: {
-                  'Content-Type': 'application/json',
-                  Authorization: `Bearer ${token}`
-                },
-                body: JSON.stringify({ notes: 'Automatic tab close check-out' }),
-                keepalive: true
-              }).catch(() => { });
-            }
-          }
-        }
-      } catch (_) { }
-    };
-
-    window.addEventListener('beforeunload', handleBeforeUnload);
-    return () => {
-      window.removeEventListener('beforeunload', handleBeforeUnload);
-    };
-  }, [crmToken, currentRole]);
-
   const hasPermission = (moduleName) => {
     if (!moduleName) return true;
     if (moduleName === 'my-profile') return true;
@@ -1689,6 +1676,10 @@ export const CrmProvider = ({ children }) => {
     }
     if (moduleName === 'hr-tasks') {
       return currentRole === 'HR Lead' || currentRole === 'Super Admin' || currentRole === 'Admin' || currentRole === 'HR Operations' || currentRole === 'HR & Talent Manager';
+    }
+    if (moduleName === 'hr-shifts') {
+      const normRole = (currentRole || user?.role || user?.designation || '').toLowerCase().replace(/[-_]/g, ' ').trim();
+      return normRole === 'hr lead' || normRole === 'super admin' || normRole === 'admin' || normRole === 'hr operations' || normRole.includes('hr') || normRole.includes('operations');
     }
     if (moduleName === 'interview-management' || (typeof moduleName === 'string' && moduleName.startsWith('int-'))) {
       return currentRole === 'Interviewer' || currentRole === 'Super Admin' || currentRole === 'Admin' || currentRole === 'HR Lead';
@@ -1896,8 +1887,8 @@ export const CrmProvider = ({ children }) => {
       setAuthTokenLoading(false);
     }
 
-    // Automatic Check-In on Login for all employees except Super Admin & Admin
-    const isExecutive = assignedRole === 'Super Admin' || assignedRole === 'Admin';
+    // Automatic Check-In on Login for all employees except Super Admin
+    const isExecutive = assignedRole === 'Super Admin';
     if (!isExecutive) {
       setTimeout(() => {
         clockIn('Automated check-in on front portal login', userData, assignedRole);
@@ -1920,7 +1911,7 @@ export const CrmProvider = ({ children }) => {
   const logout = () => {
     // If user is a non-executive employee and has active unlocked workspace, automatically clock them out upon logout.
     // If they are currently gated at the late arrival gate, do NOT record a workday checkout.
-    const isExecutive = currentRole === 'Super Admin' || currentRole === 'Admin';
+    const isExecutive = currentRole === 'Super Admin';
     if (!isExecutive && user && !lateApprovalGate?.isBlocked) {
       try {
         clockOut(user, currentRole);
@@ -2320,10 +2311,8 @@ export const CrmProvider = ({ children }) => {
     const updatedUser = { ...user, ...persona, role: newRole };
     setUser(updatedUser);
 
-    if (newRole === 'Super Admin' || newRole === 'Admin') {
-      setLateApprovalGate(null);
-      try { localStorage.removeItem('sir_crm_late_approval_gate'); } catch (_) { }
-    }
+    setLateApprovalGate(null);
+    try { localStorage.removeItem('sir_crm_late_approval_gate'); } catch (_) { }
 
     let nextMod = 'dashboard';
     setActiveModule('dashboard');

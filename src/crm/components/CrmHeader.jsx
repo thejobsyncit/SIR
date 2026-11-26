@@ -413,10 +413,10 @@ export const CrmHeader = ({ collapsed, setCollapsed }) => {
     <header className="bg-white dark:bg-[#070c1e]/90 backdrop-blur-xl text-slate-900 dark:text-white border-b-2 border-slate-200 dark:border-slate-800/80 px-4 sm:px-6 py-3 flex justify-between items-center z-20 font-sans shadow-xs shrink-0">
       
       {/* Left Search & Sidebar Toggle */}
-      <div className="flex items-center space-x-3 sm:space-x-4">
+      <div className="flex items-center space-x-3 sm:space-x-4 flex-1 min-w-0 mr-3 sm:mr-4">
         <button 
           onClick={() => setCollapsed(!collapsed)}
-          className="p-2.5 rounded-xl bg-slate-100 dark:bg-navy-900 border border-slate-300 dark:border-navy-800 text-slate-800 dark:text-slate-200 hover:text-amber-700 dark:hover:text-gold-500 transition cursor-pointer"
+          className="p-2.5 rounded-xl bg-slate-100 dark:bg-navy-900 border border-slate-300 dark:border-navy-800 text-slate-800 dark:text-slate-200 hover:text-amber-700 dark:hover:text-gold-500 transition cursor-pointer shrink-0"
           title="Toggle Navigation Menu"
         >
           <Menu className="w-4.5 h-4.5" />
@@ -425,18 +425,16 @@ export const CrmHeader = ({ collapsed, setCollapsed }) => {
         {/* Command Palette Trigger */}
         <button
           onClick={() => setCommandPaletteOpen(true)}
-          className="hidden sm:flex items-center space-x-3 bg-slate-100/90 dark:bg-navy-900 border-2 border-slate-300 dark:border-navy-700 hover:border-amber-500 text-slate-900 dark:text-slate-100 font-bold px-4 py-2 rounded-xl text-xs sm:text-sm min-w-[280px] md:min-w-[340px] transition cursor-pointer shadow-xs"
+          className="hidden sm:flex items-center space-x-3 bg-slate-100/90 dark:bg-navy-900 border-2 border-slate-300 dark:border-navy-700 hover:border-amber-500 text-slate-900 dark:text-slate-100 font-bold px-4 py-2 rounded-xl text-xs sm:text-sm flex-1 min-w-0 transition cursor-pointer shadow-xs"
         >
           <Search className="w-4 h-4 text-amber-600 dark:text-gold-500 shrink-0" />
           <span className="truncate">Global Search (Candidates, Clients, Passports)...</span>
-          {currentRole !== 'HR Operations' && (
-            <kbd className="ml-auto bg-slate-200 dark:bg-navy-800 text-slate-900 dark:text-slate-200 px-2 py-0.5 rounded text-xs border border-slate-300 dark:border-navy-700 font-mono font-bold">⌘K</kbd>
-          )}
+          <kbd className="ml-auto bg-slate-200 dark:bg-navy-800 text-slate-900 dark:text-slate-200 px-2 py-0.5 rounded text-xs border border-slate-300 dark:border-navy-700 font-mono font-bold shrink-0">⌘K</kbd>
         </button>
       </div>
 
       {/* Right Controls */}
-      <div className="flex items-center space-x-2 sm:space-x-3 text-xs sm:text-sm">
+      <div className="flex items-center space-x-2 sm:space-x-3 text-xs sm:text-sm shrink-0">
 
         {/* Super Admin Late Arrival Authorization Indicator */}
         {currentRole === 'Super Admin' && pendingLateCount > 0 && (

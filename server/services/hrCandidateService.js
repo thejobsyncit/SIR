@@ -302,7 +302,7 @@ const deriveLocation = (cpList, candList, enqList) => {
   return fromCand || null;
 };
 
-const buildEnrichedEnquiries = ({ leads, academyRows, careerRows, taskRows, employeeProfile }) => {
+const buildEnrichedEnquiries = ({ leads, academyRows, careerRows, taskRows, appRows = [], employeeProfile }) => {
   const academyByRef = new Map();
   for (const s of academyRows) {
     const ref = cleanStr(s.referenceNumber);
@@ -556,6 +556,80 @@ const buildEnrichedEnquiries = ({ leads, academyRows, careerRows, taskRows, empl
     });
   }
 
+  // Include candidate_applications rows safely (Job Enquiries)
+  const seenEnquiryIds = new Set(enriched.map((e) => e.id));
+  for (const app of appRows || []) {
+    if (seenEnquiryIds.has(app.id)) continue;
+    seenEnquiryIds.add(app.id);
+
+    const relatedTasks = [
+      ...(tasksByEnquiryKey.get(cleanStr(app.id)) || [])
+    ];
+    const uniqueTasks = Array.from(new Map(relatedTasks.map((t) => [t.id, t])).values())
+      .sort((a, b) => compareDesc(a.assignedAt || a.createdAt, b.assignedAt || b.createdAt));
+    const latestTask = uniqueTasks[0] || null;
+
+    const isAppAssigned = matchesEmployeeAssignment(
+      {
+        assignedEmployeeId: app.assignedEmployeeId,
+        assignedEmployee: app.assignedEmployee,
+        assignedEmployeeEmail: app.assignedEmployeeEmail
+      },
+      employeeProfile
+    );
+    const isTaskAssigned = uniqueTasks.some((t) =>
+      matchesEmployeeAssignment(
+        {
+          assignedEmployeeId: t.assignedEmployeeId,
+          assignedEmployee: t.assignedEmployeeName
+        },
+        employeeProfile
+      )
+    );
+    const assignedToMe = isAppAssigned || isTaskAssigned;
+
+    const status = cleanStr(app.status) || 'Under Review';
+    const isResolved = RESOLVED_STATUS_SET.has(status);
+    const completedAt =
+      cleanStr(latestTask?.completedAt) ||
+      (isResolved ? cleanStr(app.updatedAt) || cleanStr(app.appliedDate) : null);
+
+    enriched.push({
+      id: app.id,
+      sourceTable: 'candidate_applications',
+      referenceNumber: app.id,
+      clientId: cleanStr(app.candidateId) || cleanStr(app.userId) || null,
+      serviceId: cleanStr(app.jobId) || 'intl-recruitment',
+      serviceTitle: cleanStr(app.jobTitle) || 'Job Application',
+      category: 'Recruitment & Staffing',
+      enquiryType: 'Job Application',
+      name: cleanStr(app.applicantName) || 'Candidate',
+      email: cleanStr(app.applicantEmail) || null,
+      phone: cleanStr(app.applicantPhone) || null,
+      company: cleanStr(app.company) || 'The Revival International',
+      location: cleanStr(app.location) || null,
+      jobTitle: cleanStr(app.jobTitle) || 'Job Application',
+      status,
+      priority: cleanStr(app.priority) || 'Normal',
+      assignedEmployee: cleanStr(app.assignedEmployee) || null,
+      assignedEmployeeId: cleanStr(app.assignedEmployeeId) || null,
+      assignedEmployeeEmail: cleanStr(app.assignedEmployeeEmail) || null,
+      operationTeam: 'Jobs Enquiry Operations',
+      assignedAt: cleanStr(app.assignedDate) || cleanStr(app.appliedDate) || cleanStr(app.createdAt),
+      createdAt: toIsoTimestamp(app.appliedDate || app.createdAt),
+      updatedAt: toIsoTimestamp(app.updatedAt || app.createdAt),
+      completedAt,
+      assignmentNotes: cleanStr(app.assignmentNotes) || cleanStr(app.notes) || null,
+      internalNotes: cleanStr(app.notes) || null,
+      nextAction: null,
+      nextActionDate: null,
+      isResolved,
+      isAssignedToMe: assignedToMe,
+      canEditThisEnquiry: assignedToMe || employeeProfile.isLeadOrAdmin,
+      isJobApplication: true
+    });
+  }
+
   return enriched;
 };
 
@@ -565,13 +639,14 @@ const buildEnrichedEnquiries = ({ leads, academyRows, careerRows, taskRows, empl
 export const buildCandidateDirectoryModel = async (db, employee) => {
   const employeeProfile = getEmployeeMatchProfile(employee);
 
-  const [candidatesRows, profilesRows, leadsRows, academyRows, careerRows, taskRows] = await Promise.all([
+  const [candidatesRows, profilesRows, leadsRows, academyRows, careerRows, taskRows, appRows] = await Promise.all([
     db.all('SELECT * FROM candidates ORDER BY createdAt DESC'),
     db.all('SELECT * FROM candidate_profiles ORDER BY createdAt DESC'),
     db.all('SELECT * FROM leads WHERE (isArchived IS NULL OR isArchived = 0) ORDER BY createdAt DESC'),
     db.all('SELECT * FROM student_academy_enquiries ORDER BY createdAt DESC'),
     db.all('SELECT * FROM career_guidance_enquiries ORDER BY createdAt DESC'),
-    db.all('SELECT * FROM hr_task_assignments ORDER BY createdAt DESC')
+    db.all('SELECT * FROM hr_task_assignments ORDER BY createdAt DESC'),
+    db.all('SELECT * FROM candidate_applications ORDER BY appliedDate DESC')
   ]);
 
   const enrichedEnquiries = buildEnrichedEnquiries({
@@ -579,6 +654,7 @@ export const buildCandidateDirectoryModel = async (db, employee) => {
     academyRows: academyRows || [],
     careerRows: careerRows || [],
     taskRows: taskRows || [],
+    appRows: appRows || [],
     employeeProfile
   });
 
@@ -1504,12 +1580,19 @@ export const updateHrEnquiryStatus = async (db, employee, enquiryId, payload, lo
   }
 
   await db.run(
+    'UPDATE candidate_applications SET status = ?, stage = ?, updatedAt = CURRENT_TIMESTAMP WHERE id = ?',
+    [status, status.toLowerCase().replace(/\s+/g, '_'), enquiry.id]
+  ).catch(() => {});
+
+  await db.run(
     `UPDATE hr_task_assignments SET
       taskStatus = ?,
+      assignmentStatus = ?,
+      isCompleted = ?,
       completedAt = CASE WHEN ? = 1 THEN COALESCE(completedAt, ?) ELSE NULL END,
       updatedAt = CURRENT_TIMESTAMP
     WHERE enquiryId = ? OR (? IS NOT NULL AND referenceNumber = ?)`,
-    [status, isResolved ? 1 : 0, nowIso, enquiry.id, enquiry.referenceNumber || null, enquiry.referenceNumber || '']
+    [status, status, isResolved ? 1 : 0, isResolved ? 1 : 0, nowIso, enquiry.id, enquiry.referenceNumber || null, enquiry.referenceNumber || '']
   );
 
   const activityTitle = wasResolved && !isResolved

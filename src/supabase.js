@@ -1,6 +1,16 @@
 import { createClient } from '@supabase/supabase-js'
 
-const supabaseUrl = import.meta.env.VITE_SUPABASE_URL
+function sanitizeSupabaseUrl(url) {
+  if (!url) return null;
+  try {
+    return new URL(url).origin;
+  } catch {
+    return String(url).replace(/\/rest\/v1\/?$/, '').replace(/\/+$/, '');
+  }
+}
+
+const rawUrl = import.meta.env.VITE_SUPABASE_URL
+const supabaseUrl = sanitizeSupabaseUrl(rawUrl)
 const supabaseAnonKey = import.meta.env.VITE_SUPABASE_ANON_KEY
 
 let client = null

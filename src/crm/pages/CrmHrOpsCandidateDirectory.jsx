@@ -41,11 +41,9 @@ import {
   AddInternalNoteModal,
   CompleteFollowUpModal
 } from '../components/hrCandidate/HrCandidateModals';
-import { DashboardCandidateAvatar } from '../../utils/candidateAvatars';
-
 const PROFILE_TABS = [
   { id: 'overview', label: 'Overview', icon: Layers },
-  { id: 'enquiries', label: 'All Enquiries', icon: FileText },
+  { id: 'enquiries', label: 'Enquiries', icon: FileText },
   { id: 'followups', label: 'Follow-ups', icon: Calendar },
   { id: 'timeline', label: 'Activity History', icon: History }
 ];
@@ -143,6 +141,7 @@ export const CrmHrOpsCandidateDirectory = () => {
     }
   });
   const [profileData, setProfileData] = useState(null);
+  const [visaBundle, setVisaBundle] = useState({ cases: [], documents: [], bgvRecords: [], activities: [] });
   const [profileLoading, setProfileLoading] = useState(false);
   const [profileError, setProfileError] = useState('');
   const [profileErrorCode, setProfileErrorCode] = useState(null);
@@ -315,6 +314,25 @@ export const CrmHrOpsCandidateDirectory = () => {
         throw new Error(json.message || 'Unable to load candidate profile.');
       }
       setProfileData(json.data);
+      // Fetch candidate's Visa, Documents & KYC, and BGV bundle
+      try {
+        const enqIds = (json.data?.enquiries || []).map((e) => e.id).filter(Boolean).join(',');
+        const emailParam = encodeURIComponent(json.data?.candidate?.email || '');
+        const vbRes = await fetch(`/api/crm/visa-verification/candidate/${encodeURIComponent(candidateKey)}?email=${emailParam}&enquiryIds=${encodeURIComponent(enqIds)}`, {
+          headers: { Authorization: `Bearer ${token}` }
+        });
+        if (vbRes.ok) {
+          const vbJson = await vbRes.json();
+          if (vbJson?.success) {
+            setVisaBundle({
+              cases: vbJson.cases || [],
+              documents: vbJson.documents || [],
+              bgvRecords: vbJson.bgvRecords || [],
+              activities: vbJson.activities || []
+            });
+          }
+        }
+      } catch (_) {}
       // Keep detail modal synchronized if open
       setDetailEnquiry((prev) => {
         if (!prev) return null;
@@ -410,9 +428,20 @@ export const CrmHrOpsCandidateDirectory = () => {
   };
 
   const orderedTimeline = useMemo(() => {
-    const items = profileData?.timeline || [];
+    const baseItems = profileData?.timeline || [];
+    const visaItems = (visaBundle?.activities || []).map((a) => ({
+      id: a.id,
+      eventType: a.action,
+      title: a.action.replace(/_/g, ' '),
+      description: a.details,
+      actorName: a.actorName,
+      actorRole: a.actorRole,
+      enquiryReference: a.enquiryId,
+      timestamp: a.createdAt
+    }));
+    const items = [...baseItems, ...visaItems].sort((a, b) => new Date(a.timestamp || 0) - new Date(b.timestamp || 0));
     return timelineOrder === 'asc' ? items : [...items].reverse();
-  }, [profileData, timelineOrder]);
+  }, [profileData, visaBundle, timelineOrder]);
 
   if (currentRole && currentRole !== 'HR Operations') {
     return (

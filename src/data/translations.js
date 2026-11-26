@@ -257,5 +257,70 @@ export const TRANSLATIONS = {
     'common.location': 'Dubai • GCC • Weltweit',
     'common.footerTag': 'Führende globale Personalvermittlung und Headhunting-Agentur.',
     'common.copyright': 'Revival International & Consulting LLC. Alle Rechte vorbehalten.'
+  },
+
+  HI: {
+    // Nav
+    'nav.home': 'होम',
+    'nav.about': 'हमारे बारे में',
+    'nav.services': 'सेवाएँ',
+    'nav.industries': 'उद्योग',
+    'nav.jobs': 'नौकरियाँ',
+    'nav.employers': 'नियोक्ता',
+    'nav.candidates': 'उम्मीदवार',
+    'nav.visa': 'वीज़ा पात्रता',
+    'nav.verification': 'सत्यापन',
+    'nav.contact': 'संपर्क करें',
+    'nav.indiaHQ': 'भारत मुख्यालय',
+    'nav.dubaiHQ': 'भारत मुख्यालय',
+    'nav.aiResume': 'AI रिज्यूमे विश्लेषक',
+    'nav.employerPortal': 'नियोक्ता पोर्टल',
+    'nav.candidatePortal': 'उम्मीदवार पोर्टल',
+    'nav.signOut': 'साइन आउट',
+    'nav.indiaBadge': 'सरकार द्वारा मान्यता प्राप्त और ISO 9001:2025 प्रमाणित एजेंसी',
+    'nav.mohreBadge': 'सरकार द्वारा मान्यता प्राप्त और ISO 9001:2025 प्रमाणित एजेंसी',
+
+    // Hero / Home
+    'hero.badge': 'टियर-1 अंतर्राष्ट्रीय जनशक्ति एवं भर्ती फर्म',
+    'hero.title': 'वैश्विक कार्यकारी और कुशल प्रतिभा को GCC, यूरोप और विश्वव्यापी अवसरों से जोड़ना',
+    'hero.subtitle': 'दुबई, सऊदी अरब, कतर और वैश्विक बाजारों में प्रमुख उद्यमों को कार्यकारी खोज, वीज़ा प्रोसेसिंग और जनशक्ति भर्ती के साथ सशक्त बनाना।',
+    'hero.findJobsBtn': 'दुबई और GCC में नौकरियाँ खोजें',
+    'hero.hireTalentBtn': 'नौकरी की आवश्यकता पोस्ट करें',
+    'hero.searchPlaceholder': 'पद का नाम, कौशल या उद्योग...',
+    'hero.allCountries': 'सभी गंतव्य देश',
+    'hero.searchBtn': 'नौकरियाँ खोजें',
+    'hero.hotJobsTitle': 'प्रमुख कार्यकारी और विदेशी रिक्तियाँ',
+    'hero.hotJobsSubtitle': 'प्रमुख नौकरी के अवसर',
+    'hero.exploreAll': 'सभी रिक्तियाँ देखें',
+
+    // Jobs Page
+    'jobs.badge': 'अंतर्राष्ट्रीय जॉब पोर्टल',
+    'jobs.title': 'वैश्विक करियर अवसर खोजें',
+    'jobs.subtitle': 'Revival International के साथ GCC और अंतर्राष्ट्रीय बाजारों में पेशेवर अवसरों का अन्वेषण करें।',
+    'jobs.searchPlaceholder': 'शीर्षक, कौशल या कंपनी...',
+    'jobs.allCountries': 'सभी गंतव्य देश',
+    'jobs.allCategories': 'सभी उद्योग क्षेत्र',
+    'jobs.allTypes': 'सभी नौकरी प्रकार',
+    'jobs.foundVacancies': 'मिलती-जुलती रिक्तियाँ',
+    'jobs.matchAi': 'AI रिज्यूमे विश्लेषक से मिलान करें',
+    'jobs.applyNow': 'अभी आवेदन करें →',
+    'jobs.quickApply': 'त्वरित आवेदन',
+
+    // Employer Portal
+    'emp.headerBadge': 'एंटरप्राइज नियोक्ता पोर्टल',
+    'emp.tabDashboard': 'नियोक्ता डैशबोर्ड और विश्लेषण',
+    'emp.tabApplicants': 'आवेदक और उम्मीदवार स्क्रीनिंग',
+    'emp.tabPostJob': 'जॉब पोस्ट विज़ार्ड',
+    'emp.tabTalent': 'टैलेंट डेटाबेस खोजें',
+    'emp.postNewJob': 'नई नौकरी आवश्यकता पोस्ट करें',
+    'emp.activePostings': 'सक्रिय पोस्टिंग',
+    'emp.candidatesReceived': 'प्राप्त उम्मीदवार',
+    'emp.interviewsConducted': 'आयोजित साक्षात्कार',
+    'emp.visasIssued': 'जारी किए गए वीज़ा',
+
+    // Common
+    'common.location': 'दुबई • GCC • विश्वव्यापी',
+    'common.footerTag': 'प्रमुख वैश्विक जनशक्ति और कार्यकारी खोज भर्ती एजेंसी।',
+    'common.copyright': 'Revival International & Consulting LLC. सर्वाधिकार सुरक्षित।'
   }
 };

@@ -13,6 +13,7 @@ import {
   resolveCheckInWorkDate,
   buildAttendanceDataset
 } from './attendanceService.js';
+import { resolveEmployeeShiftForDate } from '../routes/attendanceRoutes.js';
 import {
   HttpError,
   RESOLVED_STATUS_SET,
@@ -96,24 +97,12 @@ const toCompanyDateStr = (rawVal) => {
 };
 
 const buildAttendanceSummary = async (db, employee, now) => {
-  const shiftId = cleanStr(employee.shiftId) || 'SHIFT-GENERAL';
-  let shiftRow = await db.get('SELECT * FROM shift_configs WHERE id = ?', [shiftId]);
-  if (!shiftRow) {
-    shiftRow = await db.get("SELECT * FROM shift_configs WHERE id = 'SHIFT-GENERAL'");
-  }
+  const nowParts = getCompanyDateTimeParts(now);
+  const approxWorkDate = nowParts.dateStr;
 
-  const shiftInfo = shiftRow
-    ? {
-        id: shiftRow.id,
-        name: shiftRow.name,
-        startTime: shiftRow.startTime,
-        endTime: shiftRow.endTime,
-        formattedTiming: `${formatHHMMTo12Hour(shiftRow.startTime)} – ${formatHHMMTo12Hour(shiftRow.endTime)}`,
-        timezone: shiftRow.timezone || COMPANY_TIMEZONE
-      }
-    : null;
-
-  const effectiveShift = shiftRow || {
+  // Dynamically resolve shift effective for employee on this date
+  const resolvedShift = await resolveEmployeeShiftForDate(db, employee, approxWorkDate);
+  const effectiveShift = resolvedShift || {
     id: 'SHIFT-GENERAL',
     name: 'General Shift',
     startTime: '09:00',
@@ -128,7 +117,15 @@ const buildAttendanceSummary = async (db, employee, now) => {
     timezone: COMPANY_TIMEZONE
   };
 
-  const nowParts = getCompanyDateTimeParts(now);
+  const shiftInfo = {
+    id: effectiveShift.id,
+    name: effectiveShift.name,
+    startTime: effectiveShift.startTime,
+    endTime: effectiveShift.endTime,
+    formattedTiming: `${formatHHMMTo12Hour(effectiveShift.startTime)} – ${formatHHMMTo12Hour(effectiveShift.endTime)}`,
+    timezone: effectiveShift.timezone || COMPANY_TIMEZONE
+  };
+
   const todayWorkDate = resolveCheckInWorkDate(nowParts, effectiveShift);
   const queryStart = addDaysToDateStr(todayWorkDate, -2);
   const queryEnd = addDaysToDateStr(nowParts.dateStr, 1);
@@ -222,8 +219,36 @@ const buildAttendanceSummary = async (db, employee, now) => {
     todayRecord?.status ||
     'Not Checked In';
 
+  let lateReq = null;
+  try {
+    lateReq = await db.get(
+      'SELECT * FROM late_login_approval_requests WHERE attendanceId = ? OR (employeeId = ? AND attendanceDate = ?) ORDER BY createdAt DESC LIMIT 1',
+      [todayRecord?.id || '', employee.employeeId, todayWorkDate]
+    );
+  } catch (_) {}
+
+  const scheduledLogin = formatHHMMTo12Hour(effectiveShift.startTime);
+  const scheduledLogout = formatHHMMTo12Hour(effectiveShift.endTime);
+
+  const myAssignedShift = {
+    hasShiftAssigned: Boolean(effectiveShift),
+    shiftId: effectiveShift.id,
+    shiftName: effectiveShift.shiftName || (effectiveShift.name ? effectiveShift.name.replace(/\s*\([^)]*\)\s*$/, '').trim() : 'General Shift'),
+    scheduledLoginTime: scheduledLogin,
+    scheduledLogoutTime: scheduledLogout,
+    todayDate: todayWorkDate,
+    attendanceStatus: todayRecord
+      ? (todayRecord.status === 'In Progress'
+          ? (Number(todayRecord.lateMinutes || 0) > 0 ? 'Late' : 'On Time')
+          : todayRecord.status)
+      : 'Not Clocked In',
+    actualClockInTime: formatClockTime(todayRecord?.checkInAt),
+    lateApprovalStatus: lateReq?.status || (todayRecord?.lateApprovalStatus === 'APPROVED' ? 'Approved' : (todayRecord?.lateApprovalStatus === 'REJECTED' ? 'Rejected' : (Number(todayRecord?.lateMinutes || 0) > 0 ? 'Pending Approval' : 'None')))
+  };
+
   return {
     shift: shiftInfo,
+    myAssignedShift,
     attendanceToday: {
       workDate: todayRecord?.workDate || todayWorkDate,
       status: attendanceStatus,
@@ -250,7 +275,7 @@ export const getHrOperationsDashboardSummary = async (db, employee) => {
   const todayDateStr = nowParts.dateStr;
   const currentMonthStr = `${nowParts.year}-${pad2(nowParts.month)}`;
 
-  const [{ shift, attendanceToday }, model, allFollowUps, allTasks] = await Promise.all([
+  const [{ shift, myAssignedShift, attendanceToday }, model, allFollowUps, allTasks] = await Promise.all([
     buildAttendanceSummary(db, employee, now),
     buildCandidateDirectoryModel(db, employee),
     db.all('SELECT * FROM follow_ups ORDER BY dueDateTime ASC, createdAt DESC'),
@@ -276,7 +301,7 @@ export const getHrOperationsDashboardSummary = async (db, employee) => {
           referenceNumber: enq.referenceNumber || enq.id,
           candidateKey: cand.candidateKey,
           candidateReferenceNumber: cand.candidateReferenceNumber,
-          candidateName: cand.fullName || enq.name || 'Candidate',
+          candidateName: enq.name || cand.fullName || 'Candidate',
           email: enq.email || cand.email || null,
           phone: enq.phone || cand.phone || null,
           serviceId: enq.serviceId || null,
@@ -456,6 +481,7 @@ export const getHrOperationsDashboardSummary = async (db, employee) => {
       operationTeam: employee.operationTeam || null
     },
     shift,
+    myAssignedShift,
     attendanceToday,
     metrics: {
       myAssignedEnquiries,
@@ -505,11 +531,24 @@ export const updateHrTaskAssignmentStatus = async (db, employee, taskId, payload
     throw new HttpError(400, 'Invalid task status. Allowed: To Do, In Progress, Completed.');
   }
 
+  const isCompleted = nextStatus === 'Completed' ? 1 : 0;
   const completedAt = nextStatus === 'Completed' ? new Date().toISOString() : null;
   await db.run(
-    'UPDATE hr_task_assignments SET taskStatus = ?, completedAt = ?, updatedAt = CURRENT_TIMESTAMP WHERE id = ?',
-    [nextStatus, completedAt, existing.id]
+    'UPDATE hr_task_assignments SET taskStatus = ?, assignmentStatus = ?, isCompleted = ?, completedAt = ?, updatedAt = CURRENT_TIMESTAMP WHERE id = ?',
+    [nextStatus, nextStatus, isCompleted, completedAt, existing.id]
   );
+
+  if (existing.enquiryId) {
+    const leadNextStatus = nextStatus === 'Completed' ? 'Completed' : (nextStatus === 'In Progress' ? 'In Progress' : 'Assigned');
+    await db.run(
+      'UPDATE leads SET status = ?, assignmentStatus = ?, taskStatus = ?, updatedAt = CURRENT_TIMESTAMP WHERE id = ? OR referenceNumber = ?',
+      [leadNextStatus, nextStatus, nextStatus, existing.enquiryId, existing.enquiryId]
+    ).catch(() => {});
+    await db.run(
+      'UPDATE candidate_applications SET status = ?, stage = ?, updatedAt = CURRENT_TIMESTAMP WHERE id = ?',
+      [leadNextStatus, leadNextStatus.toLowerCase().replace(/\s+/g, '_'), existing.enquiryId]
+    ).catch(() => {});
+  }
 
   if (logAuditFn) {
     await logAuditFn(db, {

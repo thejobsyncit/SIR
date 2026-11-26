@@ -65,6 +65,7 @@ import { CrmHrTaskAssignment } from './components/CrmHrTaskAssignment';
 import { CrmMyProfile } from './pages/CrmMyProfile';
 import { CrmMyAttendance } from './pages/CrmMyAttendance';
 import { CrmHrOpsCandidateDirectory } from './pages/CrmHrOpsCandidateDirectory';
+import { CrmVisaVerification } from './pages/CrmVisaVerification';
 import { CrmInterviewManagement } from './pages/CrmInterviewManagement';
 import { CrmPlacementCoordinator } from './pages/CrmPlacementCoordinator';
 import { HrLogoutConfirmModal } from './components/HrLogoutConfirmModal';
@@ -130,9 +131,9 @@ const CrmVisaVerificationHub = ({ initialTab = 'visa' }) => {
 };
 
 const CrmAppContent = () => {
-  const { 
-    isAuthenticated, currentRole, activeModule, setActiveModule, 
-    commandPaletteOpen, setCommandPaletteOpen, aiDrawerOpen, setAiDrawerOpen, 
+  const {
+    isAuthenticated, currentRole, activeModule, setActiveModule,
+    commandPaletteOpen, setCommandPaletteOpen, aiDrawerOpen, setAiDrawerOpen,
     hasPermission, logoutConfirmOpen, isLoggingOut, closeLogoutConfirm, confirmLogout,
     lateApprovalGate, setLateApprovalGate, checkLateApprovalStatus, logout
   } = useCrm();
@@ -369,7 +370,15 @@ const CrmAppContent = () => {
       case 'hr-performance':
       case 'hr-recruitment':
       case 'hr-payroll':
-      case 'hr-shifts':
+      case 'hr-shifts': {
+        const normRole = (currentRole || user?.role || user?.designation || '').toLowerCase().replace(/[-_]/g, ' ').trim();
+        const isHrOps = normRole === 'hr operations' || normRole.includes('operations');
+        if (isHrOps || currentRole === 'HR Operations') {
+          return <CrmHrLeadDashboard initialSection="hr-shifts" isReadOnly={true} />;
+        }
+        return <CrmHrLeadDashboard initialSection={activeModule} />;
+      }
+
       case 'hr-documents':
       case 'hr-grievances':
       case 'hr-approvals':
@@ -388,7 +397,7 @@ const CrmAppContent = () => {
         }
         return <CrmHrTaskAssignment />;
       case 'my-attendance':
-        return <CrmMyAttendance />;
+        return <CrmMyAttendance currentRole={currentRole} />;
       case 'my-profile':
         return <CrmMyProfile />;
 
@@ -414,9 +423,9 @@ const CrmAppContent = () => {
       case 'workspace': return <CrmRecruiterWorkspace />;
       case 'interviews': return <CrmInterviews />;
       case 'documentation': return <CrmDocumentation />;
-      case 'visa':
-      case 'verification':
-        return <CrmVisaVerificationHub initialTab={activeModule === 'verification' ? 'verification' : 'visa'} />;
+      case 'visa': return <CrmVisaProcessing />;
+      case 'visa-verification': return <CrmVisaVerification />;
+      case 'verification': return <CrmBackgroundVerification />;
       case 'accounts': return <CrmAccounts />;
       case 'reports': return <CrmReports />;
       case 'ai-suite': return <CrmAiSuite />;
@@ -435,7 +444,7 @@ const CrmAppContent = () => {
   };
 
   return (
-    <div 
+    <div
       id="crm-app-root"
       className="fixed inset-0 w-full h-full max-w-full max-h-full bg-slate-50 dark:bg-[#040714] text-slate-900 dark:text-white flex flex-col font-sans selection:bg-gold-500 selection:text-navy-950 overflow-hidden"
     >
@@ -444,7 +453,7 @@ const CrmAppContent = () => {
       <div className="flex-1 min-h-0 flex overflow-hidden w-full relative">
         <CrmSidebar collapsed={collapsed} setCollapsed={setCollapsed} />
 
-        <main 
+        <main
           ref={mainScrollRef}
           className="flex-1 min-w-0 min-h-0 overflow-y-auto overscroll-y-contain crm-main-scroll p-4 sm:p-6 bg-slate-50 dark:bg-transparent"
         >
@@ -584,8 +593,8 @@ const CrmAppContent = () => {
                 <div
                   key={msg.id}
                   className={`p-3.5 rounded-2xl leading-relaxed whitespace-pre-wrap ${msg.sender === 'user'
-                      ? 'bg-gold-500 text-navy-950 font-bold self-end max-w-[85%] shadow-sm'
-                      : 'bg-slate-100 dark:bg-navy-950 text-slate-900 dark:text-slate-200 font-medium self-start max-w-[92%] border border-slate-200 dark:border-navy-800 shadow-xs'
+                    ? 'bg-gold-500 text-navy-950 font-bold self-end max-w-[85%] shadow-sm'
+                    : 'bg-slate-100 dark:bg-navy-950 text-slate-900 dark:text-slate-200 font-medium self-start max-w-[92%] border border-slate-200 dark:border-navy-800 shadow-xs'
                     }`}
                 >
                   <div>{msg.text}</div>
@@ -646,9 +655,9 @@ const CrmAppContent = () => {
         </div>
       )}
 
-      {/* HR Operations Logout Confirmation Dialog */}
+      {/* Staff Logout Confirmation Dialog */}
       <HrLogoutConfirmModal
-        isOpen={Boolean(logoutConfirmOpen && currentRole === 'HR Operations')}
+        isOpen={Boolean(logoutConfirmOpen)}
         isLoggingOut={isLoggingOut}
         onCancel={closeLogoutConfirm}
         onConfirm={confirmLogout}

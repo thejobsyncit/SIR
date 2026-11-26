@@ -6,13 +6,15 @@ import fs from 'fs';
 import os from 'os';
 import { fileURLToPath } from 'url';
 import { getDb, closeDb, checkDbHealth, logAuditTrail, DEFAULT_CRM_EMPLOYEES, DEFAULT_CRM_CANDIDATES, DEFAULT_CRM_PROFILES, DEFAULT_CRM_APPLICATIONS, DEFAULT_CRM_LEADS, normalizeEmail, normalizePhone, hashPassword, verifyPassword } from './database.js';
+import { verifyCrmSessionToken } from './routes/attendanceRoutes.js';
+import { INITIAL_BASELINE_ENQUIRIES } from './data/baselineEnquiries.js';
 import { registerClientPortalRoutes } from './clientPortalRoutes.js';
 import { registerAttendanceRoutes } from './routes/attendanceRoutes.js';
-import { visaVerificationRouter } from './routes/visaVerificationRoutes.js';
 import { registerHrCandidateRoutes } from './routes/hrCandidateRoutes.js';
 import { registerDocumentationRoutes } from './routes/documentationRoutes.js';
 import { registerEmailApplicationRoutes } from './routes/emailApplicationRoutes.js';
 import { registerAnnouncementRoutes } from './routes/announcementRoutes.js';
+import { registerVisaVerificationRoutes } from './routes/visaVerificationRoutes.js';
 import { registerInterviewPlacementRoutes } from './routes/interviewPlacementRoutes.js';
 import {
   sendCandidateWelcomeEmail,
@@ -1596,7 +1598,7 @@ app.post('/api/auth/google/userinfo', async (req, res) => {
             });
           }
         }
-      } catch (_) {}
+      } catch (_) { }
 
       // 2. Try Google v2 userinfo endpoint
       try {
@@ -1617,7 +1619,7 @@ app.post('/api/auth/google/userinfo', async (req, res) => {
             });
           }
         }
-      } catch (_) {}
+      } catch (_) { }
 
       // 3. Try Google tokeninfo inspection endpoint
       try {
@@ -1636,7 +1638,7 @@ app.post('/api/auth/google/userinfo', async (req, res) => {
             });
           }
         }
-      } catch (_) {}
+      } catch (_) { }
     }
 
     // 4. Fallback to existing registered Google account if email was hinted or present
@@ -1948,7 +1950,7 @@ app.post('/api/candidate/register', async (req, res) => {
         console.warn('[Register Candidate] Supabase cloud sync warning:', sbErr.message);
       }
     } catch (insertErr) {
-      await db.run('ROLLBACK').catch(() => {});
+      await db.run('ROLLBACK').catch(() => { });
       if (insertErr.message && insertErr.message.includes('UNIQUE constraint failed')) {
         if (insertErr.message.includes('email')) {
           return res.status(409).json({
@@ -2112,9 +2114,9 @@ app.post('/api/candidate/login', async (req, res) => {
     // Update password hash if missing for legacy record
     if (userRow && (!userRow.passwordHash || !userRow.passwordSalt)) {
       const { hash, salt } = hashPassword(password);
-      await db.run('UPDATE users SET passwordHash = ?, passwordSalt = ? WHERE id = ?', [hash, salt, userRow.id]).catch(() => {});
+      await db.run('UPDATE users SET passwordHash = ?, passwordSalt = ? WHERE id = ?', [hash, salt, userRow.id]).catch(() => { });
       if (profileRow) {
-        await db.run('UPDATE candidate_profiles SET passwordHash = ?, passwordSalt = ? WHERE id = ?', [hash, salt, profileRow.id]).catch(() => {});
+        await db.run('UPDATE candidate_profiles SET passwordHash = ?, passwordSalt = ? WHERE id = ?', [hash, salt, profileRow.id]).catch(() => { });
       }
     }
 
@@ -2134,7 +2136,7 @@ app.post('/api/candidate/login', async (req, res) => {
       if (profileRow?.savedJobs) {
         parsedSavedJobs = JSON.parse(profileRow.savedJobs);
       }
-    } catch (_) {}
+    } catch (_) { }
 
     let parsedSkills = [];
     try {
@@ -2142,10 +2144,10 @@ app.post('/api/candidate/login', async (req, res) => {
       if (rawSkills) {
         parsedSkills = typeof rawSkills === 'string' ? JSON.parse(rawSkills) : rawSkills;
       }
-    } catch (_) {}
+    } catch (_) { }
 
     // Update lastLoginAt
-    await db.run('UPDATE users SET lastLoginAt = CURRENT_TIMESTAMP WHERE id = ?', [userId]).catch(() => {});
+    await db.run('UPDATE users SET lastLoginAt = CURRENT_TIMESTAMP WHERE id = ?', [userId]).catch(() => { });
 
     const nowIso = new Date().toISOString();
     const resolvedUser = {
@@ -2580,25 +2582,78 @@ app.get('/api/candidate/applications', async (req, res) => {
       `, params);
     } else {
       // Recruiter / CRM view: Return all candidate applications across all vacancies
-      rows = await db.all(`
-        SELECT 
-          ca.*,
-          COALESCE(NULLIF(ca.resumeUrl, ''), c.resumeUrl) as resumeUrl,
-          COALESCE(NULLIF(ca.resumeName, ''), c.resumeName) as resumeName,
-          COALESCE(NULLIF(ca.resumeSize, ''), c.resumeSize) as resumeSize,
-          c.nationality as candidateNationality,
-          c.score as candidateScore,
-          c.avatar as candidateAvatar,
-          c.skills as candidateSkills,
-          c.experience as candidateExperience,
-          c.currentRole as candidateCurrentRole,
-          COALESCE(NULLIF(ca.offerDetails, ''), c.offerDetails) as offerDetails,
-          c.placementStatus as candidatePlacementStatus,
-          COALESCE(NULLIF(ca.stage, ''), c.stage) as candidateStage
-        FROM candidate_applications ca
-        LEFT JOIN candidates c ON LOWER(c.email) = LOWER(ca.applicantEmail) OR c.id = ca.candidateId
-        ORDER BY ca.appliedDate DESC
-      `);
+      // If caller is HR Operations, enforce strict employee isolation:
+      const authHeader = req.headers.authorization || '';
+      const token = authHeader.startsWith('Bearer ') ? authHeader.slice(7).trim() : '';
+      let decoded = token ? verifyCrmSessionToken(token) : null;
+
+      const reqUserRole = req.headers['x-user-role'] || decoded?.role || req.query.userRole;
+      const reqEmployeeId = req.headers['x-employee-id'] || decoded?.employeeId || decoded?.id || req.query.employeeId;
+      const reqEmployeeEmail = req.headers['x-employee-email'] || decoded?.email || req.query.employeeEmail;
+      const reqEmployeeName = req.headers['x-employee-name'] || decoded?.name || req.query.employeeName;
+
+      if (reqUserRole === 'HR Operations') {
+        let employee = null;
+        if (reqEmployeeId || reqEmployeeEmail) {
+          employee = await db.get(
+            'SELECT * FROM employees WHERE employeeId = ? OR id = ? OR LOWER(email) = ? OR LOWER(COALESCE(altEmail, "")) = ?',
+            [reqEmployeeId || '', reqEmployeeId || '', (reqEmployeeEmail || '').toLowerCase().trim(), (reqEmployeeEmail || '').toLowerCase().trim()]
+          );
+        }
+        const canonicalEmpId = employee?.employeeId || reqEmployeeId || '';
+        const canonicalEmpEmail = (employee?.email || reqEmployeeEmail || '').toLowerCase().trim();
+        const canonicalEmpName = (employee?.name || reqEmployeeName || '').toLowerCase().trim();
+
+        rows = await db.all(`
+          SELECT 
+            ca.*,
+            COALESCE(NULLIF(ca.resumeUrl, ''), c.resumeUrl) as resumeUrl,
+            COALESCE(NULLIF(ca.resumeName, ''), c.resumeName) as resumeName,
+            COALESCE(NULLIF(ca.resumeSize, ''), c.resumeSize) as resumeSize,
+            c.nationality as candidateNationality,
+            c.score as candidateScore,
+            c.avatar as candidateAvatar,
+            c.skills as candidateSkills,
+            c.experience as candidateExperience,
+            c.currentRole as candidateCurrentRole
+          FROM candidate_applications ca
+          LEFT JOIN candidates c ON LOWER(c.email) = LOWER(ca.applicantEmail) OR c.id = ca.candidateId
+          WHERE (
+            ca.assignedEmployeeId = ? OR
+            ca.assignedEmployeeId = ? OR
+            (ca.assignedEmployeeEmail IS NOT NULL AND LOWER(ca.assignedEmployeeEmail) = ?) OR
+            (ca.assignedEmployee IS NOT NULL AND LOWER(ca.assignedEmployee) = ?) OR
+            (ca.assignedEmployee IS NOT NULL AND LOWER(ca.assignedEmployee) LIKE ?)
+          )
+          ORDER BY ca.appliedDate DESC
+        `, [
+          canonicalEmpId,
+          employee?.id || canonicalEmpId,
+          canonicalEmpEmail,
+          canonicalEmpName,
+          canonicalEmpName ? `%${canonicalEmpName}%` : canonicalEmpId
+        ]);
+      } else {
+        rows = await db.all(`
+          SELECT 
+            ca.*,
+            COALESCE(NULLIF(ca.resumeUrl, ''), c.resumeUrl) as resumeUrl,
+            COALESCE(NULLIF(ca.resumeName, ''), c.resumeName) as resumeName,
+            COALESCE(NULLIF(ca.resumeSize, ''), c.resumeSize) as resumeSize,
+            c.nationality as candidateNationality,
+            c.score as candidateScore,
+            c.avatar as candidateAvatar,
+            c.skills as candidateSkills,
+            c.experience as candidateExperience,
+            c.currentRole as candidateCurrentRole,
+            COALESCE(NULLIF(ca.offerDetails, ''), c.offerDetails) as offerDetails,
+            c.placementStatus as candidatePlacementStatus,
+            COALESCE(NULLIF(ca.stage, ''), c.stage) as candidateStage
+          FROM candidate_applications ca
+          LEFT JOIN candidates c ON LOWER(c.email) = LOWER(ca.applicantEmail) OR c.id = ca.candidateId
+          ORDER BY ca.appliedDate DESC
+        `);
+      }
     }
 
     // Merge persistent cloud applications from Supabase PostgreSQL
@@ -2635,8 +2690,57 @@ app.get('/api/candidate/applications', async (req, res) => {
   }
 });
 
+// GET Single Candidate Application by ID
+app.get('/api/candidate/applications/:id', async (req, res) => {
+  try {
+    const { id } = req.params;
+    const db = await getDb();
+    const app = await db.get(`
+      SELECT 
+        ca.*,
+        COALESCE(NULLIF(ca.resumeUrl, ''), c.resumeUrl) as resumeUrl,
+        COALESCE(NULLIF(ca.resumeName, ''), c.resumeName) as resumeName,
+        COALESCE(NULLIF(ca.resumeSize, ''), c.resumeSize) as resumeSize,
+        c.nationality as candidateNationality,
+        c.score as candidateScore,
+        c.avatar as candidateAvatar,
+        c.skills as candidateSkills,
+        c.experience as candidateExperience,
+        c.currentRole as candidateCurrentRole
+      FROM candidate_applications ca
+      LEFT JOIN candidates c ON LOWER(c.email) = LOWER(ca.applicantEmail) OR c.id = ca.candidateId
+      WHERE ca.id = ?
+    `, [id]);
+    if (!app) {
+      return res.status(404).json({ success: false, message: 'Job application not found' });
+    }
+
+    const authHeader = req.headers.authorization || '';
+    const token = authHeader.startsWith('Bearer ') ? authHeader.slice(7).trim() : '';
+    let decoded = token ? verifyCrmSessionToken(token) : null;
+    const reqUserRole = req.headers['x-user-role'] || decoded?.role || req.query.userRole;
+    const reqEmployeeId = req.headers['x-employee-id'] || decoded?.employeeId || decoded?.id;
+    const reqEmployeeEmail = req.headers['x-employee-email'] || decoded?.email;
+    const reqEmployeeName = req.headers['x-employee-name'] || decoded?.name;
+
+    if (reqUserRole === 'HR Operations') {
+      const matchEmp = app.assignedEmployeeId === reqEmployeeId ||
+        (app.assignedEmployeeEmail && reqEmployeeEmail && app.assignedEmployeeEmail.toLowerCase() === reqEmployeeEmail.toLowerCase()) ||
+        (app.assignedEmployee && reqEmployeeName && app.assignedEmployee.toLowerCase().includes(reqEmployeeName.toLowerCase()));
+      if (!matchEmp) {
+        return res.status(403).json({ success: false, message: 'Access Denied: You can only view job enquiries assigned to your profile.' });
+      }
+    }
+
+    res.json({ success: true, data: app });
+  } catch (error) {
+    console.error('Failed to fetch job application by ID:', error);
+    res.status(500).json({ success: false, message: 'Server error' });
+  }
+});
+
 // UPDATE Candidate Application Status
-app.patch('/api/candidate/applications/:id/status', async (req, res) => {
+app.patch(['/api/candidate/applications/:id/status', '/api/candidate/applications/:id'], async (req, res) => {
   try {
     const { id } = req.params;
     const { status, stage, notes } = req.body;
@@ -2647,16 +2751,38 @@ app.patch('/api/candidate/applications/:id/status', async (req, res) => {
       return res.status(404).json({ success: false, message: 'Application not found' });
     }
 
+    const authHeader = req.headers.authorization || '';
+    const token = authHeader.startsWith('Bearer ') ? authHeader.slice(7).trim() : '';
+    let decoded = token ? verifyCrmSessionToken(token) : null;
+
+    const reqUserRole = req.headers['x-user-role'] || decoded?.role || req.body.userRole;
+    const reqEmployeeId = req.headers['x-employee-id'] || decoded?.employeeId || decoded?.id;
+    const reqEmployeeEmail = req.headers['x-employee-email'] || decoded?.email;
+    const reqEmployeeName = req.headers['x-employee-name'] || decoded?.name;
+
+    // Security check: HR Operations can only update applications assigned to them
+    if (reqUserRole === 'HR Operations') {
+      const matchEmp = existing.assignedEmployeeId === reqEmployeeId ||
+        (existing.assignedEmployeeEmail && reqEmployeeEmail && existing.assignedEmployeeEmail.toLowerCase() === reqEmployeeEmail.toLowerCase()) ||
+        (existing.assignedEmployee && reqEmployeeName && existing.assignedEmployee.toLowerCase().includes(reqEmployeeName.toLowerCase()));
+      if (!matchEmp) {
+        return res.status(403).json({ success: false, message: 'Access Denied: You can only update applications assigned to your profile.' });
+      }
+    }
+
     const nextStatus = status || existing.status;
     const nextStage = stage || (status ? status.toLowerCase().replace(/\s+/g, '_') : existing.stage);
+    const nowIso = new Date().toISOString();
+    const isCompleted = ['Completed', 'Selected', 'Offer Released', 'Contract Active', 'Hired', 'Closed'].includes(nextStatus);
 
     await db.run(`
       UPDATE candidate_applications SET
         status = ?,
         stage = ?,
-        notes = COALESCE(?, notes)
+        notes = COALESCE(?, notes),
+        updatedAt = ?
       WHERE id = ?
-    `, [nextStatus, nextStage, notes, id]);
+    `, [nextStatus, nextStage, notes, nowIso, id]);
 
     // Also update candidate stage if linked
     if (existing.candidateId) {
@@ -2665,11 +2791,44 @@ app.patch('/api/candidate/applications/:id/status', async (req, res) => {
       `, [nextStage, existing.candidateId, existing.applicantEmail || '']).catch(() => { });
     }
 
+    // Synchronize to leads table
+    await db.run(`
+      UPDATE leads SET
+        status = ?,
+        taskStatus = ?,
+        updatedAt = ?
+      WHERE id = ? OR referenceNumber = ?
+    `, [nextStatus, nextStatus, nowIso, id, id]).catch(() => { });
+
+    // Synchronize to hr_task_assignments
+    await db.run(`
+      UPDATE hr_task_assignments SET
+        taskStatus = ?,
+        assignmentStatus = ?,
+        isCompleted = ?,
+        completedAt = CASE WHEN ? = 1 THEN COALESCE(completedAt, ?) ELSE NULL END,
+        updatedAt = ?
+      WHERE enquiryId = ? OR referenceNumber = ?
+    `, [nextStatus, nextStatus, isCompleted ? 1 : 0, isCompleted ? 1 : 0, nowIso, nowIso, id, id]).catch(() => { });
+
+    // Log audit activity in enquiry_activities
+    await db.run(`
+      INSERT INTO enquiry_activities (id, enquiryId, type, title, notes, createdBy, createdAt)
+      VALUES (?, ?, 'Status Change', ?, ?, ?, ?)
+    `, [
+      `ACT-APP-${Date.now()}-${Math.floor(Math.random() * 1000)}`,
+      id,
+      `Application Status: ${nextStatus}`,
+      notes || `Status changed to ${nextStatus}`,
+      reqEmployeeName || 'HR Staff',
+      nowIso
+    ]).catch(() => { });
+
     const updated = await db.get('SELECT * FROM candidate_applications WHERE id = ?', [id]);
     res.json({ success: true, message: 'Application status updated', data: updated });
   } catch (error) {
     console.error('Failed to update application status:', error);
-    res.status(500).json({ success: false, message: 'Server error' });
+    res.status(500).json({ success: false, message: error.message || 'Server error' });
   }
 });
 
@@ -2703,13 +2862,13 @@ const deleteApplicationHandler = async (req, res) => {
       await db.run(
         'DELETE FROM email_job_applications WHERE jobId = ? AND LOWER(candidateEmail) = LOWER(?)',
         [String(app.jobId), (app.applicantEmail || '').trim().toLowerCase()]
-      ).catch(() => {});
+      ).catch(() => { });
       await db.run(
         'DELETE FROM candidate_applications WHERE jobId = ? AND (applicantEmail IS NOT NULL AND LOWER(applicantEmail) = LOWER(?))',
         [String(app.jobId), (app.applicantEmail || '').trim().toLowerCase()]
-      ).catch(() => {});
+      ).catch(() => { });
     }
-    await db.run('DELETE FROM email_job_applications WHERE id = ?', [id]).catch(() => {});
+    await db.run('DELETE FROM email_job_applications WHERE id = ?', [id]).catch(() => { });
 
     // 3. If candidate has no other applications, update their stage to 'lead'
     if (app && (app.candidateId || app.applicantEmail)) {
@@ -5502,7 +5661,11 @@ const recentInquirySubmissions = new Map();
 // HR Lead Central Task Assignment Endpoint
 app.post('/api/hr-operations/assign', async (req, res) => {
   try {
-    const userRole = req.headers['x-user-role'] || req.body.userRole || req.body.role;
+    const authHeader = req.headers.authorization || '';
+    const token = authHeader.startsWith('Bearer ') ? authHeader.slice(7).trim() : '';
+    let decoded = token ? verifyCrmSessionToken(token) : null;
+
+    const userRole = req.headers['x-user-role'] || decoded?.role || req.body.userRole || req.body.role;
     const authorizedRoles = ['HR Lead', 'Super Admin', 'Admin'];
     // Security check: Only HR Lead, Super Admin, and Admin are authorized to assign enquiries
     if (userRole && !authorizedRoles.includes(userRole)) {
@@ -5515,25 +5678,28 @@ app.post('/api/hr-operations/assign', async (req, res) => {
     const {
       enquiryIds = [],
       employeeId,
+      canonicalEmployeeId,
       employeeName,
       employeeEmail,
       operationTeam,
       priority = 'High',
       instructions = '',
-      assignedBy = 'HR Lead',
-      assignedById = 'emp-3'
+      dueDate = null
     } = req.body;
+
+    const assignedBy = req.body.assignedBy || decoded?.name || req.headers['x-employee-name'] || 'Priya Sharma (HR Lead)';
+    const assignedById = req.body.assignedById || decoded?.employeeId || decoded?.id || req.headers['x-employee-id'] || 'REV-EMP-003';
 
     if (!Array.isArray(enquiryIds) || enquiryIds.length === 0) {
       return res.status(400).json({ success: false, message: 'Please provide at least one enquiry ID to assign.' });
     }
-    if (!employeeName && !employeeId) {
+    if (!employeeName && !employeeId && !canonicalEmployeeId) {
       return res.status(400).json({ success: false, message: 'Please provide an employee to assign enquiries to.' });
     }
 
     const db = await getDb();
 
-    // Ensure leads table columns exist
+    // Ensure leads & hr_task_assignments table columns exist
     await db.run('ALTER TABLE leads ADD COLUMN assignedEmployeeId TEXT').catch(() => { });
     await db.run('ALTER TABLE leads ADD COLUMN assignedEmployeeEmail TEXT').catch(() => { });
     await db.run('ALTER TABLE leads ADD COLUMN operationTeam TEXT').catch(() => { });
@@ -5541,40 +5707,111 @@ app.post('/api/hr-operations/assign', async (req, res) => {
     await db.run('ALTER TABLE leads ADD COLUMN assignedAt DATETIME').catch(() => { });
     await db.run('ALTER TABLE leads ADD COLUMN assignmentStatus TEXT').catch(() => { });
     await db.run('ALTER TABLE leads ADD COLUMN assignmentNotes TEXT').catch(() => { });
+    await db.run('ALTER TABLE leads ADD COLUMN taskStatus TEXT').catch(() => { });
+    await db.run('ALTER TABLE hr_task_assignments ADD COLUMN assignmentStatus TEXT DEFAULT "Assigned"').catch(() => { });
+    await db.run('ALTER TABLE hr_task_assignments ADD COLUMN serviceId TEXT').catch(() => { });
+    await db.run('ALTER TABLE hr_task_assignments ADD COLUMN isCompleted INTEGER DEFAULT 0').catch(() => { });
+    await db.run('ALTER TABLE hr_task_assignments ADD COLUMN completionNotes TEXT').catch(() => { });
 
-    // Resolve canonical employee identity
-    let canonicalName = employeeName || 'Balavarshini S.';
-    let canonicalId = employeeId || 'REV-EMP-006';
-    let canonicalEmail = employeeEmail || '';
+    // Resolve canonical employee identity against database employees table
+    const reqEmpId = canonicalEmployeeId || employeeId || '';
+    const cleanEmail = (employeeEmail || '').toLowerCase().trim();
+    const cleanName = (employeeName || '').trim();
 
-    const nameClean = (canonicalName || '').toLowerCase().replace(/[^a-z]/g, '');
-    const cleanEmail = (canonicalEmail || '').toLowerCase();
-    const cleanId = canonicalId || '';
-
-    if (nameClean.includes('fatima') || cleanEmail.includes('fatima') || ['REV-EMP-107', 'INTL-HR-101', 'emp-fatima'].includes(cleanId)) {
-      canonicalName = 'Fatima';
-      canonicalId = 'REV-EMP-107';
-      canonicalEmail = 'fatima.intl@revivalinternational.com';
-    } else if (nameClean.includes('bala') || cleanEmail.includes('bala') || ['REV-EMP-006', 'INTL-HR-102', 'emp-6'].includes(cleanId)) {
-      canonicalName = 'Balavarshini S.';
-      canonicalId = 'REV-EMP-006';
-      canonicalEmail = 'balavarshini.s@revivalinternational.com';
-    } else if (nameClean.includes('divya') || nameClean.includes('diviya') || cleanEmail.includes('divya') || cleanEmail.includes('diviya') || ['REV-EMP-102', 'ENQ-HR-201', 'emp-divya', 'emp-diviya'].includes(cleanId)) {
-      canonicalName = 'Divya R.';
-      canonicalId = 'REV-EMP-102';
-      canonicalEmail = 'divya.enq@revivalinternational.com';
-    } else if (nameClean.includes('praveen') || cleanEmail.includes('praveen') || ['REV-EMP-108', 'ENQ-HR-202', 'emp-praveen'].includes(cleanId)) {
-      canonicalName = 'Praveen Kumar';
-      canonicalId = 'REV-EMP-108';
-      canonicalEmail = 'praveen.enq@revivalinternational.com';
+    let targetEmployee = null;
+    if (reqEmpId) {
+      targetEmployee = await db.get(
+        `SELECT * FROM employees 
+         WHERE (employeeId = ? OR id = ?)
+           AND LOWER(COALESCE(status, 'Active')) != 'inactive' LIMIT 1`,
+        [reqEmpId, reqEmpId]
+      );
     }
+    if (!targetEmployee && cleanEmail) {
+      targetEmployee = await db.get(
+        `SELECT * FROM employees 
+         WHERE (LOWER(email) = ? OR (altEmail IS NOT NULL AND LOWER(altEmail) = ?))
+           AND LOWER(COALESCE(status, 'Active')) != 'inactive' LIMIT 1`,
+        [cleanEmail, cleanEmail]
+      );
+    }
+    if (!targetEmployee && cleanName) {
+      targetEmployee = await db.get(
+        `SELECT * FROM employees 
+         WHERE (LOWER(name) = ? OR LOWER(name) LIKE ?) 
+           AND LOWER(COALESCE(status, 'Active')) != 'inactive' LIMIT 1`,
+        [cleanName.toLowerCase(), `%${cleanName.toLowerCase()}%`]
+      );
+    }
+    // Also check standard aliases for Fatima, Balavarshini, Divya, Praveen
+    if (!targetEmployee) {
+      const nameClean = cleanName.toLowerCase().replace(/[^a-z]/g, '');
+      if ((nameClean && nameClean.includes('fatima')) || ['REV-EMP-107', 'INTL-HR-101', 'emp-fatima'].includes(reqEmpId)) {
+        targetEmployee = await db.get(`SELECT * FROM employees WHERE employeeId = 'REV-EMP-107' OR id = 'emp-fatima' LIMIT 1`);
+      } else if ((nameClean && nameClean.includes('bala')) || ['REV-EMP-006', 'INTL-HR-102', 'emp-6'].includes(reqEmpId)) {
+        targetEmployee = await db.get(`SELECT * FROM employees WHERE employeeId = 'REV-EMP-006' OR id = 'emp-6' LIMIT 1`);
+      } else if ((nameClean && (nameClean.includes('divya') || nameClean.includes('diviya'))) || ['REV-EMP-102', 'ENQ-HR-201', 'emp-divya', 'emp-diviya'].includes(reqEmpId)) {
+        targetEmployee = await db.get(`SELECT * FROM employees WHERE employeeId = 'REV-EMP-102' OR id = 'emp-divya' LIMIT 1`);
+      } else if ((nameClean && nameClean.includes('praveen')) || ['REV-EMP-108', 'ENQ-HR-202', 'emp-praveen'].includes(reqEmpId)) {
+        targetEmployee = await db.get(`SELECT * FROM employees WHERE employeeId = 'REV-EMP-108' OR id = 'emp-praveen' LIMIT 1`);
+      }
+    }
+
+    if (!targetEmployee) {
+      return res.status(404).json({
+        success: false,
+        message: `Employee '${employeeName || employeeId}' was not found in active workforce records.`
+      });
+    }
+
+    const canonicalName = targetEmployee.name;
+    const canonicalId = targetEmployee.employeeId;
+    const canonicalEmail = targetEmployee.email;
 
     let updatedCount = 0;
     const now = new Date().toISOString();
+    const assignedTasks = [];
 
     for (const enqId of enquiryIds) {
-      // Fetch existing lead details to populate task assignment
-      const currentLead = await db.get('SELECT * FROM leads WHERE id = ? OR referenceNumber = ? LIMIT 1', [enqId, enqId]);
+      // 1. Check if enquiry exists in SQLite leads table
+      let currentLead = await db.get('SELECT * FROM leads WHERE id = ? OR referenceNumber = ? LIMIT 1', [enqId, enqId]);
+
+      // If not yet in leads, check if it's in INITIAL_BASELINE_ENQUIRIES
+      if (!currentLead) {
+        const baseEnq = INITIAL_BASELINE_ENQUIRIES.find(b => b.id === enqId || b.referenceNumber === enqId);
+        if (baseEnq) {
+          await db.run(
+            `INSERT INTO leads (
+              id, referenceNumber, name, email, phone, company, serviceId, serviceTitle,
+              countryInterest, status, assignedEmployee, assignedEmployeeId, assignedEmployeeEmail,
+              priority, assignmentNotes, internalNotes, assignedBy, assignedAt, assignmentStatus,
+              taskStatus, createdAt, updatedAt
+            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, 'Assigned', ?, ?, ?, ?, ?, ?, ?, ?, 'Assigned', 'To Do', ?, ?)`,
+            [
+              baseEnq.id,
+              baseEnq.referenceNumber,
+              baseEnq.name,
+              baseEnq.email,
+              baseEnq.phone,
+              baseEnq.company || 'Individual Candidate',
+              baseEnq.serviceId,
+              baseEnq.serviceTitle,
+              baseEnq.country || 'India',
+              canonicalName,
+              canonicalId,
+              canonicalEmail,
+              priority,
+              instructions,
+              instructions,
+              assignedBy,
+              now,
+              baseEnq.createdAt || now,
+              now
+            ]
+          );
+          currentLead = await db.get('SELECT * FROM leads WHERE id = ? LIMIT 1', [baseEnq.id]);
+        }
+      }
 
       const effectiveTeam = operationTeam || (
         currentLead && ['intl-adm', 'intl-consult'].includes(currentLead.serviceId)
@@ -5582,71 +5819,109 @@ app.post('/api/hr-operations/assign', async (req, res) => {
           : 'Enquiry HR Operations'
       );
 
-      const result = await db.run(
-        `UPDATE leads SET
-          assignedEmployee = ?,
-          assignedEmployeeId = ?,
-          assignedEmployeeEmail = ?,
-          operationTeam = ?,
-          priority = COALESCE(?, priority),
-          status = 'Assigned',
-          assignmentStatus = 'Assigned',
-          assignedAt = ?,
-          assignedBy = ?,
-          assignmentNotes = ?,
-          internalNotes = CASE
-            WHEN ? != '' THEN COALESCE(internalNotes, '') || char(10) || '📌 ' || ? || ' Assignment: ' || ?
-            ELSE internalNotes
-          END,
-          updatedAt = ?
-        WHERE id = ? OR referenceNumber = ?`,
-        [
-          canonicalName,
-          canonicalId,
-          canonicalEmail,
-          effectiveTeam,
-          priority,
-          now,
-          assignedBy,
-          instructions,
-          instructions,
-          assignedBy,
-          instructions,
-          now,
-          enqId,
-          enqId
-        ]
-      );
+      if (currentLead) {
+        await db.run(
+          `UPDATE leads SET
+            assignedEmployee = ?,
+            assignedEmployeeId = ?,
+            assignedEmployeeEmail = ?,
+            operationTeam = ?,
+            priority = COALESCE(?, priority),
+            status = 'Assigned',
+            assignmentStatus = 'Assigned',
+            taskStatus = 'To Do',
+            assignedAt = ?,
+            assignedBy = ?,
+            assignmentNotes = ?,
+            internalNotes = CASE
+              WHEN ? != '' THEN COALESCE(internalNotes, '') || char(10) || '📌 ' || ? || ' Assignment: ' || ?
+              ELSE internalNotes
+            END,
+            updatedAt = ?
+          WHERE id = ?`,
+          [
+            canonicalName,
+            canonicalId,
+            canonicalEmail,
+            effectiveTeam,
+            priority,
+            now,
+            assignedBy,
+            instructions,
+            instructions,
+            assignedBy,
+            instructions,
+            now,
+            currentLead.id
+          ]
+        );
 
-      if (result && result.changes > 0) {
-        updatedCount += result.changes;
+        updatedCount++;
 
-        // Log into hr_task_assignments
-        const refNo = (currentLead && currentLead.referenceNumber) || enqId;
-        const sId = (currentLead && currentLead.serviceId) || 'intl-adm';
-        const sTitle = (currentLead && currentLead.serviceTitle) || 'Revival Inbound Enquiry';
-        const custName = (currentLead && currentLead.name) || 'Candidate';
-        const custEmail = (currentLead && currentLead.email) || '';
-        const custPhone = (currentLead && currentLead.phone) || '';
+        // Synchronize candidate_applications if this lead is a job application
+        await db.run(
+          `UPDATE candidate_applications SET
+            assignedEmployee = ?,
+            assignedEmployeeId = ?,
+            assignedEmployeeEmail = ?,
+            priority = ?,
+            status = 'Assigned',
+            assignmentNotes = ?,
+            assignedDate = ?,
+            updatedAt = ?
+          WHERE id = ?`,
+          [canonicalName, canonicalId, canonicalEmail, priority, instructions, now, now, currentLead.id]
+        ).catch(() => {});
+
+        // Upsert into hr_task_assignments with correct canonical attributes
+        const taskId = `TASK-${currentLead.id}`;
+        const refNo = currentLead.referenceNumber || currentLead.id;
+        const sId = currentLead.serviceId || 'intl-adm';
+        const sTitle = currentLead.serviceTitle || 'Revival Inbound Enquiry';
+        const custName = currentLead.name || 'Candidate';
+        const custEmail = currentLead.email || '';
+        const custPhone = currentLead.phone || '';
 
         await db.run(
-          `INSERT OR REPLACE INTO hr_task_assignments (
+          `INSERT INTO hr_task_assignments (
             id, enquiryId, referenceNumber, operationTeam, assignedEmployeeId,
-            assignedEmployeeName, assignedById, assignedByName, assignedAt,
-            assignmentStatus, taskStatus, priority, notes, serviceId, serviceTitle,
+            assignedEmployeeName, assignedEmployeeEmail, assignedById, assignedByName, assignedAt,
+            assignmentStatus, taskStatus, isCompleted, priority, dueDate, notes, serviceId, serviceTitle,
             customerName, customerEmail, customerPhone, createdAt, updatedAt
-          ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, 'Assigned', 'To Do', ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+          ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'Assigned', 'To Do', 0, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+          ON CONFLICT(id) DO UPDATE SET
+            assignedEmployeeId = excluded.assignedEmployeeId,
+            assignedEmployeeName = excluded.assignedEmployeeName,
+            assignedEmployeeEmail = excluded.assignedEmployeeEmail,
+            operationTeam = excluded.operationTeam,
+            assignedById = excluded.assignedById,
+            assignedByName = excluded.assignedByName,
+            assignedAt = excluded.assignedAt,
+            assignmentStatus = 'Assigned',
+            taskStatus = 'To Do',
+            isCompleted = 0,
+            priority = excluded.priority,
+            dueDate = excluded.dueDate,
+            notes = excluded.notes,
+            serviceId = excluded.serviceId,
+            serviceTitle = excluded.serviceTitle,
+            customerName = excluded.customerName,
+            customerEmail = excluded.customerEmail,
+            customerPhone = excluded.customerPhone,
+            updatedAt = excluded.updatedAt`,
           [
-            `TASK-${enqId}`,
-            enqId,
+            taskId,
+            currentLead.id,
             refNo,
             effectiveTeam,
             canonicalId,
             canonicalName,
+            canonicalEmail,
             assignedById,
             assignedBy,
             now,
             priority,
+            dueDate,
             instructions || 'Follow up with candidate regarding enquiry details.',
             sId,
             sTitle,
@@ -5656,7 +5931,20 @@ app.post('/api/hr-operations/assign', async (req, res) => {
             now,
             now
           ]
-        ).catch(() => { });
+        );
+
+        assignedTasks.push({
+          id: taskId,
+          enquiryId: currentLead.id,
+          referenceNumber: refNo,
+          customerName: custName,
+          assignedEmployeeId: canonicalId,
+          assignedEmployeeName: canonicalName,
+          assignedEmployeeEmail: canonicalEmail,
+          priority,
+          taskStatus: 'To Do',
+          notes: instructions
+        });
 
         // Log in enquiry_activities
         await db.run(
@@ -5664,13 +5952,13 @@ app.post('/api/hr-operations/assign', async (req, res) => {
            VALUES (?, ?, 'TASK_ASSIGNMENT', ?, ?, ?, ?)`,
           [
             `ACT-ASN-${Date.now()}-${Math.floor(Math.random() * 1000)}`,
-            enqId,
+            currentLead.id,
             `Enquiry assigned to ${canonicalName} (${effectiveTeam})`,
             instructions ? `Instructions: ${instructions}` : `Priority: ${priority}`,
             assignedBy,
             now
           ]
-        ).catch(() => {});
+        ).catch(() => { });
       } else {
         // Also support assigning candidate job applications
         const currentApp = await db.get('SELECT * FROM candidate_applications WHERE id = ? LIMIT 1', [enqId]);
@@ -5690,24 +5978,95 @@ app.post('/api/hr-operations/assign', async (req, res) => {
           );
           if (appRes && appRes.changes > 0) {
             updatedCount += appRes.changes;
+
+            // Also upsert into leads table for unified visibility across CRM
             await db.run(
-              `INSERT OR REPLACE INTO hr_task_assignments (
-                id, enquiryId, referenceNumber, operationTeam, assignedEmployeeId,
-                assignedEmployeeName, assignedById, assignedByName, assignedAt,
-                assignmentStatus, taskStatus, priority, notes, serviceId, serviceTitle,
-                customerName, customerEmail, customerPhone, createdAt, updatedAt
-              ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, 'Assigned', 'To Do', ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+              `INSERT INTO leads (
+                id, referenceNumber, name, email, phone, company, serviceId, serviceTitle,
+                countryInterest, status, assignedEmployee, assignedEmployeeId, assignedEmployeeEmail,
+                operationTeam, priority, assignmentNotes, internalNotes, assignedBy, assignedAt,
+                assignmentStatus, taskStatus, jobTitle, createdAt, updatedAt
+              ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, 'Assigned', ?, ?, ?, ?, ?, ?, ?, ?, ?, 'Assigned', 'To Do', ?, ?, ?)
+              ON CONFLICT(id) DO UPDATE SET
+                assignedEmployee = excluded.assignedEmployee,
+                assignedEmployeeId = excluded.assignedEmployeeId,
+                assignedEmployeeEmail = excluded.assignedEmployeeEmail,
+                operationTeam = excluded.operationTeam,
+                priority = excluded.priority,
+                status = 'Assigned',
+                assignmentStatus = 'Assigned',
+                taskStatus = 'To Do',
+                assignedAt = excluded.assignedAt,
+                assignedBy = excluded.assignedBy,
+                assignmentNotes = excluded.assignmentNotes,
+                jobTitle = excluded.jobTitle,
+                updatedAt = excluded.updatedAt`,
               [
-                `TASK-${enqId}`,
+                currentApp.id,
+                currentApp.id,
+                currentApp.applicantName || 'Candidate',
+                currentApp.applicantEmail || '',
+                currentApp.applicantPhone || '',
+                currentApp.company || 'The Revival International',
+                'intl-recruitment',
+                currentApp.jobTitle || 'Job Application',
+                currentApp.location || 'United Arab Emirates',
+                canonicalName,
+                canonicalId,
+                canonicalEmail,
+                effectiveTeam || 'Jobs Enquiry Operations',
+                priority,
+                instructions,
+                instructions,
+                assignedBy,
+                now,
+                currentApp.jobTitle || 'Job Application',
+                currentApp.appliedDate || currentApp.createdAt || now,
+                now
+              ]
+            ).catch(() => {});
+
+            const taskId = `TASK-${enqId}`;
+            await db.run(
+              `INSERT INTO hr_task_assignments (
+                id, enquiryId, referenceNumber, operationTeam, assignedEmployeeId,
+                assignedEmployeeName, assignedEmployeeEmail, assignedById, assignedByName, assignedAt,
+                assignmentStatus, taskStatus, isCompleted, priority, dueDate, notes, serviceId, serviceTitle,
+                customerName, customerEmail, customerPhone, createdAt, updatedAt
+              ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'Assigned', 'To Do', 0, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+              ON CONFLICT(id) DO UPDATE SET
+                assignedEmployeeId = excluded.assignedEmployeeId,
+                assignedEmployeeName = excluded.assignedEmployeeName,
+                assignedEmployeeEmail = excluded.assignedEmployeeEmail,
+                operationTeam = excluded.operationTeam,
+                assignedById = excluded.assignedById,
+                assignedByName = excluded.assignedByName,
+                assignedAt = excluded.assignedAt,
+                assignmentStatus = 'Assigned',
+                taskStatus = 'To Do',
+                isCompleted = 0,
+                priority = excluded.priority,
+                dueDate = excluded.dueDate,
+                notes = excluded.notes,
+                serviceId = excluded.serviceId,
+                serviceTitle = excluded.serviceTitle,
+                customerName = excluded.customerName,
+                customerEmail = excluded.customerEmail,
+                customerPhone = excluded.customerPhone,
+                updatedAt = excluded.updatedAt`,
+              [
+                taskId,
                 enqId,
                 enqId,
                 effectiveTeam || 'Jobs Enquiry Operations',
                 canonicalId,
                 canonicalName,
+                canonicalEmail,
                 assignedById,
                 assignedBy,
                 now,
                 priority,
+                dueDate,
                 instructions || 'Follow up with candidate regarding job application details.',
                 currentApp.jobId || 'job-app',
                 currentApp.jobTitle || 'Job Application',
@@ -5717,11 +6076,100 @@ app.post('/api/hr-operations/assign', async (req, res) => {
                 now,
                 now
               ]
+            );
+
+            // Log activity in enquiry_activities
+            await db.run(
+              `INSERT INTO enquiry_activities (id, enquiryId, type, title, notes, createdBy, createdAt)
+               VALUES (?, ?, 'TASK_ASSIGNMENT', ?, ?, ?, ?)`,
+              [
+                `ACT-APP-${Date.now()}-${Math.floor(Math.random() * 1000)}`,
+                enqId,
+                `Job enquiry assigned to ${canonicalName} (${effectiveTeam || 'Jobs Enquiry Operations'})`,
+                instructions ? `Instructions: ${instructions}` : `Priority: ${priority}`,
+                assignedBy,
+                now
+              ]
             ).catch(() => {});
+
+            assignedTasks.push({
+              id: taskId,
+              enquiryId: enqId,
+              customerName: currentApp.applicantName || 'Candidate',
+              assignedEmployeeId: canonicalId,
+              assignedEmployeeName: canonicalName,
+              assignedEmployeeEmail: canonicalEmail,
+              priority,
+              taskStatus: 'To Do',
+              notes: instructions
+            });
           }
+        } else {
+          // Direct standalone task assignment
+          const taskId = `TASK-${enqId}`;
+          await db.run(
+            `INSERT INTO hr_task_assignments (
+              id, enquiryId, referenceNumber, operationTeam, assignedEmployeeId,
+              assignedEmployeeName, assignedEmployeeEmail, assignedById, assignedByName, assignedAt,
+              assignmentStatus, taskStatus, isCompleted, priority, dueDate, notes, serviceId, serviceTitle,
+              customerName, customerEmail, customerPhone, createdAt, updatedAt
+            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'Assigned', 'To Do', 0, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+            ON CONFLICT(id) DO UPDATE SET
+              assignedEmployeeId = excluded.assignedEmployeeId,
+              assignedEmployeeName = excluded.assignedEmployeeName,
+              assignedEmployeeEmail = excluded.assignedEmployeeEmail,
+              assignedAt = excluded.assignedAt,
+              assignmentStatus = 'Assigned',
+              taskStatus = 'To Do',
+              isCompleted = 0,
+              priority = excluded.priority,
+              dueDate = excluded.dueDate,
+              notes = excluded.notes,
+              updatedAt = excluded.updatedAt`,
+            [
+              taskId,
+              enqId,
+              enqId,
+              effectiveTeam,
+              canonicalId,
+              canonicalName,
+              canonicalEmail,
+              assignedById,
+              assignedBy,
+              now,
+              priority,
+              dueDate,
+              instructions || 'HR Operations task assignment.',
+              'direct-task',
+              'Assigned Task',
+              'Candidate',
+              '',
+              '',
+              now,
+              now
+            ]
+          );
+          updatedCount++;
+          assignedTasks.push({
+            id: taskId,
+            enquiryId: enqId,
+            assignedEmployeeId: canonicalId,
+            assignedEmployeeName: canonicalName,
+            assignedEmployeeEmail: canonicalEmail,
+            priority,
+            taskStatus: 'To Do',
+            notes: instructions
+          });
         }
 
       }
+    }
+
+    if (updatedCount === 0) {
+      return res.status(400).json({
+        success: false,
+        message: 'No matching enquiries or candidate applications could be assigned.'
+      });
     }
 
     res.json({
@@ -5729,11 +6177,198 @@ app.post('/api/hr-operations/assign', async (req, res) => {
       count: updatedCount,
       employeeName: canonicalName,
       employeeId: canonicalId,
-      message: `Successfully assigned ${updatedCount} enquiries to ${canonicalName}.`
+      tasks: assignedTasks,
+      message: `Successfully assigned ${updatedCount} enquiry(ies) to ${canonicalName} (${canonicalId}).`
     });
   } catch (err) {
     console.error('Error assigning enquiries:', err);
     res.status(500).json({ success: false, message: 'Failed to assign enquiries: ' + err.message });
+  }
+});
+
+// GET /api/hr-operations/tasks & GET /api/hr-ops/tasks - Authenticated Employee Tasks Endpoint
+app.get(['/api/hr-operations/tasks', '/api/hr-ops/tasks'], async (req, res) => {
+  try {
+    const db = await getDb();
+    const authHeader = req.headers.authorization || '';
+    const token = authHeader.startsWith('Bearer ') ? authHeader.slice(7).trim() : '';
+    let decoded = token ? verifyCrmSessionToken(token) : null;
+
+    const reqUserRole = req.headers['x-user-role'] || decoded?.role || req.query.userRole;
+    const reqEmployeeId = req.headers['x-employee-id'] || decoded?.employeeId || decoded?.id || req.query.employeeId;
+    const reqEmployeeEmail = req.headers['x-employee-email'] || decoded?.email || req.query.employeeEmail;
+    const reqEmployeeName = req.headers['x-employee-name'] || decoded?.name || req.query.employeeName;
+
+    const isHrOps = reqUserRole === 'HR Operations';
+    const isLeadOrAdmin = ['HR Lead', 'Super Admin', 'Admin'].includes(reqUserRole);
+
+    let query = 'SELECT * FROM hr_task_assignments WHERE 1=1';
+    const params = [];
+
+    if (isHrOps) {
+      // Strict Employee Isolation: Employee A sees ONLY their tasks
+      let employee = null;
+      if (reqEmployeeId || reqEmployeeEmail) {
+        employee = await db.get(
+          'SELECT * FROM employees WHERE employeeId = ? OR id = ? OR LOWER(email) = ? OR LOWER(COALESCE(altEmail, "")) = ?',
+          [reqEmployeeId || '', reqEmployeeId || '', (reqEmployeeEmail || '').toLowerCase().trim(), (reqEmployeeEmail || '').toLowerCase().trim()]
+        );
+      }
+      const canonicalEmpId = employee?.employeeId || reqEmployeeId || '';
+      const canonicalEmpEmail = (employee?.email || reqEmployeeEmail || '').toLowerCase();
+      const canonicalEmpName = (employee?.name || reqEmployeeName || '').toLowerCase();
+
+      query += ` AND (
+        assignedEmployeeId = ? OR
+        assignedEmployeeId = ? OR
+        LOWER(assignedEmployeeEmail) = ? OR
+        LOWER(assignedEmployeeName) = ? OR
+        LOWER(assignedEmployeeName) LIKE ?
+      )`;
+      params.push(
+        canonicalEmpId,
+        employee?.id || canonicalEmpId,
+        canonicalEmpEmail,
+        canonicalEmpName,
+        `%${canonicalEmpName}%`
+      );
+    } else if (req.query.employeeId && req.query.employeeId !== 'all') {
+      const empParam = req.query.employeeId;
+      query += ` AND (
+        assignedEmployeeId = ? OR 
+        assignedEmployeeId IN (SELECT employeeId FROM employees WHERE id = ? OR LOWER(name) LIKE ? OR LOWER(email) = LOWER(?)) OR
+        LOWER(assignedEmployeeName) LIKE ?
+      )`;
+      const empLike = `%${empParam.toLowerCase()}%`;
+      params.push(empParam, empParam, empLike, empParam, empLike);
+    }
+
+    if (req.query.category && req.query.category !== 'all') {
+      const cat = req.query.category.toLowerCase();
+      if (cat.includes('intl') || cat.includes('international')) {
+        query += " AND (operationTeam = 'International HR Operations' OR serviceId IN ('intl-adm', 'intl-consult') OR referenceNumber LIKE 'REV-INT%' OR referenceNumber LIKE 'REV-ADM%')";
+      } else if (cat.includes('domestic') || cat.includes('enquiry')) {
+        query += " AND (operationTeam = 'Enquiry HR Operations' OR serviceId IN ('school-career', 'school-academy', 'college-adm') OR referenceNumber LIKE 'REV-CAR%' OR referenceNumber LIKE 'REV-ACA%' OR referenceNumber LIKE 'REV-COL%')";
+      } else if (cat.includes('job') || cat.includes('applicant')) {
+        query += " AND (operationTeam LIKE '%Jobs%' OR serviceId LIKE '%job%' OR serviceId = 'intl-recruitment' OR referenceNumber LIKE 'RI-APP%' OR enquiryId LIKE 'RI-APP%')";
+      }
+    }
+
+    if (req.query.search && req.query.search.trim()) {
+      const s = `%${req.query.search.trim().toLowerCase()}%`;
+      query += ` AND (
+        LOWER(COALESCE(customerName, '')) LIKE ? OR
+        LOWER(COALESCE(customerEmail, '')) LIKE ? OR
+        COALESCE(customerPhone, '') LIKE ? OR
+        id LIKE ? OR
+        enquiryId LIKE ? OR
+        referenceNumber LIKE ? OR
+        LOWER(COALESCE(assignedEmployeeName, '')) LIKE ? OR
+        LOWER(COALESCE(serviceTitle, '')) LIKE ?
+      )`;
+      params.push(s, s, s, s, s, s, s, s);
+    }
+
+    if (req.query.enquiryId) {
+      query += ' AND (enquiryId = ? OR referenceNumber = ?)';
+      params.push(req.query.enquiryId, req.query.enquiryId);
+    }
+
+    if (req.query.status && req.query.status !== 'all') {
+      if (req.query.status === 'completed') {
+        query += " AND (taskStatus = 'Completed' OR isCompleted = 1)";
+      } else if (req.query.status === 'pending') {
+        query += " AND (taskStatus != 'Completed' AND (isCompleted IS NULL OR isCompleted = 0))";
+      } else {
+        query += ' AND taskStatus = ?';
+        params.push(req.query.status);
+      }
+    }
+
+    query += ' ORDER BY createdAt DESC';
+    const rows = await db.all(query, params);
+
+    res.json({
+      success: true,
+      tasks: rows,
+      data: rows,
+      count: rows.length
+    });
+  } catch (err) {
+    console.error('Error fetching HR tasks:', err);
+    res.status(500).json({ success: false, message: 'Failed to fetch tasks: ' + err.message });
+  }
+});
+
+// PATCH /api/hr-operations/tasks/:taskId - Update task status and synchronize with leads
+app.patch(['/api/hr-operations/tasks/:taskId', '/api/hr-ops/tasks/:taskId'], async (req, res) => {
+  try {
+    const db = await getDb();
+    const authHeader = req.headers.authorization || '';
+    const token = authHeader.startsWith('Bearer ') ? authHeader.slice(7).trim() : '';
+    let decoded = token ? verifyCrmSessionToken(token) : null;
+
+    const { taskId } = req.params;
+    const cleanTaskId = decodeURIComponent(taskId).trim();
+    const { taskStatus, notes, completionNotes, resolutionNotes, priority } = req.body || {};
+
+    const existing = await db.get(
+      'SELECT * FROM hr_task_assignments WHERE id = ? OR enquiryId = ? OR referenceNumber = ? LIMIT 1',
+      [cleanTaskId, cleanTaskId, cleanTaskId]
+    );
+
+    if (!existing) {
+      return res.status(404).json({ success: false, message: `Task '${cleanTaskId}' not found.` });
+    }
+
+    const nextStatus = taskStatus || (req.body.status) || 'Completed';
+    const isCompleted = nextStatus === 'Completed' ? 1 : 0;
+    const completedAt = isCompleted ? new Date().toISOString() : null;
+    const noteText = completionNotes || resolutionNotes || notes || existing.notes;
+
+    await db.run(
+      `UPDATE hr_task_assignments SET
+        taskStatus = ?,
+        assignmentStatus = ?,
+        isCompleted = ?,
+        completedAt = COALESCE(?, completedAt),
+        notes = COALESCE(?, notes),
+        completionNotes = COALESCE(?, completionNotes),
+        priority = COALESCE(?, priority),
+        updatedAt = CURRENT_TIMESTAMP
+       WHERE id = ?`,
+      [nextStatus, nextStatus, isCompleted, completedAt, noteText, noteText, priority || null, existing.id]
+    );
+
+    // Keep leads table synchronized in both directions
+    if (existing.enquiryId) {
+      const leadStatus = nextStatus === 'Completed' ? 'Completed' : (nextStatus === 'In Progress' ? 'In Progress' : 'Assigned');
+      await db.run(
+        `UPDATE leads SET
+          status = ?,
+          assignmentStatus = ?,
+          taskStatus = ?,
+          internalNotes = CASE
+            WHEN ? IS NOT NULL THEN COALESCE(internalNotes, '') || char(10) || '📌 Status Update (' || ? || '): ' || ?
+            ELSE internalNotes
+          END,
+          updatedAt = CURRENT_TIMESTAMP
+         WHERE id = ? OR referenceNumber = ?`,
+        [leadStatus, leadStatus, nextStatus, noteText, nextStatus, noteText, existing.enquiryId, existing.referenceNumber || existing.enquiryId]
+      );
+    }
+
+    const updatedTask = await db.get('SELECT * FROM hr_task_assignments WHERE id = ?', [existing.id]);
+
+    res.json({
+      success: true,
+      message: `Task status updated to ${nextStatus}.`,
+      task: updatedTask,
+      data: updatedTask
+    });
+  } catch (err) {
+    console.error('Error updating task:', err);
+    res.status(500).json({ success: false, message: 'Failed to update task: ' + err.message });
   }
 });
 
@@ -6011,6 +6646,7 @@ app.get(['/api/leads', '/api/consulting/enquiries', '/api/career-guidance/enquir
       return res.json({
         success: true,
         data: rows,
+        leads: rows,
         pagination: {
           total: totalCount,
           page: parsedPage,
@@ -6020,7 +6656,7 @@ app.get(['/api/leads', '/api/consulting/enquiries', '/api/career-guidance/enquir
       });
     }
 
-    res.json({ success: true, data: rows, total: rows.length });
+    res.json({ success: true, data: rows, leads: rows, total: rows.length });
   } catch (error) {
     console.error('Failed to fetch leads:', error);
     res.status(500).json({ success: false, message: 'Failed to retrieve inquiries' });
@@ -6696,7 +7332,31 @@ app.patch(['/api/leads/:id', '/api/consulting/enquiries/:id', '/api/student-acad
     }
 
     const db = await getDb();
-    const currentLead = await db.get('SELECT * FROM leads WHERE id = ? OR referenceNumber = ?', [id, id]);
+    let currentLead = await db.get('SELECT * FROM leads WHERE id = ? OR referenceNumber = ?', [id, id]);
+    if (!currentLead) {
+      const currentApp = await db.get('SELECT * FROM candidate_applications WHERE id = ?', [id]);
+      if (currentApp) {
+        await db.run(
+          `INSERT OR REPLACE INTO leads (id, referenceNumber, name, email, phone, serviceTitle, company, status, assignedEmployee, priority, createdAt, updatedAt)
+           VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+          [
+            currentApp.id,
+            currentApp.id,
+            currentApp.applicantName || 'Candidate',
+            currentApp.applicantEmail || null,
+            currentApp.applicantPhone || null,
+            currentApp.jobTitle || 'Job Application',
+            currentApp.company || 'The Revival International',
+            currentApp.status || 'Under Review',
+            currentApp.assignedEmployee || null,
+            currentApp.priority || 'Normal',
+            currentApp.appliedDate || new Date().toISOString(),
+            new Date().toISOString()
+          ]
+        );
+        currentLead = await db.get('SELECT * FROM leads WHERE id = ?', [id]);
+      }
+    }
     if (!currentLead) {
       return res.status(404).json({ success: false, message: 'Enquiry not found' });
     }
@@ -6805,6 +7465,30 @@ app.patch(['/api/leads/:id', '/api/consulting/enquiries/:id', '/api/student-acad
 
     // Audit activity if status changed
     if (status && status !== currentLead.status) {
+      const isCompletedStatus = ['Completed', 'Converted', 'Closed / Won', 'Closed'].includes(status);
+      const taskStatusVal = isCompletedStatus ? 'Completed' : (status === 'In Progress' ? 'In Progress' : 'To Do');
+      const completedAtVal = isCompletedStatus ? new Date().toISOString() : null;
+      await db.run(
+        `UPDATE hr_task_assignments SET
+          taskStatus = ?,
+          assignmentStatus = ?,
+          isCompleted = ?,
+          completedAt = CASE WHEN ? = 1 THEN COALESCE(completedAt, ?) ELSE NULL END,
+          updatedAt = CURRENT_TIMESTAMP
+        WHERE enquiryId = ? OR (? IS NOT NULL AND referenceNumber = ?)`,
+        [taskStatusVal, status, isCompletedStatus ? 1 : 0, isCompletedStatus ? 1 : 0, completedAtVal, currentLead.id, currentLead.referenceNumber || null, currentLead.referenceNumber || '']
+      ).catch(() => { });
+
+      await db.run(
+        `UPDATE candidate_applications SET
+          status = ?,
+          stage = ?,
+          notes = COALESCE(?, notes),
+          updatedAt = CURRENT_TIMESTAMP
+        WHERE id = ? OR (? IS NOT NULL AND id = ?)`,
+        [status, status.toLowerCase().replace(/\s+/g, '_'), internalNotes || null, currentLead.id, currentLead.referenceNumber || null, currentLead.referenceNumber || '']
+      ).catch(() => { });
+
       await db.run(
         `INSERT INTO enquiry_activities (id, enquiryId, organizationId, type, title, notes, createdBy)
          VALUES (?, ?, ?, ?, ?, ?, ?)`,
@@ -7656,18 +8340,6 @@ app.get('/api/analytics/service-performance', async (req, res) => {
   }
 });
 
-// Visa & Verification Unified Routes
-app.use('/api/visa', visaVerificationRouter);
-app.use('/api/verification', visaVerificationRouter);
-app.get('/api/crm/verifications', (req, res) => {
-  req.url = '/crm/cases';
-  visaVerificationRouter(req, res);
-});
-app.put('/api/crm/verifications/:caseId', (req, res) => {
-  req.url = '/crm/cases/' + req.params.caseId;
-  visaVerificationRouter(req, res);
-});
-
 // ==============================================================================
 const ATS_DOMAINS = [
   {
@@ -8396,7 +9068,81 @@ registerHrCandidateRoutes(app, { getDb, getClientIp, logAuditTrail });
 registerDocumentationRoutes(app, { getDb, getClientIp, logAuditTrail });
 registerEmailApplicationRoutes(app, { getDb, getClientIp, logAuditTrail });
 registerAnnouncementRoutes(app, { getDb, getClientIp, logAuditTrail });
+registerVisaVerificationRoutes(app, { getDb, getClientIp, logAuditTrail });
 registerInterviewPlacementRoutes(app, { getDb });
+
+// ==============================================================================
+// MULTI-LANGUAGE FULL-SITE TRANSLATION ENDPOINT (EN -> HI, AR, FR, DE)
+// ==============================================================================
+const translationMemoryCache = new Map();
+
+app.post('/api/translate', async (req, res) => {
+  try {
+    const { targetLang = 'hi', texts = [] } = req.body || {};
+    const tl = String(targetLang || 'hi').toLowerCase().trim();
+    const allowed = new Set(['hi', 'ar', 'fr', 'de']);
+    if (!allowed.has(tl) || !Array.isArray(texts) || texts.length === 0) {
+      return res.json({ success: true, translations: {} });
+    }
+
+    const uniqueTexts = [...new Set(
+      texts
+        .map((t) => (typeof t === 'string' ? t.trim() : ''))
+        .filter((t) => t.length > 0 && t.length <= 1500 && !/^[\d\s\W]+$/.test(t))
+    )].slice(0, 120);
+
+    const result = {};
+    const toTranslate = [];
+
+    for (const txt of uniqueTexts) {
+      const cacheKey = `${tl}::${txt}`;
+      if (translationMemoryCache.has(cacheKey)) {
+        result[txt] = translationMemoryCache.get(cacheKey);
+      } else {
+        toTranslate.push(txt);
+      }
+    }
+
+    if (toTranslate.length > 0) {
+      await Promise.all(
+        toTranslate.map(async (txt) => {
+          try {
+            // Try MyMemory first (reliable, no 429 block), then Google Translate fallback
+            const mmUrl = `https://api.mymemory.translated.net/get?q=${encodeURIComponent(txt)}&langpair=en|${encodeURIComponent(tl)}&de=enquiry@therevivalinternational.com`;
+            const mmResp = await fetch(mmUrl);
+            if (mmResp.ok) {
+              const mmData = await mmResp.json();
+              const mmText = mmData?.responseData?.translatedText?.trim();
+              if (mmData?.responseStatus === 200 && mmText && mmText.toLowerCase() !== txt.toLowerCase()) {
+                translationMemoryCache.set(`${tl}::${txt}`, mmText);
+                result[txt] = mmText;
+                return;
+              }
+            }
+            const url = `https://translate.googleapis.com/translate_a/single?client=gtx&sl=en&tl=${encodeURIComponent(tl)}&dt=t&q=${encodeURIComponent(txt)}`;
+            const resp = await fetch(url, { headers: { 'User-Agent': 'Mozilla/5.0' } });
+            if (!resp.ok) return;
+            const data = await resp.json();
+            if (Array.isArray(data?.[0])) {
+              const translated = data[0].map((seg) => seg?.[0] || '').join('').trim();
+              if (translated) {
+                translationMemoryCache.set(`${tl}::${txt}`, translated);
+                result[txt] = translated;
+              }
+            }
+          } catch {
+            // Keep original on individual segment failure
+          }
+        })
+      );
+    }
+
+    res.json({ success: true, translations: result });
+  } catch (err) {
+    console.error('Translation endpoint error:', err);
+    res.status(500).json({ success: false, translations: {} });
+  }
+});
 
 // ==============================================================================
 // CRM CELEBRATION / FESTIVAL / BIRTHDAY BROADCAST POPUPS

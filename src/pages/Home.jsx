@@ -593,45 +593,6 @@ export const Home = () => {
         </section>
       </ScrollReveal>
 
-      {/* PREMIUM CONSULTING CTA */}
-      <ScrollReveal>
-        <section className="max-w-7xl mx-auto px-4 sm:px-8 space-y-8">
-          <div className="bg-white dark:bg-navy-950 text-slate-900 dark:text-white rounded-3xl p-8 sm:p-12 border border-slate-200 dark:border-gold-500/30 shadow-luxury relative overflow-hidden flex flex-col md:flex-row items-center justify-between gap-8 animate-fade-in-up">
-            {/* Decorative background element */}
-            <div className="absolute -top-24 -right-24 w-64 h-64 bg-gold-500/10 rounded-full blur-3xl"></div>
-
-            <div className="relative z-10 space-y-4 max-w-2xl text-center md:text-left">
-              <span className="bg-gold-500/20 text-gold-400 text-xs font-bold px-3 py-1 rounded-full uppercase tracking-widest border border-slate-200 dark:border-gold-500/30">
-                Expert Advisory
-              </span>
-              <h3 className="font-serif text-3xl sm:text-4xl lg:text-5xl font-extrabold tracking-tight text-slate-900 dark:text-white">
-                Book a Free <span className="text-gradient-emerald">Strategy Consultation</span>
-              </h3>
-              <p className="text-slate-600 dark:text-slate-300 text-sm leading-relaxed max-w-xl mx-auto md:mx-0">
-                Whether you are an enterprise looking to scale your workforce across the GCC, or an executive seeking your next career move, our senior consultants are here to guide you.
-              </p>
-            </div>
-
-            <div className="relative z-10 flex flex-col w-full md:w-auto gap-4">
-              <button
-                onClick={() => navigateTo('contact')}
-                className="px-8 py-4 bg-gold-shimmer text-navy-950 font-extrabold text-sm rounded-xl shadow-gold-glow hover-lift active-scale flex items-center justify-center space-x-2 w-full md:w-64"
-              >
-                <Calendar className="w-5 h-5" />
-                <span>Schedule a Call</span>
-              </button>
-              <button
-                onClick={() => navigateTo('contact')}
-                className="px-8 py-4 bg-slate-50 dark:bg-navy-900 text-slate-900 dark:text-white border border-slate-200 dark:border-gold-500/40 font-extrabold text-sm rounded-xl shadow-luxury hover-lift active-scale flex items-center justify-center space-x-2 w-full md:w-64"
-              >
-                <MessageSquare className="w-5 h-5 text-gold-500" />
-                <span>Send us an Inquiry</span>
-              </button>
-            </div>
-          </div>
-        </section>
-      </ScrollReveal>
-
       {/* FREQUENTLY ASKED QUESTIONS */}
       <ScrollReveal>
         <section className="max-w-4xl mx-auto px-4 sm:px-8 space-y-8 pt-8">

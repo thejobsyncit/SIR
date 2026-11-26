@@ -288,10 +288,22 @@ const generateFallbackAttendanceDashboard = (employee, selectedMonth, attendance
   };
 };
 
-export const CrmMyAttendance = () => {
-  const { currentRole, user, crmToken, setCrmToken, authTokenLoading, logout, syncAttendanceNotifications, attendancePunch, setActiveModule } = useCrm();
+export const CrmMyAttendance = ({ currentRole: roleProp } = {}) => {
+  const { currentRole: contextRole, user, crmToken, setCrmToken, authTokenLoading, logout, syncAttendanceNotifications, attendancePunch, setActiveModule } = useCrm();
+  const currentRole = roleProp || contextRole || user?.role || '';
+  const isHrLead =
+    currentRole === 'HR Lead' ||
+    currentRole === 'HR_LEAD' ||
+    String(currentRole || '').toLowerCase().includes('lead') ||
+    String(user?.role || '').toLowerCase().includes('lead');
 
   const [activeTab, setActiveTab] = useState('overview'); // 'overview' | 'calendar' | 'hours'
+
+  useEffect(() => {
+    if (isHrLead && activeTab === 'hours') {
+      setActiveTab('overview');
+    }
+  }, [isHrLead, activeTab]);
   const [selectedMonth, setSelectedMonth] = useState(getInitialMonth);
   const [rangeMode, setRangeMode] = useState('monthly'); // 'weekly' | 'monthly' | 'custom'
   const [customStart, setCustomStart] = useState('');
@@ -793,22 +805,6 @@ export const CrmMyAttendance = () => {
         </div>
       )}
 
-      {/* Missing Checkout Alert Banner */}
-      {missingList.length > 0 && (
-        <div className="bg-amber-50 dark:bg-amber-500/10 border border-amber-300 dark:border-amber-500/40 rounded-2xl p-4 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
-          <div className="flex items-start gap-3">
-            <AlertTriangle className="w-5 h-5 text-amber-600 dark:text-amber-400 shrink-0 mt-0.5" />
-            <div>
-              <p className="text-sm font-bold text-amber-900 dark:text-amber-200">
-                Missing Check-Out Detected ({missingList.length} shift{missingList.length > 1 ? 's' : ''})
-              </p>
-              <p className="text-xs text-amber-800 dark:text-amber-300 mt-0.5">
-                Date(s): {missingList.map((r) => r.workDate).join(', ')}. Please notify your HR Lead / Admin to update your shift record.
-              </p>
-            </div>
-          </div>
-        </div>
-      )}
 
       {/* Feedback Banner / Auth Waiting State */}
       {!crmToken && (
@@ -970,7 +966,7 @@ export const CrmMyAttendance = () => {
         {[
           { id: 'overview', label: 'Attendance History', icon: History },
           { id: 'calendar', label: 'Attendance Calendar', icon: CalendarIcon },
-          { id: 'hours', label: 'My Working Hours', icon: BarChart3 }
+          ...(!isHrLead ? [{ id: 'hours', label: 'My Working Hours', icon: BarChart3 }] : [])
         ].map((tab) => {
           const Icon = tab.icon;
           const active = activeTab === tab.id;
@@ -1181,7 +1177,11 @@ export const CrmMyAttendance = () => {
                           {formatClockTime(row.checkOutAt, tz)}
                         </td>
                         <td className="py-2 px-3 font-semibold text-slate-900 dark:text-white whitespace-nowrap">
-                          {row.hasRealRecord ? formatDuration(row.netWorkMinutes) : '—'}
+                          {row.hasRealRecord
+                            ? (row.checkInAt && !row.checkOutAt
+                              ? formatDuration(Math.max(0, Math.floor((nowMs - new Date(row.checkInAt).getTime()) / 60000) - Number(row.totalBreakMinutes || 0)))
+                              : formatDuration(row.netWorkMinutes))
+                            : '—'}
                         </td>
                         <td className="py-2 px-3 whitespace-nowrap">
                           <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-[11px] font-bold border ${getStatusBadgeClass(row.status)}`}>
@@ -1397,7 +1397,7 @@ export const CrmMyAttendance = () => {
       )}
 
       {/* TAB 3: MY WORKING HOURS BREAKDOWN */}
-      {activeTab === 'hours' && (
+      {!isHrLead && activeTab === 'hours' && (
         <div className="space-y-5">
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
             <div className="bg-white dark:bg-navy-900 border border-slate-200 dark:border-white/10 rounded-2xl p-5 shadow-sm">
