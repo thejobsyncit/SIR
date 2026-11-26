@@ -67,6 +67,7 @@ import { CrmMyAttendance } from './pages/CrmMyAttendance';
 import { CrmHrOpsCandidateDirectory } from './pages/CrmHrOpsCandidateDirectory';
 import { HrLogoutConfirmModal } from './components/HrLogoutConfirmModal';
 import { LateArrivalApprovalGateway } from './components/LateArrivalApprovalGateway';
+import { CrmCelebrationPopupModal } from './components/CrmCelebrationPopupModal';
 
 import { Search, Sparkles, X, Send, Bot, Loader2, Copy, Check, RotateCcw, ShieldCheck } from 'lucide-react';
 
@@ -649,6 +650,9 @@ const CrmAppContent = () => {
         onCancel={closeLogoutConfirm}
         onConfirm={confirmLogout}
       />
+
+      {/* Company-Wide Festival / Birthday / Celebration Broadcast Popup */}
+      <CrmCelebrationPopupModal />
 
     </div>
   );

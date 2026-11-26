@@ -8396,6 +8396,161 @@ registerDocumentationRoutes(app, { getDb, getClientIp, logAuditTrail });
 registerEmailApplicationRoutes(app, { getDb, getClientIp, logAuditTrail });
 registerAnnouncementRoutes(app, { getDb, getClientIp, logAuditTrail });
 
+// ==============================================================================
+// CRM CELEBRATION / FESTIVAL / BIRTHDAY BROADCAST POPUPS
+// ==============================================================================
+const ensureCrmPopupTable = async (db) => {
+  await db.exec(`
+    CREATE TABLE IF NOT EXISTS crm_celebration_popups (
+      id TEXT PRIMARY KEY,
+      occasion_type TEXT NOT NULL DEFAULT 'Festival',
+      title TEXT NOT NULL,
+      message TEXT NOT NULL,
+      is_active INTEGER NOT NULL DEFAULT 1,
+      created_by TEXT,
+      created_by_role TEXT,
+      expires_at TEXT,
+      created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+      updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+    );
+  `);
+};
+
+app.get('/api/crm-popups', async (req, res) => {
+  try {
+    const db = await getDb();
+    await ensureCrmPopupTable(db);
+    const popups = await db.all(
+      `SELECT * FROM crm_celebration_popups ORDER BY COALESCE(updated_at, created_at) DESC`
+    );
+    res.json({ success: true, popups });
+  } catch (err) {
+    console.error('Error fetching CRM popups:', err);
+    res.status(500).json({ success: false, message: 'Failed to load broadcast popups.' });
+  }
+});
+
+app.get('/api/crm-popups/active', async (req, res) => {
+  try {
+    const db = await getDb();
+    await ensureCrmPopupTable(db);
+    const allActive = await db.all(
+      `SELECT * FROM crm_celebration_popups
+       WHERE is_active = 1
+       ORDER BY COALESCE(updated_at, created_at) DESC`
+    );
+    const todayStr = new Date().toISOString().slice(0, 10);
+    const popups = (allActive || []).filter((p) => !p.expires_at || String(p.expires_at).slice(0, 10) >= todayStr);
+    res.json({ success: true, popups });
+  } catch (err) {
+    console.error('Error fetching active CRM popups:', err);
+    res.status(500).json({ success: false, message: 'Failed to load active popups.' });
+  }
+});
+
+app.post('/api/crm-popups', async (req, res) => {
+  try {
+    const {
+      occasion_type = 'Festival',
+      title,
+      message,
+      is_active = 1,
+      created_by = 'Super Admin',
+      created_by_role = 'Super Admin',
+      expires_at = null
+    } = req.body || {};
+
+    const cleanTitle = String(title || '').trim();
+    const cleanMessage = String(message || '').trim();
+    if (!cleanTitle || !cleanMessage) {
+      return res.status(400).json({ success: false, message: 'Title and popup message text are required.' });
+    }
+
+    const id = `POP-${Date.now()}-${Math.floor(Math.random() * 1000)}`;
+    const now = new Date().toISOString();
+    const db = await getDb();
+    await ensureCrmPopupTable(db);
+    await db.run(
+      `INSERT INTO crm_celebration_popups (
+        id, occasion_type, title, message, is_active, created_by, created_by_role, expires_at, created_at, updated_at
+      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+      [
+        id,
+        String(occasion_type || 'Festival').trim(),
+        cleanTitle,
+        cleanMessage,
+        is_active ? 1 : 0,
+        String(created_by || 'Super Admin').trim(),
+        String(created_by_role || 'Super Admin').trim(),
+        expires_at || null,
+        now,
+        now
+      ]
+    );
+    const created = await db.get('SELECT * FROM crm_celebration_popups WHERE id = ?', [id]);
+    res.status(201).json({ success: true, popup: created });
+  } catch (err) {
+    console.error('Error creating CRM popup:', err);
+    res.status(500).json({ success: false, message: 'Failed to create broadcast popup.' });
+  }
+});
+
+app.patch('/api/crm-popups/:id', async (req, res) => {
+  try {
+    const { id } = req.params;
+    const db = await getDb();
+    await ensureCrmPopupTable(db);
+    const existing = await db.get('SELECT * FROM crm_celebration_popups WHERE id = ?', [id]);
+    if (!existing) {
+      return res.status(404).json({ success: false, message: 'Broadcast popup not found.' });
+    }
+
+    const { occasion_type, title, message, is_active, expires_at } = req.body || {};
+    const now = new Date().toISOString();
+
+    await db.run(
+      `UPDATE crm_celebration_popups SET
+        occasion_type = ?,
+        title = ?,
+        message = ?,
+        is_active = ?,
+        expires_at = ?,
+        updated_at = ?
+      WHERE id = ?`,
+      [
+        occasion_type !== undefined ? String(occasion_type).trim() : existing.occasion_type,
+        title !== undefined ? String(title).trim() : existing.title,
+        message !== undefined ? String(message).trim() : existing.message,
+        is_active !== undefined ? (is_active ? 1 : 0) : existing.is_active,
+        expires_at !== undefined ? (expires_at || null) : existing.expires_at,
+        now,
+        id
+      ]
+    );
+    const updated = await db.get('SELECT * FROM crm_celebration_popups WHERE id = ?', [id]);
+    res.json({ success: true, popup: updated });
+  } catch (err) {
+    console.error('Error updating CRM popup:', err);
+    res.status(500).json({ success: false, message: 'Failed to update broadcast popup.' });
+  }
+});
+
+app.delete('/api/crm-popups/:id', async (req, res) => {
+  try {
+    const { id } = req.params;
+    const db = await getDb();
+    const existing = await db.get('SELECT * FROM crm_celebration_popups WHERE id = ?', [id]);
+    if (!existing) {
+      return res.status(404).json({ success: false, message: 'Broadcast popup not found.' });
+    }
+    await db.run('DELETE FROM crm_celebration_popups WHERE id = ?', [id]);
+    res.json({ success: true, message: 'Broadcast popup deleted.' });
+  } catch (err) {
+    console.error('Error deleting CRM popup:', err);
+    res.status(500).json({ success: false, message: 'Failed to delete broadcast popup.' });
+  }
+});
+
 // Serve Vite frontend production bundle if dist directory exists (non-Vercel standalone mode)
 const distPath = path.join(__dirname, '..', 'dist');
 if (!isVercelServerless && fs.existsSync(distPath)) {
