@@ -185,7 +185,7 @@ export const CrmSidebar = ({ collapsed, setCollapsed }) => {
       items: [
         { id: 'reports', label: 'Reports & Analytics', icon: BarChart3 },
         { id: 'ai-suite', label: 'AI Features Suite', icon: Sparkles },
-        { id: 'automation', label: 'Automations', icon: Zap },
+        { id: 'automation', label: 'Company Announcement', icon: Zap },
         { id: 'super-admin', label: 'Super Admin Panel', icon: ShieldCheck },
         { id: 'settings', label: 'Admin Settings', icon: Settings }
       ]
