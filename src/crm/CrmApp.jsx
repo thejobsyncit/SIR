@@ -308,17 +308,10 @@ const CrmAppContent = () => {
     return <CrmLogin />;
   }
 
-  // Shift Late Arrival Super Admin Approval Gateway (exempts Super Admin & Admin)
+  // Shift Late Arrival Gate: keep user on CrmLogin with inline error banner until Super Admin / HR Lead approves
   const isExecutiveUser = currentRole === 'Super Admin' || currentRole === 'Admin';
   if (lateApprovalGate?.isBlocked && !isExecutiveUser) {
-    return (
-      <LateArrivalApprovalGateway
-        gate={lateApprovalGate}
-        onApproved={() => setLateApprovalGate(null)}
-        onLogout={logout}
-        checkStatus={checkLateApprovalStatus}
-      />
-    );
+    return <CrmLogin />;
   }
 
   const renderModule = () => {
