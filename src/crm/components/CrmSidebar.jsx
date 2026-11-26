@@ -158,7 +158,6 @@ export const CrmSidebar = ({ collapsed, setCollapsed }) => {
       category: 'Command Center',
       items: [
         { id: 'dashboard', label: 'Executive Dashboard', icon: LayoutDashboard },
-        { id: 'hr-tasks', label: 'HR Task Assignment', icon: CheckSquare },
         { id: 'consulting', label: 'Consulting & Bookings', icon: CalendarCheck }
       ]
     },
