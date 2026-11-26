@@ -890,18 +890,22 @@ export const sendServiceEnquiryConfirmationEmail = async ({
   const displayName = (name || '').trim() || recipientEmail.split('@')[0];
   const refCode = referenceNumber || `REV-${Date.now().toString(36).toUpperCase()}`;
   const sTitle = serviceTitle || 'International Consulting & Recruitment Service';
+  const submittedDateStr = new Date().toLocaleString('en-US', { dateStyle: 'medium', timeStyle: 'short' });
 
-  const subject = `Enquiry Acknowledged: ${sTitle} (Ref: ${refCode}) – The Revival International`;
+  const subject = serviceId === 'contact_us'
+    ? 'Your Enquiry Has Been Received – The Revival International'
+    : `Enquiry Acknowledged: ${sTitle} (Ref: ${refCode}) – The Revival International`;
 
   const textBody = `
 Dear ${displayName},
 
 Thank you for reaching out to The Revival International!
 
-We have successfully received your service enquiry:
+We have successfully received your enquiry:
 --------------------------------------------------
 Reference Number:  ${refCode}
-Requested Service: ${sTitle}
+Enquiry Purpose:   ${sTitle}
+Submitted Date:    ${submittedDateStr}
 Client Name:       ${displayName}
 ${company ? `Organization:       ${company}\n` : ''}Email:             ${recipientEmail}
 ${phone ? `Contact Number:    ${phone}\n` : ''}${countryInterest ? `Country/Region:    ${countryInterest}\n` : ''}${consultationDate ? `Appointment Date:  ${consultationDate} at ${consultationTime || 'Scheduled'} (${consultationMode || 'Virtual'})\n` : ''}${message ? `Enquiry Brief:     ${message}\n` : ''}Status:            Assigned to Senior Advisor (Dhanalakshimi)

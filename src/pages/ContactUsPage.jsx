@@ -111,8 +111,13 @@ export const ContactUsPage = () => {
     if (!formData.message || formData.message.trim().length < 10) {
       errors.message = 'Please provide message details (minimum 10 characters).';
     }
+    if (!consentAgreed) {
+      errors.consent = 'Please agree to the Privacy Policy before submitting your enquiry.';
+    }
     return errors;
   };
+
+  const [lastSubmittedKey, setLastSubmittedKey] = useState('');
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -125,41 +130,50 @@ export const ContactUsPage = () => {
       trackEnquiryValidationFailure('contact_page', activeService?.id || 'general', Object.keys(errors));
       return;
     }
+
+    const submissionKey = `${formData.email.trim().toLowerCase()}::${formData.message.trim()}`;
+    if (submissionKey === lastSubmittedKey) {
+      setSubmitError('This exact enquiry was already submitted. Please modify your message if you need to send a new request.');
+      return;
+    }
+
     setFormErrors({});
     setIsSubmitting(true);
 
     const attribution = getAttributionData();
 
     const purposeLabels = {
-      callback: 'Request a Callback',
-      office_visit: 'Schedule Office Visit',
-      partnership: 'Corporate / Institutional Partnership',
-      case_support: 'Existing Application / Visa Case Support',
-      general: 'Media, Press & General Support'
+      callback: 'Request a Direct Callback',
+      corporate_recruitment: 'Corporate Recruitment Enquiry',
+      partnership: 'Submit a Partnership Proposal',
+      office_visit: 'Schedule an Office Visit',
+      study_abroad: 'Study Abroad Consultation',
+      visa_verification: 'Visa & Verification Enquiry',
+      job_support: 'Job Application Support',
+      general: 'General Enquiry'
     };
     const officeLabels = {
-      dubai_hq: 'Dubai Global HQ (UAE)',
-      india_hub: 'India Operations Hub (Chennai)',
-      nearest: 'Nearest Available Desk'
+      dubai_hq: 'Dubai Global HQ (UAE & GCC)',
+      chennai_hub: 'Chennai Operations Hub (India)',
+      international: 'International Operations'
     };
     const channelLabels = {
-      phone: 'Phone Call',
+      phone: 'Direct Phone Call',
       whatsapp: 'WhatsApp',
-      video: 'Video Consultation (Zoom/Meet)',
-      email: 'Email Reply'
+      email: 'Email'
     };
     const timeLabels = {
-      morning: 'Morning (9:00 AM - 12:00 PM)',
-      afternoon: 'Afternoon (12:00 PM - 4:00 PM)',
-      evening: 'Evening (4:00 PM - 7:00 PM)',
-      anytime: 'Anytime During Business Hours'
+      anytime: 'Anytime During Business Hours',
+      morning: 'Morning (9 AM – 12 PM)',
+      afternoon: 'Afternoon (12 PM – 4 PM)',
+      evening: 'Evening (4 PM – 7 PM)'
     };
 
     const metaSummary = [
-      `Purpose: ${purposeLabels[formData.purpose] || 'General Support'}`,
-      `Preferred Office: ${officeLabels[formData.preferredOffice] || 'Dubai Global HQ'}`,
-      `Contact Method: ${channelLabels[formData.contactChannel] || 'Phone Call'}`,
-      `Preferred Time: ${timeLabels[formData.preferredTime] || 'Anytime'}`,
+      `Purpose: ${purposeLabels[formData.purpose] || 'General Enquiry'}`,
+      `Preferred Desk: ${officeLabels[formData.preferredOffice] || 'Dubai Global HQ (UAE & GCC)'}`,
+      `Contact Method: ${channelLabels[formData.contactChannel] || 'Direct Phone Call'}`,
+      `Preferred Time: ${timeLabels[formData.preferredTime] || 'Anytime During Business Hours'}`,
       ...(formData.purpose === 'office_visit' && formData.visitDate ? [`Preferred Visit Date: ${formData.visitDate}`] : []),
       ...(formData.subject.trim() ? [`Subject: ${formData.subject.trim()}`] : [])
     ].join(' | ');
@@ -168,14 +182,24 @@ export const ContactUsPage = () => {
       name: formData.name.trim(),
       email: formData.email.trim(),
       phone: phone.trim(),
-      serviceId: activeService ? activeService.id : null,
-      serviceTitle: activeService ? activeService.title : null,
+      serviceId: activeService ? activeService.id : 'contact_us',
+      serviceTitle: activeService ? activeService.title : (purposeLabels[formData.purpose] || 'General Enquiry'),
+      preferredContactMethod: channelLabels[formData.contactChannel] || 'Direct Phone Call',
       company: activeService
         ? `Service Inquiry: ${activeService.title}`
         : `${purposeLabels[formData.purpose] || 'Contact Desk'} (${officeLabels[formData.preferredOffice] || 'Global'})`,
       message: activeService
         ? `[Inquiring about: ${activeService.title} (${activeService.category})]\n[${metaSummary}]\n\n${formData.message.trim()}`
         : `[${metaSummary}]\n\n${formData.message.trim()}`,
+      customFields: {
+        source: 'Contact Us Page',
+        purpose: purposeLabels[formData.purpose] || 'General Enquiry',
+        preferredOffice: officeLabels[formData.preferredOffice] || 'Dubai Global HQ (UAE & GCC)',
+        preferredContactMethod: channelLabels[formData.contactChannel] || 'Direct Phone Call',
+        preferredTime: timeLabels[formData.preferredTime] || 'Anytime During Business Hours',
+        visitDate: formData.visitDate || null,
+        subject: formData.subject.trim() || null
+      },
       utmSource: attribution.utmSource,
       utmMedium: attribution.utmMedium,
       utmCampaign: attribution.utmCampaign,
@@ -196,9 +220,11 @@ export const ContactUsPage = () => {
       }
 
       const generatedRef = result.referenceNumber || (result.data && result.data.referenceNumber) || (result.lead && result.lead.referenceNumber) || null;
+      setLastSubmittedKey(submissionKey);
       setSubmittedRef(generatedRef);
       setSubmitted(true);
       setPhone('');
+      setConsentAgreed(false);
       setFormData({
         name: '',
         email: '',
@@ -234,7 +260,7 @@ export const ContactUsPage = () => {
   };
 
   return (
-    <div className="max-w-7xl mx-auto px-4 sm:px-8 py-12 space-y-16">
+    <div className="max-w-7xl mx-auto px-4 sm:px-8 pt-12 pb-24 space-y-16">
       <SEO
         title="Contact Revival International Dubai | Executive Recruitment & Academic Advisory"
         description="Connect directly with Revival International Dubai for international executive search, corporate staffing, university admissions advisory, and exam preparation."
@@ -283,13 +309,13 @@ export const ContactUsPage = () => {
       <ScrollReveal>
         <div className="text-center space-y-3 max-w-3xl mx-auto">
           <span className="bg-gold-500/10 text-gold-600 dark:text-gold-400 text-xs font-bold px-3.5 py-1 rounded-full uppercase tracking-wider">
-            Direct Executive & Advisory Consultation
+            DIRECT EXECUTIVE & ADVISORY CONSULTATION
           </span>
           <h1 className="font-serif text-4xl sm:text-5xl font-extrabold text-navy-900 dark:text-white">
-            Contact Revival International
+            Contact The Revival International
           </h1>
           <p className="text-xs sm:text-sm text-slate-800 dark:text-slate-200 leading-relaxed font-medium">
-            Connect directly with our senior talent acquisition leads, international education counselors, and corporate client managers.
+            Connect with our international recruitment specialists, education consultants and corporate client relationship managers for professional assistance, business enquiries and personalized consultation.
           </p>
         </div>
       </ScrollReveal>
@@ -554,10 +580,13 @@ export const ContactUsPage = () => {
                     className="w-full bg-slate-50 dark:bg-navy-950 border border-slate-300 dark:border-navy-700 rounded-xl p-2.5 text-navy-900 dark:text-white text-xs focus:outline-none focus:ring-2 focus:ring-gold-500"
                   >
                     <option value="callback">Request a Direct Callback</option>
-                    <option value="office_visit">Schedule an Office Visit (Dubai / Chennai)</option>
-                    <option value="partnership">Corporate / University Partnership</option>
-                    <option value="case_support">Existing Application / Visa Case Support</option>
-                    <option value="general">Media, Press & General Support</option>
+                    <option value="corporate_recruitment">Corporate Recruitment Enquiry</option>
+                    <option value="partnership">Submit a Partnership Proposal</option>
+                    <option value="office_visit">Schedule an Office Visit</option>
+                    <option value="study_abroad">Study Abroad Consultation</option>
+                    <option value="visa_verification">Visa & Verification Enquiry</option>
+                    <option value="job_support">Job Application Support</option>
+                    <option value="general">General Enquiry</option>
                   </select>
                 </div>
               </div>
@@ -575,8 +604,8 @@ export const ContactUsPage = () => {
                     className="w-full bg-slate-50 dark:bg-navy-950 border border-slate-300 dark:border-navy-700 rounded-xl p-2.5 text-navy-900 dark:text-white text-xs focus:outline-none focus:ring-2 focus:ring-gold-500"
                   >
                     <option value="dubai_hq">Dubai Global HQ (UAE & GCC)</option>
-                    <option value="india_hub">India Operations Hub (Chennai, India)</option>
-                    <option value="nearest">Nearest Available Desk</option>
+                    <option value="chennai_hub">Chennai Operations Hub (India)</option>
+                    <option value="international">International Operations</option>
                   </select>
                 </div>
 
@@ -591,9 +620,8 @@ export const ContactUsPage = () => {
                     className="w-full bg-slate-50 dark:bg-navy-950 border border-slate-300 dark:border-navy-700 rounded-xl p-2.5 text-navy-900 dark:text-white text-xs focus:outline-none focus:ring-2 focus:ring-gold-500"
                   >
                     <option value="phone">Direct Phone Call</option>
-                    <option value="whatsapp">WhatsApp Message / Call</option>
-                    <option value="video">Video Consultation (Zoom / Meet)</option>
-                    <option value="email">Email Correspondence</option>
+                    <option value="whatsapp">WhatsApp</option>
+                    <option value="email">Email</option>
                   </select>
                 </div>
               </div>
@@ -611,9 +639,9 @@ export const ContactUsPage = () => {
                     className="w-full bg-slate-50 dark:bg-navy-950 border border-slate-300 dark:border-navy-700 rounded-xl p-2.5 text-navy-900 dark:text-white text-xs focus:outline-none focus:ring-2 focus:ring-gold-500"
                   >
                     <option value="anytime">Anytime During Business Hours</option>
-                    <option value="morning">Morning (9:00 AM – 12:00 PM)</option>
-                    <option value="afternoon">Afternoon (12:00 PM – 4:00 PM)</option>
-                    <option value="evening">Evening (4:00 PM – 7:00 PM)</option>
+                    <option value="morning">Morning (9 AM – 12 PM)</option>
+                    <option value="afternoon">Afternoon (12 PM – 4 PM)</option>
+                    <option value="evening">Evening (4 PM – 7 PM)</option>
                   </select>
                 </div>
 
@@ -709,38 +737,48 @@ export const ContactUsPage = () => {
                     type="checkbox"
                     required
                     checked={consentAgreed}
-                    onChange={(e) => setConsentAgreed(e.target.checked)}
+                    onChange={(e) => {
+                      setConsentAgreed(e.target.checked);
+                      if (e.target.checked && formErrors.consent) {
+                        setFormErrors(prev => ({ ...prev, consent: null }));
+                      }
+                    }}
                     className="mt-0.5 rounded text-gold-500 focus:ring-gold-500 h-4 w-4 border-slate-300 dark:border-navy-700 bg-white dark:bg-navy-950"
                   />
                   <span className="text-[11px] text-slate-600 dark:text-slate-400 leading-snug">
-                    I agree to Revival International collecting and processing my enquiry data in accordance with the{' '}
+                    I agree to The Revival International collecting and processing my enquiry data in accordance with the{' '}
                     <button
                       type="button"
                       onClick={() => navigateTo('legal/privacy-policy')}
-                      className="text-gold-500 font-bold hover:underline"
+                      className="text-gold-500 font-bold hover:underline cursor-pointer"
                     >
                       Privacy Policy
                     </button>{' '}
-                    and UAE PDPL / India DPDP Act 2023.
+                    and applicable data protection regulations. <span className="text-rose-500 font-bold">*</span>
                   </span>
                 </label>
+                {formErrors.consent && (
+                  <p className="text-[10px] text-rose-500 mt-1 font-semibold flex items-center gap-1">
+                    <AlertCircle className="w-3 h-3 shrink-0" /> {formErrors.consent}
+                  </p>
+                )}
               </div>
 
               <button
                 type="submit"
                 disabled={isSubmitting}
-                className={`w-full py-3.5 bg-gold-shimmer text-navy-950 font-bold text-xs rounded-xl shadow-gold-glow flex items-center justify-center space-x-2 transition focus:outline-none focus-visible:ring-2 focus-visible:ring-gold-500 ${isSubmitting ? 'opacity-70 cursor-not-allowed' : 'hover:opacity-95'
+                className={`w-full py-3.5 bg-gold-shimmer text-navy-950 font-bold text-xs rounded-xl shadow-gold-glow flex items-center justify-center space-x-2 transition focus:outline-none focus-visible:ring-2 focus-visible:ring-gold-500 cursor-pointer ${isSubmitting ? 'opacity-70 cursor-not-allowed' : 'hover:opacity-95'
                   }`}
               >
                 {isSubmitting ? (
                   <>
                     <Loader2 className="w-4 h-4 animate-spin" />
-                    <span>Submitting Inquiry to Dubai Team...</span>
+                    <span>Submitting Enquiry...</span>
                   </>
                 ) : (
                   <>
                     <Send className="w-4 h-4" />
-                    <span>Submit Direct Inquiry</span>
+                    <span>Submit Enquiry</span>
                   </>
                 )}
               </button>
@@ -762,14 +800,14 @@ export const ContactUsPage = () => {
                 Thank you for connecting with Revival International. Your inquiry has been securely logged into our CRM system. A senior consultant from our Dubai headquarters will review your requirements and reach out within <strong className="text-emerald-600 dark:text-emerald-400">2 to 4 business hours</strong>.
               </p>
 
-              <div className="p-3.5 bg-slate-50 dark:bg-navy-950 border border-slate-200 dark:border-navy-800 rounded-xl max-w-sm mx-auto text-[11px] text-slate-600 dark:text-slate-400 space-y-1 text-left">
-                <div className="flex justify-between">
-                  <span>Advisory Office:</span>
-                  <span className="font-semibold text-slate-900 dark:text-white">Rolex Tower, Business Bay, Dubai</span>
+              <div className="p-3.5 bg-slate-50 dark:bg-navy-950 border border-slate-200 dark:border-navy-800 rounded-xl max-w-md mx-auto text-[11px] text-slate-600 dark:text-slate-400 space-y-1.5 text-left">
+                <div className="flex justify-between gap-2">
+                  <span className="shrink-0">Headquarters:</span>
+                  <span className="font-semibold text-slate-900 dark:text-white text-right">{SITE_CONFIG.offices[0].fullAddress}</span>
                 </div>
-                <div className="flex justify-between">
-                  <span>Urgent Queries:</span>
-                  <span className="font-semibold text-gold-600 dark:text-gold-400">+971 4 123 4567</span>
+                <div className="flex justify-between gap-2">
+                  <span className="shrink-0">Direct Helpline:</span>
+                  <span className="font-semibold text-gold-600 dark:text-gold-400">{SITE_CONFIG.offices[1].phone}</span>
                 </div>
               </div>
 
@@ -797,14 +835,75 @@ export const ContactUsPage = () => {
           {/* Interactive Map Embed Visual Simulation */}
           <div className="pt-4">
             <div className="p-4 bg-slate-100 dark:bg-navy-950 border border-slate-200 dark:border-navy-800 rounded-2xl text-center space-y-1">
-              <p className="font-bold text-navy-900 dark:text-white">📍 Interactive Location Map</p>
-              <p className="text-[11px] text-slate-700 dark:text-slate-300 font-medium">Rolex Tower • Business Bay • Dubai International Financial Centre (DIFC)</p>
+              <p className="font-bold text-navy-900 dark:text-white">📍 Global & Regional Office Locations</p>
+              <p className="text-[11px] text-slate-700 dark:text-slate-300 font-medium">{SITE_CONFIG.offices[0].fullAddress}</p>
             </div>
           </div>
 
         </div>
 
       </div>
+
+      {/* Contact Information 4-Card Directory Section */}
+      <ScrollReveal>
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-5">
+          {/* Card 1: Dubai Global Headquarters */}
+          <div className="glass-card bg-white dark:bg-navy-900 border border-slate-200 dark:border-navy-800 p-5 rounded-2xl shadow-sm space-y-2.5">
+            <div className="w-9 h-9 rounded-xl bg-gold-500/10 text-gold-600 dark:text-gold-400 flex items-center justify-center">
+              <Building2 className="w-5 h-5" />
+            </div>
+            <div>
+              <h4 className="font-serif font-bold text-sm text-navy-900 dark:text-white">Dubai Global Headquarters</h4>
+              <p className="text-[10px] font-bold uppercase tracking-wider text-gold-600 dark:text-gold-400">UAE & GCC Regional Operations</p>
+            </div>
+            <p className="text-xs text-slate-600 dark:text-slate-300 leading-relaxed">{SITE_CONFIG.offices[0].fullAddress}</p>
+            <p className="text-xs font-bold text-navy-900 dark:text-white">{SITE_CONFIG.offices[0].phone}</p>
+          </div>
+
+          {/* Card 2: Chennai Operations Hub */}
+          <div className="glass-card bg-white dark:bg-navy-900 border border-slate-200 dark:border-navy-800 p-5 rounded-2xl shadow-sm space-y-2.5">
+            <div className="w-9 h-9 rounded-xl bg-gold-500/10 text-gold-600 dark:text-gold-400 flex items-center justify-center">
+              <MapPin className="w-5 h-5" />
+            </div>
+            <div>
+              <h4 className="font-serif font-bold text-sm text-navy-900 dark:text-white">Chennai Operations Hub</h4>
+              <p className="text-[10px] font-bold uppercase tracking-wider text-gold-600 dark:text-gold-400">India Operations & Client Support</p>
+            </div>
+            <p className="text-xs text-slate-600 dark:text-slate-300 leading-relaxed">{SITE_CONFIG.offices[1].fullAddress}</p>
+            <p className="text-xs font-bold text-navy-900 dark:text-white">{SITE_CONFIG.offices[1].phone}</p>
+          </div>
+
+          {/* Card 3: Email Enquiries */}
+          <div className="glass-card bg-white dark:bg-navy-900 border border-slate-200 dark:border-navy-800 p-5 rounded-2xl shadow-sm space-y-2.5">
+            <div className="w-9 h-9 rounded-xl bg-gold-500/10 text-gold-600 dark:text-gold-400 flex items-center justify-center">
+              <Mail className="w-5 h-5" />
+            </div>
+            <div>
+              <h4 className="font-serif font-bold text-sm text-navy-900 dark:text-white">Email Enquiries</h4>
+              <p className="text-[10px] font-bold uppercase tracking-wider text-gold-600 dark:text-gold-400">Official Advisory Desks</p>
+            </div>
+            <div className="space-y-1 text-xs">
+              <a href={`mailto:${SITE_CONFIG.offices[1].email}`} className="block font-semibold text-navy-900 dark:text-white hover:text-gold-500 truncate">{SITE_CONFIG.offices[1].email}</a>
+              <a href={`mailto:${SITE_CONFIG.offices[0].email}`} className="block font-semibold text-slate-600 dark:text-slate-300 hover:text-gold-500 truncate">{SITE_CONFIG.offices[0].email}</a>
+            </div>
+          </div>
+
+          {/* Card 4: Business Hours */}
+          <div className="glass-card bg-white dark:bg-navy-900 border border-slate-200 dark:border-navy-800 p-5 rounded-2xl shadow-sm space-y-2.5">
+            <div className="w-9 h-9 rounded-xl bg-gold-500/10 text-gold-600 dark:text-gold-400 flex items-center justify-center">
+              <Clock className="w-5 h-5" />
+            </div>
+            <div>
+              <h4 className="font-serif font-bold text-sm text-navy-900 dark:text-white">Business Hours</h4>
+              <p className="text-[10px] font-bold uppercase tracking-wider text-gold-600 dark:text-gold-400">Regional Consultation Windows</p>
+            </div>
+            <div className="space-y-1 text-[11px] text-slate-600 dark:text-slate-300">
+              <p><strong>Dubai HQ:</strong> {SITE_CONFIG.offices[0].workingHours}</p>
+              <p><strong>India Hub:</strong> {SITE_CONFIG.offices[1].workingHours}</p>
+            </div>
+          </div>
+        </div>
+      </ScrollReveal>
 
       {/* Frequently Asked Questions Section */}
       <ScrollReveal>
