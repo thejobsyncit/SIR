@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useCallback, useMemo } from 'react';
+import { DashboardCandidateAvatar } from '../../utils/candidateAvatars';
 import {
   Search,
   Users,
