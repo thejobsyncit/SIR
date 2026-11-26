@@ -5,7 +5,7 @@ import {
   DollarSign, ShieldCheck, CheckCircle2, ArrowUpRight, GraduationCap, 
   Compass, BookOpen, AlertCircle, ChevronRight, Phone, MessageSquare, 
   Filter, RefreshCw, CheckSquare, Layers, UserCheck, XCircle, LayoutDashboard, Eye,
-  ShieldAlert, Check, X, Lock
+  ShieldAlert, Check, X, Lock, Search, Download, Mail, Inbox, ChevronLeft
 } from 'lucide-react';
 import { RECRUITER_LEADERBOARD, AUDIT_LOGS } from '../data/mockCrmData';
 import ScrollReveal from '../../components/ScrollReveal';
@@ -29,8 +29,10 @@ export const CrmDashboard = () => {
     fetchFollowUpsSummary,
     setActiveModule,
     updateFollowUpStatus,
-    leads,
+    leads = [],
     fetchLeads,
+    updateLead,
+    employees = [],
     candidates = [],
     clients = [],
     invoices = [],
@@ -41,6 +43,62 @@ export const CrmDashboard = () => {
   const [adminRoleView, setAdminRoleView] = useState('master');
   const [dateRange, setDateRange] = useState('all');
   const [loadingMetrics, setLoadingMetrics] = useState(false);
+
+  // All Leads Directory filter & pagination state
+  const [leadSearchQuery, setLeadSearchQuery] = useState('');
+  const [leadServiceFilter, setLeadServiceFilter] = useState('all');
+  const [leadStatusFilter, setLeadStatusFilter] = useState('all');
+  const [leadAssignedFilter, setLeadAssignedFilter] = useState('all');
+  const [leadPage, setLeadPage] = useState(1);
+  const [leadPageSize, setLeadPageSize] = useState('25');
+
+  const cleanPhoneForWa = (p) => String(p || '').replace(/[^0-9]/g, '');
+
+  const filteredLeads = (leads || []).filter(lead => {
+    const q = leadSearchQuery.trim().toLowerCase();
+    const matchesSearch = !q ||
+      (lead.name || '').toLowerCase().includes(q) ||
+      (lead.email || '').toLowerCase().includes(q) ||
+      (lead.phone || '').toLowerCase().includes(q) ||
+      (lead.referenceNumber || '').toLowerCase().includes(q) ||
+      (lead.company || '').toLowerCase().includes(q);
+    const matchesService = leadServiceFilter === 'all' ||
+      lead.serviceId === leadServiceFilter ||
+      (lead.serviceTitle || '').toLowerCase().includes(leadServiceFilter.toLowerCase());
+    const matchesStatus = leadStatusFilter === 'all' || lead.status === leadStatusFilter;
+    const matchesAssigned = leadAssignedFilter === 'all' ||
+      (leadAssignedFilter === 'unassigned' ? !lead.assignedEmployee : lead.assignedEmployee === leadAssignedFilter);
+    return matchesSearch && matchesService && matchesStatus && matchesAssigned;
+  });
+
+  const paginatedLeads = leadPageSize === 'all'
+    ? filteredLeads
+    : filteredLeads.slice((leadPage - 1) * Number(leadPageSize), leadPage * Number(leadPageSize));
+  const totalPages = leadPageSize === 'all' ? 1 : Math.max(1, Math.ceil(filteredLeads.length / Number(leadPageSize)));
+
+  const handleExportLeadsCsv = () => {
+    if (!filteredLeads || filteredLeads.length === 0) return;
+    const headers = ['Reference ID', 'Name', 'Phone', 'Email', 'Company', 'Service', 'Status', 'Assigned Consultant', 'Created At'];
+    const rows = filteredLeads.map(l => [
+      l.referenceNumber || l.id,
+      l.name || '',
+      l.phone || '',
+      l.email || '',
+      l.company || '',
+      l.serviceTitle || l.serviceId || '',
+      l.status || '',
+      l.assignedEmployee || 'Unassigned',
+      l.createdAt || ''
+    ].map(v => `"${String(v).replace(/"/g, '""')}"`).join(','));
+    const csv = [headers.join(','), ...rows].join('\n');
+    const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `revival_leads_${new Date().toISOString().split('T')[0]}.csv`;
+    a.click();
+    URL.revokeObjectURL(url);
+  };
 
   useEffect(() => {
     if (fetchConsultingMetrics) fetchConsultingMetrics();
@@ -423,108 +481,258 @@ export const CrmDashboard = () => {
           </div>
         </div>
 
-        {/* Master Service Performance Breakdown Table */}
-        <div className="space-y-3 pt-2">
+        {/* All Leads Directory (Moved from Super Admin Panel) */}
+        <div className="space-y-4 pt-2">
           <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-2">
             <h3 className="font-serif text-base font-bold text-slate-900 dark:text-white flex items-center gap-2">
-              <GraduationCap className="w-5 h-5 text-gold-500" />
-              Service-Wise Enquiry Breakdown & Conversion Rates
+              <Inbox className="w-5 h-5 text-gold-500" />
+              All Leads Directory ({filteredLeads.length})
             </h3>
             <span className="text-[11px] text-slate-500 dark:text-slate-400 font-medium">
-              Data synchronized from SQLite leads table across 6 Academic Catalogs
+              Showing {paginatedLeads.length} of {filteredLeads.length} filtered inquiries ({(leads || []).length} total)
             </span>
           </div>
 
-          <div className="overflow-x-auto rounded-2xl border border-slate-200 dark:border-navy-800">
-            <table className="w-full text-left text-xs border-collapse">
-              <thead>
-                <tr className="bg-slate-100 dark:bg-navy-950 text-slate-700 dark:text-gold-400 font-serif uppercase tracking-wider text-[10px] border-b border-slate-200 dark:border-navy-800">
-                  <th className="p-3 font-extrabold">ACADEMIC / RECRUITMENT SERVICE</th>
-                  <th className="p-3 font-extrabold">CATEGORY</th>
-                  <th className="p-3 font-extrabold text-center">TOTAL LEADS</th>
-                  <th className="p-3 font-extrabold text-center">NEW</th>
-                  <th className="p-3 font-extrabold text-center">AWAITING FOLLOW-UP</th>
-                  <th className="p-3 font-extrabold text-center">IN PROGRESS</th>
-                  <th className="p-3 font-extrabold text-center">CONVERTED</th>
-                  <th className="p-3 font-extrabold text-center">CONVERSION RATE</th>
-                  <th className="p-3 font-extrabold text-right">ACTION</th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-slate-100 dark:divide-navy-800 text-slate-800 dark:text-slate-300">
-                                {(() => {
-                  const CORE_6_SERVICE_IDS = ['intl-consult', 'college-adm', 'school-career', 'intl-adm', 'school-academy', 'exec-seminars-lang'];
-                  const filtered = (serviceBreakdown || []).filter(srv => 
-                    CORE_6_SERVICE_IDS.includes(srv.serviceId) ||
-                    ['international consulting', 'college admission', 'career guidance', 'international admissions', 'school academy', 'seminars & language', 'language test', 'language prep'].some(k => (srv.serviceTitle || '').toLowerCase().includes(k))
-                  );
-                  return (filtered.length > 0 ? filtered : [
-                    { serviceId: 'intl-consult', serviceTitle: 'International Consulting', category: 'Academic Advisory', total: 0, newCount: 0, awaitingFollowUp: 0, inProgress: 0, converted: 0, conversionRate: 0 },
-                    { serviceId: 'college-adm', serviceTitle: 'College Admission Assistance', category: 'Higher Education', total: 0, newCount: 0, awaitingFollowUp: 0, inProgress: 0, converted: 0, conversionRate: 0 },
-                    { serviceId: 'school-career', serviceTitle: 'School Student Career Guidance', category: 'Career Guidance', total: 0, newCount: 0, awaitingFollowUp: 0, inProgress: 0, converted: 0, conversionRate: 0 },
-                    { serviceId: 'intl-adm', serviceTitle: 'International Admissions', category: 'Global Admissions', total: 0, newCount: 0, awaitingFollowUp: 0, inProgress: 0, converted: 0, conversionRate: 0 },
-                    { serviceId: 'school-academy', serviceTitle: 'Academy for School Students', category: 'Academic Enrichment', total: 0, newCount: 0, awaitingFollowUp: 0, inProgress: 0, converted: 0, conversionRate: 0 },
-                    { serviceId: 'exec-seminars-lang', serviceTitle: 'Executive Seminars & Language Prep', category: 'Test Prep & Executive', total: 0, newCount: 0, awaitingFollowUp: 0, inProgress: 0, converted: 0, conversionRate: 0 }
-                  ]);
-                })().map(srv => (
-                  <tr key={srv.serviceId} className="hover:bg-slate-50 dark:hover:bg-navy-950/60 transition">
-                    <td className="p-3 font-bold text-slate-900 dark:text-white flex items-center gap-2">
-                      <div className="w-6 h-6 rounded-lg bg-gold-500/10 text-gold-600 dark:text-gold-400 flex items-center justify-center font-bold text-[10px] shrink-0 border border-gold-500/20">
-                        🎓
-                      </div>
-                      <span className="truncate">{srv.serviceTitle}</span>
-                    </td>
-                    <td className="p-3">
-                      <span className="bg-slate-100 dark:bg-navy-900 text-slate-700 dark:text-slate-300 px-2 py-0.5 rounded text-[10px] font-semibold border border-slate-200 dark:border-navy-700">
-                        {srv.category}
-                      </span>
-                    </td>
-                    <td className="p-3 text-center font-bold text-slate-900 dark:text-white font-mono">
-                      {srv.total}
-                    </td>
-                    <td className="p-3 text-center font-bold text-emerald-600 dark:text-emerald-400 font-mono">
-                      {srv.newCount}
-                    </td>
-                    <td className="p-3 text-center font-bold text-amber-600 dark:text-amber-400 font-mono">
-                      {srv.awaitingFollowUp}
-                    </td>
-                    <td className="p-3 text-center font-bold text-purple-600 dark:text-purple-400 font-mono">
-                      {srv.inProgress}
-                    </td>
-                    <td className="p-3 text-center font-bold text-teal-600 dark:text-teal-400 font-mono">
-                      {srv.converted}
-                    </td>
-                    <td className="p-3 text-center">
-                      <span className={`px-2 py-0.5 rounded-full text-[10px] font-extrabold font-mono ${
-                        srv.conversionRate > 0
-                          ? 'bg-emerald-100 text-emerald-800 dark:bg-emerald-500/20 dark:text-emerald-300'
-                          : 'bg-slate-100 text-slate-600 dark:bg-navy-900 dark:text-slate-400'
-                      }`}>
-                        {srv.conversionRate}%
-                      </span>
-                    </td>
-                    <td className="p-3 text-right">
-                      <button
-                        onClick={() => {
-                          if (srv.serviceId === 'school-career' || (srv.serviceTitle || '').toLowerCase().includes('career')) {
-                            setActiveModule('career-guidance');
-                          } else if (srv.serviceId === 'school-academy' || (srv.serviceTitle || '').toLowerCase().includes('academy')) {
-                            setActiveModule('student-academy');
-                          } else {
-                            setActiveModule('consulting');
-                          }
-                        }}
-                        className="px-2.5 py-1 bg-navy-900 dark:bg-gold-500 text-white dark:text-navy-950 rounded-lg font-bold text-[10px] hover:opacity-90 transition cursor-pointer flex items-center gap-1 ml-auto"
-                        title={`Open bookings for ${srv.serviceTitle}`}
-                      >
-                        <span>View Bookings</span>
-                        <ChevronRight className="w-3 h-3" />
-                      </button>
-                    </td>
-                  </tr>
+          {/* Search & Filters Bar */}
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-6 gap-2.5 pt-2 border-t border-slate-200 dark:border-navy-800">
+            <div className="relative lg:col-span-2">
+              <Search className="w-3.5 h-3.5 text-slate-400 absolute left-3 top-2.5" />
+              <input
+                type="text"
+                value={leadSearchQuery}
+                onChange={e => { setLeadSearchQuery(e.target.value); setLeadPage(1); }}
+                placeholder="Search name, ref #, email, phone..."
+                className="w-full bg-slate-100 dark:bg-navy-950 border border-slate-300 dark:border-navy-700 text-slate-900 dark:text-white pl-8 pr-3 py-1.5 rounded-xl text-xs focus:outline-none focus:border-gold-500 font-semibold"
+              />
+            </div>
+
+            <div>
+              <select
+                value={leadServiceFilter}
+                onChange={e => { setLeadServiceFilter(e.target.value); setLeadPage(1); }}
+                className="w-full bg-slate-100 dark:bg-navy-950 border border-slate-300 dark:border-navy-700 text-slate-900 dark:text-white px-2.5 py-1.5 rounded-xl text-xs focus:outline-none focus:border-gold-500 font-semibold cursor-pointer"
+              >
+                <option value="all">All Services ({(leads || []).length})</option>
+                <option value="intl-consult">International Consulting</option>
+                <option value="college-adm">College Admission Assistance</option>
+                <option value="school-career">School Student Career Guidance</option>
+                <option value="intl-adm">International Admissions</option>
+                <option value="school-academy">Academy for School Students</option>
+                <option value="exec-seminars-lang">Executive Seminars & Language Prep</option>
+                <option value="contact_us">Contact Us Desk</option>
+              </select>
+            </div>
+
+            <div>
+              <select
+                value={leadStatusFilter}
+                onChange={e => { setLeadStatusFilter(e.target.value); setLeadPage(1); }}
+                className="w-full bg-slate-100 dark:bg-navy-950 border border-slate-300 dark:border-navy-700 text-slate-900 dark:text-white px-2.5 py-1.5 rounded-xl text-xs focus:outline-none focus:border-gold-500 font-semibold cursor-pointer"
+              >
+                <option value="all">All Pipeline Stages</option>
+                <option value="New Enquiry">New Enquiry</option>
+                <option value="Contact Pending">Contact Pending</option>
+                <option value="Contacted">Contacted</option>
+                <option value="Follow-up Required">Follow-up Required</option>
+                <option value="Qualified">Qualified</option>
+                <option value="In Progress">In Progress</option>
+                <option value="Converted">Converted</option>
+                <option value="Closed / Lost">Closed / Lost</option>
+              </select>
+            </div>
+
+            <div>
+              <select
+                value={leadAssignedFilter}
+                onChange={e => { setLeadAssignedFilter(e.target.value); setLeadPage(1); }}
+                className="w-full bg-slate-100 dark:bg-navy-950 border border-slate-300 dark:border-navy-700 text-slate-900 dark:text-white px-2.5 py-1.5 rounded-xl text-xs focus:outline-none focus:border-gold-500 font-semibold cursor-pointer"
+              >
+                <option value="all">All Consultants</option>
+                <option value="unassigned">Unassigned</option>
+                {(employees || []).map(emp => (
+                  <option key={emp.id} value={emp.name}>{emp.name}</option>
                 ))}
-              </tbody>
-            </table>
+              </select>
+            </div>
+
+            <div className="flex items-center gap-1.5">
+              <select
+                value={leadPageSize}
+                onChange={e => { setLeadPageSize(e.target.value); setLeadPage(1); }}
+                className="w-20 bg-slate-100 dark:bg-navy-950 border border-slate-300 dark:border-navy-700 text-slate-900 dark:text-white px-2 py-1.5 rounded-xl text-xs focus:outline-none font-semibold cursor-pointer"
+                title="Items per page"
+              >
+                <option value="25">25 / pg</option>
+                <option value="50">50 / pg</option>
+                <option value="100">100 / pg</option>
+                <option value="all">All</option>
+              </select>
+
+              <button
+                type="button"
+                onClick={handleExportLeadsCsv}
+                className="flex-1 px-2.5 py-1.5 bg-gold-500 hover:bg-gold-600 text-navy-950 font-bold text-xs rounded-xl transition flex items-center justify-center gap-1 shadow-xs cursor-pointer"
+                title="Export filtered leads to CSV"
+              >
+                <Download className="w-3.5 h-3.5" />
+                <span>CSV</span>
+              </button>
+            </div>
           </div>
+
+          {filteredLeads.length === 0 ? (
+            <div className="text-center py-10 space-y-2 bg-slate-50 dark:bg-navy-950/50 rounded-2xl border border-dashed border-slate-300 dark:border-navy-800">
+              <Inbox className="w-8 h-8 text-slate-400 mx-auto" />
+              <p className="font-serif text-sm font-bold text-slate-700 dark:text-slate-300">No Enquiries Found</p>
+              <p className="text-slate-500 dark:text-slate-400 text-xs">
+                No inquiries matched your current filters.
+              </p>
+            </div>
+          ) : (
+            <>
+              <div className="overflow-x-auto rounded-2xl border border-slate-200 dark:border-navy-800">
+                <table className="w-full text-left text-xs border-collapse">
+                  <thead>
+                    <tr className="bg-slate-100 dark:bg-navy-950 text-slate-900 dark:text-gold-400 font-serif uppercase tracking-wider text-[10px] border-b border-slate-200 dark:border-navy-800">
+                      <th className="p-3 font-extrabold whitespace-nowrap">Reference ID</th>
+                      <th className="p-3 font-extrabold whitespace-nowrap">Candidate Name</th>
+                      <th className="p-3 font-extrabold whitespace-nowrap">Phone Number</th>
+                      <th className="p-3 font-extrabold whitespace-nowrap">Email Address</th>
+                      <th className="p-3 font-extrabold whitespace-nowrap">Service & Track</th>
+                      <th className="p-3 font-extrabold whitespace-nowrap">Destination / Intake</th>
+                      <th className="p-3 font-extrabold whitespace-nowrap">Assigned Consultant</th>
+                      <th className="p-3 font-extrabold whitespace-nowrap">Status & Priority</th>
+                      <th className="p-3 font-extrabold text-right whitespace-nowrap">Action</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-slate-200 dark:divide-navy-800 text-slate-800 dark:text-slate-300">
+                    {paginatedLeads.map(lead => (
+                      <tr key={lead.id} className="hover:bg-slate-50 dark:hover:bg-navy-950/60 transition">
+                        <td className="p-3 whitespace-nowrap font-mono text-xs font-bold text-gold-600 dark:text-gold-400">
+                          {lead.referenceNumber || (lead.id ? `#${lead.id.slice(0, 8)}` : '—')}
+                        </td>
+                        <td className="p-3 whitespace-nowrap">
+                          <div className="flex items-center space-x-2.5">
+                            <div className="w-7 h-7 rounded-full bg-gold-500/20 text-gold-700 dark:text-gold-400 font-bold flex items-center justify-center border border-gold-500/30 text-xs shrink-0">
+                              {(lead.name || 'U').charAt(0).toUpperCase()}
+                            </div>
+                            <div className="min-w-0">
+                              <p className="font-bold text-slate-900 dark:text-white text-xs">{lead.name}</p>
+                              <p className="text-[10px] text-slate-500 dark:text-slate-400 truncate max-w-[140px]">
+                                {lead.organizationName || lead.company || 'Individual / Student'}
+                              </p>
+                            </div>
+                          </div>
+                        </td>
+                        <td className="p-3 whitespace-nowrap font-mono text-xs">
+                          {lead.phone ? (
+                            <a
+                              href={`https://wa.me/${cleanPhoneForWa(lead.phone)}`}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              className="font-semibold text-slate-700 dark:text-slate-300 hover:text-emerald-500 flex items-center gap-1.5 transition"
+                            >
+                              <Phone className="w-3.5 h-3.5 text-emerald-500 shrink-0" />
+                              <span>{lead.phone}</span>
+                            </a>
+                          ) : '—'}
+                        </td>
+                        <td className="p-3 font-mono text-xs">
+                          {lead.email ? (
+                            <a
+                              href={`mailto:${lead.email}`}
+                              className="font-semibold text-slate-700 dark:text-slate-300 hover:text-gold-500 flex items-center gap-1.5 truncate max-w-[180px] transition"
+                            >
+                              <Mail className="w-3.5 h-3.5 text-blue-500 shrink-0" />
+                              <span className="truncate">{lead.email}</span>
+                            </a>
+                          ) : '—'}
+                        </td>
+                        <td className="p-3">
+                          <span className="inline-block bg-blue-100 dark:bg-blue-500/20 text-blue-900 dark:text-blue-300 font-extrabold px-2.5 py-0.5 rounded-full text-[10px] border border-blue-300 dark:border-blue-500/30">
+                            {lead.serviceTitle || lead.serviceId || 'General Inquiry'}
+                          </span>
+                        </td>
+                        <td className="p-3">
+                          <p className="font-bold text-slate-900 dark:text-white text-[11px]">{lead.countryInterest || 'Global'}</p>
+                          <p className="text-[10px] text-slate-500 dark:text-slate-400">{[lead.intakeTerm, lead.degreeLevel].filter(Boolean).join(' • ') || 'Immediate'}</p>
+                        </td>
+                        <td className="p-3">
+                          <select
+                            value={lead.assignedEmployee || ''}
+                            onChange={async (e) => {
+                              const emp = e.target.value;
+                              if (updateLead) await updateLead(lead.id, { assignedEmployee: emp });
+                              if (fetchLeads) fetchLeads();
+                            }}
+                            className="text-[10px] font-bold bg-slate-100 dark:bg-navy-950 border border-slate-300 dark:border-navy-700 text-slate-900 dark:text-white px-2 py-1 rounded-xl focus:outline-none cursor-pointer max-w-[130px]"
+                          >
+                            <option value="">Unassigned</option>
+                            {(employees || []).map(emp => (
+                              <option key={emp.id} value={emp.name}>{emp.name}</option>
+                            ))}
+                          </select>
+                        </td>
+                        <td className="p-3">
+                          <select
+                            value={lead.status || 'New Enquiry'}
+                            onChange={async (e) => {
+                              if (updateLead) await updateLead(lead.id, { status: e.target.value });
+                              if (fetchLeads) fetchLeads();
+                            }}
+                            className="text-[10px] font-extrabold px-2 py-0.5 rounded-full border bg-slate-100 dark:bg-navy-950 border-slate-300 dark:border-navy-700 text-slate-800 dark:text-white cursor-pointer"
+                          >
+                            <option value="New Enquiry">New Enquiry</option>
+                            <option value="Contact Pending">Contact Pending</option>
+                            <option value="Contacted">Contacted</option>
+                            <option value="Follow-up Required">Follow-up Required</option>
+                            <option value="Qualified">Qualified</option>
+                            <option value="In Progress">In Progress</option>
+                            <option value="Converted">Converted</option>
+                            <option value="Closed / Lost">Closed / Lost</option>
+                          </select>
+                        </td>
+                        <td className="p-3 text-right">
+                          <button
+                            onClick={() => setActiveModule('consulting')}
+                            className="px-2.5 py-1 bg-navy-900 dark:bg-gold-500 text-white dark:text-navy-950 rounded-lg font-bold text-[10px] hover:opacity-90 transition cursor-pointer inline-flex items-center gap-1"
+                          >
+                            <span>Manage</span>
+                            <ChevronRight className="w-3 h-3" />
+                          </button>
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+
+              {totalPages > 1 && (
+                <div className="flex justify-between items-center pt-2 text-xs">
+                  <span className="text-slate-500">Page <strong>{leadPage}</strong> of <strong>{totalPages}</strong></span>
+                  <div className="flex items-center gap-2">
+                    <button
+                      type="button"
+                      onClick={() => setLeadPage(p => Math.max(1, p - 1))}
+                      disabled={leadPage <= 1}
+                      className="px-3 py-1 rounded-xl border border-slate-300 dark:border-navy-700 disabled:opacity-40 cursor-pointer flex items-center gap-1"
+                    >
+                      <ChevronLeft className="w-3.5 h-3.5" /> Prev
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setLeadPage(p => Math.min(totalPages, p + 1))}
+                      disabled={leadPage >= totalPages}
+                      className="px-3 py-1 rounded-xl border border-slate-300 dark:border-navy-700 disabled:opacity-40 cursor-pointer flex items-center gap-1"
+                    >
+                      Next <ChevronRight className="w-3.5 h-3.5" />
+                    </button>
+                  </div>
+                </div>
+              )}
+            </>
+          )}
+        </div>
 
           {/* Recent Live Consultation Bookings Feed */}
           {leads && leads.length > 0 && (
@@ -574,7 +782,6 @@ export const CrmDashboard = () => {
               </div>
             </div>
           )}
-        </div>
 
       </div>
       </ScrollReveal>
