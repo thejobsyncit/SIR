@@ -230,7 +230,12 @@ export const CrmSidebar = ({ collapsed, setCollapsed }) => {
 
   // Placement Coordinator Dashboard features
   const placementMenuItems = [
-    { id: 'placement-coordinator', label: 'Placement Coordinator', icon: Award },
+    { id: 'plc-overview', label: 'Placement Dashboard', icon: LayoutDashboard },
+    { id: 'plc-review', label: 'Placement Review Queue', icon: UserCheck },
+    { id: 'plc-submissions', label: 'Employer Submissions', icon: Building2 },
+    { id: 'plc-interviews', label: 'Employer Interviews', icon: Calendar },
+    { id: 'plc-offers', label: 'Offers & Joining', icon: Award },
+    { id: 'plc-notifications', label: 'Alerts & Activity', icon: Bell },
     { id: 'my-attendance', label: 'My Attendance', icon: CalendarCheck },
     { id: 'leave', label: 'Leave Requests', icon: Calendar },
     { id: 'my-profile', label: 'My Profile', icon: User }
@@ -238,7 +243,12 @@ export const CrmSidebar = ({ collapsed, setCollapsed }) => {
 
   // Interviewer Dashboard features
   const interviewerMenuItems = [
-    { id: 'interview-management', label: 'Interview Management', icon: Users },
+    { id: 'int-overview', label: 'Interview Dashboard', icon: LayoutDashboard },
+    { id: 'int-assigned', label: 'Candidate Interview Queue', icon: Users },
+    { id: 'int-schedule', label: 'Interview Calendar', icon: Calendar },
+    { id: 'int-evaluation', label: 'Pending Evaluations', icon: CheckSquare },
+    { id: 'int-history', label: 'Interview History', icon: BookOpen },
+    { id: 'int-notifications', label: 'Alerts & Activity', icon: Bell },
     { id: 'my-attendance', label: 'My Attendance', icon: CalendarCheck },
     { id: 'leave', label: 'Leave Requests', icon: Calendar },
     { id: 'my-profile', label: 'My Profile', icon: User }

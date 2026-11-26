@@ -336,34 +336,31 @@ const CrmAppContent = () => {
       // Placement Coordinator Management
       case 'placement-coordinator':
       case 'plc-overview':
-      case 'plc-students':
-      case 'plc-eligibility':
-      case 'plc-companies':
-      case 'plc-drives':
-      case 'plc-registration':
-      case 'plc-applications':
-      case 'plc-events':
+        return <CrmPlacementCoordinator initialTab="queue" />;
+      case 'plc-review':
+        return <CrmPlacementCoordinator initialTab="review" />;
+      case 'plc-submissions':
+        return <CrmPlacementCoordinator initialTab="submissions" />;
+      case 'plc-interviews':
+        return <CrmPlacementCoordinator initialTab="interviews" />;
       case 'plc-offers':
-      case 'plc-announcements':
-      case 'plc-reports':
-      case 'plc-approvals':
-        return <CrmPlacementCoordinator />;
+        return <CrmPlacementCoordinator initialTab="offers" />;
+      case 'plc-notifications':
+        return <CrmPlacementCoordinator initialTab="notifications" />;
 
       // Interview Management
       case 'interview-management':
       case 'int-overview':
       case 'int-assigned':
-      case 'int-profiles':
+        return <CrmInterviewManagement initialTab="queue" />;
       case 'int-schedule':
+        return <CrmInterviewManagement initialTab="calendar" />;
       case 'int-evaluation':
-      case 'int-feedback':
-      case 'int-decision':
-      case 'int-status':
-      case 'int-reminders':
-      case 'int-context':
-      case 'int-calendar':
-      case 'int-permissions':
-        return <CrmInterviewManagement />;
+        return <CrmInterviewManagement initialTab="evaluations" />;
+      case 'int-history':
+        return <CrmInterviewManagement initialTab="history" />;
+      case 'int-notifications':
+        return <CrmInterviewManagement initialTab="notifications" />;
 
       // HR Lead Suite (Centralized Workspace)
       case 'hr-overview':

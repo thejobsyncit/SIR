@@ -43,13 +43,17 @@ const STATUS_BADGE_MAP = {
   'Candidate Absent': 'bg-rose-100 dark:bg-rose-500/20 text-rose-800 dark:text-rose-300 border-rose-300 dark:border-rose-500/30'
 };
 
-export const CrmInterviewManagement = () => {
+export const CrmInterviewManagement = ({ initialTab = 'queue' }) => {
   const { currentRole, currentEmployee, user, employees } = useCrm();
   const [candidates, setCandidates] = useState([]);
   const [notifications, setNotifications] = useState([]);
   const [activityLogs, setActivityLogs] = useState([]);
   const [loading, setLoading] = useState(true);
-  const [activeTab, setActiveTab] = useState('queue'); // 'queue' | 'calendar' | 'notifications'
+  const [activeTab, setActiveTab] = useState(initialTab); // 'queue' | 'calendar' | 'evaluations' | 'history' | 'notifications'
+
+  useEffect(() => {
+    setActiveTab(initialTab);
+  }, [initialTab]);
   const [searchQuery, setSearchQuery] = useState('');
   const [statusFilter, setStatusFilter] = useState('all');
   const [scopeFilter, setScopeFilter] = useState('all'); // all | Domestic | International
@@ -418,7 +422,7 @@ export const CrmInterviewManagement = () => {
         </div>
 
         {/* TAB 1: CANDIDATE INTERVIEW QUEUE */}
-        {activeTab === 'queue' && (
+        {['queue', 'evaluations', 'history'].includes(activeTab) && (
           <div className="bg-white dark:bg-navy-900 border border-slate-200 dark:border-navy-800 rounded-3xl p-5 shadow-sm space-y-4">
             <div className="flex flex-col sm:flex-row gap-3 justify-between items-stretch sm:items-center">
               <div className="relative flex-1 max-w-md">

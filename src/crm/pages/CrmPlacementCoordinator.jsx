@@ -54,12 +54,22 @@ const EMPLOYER_FEEDBACK_OPTIONS = [
 
 const OFFER_STATUSES = ['Pending', 'Released', 'Accepted', 'Declined', 'Expired'];
 
-export const CrmPlacementCoordinator = () => {
+export const CrmPlacementCoordinator = ({ initialTab = 'queue' }) => {
   const { currentRole, currentEmployee, user, employees } = useCrm();
   const [allCandidates, setAllCandidates] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [activeTab, setActiveTab] = useState(initialTab);
   const [searchQuery, setSearchQuery] = useState('');
   const [stageFilter, setStageFilter] = useState('all');
+
+  useEffect(() => {
+    setActiveTab(initialTab);
+    if (initialTab === 'review') setStageFilter('Placement Coordinator Review');
+    else if (initialTab === 'submissions') setStageFilter('Submitted to Employer');
+    else if (initialTab === 'interviews') setStageFilter('Employer Interview');
+    else if (initialTab === 'offers') setStageFilter('Offer Released');
+    else setStageFilter('all');
+  }, [initialTab]);
   const [feedbackBanner, setFeedbackBanner] = useState(null);
 
   // Modals
