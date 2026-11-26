@@ -147,7 +147,8 @@ export const CrmLogin = () => {
   const { 
     login, recordFailedLogin = () => {}, failedLoginAttempts = 0, 
     accountLocked = false, lockoutTimeRemaining = 0, 
-    currentRole, switchRole = () => {} 
+    currentRole, switchRole = () => {},
+    lateApprovalGate, setLateApprovalGate, checkLateApprovalStatus
   } = useCrm();
 
   // Inputs start completely empty - NO dummy pre-filled text
@@ -232,6 +233,28 @@ export const CrmLogin = () => {
     const rem = m % 60;
     return `+${hrs}h ${rem}m Late (${m} mins)`;
   };
+
+  // If restored session has an active lateApprovalGate from CrmContext, show inline banner on Login & auto-poll every 1s
+  useEffect(() => {
+    if (!lateApprovalGate?.isBlocked) return;
+    const mins = lateApprovalGate.lateMinutes || 0;
+    const h = Math.floor(mins / 60);
+    const m = mins % 60;
+    const delayText = h > 0 ? `${h}h ${m}m late` : `${m} mins late`;
+    setAuthErrorMsg(`⚠️ Late Arrival Detected (${delayText}): ${lateApprovalGate.shiftName || 'Assigned Shift'} started at ${lateApprovalGate.shiftStart || '09:00 AM'}. Approval from Super Admin / HR Lead is required to sign in.`);
+
+    const timer = setInterval(async () => {
+      if (!checkLateApprovalStatus) return;
+      const status = await checkLateApprovalStatus();
+      if (status === 'APPROVED') {
+        if (setLateApprovalGate) setLateApprovalGate(null);
+      } else if (status === 'REJECTED') {
+        setAuthErrorMsg('❌ Access Declined: Super Admin has rejected your late arrival check-in for today. Contact HR Operations.');
+        clearInterval(timer);
+      }
+    }, 1000);
+    return () => clearInterval(timer);
+  }, [lateApprovalGate, checkLateApprovalStatus, setLateApprovalGate]);
 
   // Live rapid auto-polling (every 1s) for Super Admin / HR Lead approval while late gate is active
   useEffect(() => {
