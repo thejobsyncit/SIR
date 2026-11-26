@@ -10,7 +10,6 @@ import { verifyCrmSessionToken } from './routes/attendanceRoutes.js';
 import { INITIAL_BASELINE_ENQUIRIES } from './data/baselineEnquiries.js';
 import { registerClientPortalRoutes } from './clientPortalRoutes.js';
 import { registerAttendanceRoutes } from './routes/attendanceRoutes.js';
-import { visaVerificationRouter } from './routes/visaVerificationRoutes.js';
 import { registerHrCandidateRoutes } from './routes/hrCandidateRoutes.js';
 import { registerDocumentationRoutes } from './routes/documentationRoutes.js';
 import { registerEmailApplicationRoutes } from './routes/emailApplicationRoutes.js';
@@ -8339,18 +8338,6 @@ app.get('/api/analytics/service-performance', async (req, res) => {
     console.error('Failed to generate service performance analytics:', error);
     res.status(500).json({ success: false, message: 'Failed to retrieve analytics metrics' });
   }
-});
-
-// Visa & Verification Unified Routes
-app.use('/api/visa', visaVerificationRouter);
-app.use('/api/verification', visaVerificationRouter);
-app.get('/api/crm/verifications', (req, res) => {
-  req.url = '/crm/cases';
-  visaVerificationRouter(req, res);
-});
-app.put('/api/crm/verifications/:caseId', (req, res) => {
-  req.url = '/crm/cases/' + req.params.caseId;
-  visaVerificationRouter(req, res);
 });
 
 // ==============================================================================
