@@ -10,6 +10,9 @@ import {
 import { RECRUITER_LEADERBOARD, AUDIT_LOGS } from '../data/mockCrmData';
 import ScrollReveal from '../../components/ScrollReveal';
 import { CrmHrLeadDashboard } from './CrmHrLeadDashboard';
+import { CrmInterviewManagement } from './CrmInterviewManagement';
+import { CrmPlacementCoordinator } from './CrmPlacementCoordinator';
+import { CrmCentralPipeline } from '../components/CrmCentralPipeline';
 import { CrmRecruiterDashboard } from './CrmRecruiterDashboard';
 import { CrmPlacementCoordinatorDashboard } from './CrmPlacementCoordinatorDashboard';
 import { CrmHrOperationsDashboard } from './CrmHrOperationsDashboard';
@@ -128,13 +131,13 @@ export const CrmDashboard = () => {
     return <CrmRecruiterDashboard />;
   }
   if (currentRole === 'Placement Coordinator') {
-    return <CrmPlacementCoordinatorDashboard />;
+    return <CrmPlacementCoordinator />;
   }
   if (currentRole === 'HR Operations') {
     return <CrmHrOperationsDashboard />;
   }
   if (currentRole === 'Interviewer') {
-    return <CrmInterviewerDashboard />;
+    return <CrmInterviewManagement />;
   }
   
 
@@ -715,6 +718,11 @@ export const CrmDashboard = () => {
           )}
         </div>
       </div>
+      </ScrollReveal>
+
+      {/* Central Recruitment Pipeline (HR -> Interview -> Placement) */}
+      <ScrollReveal>
+        <CrmCentralPipeline />
       </ScrollReveal>
 
       {/* Analytics & Leaderboard Grid */}

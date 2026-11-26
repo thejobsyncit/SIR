@@ -13,6 +13,7 @@ import { registerHrCandidateRoutes } from './routes/hrCandidateRoutes.js';
 import { registerDocumentationRoutes } from './routes/documentationRoutes.js';
 import { registerEmailApplicationRoutes } from './routes/emailApplicationRoutes.js';
 import { registerAnnouncementRoutes } from './routes/announcementRoutes.js';
+import { registerInterviewPlacementRoutes } from './routes/interviewPlacementRoutes.js';
 import {
   sendCandidateWelcomeEmail,
   sendCandidateApplicationConfirmationEmail,
@@ -8395,6 +8396,7 @@ registerHrCandidateRoutes(app, { getDb, getClientIp, logAuditTrail });
 registerDocumentationRoutes(app, { getDb, getClientIp, logAuditTrail });
 registerEmailApplicationRoutes(app, { getDb, getClientIp, logAuditTrail });
 registerAnnouncementRoutes(app, { getDb, getClientIp, logAuditTrail });
+registerInterviewPlacementRoutes(app, { getDb });
 
 // ==============================================================================
 // CRM CELEBRATION / FESTIVAL / BIRTHDAY BROADCAST POPUPS

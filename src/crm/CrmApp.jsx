@@ -65,6 +65,8 @@ import { CrmHrTaskAssignment } from './components/CrmHrTaskAssignment';
 import { CrmMyProfile } from './pages/CrmMyProfile';
 import { CrmMyAttendance } from './pages/CrmMyAttendance';
 import { CrmHrOpsCandidateDirectory } from './pages/CrmHrOpsCandidateDirectory';
+import { CrmInterviewManagement } from './pages/CrmInterviewManagement';
+import { CrmPlacementCoordinator } from './pages/CrmPlacementCoordinator';
 import { HrLogoutConfirmModal } from './components/HrLogoutConfirmModal';
 import { LateArrivalApprovalGateway } from './components/LateArrivalApprovalGateway';
 import { CrmCelebrationPopupModal } from './components/CrmCelebrationPopupModal';
@@ -331,33 +333,37 @@ const CrmAppContent = () => {
     }
 
     switch (activeModule) {
-      // Placement Coordinator Suite (12 Dedicated Pages)
-      case 'plc-overview': return <CrmPlacementCoordinatorDashboard />;
-      case 'plc-students': return <CrmPlacementStudents />;
-      case 'plc-eligibility': return <CrmPlacementCoordinatorDashboard initialSection="overview" />;
-      case 'plc-companies': return <CrmPlacementCompanies />;
-      case 'plc-drives': return <CrmPlacementDrives />;
-      case 'plc-registration': return <CrmPlacementRegistration />;
-      case 'plc-applications': return <CrmPlacementApplications />;
-      case 'plc-events': return <CrmPlacementEvents />;
-      case 'plc-offers': return <CrmPlacementOffers />;
-      case 'plc-announcements': return <CrmPlacementAnnouncements />;
-      case 'plc-reports': return <CrmPlacementReports />;
-      case 'plc-approvals': return <CrmPlacementApprovals />;
+      // Placement Coordinator Management
+      case 'placement-coordinator':
+      case 'plc-overview':
+      case 'plc-students':
+      case 'plc-eligibility':
+      case 'plc-companies':
+      case 'plc-drives':
+      case 'plc-registration':
+      case 'plc-applications':
+      case 'plc-events':
+      case 'plc-offers':
+      case 'plc-announcements':
+      case 'plc-reports':
+      case 'plc-approvals':
+        return <CrmPlacementCoordinator />;
 
-      // Interviewer Suite (12 Dedicated Pages)
-      case 'int-overview': return <CrmInterviewerDashboard />;
-      case 'int-assigned': return <CrmInterviewerAssigned />;
-      case 'int-profiles': return <CrmInterviewerProfiles />;
-      case 'int-schedule': return <CrmInterviewerSchedule />;
-      case 'int-evaluation': return <CrmInterviewerEvaluation />;
-      case 'int-feedback': return <CrmInterviewerFeedback />;
-      case 'int-decision': return <CrmInterviewerDecision />;
-      case 'int-status': return <CrmInterviewerStatus />;
-      case 'int-reminders': return <CrmInterviewerReminders />;
-      case 'int-context': return <CrmInterviewerContext />;
-      case 'int-calendar': return <CrmInterviewerAvailability />;
-      case 'int-permissions': return <CrmInterviewerPermissions />;
+      // Interview Management
+      case 'interview-management':
+      case 'int-overview':
+      case 'int-assigned':
+      case 'int-profiles':
+      case 'int-schedule':
+      case 'int-evaluation':
+      case 'int-feedback':
+      case 'int-decision':
+      case 'int-status':
+      case 'int-reminders':
+      case 'int-context':
+      case 'int-calendar':
+      case 'int-permissions':
+        return <CrmInterviewManagement />;
 
       // HR Lead Suite (Centralized Workspace)
       case 'hr-overview':

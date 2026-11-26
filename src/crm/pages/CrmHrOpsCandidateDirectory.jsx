@@ -99,10 +99,17 @@ export const CrmHrOpsCandidateDirectory = () => {
       const target = candidateObj || profileData?.candidate;
       const targetId = target?.id || target?.candidateKey || target?.candidateReferenceNumber || target?.email;
       if (targetId) {
-        await fetch(`/api/candidates/${targetId}`, {
-          method: 'PUT',
+        await fetch('/api/interview-placement/hr-approve', {
+          method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ stage: 'hr_interview', status: 'Verified' })
+          body: JSON.stringify({
+            candidateId: targetId,
+            jobId: target?.jobId || '',
+            jobTitle: target?.jobTitle || target?.currentRole || '',
+            companyName: target?.companyName || target?.company || '',
+            jobLocation: target?.jobLocation || target?.currentLocation || '',
+            hrRemarks: target?.hrRemarks || 'Verified and approved by HR Operations for Interview.'
+          })
         }).catch(() => {});
       }
       setFeedback({ type: 'success', message: '✓ Candidate verified! Advanced to Interview Stage.' });
