@@ -44,13 +44,11 @@ export const CrmDashboard = () => {
   const [dateRange, setDateRange] = useState('all');
   const [loadingMetrics, setLoadingMetrics] = useState(false);
 
-  // All Leads Directory filter & pagination state
+  // Contact Us Enquiries filter state
   const [leadSearchQuery, setLeadSearchQuery] = useState('');
   const [leadServiceFilter, setLeadServiceFilter] = useState('all');
   const [leadStatusFilter, setLeadStatusFilter] = useState('all');
   const [leadAssignedFilter, setLeadAssignedFilter] = useState('all');
-  const [leadPage, setLeadPage] = useState(1);
-  const [leadPageSize, setLeadPageSize] = useState('25');
 
   const cleanPhoneForWa = (p) => String(p || '').replace(/[^0-9]/g, '');
 
@@ -91,11 +89,6 @@ export const CrmDashboard = () => {
       (leadAssignedFilter === 'unassigned' ? !lead.assignedEmployee : lead.assignedEmployee === leadAssignedFilter);
     return matchesSearch && matchesService && matchesStatus && matchesAssigned;
   });
-
-  const paginatedLeads = leadPageSize === 'all'
-    ? filteredLeads
-    : filteredLeads.slice((leadPage - 1) * Number(leadPageSize), leadPage * Number(leadPageSize));
-  const totalPages = leadPageSize === 'all' ? 1 : Math.max(1, Math.ceil(filteredLeads.length / Number(leadPageSize)));
 
   const handleExportLeadsCsv = () => {
     if (!filteredLeads || filteredLeads.length === 0) return;
@@ -510,7 +503,7 @@ export const CrmDashboard = () => {
               Contact Us Enquiries ({filteredLeads.length})
             </h3>
             <span className="text-[11px] text-slate-500 dark:text-slate-400 font-medium">
-              Showing {paginatedLeads.length} of {filteredLeads.length} filtered Contact Us inquiries ({contactUsLeads.length} total)
+              Showing {filteredLeads.length} of {contactUsLeads.length} Contact Us inquiries
             </span>
           </div>
 
@@ -521,7 +514,7 @@ export const CrmDashboard = () => {
               <input
                 type="text"
                 value={leadSearchQuery}
-                onChange={e => { setLeadSearchQuery(e.target.value); setLeadPage(1); }}
+                onChange={e => { setLeadSearchQuery(e.target.value); }}
                 placeholder="Search name, ref #, email, phone..."
                 className="w-full bg-slate-100 dark:bg-navy-950 border border-slate-300 dark:border-navy-700 text-slate-900 dark:text-white pl-8 pr-3 py-1.5 rounded-xl text-xs focus:outline-none focus:border-gold-500 font-semibold"
               />
@@ -530,7 +523,7 @@ export const CrmDashboard = () => {
             <div>
               <select
                 value={leadServiceFilter}
-                onChange={e => { setLeadServiceFilter(e.target.value); setLeadPage(1); }}
+                onChange={e => { setLeadServiceFilter(e.target.value); }}
                 className="w-full bg-slate-100 dark:bg-navy-950 border border-slate-300 dark:border-navy-700 text-slate-900 dark:text-white px-2.5 py-1.5 rounded-xl text-xs focus:outline-none focus:border-gold-500 font-semibold cursor-pointer"
               >
                 <option value="all">All Reasons ({contactUsLeads.length})</option>
@@ -549,7 +542,7 @@ export const CrmDashboard = () => {
             <div>
               <select
                 value={leadStatusFilter}
-                onChange={e => { setLeadStatusFilter(e.target.value); setLeadPage(1); }}
+                onChange={e => { setLeadStatusFilter(e.target.value); }}
                 className="w-full bg-slate-100 dark:bg-navy-950 border border-slate-300 dark:border-navy-700 text-slate-900 dark:text-white px-2.5 py-1.5 rounded-xl text-xs focus:outline-none focus:border-gold-500 font-semibold cursor-pointer"
               >
                 <option value="all">All Pipeline Stages</option>
@@ -567,7 +560,7 @@ export const CrmDashboard = () => {
             <div>
               <select
                 value={leadAssignedFilter}
-                onChange={e => { setLeadAssignedFilter(e.target.value); setLeadPage(1); }}
+                onChange={e => { setLeadAssignedFilter(e.target.value); }}
                 className="w-full bg-slate-100 dark:bg-navy-950 border border-slate-300 dark:border-navy-700 text-slate-900 dark:text-white px-2.5 py-1.5 rounded-xl text-xs focus:outline-none focus:border-gold-500 font-semibold cursor-pointer"
               >
                 <option value="all">All Consultants</option>
@@ -579,22 +572,10 @@ export const CrmDashboard = () => {
             </div>
 
             <div className="flex items-center gap-1.5">
-              <select
-                value={leadPageSize}
-                onChange={e => { setLeadPageSize(e.target.value); setLeadPage(1); }}
-                className="w-20 bg-slate-100 dark:bg-navy-950 border border-slate-300 dark:border-navy-700 text-slate-900 dark:text-white px-2 py-1.5 rounded-xl text-xs focus:outline-none font-semibold cursor-pointer"
-                title="Items per page"
-              >
-                <option value="25">25 / pg</option>
-                <option value="50">50 / pg</option>
-                <option value="100">100 / pg</option>
-                <option value="all">All</option>
-              </select>
-
               <button
                 type="button"
                 onClick={handleExportLeadsCsv}
-                className="flex-1 px-2.5 py-1.5 bg-gold-500 hover:bg-gold-600 text-navy-950 font-bold text-xs rounded-xl transition flex items-center justify-center gap-1 shadow-xs cursor-pointer"
+                className="w-full px-2.5 py-1.5 bg-gold-500 hover:bg-gold-600 text-navy-950 font-bold text-xs rounded-xl transition flex items-center justify-center gap-1 shadow-xs cursor-pointer"
                 title="Export filtered leads to CSV"
               >
                 <Download className="w-3.5 h-3.5" />
@@ -629,7 +610,7 @@ export const CrmDashboard = () => {
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-slate-200 dark:divide-navy-800 text-slate-800 dark:text-slate-300">
-                    {paginatedLeads.map(lead => (
+                    {filteredLeads.map(lead => (
                       <tr key={lead.id} className="hover:bg-slate-50 dark:hover:bg-navy-950/60 transition">
                         <td className="p-3 whitespace-nowrap font-mono text-xs font-bold text-gold-600 dark:text-gold-400">
                           {lead.referenceNumber || (lead.id ? `#${lead.id.slice(0, 8)}` : '—')}
@@ -730,30 +711,6 @@ export const CrmDashboard = () => {
                   </tbody>
                 </table>
               </div>
-
-              {totalPages > 1 && (
-                <div className="flex justify-between items-center pt-2 text-xs">
-                  <span className="text-slate-500">Page <strong>{leadPage}</strong> of <strong>{totalPages}</strong></span>
-                  <div className="flex items-center gap-2">
-                    <button
-                      type="button"
-                      onClick={() => setLeadPage(p => Math.max(1, p - 1))}
-                      disabled={leadPage <= 1}
-                      className="px-3 py-1 rounded-xl border border-slate-300 dark:border-navy-700 disabled:opacity-40 cursor-pointer flex items-center gap-1"
-                    >
-                      <ChevronLeft className="w-3.5 h-3.5" /> Prev
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => setLeadPage(p => Math.min(totalPages, p + 1))}
-                      disabled={leadPage >= totalPages}
-                      className="px-3 py-1 rounded-xl border border-slate-300 dark:border-navy-700 disabled:opacity-40 cursor-pointer flex items-center gap-1"
-                    >
-                      Next <ChevronRight className="w-3.5 h-3.5" />
-                    </button>
-                  </div>
-                </div>
-              )}
             </>
           )}
         </div>
