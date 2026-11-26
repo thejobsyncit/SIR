@@ -733,56 +733,6 @@ export const CrmDashboard = () => {
             </>
           )}
         </div>
-
-          {/* Recent Live Consultation Bookings Feed */}
-          {leads && leads.length > 0 && (
-            <div className="pt-4 border-t border-slate-200 dark:border-navy-800 space-y-3">
-              <div className="flex justify-between items-center">
-                <h4 className="font-serif text-sm font-bold text-slate-900 dark:text-white flex items-center gap-2">
-                  <span className="w-2 h-2 rounded-full bg-emerald-500 animate-ping"></span>
-                  Recent Consultation & Advisory Bookings
-                </h4>
-                <button
-                  onClick={() => setActiveModule('consulting')}
-                  className="text-[11px] font-bold text-gold-600 dark:text-gold-400 hover:underline flex items-center gap-1"
-                >
-                  <span>Open Full Consulting CRM</span>
-                  <ChevronRight className="w-3.5 h-3.5" />
-                </button>
-              </div>
-
-              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
-                {leads.slice(0, 3).map((lead) => (
-                  <div
-                    key={lead.id}
-                    onClick={() => setActiveModule('consulting')}
-                    className="p-3.5 bg-slate-50 dark:bg-navy-950 rounded-2xl border border-slate-200 dark:border-navy-800 hover:border-gold-500/50 transition cursor-pointer space-y-1.5 shadow-xs"
-                  >
-                    <div className="flex justify-between items-start gap-2">
-                      <span className="font-bold text-slate-900 dark:text-white truncate">
-                        {lead.name}
-                      </span>
-                      <span className="px-2 py-0.5 rounded text-[9px] font-extrabold bg-gold-500/20 text-gold-700 dark:text-gold-400 shrink-0">
-                        {lead.status || 'Scheduled'}
-                      </span>
-                    </div>
-
-                    <p className="text-[11px] text-slate-500 dark:text-slate-400 truncate">
-                      {lead.serviceTitle || lead.serviceId || 'International Consulting'}
-                    </p>
-
-                    <div className="flex items-center justify-between text-[10px] text-slate-600 dark:text-slate-400 pt-1 border-t border-slate-200/60 dark:border-navy-800/60 font-mono">
-                      <span>{lead.referenceNumber || lead.id.slice(0, 10)}</span>
-                      <span className="text-gold-600 dark:text-gold-400 font-bold">
-                        {lead.consultationDate || 'Scheduled'}
-                      </span>
-                    </div>
-                  </div>
-                ))}
-              </div>
-            </div>
-          )}
-
       </div>
       </ScrollReveal>
 
