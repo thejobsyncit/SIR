@@ -78,9 +78,14 @@ export const CrmDashboard = () => {
       (lead.phone || '').toLowerCase().includes(q) ||
       (lead.referenceNumber || '').toLowerCase().includes(q) ||
       (lead.company || '').toLowerCase().includes(q);
+    const reasonText = (
+      (typeof lead.customFields === 'object' && lead.customFields?.reasonForContact) ||
+      lead.serviceTitle ||
+      ''
+    ).toLowerCase();
     const matchesService = leadServiceFilter === 'all' ||
       lead.serviceId === leadServiceFilter ||
-      (lead.serviceTitle || '').toLowerCase().includes(leadServiceFilter.toLowerCase());
+      reasonText.includes(leadServiceFilter.toLowerCase());
     const matchesStatus = leadStatusFilter === 'all' || lead.status === leadStatusFilter;
     const matchesAssigned = leadAssignedFilter === 'all' ||
       (leadAssignedFilter === 'unassigned' ? !lead.assignedEmployee : lead.assignedEmployee === leadAssignedFilter);
@@ -528,14 +533,16 @@ export const CrmDashboard = () => {
                 onChange={e => { setLeadServiceFilter(e.target.value); setLeadPage(1); }}
                 className="w-full bg-slate-100 dark:bg-navy-950 border border-slate-300 dark:border-navy-700 text-slate-900 dark:text-white px-2.5 py-1.5 rounded-xl text-xs focus:outline-none focus:border-gold-500 font-semibold cursor-pointer"
               >
-                <option value="all">All Contact Us ({contactUsLeads.length})</option>
-                <option value="intl-consult">International Consulting</option>
-                <option value="college-adm">College Admission Assistance</option>
-                <option value="school-career">School Student Career Guidance</option>
-                <option value="intl-adm">International Admissions</option>
-                <option value="school-academy">Academy for School Students</option>
-                <option value="exec-seminars-lang">Executive Seminars & Language Prep</option>
-                <option value="contact_us">Contact Us Desk</option>
+                <option value="all">All Reasons ({contactUsLeads.length})</option>
+                <option value="Attract & Retain the Best Talents">Attract &amp; Retain the Best Talents</option>
+                <option value="Request a Direct Callback">Request a Direct Callback</option>
+                <option value="Corporate Recruitment Enquiry">Corporate Recruitment Enquiry</option>
+                <option value="Submit a Partnership Proposal">Submit a Partnership Proposal</option>
+                <option value="Schedule an Office Visit">Schedule an Office Visit</option>
+                <option value="Study Abroad Consultation">Study Abroad Consultation</option>
+                <option value="Visa & Verification Enquiry">Visa &amp; Verification Enquiry</option>
+                <option value="Job Application Support">Job Application Support</option>
+                <option value="General Enquiry">General Enquiry</option>
               </select>
             </div>
 
@@ -611,11 +618,11 @@ export const CrmDashboard = () => {
                   <thead>
                     <tr className="bg-slate-100 dark:bg-navy-950 text-slate-900 dark:text-gold-400 font-serif uppercase tracking-wider text-[10px] border-b border-slate-200 dark:border-navy-800">
                       <th className="p-3 font-extrabold whitespace-nowrap">Reference ID</th>
-                      <th className="p-3 font-extrabold whitespace-nowrap">Candidate Name</th>
+                      <th className="p-3 font-extrabold whitespace-nowrap">Full Name</th>
                       <th className="p-3 font-extrabold whitespace-nowrap">Phone Number</th>
                       <th className="p-3 font-extrabold whitespace-nowrap">Email Address</th>
-                      <th className="p-3 font-extrabold whitespace-nowrap">Service & Track</th>
-                      <th className="p-3 font-extrabold whitespace-nowrap">Destination / Intake</th>
+                      <th className="p-3 font-extrabold whitespace-nowrap">Reason for Contact</th>
+                      <th className="p-3 font-extrabold whitespace-nowrap">Company</th>
                       <th className="p-3 font-extrabold whitespace-nowrap">Assigned Consultant</th>
                       <th className="p-3 font-extrabold whitespace-nowrap">Status & Priority</th>
                       <th className="p-3 font-extrabold text-right whitespace-nowrap">Action</th>
@@ -666,12 +673,13 @@ export const CrmDashboard = () => {
                         </td>
                         <td className="p-3">
                           <span className="inline-block bg-blue-100 dark:bg-blue-500/20 text-blue-900 dark:text-blue-300 font-extrabold px-2.5 py-0.5 rounded-full text-[10px] border border-blue-300 dark:border-blue-500/30">
-                            {lead.serviceTitle || lead.serviceId || 'General Inquiry'}
+                            {(typeof lead.customFields === 'object' && lead.customFields?.reasonForContact) || lead.serviceTitle || 'General Enquiry'}
                           </span>
                         </td>
                         <td className="p-3">
-                          <p className="font-bold text-slate-900 dark:text-white text-[11px]">{lead.countryInterest || 'Global'}</p>
-                          <p className="text-[10px] text-slate-500 dark:text-slate-400">{[lead.intakeTerm, lead.degreeLevel].filter(Boolean).join(' • ') || 'Immediate'}</p>
+                          <p className="font-bold text-slate-900 dark:text-white text-[11px]">
+                            {lead.company || lead.organizationName || (typeof lead.customFields === 'object' && lead.customFields?.company) || '—'}
+                          </p>
                         </td>
                         <td className="p-3">
                           <select
