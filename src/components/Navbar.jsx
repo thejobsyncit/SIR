@@ -133,10 +133,10 @@ export const Navbar = () => {
                   <div
                     onMouseEnter={() => handleMenuEnter(item.hasMega)}
                     onMouseLeave={() => handleMenuLeave()}
-                    className={`absolute top-full pt-2 z-50 animate-in fade-in slide-in-from-top-1 duration-150 left-1/2 -translate-x-1/2 w-[92vw] ${item.hasMega === 'industries' ? 'sm:w-[400px] md:w-[420px]' : item.hasMega === 'services' ? 'sm:w-[470px] md:w-[500px]' : 'sm:w-[320px] md:w-[340px]'
+                    className={`absolute top-full pt-2.5 z-50 animate-in fade-in slide-in-from-top-1 duration-150 left-1/2 -translate-x-1/2 w-[92vw] ${item.hasMega === 'industries' ? 'sm:w-[420px] md:w-[440px]' : item.hasMega === 'services' ? 'sm:w-[540px] md:w-[600px]' : 'sm:w-[330px] md:w-[350px]'
                       } max-w-[95vw]`}
                   >
-                    <div className="relative bg-white/95 dark:bg-[#0a1628]/95 backdrop-blur-md rounded-2xl p-3.5 shadow-2xl border border-slate-200/90 dark:border-navy-700/90 overflow-hidden">
+                    <div className="relative bg-white dark:bg-[#0a1628] rounded-2xl p-4 shadow-[0_24px_48px_-12px_rgba(15,23,42,0.22)] border border-slate-200 dark:border-navy-700 overflow-hidden">
                       {/* Slim Gold Accent Indicator */}
                       <div className="absolute top-0 left-0 right-0 h-[2px] bg-gradient-to-r from-gold-500/20 via-gold-500 to-gold-500/20" />
 
@@ -165,7 +165,7 @@ export const Navbar = () => {
                           </div>
 
                           {/* 6 Services Grid (2 Columns x 3 Rows) */}
-                          <div className="grid grid-cols-1 sm:grid-cols-2 gap-1.5">
+                          <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
                             {[
                               {
                                 id: 'intl-consult',
@@ -232,16 +232,16 @@ export const Navbar = () => {
                                     navigateTo(srv.tab);
                                     setMegaMenuType(null);
                                   }}
-                                  className="p-2 rounded-xl border border-slate-100/80 dark:border-navy-800/80 hover:border-gold-500/40 bg-slate-50/50 dark:bg-navy-900/50 hover:bg-gold-500/10 dark:hover:bg-navy-800 transition-all duration-200 group flex items-center gap-2 cursor-pointer text-left"
+                                  className="p-2.5 rounded-xl border border-slate-200/80 dark:border-navy-800 hover:border-gold-500/50 bg-slate-50 dark:bg-navy-900 hover:bg-gold-500/10 dark:hover:bg-navy-800 transition-all duration-200 group flex items-center gap-2.5 cursor-pointer text-left"
                                 >
-                                  <div className="w-7 h-7 rounded-lg bg-gold-500/10 dark:bg-gold-500/15 border border-gold-500/20 text-gold-600 dark:text-gold-400 group-hover:bg-gold-500 group-hover:text-navy-950 transition-colors flex items-center justify-center shrink-0">
-                                    <SrvIcon className="w-3.5 h-3.5" />
+                                  <div className="w-8 h-8 rounded-lg bg-gold-500/15 dark:bg-gold-500/15 border border-gold-500/25 text-gold-600 dark:text-gold-400 group-hover:bg-gold-500 group-hover:text-navy-950 transition-colors flex items-center justify-center shrink-0">
+                                    <SrvIcon className="w-4 h-4" />
                                   </div>
                                   <div className="flex-1 min-w-0">
-                                    <span className="text-[11px] font-bold text-navy-950 dark:text-slate-100 group-hover:text-gold-600 dark:group-hover:text-gold-400 transition-colors block leading-tight">
+                                    <span className="text-[11.5px] font-bold text-navy-950 dark:text-slate-100 group-hover:text-gold-600 dark:group-hover:text-gold-400 transition-colors block leading-tight truncate">
                                       {srv.title}
                                     </span>
-                                    <p className="text-[9.5px] text-slate-500 dark:text-slate-400 group-hover:text-slate-700 dark:group-hover:text-slate-300 transition-colors truncate mt-0.5">
+                                    <p className="text-[10px] text-slate-500 dark:text-slate-400 group-hover:text-slate-700 dark:group-hover:text-slate-300 transition-colors truncate mt-0.5">
                                       {srv.tagline}
                                     </p>
                                   </div>
