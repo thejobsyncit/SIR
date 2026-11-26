@@ -955,7 +955,6 @@ export const CrmSuperAdmin = () => {
               badge: pendingLateApprovals.length,
               badgeColor: 'bg-rose-500'
             },
-            { id: 'leaves', label: 'Leaves' },
             { id: 'company', label: 'Company' },
             { id: 'master', label: 'Master Data' }
           ].map(t => (
@@ -2836,73 +2835,6 @@ export const CrmSuperAdmin = () => {
                 </div>
               )}
             </div>
-          </div>
-        </div>
-      )}
-
-      {/* TAB 4: LEAVES */}
-      {activeTab === 'leaves' && (
-        <div className="glass-card bg-white dark:bg-navy-900 border border-slate-200 dark:border-navy-800 p-6 rounded-3xl space-y-4 shadow-sm animate-in fade-in">
-          <div className="flex justify-between items-center border-b border-slate-200 dark:border-navy-800 pb-3">
-            <div>
-              <h3 className="font-serif text-lg font-bold text-slate-900 dark:text-white flex items-center gap-2">
-                <Calendar className="w-5 h-5 text-amber-500" />
-                Employee Leave Requests & Approvals
-              </h3>
-              <p className="text-slate-600 dark:text-slate-400 font-medium text-xs">Review, approve, or reject employee leave applications.</p>
-            </div>
-            <span className="bg-amber-100 dark:bg-amber-500/20 text-amber-800 dark:text-amber-400 text-xs font-bold px-3 py-1 rounded-xl border border-amber-300 dark:border-amber-500/30">
-              {leaveRequests.filter(r => r.status === 'Pending').length} Pending Approvals
-            </span>
-          </div>
-
-          <div className="space-y-3">
-            {leaveRequests.map(req => (
-              <div key={req.id} className="p-4 bg-slate-50 dark:bg-navy-950 rounded-2xl border border-slate-200 dark:border-navy-800 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3">
-                <div>
-                  <div className="flex items-center gap-2">
-                    <span className="font-bold text-slate-900 dark:text-white text-sm">{req.name}</span>
-                    <span className="text-[10px] font-extrabold bg-blue-100 text-blue-800 dark:bg-blue-500/20 dark:text-blue-300 px-2 py-0.5 rounded">
-                      {req.role}
-                    </span>
-                    <span className="text-[10px] font-extrabold bg-purple-100 text-purple-800 dark:bg-purple-500/20 dark:text-purple-300 px-2 py-0.5 rounded">
-                      {req.type}
-                    </span>
-                  </div>
-                  <p className="text-xs font-bold text-slate-700 dark:text-slate-300 mt-1">
-                    Dates: <span className="text-gold-600 dark:text-gold-400">{req.dates}</span>
-                  </p>
-                  <p className="text-xs text-slate-500 dark:text-slate-400 font-medium mt-0.5">
-                    Reason: "{req.reason}"
-                  </p>
-                </div>
-
-                <div className="flex items-center gap-2">
-                  {req.status === 'Pending' ? (
-                    <>
-                      <button 
-                        onClick={() => handleUpdateLeaveStatus(req.id, 'Approved', req.name)}
-                        className="py-1.5 px-3 bg-emerald-600 hover:bg-emerald-700 text-white font-extrabold rounded-xl transition cursor-pointer text-xs flex items-center gap-1 shadow-sm"
-                      >
-                        <Check className="w-4 h-4" /> Approve
-                      </button>
-                      <button 
-                        onClick={() => handleUpdateLeaveStatus(req.id, 'Rejected', req.name)}
-                        className="py-1.5 px-3 bg-rose-600 hover:bg-rose-700 text-white font-extrabold rounded-xl transition cursor-pointer text-xs flex items-center gap-1 shadow-sm"
-                      >
-                        <XCircle className="w-4 h-4" /> Reject
-                      </button>
-                    </>
-                  ) : (
-                    <span className={`px-3 py-1 rounded-xl text-xs font-extrabold border ${
-                      req.status === 'Approved' ? 'bg-emerald-100 text-emerald-900 dark:bg-emerald-500/20 dark:text-emerald-400 border-emerald-300 dark:border-emerald-500/30' : 'bg-rose-100 text-rose-900 dark:bg-rose-500/20 dark:text-rose-300 border-rose-300 dark:border-rose-500/30'
-                    }`}>
-                      {req.status === 'Approved' ? '✓ Approved' : '✗ Rejected'}
-                    </span>
-                  )}
-                </div>
-              </div>
-            ))}
           </div>
         </div>
       )}
