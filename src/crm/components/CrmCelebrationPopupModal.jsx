@@ -119,7 +119,7 @@ export const CelebrationPopupCard = ({ popup, onClose, currentIndex = 0, totalCo
               onClick={onClose}
               className="px-5 py-2.5 rounded-xl bg-gold-500 hover:opacity-95 text-navy-950 font-extrabold text-xs shadow-gold-glow transition flex items-center gap-1.5 cursor-pointer"
             >
-              <span>{totalCount > 1 && currentIndex < totalCount - 1 ? 'Next Wish' : isPreview ? 'Close Preview' : 'Got It!'}</span>
+              <span>{totalCount > 1 && currentIndex < totalCount - 1 ? 'Next' : isPreview ? 'Close Preview' : 'Close'}</span>
               {totalCount > 1 && currentIndex < totalCount - 1 && <ChevronRight className="w-4 h-4" />}
             </button>
           </div>

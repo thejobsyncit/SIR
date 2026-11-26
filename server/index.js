@@ -8470,6 +8470,8 @@ app.post('/api/crm-popups', async (req, res) => {
     const now = new Date().toISOString();
     const db = await getDb();
     await ensureCrmPopupTable(db);
+    // Keep only the single live popup — do not accumulate stored history
+    await db.run(`DELETE FROM crm_celebration_popups`);
     await db.run(
       `INSERT INTO crm_celebration_popups (
         id, occasion_type, title, message, is_active, created_by, created_by_role, expires_at, created_at, updated_at
