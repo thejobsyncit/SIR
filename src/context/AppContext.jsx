@@ -2,6 +2,7 @@ import { getPendingCareerEnquiry } from '../utils/careerGuidanceAuth.js';
 import { getPendingStudentAcademyEnquiry } from '../utils/studentAcademyAuth.js';
 import React, { createContext, useContext, useState, useEffect } from 'react';
 import { TRANSLATIONS } from '../data/translations';
+import { translateDomToLanguage } from '../utils/autoTranslator';
 import { useCrm } from '../crm/context/CrmContext';
 import { trackPageView, trackFunnelStep } from '../services/analytics';
 import { getAttributionData } from '../utils/attribution';
@@ -54,7 +55,13 @@ export const AppProvider = ({ children }) => {
       });
     }
   };
-  const [language, setLanguage] = useState('EN');
+  const [language, setLanguage] = useState(() => {
+    try {
+      return localStorage.getItem('sir_site_language') || 'EN';
+    } catch {
+      return 'EN';
+    }
+  });
   const [currency, setCurrency] = useState('AED');
   const [selectedJobCategory, setSelectedJobCategory] = useState('All');
 
@@ -63,6 +70,9 @@ export const AppProvider = ({ children }) => {
   };
 
   useEffect(() => {
+    try {
+      localStorage.setItem('sir_site_language', language);
+    } catch {}
     if (language === 'AR') {
       document.documentElement.setAttribute('dir', 'rtl');
       document.documentElement.setAttribute('lang', 'ar');
@@ -70,6 +80,27 @@ export const AppProvider = ({ children }) => {
       document.documentElement.setAttribute('dir', 'ltr');
       document.documentElement.setAttribute('lang', language ? language.toLowerCase() : 'en');
     }
+
+    let timer = setTimeout(() => {
+      translateDomToLanguage(language);
+    }, 60);
+
+    let observer = null;
+    if (language !== 'EN' && typeof MutationObserver !== 'undefined') {
+      let mutTimer = null;
+      observer = new MutationObserver(() => {
+        if (mutTimer) clearTimeout(mutTimer);
+        mutTimer = setTimeout(() => {
+          translateDomToLanguage(language);
+        }, 250);
+      });
+      observer.observe(document.body, { childList: true, subtree: true });
+    }
+
+    return () => {
+      clearTimeout(timer);
+      if (observer) observer.disconnect();
+    };
   }, [language]);
   const [activeTab, setActiveTab] = useState(() => {
     if (typeof window !== 'undefined') {

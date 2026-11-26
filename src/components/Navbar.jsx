@@ -133,38 +133,39 @@ export const Navbar = () => {
                   <div
                     onMouseEnter={() => handleMenuEnter(item.hasMega)}
                     onMouseLeave={() => handleMenuLeave()}
-                    className={`absolute top-full pt-2 z-50 animate-in fade-in slide-in-from-top-1 duration-150 left-1/2 -translate-x-1/2 w-[92vw] ${item.hasMega === 'industries' ? 'sm:w-[400px] md:w-[420px]' : item.hasMega === 'services' ? 'sm:w-[380px] md:w-[400px]' : 'sm:w-[320px] md:w-[340px]'
+                    className={`absolute top-full pt-2 z-50 animate-in fade-in slide-in-from-top-1 duration-150 left-1/2 -translate-x-1/2 w-[92vw] ${item.hasMega === 'industries' ? 'sm:w-[400px] md:w-[420px]' : item.hasMega === 'services' ? 'sm:w-[490px] md:w-[530px]' : 'sm:w-[320px] md:w-[340px]'
                       } max-w-[95vw]`}
                   >
-                    <div className="relative bg-white dark:bg-[#0a1628] rounded-2xl shadow-[0_24px_48px_-12px_rgba(15,23,42,0.25)] border border-slate-200 dark:border-navy-700 overflow-hidden">
+                    <div className="relative bg-white dark:bg-[#0a1628] rounded-2xl p-3 shadow-[0_24px_48px_-12px_rgba(15,23,42,0.22)] border border-slate-200 dark:border-navy-700 overflow-hidden">
                       {/* Slim Gold Accent Indicator */}
-                      <div className="h-[2px] w-full bg-gradient-to-r from-gold-500/30 via-gold-500 to-gold-500/30" />
+                      <div className="absolute top-0 left-0 right-0 h-[2px] bg-gradient-to-r from-gold-500/20 via-gold-500 to-gold-500/20" />
 
-                      {/* SERVICES DROPDOWN - SLEEK EXECUTIVE LIST */}
+                      {/* SERVICES DROPDOWN - 6 CORE ACADEMIC & ADVISORY SERVICES */}
                       {item.hasMega === 'services' && (
-                        <div>
-                          {/* Deep Navy Executive Header */}
-                          <div className="bg-navy-950 px-4 py-3 flex items-center justify-between">
-                            <div className="flex items-center gap-2.5">
-                              <div className="w-7 h-7 rounded-lg bg-gold-500/20 border border-gold-400/30 flex items-center justify-center text-gold-400">
+                        <div className="space-y-2.5">
+                          {/* Elegant Header */}
+                          <div className="flex items-center justify-between pb-2 border-b border-slate-100 dark:border-navy-800">
+                            <div className="flex items-center gap-2">
+                              <div className="w-6 h-6 rounded-lg bg-gold-500/10 border border-gold-500/25 flex items-center justify-center text-gold-600 dark:text-gold-400">
                                 <GraduationCap className="w-3.5 h-3.5" />
                               </div>
                               <div>
-                                <span className="text-[10.5px] font-black uppercase tracking-wider text-white block leading-tight">
-                                  Academic &amp; Global Advisory
+                                <span className="text-[10.5px] font-black uppercase tracking-wider text-navy-950 dark:text-white block leading-tight">
+                                  Academic & Global Advisory
                                 </span>
-                                <span className="text-[9.5px] text-slate-300 font-medium block">
-                                  6 Certified Pathways
+                                <span className="text-[9.5px] text-slate-400 font-medium block">
+                                  Certified International Education & Executive Pathways
                                 </span>
                               </div>
                             </div>
-                            <span className="text-[9px] font-extrabold text-gold-300 bg-gold-500/15 px-2 py-0.5 rounded-full border border-gold-400/30 uppercase tracking-wider">
-                              Services
+                            <span className="text-[9.5px] font-extrabold text-gold-600 dark:text-gold-400 bg-gold-500/10 px-2 py-0.5 rounded-full border border-gold-500/20 font-mono flex items-center gap-1.5 shrink-0">
+                              <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
+                              <span>6 Services</span>
                             </span>
                           </div>
 
-                          {/* Clean Single-Column Interactive List */}
-                          <div className="divide-y divide-slate-100 dark:divide-navy-800/80 px-2 py-1">
+                          {/* 6 Services Grid (2 Columns x 3 Rows) */}
+                          <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
                             {[
                               {
                                 id: 'intl-consult',
@@ -172,7 +173,8 @@ export const Navbar = () => {
                                 tagline: 'Global Destination & Strategic Planning',
                                 icon: Globe,
                                 href: '/international-consulting',
-                                tab: 'international-consulting'
+                                tab: 'international-consulting',
+                                badge: 'Global'
                               },
                               {
                                 id: 'college-adm',
@@ -180,7 +182,8 @@ export const Navbar = () => {
                                 tagline: 'UG & PG Institutional Placements',
                                 icon: GraduationCap,
                                 href: '/education/college-admission-assistance',
-                                tab: 'education-college-adm'
+                                tab: 'education-college-adm',
+                                badge: 'Admissions'
                               },
                               {
                                 id: 'school-career',
@@ -188,7 +191,8 @@ export const Navbar = () => {
                                 tagline: 'Aptitude Evaluation & Stream Selection',
                                 icon: Compass,
                                 href: '/education/school-student-career-guidance',
-                                tab: 'education-school-career'
+                                tab: 'education-school-career',
+                                badge: 'Guidance'
                               },
                               {
                                 id: 'intl-adm',
@@ -196,7 +200,8 @@ export const Navbar = () => {
                                 tagline: 'University Applications & Visa Filing',
                                 icon: Plane,
                                 href: '/education/international-admissions',
-                                tab: 'education-intl-adm'
+                                tab: 'education-intl-adm',
+                                badge: 'Worldwide'
                               },
                               {
                                 id: 'school-academy',
@@ -204,7 +209,8 @@ export const Navbar = () => {
                                 tagline: 'Enrichment, Study Skills & Speaking',
                                 icon: School,
                                 href: '/education/academy-for-school-students',
-                                tab: 'education-school-academy'
+                                tab: 'education-school-academy',
+                                badge: 'Academy'
                               },
                               {
                                 id: 'exec-seminars-lang',
@@ -212,7 +218,8 @@ export const Navbar = () => {
                                 tagline: 'IELTS, OET, DET Preparation & Seminars',
                                 icon: Languages,
                                 href: '/education/executive-seminars-and-language-test-preparation',
-                                tab: 'education-exec-seminars-lang'
+                                tab: 'education-exec-seminars-lang',
+                                badge: 'Testing'
                               }
                             ].map((srv) => {
                               const SrvIcon = srv.icon;
@@ -225,35 +232,34 @@ export const Navbar = () => {
                                     navigateTo(srv.tab);
                                     setMegaMenuType(null);
                                   }}
-                                  className="px-2.5 py-2 rounded-xl hover:bg-gold-500/10 dark:hover:bg-navy-800/80 transition-all duration-150 group flex items-center gap-2.5 cursor-pointer text-left"
+                                  className="p-2 rounded-xl border border-slate-200/80 dark:border-navy-800 hover:border-gold-500/50 bg-slate-50 dark:bg-navy-900 hover:bg-gold-500/10 dark:hover:bg-navy-800 transition-all duration-200 group flex items-center gap-2 cursor-pointer text-left"
                                 >
-                                  <div className="w-7 h-7 rounded-lg bg-slate-100 dark:bg-navy-900 text-gold-600 dark:text-gold-400 group-hover:bg-gold-500 group-hover:text-navy-950 transition-colors flex items-center justify-center shrink-0">
+                                  <div className="w-7 h-7 rounded-lg bg-gold-500/15 dark:bg-gold-500/15 border border-gold-500/25 text-gold-600 dark:text-gold-400 group-hover:bg-gold-500 group-hover:text-navy-950 transition-colors flex items-center justify-center shrink-0">
                                     <SrvIcon className="w-3.5 h-3.5" />
                                   </div>
                                   <div className="flex-1 min-w-0">
-                                    <span className="text-[11.5px] font-bold text-navy-950 dark:text-slate-100 group-hover:text-gold-700 dark:group-hover:text-gold-400 transition-colors block leading-tight truncate">
+                                    <span className="text-[11px] font-bold text-navy-950 dark:text-slate-100 group-hover:text-gold-600 dark:group-hover:text-gold-400 transition-colors block leading-tight truncate">
                                       {srv.title}
                                     </span>
-                                    <p className="text-[9.5px] text-slate-500 dark:text-slate-400 truncate mt-0.5">
+                                    <p className="text-[9.5px] text-slate-500 dark:text-slate-400 group-hover:text-slate-700 dark:group-hover:text-slate-300 transition-colors truncate mt-0.5">
                                       {srv.tagline}
                                     </p>
                                   </div>
-                                  <ArrowRight className="w-3.5 h-3.5 text-slate-300 dark:text-slate-600 group-hover:text-gold-600 dark:group-hover:text-gold-400 group-hover:translate-x-0.5 transition-all shrink-0" />
                                 </a>
                               );
                             })}
                           </div>
 
-                          {/* Compact Footer Bar */}
-                          <div className="bg-slate-50 dark:bg-navy-900/90 px-4 py-2.5 border-t border-slate-100 dark:border-navy-800 flex items-center justify-between text-xs">
+                          {/* Slim Bottom Action Bar */}
+                          <div className="pt-2 border-t border-slate-100 dark:border-navy-800 flex items-center justify-between text-xs px-1">
                             <button
                               onClick={() => {
                                 navigateTo('services');
                                 setMegaMenuType(null);
                               }}
-                              className="text-[11px] font-bold text-navy-900 dark:text-gold-400 hover:text-gold-600 flex items-center gap-1 cursor-pointer group"
+                              className="text-[11px] font-bold text-gold-700 dark:text-gold-400 hover:text-gold-600 dark:hover:text-gold-300 flex items-center gap-1.5 cursor-pointer group"
                             >
-                              <span>Explore All Services</span>
+                              <span>Explore All 6 Services</span>
                               <ArrowRight className="w-3 h-3 group-hover:translate-x-0.5 transition" />
                             </button>
                             <button
@@ -261,7 +267,7 @@ export const Navbar = () => {
                                 setActiveModal('education-enquiry');
                                 setMegaMenuType(null);
                               }}
-                              className="text-[10.5px] font-bold bg-gold-shimmer hover:opacity-95 text-navy-950 px-3 py-1 rounded-lg shadow-sm transition flex items-center gap-1 cursor-pointer"
+                              className="text-[10.5px] font-bold bg-gold-shimmer hover:opacity-95 text-navy-950 px-3 py-1 rounded-lg shadow-sm transition flex items-center gap-1.5 cursor-pointer"
                             >
                               <Sparkles className="w-3 h-3 text-navy-950" />
                               <span>Enquire Now</span>
@@ -281,13 +287,14 @@ export const Navbar = () => {
           {/* Right Header Actions & Mobile Menu Wrapper */}
           <div className="flex items-center gap-2 sm:gap-2.5 shrink-0">
             {/* Language Selector (Pill format matching Profile design) */}
-            <div className="relative hidden md:inline-flex items-center">
+            <div className="relative hidden md:inline-flex items-center notranslate" translate="no">
               <select
                 value={language}
                 onChange={(e) => setLanguage(e.target.value)}
                 className="appearance-none bg-white dark:bg-navy-900 border-2 border-gold-500/40 hover:border-gold-500 pl-3.5 pr-8 py-1.5 rounded-full text-xs font-bold text-[#0B1B33] dark:text-white shadow-md transition-all active:scale-95 cursor-pointer focus:outline-none focus:border-gold-500"
               >
                 <option value="EN">🇺🇸 EN</option>
+                <option value="HI">🇮🇳 HI</option>
                 <option value="AR">🇦🇪 AR</option>
                 <option value="FR">🇫🇷 FR</option>
                 <option value="DE">🇩🇪 DE</option>
@@ -475,13 +482,14 @@ export const Navbar = () => {
 
             {/* Mobile Language & Theme Controls */}
             <div className="flex items-center justify-between gap-2.5 p-2 bg-slate-50 dark:bg-navy-800/60 rounded-2xl border border-slate-200 dark:border-navy-700">
-              <div className="relative flex-1">
+              <div className="relative flex-1 notranslate" translate="no">
                 <select
                   value={language}
                   onChange={(e) => setLanguage(e.target.value)}
                   className="w-full appearance-none bg-white dark:bg-navy-900 border-2 border-gold-500/40 text-slate-800 dark:text-white rounded-full pl-3.5 pr-8 py-1.5 text-xs font-bold cursor-pointer shadow-xs focus:outline-none"
                 >
                   <option value="EN">🇺🇸 English (EN)</option>
+                  <option value="HI">🇮🇳 हिन्दी (HI)</option>
                   <option value="AR">🇦🇪 العربية (AR)</option>
                   <option value="FR">🇫🇷 Français (FR)</option>
                   <option value="DE">🇩🇪 Deutsch (DE)</option>

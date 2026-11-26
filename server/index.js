@@ -8399,6 +8399,67 @@ registerAnnouncementRoutes(app, { getDb, getClientIp, logAuditTrail });
 registerInterviewPlacementRoutes(app, { getDb });
 
 // ==============================================================================
+// MULTI-LANGUAGE FULL-SITE TRANSLATION ENDPOINT (EN -> HI, AR, FR, DE)
+// ==============================================================================
+const translationMemoryCache = new Map();
+
+app.post('/api/translate', async (req, res) => {
+  try {
+    const { targetLang = 'hi', texts = [] } = req.body || {};
+    const tl = String(targetLang || 'hi').toLowerCase().trim();
+    const allowed = new Set(['hi', 'ar', 'fr', 'de']);
+    if (!allowed.has(tl) || !Array.isArray(texts) || texts.length === 0) {
+      return res.json({ success: true, translations: {} });
+    }
+
+    const uniqueTexts = [...new Set(
+      texts
+        .map((t) => (typeof t === 'string' ? t.trim() : ''))
+        .filter((t) => t.length > 0 && t.length <= 1500 && !/^[\d\s\W]+$/.test(t))
+    )].slice(0, 120);
+
+    const result = {};
+    const toTranslate = [];
+
+    for (const txt of uniqueTexts) {
+      const cacheKey = `${tl}::${txt}`;
+      if (translationMemoryCache.has(cacheKey)) {
+        result[txt] = translationMemoryCache.get(cacheKey);
+      } else {
+        toTranslate.push(txt);
+      }
+    }
+
+    if (toTranslate.length > 0) {
+      await Promise.all(
+        toTranslate.map(async (txt) => {
+          try {
+            const url = `https://translate.googleapis.com/translate_a/single?client=gtx&sl=en&tl=${encodeURIComponent(tl)}&dt=t&q=${encodeURIComponent(txt)}`;
+            const resp = await fetch(url);
+            if (!resp.ok) return;
+            const data = await resp.json();
+            if (Array.isArray(data?.[0])) {
+              const translated = data[0].map((seg) => seg?.[0] || '').join('').trim();
+              if (translated) {
+                translationMemoryCache.set(`${tl}::${txt}`, translated);
+                result[txt] = translated;
+              }
+            }
+          } catch {
+            // Keep original on individual segment failure
+          }
+        })
+      );
+    }
+
+    res.json({ success: true, translations: result });
+  } catch (err) {
+    console.error('Translation endpoint error:', err);
+    res.status(500).json({ success: false, translations: {} });
+  }
+});
+
+// ==============================================================================
 // CRM CELEBRATION / FESTIVAL / BIRTHDAY BROADCAST POPUPS
 // ==============================================================================
 const ensureCrmPopupTable = async (db) => {
