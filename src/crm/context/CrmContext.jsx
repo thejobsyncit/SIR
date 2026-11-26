@@ -1690,10 +1690,10 @@ export const CrmProvider = ({ children }) => {
     if (moduleName === 'hr-tasks') {
       return currentRole === 'HR Lead' || currentRole === 'Super Admin' || currentRole === 'Admin' || currentRole === 'HR Operations' || currentRole === 'HR & Talent Manager';
     }
-    if (moduleName === 'interview-management') {
+    if (moduleName === 'interview-management' || (typeof moduleName === 'string' && moduleName.startsWith('int-'))) {
       return currentRole === 'Interviewer' || currentRole === 'Super Admin' || currentRole === 'Admin' || currentRole === 'HR Lead';
     }
-    if (moduleName === 'placement-coordinator') {
+    if (moduleName === 'placement-coordinator' || (typeof moduleName === 'string' && moduleName.startsWith('plc-'))) {
       return currentRole === 'Placement Coordinator' || currentRole === 'Super Admin' || currentRole === 'Admin' || currentRole === 'HR Lead';
     }
     const permissions = (currentRole && ROLE_PERMISSIONS[currentRole]) || [];
