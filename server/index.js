@@ -2581,27 +2581,6 @@ app.get('/api/candidate/applications', async (req, res) => {
       `, params);
     } else {
       // Recruiter / CRM view: Return all candidate applications across all vacancies
-<<<<<<< HEAD
-      rows = await db.all(`
-        SELECT 
-          ca.*,
-          COALESCE(NULLIF(ca.resumeUrl, ''), c.resumeUrl) as resumeUrl,
-          COALESCE(NULLIF(ca.resumeName, ''), c.resumeName) as resumeName,
-          COALESCE(NULLIF(ca.resumeSize, ''), c.resumeSize) as resumeSize,
-          c.nationality as candidateNationality,
-          c.score as candidateScore,
-          c.avatar as candidateAvatar,
-          c.skills as candidateSkills,
-          c.experience as candidateExperience,
-          c.currentRole as candidateCurrentRole,
-          COALESCE(NULLIF(ca.offerDetails, ''), c.offerDetails) as offerDetails,
-          c.placementStatus as candidatePlacementStatus,
-          COALESCE(NULLIF(ca.stage, ''), c.stage) as candidateStage
-        FROM candidate_applications ca
-        LEFT JOIN candidates c ON LOWER(c.email) = LOWER(ca.applicantEmail) OR c.id = ca.candidateId
-        ORDER BY ca.appliedDate DESC
-      `);
-=======
       // If caller is HR Operations, enforce strict employee isolation:
       const authHeader = req.headers.authorization || '';
       const token = authHeader.startsWith('Bearer ') ? authHeader.slice(7).trim() : '';
@@ -2665,13 +2644,15 @@ app.get('/api/candidate/applications', async (req, res) => {
             c.avatar as candidateAvatar,
             c.skills as candidateSkills,
             c.experience as candidateExperience,
-            c.currentRole as candidateCurrentRole
+            c.currentRole as candidateCurrentRole,
+            COALESCE(NULLIF(ca.offerDetails, ''), c.offerDetails) as offerDetails,
+            c.placementStatus as candidatePlacementStatus,
+            COALESCE(NULLIF(ca.stage, ''), c.stage) as candidateStage
           FROM candidate_applications ca
           LEFT JOIN candidates c ON LOWER(c.email) = LOWER(ca.applicantEmail) OR c.id = ca.candidateId
           ORDER BY ca.appliedDate DESC
         `);
       }
->>>>>>> a8ad67d8 (Update HR Operations on 26.11.2026)
     }
 
     // Merge persistent cloud applications from Supabase PostgreSQL

@@ -48,12 +48,8 @@ export const ROLE_PERMISSIONS = {
   ],
   'HR Operations': [
     'dashboard', 'hr-tasks', 'my-attendance', 'my-profile',
-<<<<<<< HEAD
-    'candidates', 'job-applications', 'documentation', 'visa', 'verification', 'calendar'
-=======
     'candidates', 'job-applications', 'calendar',
     'hr-announcements', 'hr-shifts'
->>>>>>> a8ad67d8 (Update HR Operations on 26.11.2026)
   ],
   'Interviewer': [
     'dashboard', 'int-overview', 'int-assigned', 'int-profiles', 'int-schedule',

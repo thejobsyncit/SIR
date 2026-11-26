@@ -12,11 +12,7 @@ import {
 import jsPDF from 'jspdf';
 import ScrollReveal from '../../components/ScrollReveal';
 import CrmHrTaskAssignment from '../components/CrmHrTaskAssignment';
-<<<<<<< HEAD
-import { ShiftLateArrivalApprovalSection } from '../components/ShiftLateArrivalApprovalSection';
-=======
 import { SharedAnnouncementCalendar } from '../components/SharedAnnouncementCalendar';
->>>>>>> a8ad67d8 (Update HR Operations on 26.11.2026)
 
 // Initial Workforce Directory Constants & Shift Configurations
 export const SHIFT_CONFIGS = [
@@ -3068,91 +3064,8 @@ export const CrmHrLeadDashboard = ({ initialSection, isReadOnly = false }) => {
 
         {activeTab === 'overview' && (
           <div className="space-y-6 animate-in fade-in duration-200">
-<<<<<<< HEAD
-            {/* Shift Late Arrival Approvals (HR Lead & Super Admin Authorization) */}
-            <ShiftLateArrivalApprovalSection
-              currentRole={currentRole || 'HR Lead'}
-              crmToken={crmToken}
-              onAuditClick={() => setActiveTab('attendance')}
-            />
-
-            {/* Department Headcount Breakdown & Live Activity Stream */}
-            <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
-
-              {/* Department Distribution (7 cols) */}
-              <div className="lg:col-span-7 bg-white dark:bg-navy-900 border border-slate-200/90 dark:border-navy-800 rounded-3xl p-6 shadow-xs space-y-4">
-                <div className="flex justify-between items-center">
-                  <h3 className="font-serif font-bold text-base text-slate-900 dark:text-white">
-                    Department
-                  </h3>
-                </div>
-
-                <div className="space-y-3 pt-2">
-                  {[
-                    { dept: 'Software Developers', count: 18, pct: 37.5, color: 'from-blue-600 to-indigo-500' },
-                    { dept: 'Test Engineer', count: 12, pct: 25.0, color: 'from-amber-500 to-gold-400' },
-                    { dept: 'HR Operations', count: 8, pct: 16.7, color: 'from-emerald-600 to-teal-500' },
-                    { dept: 'Client', count: 6, pct: 12.5, color: 'from-purple-600 to-violet-500' },
-                    { dept: 'Candidates', count: 4, pct: 8.3, color: 'from-rose-500 to-pink-500' }
-                  ].map((d, i) => (
-                    <div key={i} className="p-3 bg-slate-50 dark:bg-navy-950 rounded-2xl border border-slate-200/60 dark:border-navy-800 space-y-1.5">
-                      <div className="flex justify-between items-center text-xs">
-                        <span className="font-bold text-slate-800 dark:text-slate-200">{d.dept}</span>
-                        <span className="font-mono font-bold text-slate-900 dark:text-white">{d.count} Members ({d.pct}%)</span>
-                      </div>
-                      <div className="w-full bg-slate-200 dark:bg-navy-800 h-2 rounded-full overflow-hidden">
-                        <div className={`bg-gradient-to-r ${d.color} h-full rounded-full transition-all duration-500`} style={{ width: `${d.pct}%` }} />
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              </div>
-
-              {/* Live Attendance Punch Feed (5 cols) */}
-              <div className="lg:col-span-5 bg-white dark:bg-navy-900 border border-slate-200/90 dark:border-navy-800 rounded-3xl p-6 shadow-xs space-y-4">
-                <div className="flex justify-between items-center">
-                  <h3 className="font-serif font-bold text-base text-slate-900 dark:text-white">
-                    Today's Attendance
-                  </h3>
-                </div>
-
-                <div className="divide-y divide-slate-100 dark:divide-navy-800 space-y-2">
-                  {employees.slice(0, 5).map(e => (
-                    <div key={e.id} className="pt-2 flex items-center justify-between text-xs">
-                      <div className="flex items-center gap-2.5">
-                        <div className="w-8 h-8 rounded-xl bg-gold-500 text-navy-950 flex items-center justify-center font-bold text-[11px]">
-                          {e.avatarLetter}
-                        </div>
-                        <div>
-                          <p className="font-bold text-slate-900 dark:text-white leading-tight">{e.name}</p>
-                          <span className="text-[10px] text-slate-400">{e.department}</span>
-                        </div>
-                      </div>
-
-                      <div className="text-right">
-                        <span className={`px-2 py-0.5 rounded-full text-[9px] font-bold ${e.attendanceToday.status === 'Present'
-                          ? 'bg-emerald-50 dark:bg-emerald-950/40 text-emerald-700 dark:text-emerald-300 border border-emerald-200'
-                          : 'bg-amber-50 text-amber-700 border border-amber-200'
-                          }`}>
-                          {e.attendanceToday.checkIn}
-                        </span>
-                        {e.attendanceToday.late && (
-                          <span className="text-[9px] text-rose-500 font-bold block mt-0.5">⚠️ Late Check-in</span>
-                        )}
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              </div>
-
-            </div>
-
-            {/* COMPANY ANNOUNCEMENT SECTION (Positioned immediately after Attendance Summary) */}
-            {renderCompanyAnnouncementsSection()}
-=======
             {/* COMPANY ANNOUNCEMENT SECTION (View-only on Dashboard Overview) */}
             {renderCompanyAnnouncementsSection(false)}
->>>>>>> a8ad67d8 (Update HR Operations on 26.11.2026)
           </div>
         )}
 

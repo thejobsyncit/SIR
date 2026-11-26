@@ -497,31 +497,6 @@ export const registerAttendanceRoutes = (app, { getDb, getClientIp }) => {
         });
       }
       const payload = verifyCrmSessionToken(token);
-<<<<<<< HEAD
-      if (!payload || !payload.employeeId) {
-        // Fallback to role / email headers if token was expired or invalidated
-        const roleFallback = req.headers['x-crm-role'] || req.query?.role;
-        const emailFallback = req.headers['x-employee-email'] || req.query?.email;
-        if (roleFallback || emailFallback) {
-          const db = await getDb();
-          let empFallback = null;
-          if (emailFallback) {
-            const cleanTarget = String(emailFallback).toLowerCase().trim();
-            empFallback = await db.get('SELECT * FROM employees WHERE (LOWER(email) = ? OR LOWER(altEmail) = ?) AND LOWER(COALESCE(status, \'Active\')) != \'inactive\' LIMIT 1', [cleanTarget, cleanTarget]);
-          }
-          if (!empFallback && roleFallback) {
-            empFallback = await db.get('SELECT * FROM employees WHERE role = ? AND LOWER(COALESCE(status, \'Active\')) != \'inactive\' LIMIT 1', [roleFallback]);
-          }
-          if (empFallback) {
-            req.authEmployee = sanitizeEmployee(empFallback);
-            return next();
-          }
-        }
-        return res.status(401).json({
-          success: false,
-          message: 'Invalid or expired CRM session token. Please sign in again.'
-        });
-=======
       let emp = null;
       const db = await getDb();
 
@@ -590,7 +565,6 @@ export const registerAttendanceRoutes = (app, { getDb, getClientIp }) => {
             [String(emailFallback).toLowerCase().trim()]
           );
         }
->>>>>>> a8ad67d8 (Update HR Operations on 26.11.2026)
       }
 
       if (!emp || String(emp.status || 'Active').toLowerCase() === 'inactive') {
@@ -2419,15 +2393,9 @@ export const registerAttendanceRoutes = (app, { getDb, getClientIp }) => {
 
         return res.json({
           success: true,
-<<<<<<< HEAD
-          allowed: false,
-          isLate: true,
-          lateApprovalStatus: 'PENDING',
-=======
           allowed: !rejected,
           isLate: Number(existing.lateMinutes || 0) > 0,
           lateApprovalStatus: existing.lateApprovalStatus || (isLate ? 'PENDING' : 'APPROVED'),
->>>>>>> a8ad67d8 (Update HR Operations on 26.11.2026)
           attendanceId: existing.id,
           lateMinutes: updatedLateMinutes,
           shiftStart: existing.shiftStart || shiftConfig.startTime,

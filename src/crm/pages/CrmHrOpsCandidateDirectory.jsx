@@ -41,11 +41,6 @@ import {
   AddInternalNoteModal,
   CompleteFollowUpModal
 } from '../components/hrCandidate/HrCandidateModals';
-<<<<<<< HEAD
-import { DashboardCandidateAvatar } from '../../utils/candidateAvatars';
-
-=======
->>>>>>> a8ad67d8 (Update HR Operations on 26.11.2026)
 const PROFILE_TABS = [
   { id: 'overview', label: 'Overview', icon: Layers },
   { id: 'enquiries', label: 'Enquiries', icon: FileText },

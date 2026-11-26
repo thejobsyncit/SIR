@@ -419,15 +419,9 @@ const CrmAppContent = () => {
       case 'workspace': return <CrmRecruiterWorkspace />;
       case 'interviews': return <CrmInterviews />;
       case 'documentation': return <CrmDocumentation />;
-<<<<<<< HEAD
-      case 'visa':
-      case 'verification':
-        return <CrmVisaVerificationHub initialTab={activeModule === 'verification' ? 'verification' : 'visa'} />;
-=======
       case 'visa': return <CrmVisaProcessing />;
       case 'visa-verification': return <CrmVisaVerification />;
       case 'verification': return <CrmBackgroundVerification />;
->>>>>>> a8ad67d8 (Update HR Operations on 26.11.2026)
       case 'accounts': return <CrmAccounts />;
       case 'reports': return <CrmReports />;
       case 'ai-suite': return <CrmAiSuite />;

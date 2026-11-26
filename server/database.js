@@ -3,11 +3,8 @@ import fs from 'fs';
 import os from 'os';
 import crypto from 'crypto';
 import { fileURLToPath } from 'url';
-<<<<<<< HEAD
 import { getSupabaseClient } from './supabase.js';
-=======
 import { INITIAL_BASELINE_ENQUIRIES } from './data/baselineEnquiries.js';
->>>>>>> a8ad67d8 (Update HR Operations on 26.11.2026)
 
 export const normalizeEmail = (email) => {
   return (email || '').trim().toLowerCase();
@@ -2465,7 +2462,6 @@ const initDb = async (db) => {
     await db.exec(`ALTER TABLE leads ADD COLUMN taskStatus TEXT`);
   } catch (_) { }
   try {
-<<<<<<< HEAD
     await db.exec(`ALTER TABLE interviews ADD COLUMN feedback TEXT`);
   } catch (_) { }
   try {
@@ -2494,7 +2490,8 @@ const initDb = async (db) => {
   } catch (_) { }
   try {
     await db.exec(`ALTER TABLE candidate_applications ADD COLUMN offerDetails TEXT`);
-=======
+  } catch (_) { }
+  try {
     await db.exec(`ALTER TABLE leads ADD COLUMN assignedEmployeeId TEXT`);
   } catch (_) { }
   try {
@@ -2526,7 +2523,6 @@ const initDb = async (db) => {
   } catch (_) { }
   try {
     await db.exec(`ALTER TABLE hr_task_assignments ADD COLUMN completionNotes TEXT`);
->>>>>>> a8ad67d8 (Update HR Operations on 26.11.2026)
   } catch (_) { }
 
   // Seed Shift Policies (Policy data only — no fabricated employee attendance records)

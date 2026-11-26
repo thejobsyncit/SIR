@@ -208,12 +208,7 @@ export const CrmSidebar = ({ collapsed, setCollapsed }) => {
     { id: 'candidates', label: 'My Candidates', icon: Users },
     { id: 'hr-shifts', label: 'My Shift', icon: Clock },
     { id: 'my-attendance', label: 'My Attendance', icon: CalendarCheck },
-<<<<<<< HEAD
-    { id: 'documentation', label: 'Document Verification & KYC', icon: FileText },
-    { id: 'visa', label: 'Visa & Verification', icon: ShieldCheck },
-=======
     { id: 'hr-announcements', label: 'Company Announcement', icon: Megaphone },
->>>>>>> a8ad67d8 (Update HR Operations on 26.11.2026)
     { id: 'my-profile', label: 'My Profile', icon: User }
   ];
 
