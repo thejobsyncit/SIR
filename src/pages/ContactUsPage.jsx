@@ -56,21 +56,17 @@ export const ContactUsPage = () => {
 
   // Controlled form state to ensure 100% data preservation on error
   const [formData, setFormData] = useState({
-    name: '',
+    firstName: '',
+    lastName: '',
+    company: '',
     email: '',
-    type: 'individual',
-    purpose: 'callback',
-    preferredOffice: 'dubai_hq',
-    contactChannel: 'phone',
-    preferredTime: 'anytime',
-    visitDate: '',
-    subject: '',
+    purpose: 'Attract & Retain the Best Talents',
     message: ''
   });
 
   const handleInputChange = (field, value) => {
     let finalValue = value;
-    if (field === 'name') {
+    if (field === 'firstName' || field === 'lastName') {
       finalValue = value.replace(/[^a-zA-Z\s]/g, '');
     }
     setFormData(prev => ({ ...prev, [field]: finalValue }));
@@ -81,7 +77,6 @@ export const ContactUsPage = () => {
 
   const handlePhoneChange = (e) => {
     const val = e.target.value;
-    // Allow standard international/mobile formats: digits, +, spaces, -, (, )
     if (/^[0-9+\s\-()]*$/.test(val) && val.length <= 25) {
       setPhone(val);
       if (formErrors.phone) {
@@ -92,11 +87,16 @@ export const ContactUsPage = () => {
 
   const validate = () => {
     const errors = {};
-    const trimmedName = (formData.name || '').trim();
-    if (!trimmedName || trimmedName.length < 2) {
-      errors.name = 'Please provide your full name (minimum 2 characters).';
-    } else if (!/^[a-zA-Z\s]+$/.test(trimmedName)) {
-      errors.name = 'Full name must contain alphabetic characters only. Numbers and special characters are not allowed.';
+    const fName = (formData.firstName || '').trim();
+    const lName = (formData.lastName || '').trim();
+    if (!fName || fName.length < 2) {
+      errors.firstName = 'Please provide your first name (min 2 chars).';
+    }
+    if (!lName || lName.length < 1) {
+      errors.lastName = 'Please provide your last name.';
+    }
+    if (!formData.company || !formData.company.trim()) {
+      errors.company = 'Please provide your company or organization name.';
     }
     const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
     if (!formData.email || !emailRegex.test(formData.email.trim())) {
@@ -104,12 +104,9 @@ export const ContactUsPage = () => {
     }
     const cleanPhone = (phone || '').replace(/[\s\-\(\)\+]/g, '');
     if (!cleanPhone) {
-      errors.phone = 'Please provide your phone or WhatsApp number.';
+      errors.phone = 'Please provide your mobile number.';
     } else if (cleanPhone.length < 7 || cleanPhone.length > 15) {
       errors.phone = `Phone number must be between 7 and 15 digits (currently ${cleanPhone.length} digits).`;
-    }
-    if (!formData.message || formData.message.trim().length < 10) {
-      errors.message = 'Please provide message details (minimum 10 characters).';
     }
     if (!consentAgreed) {
       errors.consent = 'Please agree to the Privacy Policy before submitting your enquiry.';
@@ -131,7 +128,8 @@ export const ContactUsPage = () => {
       return;
     }
 
-    const submissionKey = `${formData.email.trim().toLowerCase()}::${formData.message.trim()}`;
+    const fullName = `${formData.firstName.trim()} ${formData.lastName.trim()}`.trim();
+    const submissionKey = `${formData.email.trim().toLowerCase()}::${formData.purpose}::${formData.message.trim()}`;
     if (submissionKey === lastSubmittedKey) {
       setSubmitError('This exact enquiry was already submitted. Please modify your message if you need to send a new request.');
       return;
@@ -142,63 +140,21 @@ export const ContactUsPage = () => {
 
     const attribution = getAttributionData();
 
-    const purposeLabels = {
-      callback: 'Request a Direct Callback',
-      corporate_recruitment: 'Corporate Recruitment Enquiry',
-      partnership: 'Submit a Partnership Proposal',
-      office_visit: 'Schedule an Office Visit',
-      study_abroad: 'Study Abroad Consultation',
-      visa_verification: 'Visa & Verification Enquiry',
-      job_support: 'Job Application Support',
-      general: 'General Enquiry'
-    };
-    const officeLabels = {
-      dubai_hq: 'Dubai Global HQ (UAE & GCC)',
-      chennai_hub: 'Chennai Operations Hub (India)',
-      international: 'International Operations'
-    };
-    const channelLabels = {
-      phone: 'Direct Phone Call',
-      whatsapp: 'WhatsApp',
-      email: 'Email'
-    };
-    const timeLabels = {
-      anytime: 'Anytime During Business Hours',
-      morning: 'Morning (9 AM – 12 PM)',
-      afternoon: 'Afternoon (12 PM – 4 PM)',
-      evening: 'Evening (4 PM – 7 PM)'
-    };
-
-    const metaSummary = [
-      `Purpose: ${purposeLabels[formData.purpose] || 'General Enquiry'}`,
-      `Preferred Desk: ${officeLabels[formData.preferredOffice] || 'Dubai Global HQ (UAE & GCC)'}`,
-      `Contact Method: ${channelLabels[formData.contactChannel] || 'Direct Phone Call'}`,
-      `Preferred Time: ${timeLabels[formData.preferredTime] || 'Anytime During Business Hours'}`,
-      ...(formData.purpose === 'office_visit' && formData.visitDate ? [`Preferred Visit Date: ${formData.visitDate}`] : []),
-      ...(formData.subject.trim() ? [`Subject: ${formData.subject.trim()}`] : [])
-    ].join(' | ');
-
     const payload = {
-      name: formData.name.trim(),
+      name: fullName,
       email: formData.email.trim(),
       phone: phone.trim(),
       serviceId: activeService ? activeService.id : 'contact_us',
-      serviceTitle: activeService ? activeService.title : (purposeLabels[formData.purpose] || 'General Enquiry'),
-      preferredContactMethod: channelLabels[formData.contactChannel] || 'Direct Phone Call',
-      company: activeService
-        ? `Service Inquiry: ${activeService.title}`
-        : `${purposeLabels[formData.purpose] || 'Contact Desk'} (${officeLabels[formData.preferredOffice] || 'Global'})`,
-      message: activeService
-        ? `[Inquiring about: ${activeService.title} (${activeService.category})]\n[${metaSummary}]\n\n${formData.message.trim()}`
-        : `[${metaSummary}]\n\n${formData.message.trim()}`,
+      serviceTitle: activeService ? activeService.title : formData.purpose,
+      preferredContactMethod: 'Mobile / Email',
+      company: formData.company.trim(),
+      message: `[Reason for Contact: ${formData.purpose}]\n\n${formData.message.trim() || 'Requested consultation / callback.'}`,
       customFields: {
         source: 'Contact Us Page',
-        purpose: purposeLabels[formData.purpose] || 'General Enquiry',
-        preferredOffice: officeLabels[formData.preferredOffice] || 'Dubai Global HQ (UAE & GCC)',
-        preferredContactMethod: channelLabels[formData.contactChannel] || 'Direct Phone Call',
-        preferredTime: timeLabels[formData.preferredTime] || 'Anytime During Business Hours',
-        visitDate: formData.visitDate || null,
-        subject: formData.subject.trim() || null
+        firstName: formData.firstName.trim(),
+        lastName: formData.lastName.trim(),
+        company: formData.company.trim(),
+        reasonForContact: formData.purpose
       },
       utmSource: attribution.utmSource,
       utmMedium: attribution.utmMedium,
@@ -226,15 +182,11 @@ export const ContactUsPage = () => {
       setPhone('');
       setConsentAgreed(false);
       setFormData({
-        name: '',
+        firstName: '',
+        lastName: '',
+        company: '',
         email: '',
-        type: 'individual',
-        purpose: 'callback',
-        preferredOffice: 'dubai_hq',
-        contactChannel: 'phone',
-        preferredTime: 'anytime',
-        visitDate: '',
-        subject: '',
+        purpose: 'Attract & Retain the Best Talents',
         message: ''
       });
 
@@ -477,258 +429,161 @@ export const ContactUsPage = () => {
                 Please complete all required fields marked with <span className="text-rose-500 font-bold">*</span>. All enquiries are reviewed within 2–4 business hours.
               </p>
 
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                <div>
-                  <div className="flex justify-between items-center mb-1">
-                    <label htmlFor="contact-name" className="block font-bold text-slate-700 dark:text-slate-200">
-                      Your Full Name <span className="text-rose-500">*</span>
-                    </label>
-                    {formData.name.trim().length >= 2 && (
-                      <span className="text-emerald-500 text-[10px] font-bold flex items-center gap-1">
-                        <CheckCircle2 className="w-3 h-3" /> Valid
-                      </span>
-                    )}
-                  </div>
-                  <input
-                    id="contact-name"
-                    name="name"
-                    required
-                    type="text"
-                    autoComplete="name"
-                    placeholder="e.g. Sarah Jenkins"
-                    value={formData.name}
-                    aria-required="true"
-                    aria-invalid={!!formErrors.name}
-                    aria-describedby={formErrors.name ? "contact-name-error" : undefined}
-                    onFocus={() => trackEnquiryStart('contact_page', activeService?.id || 'general', activeService?.title || 'General Contact')}
-                    onChange={(e) => handleInputChange('name', e.target.value)}
-                    className={`w-full bg-slate-50 dark:bg-navy-950 border rounded-xl p-2.5 text-navy-900 dark:text-white text-xs focus:outline-none focus:ring-2 focus:ring-gold-500 transition ${formErrors.name ? 'border-rose-500 ring-1 ring-rose-500' : 'border-slate-300 dark:border-navy-700'
-                      }`}
-                  />
-                  {formErrors.name && (
-                    <p id="contact-name-error" className="text-[10px] text-rose-500 mt-1 font-semibold flex items-center gap-1">
-                      <AlertCircle className="w-3 h-3 shrink-0" /> {formErrors.name}
-                    </p>
-                  )}
-                </div>
-
-                <div>
-                  <div className="flex justify-between items-center mb-1">
-                    <label htmlFor="contact-email" className="block font-bold text-slate-700 dark:text-slate-200">
-                      Business or Personal Email <span className="text-rose-500">*</span>
-                    </label>
-                    {/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(formData.email.trim()) && (
-                      <span className="text-emerald-500 text-[10px] font-bold flex items-center gap-1">
-                        <CheckCircle2 className="w-3 h-3" /> Valid
-                      </span>
-                    )}
-                  </div>
-                  <input
-                    id="contact-email"
-                    name="email"
-                    required
-                    type="email"
-                    autoComplete="email"
-                    placeholder="e.g. s.jenkins@company.com"
-                    value={formData.email}
-                    aria-required="true"
-                    aria-invalid={!!formErrors.email}
-                    aria-describedby={formErrors.email ? "contact-email-error" : undefined}
-                    onChange={(e) => handleInputChange('email', e.target.value)}
-                    className={`w-full bg-slate-50 dark:bg-navy-950 border rounded-xl p-2.5 text-navy-900 dark:text-white text-xs focus:outline-none focus:ring-2 focus:ring-gold-500 transition ${formErrors.email ? 'border-rose-500 ring-1 ring-rose-500' : 'border-slate-300 dark:border-navy-700'
-                      }`}
-                  />
-                  {formErrors.email && (
-                    <p id="contact-email-error" className="text-[10px] text-rose-500 mt-1 font-semibold flex items-center gap-1">
-                      <AlertCircle className="w-3 h-3 shrink-0" /> {formErrors.email}
-                    </p>
-                  )}
-                </div>
-              </div>
-
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                <div>
-                  <CountryPhoneInput
-                    value={phone}
-                    onChange={setPhone}
-                    onValidationChange={(res) => {
-                      setPhoneValidation(res);
-                      if (formErrors.phone && res.isValid) {
-                        setFormErrors(prev => ({ ...prev, phone: null }));
-                      }
-                    }}
-                    label="Phone / WhatsApp"
-                    placeholder="Enter phone number"
-                    required
-                  />
-                  {formErrors.phone && (
-                    <p id="contact-phone-error" className="text-[10px] text-rose-500 mt-1 font-semibold flex items-center gap-1">
-                      <AlertCircle className="w-3 h-3 shrink-0" /> {formErrors.phone}
-                    </p>
-                  )}
-                </div>
-
-                <div>
-                  <label htmlFor="contact-purpose" className="block font-bold text-slate-700 dark:text-slate-200 mb-1">
-                    Purpose of Contact
-                  </label>
-                  <select
-                    id="contact-purpose"
-                    name="purpose"
-                    value={formData.purpose}
-                    onChange={(e) => handleInputChange('purpose', e.target.value)}
-                    className="w-full bg-slate-50 dark:bg-navy-950 border border-slate-300 dark:border-navy-700 rounded-xl p-2.5 text-navy-900 dark:text-white text-xs focus:outline-none focus:ring-2 focus:ring-gold-500"
-                  >
-                    <option value="callback">Request a Direct Callback</option>
-                    <option value="corporate_recruitment">Corporate Recruitment Enquiry</option>
-                    <option value="partnership">Submit a Partnership Proposal</option>
-                    <option value="office_visit">Schedule an Office Visit</option>
-                    <option value="study_abroad">Study Abroad Consultation</option>
-                    <option value="visa_verification">Visa & Verification Enquiry</option>
-                    <option value="job_support">Job Application Support</option>
-                    <option value="general">General Enquiry</option>
-                  </select>
-                </div>
-              </div>
-
-              {/* Regional Office & Contact Channel */}
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                <div>
-                  <label htmlFor="contact-office" className="block font-bold text-slate-700 dark:text-slate-200 mb-1">
-                    Preferred Regional Desk
-                  </label>
-                  <select
-                    id="contact-office"
-                    value={formData.preferredOffice}
-                    onChange={(e) => handleInputChange('preferredOffice', e.target.value)}
-                    className="w-full bg-slate-50 dark:bg-navy-950 border border-slate-300 dark:border-navy-700 rounded-xl p-2.5 text-navy-900 dark:text-white text-xs focus:outline-none focus:ring-2 focus:ring-gold-500"
-                  >
-                    <option value="dubai_hq">Dubai Global HQ (UAE & GCC)</option>
-                    <option value="chennai_hub">Chennai Operations Hub (India)</option>
-                    <option value="international">International Operations</option>
-                  </select>
-                </div>
-
-                <div>
-                  <label htmlFor="contact-channel" className="block font-bold text-slate-700 dark:text-slate-200 mb-1">
-                    Preferred Contact Method
-                  </label>
-                  <select
-                    id="contact-channel"
-                    value={formData.contactChannel}
-                    onChange={(e) => handleInputChange('contactChannel', e.target.value)}
-                    className="w-full bg-slate-50 dark:bg-navy-950 border border-slate-300 dark:border-navy-700 rounded-xl p-2.5 text-navy-900 dark:text-white text-xs focus:outline-none focus:ring-2 focus:ring-gold-500"
-                  >
-                    <option value="phone">Direct Phone Call</option>
-                    <option value="whatsapp">WhatsApp</option>
-                    <option value="email">Email</option>
-                  </select>
-                </div>
-              </div>
-
-              {/* Callback Time Window & Conditional Office Visit Date */}
-              <div className={`grid grid-cols-1 ${formData.purpose === 'office_visit' ? 'sm:grid-cols-2' : ''} gap-3`}>
-                <div>
-                  <label htmlFor="contact-time" className="block font-bold text-slate-700 dark:text-slate-200 mb-1">
-                    Preferred Time Window
-                  </label>
-                  <select
-                    id="contact-time"
-                    value={formData.preferredTime}
-                    onChange={(e) => handleInputChange('preferredTime', e.target.value)}
-                    className="w-full bg-slate-50 dark:bg-navy-950 border border-slate-300 dark:border-navy-700 rounded-xl p-2.5 text-navy-900 dark:text-white text-xs focus:outline-none focus:ring-2 focus:ring-gold-500"
-                  >
-                    <option value="anytime">Anytime During Business Hours</option>
-                    <option value="morning">Morning (9 AM – 12 PM)</option>
-                    <option value="afternoon">Afternoon (12 PM – 4 PM)</option>
-                    <option value="evening">Evening (4 PM – 7 PM)</option>
-                  </select>
-                </div>
-
-                {formData.purpose === 'office_visit' && (
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 items-stretch">
+                {/* Left Column: First Name, Last Name, Company, Email */}
+                <div className="space-y-3.5">
                   <div>
-                    <label htmlFor="contact-visit-date" className="block font-bold text-slate-700 dark:text-slate-200 mb-1">
-                      Preferred Office Visit Date
+                    <label htmlFor="contact-first-name" className="block font-bold text-slate-700 dark:text-slate-200 mb-1">
+                      First Name <span className="text-rose-500">*</span>
                     </label>
                     <input
-                      id="contact-visit-date"
-                      type="date"
-                      min={new Date().toISOString().split('T')[0]}
-                      value={formData.visitDate}
-                      onChange={(e) => handleInputChange('visitDate', e.target.value)}
+                      id="contact-first-name"
+                      name="firstName"
+                      required
+                      type="text"
+                      autoComplete="given-name"
+                      placeholder="First Name"
+                      value={formData.firstName}
+                      onFocus={() => trackEnquiryStart('contact_page', activeService?.id || 'general', activeService?.title || 'General Contact')}
+                      onChange={(e) => handleInputChange('firstName', e.target.value)}
+                      className={`w-full bg-slate-50 dark:bg-navy-950 border rounded-xl p-2.5 text-navy-900 dark:text-white text-xs focus:outline-none focus:ring-2 focus:ring-gold-500 transition ${formErrors.firstName ? 'border-rose-500 ring-1 ring-rose-500' : 'border-slate-300 dark:border-navy-700'}`}
+                    />
+                    {formErrors.firstName && (
+                      <p className="text-[10px] text-rose-500 mt-1 font-semibold flex items-center gap-1">
+                        <AlertCircle className="w-3 h-3 shrink-0" /> {formErrors.firstName}
+                      </p>
+                    )}
+                  </div>
+
+                  <div>
+                    <label htmlFor="contact-last-name" className="block font-bold text-slate-700 dark:text-slate-200 mb-1">
+                      Last Name <span className="text-rose-500">*</span>
+                    </label>
+                    <input
+                      id="contact-last-name"
+                      name="lastName"
+                      required
+                      type="text"
+                      autoComplete="family-name"
+                      placeholder="Last Name"
+                      value={formData.lastName}
+                      onChange={(e) => handleInputChange('lastName', e.target.value)}
+                      className={`w-full bg-slate-50 dark:bg-navy-950 border rounded-xl p-2.5 text-navy-900 dark:text-white text-xs focus:outline-none focus:ring-2 focus:ring-gold-500 transition ${formErrors.lastName ? 'border-rose-500 ring-1 ring-rose-500' : 'border-slate-300 dark:border-navy-700'}`}
+                    />
+                    {formErrors.lastName && (
+                      <p className="text-[10px] text-rose-500 mt-1 font-semibold flex items-center gap-1">
+                        <AlertCircle className="w-3 h-3 shrink-0" /> {formErrors.lastName}
+                      </p>
+                    )}
+                  </div>
+
+                  <div>
+                    <label htmlFor="contact-company" className="block font-bold text-slate-700 dark:text-slate-200 mb-1">
+                      Company <span className="text-rose-500">*</span>
+                    </label>
+                    <input
+                      id="contact-company"
+                      name="company"
+                      required
+                      type="text"
+                      autoComplete="organization"
+                      placeholder="Company Name"
+                      value={formData.company}
+                      onChange={(e) => handleInputChange('company', e.target.value)}
+                      className={`w-full bg-slate-50 dark:bg-navy-950 border rounded-xl p-2.5 text-navy-900 dark:text-white text-xs focus:outline-none focus:ring-2 focus:ring-gold-500 transition ${formErrors.company ? 'border-rose-500 ring-1 ring-rose-500' : 'border-slate-300 dark:border-navy-700'}`}
+                    />
+                    {formErrors.company && (
+                      <p className="text-[10px] text-rose-500 mt-1 font-semibold flex items-center gap-1">
+                        <AlertCircle className="w-3 h-3 shrink-0" /> {formErrors.company}
+                      </p>
+                    )}
+                  </div>
+
+                  <div>
+                    <label htmlFor="contact-email" className="block font-bold text-slate-700 dark:text-slate-200 mb-1">
+                      Email <span className="text-rose-500">*</span>
+                    </label>
+                    <input
+                      id="contact-email"
+                      name="email"
+                      required
+                      type="email"
+                      autoComplete="email"
+                      placeholder="Email"
+                      value={formData.email}
+                      onChange={(e) => handleInputChange('email', e.target.value)}
+                      className={`w-full bg-slate-50 dark:bg-navy-950 border rounded-xl p-2.5 text-navy-900 dark:text-white text-xs focus:outline-none focus:ring-2 focus:ring-gold-500 transition ${formErrors.email ? 'border-rose-500 ring-1 ring-rose-500' : 'border-slate-300 dark:border-navy-700'}`}
+                    />
+                    {formErrors.email && (
+                      <p className="text-[10px] text-rose-500 mt-1 font-semibold flex items-center gap-1">
+                        <AlertCircle className="w-3 h-3 shrink-0" /> {formErrors.email}
+                      </p>
+                    )}
+                  </div>
+                </div>
+
+                {/* Right Column: Mobile Number, Reason for Contact, Message */}
+                <div className="flex flex-col space-y-3.5">
+                  <div>
+                    <CountryPhoneInput
+                      value={phone}
+                      onChange={setPhone}
+                      onValidationChange={(res) => {
+                        setPhoneValidation(res);
+                        if (formErrors.phone && res.isValid) {
+                          setFormErrors(prev => ({ ...prev, phone: null }));
+                        }
+                      }}
+                      label="Mobile Number"
+                      placeholder="+919999999999"
+                      required
+                    />
+                    {formErrors.phone && (
+                      <p className="text-[10px] text-rose-500 mt-1 font-semibold flex items-center gap-1">
+                        <AlertCircle className="w-3 h-3 shrink-0" /> {formErrors.phone}
+                      </p>
+                    )}
+                  </div>
+
+                  <div>
+                    <label htmlFor="contact-purpose" className="block font-bold text-slate-700 dark:text-slate-200 mb-1">
+                      Reason for Contact <span className="text-rose-500">*</span>
+                    </label>
+                    <select
+                      id="contact-purpose"
+                      name="purpose"
+                      value={formData.purpose}
+                      onChange={(e) => handleInputChange('purpose', e.target.value)}
                       className="w-full bg-slate-50 dark:bg-navy-950 border border-slate-300 dark:border-navy-700 rounded-xl p-2.5 text-navy-900 dark:text-white text-xs focus:outline-none focus:ring-2 focus:ring-gold-500"
+                    >
+                      <option value="Attract & Retain the Best Talents">Attract & Retain the Best Talents</option>
+                      <option value="Request a Direct Callback">Request a Direct Callback</option>
+                      <option value="Corporate Recruitment Enquiry">Corporate Recruitment Enquiry</option>
+                      <option value="Submit a Partnership Proposal">Submit a Partnership Proposal</option>
+                      <option value="Schedule an Office Visit">Schedule an Office Visit</option>
+                      <option value="Study Abroad Consultation">Study Abroad Consultation</option>
+                      <option value="Visa & Verification Enquiry">Visa & Verification Enquiry</option>
+                      <option value="Job Application Support">Job Application Support</option>
+                      <option value="General Enquiry">General Enquiry</option>
+                    </select>
+                  </div>
+
+                  <div className="flex-1 flex flex-col">
+                    <label htmlFor="contact-message" className="block font-bold text-slate-700 dark:text-slate-200 mb-1">
+                      Message
+                    </label>
+                    <textarea
+                      id="contact-message"
+                      name="message"
+                      rows={5}
+                      value={formData.message}
+                      placeholder="Let us know your needs"
+                      onChange={(e) => handleInputChange('message', e.target.value)}
+                      className="w-full flex-1 bg-slate-50 dark:bg-navy-950 border border-slate-300 dark:border-navy-700 rounded-xl p-2.5 text-navy-900 dark:text-white text-xs focus:outline-none focus:ring-2 focus:ring-gold-500 transition resize-none"
                     />
                   </div>
-                )}
-              </div>
-
-              {/* Subject Line */}
-              <div>
-                <label htmlFor="contact-subject" className="block font-bold text-slate-700 dark:text-slate-200 mb-1">
-                  Subject / Topic
-                </label>
-                <input
-                  id="contact-subject"
-                  type="text"
-                  placeholder="e.g. Callback request for Dubai office meeting / Institutional collaboration"
-                  value={formData.subject}
-                  onChange={(e) => handleInputChange('subject', e.target.value)}
-                  className="w-full bg-slate-50 dark:bg-navy-950 border border-slate-300 dark:border-navy-700 rounded-xl p-2.5 text-navy-900 dark:text-white text-xs focus:outline-none focus:ring-2 focus:ring-gold-500"
-                />
-              </div>
-
-              <div>
-                <div className="flex justify-between items-center mb-1">
-                  <label htmlFor="contact-message" className="block font-bold text-slate-700 dark:text-slate-200">
-                    Message Details <span className="text-rose-500">*</span>
-                  </label>
-                  {formData.message.trim().length >= 10 && (
-                    <span className="text-emerald-500 text-[10px] font-bold flex items-center gap-1">
-                      <CheckCircle2 className="w-3 h-3" /> Valid ({formData.message.trim().length} chars)
-                    </span>
-                  )}
                 </div>
-                <textarea
-                  id="contact-message"
-                  name="message"
-                  rows={4}
-                  required
-                  value={formData.message}
-                  aria-required="true"
-                  aria-invalid={!!formErrors.message}
-                  aria-describedby={formErrors.message ? "contact-message-error" : undefined}
-                  placeholder={
-                    activeService
-                      ? `Please specify your target country, course, timeline, or requirements for ${activeService.title}...`
-                      : 'Specify your requirements, hiring volume, visa target, or educational goals...'
-                  }
-                  onChange={(e) => handleInputChange('message', e.target.value)}
-                  className={`w-full bg-slate-50 dark:bg-navy-950 border rounded-xl p-2.5 text-navy-900 dark:text-white text-xs focus:outline-none focus:ring-2 focus:ring-gold-500 transition ${formErrors.message ? 'border-rose-500 ring-1 ring-rose-500' : 'border-slate-300 dark:border-navy-700'
-                    }`}
-                />
-                {formErrors.message && (
-                  <p id="contact-message-error" className="text-[10px] text-rose-500 mt-1 font-semibold flex items-center gap-1">
-                    <AlertCircle className="w-3 h-3 shrink-0" /> {formErrors.message}
-                  </p>
-                )}
               </div>
-
-              {/* Parent/Guardian Consent for Under-18s on Student Inquiries (Issue #4 & Section 6 P1) */}
-              {formData.type === 'student_parent' && (
-                <div className="p-3.5 bg-amber-500/10 border border-amber-500/30 rounded-xl space-y-1">
-                  <label className="flex items-start gap-2.5 cursor-pointer">
-                    <input
-                      type="checkbox"
-                      checked={parentConsent}
-                      onChange={(e) => setParentConsent(e.target.checked)}
-                      className="mt-0.5 rounded text-gold-500 focus:ring-gold-500 h-4 w-4"
-                    />
-                    <span className="text-[11px] text-amber-900 dark:text-amber-300 leading-snug font-medium">
-                      <strong>Parent / Guardian Consent:</strong> For applicants under 18 years of age, I confirm parent or legal guardian consent for academic counselling, aptitude evaluation, and admissions advisory.
-                    </span>
-                  </label>
-                </div>
-              )}
 
               {/* Mandatory General Data Consent Checkbox (Issue #4) */}
               <div className="pt-1">
