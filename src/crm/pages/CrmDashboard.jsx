@@ -54,7 +54,23 @@ export const CrmDashboard = () => {
 
   const cleanPhoneForWa = (p) => String(p || '').replace(/[^0-9]/g, '');
 
-  const filteredLeads = (leads || []).filter(lead => {
+  const isContactUsLead = (lead) => {
+    if (!lead) return false;
+    if (lead.serviceId === 'contact_us') return true;
+    if (lead.customFields) {
+      if (typeof lead.customFields === 'string') {
+        return lead.customFields.includes('Contact Us Page');
+      }
+      if (typeof lead.customFields === 'object') {
+        return lead.customFields.source === 'Contact Us Page';
+      }
+    }
+    return false;
+  };
+
+  const contactUsLeads = (leads || []).filter(isContactUsLead);
+
+  const filteredLeads = contactUsLeads.filter(lead => {
     const q = leadSearchQuery.trim().toLowerCase();
     const matchesSearch = !q ||
       (lead.name || '').toLowerCase().includes(q) ||
@@ -481,15 +497,15 @@ export const CrmDashboard = () => {
           </div>
         </div>
 
-        {/* All Leads Directory (Moved from Super Admin Panel) */}
+        {/* Contact Us Enquiries Directory */}
         <div className="space-y-4 pt-2">
           <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-2">
             <h3 className="font-serif text-base font-bold text-slate-900 dark:text-white flex items-center gap-2">
               <Inbox className="w-5 h-5 text-gold-500" />
-              All Leads Directory ({filteredLeads.length})
+              Contact Us Enquiries ({filteredLeads.length})
             </h3>
             <span className="text-[11px] text-slate-500 dark:text-slate-400 font-medium">
-              Showing {paginatedLeads.length} of {filteredLeads.length} filtered inquiries ({(leads || []).length} total)
+              Showing {paginatedLeads.length} of {filteredLeads.length} filtered Contact Us inquiries ({contactUsLeads.length} total)
             </span>
           </div>
 
@@ -512,7 +528,7 @@ export const CrmDashboard = () => {
                 onChange={e => { setLeadServiceFilter(e.target.value); setLeadPage(1); }}
                 className="w-full bg-slate-100 dark:bg-navy-950 border border-slate-300 dark:border-navy-700 text-slate-900 dark:text-white px-2.5 py-1.5 rounded-xl text-xs focus:outline-none focus:border-gold-500 font-semibold cursor-pointer"
               >
-                <option value="all">All Services ({(leads || []).length})</option>
+                <option value="all">All Contact Us ({contactUsLeads.length})</option>
                 <option value="intl-consult">International Consulting</option>
                 <option value="college-adm">College Admission Assistance</option>
                 <option value="school-career">School Student Career Guidance</option>
