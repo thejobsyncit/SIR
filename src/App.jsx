@@ -18,6 +18,7 @@ import { EmployerPortal } from './pages/EmployerPortal';
 import { CandidatePortal } from './pages/CandidatePortal';
 import { VisaEligibilityPage } from './pages/VisaEligibilityPage';
 import { BackgroundVerificationPage } from './pages/BackgroundVerificationPage';
+import { VisaAndVerificationPage } from './pages/VisaAndVerificationPage';
 import { ContactUsPage } from './pages/ContactUsPage';
 import { EducationDirectory } from './pages/EducationDirectory';
 import { EducationServiceDetail } from './pages/EducationServiceDetail';
@@ -248,10 +249,13 @@ export function App() {
             <UnifiedAuth defaultMode="login" defaultRole="candidate" />
           </div>
         );
+      case 'visa-verification':
+      case 'visa-and-verification':
+      case 'visa':
+      case 'verification':
       case 'visa-eligibility':
-        return <VisaEligibilityPage />;
       case 'background-verification':
-        return <BackgroundVerificationPage />;
+        return <VisaAndVerificationPage />;
       case 'report-issue':
       case 'legal/report-issue':
       case 'contact':

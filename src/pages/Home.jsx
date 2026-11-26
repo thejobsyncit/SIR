@@ -258,25 +258,21 @@ export const Home = () => {
         </section>
       </ScrollReveal>
 
-      {/* SERVICES OVERVIEW (18+ Services) */}
+      {/* SERVICES OVERVIEW (6 Core Academic & Advisory Services) */}
       <ScrollReveal>
         <section className="max-w-7xl mx-auto px-4 sm:px-8 space-y-8">
           <div className="text-center space-y-3 max-w-2xl mx-auto">
             <span className="text-xs font-bold text-gold-500 uppercase tracking-widest block">Our Core Expertise</span>
             <h2 className="font-serif text-3xl sm:text-4xl font-extrabold text-navy-900 dark:text-white">
-              {SERVICES_LIST.length}+ Executive HR, Visa & Academic Advisory Services
+              6 Core Academic & International Advisory Services
             </h2>
             <p className="text-xs text-slate-800 dark:text-slate-200 font-medium">
-              From executive headhunting and MOHRE visa quotas to international university admissions, language test prep, and career counseling.
+              Specialized educational consulting, college admission execution, student career guidance, and language test preparation.
             </p>
           </div>
 
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-            {/* Curated list featuring top recruitment and newly added education services */}
-            {[
-              ...SERVICES_LIST.filter(s => s.category === 'Education' || s.subCategory === 'Education'),
-              ...SERVICES_LIST.filter(s => s.category !== 'Education' && s.subCategory !== 'Education').slice(0, 6)
-            ].map((srv) => {
+            {SERVICES_LIST.map((srv) => {
               const homeIconMap = {
                 'Building2': Building2,
                 'Globe': Globe,
@@ -288,33 +284,22 @@ export const Home = () => {
                 'FileText': FileText,
                 'Award': Award,
                 'ShieldCheck': ShieldCheck,
-                'PieChart': Award,
-                'CreditCard': Award,
-                'Layers': Building2,
-                'Calendar': Calendar,
-                'CheckCircle2': CheckCircle2,
-                'FileCode': FileText,
                 'Compass': Compass,
                 'Sparkles': Sparkles,
                 'GraduationCap': GraduationCap,
                 'School': School,
                 'Languages': Languages
               };
-              const ServiceIcon = homeIconMap[srv.icon] || Briefcase;
+              const ServiceIcon = homeIconMap[srv.icon] || GraduationCap;
 
               return (
                 <div
                   key={srv.id}
                   onClick={() => {
-                    if (srv.category === 'Education' || srv.subCategory === 'Education') {
-                      if (srv.id === 'intl-consult') {
-                        navigateTo('international-consulting');
-                      } else {
-                        navigateTo(`education-${srv.id}`);
-                      }
+                    if (srv.id === 'intl-consult') {
+                      navigateTo('international-consulting');
                     } else {
-                      if (setSelectedServiceId) setSelectedServiceId(srv.id);
-                      navigateTo('services');
+                      navigateTo(`education-${srv.id}`);
                     }
                   }}
                   className="glass-card bg-white dark:bg-navy-900 border border-slate-200 dark:border-navy-800 p-6 rounded-2xl hover:border-gold-500 hover:-translate-y-1 transition duration-300 cursor-pointer flex flex-col justify-between group shadow-glass"
@@ -324,15 +309,18 @@ export const Home = () => {
                       <div className="w-12 h-12 rounded-xl bg-white dark:bg-navy-950 text-gold-500 border border-slate-200 dark:border-gold-500/30 flex items-center justify-center font-bold group-hover:bg-gold-500 group-hover:text-slate-900 dark:text-white transition">
                         <ServiceIcon className="w-6 h-6" />
                       </div>
-                      {(srv.category === 'Education' || srv.subCategory === 'Education') && (
-                        <span className="bg-emerald-500/15 text-emerald-600 dark:text-emerald-400 font-extrabold text-[9px] px-2 py-0.5 rounded-full uppercase">
-                          New Advisory
-                        </span>
-                      )}
+                      <span className="bg-emerald-500/15 text-emerald-600 dark:text-emerald-400 font-extrabold text-[9px] px-2 py-0.5 rounded-full uppercase border border-emerald-500/30">
+                        ✨ Core Pathway
+                      </span>
                     </div>
                     <h4 className="font-serif text-lg font-bold text-navy-900 dark:text-white group-hover:text-gold-500 transition">
                       {srv.title}
                     </h4>
+                    {srv.tagline && (
+                      <p className="text-[11px] font-semibold text-gold-600 dark:text-gold-400">
+                        {srv.tagline}
+                      </p>
+                    )}
                     <p className="text-xs text-slate-800 dark:text-slate-200 leading-relaxed font-medium line-clamp-2">
                       {srv.description}
                     </p>
@@ -346,7 +334,7 @@ export const Home = () => {
 
                   <div className="flex items-center justify-between pt-4 mt-3 border-t border-slate-100 dark:border-navy-800">
                     <div className="text-xs font-bold text-gold-600 dark:text-gold-400 flex items-center gap-1 group-hover:translate-x-0.5 transition">
-                      <span>Details</span>
+                      <span>Service Details</span>
                       <ChevronRight className="w-3.5 h-3.5" />
                     </div>
                     <button
@@ -354,9 +342,13 @@ export const Home = () => {
                       onClick={(e) => {
                         e.stopPropagation();
                         if (setSelectedServiceId) setSelectedServiceId(srv.id);
-                        navigateTo('contact');
+                        if (srv.id === 'intl-consult') {
+                          navigateTo('international-consulting');
+                        } else {
+                          setActiveModal('education-enquiry');
+                        }
                       }}
-                      className="px-3 py-1.5 bg-gold-shimmer text-navy-950 font-bold text-[11px] rounded-lg shadow-sm hover:opacity-95 transition"
+                      className="px-3 py-1.5 bg-gold-shimmer text-navy-950 font-bold text-[11px] rounded-lg shadow-sm hover:opacity-95 transition cursor-pointer"
                     >
                       Inquire Now
                     </button>
@@ -369,9 +361,9 @@ export const Home = () => {
           <div className="text-center pt-4">
             <button
               onClick={() => navigateTo('services')}
-              className="px-8 py-3.5 bg-slate-50 dark:bg-navy-900 hover:bg-gold-500 hover:text-slate-900 dark:text-white text-slate-900 dark:text-white font-bold text-xs rounded-xl shadow-luxury transition"
+              className="px-8 py-3.5 bg-slate-50 dark:bg-navy-900 hover:bg-gold-500 hover:text-slate-900 dark:text-white text-slate-900 dark:text-white font-bold text-xs rounded-xl shadow-luxury transition cursor-pointer"
             >
-              View All {SERVICES_LIST.length} Executive & Advisory Services →
+              View All 6 Academic & Advisory Services →
             </button>
           </div>
         </section>

@@ -1490,6 +1490,7 @@ export const CrmProvider = ({ children }) => {
     } catch (_) { }
 
     // Call backend API
+    let resJson = null;
     try {
       const tok = await getOrFetchActiveToken(activeRole, activeUser);
       if (tok) {
@@ -1501,7 +1502,7 @@ export const CrmProvider = ({ children }) => {
           },
           body: JSON.stringify({ notes: notes || 'Automated Portal Login Check-In' })
         });
-        const resJson = await res.json();
+        resJson = await res.json();
         if (resJson?.data?.lateApprovalStatus) {
           const status = resJson.data.lateApprovalStatus;
           if (status === 'PENDING' && activeRole !== 'Super Admin' && activeRole !== 'Admin') {
@@ -1679,6 +1680,12 @@ export const CrmProvider = ({ children }) => {
     if (moduleName === 'hr-shifts') {
       const normRole = (currentRole || user?.role || user?.designation || '').toLowerCase().replace(/[-_]/g, ' ').trim();
       return normRole === 'hr lead' || normRole === 'super admin' || normRole === 'admin' || normRole === 'hr operations' || normRole.includes('hr') || normRole.includes('operations');
+    }
+    if (moduleName === 'interview-management' || (typeof moduleName === 'string' && moduleName.startsWith('int-'))) {
+      return currentRole === 'Interviewer' || currentRole === 'Super Admin' || currentRole === 'Admin' || currentRole === 'HR Lead';
+    }
+    if (moduleName === 'placement-coordinator' || (typeof moduleName === 'string' && moduleName.startsWith('plc-'))) {
+      return currentRole === 'Placement Coordinator' || currentRole === 'Super Admin' || currentRole === 'Admin' || currentRole === 'HR Lead';
     }
     const permissions = (currentRole && ROLE_PERMISSIONS[currentRole]) || [];
     return permissions.includes('all') || permissions.includes(moduleName);

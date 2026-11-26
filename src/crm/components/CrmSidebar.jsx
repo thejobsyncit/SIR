@@ -159,7 +159,6 @@ export const CrmSidebar = ({ collapsed, setCollapsed }) => {
       category: 'Command Center',
       items: [
         { id: 'dashboard', label: 'Executive Dashboard', icon: LayoutDashboard },
-        { id: 'hr-tasks', label: 'HR Task Assignment', icon: CheckSquare },
         { id: 'consulting', label: 'Consulting & Bookings', icon: CalendarCheck }
       ]
     },
@@ -168,8 +167,9 @@ export const CrmSidebar = ({ collapsed, setCollapsed }) => {
       items: [
         { id: 'candidates', label: 'Candidates', icon: Users },
         { id: 'job-applications', label: 'Job Applications', icon: FileCheck, badge: applications.length || null },
+        { id: 'interview-management', label: 'Interview Management', icon: CalendarCheck },
+        { id: 'placement-coordinator', label: 'Placement Coordinator', icon: Award },
         { id: 'pipeline', label: 'Recruitment Pipeline', icon: GitMerge },
-        { id: 'workspace', label: 'Recruiter Workspace', icon: UserCheck },
         { id: 'domestic', label: 'Domestic Hiring', icon: Home },
         { id: 'international', label: 'International Hiring', icon: Globe }
       ]
@@ -188,7 +188,7 @@ export const CrmSidebar = ({ collapsed, setCollapsed }) => {
       items: [
         { id: 'reports', label: 'Reports & Analytics', icon: BarChart3 },
         { id: 'ai-suite', label: 'AI Features Suite', icon: Sparkles },
-        { id: 'automation', label: 'Automations', icon: Zap },
+        { id: 'automation', label: 'Company Announcement', icon: Zap },
         { id: 'super-admin', label: 'Super Admin Panel', icon: ShieldCheck },
         { id: 'settings', label: 'Admin Settings', icon: Settings }
       ]
@@ -209,6 +209,9 @@ export const CrmSidebar = ({ collapsed, setCollapsed }) => {
     { id: 'hr-shifts', label: 'My Shift', icon: Clock },
     { id: 'my-attendance', label: 'My Attendance', icon: CalendarCheck },
     { id: 'hr-announcements', label: 'Company Announcement', icon: Megaphone },
+    { id: 'leave', label: 'Leave Requests', icon: Calendar },
+    { id: 'documentation', label: 'Document Verification & KYC', icon: FileText },
+    { id: 'visa', label: 'Visa & Verification', icon: ShieldCheck },
     { id: 'my-profile', label: 'My Profile', icon: User }
   ];
 
@@ -224,41 +227,33 @@ export const CrmSidebar = ({ collapsed, setCollapsed }) => {
     { id: 'offers', label: 'Offers & Joining', icon: Award },
     { id: 'reports', label: 'Recruiter Analytics', icon: BarChart3 },
     { id: 'my-attendance', label: 'My Attendance', icon: CalendarCheck },
+    { id: 'leave', label: 'Leave Requests', icon: Calendar },
     { id: 'my-profile', label: 'My Profile', icon: User }
   ];
 
   // Placement Coordinator Dashboard features
   const placementMenuItems = [
-    { id: 'plc-overview', label: 'Dashboard Overview', icon: LayoutDashboard },
-    { id: 'plc-students', label: 'Student Directory', icon: GraduationCap },
-    { id: 'plc-companies', label: 'Corporate Partners', icon: Building2 },
-    { id: 'plc-drives', label: 'Placement Drives', icon: Briefcase },
-    { id: 'plc-registration', label: 'Student Registration', icon: UserCheck },
-    { id: 'plc-applications', label: 'Application Tracking', icon: GitMerge },
-    { id: 'plc-events', label: 'Recruitment & Drive Meets', icon: Calendar },
-    { id: 'plc-offers', label: 'Offer & Placement Records', icon: Award },
-    { id: 'plc-announcements', label: 'Announcements & Alerts', icon: Bell },
-    { id: 'plc-reports', label: 'Reports & Exports', icon: BarChart3 },
-    { id: 'plc-approvals', label: 'Access & Approvals', icon: ShieldCheck },
+    { id: 'plc-overview', label: 'Placement Dashboard', icon: LayoutDashboard },
+    { id: 'plc-review', label: 'Placement Review Queue', icon: UserCheck },
+    { id: 'plc-submissions', label: 'Employer Submissions', icon: Building2 },
+    { id: 'plc-interviews', label: 'Employer Interviews', icon: Calendar },
+    { id: 'plc-offers', label: 'Offers & Joining', icon: Award },
+    { id: 'plc-notifications', label: 'Alerts & Activity', icon: Bell },
     { id: 'my-attendance', label: 'My Attendance', icon: CalendarCheck },
+    { id: 'leave', label: 'Leave Requests', icon: Calendar },
     { id: 'my-profile', label: 'My Profile', icon: User }
   ];
 
   // Interviewer Dashboard features
   const interviewerMenuItems = [
-    { id: 'int-overview', label: 'Dashboard Overview', icon: LayoutDashboard },
-    { id: 'int-assigned', label: 'Assigned Candidates', icon: Users },
-    { id: 'int-profiles', label: 'Candidate Profiles', icon: FileText },
-    { id: 'int-schedule', label: 'Interview Schedule', icon: Calendar },
-    { id: 'int-evaluation', label: 'Evaluation Forms', icon: CheckSquare },
-    { id: 'int-feedback', label: 'Structured Feedback', icon: MessageSquare },
-    { id: 'int-decision', label: 'Decision Submission', icon: Award },
-    { id: 'int-status', label: 'Interview Status', icon: Clock },
-    { id: 'int-reminders', label: 'Feedback Reminders', icon: AlertCircle },
-    { id: 'int-context', label: 'Previous Round Notes', icon: BookOpen },
-    { id: 'int-calendar', label: 'Availability Calendar', icon: CalendarCheck },
-    { id: 'int-permissions', label: 'Confidentiality & Access', icon: Lock },
+    { id: 'int-overview', label: 'Interview Dashboard', icon: LayoutDashboard },
+    { id: 'int-assigned', label: 'Candidate Interview Queue', icon: Users },
+    { id: 'int-schedule', label: 'Interview Calendar', icon: Calendar },
+    { id: 'int-evaluation', label: 'Pending Evaluations', icon: CheckSquare },
+    { id: 'int-history', label: 'Interview History', icon: BookOpen },
+    { id: 'int-notifications', label: 'Alerts & Activity', icon: Bell },
     { id: 'my-attendance', label: 'My Attendance', icon: CalendarCheck },
+    { id: 'leave', label: 'Leave Requests', icon: Calendar },
     { id: 'my-profile', label: 'My Profile', icon: User }
   ];
 

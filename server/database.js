@@ -94,6 +94,61 @@ export const getDbPath = () => {
   return path.join(__dirname, 'sir_recruitment.db');
 };
 
+export const DEFAULT_SHIFTS = [
+  {
+    id: 'SHIFT-GENERAL',
+    name: 'General Day Shift (09:00 AM - 06:00 PM)',
+    startTime: '09:00',
+    endTime: '18:00',
+    graceMinutes: 15,
+    isOvernight: 0,
+    breakTrackingEnabled: 1,
+    overtimeEnabled: 1,
+    overtimeThresholdMinutes: 480,
+    absentCutoffHour: 14,
+    weeklyOffDays: '[0]'
+  },
+  {
+    id: 'SHIFT-MORNING',
+    name: 'Early Morning Shift (08:00 AM - 04:30 PM)',
+    startTime: '08:00',
+    endTime: '16:30',
+    graceMinutes: 15,
+    isOvernight: 0,
+    breakTrackingEnabled: 1,
+    overtimeEnabled: 1,
+    overtimeThresholdMinutes: 480,
+    absentCutoffHour: 13,
+    weeklyOffDays: '[0]'
+  },
+  {
+    id: 'SHIFT-UK-ME',
+    name: 'UK & Middle East Overlap (01:00 PM - 09:30 PM)',
+    startTime: '13:00',
+    endTime: '21:30',
+    graceMinutes: 15,
+    isOvernight: 0,
+    breakTrackingEnabled: 1,
+    overtimeEnabled: 1,
+    overtimeThresholdMinutes: 480,
+    absentCutoffHour: 17,
+    weeklyOffDays: '[0]'
+  },
+  {
+    id: 'SHIFT-NIGHT',
+    name: 'Overnight Global Desk (10:00 PM - 07:00 AM)',
+    startTime: '22:00',
+    endTime: '07:00',
+    graceMinutes: 15,
+    isOvernight: 1,
+    breakTrackingEnabled: 1,
+    overtimeEnabled: 1,
+    overtimeThresholdMinutes: 480,
+    absentCutoffHour: 23,
+    weeklyOffDays: '[0]'
+  }
+];
+
 export const DEFAULT_CRM_EMPLOYEES = [
   {
     id: 'emp-1',
@@ -680,7 +735,18 @@ const createFallbackDb = () => {
     client_notifications: [],
     client_invoices: [],
     career_departments: [],
-    audit_logs: []
+    audit_logs: [],
+    attendance_records: [],
+    shift_configs: [...DEFAULT_SHIFTS],
+    company_holidays: [],
+    employee_leave_requests: [],
+    attendance_breaks: [],
+    attendance_regularizations: [],
+    attendance_audit_logs: [],
+    employee_notifications: [],
+    role_login_logs: [],
+    candidate_visa_assessments: [],
+    candidate_verifications: []
   };
 
   let store = { ...defaultStore };
@@ -876,7 +942,18 @@ export const SUPABASE_ALL_TABLES = [
   'client_notifications',
   'client_invoices',
   'career_departments',
-  'audit_logs'
+  'audit_logs',
+  'attendance_records',
+  'shift_configs',
+  'company_holidays',
+  'employee_leave_requests',
+  'attendance_breaks',
+  'attendance_regularizations',
+  'attendance_audit_logs',
+  'employee_notifications',
+  'role_login_logs',
+  'candidate_visa_assessments',
+  'candidate_verifications'
 ];
 
 export const SUPABASE_KEY_MAP = {
@@ -925,7 +1002,37 @@ export const SUPABASE_KEY_MAP = {
   interviewdate: 'interviewDate',
   interviewtime: 'interviewTime',
   interviewername: 'interviewerName',
-  interviewtype: 'interviewType'
+  interviewtype: 'interviewType',
+  shiftid: 'shiftId',
+  shiftname: 'shiftName',
+  shiftstart: 'shiftStart',
+  shiftend: 'shiftEnd',
+  starttime: 'startTime',
+  endtime: 'endTime',
+  graceminutes: 'graceMinutes',
+  isovernight: 'isOvernight',
+  lateapprovalstatus: 'lateApprovalStatus',
+  lateminutes: 'lateMinutes',
+  workdate: 'workDate',
+  checkinat: 'checkInAt',
+  checkoutat: 'checkOutAt',
+  approvedby: 'approvedBy',
+  approvedat: 'approvedAt',
+  rejectionreason: 'rejectionReason',
+  totalbreakminutes: 'totalBreakMinutes',
+  grossminutes: 'grossMinutes',
+  networkminutes: 'netWorkMinutes',
+  overtimeminutes: 'overtimeMinutes',
+  isovernightshift: 'isOvernightShift',
+  employeename: 'employeeName',
+  operationteam: 'operationTeam',
+  leavetype: 'leaveType',
+  startdate: 'startDate',
+  enddate: 'endDate',
+  reviewedby: 'reviewedBy',
+  reviewedat: 'reviewedAt',
+  submittedat: 'submittedAt',
+  reviewnotes: 'reviewNotes'
 };
 
 export const normalizeSupabaseRow = (raw) => {
@@ -974,6 +1081,11 @@ export const createSupabaseDb = async (client) => {
   // Ensure default employees in store if empty
   if ((!store.employees || store.employees.length === 0) && DEFAULT_CRM_EMPLOYEES?.length) {
     store.employees = [...DEFAULT_CRM_EMPLOYEES];
+  }
+
+  // Ensure default shifts in store if empty
+  if ((!store.shift_configs || store.shift_configs.length === 0) && DEFAULT_SHIFTS?.length) {
+    store.shift_configs = [...DEFAULT_SHIFTS];
   }
 
   const getTableName = (sql) => {
@@ -1055,7 +1167,7 @@ export const createSupabaseDb = async (client) => {
           let count = 0;
           store[table] = store[table].map(r => {
             const matches =
-              (whereCol === 'id' && (r.id === whereVal || r.employeeId === whereVal)) ||
+              (whereCol.toLowerCase() === 'id' && (r.id === whereVal || r.employeeId === whereVal || r.employeeid === whereVal)) || (whereCol.toLowerCase() === 'employeeid' && (r.employeeId === whereVal || r.employeeid === whereVal || r.id === whereVal)) ||
               (/email/i.test(whereCol) && String(r.email).toLowerCase().trim() === String(whereVal).toLowerCase().trim()) ||
               (r[whereCol] === whereVal);
             if (matches) {
@@ -2396,6 +2508,48 @@ const initDb = async (db) => {
     );
 
     CREATE INDEX IF NOT EXISTS idx_emp_notif_emp ON employee_notifications(employeeId, createdAt);
+
+    
+    CREATE TABLE IF NOT EXISTS candidate_visa_assessments (
+      id TEXT PRIMARY KEY,
+      candidateId TEXT,
+      candidateEmail TEXT,
+      candidateName TEXT,
+      targetCountry TEXT NOT NULL,
+      qualification TEXT,
+      experience TEXT,
+      dob TEXT,
+      language TEXT,
+      score INTEGER DEFAULT 0,
+      status TEXT,
+      readiness TEXT,
+      reasons TEXT,
+      checklist TEXT,
+      createdAt DATETIME DEFAULT CURRENT_TIMESTAMP,
+      updatedAt DATETIME DEFAULT CURRENT_TIMESTAMP
+    );
+    CREATE INDEX IF NOT EXISTS idx_visa_assessments_candidate ON candidate_visa_assessments(candidateId);
+
+    CREATE TABLE IF NOT EXISTS candidate_verifications (
+      id TEXT PRIMARY KEY,
+      caseId TEXT UNIQUE NOT NULL,
+      candidateId TEXT,
+      candidateName TEXT NOT NULL,
+      candidateEmail TEXT,
+      passportNumber TEXT,
+      verificationPackage TEXT NOT NULL,
+      packageItems TEXT,
+      overallStatus TEXT NOT NULL DEFAULT 'Submitted',
+      attestationPipeline TEXT,
+      employmentMilestones TEXT,
+      documentsAttached TEXT,
+      consentAccepted INTEGER DEFAULT 1,
+      remarks TEXT,
+      createdAt DATETIME DEFAULT CURRENT_TIMESTAMP,
+      updatedAt DATETIME DEFAULT CURRENT_TIMESTAMP
+    );
+    CREATE INDEX IF NOT EXISTS idx_verifications_case ON candidate_verifications(caseId);
+    CREATE INDEX IF NOT EXISTS idx_verifications_candidate ON candidate_verifications(candidateId);
 
     CREATE TABLE IF NOT EXISTS role_login_logs (
       id TEXT PRIMARY KEY,

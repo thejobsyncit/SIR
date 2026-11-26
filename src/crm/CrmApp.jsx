@@ -66,8 +66,11 @@ import { CrmMyProfile } from './pages/CrmMyProfile';
 import { CrmMyAttendance } from './pages/CrmMyAttendance';
 import { CrmHrOpsCandidateDirectory } from './pages/CrmHrOpsCandidateDirectory';
 import { CrmVisaVerification } from './pages/CrmVisaVerification';
+import { CrmInterviewManagement } from './pages/CrmInterviewManagement';
+import { CrmPlacementCoordinator } from './pages/CrmPlacementCoordinator';
 import { HrLogoutConfirmModal } from './components/HrLogoutConfirmModal';
 import { LateArrivalApprovalGateway } from './components/LateArrivalApprovalGateway';
+import { CrmCelebrationPopupModal } from './components/CrmCelebrationPopupModal';
 
 import { Search, Sparkles, X, Send, Bot, Loader2, Copy, Check, RotateCcw, ShieldCheck } from 'lucide-react';
 
@@ -331,38 +334,38 @@ const CrmAppContent = () => {
     }
 
     switch (activeModule) {
-      // Placement Coordinator Suite (12 Dedicated Pages)
-      case 'plc-overview': return <CrmPlacementCoordinatorDashboard />;
-      case 'plc-students': return <CrmPlacementStudents />;
-      case 'plc-eligibility': return <CrmPlacementCoordinatorDashboard initialSection="overview" />;
-      case 'plc-companies': return <CrmPlacementCompanies />;
-      case 'plc-drives': return <CrmPlacementDrives />;
-      case 'plc-registration': return <CrmPlacementRegistration />;
-      case 'plc-applications': return <CrmPlacementApplications />;
-      case 'plc-events': return <CrmPlacementEvents />;
-      case 'plc-offers': return <CrmPlacementOffers />;
-      case 'plc-announcements': return <CrmPlacementAnnouncements />;
-      case 'plc-reports': return <CrmPlacementReports />;
-      case 'plc-approvals': return <CrmPlacementApprovals />;
+      // Placement Coordinator Management
+      case 'placement-coordinator':
+      case 'plc-overview':
+        return <CrmPlacementCoordinator initialTab="queue" />;
+      case 'plc-review':
+        return <CrmPlacementCoordinator initialTab="review" />;
+      case 'plc-submissions':
+        return <CrmPlacementCoordinator initialTab="submissions" />;
+      case 'plc-interviews':
+        return <CrmPlacementCoordinator initialTab="interviews" />;
+      case 'plc-offers':
+        return <CrmPlacementCoordinator initialTab="offers" />;
+      case 'plc-notifications':
+        return <CrmPlacementCoordinator initialTab="notifications" />;
 
-      // Interviewer Suite (12 Dedicated Pages)
-      case 'int-overview': return <CrmInterviewerDashboard />;
-      case 'int-assigned': return <CrmInterviewerAssigned />;
-      case 'int-profiles': return <CrmInterviewerProfiles />;
-      case 'int-schedule': return <CrmInterviewerSchedule />;
-      case 'int-evaluation': return <CrmInterviewerEvaluation />;
-      case 'int-feedback': return <CrmInterviewerFeedback />;
-      case 'int-decision': return <CrmInterviewerDecision />;
-      case 'int-status': return <CrmInterviewerStatus />;
-      case 'int-reminders': return <CrmInterviewerReminders />;
-      case 'int-context': return <CrmInterviewerContext />;
-      case 'int-calendar': return <CrmInterviewerAvailability />;
-      case 'int-permissions': return <CrmInterviewerPermissions />;
+      // Interview Management
+      case 'interview-management':
+      case 'int-overview':
+      case 'int-assigned':
+        return <CrmInterviewManagement initialTab="queue" />;
+      case 'int-schedule':
+        return <CrmInterviewManagement initialTab="calendar" />;
+      case 'int-evaluation':
+        return <CrmInterviewManagement initialTab="evaluations" />;
+      case 'int-history':
+        return <CrmInterviewManagement initialTab="history" />;
+      case 'int-notifications':
+        return <CrmInterviewManagement initialTab="notifications" />;
 
       // HR Lead Suite (Centralized Workspace)
       case 'hr-overview':
       case 'hr-attendance':
-      case 'hr-leave':
       case 'hr-employees':
       case 'hr-performance':
       case 'hr-recruitment':
@@ -402,6 +405,7 @@ const CrmAppContent = () => {
       case 'attendance':
         return <CrmAttendanceManagement isSuperAdmin={currentRole === 'Super Admin'} currentRole={currentRole} />;
       case 'leave':
+      case 'hr-leave':
         return <CrmLeaveManagement isSuperAdmin={currentRole === 'Super Admin'} currentRole={currentRole} />;
 
       // Standard & Recruiter Modules
@@ -658,6 +662,9 @@ const CrmAppContent = () => {
         onCancel={closeLogoutConfirm}
         onConfirm={confirmLogout}
       />
+
+      {/* Company-Wide Festival / Birthday / Celebration Broadcast Popup */}
+      <CrmCelebrationPopupModal />
 
     </div>
   );

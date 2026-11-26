@@ -10,11 +10,13 @@ import { verifyCrmSessionToken } from './routes/attendanceRoutes.js';
 import { INITIAL_BASELINE_ENQUIRIES } from './data/baselineEnquiries.js';
 import { registerClientPortalRoutes } from './clientPortalRoutes.js';
 import { registerAttendanceRoutes } from './routes/attendanceRoutes.js';
+import { visaVerificationRouter } from './routes/visaVerificationRoutes.js';
 import { registerHrCandidateRoutes } from './routes/hrCandidateRoutes.js';
 import { registerDocumentationRoutes } from './routes/documentationRoutes.js';
 import { registerEmailApplicationRoutes } from './routes/emailApplicationRoutes.js';
 import { registerAnnouncementRoutes } from './routes/announcementRoutes.js';
 import { registerVisaVerificationRoutes } from './routes/visaVerificationRoutes.js';
+import { registerInterviewPlacementRoutes } from './routes/interviewPlacementRoutes.js';
 import {
   sendCandidateWelcomeEmail,
   sendCandidateApplicationConfirmationEmail,
@@ -3936,7 +3938,8 @@ app.put('/api/employees/:id', async (req, res) => {
     const { name, email, phone, role, department, password, status, employeeId } = req.body;
     const db = await getDb();
 
-    const existing = await db.get('SELECT * FROM employees WHERE id = ?', [id]);
+    let existing = await db.get('SELECT * FROM employees WHERE id = ?', [id]);
+    if (!existing) existing = await db.get('SELECT * FROM employees WHERE employeeId = ?', [id]);
     if (!existing) {
       return res.status(404).json({ success: false, message: 'Employee not found.' });
     }
@@ -4034,7 +4037,7 @@ app.delete('/api/employees/:id', async (req, res) => {
       return res.status(404).json({ success: false, message: 'Employee not found.' });
     }
 
-    await db.run('DELETE FROM employees WHERE id = ?', [id]);
+    await db.run('DELETE FROM employees WHERE id = ?', [existing.id]);
 
     const clientIp = getClientIp(req);
     const { crmUser, crmRole, crmUserId } = getCrmContext(req);
@@ -6743,21 +6746,12 @@ app.get(['/api/admin/leads/metrics', '/api/crm/leads/dashboard-metrics'], async 
 
     // 2. Service-Wise Breakdown across Master Services
     const MASTER_SERVICES = [
-      { id: 'dom-rec', title: 'Domestic Recruitment', category: 'Recruitment' },
-      { id: 'intl-rec', title: 'International Recruitment', category: 'Recruitment' },
-      { id: 'exec-search', title: 'Executive Search', category: 'Executive' },
-      { id: 'perm-staff', title: 'Permanent Staffing', category: 'Staffing' },
-      { id: 'contract-staff', title: 'Contract Staffing', category: 'Staffing' },
-      { id: 'bulk-hiring', title: 'Bulk Hiring', category: 'Recruitment' },
-      { id: 'overseas-place', title: 'Overseas Placement', category: 'Placement' },
-      { id: 'visa-assist', title: 'Visa Assistance', category: 'Visa & Legal' },
-      { id: 'work-permit', title: 'Work Permit Guidance', category: 'Visa & Legal' },
-      { id: 'intl-consult', title: 'International Consulting', category: 'Consulting' },
+      { id: 'intl-consult', title: 'International Consulting', category: 'Academic Advisory' },
       { id: 'college-adm', title: 'College Admission Assistance', category: 'Higher Education' },
-      { id: 'school-career', title: 'School Student Career Guidance', category: 'K-12 & High School' },
-      { id: 'intl-adm', title: 'International Admissions', category: 'Admissions' },
+      { id: 'school-career', title: 'School Student Career Guidance', category: 'Career Guidance' },
+      { id: 'intl-adm', title: 'International Admissions', category: 'Global Admissions' },
       { id: 'school-academy', title: 'Academy for School Students', category: 'Academic Enrichment' },
-      { id: 'exec-seminars-lang', title: 'Executive Seminars & Language Test Preparation', category: 'Test Prep & Executive' }
+      { id: 'exec-seminars-lang', title: 'Executive Seminars & Language Prep', category: 'Test Prep & Executive' }
     ];
 
     const allLeadsInScope = await db.all(
@@ -8223,21 +8217,12 @@ app.get('/api/analytics/service-performance', async (req, res) => {
 
     // 1. Defined master services catalog
     const MASTER_SERVICES = [
-      { id: 'dom-rec', title: 'Domestic Recruitment', category: 'Recruitment' },
-      { id: 'intl-rec', title: 'International Recruitment', category: 'Recruitment' },
-      { id: 'exec-search', title: 'Executive Search', category: 'Executive' },
-      { id: 'perm-staff', title: 'Permanent Staffing', category: 'Staffing' },
-      { id: 'contract-staff', title: 'Contract Staffing', category: 'Staffing' },
-      { id: 'bulk-hiring', title: 'Bulk Hiring', category: 'Recruitment' },
-      { id: 'overseas-place', title: 'Overseas Placement', category: 'Placement' },
-      { id: 'visa-assist', title: 'Visa Assistance', category: 'Visa & Legal' },
-      { id: 'work-permit', title: 'Work Permit Guidance', category: 'Visa & Legal' },
-      { id: 'intl-consult', title: 'International Consulting', category: 'Consulting' },
+      { id: 'intl-consult', title: 'International Consulting', category: 'Academic Advisory' },
       { id: 'college-adm', title: 'College Admission Assistance', category: 'Higher Education' },
-      { id: 'school-career', title: 'School Student Career Guidance', category: 'K-12 & High School' },
-      { id: 'intl-adm', title: 'International Admissions', category: 'Admissions' },
+      { id: 'school-career', title: 'School Student Career Guidance', category: 'Career Guidance' },
+      { id: 'intl-adm', title: 'International Admissions', category: 'Global Admissions' },
       { id: 'school-academy', title: 'Academy for School Students', category: 'Academic Enrichment' },
-      { id: 'exec-seminars-lang', title: 'Executive Seminars & Language Test Preparation', category: 'Test Prep & Executive' }
+      { id: 'exec-seminars-lang', title: 'Executive Seminars & Language Prep', category: 'Test Prep & Executive' }
     ];
 
     // 2. Fetch all real inbound leads from database
@@ -8356,153 +8341,18 @@ app.get('/api/analytics/service-performance', async (req, res) => {
   }
 });
 
-// Visa check and assessment
-app.get('/api/visa/countries-matrix', (req, res) => {
-  res.json({ success: true, data: VISA_MATRIX_DATA });
+// Visa & Verification Unified Routes
+app.use('/api/visa', visaVerificationRouter);
+app.use('/api/verification', visaVerificationRouter);
+app.get('/api/crm/verifications', (req, res) => {
+  req.url = '/crm/cases';
+  visaVerificationRouter(req, res);
+});
+app.put('/api/crm/verifications/:caseId', (req, res) => {
+  req.url = '/crm/cases/' + req.params.caseId;
+  visaVerificationRouter(req, res);
 });
 
-app.post('/api/visa/check', (req, res) => {
-  const { country, qualification, experience, age, language } = req.body;
-  const targetCountryData = VISA_MATRIX_DATA.find(c => c.country.toLowerCase() === (country || 'uae').toLowerCase()) || VISA_MATRIX_DATA[0];
-
-  const target = (country || 'uae').toLowerCase();
-  const ageVal = parseInt(age) || 30;
-  const expVal = parseInt(experience) || 2;
-  const qualStr = (qualification || '').toLowerCase();
-  const langStr = (language || '').toLowerCase();
-
-  let baseScore = 20;
-  const reasons = [];
-
-  let ageScore = 0;
-  if (target === 'australia') {
-    if (ageVal < 18) {
-      ageScore = 0;
-      reasons.push('Below minimum working age (18) for Australia independent visa.');
-    } else if (ageVal <= 24) {
-      ageScore = 25;
-      reasons.push('Age 18-24 grants 25 points on Australia Skilled Points Grid.');
-    } else if (ageVal <= 32) {
-      ageScore = 30;
-      reasons.push('Peak Age Bracket (25-32) grants maximum 30 points for Australia Visa.');
-    } else if (ageVal <= 39) {
-      ageScore = 25;
-      reasons.push('Age 33-39 grants 25 points on Australia Migration Grid.');
-    } else if (ageVal <= 44) {
-      ageScore = 15;
-      reasons.push('Age 40-44 grants 15 points on Australia Skilled Migration.');
-    } else {
-      ageScore = -25;
-      reasons.push('Exceeds Australia Skilled Migration age threshold (Maximum 45 years limit). Employer sponsorship pathway required.');
-    }
-  } else if (target === 'canada') {
-    if (ageVal >= 20 && ageVal <= 29) {
-      ageScore = 30;
-      reasons.push('Peak age bracket (20-29) yields maximum CRS points for Canada Express Entry.');
-    } else if (ageVal >= 30 && ageVal <= 44) {
-      const reduction = (ageVal - 29) * 2;
-      ageScore = Math.max(10, 30 - reduction);
-      reasons.push(`Age ${ageVal} receives moderate CRS score points for Canadian immigration.`);
-    } else {
-      ageScore = 5;
-      reasons.push('Age over 45 receives reduced CRS points; provincial nomination or LMIA job offer strongly recommended.');
-    }
-  } else {
-    if (ageVal >= 21 && ageVal <= 50) {
-      ageScore = 25;
-      reasons.push(`Optimal working age (${ageVal} years) meets GCC labor permit standards.`);
-    } else {
-      ageScore = 10;
-      reasons.push(`Age ${ageVal} subject to additional labor approval protocols.`);
-    }
-  }
-
-  let expScore = 0;
-  if (expVal >= 5) {
-    expScore = 25;
-    reasons.push(`Extensive career experience (${expVal}+ years) qualifies for senior specialist quotas.`);
-  } else if (expVal >= 2) {
-    expScore = 18;
-    reasons.push(`Mid-level experience (${expVal} years) fulfills standard skilled visa criteria.`);
-  } else {
-    expScore = 10;
-    reasons.push('Entry-level experience: employer-sponsored training visa pathway recommended.');
-  }
-
-  let qualScore = 0;
-  if (qualStr.includes('master') || qualStr.includes('phd') || qualStr.includes('doctorate')) {
-    qualScore = 25;
-    reasons.push('Postgraduate credentials provide maximum qualification rating and fast-track processing eligibility.');
-  } else if (qualStr.includes('bachelor') || qualStr.includes('degree') || qualStr.includes('engineer')) {
-    qualScore = 20;
-    reasons.push("Attested Bachelor's Degree fulfills Tier-1 skilled work permit criteria across all GCC jurisdictions.");
-  } else if (qualStr.includes('diploma')) {
-    qualScore = 15;
-    reasons.push('Technical / Vocational Diploma eligible for specialized trade and technician visa categories.');
-  } else {
-    qualScore = 10;
-    reasons.push('Secondary qualification eligible for general labor, hospitality, & service visas in GCC.');
-  }
-
-  let langScore = 0;
-  if (langStr.includes('native') || langStr.includes('fluent') || langStr.includes('c1') || langStr.includes('c2') || langStr.includes('ielts') || langStr.includes('oet') || langStr.includes('det')) {
-    langScore = 15;
-    reasons.push('Verified language proficiency (Native / Fluent) satisfies international visa standards and employer criteria.');
-  } else if (langStr.includes('advance') || langStr.includes('b2')) {
-    langScore = 13;
-    reasons.push('Advanced language proficiency fulfills skilled professional visa benchmarks.');
-  } else if (langStr.includes('speaking') || langStr.includes('conversational') || langStr.includes('b1')) {
-    langScore = 11;
-    reasons.push('Conversational speaking ability satisfies standard regional workplace criteria.');
-  } else if (langStr.includes('basic') || langStr.includes('a1') || langStr.includes('a2')) {
-    langScore = 8;
-    reasons.push('Basic language proficiency acceptable for regional employer sponsorship.');
-  } else {
-    langScore = 14;
-    reasons.push(`Standard ${language || 'language'} proficiency verified for target country employment visas.`);
-  }
-
-  // Bonus for bilingual combination in GCC corridor (e.g. English + Arabic)
-  if ((langStr.includes('arabic') && langStr.includes('english')) || (langStr.includes('+ arabic') || langStr.includes('+ english'))) {
-    langScore = Math.min(20, langScore + 5);
-    reasons.push('Bilingual proficiency in English & Arabic provides premium priority for GCC executive and government liaison visas.');
-  }
-
-  const finalScore = Math.min(100, Math.max(15, baseScore + ageScore + expScore + qualScore + langScore));
-  let eligibilityStatus = 'Low';
-  if (finalScore >= 75) eligibilityStatus = 'High';
-  else if (finalScore >= 50) eligibilityStatus = 'Moderate';
-
-  res.json({
-    success: true,
-    score: finalScore,
-    status: eligibilityStatus,
-    targetCountry: targetCountryData.country,
-    countryData: { country: targetCountryData.country, name: targetCountryData.country },
-    visaName: targetCountryData.commonVisa,
-    processingTime: targetCountryData.processingTime,
-    estimatedCost: targetCountryData.avgCost,
-    sponsorship: targetCountryData.sponsorship,
-    reasons,
-    documentChecklist: targetCountryData.documentChecklist || [],
-    checklist: targetCountryData.documentChecklist || [
-      'Valid Passport (6+ Months Validity)',
-      'Attested Degree Certificates & Transcripts',
-      'Police Clearance Certificate (PCC)',
-      'Medical Fitness Assessment Report',
-      'Employment Offer Letter & Job Contract',
-      'Passport Sized Photographs (White Background)'
-    ],
-    recommendedJobs: [
-      { id: 'REC-JOB-01', title: 'Senior Project Manager', company: 'Emaar Group', salary: 'AED 28,000 / mo' },
-      { id: 'REC-JOB-02', title: 'Site Mechanical Engineer', company: 'Al Habtoor Contracting', salary: 'AED 18,500 / mo' },
-      { id: 'REC-JOB-03', title: 'Financial Controller', company: 'Emirates NBD', salary: 'AED 32,000 / mo' }
-    ]
-  });
-});
-
-// ==============================================================================
-// DETERMINISTIC ATS RESUME ANALYZER ENGINE
 // ==============================================================================
 const ATS_DOMAINS = [
   {
@@ -9232,6 +9082,235 @@ registerDocumentationRoutes(app, { getDb, getClientIp, logAuditTrail });
 registerEmailApplicationRoutes(app, { getDb, getClientIp, logAuditTrail });
 registerAnnouncementRoutes(app, { getDb, getClientIp, logAuditTrail });
 registerVisaVerificationRoutes(app, { getDb, getClientIp, logAuditTrail });
+registerInterviewPlacementRoutes(app, { getDb });
+
+// ==============================================================================
+// MULTI-LANGUAGE FULL-SITE TRANSLATION ENDPOINT (EN -> HI, AR, FR, DE)
+// ==============================================================================
+const translationMemoryCache = new Map();
+
+app.post('/api/translate', async (req, res) => {
+  try {
+    const { targetLang = 'hi', texts = [] } = req.body || {};
+    const tl = String(targetLang || 'hi').toLowerCase().trim();
+    const allowed = new Set(['hi', 'ar', 'fr', 'de']);
+    if (!allowed.has(tl) || !Array.isArray(texts) || texts.length === 0) {
+      return res.json({ success: true, translations: {} });
+    }
+
+    const uniqueTexts = [...new Set(
+      texts
+        .map((t) => (typeof t === 'string' ? t.trim() : ''))
+        .filter((t) => t.length > 0 && t.length <= 1500 && !/^[\d\s\W]+$/.test(t))
+    )].slice(0, 120);
+
+    const result = {};
+    const toTranslate = [];
+
+    for (const txt of uniqueTexts) {
+      const cacheKey = `${tl}::${txt}`;
+      if (translationMemoryCache.has(cacheKey)) {
+        result[txt] = translationMemoryCache.get(cacheKey);
+      } else {
+        toTranslate.push(txt);
+      }
+    }
+
+    if (toTranslate.length > 0) {
+      await Promise.all(
+        toTranslate.map(async (txt) => {
+          try {
+            // Try MyMemory first (reliable, no 429 block), then Google Translate fallback
+            const mmUrl = `https://api.mymemory.translated.net/get?q=${encodeURIComponent(txt)}&langpair=en|${encodeURIComponent(tl)}&de=enquiry@therevivalinternational.com`;
+            const mmResp = await fetch(mmUrl);
+            if (mmResp.ok) {
+              const mmData = await mmResp.json();
+              const mmText = mmData?.responseData?.translatedText?.trim();
+              if (mmData?.responseStatus === 200 && mmText && mmText.toLowerCase() !== txt.toLowerCase()) {
+                translationMemoryCache.set(`${tl}::${txt}`, mmText);
+                result[txt] = mmText;
+                return;
+              }
+            }
+            const url = `https://translate.googleapis.com/translate_a/single?client=gtx&sl=en&tl=${encodeURIComponent(tl)}&dt=t&q=${encodeURIComponent(txt)}`;
+            const resp = await fetch(url, { headers: { 'User-Agent': 'Mozilla/5.0' } });
+            if (!resp.ok) return;
+            const data = await resp.json();
+            if (Array.isArray(data?.[0])) {
+              const translated = data[0].map((seg) => seg?.[0] || '').join('').trim();
+              if (translated) {
+                translationMemoryCache.set(`${tl}::${txt}`, translated);
+                result[txt] = translated;
+              }
+            }
+          } catch {
+            // Keep original on individual segment failure
+          }
+        })
+      );
+    }
+
+    res.json({ success: true, translations: result });
+  } catch (err) {
+    console.error('Translation endpoint error:', err);
+    res.status(500).json({ success: false, translations: {} });
+  }
+});
+
+// ==============================================================================
+// CRM CELEBRATION / FESTIVAL / BIRTHDAY BROADCAST POPUPS
+// ==============================================================================
+const ensureCrmPopupTable = async (db) => {
+  await db.exec(`
+    CREATE TABLE IF NOT EXISTS crm_celebration_popups (
+      id TEXT PRIMARY KEY,
+      occasion_type TEXT NOT NULL DEFAULT 'Festival',
+      title TEXT NOT NULL,
+      message TEXT NOT NULL,
+      is_active INTEGER NOT NULL DEFAULT 1,
+      created_by TEXT,
+      created_by_role TEXT,
+      expires_at TEXT,
+      created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+      updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+    );
+  `);
+};
+
+app.get('/api/crm-popups', async (req, res) => {
+  try {
+    const db = await getDb();
+    await ensureCrmPopupTable(db);
+    const popups = await db.all(
+      `SELECT * FROM crm_celebration_popups ORDER BY COALESCE(updated_at, created_at) DESC`
+    );
+    res.json({ success: true, popups });
+  } catch (err) {
+    console.error('Error fetching CRM popups:', err);
+    res.status(500).json({ success: false, message: 'Failed to load broadcast popups.' });
+  }
+});
+
+app.get('/api/crm-popups/active', async (req, res) => {
+  try {
+    const db = await getDb();
+    await ensureCrmPopupTable(db);
+    const allActive = await db.all(
+      `SELECT * FROM crm_celebration_popups
+       WHERE is_active = 1
+       ORDER BY COALESCE(updated_at, created_at) DESC`
+    );
+    const todayStr = new Date().toISOString().slice(0, 10);
+    const popups = (allActive || []).filter((p) => !p.expires_at || String(p.expires_at).slice(0, 10) >= todayStr);
+    res.json({ success: true, popups });
+  } catch (err) {
+    console.error('Error fetching active CRM popups:', err);
+    res.status(500).json({ success: false, message: 'Failed to load active popups.' });
+  }
+});
+
+app.post('/api/crm-popups', async (req, res) => {
+  try {
+    const {
+      occasion_type = 'Festival',
+      title,
+      message,
+      is_active = 1,
+      created_by = 'Super Admin',
+      created_by_role = 'Super Admin',
+      expires_at = null
+    } = req.body || {};
+
+    const cleanTitle = String(title || '').trim();
+    const cleanMessage = String(message || '').trim();
+    if (!cleanTitle || !cleanMessage) {
+      return res.status(400).json({ success: false, message: 'Title and popup message text are required.' });
+    }
+
+    const id = `POP-${Date.now()}-${Math.floor(Math.random() * 1000)}`;
+    const now = new Date().toISOString();
+    const db = await getDb();
+    await ensureCrmPopupTable(db);
+    await db.run(
+      `INSERT INTO crm_celebration_popups (
+        id, occasion_type, title, message, is_active, created_by, created_by_role, expires_at, created_at, updated_at
+      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+      [
+        id,
+        String(occasion_type || 'Festival').trim(),
+        cleanTitle,
+        cleanMessage,
+        is_active ? 1 : 0,
+        String(created_by || 'Super Admin').trim(),
+        String(created_by_role || 'Super Admin').trim(),
+        expires_at || null,
+        now,
+        now
+      ]
+    );
+    const created = await db.get('SELECT * FROM crm_celebration_popups WHERE id = ?', [id]);
+    res.status(201).json({ success: true, popup: created });
+  } catch (err) {
+    console.error('Error creating CRM popup:', err);
+    res.status(500).json({ success: false, message: 'Failed to create broadcast popup.' });
+  }
+});
+
+app.patch('/api/crm-popups/:id', async (req, res) => {
+  try {
+    const { id } = req.params;
+    const db = await getDb();
+    await ensureCrmPopupTable(db);
+    const existing = await db.get('SELECT * FROM crm_celebration_popups WHERE id = ?', [id]);
+    if (!existing) {
+      return res.status(404).json({ success: false, message: 'Broadcast popup not found.' });
+    }
+
+    const { occasion_type, title, message, is_active, expires_at } = req.body || {};
+    const now = new Date().toISOString();
+
+    await db.run(
+      `UPDATE crm_celebration_popups SET
+        occasion_type = ?,
+        title = ?,
+        message = ?,
+        is_active = ?,
+        expires_at = ?,
+        updated_at = ?
+      WHERE id = ?`,
+      [
+        occasion_type !== undefined ? String(occasion_type).trim() : existing.occasion_type,
+        title !== undefined ? String(title).trim() : existing.title,
+        message !== undefined ? String(message).trim() : existing.message,
+        is_active !== undefined ? (is_active ? 1 : 0) : existing.is_active,
+        expires_at !== undefined ? (expires_at || null) : existing.expires_at,
+        now,
+        id
+      ]
+    );
+    const updated = await db.get('SELECT * FROM crm_celebration_popups WHERE id = ?', [id]);
+    res.json({ success: true, popup: updated });
+  } catch (err) {
+    console.error('Error updating CRM popup:', err);
+    res.status(500).json({ success: false, message: 'Failed to update broadcast popup.' });
+  }
+});
+
+app.delete('/api/crm-popups/:id', async (req, res) => {
+  try {
+    const { id } = req.params;
+    const db = await getDb();
+    const existing = await db.get('SELECT * FROM crm_celebration_popups WHERE id = ?', [id]);
+    if (!existing) {
+      return res.status(404).json({ success: false, message: 'Broadcast popup not found.' });
+    }
+    await db.run('DELETE FROM crm_celebration_popups WHERE id = ?', [id]);
+    res.json({ success: true, message: 'Broadcast popup deleted.' });
+  } catch (err) {
+    console.error('Error deleting CRM popup:', err);
+    res.status(500).json({ success: false, message: 'Failed to delete broadcast popup.' });
+  }
+});
 
 // Serve Vite frontend production bundle if dist directory exists (non-Vercel standalone mode)
 const distPath = path.join(__dirname, '..', 'dist');

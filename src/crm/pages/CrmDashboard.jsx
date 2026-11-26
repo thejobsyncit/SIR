@@ -5,11 +5,14 @@ import {
   DollarSign, ShieldCheck, CheckCircle2, ArrowUpRight, GraduationCap, 
   Compass, BookOpen, AlertCircle, ChevronRight, Phone, MessageSquare, 
   Filter, RefreshCw, CheckSquare, Layers, UserCheck, XCircle, LayoutDashboard, Eye,
-  ShieldAlert, Check, X, Lock
+  ShieldAlert, Check, X, Lock, Search, Download, Mail, Inbox, ChevronLeft
 } from 'lucide-react';
 import { RECRUITER_LEADERBOARD, AUDIT_LOGS } from '../data/mockCrmData';
 import ScrollReveal from '../../components/ScrollReveal';
 import { CrmHrLeadDashboard } from './CrmHrLeadDashboard';
+import { CrmInterviewManagement } from './CrmInterviewManagement';
+import { CrmPlacementCoordinator } from './CrmPlacementCoordinator';
+import { CrmCentralPipeline } from '../components/CrmCentralPipeline';
 import { CrmRecruiterDashboard } from './CrmRecruiterDashboard';
 import { CrmPlacementCoordinatorDashboard } from './CrmPlacementCoordinatorDashboard';
 import { CrmHrOperationsDashboard } from './CrmHrOperationsDashboard';
@@ -29,8 +32,10 @@ export const CrmDashboard = () => {
     fetchFollowUpsSummary,
     setActiveModule,
     updateFollowUpStatus,
-    leads,
+    leads = [],
     fetchLeads,
+    updateLead,
+    employees = [],
     candidates = [],
     clients = [],
     invoices = [],
@@ -41,6 +46,76 @@ export const CrmDashboard = () => {
   const [adminRoleView, setAdminRoleView] = useState('master');
   const [dateRange, setDateRange] = useState('all');
   const [loadingMetrics, setLoadingMetrics] = useState(false);
+
+  // Contact Us Enquiries filter state
+  const [leadSearchQuery, setLeadSearchQuery] = useState('');
+  const [leadServiceFilter, setLeadServiceFilter] = useState('all');
+  const [leadStatusFilter, setLeadStatusFilter] = useState('all');
+  const [leadAssignedFilter, setLeadAssignedFilter] = useState('all');
+
+  const cleanPhoneForWa = (p) => String(p || '').replace(/[^0-9]/g, '');
+
+  const isContactUsLead = (lead) => {
+    if (!lead) return false;
+    if (lead.serviceId === 'contact_us') return true;
+    if (lead.customFields) {
+      if (typeof lead.customFields === 'string') {
+        return lead.customFields.includes('Contact Us Page');
+      }
+      if (typeof lead.customFields === 'object') {
+        return lead.customFields.source === 'Contact Us Page';
+      }
+    }
+    return false;
+  };
+
+  const contactUsLeads = (leads || []).filter(isContactUsLead);
+
+  const filteredLeads = contactUsLeads.filter(lead => {
+    const q = leadSearchQuery.trim().toLowerCase();
+    const matchesSearch = !q ||
+      (lead.name || '').toLowerCase().includes(q) ||
+      (lead.email || '').toLowerCase().includes(q) ||
+      (lead.phone || '').toLowerCase().includes(q) ||
+      (lead.referenceNumber || '').toLowerCase().includes(q) ||
+      (lead.company || '').toLowerCase().includes(q);
+    const reasonText = (
+      (typeof lead.customFields === 'object' && lead.customFields?.reasonForContact) ||
+      lead.serviceTitle ||
+      ''
+    ).toLowerCase();
+    const matchesService = leadServiceFilter === 'all' ||
+      lead.serviceId === leadServiceFilter ||
+      reasonText.includes(leadServiceFilter.toLowerCase());
+    const matchesStatus = leadStatusFilter === 'all' || lead.status === leadStatusFilter;
+    const matchesAssigned = leadAssignedFilter === 'all' ||
+      (leadAssignedFilter === 'unassigned' ? !lead.assignedEmployee : lead.assignedEmployee === leadAssignedFilter);
+    return matchesSearch && matchesService && matchesStatus && matchesAssigned;
+  });
+
+  const handleExportLeadsCsv = () => {
+    if (!filteredLeads || filteredLeads.length === 0) return;
+    const headers = ['Reference ID', 'Name', 'Phone', 'Email', 'Company', 'Service', 'Status', 'Assigned Consultant', 'Created At'];
+    const rows = filteredLeads.map(l => [
+      l.referenceNumber || l.id,
+      l.name || '',
+      l.phone || '',
+      l.email || '',
+      l.company || '',
+      l.serviceTitle || l.serviceId || '',
+      l.status || '',
+      l.assignedEmployee || 'Unassigned',
+      l.createdAt || ''
+    ].map(v => `"${String(v).replace(/"/g, '""')}"`).join(','));
+    const csv = [headers.join(','), ...rows].join('\n');
+    const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `revival_leads_${new Date().toISOString().split('T')[0]}.csv`;
+    a.click();
+    URL.revokeObjectURL(url);
+  };
 
   useEffect(() => {
     if (fetchConsultingMetrics) fetchConsultingMetrics();
@@ -56,13 +131,13 @@ export const CrmDashboard = () => {
     return <CrmRecruiterDashboard />;
   }
   if (currentRole === 'Placement Coordinator') {
-    return <CrmPlacementCoordinatorDashboard />;
+    return <CrmPlacementCoordinator />;
   }
   if (currentRole === 'HR Operations') {
     return <CrmHrOperationsDashboard />;
   }
   if (currentRole === 'Interviewer') {
-    return <CrmInterviewerDashboard />;
+    return <CrmInterviewManagement />;
   }
   
 
@@ -423,153 +498,231 @@ export const CrmDashboard = () => {
           </div>
         </div>
 
-        {/* Master Service Performance Breakdown Table */}
-        <div className="space-y-3 pt-2">
+        {/* Contact Us Enquiries Directory */}
+        <div className="space-y-4 pt-2">
           <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-2">
             <h3 className="font-serif text-base font-bold text-slate-900 dark:text-white flex items-center gap-2">
-              <GraduationCap className="w-5 h-5 text-gold-500" />
-              Service-Wise Enquiry Breakdown & Conversion Rates
+              <Inbox className="w-5 h-5 text-gold-500" />
+              Contact Us Enquiries ({filteredLeads.length})
             </h3>
             <span className="text-[11px] text-slate-500 dark:text-slate-400 font-medium">
-              Data synchronized from SQLite leads table across 6 Academic Catalogs
+              Showing {filteredLeads.length} of {contactUsLeads.length} Contact Us inquiries
             </span>
           </div>
 
-          <div className="overflow-x-auto rounded-2xl border border-slate-200 dark:border-navy-800">
-            <table className="w-full text-left text-xs border-collapse">
-              <thead>
-                <tr className="bg-slate-100 dark:bg-navy-950 text-slate-700 dark:text-gold-400 font-serif uppercase tracking-wider text-[10px] border-b border-slate-200 dark:border-navy-800">
-                  <th className="p-3 font-extrabold">ACADEMIC / RECRUITMENT SERVICE</th>
-                  <th className="p-3 font-extrabold">CATEGORY</th>
-                  <th className="p-3 font-extrabold text-center">TOTAL LEADS</th>
-                  <th className="p-3 font-extrabold text-center">NEW</th>
-                  <th className="p-3 font-extrabold text-center">AWAITING FOLLOW-UP</th>
-                  <th className="p-3 font-extrabold text-center">IN PROGRESS</th>
-                  <th className="p-3 font-extrabold text-center">CONVERTED</th>
-                  <th className="p-3 font-extrabold text-center">CONVERSION RATE</th>
-                  <th className="p-3 font-extrabold text-right">ACTION</th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-slate-100 dark:divide-navy-800 text-slate-800 dark:text-slate-300">
-                {(serviceBreakdown.length > 0 ? serviceBreakdown : [
-                  { serviceId: 'intl-consult', serviceTitle: 'International Consulting', category: 'Consulting', total: 0, newCount: 0, awaitingFollowUp: 0, inProgress: 0, converted: 0, conversionRate: 0 },
-                  { serviceId: 'college-adm', serviceTitle: 'College Admission Assistance', category: 'Higher Education', total: 0, newCount: 0, awaitingFollowUp: 0, inProgress: 0, converted: 0, conversionRate: 0 },
-                  { serviceId: 'school-career', serviceTitle: 'School Student Career Guidance', category: 'K-12 & High School', total: 0, newCount: 0, awaitingFollowUp: 0, inProgress: 0, converted: 0, conversionRate: 0 },
-                  { serviceId: 'intl-adm', serviceTitle: 'International Admissions', category: 'Admissions', total: 0, newCount: 0, awaitingFollowUp: 0, inProgress: 0, converted: 0, conversionRate: 0 },
-                  { serviceId: 'school-academy', serviceTitle: 'Academy for School Students', category: 'Academic Enrichment', total: 0, newCount: 0, awaitingFollowUp: 0, inProgress: 0, converted: 0, conversionRate: 0 },
-                  { serviceId: 'exec-seminars-lang', serviceTitle: 'Seminars & Language', category: 'Test Prep & Executive', total: 0, newCount: 0, awaitingFollowUp: 0, inProgress: 0, converted: 0, conversionRate: 0 }
-                ]).map(srv => (
-                  <tr key={srv.serviceId} className="hover:bg-slate-50 dark:hover:bg-navy-950/60 transition">
-                    <td className="p-3 font-bold text-slate-900 dark:text-white flex items-center gap-2">
-                      <div className="w-6 h-6 rounded-lg bg-gold-500/10 text-gold-600 dark:text-gold-400 flex items-center justify-center font-bold text-[10px] shrink-0 border border-gold-500/20">
-                        🎓
-                      </div>
-                      <span className="truncate">{srv.serviceTitle}</span>
-                    </td>
-                    <td className="p-3">
-                      <span className="bg-slate-100 dark:bg-navy-900 text-slate-700 dark:text-slate-300 px-2 py-0.5 rounded text-[10px] font-semibold border border-slate-200 dark:border-navy-700">
-                        {srv.category}
-                      </span>
-                    </td>
-                    <td className="p-3 text-center font-bold text-slate-900 dark:text-white font-mono">
-                      {srv.total}
-                    </td>
-                    <td className="p-3 text-center font-bold text-emerald-600 dark:text-emerald-400 font-mono">
-                      {srv.newCount}
-                    </td>
-                    <td className="p-3 text-center font-bold text-amber-600 dark:text-amber-400 font-mono">
-                      {srv.awaitingFollowUp}
-                    </td>
-                    <td className="p-3 text-center font-bold text-purple-600 dark:text-purple-400 font-mono">
-                      {srv.inProgress}
-                    </td>
-                    <td className="p-3 text-center font-bold text-teal-600 dark:text-teal-400 font-mono">
-                      {srv.converted}
-                    </td>
-                    <td className="p-3 text-center">
-                      <span className={`px-2 py-0.5 rounded-full text-[10px] font-extrabold font-mono ${
-                        srv.conversionRate > 0
-                          ? 'bg-emerald-100 text-emerald-800 dark:bg-emerald-500/20 dark:text-emerald-300'
-                          : 'bg-slate-100 text-slate-600 dark:bg-navy-900 dark:text-slate-400'
-                      }`}>
-                        {srv.conversionRate}%
-                      </span>
-                    </td>
-                    <td className="p-3 text-right">
-                      <button
-                        onClick={() => {
-                          if (srv.serviceId === 'school-career' || (srv.serviceTitle || '').toLowerCase().includes('career')) {
-                            setActiveModule('career-guidance');
-                          } else if (srv.serviceId === 'school-academy' || (srv.serviceTitle || '').toLowerCase().includes('academy')) {
-                            setActiveModule('student-academy');
-                          } else {
-                            setActiveModule('consulting');
-                          }
-                        }}
-                        className="px-2.5 py-1 bg-navy-900 dark:bg-gold-500 text-white dark:text-navy-950 rounded-lg font-bold text-[10px] hover:opacity-90 transition cursor-pointer flex items-center gap-1 ml-auto"
-                        title={`Open bookings for ${srv.serviceTitle}`}
-                      >
-                        <span>View Bookings</span>
-                        <ChevronRight className="w-3 h-3" />
-                      </button>
-                    </td>
-                  </tr>
+          {/* Search & Filters Bar */}
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-6 gap-2.5 pt-2 border-t border-slate-200 dark:border-navy-800">
+            <div className="relative lg:col-span-2">
+              <Search className="w-3.5 h-3.5 text-slate-400 absolute left-3 top-2.5" />
+              <input
+                type="text"
+                value={leadSearchQuery}
+                onChange={e => { setLeadSearchQuery(e.target.value); }}
+                placeholder="Search name, ref #, email, phone..."
+                className="w-full bg-slate-100 dark:bg-navy-950 border border-slate-300 dark:border-navy-700 text-slate-900 dark:text-white pl-8 pr-3 py-1.5 rounded-xl text-xs focus:outline-none focus:border-gold-500 font-semibold"
+              />
+            </div>
+
+            <div>
+              <select
+                value={leadServiceFilter}
+                onChange={e => { setLeadServiceFilter(e.target.value); }}
+                className="w-full bg-slate-100 dark:bg-navy-950 border border-slate-300 dark:border-navy-700 text-slate-900 dark:text-white px-2.5 py-1.5 rounded-xl text-xs focus:outline-none focus:border-gold-500 font-semibold cursor-pointer"
+              >
+                <option value="all">All Reasons ({contactUsLeads.length})</option>
+                <option value="Attract & Retain the Best Talents">Attract &amp; Retain the Best Talents</option>
+                <option value="Request a Direct Callback">Request a Direct Callback</option>
+                <option value="Corporate Recruitment Enquiry">Corporate Recruitment Enquiry</option>
+                <option value="Submit a Partnership Proposal">Submit a Partnership Proposal</option>
+                <option value="Schedule an Office Visit">Schedule an Office Visit</option>
+                <option value="Study Abroad Consultation">Study Abroad Consultation</option>
+                <option value="Visa & Verification Enquiry">Visa &amp; Verification Enquiry</option>
+                <option value="Job Application Support">Job Application Support</option>
+                <option value="General Enquiry">General Enquiry</option>
+              </select>
+            </div>
+
+            <div>
+              <select
+                value={leadStatusFilter}
+                onChange={e => { setLeadStatusFilter(e.target.value); }}
+                className="w-full bg-slate-100 dark:bg-navy-950 border border-slate-300 dark:border-navy-700 text-slate-900 dark:text-white px-2.5 py-1.5 rounded-xl text-xs focus:outline-none focus:border-gold-500 font-semibold cursor-pointer"
+              >
+                <option value="all">All Pipeline Stages</option>
+                <option value="New Enquiry">New Enquiry</option>
+                <option value="Contact Pending">Contact Pending</option>
+                <option value="Contacted">Contacted</option>
+                <option value="Follow-up Required">Follow-up Required</option>
+                <option value="Qualified">Qualified</option>
+                <option value="In Progress">In Progress</option>
+                <option value="Converted">Converted</option>
+                <option value="Closed / Lost">Closed / Lost</option>
+              </select>
+            </div>
+
+            <div>
+              <select
+                value={leadAssignedFilter}
+                onChange={e => { setLeadAssignedFilter(e.target.value); }}
+                className="w-full bg-slate-100 dark:bg-navy-950 border border-slate-300 dark:border-navy-700 text-slate-900 dark:text-white px-2.5 py-1.5 rounded-xl text-xs focus:outline-none focus:border-gold-500 font-semibold cursor-pointer"
+              >
+                <option value="all">All Consultants</option>
+                <option value="unassigned">Unassigned</option>
+                {(employees || []).map(emp => (
+                  <option key={emp.id} value={emp.name}>{emp.name}</option>
                 ))}
-              </tbody>
-            </table>
+              </select>
+            </div>
+
+            <div className="flex items-center gap-1.5">
+              <button
+                type="button"
+                onClick={handleExportLeadsCsv}
+                className="w-full px-2.5 py-1.5 bg-gold-500 hover:bg-gold-600 text-navy-950 font-bold text-xs rounded-xl transition flex items-center justify-center gap-1 shadow-xs cursor-pointer"
+                title="Export filtered leads to CSV"
+              >
+                <Download className="w-3.5 h-3.5" />
+                <span>CSV</span>
+              </button>
+            </div>
           </div>
 
-          {/* Recent Live Consultation Bookings Feed */}
-          {leads && leads.length > 0 && (
-            <div className="pt-4 border-t border-slate-200 dark:border-navy-800 space-y-3">
-              <div className="flex justify-between items-center">
-                <h4 className="font-serif text-sm font-bold text-slate-900 dark:text-white flex items-center gap-2">
-                  <span className="w-2 h-2 rounded-full bg-emerald-500 animate-ping"></span>
-                  Recent Consultation & Advisory Bookings
-                </h4>
-                <button
-                  onClick={() => setActiveModule('consulting')}
-                  className="text-[11px] font-bold text-gold-600 dark:text-gold-400 hover:underline flex items-center gap-1"
-                >
-                  <span>Open Full Consulting CRM</span>
-                  <ChevronRight className="w-3.5 h-3.5" />
-                </button>
-              </div>
-
-              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
-                {leads.slice(0, 3).map((lead) => (
-                  <div
-                    key={lead.id}
-                    onClick={() => setActiveModule('consulting')}
-                    className="p-3.5 bg-slate-50 dark:bg-navy-950 rounded-2xl border border-slate-200 dark:border-navy-800 hover:border-gold-500/50 transition cursor-pointer space-y-1.5 shadow-xs"
-                  >
-                    <div className="flex justify-between items-start gap-2">
-                      <span className="font-bold text-slate-900 dark:text-white truncate">
-                        {lead.name}
-                      </span>
-                      <span className="px-2 py-0.5 rounded text-[9px] font-extrabold bg-gold-500/20 text-gold-700 dark:text-gold-400 shrink-0">
-                        {lead.status || 'Scheduled'}
-                      </span>
-                    </div>
-
-                    <p className="text-[11px] text-slate-500 dark:text-slate-400 truncate">
-                      {lead.serviceTitle || lead.serviceId || 'International Consulting'}
-                    </p>
-
-                    <div className="flex items-center justify-between text-[10px] text-slate-600 dark:text-slate-400 pt-1 border-t border-slate-200/60 dark:border-navy-800/60 font-mono">
-                      <span>{lead.referenceNumber || lead.id.slice(0, 10)}</span>
-                      <span className="text-gold-600 dark:text-gold-400 font-bold">
-                        {lead.consultationDate || 'Scheduled'}
-                      </span>
-                    </div>
-                  </div>
-                ))}
-              </div>
+          {filteredLeads.length === 0 ? (
+            <div className="text-center py-10 space-y-2 bg-slate-50 dark:bg-navy-950/50 rounded-2xl border border-dashed border-slate-300 dark:border-navy-800">
+              <Inbox className="w-8 h-8 text-slate-400 mx-auto" />
+              <p className="font-serif text-sm font-bold text-slate-700 dark:text-slate-300">No Enquiries Found</p>
+              <p className="text-slate-500 dark:text-slate-400 text-xs">
+                No inquiries matched your current filters.
+              </p>
             </div>
+          ) : (
+            <>
+              <div className="overflow-x-auto rounded-2xl border border-slate-200 dark:border-navy-800">
+                <table className="w-full text-left text-xs border-collapse">
+                  <thead>
+                    <tr className="bg-slate-100 dark:bg-navy-950 text-slate-900 dark:text-gold-400 font-serif uppercase tracking-wider text-[10px] border-b border-slate-200 dark:border-navy-800">
+                      <th className="p-3 font-extrabold whitespace-nowrap">Reference ID</th>
+                      <th className="p-3 font-extrabold whitespace-nowrap">Full Name</th>
+                      <th className="p-3 font-extrabold whitespace-nowrap">Phone Number</th>
+                      <th className="p-3 font-extrabold whitespace-nowrap">Email Address</th>
+                      <th className="p-3 font-extrabold whitespace-nowrap">Reason for Contact</th>
+                      <th className="p-3 font-extrabold whitespace-nowrap">Company</th>
+                      <th className="p-3 font-extrabold whitespace-nowrap">Assigned Consultant</th>
+                      <th className="p-3 font-extrabold whitespace-nowrap">Status & Priority</th>
+                      <th className="p-3 font-extrabold text-right whitespace-nowrap">Action</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-slate-200 dark:divide-navy-800 text-slate-800 dark:text-slate-300">
+                    {filteredLeads.map(lead => (
+                      <tr key={lead.id} className="hover:bg-slate-50 dark:hover:bg-navy-950/60 transition">
+                        <td className="p-3 whitespace-nowrap font-mono text-xs font-bold text-gold-600 dark:text-gold-400">
+                          {lead.referenceNumber || (lead.id ? `#${lead.id.slice(0, 8)}` : '—')}
+                        </td>
+                        <td className="p-3 whitespace-nowrap">
+                          <div className="flex items-center space-x-2.5">
+                            <div className="w-7 h-7 rounded-full bg-gold-500/20 text-gold-700 dark:text-gold-400 font-bold flex items-center justify-center border border-gold-500/30 text-xs shrink-0">
+                              {(lead.name || 'U').charAt(0).toUpperCase()}
+                            </div>
+                            <div className="min-w-0">
+                              <p className="font-bold text-slate-900 dark:text-white text-xs">{lead.name}</p>
+                              <p className="text-[10px] text-slate-500 dark:text-slate-400 truncate max-w-[140px]">
+                                {lead.organizationName || lead.company || 'Individual / Student'}
+                              </p>
+                            </div>
+                          </div>
+                        </td>
+                        <td className="p-3 whitespace-nowrap font-mono text-xs">
+                          {lead.phone ? (
+                            <a
+                              href={`https://wa.me/${cleanPhoneForWa(lead.phone)}`}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              className="font-semibold text-slate-700 dark:text-slate-300 hover:text-emerald-500 flex items-center gap-1.5 transition"
+                            >
+                              <Phone className="w-3.5 h-3.5 text-emerald-500 shrink-0" />
+                              <span>{lead.phone}</span>
+                            </a>
+                          ) : '—'}
+                        </td>
+                        <td className="p-3 font-mono text-xs">
+                          {lead.email ? (
+                            <a
+                              href={`mailto:${lead.email}`}
+                              className="font-semibold text-slate-700 dark:text-slate-300 hover:text-gold-500 flex items-center gap-1.5 truncate max-w-[180px] transition"
+                            >
+                              <Mail className="w-3.5 h-3.5 text-blue-500 shrink-0" />
+                              <span className="truncate">{lead.email}</span>
+                            </a>
+                          ) : '—'}
+                        </td>
+                        <td className="p-3">
+                          <span className="inline-block bg-blue-100 dark:bg-blue-500/20 text-blue-900 dark:text-blue-300 font-extrabold px-2.5 py-0.5 rounded-full text-[10px] border border-blue-300 dark:border-blue-500/30">
+                            {(typeof lead.customFields === 'object' && lead.customFields?.reasonForContact) || lead.serviceTitle || 'General Enquiry'}
+                          </span>
+                        </td>
+                        <td className="p-3">
+                          <p className="font-bold text-slate-900 dark:text-white text-[11px]">
+                            {lead.company || lead.organizationName || (typeof lead.customFields === 'object' && lead.customFields?.company) || '—'}
+                          </p>
+                        </td>
+                        <td className="p-3">
+                          <select
+                            value={lead.assignedEmployee || ''}
+                            onChange={async (e) => {
+                              const emp = e.target.value;
+                              if (updateLead) await updateLead(lead.id, { assignedEmployee: emp });
+                              if (fetchLeads) fetchLeads();
+                            }}
+                            className="text-[10px] font-bold bg-slate-100 dark:bg-navy-950 border border-slate-300 dark:border-navy-700 text-slate-900 dark:text-white px-2 py-1 rounded-xl focus:outline-none cursor-pointer max-w-[130px]"
+                          >
+                            <option value="">Unassigned</option>
+                            {(employees || []).map(emp => (
+                              <option key={emp.id} value={emp.name}>{emp.name}</option>
+                            ))}
+                          </select>
+                        </td>
+                        <td className="p-3">
+                          <select
+                            value={lead.status || 'New Enquiry'}
+                            onChange={async (e) => {
+                              if (updateLead) await updateLead(lead.id, { status: e.target.value });
+                              if (fetchLeads) fetchLeads();
+                            }}
+                            className="text-[10px] font-extrabold px-2 py-0.5 rounded-full border bg-slate-100 dark:bg-navy-950 border-slate-300 dark:border-navy-700 text-slate-800 dark:text-white cursor-pointer"
+                          >
+                            <option value="New Enquiry">New Enquiry</option>
+                            <option value="Contact Pending">Contact Pending</option>
+                            <option value="Contacted">Contacted</option>
+                            <option value="Follow-up Required">Follow-up Required</option>
+                            <option value="Qualified">Qualified</option>
+                            <option value="In Progress">In Progress</option>
+                            <option value="Converted">Converted</option>
+                            <option value="Closed / Lost">Closed / Lost</option>
+                          </select>
+                        </td>
+                        <td className="p-3 text-right">
+                          <button
+                            onClick={() => setActiveModule('consulting')}
+                            className="px-2.5 py-1 bg-navy-900 dark:bg-gold-500 text-white dark:text-navy-950 rounded-lg font-bold text-[10px] hover:opacity-90 transition cursor-pointer inline-flex items-center gap-1"
+                          >
+                            <span>Manage</span>
+                            <ChevronRight className="w-3 h-3" />
+                          </button>
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            </>
           )}
         </div>
-
       </div>
+      </ScrollReveal>
+
+      {/* Central Recruitment Pipeline (HR -> Interview -> Placement) */}
+      <ScrollReveal>
+        <CrmCentralPipeline />
       </ScrollReveal>
 
       {/* Analytics & Leaderboard Grid */}

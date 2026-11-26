@@ -5,6 +5,7 @@ import { JOBS_LIST } from '../data/mockData';
 import { BrandLogoIcon } from '../components/BrandLogoIcon';
 import { SEO } from '../components/SEO';
 import { openCandidateResumeInNewTab, downloadCandidateResumePdf } from '../services/candidateResumePdfService';
+import { VisaAndVerificationPage } from './VisaAndVerificationPage';
 import {
   Sun, Moon,
   LayoutDashboard, User, FileText, Bookmark, Send, Clock, Calendar, Shield,

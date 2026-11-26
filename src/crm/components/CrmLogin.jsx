@@ -484,7 +484,57 @@ export const CrmLogin = () => {
       return;
     }
 
-    // Engage the full Corporate Late Arrival Ingress Gate in CrmApp
+    // If employee is late and pending approval from Super Admin / HR Lead
+    if (checkResult && (checkResult.allowed === false || (checkResult.isLate && checkResult.lateApprovalStatus === 'PENDING'))) {
+      const isLead = String(userAccount.role || checkResult.role || '').toLowerCase().includes('lead');
+      const approverText = isLead ? 'Super Admin' : 'Super Admin or HR Lead';
+      const delayText = formatLateDelay(checkResult.lateMinutes || computedLateMinutes || 16);
+      const shiftStartTime = checkResult.shiftStart || '09:00 AM';
+      const shiftTitle = checkResult.shiftName || 'Assigned Shift';
+
+      setLoginLateGate({
+        status: 'PENDING',
+        lateMinutes: checkResult.lateMinutes || computedLateMinutes || 16,
+        delayTag: delayText,
+        shiftStart: shiftStartTime,
+        shiftName: shiftTitle,
+        role: checkResult.role || userAccount.role,
+        employeeName: checkResult.employeeName || userAccount.name,
+        attendanceId: checkResult.attendanceId,
+        userAccount,
+        password
+      });
+
+      setAuthErrorMsg(`⚠️ Late Arrival Detected (${delayText}): Your assigned shift (${shiftTitle}) started at ${shiftStartTime}. 15-minute grace period has elapsed. Approval from ${approverText} is required to sign in.`);
+      setLateApprovalMsg(`Awaiting ${approverText} authorization in live console... (Auto-checking every 1s)`);
+      return;
+    }
+
+    // Fallback if backend was unreachable but local time is late
+    if (!checkResult && isShiftLate) {
+      const isLead = String(userAccount.role || '').toLowerCase().includes('lead');
+      const approverText = isLead ? 'Super Admin' : 'Super Admin or HR Lead';
+      const delayText = formatLateDelay(computedLateMinutes);
+
+      setLoginLateGate({
+        status: 'PENDING',
+        lateMinutes: computedLateMinutes,
+        delayTag: delayText,
+        shiftStart: '09:00 AM',
+        shiftName: 'General Day Shift (09:00 AM - 06:00 PM)',
+        role: userAccount.role,
+        employeeName: userAccount.name,
+        userAccount,
+        password
+      });
+
+      setAuthErrorMsg(`⚠️ Late Arrival Detected (${delayText}): Shift started at 09:00 AM. 15-minute grace period has elapsed. Approval from ${approverText} is required to sign in.`);
+      setLateApprovalMsg(`Awaiting ${approverText} authorization in live console... (Auto-checking every 1s)`);
+      return;
+    }
+
+    // Clearance granted (on-time, approved, or executive exempt)
+    setLoginLateGate(null);
     login(userAccount.email, password, userAccount.role || 'HR Operations', userAccount);
   };
 
@@ -689,6 +739,8 @@ export const CrmLogin = () => {
                 <RefreshCw className="w-4 h-4 animate-spin" />
               ) : loginLateGate?.status === 'APPROVED' ? (
                 <CheckCircle2 className="w-4 h-4 text-emerald-950" />
+              ) : loginLateGate?.status === 'PENDING' ? (
+                <Clock className="w-4 h-4 text-amber-950" />
               ) : (
                 <ShieldCheck className="w-4 h-4" />
               )}
@@ -697,9 +749,27 @@ export const CrmLogin = () => {
                   ? 'Verifying Authorization...'
                   : loginLateGate?.status === 'APPROVED'
                     ? '✓ Authorized — Launching Workspace...'
-                    : 'Sign In to Enterprise CRM →'}
+                    : loginLateGate?.status === 'PENDING'
+                      ? 'Awaiting Authorization... (Auto-Checking)'
+                      : 'Sign In to Enterprise CRM →'}
               </span>
             </button>
+
+            {/* Live Auto-Polling Status Badge & Message */}
+            {loginLateGate && loginLateGate.status === 'PENDING' && (
+              <div className="pt-2 text-center animate-in fade-in">
+                <p className="text-[11px] font-semibold text-amber-300 dark:text-gold-400 flex items-center justify-center gap-2">
+                  <span className="relative flex h-2.5 w-2.5">
+                    <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-amber-400 opacity-75"></span>
+                    <span className="relative inline-flex rounded-full h-2.5 w-2.5 bg-amber-500"></span>
+                  </span>
+                  <span>{lateApprovalMsg || 'Awaiting managerial authorization in Command Center... (Auto-refresh active)'}</span>
+                </p>
+                <p className="text-[10px] text-slate-400 mt-0.5">
+                  Your workspace will unlock automatically as soon as approval is granted.
+                </p>
+              </div>
+            )}
           </form>
 
         {/* Security Badge */}

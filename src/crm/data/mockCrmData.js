@@ -29,7 +29,7 @@ export const ROLE_PERMISSIONS = {
   'HR Lead': [
     'dashboard', 'consulting', 'career-guidance', 'student-academy',
     'candidates', 'job-applications', 'pipeline', 'workspace', 'interviews', 'reports',
-    'calendar', 'vacancies', 'offers', 'collaboration',
+    'calendar', 'vacancies', 'offers', 'collaboration', 'leave', 'my-attendance',
     'hr-overview', 'hr-attendance', 'hr-leave', 'hr-employees', 'hr-performance',
     'hr-recruitment', 'hr-payroll', 'hr-announcements', 'hr-shifts', 'hr-documents',
     'hr-grievances', 'hr-approvals', 'hr-reports', 'hr-tasks', 'my-profile', 'visa-verification'
@@ -38,24 +38,24 @@ export const ROLE_PERMISSIONS = {
     'dashboard', 'vacancies', 'job-applications', 'candidates', 'search-filters', 'pipeline',
     'documentation', 'notes-tags', 'interviews', 'communication', 'offers',
     'reports', 'collaboration', 'workspace', 'domestic', 'international',
-    'clients', 'calendar'
+    'clients', 'calendar', 'leave', 'my-attendance', 'my-profile'
   ],
   'Placement Coordinator': [
     'dashboard', 'plc-overview', 'plc-students', 'plc-eligibility', 'plc-companies',
     'plc-drives', 'plc-registration', 'plc-applications', 'plc-events', 'plc-offers',
     'plc-announcements', 'plc-reports', 'plc-approvals',
-    'candidates', 'job-applications', 'pipeline', 'clients', 'interviews', 'workspace', 'calendar'
+    'candidates', 'job-applications', 'pipeline', 'clients', 'interviews', 'workspace', 'calendar', 'leave', 'my-attendance', 'my-profile'
   ],
   'HR Operations': [
-    'dashboard', 'hr-tasks', 'my-attendance', 'my-profile',
-    'candidates', 'job-applications', 'calendar',
+    'dashboard', 'hr-tasks', 'my-attendance', 'my-profile', 'leave',
+    'candidates', 'job-applications', 'documentation', 'visa', 'verification', 'calendar',
     'hr-announcements', 'hr-shifts'
   ],
   'Interviewer': [
     'dashboard', 'int-overview', 'int-assigned', 'int-profiles', 'int-schedule',
     'int-evaluation', 'int-feedback', 'int-decision', 'int-status', 'int-reminders',
     'int-context', 'int-calendar', 'int-permissions',
-    'candidates', 'interviews', 'calendar'
+    'candidates', 'interviews', 'calendar', 'leave', 'my-attendance', 'my-profile'
   ],
   // Legacy aliases for backward compatibility
   'HR & Talent Manager': ['dashboard', 'consulting', 'career-guidance', 'student-academy', 'candidates', 'pipeline', 'domestic', 'international', 'clients', 'workspace', 'interviews', 'documentation', 'reports', 'calendar', 'hr-tasks'],

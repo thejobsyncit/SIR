@@ -56,15 +56,17 @@ export const ContactUsPage = () => {
 
   // Controlled form state to ensure 100% data preservation on error
   const [formData, setFormData] = useState({
-    name: '',
+    firstName: '',
+    lastName: '',
+    company: '',
     email: '',
-    type: 'individual',
+    purpose: 'Attract & Retain the Best Talents',
     message: ''
   });
 
   const handleInputChange = (field, value) => {
     let finalValue = value;
-    if (field === 'name') {
+    if (field === 'firstName' || field === 'lastName') {
       finalValue = value.replace(/[^a-zA-Z\s]/g, '');
     }
     setFormData(prev => ({ ...prev, [field]: finalValue }));
@@ -75,7 +77,6 @@ export const ContactUsPage = () => {
 
   const handlePhoneChange = (e) => {
     const val = e.target.value;
-    // Allow standard international/mobile formats: digits, +, spaces, -, (, )
     if (/^[0-9+\s\-()]*$/.test(val) && val.length <= 25) {
       setPhone(val);
       if (formErrors.phone) {
@@ -86,11 +87,16 @@ export const ContactUsPage = () => {
 
   const validate = () => {
     const errors = {};
-    const trimmedName = (formData.name || '').trim();
-    if (!trimmedName || trimmedName.length < 2) {
-      errors.name = 'Please provide your full name (minimum 2 characters).';
-    } else if (!/^[a-zA-Z\s]+$/.test(trimmedName)) {
-      errors.name = 'Full name must contain alphabetic characters only. Numbers and special characters are not allowed.';
+    const fName = (formData.firstName || '').trim();
+    const lName = (formData.lastName || '').trim();
+    if (!fName || fName.length < 2) {
+      errors.firstName = 'Please provide your first name (min 2 chars).';
+    }
+    if (!lName || lName.length < 1) {
+      errors.lastName = 'Please provide your last name.';
+    }
+    if (!formData.company || !formData.company.trim()) {
+      errors.company = 'Please provide your company or organization name.';
     }
     const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
     if (!formData.email || !emailRegex.test(formData.email.trim())) {
@@ -98,15 +104,17 @@ export const ContactUsPage = () => {
     }
     const cleanPhone = (phone || '').replace(/[\s\-\(\)\+]/g, '');
     if (!cleanPhone) {
-      errors.phone = 'Please provide your phone or WhatsApp number.';
+      errors.phone = 'Please provide your mobile number.';
     } else if (cleanPhone.length < 7 || cleanPhone.length > 15) {
       errors.phone = `Phone number must be between 7 and 15 digits (currently ${cleanPhone.length} digits).`;
     }
-    if (!formData.message || formData.message.trim().length < 10) {
-      errors.message = 'Please provide message details (minimum 10 characters).';
+    if (!consentAgreed) {
+      errors.consent = 'Please agree to the Privacy Policy before submitting your enquiry.';
     }
     return errors;
   };
+
+  const [lastSubmittedKey, setLastSubmittedKey] = useState('');
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -119,23 +127,35 @@ export const ContactUsPage = () => {
       trackEnquiryValidationFailure('contact_page', activeService?.id || 'general', Object.keys(errors));
       return;
     }
+
+    const fullName = `${formData.firstName.trim()} ${formData.lastName.trim()}`.trim();
+    const submissionKey = `${formData.email.trim().toLowerCase()}::${formData.purpose}::${formData.message.trim()}`;
+    if (submissionKey === lastSubmittedKey) {
+      setSubmitError('This exact enquiry was already submitted. Please modify your message if you need to send a new request.');
+      return;
+    }
+
     setFormErrors({});
     setIsSubmitting(true);
 
     const attribution = getAttributionData();
 
     const payload = {
-      name: formData.name.trim(),
+      name: fullName,
       email: formData.email.trim(),
       phone: phone.trim(),
-      serviceId: activeService ? activeService.id : null,
-      serviceTitle: activeService ? activeService.title : null,
-      company: activeService
-        ? `Service Inquiry: ${activeService.title}`
-        : (formData.type === 'employer' ? 'Corporate Inquiry' : 'Individual'),
-      message: activeService
-        ? `[Inquiring about: ${activeService.title} (${activeService.category})]\n\n${formData.message.trim()}`
-        : formData.message.trim(),
+      serviceId: activeService ? activeService.id : 'contact_us',
+      serviceTitle: activeService ? activeService.title : formData.purpose,
+      preferredContactMethod: 'Mobile / Email',
+      company: formData.company.trim(),
+      message: `[Reason for Contact: ${formData.purpose}]\n\n${formData.message.trim() || 'Requested consultation / callback.'}`,
+      customFields: {
+        source: 'Contact Us Page',
+        firstName: formData.firstName.trim(),
+        lastName: formData.lastName.trim(),
+        company: formData.company.trim(),
+        reasonForContact: formData.purpose
+      },
       utmSource: attribution.utmSource,
       utmMedium: attribution.utmMedium,
       utmCampaign: attribution.utmCampaign,
@@ -156,13 +176,17 @@ export const ContactUsPage = () => {
       }
 
       const generatedRef = result.referenceNumber || (result.data && result.data.referenceNumber) || (result.lead && result.lead.referenceNumber) || null;
+      setLastSubmittedKey(submissionKey);
       setSubmittedRef(generatedRef);
       setSubmitted(true);
       setPhone('');
+      setConsentAgreed(false);
       setFormData({
-        name: '',
+        firstName: '',
+        lastName: '',
+        company: '',
         email: '',
-        type: 'individual',
+        purpose: 'Attract & Retain the Best Talents',
         message: ''
       });
 
@@ -188,7 +212,7 @@ export const ContactUsPage = () => {
   };
 
   return (
-    <div className="max-w-7xl mx-auto px-4 sm:px-8 py-12 space-y-16">
+    <div className="max-w-7xl mx-auto px-4 sm:px-8 pt-12 pb-24 space-y-16">
       <SEO
         title="Contact Revival International Dubai | Executive Recruitment & Academic Advisory"
         description="Connect directly with Revival International Dubai for international executive search, corporate staffing, university admissions advisory, and exam preparation."
@@ -237,13 +261,13 @@ export const ContactUsPage = () => {
       <ScrollReveal>
         <div className="text-center space-y-3 max-w-3xl mx-auto">
           <span className="bg-gold-500/10 text-gold-600 dark:text-gold-400 text-xs font-bold px-3.5 py-1 rounded-full uppercase tracking-wider">
-            Direct Executive & Advisory Consultation
+            DIRECT EXECUTIVE & ADVISORY CONSULTATION
           </span>
           <h1 className="font-serif text-4xl sm:text-5xl font-extrabold text-navy-900 dark:text-white">
-            Contact Revival International
+            Contact The Revival International
           </h1>
           <p className="text-xs sm:text-sm text-slate-800 dark:text-slate-200 leading-relaxed font-medium">
-            Connect directly with our senior talent acquisition leads, international education counselors, and corporate client managers.
+            Connect with our international recruitment specialists, education consultants and corporate client relationship managers for professional assistance, business enquiries and personalized consultation.
           </p>
         </div>
       </ScrollReveal>
@@ -353,10 +377,10 @@ export const ContactUsPage = () => {
         <div className="lg:col-span-7 glass-card bg-white dark:bg-navy-900 border border-slate-200 dark:border-navy-800 p-6 sm:p-8 rounded-3xl space-y-4 shadow-luxury text-xs">
           <div>
             <h3 className="font-serif text-xl font-bold text-navy-900 dark:text-white">
-              Send Direct Inquiry or Consultation Request
+              Request a Callback, Office Visit or Partnership
             </h3>
             <p className="text-slate-600 dark:text-slate-400 text-xs mt-0.5">
-              Please provide your details below. Our advisory and recruitment team will review your requirements and get in touch promptly.
+              Connect with our Dubai Global HQ or Chennai Operations Hub for direct callbacks, scheduled office meetings, corporate partnerships, or application support.
             </p>
           </div>
 
@@ -405,202 +429,161 @@ export const ContactUsPage = () => {
                 Please complete all required fields marked with <span className="text-rose-500 font-bold">*</span>. All enquiries are reviewed within 2–4 business hours.
               </p>
 
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                <div>
-                  <div className="flex justify-between items-center mb-1">
-                    <label htmlFor="contact-name" className="block font-bold text-slate-700 dark:text-slate-200">
-                      Your Full Name <span className="text-rose-500">*</span>
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 items-stretch">
+                {/* Left Column: First Name, Last Name, Company, Email */}
+                <div className="space-y-3.5">
+                  <div>
+                    <label htmlFor="contact-first-name" className="block font-bold text-slate-700 dark:text-slate-200 mb-1">
+                      First Name <span className="text-rose-500">*</span>
                     </label>
-                    {formData.name.trim().length >= 2 && (
-                      <span className="text-emerald-500 text-[10px] font-bold flex items-center gap-1">
-                        <CheckCircle2 className="w-3 h-3" /> Valid
-                      </span>
-                    )}
-                  </div>
-                  <input
-                    id="contact-name"
-                    name="name"
-                    required
-                    type="text"
-                    autoComplete="name"
-                    placeholder="e.g. Sarah Jenkins"
-                    value={formData.name}
-                    aria-required="true"
-                    aria-invalid={!!formErrors.name}
-                    aria-describedby={formErrors.name ? "contact-name-error" : undefined}
-                    onFocus={() => trackEnquiryStart('contact_page', activeService?.id || 'general', activeService?.title || 'General Contact')}
-                    onChange={(e) => handleInputChange('name', e.target.value)}
-                    className={`w-full bg-slate-50 dark:bg-navy-950 border rounded-xl p-2.5 text-navy-900 dark:text-white text-xs focus:outline-none focus:ring-2 focus:ring-gold-500 transition ${formErrors.name ? 'border-rose-500 ring-1 ring-rose-500' : 'border-slate-300 dark:border-navy-700'
-                      }`}
-                  />
-                  {formErrors.name && (
-                    <p id="contact-name-error" className="text-[10px] text-rose-500 mt-1 font-semibold flex items-center gap-1">
-                      <AlertCircle className="w-3 h-3 shrink-0" /> {formErrors.name}
-                    </p>
-                  )}
-                </div>
-
-                <div>
-                  <div className="flex justify-between items-center mb-1">
-                    <label htmlFor="contact-email" className="block font-bold text-slate-700 dark:text-slate-200">
-                      Business or Personal Email <span className="text-rose-500">*</span>
-                    </label>
-                    {/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(formData.email.trim()) && (
-                      <span className="text-emerald-500 text-[10px] font-bold flex items-center gap-1">
-                        <CheckCircle2 className="w-3 h-3" /> Valid
-                      </span>
-                    )}
-                  </div>
-                  <input
-                    id="contact-email"
-                    name="email"
-                    required
-                    type="email"
-                    autoComplete="email"
-                    placeholder="e.g. s.jenkins@company.com"
-                    value={formData.email}
-                    aria-required="true"
-                    aria-invalid={!!formErrors.email}
-                    aria-describedby={formErrors.email ? "contact-email-error" : undefined}
-                    onChange={(e) => handleInputChange('email', e.target.value)}
-                    className={`w-full bg-slate-50 dark:bg-navy-950 border rounded-xl p-2.5 text-navy-900 dark:text-white text-xs focus:outline-none focus:ring-2 focus:ring-gold-500 transition ${formErrors.email ? 'border-rose-500 ring-1 ring-rose-500' : 'border-slate-300 dark:border-navy-700'
-                      }`}
-                  />
-                  {formErrors.email && (
-                    <p id="contact-email-error" className="text-[10px] text-rose-500 mt-1 font-semibold flex items-center gap-1">
-                      <AlertCircle className="w-3 h-3 shrink-0" /> {formErrors.email}
-                    </p>
-                  )}
-                </div>
-              </div>
-
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                <div>
-                  <CountryPhoneInput
-                    value={phone}
-                    onChange={setPhone}
-                    onValidationChange={(res) => {
-                      setPhoneValidation(res);
-                      if (formErrors.phone && res.isValid) {
-                        setFormErrors(prev => ({ ...prev, phone: null }));
-                      }
-                    }}
-                    label="Phone / WhatsApp"
-                    placeholder="Enter phone number"
-                    required
-                  />
-                  {formErrors.phone && (
-                    <p id="contact-phone-error" className="text-[10px] text-rose-500 mt-1 font-semibold flex items-center gap-1">
-                      <AlertCircle className="w-3 h-3 shrink-0" /> {formErrors.phone}
-                    </p>
-                  )}
-                </div>
-
-                <div>
-                  <label htmlFor="contact-type" className="block font-bold text-slate-700 dark:text-slate-200 mb-1">
-                    Inquiry Profile Category
-                  </label>
-                  <select
-                    id="contact-type"
-                    name="type"
-                    value={formData.type}
-                    onChange={(e) => handleInputChange('type', e.target.value)}
-                    className="w-full bg-slate-50 dark:bg-navy-950 border border-slate-300 dark:border-navy-700 rounded-xl p-2.5 text-navy-900 dark:text-white text-xs focus:outline-none focus:ring-2 focus:ring-gold-500"
-                  >
-                    <option value="individual">Individual Candidate or Career Seeker</option>
-                    <option value="corporate">Institutional or Corporate Advisory Inquiry</option>
-                    <option value="student_parent">Student or Parent seeking Academic Guidance</option>
-                    <option value="verification">Requesting Background & Credential Verification</option>
-                    <option value="visa">Inquiring about GCC Visa Processing & Attestation</option>
-                  </select>
-                </div>
-              </div>
-
-              {/* Service Selection Dropdown */}
-              <div>
-                <label htmlFor="contact-service" className="block font-bold text-slate-700 dark:text-slate-200 mb-1">
-                  Specific Service Requirement
-                </label>
-                <select
-                  id="contact-service"
-                  value={activeServiceId}
-                  onChange={(e) => {
-                    const newId = e.target.value;
-                    setActiveServiceId(newId);
-                    if (setSelectedServiceId) setSelectedServiceId(newId || null);
-                  }}
-                  className="w-full bg-slate-50 dark:bg-navy-950 border border-slate-300 dark:border-navy-700 rounded-xl p-2.5 text-navy-900 dark:text-white text-xs focus:outline-none focus:ring-2 focus:ring-gold-500"
-                >
-                  <option value="">-- General Inquiry (No specific service) --</option>
-                  <optgroup label="Education & Admissions">
-                    {SERVICES_LIST.filter(s => s.category === 'Education' || s.subCategory === 'Education').map((srv) => (
-                      <option key={srv.id} value={srv.id}>
-                        {srv.title}
-                      </option>
-                    ))}
-                  </optgroup>
-                  <optgroup label="Consulting & Recruitment">
-                    {SERVICES_LIST.filter(s => s.category !== 'Education' && s.subCategory !== 'Education').map((srv) => (
-                      <option key={srv.id} value={srv.id}>
-                        {srv.title}
-                      </option>
-                    ))}
-                  </optgroup>
-                </select>
-              </div>
-
-              <div>
-                <div className="flex justify-between items-center mb-1">
-                  <label htmlFor="contact-message" className="block font-bold text-slate-700 dark:text-slate-200">
-                    Message Details <span className="text-rose-500">*</span>
-                  </label>
-                  {formData.message.trim().length >= 10 && (
-                    <span className="text-emerald-500 text-[10px] font-bold flex items-center gap-1">
-                      <CheckCircle2 className="w-3 h-3" /> Valid ({formData.message.trim().length} chars)
-                    </span>
-                  )}
-                </div>
-                <textarea
-                  id="contact-message"
-                  name="message"
-                  rows={4}
-                  required
-                  value={formData.message}
-                  aria-required="true"
-                  aria-invalid={!!formErrors.message}
-                  aria-describedby={formErrors.message ? "contact-message-error" : undefined}
-                  placeholder={
-                    activeService
-                      ? `Please specify your target country, course, timeline, or requirements for ${activeService.title}...`
-                      : 'Specify your requirements, hiring volume, visa target, or educational goals...'
-                  }
-                  onChange={(e) => handleInputChange('message', e.target.value)}
-                  className={`w-full bg-slate-50 dark:bg-navy-950 border rounded-xl p-2.5 text-navy-900 dark:text-white text-xs focus:outline-none focus:ring-2 focus:ring-gold-500 transition ${formErrors.message ? 'border-rose-500 ring-1 ring-rose-500' : 'border-slate-300 dark:border-navy-700'
-                    }`}
-                />
-                {formErrors.message && (
-                  <p id="contact-message-error" className="text-[10px] text-rose-500 mt-1 font-semibold flex items-center gap-1">
-                    <AlertCircle className="w-3 h-3 shrink-0" /> {formErrors.message}
-                  </p>
-                )}
-              </div>
-
-              {/* Parent/Guardian Consent for Under-18s on Student Inquiries (Issue #4 & Section 6 P1) */}
-              {formData.type === 'student_parent' && (
-                <div className="p-3.5 bg-amber-500/10 border border-amber-500/30 rounded-xl space-y-1">
-                  <label className="flex items-start gap-2.5 cursor-pointer">
                     <input
-                      type="checkbox"
-                      checked={parentConsent}
-                      onChange={(e) => setParentConsent(e.target.checked)}
-                      className="mt-0.5 rounded text-gold-500 focus:ring-gold-500 h-4 w-4"
+                      id="contact-first-name"
+                      name="firstName"
+                      required
+                      type="text"
+                      autoComplete="given-name"
+                      placeholder="First Name"
+                      value={formData.firstName}
+                      onFocus={() => trackEnquiryStart('contact_page', activeService?.id || 'general', activeService?.title || 'General Contact')}
+                      onChange={(e) => handleInputChange('firstName', e.target.value)}
+                      className={`w-full bg-slate-50 dark:bg-navy-950 border rounded-xl p-2.5 text-navy-900 dark:text-white text-xs focus:outline-none focus:ring-2 focus:ring-gold-500 transition ${formErrors.firstName ? 'border-rose-500 ring-1 ring-rose-500' : 'border-slate-300 dark:border-navy-700'}`}
                     />
-                    <span className="text-[11px] text-amber-900 dark:text-amber-300 leading-snug font-medium">
-                      <strong>Parent / Guardian Consent:</strong> For applicants under 18 years of age, I confirm parent or legal guardian consent for academic counselling, aptitude evaluation, and admissions advisory.
-                    </span>
-                  </label>
+                    {formErrors.firstName && (
+                      <p className="text-[10px] text-rose-500 mt-1 font-semibold flex items-center gap-1">
+                        <AlertCircle className="w-3 h-3 shrink-0" /> {formErrors.firstName}
+                      </p>
+                    )}
+                  </div>
+
+                  <div>
+                    <label htmlFor="contact-last-name" className="block font-bold text-slate-700 dark:text-slate-200 mb-1">
+                      Last Name <span className="text-rose-500">*</span>
+                    </label>
+                    <input
+                      id="contact-last-name"
+                      name="lastName"
+                      required
+                      type="text"
+                      autoComplete="family-name"
+                      placeholder="Last Name"
+                      value={formData.lastName}
+                      onChange={(e) => handleInputChange('lastName', e.target.value)}
+                      className={`w-full bg-slate-50 dark:bg-navy-950 border rounded-xl p-2.5 text-navy-900 dark:text-white text-xs focus:outline-none focus:ring-2 focus:ring-gold-500 transition ${formErrors.lastName ? 'border-rose-500 ring-1 ring-rose-500' : 'border-slate-300 dark:border-navy-700'}`}
+                    />
+                    {formErrors.lastName && (
+                      <p className="text-[10px] text-rose-500 mt-1 font-semibold flex items-center gap-1">
+                        <AlertCircle className="w-3 h-3 shrink-0" /> {formErrors.lastName}
+                      </p>
+                    )}
+                  </div>
+
+                  <div>
+                    <label htmlFor="contact-company" className="block font-bold text-slate-700 dark:text-slate-200 mb-1">
+                      Company <span className="text-rose-500">*</span>
+                    </label>
+                    <input
+                      id="contact-company"
+                      name="company"
+                      required
+                      type="text"
+                      autoComplete="organization"
+                      placeholder="Company Name"
+                      value={formData.company}
+                      onChange={(e) => handleInputChange('company', e.target.value)}
+                      className={`w-full bg-slate-50 dark:bg-navy-950 border rounded-xl p-2.5 text-navy-900 dark:text-white text-xs focus:outline-none focus:ring-2 focus:ring-gold-500 transition ${formErrors.company ? 'border-rose-500 ring-1 ring-rose-500' : 'border-slate-300 dark:border-navy-700'}`}
+                    />
+                    {formErrors.company && (
+                      <p className="text-[10px] text-rose-500 mt-1 font-semibold flex items-center gap-1">
+                        <AlertCircle className="w-3 h-3 shrink-0" /> {formErrors.company}
+                      </p>
+                    )}
+                  </div>
+
+                  <div>
+                    <label htmlFor="contact-email" className="block font-bold text-slate-700 dark:text-slate-200 mb-1">
+                      Email <span className="text-rose-500">*</span>
+                    </label>
+                    <input
+                      id="contact-email"
+                      name="email"
+                      required
+                      type="email"
+                      autoComplete="email"
+                      placeholder="Email"
+                      value={formData.email}
+                      onChange={(e) => handleInputChange('email', e.target.value)}
+                      className={`w-full bg-slate-50 dark:bg-navy-950 border rounded-xl p-2.5 text-navy-900 dark:text-white text-xs focus:outline-none focus:ring-2 focus:ring-gold-500 transition ${formErrors.email ? 'border-rose-500 ring-1 ring-rose-500' : 'border-slate-300 dark:border-navy-700'}`}
+                    />
+                    {formErrors.email && (
+                      <p className="text-[10px] text-rose-500 mt-1 font-semibold flex items-center gap-1">
+                        <AlertCircle className="w-3 h-3 shrink-0" /> {formErrors.email}
+                      </p>
+                    )}
+                  </div>
                 </div>
-              )}
+
+                {/* Right Column: Mobile Number, Reason for Contact, Message */}
+                <div className="flex flex-col space-y-3.5">
+                  <div>
+                    <CountryPhoneInput
+                      value={phone}
+                      onChange={setPhone}
+                      onValidationChange={(res) => {
+                        setPhoneValidation(res);
+                        if (formErrors.phone && res.isValid) {
+                          setFormErrors(prev => ({ ...prev, phone: null }));
+                        }
+                      }}
+                      label="Mobile Number"
+                      placeholder="+919999999999"
+                      required
+                    />
+                    {formErrors.phone && (
+                      <p className="text-[10px] text-rose-500 mt-1 font-semibold flex items-center gap-1">
+                        <AlertCircle className="w-3 h-3 shrink-0" /> {formErrors.phone}
+                      </p>
+                    )}
+                  </div>
+
+                  <div>
+                    <label htmlFor="contact-purpose" className="block font-bold text-slate-700 dark:text-slate-200 mb-1">
+                      Reason for Contact <span className="text-rose-500">*</span>
+                    </label>
+                    <select
+                      id="contact-purpose"
+                      name="purpose"
+                      value={formData.purpose}
+                      onChange={(e) => handleInputChange('purpose', e.target.value)}
+                      className="w-full bg-slate-50 dark:bg-navy-950 border border-slate-300 dark:border-navy-700 rounded-xl p-2.5 text-navy-900 dark:text-white text-xs focus:outline-none focus:ring-2 focus:ring-gold-500"
+                    >
+                      <option value="Attract & Retain the Best Talents">Attract & Retain the Best Talents</option>
+                      <option value="Request a Direct Callback">Request a Direct Callback</option>
+                      <option value="Corporate Recruitment Enquiry">Corporate Recruitment Enquiry</option>
+                      <option value="Submit a Partnership Proposal">Submit a Partnership Proposal</option>
+                      <option value="Schedule an Office Visit">Schedule an Office Visit</option>
+                      <option value="Study Abroad Consultation">Study Abroad Consultation</option>
+                      <option value="Visa & Verification Enquiry">Visa & Verification Enquiry</option>
+                      <option value="Job Application Support">Job Application Support</option>
+                      <option value="General Enquiry">General Enquiry</option>
+                    </select>
+                  </div>
+
+                  <div className="flex-1 flex flex-col">
+                    <label htmlFor="contact-message" className="block font-bold text-slate-700 dark:text-slate-200 mb-1">
+                      Message
+                    </label>
+                    <textarea
+                      id="contact-message"
+                      name="message"
+                      rows={5}
+                      value={formData.message}
+                      placeholder="Let us know your needs"
+                      onChange={(e) => handleInputChange('message', e.target.value)}
+                      className="w-full flex-1 bg-slate-50 dark:bg-navy-950 border border-slate-300 dark:border-navy-700 rounded-xl p-2.5 text-navy-900 dark:text-white text-xs focus:outline-none focus:ring-2 focus:ring-gold-500 transition resize-none"
+                    />
+                  </div>
+                </div>
+              </div>
 
               {/* Mandatory General Data Consent Checkbox (Issue #4) */}
               <div className="pt-1">
@@ -609,38 +592,48 @@ export const ContactUsPage = () => {
                     type="checkbox"
                     required
                     checked={consentAgreed}
-                    onChange={(e) => setConsentAgreed(e.target.checked)}
+                    onChange={(e) => {
+                      setConsentAgreed(e.target.checked);
+                      if (e.target.checked && formErrors.consent) {
+                        setFormErrors(prev => ({ ...prev, consent: null }));
+                      }
+                    }}
                     className="mt-0.5 rounded text-gold-500 focus:ring-gold-500 h-4 w-4 border-slate-300 dark:border-navy-700 bg-white dark:bg-navy-950"
                   />
                   <span className="text-[11px] text-slate-600 dark:text-slate-400 leading-snug">
-                    I agree to Revival International collecting and processing my enquiry data in accordance with the{' '}
+                    I agree to The Revival International collecting and processing my enquiry data in accordance with the{' '}
                     <button
                       type="button"
                       onClick={() => navigateTo('legal/privacy-policy')}
-                      className="text-gold-500 font-bold hover:underline"
+                      className="text-gold-500 font-bold hover:underline cursor-pointer"
                     >
                       Privacy Policy
                     </button>{' '}
-                    and UAE PDPL / India DPDP Act 2023.
+                    and applicable data protection regulations. <span className="text-rose-500 font-bold">*</span>
                   </span>
                 </label>
+                {formErrors.consent && (
+                  <p className="text-[10px] text-rose-500 mt-1 font-semibold flex items-center gap-1">
+                    <AlertCircle className="w-3 h-3 shrink-0" /> {formErrors.consent}
+                  </p>
+                )}
               </div>
 
               <button
                 type="submit"
                 disabled={isSubmitting}
-                className={`w-full py-3.5 bg-gold-shimmer text-navy-950 font-bold text-xs rounded-xl shadow-gold-glow flex items-center justify-center space-x-2 transition focus:outline-none focus-visible:ring-2 focus-visible:ring-gold-500 ${isSubmitting ? 'opacity-70 cursor-not-allowed' : 'hover:opacity-95'
+                className={`w-full py-3.5 bg-gold-shimmer text-navy-950 font-bold text-xs rounded-xl shadow-gold-glow flex items-center justify-center space-x-2 transition focus:outline-none focus-visible:ring-2 focus-visible:ring-gold-500 cursor-pointer ${isSubmitting ? 'opacity-70 cursor-not-allowed' : 'hover:opacity-95'
                   }`}
               >
                 {isSubmitting ? (
                   <>
                     <Loader2 className="w-4 h-4 animate-spin" />
-                    <span>Submitting Inquiry to Dubai Team...</span>
+                    <span>Submitting Enquiry...</span>
                   </>
                 ) : (
                   <>
                     <Send className="w-4 h-4" />
-                    <span>Submit Direct Inquiry</span>
+                    <span>Submit Enquiry</span>
                   </>
                 )}
               </button>
@@ -662,14 +655,14 @@ export const ContactUsPage = () => {
                 Thank you for connecting with Revival International. Your inquiry has been securely logged into our CRM system. A senior consultant from our Dubai headquarters will review your requirements and reach out within <strong className="text-emerald-600 dark:text-emerald-400">2 to 4 business hours</strong>.
               </p>
 
-              <div className="p-3.5 bg-slate-50 dark:bg-navy-950 border border-slate-200 dark:border-navy-800 rounded-xl max-w-sm mx-auto text-[11px] text-slate-600 dark:text-slate-400 space-y-1 text-left">
-                <div className="flex justify-between">
-                  <span>Advisory Office:</span>
-                  <span className="font-semibold text-slate-900 dark:text-white">Rolex Tower, Business Bay, Dubai</span>
+              <div className="p-3.5 bg-slate-50 dark:bg-navy-950 border border-slate-200 dark:border-navy-800 rounded-xl max-w-md mx-auto text-[11px] text-slate-600 dark:text-slate-400 space-y-1.5 text-left">
+                <div className="flex justify-between gap-2">
+                  <span className="shrink-0">Headquarters:</span>
+                  <span className="font-semibold text-slate-900 dark:text-white text-right">{SITE_CONFIG.offices[0].fullAddress}</span>
                 </div>
-                <div className="flex justify-between">
-                  <span>Urgent Queries:</span>
-                  <span className="font-semibold text-gold-600 dark:text-gold-400">+971 4 123 4567</span>
+                <div className="flex justify-between gap-2">
+                  <span className="shrink-0">Direct Helpline:</span>
+                  <span className="font-semibold text-gold-600 dark:text-gold-400">{SITE_CONFIG.offices[1].phone}</span>
                 </div>
               </div>
 
@@ -697,14 +690,75 @@ export const ContactUsPage = () => {
           {/* Interactive Map Embed Visual Simulation */}
           <div className="pt-4">
             <div className="p-4 bg-slate-100 dark:bg-navy-950 border border-slate-200 dark:border-navy-800 rounded-2xl text-center space-y-1">
-              <p className="font-bold text-navy-900 dark:text-white">📍 Interactive Location Map</p>
-              <p className="text-[11px] text-slate-700 dark:text-slate-300 font-medium">Rolex Tower • Business Bay • Dubai International Financial Centre (DIFC)</p>
+              <p className="font-bold text-navy-900 dark:text-white">📍 Global & Regional Office Locations</p>
+              <p className="text-[11px] text-slate-700 dark:text-slate-300 font-medium">{SITE_CONFIG.offices[0].fullAddress}</p>
             </div>
           </div>
 
         </div>
 
       </div>
+
+      {/* Contact Information 4-Card Directory Section */}
+      <ScrollReveal>
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-5">
+          {/* Card 1: Dubai Global Headquarters */}
+          <div className="glass-card bg-white dark:bg-navy-900 border border-slate-200 dark:border-navy-800 p-5 rounded-2xl shadow-sm space-y-2.5">
+            <div className="w-9 h-9 rounded-xl bg-gold-500/10 text-gold-600 dark:text-gold-400 flex items-center justify-center">
+              <Building2 className="w-5 h-5" />
+            </div>
+            <div>
+              <h4 className="font-serif font-bold text-sm text-navy-900 dark:text-white">Dubai Global Headquarters</h4>
+              <p className="text-[10px] font-bold uppercase tracking-wider text-gold-600 dark:text-gold-400">UAE & GCC Regional Operations</p>
+            </div>
+            <p className="text-xs text-slate-600 dark:text-slate-300 leading-relaxed">{SITE_CONFIG.offices[0].fullAddress}</p>
+            <p className="text-xs font-bold text-navy-900 dark:text-white">{SITE_CONFIG.offices[0].phone}</p>
+          </div>
+
+          {/* Card 2: Chennai Operations Hub */}
+          <div className="glass-card bg-white dark:bg-navy-900 border border-slate-200 dark:border-navy-800 p-5 rounded-2xl shadow-sm space-y-2.5">
+            <div className="w-9 h-9 rounded-xl bg-gold-500/10 text-gold-600 dark:text-gold-400 flex items-center justify-center">
+              <MapPin className="w-5 h-5" />
+            </div>
+            <div>
+              <h4 className="font-serif font-bold text-sm text-navy-900 dark:text-white">Chennai Operations Hub</h4>
+              <p className="text-[10px] font-bold uppercase tracking-wider text-gold-600 dark:text-gold-400">India Operations & Client Support</p>
+            </div>
+            <p className="text-xs text-slate-600 dark:text-slate-300 leading-relaxed">{SITE_CONFIG.offices[1].fullAddress}</p>
+            <p className="text-xs font-bold text-navy-900 dark:text-white">{SITE_CONFIG.offices[1].phone}</p>
+          </div>
+
+          {/* Card 3: Email Enquiries */}
+          <div className="glass-card bg-white dark:bg-navy-900 border border-slate-200 dark:border-navy-800 p-5 rounded-2xl shadow-sm space-y-2.5">
+            <div className="w-9 h-9 rounded-xl bg-gold-500/10 text-gold-600 dark:text-gold-400 flex items-center justify-center">
+              <Mail className="w-5 h-5" />
+            </div>
+            <div>
+              <h4 className="font-serif font-bold text-sm text-navy-900 dark:text-white">Email Enquiries</h4>
+              <p className="text-[10px] font-bold uppercase tracking-wider text-gold-600 dark:text-gold-400">Official Advisory Desks</p>
+            </div>
+            <div className="space-y-1 text-xs">
+              <a href={`mailto:${SITE_CONFIG.offices[1].email}`} className="block font-semibold text-navy-900 dark:text-white hover:text-gold-500 truncate">{SITE_CONFIG.offices[1].email}</a>
+              <a href={`mailto:${SITE_CONFIG.offices[0].email}`} className="block font-semibold text-slate-600 dark:text-slate-300 hover:text-gold-500 truncate">{SITE_CONFIG.offices[0].email}</a>
+            </div>
+          </div>
+
+          {/* Card 4: Business Hours */}
+          <div className="glass-card bg-white dark:bg-navy-900 border border-slate-200 dark:border-navy-800 p-5 rounded-2xl shadow-sm space-y-2.5">
+            <div className="w-9 h-9 rounded-xl bg-gold-500/10 text-gold-600 dark:text-gold-400 flex items-center justify-center">
+              <Clock className="w-5 h-5" />
+            </div>
+            <div>
+              <h4 className="font-serif font-bold text-sm text-navy-900 dark:text-white">Business Hours</h4>
+              <p className="text-[10px] font-bold uppercase tracking-wider text-gold-600 dark:text-gold-400">Regional Consultation Windows</p>
+            </div>
+            <div className="space-y-1 text-[11px] text-slate-600 dark:text-slate-300">
+              <p><strong>Dubai HQ:</strong> {SITE_CONFIG.offices[0].workingHours}</p>
+              <p><strong>India Hub:</strong> {SITE_CONFIG.offices[1].workingHours}</p>
+            </div>
+          </div>
+        </div>
+      </ScrollReveal>
 
       {/* Frequently Asked Questions Section */}
       <ScrollReveal>
