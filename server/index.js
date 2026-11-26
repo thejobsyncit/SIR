@@ -8434,8 +8434,20 @@ app.post('/api/translate', async (req, res) => {
       await Promise.all(
         toTranslate.map(async (txt) => {
           try {
+            // Try MyMemory first (reliable, no 429 block), then Google Translate fallback
+            const mmUrl = `https://api.mymemory.translated.net/get?q=${encodeURIComponent(txt)}&langpair=en|${encodeURIComponent(tl)}&de=enquiry@therevivalinternational.com`;
+            const mmResp = await fetch(mmUrl);
+            if (mmResp.ok) {
+              const mmData = await mmResp.json();
+              const mmText = mmData?.responseData?.translatedText?.trim();
+              if (mmData?.responseStatus === 200 && mmText && mmText.toLowerCase() !== txt.toLowerCase()) {
+                translationMemoryCache.set(`${tl}::${txt}`, mmText);
+                result[txt] = mmText;
+                return;
+              }
+            }
             const url = `https://translate.googleapis.com/translate_a/single?client=gtx&sl=en&tl=${encodeURIComponent(tl)}&dt=t&q=${encodeURIComponent(txt)}`;
-            const resp = await fetch(url);
+            const resp = await fetch(url, { headers: { 'User-Agent': 'Mozilla/5.0' } });
             if (!resp.ok) return;
             const data = await resp.json();
             if (Array.isArray(data?.[0])) {
