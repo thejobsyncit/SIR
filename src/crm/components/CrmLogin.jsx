@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { useCrm } from '../context/CrmContext';
 import { 
   Lock, Mail, Eye, EyeOff, ShieldCheck, KeyRound, Sparkles, 
@@ -234,41 +234,80 @@ export const CrmLogin = () => {
     return `+${hrs}h ${rem}m Late (${m} mins)`;
   };
 
-  // If restored session has an active lateApprovalGate from CrmContext, show inline banner on Login & auto-poll every 1s
+  // Keep stable refs so background 1s/15s context updates never reset the auto-unlock poller
+  const loginRef = useRef(login);
+  const checkLateStatusRef = useRef(checkLateApprovalStatus);
+  const setGateRef = useRef(setLateApprovalGate);
+  const loginGateRef = useRef(loginLateGate);
+  const unlockingRef = useRef(false);
+
   useEffect(() => {
-    if (!lateApprovalGate?.isBlocked) return;
-    const mins = lateApprovalGate.lateMinutes || 0;
+    loginRef.current = login;
+    checkLateStatusRef.current = checkLateApprovalStatus;
+    setGateRef.current = setLateApprovalGate;
+  }, [login, checkLateApprovalStatus, setLateApprovalGate]);
+
+  useEffect(() => {
+    loginGateRef.current = loginLateGate;
+  }, [loginLateGate]);
+
+  // If restored session has an active lateApprovalGate from CrmContext, show inline banner on Login & auto-poll every 2s
+  const blockedGateKey = lateApprovalGate?.isBlocked
+    ? `${lateApprovalGate.role || ''}:${lateApprovalGate.shiftStart || ''}:${lateApprovalGate.lateMinutes || 0}`
+    : '';
+
+  useEffect(() => {
+    if (!blockedGateKey) return;
+    const gate = lateApprovalGate;
+    const mins = gate?.lateMinutes || 0;
     const h = Math.floor(mins / 60);
     const m = mins % 60;
     const delayText = h > 0 ? `${h}h ${m}m late` : `${m} mins late`;
-    const isLead = String(lateApprovalGate.role || '').toLowerCase().includes('lead');
+    const isLead = String(gate?.role || '').toLowerCase().includes('lead');
     const approverText = isLead ? 'Super Admin only' : 'Super Admin or HR Lead';
-    setAuthErrorMsg(`⚠️ Late Arrival Error (${delayText}): Grace period (15 mins after ${lateApprovalGate.shiftStart || '09:00 AM'}) has passed for ${lateApprovalGate.shiftName || 'Assigned Shift'}. Approval from ${approverText} is required to sign in.`);
+    setAuthErrorMsg(`⚠️ Late Arrival Error (${delayText}): Grace period (15 mins after ${gate?.shiftStart || '09:00 AM'}) has passed for ${gate?.shiftName || 'Assigned Shift'}. Approval from ${approverText} is required to sign in.`);
 
-    const timer = setInterval(async () => {
-      if (!checkLateApprovalStatus) return;
-      const status = await checkLateApprovalStatus();
+    let stopped = false;
+    const pollGate = async () => {
+      if (stopped || !checkLateStatusRef.current) return;
+      const status = await checkLateStatusRef.current();
+      if (stopped) return;
       if (status === 'APPROVED') {
-        if (setLateApprovalGate) setLateApprovalGate(null);
+        stopped = true;
+        if (setGateRef.current) setGateRef.current(null);
       } else if (status === 'REJECTED') {
+        stopped = true;
         setAuthErrorMsg('❌ Access Declined: Super Admin has rejected your late arrival check-in for today. Contact HR Operations.');
-        clearInterval(timer);
       }
-    }, 1000);
-    return () => clearInterval(timer);
-  }, [lateApprovalGate, checkLateApprovalStatus, setLateApprovalGate]);
+    };
 
-  // Live rapid auto-polling (every 1s) for Super Admin / HR Lead approval while late gate is active
+    pollGate();
+    const timer = setInterval(pollGate, 2000);
+    return () => {
+      stopped = true;
+      clearInterval(timer);
+    };
+  }, [blockedGateKey]);
+
+  // Live auto-polling (every 2s, even across tabs/windows) for Super Admin / HR Lead approval -> auto-enters CRM without clicking
+  const pendingGateEmail = loginLateGate?.status === 'PENDING'
+    ? String(loginLateGate?.userAccount?.email || '').trim().toLowerCase()
+    : '';
+
   useEffect(() => {
-    if (!loginLateGate || loginLateGate.status !== 'PENDING') return;
+    if (!pendingGateEmail) return;
 
-    let isMounted = true;
-    const interval = setInterval(async () => {
-      if (typeof document !== 'undefined' && document.visibilityState === 'hidden') return;
+    let stopped = false;
+    unlockingRef.current = false;
+
+    const pollApproval = async () => {
+      if (stopped || unlockingRef.current) return;
+      const currentGate = loginGateRef.current;
+      if (!currentGate || currentGate.status !== 'PENDING') return;
       try {
-        const cleanEmail = loginLateGate.userAccount.email.trim().toLowerCase();
-        const role = loginLateGate.userAccount.role || 'Employee';
-        const res = await fetch(`/api/hr-ops/attendance/late-approval-status?email=${encodeURIComponent(cleanEmail)}`, {
+        const cleanEmail = pendingGateEmail;
+        const role = currentGate.userAccount?.role || 'Employee';
+        const res = await fetch(`/api/hr-ops/attendance/late-approval-status?email=${encodeURIComponent(cleanEmail)}&_t=${Date.now()}`, {
           cache: 'no-store',
           headers: {
             'Content-Type': 'application/json',
@@ -277,31 +316,50 @@ export const CrmLogin = () => {
             'x-crm-role': role
           }
         });
-        if (res.ok && isMounted) {
+        if (res.ok && !stopped) {
           const json = await res.json();
           if (json && json.success) {
             if (json.lateApprovalStatus === 'APPROVED' || json.lateApprovalStatus === 'EXEMPT') {
-              setLoginLateGate(prev => ({ ...prev, status: 'APPROVED' }));
-              setLateApprovalMsg('✓ Late Ingress Approved! Unlocking your CRM workspace...');
+              unlockingRef.current = true;
+              stopped = true;
               clearInterval(interval);
-              setTimeout(() => {
-                login(loginLateGate.userAccount.email, loginLateGate.password, loginLateGate.userAccount.role, loginLateGate.userAccount);
-              }, 250);
+              setLoginLateGate(prev => (prev ? { ...prev, status: 'APPROVED' } : prev));
+              setLateApprovalMsg('✓ Late Ingress Approved! Entering your CRM workspace automatically...');
+              const acc = currentGate.userAccount;
+              const pass = currentGate.password;
+              window.setTimeout(() => {
+                if (setGateRef.current) setGateRef.current(null);
+                loginRef.current(acc.email, pass, acc.role || 'HR Operations', { ...acc, latePreApproved: true });
+              }, 150);
             } else if (json.lateApprovalStatus === 'REJECTED') {
-              setLoginLateGate(prev => ({ ...prev, status: 'REJECTED' }));
-              setLateApprovalMsg('❌ Access Declined: Late arrival entry was rejected for today.');
+              stopped = true;
               clearInterval(interval);
+              setLoginLateGate(prev => (prev ? { ...prev, status: 'REJECTED' } : prev));
+              setAuthErrorMsg('❌ Access Declined: Your late arrival entry was rejected for today.');
+              setLateApprovalMsg('❌ Access Declined: Late arrival entry was rejected for today.');
             }
           }
         }
       } catch (_) {}
-    }, 4000);
+    };
+
+    const interval = setInterval(pollApproval, 2000);
+    // Also re-check immediately whenever employee switches back to this tab/window
+    const onFocusOrVisible = () => {
+      if (typeof document === 'undefined' || document.visibilityState === 'visible') {
+        pollApproval();
+      }
+    };
+    window.addEventListener('focus', onFocusOrVisible);
+    document.addEventListener('visibilitychange', onFocusOrVisible);
 
     return () => {
-      isMounted = false;
+      stopped = true;
       clearInterval(interval);
+      window.removeEventListener('focus', onFocusOrVisible);
+      document.removeEventListener('visibilitychange', onFocusOrVisible);
     };
-  }, [loginLateGate, login]);
+  }, [pendingGateEmail]);
 
   const handleManualCheckApproval = async () => {
     if (!loginLateGate) return;
@@ -550,7 +608,7 @@ export const CrmLogin = () => {
       });
 
       setAuthErrorMsg(`⚠️ Late Arrival Error (${delayText}): Grace period (15 mins after ${shiftStartTime}) has passed for ${shiftTitle}. Approval from ${approverText} is required before CRM access.`);
-      setLateApprovalMsg(`Awaiting ${approverText} authorization in live console... (Auto-checking every 1s)`);
+      setLateApprovalMsg(`Awaiting ${approverText} authorization in live console... (Auto-unlock active)`);
       return;
     }
 
@@ -655,7 +713,7 @@ export const CrmLogin = () => {
                 <div className="flex items-center gap-2 min-w-0">
                   <AlertTriangle className="w-4 h-4 text-rose-400 shrink-0" />
                   <span className="text-[11px] font-semibold text-rose-100">
-                    Late Arrival ({loginLateGate.delayTag || `+${loginLateGate.lateMinutes}m`}) • {String(loginLateGate.role || '').toLowerCase().includes('lead') ? 'Super Admin' : 'HR Lead / Super Admin'} approval required
+                    Late Arrival ({loginLateGate.delayTag || `+${loginLateGate.lateMinutes}m`}) • {String(loginLateGate.role || '').toLowerCase().includes('lead') ? 'Super Admin only' : 'HR Lead / Super Admin'} approval required
                   </span>
                 </div>
                 <span className="flex items-center gap-1.5 text-[10px] text-rose-300 font-mono shrink-0 font-bold">

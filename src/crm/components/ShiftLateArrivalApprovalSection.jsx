@@ -18,7 +18,7 @@ export const ShiftLateArrivalApprovalSection = ({ currentRole = 'Super Admin', c
     tokenRef.current = crmToken;
   }, [currentRole, crmToken]);
 
-  const isSuperAdmin = currentRole === 'Super Admin' || currentRole === 'Admin';
+  const isSuperAdmin = currentRole === 'Super Admin';
   const isHrLead = currentRole === 'HR Lead';
 
   // Stable, flicker-free fetcher

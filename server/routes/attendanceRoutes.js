@@ -2688,9 +2688,15 @@ export const registerAttendanceRoutes = (app, { getDb, getClientIp }) => {
       let activeRecord = null;
       if (employee?.employeeId) {
         activeRecord = await db.get(
-          `SELECT * FROM attendance_records WHERE employeeId = ? AND (workDate = ? OR checkOutAt IS NULL) ORDER BY checkInAt DESC LIMIT 1`,
+          `SELECT * FROM attendance_records WHERE employeeId = ? AND workDate = ? ORDER BY checkInAt DESC LIMIT 1`,
           [employee.employeeId, workDate]
         );
+        if (!activeRecord) {
+          activeRecord = await db.get(
+            `SELECT * FROM attendance_records WHERE employeeId = ? AND checkOutAt IS NULL ORDER BY checkInAt DESC LIMIT 1`,
+            [employee.employeeId]
+          );
+        }
       } else if (emailQuery) {
         const log = await db.get(
           `SELECT employeeId FROM role_login_logs WHERE LOWER(email) = ? ORDER BY checkInTime DESC LIMIT 1`,
@@ -2793,8 +2799,8 @@ export const registerAttendanceRoutes = (app, { getDb, getClientIp }) => {
       ]);
       const reviewer = req.authEmployee;
       const reviewerRole = String(reviewer?.role || '').toLowerCase();
-      const isSuperAdmin = reviewerRole === 'super admin' || reviewerRole === 'admin';
-      const isHrLead = reviewerRole === 'hr lead';
+      const isSuperAdmin = reviewerRole === 'super admin';
+      const isHrLead = reviewerRole === 'hr lead' || reviewerRole.includes('lead');
 
       const allAttRows = await db.all(`SELECT id, employeeId, workDate, lateApprovalStatus FROM attendance_records`);
       const resolvedEmpDates = new Set(
@@ -2865,21 +2871,19 @@ export const registerAttendanceRoutes = (app, { getDb, getClientIp }) => {
         })
       );
 
-      // Hierarchical filter:
-      // - If reviewer is HR Lead:
-      //   * ONLY Super Admin can see and approve HR Lead late arrivals!
-      //   * HR Lead cannot see or approve other HR Leads or themselves!
-      // - If reviewer is Super Admin or Admin:
-      //   * Super Admin sees ALL pending late arrivals (including HR Lead).
+      // Strict Hierarchical filter:
+      // - HR Lead late arrivals are visible ONLY to Super Admin (never to HR Lead, Admin, or self)
+      // - Other staff late arrivals are visible to Super Admin, Admin, and HR Lead
       const filtered = enriched.filter((item) => {
         const itemRole = String(item.role || '').toLowerCase();
         const isTargetHrLead = itemRole === 'hr lead' || itemRole.includes('lead');
         const isSelf = reviewer?.employeeId && item.employeeId === reviewer.employeeId;
 
-        if (isHrLead) {
-          if (isTargetHrLead || isSelf) {
-            return false;
-          }
+        if (isTargetHrLead && !isSuperAdmin) {
+          return false;
+        }
+        if (isHrLead && isSelf) {
+          return false;
         }
         return true;
       });
@@ -4131,6 +4135,7 @@ export const registerAttendanceRoutes = (app, { getDb, getClientIp }) => {
       ]);
       const reviewer = req.authEmployee;
       const reviewerRole = String(reviewer?.role || '').toLowerCase();
+      const isReviewerSuperAdmin = reviewerRole === 'super admin';
       const isHrLeadReviewer = reviewerRole === 'hr lead' || reviewerRole.includes('lead');
       const statusFilter = req.query?.status;
 
@@ -4179,7 +4184,10 @@ export const registerAttendanceRoutes = (app, { getDb, getClientIp }) => {
         const itemRole = String(item.role || '').toLowerCase();
         const isTargetLead = itemRole === 'hr lead' || itemRole.includes('lead');
         const isSelf = reviewer?.employeeId && item.employeeId === reviewer.employeeId;
-        if (isHrLeadReviewer && (isTargetLead || isSelf)) {
+        if (isTargetLead && !isReviewerSuperAdmin) {
+          return false;
+        }
+        if (isHrLeadReviewer && isSelf) {
           return false;
         }
         return true;

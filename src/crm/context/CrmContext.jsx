@@ -1546,9 +1546,9 @@ export const CrmProvider = ({ children }) => {
       }
     } catch (_) { }
 
-    // If locally determined late and non-executive, guarantee approval gate engages ONLY if not approved
+    // If locally determined late and non-executive, guarantee approval gate engages ONLY if not pre-approved/approved
     const serverApproval = resJson?.data?.lateApprovalStatus;
-    if (isLate && activeRole !== 'Super Admin' && activeRole !== 'Admin' && serverApproval !== 'APPROVED' && serverApproval !== 'EXEMPT') {
+    if (isLate && activeRole !== 'Super Admin' && activeRole !== 'Admin' && !activeUser?.latePreApproved && serverApproval !== 'APPROVED' && serverApproval !== 'EXEMPT') {
       setLateApprovalGate(prev => (prev?.status === 'APPROVED' ? null : (prev || {
         isBlocked: true,
         status: 'PENDING',
