@@ -412,7 +412,9 @@ const CrmHrOperationsDashboard = ({ initialSection } = {}) => {
     };
   }, [isHrOpsSession, fetchDashboardSummary]);
 
+  const announcementsReqSeqRef = useRef(0);
   const fetchCompanyAnnouncements = useCallback(async (silent = false) => {
+    const reqSeq = ++announcementsReqSeqRef.current;
     if (!silent) setAnnouncementsLoading(true);
     try {
       let token = crmToken;
@@ -434,14 +436,17 @@ const CrmHrOperationsDashboard = ({ initialSection } = {}) => {
       }
 
       const res = await fetch('/api/company-announcements', {
+        cache: 'no-store',
         headers: {
           'Content-Type': 'application/json',
+          'Cache-Control': 'no-cache',
           ...(token ? { Authorization: `Bearer ${token}` } : {})
         },
         credentials: 'include'
       });
       if (res.ok) {
         const data = await res.json();
+        if (reqSeq !== announcementsReqSeqRef.current) return;
         if (data?.success && Array.isArray(data.announcements)) {
           setCompanyAnnouncements(data.announcements);
           setCalendarAnnouncements(Array.isArray(data.calendarAnnouncements) ? data.calendarAnnouncements : data.announcements);
@@ -450,7 +455,7 @@ const CrmHrOperationsDashboard = ({ initialSection } = {}) => {
     } catch (err) {
       console.warn('Failed to fetch company announcements:', err);
     } finally {
-      if (!silent) setAnnouncementsLoading(false);
+      if (!silent && reqSeq === announcementsReqSeqRef.current) setAnnouncementsLoading(false);
     }
   }, [crmToken, setCrmToken]);
 

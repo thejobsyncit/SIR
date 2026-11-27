@@ -780,6 +780,13 @@ const createFallbackDb = () => {
   return {
     exec: async () => { },
     close: async () => { },
+    refreshTable: async (table) => {
+      if (!table) return;
+      const { data, error } = await client.from(table).select('*').limit(1000);
+      if (!error && Array.isArray(data)) {
+        store[table] = data.map(r => normalizeSupabaseRow(r));
+      }
+    },
     run: async (sql, params = []) => {
       const s = sql.trim();
       const table = getTableName(s);
@@ -788,7 +795,9 @@ const createFallbackDb = () => {
 
       if (/^INSERT\s+INTO/i.test(s)) {
         const colMatch = s.match(/\(([^)]+)\)\s*VALUES/i);
-        const row = { id: params[0] || `REC-${Date.now()}`, createdAt: new Date().toISOString() };
+        const row = colMatch
+          ? {}
+          : { id: params[0] || `REC-${Date.now()}`, createdAt: new Date().toISOString() };
         if (colMatch) {
           const cols = colMatch[1].split(',').map(c => c.trim());
           cols.forEach((col, idx) => {
@@ -1128,6 +1137,13 @@ export const createSupabaseDb = async (client) => {
   return {
     exec: async () => { },
     close: async () => { },
+    refreshTable: async (table) => {
+      if (!table) return;
+      const { data, error } = await client.from(table).select('*').limit(1000);
+      if (!error && Array.isArray(data)) {
+        store[table] = data.map(r => normalizeSupabaseRow(r));
+      }
+    },
     run: async (sql, params = []) => {
       const s = sql.trim();
       const table = getTableName(s);
@@ -1136,7 +1152,9 @@ export const createSupabaseDb = async (client) => {
 
       if (/^INSERT\s+INTO/i.test(s)) {
         const colMatch = s.match(/\(([^)]+)\)\s*VALUES/i);
-        const row = { id: params[0] || `REC-${Date.now()}`, createdAt: new Date().toISOString() };
+        const row = colMatch
+          ? {}
+          : { id: params[0] || `REC-${Date.now()}`, createdAt: new Date().toISOString() };
         if (colMatch) {
           const cols = colMatch[1].split(',').map(c => c.trim());
           cols.forEach((col, idx) => {
@@ -1148,9 +1166,14 @@ export const createSupabaseDb = async (client) => {
         // Persist directly to Supabase Cloud PostgreSQL
         try {
           const sbRow = toSupabasePayload(row);
-          await client.from(table).upsert([sbRow], { onConflict: 'id' });
+          const { error: sbErr } = await client.from(table).upsert([sbRow], { onConflict: 'id' });
+          if (sbErr) {
+            console.error(`[Supabase DB] Write error for ${table}:`, sbErr.message);
+            throw new Error(sbErr.message);
+          }
         } catch (sbErr) {
           console.warn(`[Supabase DB] Write notice for ${table}:`, sbErr.message);
+          throw sbErr;
         }
 
         store[table].unshift(normalizeSupabaseRow(row));
@@ -1189,9 +1212,14 @@ export const createSupabaseDb = async (client) => {
             } else {
               q = q.eq(whereCol.toLowerCase(), whereVal);
             }
-            await q;
+            const { error: sbErr } = await q;
+            if (sbErr) {
+              console.error(`[Supabase DB] Update error for ${table}:`, sbErr.message);
+              throw new Error(sbErr.message);
+            }
           } catch (sbErr) {
             console.warn(`[Supabase DB] Update notice for ${table}:`, sbErr.message);
+            throw sbErr;
           }
 
           let count = 0;
