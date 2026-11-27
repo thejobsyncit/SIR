@@ -119,52 +119,64 @@ const buildAttendanceSummary = async (db, employee, now) => {
 
   const shiftInfo = {
     id: effectiveShift.id,
-    name: effectiveShift.name,
+    name: effectiveShift.shiftName || effectiveShift.name || 'General Shift',
     startTime: effectiveShift.startTime,
     endTime: effectiveShift.endTime,
-    formattedTiming: `${formatHHMMTo12Hour(effectiveShift.startTime)} – ${formatHHMMTo12Hour(effectiveShift.endTime)}`,
-    timezone: effectiveShift.timezone || COMPANY_TIMEZONE
+    formattedTiming: effectiveShift.isOff
+      ? 'Weekly Off'
+      : `${formatHHMMTo12Hour(effectiveShift.startTime)} – ${formatHHMMTo12Hour(effectiveShift.endTime)}`,
+    timezone: effectiveShift.timezone || COMPANY_TIMEZONE,
+    assignmentDate: approxWorkDate,
+    assignmentId: effectiveShift.assignmentId || null,
+    frequency: effectiveShift.frequency || null,
+    startDate: effectiveShift.startDate || null,
+    endDate: effectiveShift.endDate || null,
+    isOff: Boolean(effectiveShift.isOff),
+    hasExplicitAssignment: Boolean(effectiveShift.assignmentId)
   };
 
   const todayWorkDate = resolveCheckInWorkDate(nowParts, effectiveShift);
   const queryStart = addDaysToDateStr(todayWorkDate, -2);
   const queryEnd = addDaysToDateStr(nowParts.dateStr, 1);
 
-  const [dbRecords, activeOpenRecord, holidays, leaveRequests] = await Promise.all([
+  const [allEmpRecords, allHolidays, leaveRequests, allEmpBreaks, allEmpReports] = await Promise.all([
     db.all(
-      `SELECT * FROM attendance_records
-       WHERE employeeId = ? AND workDate >= ? AND workDate <= ?
-       ORDER BY workDate DESC`,
-      [employee.employeeId, queryStart, queryEnd]
-    ),
-    db.get(
-      `SELECT * FROM attendance_records
-       WHERE employeeId = ? AND checkOutAt IS NULL AND status IN ('In Progress', 'Late')
-       ORDER BY checkInAt DESC LIMIT 1`,
+      `SELECT * FROM attendance_records WHERE employeeId = ? ORDER BY workDate DESC`,
       [employee.employeeId]
     ),
-    db.all(
-      `SELECT * FROM company_holidays WHERE holidayDate >= ? AND holidayDate <= ?`,
-      [queryStart, queryEnd]
-    ),
+    db.all(`SELECT * FROM company_holidays`),
     db.all(
       `SELECT * FROM employee_leave_requests WHERE employeeId = ?`,
       [employee.employeeId]
-    )
+    ),
+    db.all(
+      `SELECT * FROM attendance_breaks WHERE employeeId = ? ORDER BY breakStartAt ASC`,
+      [employee.employeeId]
+    ),
+    db.all(
+      `SELECT * FROM daily_work_reports WHERE employeeId = ?`,
+      [employee.employeeId]
+    ).catch(() => [])
   ]);
 
-  const recordIds = dbRecords.map((r) => r.id);
+  const dbRecords = (allEmpRecords || []).filter(
+    (r) => r.workDate >= queryStart && r.workDate <= queryEnd
+  );
+  const activeOpenRecord =
+    (allEmpRecords || [])
+      .filter((r) => !r.checkOutAt && ['In Progress', 'Late', 'Present'].includes(r.status))
+      .sort((a, b) => String(b.checkInAt || '').localeCompare(String(a.checkInAt || '')))[0] || null;
+  const holidays = (allHolidays || []).filter(
+    (h) => h.holidayDate >= queryStart && h.holidayDate <= queryEnd
+  );
+
+  const recordIdSet = new Set(dbRecords.map((r) => r.id));
+  if (activeOpenRecord?.id) recordIdSet.add(activeOpenRecord.id);
   const breaksByAttendanceId = {};
-  if (recordIds.length > 0) {
-    const placeholders = recordIds.map(() => '?').join(',');
-    const breaks = await db.all(
-      `SELECT * FROM attendance_breaks WHERE attendanceId IN (${placeholders}) ORDER BY breakStartAt ASC`,
-      recordIds
-    );
-    for (const b of breaks) {
-      if (!breaksByAttendanceId[b.attendanceId]) breaksByAttendanceId[b.attendanceId] = [];
-      breaksByAttendanceId[b.attendanceId].push(b);
-    }
+  for (const b of allEmpBreaks || []) {
+    if (!recordIdSet.has(b.attendanceId)) continue;
+    if (!breaksByAttendanceId[b.attendanceId]) breaksByAttendanceId[b.attendanceId] = [];
+    breaksByAttendanceId[b.attendanceId].push(b);
   }
 
   const targetWorkDate = activeOpenRecord?.workDate || todayWorkDate;
@@ -192,7 +204,20 @@ const buildAttendanceSummary = async (db, employee, now) => {
 
   let workingMinutes = 0;
   if (todayRecord?.checkOutAt) {
-    workingMinutes = Math.max(0, Number(todayRecord.totalWorkingMinutes) || 0);
+    const storedMinutes = Number(
+      todayRecord.netWorkMinutes ?? todayRecord.totalWorkingMinutes ?? 0
+    );
+    if (storedMinutes > 0) {
+      workingMinutes = storedMinutes;
+    } else if (todayRecord.checkInAt) {
+      const checkInMs = new Date(todayRecord.checkInAt).getTime();
+      const checkOutMs = new Date(todayRecord.checkOutAt).getTime();
+      if (!Number.isNaN(checkInMs) && !Number.isNaN(checkOutMs) && checkOutMs >= checkInMs) {
+        const grossMinutes = Math.max(0, Math.round((checkOutMs - checkInMs) / 60000));
+        const breakMinutes = Number(todayRecord.totalBreakMinutes) || todayBreaks.reduce((s, b) => s + (Number(b.durationMinutes) || 0), 0);
+        workingMinutes = Math.max(0, grossMinutes - breakMinutes);
+      }
+    }
   } else if (todayRecord?.checkInAt) {
     const checkInMs = new Date(todayRecord.checkInAt).getTime();
     if (!Number.isNaN(checkInMs)) {
@@ -215,20 +240,49 @@ const buildAttendanceSummary = async (db, employee, now) => {
   }
 
   const attendanceStatus =
-    todayDay?.status ||
     todayRecord?.status ||
+    (todayDay?.status && todayDay.status !== 'Not Checked In' ? todayDay.status : null) ||
     'Not Checked In';
 
   let lateReq = null;
   try {
-    lateReq = await db.get(
-      'SELECT * FROM late_login_approval_requests WHERE attendanceId = ? OR (employeeId = ? AND attendanceDate = ?) ORDER BY createdAt DESC LIMIT 1',
-      [todayRecord?.id || '', employee.employeeId, todayWorkDate]
+    const empLateReqs = await db.all(
+      'SELECT * FROM late_login_approval_requests WHERE employeeId = ?',
+      [employee.employeeId]
     );
+    lateReq =
+      (empLateReqs || [])
+        .filter((r) => (todayRecord?.id && r.attendanceId === todayRecord.id) || r.attendanceDate === todayWorkDate)
+        .sort((a, b) => String(b.createdAt || '').localeCompare(String(a.createdAt || '')))[0] || null;
   } catch (_) {}
 
   const scheduledLogin = formatHHMMTo12Hour(effectiveShift.startTime);
   const scheduledLogout = formatHHMMTo12Hour(effectiveShift.endTime);
+
+  // Authoritative server-side shift end & remaining time calculation in Asia/Kolkata (+05:30)
+  const [sH = 9, sM = 0] = String(effectiveShift.startTime || '09:00').split(':').map(Number);
+  const [eH = 18, eM = 0] = String(effectiveShift.endTime || '18:00').split(':').map(Number);
+  const shiftStartIso = `${targetWorkDate}T${String(sH).padStart(2, '0')}:${String(sM).padStart(2, '0')}:00+05:30`;
+  const isOvernight = effectiveShift.isOvernight || (eH * 60 + eM <= sH * 60 + sM);
+  const endDateStr = isOvernight ? shiftDateAddDays(targetWorkDate, 1) : targetWorkDate;
+  const shiftEndAtIso = `${endDateStr}T${String(eH).padStart(2, '0')}:${String(eM).padStart(2, '0')}:00+05:30`;
+  const shiftEndMs = new Date(shiftEndAtIso).getTime();
+  const remainingShiftMinutes = Number.isFinite(shiftEndMs)
+    ? Math.max(0, Math.ceil((shiftEndMs - now.getTime()) / 60000))
+    : 0;
+  const isShiftFinished = Number.isFinite(shiftEndMs) ? now.getTime() >= shiftEndMs : false;
+  const remHrs = Math.floor(remainingShiftMinutes / 60);
+  const remMins = remainingShiftMinutes % 60;
+  const remainingShiftLabel = isShiftFinished
+    ? 'Shift Finished'
+    : remHrs > 0
+      ? `${remHrs}h ${String(remMins).padStart(2, '0')}m`
+      : `${remMins}m`;
+
+  const todayReport =
+    (allEmpReports || []).find((r) => r.reportDate === targetWorkDate) ||
+    (allEmpReports || []).find((r) => r.reportDate === nowParts.dateStr) ||
+    null;
 
   const myAssignedShift = {
     hasShiftAssigned: Boolean(effectiveShift),
@@ -236,6 +290,11 @@ const buildAttendanceSummary = async (db, employee, now) => {
     shiftName: effectiveShift.shiftName || (effectiveShift.name ? effectiveShift.name.replace(/\s*\([^)]*\)\s*$/, '').trim() : 'General Shift'),
     scheduledLoginTime: scheduledLogin,
     scheduledLogoutTime: scheduledLogout,
+    shiftStartAtIso: shiftStartIso,
+    shiftEndAtIso,
+    isShiftFinished,
+    remainingShiftMinutes,
+    remainingShiftLabel,
     todayDate: todayWorkDate,
     attendanceStatus: todayRecord
       ? (todayRecord.status === 'In Progress'
@@ -247,7 +306,13 @@ const buildAttendanceSummary = async (db, employee, now) => {
   };
 
   return {
-    shift: shiftInfo,
+    shift: {
+      ...shiftInfo,
+      shiftEndAtIso,
+      isShiftFinished,
+      remainingShiftMinutes,
+      remainingShiftLabel
+    },
     myAssignedShift,
     attendanceToday: {
       workDate: todayRecord?.workDate || todayWorkDate,
@@ -258,9 +323,28 @@ const buildAttendanceSummary = async (db, employee, now) => {
       checkOutTime: formatClockTime(todayRecord?.checkOutAt),
       workingMinutes,
       workingHours: formatDurationMinutes(workingMinutes),
-      isCheckedIn: Boolean(todayRecord && !todayRecord.checkOutAt && ['In Progress', 'Late'].includes(todayRecord.status)),
+      isCheckedIn: Boolean(todayRecord && todayRecord.checkInAt && !todayRecord.checkOutAt),
       hasCheckedOut: Boolean(todayRecord && todayRecord.checkOutAt),
-      isOnBreak: Boolean(activeBreak)
+      isOnBreak: Boolean(activeBreak),
+      isShiftFinished,
+      remainingShiftMinutes,
+      remainingShiftLabel,
+      shiftEndAtIso,
+      dailyReport: todayReport
+        ? {
+            hasSubmitted: true,
+            id: todayReport.id,
+            reportDate: todayReport.reportDate,
+            submissionStatus: todayReport.submissionStatus || 'SUBMITTED',
+            submittedAt: todayReport.submittedAt
+          }
+        : {
+            hasSubmitted: false,
+            id: null,
+            reportDate: targetWorkDate,
+            submissionStatus: 'PENDING',
+            submittedAt: null
+          }
     }
   };
 };

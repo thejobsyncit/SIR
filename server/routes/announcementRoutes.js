@@ -81,16 +81,23 @@ const recordAnnouncementAudit = async (db, { announcementId, action, actor, deta
   }
 };
 
+const toBoolFlag = (val) => {
+  if (val === true || val === 1) return true;
+  if (typeof val === 'string') {
+    const s = val.trim().toLowerCase();
+    return s === '1' || s === 'true' || s === 't' || s === 'yes';
+  }
+  return false;
+};
+
 const computeExpiryMeta = (ann, todayStr) => {
   const expStr = ann.expires_at ? getKolkataDateFromIso(ann.expires_at) : '';
   const pubStr = getKolkataDateFromIso(ann.published_at || ann.created_at);
-  const isDeleted = Boolean(ann.is_deleted) || ann.status === 'Deleted';
-  const wasPublished = Boolean(
-    ann.was_published ||
-    ann.published_at ||
+  const isDeleted = toBoolFlag(ann.is_deleted) || ann.status === 'Deleted';
+  const wasPublished = toBoolFlag(ann.was_published) ||
+    Boolean(ann.published_at) ||
     ann.status === 'Published' ||
-    ann.status === 'Expired'
-  );
+    ann.status === 'Expired';
 
   let computedStatus = isDeleted ? 'Deleted' : (ann.status || 'Published');
   let expiryState = isDeleted ? 'Deleted' : 'Active';
@@ -129,15 +136,15 @@ const syncExpiredAnnouncements = async (db) => {
   const todayStr = getKolkataTodayStr();
   const nowIso = new Date().toISOString();
 
+  const allRows = await db.all(`SELECT * FROM company_announcements`).catch(() => []);
+
   // Promote due Scheduled announcements to Published (if not already expired or soft-deleted)
-  const scheduled = await db.all(
-    `SELECT * FROM company_announcements WHERE status = 'Scheduled' AND COALESCE(is_deleted, 0) = 0`
-  ).catch(() => []);
+  const scheduled = allRows.filter((r) => r.status === 'Scheduled' && !toBoolFlag(r.is_deleted));
   for (const row of scheduled) {
     const pubDate = getKolkataDateFromIso(row.published_at);
     const expDate = row.expires_at ? getKolkataDateFromIso(row.expires_at) : '';
     if (expDate && expDate < todayStr) {
-      await db.run(`UPDATE company_announcements SET status = 'Expired', was_published = 1, updated_at = ? WHERE id = ?`, [nowIso, row.id]);
+      await db.run(`UPDATE company_announcements SET status = ?, was_published = ?, updated_at = ? WHERE id = ?`, ['Expired', 1, nowIso, row.id]);
       await recordAnnouncementAudit(db, {
         announcementId: row.id,
         action: 'EXPIRED',
@@ -146,7 +153,7 @@ const syncExpiredAnnouncements = async (db) => {
         snapshot: { ...row, status: 'Expired', was_published: 1 }
       });
     } else if (pubDate && pubDate <= todayStr) {
-      await db.run(`UPDATE company_announcements SET status = 'Published', was_published = 1, updated_at = ? WHERE id = ?`, [nowIso, row.id]);
+      await db.run(`UPDATE company_announcements SET status = ?, was_published = ?, updated_at = ? WHERE id = ?`, ['Published', 1, nowIso, row.id]);
       await recordAnnouncementAudit(db, {
         announcementId: row.id,
         action: 'PUBLISHED',
@@ -158,13 +165,11 @@ const syncExpiredAnnouncements = async (db) => {
   }
 
   // Mark past-expiry Published announcements as Expired (retaining records in DB)
-  const active = await db.all(
-    `SELECT * FROM company_announcements WHERE status = 'Published' AND COALESCE(is_deleted, 0) = 0 AND expires_at IS NOT NULL AND expires_at != ''`
-  ).catch(() => []);
+  const active = allRows.filter((r) => r.status === 'Published' && !toBoolFlag(r.is_deleted) && r.expires_at);
   for (const row of active) {
     const expDate = getKolkataDateFromIso(row.expires_at);
     if (expDate && expDate < todayStr) {
-      await db.run(`UPDATE company_announcements SET status = 'Expired', updated_at = ? WHERE id = ?`, [nowIso, row.id]);
+      await db.run(`UPDATE company_announcements SET status = ?, updated_at = ? WHERE id = ?`, ['Expired', nowIso, row.id]);
       await recordAnnouncementAudit(db, {
         announcementId: row.id,
         action: 'EXPIRED',
@@ -333,30 +338,27 @@ const attachLogsAndSort = (list, logsByAnnId) => {
     }));
 };
 
+      const rows = await db.all(`SELECT * FROM company_announcements`);
+      const enrichedAll = attachLogsAndSort(rows.map((r) => computeExpiryMeta(r, todayStr)), logsByAnnId);
+
       if (isLeadership) {
         // Leadership dashboard feed excludes Expired and Deleted announcements;
         // Shared Calendar retains full history (Published, Scheduled, Draft, Expired, Deleted)
-        const rows = await db.all(
-          `SELECT * FROM company_announcements ORDER BY COALESCE(published_at, created_at) DESC`
-        );
-        const enriched = attachLogsAndSort(rows.map((r) => computeExpiryMeta(r, todayStr)), logsByAnnId);
-        announcements = enriched.filter((a) => !a.isExpired && !a.isDeleted && a.status !== 'Expired' && a.status !== 'Deleted');
-        calendarAnnouncements = enriched;
+        announcements = enrichedAll.filter((a) => !a.isExpired && !a.isDeleted && a.status !== 'Expired' && a.status !== 'Deleted');
+        calendarAnnouncements = enrichedAll;
       } else {
         // HR Operations views active Published announcements in feed (not expired, not deleted, not scheduled),
         // and Published/Scheduled/Expired/Previously-Published-Deleted (audience-scoped, never Drafts) in shared calendar history
-        const rows = await db.all(
-          `SELECT * FROM company_announcements 
-           WHERE (target_audience = 'All Employees' OR target_audience = 'HR Operations')
-             AND (
-               (COALESCE(is_deleted, 0) = 0 AND status IN ('Published', 'Scheduled', 'Expired'))
-               OR (COALESCE(is_deleted, 0) = 1 AND (COALESCE(was_published, 0) = 1 OR published_at IS NOT NULL))
-             )
-           ORDER BY COALESCE(published_at, created_at) DESC`
-        );
-        const enriched = attachLogsAndSort(rows.map((r) => computeExpiryMeta(r, todayStr)), logsByAnnId);
-        announcements = enriched.filter((a) => a.status === 'Published' && !a.isExpired && !a.isDeleted);
-        calendarAnnouncements = enriched;
+        const scoped = enrichedAll.filter((a) => {
+          const audienceOk = a.target_audience === 'All Employees' || a.target_audience === 'HR Operations';
+          if (!audienceOk) return false;
+          if (!a.isDeleted) {
+            return a.status === 'Published' || a.status === 'Scheduled' || a.status === 'Expired';
+          }
+          return Boolean(a.wasPublished);
+        });
+        announcements = scoped.filter((a) => a.status === 'Published' && !a.isExpired && !a.isDeleted);
+        calendarAnnouncements = scoped;
       }
 
       res.json({
@@ -458,7 +460,7 @@ const attachLogsAndSort = (list, logsByAnnId) => {
           id, title, description, category, target_audience, status,
           created_by, created_by_name, created_by_role, created_at, published_at, expires_at,
           is_deleted, was_published
-        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 0, ?)`,
+        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
         [
           id,
           cleanTitle,
@@ -472,6 +474,7 @@ const attachLogsAndSort = (list, logsByAnnId) => {
           now,
           publishedAt,
           cleanExpires,
+          0,
           wasPublished
         ]
       );
@@ -522,7 +525,7 @@ const attachLogsAndSort = (list, logsByAnnId) => {
       if (!existing) {
         return res.status(404).json({ success: false, message: 'Announcement not found.' });
       }
-      if (existing.is_deleted) {
+      if (toBoolFlag(existing.is_deleted)) {
         return res.status(400).json({ success: false, message: 'Deleted announcements cannot be edited. Restore the announcement first.' });
       }
 
@@ -640,14 +643,14 @@ const attachLogsAndSort = (list, logsByAnnId) => {
       if (!existing) {
         return res.status(404).json({ success: false, message: 'Announcement not found.' });
       }
-      if (existing.is_deleted) {
+      if (toBoolFlag(existing.is_deleted)) {
         return res.status(400).json({ success: false, message: 'Deleted announcements cannot be published. Restore the announcement first.' });
       }
 
       const now = new Date().toISOString();
       await db.run(
-        `UPDATE company_announcements SET status = 'Published', published_at = ?, was_published = 1, is_deleted = 0, updated_at = ? WHERE id = ?`,
-        [now, now, id]
+        `UPDATE company_announcements SET status = ?, published_at = ?, was_published = ?, is_deleted = ?, updated_at = ? WHERE id = ?`,
+        ['Published', now, 1, 0, now, id]
       );
 
       const updated = await db.get('SELECT * FROM company_announcements WHERE id = ?', [id]);
@@ -685,7 +688,7 @@ const attachLogsAndSort = (list, logsByAnnId) => {
       if (!existing) {
         return res.status(404).json({ success: false, message: 'Announcement not found.' });
       }
-      if (existing.is_deleted) {
+      if (toBoolFlag(existing.is_deleted)) {
         return res.status(400).json({ success: false, message: 'Announcement is already deleted.' });
       }
 
@@ -693,12 +696,12 @@ const attachLogsAndSort = (list, logsByAnnId) => {
       const actorId = req.authEmployee.employeeId || req.authEmployee.id || 'HR-LEAD';
       const actorName = req.authEmployee.name || 'HR Lead';
       const actorRole = req.authEmployee.role || 'HR Lead';
-      const wasPublished = existing.was_published || existing.published_at || ['Published', 'Scheduled', 'Expired'].includes(existing.status) ? 1 : 0;
+      const wasPublished = toBoolFlag(existing.was_published) || Boolean(existing.published_at) || ['Published', 'Scheduled', 'Expired'].includes(existing.status) ? 1 : 0;
 
       await db.run(
         `UPDATE company_announcements SET
-          is_deleted = 1,
-          status = 'Deleted',
+          is_deleted = ?,
+          status = ?,
           deleted_at = ?,
           deleted_by = ?,
           deleted_by_name = ?,
@@ -707,7 +710,7 @@ const attachLogsAndSort = (list, logsByAnnId) => {
           was_published = ?,
           updated_at = ?
          WHERE id = ?`,
-        [now, actorId, actorName, actorRole, reason || null, wasPublished, now, id]
+        [1, 'Deleted', now, actorId, actorName, actorRole, reason || null, wasPublished, now, id]
       );
 
       const updated = await db.get('SELECT * FROM company_announcements WHERE id = ?', [id]);
@@ -745,7 +748,7 @@ const attachLogsAndSort = (list, logsByAnnId) => {
       if (!existing) {
         return res.status(404).json({ success: false, message: 'Announcement not found.' });
       }
-      if (!existing.is_deleted) {
+      if (!toBoolFlag(existing.is_deleted)) {
         return res.status(400).json({ success: false, message: 'Announcement is not deleted.' });
       }
 
@@ -753,7 +756,7 @@ const attachLogsAndSort = (list, logsByAnnId) => {
       const pubStr = getKolkataDateFromIso(existing.published_at);
       const expStr = existing.expires_at ? getKolkataDateFromIso(existing.expires_at) : '';
 
-      let restoredStatus = existing.was_published || existing.published_at ? 'Published' : 'Draft';
+      let restoredStatus = toBoolFlag(existing.was_published) || existing.published_at ? 'Published' : 'Draft';
       if (restoredStatus === 'Published') {
         if (expStr && expStr < todayStr) {
           restoredStatus = 'Expired';
@@ -765,16 +768,16 @@ const attachLogsAndSort = (list, logsByAnnId) => {
       const now = new Date().toISOString();
       await db.run(
         `UPDATE company_announcements SET
-          is_deleted = 0,
+          is_deleted = ?,
           status = ?,
-          deleted_at = NULL,
-          deleted_by = NULL,
-          deleted_by_name = NULL,
-          deleted_by_role = NULL,
-          deletion_reason = NULL,
+          deleted_at = ?,
+          deleted_by = ?,
+          deleted_by_name = ?,
+          deleted_by_role = ?,
+          deletion_reason = ?,
           updated_at = ?
          WHERE id = ?`,
-        [restoredStatus, now, id]
+        [0, restoredStatus, null, null, null, null, null, now, id]
       );
 
       const updated = await db.get('SELECT * FROM company_announcements WHERE id = ?', [id]);
@@ -811,7 +814,7 @@ const attachLogsAndSort = (list, logsByAnnId) => {
         return res.status(404).json({ success: false, message: 'Announcement not found.' });
       }
       const isLeadership = HR_LEADERSHIP_ROLES.includes(req.authEmployee?.role || '');
-      const wasPub = Boolean(ann.was_published || ann.published_at);
+      const wasPub = toBoolFlag(ann.was_published) || Boolean(ann.published_at);
       const audienceOk = ann.target_audience === 'All Employees' || ann.target_audience === 'HR Operations';
       if (!isLeadership && (!wasPub || !audienceOk)) {
         return res.status(403).json({ success: false, message: 'Access denied to this announcement audit history.' });

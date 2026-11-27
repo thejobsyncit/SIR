@@ -1643,12 +1643,26 @@ export const CrmHrLeadDashboard = ({ initialSection, isReadOnly = false }) => {
   ]);
 
   // 6. SHIFTS & ROSTER STATE (Dynamic Backend Integration & Shift Roster Table)
+  const getKolkataTodayIso = () => {
+    try {
+      return new Intl.DateTimeFormat('en-CA', {
+        timeZone: 'Asia/Kolkata',
+        year: 'numeric',
+        month: '2-digit',
+        day: '2-digit'
+      }).format(new Date());
+    } catch {
+      return new Date().toISOString().slice(0, 10);
+    }
+  };
+
   const [shifts] = useState(SHIFT_CONFIGS);
-  const [shiftSelectedDate, setShiftSelectedDate] = useState(() => new Date().toISOString().slice(0, 10));
+  const [shiftSelectedDate, setShiftSelectedDate] = useState(() => getKolkataTodayIso());
   const [shiftViewMode, setShiftViewMode] = useState(readOnlyMode ? 'monthly' : 'table'); // 'table' | 'weekly' | 'monthly' | 'approvals'
   const [shiftRosterData, setShiftRosterData] = useState([]);
   const [shiftRosterLoading, setShiftRosterLoading] = useState(false);
   const [shiftAssignmentsList, setShiftAssignmentsList] = useState([]);
+  const [assignedTasksForCalendar, setAssignedTasksForCalendar] = useState([]);
   const [lateApprovalsList, setLateApprovalsList] = useState([]);
   const [shiftSearchQuery, setShiftSearchQuery] = useState('');
   const [shiftFilterShift, setShiftFilterShift] = useState('all');
@@ -1677,7 +1691,7 @@ export const CrmHrLeadDashboard = ({ initialSection, isReadOnly = false }) => {
   const [monthlyViewYear, setMonthlyViewYear] = useState(() => new Date().getFullYear());
   const [monthlyViewMonth, setMonthlyViewMonth] = useState(() => new Date().getMonth());
   const [monthlySelectedEmpId, setMonthlySelectedEmpId] = useState('all');
-  const [monthlyActiveDateStr, setMonthlyActiveDateStr] = useState(() => new Date().toISOString().slice(0, 10));
+  const [monthlyActiveDateStr, setMonthlyActiveDateStr] = useState(() => getKolkataTodayIso());
   const [assignModalError, setAssignModalError] = useState('');
   const [isSavingShift, setIsSavingShift] = useState(false);
   const [shiftAssignmentSuccessBanner, setShiftAssignmentSuccessBanner] = useState('');
@@ -1757,10 +1771,7 @@ export const CrmHrLeadDashboard = ({ initialSection, isReadOnly = false }) => {
         return false;
       });
 
-      if (selfRecord.length > 0) {
-        return selfRecord;
-      }
-      return hrOpsEmployees.slice(0, 1);
+      return selfRecord;
     }
 
     return hrOpsEmployees;
@@ -1810,10 +1821,18 @@ export const CrmHrLeadDashboard = ({ initialSection, isReadOnly = false }) => {
         'x-crm-role': currentRole || 'HR Lead'
       };
 
-      const [rosterRes, assignmentsRes, lateRes] = await Promise.all([
+      const [rosterRes, assignmentsRes, lateRes, tasksRes] = await Promise.all([
         fetch(`/api/crm/shifts/roster?date=${shiftSelectedDate}`, { headers }),
         fetch('/api/crm/shifts/assignments', { headers }),
-        fetch('/api/crm/shifts/late-approvals', { headers })
+        fetch('/api/crm/shifts/late-approvals', { headers }),
+        fetch('/api/hr-operations/tasks', {
+          headers: {
+            ...headers,
+            'x-user-role': currentRole || (readOnlyMode ? 'HR Operations' : 'HR Lead'),
+            'x-employee-id': user?.employeeId || user?.id || '',
+            'x-employee-name': user?.name || ''
+          }
+        })
       ]);
 
       if (rosterRes.ok) {
@@ -1834,18 +1853,59 @@ export const CrmHrLeadDashboard = ({ initialSection, isReadOnly = false }) => {
           setLateApprovalsList(lateJson.requests);
         }
       }
+      if (tasksRes.ok) {
+        const tasksJson = await tasksRes.json();
+        const tList = Array.isArray(tasksJson?.tasks) ? tasksJson.tasks : (Array.isArray(tasksJson?.data) ? tasksJson.data : []);
+        setAssignedTasksForCalendar(tList);
+      }
     } catch (err) {
       console.warn('Failed to load shift roster from server:', err);
     } finally {
       setShiftRosterLoading(false);
     }
-  }, [crmToken, currentRole, user?.email, user?.id, setCrmToken, shiftSelectedDate]);
+  }, [crmToken, currentRole, user?.email, user?.id, user?.employeeId, user?.name, setCrmToken, shiftSelectedDate, readOnlyMode]);
 
   useEffect(() => {
     if (activeTab === 'shifts') {
       loadShiftRosterData();
     }
   }, [activeTab, shiftSelectedDate, loadShiftRosterData]);
+
+  // Auto-sync shift calendar & tasks when updated from another tab or view
+  useEffect(() => {
+    if (activeTab !== 'shifts') return undefined;
+    const handleSync = () => loadShiftRosterData();
+    const onStorage = (e) => {
+      if (e.key === 'sir_shifts_updated_at' || e.key === 'sir_tasks_updated_at') handleSync();
+    };
+    window.addEventListener('sir-shifts-updated', handleSync);
+    window.addEventListener('sir-tasks-updated', handleSync);
+    window.addEventListener('storage', onStorage);
+    window.addEventListener('focus', handleSync);
+
+    let bcShift = null;
+    let bcTask = null;
+    if (typeof BroadcastChannel !== 'undefined') {
+      try {
+        bcShift = new BroadcastChannel('sir_shift_assignments');
+        bcShift.onmessage = handleSync;
+      } catch (_) { }
+      try {
+        bcTask = new BroadcastChannel('sir_hr_tasks');
+        bcTask.onmessage = handleSync;
+      } catch (_) { }
+    }
+    const timer = setInterval(handleSync, 15000);
+    return () => {
+      clearInterval(timer);
+      window.removeEventListener('sir-shifts-updated', handleSync);
+      window.removeEventListener('sir-tasks-updated', handleSync);
+      window.removeEventListener('storage', onStorage);
+      window.removeEventListener('focus', handleSync);
+      if (bcShift) bcShift.close();
+      if (bcTask) bcTask.close();
+    };
+  }, [activeTab, loadShiftRosterData]);
 
   const handleOpenAssignModal = (employee = null) => {
     setAssignEmpSearch('');
@@ -2000,6 +2060,15 @@ export const CrmHrLeadDashboard = ({ initialSection, isReadOnly = false }) => {
           setMonthlyActiveDateStr(assignFormTarget.startDate);
         }
         await loadShiftRosterData();
+        try {
+          localStorage.setItem('sir_shifts_updated_at', String(Date.now()));
+          window.dispatchEvent(new Event('sir-shifts-updated'));
+          if (typeof BroadcastChannel !== 'undefined') {
+            const bc = new BroadcastChannel('sir_shift_assignments');
+            bc.postMessage({ type: 'updated', at: Date.now() });
+            bc.close();
+          }
+        } catch (_) { }
       } else {
         const errMsg = data?.message || 'Failed to assign shift. Please check authorization.';
         setAssignModalError(`⚠️ ${errMsg}`);
@@ -5409,7 +5478,7 @@ export const CrmHrLeadDashboard = ({ initialSection, isReadOnly = false }) => {
                 {/* 7. VIEW C: MONTHLY SHIFT CALENDAR */}
                 {effectiveShiftViewMode === 'monthly' && (() => {
                   const currentMonthLabel = shiftCurrentMonthLabel;
-                  const todayStr = new Date().toISOString().slice(0, 10);
+                  const todayStr = getKolkataTodayIso();
 
                   const handlePrevMonth = handleShiftPrevMonth;
                   const handleNextMonth = handleShiftNextMonth;
@@ -5746,12 +5815,99 @@ export const CrmHrLeadDashboard = ({ initialSection, isReadOnly = false }) => {
 
                                 {dayContent}
 
-                                <div className="h-1"></div>
+                                {(() => {
+                                  const dayTasks = (assignedTasksForCalendar || []).filter((t) => {
+                                    const d = (t.dueDate || '').slice(0, 10);
+                                    if (d !== day.iso) return false;
+                                    if (selectedEmp) {
+                                      const empId = selectedEmp.employeeId || selectedEmp.id;
+                                      return t.assignedEmployeeId === empId;
+                                    }
+                                    return true;
+                                  });
+                                  if (dayTasks.length === 0) return <div className="h-1" />;
+                                  return (
+                                    <div className="mt-1 px-1.5 py-0.5 rounded-md bg-sky-50 dark:bg-sky-950/40 border border-sky-200 dark:border-sky-800/70 text-[9px] font-bold text-sky-800 dark:text-sky-200 truncate">
+                                      {dayTasks.length} Task{dayTasks.length > 1 ? 's' : ''} Due
+                                    </div>
+                                  );
+                                })()}
                               </div>
                             );
                           })}
                         </div>
                       </div>
+
+                      {/* HR Operations (Read-Only): Selected Date Shift & Assigned Tasks Details */}
+                      {readOnlyMode && (() => {
+                        const myEmp = selectedEmp || displayEmployees[0] || null;
+                        const myShift = myEmp ? resolveShiftForEmpAndDate(myEmp, monthlyActiveDateStr) : null;
+                        const myDayTasks = (assignedTasksForCalendar || []).filter((t) => {
+                          const d = (t.dueDate || '').slice(0, 10);
+                          if (d !== monthlyActiveDateStr) return false;
+                          if (myEmp) return t.assignedEmployeeId === (myEmp.employeeId || myEmp.id);
+                          return true;
+                        });
+                        return (
+                          <div className="p-4 rounded-2xl bg-white dark:bg-navy-900 border border-slate-200 dark:border-navy-800 shadow-xs space-y-3">
+                            <div className="flex flex-wrap items-center justify-between gap-2 border-b border-slate-100 dark:border-navy-800 pb-2.5">
+                              <div>
+                                <div className="text-[10px] text-slate-400 font-bold uppercase tracking-wider">Selected Date Schedule</div>
+                                <h4 className="font-serif font-bold text-sm text-slate-900 dark:text-white">
+                                  {monthlyActiveDateStr}
+                                  {monthlyActiveDateStr === todayStr && (
+                                    <span className="ml-2 px-2 py-0.5 rounded-full bg-emerald-100 text-emerald-800 dark:bg-emerald-950 dark:text-emerald-300 text-[10px] font-bold">
+                                      Today
+                                    </span>
+                                  )}
+                                </h4>
+                              </div>
+                            </div>
+
+                            {myShift ? (
+                              <div className="p-3 rounded-xl bg-slate-50 dark:bg-navy-950 border border-slate-200/80 dark:border-navy-800 flex flex-wrap items-center justify-between gap-3 text-xs">
+                                <div>
+                                  <span className="text-[10px] font-bold uppercase text-slate-400 block">Assigned Shift</span>
+                                  <strong className="text-slate-900 dark:text-white">{myShift.shiftName || myShift.name}</strong>
+                                </div>
+                                <div>
+                                  <span className="text-[10px] font-bold uppercase text-slate-400 block">Working Hours</span>
+                                  <span className="font-mono font-semibold text-slate-800 dark:text-slate-200">
+                                    {myShift.isOff ? 'Weekly Off' : `${myShift.scheduledLoginTime} – ${myShift.scheduledLogoutTime}`}
+                                  </span>
+                                </div>
+                                <div>
+                                  <span className="text-[10px] font-bold uppercase text-slate-400 block">Assignment Type</span>
+                                  <span className="font-semibold text-amber-700 dark:text-amber-300">
+                                    {myShift.isOff ? 'Weekly Off' : (myShift.isOverride ? `Assigned (${myShift.frequency})` : 'Default Baseline')}
+                                  </span>
+                                </div>
+                              </div>
+                            ) : (
+                              <div className="text-xs text-slate-500 dark:text-slate-400">No shift assigned for this date.</div>
+                            )}
+
+                            {myDayTasks.length > 0 && (
+                              <div className="space-y-1.5 pt-1">
+                                <div className="text-[10px] font-bold uppercase tracking-wider text-sky-700 dark:text-sky-300">
+                                  Assigned Tasks Due ({myDayTasks.length})
+                                </div>
+                                {myDayTasks.map((t) => (
+                                  <div key={t.id} className="p-2.5 rounded-xl bg-sky-50/70 dark:bg-sky-950/30 border border-sky-200/80 dark:border-sky-800/60 text-xs flex flex-wrap items-center justify-between gap-2">
+                                    <div>
+                                      <div className="font-bold text-slate-900 dark:text-white">{t.serviceTitle || t.enquiryId || 'Assigned Task'}</div>
+                                      <div className="text-[11px] text-slate-600 dark:text-slate-300">{t.notes || t.customerName || '—'}</div>
+                                    </div>
+                                    <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-white dark:bg-navy-900 border border-sky-200 dark:border-sky-700 text-sky-800 dark:text-sky-200">
+                                      {t.taskStatus || 'To Do'}
+                                    </span>
+                                  </div>
+                                ))}
+                              </div>
+                            )}
+                          </div>
+                        );
+                      })()}
 
                       {/* Leadership Only: Daily Roster Breakdown & Shift Distribution Cards */}
                       {!readOnlyMode && (

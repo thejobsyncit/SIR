@@ -46,7 +46,8 @@ const formatClockTime = (isoOrTime, timeZone = 'Asia/Kolkata') => {
 };
 
 const formatLiveElapsed = (seconds) => {
-  const s = Math.max(0, Math.floor(seconds));
+  const numericSeconds = Number(seconds);
+  const s = Number.isFinite(numericSeconds) ? Math.max(0, Math.floor(numericSeconds)) : 0;
   const hrs = Math.floor(s / 3600);
   const mins = Math.floor((s % 3600) / 60);
   const secs = s % 60;
@@ -477,49 +478,17 @@ export const CrmMyAttendance = ({ currentRole: roleProp } = {}) => {
         setFeedback({ type: 'success', text: json.message || 'Attendance updated.' });
         setShiftNote('');
         await fetchDashboard(true);
-      } else {
-        // Optimistic offline sync fallback for responsive check-in / check-out
-        const isCheckIn = endpoint.includes('check-in');
-        const isCheckOut = endpoint.includes('check-out');
-        const isBreakStart = endpoint.includes('break/start');
-        const isBreakEnd = endpoint.includes('break/end');
-
-        const nowIso = new Date().toISOString();
-        const savedPunch = localStorage.getItem('sir_crm_my_attendance_active');
-        const punch = savedPunch ? JSON.parse(savedPunch) : {};
-
-        if (isCheckIn) {
-          punch.checkInAt = nowIso;
-          punch.checkOutAt = null;
-          punch.isOnBreak = false;
-          punch.totalBreakMinutes = 0;
-          localStorage.setItem('sir_crm_my_attendance_active', JSON.stringify(punch));
-          setFeedback({ type: 'success', text: 'Checked in successfully.' });
-        } else if (isCheckOut) {
-          punch.checkOutAt = nowIso;
-          punch.isOnBreak = false;
-          localStorage.setItem('sir_crm_my_attendance_active', JSON.stringify(punch));
-          setFeedback({ type: 'success', text: 'Checked out successfully.' });
-        } else if (isBreakStart) {
-          punch.isOnBreak = true;
-          punch.breakStartAt = nowIso;
-          localStorage.setItem('sir_crm_my_attendance_active', JSON.stringify(punch));
-          setFeedback({ type: 'success', text: 'Break started.' });
-        } else if (isBreakEnd) {
-          if (punch.breakStartAt) {
-            const breakMins = Math.max(1, Math.round((Date.now() - new Date(punch.breakStartAt).getTime()) / 60000));
-            punch.totalBreakMinutes = (punch.totalBreakMinutes || 0) + breakMins;
+        try {
+          localStorage.setItem('sir_attendance_updated_at', String(Date.now()));
+          window.dispatchEvent(new CustomEvent('sir-attendance-updated', { detail: { endpoint } }));
+          if (typeof BroadcastChannel !== 'undefined') {
+            const bc = new BroadcastChannel('sir_attendance_updated');
+            bc.postMessage({ endpoint, updatedAt: Date.now() });
+            bc.close();
           }
-          punch.isOnBreak = false;
-          punch.breakStartAt = null;
-          localStorage.setItem('sir_crm_my_attendance_active', JSON.stringify(punch));
-          setFeedback({ type: 'success', text: 'Break ended.' });
-        } else {
-          throw new Error(json?.message || 'Operation could not be completed.');
-        }
-
-        setShiftNote('');
-        await fetchDashboard(true);
+        } catch (_) {}
+      } else {
+        throw new Error(json?.message || 'Operation could not be completed.');
       }
     } catch (err) {
       setFeedback({ type: 'error', text: err.message || 'Action failed.' });
@@ -668,14 +637,34 @@ export const CrmMyAttendance = ({ currentRole: roleProp } = {}) => {
   const liveWorkedSeconds = useMemo(() => {
     if (!effectiveCheckInAt) return 0;
     if (effectiveCheckOutAt) {
-      return Math.round((todayRecord?.netWorkMinutes || activePunch.netWorkMinutes || 0) * 60);
+      const netMins = Number(todayRecord?.netWorkMinutes ?? activePunch.netWorkMinutes ?? 0);
+      return Number.isFinite(netMins) ? Math.max(0, Math.round(netMins * 60)) : 0;
     }
     const startMs = new Date(effectiveCheckInAt).getTime();
-    if (isNaN(startMs)) return 0;
-    const completedBreakSec = Number(todayRecord?.totalBreakMinutes || activePunch.totalBreakMinutes || 0) * 60;
+    if (!Number.isFinite(startMs) || !Number.isFinite(nowMs)) return 0;
+    const rawBreakMins = Number(todayRecord?.totalBreakMinutes ?? activePunch.totalBreakMinutes ?? 0);
+    let breakSec = (Number.isFinite(rawBreakMins) ? Math.max(0, rawBreakMins) : 0) * 60;
+    const activeBreakStart = todayState?.activeBreak?.breakStartAt || (activePunch.isOnBreak ? activePunch.breakStartAt : null);
+    if (activeBreakStart) {
+      const bsMs = new Date(activeBreakStart).getTime();
+      if (Number.isFinite(bsMs)) {
+        breakSec += Math.max(0, Math.floor((nowMs - bsMs) / 1000));
+      }
+    }
     const grossSec = Math.max(0, Math.floor((nowMs - startMs) / 1000));
-    return Math.max(0, grossSec - completedBreakSec);
-  }, [effectiveCheckInAt, effectiveCheckOutAt, todayRecord?.netWorkMinutes, todayRecord?.totalBreakMinutes, activePunch.netWorkMinutes, activePunch.totalBreakMinutes, nowMs]);
+    return Math.max(0, grossSec - breakSec);
+  }, [
+    effectiveCheckInAt,
+    effectiveCheckOutAt,
+    todayRecord?.netWorkMinutes,
+    todayRecord?.totalBreakMinutes,
+    todayState?.activeBreak?.breakStartAt,
+    activePunch.netWorkMinutes,
+    activePunch.totalBreakMinutes,
+    activePunch.isOnBreak,
+    activePunch.breakStartAt,
+    nowMs
+  ]);
 
   const displayCheckIn = effectiveCheckInAt 
     ? formatClockTime(effectiveCheckInAt, tz) 

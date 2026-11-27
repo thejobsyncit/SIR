@@ -809,6 +809,7 @@ const createFallbackDb = () => {
     career_departments: [],
     audit_logs: [],
     attendance_records: [],
+    daily_work_reports: [],
     shift_configs: [...DEFAULT_SHIFTS],
     company_holidays: [],
     employee_leave_requests: [],
@@ -985,6 +986,7 @@ export const SUPABASE_ALL_TABLES = [
   'career_departments',
   'audit_logs',
   'attendance_records',
+  'daily_work_reports',
   'shift_configs',
   'company_holidays',
   'employee_leave_requests',
@@ -1070,6 +1072,7 @@ export const SUPABASE_KEY_MAP = {
   approvedat: 'approvedAt',
   rejectionreason: 'rejectionReason',
   totalbreakminutes: 'totalBreakMinutes',
+  totalworkingminutes: 'totalWorkingMinutes',
   grossminutes: 'grossMinutes',
   networkminutes: 'netWorkMinutes',
   overtimeminutes: 'overtimeMinutes',
@@ -1152,7 +1155,34 @@ export const SUPABASE_KEY_MAP = {
   isread: 'isRead',
   employeerole: 'employeeRole',
   candidatename: 'candidateName',
-  createdby: 'createdBy'
+  createdby: 'createdBy',
+  attendanceid: 'attendanceId',
+  breakstartat: 'breakStartAt',
+  breakendat: 'breakEndAt',
+  durationminutes: 'durationMinutes',
+  breaktype: 'breakType',
+  holidaydate: 'holidayDate',
+  attendancedate: 'attendanceDate',
+  islocked: 'isLocked',
+  sessionid: 'sessionId',
+  sessionstatus: 'sessionStatus',
+  lateminutes: 'lateMinutes',
+  lateapprovalstatus: 'lateApprovalStatus',
+  reportdate: 'reportDate',
+  workcompleted: 'workCompleted',
+  taskscompleted: 'tasksCompleted',
+  workinprogress: 'workInProgress',
+  issuesblockers: 'issuesBlockers',
+  plannednextsteps: 'plannedNextSteps',
+  additionalremarks: 'additionalRemarks',
+  submissionstatus: 'submissionStatus',
+  workingminutesatreport: 'workingMinutesAtReport',
+  checkinat: 'checkInAt',
+  checkoutat: 'checkOutAt',
+  shiftid: 'shiftId',
+  shiftname: 'shiftName',
+  shiftstart: 'shiftStart',
+  shiftend: 'shiftEnd'
 };
 
 export const normalizeSupabaseRow = (raw) => {
@@ -2542,6 +2572,35 @@ const initDb = async (db) => {
     );
 
     CREATE UNIQUE INDEX IF NOT EXISTS idx_attendance_emp_date ON attendance_records(employeeId, workDate);
+
+    CREATE TABLE IF NOT EXISTS daily_work_reports (
+      id TEXT PRIMARY KEY,
+      employeeId TEXT NOT NULL,
+      employeeName TEXT NOT NULL,
+      department TEXT,
+      role TEXT,
+      attendanceId TEXT,
+      reportDate TEXT NOT NULL,
+      shiftId TEXT,
+      shiftName TEXT,
+      shiftStart TEXT,
+      shiftEnd TEXT,
+      checkInAt TEXT,
+      checkOutAt TEXT,
+      workingMinutesAtReport INTEGER DEFAULT 0,
+      workCompleted TEXT NOT NULL,
+      tasksCompleted TEXT NOT NULL,
+      workInProgress TEXT NOT NULL,
+      issuesBlockers TEXT DEFAULT '',
+      plannedNextSteps TEXT NOT NULL,
+      additionalRemarks TEXT DEFAULT '',
+      submissionStatus TEXT NOT NULL DEFAULT 'SUBMITTED',
+      submittedAt DATETIME DEFAULT CURRENT_TIMESTAMP,
+      createdAt DATETIME DEFAULT CURRENT_TIMESTAMP,
+      updatedAt DATETIME DEFAULT CURRENT_TIMESTAMP
+    );
+
+    CREATE UNIQUE INDEX IF NOT EXISTS idx_daily_work_reports_emp_date ON daily_work_reports(employeeId, reportDate);
 
     CREATE TABLE IF NOT EXISTS attendance_breaks (
       id TEXT PRIMARY KEY,
