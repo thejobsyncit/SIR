@@ -1271,7 +1271,9 @@ export const CrmHrLeadDashboard = ({ initialSection, isReadOnly = false }) => {
     expires_at: ''
   });
 
+  const announcementsReqSeqRef = useRef(0);
   const loadCompanyAnnouncements = useCallback(async () => {
+    const reqSeq = ++announcementsReqSeqRef.current;
     setAnnouncementsLoading(true);
     try {
       let token = crmToken;
@@ -1295,14 +1297,17 @@ export const CrmHrLeadDashboard = ({ initialSection, isReadOnly = false }) => {
       }
 
       const res = await fetch('/api/company-announcements', {
+        cache: 'no-store',
         headers: {
           'Content-Type': 'application/json',
+          'Cache-Control': 'no-cache',
           ...(token ? { Authorization: `Bearer ${token}` } : {})
         },
         credentials: 'include'
       });
       if (res.ok) {
         const data = await res.json();
+        if (reqSeq !== announcementsReqSeqRef.current) return;
         if (data?.success && Array.isArray(data.announcements)) {
           setCompanyAnnouncements(data.announcements);
           setCalendarAnnouncements(Array.isArray(data.calendarAnnouncements) ? data.calendarAnnouncements : data.announcements);
@@ -1312,7 +1317,9 @@ export const CrmHrLeadDashboard = ({ initialSection, isReadOnly = false }) => {
     } catch (err) {
       console.warn('Failed to load company announcements:', err);
     } finally {
-      setAnnouncementsLoading(false);
+      if (reqSeq === announcementsReqSeqRef.current) {
+        setAnnouncementsLoading(false);
+      }
     }
   }, [crmToken, currentRole, user?.email, user?.id, setCrmToken]);
 

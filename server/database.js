@@ -1130,6 +1130,7 @@ const createFallbackDb = () => {
   return {
     exec: async () => { },
     close: async () => { },
+    refreshTable: async () => { },
     run: async (sql, params = []) => {
       const s = sql.trim();
       const table = getTableName(s);
@@ -1138,7 +1139,9 @@ const createFallbackDb = () => {
 
       if (/^INSERT\s+INTO/i.test(s)) {
         const colMatch = s.match(/\(([^)]+)\)\s*VALUES/i);
-        const row = { id: params[0] || `REC-${Date.now()}`, createdAt: new Date().toISOString() };
+        const row = colMatch
+          ? {}
+          : { id: params[0] || `REC-${Date.now()}`, createdAt: new Date().toISOString() };
         if (colMatch) {
           const cols = colMatch[1].split(',').map(c => c.trim());
           cols.forEach((col, idx) => {
@@ -1838,6 +1841,14 @@ export const createSupabaseDb = async (client) => {
   return {
     exec: async () => { },
     close: async () => { },
+    refreshTable: async (table) => {
+      const tbl = table?.toLowerCase();
+      if (!tbl || missingTablesSet.has(tbl)) return;
+      const { data, error } = await client.from(tbl).select('*').limit(1000);
+      if (!error && Array.isArray(data)) {
+        store[tbl] = data.map(r => normalizeSupabaseRow(r));
+      }
+    },
     run: async (sql, params = []) => {
       const s = sql.trim();
       const table = getTableName(s)?.toLowerCase();

@@ -297,7 +297,15 @@ export const registerAnnouncementRoutes = (app, { getDb, getClientIp, logAuditTr
   // =========================================================================
   app.get('/api/company-announcements', requireCrmAuth, async (req, res) => {
     try {
+      res.set('Cache-Control', 'no-store, no-cache, must-revalidate, proxy-revalidate');
+      res.set('Pragma', 'no-cache');
+      res.set('Expires', '0');
+
       const db = await getDb();
+      await Promise.all([
+        db.refreshTable?.('company_announcements'),
+        db.refreshTable?.('company_announcement_audit_logs')
+      ]);
       const todayStr = await syncExpiredAnnouncements(db);
       const role = req.authEmployee?.role || '';
       const isLeadership = HR_LEADERSHIP_ROLES.includes(role);
@@ -520,6 +528,7 @@ const attachLogsAndSort = (list, logsByAnnId) => {
     try {
       const { id } = req.params;
       const db = await getDb();
+      await db.refreshTable?.('company_announcements');
       const existing = await db.get('SELECT * FROM company_announcements WHERE id = ?', [id]);
 
       if (!existing) {
@@ -638,6 +647,7 @@ const attachLogsAndSort = (list, logsByAnnId) => {
     try {
       const { id } = req.params;
       const db = await getDb();
+      await db.refreshTable?.('company_announcements');
       const existing = await db.get('SELECT * FROM company_announcements WHERE id = ?', [id]);
 
       if (!existing) {
@@ -683,6 +693,7 @@ const attachLogsAndSort = (list, logsByAnnId) => {
       const { id } = req.params;
       const reason = String(req.body?.reason || req.query?.reason || '').trim();
       const db = await getDb();
+      await db.refreshTable?.('company_announcements');
       const existing = await db.get('SELECT * FROM company_announcements WHERE id = ?', [id]);
 
       if (!existing) {
@@ -743,6 +754,7 @@ const attachLogsAndSort = (list, logsByAnnId) => {
     try {
       const { id } = req.params;
       const db = await getDb();
+      await db.refreshTable?.('company_announcements');
       const existing = await db.get('SELECT * FROM company_announcements WHERE id = ?', [id]);
 
       if (!existing) {
@@ -807,8 +819,13 @@ const attachLogsAndSort = (list, logsByAnnId) => {
   // =========================================================================
   app.get('/api/company-announcements/:id/audit', requireCrmAuth, async (req, res) => {
     try {
+      res.set('Cache-Control', 'no-store, no-cache, must-revalidate, proxy-revalidate');
       const { id } = req.params;
       const db = await getDb();
+      await Promise.all([
+        db.refreshTable?.('company_announcements'),
+        db.refreshTable?.('company_announcement_audit_logs')
+      ]);
       const ann = await db.get('SELECT * FROM company_announcements WHERE id = ?', [id]);
       if (!ann) {
         return res.status(404).json({ success: false, message: 'Announcement not found.' });
