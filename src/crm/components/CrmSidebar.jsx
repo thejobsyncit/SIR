@@ -210,8 +210,6 @@ export const CrmSidebar = ({ collapsed, setCollapsed }) => {
     { id: 'my-attendance', label: 'My Attendance', icon: CalendarCheck },
     { id: 'hr-announcements', label: 'Company Announcement', icon: Megaphone },
     { id: 'leave', label: 'Leave Requests', icon: Calendar },
-    { id: 'documentation', label: 'Document Verification & KYC', icon: FileText },
-    { id: 'visa', label: 'Visa & Verification', icon: ShieldCheck },
     { id: 'my-profile', label: 'My Profile', icon: User }
   ];
 

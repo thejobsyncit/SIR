@@ -1909,15 +1909,8 @@ export const CrmProvider = ({ children }) => {
   const logoutLockRef = useRef(false);
 
   const logout = () => {
-    // If user is a non-executive employee and has active unlocked workspace, automatically clock them out upon logout.
-    // If they are currently gated at the late arrival gate, do NOT record a workday checkout.
-    const isExecutive = currentRole === 'Super Admin';
-    if (!isExecutive && user && !lateApprovalGate?.isBlocked) {
-      try {
-        clockOut(user, currentRole);
-      } catch (_) { }
-    }
-
+    // Authoritative checkout is performed via /api/hr-ops/daily-reports/submit-and-checkout
+    // before logout() clears the session. Never fabricate or auto-close attendance on plain logout.
     setIsAuthenticated(false);
     setLogoutConfirmOpen(false);
     setActiveModuleState('dashboard');
@@ -1942,7 +1935,7 @@ export const CrmProvider = ({ children }) => {
 
   const requestLogout = () => {
     if (logoutLockRef.current) return;
-    if (currentRole === 'HR Operations') {
+    if (currentRole && currentRole !== 'Super Admin') {
       setLogoutConfirmOpen(true);
       return;
     }

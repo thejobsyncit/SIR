@@ -361,6 +361,57 @@ const CrmHrOperationsDashboard = ({ initialSection } = {}) => {
     }
   }, [authTokenLoading, crmToken, isHrOpsSession]);
 
+  // Auto-sync dashboard summary (shift & task assignments) on broadcast, focus, and 15s interval
+  useEffect(() => {
+    if (!isHrOpsSession) return undefined;
+    const handleSync = () => fetchDashboardSummary(false);
+    const onStorage = (e) => {
+      if (
+        e.key === 'sir_shifts_updated_at' ||
+        e.key === 'sir_tasks_updated_at' ||
+        e.key === 'sir_attendance_updated_at'
+      ) {
+        handleSync();
+      }
+    };
+    window.addEventListener('sir-shifts-updated', handleSync);
+    window.addEventListener('sir-tasks-updated', handleSync);
+    window.addEventListener('sir-attendance-updated', handleSync);
+    window.addEventListener('storage', onStorage);
+    window.addEventListener('focus', handleSync);
+
+    let bcShift = null;
+    let bcTask = null;
+    let bcAttendance = null;
+    if (typeof BroadcastChannel !== 'undefined') {
+      try {
+        bcShift = new BroadcastChannel('sir_shift_assignments');
+        bcShift.onmessage = handleSync;
+      } catch (_) { }
+      try {
+        bcTask = new BroadcastChannel('sir_hr_tasks');
+        bcTask.onmessage = handleSync;
+      } catch (_) { }
+      try {
+        bcAttendance = new BroadcastChannel('sir_attendance_updated');
+        bcAttendance.onmessage = handleSync;
+      } catch (_) { }
+    }
+
+    const timer = setInterval(handleSync, 15000);
+    return () => {
+      clearInterval(timer);
+      window.removeEventListener('sir-shifts-updated', handleSync);
+      window.removeEventListener('sir-tasks-updated', handleSync);
+      window.removeEventListener('sir-attendance-updated', handleSync);
+      window.removeEventListener('storage', onStorage);
+      window.removeEventListener('focus', handleSync);
+      if (bcShift) bcShift.close();
+      if (bcTask) bcTask.close();
+      if (bcAttendance) bcAttendance.close();
+    };
+  }, [isHrOpsSession, fetchDashboardSummary]);
+
   const fetchCompanyAnnouncements = useCallback(async (silent = false) => {
     if (!silent) setAnnouncementsLoading(true);
     try {
@@ -935,25 +986,48 @@ const CrmHrOperationsDashboard = ({ initialSection } = {}) => {
             </div>
 
             <div className="flex flex-wrap items-center gap-2.5">
-              {!isEnquiriesPage && shiftInfo?.formattedTiming && (
+              {!isEnquiriesPage && (
                 <div
-                  className="flex items-center gap-2 px-3 py-1.5 rounded-xl bg-amber-50 dark:bg-amber-500/10 border border-amber-300 dark:border-amber-500/30 cursor-pointer hover:border-amber-500 hover:shadow-xs transition"
+                  className={`flex items-center gap-2 px-3 py-1.5 rounded-xl border cursor-pointer hover:shadow-xs transition ${
+                    shiftInfo?.hasExplicitAssignment
+                      ? 'bg-amber-50 dark:bg-amber-500/10 border-amber-300 dark:border-amber-500/30 hover:border-amber-500'
+                      : 'bg-slate-50 dark:bg-slate-800/70 border-slate-200 dark:border-slate-700 hover:border-slate-400'
+                  }`}
                   data-testid="hr-dashboard-shift-timing"
                   onClick={() => setActiveModule?.('hr-shifts')}
                   title="Click to view My Shift"
                 >
-                  <div className="w-6 h-6 rounded-md bg-amber-500/20 flex items-center justify-center text-amber-700 dark:text-amber-400 shrink-0 font-bold">
+                  <div className={`w-6 h-6 rounded-md flex items-center justify-center shrink-0 font-bold ${
+                    shiftInfo?.hasExplicitAssignment
+                      ? 'bg-amber-500/20 text-amber-700 dark:text-amber-400'
+                      : 'bg-slate-200/80 dark:bg-slate-700 text-slate-500 dark:text-slate-300'
+                  }`}>
                     <Clock className="w-3.5 h-3.5" />
                   </div>
                   <div className="leading-tight">
-                    <p className="text-[10px] font-bold uppercase tracking-wider text-amber-900 dark:text-amber-300">
-                      Today’s Shift
-                      {shiftInfo.name
+                    <p className={`text-[10px] font-bold uppercase tracking-wider ${
+                      shiftInfo?.hasExplicitAssignment
+                        ? 'text-amber-900 dark:text-amber-300'
+                        : 'text-slate-500 dark:text-slate-400'
+                    }`}>
+                      Today’s Assigned Shift
+                      {shiftInfo?.hasExplicitAssignment && shiftInfo?.name
                         ? ` • ${shiftInfo.name.replace(/\s*\([^)]*\)\s*$/, '').trim()}`
                         : ''}
                     </p>
                     <p className="text-xs font-bold text-slate-950 dark:text-white">
-                      {shiftInfo.formattedTiming}
+                      {shiftInfo?.hasExplicitAssignment ? (
+                        <>
+                          {shiftInfo.formattedTiming}
+                          {shiftInfo.assignmentDate ? (
+                            <span className="ml-1.5 text-[10px] font-normal text-slate-500 dark:text-slate-400 font-mono">
+                              ({formatDateShort(shiftInfo.assignmentDate)})
+                            </span>
+                          ) : null}
+                        </>
+                      ) : (
+                        'No shift assigned for today'
+                      )}
                     </p>
                   </div>
                 </div>
@@ -1041,6 +1115,20 @@ const CrmHrOperationsDashboard = ({ initialSection } = {}) => {
                 {attendanceToday?.workDate && (
                   <span className="text-xs text-slate-500 dark:text-slate-400 font-medium">
                     ({formatDateShort(attendanceToday.workDate)})
+                  </span>
+                )}
+                {attendanceToday?.remainingShiftLabel && (
+                  <span className="inline-flex items-center px-2 py-0.5 rounded-full text-[11px] font-semibold bg-amber-50 dark:bg-amber-500/10 text-amber-700 dark:text-amber-300 border border-amber-200/70 dark:border-amber-500/20">
+                    Shift Remaining: {attendanceToday.remainingShiftLabel}
+                  </span>
+                )}
+                {attendanceToday?.dailyReport && (
+                  <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-[11px] font-semibold border ${
+                    attendanceToday.dailyReport.hasSubmitted
+                      ? 'bg-emerald-50 dark:bg-emerald-500/10 text-emerald-700 dark:text-emerald-300 border-emerald-200/70 dark:border-emerald-500/20'
+                      : 'bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 border-slate-200 dark:border-slate-700'
+                  }`}>
+                    Daily Report: {attendanceToday.dailyReport.hasSubmitted ? 'Submitted' : 'Pending'}
                   </span>
                 )}
               </div>
