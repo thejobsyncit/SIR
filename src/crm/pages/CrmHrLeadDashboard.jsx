@@ -1733,7 +1733,7 @@ export const CrmHrLeadDashboard = ({ initialSection, isReadOnly = false }) => {
   const [isSavingShift, setIsSavingShift] = useState(false);
   const [shiftAssignmentSuccessBanner, setShiftAssignmentSuccessBanner] = useState('');
 
-  // Operational HR workforce for Shift Management (strictly HR Operations staff)
+  // Unified CRM workforce for Shift Management (includes all active CRM roles: HR Operations, HR Lead, Recruiter, Placement, Interviewer, Admin, etc.)
   const displayEmployees = useMemo(() => {
     const raw = (shiftRosterData && shiftRosterData.length > 0)
       ? shiftRosterData
@@ -1773,16 +1773,11 @@ export const CrmHrLeadDashboard = ({ initialSection, isReadOnly = false }) => {
         };
       });
 
-    const hrOpsEmployees = raw.filter(emp => {
-      const r = (emp.role || '').toLowerCase();
-      const d = (emp.department || '').toLowerCase();
-      if (r.includes('admin') || r.includes('super') || r.includes('hr lead') || r === 'lead' || r === 'hr_lead') {
-        return false;
-      }
-      if (r.includes('recruiter') || r.includes('placement') || d.includes('placement') || d.includes('ats')) {
-        return false;
-      }
-      return r.includes('operations') || d.includes('operations');
+    const activeWorkforce = raw.filter(emp => {
+      if (String(emp.status || 'Active').toLowerCase() === 'inactive') return false;
+      const emailLower = String(emp.email || '').toLowerCase();
+      if (emailLower.startsWith('test.recruiter.') || emailLower.startsWith('qa.late.')) return false;
+      return true;
     });
 
     // When viewed in Read-Only mode by HR Operations, strictly show ONLY the logged-in HR staff's record
@@ -1791,7 +1786,7 @@ export const CrmHrLeadDashboard = ({ initialSection, isReadOnly = false }) => {
       const myEmail = (user?.email || currentEmployee?.email || '').toLowerCase().trim();
       const myName = (user?.name || currentEmployee?.name || '').toLowerCase().trim();
 
-      const selfRecord = hrOpsEmployees.filter(emp => {
+      const selfRecord = activeWorkforce.filter(emp => {
         const empId = (emp.employeeId || emp.id || '').toString().trim().toLowerCase();
         const empEmail = (emp.email || '').toLowerCase().trim();
         const empName = (emp.name || '').toLowerCase().trim();
@@ -1811,18 +1806,16 @@ export const CrmHrLeadDashboard = ({ initialSection, isReadOnly = false }) => {
       return selfRecord;
     }
 
-    return hrOpsEmployees;
+    return activeWorkforce;
   }, [shiftRosterData, employees, readOnlyMode, user, currentEmployee]);
 
   const allAssignableEmployees = useMemo(() => {
     const raw = (shiftRosterData && shiftRosterData.length > 0) ? shiftRosterData : employees;
     const filtered = raw.filter(emp => {
-      const r = (emp.role || '').toLowerCase();
-      const d = (emp.department || '').toLowerCase();
-      if (r.includes('super') || r.includes('recruiter') || r.includes('placement') || d.includes('placement') || d.includes('ats')) {
-        return false;
-      }
-      return r.includes('lead') || r.includes('operations') || d.includes('operations') || d.includes('human resources') || d.includes('hr');
+      if (String(emp.status || 'Active').toLowerCase() === 'inactive') return false;
+      const emailLower = String(emp.email || '').toLowerCase();
+      if (emailLower.startsWith('test.recruiter.') || emailLower.startsWith('qa.late.')) return false;
+      return true;
     });
     return filtered.length > 0 ? filtered : displayEmployees;
   }, [shiftRosterData, employees, displayEmployees]);
@@ -1859,10 +1852,11 @@ export const CrmHrLeadDashboard = ({ initialSection, isReadOnly = false }) => {
       };
 
       const [rosterRes, assignmentsRes, lateRes, tasksRes] = await Promise.all([
-        fetch(`/api/crm/shifts/roster?date=${shiftSelectedDate}`, { headers }),
-        fetch('/api/crm/shifts/assignments', { headers }),
-        fetch('/api/crm/shifts/late-approvals', { headers }),
+        fetch(`/api/crm/shifts/roster?date=${shiftSelectedDate}`, { cache: 'no-store', headers }),
+        fetch('/api/crm/shifts/assignments', { cache: 'no-store', headers }),
+        fetch('/api/crm/shifts/late-approvals', { cache: 'no-store', headers }),
         fetch('/api/hr-operations/tasks', {
+          cache: 'no-store',
           headers: {
             ...headers,
             'x-user-role': currentRole || (readOnlyMode ? 'HR Operations' : 'HR Lead'),
@@ -1947,6 +1941,9 @@ export const CrmHrLeadDashboard = ({ initialSection, isReadOnly = false }) => {
   const handleOpenAssignModal = (employee = null) => {
     setAssignEmpSearch('');
     setAssignModalError('');
+    if (!shiftRosterData || shiftRosterData.length === 0) {
+      loadShiftRosterData();
+    }
     const targetEmp = employee || (readOnlyMode ? displayEmployees[0] : null);
     if (targetEmp) {
       setAssignFormTarget({

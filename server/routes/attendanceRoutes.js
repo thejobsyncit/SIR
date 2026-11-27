@@ -3695,10 +3695,15 @@ export const registerAttendanceRoutes = (app, { getDb, getClientIp }) => {
     });
   });
 
-  // 2. GET /api/crm/shifts/roster - Unified workforce shift roster for a selected date
+  // 2. GET /api/crm/shifts/roster - Unified workforce shift roster for a selected date (all CRM roles)
   app.get('/api/crm/shifts/roster', requireCrmAuth, requireHrStaffRole, async (req, res) => {
     try {
+      res.set('Cache-Control', 'no-store, no-cache, must-revalidate, proxy-revalidate');
       const db = await getDb();
+      await Promise.all([
+        refreshAttendanceTables(db, ['attendance_records', 'employee_shift_assignments', 'late_login_approval_requests'], 0),
+        refreshAttendanceTables(db, ['employees', 'employee_leave_requests'], 10000)
+      ]);
       const nowParts = getCompanyDateTimeParts(new Date());
       const selectedDate = /^\d{4}-\d{2}-\d{2}$/.test(req.query?.date || '')
         ? req.query.date
@@ -3711,19 +3716,9 @@ export const registerAttendanceRoutes = (app, { getDb, getClientIp }) => {
       let emps = (allEmps || [])
         .filter((e) => {
           if (String(e.status || 'Active').toLowerCase() === 'inactive') return false;
-          const r = String(e.role || '').toLowerCase();
-          const d = String(e.department || '').toLowerCase();
-          if (
-            r.includes('super') ||
-            r.includes('admin') ||
-            r.includes('hr lead') ||
-            r === 'hr_lead' ||
-            r.includes('recruiter') ||
-            r.includes('placement')
-          ) {
-            return false;
-          }
-          return r === 'hr operations' || r.includes('operations') || d.includes('operations');
+          const emailLower = String(e.email || '').toLowerCase();
+          if (emailLower.startsWith('test.recruiter.') || emailLower.startsWith('qa.late.')) return false;
+          return true;
         })
         .sort((a, b) => String(a.name || '').localeCompare(String(b.name || '')));
 
