@@ -349,7 +349,7 @@ export const CrmDashboard = () => {
               </span>
               <span className="text-[11px] font-extrabold text-emerald-600 dark:text-emerald-400 flex items-center gap-1">
                 <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></span>
-                SQLite Live Sync
+                Supabase Cloud Sync
               </span>
             </div>
             <h2 className="font-serif text-xl sm:text-2xl font-bold text-slate-900 dark:text-white mt-1 flex flex-wrap items-center gap-2 break-words">

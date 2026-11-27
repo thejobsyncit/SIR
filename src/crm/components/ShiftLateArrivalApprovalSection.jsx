@@ -36,8 +36,10 @@ export const ShiftLateArrivalApprovalSection = ({ currentRole = 'Super Admin', c
 
     try {
       const res = await fetch('/api/hr-ops/attendance/late-approvals/pending', {
+        cache: 'no-store',
         headers: {
           'Content-Type': 'application/json',
+          'Cache-Control': 'no-cache',
           'x-crm-role': activeRole,
           ...(tokenRef.current ? { Authorization: `Bearer ${tokenRef.current}` } : {})
         }

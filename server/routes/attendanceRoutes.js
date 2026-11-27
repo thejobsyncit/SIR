@@ -602,6 +602,25 @@ export const registerAttendanceRoutes = (app, { getDb, getClientIp }) => {
         }
       }
 
+      if (!emp && db.refreshTable) {
+        await db.refreshTable('employees').catch(() => { });
+        const retryEmail = String(payload?.email || req.headers['x-employee-email'] || req.query?.email || '').toLowerCase().trim();
+        const retryId = payload?.employeeId || payload?.id || '';
+        const retryRole = req.headers['x-crm-role'] || req.query?.role || payload?.role || '';
+        if (retryId || retryEmail) {
+          emp = await db.get(
+            'SELECT * FROM employees WHERE (employeeId = ? OR id = ? OR LOWER(email) = ?) AND LOWER(COALESCE(status, \'Active\')) != \'inactive\' LIMIT 1',
+            [retryId, retryId, retryEmail]
+          );
+        }
+        if (!emp && retryRole) {
+          emp = await db.get(
+            'SELECT * FROM employees WHERE LOWER(role) = LOWER(?) AND LOWER(COALESCE(status, \'Active\')) != \'inactive\' ORDER BY id ASC LIMIT 1',
+            [retryRole]
+          );
+        }
+      }
+
       if (!emp || String(emp.status || 'Active').toLowerCase() === 'inactive') {
         return res.status(401).json({
           success: false,
@@ -1276,6 +1295,10 @@ export const registerAttendanceRoutes = (app, { getDb, getClientIp }) => {
   app.post('/api/hr-ops/attendance/check-in', requireCrmAuth, requireHrOpsRole, async (req, res) => {
     try {
       const db = await getDb();
+      await db.refreshTable?.('attendance_records').catch(() => { });
+      await db.refreshTable?.('late_login_approval_requests').catch(() => { });
+      await db.refreshTable?.('employee_shift_assignments').catch(() => { });
+      await db.refreshTable?.('shift_configs').catch(() => { });
       const employee = req.authEmployee;
       const ipAddress = getClientIp(req);
       const result = await withEmployeeAttendanceLock(employee.employeeId, async () => {
@@ -2329,15 +2352,28 @@ export const registerAttendanceRoutes = (app, { getDb, getClientIp }) => {
     }
   });
 
+  const refreshAttendanceTables = async (db, tables = ['attendance_records', 'late_login_approval_requests', 'employees']) => {
+    if (!db?.refreshTable) return;
+    await Promise.all(tables.map((t) => db.refreshTable(t).catch(() => { })));
+  };
+
   // Pre-Login Shift Late Verification & Ingress Gatekeeper
   app.post('/api/crm/auth/record-late-login', async (req, res) => {
     try {
+      res.set('Cache-Control', 'no-store, no-cache, must-revalidate, proxy-revalidate');
       const { email, password, role: reqRole, employeeId: reqEmpId, name: reqName, department: reqDept } = req.body || {};
       const cleanEmail = String(email || '').toLowerCase().trim();
       if (!cleanEmail || !password) {
         return res.status(400).json({ success: false, message: 'Email and password required.' });
       }
       const db = await getDb();
+      await refreshAttendanceTables(db, [
+        'employees',
+        'attendance_records',
+        'late_login_approval_requests',
+        'employee_shift_assignments',
+        'shift_configs'
+      ]);
       let employee = await db.get(
         'SELECT * FROM employees WHERE LOWER(email) = ? OR LOWER(altEmail) = ?',
         [cleanEmail, cleanEmail]
@@ -2404,8 +2440,44 @@ export const registerAttendanceRoutes = (app, { getDb, getClientIp }) => {
           });
         }
 
+        if (existing.lateApprovalStatus === 'REJECTED') {
+          return res.json({
+            success: true,
+            allowed: false,
+            isLate: true,
+            lateApprovalStatus: 'REJECTED',
+            attendanceId: existing.id,
+            lateMinutes: Number(existing.lateMinutes || lateMinutes || 0),
+            shiftStart: existing.shiftStart || shiftConfig.startTime,
+            shiftName: existing.shiftName || shiftConfig.name,
+            loginTime: nowParts.timeStr,
+            employeeName: employee.name,
+            role: employee.role,
+            employeeId: employee.employeeId
+          });
+        }
+
+        // If employee already checked in on-time earlier today (non-late and not pending), allow re-entry
+        const existingLateMins = Number(existing.lateMinutes || 0);
+        if (existingLateMins <= 0 && !isLate && existing.lateApprovalStatus !== 'PENDING') {
+          return res.json({
+            success: true,
+            allowed: true,
+            isLate: false,
+            lateApprovalStatus: existing.lateApprovalStatus || 'APPROVED',
+            attendanceId: existing.id,
+            lateMinutes: 0,
+            shiftStart: existing.shiftStart || shiftConfig.startTime,
+            shiftName: existing.shiftName || shiftConfig.name,
+            loginTime: nowParts.timeStr,
+            employeeName: employee.name,
+            role: employee.role,
+            employeeId: employee.employeeId
+          });
+        }
+
         // Employee is re-attempting login while late: Refresh to PENDING so approvers (Super Admin / HR Lead) see it
-        const updatedLateMinutes = Math.max(Number(existing.lateMinutes || 0), lateMinutes || 0);
+        const updatedLateMinutes = Math.max(existingLateMins, lateMinutes || 0);
         await db.run(
           `UPDATE attendance_records SET
             lateApprovalStatus = 'PENDING',
@@ -2442,23 +2514,6 @@ export const registerAttendanceRoutes = (app, { getDb, getClientIp }) => {
             ]
           );
         } catch (_) { }
-
-        if (existing.lateApprovalStatus === 'REJECTED') {
-          return res.json({
-            success: true,
-            allowed: false,
-            isLate: true,
-            lateApprovalStatus: 'REJECTED',
-            attendanceId: existing.id,
-            lateMinutes: updatedLateMinutes,
-            shiftStart: existing.shiftStart || shiftConfig.startTime,
-            shiftName: existing.shiftName || shiftConfig.name,
-            loginTime: nowParts.timeStr,
-            employeeName: employee.name,
-            role: employee.role,
-            employeeId: employee.employeeId
-          });
-        }
 
         try {
           await ensureLateLoginApprovalRequest(db, {
@@ -2590,7 +2645,15 @@ export const registerAttendanceRoutes = (app, { getDb, getClientIp }) => {
   // Check current employee's late approval status (called by blocking gate / status poll)
   app.get('/api/hr-ops/attendance/late-approval-status', async (req, res) => {
     try {
+      res.set('Cache-Control', 'no-store, no-cache, must-revalidate, proxy-revalidate');
       const db = await getDb();
+      await refreshAttendanceTables(db, [
+        'employees',
+        'attendance_records',
+        'role_login_logs',
+        'employee_shift_assignments',
+        'shift_configs'
+      ]);
       const emailQuery = String(req.query?.email || req.headers['x-employee-email'] || '').toLowerCase().trim();
       let employee = req.authEmployee;
 
@@ -2728,7 +2791,13 @@ export const registerAttendanceRoutes = (app, { getDb, getClientIp }) => {
   // Super Admin & HR Lead: List all pending late arrivals needing authorization
   app.get('/api/hr-ops/attendance/late-approvals/pending', requireCrmAuth, requireHrLeadershipRole, async (req, res) => {
     try {
+      res.set('Cache-Control', 'no-store, no-cache, must-revalidate, proxy-revalidate');
       const db = await getDb();
+      await refreshAttendanceTables(db, [
+        'attendance_records',
+        'late_login_approval_requests',
+        'employees'
+      ]);
       const reviewer = req.authEmployee;
       const reviewerRole = String(reviewer?.role || '').toLowerCase();
       const isSuperAdmin = reviewerRole === 'super admin' || reviewerRole === 'admin';
@@ -2737,9 +2806,37 @@ export const registerAttendanceRoutes = (app, { getDb, getClientIp }) => {
       const rows = await db.all(
         `SELECT * FROM attendance_records WHERE lateApprovalStatus = 'PENDING' ORDER BY checkInAt DESC`
       );
+      const reqRows = await db.all(
+        `SELECT * FROM late_login_approval_requests WHERE status = 'Pending Approval' ORDER BY createdAt DESC`
+      );
+
+      const combinedRows = [...(rows || [])];
+      const existingAttIds = new Set(combinedRows.map(r => r.id));
+      for (const reqItem of (reqRows || [])) {
+        const targetId = reqItem.attendanceId || reqItem.id;
+        if (targetId && !existingAttIds.has(targetId)) {
+          existingAttIds.add(targetId);
+          combinedRows.push({
+            id: targetId,
+            employeeId: reqItem.employeeId,
+            employeeName: reqItem.employeeName,
+            department: reqItem.department,
+            role: reqItem.role,
+            shiftId: reqItem.shiftId,
+            shiftName: reqItem.shiftName,
+            shiftStart: reqItem.scheduledLoginTime,
+            shiftEnd: reqItem.scheduledLogoutTime,
+            checkInAt: reqItem.createdAt || reqItem.actualClockInTime,
+            workDate: reqItem.attendanceDate,
+            lateMinutes: Number(reqItem.delayMinutes || 0),
+            notes: reqItem.explanation || 'Shift Late Ingress pending authorization',
+            lateApprovalStatus: 'PENDING'
+          });
+        }
+      }
 
       const enriched = await Promise.all(
-        rows.map(async (row) => {
+        combinedRows.map(async (row) => {
           const emp = await db.get(
             'SELECT email, role, avatar, designation FROM employees WHERE employeeId = ?',
             [row.employeeId]
@@ -2788,6 +2885,12 @@ export const registerAttendanceRoutes = (app, { getDb, getClientIp }) => {
   app.post('/api/hr-ops/attendance/late-approvals/:id/decision', requireCrmAuth, requireHrLeadershipRole, async (req, res) => {
     try {
       const db = await getDb();
+      await refreshAttendanceTables(db, [
+        'attendance_records',
+        'late_login_approval_requests',
+        'employees',
+        'role_login_logs'
+      ]);
       const reviewer = req.authEmployee;
       const { id } = req.params;
       const { decision, notes } = req.body || {};
@@ -2848,6 +2951,14 @@ export const registerAttendanceRoutes = (app, { getDb, getClientIp }) => {
         await db.run(
           `UPDATE role_login_logs SET lateApprovalStatus = ?, approvedBy = ?, approvedAt = CURRENT_TIMESTAMP, rejectionReason = ? WHERE employeeId = ? AND lateApprovalStatus = 'PENDING'`,
           [statusValue, `${reviewer.name} (${reviewer.role})`, statusValue === 'REJECTED' ? (notes || `Access denied by ${reviewer.role}`) : null, att.employeeId]
+        );
+      } catch (_) { }
+
+      try {
+        const reqStatus = statusValue === 'APPROVED' ? 'Approved' : 'Rejected';
+        await db.run(
+          `UPDATE late_login_approval_requests SET status = ?, approverId = ?, approverName = ?, approverRole = ?, decisionTimestamp = CURRENT_TIMESTAMP, rejectionReason = ?, updatedAt = CURRENT_TIMESTAMP WHERE attendanceId = ?`,
+          [reqStatus, reviewer.employeeId, reviewer.name, reviewer.role, statusValue === 'REJECTED' ? (notes || `Access denied by ${reviewer.role}`) : null, att.id]
         );
       } catch (_) { }
 
@@ -3933,7 +4044,13 @@ export const registerAttendanceRoutes = (app, { getDb, getClientIp }) => {
   // 6. GET /api/crm/shifts/late-approvals - Review queue for late arrivals (HR Lead late requests visible ONLY to Super Admin)
   app.get('/api/crm/shifts/late-approvals', requireCrmAuth, requireHrLeadershipRole, async (req, res) => {
     try {
+      res.set('Cache-Control', 'no-store, no-cache, must-revalidate, proxy-revalidate');
       const db = await getDb();
+      await refreshAttendanceTables(db, [
+        'late_login_approval_requests',
+        'attendance_records',
+        'employees'
+      ]);
       const reviewer = req.authEmployee;
       const reviewerRole = String(reviewer?.role || '').toLowerCase();
       const isHrLeadReviewer = reviewerRole === 'hr lead' || reviewerRole.includes('lead');
@@ -4019,6 +4136,12 @@ export const registerAttendanceRoutes = (app, { getDb, getClientIp }) => {
   app.post('/api/crm/shifts/late-approvals/:id/decision', requireCrmAuth, requireHrLeadershipRole, async (req, res) => {
     try {
       const db = await getDb();
+      await refreshAttendanceTables(db, [
+        'late_login_approval_requests',
+        'attendance_records',
+        'employees',
+        'role_login_logs'
+      ]);
       const reviewer = req.authEmployee;
       const { id } = req.params;
       const { decision, rejectionReason, notes } = req.body || {};
@@ -4083,23 +4206,26 @@ export const registerAttendanceRoutes = (app, { getDb, getClientIp }) => {
 
       // 2. Update attendance_records (preserves actual check-in & lateMinutes, updates disposition)
       const attStatusValue = statusValue === 'Approved' ? 'APPROVED' : 'REJECTED';
+      const attWorkStatus = statusValue === 'Approved' ? 'Present' : 'Absent';
       if (lateReq.attendanceId) {
         await db.run(
           `UPDATE attendance_records 
            SET lateApprovalStatus = ?, 
+               status = ?,
                notes = COALESCE(notes || ' | ', '') || 'Late-login ${statusValue.toLowerCase()} by ${reviewer.name} (${reviewer.role})', 
                updatedAt = CURRENT_TIMESTAMP 
            WHERE id = ?`,
-          [attStatusValue, lateReq.attendanceId]
+          [attStatusValue, attWorkStatus, lateReq.attendanceId]
         );
       } else {
         await db.run(
           `UPDATE attendance_records 
            SET lateApprovalStatus = ?, 
+               status = ?,
                notes = COALESCE(notes || ' | ', '') || 'Late-login ${statusValue.toLowerCase()} by ${reviewer.name} (${reviewer.role})', 
                updatedAt = CURRENT_TIMESTAMP 
            WHERE employeeId = ? AND workDate = ?`,
-          [attStatusValue, lateReq.employeeId, lateReq.attendanceDate]
+          [attStatusValue, attWorkStatus, lateReq.employeeId, lateReq.attendanceDate]
         );
       }
 

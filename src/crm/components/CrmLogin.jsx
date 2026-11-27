@@ -485,75 +485,68 @@ export const CrmLogin = () => {
     // Call server to record login attempt / check approval
     setIsAuthenticating(true);
     let checkResult = null;
+    let checkStatus = 0;
     try {
       const res = await fetch('/api/crm/auth/record-late-login', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        cache: 'no-store',
+        headers: {
+          'Content-Type': 'application/json',
+          'Cache-Control': 'no-cache'
+        },
         body: JSON.stringify({ email: cleanEmail, password })
       });
-      if (res.ok) {
-        checkResult = await res.json();
-      }
+      checkStatus = res.status;
+      checkResult = await res.json().catch(() => null);
     } catch (_) {}
 
     setIsAuthenticating(false);
+
+    if (checkStatus === 401 || checkStatus === 403) {
+      setAuthErrorMsg(`❌ ${checkResult?.message || 'Invalid credentials or access denied.'}`);
+      return;
+    }
 
     if (checkResult?.lateApprovalStatus === 'REJECTED') {
       setAuthErrorMsg('❌ Access Declined: Super Admin has rejected your late arrival check-in for today. Contact HR Operations.');
       return;
     }
 
-    // Allow entry ONLY when backend explicitly grants allowed: true (on-time or approved), or offline & on-time
-    if ((checkResult?.success && checkResult?.allowed === true) || (!checkResult && !isShiftLate)) {
+    // Allow entry ONLY when backend explicitly grants allowed: true (on-time or approved), or genuinely offline & on-time
+    if ((checkResult?.success && checkResult?.allowed === true) || (checkStatus === 0 && !checkResult && !isShiftLate)) {
       login(userAccount.email, password, userAccount.role || 'HR Operations', userAccount);
       return;
     }
 
-    // If employee (including HR Lead) is late after grace period and pending approval
-    if (checkResult && (checkResult.allowed === false || (checkResult.isLate && checkResult.lateApprovalStatus === 'PENDING'))) {
-      const isLead = String(userAccount.role || checkResult.role || '').toLowerCase().includes('lead');
+    // If employee (including HR Lead) is late after grace period and pending approval (or server unreachable while late)
+    if (
+      (checkResult && (checkResult.allowed === false || (checkResult.isLate && checkResult.lateApprovalStatus === 'PENDING'))) ||
+      (!checkResult && (isShiftLate || checkStatus >= 500))
+    ) {
+      if (checkStatus >= 500 && !isShiftLate) {
+        setAuthErrorMsg(`⚠️ Unable to verify shift attendance on server (${checkStatus}). Please retry in a moment.`);
+        return;
+      }
+      const isLead = String(userAccount.role || checkResult?.role || '').toLowerCase().includes('lead');
       const approverText = isLead ? 'Super Admin only' : 'Super Admin or HR Lead';
-      const delayText = formatLateDelay(checkResult.lateMinutes || computedLateMinutes || 16);
-      const shiftStartTime = checkResult.shiftStart || '09:00 AM';
-      const shiftTitle = checkResult.shiftName || 'Assigned Shift';
+      const delayText = formatLateDelay(checkResult?.lateMinutes || computedLateMinutes || 16);
+      const shiftStartTime = checkResult?.shiftStart || '09:00 AM';
+      const shiftTitle = checkResult?.shiftName || 'Assigned Shift';
 
       setLoginLateGate({
         status: 'PENDING',
-        lateMinutes: checkResult.lateMinutes || computedLateMinutes || 16,
+        lateMinutes: checkResult?.lateMinutes || computedLateMinutes || 16,
         delayTag: delayText,
         shiftStart: shiftStartTime,
         shiftName: shiftTitle,
-        role: checkResult.role || userAccount.role,
-        employeeName: checkResult.employeeName || userAccount.name,
-        attendanceId: checkResult.attendanceId,
+        role: checkResult?.role || userAccount.role,
+        employeeName: checkResult?.employeeName || userAccount.name,
+        attendanceId: checkResult?.attendanceId,
         userAccount,
         password
       });
 
       setAuthErrorMsg(`⚠️ Late Arrival Error (${delayText}): Grace period (15 mins after ${shiftStartTime}) has passed for ${shiftTitle}. Approval from ${approverText} is required before CRM access.`);
-      setLateApprovalMsg(`Awaiting ${approverText} authorization in live console... (Auto-checking every 1s)`);
-      return;
-    }
-
-    // Fallback if backend was unreachable but local time is late
-    if (!checkResult && isShiftLate) {
-      const isLead = String(userAccount.role || '').toLowerCase().includes('lead');
-      const approverText = isLead ? 'Super Admin only' : 'Super Admin or HR Lead';
-      const delayText = formatLateDelay(computedLateMinutes);
-
-      setLoginLateGate({
-        status: 'PENDING',
-        lateMinutes: computedLateMinutes,
-        delayTag: delayText,
-        shiftStart: '09:00 AM',
-        shiftName: 'General Day Shift (09:00 AM - 06:00 PM)',
-        role: userAccount.role,
-        employeeName: userAccount.name,
-        userAccount,
-        password
-      });
-
-      setAuthErrorMsg(`⚠️ Late Arrival Error (${delayText}): Grace period (15 mins after 09:00 AM) has passed. Approval from ${approverText} is required before CRM access.`);
       setLateApprovalMsg(`Awaiting ${approverText} authorization in live console... (Auto-checking every 1s)`);
       return;
     }

@@ -1353,8 +1353,10 @@ export const CrmProvider = ({ children }) => {
       const tok = await getOrFetchActiveToken(currentRole, user);
       const cleanEmail = (user?.email || '').trim().toLowerCase();
       const res = await fetch(`/api/hr-ops/attendance/late-approval-status?email=${encodeURIComponent(cleanEmail)}`, {
+        cache: 'no-store',
         headers: {
           'Content-Type': 'application/json',
+          'Cache-Control': 'no-cache',
           'x-crm-role': currentRole || user?.role || 'Employee',
           'x-employee-email': cleanEmail,
           ...(tok ? { Authorization: `Bearer ${tok}` } : {})
@@ -1367,7 +1369,12 @@ export const CrmProvider = ({ children }) => {
           localStorage.removeItem('sir_crm_late_approval_gate');
           return 'APPROVED';
         } else if (data.lateApprovalStatus === 'REJECTED') {
-          setLateApprovalGate(prev => ({ ...prev, status: 'REJECTED' }));
+          setLateApprovalGate(prev => ({
+            ...prev,
+            isBlocked: true,
+            status: 'REJECTED',
+            role: data.role || prev?.role || currentRole || user?.role
+          }));
           return 'REJECTED';
         } else if (data.lateApprovalStatus === 'PENDING') {
           setLateApprovalGate(prev => ({
@@ -1377,6 +1384,7 @@ export const CrmProvider = ({ children }) => {
             lateMinutes: data.lateMinutes,
             shiftName: data.shiftName,
             shiftStart: data.shiftStart,
+            role: data.role || prev?.role || currentRole || user?.role,
             checkInAt: data.checkInAt ? new Date(data.checkInAt).toLocaleTimeString('en-US', { timeZone: 'Asia/Kolkata', hour: '2-digit', minute: '2-digit', hour12: true }) : prev?.checkInAt,
             workDate: data.workDate
           }));
@@ -1386,6 +1394,19 @@ export const CrmProvider = ({ children }) => {
     } catch (_) { }
     return null;
   };
+
+  // Enforce late approval gate immediately whenever a restored/active non-executive session mounts
+  useEffect(() => {
+    if (!isAuthenticated || !user?.email) return;
+    const effRole = currentRole || user?.role || '';
+    if (effRole === 'Super Admin' || effRole === 'Admin') {
+      if (lateApprovalGate) {
+        setLateApprovalGate(null);
+      }
+      return;
+    }
+    checkLateApprovalStatus();
+  }, [isAuthenticated, currentRole, user?.email]);
 
   const clockIn = async (notes = '', overrideUser = null, overrideRole = null) => {
     const activeUser = overrideUser || user;
