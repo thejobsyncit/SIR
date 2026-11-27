@@ -1,6 +1,6 @@
 import React from 'react';
 import { AlertTriangle, RefreshCw, Home, ShieldAlert } from 'lucide-react';
-import { pruneBulkyStorage, stripBulkyDataForStorage } from '../utils/safeStorage';
+import { pruneBulkyStorage, safeStorageSetItem, stripBulkyDataForStorage } from '../utils/safeStorage';
 
 export class ErrorBoundary extends React.Component {
   constructor(props) {
@@ -17,7 +17,7 @@ export class ErrorBoundary extends React.Component {
         if (rawSess) {
           const parsed = JSON.parse(rawSess);
           const sanitized = stripBulkyDataForStorage(parsed);
-          localStorage.setItem('sir_user_session', JSON.stringify(sanitized));
+          safeStorageSetItem('sir_user_session', sanitized);
         }
       } catch (_) {}
     }
@@ -70,7 +70,7 @@ export class ErrorBoundary extends React.Component {
         try {
           const parsed = JSON.parse(rawSess);
           const sanitized = stripBulkyDataForStorage(parsed);
-          localStorage.setItem('sir_user_session', JSON.stringify(sanitized));
+          safeStorageSetItem('sir_user_session', sanitized);
         } catch (_) {
           localStorage.removeItem('sir_user_session');
         }

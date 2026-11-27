@@ -791,6 +791,13 @@ const registerCandidate = async (data) => {
     }
 
     const candidateUser = regData.user;
+    setApplications([]);
+    setSavedJobs([]);
+    setSavedSearches([]);
+    try {
+      if (candidateUser?.candidateId) safeStorageRemoveItem(`sir_applications_${candidateUser.candidateId}`);
+      if (normalizedEmail) safeStorageRemoveItem(`sir_applications_${normalizedEmail}`);
+    } catch (_) { }
     saveUserSession(candidateUser, { isNewRegistration: true });
     setUser(candidateUser);
     setActiveTab('candidates');
@@ -818,10 +825,10 @@ const registerCandidate = async (data) => {
         createdAt: regCreated,
         registeredAt: regCreated
       };
-      const currentCrmStr = localStorage.getItem('crm_candidates');
+      const currentCrmStr = safeStorageGetItem('crm_candidates');
       const currentCrm = currentCrmStr ? JSON.parse(currentCrmStr) : [];
       const nextCrm = [crmCand, ...currentCrm.filter(c => c.id !== crmCand.id && c.email?.toLowerCase() !== crmCand.email.toLowerCase())];
-      localStorage.setItem('crm_candidates', JSON.stringify(nextCrm));
+      safeStorageSetItem('crm_candidates', nextCrm);
     } catch (_) { }
 
     // Dispatch global registration event for instant CRM synchronization

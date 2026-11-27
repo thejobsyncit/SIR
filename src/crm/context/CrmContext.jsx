@@ -1,6 +1,7 @@
 import React, { createContext, useContext, useState, useEffect, useMemo, useRef, useCallback } from 'react';
 import { CRM_ROLES, ROLE_PERMISSIONS, CRM_CANDIDATES, CRM_CLIENTS, CRM_INTERVIEWS, CRM_INVOICES, PIPELINE_STAGES, AUDIT_LOGS } from '../data/mockCrmData';
 import { getLocalFallbackLeads } from '../../services/leadSubmissionService';
+import { safeStorageGetItem, safeStorageSetItem } from '../../utils/safeStorage';
 
 export const DEFAULT_CRM_CONTEXT_VALUE = {
   isAuthenticated: false,
@@ -321,12 +322,12 @@ export const CrmProvider = ({ children }) => {
 
   const loadState = (key, defaultData) => {
     try {
-      const saved = localStorage.getItem(key);
+      const saved = safeStorageGetItem(key);
       if (!saved) return defaultData;
       const parsed = JSON.parse(saved);
       if (key === 'crm_candidates' && Array.isArray(parsed)) {
         const cleanList = parsed.filter(c => !isDummyCandidate(c));
-        try { localStorage.setItem('crm_candidates', JSON.stringify(cleanList)); } catch { }
+        safeStorageSetItem('crm_candidates', cleanList);
         return cleanList;
       }
       if (Array.isArray(parsed) && parsed.length === 0 && Array.isArray(defaultData) && defaultData.length > 0) {
@@ -340,7 +341,7 @@ export const CrmProvider = ({ children }) => {
 
   const [candidates, setCandidates] = useState(() => {
     try {
-      const saved = localStorage.getItem('crm_candidates');
+      const saved = safeStorageGetItem('crm_candidates');
       if (saved) {
         const parsed = JSON.parse(saved);
         if (Array.isArray(parsed) && parsed.length > 0) {
@@ -352,7 +353,7 @@ export const CrmProvider = ({ children }) => {
   });
   const [loadingCandidates, setLoadingCandidates] = useState(() => {
     try {
-      const saved = localStorage.getItem('crm_candidates');
+      const saved = safeStorageGetItem('crm_candidates');
       if (saved) {
         const parsed = JSON.parse(saved);
         if (Array.isArray(parsed) && parsed.length > 0) return false;
@@ -576,9 +577,7 @@ export const CrmProvider = ({ children }) => {
             return timeB - timeA;
           });
           setCandidates(finalCandidates);
-          try {
-            localStorage.setItem('crm_candidates', JSON.stringify(finalCandidates));
-          } catch { }
+          safeStorageSetItem('crm_candidates', finalCandidates);
           setLoadingCandidates(false);
           return finalCandidates;
         }
@@ -664,13 +663,11 @@ export const CrmProvider = ({ children }) => {
       const finalApps = Array.from(mergedMap.values()).sort((a, b) => new Date(b.appliedDate || b.createdAt || 0) - new Date(a.appliedDate || a.createdAt || 0));
       if (finalApps.length > 0) {
         setApplications(finalApps);
-        try {
-          localStorage.setItem('sir_job_applications', JSON.stringify(finalApps));
-        } catch { }
+        safeStorageSetItem('sir_job_applications', finalApps);
       } else {
         // Resilient retention: If backend returned empty due to serverless latency, keep existing cached applications
         try {
-          const cachedStr = localStorage.getItem('sir_job_applications');
+          const cachedStr = safeStorageGetItem('sir_job_applications');
           if (cachedStr) {
             const cached = JSON.parse(cachedStr);
             if (Array.isArray(cached) && cached.length > 0) {
@@ -909,14 +906,14 @@ export const CrmProvider = ({ children }) => {
   }, [fetchCandidates, fetchApplications]);
 
   useEffect(() => {
-    localStorage.setItem('crm_candidates', JSON.stringify(candidates));
-    localStorage.setItem('crm_clients', JSON.stringify(clients));
-    localStorage.setItem('crm_interviews', JSON.stringify(interviews));
-    localStorage.setItem('crm_invoices', JSON.stringify(invoices));
-    localStorage.setItem('crm_auditLogs', JSON.stringify(auditLogs));
-    localStorage.setItem('crm_calendarEvents', JSON.stringify(calendarEvents));
-    localStorage.setItem('crm_recruiterTasks', JSON.stringify(recruiterTasks));
-    localStorage.setItem('crm_recruiterNotes', JSON.stringify(recruiterNotes));
+    safeStorageSetItem('crm_candidates', candidates);
+    safeStorageSetItem('crm_clients', clients);
+    safeStorageSetItem('crm_interviews', interviews);
+    safeStorageSetItem('crm_invoices', invoices);
+    safeStorageSetItem('crm_auditLogs', auditLogs);
+    safeStorageSetItem('crm_calendarEvents', calendarEvents);
+    safeStorageSetItem('crm_recruiterTasks', recruiterTasks);
+    safeStorageSetItem('crm_recruiterNotes', recruiterNotes);
   }, [candidates, clients, interviews, invoices, auditLogs, calendarEvents, recruiterTasks, recruiterNotes]);
 
   // Security & Devices
@@ -1976,9 +1973,7 @@ export const CrmProvider = ({ children }) => {
     const candidateToAdd = { ...newCand, id: newCand.id || `REV-CAN-${Math.floor(Math.random() * 9000) + 1000}` };
     setCandidates(prev => {
       const updated = [candidateToAdd, ...prev.filter(c => c.id !== candidateToAdd.id)];
-      try {
-        localStorage.setItem('crm_candidates', JSON.stringify(updated));
-      } catch { }
+      safeStorageSetItem('crm_candidates', updated);
       return updated;
     });
     logAuditAction(`Added new candidate ${candidateToAdd.name} (${candidateToAdd.id}).`);
@@ -1996,9 +1991,7 @@ export const CrmProvider = ({ children }) => {
   const updateCandidate = async (updatedCand) => {
     setCandidates(prev => {
       const updated = prev.map(c => c.id === updatedCand.id ? updatedCand : c);
-      try {
-        localStorage.setItem('crm_candidates', JSON.stringify(updated));
-      } catch { }
+      safeStorageSetItem('crm_candidates', updated);
       return updated;
     });
     logAuditAction(`Updated candidate profile ${updatedCand.id}.`);
@@ -2096,9 +2089,7 @@ export const CrmProvider = ({ children }) => {
       // 6. Update CRM candidates state & crm_candidates localStorage
       setCandidates(prev => {
         const updated = (prev || []).filter(c => c.id !== candidateId && (candEmail ? c.email?.toLowerCase().trim() !== candEmail : true));
-        try {
-          localStorage.setItem('crm_candidates', JSON.stringify(updated));
-        } catch { }
+        safeStorageSetItem('crm_candidates', updated);
         return updated;
       });
 

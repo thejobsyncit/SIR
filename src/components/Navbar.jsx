@@ -216,7 +216,7 @@ export const Navbar = () => {
                               {
                                 id: 'exec-seminars-lang',
                                 title: 'Executive Seminars & Language Prep',
-                                tagline: 'IELTS, OET, DET Preparation & Seminars',
+                                tagline: 'OET, OGI, IELTS & Executive Seminars',
                                 icon: Languages,
                                 href: '/education/executive-seminars-and-language-test-preparation',
                                 tab: 'education-exec-seminars-lang',

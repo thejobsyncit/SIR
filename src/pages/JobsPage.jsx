@@ -585,8 +585,8 @@ export const JobsPage = () => {
     setActiveSearchCriteria
   } = useApp();
 
-  const [rawJobs, setRawJobs] = useState([]);
-  const [loading, setLoading] = useState(true);
+  const [rawJobs, setRawJobs] = useState(() => [...(postedJobs || []), ...(JOBS_LIST || [])]);
+  const [loading, setLoading] = useState(false);
 
   // --- APPLIED FILTER STATES (Committed filters controlling active job results & applied chips) ---
   const [appliedCountries, setAppliedCountries] = useState([]);
@@ -1047,10 +1047,12 @@ export const JobsPage = () => {
     }
   }, [selectedCategory]);
 
-  // Fetch all jobs from backend API or fallback mock
+  // Fetch all jobs from backend API with fast local dataset fallback & 5s timeout (zero stuck skeletons)
   const fetchJobs = useCallback(async (filtersOverride = null) => {
-    setLoading(true);
+    if (filtersOverride) setLoading(true);
     let apiJobs = [];
+    const controller = typeof AbortController !== 'undefined' ? new AbortController() : null;
+    const timeoutId = controller ? setTimeout(() => controller.abort(), 5000) : null;
     try {
       const active = filtersOverride || {
         countries: appliedCountries,
@@ -1090,7 +1092,9 @@ export const JobsPage = () => {
       if (active.salaryRanges && active.salaryRanges.length > 0) params.append('salaryRanges', active.salaryRanges.join(','));
       if (sortBy) params.append('sortBy', sortBy);
 
-      const res = await fetch('/api/jobs?' + params.toString());
+      const res = await fetch('/api/jobs?' + params.toString(), {
+        ...(controller ? { signal: controller.signal } : {})
+      });
       if (res.ok) {
         const data = await res.json();
         if (data && data.data && data.data.length > 0) {
@@ -1098,10 +1102,13 @@ export const JobsPage = () => {
         }
       }
     } catch (err) {
-      console.warn('Backend API offline. Using mock job dataset fallback:', err);
+      console.warn('Backend API offline/slow. Using bundled job dataset:', err.message);
+    } finally {
+      if (timeoutId) clearTimeout(timeoutId);
+      setLoading(false);
     }
 
-    const allCombined = [...postedJobs];
+    const allCombined = [...(postedJobs || [])];
     const baseList = apiJobs.length > 0 ? apiJobs : JOBS_LIST;
     baseList.forEach(item => {
       if (!allCombined.some(existing => existing.id === item.id)) {
@@ -1110,7 +1117,6 @@ export const JobsPage = () => {
     });
 
     setRawJobs(allCombined);
-    setLoading(false);
   }, [
     keyword, appliedCountries, appliedCities, appliedIndustries, appliedFunctions,
     appliedExperienceYears, appliedExperiences, appliedJobTypes, appliedSalaryRanges,

@@ -5,7 +5,7 @@ import path from 'path';
 import fs from 'fs';
 import os from 'os';
 import { fileURLToPath } from 'url';
-import { getDb, closeDb, checkDbHealth, logAuditTrail, DEFAULT_CRM_EMPLOYEES, DEFAULT_CRM_CANDIDATES, DEFAULT_CRM_PROFILES, DEFAULT_CRM_APPLICATIONS, DEFAULT_CRM_LEADS, normalizeEmail, normalizePhone, hashPassword, verifyPassword } from './database.js';
+import { getDb, closeDb, checkDbHealth, getDatabaseDiagnostics, logAuditTrail, DEFAULT_CRM_EMPLOYEES, DEFAULT_CRM_CANDIDATES, DEFAULT_CRM_PROFILES, DEFAULT_CRM_APPLICATIONS, DEFAULT_CRM_LEADS, normalizeEmail, normalizePhone, hashPassword, verifyPassword } from './database.js';
 import { verifyCrmSessionToken } from './routes/attendanceRoutes.js';
 import { INITIAL_BASELINE_ENQUIRIES } from './data/baselineEnquiries.js';
 import { registerClientPortalRoutes } from './clientPortalRoutes.js';
@@ -252,6 +252,7 @@ app.get('/api/health', async (req, res) => {
       service: 'Revival International Backend API',
       uptimeSeconds: Math.floor((Date.now() - startTime) / 1000),
       database: dbHealth.status,
+      diagnostics: getDatabaseDiagnostics(),
       storage: {
         databaseSizeBytes: dbHealth.sizeBytes || 0,
         backupsCount: backupCount,
@@ -943,52 +944,53 @@ const seedJobs = async () => {
         ]);
       }
     } else {
-      // Replace legacy dummy strings like "2 days ago" or "Just now" with real calendar dates
-      await db.run("UPDATE jobs SET postedDate = '14 Nov 2026' WHERE postedDate = 'Just now' OR postedDate LIKE '%ago%'");
-      for (const j of JOBS_DATA) {
-        await db.run('UPDATE jobs SET postedDate = ? WHERE id = ?', [j.postedDate, j.id]);
-      }
-
-      // Populate new international fields on existing job rows
-      for (const [id, enr] of Object.entries(JOB_ENRICHMENTS)) {
+      const existingJobs = await db.all('SELECT id, postedDate, closingDate, visaSponsorship FROM jobs');
+      const needsBackfill = (existingJobs || []).some(
+        r => !r.closingDate || !r.visaSponsorship || r.postedDate === 'Just now' || String(r.postedDate || '').includes('ago')
+      );
+      if (needsBackfill) {
+        await db.run("UPDATE jobs SET postedDate = '14 Nov 2026' WHERE postedDate = 'Just now' OR postedDate LIKE '%ago%'");
+        for (const j of JOBS_DATA) {
+          await db.run('UPDATE jobs SET postedDate = ? WHERE id = ?', [j.postedDate, j.id]);
+        }
+        for (const [id, enr] of Object.entries(JOB_ENRICHMENTS)) {
+          await db.run(`
+            UPDATE jobs SET
+              educationLevel = COALESCE(educationLevel, ?),
+              requiredDegree = COALESCE(requiredDegree, ?),
+              academicQualifications = COALESCE(academicQualifications, ?),
+              mandatoryLicences = COALESCE(mandatoryLicences, ?),
+              contractType = COALESCE(contractType, ?),
+              contractDuration = COALESCE(contractDuration, ?),
+              contractRenewal = COALESCE(contractRenewal, ?),
+              accommodation = COALESCE(accommodation, ?),
+              transportation = COALESCE(transportation, ?),
+              livingAllowancesDetails = COALESCE(livingAllowancesDetails, ?),
+              visaSponsorship = COALESCE(visaSponsorship, ?),
+              visaSupportDetails = COALESCE(visaSupportDetails, ?),
+              closingDate = COALESCE(closingDate, ?)
+            WHERE id = ?
+          `, [
+            enr.educationLevel, enr.requiredDegree, enr.academicQualifications, enr.mandatoryLicences,
+            enr.contractType, enr.contractDuration, enr.contractRenewal,
+            enr.accommodation, enr.transportation, enr.livingAllowancesDetails,
+            enr.visaSponsorship, enr.visaSupportDetails, enr.closingDate,
+            id
+          ]);
+        }
         await db.run(`
           UPDATE jobs SET
-            educationLevel = COALESCE(educationLevel, ?),
-            requiredDegree = COALESCE(requiredDegree, ?),
-            academicQualifications = COALESCE(academicQualifications, ?),
-            mandatoryLicences = COALESCE(mandatoryLicences, ?),
-            contractType = COALESCE(contractType, ?),
-            contractDuration = COALESCE(contractDuration, ?),
-            contractRenewal = COALESCE(contractRenewal, ?),
-            accommodation = COALESCE(accommodation, ?),
-            transportation = COALESCE(transportation, ?),
-            livingAllowancesDetails = COALESCE(livingAllowancesDetails, ?),
-            visaSponsorship = COALESCE(visaSponsorship, ?),
-            visaSupportDetails = COALESCE(visaSupportDetails, ?),
-            closingDate = COALESCE(closingDate, ?)
-          WHERE id = ?
-        `, [
-          enr.educationLevel, enr.requiredDegree, enr.academicQualifications, enr.mandatoryLicences,
-          enr.contractType, enr.contractDuration, enr.contractRenewal,
-          enr.accommodation, enr.transportation, enr.livingAllowancesDetails,
-          enr.visaSponsorship, enr.visaSupportDetails, enr.closingDate,
-          id
-        ]);
+            educationLevel = COALESCE(educationLevel, "Bachelor's Degree"),
+            contractType = COALESCE(contractType, jobType, 'Permanent'),
+            contractDuration = COALESCE(contractDuration, 'Indefinite'),
+            contractRenewal = COALESCE(contractRenewal, 'Yes, Renewable upon mutual agreement'),
+            accommodation = COALESCE(accommodation, 'Allowance Provided'),
+            transportation = COALESCE(transportation, 'Allowance Provided'),
+            visaSponsorship = COALESCE(visaSponsorship, 'Visa sponsorship provided'),
+            closingDate = COALESCE(closingDate, '2026-12-31')
+          WHERE closingDate IS NULL OR visaSponsorship IS NULL
+        `);
       }
-
-      // Default fallback for any remaining rows lacking international fields
-      await db.run(`
-        UPDATE jobs SET
-          educationLevel = COALESCE(educationLevel, "Bachelor's Degree"),
-          contractType = COALESCE(contractType, jobType, 'Permanent'),
-          contractDuration = COALESCE(contractDuration, 'Indefinite'),
-          contractRenewal = COALESCE(contractRenewal, 'Yes, Renewable upon mutual agreement'),
-          accommodation = COALESCE(accommodation, 'Allowance Provided'),
-          transportation = COALESCE(transportation, 'Allowance Provided'),
-          visaSponsorship = COALESCE(visaSponsorship, 'Visa sponsorship provided'),
-          closingDate = COALESCE(closingDate, '2026-12-31')
-        WHERE closingDate IS NULL OR visaSponsorship IS NULL
-      `);
     }
   } catch (err) {
     console.error('Job seed check failed:', err.message);
@@ -2644,31 +2646,36 @@ app.get('/api/candidate/applications', async (req, res) => {
       }
     }
 
-    // Merge persistent cloud applications from Supabase PostgreSQL
-    try {
-      const sbApps = await fetchSupabaseApplications();
-      if (Array.isArray(sbApps) && sbApps.length > 0) {
-        const mergedMap = new Map();
-        (rows || []).forEach(r => {
-          const key = String(r.id || `${String(r.jobId).trim()}_${(r.applicantEmail || '').trim().toLowerCase()}`);
-          mergedMap.set(key, r);
-        });
+    // Merge persistent cloud applications ONLY when matching the requested candidate/HR-Ops scope (never leak across candidates!)
+    const isCandidateScoped = Boolean(candidateId || email || userId);
+    const reqRoleHeader = req.headers['x-user-role'] || req.query.userRole || '';
+    const isHrOpsScoped = !isCandidateScoped && reqRoleHeader === 'HR Operations';
 
-        sbApps.forEach(sa => {
-          const key = String(sa.id || `${String(sa.jobId).trim()}_${(sa.applicantEmail || '').trim().toLowerCase()}`);
-          if (!mergedMap.has(key)) {
-            mergedMap.set(key, sa);
-          } else {
-            // Fill any missing metadata from Supabase
-            const existing = mergedMap.get(key);
-            mergedMap.set(key, { ...sa, ...existing });
-          }
-        });
+    if (!isCandidateScoped && !isHrOpsScoped) {
+      try {
+        const sbApps = await fetchSupabaseApplications();
+        if (Array.isArray(sbApps) && sbApps.length > 0) {
+          const mergedMap = new Map();
+          (rows || []).forEach(r => {
+            const key = String(r.id || `${String(r.jobId).trim()}_${(r.applicantEmail || '').trim().toLowerCase()}`);
+            mergedMap.set(key, r);
+          });
 
-        rows = Array.from(mergedMap.values()).sort((a, b) => new Date(b.appliedDate || b.createdAt || 0) - new Date(a.appliedDate || a.createdAt || 0));
+          sbApps.forEach(sa => {
+            const key = String(sa.id || `${String(sa.jobId).trim()}_${(sa.applicantEmail || '').trim().toLowerCase()}`);
+            if (!mergedMap.has(key)) {
+              mergedMap.set(key, sa);
+            } else {
+              const existing = mergedMap.get(key);
+              mergedMap.set(key, { ...sa, ...existing });
+            }
+          });
+
+          rows = Array.from(mergedMap.values()).sort((a, b) => new Date(b.appliedDate || b.createdAt || 0) - new Date(a.appliedDate || a.createdAt || 0));
+        }
+      } catch (sbAppErr) {
+        console.warn('[Supabase Applications Sync Notice]:', sbAppErr.message);
       }
-    } catch (sbAppErr) {
-      console.warn('[Supabase Applications Sync Notice]:', sbAppErr.message);
     }
 
     res.json({ success: true, data: rows || [] });

@@ -27,31 +27,39 @@ export const stripBulkyDataForStorage = (data) => {
 
   const clean = { ...data };
 
-  // Strip huge resumeUrl / fileUrl base64 data URIs
-  if (isBulkyDataString(clean.resumeUrl)) {
-    clean.resumeUrl = null;
-  }
-  if (isBulkyDataString(clean.resumeBase64)) {
-    clean.resumeBase64 = null;
-  }
-  if (isBulkyDataString(clean.fileUrl)) {
-    clean.fileUrl = null;
-  }
-  if (isBulkyDataString(clean.dataUrl)) {
-    clean.dataUrl = null;
+  const bulkyFields = [
+    'resumeUrl',
+    'resumeBase64',
+    'resumeData',
+    'fileUrl',
+    'fileData',
+    'dataUrl',
+    'passportUrl',
+    'passportFile',
+    'documentUrl',
+    'photoUrl'
+  ];
+
+  for (const field of bulkyFields) {
+    if (isBulkyDataString(clean[field])) {
+      clean[field] = null;
+    }
   }
 
-  // Strip oversized avatar data URIs (> 250KB)
-  if (typeof clean.avatar === 'string' && clean.avatar.startsWith('data:') && clean.avatar.length > 250000) {
+  // Strip oversized avatar data URIs (> 15KB) from storage caches
+  if (typeof clean.avatar === 'string' && clean.avatar.startsWith('data:') && clean.avatar.length > 15000) {
     clean.avatar = null;
   }
 
-  // If this object is a candidates DB map (keyed by email), sanitize child profiles
+  // Strip any remaining oversized base64/data URI fields (> 2KB data URI or > 100KB raw string)
   for (const key of Object.keys(clean)) {
-    if (clean[key] && typeof clean[key] === 'object' && !Array.isArray(clean[key]) && clean[key].email) {
-      clean[key] = stripBulkyDataForStorage(clean[key]);
-    } else if (key === 'applications' && Array.isArray(clean[key])) {
-      clean[key] = clean[key].map(app => stripBulkyDataForStorage(app));
+    const val = clean[key];
+    if (typeof val === 'string' && isBulkyDataString(val)) {
+      clean[key] = null;
+    } else if (val && typeof val === 'object' && !Array.isArray(val) && val.email) {
+      clean[key] = stripBulkyDataForStorage(val);
+    } else if (key === 'applications' && Array.isArray(val)) {
+      clean[key] = val.map(app => stripBulkyDataForStorage(app));
     }
   }
 
@@ -66,6 +74,8 @@ export const pruneBulkyStorage = () => {
   try {
     localStorage.removeItem('sir_active_resume');
     localStorage.removeItem('sir_active_resume_name');
+    // Disposable runtime i18n cache can grow to several MB across languages; static JSON + API repopulate it on demand
+    localStorage.removeItem('sir_i18n_cache_v2');
 
     const toRemove = [];
     for (let i = 0; i < localStorage.length; i++) {
@@ -78,6 +88,28 @@ export const pruneBulkyStorage = () => {
     toRemove.forEach(k => {
       try { localStorage.removeItem(k); } catch (_) {}
     });
+
+    // Shrink bloated array/map caches that may still contain legacy base64 blobs
+    const shrinkableKeys = ['crm_candidates', 'sir_job_applications', 'sir_candidates_db', 'crm_auditLogs'];
+    for (const k of shrinkableKeys) {
+      try {
+        const raw = localStorage.getItem(k);
+        if (!raw || raw.length < 50000) continue;
+        const parsed = JSON.parse(raw);
+        let stripped = stripBulkyDataForStorage(parsed);
+        if (Array.isArray(stripped) && stripped.length > 100) {
+          stripped = stripped.slice(0, 100);
+        }
+        const nextStr = JSON.stringify(stripped);
+        if (nextStr.length < raw.length) {
+          localStorage.setItem(k, nextStr);
+        } else if (raw.length > 500000) {
+          localStorage.removeItem(k);
+        }
+      } catch (_) {
+        try { localStorage.removeItem(k); } catch (__) {}
+      }
+    }
   } catch (_) {}
 };
 
@@ -92,19 +124,21 @@ if (typeof window !== 'undefined') {
 export const safeStorageSetItem = (key, value) => {
   if (typeof window === 'undefined' || !window.localStorage) return false;
 
-  let stringValue = value;
-  if (typeof value !== 'string') {
+  const serialize = (val) => {
+    if (typeof val === 'string') return val;
     try {
-      const sanitized = stripBulkyDataForStorage(value);
-      stringValue = JSON.stringify(sanitized);
+      return JSON.stringify(stripBulkyDataForStorage(val));
     } catch (_) {
       try {
-        stringValue = JSON.stringify(value);
+        return JSON.stringify(val);
       } catch {
-        return false;
+        return null;
       }
     }
-  }
+  };
+
+  const stringValue = serialize(value);
+  if (stringValue === null) return false;
 
   try {
     localStorage.setItem(key, stringValue);
@@ -112,14 +146,24 @@ export const safeStorageSetItem = (key, value) => {
   } catch (err) {
     console.warn(`[safeStorage] localStorage write failed for "${key}", attempting cleanup:`, err?.message);
 
-    // 1. Evict bulky caches
+    // 1. Evict bulky/disposable caches
     pruneBulkyStorage();
 
-    // 2. Retry setting item
+    // 2. Retry setting item (or compact head slice if it's a large array cache)
     try {
       localStorage.setItem(key, stringValue);
       return true;
     } catch (retryErr) {
+      if (Array.isArray(value) && value.length > 50) {
+        try {
+          const compact = serialize(value.slice(0, 50));
+          if (compact !== null) {
+            localStorage.setItem(key, compact);
+            return true;
+          }
+        } catch (_) {}
+      }
+
       console.warn(`[safeStorage] Retry after prune failed for "${key}", falling back to sessionStorage:`, retryErr?.message);
       // 3. Fallback to sessionStorage so active session continues safely
       try {

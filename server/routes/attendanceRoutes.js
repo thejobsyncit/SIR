@@ -369,16 +369,21 @@ export const ensureLateLoginApprovalRequest = async (db, {
       ]
     );
 
-    // Notify authorized approvers (HR Lead, Admin, Super Admin)
-    const approvers = await db.all("SELECT id, employeeId FROM employees WHERE role IN ('Super Admin', 'Admin', 'HR Lead')");
-    const targets = approvers && approvers.length ? approvers : [{ employeeId: 'REV-EMP-001' }, { employeeId: 'REV-EMP-003' }];
+    // Notify authorized approvers: HR Lead late arrivals ONLY go to Super Admin; staff go to HR Lead / Admin / Super Admin
+    const isTargetLead = String(employee.role || '').toLowerCase().includes('lead');
+    const approverQuery = isTargetLead
+      ? "SELECT id, employeeId FROM employees WHERE role = 'Super Admin'"
+      : "SELECT id, employeeId FROM employees WHERE role IN ('Super Admin', 'Admin', 'HR Lead')";
+    const approvers = await db.all(approverQuery);
+    const defaultTargets = isTargetLead ? [{ employeeId: 'REV-EMP-001' }] : [{ employeeId: 'REV-EMP-001' }, { employeeId: 'REV-EMP-003' }];
+    const targets = approvers && approvers.length ? approvers : defaultTargets;
     for (const apprv of targets) {
       if (apprv.employeeId !== employee.employeeId) {
         await createNotification(db, {
           employeeId: apprv.employeeId,
           type: 'Late Arrival Approval Request',
           title: `⚠️ Late Login Approval: ${employee.name} (${employee.role})`,
-          message: `${employee.name} clocked in at ${clockInTimeStr} (${lateMinutes}m late for ${shiftConfig.name || 'shift'}). Late-login review pending in Shift Management.`,
+          message: `${employee.name} (${employee.role}) clocked in at ${clockInTimeStr} (${lateMinutes}m late for ${shiftConfig.name || 'shift'}). ${isTargetLead ? 'Super Admin' : 'Leadership'} approval required.`,
           severity: 'warning',
           relatedId: reqId
         });
@@ -2438,11 +2443,39 @@ export const registerAttendanceRoutes = (app, { getDb, getClientIp }) => {
           );
         } catch (_) { }
 
+        if (existing.lateApprovalStatus === 'REJECTED') {
+          return res.json({
+            success: true,
+            allowed: false,
+            isLate: true,
+            lateApprovalStatus: 'REJECTED',
+            attendanceId: existing.id,
+            lateMinutes: updatedLateMinutes,
+            shiftStart: existing.shiftStart || shiftConfig.startTime,
+            shiftName: existing.shiftName || shiftConfig.name,
+            loginTime: nowParts.timeStr,
+            employeeName: employee.name,
+            role: employee.role,
+            employeeId: employee.employeeId
+          });
+        }
+
+        try {
+          await ensureLateLoginApprovalRequest(db, {
+            attendanceId: existing.id,
+            employee,
+            shiftConfig,
+            workDate,
+            clockInTimeStr: nowParts.timeStr,
+            lateMinutes: updatedLateMinutes
+          });
+        } catch (_) { }
+
         return res.json({
           success: true,
-          allowed: !rejected,
-          isLate: Number(existing.lateMinutes || 0) > 0,
-          lateApprovalStatus: existing.lateApprovalStatus || (isLate ? 'PENDING' : 'APPROVED'),
+          allowed: false,
+          isLate: true,
+          lateApprovalStatus: 'PENDING',
           attendanceId: existing.id,
           lateMinutes: updatedLateMinutes,
           shiftStart: existing.shiftStart || shiftConfig.startTime,
@@ -2532,7 +2565,7 @@ export const registerAttendanceRoutes = (app, { getDb, getClientIp }) => {
 
       return res.json({
         success: true,
-        allowed: true,
+        allowed: false,
         isLate: true,
         lateApprovalStatus: 'PENDING',
         attendanceId: attId,
@@ -2781,9 +2814,9 @@ export const registerAttendanceRoutes = (app, { getDb, getClientIp }) => {
       const isTargetHrLead = targetRole === 'hr lead' || targetRole.includes('lead');
 
       const reviewerRole = String(reviewer?.role || '').toLowerCase();
-      const isReviewerSuperAdmin = reviewerRole === 'super admin' || reviewerRole === 'admin';
+      const isReviewerSuperAdmin = reviewerRole === 'super admin';
 
-      // Strict Hierarchical Policy: HR Lead late arrivals can ONLY be approved by Super Admin / Admin
+      // Strict Hierarchical Policy: HR Lead late arrivals can ONLY be approved by Super Admin
       if (isTargetHrLead && !isReviewerSuperAdmin) {
         return res.status(403).json({
           success: false,
@@ -3897,10 +3930,13 @@ export const registerAttendanceRoutes = (app, { getDb, getClientIp }) => {
     }
   });
 
-  // 6. GET /api/crm/shifts/late-approvals - Review queue for late arrivals
+  // 6. GET /api/crm/shifts/late-approvals - Review queue for late arrivals (HR Lead late requests visible ONLY to Super Admin)
   app.get('/api/crm/shifts/late-approvals', requireCrmAuth, requireHrLeadershipRole, async (req, res) => {
     try {
       const db = await getDb();
+      const reviewer = req.authEmployee;
+      const reviewerRole = String(reviewer?.role || '').toLowerCase();
+      const isHrLeadReviewer = reviewerRole === 'hr lead' || reviewerRole.includes('lead');
       const statusFilter = req.query?.status;
 
       let sql = `SELECT * FROM late_login_approval_requests WHERE 1=1`;
@@ -3911,15 +3947,57 @@ export const registerAttendanceRoutes = (app, { getDb, getClientIp }) => {
       }
       sql += ` ORDER BY createdAt DESC`;
 
-      const rows = await db.all(sql, params);
+      const reqRows = await db.all(sql, params);
+      const pendingAttRows = await db.all(`SELECT * FROM attendance_records WHERE lateApprovalStatus = 'PENDING' ORDER BY checkInAt DESC`);
+
+      const mergedByAttId = new Map();
+      for (const r of (reqRows || [])) {
+        mergedByAttId.set(r.attendanceId || r.id, r);
+      }
+      for (const att of (pendingAttRows || [])) {
+        if (!mergedByAttId.has(att.id)) {
+          mergedByAttId.set(att.id, {
+            id: att.id,
+            attendanceId: att.id,
+            employeeId: att.employeeId,
+            employeeName: att.employeeName,
+            department: att.department,
+            role: att.role,
+            shiftId: att.shiftId,
+            shiftName: att.shiftName,
+            scheduledLoginTime: att.shiftStart,
+            scheduledLogoutTime: att.shiftEnd,
+            actualClockInTime: att.checkInAt,
+            attendanceDate: att.workDate,
+            delayMinutes: Number(att.lateMinutes || 0),
+            explanation: att.notes || '',
+            status: 'Pending Approval',
+            createdAt: att.createdAt
+          });
+        }
+      }
+
+      const rows = Array.from(mergedByAttId.values()).filter((item) => {
+        if (statusFilter && String(item.status || '').toLowerCase() !== String(statusFilter).toLowerCase()) {
+          return false;
+        }
+        const itemRole = String(item.role || '').toLowerCase();
+        const isTargetLead = itemRole === 'hr lead' || itemRole.includes('lead');
+        const isSelf = reviewer?.employeeId && item.employeeId === reviewer.employeeId;
+        if (isHrLeadReviewer && (isTargetLead || isSelf)) {
+          return false;
+        }
+        return true;
+      });
 
       // Enrich with employee profile details
       const enriched = await Promise.all(
         rows.map(async (r) => {
-          const emp = await db.get('SELECT email, avatar, designation FROM employees WHERE employeeId = ?', [r.employeeId]);
+          const emp = await db.get('SELECT email, role, avatar, designation FROM employees WHERE employeeId = ?', [r.employeeId]);
           return {
             ...r,
             email: emp?.email || '',
+            role: emp?.role || r.role || 'Staff',
             avatar: emp?.avatar || '',
             designation: emp?.designation || r.role || ''
           };
@@ -3947,11 +4025,38 @@ export const registerAttendanceRoutes = (app, { getDb, getClientIp }) => {
 
       let lateReq = await db.get('SELECT * FROM late_login_approval_requests WHERE id = ?', [id]);
       if (!lateReq) {
-        // Fallback by attendanceId
         lateReq = await db.get('SELECT * FROM late_login_approval_requests WHERE attendanceId = ?', [id]);
       }
       if (!lateReq) {
+        const attFallback = await db.get('SELECT * FROM attendance_records WHERE id = ?', [id]);
+        if (attFallback) {
+          lateReq = {
+            id: attFallback.id,
+            attendanceId: attFallback.id,
+            employeeId: attFallback.employeeId,
+            employeeName: attFallback.employeeName,
+            role: attFallback.role,
+            shiftName: attFallback.shiftName,
+            attendanceDate: attFallback.workDate,
+            delayMinutes: Number(attFallback.lateMinutes || 0),
+            status: attFallback.lateApprovalStatus || 'PENDING'
+          };
+        }
+      }
+      if (!lateReq) {
         return res.status(404).json({ success: false, message: 'Late-login approval request not found.' });
+      }
+
+      const targetEmp = await db.get('SELECT role FROM employees WHERE employeeId = ?', [lateReq.employeeId]);
+      const targetRole = String(targetEmp?.role || lateReq.role || '').toLowerCase();
+      const isTargetHrLead = targetRole === 'hr lead' || targetRole.includes('lead');
+      const isReviewerSuperAdmin = String(reviewer?.role || '').toLowerCase() === 'super admin';
+
+      if (isTargetHrLead && !isReviewerSuperAdmin) {
+        return res.status(403).json({
+          success: false,
+          message: 'Access denied: Only Super Admin can approve or reject late arrival for HR Lead.'
+        });
       }
 
       // Rule: Prevent unauthorized self-approval

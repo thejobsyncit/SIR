@@ -686,6 +686,295 @@ const extractUnionTables = (sql) => {
   return tables;
 };
 
+// Split a SQL clause at top level (ignoring commas/keywords inside parentheses or single-quoted strings)
+const splitSqlTopLevel = (str, separatorChar = ',') => {
+  const parts = [];
+  let cur = '';
+  let depth = 0;
+  let inQuote = false;
+  for (let i = 0; i < str.length; i++) {
+    const ch = str[i];
+    if (ch === "'") {
+      if (inQuote && str[i + 1] === "'") {
+        cur += "''";
+        i++;
+        continue;
+      }
+      inQuote = !inQuote;
+      cur += ch;
+      continue;
+    }
+    if (!inQuote) {
+      if (ch === '(') depth++;
+      else if (ch === ')' && depth > 0) depth--;
+      else if (depth === 0 && ch === separatorChar) {
+        parts.push(cur.trim());
+        cur = '';
+        continue;
+      }
+    }
+    cur += ch;
+  }
+  if (cur.trim()) parts.push(cur.trim());
+  return parts;
+};
+
+const splitSqlKeywordTopLevel = (str, keyword) => {
+  const parts = [];
+  let cur = '';
+  let depth = 0;
+  let inQuote = false;
+  const kwUpper = keyword.toUpperCase();
+  for (let i = 0; i < str.length; i++) {
+    const ch = str[i];
+    if (ch === "'") {
+      if (inQuote && str[i + 1] === "'") {
+        cur += "''";
+        i++;
+        continue;
+      }
+      inQuote = !inQuote;
+      cur += ch;
+      continue;
+    }
+    if (!inQuote) {
+      if (ch === '(') depth++;
+      else if (ch === ')' && depth > 0) depth--;
+      else if (depth === 0) {
+        const slice = str.slice(i);
+        const re = new RegExp(`^\\s+${kwUpper}\\s+`, 'i');
+        const m = slice.match(re);
+        if (m && cur.trim()) {
+          parts.push(cur.trim());
+          cur = '';
+          i += m[0].length - 1;
+          continue;
+        }
+      }
+    }
+    cur += ch;
+  }
+  if (cur.trim()) parts.push(cur.trim());
+  return parts;
+};
+
+const countQuestionMarksOutsideQuotes = (str) => {
+  let count = 0;
+  let inQuote = false;
+  for (let i = 0; i < str.length; i++) {
+    if (str[i] === "'") {
+      if (inQuote && str[i + 1] === "'") { i++; continue; }
+      inQuote = !inQuote;
+    } else if (!inQuote && str[i] === '?') {
+      count++;
+    }
+  }
+  return count;
+};
+
+const getRowFieldCi = (row, colName) => {
+  if (!row || !colName) return undefined;
+  if (row[colName] !== undefined) return row[colName];
+  const lower = colName.toLowerCase();
+  if (row[lower] !== undefined) return row[lower];
+  const mapped = SUPABASE_KEY_MAP[lower];
+  if (mapped && row[mapped] !== undefined) return row[mapped];
+  for (const k of Object.keys(row)) {
+    if (k.toLowerCase() === lower) return row[k];
+  }
+  return undefined;
+};
+
+const unwrapSqlExprToValue = (expr, row, paramsRef) => {
+  const e = (expr || '').trim();
+  if (!e) return undefined;
+  if (e === '?') return paramsRef.list[paramsRef.idx++];
+  if (/^NULL$/i.test(e)) return null;
+  if (/^(CURRENT_TIMESTAMP|NOW\(\))$/i.test(e)) return new Date().toISOString();
+  if (/^'([\s\S]*)'$/.test(e)) return e.slice(1, -1).replace(/''/g, "'");
+  if (/^-?\d+(\.\d+)?$/.test(e)) return Number(e);
+
+  const lowerWrap = e.match(/^LOWER\(\s*([\s\S]+?)\s*\)$/i);
+  if (lowerWrap) {
+    const v = unwrapSqlExprToValue(lowerWrap[1], row, paramsRef);
+    return v === null || v === undefined ? '' : String(v).toLowerCase();
+  }
+  const trimWrap = e.match(/^TRIM\(\s*([\s\S]+?)\s*\)$/i);
+  if (trimWrap) {
+    const v = unwrapSqlExprToValue(trimWrap[1], row, paramsRef);
+    return v === null || v === undefined ? '' : String(v).trim();
+  }
+  const coalWrap = e.match(/^COALESCE\(\s*([\s\S]+)\s*\)$/i);
+  if (coalWrap) {
+    const args = splitSqlTopLevel(coalWrap[1], ',');
+    for (const a of args) {
+      const v = unwrapSqlExprToValue(a, row, paramsRef);
+      if (v !== null && v !== undefined) return v;
+    }
+    return null;
+  }
+
+  // Column reference
+  if (/^[a-zA-Z_][a-zA-Z0-9_]*(\.[a-zA-Z_][a-zA-Z0-9_]*)?$/.test(e)) {
+    const col = e.includes('.') ? e.split('.').pop() : e;
+    return getRowFieldCi(row, col);
+  }
+  return e;
+};
+
+const extractSqlColumnName = (lhs) => {
+  let s = (lhs || '').trim();
+  while (/^(?:LOWER|UPPER|TRIM|COALESCE)\(/i.test(s)) {
+    const inner = s.match(/^[A-Z]+\(([\s\S]+)\)$/i);
+    if (!inner) break;
+    s = splitSqlTopLevel(inner[1], ',')[0].trim();
+  }
+  if (s.includes('.')) s = s.split('.').pop();
+  return s;
+};
+
+const evalSinglePredicate = (row, pred, paramsRef) => {
+  let p = (pred || '').trim();
+  if (!p || /^1\s*=\s*1$/i.test(p)) return true;
+
+  // Strip matched outer parentheses
+  while (p.startsWith('(') && p.endsWith(')')) {
+    let depth = 0;
+    let inQ = false;
+    let wrapsAll = true;
+    for (let i = 0; i < p.length; i++) {
+      if (p[i] === "'") { inQ = !inQ; continue; }
+      if (!inQ) {
+        if (p[i] === '(') depth++;
+        else if (p[i] === ')') {
+          depth--;
+          if (depth === 0 && i < p.length - 1) { wrapsAll = false; break; }
+        }
+      }
+    }
+    if (!wrapsAll) break;
+    p = p.slice(1, -1).trim();
+  }
+
+  const orParts = splitSqlKeywordTopLevel(p, 'OR');
+  if (orParts.length > 1) {
+    let matched = false;
+    for (const sub of orParts) {
+      if (evalWhereClause(row, sub, paramsRef)) matched = true;
+    }
+    return matched;
+  }
+  const andParts = splitSqlKeywordTopLevel(p, 'AND');
+  if (andParts.length > 1) {
+    let matched = true;
+    for (const sub of andParts) {
+      if (!evalSinglePredicate(row, sub, paramsRef)) matched = false;
+    }
+    return matched;
+  }
+
+  const isNullMatch = p.match(/^([\s\S]+?)\s+IS\s+NULL$/i);
+  if (isNullMatch) {
+    const v = unwrapSqlExprToValue(isNullMatch[1], row, paramsRef);
+    return v === null || v === undefined || v === '';
+  }
+  const isNotNullMatch = p.match(/^([\s\S]+?)\s+IS\s+NOT\s+NULL$/i);
+  if (isNotNullMatch) {
+    const v = unwrapSqlExprToValue(isNotNullMatch[1], row, paramsRef);
+    return v !== null && v !== undefined && v !== '';
+  }
+
+  const inMatch = p.match(/^([\s\S]+?)\s+(NOT\s+)?IN\s*\(([\s\S]+)\)$/i);
+  if (inMatch) {
+    const isNot = Boolean(inMatch[2]);
+    const lhsVal = unwrapSqlExprToValue(inMatch[1], row, paramsRef);
+    const items = splitSqlTopLevel(inMatch[3], ',').map(tok => unwrapSqlExprToValue(tok, row, paramsRef));
+    const found = items.some(iv => String(iv ?? '').toLowerCase() === String(lhsVal ?? '').toLowerCase());
+    return isNot ? !found : found;
+  }
+
+  const likeMatch = p.match(/^([\s\S]+?)\s+(NOT\s+)?LIKE\s+([\s\S]+)$/i);
+  if (likeMatch) {
+    const isNot = Boolean(likeMatch[2]);
+    const lhsVal = String(unwrapSqlExprToValue(likeMatch[1], row, paramsRef) ?? '').toLowerCase();
+    const rhsRaw = String(unwrapSqlExprToValue(likeMatch[3], row, paramsRef) ?? '').toLowerCase();
+    const regexStr = '^' + rhsRaw.replace(/[.*+?^${}()|[\]\\]/g, '\\$&').replace(/%/g, '.*').replace(/_/g, '.') + '$';
+    const hit = new RegExp(regexStr, 's').test(lhsVal);
+    return isNot ? !hit : hit;
+  }
+
+  const cmpMatch = p.match(/^([\s\S]+?)\s*(!=|<>|>=|<=|=|>|<)\s*([\s\S]+)$/);
+  if (cmpMatch) {
+    const [, lhsExpr, op, rhsExpr] = cmpMatch;
+    const lhsVal = unwrapSqlExprToValue(lhsExpr, row, paramsRef);
+    const rhsVal = unwrapSqlExprToValue(rhsExpr, row, paramsRef);
+    const lStr = lhsVal === null || lhsVal === undefined ? '' : String(lhsVal);
+    const rStr = rhsVal === null || rhsVal === undefined ? '' : String(rhsVal);
+    const caseFold = /LOWER\(/i.test(lhsExpr) || /LOWER\(/i.test(rhsExpr) || /email/i.test(lhsExpr);
+    const cmpL = caseFold ? lStr.toLowerCase().trim() : lStr;
+    const cmpR = caseFold ? rStr.toLowerCase().trim() : rStr;
+    if (op === '=') return cmpL === cmpR;
+    if (op === '!=' || op === '<>') return cmpL !== cmpR;
+    if (op === '>=') return cmpL >= cmpR;
+    if (op === '<=') return cmpL <= cmpR;
+    if (op === '>') return cmpL > cmpR;
+    if (op === '<') return cmpL < cmpR;
+  }
+
+  // Consume any remaining ? so param index stays aligned
+  const qCount = countQuestionMarksOutsideQuotes(p);
+  paramsRef.idx += qCount;
+  return true;
+};
+
+const evalWhereClause = (row, whereClause, paramsOrRef) => {
+  if (!whereClause || !whereClause.trim()) return true;
+  const paramsRef = Array.isArray(paramsOrRef) ? { list: paramsOrRef, idx: 0 } : paramsOrRef;
+  return evalSinglePredicate(row, whereClause, paramsRef);
+};
+
+const filterAndSortSqlRows = (rows, sql, params = [], normalizer = (r) => r) => {
+  const s = (sql || '').replace(/\s+/g, ' ').trim();
+  const whereMatch = s.match(/\bWHERE\s+([\s\S]+?)(?=\s+(?:GROUP\s+BY|ORDER\s+BY|LIMIT)\b|$)/i);
+  const whereClause = whereMatch ? whereMatch[1].trim() : '';
+  const whereParamCount = whereClause ? countQuestionMarksOutsideQuotes(whereClause) : 0;
+  const whereParams = params.slice(0, whereParamCount);
+
+  let out = whereClause
+    ? (rows || []).filter(r => evalWhereClause(r, whereClause, whereParams))
+    : [...(rows || [])];
+
+  out = out.map(r => normalizer(r));
+
+  const orderMatch = s.match(/\bORDER\s+BY\s+([\s\S]+?)(?=\s+LIMIT\b|$)/i);
+  if (orderMatch) {
+    const specs = splitSqlTopLevel(orderMatch[1], ',').map(seg => {
+      const m = seg.match(/^([a-zA-Z0-9_.]+)(?:\s+(ASC|DESC))?/i);
+      if (!m) return null;
+      return { col: m[1].split('.').pop(), desc: (m[2] || '').toUpperCase() === 'DESC' };
+    }).filter(Boolean);
+    if (specs.length > 0) {
+      out.sort((a, b) => {
+        for (const sp of specs) {
+          const va = getRowFieldCi(a, sp.col) ?? '';
+          const vb = getRowFieldCi(b, sp.col) ?? '';
+          if (va === vb) continue;
+          const cmp = String(va).localeCompare(String(vb), undefined, { numeric: true });
+          return sp.desc ? -cmp : cmp;
+        }
+        return 0;
+      });
+    }
+  }
+
+  const limitMatch = s.match(/\bLIMIT\s+(\d+|\?)/i);
+  if (limitMatch) {
+    const lim = limitMatch[1] === '?' ? Number(params[params.length - 1]) : Number(limitMatch[1]);
+    if (!Number.isNaN(lim) && lim > 0) out = out.slice(0, lim);
+  }
+  return out;
+};
+
 const findRowInStore = (store, sql, params = [], normalizer = (r) => r) => {
   const s = sql.trim();
   if (/SELECT\s+1\s+as\s+alive/i.test(s)) {
@@ -694,51 +983,40 @@ const findRowInStore = (store, sql, params = [], normalizer = (r) => r) => {
   const tables = extractUnionTables(s);
   if (tables.length === 0) return null;
 
+  // Handle COUNT(*) with full WHERE filtering and arbitrary alias (e.g. as count, as c, as total)
   if (/COUNT\(\*\)/i.test(s)) {
-    const rows = store[tables[0]] || [];
-    return { count: rows.length, total: rows.length, totalAcademies: rows.length, totalExams: rows.length };
+    const filtered = filterAndSortSqlRows(store[tables[0]] || [], s, params, normalizer);
+    const aliasMatch = s.match(/COUNT\(\*\)\s+as\s+([a-zA-Z0-9_]+)/i);
+    const result = { count: filtered.length, total: filtered.length, totalAcademies: filtered.length, totalExams: filtered.length };
+    if (aliasMatch && aliasMatch[1]) {
+      result[aliasMatch[1]] = filtered.length;
+    }
+    return result;
   }
 
-  const isEmailOnlyQuery = /email\)\s*=\s*LOWER\(\?\)/i.test(s) && !/\bOR\b/i.test(s.split(/WHERE/i)[1] || '');
-  const isGoogleSubOnlyQuery = /WHERE\s+googleSub\s*=\s*\?/i.test(s);
-  const requiresCandidateRole = /role\s*=\s*'candidate'/i.test(s);
+  // Handle SUM(col) aggregations like COALESCE(SUM(durationMinutes), 0) as totalBreak
+  const sumMatch = s.match(/SUM\(\s*([a-zA-Z0-9_]+)\s*\)(?:\s*,\s*0\))?\s+as\s+([a-zA-Z0-9_]+)/i);
+  if (sumMatch) {
+    const col = sumMatch[1];
+    const alias = sumMatch[2];
+    const filtered = filterAndSortSqlRows(store[tables[0]] || [], s, params, normalizer);
+    const total = filtered.reduce((acc, r) => acc + (Number(getRowFieldCi(r, col)) || 0), 0);
+    return { [alias]: total };
+  }
+
+  const whereMatch = s.match(/\bWHERE\s+([\s\S]+?)(?=\s+(?:GROUP\s+BY|ORDER\s+BY|LIMIT)\b|$)/i);
+  let paramOffset = 0;
 
   for (let tIdx = 0; tIdx < tables.length; tIdx++) {
     const table = tables[tIdx];
     if (!store[table]) store[table] = [];
 
-    if (params.length > 0) {
-      const keyVal = params[tIdx] !== undefined ? params[tIdx] : params[0];
-      const cleanKey = String(keyVal || '').toLowerCase().trim();
-      const normKeyPhone = normalizePhone(keyVal);
-
-      const found = store[table].find(r => {
-        if (requiresCandidateRole && table === 'users' && (r.role || 'candidate').toLowerCase() !== 'candidate') {
-          return false;
-        }
-        if (isGoogleSubOnlyQuery) {
-          return Boolean(keyVal && (r.googleSub === keyVal || r.googlesub === keyVal));
-        }
-        if (isEmailOnlyQuery) {
-          return Boolean(cleanKey && r.email && String(r.email).toLowerCase().trim() === cleanKey);
-        }
-        return (
-          r.id === keyVal ||
-          r.userId === keyVal ||
-          r.userid === keyVal ||
-          r.candidateId === keyVal ||
-          r.candidateid === keyVal ||
-          r.employeeId === keyVal ||
-          r.employeeid === keyVal ||
-          r.referenceNumber === keyVal ||
-          (keyVal && (r.googleSub === keyVal || r.googlesub === keyVal)) ||
-          (cleanKey && r.email && String(r.email).toLowerCase().trim() === cleanKey) ||
-          (!cleanKey.includes('@') && normKeyPhone && normKeyPhone.length >= 7 && r.phone && normalizePhone(r.phone) === normKeyPhone) ||
-          (!cleanKey.includes('@') && normKeyPhone && normKeyPhone.length >= 7 && (r.normalizedPhone || r.normalizedphone) && (r.normalizedPhone || r.normalizedphone) === normKeyPhone) ||
-          (cleanKey && r.company && String(r.company).toLowerCase().trim() === cleanKey)
-        );
-      });
-      if (found) return normalizer(found);
+    if (whereMatch) {
+      const qMarksInBranch = countQuestionMarksOutsideQuotes(whereMatch[1]);
+      const branchParams = params.slice(paramOffset, paramOffset + qMarksInBranch);
+      const filtered = filterAndSortSqlRows(store[table], s, branchParams, normalizer);
+      if (filtered.length > 0) return filtered[0];
+      paramOffset += qMarksInBranch;
     } else if (store[table][0]) {
       return normalizer(store[table][0]);
     }
@@ -965,6 +1243,7 @@ export const SUPABASE_ALL_TABLES = [
   'candidate_profiles',
   'candidate_applications',
   'candidate_documents',
+  'candidate_notifications',
   'email_job_applications',
   'consulting_bookings',
   'clients',
@@ -975,7 +1254,20 @@ export const SUPABASE_ALL_TABLES = [
   'enquiry_activities',
   'follow_ups',
   'hr_tasks',
+  'hr_task_assignments',
   'student_academy_enquiries',
+  'student_academy_academies',
+  'student_academy_courses',
+  'student_academy_exam_mappings',
+  'student_academy_examinations',
+  'student_academy_exams',
+  'career_guidance_enquiries',
+  'colleges',
+  'courses',
+  'course_categories',
+  'specializations',
+  'college_course_offerings',
+  'compliance_documents',
   'google_auth_accounts',
   'client_accounts',
   'client_documents',
@@ -988,6 +1280,8 @@ export const SUPABASE_ALL_TABLES = [
   'attendance_records',
   'daily_work_reports',
   'shift_configs',
+  'employee_shift_assignments',
+  'late_login_approval_requests',
   'company_holidays',
   'employee_leave_requests',
   'attendance_breaks',
@@ -997,7 +1291,12 @@ export const SUPABASE_ALL_TABLES = [
   'role_login_logs',
   'candidate_visa_assessments',
   'candidate_verifications',
+  'visa_verification_cases',
+  'visa_case_activities',
+  'visa_case_documents',
+  'visa_case_bgv_records',
   'company_announcements',
+  'company_announcement_audit_logs',
   'crm_celebration_popups',
   'recruitment_pipeline_records',
   'interview_rounds',
@@ -1026,8 +1325,21 @@ export const SUPABASE_KEY_MAP = {
   currentsalary: 'currentSalary',
   expectedsalary: 'expectedSalary',
   aisummary: 'aiSummary',
+  resumename: 'resumeName',
+  resumeurl: 'resumeUrl',
+  resumesize: 'resumeSize',
   resumepath: 'resumePath',
   coverletter: 'coverLetter',
+  covernote: 'coverNote',
+  noticeperiod: 'noticePeriod',
+  preferredcountry: 'preferredCountry',
+  normalizedphone: 'normalizedPhone',
+  authprovider: 'authProvider',
+  googlesub: 'googleSub',
+  googleid: 'googleId',
+  emailverified: 'emailVerified',
+  lastloginat: 'lastLoginAt',
+  lastlogin: 'lastLogin',
   jobtype: 'jobType',
   posteddate: 'postedDate',
   employeeid: 'employeeId',
@@ -1044,12 +1356,15 @@ export const SUPABASE_KEY_MAP = {
   intendedprogram: 'intendedProgram',
   serviceid: 'serviceId',
   servicetitle: 'serviceTitle',
+  servicetype: 'serviceType',
+  enquiryid: 'enquiryId',
   enquirytype: 'enquiryType',
   activitytype: 'activityType',
   appointmentdate: 'appointmentDate',
   appointmenttime: 'appointmentTime',
   consultantname: 'consultantName',
   duedate: 'dueDate',
+  duedatetime: 'dueDateTime',
   completedat: 'completedAt',
   interviewdate: 'interviewDate',
   interviewtime: 'interviewTime',
@@ -1068,6 +1383,10 @@ export const SUPABASE_KEY_MAP = {
   workdate: 'workDate',
   checkinat: 'checkInAt',
   checkoutat: 'checkOutAt',
+  checkintime: 'checkInTime',
+  logintime: 'loginTime',
+  logouttime: 'logoutTime',
+  totalduration: 'totalDuration',
   approvedby: 'approvedBy',
   approvedat: 'approvedAt',
   rejectionreason: 'rejectionReason',
@@ -1106,6 +1425,8 @@ export const SUPABASE_KEY_MAP = {
   placementdecidedby: 'placementDecidedBy',
   placementdecidedat: 'placementDecidedAt',
   finalplacementstatus: 'finalPlacementStatus',
+  placementstatus: 'placementStatus',
+  offerdetails: 'offerDetails',
   roundnumber: 'roundNumber',
   roundname: 'roundName',
   interviewerid: 'interviewerId',
@@ -1155,6 +1476,9 @@ export const SUPABASE_KEY_MAP = {
   isread: 'isRead',
   employeerole: 'employeeRole',
   candidatename: 'candidateName',
+  candidateemail: 'candidateEmail',
+  candidatephone: 'candidatePhone',
+  candidatekey: 'candidateKey',
   createdby: 'createdBy',
   attendanceid: 'attendanceId',
   breakstartat: 'breakStartAt',
@@ -1166,8 +1490,6 @@ export const SUPABASE_KEY_MAP = {
   islocked: 'isLocked',
   sessionid: 'sessionId',
   sessionstatus: 'sessionStatus',
-  lateminutes: 'lateMinutes',
-  lateapprovalstatus: 'lateApprovalStatus',
   reportdate: 'reportDate',
   workcompleted: 'workCompleted',
   taskscompleted: 'tasksCompleted',
@@ -1177,12 +1499,64 @@ export const SUPABASE_KEY_MAP = {
   additionalremarks: 'additionalRemarks',
   submissionstatus: 'submissionStatus',
   workingminutesatreport: 'workingMinutesAtReport',
-  checkinat: 'checkInAt',
-  checkoutat: 'checkOutAt',
-  shiftid: 'shiftId',
-  shiftname: 'shiftName',
-  shiftstart: 'shiftStart',
-  shiftend: 'shiftEnd'
+  taskstatus: 'taskStatus',
+  assignmentstatus: 'assignmentStatus',
+  iscompleted: 'isCompleted',
+  assignedemployee: 'assignedEmployee',
+  assignedemployeeid: 'assignedEmployeeId',
+  assignedemployeeemail: 'assignedEmployeeEmail',
+  assignedby: 'assignedBy',
+  assignedbyid: 'assignedById',
+  assignedbyname: 'assignedByName',
+  assignedbyrole: 'assignedByRole',
+  assignedat: 'assignedAt',
+  assigneddate: 'assignedDate',
+  assignmentnotes: 'assignmentNotes',
+  scheduledstarttime: 'scheduledStartTime',
+  scheduledendtime: 'scheduledEndTime',
+  scheduledlogintime: 'scheduledLoginTime',
+  scheduledlogouttime: 'scheduledLogoutTime',
+  applicabledays: 'applicableDays',
+  delayminutes: 'delayMinutes',
+  actualclockintime: 'actualClockInTime',
+  approverid: 'approverId',
+  approvername: 'approverName',
+  approverrole: 'approverRole',
+  decisiontimestamp: 'decisionTimestamp',
+  destinationcountry: 'destinationCountry',
+  visacategory: 'visaCategory',
+  visarequired: 'visaRequired',
+  requirementstatus: 'requirementStatus',
+  documentstatus: 'documentStatus',
+  eligibilitystatus: 'eligibilityStatus',
+  casestatus: 'caseStatus',
+  assessmentnotes: 'assessmentNotes',
+  assignedreviewerid: 'assignedReviewerId',
+  assignedreviewername: 'assignedReviewerName',
+  applicationrefnumber: 'applicationRefNumber',
+  officialdecision: 'officialDecision',
+  officialdecisiondate: 'officialDecisionDate',
+  officialdecisionnotes: 'officialDecisionNotes',
+  requireddocsjson: 'requiredDocsJson',
+  caseid: 'caseId',
+  docname: 'docName',
+  doctype: 'docType',
+  fileurl: 'fileUrl',
+  filedata: 'fileData',
+  mimetype: 'mimeType',
+  filesize: 'fileSize',
+  verificationstatus: 'verificationStatus',
+  reviewerid: 'reviewerId',
+  reviewername: 'reviewerName',
+  missingorcorrectionnote: 'missingOrCorrectionNote',
+  checktype: 'checkType',
+  actorid: 'actorId',
+  actorname: 'actorName',
+  actorrole: 'actorRole',
+  beforestate: 'beforeState',
+  afterstate: 'afterState',
+  ipaddress: 'ipAddress',
+  useragent: 'userAgent'
 };
 
 export const normalizeSupabaseRow = (raw) => {
@@ -1207,36 +1581,252 @@ export const toSupabasePayload = (row) => {
   return out;
 };
 
+let lastSupabaseDiagnostics = {
+  connected: false,
+  missingTables: [],
+  strippedColumns: {},
+  tableCounts: {}
+};
+
+export const getDatabaseDiagnostics = () => lastSupabaseDiagnostics;
+
+const parseInsertValuesTokens = (cols, valuesStr, params = []) => {
+  const tokens = splitSqlTopLevel(valuesStr, ',');
+  const row = {};
+  let pIdx = 0;
+  for (let i = 0; i < cols.length; i++) {
+    const col = cols[i];
+    const expr = tokens[i];
+    if (expr === undefined) {
+      row[col] = params[pIdx] !== undefined ? params[pIdx++] : null;
+    } else if (expr.trim() === '?') {
+      row[col] = params[pIdx] !== undefined ? params[pIdx++] : null;
+    } else {
+      row[col] = unwrapSqlExprToValue(expr, {}, { list: params, idx: pIdx });
+      pIdx += countQuestionMarksOutsideQuotes(expr);
+    }
+  }
+  return row;
+};
+
+const parseUpdateSetAssignments = (setStr, params = []) => {
+  const assignments = splitSqlTopLevel(setStr, ',');
+  const updates = {};
+  const dynamicConcatUpdates = [];
+  let pIdx = 0;
+
+  for (const assign of assignments) {
+    const eqIdx = assign.indexOf('=');
+    if (eqIdx === -1) continue;
+    const col = assign.slice(0, eqIdx).trim();
+    const expr = assign.slice(eqIdx + 1).trim();
+
+    if (expr === '?') {
+      const val = params[pIdx++];
+      if (val !== undefined) updates[col] = val;
+    } else if (/^NULL$/i.test(expr)) {
+      updates[col] = null;
+    } else if (/^(CURRENT_TIMESTAMP|NOW\(\))$/i.test(expr)) {
+      updates[col] = new Date().toISOString();
+    } else if (/^'([\s\S]*)'$/.test(expr) && !expr.includes('||')) {
+      updates[col] = expr.slice(1, -1).replace(/''/g, "'");
+    } else if (/^-?\d+(\.\d+)?$/.test(expr)) {
+      updates[col] = Number(expr);
+    } else if (/^COALESCE\(\s*\?\s*,\s*[a-zA-Z0-9_]+\s*\)$/i.test(expr)) {
+      const val = params[pIdx++];
+      if (val !== null && val !== undefined) {
+        updates[col] = val;
+      }
+    } else {
+      // Handle complex expressions such as COALESCE(notes || ' | ', '') || '...'
+      const qCount = countQuestionMarksOutsideQuotes(expr);
+      const localParams = params.slice(pIdx, pIdx + qCount);
+      pIdx += qCount;
+      const appendStrMatch = expr.match(/\|\|\s*'([^']*)'$/);
+      if (appendStrMatch && /COALESCE\(/i.test(expr)) {
+        dynamicConcatUpdates.push({ col, append: appendStrMatch[1] });
+      } else if (localParams.length > 0 && localParams[0] !== null && localParams[0] !== undefined) {
+        updates[col] = localParams[0];
+      }
+    }
+  }
+
+  return { updates, consumedParams: pIdx, dynamicConcatUpdates };
+};
+
 export const createSupabaseDb = async (client) => {
   const store = {};
-  for (const t of SUPABASE_ALL_TABLES) {
-    store[t] = [];
-  }
+  const schemaCols = {}; // table -> Set of lowercase columns in live Supabase
+  const missingTablesSet = new Set();
+  const warnedMissingCols = new Set();
 
-  // Preload records from Supabase Cloud
+  // Introspect live PostgREST OpenAPI schema once so we know exact existing tables & columns
   try {
-    const loadPromises = SUPABASE_ALL_TABLES.map(async (table) => {
-      try {
-        const { data, error } = await client.from(table).select('*').limit(1000);
-        if (!error && Array.isArray(data)) {
-          store[table] = data.map(r => normalizeSupabaseRow(r));
+    const rawUrl = (process.env.VITE_SUPABASE_URL || process.env.SUPABASE_URL || '').replace(/\/rest\/v1\/?$/, '').replace(/\/+$/, '');
+    const apiKey = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.SUPABASE_ANON_KEY || process.env.VITE_SUPABASE_ANON_KEY || process.env.SUPABASE_KEY;
+    if (rawUrl && apiKey) {
+      const resp = await fetch(`${rawUrl}/rest/v1/`, {
+        headers: { apikey: apiKey, Authorization: `Bearer ${apiKey}` },
+        signal: AbortSignal.timeout(8000)
+      });
+      if (resp.ok) {
+        const spec = await resp.json();
+        const defs = spec?.definitions || {};
+        for (const [tbl, def] of Object.entries(defs)) {
+          if (def?.properties) {
+            schemaCols[tbl.toLowerCase()] = new Set(Object.keys(def.properties).map(c => c.toLowerCase()));
+          }
         }
-      } catch (_) { }
-    });
-    await Promise.all(loadPromises);
-  } catch (preloadErr) {
-    console.warn('[Supabase DB] Table preload warning:', preloadErr.message);
+      }
+    }
+  } catch (specErr) {
+    console.warn('[Supabase DB] OpenAPI schema introspection skipped:', specErr.message);
   }
 
-  // Ensure default employees in store if empty
+  const tablesToLoad = [...new Set([...SUPABASE_ALL_TABLES, ...Object.keys(schemaCols)])];
+  for (const t of tablesToLoad) {
+    store[t] = [];
+    if (Object.keys(schemaCols).length > 0 && !schemaCols[t]) {
+      missingTablesSet.add(t);
+    }
+  }
+
+  // Preload records in modest batches to avoid saturating Supabase connection pool
+  const activeTables = tablesToLoad.filter(t => !missingTablesSet.has(t));
+  const PRELOAD_BATCH = 8;
+  for (let i = 0; i < activeTables.length; i += PRELOAD_BATCH) {
+    const chunk = activeTables.slice(i, i + PRELOAD_BATCH);
+    await Promise.all(
+      chunk.map(async (table) => {
+        try {
+          const { data, error } = await client.from(table).select('*').limit(1000);
+          if (!error && Array.isArray(data)) {
+            store[table] = data.map(r => normalizeSupabaseRow(r));
+            if (!schemaCols[table] && data[0]) {
+              schemaCols[table] = new Set(Object.keys(data[0]).map(c => c.toLowerCase()));
+            }
+          } else if (error && error.code === 'PGRST205') {
+            missingTablesSet.add(table);
+          }
+        } catch (_) { }
+      })
+    );
+  }
+
+  if (missingTablesSet.size > 0) {
+    console.warn(
+      `[Supabase DB] ${missingTablesSet.size} table(s) not yet created in Supabase Cloud (${[...missingTablesSet].join(', ')}). Run supabase/migrations/20261127_sync_all_missing_tables_and_columns.sql in Supabase SQL Editor.`
+    );
+  }
+
+  lastSupabaseDiagnostics = {
+    connected: true,
+    missingTables: [...missingTablesSet].sort(),
+    strippedColumns: {},
+    tableCounts: Object.fromEntries(activeTables.map(t => [t, (store[t] || []).length]))
+  };
+
+  // Ensure default employees in store if empty (leave shift_configs empty so initDb seeds them into Supabase)
   if ((!store.employees || store.employees.length === 0) && DEFAULT_CRM_EMPLOYEES?.length) {
     store.employees = [...DEFAULT_CRM_EMPLOYEES];
   }
 
-  // Ensure default shifts in store if empty
-  if ((!store.shift_configs || store.shift_configs.length === 0) && DEFAULT_SHIFTS?.length) {
-    store.shift_configs = [...DEFAULT_SHIFTS];
-  }
+  const filterPayloadToKnownSchema = (table, payload) => {
+    const allowed = schemaCols[table];
+    if (!allowed || allowed.size === 0) return payload;
+    const filtered = {};
+    for (const [k, v] of Object.entries(payload)) {
+      const lk = k.toLowerCase();
+      if (allowed.has(lk)) {
+        filtered[lk] = v;
+      } else {
+        const warnKey = `${table}.${lk}`;
+        if (!warnedMissingCols.has(warnKey)) {
+          warnedMissingCols.add(warnKey);
+          if (!lastSupabaseDiagnostics.strippedColumns[table]) {
+            lastSupabaseDiagnostics.strippedColumns[table] = [];
+          }
+          lastSupabaseDiagnostics.strippedColumns[table].push(lk);
+          console.warn(`[Supabase DB] Column "${lk}" does not exist on "${table}" in Supabase yet — skipping field until migration runs.`);
+        }
+      }
+    }
+    return filtered;
+  };
+
+  const executeWithColumnRetry = async (table, runner, initialPayload) => {
+    let payload = filterPayloadToKnownSchema(table, initialPayload);
+    if (!payload || Object.keys(payload).length === 0) return null;
+
+    let res = await runner(payload);
+    if (res?.error?.code === 'PGRST204' && res.error.message) {
+      const colMatch = res.error.message.match(/Could not find the '([^']+)' column/i);
+      if (colMatch && colMatch[1]) {
+        const badCol = colMatch[1].toLowerCase();
+        if (!schemaCols[table]) schemaCols[table] = new Set(Object.keys(payload));
+        schemaCols[table].delete(badCol);
+        const retryPayload = { ...payload };
+        delete retryPayload[badCol];
+        if (Object.keys(retryPayload).length > 0) {
+          res = await runner(retryPayload);
+        }
+      }
+    }
+    if (res?.error) {
+      if (res.error.code === 'PGRST205') {
+        missingTablesSet.add(table);
+        lastSupabaseDiagnostics.missingTables = [...missingTablesSet].sort();
+      } else {
+        console.error(`[Supabase DB] Write error on ${table} [${res.error.code || 'ERR'}]:`, res.error.message);
+      }
+    }
+    return res;
+  };
+
+  const applySupabaseFilter = (baseQuery, table, whereCondition, whereParams) => {
+    const matchingRows = (store[table] || []).filter(r => evalWhereClause(r, whereCondition, whereParams));
+    const singleAndPreds = splitSqlKeywordTopLevel(whereCondition, 'AND');
+    const hasOr = splitSqlKeywordTopLevel(whereCondition, 'OR').length > 1;
+
+    // When WHERE uses OR or matches rows cleanly in cache, prefer exact ID scoping if all rows have IDs
+    if (hasOr && matchingRows.length > 0) {
+      const ids = matchingRows.map(r => r.id || r.candidateId || r.candidateid).filter(Boolean);
+      const idCol = table === 'recruitment_pipeline_records' ? 'candidateid' : 'id';
+      if (ids.length > 0) {
+        return baseQuery.in(idCol, ids);
+      }
+    }
+
+    let q = baseQuery;
+    const pRef = { list: whereParams, idx: 0 };
+    for (const pred of singleAndPreds) {
+      const isNullM = pred.match(/^([a-zA-Z0-9_.]+)\s+IS\s+NULL$/i);
+      if (isNullM) {
+        q = q.is(isNullM[1].split('.').pop().toLowerCase(), null);
+        continue;
+      }
+      const isNotNullM = pred.match(/^([a-zA-Z0-9_.]+)\s+IS\s+NOT\s+NULL$/i);
+      if (isNotNullM) {
+        q = q.not(isNotNullM[1].split('.').pop().toLowerCase(), 'is', null);
+        continue;
+      }
+      const cmpM = pred.match(/^([\s\S]+?)\s*(=|LIKE)\s*([\s\S]+)$/i);
+      if (cmpM) {
+        const col = extractSqlColumnName(cmpM[1]).toLowerCase();
+        const op = cmpM[2].toUpperCase();
+        const val = unwrapSqlExprToValue(cmpM[3], {}, pRef);
+        if (val === undefined) continue;
+        if (op === 'LIKE' || /LOWER\(/i.test(cmpM[1]) || col === 'email') {
+          q = q.ilike(col, op === 'LIKE' ? String(val) : String(val).toLowerCase().trim());
+        } else {
+          q = q.eq(col, val);
+        }
+      } else {
+        pRef.idx += countQuestionMarksOutsideQuotes(pred);
+      }
+    }
+    return q;
+  };
 
   const getTableName = (sql) => {
     const m =
@@ -1250,41 +1840,54 @@ export const createSupabaseDb = async (client) => {
     close: async () => { },
     run: async (sql, params = []) => {
       const s = sql.trim();
-      const table = getTableName(s);
+      const table = getTableName(s)?.toLowerCase();
       if (!table) return { changes: 0 };
       if (!store[table]) store[table] = [];
 
       if (/^INSERT(?:\s+OR\s+IGNORE)?\s+INTO/i.test(s)) {
         const isInsertOrIgnore = /^INSERT\s+OR\s+IGNORE\s+INTO/i.test(s);
-        const colMatch = s.match(/\(([^)]+)\)\s*VALUES/i);
+        const colMatch = s.match(/\(([^)]+)\)\s*VALUES\s*\(([\s\S]+)\)\s*;?$/i);
         const cols = colMatch ? colMatch[1].split(',').map(c => c.trim()) : [];
+        const valuesStr = colMatch ? colMatch[2] : '';
         const isPipelineTable = table === 'recruitment_pipeline_records';
-        const row = {};
-        if (!isPipelineTable && (cols.length === 0 || cols.includes('id'))) {
+
+        const row = cols.length > 0
+          ? parseInsertValuesTokens(cols, valuesStr, params)
+          : { id: params[0] || `REC-${Date.now()}` };
+
+        if (!isPipelineTable && !row.id) {
           row.id = params[0] || `REC-${Date.now()}`;
         }
-        if (cols.length === 0 || (!cols.includes('created_at') && !cols.includes('createdAt'))) {
-          row.createdAt = new Date().toISOString();
-        }
-        cols.forEach((col, idx) => {
-          row[col] = params[idx] !== undefined ? params[idx] : null;
-        });
 
-        const existingIndex = row.id ? store[table].findIndex(r => r.id === row.id) : -1;
+        // Only auto-inject createdAt / created_at when table supports it and it wasn't passed
+        const tblSchema = schemaCols[table];
+        const nowIso = new Date().toISOString();
+        if (!row.createdAt && !row.createdat && !row.created_at) {
+          if (!tblSchema || tblSchema.has('createdat')) {
+            row.createdAt = nowIso;
+          } else if (tblSchema.has('created_at')) {
+            row.created_at = nowIso;
+          }
+        }
+
+        const existingIndex = row.id
+          ? store[table].findIndex(r => r.id === row.id)
+          : (isPipelineTable && row.candidateId ? store[table].findIndex(r => r.candidateId === row.candidateId) : -1);
+
         if (isInsertOrIgnore && existingIndex !== -1) {
           return { changes: 0, lastID: row.id || row.candidateId };
         }
 
-        // Persist directly to Supabase Cloud PostgreSQL
-        try {
-          const sbRow = toSupabasePayload(row);
+        if (!missingTablesSet.has(table)) {
           const conflictCol = isPipelineTable ? 'candidateid' : 'id';
-          await client.from(table).upsert([sbRow], {
-            onConflict: conflictCol,
-            ignoreDuplicates: isInsertOrIgnore
-          });
-        } catch (sbErr) {
-          console.warn(`[Supabase DB] Write notice for ${table}:`, sbErr.message);
+          await executeWithColumnRetry(
+            table,
+            (payload) => client.from(table).upsert([payload], {
+              onConflict: conflictCol,
+              ignoreDuplicates: isInsertOrIgnore
+            }),
+            toSupabasePayload(row)
+          );
         }
 
         if (existingIndex !== -1) {
@@ -1298,83 +1901,71 @@ export const createSupabaseDb = async (client) => {
       if (/^UPDATE/i.test(s)) {
         const setPart = s.match(/SET\s+([\s\S]+?)\s+WHERE\s+([\s\S]+)$/i);
         if (setPart) {
-          const assignments = setPart[1].split(',').map(a => a.trim());
+          const { updates, consumedParams, dynamicConcatUpdates } = parseUpdateSetAssignments(setPart[1], params);
           const whereCondition = setPart[2].trim();
-          const updates = {};
-          let pIdx = 0;
-          assignments.forEach(assign => {
-            const col = assign.split('=')[0].trim();
-            if (assign.includes('?')) {
-              const val = params[pIdx++];
-              if (val !== null && val !== undefined) {
-                updates[col] = val;
-              }
-            } else if (/CURRENT_TIMESTAMP/i.test(assign)) {
-              updates[col] = new Date().toISOString();
-            }
-          });
-
-          const whereVal = params[params.length - 1];
-          const whereColMatch = whereCondition.match(/([a-zA-Z0-9_]+)\s*(?:=|LIKE)/i);
-          const whereCol = whereColMatch ? whereColMatch[1] : 'id';
-
-          // Persist update directly to Supabase Cloud
-          try {
-            const sbUpdates = toSupabasePayload(updates);
-            let q = client.from(table).update(sbUpdates);
-            if (/LOWER\(email\)/i.test(whereCondition)) {
-              q = q.ilike('email', String(whereVal).toLowerCase().trim());
-            } else {
-              q = q.eq(whereCol.toLowerCase(), whereVal);
-            }
-            await q;
-          } catch (sbErr) {
-            console.warn(`[Supabase DB] Update notice for ${table}:`, sbErr.message);
-          }
+          const whereParams = params.slice(consumedParams);
 
           let count = 0;
-          store[table] = store[table].map(r => {
-            const matches =
-              (whereCol.toLowerCase() === 'id' && (r.id === whereVal || r.employeeId === whereVal || r.employeeid === whereVal)) || (whereCol.toLowerCase() === 'employeeid' && (r.employeeId === whereVal || r.employeeid === whereVal || r.id === whereVal)) ||
-              (/email/i.test(whereCol) && String(r.email).toLowerCase().trim() === String(whereVal).toLowerCase().trim()) ||
-              (r[whereCol] === whereVal);
-            if (matches) {
-              count++;
-              return normalizeSupabaseRow({ ...r, ...updates });
+          const nextRows = store[table].map(r => {
+            if (!evalWhereClause(r, whereCondition, whereParams)) return r;
+            count++;
+            const merged = { ...r, ...updates };
+            for (const dyn of dynamicConcatUpdates) {
+              const prev = getRowFieldCi(r, dyn.col) || '';
+              merged[dyn.col] = `${prev ? prev + ' | ' : ''}${dyn.append}`;
             }
-            return r;
+            return normalizeSupabaseRow(merged);
           });
+          store[table] = nextRows;
 
-          return { changes: count || 1 };
+          if (!missingTablesSet.has(table)) {
+            const firstMatch = nextRows.find(r => evalWhereClause(r, whereCondition, whereParams));
+            const sbUpdatesPayload = toSupabasePayload({ ...updates });
+            if (firstMatch && dynamicConcatUpdates.length > 0) {
+              for (const dyn of dynamicConcatUpdates) {
+                sbUpdatesPayload[dyn.col.toLowerCase()] = firstMatch[dyn.col];
+              }
+            }
+            if (Object.keys(sbUpdatesPayload).length > 0) {
+              await executeWithColumnRetry(
+                table,
+                (payload) => applySupabaseFilter(client.from(table).update(payload), table, whereCondition, whereParams),
+                sbUpdatesPayload
+              );
+            }
+          }
+
+          return { changes: count };
         }
         return { changes: 0 };
       }
 
       if (/^DELETE/i.test(s)) {
-        const whereVal = params[0];
-        const whereMatch = s.match(/WHERE\s+([a-zA-Z0-9_]+)/i);
-        const whereCol = whereMatch ? whereMatch[1] : 'id';
+        const whereMatch = s.match(/\bWHERE\s+([\s\S]+)$/i);
+        const whereCondition = whereMatch ? whereMatch[1].trim() : '';
 
-        // Persist delete directly to Supabase Cloud
-        try {
-          let q = client.from(table).delete();
-          if (/email/i.test(whereCol)) {
-            q = q.ilike('email', String(whereVal).toLowerCase().trim());
-          } else {
-            q = q.eq(whereCol.toLowerCase(), whereVal);
+        if (!missingTablesSet.has(table)) {
+          try {
+            let delRes;
+            if (whereCondition) {
+              delRes = await applySupabaseFilter(client.from(table).delete(), table, whereCondition, params);
+            } else {
+              delRes = await client.from(table).delete().neq('id', '__never__');
+            }
+            if (delRes?.error) {
+              console.error(`[Supabase DB] Delete error on ${table}:`, delRes.error.message);
+            }
+          } catch (sbErr) {
+            console.error(`[Supabase DB] Delete exception on ${table}:`, sbErr.message);
           }
-          await q;
-        } catch (sbErr) {
-          console.warn(`[Supabase DB] Delete notice for ${table}:`, sbErr.message);
         }
 
         const before = store[table].length;
-        store[table] = store[table].filter(r =>
-          r.id !== whereVal &&
-          r.enquiryId !== whereVal &&
-          r.candidateId !== whereVal &&
-          r.email !== whereVal
-        );
+        if (whereCondition) {
+          store[table] = store[table].filter(r => !evalWhereClause(r, whereCondition, params));
+        } else {
+          store[table] = [];
+        }
         return { changes: before - store[table].length };
       }
 
@@ -1386,45 +1977,17 @@ export const createSupabaseDb = async (client) => {
     all: async (sql, params = []) => {
       const s = sql.trim();
       if (/^PRAGMA\s+table_info/i.test(s)) {
+        const tblM = s.match(/table_info\(\s*([a-zA-Z0-9_]+)\s*\)/i);
+        const tbl = tblM ? tblM[1].toLowerCase() : null;
+        if (tbl && schemaCols[tbl]) {
+          return [...schemaCols[tbl]].map((name, idx) => ({ cid: idx, name }));
+        }
         return [];
       }
-      const table = getTableName(s);
+      const table = getTableName(s)?.toLowerCase();
       if (!table) return [];
       if (!store[table]) store[table] = [];
-      let rows = [...store[table]];
-
-      if (/WHERE\s+userId\s*=\s*\?/i.test(s) && params[0]) {
-        rows = rows.filter(r => r.userId === params[0]);
-      }
-      if (/WHERE\s+candidateId\s*=\s*\?/i.test(s) && params[0]) {
-        rows = rows.filter(r => r.candidateId === params[0] || r.id === params[0]);
-      }
-      if (/WHERE\s+jobId\s*=\s*\?/i.test(s) && params[0]) {
-        rows = rows.filter(r => r.jobId === params[0] || r.jobid === params[0]);
-      }
-      if (/WHERE\s+enquiryId\s*=\s*\?/i.test(s) && params[0]) {
-        rows = rows.filter(r => r.enquiryId === params[0] || r.id === params[0]);
-      }
-      if (/WHERE\s+organizationId\s*=\s*\?/i.test(s) && params[0]) {
-        rows = rows.filter(r => r.organizationId === params[0]);
-      }
-      if (/clientId\s*=\s*\?/i.test(s) && params[0]) {
-        const cid = params[0];
-        const cemail = params[1] ? String(params[1]).toLowerCase().trim() : null;
-        rows = rows.filter(
-          r =>
-            r.clientId === cid ||
-            (cemail && r.email && String(r.email).toLowerCase().trim() === cemail) ||
-            (cemail && r.clientEmail && String(r.clientEmail).toLowerCase().trim() === cemail)
-        );
-      }
-      if (/WHERE\s+role\s*=\s*\?/i.test(s) && params[0]) {
-        rows = rows.filter(r => (r.role || '').toLowerCase() === String(params[0]).toLowerCase());
-      }
-      if (/WHERE\s+status\s*=\s*\?/i.test(s) && params[0]) {
-        rows = rows.filter(r => (r.status || '').toLowerCase() === String(params[0]).toLowerCase());
-      }
-      return rows.map(r => normalizeSupabaseRow(r));
+      return filterAndSortSqlRows(store[table], s, params, normalizeSupabaseRow);
     }
   };
 };

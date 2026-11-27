@@ -30,10 +30,21 @@ const getCache = () => {
 const saveCache = () => {
   try {
     if (memoryCache) {
+      const serialized = JSON.stringify(memoryCache);
+      // Keep runtime translation cache bounded so it never starves app localStorage quota
+      if (serialized.length > 500000) {
+        const nextCache = {};
+        if (memoryCache[activeLangToken]) {
+          nextCache[activeLangToken] = memoryCache[activeLangToken];
+        }
+        memoryCache = nextCache;
+      }
       localStorage.setItem(CACHE_KEY, JSON.stringify(memoryCache));
     }
   } catch {
-    // Ignore storage quota errors
+    try {
+      localStorage.removeItem(CACHE_KEY);
+    } catch { }
   }
 };
 

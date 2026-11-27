@@ -241,7 +241,9 @@ export const CrmLogin = () => {
     const h = Math.floor(mins / 60);
     const m = mins % 60;
     const delayText = h > 0 ? `${h}h ${m}m late` : `${m} mins late`;
-    setAuthErrorMsg(`⚠️ Late Arrival Detected (${delayText}): ${lateApprovalGate.shiftName || 'Assigned Shift'} started at ${lateApprovalGate.shiftStart || '09:00 AM'}. Approval from Super Admin / HR Lead is required to sign in.`);
+    const isLead = String(lateApprovalGate.role || '').toLowerCase().includes('lead');
+    const approverText = isLead ? 'Super Admin only' : 'Super Admin or HR Lead';
+    setAuthErrorMsg(`⚠️ Late Arrival Error (${delayText}): Grace period (15 mins after ${lateApprovalGate.shiftStart || '09:00 AM'}) has passed for ${lateApprovalGate.shiftName || 'Assigned Shift'}. Approval from ${approverText} is required to sign in.`);
 
     const timer = setInterval(async () => {
       if (!checkLateApprovalStatus) return;
@@ -501,16 +503,16 @@ export const CrmLogin = () => {
       return;
     }
 
-    // Allow user to enter workspace and work
-    if (checkResult?.allowed || checkResult?.allowed !== false || !isShiftLate) {
+    // Allow entry ONLY when backend explicitly grants allowed: true (on-time or approved), or offline & on-time
+    if ((checkResult?.success && checkResult?.allowed === true) || (!checkResult && !isShiftLate)) {
       login(userAccount.email, password, userAccount.role || 'HR Operations', userAccount);
       return;
     }
 
-    // If employee is late and pending approval from Super Admin / HR Lead
+    // If employee (including HR Lead) is late after grace period and pending approval
     if (checkResult && (checkResult.allowed === false || (checkResult.isLate && checkResult.lateApprovalStatus === 'PENDING'))) {
       const isLead = String(userAccount.role || checkResult.role || '').toLowerCase().includes('lead');
-      const approverText = isLead ? 'Super Admin' : 'Super Admin or HR Lead';
+      const approverText = isLead ? 'Super Admin only' : 'Super Admin or HR Lead';
       const delayText = formatLateDelay(checkResult.lateMinutes || computedLateMinutes || 16);
       const shiftStartTime = checkResult.shiftStart || '09:00 AM';
       const shiftTitle = checkResult.shiftName || 'Assigned Shift';
@@ -528,7 +530,7 @@ export const CrmLogin = () => {
         password
       });
 
-      setAuthErrorMsg(`⚠️ Late Arrival Detected (${delayText}): Your assigned shift (${shiftTitle}) started at ${shiftStartTime}. 15-minute grace period has elapsed. Approval from ${approverText} is required to sign in.`);
+      setAuthErrorMsg(`⚠️ Late Arrival Error (${delayText}): Grace period (15 mins after ${shiftStartTime}) has passed for ${shiftTitle}. Approval from ${approverText} is required before CRM access.`);
       setLateApprovalMsg(`Awaiting ${approverText} authorization in live console... (Auto-checking every 1s)`);
       return;
     }
@@ -536,7 +538,7 @@ export const CrmLogin = () => {
     // Fallback if backend was unreachable but local time is late
     if (!checkResult && isShiftLate) {
       const isLead = String(userAccount.role || '').toLowerCase().includes('lead');
-      const approverText = isLead ? 'Super Admin' : 'Super Admin or HR Lead';
+      const approverText = isLead ? 'Super Admin only' : 'Super Admin or HR Lead';
       const delayText = formatLateDelay(computedLateMinutes);
 
       setLoginLateGate({
@@ -551,7 +553,7 @@ export const CrmLogin = () => {
         password
       });
 
-      setAuthErrorMsg(`⚠️ Late Arrival Detected (${delayText}): Shift started at 09:00 AM. 15-minute grace period has elapsed. Approval from ${approverText} is required to sign in.`);
+      setAuthErrorMsg(`⚠️ Late Arrival Error (${delayText}): Grace period (15 mins after 09:00 AM) has passed. Approval from ${approverText} is required before CRM access.`);
       setLateApprovalMsg(`Awaiting ${approverText} authorization in live console... (Auto-checking every 1s)`);
       return;
     }
@@ -691,7 +693,14 @@ export const CrmLogin = () => {
                   type="email" 
                   required
                   value={email}
-                  onChange={(e) => setEmail(e.target.value)}
+                  onChange={(e) => {
+                    setEmail(e.target.value);
+                    if (loginLateGate) {
+                      setLoginLateGate(null);
+                      setAuthErrorMsg('');
+                      setLateApprovalMsg('');
+                    }
+                  }}
                   className="w-full bg-navy-950 border border-gold-500/50 focus:border-gold-400 text-white placeholder:text-slate-300 rounded-xl pl-10 pr-3 py-3 text-xs focus:outline-none font-bold"
                   placeholder="Enter your corporate email id"
                 />

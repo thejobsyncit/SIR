@@ -34,10 +34,59 @@ export const SeminarsAndLanguagePage = () => {
     scrollToSection('seminars-language-consultation');
   };
 
-  // Section 2: Language Test Preparation Programs (4 Cards)
-  const languagePrograms = [
+  // Section 2: Seminars for Experienced Professionals (Exact 3 Categories: OET, OGI, IELTS)
+  const experiencedSeminars = [
+    {
+      id: 'OET',
+      title: 'OET',
+      badge: 'OET Seminar',
+      icon: HeartPulse,
+      desc: 'Dedicated OET seminar track tailored for experienced healthcare professionals advancing their global career goals.',
+      points: [
+        'OET examination preparation.',
+        'Professional English communication.',
+        'Listening, Reading, Writing and Speaking practice.',
+        'Mock assessments and performance improvement.'
+      ],
+      ctaText: 'Enquire for OET Seminar',
+      formValue: 'OET Seminar'
+    },
+    {
+      id: 'OGI',
+      title: 'OGI',
+      badge: 'OGI Seminar',
+      icon: ShieldCheck,
+      desc: 'Dedicated seminar track for experienced professionals covering OGI guidance, structured sessions, and consultation support.',
+      points: [
+        'Dedicated OGI seminar for experienced professionals.',
+        'Structured guidance and personalized study support.',
+        'Interactive preparation and Q&A sessions.',
+        'Consultation and pathway advisory.'
+      ],
+      ctaText: 'Enquire for OGI Seminar',
+      formValue: 'OGI Seminar'
+    },
     {
       id: 'IELTS',
+      title: 'IELTS',
+      badge: 'IELTS Seminar',
+      icon: Award,
+      desc: 'Focused IELTS seminar program designed for experienced professionals preparing for international career and migration benchmarks.',
+      points: [
+        'IELTS examination preparation.',
+        'Academic and General Training guidance.',
+        'Listening, Reading, Writing and Speaking practice.',
+        'Mock tests and examination strategies.'
+      ],
+      ctaText: 'Enquire for IELTS Seminar',
+      formValue: 'IELTS Seminar'
+    }
+  ];
+
+  // Section 3: Regular Language Test Preparation Programs (Clearly separated from Experienced Seminars)
+  const languagePrograms = [
+    {
+      id: 'IELTS-PREP',
       title: 'IELTS Preparation',
       badge: 'Academic & General',
       icon: Award,
@@ -51,7 +100,7 @@ export const SeminarsAndLanguagePage = () => {
       ctaText: 'Enquire for IELTS Preparation'
     },
     {
-      id: 'OET',
+      id: 'OET-PREP',
       title: 'OET Preparation',
       badge: 'Healthcare Professionals',
       icon: HeartPulse,
@@ -63,34 +112,6 @@ export const SeminarsAndLanguagePage = () => {
         'Guidance on professional registration requirements.'
       ],
       ctaText: 'Enquire for OET Preparation'
-    },
-    {
-      id: 'TOEFL',
-      title: 'TOEFL Preparation',
-      badge: 'Academic English',
-      icon: BookOpen,
-      desc: 'Rigorous TOEFL iBT preparation focusing on academic integration, university lecture comprehension, and campus communication.',
-      points: [
-        'Academic English preparation.',
-        'Reading, Listening, Speaking and Writing practice.',
-        'Mock tests and performance assessment.',
-        'University admission preparation guidance.'
-      ],
-      ctaText: 'Enquire for TOEFL Preparation'
-    },
-    {
-      id: 'DET',
-      title: 'Duolingo English Test (DET)',
-      badge: 'Computer-Adaptive',
-      icon: Languages,
-      desc: 'Fast-paced, modern preparation for the adaptive online test accepted by an expanding network of universities worldwide.',
-      points: [
-        'Computer-adaptive test preparation.',
-        'Interactive practice exercises.',
-        'Speaking and writing guidance.',
-        'Mock assessments and improvement plans.'
-      ],
-      ctaText: 'Enquire for DET Preparation'
     }
   ];
 
@@ -227,12 +248,12 @@ export const SeminarsAndLanguagePage = () => {
   // Section 8: FAQ (Exact 8 Questions)
   const faqs = [
     {
-      q: 'What language preparation programs do you offer?',
-      a: 'We provide structured diagnostic preparation programs for all major international English language proficiency tests, including IELTS (Academic & General), OET (Occupational English Test for Healthcare), TOEFL iBT, and the Duolingo English Test (DET).'
+      q: 'What seminars for experienced professionals do you offer?',
+      a: 'We offer a dedicated "Seminars for Experienced Professionals" track covering exactly three core categories: OET, OGI, and IELTS, structured with targeted coaching, practice sessions, and personalized consultation support.'
     },
     {
       q: 'Do you provide IELTS and OET preparation?',
-      a: 'Yes. We offer specialized preparation modules for both IELTS and OET. For OET, our training focuses specifically on medical workplace communication across all four sub-tests (Listening, Reading, Writing, and Speaking) tailored for healthcare professionals seeking international registration.'
+      a: 'Yes. We offer specialized preparation modules for both IELTS and OET. For OET, our training focuses on professional English communication across Listening, Reading, Writing, and Speaking along with mock assessments and performance improvement.'
     },
     {
       q: 'Are online training sessions available?',
@@ -306,7 +327,7 @@ export const SeminarsAndLanguagePage = () => {
       '@type': 'EducationalOrganization',
       'name': 'The Revival International - Seminars & Language Preparation',
       'url': 'https://www.therevivalinternational.com/education-exec-seminars-lang',
-      'description': 'Executive development seminars, corporate leadership workshops, and certified language test preparation for IELTS, OET, DET, and TOEFL.',
+      'description': 'Seminars for experienced professionals (OET, OGI, IELTS), executive development seminars, and structured language test preparation.',
       'address': {
         '@type': 'PostalAddress',
         'addressLocality': 'Dubai',
@@ -337,11 +358,11 @@ export const SeminarsAndLanguagePage = () => {
     <div className="bg-[#F7F9FC] text-[#263238] font-sans min-h-screen selection:bg-[#C6A45C]/30 selection:text-[#102A43]">
       <EducationSEO
         title="Seminars & Language Preparation | The Revival International"
-        description="Executive development seminars, corporate leadership workshops, and certified language test preparation for IELTS, OET, DET, and TOEFL."
+        description="Seminars for experienced professionals covering OET, OGI, and IELTS alongside executive development and structured language preparation."
         canonicalPath="education-exec-seminars-lang"
         structuredData={structuredData}
         breadcrumbs={breadcrumbs}
-        keywords="IELTS Preparation, OET Preparation, TOEFL Coaching, Duolingo English Test, Executive Seminars, Corporate Communication, Leadership Development, The Revival International"
+        keywords="Seminars for Experienced Professionals, OET Seminar, OGI Seminar, IELTS Seminar, Executive Seminars, Corporate Communication, Leadership Development, The Revival International"
       />
 
       {/* SECTION 1: HERO SECTION (Clean White Background with Premium Corporate Accents) */}
@@ -395,7 +416,7 @@ export const SeminarsAndLanguagePage = () => {
                   Enhance professional communication, leadership capabilities, and language proficiency through structured training programs tailored to individual and organizational needs.
                 </p>
                 <p className="text-sm text-gray-600">
-                  The Revival International offers executive development seminars and preparation support for IELTS, OET, DET, and TOEFL, helping students, healthcare professionals, working professionals, and corporate teams prepare for their academic and career goals.
+                  The Revival International offers dedicated seminars for experienced professionals across OET, OGI, and IELTS alongside structured language preparation and executive development programs.
                 </p>
               </div>
 
@@ -414,7 +435,7 @@ export const SeminarsAndLanguagePage = () => {
                 <button
                   onClick={() => {
                     trackCtaClick('hero_explore_programs', 'Seminars & Language');
-                    scrollToSection('language-test-preparation');
+                    scrollToSection('seminars-experienced-professionals');
                   }}
                   className="px-8 py-4 rounded-xl bg-white hover:bg-gray-50 text-[#102A43] border border-gray-300 font-semibold text-base transition-all duration-200 flex items-center justify-center gap-2 shadow-xs cursor-pointer"
                 >
@@ -469,21 +490,96 @@ export const SeminarsAndLanguagePage = () => {
         </div>
       </section>
 
-      {/* SECTION 2: LANGUAGE TEST PREPARATION PROGRAMS */}
+      {/* SECTION 2: SEMINARS FOR EXPERIENCED PROFESSIONALS (OET, OGI, IELTS) */}
+      <section id="seminars-experienced-professionals" className="py-20 bg-[#F7F9FC] border-b border-gray-200/80 scroll-mt-20">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+
+          <div className="text-center max-w-3xl mx-auto mb-16">
+            <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-[#102A43]/5 border border-[#102A43]/15 text-[#102A43] text-[11px] font-bold uppercase tracking-widest mb-3">
+              <Award className="w-3.5 h-3.5 text-[#C6A45C]" />
+              <span>Experienced Professionals Track</span>
+            </span>
+            <h2 className="text-3xl sm:text-4xl font-serif font-bold text-[#102A43] tracking-tight">
+              Seminars for Experienced Professionals
+            </h2>
+            <div className="w-16 h-1 bg-[#C6A45C] mx-auto my-4 rounded-full" />
+            <p className="text-base sm:text-lg text-gray-600">
+              Dedicated seminar programs tailored specifically for experienced professionals across OET, OGI, and IELTS.
+            </p>
+          </div>
+
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-7">
+            {experiencedSeminars.map((seminar) => {
+              const Icon = seminar.icon;
+              return (
+                <div
+                  key={seminar.id}
+                  className="bg-white rounded-2xl p-8 border border-gray-200/90 hover:border-[#C6A45C] shadow-xs hover:shadow-lg transition-all duration-300 flex flex-col justify-between group"
+                >
+                  <div className="space-y-4">
+                    <div className="flex items-center justify-between">
+                      <div className="w-12 h-12 rounded-xl bg-[#102A43] text-[#C6A45C] flex items-center justify-center shadow-xs">
+                        <Icon className="w-6 h-6" />
+                      </div>
+                      <span className="bg-[#F7F9FC] text-[#102A43] border border-gray-200 text-[10px] font-extrabold px-3 py-1 rounded-full uppercase tracking-wider">
+                        {seminar.badge}
+                      </span>
+                    </div>
+
+                    <div>
+                      <h3 className="font-serif text-2xl font-bold text-[#102A43] group-hover:text-[#C6A45C] transition-colors">
+                        {seminar.title}
+                      </h3>
+                      <p className="text-xs sm:text-sm text-gray-600 leading-relaxed mt-2">
+                        {seminar.desc}
+                      </p>
+                    </div>
+
+                    <div className="pt-3 border-t border-gray-200/80">
+                      <ul className="space-y-2.5">
+                        {seminar.points.map((pt, i) => (
+                          <li key={i} className="text-xs sm:text-sm text-gray-700 flex items-start gap-2 leading-relaxed">
+                            <CheckCircle2 className="w-4 h-4 text-[#C6A45C] shrink-0 mt-0.5" />
+                            <span>{pt}</span>
+                          </li>
+                        ))}
+                      </ul>
+                    </div>
+                  </div>
+
+                  <div className="pt-6 border-t border-gray-200/80 mt-6">
+                    <button
+                      type="button"
+                      onClick={() => handleProgramSelect(seminar.formValue)}
+                      className="w-full py-3 px-4 bg-[#102A43] hover:bg-[#1a3d60] text-white font-bold text-xs rounded-xl shadow-xs transition-all flex items-center justify-center gap-1.5 cursor-pointer"
+                    >
+                      <span>{seminar.ctaText}</span>
+                      <ArrowRight className="w-3.5 h-3.5 text-[#C6A45C]" />
+                    </button>
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+
+        </div>
+      </section>
+
+      {/* SECTION 3: REGULAR LANGUAGE TEST PREPARATION PROGRAMS */}
       <section id="language-test-preparation" className="py-20 bg-white scroll-mt-20">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
 
           <div className="text-center max-w-3xl mx-auto mb-16">
             <h2 className="text-3xl sm:text-4xl font-serif font-bold text-[#102A43] tracking-tight">
-              Language Test Preparation Programs
+              Regular Language Test Preparation
             </h2>
             <div className="w-16 h-1 bg-[#C6A45C] mx-auto my-4 rounded-full" />
             <p className="text-base sm:text-lg text-gray-600">
-              Structured preparation modules for certified English language examinations, led by experienced trainers with diagnostic simulations.
+              Structured preparation modules for certified English language examinations, separate from our experienced professionals seminar track.
             </p>
           </div>
 
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-8 max-w-4xl mx-auto">
             {languagePrograms.map((prog) => {
               const Icon = prog.icon;
               return (

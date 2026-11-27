@@ -76,10 +76,11 @@ export const SeminarsLanguageForm = ({
   ];
 
   const programOptions = [
+    'OET Seminar',
+    'OGI Seminar',
+    'IELTS Seminar',
     'IELTS Preparation',
     'OET Preparation',
-    'TOEFL Preparation',
-    'Duolingo English Test (DET)',
     'Leadership & Management',
     'Corporate Communication',
     'Executive Development Workshops',
