@@ -161,7 +161,11 @@ export const CrmSuperAdmin = () => {
 
   useEffect(() => {
     fetchLateApprovalsAndLogins();
-    const interval = setInterval(fetchLateApprovalsAndLogins, 4000);
+    const interval = setInterval(() => {
+      if (typeof document === 'undefined' || document.visibilityState === 'visible') {
+        fetchLateApprovalsAndLogins();
+      }
+    }, 12000);
     return () => clearInterval(interval);
   }, [crmToken]);
 

@@ -2352,9 +2352,9 @@ export const registerAttendanceRoutes = (app, { getDb, getClientIp }) => {
     }
   });
 
-  const refreshAttendanceTables = async (db, tables = ['attendance_records', 'late_login_approval_requests', 'employees']) => {
+  const refreshAttendanceTables = async (db, tables = ['attendance_records', 'late_login_approval_requests', 'employees'], maxAgeMs = 2500) => {
     if (!db?.refreshTable) return;
-    await Promise.all(tables.map((t) => db.refreshTable(t).catch(() => { })));
+    await Promise.all(tables.map((t) => db.refreshTable(t, maxAgeMs).catch(() => { })));
   };
 
   // Pre-Login Shift Late Verification & Ingress Gatekeeper
@@ -2367,12 +2367,9 @@ export const registerAttendanceRoutes = (app, { getDb, getClientIp }) => {
         return res.status(400).json({ success: false, message: 'Email and password required.' });
       }
       const db = await getDb();
-      await refreshAttendanceTables(db, [
-        'employees',
-        'attendance_records',
-        'late_login_approval_requests',
-        'employee_shift_assignments',
-        'shift_configs'
+      await Promise.all([
+        refreshAttendanceTables(db, ['attendance_records', 'late_login_approval_requests'], 0),
+        refreshAttendanceTables(db, ['employees', 'employee_shift_assignments', 'shift_configs'], 15000)
       ]);
       let employee = await db.get(
         'SELECT * FROM employees WHERE LOWER(email) = ? OR LOWER(altEmail) = ?',
@@ -2647,12 +2644,9 @@ export const registerAttendanceRoutes = (app, { getDb, getClientIp }) => {
     try {
       res.set('Cache-Control', 'no-store, no-cache, must-revalidate, proxy-revalidate');
       const db = await getDb();
-      await refreshAttendanceTables(db, [
-        'employees',
-        'attendance_records',
-        'role_login_logs',
-        'employee_shift_assignments',
-        'shift_configs'
+      await Promise.all([
+        refreshAttendanceTables(db, ['attendance_records'], 0),
+        refreshAttendanceTables(db, ['employees', 'role_login_logs', 'employee_shift_assignments', 'shift_configs'], 15000)
       ]);
       const emailQuery = String(req.query?.email || req.headers['x-employee-email'] || '').toLowerCase().trim();
       let employee = req.authEmployee;
@@ -2793,10 +2787,9 @@ export const registerAttendanceRoutes = (app, { getDb, getClientIp }) => {
     try {
       res.set('Cache-Control', 'no-store, no-cache, must-revalidate, proxy-revalidate');
       const db = await getDb();
-      await refreshAttendanceTables(db, [
-        'attendance_records',
-        'late_login_approval_requests',
-        'employees'
+      await Promise.all([
+        refreshAttendanceTables(db, ['attendance_records', 'late_login_approval_requests'], 0),
+        refreshAttendanceTables(db, ['employees'], 15000)
       ]);
       const reviewer = req.authEmployee;
       const reviewerRole = String(reviewer?.role || '').toLowerCase();
@@ -2911,7 +2904,7 @@ export const registerAttendanceRoutes = (app, { getDb, getClientIp }) => {
         'late_login_approval_requests',
         'employees',
         'role_login_logs'
-      ]);
+      ], 0);
       const reviewer = req.authEmployee;
       const { id } = req.params;
       const { decision, notes } = req.body || {};
@@ -4132,10 +4125,9 @@ export const registerAttendanceRoutes = (app, { getDb, getClientIp }) => {
     try {
       res.set('Cache-Control', 'no-store, no-cache, must-revalidate, proxy-revalidate');
       const db = await getDb();
-      await refreshAttendanceTables(db, [
-        'late_login_approval_requests',
-        'attendance_records',
-        'employees'
+      await Promise.all([
+        refreshAttendanceTables(db, ['late_login_approval_requests', 'attendance_records'], 0),
+        refreshAttendanceTables(db, ['employees'], 15000)
       ]);
       const reviewer = req.authEmployee;
       const reviewerRole = String(reviewer?.role || '').toLowerCase();
@@ -4227,7 +4219,7 @@ export const registerAttendanceRoutes = (app, { getDb, getClientIp }) => {
         'attendance_records',
         'employees',
         'role_login_logs'
-      ]);
+      ], 0);
       const reviewer = req.authEmployee;
       const { id } = req.params;
       const { decision, rejectionReason, notes } = req.body || {};

@@ -377,9 +377,18 @@ export const CrmHeader = ({ collapsed, setCollapsed }) => {
       } catch (_) {}
     };
     fetchPendingCount();
-    const interval = setInterval(fetchPendingCount, 4000);
+    const handleRefreshEvent = () => {
+      fetchPendingCount();
+    };
+    window.addEventListener('late-approvals-updated', handleRefreshEvent);
+    const interval = setInterval(() => {
+      if (typeof document === 'undefined' || document.visibilityState === 'visible') {
+        fetchPendingCount();
+      }
+    }, 15000);
     return () => {
       isMounted = false;
+      window.removeEventListener('late-approvals-updated', handleRefreshEvent);
       clearInterval(interval);
     };
   }, [currentRole, crmToken]);

@@ -264,12 +264,15 @@ export const CrmLogin = () => {
 
     let isMounted = true;
     const interval = setInterval(async () => {
+      if (typeof document !== 'undefined' && document.visibilityState === 'hidden') return;
       try {
         const cleanEmail = loginLateGate.userAccount.email.trim().toLowerCase();
         const role = loginLateGate.userAccount.role || 'Employee';
         const res = await fetch(`/api/hr-ops/attendance/late-approval-status?email=${encodeURIComponent(cleanEmail)}`, {
+          cache: 'no-store',
           headers: {
             'Content-Type': 'application/json',
+            'Cache-Control': 'no-cache',
             'x-employee-email': cleanEmail,
             'x-crm-role': role
           }
@@ -292,7 +295,7 @@ export const CrmLogin = () => {
           }
         }
       } catch (_) {}
-    }, 1000);
+    }, 4000);
 
     return () => {
       isMounted = false;

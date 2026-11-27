@@ -12,6 +12,16 @@ function sanitizeSupabaseUrl(url) {
   }
 }
 
+const fetchWithTimeout = (url, options = {}) => {
+  if (options.signal) {
+    return fetch(url, options);
+  }
+  return fetch(url, {
+    ...options,
+    signal: AbortSignal.timeout(6500)
+  });
+};
+
 export function getSupabaseClient() {
   const rawUrl = process.env.VITE_SUPABASE_URL || process.env.SUPABASE_URL;
   const supabaseUrl = sanitizeSupabaseUrl(rawUrl);
@@ -19,7 +29,8 @@ export function getSupabaseClient() {
 
   if (supabaseUrl && supabaseKey) {
     return createClient(supabaseUrl, supabaseKey, {
-      auth: { persistSession: false }
+      auth: { persistSession: false },
+      global: { fetch: fetchWithTimeout }
     });
   }
   return null;

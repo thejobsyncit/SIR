@@ -1664,15 +1664,17 @@ export const createSupabaseDb = async (client) => {
   const warnedMissingCols = new Set();
 
   // Introspect live PostgREST OpenAPI schema once so we know exact existing tables & columns
+  let openApiReachable = false;
   try {
     const rawUrl = (process.env.VITE_SUPABASE_URL || process.env.SUPABASE_URL || '').replace(/\/rest\/v1\/?$/, '').replace(/\/+$/, '');
     const apiKey = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.SUPABASE_ANON_KEY || process.env.VITE_SUPABASE_ANON_KEY || process.env.SUPABASE_KEY;
     if (rawUrl && apiKey) {
       const resp = await fetch(`${rawUrl}/rest/v1/`, {
         headers: { apikey: apiKey, Authorization: `Bearer ${apiKey}` },
-        signal: AbortSignal.timeout(8000)
+        signal: AbortSignal.timeout(4500)
       });
       if (resp.ok) {
+        openApiReachable = true;
         const spec = await resp.json();
         const defs = spec?.definitions || {};
         for (const [tbl, def] of Object.entries(defs)) {
@@ -1694,26 +1696,63 @@ export const createSupabaseDb = async (client) => {
     }
   }
 
-  // Preload records in modest batches to avoid saturating Supabase connection pool
-  const activeTables = tablesToLoad.filter(t => !missingTablesSet.has(t));
-  const PRELOAD_BATCH = 8;
-  for (let i = 0; i < activeTables.length; i += PRELOAD_BATCH) {
-    const chunk = activeTables.slice(i, i + PRELOAD_BATCH);
-    await Promise.all(
-      chunk.map(async (table) => {
-        try {
-          const { data, error } = await client.from(table).select('*').limit(1000);
-          if (!error && Array.isArray(data)) {
-            store[table] = data.map(r => normalizeSupabaseRow(r));
-            if (!schemaCols[table] && data[0]) {
-              schemaCols[table] = new Set(Object.keys(data[0]).map(c => c.toLowerCase()));
-            }
-          } else if (error && error.code === 'PGRST205') {
-            missingTablesSet.add(table);
+  const loadedTables = new Set();
+  const lastRefreshedAt = {};
+  const inFlightLoads = new Map();
+
+  const loadTableFromSupabase = async (table, { force = false, maxAgeMs = 2500 } = {}) => {
+    const tbl = String(table || '').toLowerCase();
+    if (!tbl || missingTablesSet.has(tbl)) return;
+    if (!store[tbl]) store[tbl] = [];
+
+    const nowMs = Date.now();
+    if (!force && loadedTables.has(tbl) && lastRefreshedAt[tbl] && (nowMs - lastRefreshedAt[tbl]) < maxAgeMs) {
+      return;
+    }
+    if (inFlightLoads.has(tbl)) {
+      return inFlightLoads.get(tbl);
+    }
+
+    const job = (async () => {
+      try {
+        const { data, error } = await client.from(tbl).select('*').limit(1000);
+        if (!error && Array.isArray(data)) {
+          store[tbl] = data.map(r => normalizeSupabaseRow(r));
+          loadedTables.add(tbl);
+          lastRefreshedAt[tbl] = Date.now();
+          if (!schemaCols[tbl] && data[0]) {
+            schemaCols[tbl] = new Set(Object.keys(data[0]).map(c => c.toLowerCase()));
           }
-        } catch (_) { }
-      })
-    );
+        } else if (error && error.code === 'PGRST205') {
+          missingTablesSet.add(tbl);
+        }
+      } catch (_) {
+      } finally {
+        inFlightLoads.delete(tbl);
+      }
+    })();
+
+    inFlightLoads.set(tbl, job);
+    return job;
+  };
+
+  // On serverless (Vercel), load tables lazily on first query so cold starts never hit 68-table timeout.
+  // In persistent local/server mode, preload in modest batches when OpenAPI responded.
+  const activeTables = tablesToLoad.filter(t => !missingTablesSet.has(t));
+  if (!isServerlessEnv() && openApiReachable) {
+    const PRELOAD_BATCH = 8;
+    for (let i = 0; i < activeTables.length; i += PRELOAD_BATCH) {
+      const chunk = activeTables.slice(i, i + PRELOAD_BATCH);
+      await Promise.all(chunk.map(t => loadTableFromSupabase(t, { force: true })));
+    }
+  } else {
+    // Only warm tiny core auth/shift tables on serverless cold start if OpenAPI is reachable
+    if (openApiReachable) {
+      await Promise.all([
+        loadTableFromSupabase('employees', { force: true }),
+        loadTableFromSupabase('shift_configs', { force: true })
+      ]);
+    }
   }
 
   if (missingTablesSet.size > 0) {
@@ -1838,21 +1877,29 @@ export const createSupabaseDb = async (client) => {
     return m ? m[1] : null;
   };
 
+  const extractAllSqlTableNames = (sql) => {
+    const names = new Set();
+    const re = /\b(?:INTO|FROM|UPDATE|JOIN)\s+([a-zA-Z0-9_]+)/gi;
+    let m;
+    while ((m = re.exec(sql)) !== null) {
+      if (m[1]) names.add(m[1].toLowerCase());
+    }
+    return [...names];
+  };
+
   return {
     exec: async () => { },
     close: async () => { },
-    refreshTable: async (table) => {
-      const tbl = table?.toLowerCase();
-      if (!tbl || missingTablesSet.has(tbl)) return;
-      const { data, error } = await client.from(tbl).select('*').limit(1000);
-      if (!error && Array.isArray(data)) {
-        store[tbl] = data.map(r => normalizeSupabaseRow(r));
-      }
+    refreshTable: async (table, maxAgeMs = 2500) => {
+      await loadTableFromSupabase(table, { force: maxAgeMs === 0, maxAgeMs });
     },
     run: async (sql, params = []) => {
       const s = sql.trim();
       const table = getTableName(s)?.toLowerCase();
       if (!table) return { changes: 0 };
+      if (!loadedTables.has(table)) {
+        await loadTableFromSupabase(table, { force: true });
+      }
       if (!store[table]) store[table] = [];
 
       if (/^INSERT(?:\s+OR\s+IGNORE)?\s+INTO/i.test(s)) {
@@ -1983,6 +2030,10 @@ export const createSupabaseDb = async (client) => {
       return { changes: 0 };
     },
     get: async (sql, params = []) => {
+      const sqlTables = extractAllSqlTableNames(sql);
+      await Promise.all(
+        sqlTables.filter(t => !loadedTables.has(t)).map(t => loadTableFromSupabase(t, { force: true }))
+      );
       return findRowInStore(store, sql, params, normalizeSupabaseRow);
     },
     all: async (sql, params = []) => {
@@ -1995,6 +2046,10 @@ export const createSupabaseDb = async (client) => {
         }
         return [];
       }
+      const sqlTables = extractAllSqlTableNames(sql);
+      await Promise.all(
+        sqlTables.filter(t => !loadedTables.has(t)).map(t => loadTableFromSupabase(t, { force: true }))
+      );
       const table = getTableName(s)?.toLowerCase();
       if (!table) return [];
       if (!store[table]) store[table] = [];
@@ -2072,7 +2127,7 @@ export const checkDbHealth = async () => {
   try {
     const supabase = getSupabaseClient();
     if (supabase) {
-      const { data, error } = await supabase.from('users').select('id').limit(1);
+      const { error } = await supabase.from('users').select('id').limit(1);
       if (!error) {
         return {
           status: 'connected',
@@ -2083,6 +2138,13 @@ export const checkDbHealth = async () => {
           alive: true
         };
       }
+      return {
+        status: 'error',
+        engine: 'supabase-cloud-postgresql',
+        host: 'https://wxoaxpfxrnyghqkkeiat.supabase.co',
+        message: error.message || 'Supabase upstream timeout/unavailable',
+        alive: false
+      };
     }
     const db = await getDb();
     const result = await db.get('SELECT 1 as alive');
@@ -2093,7 +2155,7 @@ export const checkDbHealth = async () => {
       alive: result && result.alive === 1
     };
   } catch (err) {
-    return { status: 'error', message: err.message };
+    return { status: 'error', message: err.message, alive: false };
   }
 };
 

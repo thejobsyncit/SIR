@@ -72,12 +72,14 @@ export const ShiftLateArrivalApprovalSection = ({ currentRole = 'Super Admin', c
     }
   }, []);
 
-  // Stable interval: run silently in the background every 3 seconds without clearing or resetting state
+  // Stable interval: run silently in the background every 10 seconds when tab is visible
   useEffect(() => {
     fetchPendingLateApprovals(false);
     const interval = setInterval(() => {
-      fetchPendingLateApprovals(false);
-    }, 3000);
+      if (typeof document === 'undefined' || document.visibilityState === 'visible') {
+        fetchPendingLateApprovals(false);
+      }
+    }, 10000);
     return () => clearInterval(interval);
   }, [fetchPendingLateApprovals]);
 
@@ -125,6 +127,9 @@ export const ShiftLateArrivalApprovalSection = ({ currentRole = 'Super Admin', c
       }
 
       // Retain in recentlyHandledIds for 12 seconds so server synchronization catches up cleanly
+      if (typeof window !== 'undefined') {
+        window.dispatchEvent(new CustomEvent('late-approvals-updated'));
+      }
       setTimeout(() => {
         recentlyHandledIds.current.delete(attendanceId);
       }, 12000);
