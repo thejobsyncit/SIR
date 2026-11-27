@@ -54,6 +54,10 @@ export const UnifiedAuth = ({ defaultMode = 'login', defaultRole = 'candidate', 
   } = useApp();
 
   const [authMode, setAuthMode] = useState(defaultMode); // 'login' | 'register'
+  const authModeRef = useRef(authMode);
+  useEffect(() => {
+    authModeRef.current = authMode;
+  }, [authMode]);
   const [error, setError] = useState('');
 
   // Google OAuth 2.0 & Google Identity Services (GIS) State
@@ -250,18 +254,19 @@ export const UnifiedAuth = ({ defaultMode = 'login', defaultRole = 'candidate', 
         avatar: profile.picture,
         googleId: profile.sub,
         profile: profile,
-        mode: authMode
+        mode: authModeRef.current
       });
 
       if (!result || !result.success) {
-        if (result?.code === 'ACCOUNT_NOT_FOUND' || result?.message?.includes('register') || result?.message?.includes('No candidate account') || result?.message?.includes('not found')) {
-          setError(result?.message || 'No candidate account found for this Google email. Please register to create your candidate account first.');
+        const lowerMsg = (result?.message || '').toLowerCase();
+        if (result?.code === 'ACCOUNT_NOT_FOUND' || lowerMsg.includes('register to create') || lowerMsg.includes('no registered') || lowerMsg.includes('no candidate account') || lowerMsg.includes('not found')) {
+          setError(result?.message || 'No registered candidate account found for this Google email. Please register first.');
           if (cleanGoogleEmail) {
             setCandidateReg(prev => ({ ...prev, email: cleanGoogleEmail }));
           }
           setGoogleError('');
-        } else if (result?.code === 'DUPLICATE_EMAIL' || result?.message?.includes('already exists')) {
-          setError(result?.message || 'An account with this email address or phone number already exists. Please sign in to your existing account.');
+        } else if (result?.code === 'DUPLICATE_EMAIL' || lowerMsg.includes('already registered') || lowerMsg.includes('already exists')) {
+          setError(result?.message || 'Already registered: An account with this email address or phone number already exists. Please sign in to your existing account.');
           if (cleanGoogleEmail) {
             setCandidateLogin(prev => ({ ...prev, email: cleanGoogleEmail }));
           }
@@ -452,18 +457,19 @@ export const UnifiedAuth = ({ defaultMode = 'login', defaultRole = 'candidate', 
                   avatar: userInfo.picture,
                   googleId: userInfo.sub,
                   profile: userInfo,
-                  mode: authMode
+                  mode: authModeRef.current
                 });
 
                 if (!result || !result.success) {
-                  if (result?.code === 'ACCOUNT_NOT_FOUND' || result?.message?.includes('register') || result?.message?.includes('No candidate account') || result?.message?.includes('not found')) {
-                    setError(result?.message || 'No candidate account found for this Google email. Please register to create your candidate account first.');
+                  const lowerMsg = (result?.message || '').toLowerCase();
+                  if (result?.code === 'ACCOUNT_NOT_FOUND' || lowerMsg.includes('register to create') || lowerMsg.includes('no registered') || lowerMsg.includes('no candidate account') || lowerMsg.includes('not found')) {
+                    setError(result?.message || 'No registered candidate account found for this Google email. Please register first.');
                     if (cleanGoogleEmail) {
                       setCandidateReg(prev => ({ ...prev, email: cleanGoogleEmail }));
                     }
                     setGoogleError('');
-                  } else if (result?.code === 'DUPLICATE_EMAIL' || result?.message?.includes('already exists')) {
-                    setError(result?.message || 'An account with this email address or phone number already exists. Please sign in to your existing account.');
+                  } else if (result?.code === 'DUPLICATE_EMAIL' || lowerMsg.includes('already registered') || lowerMsg.includes('already exists')) {
+                    setError(result?.message || 'Already registered: An account with this email address or phone number already exists. Please sign in to your existing account.');
                     if (cleanGoogleEmail) {
                       setCandidateLogin(prev => ({ ...prev, email: cleanGoogleEmail }));
                     }
@@ -726,16 +732,23 @@ export const UnifiedAuth = ({ defaultMode = 'login', defaultRole = 'candidate', 
     }
 
     // 6. Pre-flight check: ensure email or phone not already registered
+    if (emailDuplicate) {
+      setError('Already registered: An account with this email address is already registered. Please sign in to your existing account.');
+      setCandidateLogin(prev => ({ ...prev, email: cleanEmail }));
+      return;
+    }
+
     try {
       const checkRes = await fetch('/api/candidate/check-exists', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ email: cleanEmail, phone: `${candidateReg.countryCode || '+91'} ${digitsOnly}` })
       });
-      if (checkRes.status === 409) {
-        const checkData = await checkRes.json();
-        setError(checkData.message || 'An account with this email address or phone number already exists. Please sign in to your existing account.');
+      const checkData = await checkRes.json().catch(() => ({}));
+      if (checkRes.status === 409 || checkData?.exists) {
+        setError(checkData?.message || 'Already registered: An account with this email address or phone number already exists. Please sign in to your existing account.');
         setEmailDuplicate(true);
+        setCandidateLogin(prev => ({ ...prev, email: cleanEmail }));
         return;
       }
     } catch (_) {}
@@ -751,13 +764,19 @@ export const UnifiedAuth = ({ defaultMode = 'login', defaultRole = 'candidate', 
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           email: cleanEmail,
+          phone: `${candidateReg.countryCode || '+91'} ${digitsOnly}`,
           name: trimmedFullName,
-          role: 'candidate'
+          role: 'candidate',
+          isRegistration: true
         })
       });
 
       const otpData = await otpRes.json();
       if (!otpRes.ok || !otpData.success) {
+        if (otpRes.status === 409 || otpData?.code === 'DUPLICATE_EMAIL') {
+          setEmailDuplicate(true);
+          setCandidateLogin(prev => ({ ...prev, email: cleanEmail }));
+        }
         setError(otpData.message || 'Failed to dispatch verification code. Please check your email and try again.');
         setOtpLoading(false);
         return;
@@ -928,7 +947,7 @@ export const UnifiedAuth = ({ defaultMode = 'login', defaultRole = 'candidate', 
                   <p className="text-amber-950 dark:text-amber-100 font-bold text-xs leading-snug">
                     {error}
                   </p>
-                  {(error.includes('already exists') || error.includes('sign in')) && authMode === 'register' && (
+                  {(error.toLowerCase().includes('already registered') || error.includes('already exists') || error.includes('sign in')) && authMode === 'register' && (
                     <button
                       type="button"
                       onClick={() => handleModeSwitch('login')}

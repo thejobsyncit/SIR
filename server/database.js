@@ -674,6 +674,78 @@ export const DEFAULT_CRM_TASKS = [
   }
 ];
 
+const extractUnionTables = (sql) => {
+  const tables = [];
+  const regex = /FROM\s+([a-zA-Z0-9_]+)/gi;
+  let match;
+  while ((match = regex.exec(sql)) !== null) {
+    if (match[1] && !tables.includes(match[1])) {
+      tables.push(match[1]);
+    }
+  }
+  return tables;
+};
+
+const findRowInStore = (store, sql, params = [], normalizer = (r) => r) => {
+  const s = sql.trim();
+  if (/SELECT\s+1\s+as\s+alive/i.test(s)) {
+    return { alive: 1 };
+  }
+  const tables = extractUnionTables(s);
+  if (tables.length === 0) return null;
+
+  if (/COUNT\(\*\)/i.test(s)) {
+    const rows = store[tables[0]] || [];
+    return { count: rows.length, total: rows.length, totalAcademies: rows.length, totalExams: rows.length };
+  }
+
+  const isEmailOnlyQuery = /email\)\s*=\s*LOWER\(\?\)/i.test(s) && !/\bOR\b/i.test(s.split(/WHERE/i)[1] || '');
+  const isGoogleSubOnlyQuery = /WHERE\s+googleSub\s*=\s*\?/i.test(s);
+  const requiresCandidateRole = /role\s*=\s*'candidate'/i.test(s);
+
+  for (let tIdx = 0; tIdx < tables.length; tIdx++) {
+    const table = tables[tIdx];
+    if (!store[table]) store[table] = [];
+
+    if (params.length > 0) {
+      const keyVal = params[tIdx] !== undefined ? params[tIdx] : params[0];
+      const cleanKey = String(keyVal || '').toLowerCase().trim();
+      const normKeyPhone = normalizePhone(keyVal);
+
+      const found = store[table].find(r => {
+        if (requiresCandidateRole && table === 'users' && (r.role || 'candidate').toLowerCase() !== 'candidate') {
+          return false;
+        }
+        if (isGoogleSubOnlyQuery) {
+          return Boolean(keyVal && (r.googleSub === keyVal || r.googlesub === keyVal));
+        }
+        if (isEmailOnlyQuery) {
+          return Boolean(cleanKey && r.email && String(r.email).toLowerCase().trim() === cleanKey);
+        }
+        return (
+          r.id === keyVal ||
+          r.userId === keyVal ||
+          r.userid === keyVal ||
+          r.candidateId === keyVal ||
+          r.candidateid === keyVal ||
+          r.employeeId === keyVal ||
+          r.employeeid === keyVal ||
+          r.referenceNumber === keyVal ||
+          (keyVal && (r.googleSub === keyVal || r.googlesub === keyVal)) ||
+          (cleanKey && r.email && String(r.email).toLowerCase().trim() === cleanKey) ||
+          (!cleanKey.includes('@') && normKeyPhone && normKeyPhone.length >= 7 && r.phone && normalizePhone(r.phone) === normKeyPhone) ||
+          (!cleanKey.includes('@') && normKeyPhone && normKeyPhone.length >= 7 && (r.normalizedPhone || r.normalizedphone) && (r.normalizedPhone || r.normalizedphone) === normKeyPhone) ||
+          (cleanKey && r.company && String(r.company).toLowerCase().trim() === cleanKey)
+        );
+      });
+      if (found) return normalizer(found);
+    } else if (store[table][0]) {
+      return normalizer(store[table][0]);
+    }
+  }
+  return null;
+};
+
 /**
  * Pure-JS JSON / In-Memory Fallback Database Adapter for Serverless Environments
  * where native C++ sqlite3 bindings are unavailable.
@@ -837,38 +909,7 @@ const createFallbackDb = () => {
       return { changes: 0 };
     },
     get: async (sql, params = []) => {
-      const s = sql.trim();
-      if (/SELECT\s+1\s+as\s+alive/i.test(s)) {
-        return { alive: 1 };
-      }
-      const table = getTableName(s);
-      if (!table) return null;
-      if (!store[table]) store[table] = [];
-
-      if (/COUNT\(\*\)/i.test(s)) {
-        const rows = store[table];
-        return { count: rows.length, total: rows.length, totalAcademies: rows.length, totalExams: rows.length };
-      }
-
-      if (params.length > 0) {
-        const keyVal = params[0];
-        const cleanKey = String(keyVal).toLowerCase().trim();
-        const found = store[table].find(r =>
-          r.id === keyVal ||
-          r.userId === keyVal ||
-          r.candidateId === keyVal ||
-          r.employeeId === keyVal ||
-          r.referenceNumber === keyVal ||
-          r.googleSub === keyVal ||
-          (r.email && String(r.email).toLowerCase().trim() === cleanKey) ||
-          (r.phone && normalizePhone(r.phone) === normalizePhone(keyVal)) ||
-          (r.normalizedPhone && r.normalizedPhone === normalizePhone(keyVal)) ||
-          (r.company && String(r.company).toLowerCase().trim() === cleanKey)
-        );
-        return found || null;
-      }
-
-      return store[table][0] || null;
+      return findRowInStore(store, sql, params);
     },
     all: async (sql, params = []) => {
       const s = sql.trim();
@@ -1183,7 +1224,8 @@ export const createSupabaseDb = async (client) => {
       if (!table) return { changes: 0 };
       if (!store[table]) store[table] = [];
 
-      if (/^INSERT\s+INTO/i.test(s)) {
+      if (/^INSERT(?:\s+OR\s+IGNORE)?\s+INTO/i.test(s)) {
+        const isInsertOrIgnore = /^INSERT\s+OR\s+IGNORE\s+INTO/i.test(s);
         const colMatch = s.match(/\(([^)]+)\)\s*VALUES/i);
         const cols = colMatch ? colMatch[1].split(',').map(c => c.trim()) : [];
         const isPipelineTable = table === 'recruitment_pipeline_records';
@@ -1198,16 +1240,28 @@ export const createSupabaseDb = async (client) => {
           row[col] = params[idx] !== undefined ? params[idx] : null;
         });
 
+        const existingIndex = row.id ? store[table].findIndex(r => r.id === row.id) : -1;
+        if (isInsertOrIgnore && existingIndex !== -1) {
+          return { changes: 0, lastID: row.id || row.candidateId };
+        }
+
         // Persist directly to Supabase Cloud PostgreSQL
         try {
           const sbRow = toSupabasePayload(row);
           const conflictCol = isPipelineTable ? 'candidateid' : 'id';
-          await client.from(table).upsert([sbRow], { onConflict: conflictCol });
+          await client.from(table).upsert([sbRow], {
+            onConflict: conflictCol,
+            ignoreDuplicates: isInsertOrIgnore
+          });
         } catch (sbErr) {
           console.warn(`[Supabase DB] Write notice for ${table}:`, sbErr.message);
         }
 
-        store[table].unshift(normalizeSupabaseRow(row));
+        if (existingIndex !== -1) {
+          store[table][existingIndex] = normalizeSupabaseRow({ ...store[table][existingIndex], ...row });
+        } else {
+          store[table].unshift(normalizeSupabaseRow(row));
+        }
         return { changes: 1, lastID: row.id || row.candidateId };
       }
 
@@ -1297,38 +1351,7 @@ export const createSupabaseDb = async (client) => {
       return { changes: 0 };
     },
     get: async (sql, params = []) => {
-      const s = sql.trim();
-      if (/SELECT\s+1\s+as\s+alive/i.test(s)) {
-        return { alive: 1 };
-      }
-      const table = getTableName(s);
-      if (!table) return null;
-      if (!store[table]) store[table] = [];
-
-      if (/COUNT\(\*\)/i.test(s)) {
-        const rows = store[table];
-        return { count: rows.length, total: rows.length, totalAcademies: rows.length, totalExams: rows.length };
-      }
-
-      if (params.length > 0) {
-        const keyVal = params[0];
-        const cleanKey = String(keyVal).toLowerCase().trim();
-        const found = store[table].find(r =>
-          r.id === keyVal ||
-          r.userId === keyVal ||
-          r.candidateId === keyVal ||
-          r.employeeId === keyVal ||
-          r.referenceNumber === keyVal ||
-          r.googleSub === keyVal ||
-          (r.email && String(r.email).toLowerCase().trim() === cleanKey) ||
-          (r.phone && normalizePhone(r.phone) === normalizePhone(keyVal)) ||
-          (r.normalizedPhone && r.normalizedPhone === normalizePhone(keyVal)) ||
-          (r.company && String(r.company).toLowerCase().trim() === cleanKey)
-        );
-        return found ? normalizeSupabaseRow(found) : null;
-      }
-
-      return store[table][0] ? normalizeSupabaseRow(store[table][0]) : null;
+      return findRowInStore(store, sql, params, normalizeSupabaseRow);
     },
     all: async (sql, params = []) => {
       const s = sql.trim();

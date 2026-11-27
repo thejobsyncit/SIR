@@ -305,13 +305,21 @@ const CrmAppContent = () => {
   };
 
   if (!isAuthenticated) {
-    return <CrmLogin />;
+    return (
+      <div className="notranslate" translate="no" dir="ltr">
+        <CrmLogin />
+      </div>
+    );
   }
 
   // Shift Late Arrival Gate: keep user on CrmLogin with inline error banner until Super Admin / HR Lead approves
   const isExecutiveUser = currentRole === 'Super Admin' || currentRole === 'Admin';
   if (lateApprovalGate?.isBlocked && !isExecutiveUser) {
-    return <CrmLogin />;
+    return (
+      <div className="notranslate" translate="no" dir="ltr">
+        <CrmLogin />
+      </div>
+    );
   }
 
   const renderModule = () => {
@@ -439,7 +447,9 @@ const CrmAppContent = () => {
   return (
     <div
       id="crm-app-root"
-      className="fixed inset-0 w-full h-full max-w-full max-h-full bg-slate-50 dark:bg-[#040714] text-slate-900 dark:text-white flex flex-col font-sans selection:bg-gold-500 selection:text-navy-950 overflow-hidden"
+      translate="no"
+      dir="ltr"
+      className="notranslate fixed inset-0 w-full h-full max-w-full max-h-full bg-slate-50 dark:bg-[#040714] text-slate-900 dark:text-white flex flex-col font-sans selection:bg-gold-500 selection:text-navy-950 overflow-hidden"
     >
       <CrmHeader collapsed={collapsed} setCollapsed={setCollapsed} />
 

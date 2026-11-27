@@ -150,8 +150,8 @@
   }
 }
 
-/* Bulletproof Navbar Visibility - Active from 860px and up (all laptops and desktops) */
-@media screen and (min-width: 860px) {
+/* Bulletproof Navbar Visibility - Active from 1040px and up so longer translated labels never overflow laptop viewports */
+@media screen and (min-width: 1040px) {
   .desktop-nav-links {
     display: flex !important;
   }
@@ -165,7 +165,7 @@
   }
 }
 
-@media screen and (max-width: 859px) {
+@media screen and (max-width: 1039px) {
   .desktop-nav-links {
     display: none !important;
   }

@@ -45,10 +45,15 @@ export async function fetchSupabaseCandidates() {
     }
 
     const userAvatarMap = new Map();
+    const userCreatedMap = new Map();
     if (Array.isArray(users)) {
       for (const u of users) {
-        if (u.email && u.avatar) userAvatarMap.set(u.email.toLowerCase().trim(), u.avatar);
+        const uEmail = (u.email || '').toLowerCase().trim();
+        if (uEmail && u.avatar) userAvatarMap.set(uEmail, u.avatar);
         if (u.id && u.avatar) userAvatarMap.set(u.id, u.avatar);
+        const uCreated = u.createdat || u.createdAt || null;
+        if (uEmail && uCreated) userCreatedMap.set(uEmail, uCreated);
+        if (u.id && uCreated) userCreatedMap.set(u.id, uCreated);
       }
     }
 
@@ -79,6 +84,9 @@ export async function fetchSupabaseCandidates() {
 
       const emailKey = (c.email || '').toLowerCase().trim();
       const resolvedAvatar = userAvatarMap.get(emailKey) || (c.id ? userAvatarMap.get(c.id) : null);
+      const userCreated = userCreatedMap.get(emailKey) || (c.id ? userCreatedMap.get(c.id) : null);
+      const candCreated = c.createdat || c.createdAt || null;
+      const earliestCreated = pickEarlierIso(userCreated, candCreated) || candCreated || userCreated;
 
       return {
         id: c.id,
@@ -98,8 +106,8 @@ export async function fetchSupabaseCandidates() {
         passport: c.passport || 'Verified',
         aiSummary: c.aisummary || c.aiSummary || `Registered Candidate (${c.email || c.name}) with international credentials.`,
         experience: c.experience || '3-5 Years',
-        createdAt: c.createdat || c.createdAt || null,
-        registeredAt: c.createdat || c.createdAt || null
+        createdAt: earliestCreated,
+        registeredAt: earliestCreated
       };
     });
   } catch (err) {
@@ -108,8 +116,101 @@ export async function fetchSupabaseCandidates() {
   }
 }
 
+function pickEarlierIso(...values) {
+  let bestIso = null;
+  let bestMs = Infinity;
+  for (const val of values) {
+    if (!val) continue;
+    const str = String(val).trim();
+    const normalized = str.includes('T') ? str : str.replace(' ', 'T') + (str.endsWith('Z') ? '' : 'Z');
+    const ms = Date.parse(normalized);
+    if (!Number.isNaN(ms) && ms > 0 && ms < bestMs) {
+      bestMs = ms;
+      bestIso = str;
+    }
+  }
+  return bestIso;
+}
+
+function normalizeCandidateRow(r) {
+  if (!r || typeof r !== 'object') return r;
+  return {
+    ...r,
+    userId: r.userid || r.userId || null,
+    passwordHash: r.passwordhash || r.passwordHash || null,
+    passwordSalt: r.passwordsalt || r.passwordSalt || null,
+    normalizedPhone: r.normalizedphone || r.normalizedPhone || null,
+    authProvider: r.authprovider || r.authProvider || null,
+    googleSub: r.googlesub || r.googleSub || null,
+    googleId: r.googleid || r.googleId || r.googlesub || null,
+    emailVerified: r.emailverified !== undefined ? r.emailverified : r.emailVerified,
+    lastLoginAt: r.lastloginat || r.lastLoginAt || null,
+    currentEmployer: r.currentemployer || r.currentEmployer || null,
+    currentRole: r.currentrole || r.currentRole || null,
+    currentSalary: r.currentsalary || r.currentSalary || null,
+    expectedSalary: r.expectedsalary || r.expectedSalary || null,
+    noticePeriod: r.noticeperiod || r.noticePeriod || null,
+    preferredCountry: r.preferredcountry || r.preferredCountry || null,
+    resumeName: r.resumename || r.resumeName || null,
+    resumeUrl: r.resumeurl || r.resumeUrl || null,
+    resumeSize: r.resumesize || r.resumeSize || null,
+    savedJobs: r.savedjobs || r.savedJobs || null,
+    profileCompletion: r.profilecompletion !== undefined ? r.profilecompletion : r.profileCompletion,
+    createdAt: r.createdat || r.createdAt || null,
+    updatedAt: r.updatedat || r.updatedAt || null
+  };
+}
+
 /**
- * Upsert candidate profile into Supabase
+ * Look up an existing candidate account authoritatively across users, candidate_profiles, and candidates in Supabase
+ */
+export async function findSupabaseCandidateAuth(email) {
+  const client = getSupabaseClient();
+  const cleanEmail = (email || '').toLowerCase().trim();
+  if (!client || !cleanEmail) return { exists: false, user: null, profile: null, candidate: null, earliestCreatedAt: null };
+  try {
+    const [{ data: users }, { data: profiles }, { data: cands }] = await Promise.all([
+      client.from('users').select('*').ilike('email', cleanEmail).limit(5),
+      client.from('candidate_profiles').select('*').ilike('email', cleanEmail).limit(5),
+      client.from('candidates').select('*').ilike('email', cleanEmail).limit(5)
+    ]);
+
+    const userRowRaw = (users || []).find(u => (u.role || 'candidate').toLowerCase() === 'candidate') || (users || [])[0] || null;
+    const profileRowRaw = (profiles || [])[0] || null;
+    const candRowRaw = (cands || [])[0] || null;
+
+    const user = normalizeCandidateRow(userRowRaw);
+    const profile = normalizeCandidateRow(profileRowRaw);
+    const candidate = normalizeCandidateRow(candRowRaw);
+
+    const isCandidateAccount = Boolean(
+      (user && (user.role || 'candidate').toLowerCase() === 'candidate') ||
+      profile ||
+      candidate
+    );
+
+    const earliestCreatedAt = pickEarlierIso(
+      user?.createdAt,
+      candidate?.createdAt,
+      profile?.createdAt
+    );
+
+    return {
+      exists: isCandidateAccount || Boolean(user),
+      isCandidateAccount,
+      user,
+      profile,
+      candidate,
+      earliestCreatedAt
+    };
+  } catch (err) {
+    console.warn('[Supabase] findCandidateAuth warning:', err.message);
+    return { exists: false, isCandidateAccount: false, user: null, profile: null, candidate: null, earliestCreatedAt: null };
+  }
+}
+
+/**
+ * Upsert candidate profile into Supabase (never overwrites original registration createdat)
  */
 export async function syncCandidateToSupabase(cand) {
   const client = getSupabaseClient();
@@ -129,20 +230,34 @@ export async function syncCandidateToSupabase(cand) {
       passport: cand.passport || 'Verified',
       experience: cand.experience || '3-5 Years'
     };
-    if (cand.createdAt || cand.createdat) {
-      candidateRow.createdat = cand.createdAt || cand.createdat;
-    }
 
-    // STRICT 1 CANDIDATE PER EMAIL: If this email already exists in Supabase, reuse existing ID to prevent duplicate profiles
+    let existingCreatedAt = null;
+    // STRICT 1 CANDIDATE PER EMAIL: If this email already exists in Supabase, reuse existing ID & preserve original createdat
     if (cleanEmail) {
       const { data: existingCand } = await client
         .from('candidates')
-        .select('id')
+        .select('id, createdat')
         .ilike('email', cleanEmail)
         .limit(1);
-      if (existingCand && existingCand.length > 0 && existingCand[0].id) {
-        candidateRow.id = existingCand[0].id;
+      if (existingCand && existingCand.length > 0) {
+        if (existingCand[0].id) candidateRow.id = existingCand[0].id;
+        existingCreatedAt = existingCand[0].createdat || null;
       }
+    }
+    if (!existingCreatedAt && candidateRow.id) {
+      const { data: existingById } = await client
+        .from('candidates')
+        .select('id, createdat')
+        .eq('id', candidateRow.id)
+        .limit(1);
+      if (existingById && existingById.length > 0 && existingById[0].createdat) {
+        existingCreatedAt = existingById[0].createdat;
+      }
+    }
+
+    const preservedCreated = pickEarlierIso(existingCreatedAt, cand.createdAt || cand.createdat);
+    if (preservedCreated) {
+      candidateRow.createdat = preservedCreated;
     }
 
     const { data, error } = await client
@@ -160,23 +275,56 @@ export async function syncCandidateToSupabase(cand) {
 }
 
 /**
- * Sync registered user account into Supabase
+ * Sync registered user account into Supabase (preserves original createdat)
  */
 export async function syncUserToSupabase(user) {
   const client = getSupabaseClient();
   if (!client || !user) return null;
   try {
+    const cleanEmail = (user.email || '').toLowerCase().trim();
     const userRow = {
       id: user.id,
       name: user.name,
-      email: (user.email || '').toLowerCase().trim(),
+      email: cleanEmail,
       phone: user.phone || '',
       role: user.role || 'candidate',
       status: user.status || 'active',
       avatar: user.avatar !== undefined ? user.avatar : null
     };
-    if (user.createdAt || user.createdat) {
-      userRow.createdat = user.createdAt || user.createdat;
+    if (user.passwordHash) userRow.passwordhash = user.passwordHash;
+    if (user.passwordSalt) userRow.passwordsalt = user.passwordSalt;
+    if (user.normalizedPhone) userRow.normalizedphone = user.normalizedPhone;
+    if (user.authProvider) userRow.authprovider = user.authProvider;
+    if (user.googleSub) userRow.googlesub = user.googleSub;
+    if (user.emailVerified !== undefined) userRow.emailverified = user.emailVerified;
+    if (user.lastLoginAt) userRow.lastloginat = user.lastLoginAt;
+
+    let existingCreatedAt = null;
+    if (cleanEmail) {
+      const { data: existingByEmail } = await client
+        .from('users')
+        .select('id, createdat')
+        .ilike('email', cleanEmail)
+        .limit(1);
+      if (existingByEmail && existingByEmail.length > 0) {
+        if (existingByEmail[0].id) userRow.id = existingByEmail[0].id;
+        existingCreatedAt = existingByEmail[0].createdat || null;
+      }
+    }
+    if (!existingCreatedAt && userRow.id) {
+      const { data: existingById } = await client
+        .from('users')
+        .select('id, createdat')
+        .eq('id', userRow.id)
+        .limit(1);
+      if (existingById && existingById.length > 0) {
+        existingCreatedAt = existingById[0].createdat || null;
+      }
+    }
+
+    const preservedCreated = pickEarlierIso(existingCreatedAt, user.createdAt || user.createdat);
+    if (preservedCreated) {
+      userRow.createdat = preservedCreated;
     }
 
     const { data, error } = await client
@@ -194,7 +342,7 @@ export async function syncUserToSupabase(user) {
 }
 
 /**
- * Check if candidate email or phone exists in Supabase PostgreSQL
+ * Check if candidate email or phone exists in Supabase PostgreSQL across users, candidate_profiles, and candidates
  */
 export async function checkSupabaseCandidateExists(email, phone = '') {
   const client = getSupabaseClient();
@@ -202,20 +350,26 @@ export async function checkSupabaseCandidateExists(email, phone = '') {
   try {
     const cleanEmail = (email || '').toLowerCase().trim();
     if (cleanEmail) {
-      const { data: usersByEmail } = await client.from('users').select('id, email').ilike('email', cleanEmail).limit(1);
+      const [{ data: usersByEmail }, { data: profilesByEmail }, { data: candsByEmail }] = await Promise.all([
+        client.from('users').select('id, email').ilike('email', cleanEmail).limit(1),
+        client.from('candidate_profiles').select('id, email').ilike('email', cleanEmail).limit(1),
+        client.from('candidates').select('id, email').ilike('email', cleanEmail).limit(1)
+      ]);
       if (usersByEmail && usersByEmail.length > 0) return { exists: true, field: 'email', user: usersByEmail[0] };
-
-      const { data: candsByEmail } = await client.from('candidates').select('id, email').ilike('email', cleanEmail).limit(1);
+      if (profilesByEmail && profilesByEmail.length > 0) return { exists: true, field: 'email', profile: profilesByEmail[0] };
       if (candsByEmail && candsByEmail.length > 0) return { exists: true, field: 'email', candidate: candsByEmail[0] };
     }
 
     const cleanPhone = (phone || '').replace(/\D/g, '');
     if (cleanPhone && cleanPhone.length >= 7) {
       const phoneSuffix = cleanPhone.slice(-7);
-      const { data: usersByPhone } = await client.from('users').select('id, phone').like('phone', `%${phoneSuffix}`).limit(1);
+      const [{ data: usersByPhone }, { data: profilesByPhone }, { data: candsByPhone }] = await Promise.all([
+        client.from('users').select('id, phone').like('phone', `%${phoneSuffix}`).limit(1),
+        client.from('candidate_profiles').select('id, phone').like('phone', `%${phoneSuffix}`).limit(1),
+        client.from('candidates').select('id, phone').like('phone', `%${phoneSuffix}`).limit(1)
+      ]);
       if (usersByPhone && usersByPhone.length > 0) return { exists: true, field: 'phone', user: usersByPhone[0] };
-
-      const { data: candsByPhone } = await client.from('candidates').select('id, phone').like('phone', `%${phoneSuffix}`).limit(1);
+      if (profilesByPhone && profilesByPhone.length > 0) return { exists: true, field: 'phone', profile: profilesByPhone[0] };
       if (candsByPhone && candsByPhone.length > 0) return { exists: true, field: 'phone', candidate: candsByPhone[0] };
     }
 
@@ -227,7 +381,7 @@ export async function checkSupabaseCandidateExists(email, phone = '') {
 }
 
 /**
- * Permanently delete candidate from Supabase
+ * Permanently delete candidate from Supabase across candidates, candidate_profiles, users, and google_auth_accounts
  */
 export async function deleteCandidateFromSupabase(candidateId, email = '', phone = '') {
   const client = getSupabaseClient();
@@ -235,29 +389,23 @@ export async function deleteCandidateFromSupabase(candidateId, email = '', phone
   try {
     const cleanEmail = (email || '').toLowerCase().trim();
     const cleanPhone = (phone || '').replace(/\D/g, '');
+    const phoneSuffix = cleanPhone.length >= 7 ? cleanPhone.slice(-7) : '';
 
-    // 1. Delete from candidates table
-    if (candidateId) {
-      await client.from('candidates').delete().eq('id', candidateId);
-    }
-    if (cleanEmail) {
-      await client.from('candidates').delete().ilike('email', cleanEmail);
-    }
-    if (cleanPhone && cleanPhone.length >= 7) {
-      const phoneSuffix = cleanPhone.slice(-7);
-      await client.from('candidates').delete().like('phone', `%${phoneSuffix}`);
+    // Delete from candidates, candidate_profiles, and users
+    for (const table of ['candidates', 'candidate_profiles', 'users']) {
+      if (candidateId) {
+        await client.from(table).delete().eq('id', candidateId);
+      }
+      if (cleanEmail) {
+        await client.from(table).delete().ilike('email', cleanEmail);
+      }
+      if (phoneSuffix) {
+        await client.from(table).delete().like('phone', `%${phoneSuffix}`);
+      }
     }
 
-    // 2. Delete from users table if candidate
-    if (candidateId) {
-      await client.from('users').delete().eq('id', candidateId);
-    }
     if (cleanEmail) {
-      await client.from('users').delete().ilike('email', cleanEmail);
-    }
-    if (cleanPhone && cleanPhone.length >= 7) {
-      const phoneSuffix = cleanPhone.slice(-7);
-      await client.from('users').delete().like('phone', `%${phoneSuffix}`);
+      await client.from('google_auth_accounts').delete().ilike('email', cleanEmail);
     }
 
     // Note: candidate_applications are intentionally preserved in Supabase for audit and recruitment pipeline tracking

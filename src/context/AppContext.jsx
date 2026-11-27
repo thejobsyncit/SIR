@@ -1,8 +1,8 @@
 import { getPendingCareerEnquiry } from '../utils/careerGuidanceAuth.js';
 import { getPendingStudentAcademyEnquiry } from '../utils/studentAcademyAuth.js';
-import React, { createContext, useContext, useState, useEffect } from 'react';
+import React, { createContext, useContext, useState, useEffect, useLayoutEffect } from 'react';
 import { TRANSLATIONS } from '../data/translations';
-import { translateDomToLanguage } from '../utils/autoTranslator';
+import { translateDomToLanguage, preloadLanguageDictionaries, isTranslatingDom, restoreOriginalEnglish } from '../utils/autoTranslator';
 import { useCrm } from '../crm/context/CrmContext';
 import { trackPageView, trackFunnelStep } from '../services/analytics';
 import { getAttributionData } from '../utils/attribution';
@@ -65,43 +65,6 @@ export const AppProvider = ({ children }) => {
   const [currency, setCurrency] = useState('AED');
   const [selectedJobCategory, setSelectedJobCategory] = useState('All');
 
-  const t = (key) => {
-    return TRANSLATIONS[language]?.[key] || TRANSLATIONS['EN']?.[key] || key;
-  };
-
-  useEffect(() => {
-    try {
-      localStorage.setItem('sir_site_language', language);
-    } catch {}
-    if (language === 'AR') {
-      document.documentElement.setAttribute('dir', 'rtl');
-      document.documentElement.setAttribute('lang', 'ar');
-    } else {
-      document.documentElement.setAttribute('dir', 'ltr');
-      document.documentElement.setAttribute('lang', language ? language.toLowerCase() : 'en');
-    }
-
-    let timer = setTimeout(() => {
-      translateDomToLanguage(language);
-    }, 60);
-
-    let observer = null;
-    if (language !== 'EN' && typeof MutationObserver !== 'undefined') {
-      let mutTimer = null;
-      observer = new MutationObserver(() => {
-        if (mutTimer) clearTimeout(mutTimer);
-        mutTimer = setTimeout(() => {
-          translateDomToLanguage(language);
-        }, 250);
-      });
-      observer.observe(document.body, { childList: true, subtree: true });
-    }
-
-    return () => {
-      clearTimeout(timer);
-      if (observer) observer.disconnect();
-    };
-  }, [language]);
   const [activeTab, setActiveTab] = useState(() => {
     if (typeof window !== 'undefined') {
       const path = window.location.pathname.replace(/^\/+|\/+$/g, '');
@@ -115,6 +78,84 @@ export const AppProvider = ({ children }) => {
     }
     return 'home';
   });
+
+  const isInternalPortalRoute = (tab) => {
+    if (tab === 'crm' || tab === 'erp' || tab === 'superadmin-erp') return true;
+    if (typeof window !== 'undefined') {
+      const path = window.location.pathname.replace(/^\/+|\/+$/g, '').toLowerCase();
+      const hash = window.location.hash.replace(/^#/, '').split('?')[0].toLowerCase();
+      if (
+        path === 'crm' || path.startsWith('crm/') ||
+        path === 'erp' || path.startsWith('erp/') ||
+        path === 'superadmin-erp' || path.startsWith('superadmin-erp/') ||
+        hash === 'crm' || hash.startsWith('crm/') ||
+        hash === 'erp' || hash.startsWith('erp/') ||
+        hash === 'superadmin-erp'
+      ) {
+        return true;
+      }
+    }
+    return false;
+  };
+
+  const t = (key) => {
+    // Always render canonical English from React so autoTranslator cleanly manages DOM switching
+    // across all languages (EN, HI, AR, FR, DE) without poisoning originalNodeTextMap.
+    return TRANSLATIONS['EN']?.[key] || key;
+  };
+
+  // Warm up all i18n bundles immediately so language switches execute synchronously (0ms wait)
+  useEffect(() => {
+    if (isInternalPortalRoute(activeTab)) return;
+    preloadLanguageDictionaries(language);
+  }, []);
+
+  useLayoutEffect(() => {
+    if (isInternalPortalRoute(activeTab)) {
+      document.documentElement.setAttribute('dir', 'ltr');
+      document.documentElement.setAttribute('lang', 'en');
+      restoreOriginalEnglish();
+      return;
+    }
+
+    try {
+      localStorage.setItem('sir_site_language', language);
+    } catch { }
+    if (language === 'AR') {
+      document.documentElement.setAttribute('dir', 'rtl');
+      document.documentElement.setAttribute('lang', 'ar');
+    } else {
+      document.documentElement.setAttribute('dir', 'ltr');
+      document.documentElement.setAttribute('lang', language ? language.toLowerCase() : 'en');
+    }
+
+    translateDomToLanguage(language);
+
+    let observer = null;
+    if (language !== 'EN' && typeof MutationObserver !== 'undefined') {
+      let mutQueued = false;
+      let cancelled = false;
+      observer = new MutationObserver(() => {
+        if (mutQueued || isTranslatingDom() || isInternalPortalRoute(activeTab)) return;
+        mutQueued = true;
+        queueMicrotask(() => {
+          mutQueued = false;
+          if (!cancelled && !isTranslatingDom() && !isInternalPortalRoute(activeTab)) {
+            translateDomToLanguage(language);
+          }
+        });
+      });
+      observer.observe(document.body, { childList: true, subtree: true });
+      return () => {
+        cancelled = true;
+        observer.disconnect();
+      };
+    }
+
+    return () => {
+      if (observer) observer.disconnect();
+    };
+  }, [language, activeTab]);
 
   useEffect(() => {
     const handleHashChange = () => {
@@ -133,1454 +174,1434 @@ export const AppProvider = ({ children }) => {
     window.addEventListener('hashchange', handleHashChange);
     return () => window.removeEventListener('hashchange', handleHashChange);
   }, []);
-  const [selectedJob, setSelectedJob] = useState(null);
-  const [activeModal, setActiveModal] = useState(null); // 'apply', 'ai-resume', 'payment', 'resume-builder', 'post-job', 'verification-modal', 'auth'
-  const [authModalConfig, setAuthModalConfig] = useState({ mode: 'login', role: null });
+const [selectedJob, setSelectedJob] = useState(null);
+const [activeModal, setActiveModal] = useState(null); // 'apply', 'ai-resume', 'payment', 'resume-builder', 'post-job', 'verification-modal', 'auth'
+const [authModalConfig, setAuthModalConfig] = useState({ mode: 'login', role: null });
 
-  const openAuthModal = (mode = 'login', role = null) => {
-    setAuthModalConfig({ mode, role });
-    setActiveModal('auth');
-  };
+const openAuthModal = (mode = 'login', role = null) => {
+  setAuthModalConfig({ mode, role });
+  setActiveModal('auth');
+};
 
-  const [pendingJobToApply, setPendingJobToApplyState] = useState(() => {
-    try {
-      const saved = sessionStorage.getItem('sir_pending_job_apply');
-      return saved ? JSON.parse(saved) : null;
-    } catch {
-      return null;
+const [pendingJobToApply, setPendingJobToApplyState] = useState(() => {
+  try {
+    const saved = sessionStorage.getItem('sir_pending_job_apply');
+    return saved ? JSON.parse(saved) : null;
+  } catch {
+    return null;
+  }
+});
+
+const setPendingJobToApply = (job) => {
+  setPendingJobToApplyState(job);
+  try {
+    if (job) {
+      sessionStorage.setItem('sir_pending_job_apply', JSON.stringify(job));
+    } else {
+      sessionStorage.removeItem('sir_pending_job_apply');
     }
-  });
+  } catch { }
+};
+const [savedJobs, setSavedJobs] = useState([]);
+const [applications, setApplications] = useState([]);
+const [savedSearches, setSavedSearches] = useState([]);
+const [activeSearchCriteria, setActiveSearchCriteria] = useState(null);
 
-  const setPendingJobToApply = (job) => {
-    setPendingJobToApplyState(job);
-    try {
-      if (job) {
-        sessionStorage.setItem('sir_pending_job_apply', JSON.stringify(job));
-      } else {
-        sessionStorage.removeItem('sir_pending_job_apply');
-      }
-    } catch { }
+// Auth State Management & Candidate Profile Database Persistence
+const getCandidateDB = () => {
+  try {
+    const saved = safeStorageGetItem('sir_candidates_db');
+    return saved ? JSON.parse(saved) : {};
+  } catch {
+    return {};
+  }
+};
+
+const saveCandidateToDB = (candidateObj, { isNewRegistration = false } = {}) => {
+  if (!candidateObj || !candidateObj.email) return;
+  const normalizedEmail = candidateObj.email.toLowerCase().trim();
+  const sanitizedObj = stripBulkyDataForStorage(candidateObj);
+  const db = getCandidateDB();
+  const prevEntry = db[normalizedEmail] || {};
+  const preservedRegisteredAt =
+    candidateObj.registeredAt ||
+    candidateObj.createdAt ||
+    prevEntry.registeredAt ||
+    prevEntry.createdAt ||
+    null;
+
+  db[normalizedEmail] = {
+    ...prevEntry,
+    ...sanitizedObj,
+    ...(preservedRegisteredAt ? { registeredAt: preservedRegisteredAt, createdAt: preservedRegisteredAt } : {}),
+    lastUpdated: new Date().toISOString()
   };
-  const [savedJobs, setSavedJobs] = useState([]);
-  const [applications, setApplications] = useState([]);
-  const [savedSearches, setSavedSearches] = useState([]);
-  const [activeSearchCriteria, setActiveSearchCriteria] = useState(null);
+  safeStorageSetItem('sir_candidates_db', db);
 
-  // Auth State Management & Candidate Profile Database Persistence
-  const getCandidateDB = () => {
-    try {
-      const saved = safeStorageGetItem('sir_candidates_db');
-      return saved ? JSON.parse(saved) : {};
-    } catch {
-      return {};
-    }
-  };
-
-  const saveCandidateToDB = (candidateObj) => {
-    if (!candidateObj || !candidateObj.email) return;
-    const normalizedEmail = candidateObj.email.toLowerCase().trim();
-    const sanitizedObj = stripBulkyDataForStorage(candidateObj);
-    const db = getCandidateDB();
-    db[normalizedEmail] = {
-      ...db[normalizedEmail],
-      ...sanitizedObj,
-      lastUpdated: new Date().toISOString()
+  // Synchronize directly with CRM Talent Pool local storage without overwriting 1st-time registration timestamp
+  try {
+    const crmSaved = safeStorageGetItem('crm_candidates');
+    let crmList = crmSaved ? JSON.parse(crmSaved) : [];
+    if (!Array.isArray(crmList)) crmList = [];
+    const idx = crmList.findIndex(c => (c.id && (c.id === candidateObj.candidateId || c.id === candidateObj.id)) || (c.email && c.email.toLowerCase().trim() === normalizedEmail));
+    const existingCrmCreated = idx >= 0 ? (crmList[idx].createdAt || crmList[idx].registeredAt) : null;
+    const effectiveCreatedAt = existingCrmCreated || preservedRegisteredAt || new Date().toISOString();
+    const crmEntry = {
+      id: candidateObj.candidateId || candidateObj.id || (idx >= 0 ? crmList[idx].id : null) || ('RI-CAND-' + Math.floor(100 + Math.random() * 900)),
+      name: candidateObj.name || candidateObj.fullName || 'Candidate',
+      email: normalizedEmail,
+      phone: candidateObj.phone || '',
+      nationality: candidateObj.nationality || candidateObj.preferredCountry || 'UAE',
+      currentEmployer: candidateObj.currentEmployer || 'Revival International Candidate',
+      currentRole: candidateObj.title || candidateObj.currentRole || 'Executive Candidate',
+      currentSalary: candidateObj.currentSalary || '',
+      expectedSalary: candidateObj.expectedSalary || '',
+      noticePeriod: candidateObj.noticePeriod || 'Immediate',
+      score: candidateObj.score || 92,
+      stage: candidateObj.stage || 'lead',
+      skills: Array.isArray(candidateObj.skills) ? candidateObj.skills : [],
+      source: candidateObj.source || 'Candidate Portal Registration',
+      passport: 'Verified',
+      aiSummary: `Portal registered candidate (${normalizedEmail}).`,
+      experience: candidateObj.experience || '3-5 Years',
+      avatar: candidateObj.avatar || null,
+      resumeName: candidateObj.resumeName || null,
+      resumeUrl: null, // do not store raw base64 data URIs in CRM localStorage
+      resumeSize: candidateObj.resumeSize || null,
+      assignedRecruiter: 'Dhanalakshimi (Lead Advisor)',
+      createdAt: effectiveCreatedAt,
+      registeredAt: effectiveCreatedAt
     };
-    safeStorageSetItem('sir_candidates_db', db);
-
-    // Synchronize directly with CRM Talent Pool local storage & dispatch live event
-    try {
-      const crmSaved = safeStorageGetItem('crm_candidates');
-      let crmList = crmSaved ? JSON.parse(crmSaved) : [];
-      if (!Array.isArray(crmList)) crmList = [];
-      const idx = crmList.findIndex(c => (c.id && (c.id === candidateObj.candidateId || c.id === candidateObj.id)) || (c.email && c.email.toLowerCase().trim() === normalizedEmail));
-      const crmEntry = {
-        id: candidateObj.candidateId || candidateObj.id || ('RI-CAND-' + Math.floor(100 + Math.random() * 900)),
-        name: candidateObj.name || candidateObj.fullName || 'Candidate',
-        email: normalizedEmail,
-        phone: candidateObj.phone || '',
-        nationality: candidateObj.nationality || candidateObj.preferredCountry || 'UAE',
-        currentEmployer: candidateObj.currentEmployer || 'Revival International Candidate',
-        currentRole: candidateObj.title || candidateObj.currentRole || 'Executive Candidate',
-        currentSalary: candidateObj.currentSalary || '',
-        expectedSalary: candidateObj.expectedSalary || '',
-        noticePeriod: candidateObj.noticePeriod || 'Immediate',
-        score: candidateObj.score || 92,
-        stage: candidateObj.stage || 'lead',
-        skills: Array.isArray(candidateObj.skills) ? candidateObj.skills : [],
-        source: candidateObj.source || 'Candidate Portal Registration',
-        passport: 'Verified',
-        aiSummary: `Portal registered candidate (${normalizedEmail}).`,
-        experience: candidateObj.experience || '3-5 Years',
-        avatar: candidateObj.avatar || null,
-        resumeName: candidateObj.resumeName || null,
-        resumeUrl: null, // do not store raw base64 data URIs in CRM localStorage
-        resumeSize: candidateObj.resumeSize || null,
-        assignedRecruiter: 'Dhanalakshimi (Lead Advisor)',
-        createdAt: candidateObj.registeredAt || candidateObj.createdAt || new Date().toISOString()
-      };
-      if (idx >= 0) {
-        crmList[idx] = { ...crmList[idx], ...crmEntry };
-      } else {
-        crmList.unshift(crmEntry);
-      }
-      safeStorageSetItem('crm_candidates', crmList);
-      window.dispatchEvent(new CustomEvent('candidate-registered', { detail: crmEntry }));
-    } catch {}
-  };
-
-  const [user, setUser] = useState(() => {
-    try {
-      const savedUser = safeStorageGetItem('sir_user_session');
-      if (savedUser) {
-        const parsed = JSON.parse(savedUser);
-        if (parsed && parsed.email && parsed.role === 'candidate') {
-          const db = getCandidateDB();
-          const storedProfile = db[parsed.email.toLowerCase().trim()];
-          const resumeFromCache = (parsed.email && (safeStorageGetItem(`sir_resume_${parsed.email.toLowerCase().trim()}`) || sessionStorage.getItem(`sir_resume_${parsed.email.toLowerCase().trim()}`))) || sessionStorage.getItem('sir_active_resume');
-          const resumeNameFromCache = sessionStorage.getItem('sir_active_resume_name') || safeStorageGetItem('sir_active_resume_name');
-          const combined = storedProfile ? { ...parsed, ...storedProfile } : parsed;
-          if (!combined.resumeUrl && resumeFromCache) combined.resumeUrl = resumeFromCache;
-          if (!combined.resumeName && resumeNameFromCache) combined.resumeName = resumeNameFromCache;
-          return combined;
-        }
-        return parsed;
-      }
-      return null;
-    } catch {
-      return null;
+    if (idx >= 0) {
+      crmList[idx] = { ...crmList[idx], ...crmEntry, createdAt: existingCrmCreated || effectiveCreatedAt, registeredAt: existingCrmCreated || effectiveCreatedAt };
+    } else if (isNewRegistration || preservedRegisteredAt) {
+      crmList.unshift(crmEntry);
     }
-  });
+    safeStorageSetItem('crm_candidates', crmList);
+    if (isNewRegistration) {
+      window.dispatchEvent(new CustomEvent('candidate-registered', { detail: crmEntry }));
+    }
+  } catch { }
+};
 
-  // Candidate Data Isolation: Load candidate-specific applications and saved jobs
-  useEffect(() => {
-    if (user && (user.candidateId || user.email)) {
-      const cid = user.candidateId || user.email;
-      const userEmail = (user.email || '').toLowerCase().trim();
+const [user, setUser] = useState(() => {
+  try {
+    const savedUser = safeStorageGetItem('sir_user_session');
+    if (savedUser) {
+      const parsed = JSON.parse(savedUser);
+      if (parsed && parsed.email && parsed.role === 'candidate') {
+        const db = getCandidateDB();
+        const storedProfile = db[parsed.email.toLowerCase().trim()];
+        const resumeFromCache = (parsed.email && (safeStorageGetItem(`sir_resume_${parsed.email.toLowerCase().trim()}`) || sessionStorage.getItem(`sir_resume_${parsed.email.toLowerCase().trim()}`))) || sessionStorage.getItem('sir_active_resume');
+        const resumeNameFromCache = sessionStorage.getItem('sir_active_resume_name') || safeStorageGetItem('sir_active_resume_name');
+        const combined = storedProfile ? { ...parsed, ...storedProfile } : parsed;
+        if (!combined.resumeUrl && resumeFromCache) combined.resumeUrl = resumeFromCache;
+        if (!combined.resumeName && resumeNameFromCache) combined.resumeName = resumeNameFromCache;
+        return combined;
+      }
+      return parsed;
+    }
+    return null;
+  } catch {
+    return null;
+  }
+});
 
-      // Load saved jobs for this candidate
-      try {
-        const saved = localStorage.getItem(`sir_saved_jobs_${cid}`) || (userEmail ? localStorage.getItem(`sir_saved_jobs_${userEmail}`) : null);
-        if (saved) {
-          setSavedJobs(JSON.parse(saved));
-        } else if (user.savedJobs && Array.isArray(user.savedJobs)) {
-          setSavedJobs(user.savedJobs);
-        } else {
-          setSavedJobs([]);
-        }
-      } catch {
+// Candidate Data Isolation: Load candidate-specific applications and saved jobs
+useEffect(() => {
+  if (user && (user.candidateId || user.email)) {
+    const cid = user.candidateId || user.email;
+    const userEmail = (user.email || '').toLowerCase().trim();
+
+    // Load saved jobs for this candidate
+    try {
+      const saved = localStorage.getItem(`sir_saved_jobs_${cid}`) || (userEmail ? localStorage.getItem(`sir_saved_jobs_${userEmail}`) : null);
+      if (saved) {
+        setSavedJobs(JSON.parse(saved));
+      } else if (user.savedJobs && Array.isArray(user.savedJobs)) {
+        setSavedJobs(user.savedJobs);
+      } else {
         setSavedJobs([]);
       }
+    } catch {
+      setSavedJobs([]);
+    }
 
-      // Load applications for this candidate from localStorage first (immediate local cache)
-      let initialApps = [];
-      try {
-        const localByCid = localStorage.getItem(`sir_applications_${cid}`);
-        const localByEmail = userEmail ? localStorage.getItem(`sir_applications_${userEmail}`) : null;
-        const apps = localByCid || localByEmail;
-        if (apps) {
-          const parsed = JSON.parse(apps);
-          if (Array.isArray(parsed) && parsed.length > 0) initialApps = parsed;
-        }
-        
-        // Also check global sir_job_applications if specific cache is empty
-        if (initialApps.length === 0) {
-          const globalAppsStr = localStorage.getItem('sir_job_applications');
-          if (globalAppsStr) {
-            const parsedGlobal = JSON.parse(globalAppsStr);
-            if (Array.isArray(parsedGlobal)) {
-              initialApps = parsedGlobal.filter(a => {
-                const aEmail = (a.applicantEmail || a.email || '').toLowerCase().trim();
-                const aCid = (a.candidateId || '').trim();
-                return (userEmail && aEmail === userEmail) || (cid && aCid === cid);
-              });
-            }
+    // Load applications for this candidate from localStorage first (immediate local cache)
+    let initialApps = [];
+    try {
+      const localByCid = localStorage.getItem(`sir_applications_${cid}`);
+      const localByEmail = userEmail ? localStorage.getItem(`sir_applications_${userEmail}`) : null;
+      const apps = localByCid || localByEmail;
+      if (apps) {
+        const parsed = JSON.parse(apps);
+        if (Array.isArray(parsed) && parsed.length > 0) initialApps = parsed;
+      }
+
+      // Also check global sir_job_applications if specific cache is empty
+      if (initialApps.length === 0) {
+        const globalAppsStr = localStorage.getItem('sir_job_applications');
+        if (globalAppsStr) {
+          const parsedGlobal = JSON.parse(globalAppsStr);
+          if (Array.isArray(parsedGlobal)) {
+            initialApps = parsedGlobal.filter(a => {
+              const aEmail = (a.applicantEmail || a.email || '').toLowerCase().trim();
+              const aCid = (a.candidateId || '').trim();
+              return (userEmail && aEmail === userEmail) || (cid && aCid === cid);
+            });
           }
         }
+      }
 
-        if (initialApps.length === 0 && user.applications && Array.isArray(user.applications) && user.applications.length > 0) {
-          initialApps = user.applications;
-        }
+      if (initialApps.length === 0 && user.applications && Array.isArray(user.applications) && user.applications.length > 0) {
+        initialApps = user.applications;
+      }
 
-        if (initialApps.length > 0) {
-          setApplications(initialApps);
-        }
-      } catch { }
+      if (initialApps.length > 0) {
+        setApplications(initialApps);
+      }
+    } catch { }
 
-      // Sync from backend candidate APIs for complete data isolation & database persistence
-      const queryParams = new URLSearchParams();
-      if (user.candidateId) queryParams.set('candidateId', user.candidateId);
-      if (userEmail) queryParams.set('email', userEmail);
-      if (user.userId) queryParams.set('userId', user.userId);
+    // Sync from backend candidate APIs for complete data isolation & database persistence
+    const queryParams = new URLSearchParams();
+    if (user.candidateId) queryParams.set('candidateId', user.candidateId);
+    if (userEmail) queryParams.set('email', userEmail);
+    if (user.userId) queryParams.set('userId', user.userId);
 
-      fetch(`/api/candidate/applications?${queryParams.toString()}`)
-        .then(r => r.json())
-        .then(d => {
-          if (d?.success && Array.isArray(d?.data)) {
-            if (d.data.length > 0) {
-              setApplications(d.data);
-              if (user.candidateId) safeStorageSetItem(`sir_applications_${user.candidateId}`, d.data);
-              if (userEmail) {
-                safeStorageSetItem(`sir_applications_${userEmail}`, d.data);
-                try {
-                  const db = getCandidateDB();
-                  if (db[userEmail]) {
-                    db[userEmail].applications = stripBulkyDataForStorage(d.data);
-                    safeStorageSetItem('sir_candidates_db', db);
-                  }
-                } catch { }
-              }
-            } else {
-              // Check global sir_job_applications or initialApps fallback to prevent accidental empty overrides
-              let fallbackApps = [];
+    fetch(`/api/candidate/applications?${queryParams.toString()}`)
+      .then(r => r.json())
+      .then(d => {
+        if (d?.success && Array.isArray(d?.data)) {
+          if (d.data.length > 0) {
+            setApplications(d.data);
+            if (user.candidateId) safeStorageSetItem(`sir_applications_${user.candidateId}`, d.data);
+            if (userEmail) {
+              safeStorageSetItem(`sir_applications_${userEmail}`, d.data);
               try {
-                const globalApps = JSON.parse(localStorage.getItem('sir_job_applications') || '[]');
-                if (Array.isArray(globalApps)) {
-                  fallbackApps = globalApps.filter(a => {
-                    const aEmail = (a.applicantEmail || a.email || '').toLowerCase().trim();
-                    const aCid = (a.candidateId || '').trim();
-                    return (userEmail && aEmail === userEmail) || (user.candidateId && aCid === user.candidateId) || (cid && aCid === cid);
-                  });
+                const db = getCandidateDB();
+                if (db[userEmail]) {
+                  db[userEmail].applications = stripBulkyDataForStorage(d.data);
+                  safeStorageSetItem('sir_candidates_db', db);
                 }
               } catch { }
-
-              if (fallbackApps.length === 0 && initialApps.length > 0) {
-                fallbackApps = initialApps;
-              }
-
-              if (fallbackApps.length > 0) {
-                setApplications(fallbackApps);
-                // Sync back to backend SQLite database so they are stored permanently!
-                fallbackApps.forEach(fbApp => {
-                  fetch('/api/candidate/applications', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({
-                      ...fbApp,
-                      candidateId: user.candidateId || fbApp.candidateId || cid,
-                      userId: user.userId || fbApp.userId || '',
-                      applicantEmail: userEmail || fbApp.applicantEmail,
-                      applicantName: user.name || fbApp.applicantName
-                    })
-                  }).catch(() => { });
+            }
+          } else {
+            // Check global sir_job_applications or initialApps fallback to prevent accidental empty overrides
+            let fallbackApps = [];
+            try {
+              const globalApps = JSON.parse(localStorage.getItem('sir_job_applications') || '[]');
+              if (Array.isArray(globalApps)) {
+                fallbackApps = globalApps.filter(a => {
+                  const aEmail = (a.applicantEmail || a.email || '').toLowerCase().trim();
+                  const aCid = (a.candidateId || '').trim();
+                  return (userEmail && aEmail === userEmail) || (user.candidateId && aCid === user.candidateId) || (cid && aCid === cid);
                 });
-              } else {
-                setApplications([]);
               }
+            } catch { }
+
+            if (fallbackApps.length === 0 && initialApps.length > 0) {
+              fallbackApps = initialApps;
+            }
+
+            if (fallbackApps.length > 0) {
+              setApplications(fallbackApps);
+              // Sync back to backend SQLite database so they are stored permanently!
+              fallbackApps.forEach(fbApp => {
+                fetch('/api/candidate/applications', {
+                  method: 'POST',
+                  headers: { 'Content-Type': 'application/json' },
+                  body: JSON.stringify({
+                    ...fbApp,
+                    candidateId: user.candidateId || fbApp.candidateId || cid,
+                    userId: user.userId || fbApp.userId || '',
+                    applicantEmail: userEmail || fbApp.applicantEmail,
+                    applicantName: user.name || fbApp.applicantName
+                  })
+                }).catch(() => { });
+              });
+            } else {
+              setApplications([]);
             }
           }
-        })
-        .catch(() => { });
-
-      fetch(`/api/candidate/saved-jobs?candidateId=${encodeURIComponent(cid)}`)
-        .then(r => r.json())
-        .then(d => {
-          if (d?.success && Array.isArray(d?.data)) {
-            setSavedJobs(d.data);
-            try {
-              localStorage.setItem(`sir_saved_jobs_${cid}`, JSON.stringify(d.data));
-            } catch { }
-          }
-        })
-        .catch(() => { });
-
-      // Load saved searches for this candidate
-      try {
-        const savedS = localStorage.getItem(`sir_saved_searches_${cid}`) || (userEmail ? localStorage.getItem(`sir_saved_searches_${userEmail}`) : null);
-        if (savedS) {
-          setSavedSearches(JSON.parse(savedS));
-        } else {
-          setSavedSearches([]);
         }
-      } catch {
+      })
+      .catch(() => { });
+
+    fetch(`/api/candidate/saved-jobs?candidateId=${encodeURIComponent(cid)}`)
+      .then(r => r.json())
+      .then(d => {
+        if (d?.success && Array.isArray(d?.data)) {
+          setSavedJobs(d.data);
+          try {
+            localStorage.setItem(`sir_saved_jobs_${cid}`, JSON.stringify(d.data));
+          } catch { }
+        }
+      })
+      .catch(() => { });
+
+    // Load saved searches for this candidate
+    try {
+      const savedS = localStorage.getItem(`sir_saved_searches_${cid}`) || (userEmail ? localStorage.getItem(`sir_saved_searches_${userEmail}`) : null);
+      if (savedS) {
+        setSavedSearches(JSON.parse(savedS));
+      } else {
         setSavedSearches([]);
       }
-
-      fetch(`/api/candidate/saved-searches?candidateId=${encodeURIComponent(cid)}`)
-        .then(r => r.json())
-        .then(d => {
-          if (d?.success && Array.isArray(d?.data)) {
-            setSavedSearches(d.data);
-            try {
-              localStorage.setItem(`sir_saved_searches_${cid}`, JSON.stringify(d.data));
-            } catch { }
-          }
-        })
-        .catch(() => { });
-    } else {
-      setSavedJobs([]);
-      setApplications([]);
+    } catch {
       setSavedSearches([]);
     }
-  }, [user?.candidateId, user?.email]);
 
-  // Handle immediate application clearing when candidate is deleted in CRM
-  useEffect(() => {
-    const handleCandDeleted = (e) => {
-      const { candidateId, email } = e?.detail || {};
-      const currentCid = user?.candidateId || user?.id;
-      const currentEmail = (user?.email || '').toLowerCase().trim();
-      if ((candidateId && currentCid === candidateId) || (email && currentEmail === email.toLowerCase().trim())) {
-        setApplications([]);
-        setUser(null);
-        try {
-          localStorage.removeItem('sir_user_session');
-          if (candidateId) localStorage.removeItem(`sir_applications_${candidateId}`);
-          if (email) localStorage.removeItem(`sir_applications_${email.toLowerCase().trim()}`);
-        } catch {}
-      } else {
-        setApplications(prev => (prev || []).filter(a => a.candidateId !== candidateId && (!email || a.applicantEmail?.toLowerCase().trim() !== email.toLowerCase().trim())));
-      }
-    };
-    window.addEventListener('candidate-deleted', handleCandDeleted);
-    return () => window.removeEventListener('candidate-deleted', handleCandDeleted);
-  }, [user]);
-
-  const saveUserSession = (userData) => {
-    setUser(userData);
-    if (userData) {
-      try {
-        if (userData.email && userData.resumeUrl && typeof userData.resumeUrl === 'string' && userData.resumeUrl.length > 500) {
-          sessionStorage.setItem(`sir_resume_${userData.email.toLowerCase().trim()}`, userData.resumeUrl);
-          if (userData.resumeName) sessionStorage.setItem('sir_active_resume_name', userData.resumeName);
+    fetch(`/api/candidate/saved-searches?candidateId=${encodeURIComponent(cid)}`)
+      .then(r => r.json())
+      .then(d => {
+        if (d?.success && Array.isArray(d?.data)) {
+          setSavedSearches(d.data);
+          try {
+            localStorage.setItem(`sir_saved_searches_${cid}`, JSON.stringify(d.data));
+          } catch { }
         }
-      } catch (_) {}
-      safeStorageSetItem('sir_user_session', userData);
-      if (userData.role === 'candidate' && userData.email) {
-        saveCandidateToDB(userData);
-      }
-    } else {
-      safeStorageRemoveItem('sir_user_session');
-    }
-  };
-
-  const loginCandidate = async (email, password) => {
-    const normalizedEmail = (email || '').toLowerCase().trim();
-    if (!normalizedEmail || !password) {
-      return { success: false, message: 'Please provide both email and password.' };
-    }
-
-    try {
-      const res = await fetch('/api/candidate/login', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ email: normalizedEmail, password })
-      });
-      const data = await res.json();
-      if (!res.ok || !data.success) {
-        return {
-          success: false,
-          error: data.error,
-          code: data.code,
-          message: data.message || 'Login failed. Please check your credentials.'
-        };
-      }
-
-      const candidateUser = data.user;
-      saveCandidateToDB(candidateUser);
-      saveUserSession(candidateUser);
-      setUser(candidateUser);
-      if (candidateUser.applications && Array.isArray(candidateUser.applications)) {
-        setApplications(candidateUser.applications);
-      }
-      if (candidateUser.savedJobs && Array.isArray(candidateUser.savedJobs)) {
-        setSavedJobs(candidateUser.savedJobs);
-      }
-
-      const pendingAcademy = typeof getPendingStudentAcademyEnquiry === 'function' ? getPendingStudentAcademyEnquiry() : null;
-      const pendingCareer = typeof getPendingCareerEnquiry === 'function' ? getPendingCareerEnquiry() : null;
-      const targetTab = (pendingAcademy && pendingAcademy.route)
-        ? pendingAcademy.route
-        : ((pendingCareer && pendingCareer.route) ? pendingCareer.route : 'candidates');
-      setActiveTab(targetTab);
-      if (typeof window !== 'undefined' && targetTab !== 'candidates') {
-        window.location.hash = targetTab;
-      }
-      return { success: true, user: candidateUser };
-    } catch (err) {
-      console.warn('Backend login notice, checking local cache:', err.message);
-      // Predefined thejobsync candidate account offline fallback
-      if (normalizedEmail === 'thejobsyncit@gmail.com' && password === 'Thejobsync@26') {
-        const db = getCandidateDB();
-        let candidateUser = db[normalizedEmail] || {
-          name: 'thejobsync',
-          email: 'thejobsyncit@gmail.com',
-          password: 'Thejobsync@26',
-          phone: '+971 52 445 8890',
-          title: 'Executive Director & Candidate',
-          location: 'Chennai, India',
-          preferredCountry: 'UAE',
-          experience: '5+ Years',
-          avatar: '',
-          role: 'candidate',
-          isAdmin: true,
-          isRegistered: true,
-          candidateId: 'REV-CAN-THEJOBSYNC',
-          loginTime: new Date().toISOString()
-        };
-        saveCandidateToDB(candidateUser);
-        saveUserSession(candidateUser);
-        setUser(candidateUser);
-        setActiveTab('candidates');
-        return { success: true, user: candidateUser };
-      }
-      return {
-        success: false,
-        message: 'Could not connect to authentication server. Please check your connection and try again.'
-      };
-    }
-  };
-
-  const loginWithGoogle = async (googleUser) => {
-    let normalizedEmail = (googleUser?.email || googleUser?.profile?.email || '').toLowerCase().trim();
-    const mode = googleUser?.mode || 'login';
-
-    if (!normalizedEmail) {
-      return { success: false, message: 'Valid Google email is required.' };
-    }
-
-    // Strict 1-Time Candidate Registration: Prevent duplicate registration via "Sign up with Google"
-    // Authoritative check is verified directly on backend API against Supabase Cloud Database
-    let backendUser = null;
-    let backendToken = null;
-
-    // 1. Authenticate & Verify on backend (/api/auth/google) to sync with SQLite database
-    try {
-      const res = await fetch('/api/auth/google', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          idToken: googleUser.idToken || googleUser.credential,
-          accessToken: googleUser.accessToken,
-          mode: mode,
-          profile: googleUser.profile || {
-            email: normalizedEmail,
-            name: googleUser.name,
-            picture: googleUser.avatar,
-            sub: googleUser.googleId || googleUser.googleSub
-          }
-        })
-      });
-
-      if (res.status === 409) {
-        // Candidate already registered: return duplicate error so UI displays notice and prompts sign-in
-        const conflictData = await res.json().catch(() => ({}));
-        return {
-          success: false,
-          code: 'DUPLICATE_EMAIL',
-          message: conflictData.message || 'An account with this email address or phone number already exists. Please sign in to your existing account.'
-        };
-      }
-
-      const data = await res.json().catch(() => null);
-      if (!res.ok || !data?.success) {
-        return {
-          success: false,
-          code: data?.code || (res.status === 404 ? 'ACCOUNT_NOT_FOUND' : 'AUTH_ERROR'),
-          message: data?.message || 'Google authentication failed.'
-        };
-      }
-
-      if (data?.user) {
-        backendUser = data.user;
-        backendToken = data.token;
-        if (backendUser.email) normalizedEmail = backendUser.email.toLowerCase().trim();
-      }
-    } catch (apiErr) {
-      console.warn('Backend /api/auth/google verification notice:', apiErr.message);
-    }
-
-    if (!normalizedEmail) {
-      return { success: false, message: 'Valid Google email is required.' };
-    }
-
-    const db = getCandidateDB();
-    const existing = db[normalizedEmail] || {};
-
-    const candidateId = backendUser?.candidateId || existing.candidateId || ('RI-CAND-' + Math.floor(100 + Math.random() * 900));
-    const userId = backendUser?.userId || existing.userId || (`USR-${Date.now().toString(36).toUpperCase()}`);
-
-    const candidateUser = {
-      ...existing,
-      id: candidateId,
-      candidateId: candidateId,
-      userId: userId,
-      name: backendUser?.name || googleUser.name || existing.name || normalizedEmail.split('@')[0],
-      email: normalizedEmail,
-      phone: (backendUser?.phone || googleUser.phone || existing.phone || '').includes('http') ? '' : (backendUser?.phone || googleUser.phone || existing.phone || ''),
-      password: existing.password || 'GoogleOAuth2Verified',
-      avatar: (backendUser?.avatar && !backendUser.avatar.includes('dicebear')) ? backendUser.avatar : ((googleUser.avatar && !googleUser.avatar.includes('dicebear')) ? googleUser.avatar : ((existing.avatar && !existing.avatar.includes('dicebear')) ? existing.avatar : '')),
-      googleSub: backendUser?.googleSub || googleUser.googleSub || googleUser.googleId || existing.googleSub || '',
-      googleId: backendUser?.googleSub || googleUser.googleSub || googleUser.googleId || existing.googleId || '',
-      role: 'candidate',
-      isAdmin: normalizedEmail === 'thejobsyncit@gmail.com',
-      isRegistered: true,
-      authProvider: 'google',
-      googleVerified: true,
-      preferredCountry: existing.preferredCountry || '',
-      location: backendUser?.location || existing.location || '',
-      title: backendUser?.title || existing.title || (normalizedEmail === 'thejobsyncit@gmail.com' ? 'Super Admin' : ''),
-      experience: backendUser?.experience || existing.experience || '',
-      qualification: backendUser?.qualification || existing.qualification || '',
-      expectedSalary: backendUser?.expectedSalary || existing.expectedSalary || '',
-      skills: backendUser?.skills && backendUser.skills.length > 0 ? backendUser.skills : (existing.skills && existing.skills.length > 0 ? existing.skills : []),
-      savedJobs: backendUser?.savedJobs || existing.savedJobs || [],
-      applications: backendUser?.applications || existing.applications || [],
-      notifications: backendUser?.notifications || existing.notifications || [],
-      profileCompletion: backendUser?.profileCompletion || existing.profileCompletion || 65,
-      stage: backendUser?.stage || existing.stage || 'lead',
-      offerDetails: backendUser?.offerDetails || existing.offerDetails || null,
-      placementStatus: backendUser?.placementStatus || existing.placementStatus || null,
-      score: backendUser?.score || existing.score || 88,
-      resumeName: backendUser?.resumeName || existing.resumeName || (typeof window !== 'undefined' ? localStorage.getItem('sir_active_resume_name') : null) || null,
-      resumeUrl: backendUser?.resumeUrl || existing.resumeUrl || (typeof window !== 'undefined' ? (localStorage.getItem(`sir_resume_${normalizedEmail}`) || localStorage.getItem('sir_active_resume')) : null) || null,
-      resumeSize: backendUser?.resumeSize || existing.resumeSize || null,
-      registeredAt: existing.registeredAt || new Date().toISOString(),
-      loginTime: new Date().toISOString(),
-      token: backendToken || existing.token || `revival_jwt_gis_${Date.now()}`
-    };
-
-    saveCandidateToDB(candidateUser);
-    saveUserSession(candidateUser);
-    setUser(candidateUser);
-
-    // Populate candidate-specific applications & saved jobs
-    if (backendUser?.applications && Array.isArray(backendUser.applications)) {
-      setApplications(backendUser.applications);
-      try {
-        localStorage.setItem(`sir_applications_${candidateId}`, JSON.stringify(backendUser.applications));
-      } catch { }
-    }
-
-    if (backendUser?.savedJobs && Array.isArray(backendUser.savedJobs)) {
-      setSavedJobs(backendUser.savedJobs);
-      try {
-        localStorage.setItem(`sir_saved_jobs_${candidateId}`, JSON.stringify(backendUser.savedJobs));
-      } catch { }
-    }
-
-    setActiveTab('candidates');
-
-    if (crm && crm.addCandidate) {
-      crm.addCandidate({
-        id: candidateUser.candidateId,
-        name: candidateUser.name,
-        email: candidateUser.email,
-        phone: candidateUser.phone,
-        title: candidateUser.title,
-        status: 'Web Lead (Google Verified)',
-        score: 92,
-        stage: 'lead',
-        nationality: candidateUser.preferredCountry,
-        skills: candidateUser.skills,
-        resumeName: candidateUser.resumeName,
-        resumeUrl: candidateUser.resumeUrl,
-        resumeSize: candidateUser.resumeSize
-      });
-    }
-
-    return { success: true, user: candidateUser };
-  };
-
-  const registerCandidate = async (data) => {
-    const emailValidation = validateCandidateEmail(data.email);
-    if (!emailValidation.isValid) {
-      return { success: false, message: emailValidation.message };
-    }
-    const normalizedEmail = emailValidation.email;
-
-    const password = data.password || '';
-    if (!password) {
-      return { success: false, message: 'Password is required for registration.' };
-    }
-    if (password.length < 8) {
-      return { success: false, message: 'Password must be at least 8 characters long.' };
-    }
-    const hasUpper = /[A-Z]/.test(password);
-    const hasLower = /[a-z]/.test(password);
-    const hasDigit = /\d/.test(password);
-    const hasSpecial = /[!@#$%^&*()_+\-=[\]{};':"\\|,.<>/?]/.test(password);
-    if (!hasUpper || !hasLower || !hasDigit || !hasSpecial) {
-      return {
-        success: false,
-        message: 'Password must include uppercase, lowercase, a number, and a special character.'
-      };
-    }
-
-    const inputDigits = String(data.phone || '').replace(/\D/g, '');
-
-    // Clear email from deleted blacklist so new registration is fully accepted
-    try {
-      const deletedStr = localStorage.getItem('sir_deleted_candidates');
-      if (deletedStr) {
-        const arr = JSON.parse(deletedStr);
-        if (Array.isArray(arr)) {
-          const cleaned = arr.filter(x => String(x).toLowerCase().trim() !== normalizedEmail);
-          localStorage.setItem('sir_deleted_candidates', JSON.stringify(cleaned));
-        }
-      }
-    } catch (_) {}
-
-    // 2. Authoritative Database-Level Duplicate Verification via Backend API
-    try {
-      const regRes = await fetch('/api/candidate/register', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          fullName: data.fullName || data.name || '',
-          email: normalizedEmail,
-          password: data.password,
-          phone: data.phone,
-          preferredCountry: data.preferredCountry,
-          nationality: data.nationality || data.preferredCountry,
-          citizenship: data.citizenship,
-          title: data.title || data.industry,
-          currentRole: data.title || data.industry,
-          currentEmployer: data.currentEmployer || 'Revival International Talent Pool',
-          experience: data.experience,
-          qualification: data.qualification,
-          education: data.education,
-          currentSalary: data.currentSalary,
-          expectedSalary: data.expectedSalary,
-          noticePeriod: data.noticePeriod,
-          skills: data.skills || (data.industry ? [data.industry] : []),
-          resumeName: data.resumeName,
-          resumeUrl: data.resumeUrl,
-          resumeSize: data.resumeSize,
-          consentGivenAt: data.consentGivenAt || new Date().toISOString(),
-          consentVersion: data.consentVersion || 'v2.0-nov2026'
-        })
-      });
-
-      let regData = {};
-      try {
-        regData = await regRes.json();
-      } catch (_) {
-        regData = { message: 'Server communication error' };
-      }
-
-      if (!regRes.ok || !regData?.success) {
-        return {
-          success: false,
-          error: regData?.error || 'registration_blocked',
-          field: regData?.field,
-          message: regData?.message || (regRes.status === 409
-            ? 'An account with this email address or phone number already exists. Please sign in to your existing account.'
-            : 'Registration failed. Please try again.')
-        };
-      }
-
-      const candidateUser = regData.user;
-      saveCandidateToDB(candidateUser);
-      saveUserSession(candidateUser);
-      setUser(candidateUser);
-      setActiveTab('candidates');
-
-      // Immediately inject candidate into CRM cache & state for 0ms instant display
-      try {
-        const crmCand = {
-          id: candidateUser.candidateId || candidateUser.id,
-          name: candidateUser.name || data.fullName,
-          email: candidateUser.email || normalizedEmail,
-          phone: candidateUser.phone || data.phone,
-          nationality: candidateUser.nationality || data.preferredCountry || 'UAE',
-          currentEmployer: candidateUser.currentEmployer || 'Revival International Talent Pool',
-          currentRole: candidateUser.currentRole || data.industry || 'Executive Candidate',
-          currentSalary: candidateUser.currentSalary || '',
-          expectedSalary: candidateUser.expectedSalary || 'Market Standard',
-          score: 95,
-          stage: 'lead',
-          skills: candidateUser.skills || [],
-          source: 'Website Candidate Registration',
-          passport: 'Verified',
-          aiSummary: `Registered Candidate (${candidateUser.email}) with verified credentials.`,
-          experience: candidateUser.experience || '3-5 Years',
-          createdAt: new Date().toISOString()
-        };
-        const currentCrmStr = localStorage.getItem('crm_candidates');
-        const currentCrm = currentCrmStr ? JSON.parse(currentCrmStr) : [];
-        const nextCrm = [crmCand, ...currentCrm.filter(c => c.id !== crmCand.id && c.email?.toLowerCase() !== crmCand.email.toLowerCase())];
-        localStorage.setItem('crm_candidates', JSON.stringify(nextCrm));
-      } catch (_) {}
-
-      // Dispatch global registration event for instant CRM synchronization
-      if (typeof window !== 'undefined') {
-        window.dispatchEvent(new CustomEvent('candidate-registered', { detail: candidateUser }));
-      }
-
-      if (crm && crm.fetchCandidates) {
-        crm.fetchCandidates();
-      }
-
-      return { success: true, user: candidateUser };
-    } catch (err) {
-      console.error('Candidate registration network error:', err);
-      return {
-        success: false,
-        message: 'Unable to connect to registration server. Please check your network and try again.'
-      };
-    }
-  };
-
-  const updateUserProfile = (profileData) => {
-    let updatedSnapshot = null;
-    setUser(prev => {
-      const updated = { ...prev, ...profileData };
-      updatedSnapshot = updated;
-      saveUserSession(updated);
-      saveCandidateToDB(updated);
-      return updated;
-    });
-
-    const activeUser = updatedSnapshot || user;
-    const cid = activeUser?.candidateId || activeUser?.id;
-    const email = activeUser?.email;
-
-    if (cid || email) {
-      // Sync to backend candidate profile API
-      fetch('/api/candidate/profile', {
-        method: 'PUT',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          candidateId: cid,
-          email: email,
-          ...profileData
-        })
-      }).catch(err => console.warn('Candidate profile sync notice:', err));
-
-      // Also sync to CRM candidates API so Recruiter CRM immediately reflects latest CV & credentials
-      fetch('/api/candidates', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          id: cid,
-          email: email,
-          name: activeUser?.name,
-          phone: activeUser?.phone,
-          nationality: activeUser?.nationality || activeUser?.preferredCountry || 'UAE',
-          citizenship: activeUser?.citizenship,
-          currentRole: activeUser?.title || activeUser?.currentRole || 'Executive Candidate',
-          currentEmployer: activeUser?.currentEmployer || 'Revival International Candidate',
-          expectedSalary: activeUser?.expectedSalary || 'Market Standard',
-          experience: activeUser?.experience || '3-5 Years',
-          education: activeUser?.qualification || activeUser?.education || 'Bachelor Degree / Professional Diploma',
-          skills: activeUser?.skills || [],
-          resumeName: profileData?.resumeName || activeUser?.resumeName,
-          resumeUrl: profileData?.resumeUrl || activeUser?.resumeUrl,
-          resumeSize: profileData?.resumeSize || activeUser?.resumeSize,
-          dob: activeUser?.dob,
-          gender: activeUser?.gender,
-          location: activeUser?.location,
-          preferredCountry: activeUser?.preferredCountry,
-          mohreAttested: activeUser?.mohreAttested,
-          avatar: activeUser?.avatar
-        })
-      }).catch(err => console.warn('CRM candidate mirror notice:', err));
-    }
-  };
-
-  const loginEmployer = (companyEmail, accountId, password) => {
-    const employerUser = {
-      name: companyEmail.split('@')[0].replace('.', ' ').replace(/\b\w/g, c => c.toUpperCase()) || 'Corporate HR Director',
-      companyName: 'Al Habtoor Contracting LLC',
-      email: companyEmail,
-      role: 'employer',
-      accountId: accountId || 'REV-EMP-9902',
-      mohreVerified: true,
-      activeMandates: 8,
-      loginTime: new Date().toISOString()
-    };
-    saveUserSession(employerUser);
-    setActiveTab('employers');
-    return employerUser;
-  };
-
-  const logout = () => {
-    saveUserSession(null);
+      })
+      .catch(() => { });
+  } else {
     setSavedJobs([]);
     setApplications([]);
     setSavedSearches([]);
-    setActiveSearchCriteria(null);
-    sessionStorage.removeItem('sir_user_session');
-    localStorage.removeItem('sir_user_session');
-    navigateTo('home');
-    if (typeof window !== 'undefined') {
-      window.location.hash = '';
+  }
+}, [user?.candidateId, user?.email]);
+
+// Handle immediate application clearing when candidate is deleted in CRM
+useEffect(() => {
+  const handleCandDeleted = (e) => {
+    const { candidateId, email } = e?.detail || {};
+    const currentCid = user?.candidateId || user?.id;
+    const currentEmail = (user?.email || '').toLowerCase().trim();
+    if ((candidateId && currentCid === candidateId) || (email && currentEmail === email.toLowerCase().trim())) {
+      setApplications([]);
+      setUser(null);
+      try {
+        localStorage.removeItem('sir_user_session');
+        if (candidateId) localStorage.removeItem(`sir_applications_${candidateId}`);
+        if (email) localStorage.removeItem(`sir_applications_${email.toLowerCase().trim()}`);
+      } catch { }
+    } else {
+      setApplications(prev => (prev || []).filter(a => a.candidateId !== candidateId && (!email || a.applicantEmail?.toLowerCase().trim() !== email.toLowerCase().trim())));
     }
   };
+  window.addEventListener('candidate-deleted', handleCandDeleted);
+  return () => window.removeEventListener('candidate-deleted', handleCandDeleted);
+}, [user]);
 
-  const toggleSaveJob = async (jobId) => {
-    if (!jobId) return;
-    const cid = user?.candidateId || user?.email;
-    setSavedJobs(prev => {
-      const next = prev.includes(jobId) ? prev.filter(id => id !== jobId) : [...prev, jobId];
-      if (cid) {
-        try {
-          localStorage.setItem(`sir_saved_jobs_${cid}`, JSON.stringify(next));
-        } catch { }
+const saveUserSession = (userData, options = {}) => {
+  setUser(userData);
+  if (userData) {
+    try {
+      if (userData.email && userData.resumeUrl && typeof userData.resumeUrl === 'string' && userData.resumeUrl.length > 500) {
+        sessionStorage.setItem(`sir_resume_${userData.email.toLowerCase().trim()}`, userData.resumeUrl);
+        if (userData.resumeName) sessionStorage.setItem('sir_active_resume_name', userData.resumeName);
       }
-      return next;
+    } catch (_) { }
+    safeStorageSetItem('sir_user_session', userData);
+    if (userData.role === 'candidate' && userData.email) {
+      saveCandidateToDB(userData, options);
+    }
+  } else {
+    safeStorageRemoveItem('sir_user_session');
+  }
+};
+
+const loginCandidate = async (email, password) => {
+  const normalizedEmail = (email || '').toLowerCase().trim();
+  if (!normalizedEmail || !password) {
+    return { success: false, message: 'Please provide both email and password.' };
+  }
+
+  try {
+    const res = await fetch('/api/candidate/login', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ email: normalizedEmail, password })
+    });
+    const data = await res.json();
+    if (!res.ok || !data.success) {
+      return {
+        success: false,
+        error: data.error,
+        code: data.code,
+        message: data.message || 'Login failed. Please check your credentials.'
+      };
+    }
+
+    const candidateUser = data.user;
+    saveUserSession(candidateUser, { isNewRegistration: false });
+    setUser(candidateUser);
+    if (candidateUser.applications && Array.isArray(candidateUser.applications)) {
+      setApplications(candidateUser.applications);
+    }
+    if (candidateUser.savedJobs && Array.isArray(candidateUser.savedJobs)) {
+      setSavedJobs(candidateUser.savedJobs);
+    }
+
+    const pendingAcademy = typeof getPendingStudentAcademyEnquiry === 'function' ? getPendingStudentAcademyEnquiry() : null;
+    const pendingCareer = typeof getPendingCareerEnquiry === 'function' ? getPendingCareerEnquiry() : null;
+    const targetTab = (pendingAcademy && pendingAcademy.route)
+      ? pendingAcademy.route
+      : ((pendingCareer && pendingCareer.route) ? pendingCareer.route : 'candidates');
+    setActiveTab(targetTab);
+    if (typeof window !== 'undefined' && targetTab !== 'candidates') {
+      window.location.hash = targetTab;
+    }
+    return { success: true, user: candidateUser };
+  } catch (err) {
+    console.warn('Backend login connection error:', err.message);
+    return {
+      success: false,
+      message: 'Could not connect to authentication server. Please check your connection and try again.'
+    };
+  }
+};
+
+const loginWithGoogle = async (googleUser) => {
+  let normalizedEmail = (googleUser?.email || googleUser?.profile?.email || '').toLowerCase().trim();
+  const mode = googleUser?.mode || 'login';
+
+  if (!normalizedEmail) {
+    return { success: false, message: 'Valid Google email is required.' };
+  }
+
+  // Strict 1-Time Candidate Registration & Strict Sign-In Verification:
+  // Authoritative check is verified directly on backend API against Supabase Cloud Database
+  let backendUser = null;
+  let backendToken = null;
+
+  // 1. Authenticate & Verify on backend (/api/auth/google)
+  try {
+    const res = await fetch('/api/auth/google', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        idToken: googleUser.idToken || googleUser.credential,
+        accessToken: googleUser.accessToken,
+        mode: mode,
+        profile: googleUser.profile || {
+          email: normalizedEmail,
+          name: googleUser.name,
+          picture: googleUser.avatar,
+          sub: googleUser.googleId || googleUser.googleSub
+        }
+      })
     });
 
-    if (user?.candidateId) {
+    if (res.status === 409) {
+      const conflictData = await res.json().catch(() => ({}));
+      return {
+        success: false,
+        code: 'DUPLICATE_EMAIL',
+        message: conflictData.message || 'Already registered: An account with this email address or phone number already exists. Please sign in to your existing account.'
+      };
+    }
+
+    const data = await res.json().catch(() => null);
+    if (!res.ok || !data?.success) {
+      return {
+        success: false,
+        code: data?.code || (res.status === 404 ? 'ACCOUNT_NOT_FOUND' : 'AUTH_ERROR'),
+        message: data?.message || 'Google authentication failed.'
+      };
+    }
+
+    if (data?.user) {
+      backendUser = data.user;
+      backendToken = data.token;
+      if (backendUser.email) normalizedEmail = backendUser.email.toLowerCase().trim();
+    }
+  } catch (apiErr) {
+    console.warn('Backend /api/auth/google verification error:', apiErr.message);
+    return {
+      success: false,
+      code: 'AUTH_NETWORK_ERROR',
+      message: 'Could not verify your Google account with the authentication server. Please try again.'
+    };
+  }
+
+  if (!normalizedEmail || !backendUser) {
+    return { success: false, message: 'Google authentication could not be verified. Please try again.' };
+  }
+
+  const db = getCandidateDB();
+  const existing = db[normalizedEmail] || {};
+
+  const candidateId = backendUser?.candidateId || existing.candidateId || ('RI-CAND-' + Math.floor(100 + Math.random() * 900));
+  const userId = backendUser?.userId || existing.userId || (`USR-${Date.now().toString(36).toUpperCase()}`);
+  const originalRegisteredAt = backendUser?.registeredAt || backendUser?.createdAt || existing.registeredAt || existing.createdAt || null;
+
+  const candidateUser = {
+    ...existing,
+    id: candidateId,
+    candidateId: candidateId,
+    userId: userId,
+    name: backendUser?.name || googleUser.name || existing.name || normalizedEmail.split('@')[0],
+    email: normalizedEmail,
+    phone: (backendUser?.phone || googleUser.phone || existing.phone || '').includes('http') ? '' : (backendUser?.phone || googleUser.phone || existing.phone || ''),
+    password: existing.password || 'GoogleOAuth2Verified',
+    avatar: (backendUser?.avatar && !backendUser.avatar.includes('dicebear')) ? backendUser.avatar : ((googleUser.avatar && !googleUser.avatar.includes('dicebear')) ? googleUser.avatar : ((existing.avatar && !existing.avatar.includes('dicebear')) ? existing.avatar : '')),
+    googleSub: backendUser?.googleSub || googleUser.googleSub || googleUser.googleId || existing.googleSub || '',
+    googleId: backendUser?.googleSub || googleUser.googleSub || googleUser.googleId || existing.googleId || '',
+    role: 'candidate',
+    isAdmin: normalizedEmail === 'thejobsyncit@gmail.com',
+    isRegistered: true,
+    authProvider: 'google',
+    googleVerified: true,
+    preferredCountry: existing.preferredCountry || '',
+    location: backendUser?.location || existing.location || '',
+    title: backendUser?.title || existing.title || (normalizedEmail === 'thejobsyncit@gmail.com' ? 'Super Admin' : ''),
+    experience: backendUser?.experience || existing.experience || '',
+    qualification: backendUser?.qualification || existing.qualification || '',
+    expectedSalary: backendUser?.expectedSalary || existing.expectedSalary || '',
+    skills: backendUser?.skills && backendUser.skills.length > 0 ? backendUser.skills : (existing.skills && existing.skills.length > 0 ? existing.skills : []),
+    savedJobs: backendUser?.savedJobs || existing.savedJobs || [],
+    applications: backendUser?.applications || existing.applications || [],
+    notifications: backendUser?.notifications || existing.notifications || [],
+    profileCompletion: backendUser?.profileCompletion || existing.profileCompletion || 65,
+    stage: backendUser?.stage || existing.stage || 'lead',
+    offerDetails: backendUser?.offerDetails || existing.offerDetails || null,
+    placementStatus: backendUser?.placementStatus || existing.placementStatus || null,
+    score: backendUser?.score || existing.score || 88,
+    resumeName: backendUser?.resumeName || existing.resumeName || (typeof window !== 'undefined' ? localStorage.getItem('sir_active_resume_name') : null) || null,
+    resumeUrl: backendUser?.resumeUrl || existing.resumeUrl || (typeof window !== 'undefined' ? (localStorage.getItem(`sir_resume_${normalizedEmail}`) || localStorage.getItem('sir_active_resume')) : null) || null,
+    resumeSize: backendUser?.resumeSize || existing.resumeSize || null,
+    createdAt: originalRegisteredAt,
+    registeredAt: originalRegisteredAt,
+    loginTime: new Date().toISOString(),
+    token: backendToken || existing.token || `revival_jwt_gis_${Date.now()}`
+  };
+
+  saveUserSession(candidateUser, { isNewRegistration: mode === 'register' });
+  setUser(candidateUser);
+
+  // Populate candidate-specific applications & saved jobs
+  if (backendUser?.applications && Array.isArray(backendUser.applications)) {
+    setApplications(backendUser.applications);
+    try {
+      localStorage.setItem(`sir_applications_${candidateId}`, JSON.stringify(backendUser.applications));
+    } catch { }
+  }
+
+  if (backendUser?.savedJobs && Array.isArray(backendUser.savedJobs)) {
+    setSavedJobs(backendUser.savedJobs);
+    try {
+      localStorage.setItem(`sir_saved_jobs_${candidateId}`, JSON.stringify(backendUser.savedJobs));
+    } catch { }
+  }
+
+  setActiveTab('candidates');
+
+  if (mode === 'register' && crm && crm.fetchCandidates) {
+    crm.fetchCandidates();
+  }
+
+  return { success: true, user: candidateUser };
+};
+
+const registerCandidate = async (data) => {
+  const emailValidation = validateCandidateEmail(data.email);
+  if (!emailValidation.isValid) {
+    return { success: false, message: emailValidation.message };
+  }
+  const normalizedEmail = emailValidation.email;
+
+  const password = data.password || '';
+  if (!password) {
+    return { success: false, message: 'Password is required for registration.' };
+  }
+  if (password.length < 8) {
+    return { success: false, message: 'Password must be at least 8 characters long.' };
+  }
+  const hasUpper = /[A-Z]/.test(password);
+  const hasLower = /[a-z]/.test(password);
+  const hasDigit = /\d/.test(password);
+  const hasSpecial = /[!@#$%^&*()_+\-=[\]{};':"\\|,.<>/?]/.test(password);
+  if (!hasUpper || !hasLower || !hasDigit || !hasSpecial) {
+    return {
+      success: false,
+      message: 'Password must include uppercase, lowercase, a number, and a special character.'
+    };
+  }
+
+  const inputDigits = String(data.phone || '').replace(/\D/g, '');
+
+  // Clear email from deleted blacklist so new registration is fully accepted
+  try {
+    const deletedStr = localStorage.getItem('sir_deleted_candidates');
+    if (deletedStr) {
+      const arr = JSON.parse(deletedStr);
+      if (Array.isArray(arr)) {
+        const cleaned = arr.filter(x => String(x).toLowerCase().trim() !== normalizedEmail);
+        localStorage.setItem('sir_deleted_candidates', JSON.stringify(cleaned));
+      }
+    }
+  } catch (_) { }
+
+  // 2. Authoritative Database-Level Duplicate Verification via Backend API
+  try {
+    const regRes = await fetch('/api/candidate/register', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        fullName: data.fullName || data.name || '',
+        email: normalizedEmail,
+        password: data.password,
+        phone: data.phone,
+        preferredCountry: data.preferredCountry,
+        nationality: data.nationality || data.preferredCountry,
+        citizenship: data.citizenship,
+        title: data.title || data.industry,
+        currentRole: data.title || data.industry,
+        currentEmployer: data.currentEmployer || 'Revival International Talent Pool',
+        experience: data.experience,
+        qualification: data.qualification,
+        education: data.education,
+        currentSalary: data.currentSalary,
+        expectedSalary: data.expectedSalary,
+        noticePeriod: data.noticePeriod,
+        skills: data.skills || (data.industry ? [data.industry] : []),
+        resumeName: data.resumeName,
+        resumeUrl: data.resumeUrl,
+        resumeSize: data.resumeSize,
+        consentGivenAt: data.consentGivenAt || new Date().toISOString(),
+        consentVersion: data.consentVersion || 'v2.0-nov2026'
+      })
+    });
+
+    let regData = {};
+    try {
+      regData = await regRes.json();
+    } catch (_) {
+      regData = { message: 'Server communication error' };
+    }
+
+    if (!regRes.ok || !regData?.success) {
+      return {
+        success: false,
+        error: regData?.error || 'registration_blocked',
+        field: regData?.field,
+        message: regData?.message || (regRes.status === 409
+          ? 'An account with this email address or phone number already exists. Please sign in to your existing account.'
+          : 'Registration failed. Please try again.')
+      };
+    }
+
+    const candidateUser = regData.user;
+    saveUserSession(candidateUser, { isNewRegistration: true });
+    setUser(candidateUser);
+    setActiveTab('candidates');
+
+    // Immediately inject candidate into CRM cache & state for 0ms instant display
+    try {
+      const regCreated = candidateUser.registeredAt || candidateUser.createdAt || new Date().toISOString();
+      const crmCand = {
+        id: candidateUser.candidateId || candidateUser.id,
+        name: candidateUser.name || data.fullName,
+        email: candidateUser.email || normalizedEmail,
+        phone: candidateUser.phone || data.phone,
+        nationality: candidateUser.nationality || data.preferredCountry || 'UAE',
+        currentEmployer: candidateUser.currentEmployer || 'Revival International Talent Pool',
+        currentRole: candidateUser.currentRole || data.industry || 'Executive Candidate',
+        currentSalary: candidateUser.currentSalary || '',
+        expectedSalary: candidateUser.expectedSalary || 'Market Standard',
+        score: 95,
+        stage: 'lead',
+        skills: candidateUser.skills || [],
+        source: 'Website Candidate Registration',
+        passport: 'Verified',
+        aiSummary: `Registered Candidate (${candidateUser.email}) with verified credentials.`,
+        experience: candidateUser.experience || '3-5 Years',
+        createdAt: regCreated,
+        registeredAt: regCreated
+      };
+      const currentCrmStr = localStorage.getItem('crm_candidates');
+      const currentCrm = currentCrmStr ? JSON.parse(currentCrmStr) : [];
+      const nextCrm = [crmCand, ...currentCrm.filter(c => c.id !== crmCand.id && c.email?.toLowerCase() !== crmCand.email.toLowerCase())];
+      localStorage.setItem('crm_candidates', JSON.stringify(nextCrm));
+    } catch (_) { }
+
+    // Dispatch global registration event for instant CRM synchronization
+    if (typeof window !== 'undefined') {
+      window.dispatchEvent(new CustomEvent('candidate-registered', { detail: candidateUser }));
+    }
+
+    if (crm && crm.fetchCandidates) {
+      crm.fetchCandidates();
+    }
+
+    return { success: true, user: candidateUser };
+  } catch (err) {
+    console.error('Candidate registration network error:', err);
+    return {
+      success: false,
+      message: 'Unable to connect to registration server. Please check your network and try again.'
+    };
+  }
+};
+
+const updateUserProfile = (profileData) => {
+  let updatedSnapshot = null;
+  setUser(prev => {
+    const updated = { ...prev, ...profileData };
+    updatedSnapshot = updated;
+    saveUserSession(updated);
+    saveCandidateToDB(updated);
+    return updated;
+  });
+
+  const activeUser = updatedSnapshot || user;
+  const cid = activeUser?.candidateId || activeUser?.id;
+  const email = activeUser?.email;
+
+  if (cid || email) {
+    // Sync to backend candidate profile API
+    fetch('/api/candidate/profile', {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        candidateId: cid,
+        email: email,
+        ...profileData
+      })
+    }).catch(err => console.warn('Candidate profile sync notice:', err));
+
+    // Also sync to CRM candidates API so Recruiter CRM immediately reflects latest CV & credentials
+    fetch('/api/candidates', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        id: cid,
+        email: email,
+        name: activeUser?.name,
+        phone: activeUser?.phone,
+        nationality: activeUser?.nationality || activeUser?.preferredCountry || 'UAE',
+        citizenship: activeUser?.citizenship,
+        currentRole: activeUser?.title || activeUser?.currentRole || 'Executive Candidate',
+        currentEmployer: activeUser?.currentEmployer || 'Revival International Candidate',
+        expectedSalary: activeUser?.expectedSalary || 'Market Standard',
+        experience: activeUser?.experience || '3-5 Years',
+        education: activeUser?.qualification || activeUser?.education || 'Bachelor Degree / Professional Diploma',
+        skills: activeUser?.skills || [],
+        resumeName: profileData?.resumeName || activeUser?.resumeName,
+        resumeUrl: profileData?.resumeUrl || activeUser?.resumeUrl,
+        resumeSize: profileData?.resumeSize || activeUser?.resumeSize,
+        dob: activeUser?.dob,
+        gender: activeUser?.gender,
+        location: activeUser?.location,
+        preferredCountry: activeUser?.preferredCountry,
+        mohreAttested: activeUser?.mohreAttested,
+        avatar: activeUser?.avatar
+      })
+    }).catch(err => console.warn('CRM candidate mirror notice:', err));
+  }
+};
+
+const loginEmployer = (companyEmail, accountId, password) => {
+  const employerUser = {
+    name: companyEmail.split('@')[0].replace('.', ' ').replace(/\b\w/g, c => c.toUpperCase()) || 'Corporate HR Director',
+    companyName: 'Al Habtoor Contracting LLC',
+    email: companyEmail,
+    role: 'employer',
+    accountId: accountId || 'REV-EMP-9902',
+    mohreVerified: true,
+    activeMandates: 8,
+    loginTime: new Date().toISOString()
+  };
+  saveUserSession(employerUser);
+  setActiveTab('employers');
+  return employerUser;
+};
+
+const logout = () => {
+  saveUserSession(null);
+  setSavedJobs([]);
+  setApplications([]);
+  setSavedSearches([]);
+  setActiveSearchCriteria(null);
+  sessionStorage.removeItem('sir_user_session');
+  localStorage.removeItem('sir_user_session');
+  navigateTo('home');
+  if (typeof window !== 'undefined') {
+    window.location.hash = '';
+  }
+};
+
+const toggleSaveJob = async (jobId) => {
+  if (!jobId) return;
+  const cid = user?.candidateId || user?.email;
+  setSavedJobs(prev => {
+    const next = prev.includes(jobId) ? prev.filter(id => id !== jobId) : [...prev, jobId];
+    if (cid) {
       try {
-        await fetch('/api/candidate/saved-jobs', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ candidateId: user.candidateId, jobId })
-        });
+        localStorage.setItem(`sir_saved_jobs_${cid}`, JSON.stringify(next));
       } catch { }
     }
-  };
+    return next;
+  });
 
-  const fetchSavedSearches = async () => {
-    const cid = user?.candidateId || user?.email;
-    if (!cid) return [];
+  if (user?.candidateId) {
     try {
-      const res = await fetch(`/api/candidate/saved-searches?candidateId=${encodeURIComponent(cid)}`);
-      const data = await res.json();
-      if (data?.success && Array.isArray(data?.data)) {
-        setSavedSearches(data.data);
-        localStorage.setItem(`sir_saved_searches_${cid}`, JSON.stringify(data.data));
-        return data.data;
-      }
-    } catch (e) {
-      console.error('Failed to fetch saved searches:', e);
-    }
-    return [];
-  };
-
-  const saveSearch = async (name, criteria) => {
-    const cid = user?.candidateId || user?.id || 'CAND-TEMP';
-    const uid = user?.userId || '';
-    const email = user?.email || '';
-
-    const duplicate = savedSearches.find(
-      s => (s.name || '').trim().toLowerCase() === name.trim().toLowerCase()
-    );
-    if (duplicate) {
-      return { success: false, duplicate: true, message: `A saved search named "${name.trim()}" already exists. Please choose a different name.` };
-    }
-
-    try {
-      const res = await fetch('/api/candidate/saved-searches', {
+      await fetch('/api/candidate/saved-jobs', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          candidateId: cid,
-          userId: uid,
-          candidateEmail: email,
-          name: name.trim(),
-          criteria
-        })
+        body: JSON.stringify({ candidateId: user.candidateId, jobId })
       });
-      const data = await res.json();
-      if (res.ok && data?.success) {
-        setSavedSearches(prev => [data.data, ...prev]);
-        try {
-          const current = JSON.parse(localStorage.getItem(`sir_saved_searches_${cid}`) || '[]');
-          localStorage.setItem(`sir_saved_searches_${cid}`, JSON.stringify([data.data, ...current]));
-        } catch { }
-        return { success: true, data: data.data };
-      } else {
-        return { success: false, duplicate: res.status === 409, message: data?.message || 'Failed to save search.' };
-      }
-    } catch (e) {
-      const fallbackSearch = {
-        id: `srch-${Date.now()}`,
+    } catch { }
+  }
+};
+
+const fetchSavedSearches = async () => {
+  const cid = user?.candidateId || user?.email;
+  if (!cid) return [];
+  try {
+    const res = await fetch(`/api/candidate/saved-searches?candidateId=${encodeURIComponent(cid)}`);
+    const data = await res.json();
+    if (data?.success && Array.isArray(data?.data)) {
+      setSavedSearches(data.data);
+      localStorage.setItem(`sir_saved_searches_${cid}`, JSON.stringify(data.data));
+      return data.data;
+    }
+  } catch (e) {
+    console.error('Failed to fetch saved searches:', e);
+  }
+  return [];
+};
+
+const saveSearch = async (name, criteria) => {
+  const cid = user?.candidateId || user?.id || 'CAND-TEMP';
+  const uid = user?.userId || '';
+  const email = user?.email || '';
+
+  const duplicate = savedSearches.find(
+    s => (s.name || '').trim().toLowerCase() === name.trim().toLowerCase()
+  );
+  if (duplicate) {
+    return { success: false, duplicate: true, message: `A saved search named "${name.trim()}" already exists. Please choose a different name.` };
+  }
+
+  try {
+    const res = await fetch('/api/candidate/saved-searches', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
         candidateId: cid,
         userId: uid,
         candidateEmail: email,
         name: name.trim(),
-        criteria: typeof criteria === 'string' ? criteria : JSON.stringify(criteria),
-        createdAt: new Date().toISOString()
-      };
-      setSavedSearches(prev => [fallbackSearch, ...prev]);
+        criteria
+      })
+    });
+    const data = await res.json();
+    if (res.ok && data?.success) {
+      setSavedSearches(prev => [data.data, ...prev]);
       try {
         const current = JSON.parse(localStorage.getItem(`sir_saved_searches_${cid}`) || '[]');
-        localStorage.setItem(`sir_saved_searches_${cid}`, JSON.stringify([fallbackSearch, ...current]));
+        localStorage.setItem(`sir_saved_searches_${cid}`, JSON.stringify([data.data, ...current]));
       } catch { }
-      return { success: true, data: fallbackSearch };
+      return { success: true, data: data.data };
+    } else {
+      return { success: false, duplicate: res.status === 409, message: data?.message || 'Failed to save search.' };
     }
-  };
-
-  const updateSavedSearch = async (id, newName) => {
-    const cid = user?.candidateId || user?.email;
-    try {
-      const res = await fetch(`/api/candidate/saved-searches/${id}`, {
-        method: 'PUT',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          name: newName.trim(),
-          candidateId: cid
-        })
-      });
-      const data = await res.json();
-      if (res.ok && data?.success) {
-        setSavedSearches(prev => prev.map(s => s.id === id ? { ...s, name: newName.trim() } : s));
-        try {
-          const current = JSON.parse(localStorage.getItem(`sir_saved_searches_${cid}`) || '[]');
-          localStorage.setItem(`sir_saved_searches_${cid}`, JSON.stringify(current.map(s => s.id === id ? { ...s, name: newName.trim() } : s)));
-        } catch { }
-        return { success: true };
-      }
-      return { success: false, message: data?.message || 'Failed to rename search.' };
-    } catch {
-      setSavedSearches(prev => prev.map(s => s.id === id ? { ...s, name: newName.trim() } : s));
-      return { success: true };
-    }
-  };
-
-  const deleteSavedSearch = async (id) => {
-    const cid = user?.candidateId || user?.email;
-    try {
-      const res = await fetch(`/api/candidate/saved-searches/${id}?candidateId=${encodeURIComponent(cid || '')}`, {
-        method: 'DELETE'
-      });
-      const data = await res.json();
-      if (res.ok && data?.success) {
-        setSavedSearches(prev => prev.filter(s => s.id !== id));
-        try {
-          const current = JSON.parse(localStorage.getItem(`sir_saved_searches_${cid}`) || '[]');
-          localStorage.setItem(`sir_saved_searches_${cid}`, JSON.stringify(current.filter(s => s.id !== id)));
-        } catch { }
-        return { success: true };
-      }
-      return { success: false, message: data?.message || 'Failed to delete search.' };
-    } catch {
-      setSavedSearches(prev => prev.filter(s => s.id !== id));
-      return { success: true };
-    }
-  };
-
-  const restoreSearch = (criteria) => {
-    setActiveSearchCriteria(criteria);
-    navigateTo('jobs');
-    if (typeof window !== 'undefined') {
-      window.location.hash = 'jobs';
-    }
-  };
-
-  const applyForJob = async (job, payload = {}) => {
-    if (!job || !job.id) return;
-    const cid = user?.candidateId || user?.id || payload.candidateId || 'RI-CAND-001';
-    const uid = user?.userId || payload.userId || '';
-    const userEmail = (user?.email || payload.applicantEmail || payload.email || '').toLowerCase().trim();
-
-    const resumeName = payload.resumeName || user?.resumeName || null;
-    const resumeUrl = payload.resumeUrl || user?.resumeUrl || null;
-    const resumeSize = payload.resumeSize || user?.resumeSize || null;
-    const coverNote = payload.coverNote || '';
-    const noticePeriod = payload.noticePeriod || 'Immediate';
-    const expectedSalary = payload.expectedSalary || job.salary || user?.expectedSalary || 'Market Standard';
-    const applicantName = payload.applicantName || payload.name || user?.name || 'Candidate';
-    const applicantPhone = payload.applicantPhone || payload.phone || user?.phone || '';
-
-    const newApp = {
-      id: payload.referenceNumber || `RI-APP-${Math.floor(10000 + Math.random() * 90000)}`,
+  } catch (e) {
+    const fallbackSearch = {
+      id: `srch-${Date.now()}`,
       candidateId: cid,
       userId: uid,
-      jobId: job.id,
-      jobTitle: job.title,
-      company: job.company,
-      location: job.location || job.country || 'GCC',
-      appliedDate: new Date().toISOString(),
-      status: 'Under Review',
-      stage: 'Applied',
+      candidateEmail: email,
+      name: name.trim(),
+      criteria: typeof criteria === 'string' ? criteria : JSON.stringify(criteria),
+      createdAt: new Date().toISOString()
+    };
+    setSavedSearches(prev => [fallbackSearch, ...prev]);
+    try {
+      const current = JSON.parse(localStorage.getItem(`sir_saved_searches_${cid}`) || '[]');
+      localStorage.setItem(`sir_saved_searches_${cid}`, JSON.stringify([fallbackSearch, ...current]));
+    } catch { }
+    return { success: true, data: fallbackSearch };
+  }
+};
+
+const updateSavedSearch = async (id, newName) => {
+  const cid = user?.candidateId || user?.email;
+  try {
+    const res = await fetch(`/api/candidate/saved-searches/${id}`, {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        name: newName.trim(),
+        candidateId: cid
+      })
+    });
+    const data = await res.json();
+    if (res.ok && data?.success) {
+      setSavedSearches(prev => prev.map(s => s.id === id ? { ...s, name: newName.trim() } : s));
+      try {
+        const current = JSON.parse(localStorage.getItem(`sir_saved_searches_${cid}`) || '[]');
+        localStorage.setItem(`sir_saved_searches_${cid}`, JSON.stringify(current.map(s => s.id === id ? { ...s, name: newName.trim() } : s)));
+      } catch { }
+      return { success: true };
+    }
+    return { success: false, message: data?.message || 'Failed to rename search.' };
+  } catch {
+    setSavedSearches(prev => prev.map(s => s.id === id ? { ...s, name: newName.trim() } : s));
+    return { success: true };
+  }
+};
+
+const deleteSavedSearch = async (id) => {
+  const cid = user?.candidateId || user?.email;
+  try {
+    const res = await fetch(`/api/candidate/saved-searches/${id}?candidateId=${encodeURIComponent(cid || '')}`, {
+      method: 'DELETE'
+    });
+    const data = await res.json();
+    if (res.ok && data?.success) {
+      setSavedSearches(prev => prev.filter(s => s.id !== id));
+      try {
+        const current = JSON.parse(localStorage.getItem(`sir_saved_searches_${cid}`) || '[]');
+        localStorage.setItem(`sir_saved_searches_${cid}`, JSON.stringify(current.filter(s => s.id !== id)));
+      } catch { }
+      return { success: true };
+    }
+    return { success: false, message: data?.message || 'Failed to delete search.' };
+  } catch {
+    setSavedSearches(prev => prev.filter(s => s.id !== id));
+    return { success: true };
+  }
+};
+
+const restoreSearch = (criteria) => {
+  setActiveSearchCriteria(criteria);
+  navigateTo('jobs');
+  if (typeof window !== 'undefined') {
+    window.location.hash = 'jobs';
+  }
+};
+
+const applyForJob = async (job, payload = {}) => {
+  if (!job || !job.id) return;
+  const cid = user?.candidateId || user?.id || payload.candidateId || 'RI-CAND-001';
+  const uid = user?.userId || payload.userId || '';
+  const userEmail = (user?.email || payload.applicantEmail || payload.email || '').toLowerCase().trim();
+
+  const resumeName = payload.resumeName || user?.resumeName || null;
+  const resumeUrl = payload.resumeUrl || user?.resumeUrl || null;
+  const resumeSize = payload.resumeSize || user?.resumeSize || null;
+  const coverNote = payload.coverNote || '';
+  const noticePeriod = payload.noticePeriod || 'Immediate';
+  const expectedSalary = payload.expectedSalary || job.salary || user?.expectedSalary || 'Market Standard';
+  const applicantName = payload.applicantName || payload.name || user?.name || 'Candidate';
+  const applicantPhone = payload.applicantPhone || payload.phone || user?.phone || '';
+
+  const newApp = {
+    id: payload.referenceNumber || `RI-APP-${Math.floor(10000 + Math.random() * 90000)}`,
+    candidateId: cid,
+    userId: uid,
+    jobId: job.id,
+    jobTitle: job.title,
+    company: job.company,
+    location: job.location || job.country || 'GCC',
+    appliedDate: new Date().toISOString(),
+    status: 'Under Review',
+    stage: 'Applied',
+    resumeName,
+    resumeUrl,
+    resumeSize,
+    coverNote,
+    noticePeriod,
+    expectedSalary,
+    applicantName,
+    applicantEmail: userEmail,
+    applicantPhone
+  };
+
+  setApplications(prev => {
+    const filtered = prev.filter(a => a.jobId !== job.id);
+    const next = [newApp, ...filtered];
+    if (cid) {
+      safeStorageSetItem(`sir_applications_${cid}`, next);
+    }
+    if (userEmail) {
+      safeStorageSetItem(`sir_applications_${userEmail}`, next);
+      try {
+        const db = getCandidateDB();
+        if (db[userEmail]) {
+          db[userEmail].applications = stripBulkyDataForStorage(next);
+          safeStorageSetItem('sir_candidates_db', db);
+        }
+      } catch { }
+    }
+    // Update global sir_job_applications so CRM immediately shows application
+    try {
+      const globalStr = safeStorageGetItem('sir_job_applications');
+      const globalApps = globalStr ? JSON.parse(globalStr) : [];
+      const filteredGlobal = Array.isArray(globalApps)
+        ? globalApps.filter(a => a.id !== newApp.id && !(String(a.jobId) === String(job.id) && (a.applicantEmail || '').toLowerCase().trim() === userEmail))
+        : [];
+      const nextGlobal = [newApp, ...filteredGlobal];
+      safeStorageSetItem('sir_job_applications', nextGlobal);
+
+      // Clear from deleted applications blacklist if candidate re-applies
+      const delStr = safeStorageGetItem('sir_deleted_applications');
+      if (delStr) {
+        const delArr = JSON.parse(delStr);
+        if (Array.isArray(delArr)) {
+          const filteredDel = delArr.filter(d => d !== newApp.id && d !== String(job.id) && d !== `${String(job.id)}_${userEmail}`);
+          safeStorageSetItem('sir_deleted_applications', filteredDel);
+        }
+      }
+    } catch { }
+
+    // Dispatch real-time global event for CRM and vacancy cards
+    if (typeof window !== 'undefined') {
+      window.dispatchEvent(new CustomEvent('application-submitted', { detail: newApp }));
+    }
+
+    return next;
+  });
+
+  // If new resume provided or requested to save to profile, update user profile state & local storage
+  if (resumeName && (!user?.resumeName || payload.saveToProfile)) {
+    updateUserProfile({
       resumeName,
       resumeUrl,
       resumeSize,
-      coverNote,
-      noticePeriod,
-      expectedSalary,
-      applicantName,
-      applicantEmail: userEmail,
-      applicantPhone
-    };
-
-    setApplications(prev => {
-      const filtered = prev.filter(a => a.jobId !== job.id);
-      const next = [newApp, ...filtered];
-      if (cid) {
-        safeStorageSetItem(`sir_applications_${cid}`, next);
-      }
-      if (userEmail) {
-        safeStorageSetItem(`sir_applications_${userEmail}`, next);
-        try {
-          const db = getCandidateDB();
-          if (db[userEmail]) {
-            db[userEmail].applications = stripBulkyDataForStorage(next);
-            safeStorageSetItem('sir_candidates_db', db);
-          }
-        } catch { }
-      }
-      // Update global sir_job_applications so CRM immediately shows application
-      try {
-        const globalStr = safeStorageGetItem('sir_job_applications');
-        const globalApps = globalStr ? JSON.parse(globalStr) : [];
-        const filteredGlobal = Array.isArray(globalApps)
-          ? globalApps.filter(a => a.id !== newApp.id && !(String(a.jobId) === String(job.id) && (a.applicantEmail || '').toLowerCase().trim() === userEmail))
-          : [];
-        const nextGlobal = [newApp, ...filteredGlobal];
-        safeStorageSetItem('sir_job_applications', nextGlobal);
-
-        // Clear from deleted applications blacklist if candidate re-applies
-        const delStr = safeStorageGetItem('sir_deleted_applications');
-        if (delStr) {
-          const delArr = JSON.parse(delStr);
-          if (Array.isArray(delArr)) {
-            const filteredDel = delArr.filter(d => d !== newApp.id && d !== String(job.id) && d !== `${String(job.id)}_${userEmail}`);
-            safeStorageSetItem('sir_deleted_applications', filteredDel);
-          }
-        }
-      } catch { }
-
-      // Dispatch real-time global event for CRM and vacancy cards
-      if (typeof window !== 'undefined') {
-        window.dispatchEvent(new CustomEvent('application-submitted', { detail: newApp }));
-      }
-
-      return next;
+      resumeUploaded: true
     });
+  }
 
-    // If new resume provided or requested to save to profile, update user profile state & local storage
-    if (resumeName && (!user?.resumeName || payload.saveToProfile)) {
-      updateUserProfile({
+  // Sync to backend candidate_applications table
+  try {
+    await fetch('/api/candidate/applications', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        candidateId: cid,
+        userId: uid,
+        jobId: job.id,
+        jobTitle: job.title,
+        company: job.company,
+        location: job.location || job.country,
         resumeName,
         resumeUrl,
         resumeSize,
-        resumeUploaded: true
-      });
-    }
+        coverNote,
+        noticePeriod,
+        expectedSalary,
+        applicantName,
+        applicantEmail: userEmail,
+        applicantPhone
+      })
+    });
+  } catch (err) {
+    console.warn('Failed to sync application to candidate_applications:', err);
+  }
+};
 
-    // Sync to backend candidate_applications table
-    try {
-      await fetch('/api/candidate/applications', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          candidateId: cid,
-          userId: uid,
-          jobId: job.id,
-          jobTitle: job.title,
-          company: job.company,
-          location: job.location || job.country,
-          resumeName,
-          resumeUrl,
-          resumeSize,
-          coverNote,
-          noticePeriod,
-          expectedSalary,
-          applicantName,
-          applicantEmail: userEmail,
-          applicantPhone
-        })
-      });
-    } catch (err) {
-      console.warn('Failed to sync application to candidate_applications:', err);
-    }
-  };
+const updateApplicationStatus = (appId, newStatus, step, interviewDetails = null, notShortlistedDetails = null) => {
+  setApplications(prev => {
+    const updated = prev.map(app => {
+      if (app.id === appId) {
+        return {
+          ...app,
+          status: newStatus,
+          step: step !== undefined ? step : app.step,
+          interviewDetails: interviewDetails || app.interviewDetails,
+          notShortlistedDetails: notShortlistedDetails || app.notShortlistedDetails
+        };
+      }
+      return app;
+    });
+    safeStorageSetItem('sir_job_applications', updated);
+    return updated;
+  });
+};
 
-  const updateApplicationStatus = (appId, newStatus, step, interviewDetails = null, notShortlistedDetails = null) => {
-    setApplications(prev => {
-      const updated = prev.map(app => {
-        if (app.id === appId) {
+const deleteApplication = async (appId) => {
+  try {
+    await fetch(`/api/candidate/applications/${appId}`, {
+      method: 'DELETE'
+    });
+  } catch (err) {
+    console.warn('Backend delete application notice:', err);
+  }
+
+  // 1. Blacklist in sir_deleted_applications so it stays deleted across all tabs & reloads
+  try {
+    const delStr = safeStorageGetItem('sir_deleted_applications');
+    const delArr = delStr ? JSON.parse(delStr) : [];
+    if (Array.isArray(delArr)) {
+      delArr.push(appId);
+      safeStorageSetItem('sir_deleted_applications', [...new Set(delArr)]);
+    }
+  } catch { }
+
+  // 2. Wipe from global sir_job_applications
+  try {
+    const globalStr = safeStorageGetItem('sir_job_applications');
+    if (globalStr) {
+      const globalApps = JSON.parse(globalStr);
+      if (Array.isArray(globalApps)) {
+        const filtered = globalApps.filter(a => a.id !== appId && String(a.jobId) !== String(appId));
+        safeStorageSetItem('sir_job_applications', filtered);
+      }
+    }
+  } catch { }
+
+  setApplications(prev => {
+    const updated = prev.filter(a => a.id !== appId && String(a.jobId) !== String(appId));
+    if (user?.candidateId) safeStorageSetItem(`sir_applications_${user.candidateId}`, updated);
+    const userEmail = (user?.email || '').toLowerCase().trim();
+    if (userEmail) {
+      safeStorageSetItem(`sir_applications_${userEmail}`, updated);
+      try {
+        const db = getCandidateDB();
+        if (db[userEmail]) {
+          db[userEmail].applications = stripBulkyDataForStorage(updated);
+          safeStorageSetItem('sir_candidates_db', db);
+        }
+      } catch { }
+    }
+    return updated;
+  });
+
+  // 3. Dispatch real-time global event so JobsPage immediately shows "Apply Now"
+  if (typeof window !== 'undefined') {
+    window.dispatchEvent(new CustomEvent('application-deleted', { detail: { appId } }));
+  }
+
+  return true;
+};
+
+const respondToOffer = async (candidateId, action, reason = '') => {
+  try {
+    const targetId = candidateId || user?.candidateId || user?.id;
+    if (!targetId) throw new Error('Candidate identifier not found.');
+    const res = await fetch(`/api/candidates/${targetId}/respond-offer`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ action, reason })
+    });
+    const data = await res.json();
+    if (data.success) {
+      setUser(prev => {
+        if (!prev) return prev;
+        const next = {
+          ...prev,
+          stage: data.newStage,
+          offerDetails: data.offerDetails
+        };
+        saveUserSession(next);
+        return next;
+      });
+
+      setApplications(prev => prev.map(a => {
+        const cid = a.candidateId || a.id;
+        if (cid === targetId || a.id === targetId || a.applicantEmail?.toLowerCase() === user?.email?.toLowerCase()) {
           return {
-            ...app,
-            status: newStatus,
-            step: step !== undefined ? step : app.step,
-            interviewDetails: interviewDetails || app.interviewDetails,
-            notShortlistedDetails: notShortlistedDetails || app.notShortlistedDetails
-          };
-        }
-        return app;
-      });
-      safeStorageSetItem('sir_job_applications', updated);
-      return updated;
-    });
-  };
-
-  const deleteApplication = async (appId) => {
-    try {
-      await fetch(`/api/candidate/applications/${appId}`, {
-        method: 'DELETE'
-      });
-    } catch (err) {
-      console.warn('Backend delete application notice:', err);
-    }
-
-    // 1. Blacklist in sir_deleted_applications so it stays deleted across all tabs & reloads
-    try {
-      const delStr = safeStorageGetItem('sir_deleted_applications');
-      const delArr = delStr ? JSON.parse(delStr) : [];
-      if (Array.isArray(delArr)) {
-        delArr.push(appId);
-        safeStorageSetItem('sir_deleted_applications', [...new Set(delArr)]);
-      }
-    } catch { }
-
-    // 2. Wipe from global sir_job_applications
-    try {
-      const globalStr = safeStorageGetItem('sir_job_applications');
-      if (globalStr) {
-        const globalApps = JSON.parse(globalStr);
-        if (Array.isArray(globalApps)) {
-          const filtered = globalApps.filter(a => a.id !== appId && String(a.jobId) !== String(appId));
-          safeStorageSetItem('sir_job_applications', filtered);
-        }
-      }
-    } catch { }
-
-    setApplications(prev => {
-      const updated = prev.filter(a => a.id !== appId && String(a.jobId) !== String(appId));
-      if (user?.candidateId) safeStorageSetItem(`sir_applications_${user.candidateId}`, updated);
-      const userEmail = (user?.email || '').toLowerCase().trim();
-      if (userEmail) {
-        safeStorageSetItem(`sir_applications_${userEmail}`, updated);
-        try {
-          const db = getCandidateDB();
-          if (db[userEmail]) {
-            db[userEmail].applications = stripBulkyDataForStorage(updated);
-            safeStorageSetItem('sir_candidates_db', db);
-          }
-        } catch { }
-      }
-      return updated;
-    });
-
-    // 3. Dispatch real-time global event so JobsPage immediately shows "Apply Now"
-    if (typeof window !== 'undefined') {
-      window.dispatchEvent(new CustomEvent('application-deleted', { detail: { appId } }));
-    }
-
-    return true;
-  };
-
-  const respondToOffer = async (candidateId, action, reason = '') => {
-    try {
-      const targetId = candidateId || user?.candidateId || user?.id;
-      if (!targetId) throw new Error('Candidate identifier not found.');
-      const res = await fetch(`/api/candidates/${targetId}/respond-offer`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ action, reason })
-      });
-      const data = await res.json();
-      if (data.success) {
-        setUser(prev => {
-          if (!prev) return prev;
-          const next = {
-            ...prev,
-            stage: data.newStage,
+            ...a,
+            stage: action === 'accept' ? 'Offer Accepted' : 'Offer Declined',
+            status: action === 'accept' ? 'Offer Accepted' : 'Declined',
             offerDetails: data.offerDetails
           };
-          saveUserSession(next);
-          return next;
-        });
+        }
+        return a;
+      }));
 
-        setApplications(prev => prev.map(a => {
-          const cid = a.candidateId || a.id;
-          if (cid === targetId || a.id === targetId || a.applicantEmail?.toLowerCase() === user?.email?.toLowerCase()) {
-            return {
-              ...a,
-              stage: action === 'accept' ? 'Offer Accepted' : 'Offer Declined',
-              status: action === 'accept' ? 'Offer Accepted' : 'Declined',
-              offerDetails: data.offerDetails
-            };
-          }
-          return a;
-        }));
+      return { success: true, message: data.message };
+    }
+    return { success: false, message: data.message || 'Failed to submit response' };
+  } catch (err) {
+    return { success: false, message: err.message };
+  }
+};
 
-        return { success: true, message: data.message };
-      }
-      return { success: false, message: data.message || 'Failed to submit response' };
-    } catch (err) {
-      return { success: false, message: err.message };
+// Sync URL pathname & hash routing
+useEffect(() => {
+  const handleUrlSync = () => {
+    const path = window.location.pathname.replace(/^\/+|\/+$/g, '');
+    const rawHash = window.location.hash.replace('#', '');
+    const hash = rawHash.split('?')[0];
+    if (path === 'crm' || path.startsWith('crm/') || hash === 'crm') {
+      setActiveTab('crm');
+    } else if (path === 'superadmin-erp' || path === 'erp' || hash === 'erp' || hash === 'superadmin-erp') {
+      setActiveTab('erp');
+    } else if (path === 'candidate-dashboard' || path === 'candidate-portal' || path === 'candidates' || hash === 'candidate-dashboard' || hash === 'candidate-portal' || hash === 'candidates') {
+      setActiveTab('candidates');
+    } else if (path && path !== '' && path !== 'index.html') {
+      setActiveTab(path);
+    } else if (hash) {
+      setActiveTab(hash);
+    } else {
+      setActiveTab('home');
     }
   };
+  handleUrlSync();
+  window.addEventListener('hashchange', handleUrlSync);
+  window.addEventListener('popstate', handleUrlSync);
+  return () => {
+    window.removeEventListener('hashchange', handleUrlSync);
+    window.removeEventListener('popstate', handleUrlSync);
+  };
+}, []);
 
-  // Sync URL pathname & hash routing
-  useEffect(() => {
-    const handleUrlSync = () => {
-      const path = window.location.pathname.replace(/^\/+|\/+$/g, '');
-      const rawHash = window.location.hash.replace('#', '');
-      const hash = rawHash.split('?')[0];
-      if (path === 'crm' || path.startsWith('crm/') || hash === 'crm') {
-        setActiveTab('crm');
-      } else if (path === 'superadmin-erp' || path === 'erp' || hash === 'erp' || hash === 'superadmin-erp') {
-        setActiveTab('erp');
-      } else if (path === 'candidate-dashboard' || path === 'candidate-portal' || path === 'candidates' || hash === 'candidate-dashboard' || hash === 'candidate-portal' || hash === 'candidates') {
-        setActiveTab('candidates');
-      } else if (path && path !== '' && path !== 'index.html') {
-        setActiveTab(path);
-      } else if (hash) {
-        setActiveTab(hash);
-      } else {
-        setActiveTab('home');
-      }
-    };
-    handleUrlSync();
-    window.addEventListener('hashchange', handleUrlSync);
-    window.addEventListener('popstate', handleUrlSync);
-    return () => {
-      window.removeEventListener('hashchange', handleUrlSync);
-      window.removeEventListener('popstate', handleUrlSync);
-    };
-  }, []);
-
-  // Track Page Views & Landing Page Funnel Step on Active Tab Change
-  useEffect(() => {
-    try {
-      const attribution = getAttributionData();
-      const pageTitle = `${activeTab.charAt(0).toUpperCase() + activeTab.slice(1)} | Revival International`;
-      trackPageView(activeTab === 'home' ? '/' : `/${activeTab}`, pageTitle, {
-        utm_source: attribution.utmSource,
-        utm_medium: attribution.utmMedium,
-        utm_campaign: attribution.utmCampaign
-      });
-      if (activeTab === 'home' || activeTab === '') {
-        trackFunnelStep(1, 'landing_page_visit', 'home');
-      }
-    } catch (e) {
-      console.debug('Analytics page view tracking error:', e);
+// Track Page Views & Landing Page Funnel Step on Active Tab Change
+useEffect(() => {
+  try {
+    const attribution = getAttributionData();
+    const pageTitle = `${activeTab.charAt(0).toUpperCase() + activeTab.slice(1)} | Revival International`;
+    trackPageView(activeTab === 'home' ? '/' : `/${activeTab}`, pageTitle, {
+      utm_source: attribution.utmSource,
+      utm_medium: attribution.utmMedium,
+      utm_campaign: attribution.utmCampaign
+    });
+    if (activeTab === 'home' || activeTab === '') {
+      trackFunnelStep(1, 'landing_page_visit', 'home');
     }
-  }, [activeTab]);
+  } catch (e) {
+    console.debug('Analytics page view tracking error:', e);
+  }
+}, [activeTab]);
 
-  // Posted Jobs State Management
-  const [postedJobs, setPostedJobs] = useState(() => {
+// Posted Jobs State Management
+const [postedJobs, setPostedJobs] = useState(() => {
+  try {
+    const saved = localStorage.getItem('sir_posted_jobs');
+    return saved ? JSON.parse(saved) : [];
+  } catch {
+    return [];
+  }
+});
+
+const addJob = async (jobData) => {
+  const newJob = {
+    id: 'job-' + Date.now(),
+    title: jobData.title || 'Untitled Role',
+    company: user?.companyName || jobData.company || 'Al Habtoor Contracting LLC',
+    country: jobData.country || 'UAE',
+    location: jobData.location || `${jobData.country || 'UAE'}, Business District`,
+    salary: jobData.salary || 'Negotiable',
+    experience: jobData.experience || '2 - 5 Years',
+    jobType: jobData.jobType || 'Full-time',
+    category: jobData.category || 'Construction',
+    description: jobData.description || 'Job mandate posted via Revival Employer Portal.',
+    vacancies: jobData.vacancies || '5',
+    skills: Array.isArray(jobData.skills)
+      ? jobData.skills
+      : (jobData.skills ? jobData.skills.split(',').map(s => s.trim()) : ['Management', 'Operations']),
+    qualification: jobData.qualification || jobData.requiredDegree || "Bachelor's Degree",
+    benefits: Array.isArray(jobData.benefits)
+      ? jobData.benefits
+      : (jobData.benefits ? jobData.benefits.split(',').map(b => b.trim()) : ['Tax-free salary', 'Visa Sponsorship', 'Medical Insurance']),
+    educationLevel: jobData.educationLevel || "Bachelor's Degree",
+    requiredDegree: jobData.requiredDegree || jobData.qualification || '',
+    academicQualifications: jobData.academicQualifications || '',
+    mandatoryLicences: jobData.mandatoryLicences || '',
+    contractType: jobData.contractType || jobData.jobType || 'Permanent',
+    contractDuration: jobData.contractDuration || (jobData.contractType === 'Permanent' ? 'Indefinite' : '1 Year'),
+    contractRenewal: jobData.contractRenewal || 'Yes, Renewable upon mutual agreement',
+    accommodation: jobData.accommodation || 'Allowance Provided',
+    transportation: jobData.transportation || 'Allowance Provided',
+    livingAllowancesDetails: jobData.livingAllowancesDetails || '',
+    visaSponsorship: jobData.visaSponsorship || 'Visa sponsorship provided',
+    visaSupportDetails: jobData.visaSupportDetails || 'Full work visa sponsorship and processing support provided.',
+    closingDate: jobData.closingDate || null,
+    postedDate: 'Just now',
+    featured: true,
+    postedByEmployer: true
+  };
+
+  try {
+    await fetch('/api/jobs', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'x-crm-role': user?.role || 'Employer',
+        'x-user-role': user?.role || 'Employer'
+      },
+      body: JSON.stringify(newJob)
+    });
+  } catch (err) {
+    console.warn('Backend offline, posting job to local state:', err);
+  }
+
+  setPostedJobs(prev => {
+    const updated = [newJob, ...prev];
+    localStorage.setItem('sir_posted_jobs', JSON.stringify(updated));
+    return updated;
+  });
+
+  // CRM Integration: Log client requirement
+  if (crm && crm.addClient) {
+    crm.addClient({
+      company: newJob.company,
+      email: user?.email || 'employer@web.com',
+      industry: newJob.category,
+      requirements: [{ title: newJob.title, description: newJob.description }],
+      status: 'Active'
+    });
+  }
+
+  return newJob;
+};
+
+const deleteJob = async (jobId) => {
+  try {
+    await fetch(`/api/jobs/${jobId}`, {
+      method: 'DELETE'
+    });
+  } catch (err) {
+    console.warn('Backend offline, deleting job from local state:', err);
+  }
+
+  setPostedJobs(prev => {
+    const updated = prev.filter(j => j.id !== jobId);
+    localStorage.setItem('sir_posted_jobs', JSON.stringify(updated));
+    return updated;
+  });
+};
+
+const [selectedServiceId, setSelectedServiceIdState] = useState(() => {
+  if (typeof window !== 'undefined') {
     try {
-      const saved = localStorage.getItem('sir_posted_jobs');
-      return saved ? JSON.parse(saved) : [];
+      const urlParams = new URLSearchParams(window.location.search);
+      const urlService = urlParams.get('service');
+      if (urlService) return urlService;
+      const saved = sessionStorage.getItem('sir_selected_service_id');
+      return saved || null;
     } catch {
-      return [];
+      return null;
     }
-  });
+  }
+  return null;
+});
 
-  const addJob = async (jobData) => {
-    const newJob = {
-      id: 'job-' + Date.now(),
-      title: jobData.title || 'Untitled Role',
-      company: user?.companyName || jobData.company || 'Al Habtoor Contracting LLC',
-      country: jobData.country || 'UAE',
-      location: jobData.location || `${jobData.country || 'UAE'}, Business District`,
-      salary: jobData.salary || 'Negotiable',
-      experience: jobData.experience || '2 - 5 Years',
-      jobType: jobData.jobType || 'Full-time',
-      category: jobData.category || 'Construction',
-      description: jobData.description || 'Job mandate posted via Revival Employer Portal.',
-      vacancies: jobData.vacancies || '5',
-      skills: Array.isArray(jobData.skills)
-        ? jobData.skills
-        : (jobData.skills ? jobData.skills.split(',').map(s => s.trim()) : ['Management', 'Operations']),
-      qualification: jobData.qualification || jobData.requiredDegree || "Bachelor's Degree",
-      benefits: Array.isArray(jobData.benefits)
-        ? jobData.benefits
-        : (jobData.benefits ? jobData.benefits.split(',').map(b => b.trim()) : ['Tax-free salary', 'Visa Sponsorship', 'Medical Insurance']),
-      educationLevel: jobData.educationLevel || "Bachelor's Degree",
-      requiredDegree: jobData.requiredDegree || jobData.qualification || '',
-      academicQualifications: jobData.academicQualifications || '',
-      mandatoryLicences: jobData.mandatoryLicences || '',
-      contractType: jobData.contractType || jobData.jobType || 'Permanent',
-      contractDuration: jobData.contractDuration || (jobData.contractType === 'Permanent' ? 'Indefinite' : '1 Year'),
-      contractRenewal: jobData.contractRenewal || 'Yes, Renewable upon mutual agreement',
-      accommodation: jobData.accommodation || 'Allowance Provided',
-      transportation: jobData.transportation || 'Allowance Provided',
-      livingAllowancesDetails: jobData.livingAllowancesDetails || '',
-      visaSponsorship: jobData.visaSponsorship || 'Visa sponsorship provided',
-      visaSupportDetails: jobData.visaSupportDetails || 'Full work visa sponsorship and processing support provided.',
-      closingDate: jobData.closingDate || null,
-      postedDate: 'Just now',
-      featured: true,
-      postedByEmployer: true
-    };
-
-    try {
-      await fetch('/api/jobs', {
-        method: 'POST',
-        headers: { 
-          'Content-Type': 'application/json',
-          'x-crm-role': user?.role || 'Employer',
-          'x-user-role': user?.role || 'Employer'
-        },
-        body: JSON.stringify(newJob)
-      });
-    } catch (err) {
-      console.warn('Backend offline, posting job to local state:', err);
+const setSelectedServiceId = (serviceId) => {
+  setSelectedServiceIdState(serviceId);
+  try {
+    if (serviceId) {
+      sessionStorage.setItem('sir_selected_service_id', serviceId);
+    } else {
+      sessionStorage.removeItem('sir_selected_service_id');
     }
+  } catch { }
+};
 
-    setPostedJobs(prev => {
-      const updated = [newJob, ...prev];
-      localStorage.setItem('sir_posted_jobs', JSON.stringify(updated));
-      return updated;
-    });
+const [selectedIndustryId, setSelectedIndustryId] = useState(null);
 
-    // CRM Integration: Log client requirement
-    if (crm && crm.addClient) {
-      crm.addClient({
-        company: newJob.company,
-        email: user?.email || 'employer@web.com',
-        industry: newJob.category,
-        requirements: [{ title: newJob.title, description: newJob.description }],
-        status: 'Active'
-      });
+const navigateTo = (tab) => {
+  const cleanTab = tab ? String(tab).replace(/^#/, '').replace(/^\/+/, '') : 'home';
+  setActiveTab(cleanTab);
+  if (typeof window !== 'undefined') {
+    if (cleanTab === 'crm') {
+      window.history.pushState({}, '', '/crm');
+    } else if (cleanTab === 'erp' || cleanTab === 'superadmin-erp') {
+      window.history.pushState({}, '', '/erp');
+    } else {
+      const targetPath = cleanTab === 'home' || cleanTab === '' ? '/' : `/${cleanTab}`;
+      window.history.pushState({}, '', targetPath);
     }
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  }
+};
 
-    return newJob;
-  };
-
-  const deleteJob = async (jobId) => {
-    try {
-      await fetch(`/api/jobs/${jobId}`, {
-        method: 'DELETE'
-      });
-    } catch (err) {
-      console.warn('Backend offline, deleting job from local state:', err);
-    }
-
-    setPostedJobs(prev => {
-      const updated = prev.filter(j => j.id !== jobId);
-      localStorage.setItem('sir_posted_jobs', JSON.stringify(updated));
-      return updated;
-    });
-  };
-
-  const [selectedServiceId, setSelectedServiceIdState] = useState(() => {
-    if (typeof window !== 'undefined') {
-      try {
-        const urlParams = new URLSearchParams(window.location.search);
-        const urlService = urlParams.get('service');
-        if (urlService) return urlService;
-        const saved = sessionStorage.getItem('sir_selected_service_id');
-        return saved || null;
-      } catch {
-        return null;
-      }
-    }
-    return null;
-  });
-
-  const setSelectedServiceId = (serviceId) => {
-    setSelectedServiceIdState(serviceId);
-    try {
-      if (serviceId) {
-        sessionStorage.setItem('sir_selected_service_id', serviceId);
-      } else {
-        sessionStorage.removeItem('sir_selected_service_id');
-      }
-    } catch { }
-  };
-
-  const [selectedIndustryId, setSelectedIndustryId] = useState(null);
-
-  const navigateTo = (tab) => {
-    const cleanTab = tab ? String(tab).replace(/^#/, '').replace(/^\/+/, '') : 'home';
-    setActiveTab(cleanTab);
-    if (typeof window !== 'undefined') {
-      if (cleanTab === 'crm') {
-        window.history.pushState({}, '', '/crm');
-      } else if (cleanTab === 'erp' || cleanTab === 'superadmin-erp') {
-        window.history.pushState({}, '', '/erp');
-      } else {
-        const targetPath = cleanTab === 'home' || cleanTab === '' ? '/' : `/${cleanTab}`;
-        window.history.pushState({}, '', targetPath);
-      }
+const navigateToService = (serviceId) => {
+  setSelectedServiceId(serviceId);
+  const eduIds = ['intl-consult', 'college-adm', 'school-career', 'intl-adm', 'school-academy', 'exec-seminars-lang'];
+  if (eduIds.includes(serviceId)) {
+    navigateTo(`education-${serviceId}`);
+    return;
+  }
+  setActiveTab('services');
+  window.location.hash = 'services';
+  setTimeout(() => {
+    const elem = document.getElementById(`service-${serviceId}`);
+    if (elem) {
+      elem.scrollIntoView({ behavior: 'smooth', block: 'center' });
+    } else {
       window.scrollTo({ top: 0, behavior: 'smooth' });
     }
-  };
+  }, 120);
+};
 
-  const navigateToService = (serviceId) => {
-    setSelectedServiceId(serviceId);
-    const eduIds = ['intl-consult', 'college-adm', 'school-career', 'intl-adm', 'school-academy', 'exec-seminars-lang'];
-    if (eduIds.includes(serviceId)) {
-      navigateTo(`education-${serviceId}`);
-      return;
+const navigateToIndustry = (industryId) => {
+  setSelectedIndustryId(industryId);
+  setActiveTab('industries');
+  window.location.hash = 'industries';
+  setTimeout(() => {
+    const elem = document.getElementById(`industry-${industryId}`);
+    if (elem) {
+      elem.scrollIntoView({ behavior: 'smooth', block: 'center' });
+    } else {
+      window.scrollTo({ top: 0, behavior: 'smooth' });
     }
-    setActiveTab('services');
-    window.location.hash = 'services';
-    setTimeout(() => {
-      const elem = document.getElementById(`service-${serviceId}`);
-      if (elem) {
-        elem.scrollIntoView({ behavior: 'smooth', block: 'center' });
-      } else {
-        window.scrollTo({ top: 0, behavior: 'smooth' });
-      }
-    }, 120);
-  };
+  }, 120);
+};
 
-  const navigateToIndustry = (industryId) => {
-    setSelectedIndustryId(industryId);
-    setActiveTab('industries');
-    window.location.hash = 'industries';
-    setTimeout(() => {
-      const elem = document.getElementById(`industry-${industryId}`);
-      if (elem) {
-        elem.scrollIntoView({ behavior: 'smooth', block: 'center' });
-      } else {
-        window.scrollTo({ top: 0, behavior: 'smooth' });
-      }
-    }, 120);
-  };
-
-  return (
-    <AppContext.Provider
-      value={{
-        darkMode,
-        toggleDarkMode,
-        language,
-        setLanguage,
-        t,
-        currency,
-        setCurrency,
-        activeTab,
-        navigateTo,
-        selectedServiceId,
-        setSelectedServiceId,
-        selectedIndustryId,
-        setSelectedIndustryId,
-        navigateToService,
-        navigateToIndustry,
-        selectedJob,
-        setSelectedJob,
-        selectedJobCategory,
-        setSelectedJobCategory,
-        activeModal,
-        setActiveModal,
-        authModalConfig,
-        openAuthModal,
-        pendingJobToApply,
-        setPendingJobToApply,
-        savedJobs,
-        toggleSaveJob,
-        savedSearches,
-        fetchSavedSearches,
-        saveSearch,
-        updateSavedSearch,
-        deleteSavedSearch,
-        activeSearchCriteria,
-        setActiveSearchCriteria,
-        restoreSearch,
-        applications,
-        applyForJob,
-        updateApplicationStatus,
-        deleteApplication,
-        withdrawApplication: deleteApplication,
-        respondToOffer,
-        postedJobs,
-        addJob,
-        deleteJob,
-        user,
-        setUser,
-        updateUserProfile,
-        loginCandidate,
-        registerCandidate,
-        loginWithGoogle,
-        loginEmployer,
-        logout
-      }}
-    >
-      {children}
-    </AppContext.Provider>
-  );
+return (
+  <AppContext.Provider
+    value={{
+      darkMode,
+      toggleDarkMode,
+      language,
+      setLanguage,
+      t,
+      currency,
+      setCurrency,
+      activeTab,
+      navigateTo,
+      selectedServiceId,
+      setSelectedServiceId,
+      selectedIndustryId,
+      setSelectedIndustryId,
+      navigateToService,
+      navigateToIndustry,
+      selectedJob,
+      setSelectedJob,
+      selectedJobCategory,
+      setSelectedJobCategory,
+      activeModal,
+      setActiveModal,
+      authModalConfig,
+      openAuthModal,
+      pendingJobToApply,
+      setPendingJobToApply,
+      savedJobs,
+      toggleSaveJob,
+      savedSearches,
+      fetchSavedSearches,
+      saveSearch,
+      updateSavedSearch,
+      deleteSavedSearch,
+      activeSearchCriteria,
+      setActiveSearchCriteria,
+      restoreSearch,
+      applications,
+      applyForJob,
+      updateApplicationStatus,
+      deleteApplication,
+      withdrawApplication: deleteApplication,
+      respondToOffer,
+      postedJobs,
+      addJob,
+      deleteJob,
+      user,
+      setUser,
+      updateUserProfile,
+      loginCandidate,
+      registerCandidate,
+      loginWithGoogle,
+      loginEmployer,
+      logout
+    }}
+  >
+    {children}
+  </AppContext.Provider>
+);
 };
 
 export const useApp = () => useContext(AppContext) || {};

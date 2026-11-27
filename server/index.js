@@ -34,6 +34,7 @@ import {
   syncUserToSupabase,
   deleteCandidateFromSupabase,
   checkSupabaseCandidateExists,
+  findSupabaseCandidateAuth,
   fetchSupabaseApplications,
   syncApplicationToSupabase,
   deleteApplicationFromSupabase
@@ -42,6 +43,69 @@ import {
 dotenv.config();
 
 const deletedCandidatesMemorySet = new Set(['ri-cand-391', 'junejoe@gmail.com']);
+
+const pickEarliestIso = (...values) => {
+  let bestIso = null;
+  let bestMs = Infinity;
+  for (const val of values) {
+    if (!val) continue;
+    const str = String(val).trim();
+    const normalized = str.includes('T') ? str : str.replace(' ', 'T') + (str.endsWith('Z') ? '' : 'Z');
+    const ms = Date.parse(normalized);
+    if (!Number.isNaN(ms) && ms > 0 && ms < bestMs) {
+      bestMs = ms;
+      bestIso = str;
+    }
+  }
+  return bestIso;
+};
+
+const checkDuplicateRegistration = async ({ db, sbClient, email, phone }) => {
+  const cleanEmail = normalizeEmail(email);
+  const normalizedPhone = normalizePhone(phone);
+
+  if (sbClient) {
+    try {
+      const sbCheck = await checkSupabaseCandidateExists(cleanEmail, normalizedPhone);
+      if (sbCheck && sbCheck.exists) {
+        return { exists: true, field: sbCheck.field || 'email' };
+      }
+    } catch (sbErr) {
+      console.warn('Supabase duplicate check warning:', sbErr.message);
+    }
+  }
+
+  if (cleanEmail) {
+    try {
+      const existingEmail = await db.get(
+        'SELECT id, email FROM users WHERE LOWER(TRIM(email)) = LOWER(?) UNION SELECT id, email FROM candidate_profiles WHERE LOWER(TRIM(email)) = LOWER(?) UNION SELECT id, email FROM candidates WHERE LOWER(TRIM(email)) = LOWER(?) LIMIT 1',
+        [cleanEmail, cleanEmail, cleanEmail]
+      );
+      if (existingEmail) {
+        return { exists: true, field: 'email' };
+      }
+    } catch (_) {}
+  }
+
+  if (normalizedPhone && normalizedPhone.length >= 7) {
+    try {
+      const phoneSuffix = `%${normalizedPhone.slice(-7)}`;
+      const existingPhone = await db.get(
+        `SELECT id, phone FROM users WHERE phone IS NOT NULL AND REPLACE(REPLACE(REPLACE(REPLACE(phone, ' ', ''), '-', ''), '+', ''), '(', '') LIKE ?
+         UNION
+         SELECT id, phone FROM candidate_profiles WHERE phone IS NOT NULL AND REPLACE(REPLACE(REPLACE(REPLACE(phone, ' ', ''), '-', ''), '+', ''), '(', '') LIKE ?
+         UNION
+         SELECT id, phone FROM candidates WHERE phone IS NOT NULL AND REPLACE(REPLACE(REPLACE(REPLACE(phone, ' ', ''), '-', ''), '+', ''), '(', '') LIKE ? LIMIT 1`,
+        [phoneSuffix, phoneSuffix, phoneSuffix]
+      );
+      if (existingPhone) {
+        return { exists: true, field: 'phone' };
+      }
+    } catch (_) {}
+  }
+
+  return { exists: false, field: null };
+};
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -979,12 +1043,28 @@ app.post('/api/auth/send-otp', async (req, res) => {
     timestamps.push(now);
     otpRequestRateLimits.set(clientIp, timestamps);
 
-    const { email, name, role } = req.body || {};
+    const { email, name, role, phone, isRegistration } = req.body || {};
     if (!email || typeof email !== 'string' || !email.includes('@')) {
       return res.status(400).json({ success: false, message: 'Valid email address is required' });
     }
 
     const cleanEmail = email.trim().toLowerCase();
+
+    // Reject OTP dispatch early if this candidate email/phone is already registered
+    if (role === 'candidate' || isRegistration) {
+      const db = await getDb();
+      const sbClient = getSupabaseClient();
+      const dupCheck = await checkDuplicateRegistration({ db, sbClient, email: cleanEmail, phone });
+      if (dupCheck.exists) {
+        return res.status(409).json({
+          success: false,
+          code: 'DUPLICATE_EMAIL',
+          field: dupCheck.field || 'email',
+          message: 'Already registered: An account with this email address is already registered. Please sign in to your existing account.'
+        });
+      }
+    }
+
     const otp = Math.floor(1000 + Math.random() * 9000).toString();
     const expires = Date.now() + 5 * 60 * 1000; // 5 min expiry
     activeOtps.set(cleanEmail, { otp, expires, attempts: 0 });
@@ -1235,10 +1315,14 @@ app.post('/api/auth/google', async (req, res) => {
     }
 
     const db = await getDb();
+    const sbClient = getSupabaseClient();
     const cleanEmail = googleUser.email;
     const googleSub = googleUser.googleSub || '';
+    const isNewRegistration = req.body?.mode === 'register';
 
-    // Step 1: Check whether this user already exists in `users` by Google `sub` or email
+    // Step 1: Authoritatively look up candidate across DB and Supabase Cloud
+    const sbAuth = sbClient ? await findSupabaseCandidateAuth(cleanEmail) : { exists: false, isCandidateAccount: false, user: null, profile: null, candidate: null, earliestCreatedAt: null };
+
     let userRecord = null;
     if (googleSub) {
       userRecord = await db.get('SELECT * FROM users WHERE googleSub = ?', [googleSub]);
@@ -1246,80 +1330,76 @@ app.post('/api/auth/google', async (req, res) => {
     if (!userRecord) {
       userRecord = await db.get('SELECT * FROM users WHERE LOWER(email) = LOWER(?)', [cleanEmail]);
     }
+    if (!userRecord && sbAuth.user) {
+      userRecord = sbAuth.user;
+    }
+
+    const dbCandidateProfile =
+      (userRecord?.id ? await db.get('SELECT * FROM candidate_profiles WHERE userId = ?', [userRecord.id]) : null) ||
+      await db.get('SELECT * FROM candidate_profiles WHERE LOWER(email) = LOWER(?)', [cleanEmail]) ||
+      sbAuth.profile ||
+      null;
+
+    const dbExistingCand =
+      await db.get('SELECT * FROM candidates WHERE LOWER(email) = LOWER(?)', [cleanEmail]) ||
+      sbAuth.candidate ||
+      null;
+
+    const hasExistingCandidateAccount = Boolean(
+      userRecord ||
+      dbCandidateProfile ||
+      dbExistingCand ||
+      sbAuth.isCandidateAccount ||
+      sbAuth.exists
+    );
 
     // STRICT 1-TIME REGISTRATION RULE:
-    // If the candidate clicked "Sign up with Google" (req.body.mode === 'register'):
-    // If the candidate is already registered in the system, REJECT with 409 DUPLICATE_EMAIL!
-    // They are only allowed to create an account once. If already registered, they must use "Sign In".
-    // (Exception: If the candidate was deleted from the CRM Candidates page, they are wiped from all tables,
-    // so existingCandidate will be null and they can register anew).
-    if (req.body?.mode === 'register') {
-      const sbClient = getSupabaseClient();
-      let isDuplicate = Boolean(userRecord);
+    // If clicking "Sign up with Google" (mode === 'register') for an already registered email -> REJECT 409 DUPLICATE_EMAIL
+    if (isNewRegistration) {
+      const dupCheck = hasExistingCandidateAccount
+        ? { exists: true, field: 'email' }
+        : await checkDuplicateRegistration({ db, sbClient, email: cleanEmail });
 
-      if (!isDuplicate && sbClient) {
-        try {
-          const sbCheck = await checkSupabaseCandidateExists(cleanEmail);
-          if (sbCheck && sbCheck.exists) {
-            isDuplicate = true;
-          }
-        } catch (_) {}
-      }
-
-      if (!isDuplicate) {
-        const existingCandidate = userRecord ||
-          await db.get('SELECT id FROM candidate_profiles WHERE LOWER(email) = LOWER(?)', [cleanEmail]) ||
-          await db.get('SELECT id FROM candidates WHERE LOWER(email) = LOWER(?)', [cleanEmail]);
-        if (existingCandidate) isDuplicate = true;
-      }
-
-      if (isDuplicate) {
+      if (dupCheck.exists) {
         return res.status(409).json({
           success: false,
           code: 'DUPLICATE_EMAIL',
-          message: 'An account with this email address or phone number already exists. Please sign in to your existing account.'
+          message: 'Already registered: An account with this email address is already registered. Please sign in to your existing account.'
         });
       }
-    }
-
-    // STRICT REGISTRATION REQUIREMENT:
-    // If the candidate clicked "Sign in with Google" (req.body.mode !== 'register'):
-    // An existing registered account is REQUIRED! Unregistered users cannot sign in directly.
-    // They must use "Create Candidate Account" / "Sign up with Google" first.
-    if (req.body?.mode === 'login' || !req.body?.mode) {
-      const sbClient = getSupabaseClient();
-      let hasAccount = Boolean(userRecord);
-
-      if (!hasAccount && sbClient) {
-        const sbCheck = await checkSupabaseCandidateExists(cleanEmail);
-        if (sbCheck && sbCheck.exists) hasAccount = true;
-      }
-
-      if (!hasAccount) {
-        const candRow = await db.get('SELECT id FROM candidate_profiles WHERE LOWER(email) = LOWER(?)', [cleanEmail]) ||
-                        await db.get('SELECT id FROM candidates WHERE LOWER(email) = LOWER(?)', [cleanEmail]);
-        if (candRow) hasAccount = true;
-      }
-
-      if (!hasAccount) {
+    } else {
+      // STRICT SIGN-IN RULE: Unregistered Google accounts CANNOT sign in directly without registering first.
+      if (!hasExistingCandidateAccount) {
         return res.status(404).json({
           success: false,
           code: 'ACCOUNT_NOT_FOUND',
-          message: 'No candidate account found for this Google email. Please register to create your candidate account first.'
+          message: 'No registered candidate account found for this Google email. Please register to create your candidate account first.'
         });
       }
     }
 
-    // Google OAuth authenticates candidate and loads their profile and session
-    let userId = userRecord?.id;
-    let candidateProfile = null;
-    let candidateId = null;
+    const nowIso = new Date().toISOString();
+    // Preserve 1st-time registration timestamp across all logins and profile backfills
+    const originalCreatedAt = pickEarliestIso(
+      userRecord?.createdAt,
+      userRecord?.createdat,
+      dbExistingCand?.createdAt,
+      dbExistingCand?.createdat,
+      dbCandidateProfile?.createdAt,
+      dbCandidateProfile?.createdat,
+      sbAuth.earliestCreatedAt
+    ) || nowIso;
 
-    const finalName = googleUser.name || userRecord?.name || cleanEmail.split('@')[0];
-    const finalAvatar = googleUser.avatar || userRecord?.avatar || `https://api.dicebear.com/7.x/initials/svg?seed=${encodeURIComponent(finalName)}`;
+    let userId = userRecord?.id;
+    let candidateProfile = dbCandidateProfile;
+    let candidateId = dbCandidateProfile?.id || dbExistingCand?.id || null;
+
+    const finalName = googleUser.name || userRecord?.name || dbExistingCand?.name || cleanEmail.split('@')[0];
+    const finalAvatar = googleUser.avatar || userRecord?.avatar || dbExistingCand?.avatar || `https://api.dicebear.com/7.x/initials/svg?seed=${encodeURIComponent(finalName)}`;
+    const existingPhoneRaw = candidateProfile?.phone || dbExistingCand?.phone || userRecord?.phone || '';
+    const existingPhone = existingPhoneRaw.includes('http') ? '' : existingPhoneRaw;
 
     if (userRecord) {
-      // Existing user: Update user record
       userId = userRecord.id;
       await db.run(`
         UPDATE users SET
@@ -1330,12 +1410,6 @@ app.post('/api/auth/google', async (req, res) => {
           lastLoginAt = CURRENT_TIMESTAMP
         WHERE id = ?
       `, [finalName, finalAvatar, googleSub || null, userId]);
-
-      // Retrieve existing candidate profile
-      candidateProfile = await db.get('SELECT * FROM candidate_profiles WHERE userId = ?', [userId]);
-      if (!candidateProfile) {
-        candidateProfile = await db.get('SELECT * FROM candidate_profiles WHERE LOWER(email) = LOWER(?)', [cleanEmail]);
-      }
 
       if (candidateProfile) {
         candidateId = candidateProfile.id;
@@ -1348,37 +1422,18 @@ app.post('/api/auth/google', async (req, res) => {
         `, [finalName, finalAvatar, candidateId]);
       }
     } else {
-      // New User: Create User record with unique ID
+      // Brand new registration via Google OAuth
       userId = `USR-${Date.now().toString(36).toUpperCase()}-${Math.floor(100 + Math.random() * 900)}`;
       await db.run(`
-        INSERT INTO users (id, email, name, avatar, role, authProvider, googleSub, emailVerified, status, lastLoginAt)
-        VALUES (?, ?, ?, ?, 'candidate', 'google', ?, 1, 'active', CURRENT_TIMESTAMP)
-      `, [userId, cleanEmail, finalName, finalAvatar, googleSub || null]);
+        INSERT INTO users (id, email, name, avatar, role, authProvider, googleSub, emailVerified, status, createdAt, lastLoginAt)
+        VALUES (?, ?, ?, ?, 'candidate', 'google', ?, 1, 'active', ?, ?)
+      `, [userId, cleanEmail, finalName, finalAvatar, googleSub || null, originalCreatedAt, nowIso]);
     }
 
-    // Step 2: Ensure Candidate Profile exists (Create individual candidate profile if new)
+    // Step 2: Ensure Candidate Profile exists (preserving originalCreatedAt!)
     if (!candidateProfile) {
-      // Check if candidate already has an ID in candidates table or in Supabase Cloud to avoid duplicate IDs
-      const existingInCand = await db.get('SELECT id FROM candidates WHERE LOWER(email) = LOWER(?)', [cleanEmail]);
-      if (existingInCand && existingInCand.id) {
-        candidateId = existingInCand.id;
-      } else {
-        const sbClient = getSupabaseClient();
-        if (sbClient) {
-          try {
-            const { data: sbCands } = await sbClient.from('candidates').select('id').ilike('email', cleanEmail).limit(1);
-            if (sbCands && sbCands.length > 0 && sbCands[0].id) {
-              candidateId = sbCands[0].id;
-            }
-          } catch (_) {}
-        }
-      }
-
       if (!candidateId) {
-        // Generate unique Candidate ID: RI-CAND-100 to RI-CAND-999
         candidateId = `RI-CAND-${Math.floor(100 + Math.random() * 900)}`;
-
-        // Check for collision and adjust if needed
         const existingCand = await db.get('SELECT id FROM candidate_profiles WHERE id = ?', [candidateId]);
         if (existingCand) {
           candidateId = `RI-CAND-${Date.now().toString().slice(-4)}${Math.floor(10 + Math.random() * 90)}`;
@@ -1387,67 +1442,76 @@ app.post('/api/auth/google', async (req, res) => {
 
       const defaultSkills = JSON.stringify([]);
       await db.run(`
-        INSERT INTO candidate_profiles (
+        INSERT OR IGNORE INTO candidate_profiles (
           id, userId, email, name, phone, avatar, nationality, currentRole,
           currentEmployer, experience, education, expectedSalary, skills,
-          savedJobs, profileCompletion, stage, score
-        ) VALUES (?, ?, ?, ?, '', ?, '', '', '', '', '', '', ?, '[]', 20, 'lead', 50)
-      `, [candidateId, userId, cleanEmail, finalName, finalAvatar, defaultSkills]);
+          savedJobs, profileCompletion, stage, score, createdAt, updatedAt
+        ) VALUES (?, ?, ?, ?, ?, ?, '', '', '', '', '', '', ?, '[]', 20, 'lead', 50, ?, ?)
+      `, [candidateId, userId, cleanEmail, finalName, existingPhone, finalAvatar, defaultSkills, originalCreatedAt, originalCreatedAt]);
 
       candidateProfile = await db.get('SELECT * FROM candidate_profiles WHERE id = ?', [candidateId]);
 
-      // Add a Welcome Notification for the new candidate
-      const notifId = `RI-NOTIF-${Math.floor(10000 + Math.random() * 90000)}`;
-      await db.run(`
-        INSERT INTO candidate_notifications (id, candidateId, userId, title, message, type, isRead)
-        VALUES (?, ?, ?, ?, ?, 'system', 0)
-      `, [
-        notifId,
-        candidateId,
-        userId,
-        'Welcome to The Revival International',
-        `Welcome ${finalName}! Your candidate account (${candidateId}) is active. Browse verified global vacancies and track applications in real time.`
-      ]);
+      if (isNewRegistration) {
+        // Welcome Notification ONLY for newly registered users
+        const notifId = `RI-NOTIF-${Math.floor(10000 + Math.random() * 90000)}`;
+        await db.run(`
+          INSERT INTO candidate_notifications (id, candidateId, userId, title, message, type, isRead)
+          VALUES (?, ?, ?, ?, ?, 'system', 0)
+        `, [
+          notifId,
+          candidateId,
+          userId,
+          'Welcome to The Revival International',
+          `Welcome ${finalName}! Your candidate account (${candidateId}) is active. Browse verified global vacancies and track applications in real time.`
+        ]);
 
-      // Cloud Sync to Supabase PostgreSQL cloud database
-      try {
-        await syncUserToSupabase({
-          id: userId,
-          name: finalName,
-          email: cleanEmail,
-          phone: '',
-          role: 'candidate',
-          status: 'active'
-        });
-        await syncCandidateToSupabase({
-          id: candidateId,
-          name: finalName,
-          email: cleanEmail,
-          phone: '',
-          nationality: 'UAE',
-          score: 92,
-          stage: 'lead',
-          skills: '[]',
-          source: 'Google Authentication (Gmail Verified)',
-          passport: 'Verified',
-          experience: '3-5 Years'
-        });
-      } catch (sbErr) {
-        console.warn('[Google Auth] Supabase cloud sync warning:', sbErr.message);
-      }
+        // Cloud Sync to Supabase PostgreSQL for brand new registration
+        try {
+          await syncUserToSupabase({
+            id: userId,
+            name: finalName,
+            email: cleanEmail,
+            phone: '',
+            avatar: finalAvatar,
+            authProvider: 'google',
+            googleSub: googleSub || null,
+            emailVerified: 1,
+            role: 'candidate',
+            status: 'active',
+            createdAt: originalCreatedAt,
+            lastLoginAt: nowIso
+          });
+          await syncCandidateToSupabase({
+            id: candidateId,
+            name: finalName,
+            email: cleanEmail,
+            phone: '',
+            nationality: 'UAE',
+            score: 92,
+            stage: 'lead',
+            skills: '[]',
+            source: 'Google Authentication (Gmail Verified)',
+            passport: 'Verified',
+            experience: '3-5 Years',
+            createdAt: originalCreatedAt
+          });
+        } catch (sbErr) {
+          console.warn('[Google Auth] Supabase cloud sync warning:', sbErr.message);
+        }
 
-      // Dispatch Welcome Email for newly registered Google user
-      try {
-        sendCandidateWelcomeEmail({
-          name: finalName,
-          email: cleanEmail,
-          phone: '',
-          candidateId: candidateId,
-          authProvider: 'google',
-          preferredCountry: ''
-        }).catch(e => console.warn('[Google Welcome Email Async Notice]:', e.message));
-      } catch (mailErr) {
-        console.warn('[Google Welcome Email Notice]:', mailErr.message);
+        // Dispatch Welcome Email ONLY for brand new registration (NEVER during Sign In!)
+        try {
+          sendCandidateWelcomeEmail({
+            name: finalName,
+            email: cleanEmail,
+            phone: '',
+            candidateId: candidateId,
+            authProvider: 'google',
+            preferredCountry: ''
+          }).catch(e => console.warn('[Google Welcome Email Async Notice]:', e.message));
+        } catch (mailErr) {
+          console.warn('[Google Welcome Email Notice]:', mailErr.message);
+        }
       }
     } else {
       candidateId = candidateProfile.id;
@@ -1471,7 +1535,7 @@ app.post('/api/auth/google', async (req, res) => {
       }
     }
 
-    // Step 4: Mirror to legacy `candidates` table so Recruiter CRM / ERP dashboard remains 100% operational
+    // Step 4: Mirror to `candidates` table WITHOUT overwriting 1st-time registration createdAt
     try {
       let legacyCand = await db.get('SELECT * FROM candidates WHERE id = ? OR LOWER(email) = LOWER(?)', [candidateId, cleanEmail]);
       if (legacyCand) {
@@ -1480,48 +1544,50 @@ app.post('/api/auth/google', async (req, res) => {
             name = COALESCE(?, name),
             avatar = COALESCE(?, avatar),
             googleId = COALESCE(?, googleId),
-            authProvider = 'google',
             googleVerified = 1
           WHERE id = ?
         `, [finalName, finalAvatar, googleSub || null, legacyCand.id]);
-      } else {
+      } else if (isNewRegistration) {
         await db.run(`
           INSERT INTO candidates (
             id, name, email, phone, nationality, currentEmployer, currentRole,
             currentSalary, expectedSalary, score, stage, skills, source, passport,
-            aiSummary, experience, googleId, avatar, authProvider, googleVerified
-          ) VALUES (?, ?, ?, ?, 'UAE', 'Revival International Talent Pool', 'Executive Candidate', 'Confidential', 'Market Standard', 92, 'lead', ?, 'Google Authentication (Gmail Verified)', 'Standard (Verified)', 'Candidate verified via Google OAuth 2.0 OpenID Connect.', '3-5 Years', ?, ?, 'google', 1)
-        `, [candidateId, finalName, cleanEmail, candidateProfile?.phone || '', candidateProfile?.skills || '[]', googleSub || null, finalAvatar]);
+            aiSummary, experience, googleId, avatar, authProvider, googleVerified, createdAt
+          ) VALUES (?, ?, ?, ?, 'UAE', 'Revival International Talent Pool', 'Executive Candidate', 'Confidential', 'Market Standard', 92, 'lead', ?, 'Google Authentication (Gmail Verified)', 'Standard (Verified)', 'Candidate verified via Google OAuth 2.0 OpenID Connect.', '3-5 Years', ?, ?, 'google', 1, ?)
+        `, [candidateId, finalName, cleanEmail, existingPhone, candidateProfile?.skills || '[]', googleSub || null, finalAvatar, originalCreatedAt]);
       }
     } catch (legErr) {
       console.warn('Legacy candidate sync notice:', legErr.message);
     }
 
-    // Step 5: Mirror to leads table for CRM visibility if not exists
-    try {
-      const existingLead = await db.get(
-        'SELECT * FROM leads WHERE LOWER(email) = LOWER(?) AND serviceTitle = ?',
-        [cleanEmail, 'Candidate Registration']
-      );
-      if (!existingLead) {
-        const leadId = `LEAD-${Math.floor(1000 + Math.random() * 9000)}`;
-        await db.run(`
-          INSERT INTO leads (id, name, email, phone, company, message, serviceId, serviceTitle, status)
-          VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
-        `, [
-          leadId,
-          finalName,
-          cleanEmail,
-          candidateProfile?.phone || '',
-          'Individual Candidate (Google Verified)',
-          `Candidate registered via Google OAuth 2.0 (${cleanEmail})`,
-          'intl-recruitment',
-          'Candidate Registration',
-          'New'
-        ]);
+    // Step 5: Mirror to leads table on new registration only if not exists
+    if (isNewRegistration) {
+      try {
+        const existingLead = await db.get(
+          'SELECT * FROM leads WHERE LOWER(email) = LOWER(?) AND serviceTitle = ?',
+          [cleanEmail, 'Candidate Registration']
+        );
+        if (!existingLead) {
+          const leadId = `LEAD-${Math.floor(1000 + Math.random() * 9000)}`;
+          await db.run(`
+            INSERT INTO leads (id, name, email, phone, company, message, serviceId, serviceTitle, status, createdAt)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+          `, [
+            leadId,
+            finalName,
+            cleanEmail,
+            existingPhone,
+            'Individual Candidate (Google Verified)',
+            `Candidate registered via Google OAuth 2.0 (${cleanEmail})`,
+            'intl-recruitment',
+            'Candidate Registration',
+            'New',
+            originalCreatedAt
+          ]);
+        }
+      } catch (leadErr) {
+        console.warn('Lead mirror warning:', leadErr.message);
       }
-    } catch (leadErr) {
-      console.warn('Lead mirror warning:', leadErr.message);
     }
 
     // Step 6: Load candidate applications and saved jobs for THIS candidate
@@ -1540,7 +1606,7 @@ app.post('/api/auth/google', async (req, res) => {
         userId: userId,
         name: finalName,
         email: cleanEmail,
-        phone: (candidateProfile?.phone || '').includes('http') ? '' : (candidateProfile?.phone || ''),
+        phone: existingPhone,
         avatar: finalAvatar,
         role: 'candidate',
         isAdmin: cleanEmail === 'thejobsyncit@gmail.com',
@@ -1548,20 +1614,22 @@ app.post('/api/auth/google', async (req, res) => {
         authProvider: 'google',
         googleVerified: true,
         googleSub: googleSub,
-        title: candidateProfile?.currentRole || '',
-        experience: candidateProfile?.experience || '',
-        qualification: candidateProfile?.education || '',
-        expectedSalary: candidateProfile?.expectedSalary || '',
-        skills: parseArray(candidateProfile?.skills || '[]'),
+        title: candidateProfile?.currentRole || dbExistingCand?.currentRole || '',
+        experience: candidateProfile?.experience || dbExistingCand?.experience || '',
+        qualification: candidateProfile?.education || dbExistingCand?.education || '',
+        expectedSalary: candidateProfile?.expectedSalary || dbExistingCand?.expectedSalary || '',
+        skills: parseArray(candidateProfile?.skills || dbExistingCand?.skills || '[]'),
         savedJobs: parseArray(candidateProfile?.savedJobs || '[]'),
         profileCompletion: candidateProfile?.profileCompletion || 65,
-        stage: candidateProfile?.stage || 'lead',
-        score: candidateProfile?.score || 88,
-        resumeName: candidateProfile?.resumeName || '',
-        resumeUrl: candidateProfile?.resumeUrl || '',
+        stage: candidateProfile?.stage || dbExistingCand?.stage || 'lead',
+        score: candidateProfile?.score || dbExistingCand?.score || 88,
+        resumeName: candidateProfile?.resumeName || dbExistingCand?.resumeName || '',
+        resumeUrl: candidateProfile?.resumeUrl || dbExistingCand?.resumeUrl || '',
         applications: applications || [],
         notifications: notifications || [],
-        loginTime: new Date().toISOString()
+        createdAt: originalCreatedAt,
+        registeredAt: originalCreatedAt,
+        loginTime: nowIso
       }
     });
   } catch (error) {
@@ -1671,63 +1739,14 @@ app.post('/api/candidate/check-exists', async (req, res) => {
   try {
     const { email, phone } = req.body || {};
     const db = await getDb();
-    const cleanEmail = normalizeEmail(email);
-    const normalizedPhone = normalizePhone(phone);
-
-    let isDuplicate = false;
-    let dupField = 'email';
-
-    // 1. Authoritative check via Supabase Cloud (Single Source of Truth across serverless containers)
     const sbClient = getSupabaseClient();
-    if (sbClient) {
-      try {
-        const sbCheck = await checkSupabaseCandidateExists(cleanEmail, normalizedPhone);
-        if (sbCheck && sbCheck.exists) {
-          isDuplicate = true;
-          dupField = sbCheck.field || 'email';
-        }
-      } catch (sbErr) {
-        console.warn('Supabase check exists warning:', sbErr.message);
-      }
-    }
+    const dupCheck = await checkDuplicateRegistration({ db, sbClient, email, phone });
 
-    // 2. Comprehensive check in database (users, candidate_profiles, candidates)
-    if (!isDuplicate && cleanEmail) {
-      try {
-        const sqliteUser = await db.get(
-          'SELECT id, email FROM users WHERE LOWER(TRIM(email)) = LOWER(?) UNION SELECT id, email FROM candidate_profiles WHERE LOWER(TRIM(email)) = LOWER(?) UNION SELECT id, email FROM candidates WHERE LOWER(TRIM(email)) = LOWER(?) LIMIT 1',
-          [cleanEmail, cleanEmail, cleanEmail]
-        );
-        if (sqliteUser) {
-          isDuplicate = true;
-          dupField = 'email';
-        }
-      } catch (_) {}
-    }
-
-    if (!isDuplicate && normalizedPhone && normalizedPhone.length >= 7) {
-      try {
-        const phoneSuffix = `%${normalizedPhone.slice(-7)}`;
-        const sqlitePhone = await db.get(
-          `SELECT id, phone FROM users WHERE phone IS NOT NULL AND REPLACE(REPLACE(REPLACE(REPLACE(phone, ' ', ''), '-', ''), '+', ''), '(', '') LIKE ?
-           UNION
-           SELECT id, phone FROM candidate_profiles WHERE phone IS NOT NULL AND REPLACE(REPLACE(REPLACE(REPLACE(phone, ' ', ''), '-', ''), '+', ''), '(', '') LIKE ?
-           UNION
-           SELECT id, phone FROM candidates WHERE phone IS NOT NULL AND REPLACE(REPLACE(REPLACE(REPLACE(phone, ' ', ''), '-', ''), '+', ''), '(', '') LIKE ? LIMIT 1`,
-          [phoneSuffix, phoneSuffix, phoneSuffix]
-        );
-        if (sqlitePhone) {
-          isDuplicate = true;
-          dupField = 'phone';
-        }
-      } catch (_) {}
-    }
-
-    if (isDuplicate) {
+    if (dupCheck.exists) {
       return res.status(409).json({
         exists: true,
-        field: dupField,
-        message: 'An account with this email address or phone number already exists. Please sign in to your existing account.'
+        field: dupCheck.field || 'email',
+        message: 'Already registered: An account with this email address or phone number already exists. Please sign in to your existing account.'
       });
     }
 
@@ -1790,64 +1809,18 @@ app.post('/api/candidate/register', async (req, res) => {
     }
 
     const db = await getDb();
+    const sbClient = getSupabaseClient();
 
     // 2. Strict One-Time Candidate Registration: Check Supabase Cloud AND Database
-    let isDuplicate = false;
-    let dupField = 'email';
-
-    // A. Check Supabase Cloud
-    const sbClient = getSupabaseClient();
-    if (sbClient) {
-      try {
-        const sbCheck = await checkSupabaseCandidateExists(cleanEmail, normalizedPhone);
-        if (sbCheck && sbCheck.exists) {
-          isDuplicate = true;
-          dupField = sbCheck.field || 'email';
-        }
-      } catch (sbErr) {
-        console.warn('Supabase duplicate check warning:', sbErr.message);
-      }
-    }
-
-    // B. Check database tables
-    if (!isDuplicate && cleanEmail) {
-      try {
-        const sqliteUser = await db.get(
-          'SELECT id, email FROM users WHERE LOWER(TRIM(email)) = LOWER(?) UNION SELECT id, email FROM candidate_profiles WHERE LOWER(TRIM(email)) = LOWER(?) UNION SELECT id, email FROM candidates WHERE LOWER(TRIM(email)) = LOWER(?) LIMIT 1',
-          [cleanEmail, cleanEmail, cleanEmail]
-        );
-        if (sqliteUser) {
-          isDuplicate = true;
-          dupField = 'email';
-        }
-      } catch (_) {}
-    }
-
-    if (!isDuplicate && normalizedPhone && normalizedPhone.length >= 7) {
-      try {
-        const phoneSuffix = `%${normalizedPhone.slice(-7)}`;
-        const sqlitePhone = await db.get(
-          `SELECT id, phone FROM users WHERE phone IS NOT NULL AND REPLACE(REPLACE(REPLACE(REPLACE(phone, ' ', ''), '-', ''), '+', ''), '(', '') LIKE ?
-           UNION
-           SELECT id, phone FROM candidate_profiles WHERE phone IS NOT NULL AND REPLACE(REPLACE(REPLACE(REPLACE(phone, ' ', ''), '-', ''), '+', ''), '(', '') LIKE ?
-           UNION
-           SELECT id, phone FROM candidates WHERE phone IS NOT NULL AND REPLACE(REPLACE(REPLACE(REPLACE(phone, ' ', ''), '-', ''), '+', ''), '(', '') LIKE ? LIMIT 1`,
-          [phoneSuffix, phoneSuffix, phoneSuffix]
-        );
-        if (sqlitePhone) {
-          isDuplicate = true;
-          dupField = 'phone';
-        }
-      } catch (_) {}
-    }
-
-    if (isDuplicate) {
+    const dupCheck = await checkDuplicateRegistration({ db, sbClient, email: cleanEmail, phone: rawPhone });
+    if (dupCheck.exists) {
+      const dupField = dupCheck.field || 'email';
       return res.status(409).json({
         success: false,
         error: `duplicate_${dupField}`,
         code: 'DUPLICATE_EMAIL',
         field: dupField,
-        message: 'An account with this email address or phone number already exists. Please sign in to your existing account.'
+        message: 'Already registered: An account with this email address or phone number already exists. Please sign in to your existing account.'
       });
     }
 
@@ -1930,8 +1903,15 @@ app.post('/api/candidate/register', async (req, res) => {
           name: candidateName,
           email: cleanEmail,
           phone: rawPhone,
+          normalizedPhone,
+          passwordHash,
+          passwordSalt,
+          authProvider: 'local',
+          emailVerified: 1,
           role: 'candidate',
-          status: 'active'
+          status: 'active',
+          createdAt: nowIso,
+          lastLoginAt: nowIso
         });
         await syncCandidateToSupabase({
           id: candidateId,
@@ -1944,7 +1924,8 @@ app.post('/api/candidate/register', async (req, res) => {
           skills: formattedSkills,
           source: 'Candidate Portal Registration',
           passport: 'Verified',
-          experience: experience || '3-5 Years'
+          experience: experience || '3-5 Years',
+          createdAt: nowIso
         });
       } catch (sbErr) {
         console.warn('[Register Candidate] Supabase cloud sync warning:', sbErr.message);
@@ -2050,35 +2031,29 @@ app.post('/api/candidate/login', async (req, res) => {
     }
 
     const db = await getDb();
+    const sbClient = getSupabaseClient();
 
-    // 1. Locate user in users table
-    const userRow = await db.get(
+    // 1. Authoritatively locate user across local DB & Supabase Cloud
+    const dbUserRow = await db.get(
       `SELECT * FROM users WHERE LOWER(email) = LOWER(?) AND role = 'candidate'`,
       [cleanEmail]
     );
-
-    // Also look up profile
-    const profileRow = await db.get(
+    const dbProfileRow = await db.get(
       `SELECT * FROM candidate_profiles WHERE LOWER(email) = LOWER(?)`,
       [cleanEmail]
     );
-
-    // Also look up candidate in candidates table
-    const candRow = await db.get(
+    const dbCandRow = await db.get(
       `SELECT * FROM candidates WHERE LOWER(email) = LOWER(?)`,
       [cleanEmail]
     );
 
-    let hasAccount = Boolean(userRow || profileRow || candRow);
-    const sbClient = getSupabaseClient();
-    if (!hasAccount && sbClient) {
-      try {
-        const sbCheck = await checkSupabaseCandidateExists(cleanEmail);
-        if (sbCheck && sbCheck.exists) {
-          hasAccount = true;
-        }
-      } catch (_) {}
-    }
+    const sbAuth = sbClient ? await findSupabaseCandidateAuth(cleanEmail) : { exists: false, isCandidateAccount: false, user: null, profile: null, candidate: null, earliestCreatedAt: null };
+
+    const userRow = dbUserRow || (sbAuth.user && (sbAuth.user.role || 'candidate').toLowerCase() === 'candidate' ? sbAuth.user : null);
+    const profileRow = dbProfileRow || sbAuth.profile || null;
+    const candRow = dbCandRow || sbAuth.candidate || null;
+
+    const hasAccount = Boolean(userRow || profileRow || candRow || sbAuth.isCandidateAccount);
 
     if (!hasAccount) {
       return res.status(404).json({
@@ -2089,29 +2064,33 @@ app.post('/api/candidate/login', async (req, res) => {
       });
     }
 
-    // 2. Validate Password
+    // 2. Strict Password Validation (Never allow default password bypass on registered accounts)
     let passwordValid = false;
+    const hasStoredHash = Boolean(
+      (userRow?.passwordHash && userRow?.passwordSalt) ||
+      (profileRow?.passwordHash && profileRow?.passwordSalt)
+    );
 
-    // Check predefined account: thejobsync
     if (cleanEmail === 'thejobsyncit@gmail.com' && password === 'Thejobsync@26') {
       passwordValid = true;
     } else if (userRow?.passwordHash && userRow?.passwordSalt) {
       passwordValid = verifyPassword(password, userRow.passwordHash, userRow.passwordSalt);
     } else if (profileRow?.passwordHash && profileRow?.passwordSalt) {
       passwordValid = verifyPassword(password, profileRow.passwordHash, profileRow.passwordSalt);
-    } else if (password === 'Password123!' || password === 'demo123') {
-      passwordValid = true;
     }
 
     if (!passwordValid) {
+      const isGoogleOnly = !hasStoredHash && (userRow?.authProvider === 'google' || candRow?.authProvider === 'google' || sbAuth.user?.authProvider === 'google');
       return res.status(401).json({
         success: false,
         error: 'invalid_credentials',
-        message: 'Incorrect password. Please verify your credentials and try again.'
+        message: isGoogleOnly
+          ? 'This account was registered via Google Sign-In. Please click "Sign in with Google" to access your account.'
+          : 'Incorrect password. Please verify your credentials and try again.'
       });
     }
 
-    // Update password hash if missing for legacy record
+    // Backfill password hash if missing on predefined admin candidate record
     if (userRow && (!userRow.passwordHash || !userRow.passwordSalt)) {
       const { hash, salt } = hashPassword(password);
       await db.run('UPDATE users SET passwordHash = ?, passwordSalt = ? WHERE id = ?', [hash, salt, userRow.id]).catch(() => { });
@@ -2123,6 +2102,15 @@ app.post('/api/candidate/login', async (req, res) => {
     // 3. Fetch candidate's applications, saved jobs, documents
     const candidateId = profileRow?.id || candRow?.id || userRow?.id;
     const userId = userRow?.id || profileRow?.userId || candidateId;
+    const originalCreatedAt = pickEarliestIso(
+      userRow?.createdAt,
+      userRow?.createdat,
+      candRow?.createdAt,
+      candRow?.createdat,
+      profileRow?.createdAt,
+      profileRow?.createdat,
+      sbAuth.earliestCreatedAt
+    );
 
     const applications = await db.all(
       `SELECT * FROM candidate_applications 
@@ -2146,7 +2134,7 @@ app.post('/api/candidate/login', async (req, res) => {
       }
     } catch (_) { }
 
-    // Update lastLoginAt
+    // Update lastLoginAt (never touches createdAt or sends any welcome email)
     await db.run('UPDATE users SET lastLoginAt = CURRENT_TIMESTAMP WHERE id = ?', [userId]).catch(() => { });
 
     const nowIso = new Date().toISOString();
@@ -2180,8 +2168,8 @@ app.post('/api/candidate/login', async (req, res) => {
       score: profileRow?.score || candRow?.score || 90,
       stage: profileRow?.stage || candRow?.stage || 'lead',
       avatar: profileRow?.avatar || candRow?.avatar || userRow?.avatar || null,
-      createdAt: profileRow?.createdAt || candRow?.createdAt || userRow?.createdAt || null,
-      registeredAt: profileRow?.createdAt || candRow?.createdAt || userRow?.createdAt || null,
+      createdAt: originalCreatedAt,
+      registeredAt: originalCreatedAt,
       loginTime: nowIso,
       token: `revival_jwt_cand_${Buffer.from(cleanEmail).toString('base64')}_${Date.now()}`
     };
@@ -4525,8 +4513,17 @@ app.get('/api/candidates', async (req, res) => {
         safeScore = isNaN(parsedScore) ? 90 : parsedScore;
       }
 
-      // Guarantee authoritative registration timestamp for CRM timeframe filters & sorting
-      const guaranteedCreatedAt = r.createdat || r.createdAt || prof?.createdat || prof?.createdAt || uRow?.createdAt || uRow?.createdat || (typeof r.stage === 'string' && r.stage.includes('T') ? r.stage : null) || (typeof r.resumeName === 'string' && r.resumeName.includes('T') ? r.resumeName : null) || new Date().toISOString();
+      // Guarantee 1st-time registration timestamp (never overwritten by subsequent logins)
+      const guaranteedCreatedAt = pickEarliestIso(
+        uRow?.createdAt,
+        uRow?.createdat,
+        r.createdat,
+        r.createdAt,
+        prof?.createdat,
+        prof?.createdAt,
+        typeof r.stage === 'string' && r.stage.includes('T') ? r.stage : null,
+        typeof r.resumeName === 'string' && r.resumeName.includes('T') ? r.resumeName : null
+      ) || new Date().toISOString();
 
       return {
         ...r,
@@ -4567,6 +4564,13 @@ app.get('/api/candidates', async (req, res) => {
       if (!seenIds.has(prof.id)) {
         seenIds.add(prof.id);
         const profEmailKey = prof.email ? prof.email.toLowerCase().trim() : '';
+        const uRow = profEmailKey ? userMap.get(profEmailKey) : (prof.userId ? userMap.get(prof.userId) : null);
+        const profCreatedAt = pickEarliestIso(
+          uRow?.createdAt,
+          uRow?.createdat,
+          prof.createdat,
+          prof.createdAt
+        ) || new Date().toISOString();
         const userApps = appsMap.get(prof.id) || (profEmailKey ? appsMap.get(profEmailKey) : []) || (prof.userId ? appsMap.get(prof.userId) : []) || [];
         const userDocs = docsMap.get(prof.id) || (profEmailKey ? docsMap.get(profEmailKey) : []) || (prof.userId ? docsMap.get(prof.userId) : []) || [];
         const docWithResume = userDocs.find(d => (d.documentType === 'Resume / CV' || (d.fileName && d.fileName.toLowerCase().includes('cv')) || (d.fileName && d.fileName.toLowerCase().endsWith('.pdf'))) && d.fileUrl && d.fileUrl.length > 200);
@@ -4631,7 +4635,8 @@ app.get('/api/candidates', async (req, res) => {
           experience: prof.experience || '',
           avatar: (prof.avatar && !prof.avatar.includes('images.unsplash.com')) ? prof.avatar : null,
           assignedRecruiter: 'Dhanalakshimi (Lead Advisor)',
-          createdAt: prof.createdAt || new Date().toISOString(),
+          createdAt: profCreatedAt,
+          registeredAt: profCreatedAt,
           resumeName,
           resumeUrl,
           resumeSize,
@@ -4709,8 +4714,9 @@ app.post('/api/candidates', async (req, res) => {
     }
 
     const db = await getDb();
+    const sbClient = getSupabaseClient();
 
-    // Check if candidate exists by id or email
+    // Check if candidate exists by id or email (both DB and Supabase Cloud)
     let existing = null;
     if (id) {
       existing = await db.get('SELECT * FROM candidates WHERE id = ?', [id]);
@@ -4718,35 +4724,34 @@ app.post('/api/candidates', async (req, res) => {
     if (!existing && email) {
       existing = await db.get('SELECT * FROM candidates WHERE LOWER(email) = LOWER(?)', [email]);
     }
+    if (!existing && email && sbClient) {
+      const sbAuth = await findSupabaseCandidateAuth(email);
+      if (sbAuth.candidate) {
+        existing = sbAuth.candidate;
+      } else if (sbAuth.profile) {
+        existing = sbAuth.profile;
+      }
+    }
 
     // Strict One-Time Registration Check: Prevent duplicate accounts with same email or phone number
     if (req.body.isRegistration) {
       if (existing) {
         return res.status(409).json({
           success: false,
-          error: 'An account with this email is already registered. Please sign in.',
-          message: 'An account with this email is already registered. Please sign in.'
+          code: 'DUPLICATE_EMAIL',
+          error: 'Already registered: An account with this email is already registered. Please sign in.',
+          message: 'Already registered: An account with this email is already registered. Please sign in.'
         });
       }
       if (phone) {
-        const cleanDigits = phone.replace(/\D/g, '');
-        if (cleanDigits.length >= 7) {
-          const matchSuffix = `%${cleanDigits.slice(-7)}`;
-          const existingPhone = await db.get(
-            `SELECT id, name, phone FROM candidate_profiles 
-             WHERE phone IS NOT NULL AND REPLACE(REPLACE(REPLACE(REPLACE(phone, ' ', ''), '-', ''), '+', ''), '(', '') LIKE ?
-             UNION
-             SELECT id, name, phone FROM candidates 
-             WHERE phone IS NOT NULL AND REPLACE(REPLACE(REPLACE(REPLACE(phone, ' ', ''), '-', ''), '+', ''), '(', '') LIKE ?`,
-            [matchSuffix, matchSuffix]
-          );
-          if (existingPhone) {
-            return res.status(409).json({
-              success: false,
-              error: 'An account with this phone number is already registered. Please sign in.',
-              message: 'An account with this phone number is already registered. Please sign in.'
-            });
-          }
+        const dupPhoneCheck = await checkDuplicateRegistration({ db, sbClient, email: '', phone });
+        if (dupPhoneCheck.exists) {
+          return res.status(409).json({
+            success: false,
+            code: 'DUPLICATE_PHONE',
+            error: 'Already registered: An account with this phone number is already registered. Please sign in.',
+            message: 'Already registered: An account with this phone number is already registered. Please sign in.'
+          });
         }
       }
     }
@@ -9088,7 +9093,7 @@ app.post('/api/translate', async (req, res) => {
     const uniqueTexts = [...new Set(
       texts
         .map((t) => (typeof t === 'string' ? t.trim() : ''))
-        .filter((t) => t.length > 0 && t.length <= 1500 && !/^[\d\s\W]+$/.test(t))
+        .filter((t) => t.length > 0 && t.length <= 1500 && /\p{L}/u.test(t))
     )].slice(0, 120);
 
     const result = {};
@@ -9104,35 +9109,57 @@ app.post('/api/translate', async (req, res) => {
     }
 
     if (toTranslate.length > 0) {
+      // Batch translate in chunks of 20 via clients5.google.com/translate_a/t (returns 1:1 array cleanly in 1 request)
+      const chunks = [];
+      for (let i = 0; i < toTranslate.length; i += 20) {
+        chunks.push(toTranslate.slice(i, i + 20));
+      }
+
       await Promise.all(
-        toTranslate.map(async (txt) => {
+        chunks.map(async (chunk) => {
           try {
-            // Try MyMemory first (reliable, no 429 block), then Google Translate fallback
-            const mmUrl = `https://api.mymemory.translated.net/get?q=${encodeURIComponent(txt)}&langpair=en|${encodeURIComponent(tl)}&de=enquiry@therevivalinternational.com`;
-            const mmResp = await fetch(mmUrl);
-            if (mmResp.ok) {
-              const mmData = await mmResp.json();
-              const mmText = mmData?.responseData?.translatedText?.trim();
-              if (mmData?.responseStatus === 200 && mmText && mmText.toLowerCase() !== txt.toLowerCase()) {
-                translationMemoryCache.set(`${tl}::${txt}`, mmText);
-                result[txt] = mmText;
+            const batchUrl = `https://clients5.google.com/translate_a/t?client=dict-chrome-ex&sl=en&tl=${encodeURIComponent(tl)}&q=${chunk.map(encodeURIComponent).join('&q=')}`;
+            const bResp = await fetch(batchUrl, {
+              headers: { 'User-Agent': 'Mozilla/5.0' },
+              signal: AbortSignal.timeout(4000)
+            }).catch(() => null);
+            if (bResp && bResp.ok) {
+              const bData = await bResp.json().catch(() => null);
+              if (Array.isArray(bData) && bData.length === chunk.length) {
+                chunk.forEach((src, i) => {
+                  const val = typeof bData[i] === 'string' ? bData[i].trim() : '';
+                  if (val) {
+                    translationMemoryCache.set(`${tl}::${src}`, val);
+                    result[src] = val;
+                  }
+                });
                 return;
               }
             }
-            const url = `https://translate.googleapis.com/translate_a/single?client=gtx&sl=en&tl=${encodeURIComponent(tl)}&dt=t&q=${encodeURIComponent(txt)}`;
-            const resp = await fetch(url, { headers: { 'User-Agent': 'Mozilla/5.0' } });
-            if (!resp.ok) return;
-            const data = await resp.json();
-            if (Array.isArray(data?.[0])) {
-              const translated = data[0].map((seg) => seg?.[0] || '').join('').trim();
-              if (translated) {
-                translationMemoryCache.set(`${tl}::${txt}`, translated);
-                result[txt] = translated;
-              }
-            }
-          } catch {
-            // Keep original on individual segment failure
-          }
+          } catch {}
+
+          // Individual fallback if batch endpoint unavailable
+          await Promise.all(
+            chunk.map(async (txt) => {
+              try {
+                const url = `https://translate.googleapis.com/translate_a/single?client=gtx&sl=en&tl=${encodeURIComponent(tl)}&dt=t&q=${encodeURIComponent(txt)}`;
+                const resp = await fetch(url, {
+                  headers: { 'User-Agent': 'Mozilla/5.0' },
+                  signal: AbortSignal.timeout(3000)
+                }).catch(() => null);
+                if (resp && resp.ok) {
+                  const data = await resp.json();
+                  if (Array.isArray(data?.[0])) {
+                    const translated = data[0].map((seg) => seg?.[0] || '').join('').trim();
+                    if (translated) {
+                      translationMemoryCache.set(`${tl}::${txt}`, translated);
+                      result[txt] = translated;
+                    }
+                  }
+                }
+              } catch {}
+            })
+          );
         })
       );
     }
