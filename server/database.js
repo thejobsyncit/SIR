@@ -1593,6 +1593,40 @@ let lastSupabaseDiagnostics = {
 
 export const getDatabaseDiagnostics = () => lastSupabaseDiagnostics;
 
+const extractInsertColsAndValues = (sql) => {
+  const s = (sql || '').trim();
+  const headerMatch = s.match(/^INSERT(?:\s+OR\s+IGNORE)?\s+INTO\s+[a-zA-Z0-9_]+\s*\(([^)]+)\)\s*VALUES\s*\(/i);
+  if (!headerMatch) return null;
+  const cols = headerMatch[1].split(',').map(c => c.trim());
+  const openParenIdx = headerMatch[0].length - 1;
+  let depth = 0;
+  let inQuote = false;
+  let closeIdx = -1;
+  for (let i = openParenIdx; i < s.length; i++) {
+    const ch = s[i];
+    if (ch === "'") {
+      if (inQuote && s[i + 1] === "'") {
+        i++;
+        continue;
+      }
+      inQuote = !inQuote;
+      continue;
+    }
+    if (!inQuote) {
+      if (ch === '(') depth++;
+      else if (ch === ')') {
+        depth--;
+        if (depth === 0) {
+          closeIdx = i;
+          break;
+        }
+      }
+    }
+  }
+  if (closeIdx === -1) return null;
+  return { cols, valuesStr: s.slice(openParenIdx + 1, closeIdx) };
+};
+
 const parseInsertValuesTokens = (cols, valuesStr, params = []) => {
   const tokens = splitSqlTopLevel(valuesStr, ',');
   const row = {};
@@ -1904,9 +1938,9 @@ export const createSupabaseDb = async (client) => {
 
       if (/^INSERT(?:\s+OR\s+IGNORE)?\s+INTO/i.test(s)) {
         const isInsertOrIgnore = /^INSERT\s+OR\s+IGNORE\s+INTO/i.test(s);
-        const colMatch = s.match(/\(([^)]+)\)\s*VALUES\s*\(([\s\S]+)\)\s*;?$/i);
-        const cols = colMatch ? colMatch[1].split(',').map(c => c.trim()) : [];
-        const valuesStr = colMatch ? colMatch[2] : '';
+        const parsedInsert = extractInsertColsAndValues(s);
+        const cols = parsedInsert ? parsedInsert.cols : [];
+        const valuesStr = parsedInsert ? parsedInsert.valuesStr : '';
         const isPipelineTable = table === 'recruitment_pipeline_records';
 
         const row = cols.length > 0

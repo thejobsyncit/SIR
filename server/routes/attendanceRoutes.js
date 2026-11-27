@@ -3904,12 +3904,17 @@ export const registerAttendanceRoutes = (app, { getDb, getClientIp }) => {
   app.post('/api/crm/shifts/assign', requireCrmAuth, requireHrLeadershipRole, async (req, res) => {
     try {
       const db = await getDb();
+      await Promise.all([
+        refreshAttendanceTables(db, ['employee_shift_assignments'], 0),
+        refreshAttendanceTables(db, ['employees'], 10000)
+      ]);
       const reviewer = req.authEmployee || {};
       const reviewerEmpId = reviewer.employeeId || reviewer.id || 'HR-STAFF';
       const reviewerName = reviewer.name || 'HR Management';
       const reviewerRole = reviewer.role || 'HR';
       const {
         employeeIds = [],
+        employeeDetails = [],
         shiftId = 'SHIFT-GENERAL',
         startDate,
         endDate = null,
@@ -3917,6 +3922,14 @@ export const registerAttendanceRoutes = (app, { getDb, getClientIp }) => {
         applicableDays = [1, 2, 3, 4, 5, 6],
         notes = ''
       } = req.body || {};
+
+      const LEGACY_SHIFT_EMP_ALIASES = {
+        'REV-EMP-101': 'REV-EMP-006',
+        'INTL-HR-102': 'REV-EMP-006',
+        'INTL-HR-101': 'REV-EMP-107',
+        'ENQ-HR-201': 'REV-EMP-102',
+        'ENQ-HR-202': 'REV-EMP-108'
+      };
 
       const targetEmpIds = Array.isArray(employeeIds)
         ? employeeIds.filter(Boolean)
@@ -3969,10 +3982,20 @@ export const registerAttendanceRoutes = (app, { getDb, getClientIp }) => {
       }
 
       for (const empId of targetEmpIds) {
+        const mappedAliasId = LEGACY_SHIFT_EMP_ALIASES[String(empId).trim()] || String(empId).trim();
+        const hint = Array.isArray(employeeDetails)
+          ? employeeDetails.find(d => d && (d.id === empId || d.employeeId === empId))
+          : null;
         let emp = await db.get(
-          'SELECT employeeId, name, role, department, status FROM employees WHERE employeeId = ? OR id = ? OR LOWER(email) = LOWER(?)',
-          [empId, empId, empId]
+          'SELECT employeeId, name, role, department, status FROM employees WHERE employeeId = ? OR id = ? OR employeeId = ? OR LOWER(email) = LOWER(?)',
+          [empId, empId, mappedAliasId, hint?.email || empId]
         );
+        if (!emp && hint?.name) {
+          emp = await db.get(
+            'SELECT employeeId, name, role, department, status FROM employees WHERE LOWER(name) = LOWER(?) OR LOWER(name) LIKE ?',
+            [hint.name.trim(), `%${hint.name.trim().toLowerCase()}%`]
+          );
+        }
         if (!emp || String(emp.status || 'Active').toLowerCase() === 'inactive') continue;
 
         const canonicalEmpId = emp.employeeId;

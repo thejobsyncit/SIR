@@ -108,7 +108,9 @@ export const CrmHrTaskAssignment = () => {
     try {
       setLoadingJobApps(true);
       const res = await fetch('/api/candidate/applications', {
+        cache: 'no-store',
         headers: {
+          'Cache-Control': 'no-cache',
           'x-user-role': currentRole || (isHrOperations ? 'HR Operations' : 'HR Lead'),
           'x-employee-id': currentEmployeeId,
           'x-employee-name': currentEmployeeName,
@@ -198,6 +200,25 @@ export const CrmHrTaskAssignment = () => {
     return Array.from(set);
   }, [mergedJobApplications]);
 
+  const normalizeEnquiryItem = (raw) => {
+    if (!raw || typeof raw !== 'object') return raw;
+    return {
+      ...raw,
+      referenceNumber: raw.referenceNumber || raw.referencenumber || raw.id,
+      serviceId: raw.serviceId || raw.serviceid || '',
+      serviceTitle: raw.serviceTitle || raw.servicetitle || '',
+      country: raw.country || raw.countryInterest || raw.countryinterest || '',
+      assignedEmployee: raw.assignedEmployee || raw.assignedemployee || '',
+      assignedEmployeeId: raw.assignedEmployeeId || raw.assignedemployeeid || '',
+      assignedEmployeeEmail: raw.assignedEmployeeEmail || raw.assignedemployeeemail || '',
+      assignedEmployeeRole: raw.assignedEmployeeRole || raw.assignedemployeerole || '',
+      assignmentStatus: raw.assignmentStatus || raw.assignmentstatus || '',
+      assignmentNotes: raw.assignmentNotes || raw.assignmentnotes || '',
+      assignedDate: raw.assignedDate || raw.assigneddate || raw.assignedAt || raw.assignedat || '',
+      createdAt: raw.createdAt || raw.createdat || ''
+    };
+  };
+
   // Sync from backend API on mount, role change, and assignment actions
   const fetchLiveLeads = React.useCallback(async () => {
     try {
@@ -205,7 +226,9 @@ export const CrmHrTaskAssignment = () => {
         ? `/api/leads?assignedEmployee=${encodeURIComponent(currentEmployeeName)}&userRole=HR+Operations`
         : '/api/leads?limit=250';
       const res = await fetch(url, {
+        cache: 'no-store',
         headers: {
+          'Cache-Control': 'no-cache',
           'x-user-role': currentRole || (isHrOperations ? 'HR Operations' : 'HR Lead'),
           'x-employee-name': currentEmployeeName,
           'x-employee-id': currentEmployeeId,
@@ -213,7 +236,8 @@ export const CrmHrTaskAssignment = () => {
         }
       });
       const data = await res.json();
-      const apiLeads = Array.isArray(data.leads) ? data.leads : (Array.isArray(data.data) ? data.data : []);
+      const rawLeads = Array.isArray(data.leads) ? data.leads : (Array.isArray(data.data) ? data.data : []);
+      const apiLeads = rawLeads.map(normalizeEnquiryItem);
       if (isHrOperations) {
         setTaskData(apiLeads);
         saveTasks(apiLeads);
@@ -238,7 +262,9 @@ export const CrmHrTaskAssignment = () => {
     try {
       setLoadingAssignedTasks(true);
       const res = await fetch('/api/hr-operations/tasks', {
+        cache: 'no-store',
         headers: {
+          'Cache-Control': 'no-cache',
           'x-user-role': currentRole || (isHrOperations ? 'HR Operations' : 'HR Lead'),
           'x-employee-id': currentEmployeeId,
           'x-employee-name': currentEmployeeName,

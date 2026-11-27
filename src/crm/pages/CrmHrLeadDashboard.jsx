@@ -1306,7 +1306,13 @@ export const CrmHrLeadDashboard = ({ initialSection, isReadOnly = false }) => {
         credentials: 'include'
       });
       if (res.ok) {
-        const data = await res.json();
+        const rawText = await res.text();
+      let data = null;
+      try {
+        data = JSON.parse(rawText);
+      } catch (_) {
+        data = { success: false, message: `Server returned status ${res.status}. Please retry.` };
+      }
         if (reqSeq !== announcementsReqSeqRef.current) return;
         if (data?.success && Array.isArray(data.announcements)) {
           setCompanyAnnouncements(data.announcements);
@@ -1388,7 +1394,13 @@ export const CrmHrLeadDashboard = ({ initialSection, isReadOnly = false }) => {
         }
       );
 
-      const data = await res.json();
+      const rawText = await res.text();
+      let data = null;
+      try {
+        data = JSON.parse(rawText);
+      } catch (_) {
+        data = { success: false, message: `Server returned status ${res.status}. Please retry.` };
+      }
       if (!res.ok || !data.success) {
         showToast(data.message || 'Failed to save announcement.');
       } else {
@@ -1439,7 +1451,13 @@ export const CrmHrLeadDashboard = ({ initialSection, isReadOnly = false }) => {
         },
         credentials: 'include'
       });
-      const data = await res.json();
+      const rawText = await res.text();
+      let data = null;
+      try {
+        data = JSON.parse(rawText);
+      } catch (_) {
+        data = { success: false, message: `Server returned status ${res.status}. Please retry.` };
+      }
       if (res.ok && data.success) {
         showToast(`✓ Announcement "${title}" published and broadcast.`);
         await loadCompanyAnnouncements();
@@ -1473,7 +1491,13 @@ export const CrmHrLeadDashboard = ({ initialSection, isReadOnly = false }) => {
         body: JSON.stringify({ reason: reason.trim() }),
         credentials: 'include'
       });
-      const data = await res.json();
+      const rawText = await res.text();
+      let data = null;
+      try {
+        data = JSON.parse(rawText);
+      } catch (_) {
+        data = { success: false, message: `Server returned status ${res.status}. Please retry.` };
+      }
       if (res.ok && data.success) {
         showToast(`✓ Announcement "${title}" moved to deleted history.`);
         setDeleteConfirmAnnouncement(null);
@@ -1509,7 +1533,13 @@ export const CrmHrLeadDashboard = ({ initialSection, isReadOnly = false }) => {
         },
         credentials: 'include'
       });
-      const data = await res.json();
+      const rawText = await res.text();
+      let data = null;
+      try {
+        data = JSON.parse(rawText);
+      } catch (_) {
+        data = { success: false, message: `Server returned status ${res.status}. Please retry.` };
+      }
       if (res.ok && data.success) {
         showToast(`✓ Announcement "${title}" restored.`);
         await loadCompanyAnnouncements();
@@ -1997,11 +2027,20 @@ export const CrmHrLeadDashboard = ({ initialSection, isReadOnly = false }) => {
         'x-crm-role': currentRole || 'HR Lead'
       };
 
+      const rosterSnapshot = (typeof displayEmployees !== 'undefined' && Array.isArray(displayEmployees) && displayEmployees.length > 0)
+        ? displayEmployees
+        : (Array.isArray(shiftRosterData) && shiftRosterData.length > 0 ? shiftRosterData : (Array.isArray(employees) ? employees : []));
+      const employeeDetails = assignFormTarget.employeeIds.map((eid) => {
+        const matched = rosterSnapshot.find(emp => (emp.employeeId || emp.id) === eid);
+        return matched ? { id: eid, employeeId: matched.employeeId || matched.id, name: matched.name, email: matched.email } : { id: eid };
+      });
+
       let res = await fetch('/api/crm/shifts/assign', {
         method: 'POST',
         headers,
         body: JSON.stringify({
           employeeIds: assignFormTarget.employeeIds,
+          employeeDetails,
           shiftId: assignFormTarget.shiftId,
           startDate: assignFormTarget.startDate,
           endDate: assignFormTarget.endDate || null,
@@ -2022,7 +2061,9 @@ export const CrmHrLeadDashboard = ({ initialSection, isReadOnly = false }) => {
               employeeId: user?.id
             })
           });
-          const previewJson = await previewRes.json();
+          const previewText = await previewRes.text();
+          let previewJson = null;
+          try { previewJson = JSON.parse(previewText); } catch (_) { }
           if (previewJson?.success && previewJson.token) {
             token = previewJson.token;
             if (setCrmToken) setCrmToken(token);
@@ -2032,6 +2073,7 @@ export const CrmHrLeadDashboard = ({ initialSection, isReadOnly = false }) => {
               headers,
               body: JSON.stringify({
                 employeeIds: assignFormTarget.employeeIds,
+                employeeDetails,
                 shiftId: assignFormTarget.shiftId,
                 startDate: assignFormTarget.startDate,
                 endDate: assignFormTarget.endDate || null,
@@ -2044,7 +2086,13 @@ export const CrmHrLeadDashboard = ({ initialSection, isReadOnly = false }) => {
         } catch (_) { }
       }
 
-      const data = await res.json();
+      const rawText = await res.text();
+      let data = null;
+      try {
+        data = JSON.parse(rawText);
+      } catch (_) {
+        data = { success: false, message: `Server returned status ${res.status}. Please retry in a moment.` };
+      }
       if (res.ok && data?.success) {
         const targetIds = Array.isArray(assignFormTarget?.employeeIds) ? assignFormTarget.employeeIds : [];
         const rosterList = (typeof displayEmployees !== 'undefined' && Array.isArray(displayEmployees))
@@ -2104,7 +2152,13 @@ export const CrmHrLeadDashboard = ({ initialSection, isReadOnly = false }) => {
         body: JSON.stringify({ decision, notes })
       });
 
-      const data = await res.json();
+      const rawText = await res.text();
+      let data = null;
+      try {
+        data = JSON.parse(rawText);
+      } catch (_) {
+        data = { success: false, message: `Server returned status ${res.status}. Please retry.` };
+      }
       if (res.ok && data?.success) {
         showToast(`✓ Late login ${decision.toLowerCase()} successfully.`);
         setLateDecisionModal({ open: false, request: null, decision: 'Approved', notes: '' });

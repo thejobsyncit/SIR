@@ -2467,6 +2467,10 @@ app.get('/api/candidate/applications', async (req, res) => {
   try {
     const { candidateId, email, userId } = req.query;
     const db = await getDb();
+    await Promise.all([
+      db.refreshTable?.('candidate_applications', 0).catch(() => { }),
+      db.refreshTable?.('candidates', 10000).catch(() => { })
+    ]);
     let rows;
     if (candidateId || email || userId) {
       const cleanEmail = (email || '').trim().toLowerCase();
@@ -5710,6 +5714,12 @@ app.post('/api/hr-operations/assign', async (req, res) => {
     }
 
     const db = await getDb();
+    await Promise.all([
+      db.refreshTable?.('leads', 0).catch(() => { }),
+      db.refreshTable?.('candidate_applications', 0).catch(() => { }),
+      db.refreshTable?.('hr_task_assignments', 0).catch(() => { }),
+      db.refreshTable?.('employees', 10000).catch(() => { })
+    ]);
 
     // Ensure leads & hr_task_assignments table columns exist
     await db.run('ALTER TABLE leads ADD COLUMN assignedEmployeeId TEXT').catch(() => { });
@@ -6477,6 +6487,10 @@ app.get(['/api/leads', '/api/consulting/enquiries', '/api/career-guidance/enquir
       page, limit
     } = req.query;
     const db = await getDb();
+    await Promise.all([
+      db.refreshTable?.('leads', 0).catch(() => { }),
+      db.refreshTable?.('hr_task_assignments', 5000).catch(() => { })
+    ]);
 
     let query = 'SELECT * FROM leads WHERE 1=1';
     const params = [];
