@@ -3872,7 +3872,6 @@ export const registerAttendanceRoutes = (app, { getDb, getClientIp }) => {
         month: requestedMonth,
         todayDate: todayIst,
         employeeId: empId,
-        employeeEmail: employee.email,
         employeeName: employee.name,
         days
       });

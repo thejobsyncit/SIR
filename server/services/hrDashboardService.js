@@ -109,14 +109,6 @@ const buildAttendanceSummary = async (db, employee, now) => {
   const empShiftAssignments = filterAssignmentsForEmployee(allShiftAssignments, employee);
   const sharedResolved = resolveShiftForDate(approxWorkDate, empShiftAssignments || []);
 
-  console.log('[DEBUG /api/hr-ops/dashboard/summary shift]', {
-    employee: { id: employee.id, employeeId: employee.employeeId, email: employee.email },
-    workDate: approxWorkDate,
-    matchingRowsCount: empShiftAssignments.length,
-    resolvedType: sharedResolved.type,
-    resolvedSource: sharedResolved.source
-  });
-
   const effectiveShift = {
     id: sharedResolved.shiftId,
     name: sharedResolved.name,
