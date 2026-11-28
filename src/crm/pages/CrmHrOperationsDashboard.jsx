@@ -194,10 +194,12 @@ const CrmHrOperationsDashboard = ({ initialSection } = {}) => {
     authTokenLoading,
     currentRole,
     currentEmployee,
+    user: crmUser,
     switchRole,
     setActiveModule,
     logout
   } = useCrm();
+  const user = crmUser || currentEmployee || null;
 
   const workspaceRef = useRef(null);
 
