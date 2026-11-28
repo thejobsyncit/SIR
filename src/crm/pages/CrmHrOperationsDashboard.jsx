@@ -363,6 +363,47 @@ const CrmHrOperationsDashboard = ({ initialSection } = {}) => {
         throw new Error(json.message || 'Unable to load Daily Operations Dashboard.');
       }
 
+      // Self-heal if a cached crmToken belongs to a different employee than the logged-in user (e.g. Balavarshini vs Fatima)
+      const returnedEmail = String(json.data?.employee?.email || '').toLowerCase().trim();
+      const loggedEmail = String(user?.email || '').toLowerCase().trim();
+      if (loggedEmail && returnedEmail && returnedEmail !== loggedEmail) {
+        try {
+          const healTokRes = await fetch('/api/crm/auth/preview-token', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              targetRole: currentRole || 'HR Operations',
+              targetEmail: user.email,
+              employeeId: user.employeeId || user.id
+            })
+          });
+          if (healTokRes.ok) {
+            const healTokData = await healTokRes.json();
+            if (healTokData?.success && healTokData.token) {
+              setCrmToken?.(healTokData.token);
+              try {
+                const cur = JSON.parse(localStorage.getItem('sir_crm_session') || '{}');
+                if (cur && cur.isAuthenticated) {
+                  localStorage.setItem('sir_crm_session', JSON.stringify({ ...cur, crmToken: healTokData.token }));
+                }
+              } catch (_) { }
+              const healRes = await fetch('/api/hr-ops/dashboard/summary', {
+                cache: 'no-store',
+                headers: {
+                  'Cache-Control': 'no-cache',
+                  Authorization: `Bearer ${healTokData.token}`
+                }
+              });
+              const healJson = await healRes.json().catch(() => ({}));
+              if (healRes.ok && healJson.success && healJson.data) {
+                setDashboard(healJson.data);
+                return;
+              }
+            }
+          }
+        } catch (_) { }
+      }
+
       setDashboard(json.data);
     } catch (err) {
       setErrorState({
@@ -412,7 +453,7 @@ const CrmHrOperationsDashboard = ({ initialSection } = {}) => {
       } catch (_) { }
     }
 
-    const timer = setInterval(handleSync, 15000);
+    const timer = setInterval(handleSync, 5000);
     return () => {
       clearInterval(timer);
       window.removeEventListener('sir-shifts-updated', handleSync);
@@ -930,7 +971,11 @@ const CrmHrOperationsDashboard = ({ initialSection } = {}) => {
                     const res = await fetch('/api/crm/auth/preview-token', {
                       method: 'POST',
                       headers: { 'Content-Type': 'application/json' },
-                      body: JSON.stringify({ targetRole: 'HR Operations' })
+                      body: JSON.stringify({
+                        targetRole: currentRole || 'HR Operations',
+                        targetEmail: user?.email,
+                        employeeId: user?.employeeId || user?.id
+                      })
                     });
                     if (res.ok) {
                       const data = await res.json();
@@ -951,7 +996,7 @@ const CrmHrOperationsDashboard = ({ initialSection } = {}) => {
                 }}
                 className="px-4 py-2.5 rounded-xl text-sm font-semibold bg-emerald-600 hover:bg-emerald-700 text-white transition-colors cursor-pointer shadow-sm"
               >
-                ⚡ Sign In as HR Operations (Balavarshini S.)
+                ⚡ Reconnect Session ({user?.name || 'HR Operations'})
               </button>
               <button
                 type="button"
@@ -1009,10 +1054,12 @@ const CrmHrOperationsDashboard = ({ initialSection } = {}) => {
             </div>
 
             <div className="flex flex-wrap items-center gap-2.5">
-              {!isEnquiriesPage && (
+              {!isEnquiriesPage && (() => {
+                const hasShiftForToday = Boolean(shiftInfo && !shiftInfo.isOff);
+                return (
                 <div
                   className={`flex items-center gap-2 px-3 py-1.5 rounded-xl border cursor-pointer hover:shadow-xs transition ${
-                    shiftInfo?.hasExplicitAssignment
+                    hasShiftForToday
                       ? 'bg-amber-50 dark:bg-amber-500/10 border-amber-300 dark:border-amber-500/30 hover:border-amber-500'
                       : 'bg-slate-50 dark:bg-slate-800/70 border-slate-200 dark:border-slate-700 hover:border-slate-400'
                   }`}
@@ -1021,7 +1068,7 @@ const CrmHrOperationsDashboard = ({ initialSection } = {}) => {
                   title="Click to view My Shift"
                 >
                   <div className={`w-6 h-6 rounded-md flex items-center justify-center shrink-0 font-bold ${
-                    shiftInfo?.hasExplicitAssignment
+                    hasShiftForToday
                       ? 'bg-amber-500/20 text-amber-700 dark:text-amber-400'
                       : 'bg-slate-200/80 dark:bg-slate-700 text-slate-500 dark:text-slate-300'
                   }`}>
@@ -1029,17 +1076,17 @@ const CrmHrOperationsDashboard = ({ initialSection } = {}) => {
                   </div>
                   <div className="leading-tight">
                     <p className={`text-[10px] font-bold uppercase tracking-wider ${
-                      shiftInfo?.hasExplicitAssignment
+                      hasShiftForToday
                         ? 'text-amber-900 dark:text-amber-300'
                         : 'text-slate-500 dark:text-slate-400'
                     }`}>
                       Today’s Assigned Shift
-                      {shiftInfo?.hasExplicitAssignment && shiftInfo?.name
+                      {hasShiftForToday && shiftInfo?.name
                         ? ` • ${shiftInfo.name.replace(/\s*\([^)]*\)\s*$/, '').trim()}`
                         : ''}
                     </p>
                     <p className="text-xs font-bold text-slate-950 dark:text-white">
-                      {shiftInfo?.hasExplicitAssignment ? (
+                      {hasShiftForToday ? (
                         <>
                           {shiftInfo.formattedTiming}
                           {shiftInfo.assignmentDate ? (
@@ -1054,7 +1101,8 @@ const CrmHrOperationsDashboard = ({ initialSection } = {}) => {
                     </p>
                   </div>
                 </div>
-              )}
+                );
+              })()}
 
               <button
                 type="button"
