@@ -14,7 +14,7 @@ import {
   buildAttendanceDataset
 } from './attendanceService.js';
 import { resolveEmployeeShiftForDate } from '../routes/attendanceRoutes.js';
-import { resolveShiftForDate, getCurrentIstDateStr } from './shiftService.js';
+import { resolveShiftForDate, getCurrentIstDateStr, filterAssignmentsForEmployee } from './shiftService.js';
 import {
   HttpError,
   RESOLVED_STATUS_SET,
@@ -103,10 +103,19 @@ const buildAttendanceSummary = async (db, employee, now) => {
 
   // Dynamically resolve shift effective for employee on today's IST date using shared shiftService
   await db.refreshTable?.('employee_shift_assignments');
-  const empShiftAssignments = await db
-    .all(`SELECT * FROM employee_shift_assignments WHERE employeeId = ?`, [employee.employeeId])
+  const allShiftAssignments = await db
+    .all(`SELECT * FROM employee_shift_assignments`)
     .catch(() => []);
+  const empShiftAssignments = filterAssignmentsForEmployee(allShiftAssignments, employee);
   const sharedResolved = resolveShiftForDate(approxWorkDate, empShiftAssignments || []);
+
+  console.log('[DEBUG /api/hr-ops/dashboard/summary shift]', {
+    employee: { id: employee.id, employeeId: employee.employeeId, email: employee.email },
+    workDate: approxWorkDate,
+    matchingRowsCount: empShiftAssignments.length,
+    resolvedType: sharedResolved.type,
+    resolvedSource: sharedResolved.source
+  });
 
   const effectiveShift = {
     id: sharedResolved.shiftId,

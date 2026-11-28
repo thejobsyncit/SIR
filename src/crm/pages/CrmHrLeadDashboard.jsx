@@ -1881,25 +1881,68 @@ export const CrmHrLeadDashboard = ({ initialSection, isReadOnly = false }) => {
           : Promise.resolve(null)
       ]);
 
+      const myEmailLower = String(user?.email || currentEmployee?.email || '').toLowerCase().trim();
+      const myEmpIdLower = String(user?.employeeId || user?.id || currentEmployee?.employeeId || currentEmployee?.id || '').toLowerCase().trim();
+      let myShiftsMatchedSelf = true;
+
       if (myShiftsRes && myShiftsRes.ok) {
         const myShiftsJson = await myShiftsRes.json().catch(() => null);
         if (myShiftsJson?.success && Array.isArray(myShiftsJson.days)) {
-          const nextMap = {};
-          myShiftsJson.days.forEach((d) => {
-            if (d?.date) nextMap[d.date] = d;
-          });
-          setMyMonthlyShiftsMap(nextMap);
+          const respEmpId = String(myShiftsJson.employeeId || '').toLowerCase().trim();
+          const respEmail = String(myShiftsJson.employeeEmail || '').toLowerCase().trim();
+          const matchesMe =
+            (!myEmpIdLower && !myEmailLower) ||
+            (myEmpIdLower && respEmpId === myEmpIdLower) ||
+            (myEmailLower && respEmail === myEmailLower);
+          if (matchesMe) {
+            const nextMap = {};
+            myShiftsJson.days.forEach((d) => {
+              if (d?.date) nextMap[d.date] = d;
+            });
+            setMyMonthlyShiftsMap(nextMap);
+          } else {
+            myShiftsMatchedSelf = false;
+            if (myEmailLower || myEmpIdLower) {
+              try {
+                const healRes = await fetch('/api/crm/auth/preview-token', {
+                  method: 'POST',
+                  headers: { 'Content-Type': 'application/json' },
+                  body: JSON.stringify({
+                    targetRole: currentRole || 'HR Operations',
+                    targetEmail: user?.email || currentEmployee?.email,
+                    employeeId: user?.employeeId || user?.id || currentEmployee?.employeeId || currentEmployee?.id
+                  })
+                });
+                const healJson = await healRes.json().catch(() => ({}));
+                if (healRes.ok && healJson?.success && healJson.token) {
+                  if (setCrmToken) setCrmToken(healJson.token);
+                  const retryMe = await fetch(`/api/hr-ops/shifts/me?month=${visibleMonthStr}`, {
+                    cache: 'no-store',
+                    headers: { ...headers, Authorization: `Bearer ${healJson.token}` }
+                  });
+                  const retryJson = await retryMe.json().catch(() => null);
+                  if (retryMe.ok && retryJson?.success && Array.isArray(retryJson.days)) {
+                    const nextMap = {};
+                    retryJson.days.forEach((d) => {
+                      if (d?.date) nextMap[d.date] = d;
+                    });
+                    setMyMonthlyShiftsMap(nextMap);
+                    myShiftsMatchedSelf = true;
+                  }
+                }
+              } catch (_) { }
+            }
+          }
         }
       }
 
       if (rosterRes.ok) {
         const rosterJson = await rosterRes.json();
         if (rosterJson?.success && Array.isArray(rosterJson.employees)) {
-          const myEmailLower = String(user?.email || currentEmployee?.email || '').toLowerCase().trim();
           const hasSelfInRoster = !readOnlyMode || !myEmailLower || rosterJson.employees.some(
             (e) => String(e.email || '').toLowerCase().trim() === myEmailLower
           );
-          if (!hasSelfInRoster && myEmailLower) {
+          if ((!hasSelfInRoster || !myShiftsMatchedSelf) && (myEmailLower || myEmpIdLower)) {
             // Self-heal stale crmToken belonging to a different HR Operations user
             try {
               const healTokRes = await fetch('/api/crm/auth/preview-token', {
@@ -1921,10 +1964,23 @@ export const CrmHrLeadDashboard = ({ initialSection, isReadOnly = false }) => {
                   }
                 } catch (_) { }
                 const healHeaders = { ...headers, Authorization: `Bearer ${healTokJson.token}` };
-                const [hRoster, hAssign] = await Promise.all([
+                const [hRoster, hAssign, hMyShifts] = await Promise.all([
                   fetch(`/api/crm/shifts/roster?date=${shiftSelectedDate}`, { cache: 'no-store', headers: healHeaders }),
-                  fetch('/api/crm/shifts/assignments', { cache: 'no-store', headers: healHeaders })
+                  fetch('/api/crm/shifts/assignments', { cache: 'no-store', headers: healHeaders }),
+                  readOnlyMode
+                    ? fetch(`/api/hr-ops/shifts/me?month=${visibleMonthStr}`, { cache: 'no-store', headers: healHeaders })
+                    : Promise.resolve(null)
                 ]);
+                if (hMyShifts && hMyShifts.ok) {
+                  const hMyJson = await hMyShifts.json().catch(() => null);
+                  if (hMyJson?.success && Array.isArray(hMyJson.days)) {
+                    const nextMap = {};
+                    hMyJson.days.forEach((d) => {
+                      if (d?.date) nextMap[d.date] = d;
+                    });
+                    setMyMonthlyShiftsMap(nextMap);
+                  }
+                }
                 if (hRoster.ok) {
                   const hRosterJson = await hRoster.json();
                   if (hRosterJson?.success && Array.isArray(hRosterJson.employees)) {

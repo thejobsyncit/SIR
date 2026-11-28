@@ -15,7 +15,8 @@ import {
 import {
   resolveShiftForDate,
   getCurrentIstDateStr,
-  getMonthDateList
+  getMonthDateList,
+  filterAssignmentsForEmployee
 } from '../services/shiftService.js';
 
 const CRM_SESSION_SECRET =
@@ -3831,10 +3832,21 @@ export const registerAttendanceRoutes = (app, { getDb, getClientIp }) => {
         ? String(req.query.month)
         : todayIst.slice(0, 7);
 
-      const empAssignments = await db.all(
-        `SELECT * FROM employee_shift_assignments WHERE employeeId = ?`,
-        [empId]
-      );
+      const allAssignments = await db.all(`SELECT * FROM employee_shift_assignments`);
+      const empAssignments = filterAssignmentsForEmployee(allAssignments || [], employee);
+
+      console.log('[DEBUG /api/hr-ops/shifts/me]', {
+        reqUser: req.user || null,
+        authEmployee: {
+          id: employee.id,
+          employeeId: employee.employeeId,
+          email: employee.email,
+          role: employee.role
+        },
+        month: requestedMonth,
+        totalRows: (allAssignments || []).length,
+        matchingRowsCount: empAssignments.length
+      });
 
       const dates = getMonthDateList(requestedMonth);
       const days = dates.map((dateStr) => {
@@ -3860,6 +3872,7 @@ export const registerAttendanceRoutes = (app, { getDb, getClientIp }) => {
         month: requestedMonth,
         todayDate: todayIst,
         employeeId: empId,
+        employeeEmail: employee.email,
         employeeName: employee.name,
         days
       });

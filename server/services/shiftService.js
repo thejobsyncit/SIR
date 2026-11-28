@@ -6,6 +6,49 @@
 
 export const COMPANY_TIMEZONE = 'Asia/Kolkata';
 
+export const LEGACY_SHIFT_EMP_ALIASES = {
+  'REV-EMP-101': 'REV-EMP-006',
+  'INTL-HR-102': 'REV-EMP-006',
+  'INTL-HR-101': 'REV-EMP-107',
+  'ENQ-HR-201': 'REV-EMP-102',
+  'ENQ-HR-202': 'REV-EMP-108'
+};
+
+const normId = (val) => String(val || '').trim().toLowerCase();
+
+export const buildEmployeeIdentifierSet = (employee) => {
+  const ids = new Set();
+  if (!employee) return ids;
+  const rawList = [
+    employee.id,
+    employee.employeeId,
+    employee.employeeid,
+    employee.email,
+    employee.workEmail,
+    employee.workemail
+  ];
+  for (const val of rawList) {
+    const n = normId(val);
+    if (n) ids.add(n);
+  }
+  for (const [alias, canonical] of Object.entries(LEGACY_SHIFT_EMP_ALIASES)) {
+    if (ids.has(normId(canonical))) {
+      ids.add(normId(alias));
+    }
+  }
+  return ids;
+};
+
+export const filterAssignmentsForEmployee = (assignments = [], employee) => {
+  const idSet = buildEmployeeIdentifierSet(employee);
+  if (idSet.size === 0) return [];
+  return (assignments || []).filter((a) => {
+    const rowEmpId = normId(a?.employeeId || a?.employeeid);
+    const rowEmail = normId(a?.email || a?.employeeEmail);
+    return (rowEmpId && idSet.has(rowEmpId)) || (rowEmail && idSet.has(rowEmail));
+  });
+};
+
 export const SHIFT_DEFINITIONS = {
   GENERAL: {
     type: 'General',
