@@ -378,6 +378,9 @@ export const registerHrCandidateRoutes = (app, { getDb, getClientIp, logAuditTra
   // GET /api/hr-ops/dashboard/summary - Authenticated HR Operations Daily Operations Dashboard
   app.get('/api/hr-ops/dashboard/summary', requireHrOperationsAuth, async (req, res) => {
     try {
+      res.set('Cache-Control', 'no-store, no-cache, must-revalidate, proxy-revalidate');
+      res.set('Pragma', 'no-cache');
+      res.set('Expires', '0');
       assertHrSelfIdentityOnly(req, req.hrOpsEmployee);
       const summary = await getHrOperationsDashboardSummary(req.db, req.hrOpsEmployee);
       res.json({

@@ -263,7 +263,11 @@ const CrmHrOperationsDashboard = ({ initialSection } = {}) => {
         const tokRes = await fetch('/api/crm/auth/preview-token', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ targetRole: 'HR Operations' })
+          body: JSON.stringify({
+            targetRole: currentRole || 'HR Operations',
+            targetEmail: user?.email,
+            employeeId: user?.employeeId || user?.id
+          })
         });
         if (tokRes.ok) {
           const tokData = await tokRes.json();
@@ -296,7 +300,9 @@ const CrmHrOperationsDashboard = ({ initialSection } = {}) => {
 
     try {
       const res = await fetch('/api/hr-ops/dashboard/summary', {
+        cache: 'no-store',
         headers: {
+          'Cache-Control': 'no-cache',
           Authorization: `Bearer ${activeToken}`
         }
       });
@@ -315,7 +321,11 @@ const CrmHrOperationsDashboard = ({ initialSection } = {}) => {
           const tokRes = await fetch('/api/crm/auth/preview-token', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ targetRole: 'HR Operations' })
+            body: JSON.stringify({
+              targetRole: currentRole || 'HR Operations',
+              targetEmail: user?.email,
+              employeeId: user?.employeeId || user?.id
+            })
           });
           if (tokRes.ok) {
             const tokData = await tokRes.json();
@@ -328,7 +338,11 @@ const CrmHrOperationsDashboard = ({ initialSection } = {}) => {
                 }
               } catch (_) { }
               const retryRes = await fetch('/api/hr-ops/dashboard/summary', {
-                headers: { Authorization: `Bearer ${tokData.token}` }
+                cache: 'no-store',
+                headers: {
+                  'Cache-Control': 'no-cache',
+                  Authorization: `Bearer ${tokData.token}`
+                }
               });
               const retryJson = await retryRes.json().catch(() => ({}));
               if (retryRes.ok && retryJson.success && retryJson.data) {
@@ -423,7 +437,11 @@ const CrmHrOperationsDashboard = ({ initialSection } = {}) => {
           const tokRes = await fetch('/api/crm/auth/preview-token', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ targetRole: 'HR Operations' })
+            body: JSON.stringify({
+              targetRole: currentRole || 'HR Operations',
+              targetEmail: user?.email,
+              employeeId: user?.employeeId || user?.id
+            })
           });
           if (tokRes.ok) {
             const tokData = await tokRes.json();
