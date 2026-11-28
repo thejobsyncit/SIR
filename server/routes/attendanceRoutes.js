@@ -12,6 +12,11 @@ import {
   resolveRegularizationTimestamps,
   buildAttendanceDataset
 } from '../services/attendanceService.js';
+import {
+  resolveShiftForDate,
+  getCurrentIstDateStr,
+  getMonthDateList
+} from '../services/shiftService.js';
 
 const CRM_SESSION_SECRET =
   process.env.CRM_SESSION_SECRET ||
@@ -120,88 +125,39 @@ export const resolveEmployeeShiftForDate = async (db, employee, targetWorkDate =
     return getFallbackDefaultShift(db);
   }
 
-  // 1. Check employee_shift_assignments active on targetWorkDate
+  // 1. Resolve using shared shiftService (active assignment -> Sunday Weekly Off -> Mon-Sat General Shift)
   try {
     await db.refreshTable?.('employee_shift_assignments');
     const rawAssignments = await db.all(
       `SELECT * FROM employee_shift_assignments WHERE employeeId = ?`,
       [employeeId]
     );
-    const freqRank = (f) => (f === 'one_day' ? 1 : f === 'weekly' ? 2 : 3);
-    const assignments = (rawAssignments || [])
-      .filter((a) => {
-        if (String(a.status || '').toLowerCase() !== 'active') return false;
-        if (!a.startDate || a.startDate > targetWorkDate) return false;
-        if (a.endDate && String(a.endDate).trim() !== '' && a.endDate < targetWorkDate) return false;
-        return true;
-      })
-      .sort((a, b) => {
-        const rankDiff = freqRank(a.frequency) - freqRank(b.frequency);
-        if (rankDiff !== 0) return rankDiff;
-        const aTime = Date.parse(a.assignedAt || a.updatedAt || a.createdAt || 0) || 0;
-        const bTime = Date.parse(b.assignedAt || b.updatedAt || b.createdAt || 0) || 0;
-        return bTime - aTime;
-      });
-
-    if (assignments && assignments.length > 0) {
-      let targetDayOfWeek = 0;
-      try {
-        const [y, m, d] = targetWorkDate.split('-').map(Number);
-        targetDayOfWeek = new Date(y, m - 1, d).getDay(); // 0 = Sun, 1 = Mon ... 6 = Sat
-      } catch (_) {
-        const targetDateObj = new Date(`${targetWorkDate}T00:00:00Z`);
-        targetDayOfWeek = targetDateObj.getUTCDay();
-      }
-
-      for (const asgn of assignments) {
-        let isMatch = false;
-        if (asgn.frequency === 'one_day') {
-          isMatch = asgn.startDate <= targetWorkDate && (!asgn.endDate || asgn.endDate >= targetWorkDate);
-        } else if (asgn.frequency === 'weekly' || asgn.frequency === 'monthly') {
-          let days = [1, 2, 3, 4, 5, 6];
-          try {
-            if (asgn.applicableDays) {
-              days = typeof asgn.applicableDays === 'string' ? JSON.parse(asgn.applicableDays) : asgn.applicableDays;
-            }
-          } catch (_) { }
-          isMatch = Array.isArray(days) && days.includes(targetDayOfWeek);
-        } else {
-          isMatch = true;
-        }
-
-        if (isMatch) {
-          let shift = await db.get('SELECT * FROM shift_configs WHERE id = ?', [asgn.shiftId]);
-          if (!shift) {
-            shift = {
-              id: asgn.shiftId,
-              name: asgn.shiftName,
-              startTime: asgn.scheduledStartTime || '09:00',
-              endTime: asgn.scheduledEndTime || '18:00',
-              graceMinutes: 15,
-              isOvernight: 0,
-              breakTrackingEnabled: 1,
-              overtimeEnabled: 1,
-              overtimeThresholdMinutes: 480,
-              absentCutoffHour: 14,
-              weeklyOffDays: '[0]',
-              timezone: COMPANY_TIMEZONE
-            };
-          }
-          let cleanName = asgn.shiftName || shift.shiftName || shift.name || 'General Shift';
-          if (cleanName.includes('(')) cleanName = cleanName.split('(')[0].trim();
-          return {
-            ...shift,
-            shiftName: cleanName,
-            assignmentId: asgn.id,
-            frequency: asgn.frequency,
-            startDate: asgn.startDate,
-            endDate: asgn.endDate,
-            applicableDays: asgn.applicableDays,
-            scheduledLoginTime: asgn.scheduledLoginTime || formatHHMMTo12Hour(shift.startTime),
-            scheduledLogoutTime: asgn.scheduledLogoutTime || formatHHMMTo12Hour(shift.endTime)
-          };
-        }
-      }
+    const resolved = resolveShiftForDate(targetWorkDate, rawAssignments || []);
+    if (resolved.source === 'assigned' || resolved.isOff) {
+      return {
+        id: resolved.shiftId,
+        name: resolved.name,
+        shiftName: resolved.name,
+        timing: resolved.isOff ? 'Rest Day' : `${resolved.scheduledLoginTime} – ${resolved.scheduledLogoutTime}`,
+        startTime: resolved.start,
+        endTime: resolved.end,
+        scheduledLoginTime: resolved.scheduledLoginTime,
+        scheduledLogoutTime: resolved.scheduledLogoutTime,
+        assignmentId: resolved.assignmentId,
+        frequency: resolved.frequency,
+        startDate: resolved.startDate,
+        endDate: resolved.endDate,
+        isOff: resolved.isOff,
+        source: resolved.source,
+        graceMinutes: 15,
+        isOvernight: 0,
+        breakTrackingEnabled: 1,
+        overtimeEnabled: 1,
+        overtimeThresholdMinutes: 480,
+        absentCutoffHour: 14,
+        weeklyOffDays: '[0]',
+        timezone: COMPANY_TIMEZONE
+      };
     }
   } catch (err) {
     console.warn('Error resolving employee shift assignment:', err?.message);
@@ -3855,6 +3811,61 @@ export const registerAttendanceRoutes = (app, { getDb, getClientIp }) => {
     } catch (err) {
       console.error('Failed to get shift roster:', err);
       res.status(500).json({ success: false, message: 'Failed to retrieve shift roster.' });
+    }
+  });
+
+  // 2b. GET /api/hr-ops/shifts/me?month=YYYY-MM - Scoped strictly to authenticated employee
+  app.get('/api/hr-ops/shifts/me', requireCrmAuth, requireHrOpsRole, async (req, res) => {
+    try {
+      res.set('Cache-Control', 'no-store, no-cache, must-revalidate, proxy-revalidate');
+      res.set('Pragma', 'no-cache');
+      res.set('Expires', '0');
+
+      const db = await getDb();
+      await db.refreshTable?.('employee_shift_assignments');
+
+      const employee = req.authEmployee;
+      const empId = employee.employeeId || employee.id;
+      const todayIst = getCurrentIstDateStr(new Date());
+      const requestedMonth = /^\d{4}-\d{2}$/.test(req.query?.month || '')
+        ? String(req.query.month)
+        : todayIst.slice(0, 7);
+
+      const empAssignments = await db.all(
+        `SELECT * FROM employee_shift_assignments WHERE employeeId = ?`,
+        [empId]
+      );
+
+      const dates = getMonthDateList(requestedMonth);
+      const days = dates.map((dateStr) => {
+        const resolved = resolveShiftForDate(dateStr, empAssignments || []);
+        return {
+          date: dateStr,
+          type: resolved.type,
+          shiftId: resolved.shiftId,
+          name: resolved.name,
+          start: resolved.start,
+          end: resolved.end,
+          scheduledLoginTime: resolved.scheduledLoginTime,
+          scheduledLogoutTime: resolved.scheduledLogoutTime,
+          isOff: resolved.isOff,
+          source: resolved.source,
+          assignmentId: resolved.assignmentId,
+          frequency: resolved.frequency
+        };
+      });
+
+      res.json({
+        success: true,
+        month: requestedMonth,
+        todayDate: todayIst,
+        employeeId: empId,
+        employeeName: employee.name,
+        days
+      });
+    } catch (err) {
+      console.error('Failed to load employee monthly shifts:', err);
+      res.status(500).json({ success: false, message: 'Failed to load monthly shift schedule.' });
     }
   });
 

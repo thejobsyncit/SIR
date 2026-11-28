@@ -14,6 +14,7 @@ import {
   buildAttendanceDataset
 } from './attendanceService.js';
 import { resolveEmployeeShiftForDate } from '../routes/attendanceRoutes.js';
+import { resolveShiftForDate, getCurrentIstDateStr } from './shiftService.js';
 import {
   HttpError,
   RESOLVED_STATUS_SET,
@@ -98,15 +99,29 @@ const toCompanyDateStr = (rawVal) => {
 
 const buildAttendanceSummary = async (db, employee, now) => {
   const nowParts = getCompanyDateTimeParts(now);
-  const approxWorkDate = nowParts.dateStr;
+  const approxWorkDate = getCurrentIstDateStr(now) || nowParts.dateStr;
 
-  // Dynamically resolve shift effective for employee on this date
-  const resolvedShift = await resolveEmployeeShiftForDate(db, employee, approxWorkDate);
-  const effectiveShift = resolvedShift || {
-    id: 'SHIFT-GENERAL',
-    name: 'General Shift',
-    startTime: '09:00',
-    endTime: '18:00',
+  // Dynamically resolve shift effective for employee on today's IST date using shared shiftService
+  await db.refreshTable?.('employee_shift_assignments');
+  const empShiftAssignments = await db
+    .all(`SELECT * FROM employee_shift_assignments WHERE employeeId = ?`, [employee.employeeId])
+    .catch(() => []);
+  const sharedResolved = resolveShiftForDate(approxWorkDate, empShiftAssignments || []);
+
+  const effectiveShift = {
+    id: sharedResolved.shiftId,
+    name: sharedResolved.name,
+    shiftName: sharedResolved.name,
+    startTime: sharedResolved.start,
+    endTime: sharedResolved.end,
+    scheduledLoginTime: sharedResolved.scheduledLoginTime,
+    scheduledLogoutTime: sharedResolved.scheduledLogoutTime,
+    assignmentId: sharedResolved.assignmentId,
+    frequency: sharedResolved.frequency,
+    startDate: sharedResolved.startDate,
+    endDate: sharedResolved.endDate,
+    isOff: sharedResolved.isOff,
+    source: sharedResolved.source,
     graceMinutes: 15,
     isOvernight: 0,
     breakTrackingEnabled: 1,
@@ -132,7 +147,8 @@ const buildAttendanceSummary = async (db, employee, now) => {
     startDate: effectiveShift.startDate || null,
     endDate: effectiveShift.endDate || null,
     isOff: Boolean(effectiveShift.isOff),
-    hasExplicitAssignment: Boolean(effectiveShift.assignmentId)
+    source: sharedResolved.source,
+    hasExplicitAssignment: sharedResolved.source === 'assigned'
   };
 
   const todayWorkDate = resolveCheckInWorkDate(nowParts, effectiveShift);

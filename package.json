@@ -20,6 +20,7 @@
     "test:analytics": "node test-analytics-tracking.cjs",
     "test:seo": "node test-advanced-seo.cjs",
     "test:cro": "node test-cro-ux.cjs",
+    "test:shift-resolver": "node test-shift-resolver.mjs",
     "test:all": "node test-acceptance-regression.js && node test-e2e-user-journeys.js && node test-regression-comprehensive.js && node test-analytics-tracking.cjs && node test-advanced-seo.cjs && node test-cro-ux.cjs",
     "db:backup": "node server/backup-db.js",
     "db:restore": "node server/restore-db.js"

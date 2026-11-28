@@ -1729,6 +1729,7 @@ export const CrmHrLeadDashboard = ({ initialSection, isReadOnly = false }) => {
   const [monthlyViewMonth, setMonthlyViewMonth] = useState(() => new Date().getMonth());
   const [monthlySelectedEmpId, setMonthlySelectedEmpId] = useState('all');
   const [monthlyActiveDateStr, setMonthlyActiveDateStr] = useState(() => getKolkataTodayIso());
+  const [myMonthlyShiftsMap, setMyMonthlyShiftsMap] = useState({});
   const [assignModalError, setAssignModalError] = useState('');
   const [isSavingShift, setIsSavingShift] = useState(false);
   const [shiftAssignmentSuccessBanner, setShiftAssignmentSuccessBanner] = useState('');
@@ -1861,7 +1862,8 @@ export const CrmHrLeadDashboard = ({ initialSection, isReadOnly = false }) => {
         'x-crm-role': currentRole || 'HR Lead'
       };
 
-      const [rosterRes, assignmentsRes, lateRes, tasksRes] = await Promise.all([
+      const visibleMonthStr = `${monthlyViewYear}-${String(monthlyViewMonth + 1).padStart(2, '0')}`;
+      const [rosterRes, assignmentsRes, lateRes, tasksRes, myShiftsRes] = await Promise.all([
         fetch(`/api/crm/shifts/roster?date=${shiftSelectedDate}`, { cache: 'no-store', headers }),
         fetch('/api/crm/shifts/assignments', { cache: 'no-store', headers }),
         fetch('/api/crm/shifts/late-approvals', { cache: 'no-store', headers }),
@@ -1873,8 +1875,22 @@ export const CrmHrLeadDashboard = ({ initialSection, isReadOnly = false }) => {
             'x-employee-id': user?.employeeId || user?.id || '',
             'x-employee-name': user?.name || ''
           }
-        })
+        }),
+        readOnlyMode
+          ? fetch(`/api/hr-ops/shifts/me?month=${visibleMonthStr}`, { cache: 'no-store', headers })
+          : Promise.resolve(null)
       ]);
+
+      if (myShiftsRes && myShiftsRes.ok) {
+        const myShiftsJson = await myShiftsRes.json().catch(() => null);
+        if (myShiftsJson?.success && Array.isArray(myShiftsJson.days)) {
+          const nextMap = {};
+          myShiftsJson.days.forEach((d) => {
+            if (d?.date) nextMap[d.date] = d;
+          });
+          setMyMonthlyShiftsMap(nextMap);
+        }
+      }
 
       if (rosterRes.ok) {
         const rosterJson = await rosterRes.json();
@@ -1950,18 +1966,21 @@ export const CrmHrLeadDashboard = ({ initialSection, isReadOnly = false }) => {
     } finally {
       setShiftRosterLoading(false);
     }
-  }, [crmToken, currentRole, user?.email, user?.id, user?.employeeId, user?.name, setCrmToken, shiftSelectedDate, readOnlyMode]);
+  }, [crmToken, currentRole, user?.email, user?.id, user?.employeeId, user?.name, setCrmToken, shiftSelectedDate, readOnlyMode, monthlyViewYear, monthlyViewMonth]);
 
   useEffect(() => {
     if (activeTab === 'shifts') {
       loadShiftRosterData();
     }
-  }, [activeTab, shiftSelectedDate, loadShiftRosterData]);
+  }, [activeTab, shiftSelectedDate, monthlyViewYear, monthlyViewMonth, loadShiftRosterData]);
 
   // Auto-sync shift calendar & tasks when updated from another tab or view
   useEffect(() => {
     if (activeTab !== 'shifts') return undefined;
     const handleSync = () => loadShiftRosterData();
+    const onVisibility = () => {
+      if (document.visibilityState === 'visible') handleSync();
+    };
     const onStorage = (e) => {
       if (e.key === 'sir_shifts_updated_at' || e.key === 'sir_tasks_updated_at') handleSync();
     };
@@ -1969,6 +1988,7 @@ export const CrmHrLeadDashboard = ({ initialSection, isReadOnly = false }) => {
     window.addEventListener('sir-tasks-updated', handleSync);
     window.addEventListener('storage', onStorage);
     window.addEventListener('focus', handleSync);
+    document.addEventListener('visibilitychange', onVisibility);
 
     let bcShift = null;
     let bcTask = null;
@@ -1982,13 +2002,14 @@ export const CrmHrLeadDashboard = ({ initialSection, isReadOnly = false }) => {
         bcTask.onmessage = handleSync;
       } catch (_) { }
     }
-    const timer = setInterval(handleSync, 15000);
+    const timer = setInterval(handleSync, 5000);
     return () => {
       clearInterval(timer);
       window.removeEventListener('sir-shifts-updated', handleSync);
       window.removeEventListener('sir-tasks-updated', handleSync);
       window.removeEventListener('storage', onStorage);
       window.removeEventListener('focus', handleSync);
+      document.removeEventListener('visibilitychange', onVisibility);
       if (bcShift) bcShift.close();
       if (bcTask) bcTask.close();
     };
@@ -5801,22 +5822,41 @@ export const CrmHrLeadDashboard = ({ initialSection, isReadOnly = false }) => {
 
                             // Calculate shifts for this day
                             let dayContent = null;
-                            if (selectedEmp) {
-                              const s = resolveShiftForEmpAndDate(selectedEmp, day.iso);
+                            if (selectedEmp || (readOnlyMode && myMonthlyShiftsMap[day.iso])) {
+                              const apiDay = readOnlyMode ? myMonthlyShiftsMap[day.iso] : null;
+                              const s = apiDay
+                                ? {
+                                    id: apiDay.shiftId,
+                                    name: apiDay.name,
+                                    shiftName: apiDay.name,
+                                    scheduledLoginTime: apiDay.scheduledLoginTime,
+                                    scheduledLogoutTime: apiDay.scheduledLogoutTime,
+                                    isOff: apiDay.isOff,
+                                    isOverride: apiDay.source === 'assigned',
+                                    source: apiDay.source,
+                                    frequency: apiDay.frequency
+                                  }
+                                : resolveShiftForEmpAndDate(selectedEmp, day.iso);
+                              const isAssignedBadge = s.source === 'assigned' || s.isOverride;
                               dayContent = (
                                 <div className="mt-1.5 space-y-1">
                                   {s.isOff ? (
-                                    <div className="py-2 px-1.5 rounded-lg bg-slate-100/90 dark:bg-navy-950/90 text-slate-600 dark:text-slate-400 text-[10px] font-semibold text-center border border-slate-200/80 dark:border-navy-800">
-                                      Weekly Off
+                                    <div className="p-2 rounded-lg bg-slate-100/90 dark:bg-navy-950/90 text-slate-600 dark:text-slate-400 text-[10px] font-semibold border border-slate-200/80 dark:border-navy-800">
+                                      <div className="flex items-center justify-between gap-1">
+                                        <span>Weekly Off</span>
+                                        {isAssignedBadge && (
+                                          <span className="text-[8px] font-bold px-1.5 py-0.5 rounded-full bg-slate-200 text-slate-800 dark:bg-slate-800 dark:text-slate-200 uppercase tracking-wider shrink-0">Assigned</span>
+                                        )}
+                                      </div>
                                     </div>
                                   ) : s.id === 'SHIFT-MORNING' ? (
                                     <div className="p-2 rounded-lg bg-emerald-50 dark:bg-emerald-950/40 text-emerald-950 dark:text-emerald-200 border border-emerald-200/90 dark:border-emerald-800/80 text-[10px] leading-tight">
                                       <div className="flex items-center justify-between gap-1">
                                         <span className="font-semibold text-[11px] truncate">Morning Shift</span>
-                                        {s.isOverride ? (
-                                          <span className="text-[8px] font-bold px-1.5 py-0.5 rounded-full bg-emerald-200/90 text-emerald-950 dark:bg-emerald-800 dark:text-emerald-100 uppercase tracking-wider shrink-0">Active</span>
+                                        {isAssignedBadge ? (
+                                          <span className="text-[8px] font-bold px-1.5 py-0.5 rounded-full bg-emerald-200/90 text-emerald-950 dark:bg-emerald-800 dark:text-emerald-100 uppercase tracking-wider shrink-0">Assigned</span>
                                         ) : (
-                                          <span className="text-[8px] font-bold px-1.5 py-0.5 rounded-full bg-emerald-100 text-emerald-800 dark:bg-emerald-900/60 dark:text-emerald-200 shrink-0">Active</span>
+                                          <span className="text-[8px] font-bold px-1.5 py-0.5 rounded-full bg-emerald-100 text-emerald-800 dark:bg-emerald-900/60 dark:text-emerald-200 shrink-0">Default</span>
                                         )}
                                       </div>
                                       <div className="text-[10px] font-medium text-emerald-800 dark:text-emerald-300/90 mt-1">
@@ -5827,10 +5867,10 @@ export const CrmHrLeadDashboard = ({ initialSection, isReadOnly = false }) => {
                                     <div className="p-2 rounded-lg bg-indigo-50 dark:bg-indigo-950/40 text-indigo-950 dark:text-indigo-200 border border-indigo-200/90 dark:border-indigo-800/80 text-[10px] leading-tight">
                                       <div className="flex items-center justify-between gap-1">
                                         <span className="font-semibold text-[11px] truncate">Evening Shift</span>
-                                        {s.isOverride ? (
-                                          <span className="text-[8px] font-bold px-1.5 py-0.5 rounded-full bg-indigo-200/90 text-indigo-950 dark:bg-indigo-800 dark:text-indigo-100 uppercase tracking-wider shrink-0">Active</span>
+                                        {isAssignedBadge ? (
+                                          <span className="text-[8px] font-bold px-1.5 py-0.5 rounded-full bg-indigo-200/90 text-indigo-950 dark:bg-indigo-800 dark:text-indigo-100 uppercase tracking-wider shrink-0">Assigned</span>
                                         ) : (
-                                          <span className="text-[8px] font-bold px-1.5 py-0.5 rounded-full bg-indigo-100 text-indigo-800 dark:bg-indigo-900/60 dark:text-indigo-200 shrink-0">Active</span>
+                                          <span className="text-[8px] font-bold px-1.5 py-0.5 rounded-full bg-indigo-100 text-indigo-800 dark:bg-indigo-900/60 dark:text-indigo-200 shrink-0">Default</span>
                                         )}
                                       </div>
                                       <div className="text-[10px] font-medium text-indigo-800 dark:text-indigo-300/90 mt-1">
@@ -5841,10 +5881,10 @@ export const CrmHrLeadDashboard = ({ initialSection, isReadOnly = false }) => {
                                     <div className="p-2 rounded-lg bg-amber-50 dark:bg-amber-950/40 text-amber-950 dark:text-amber-200 border border-amber-200/90 dark:border-amber-800/80 text-[10px] leading-tight">
                                       <div className="flex items-center justify-between gap-1">
                                         <span className="font-semibold text-[11px] truncate">General Shift</span>
-                                        {s.isOverride ? (
-                                          <span className="text-[8px] font-bold px-1.5 py-0.5 rounded-full bg-amber-200/90 text-amber-950 dark:bg-amber-800 dark:text-amber-100 uppercase tracking-wider shrink-0">Active</span>
+                                        {isAssignedBadge ? (
+                                          <span className="text-[8px] font-bold px-1.5 py-0.5 rounded-full bg-amber-200/90 text-amber-950 dark:bg-amber-800 dark:text-amber-100 uppercase tracking-wider shrink-0">Assigned</span>
                                         ) : (
-                                          <span className="text-[8px] font-bold px-1.5 py-0.5 rounded-full bg-amber-100 text-amber-900 dark:bg-amber-900/60 dark:text-amber-200 shrink-0">Active</span>
+                                          <span className="text-[8px] font-bold px-1.5 py-0.5 rounded-full bg-amber-100 text-amber-900 dark:bg-amber-900/60 dark:text-amber-200 shrink-0">Default</span>
                                         )}
                                       </div>
                                       <div className="text-[10px] font-medium text-amber-900/90 dark:text-amber-300/90 mt-1">
@@ -5955,7 +5995,19 @@ export const CrmHrLeadDashboard = ({ initialSection, isReadOnly = false }) => {
                       {/* HR Operations (Read-Only): Selected Date Shift & Assigned Tasks Details */}
                       {readOnlyMode && (() => {
                         const myEmp = selectedEmp || displayEmployees[0] || null;
-                        const myShift = myEmp ? resolveShiftForEmpAndDate(myEmp, monthlyActiveDateStr) : null;
+                        const apiSelected = myMonthlyShiftsMap[monthlyActiveDateStr];
+                        const myShift = apiSelected
+                          ? {
+                              shiftName: apiSelected.name,
+                              name: apiSelected.name,
+                              scheduledLoginTime: apiSelected.scheduledLoginTime,
+                              scheduledLogoutTime: apiSelected.scheduledLogoutTime,
+                              isOff: apiSelected.isOff,
+                              isOverride: apiSelected.source === 'assigned',
+                              source: apiSelected.source,
+                              frequency: apiSelected.frequency
+                            }
+                          : (myEmp ? resolveShiftForEmpAndDate(myEmp, monthlyActiveDateStr) : null);
                         const myDayTasks = (assignedTasksForCalendar || []).filter((t) => {
                           const d = (t.dueDate || '').slice(0, 10);
                           if (d !== monthlyActiveDateStr) return false;
