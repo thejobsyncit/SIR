@@ -122,6 +122,7 @@ export const resolveEmployeeShiftForDate = async (db, employee, targetWorkDate =
 
   // 1. Check employee_shift_assignments active on targetWorkDate
   try {
+    await db.refreshTable?.('employee_shift_assignments');
     const rawAssignments = await db.all(
       `SELECT * FROM employee_shift_assignments WHERE employeeId = ?`,
       [employeeId]
@@ -3860,7 +3861,9 @@ export const registerAttendanceRoutes = (app, { getDb, getClientIp }) => {
   // 3. GET /api/crm/shifts/assignments - Shift assignments list & history
   app.get('/api/crm/shifts/assignments', requireCrmAuth, requireHrStaffRole, async (req, res) => {
     try {
+      res.set('Cache-Control', 'no-store, no-cache, must-revalidate, proxy-revalidate');
       const db = await getDb();
+      await db.refreshTable?.('employee_shift_assignments');
       const { employeeId, status, startDate, endDate } = req.query || {};
       const isLeadership = HR_LEADERSHIP_ROLES.includes(req.authEmployee?.role || '');
       const authEmpId = req.authEmployee?.employeeId || req.authEmployee?.id || '';
@@ -3899,6 +3902,7 @@ export const registerAttendanceRoutes = (app, { getDb, getClientIp }) => {
   app.post('/api/crm/shifts/assign', requireCrmAuth, requireHrLeadershipRole, async (req, res) => {
     try {
       const db = await getDb();
+      await db.refreshTable?.('employee_shift_assignments');
       await Promise.all([
         refreshAttendanceTables(db, ['employee_shift_assignments'], 0),
         refreshAttendanceTables(db, ['employees'], 10000)
@@ -4109,6 +4113,7 @@ export const registerAttendanceRoutes = (app, { getDb, getClientIp }) => {
   app.delete('/api/crm/shifts/assignments/:id', requireCrmAuth, requireHrLeadershipRole, async (req, res) => {
     try {
       const db = await getDb();
+      await db.refreshTable?.('employee_shift_assignments');
       const reviewer = req.authEmployee;
       const { id } = req.params;
 
