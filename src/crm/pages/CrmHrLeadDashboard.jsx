@@ -1803,7 +1803,17 @@ export const CrmHrLeadDashboard = ({ initialSection, isReadOnly = false }) => {
         return false;
       });
 
-      return selfRecord;
+      if (selfRecord.length > 0) return selfRecord;
+      // Fallback to local employees list if shiftRosterData belonged to a mismatched session
+      const fallbackSelf = employees.filter(emp => {
+        const empId = (emp.employeeId || emp.id || '').toString().trim().toLowerCase();
+        const empEmail = (emp.email || '').toLowerCase().trim();
+        const empName = (emp.name || '').toLowerCase().trim();
+        return (myId && empId && (empId === myId || empId.includes(myId) || myId.includes(empId))) ||
+          (myEmail && empEmail && empEmail === myEmail) ||
+          (myName && empName && (empName === myName || empName.includes(myName) || myName.includes(empName)));
+      });
+      return fallbackSelf;
     }
 
     return activeWorkforce;
@@ -1869,6 +1879,52 @@ export const CrmHrLeadDashboard = ({ initialSection, isReadOnly = false }) => {
       if (rosterRes.ok) {
         const rosterJson = await rosterRes.json();
         if (rosterJson?.success && Array.isArray(rosterJson.employees)) {
+          const myEmailLower = String(user?.email || currentEmployee?.email || '').toLowerCase().trim();
+          const hasSelfInRoster = !readOnlyMode || !myEmailLower || rosterJson.employees.some(
+            (e) => String(e.email || '').toLowerCase().trim() === myEmailLower
+          );
+          if (!hasSelfInRoster && myEmailLower) {
+            // Self-heal stale crmToken belonging to a different HR Operations user
+            try {
+              const healTokRes = await fetch('/api/crm/auth/preview-token', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                  targetRole: currentRole || 'HR Operations',
+                  targetEmail: user?.email || currentEmployee?.email,
+                  employeeId: user?.employeeId || user?.id || currentEmployee?.employeeId || currentEmployee?.id
+                })
+              });
+              const healTokJson = await healTokRes.json().catch(() => ({}));
+              if (healTokRes.ok && healTokJson?.success && healTokJson.token) {
+                if (setCrmToken) setCrmToken(healTokJson.token);
+                try {
+                  const cur = JSON.parse(localStorage.getItem('sir_crm_session') || '{}');
+                  if (cur && cur.isAuthenticated) {
+                    localStorage.setItem('sir_crm_session', JSON.stringify({ ...cur, crmToken: healTokJson.token }));
+                  }
+                } catch (_) { }
+                const healHeaders = { ...headers, Authorization: `Bearer ${healTokJson.token}` };
+                const [hRoster, hAssign] = await Promise.all([
+                  fetch(`/api/crm/shifts/roster?date=${shiftSelectedDate}`, { cache: 'no-store', headers: healHeaders }),
+                  fetch('/api/crm/shifts/assignments', { cache: 'no-store', headers: healHeaders })
+                ]);
+                if (hRoster.ok) {
+                  const hRosterJson = await hRoster.json();
+                  if (hRosterJson?.success && Array.isArray(hRosterJson.employees)) {
+                    setShiftRosterData(hRosterJson.employees);
+                  }
+                }
+                if (hAssign.ok) {
+                  const hAssignJson = await hAssign.json();
+                  if (hAssignJson?.success && Array.isArray(hAssignJson.assignments)) {
+                    setShiftAssignmentsList(hAssignJson.assignments);
+                  }
+                }
+                return;
+              }
+            } catch (_) { }
+          }
           setShiftRosterData(rosterJson.employees);
         }
       }
@@ -5811,7 +5867,7 @@ export const CrmHrLeadDashboard = ({ initialSection, isReadOnly = false }) => {
 
                               dayContent = (
                                 <div className="mt-1 space-y-1">
-                                  {countOff === displayEmployees.length ? (
+                                  {displayEmployees.length > 0 && countOff === displayEmployees.length ? (
                                     <div className="p-1 rounded-md bg-slate-100 dark:bg-navy-950 text-slate-500 dark:text-slate-400 text-[9px] font-semibold text-center">
                                       Weekly Off
                                     </div>
